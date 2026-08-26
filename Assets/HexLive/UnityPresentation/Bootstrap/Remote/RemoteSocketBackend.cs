@@ -99,16 +99,19 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     // Written by the socket thread, read by the main thread. Bytes only.
     private readonly object _inbox = new();
-    private readonly Queue<(bool keyframe, byte[] bytes)> _snapshotFrames = new();
+    private readonly Queue<(bool keyframe, int tick, byte[] bytes)> _snapshotFrames = new();
 
     /// <summary>
     /// The tick of every frame queued since the main thread last looked, in
-    /// arrival order. The clock is told about arrivals BEFORE it is asked what to
-    /// present — it will not present anything at all until it has seen one (see
-    /// <c>RemoteTickClock._started</c>), and it measures the world's real rate
-    /// from these, not from the speed the server claims.
+    /// arrival order, each with its SOCKET-THREAD receipt instant. The clock is
+    /// told about arrivals BEFORE it is asked what to present — it will not
+    /// present anything at all until it has seen one (see
+    /// <c>RemotePlayhead</c>), and it measures the world's real timeline from
+    /// these stamps, not from the speed the server claims and not from
+    /// render-frame gaps (§83.2.9): stamping here is what frees the estimate
+    /// from render-frame quantization.
     /// </summary>
-    private readonly List<int> _arrivedTicks = new();
+    private readonly List<(int tick, double arrivalSeconds)> _arrivedTicks = new();
     private readonly List<byte[]> _eventFrames = new();
     private Handshake? _handshake;
     private readonly Dictionary<int, List<CraftRecipeOption>> _craftingOptions = new();
@@ -120,7 +123,8 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     private readonly Stopwatch _sinceLastFrame = Stopwatch.StartNew();
 
-    private readonly RemoteTickClock _clock = new();
+    private readonly RemotePlayhead _clock = new();
+    private readonly NetworkConditionSimulator? _netsim = NetworkConditionSimulator.FromSessionConfig();
     private readonly WorldSnapshot _snapshot = new();
     private readonly List<SimulationEvent> _pendingEvents = new();
 
@@ -383,6 +387,17 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
                 var payload = new byte[bytes.Length - 1];
                 Buffer.BlockCopy(bytes, 1, payload, 0, payload.Length);
+
+                // §83: the network-condition rehearsal (-hexlive-netsim) delays
+                // every message HERE, before dispatch, so arrival stamps and
+                // stall detection see the simulated latency exactly as they
+                // would see a real one. FIFO is preserved — TCP delays, it
+                // never reorders.
+                if (_netsim != null)
+                {
+                    await _netsim.DelayAsync(cancel).ConfigureAwait(false);
+                }
+
                 Dispatch((FrameKind)bytes[0], payload);
             }
         }
@@ -440,6 +455,13 @@ public sealed class RemoteSocketBackend : ISimulationBackend
             case FrameKind.Snapshot:
             case FrameKind.SnapshotDelta:
                 _sinceLastFrame.Restart();
+                // The receipt instant, taken on THIS thread. The playhead syncs
+                // to these stamps; taking them on the main thread instead
+                // quantized every measurement to render frames and silently
+                // dropped the sample whenever two frames landed in one Update.
+                var arrivalSeconds = Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency;
+                var frameTick = WorldSnapshotCodec.PeekFrameTick(
+                    payload, kind == FrameKind.Snapshot);
                 lock (_inbox)
                 {
                     // Falling behind used to drop the OLDEST queued frame, which
@@ -453,9 +475,8 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                         _needKeyframe = true;
                     }
 
-                    _snapshotFrames.Enqueue((kind == FrameKind.Snapshot, payload));
-                    _arrivedTicks.Add(
-                        WorldSnapshotCodec.PeekFrameTick(payload, kind == FrameKind.Snapshot));
+                    _snapshotFrames.Enqueue((kind == FrameKind.Snapshot, frameTick, payload));
+                    _arrivedTicks.Add((frameTick, arrivalSeconds));
                     if (_state == LinkState.Stalled)
                     {
                         _state = LinkState.Live;
@@ -665,7 +686,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         }
 
         List<byte[]>? events = null;
-        List<int>? arrived = null;
+        List<(int tick, double arrivalSeconds)>? arrived = null;
         int buffered;
         bool clockChanged;
         bool paused;
@@ -676,7 +697,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
             buffered = _snapshotFrames.Count;
             if (_arrivedTicks.Count > 0)
             {
-                arrived = new List<int>(_arrivedTicks);
+                arrived = new List<(int, double)>(_arrivedTicks);
                 _arrivedTicks.Clear();
             }
 
@@ -719,17 +740,27 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                 // advice from a world of independent snapshots, and our deltas
                 // are a chain — a hole in it is refused by the reader below and
                 // answered with a keyframe, which is the only safe repair.
-                _clock.OnFrameArrived(arrived[i], out _);
+                _clock.OnFrameArrived(arrived[i].tick, arrived[i].arrivalSeconds, out _);
             }
         }
 
-        var present = _clock.Advance(unscaledDeltaTime, buffered);
-        for (var i = 0; i < present; i++)
+        _clock.Advance(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency,
+            unscaledDeltaTime);
+
+        // Decode every queued frame the playhead has reached — bounded by
+        // TickToDecode, never by "how many happen to be buffered". At 1x the
+        // playhead moves ~0.07 tick per rendered frame, so this admits at most
+        // one frame per Update by construction and the old 2x-speed burst
+        // (prev=N, curr=N+2 lerped over one tick of alpha) cannot happen.
+        // Operator fast-forward legitimately admits several; the guard is only
+        // a runaway stop, sized above the queue's own overflow cap.
+        for (var i = 0; i < 128; i++)
         {
-            (bool keyframe, byte[] bytes) frame;
+            (bool keyframe, int tick, byte[] bytes) frame;
             lock (_inbox)
             {
-                if (_snapshotFrames.Count == 0)
+                if (_snapshotFrames.Count == 0 ||
+                    _snapshotFrames.Peek().tick > _clock.TickToDecode)
                 {
                     break;
                 }
@@ -796,6 +827,10 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
             _clock.OnTickPresented(_snapshot.Tick);
         }
+
+        RemoteLinkDiagnostics.Publish(
+            _clock.BufferedTicks, _clock.DelayTicks, _clock.TargetErrorTicks,
+            _clock.JitterP95Milliseconds, buffered, _netsim != null);
     }
 
     /// <summary>

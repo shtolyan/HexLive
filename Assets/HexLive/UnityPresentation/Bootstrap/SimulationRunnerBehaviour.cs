@@ -29,7 +29,15 @@ namespace HexLive.UnityPresentation.Bootstrap
 /// the console, autosave cadence, and the two watchdogs that catch a loading
 /// screen dying mid-curtain.
 /// </para>
+/// <para>
+/// §83: runs BEFORE default-order scripts. The renderer reads
+/// <see cref="TickAlpha"/> and the backend-mutated snapshot in its own Update;
+/// without an explicit order Unity may call it first, showing last frame's
+/// alpha against this frame's snapshot — a one-frame hitch that comes and goes
+/// with script reload order.
+/// </para>
 /// </summary>
+[DefaultExecutionOrder(-100)]
 public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 {
     [SerializeField] private WorldBootstrapAsset? _bootstrapAsset;

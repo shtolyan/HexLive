@@ -74,67 +74,134 @@ public sealed class LocomotionLagRecorder : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (!IsRecording || _runner == null || _runner.Engine == null || _renderer == null)
+        if (!IsRecording || _runner == null || _renderer == null)
         {
             return;
         }
 
-        var world = _runner.Engine.World;
+        // Local play reads the live world; a remote session has no Engine, so
+        // §83 smoothness takes read the same mirror snapshot the renderer
+        // draws — fewer fields, but exactly what the player was shown.
+        var world = _runner.Engine?.World;
+        HexLive.Simulation.Debug.WorldSnapshot snapshot = null;
+        if (world == null)
+        {
+            snapshot = _runner.CreateSnapshot();
+            if (snapshot == null)
+            {
+                return;
+            }
+        }
+
         var sb = _sb;
         sb.Length = 0;
         sb.Append("{\"t\":").Append(F(Time.realtimeSinceStartup - _startedRealtime))
           .Append(",\"dt\":").Append(F(Time.unscaledDeltaTime))
-          .Append(",\"tick\":").Append(world.Tick)
+          .Append(",\"tick\":").Append(world?.Tick ?? snapshot.Tick)
+          .Append(",\"alpha\":").Append(F(_runner.TickAlpha))
           .Append(",\"simSpeed\":").Append(F(_runner.SpeedMultiplier))
-          .Append(",\"paused\":").Append(_runner.IsPaused ? "true" : "false")
-          .Append(",\"npcs\":[");
+          .Append(",\"paused\":").Append(_runner.IsPaused ? "true" : "false");
+
+        if (Bootstrap.Remote.RemoteLinkDiagnostics.Active)
+        {
+            // The playhead's vital signs, so a stutter in the take can be
+            // attributed (thin buffer, jitter spike, slew) instead of guessed.
+            sb.Append(",\"link\":{\"buf\":")
+              .Append(F(Bootstrap.Remote.RemoteLinkDiagnostics.BufferedTicks))
+              .Append(",\"delay\":").Append(F(Bootstrap.Remote.RemoteLinkDiagnostics.DelayTicks))
+              .Append(",\"err\":").Append(F(Bootstrap.Remote.RemoteLinkDiagnostics.TargetErrorTicks))
+              .Append(",\"jitP95\":").Append(F(Bootstrap.Remote.RemoteLinkDiagnostics.JitterP95Milliseconds))
+              .Append(",\"q\":").Append(Bootstrap.Remote.RemoteLinkDiagnostics.QueuedFrames)
+              .Append('}');
+        }
+
+        sb.Append(",\"npcs\":[");
 
         var first = true;
-        foreach (var npc in world.Entities.Npcs.Values)
+        if (world != null)
         {
-            if (!_renderer.TryGetNpcViewPosition(npc.Id.Value, out var viewPos))
+            foreach (var npc in world.Entities.Npcs.Values)
             {
-                continue;
-            }
-
-            if (!first)
-            {
-                sb.Append(',');
-            }
-
-            first = false;
-            sb.Append("{\"id\":").Append(npc.Id.Value)
-              .Append(",\"name\":\"").Append(npc.DisplayName).Append('"')
-              .Append(",\"simX\":").Append(F(npc.Position.X))
-              .Append(",\"simY\":").Append(F(npc.Position.Y))
-              .Append(",\"viewX\":").Append(F(viewPos.x))
-              .Append(",\"viewY\":").Append(F(viewPos.y))
-              .Append(",\"viewZ\":").Append(F(viewPos.z))
-              .Append(",\"rot\":").Append(F(npc.RotationDegrees))
-              .Append(",\"rotWant\":").Append(F(npc.Movement.DesiredRotationDegrees))
-              .Append(",\"status\":\"").Append(npc.Movement.Status).Append('"')
-              .Append(",\"moving\":").Append(npc.Movement.IsMoving ? "true" : "false")
-              .Append(",\"path\":").Append(npc.Movement.PathIndex)
-              .Append('/').Append(npc.Movement.JunctionPath.Count)
-              .Append(",\"running\":").Append(npc.Mind.IsRunning ? "true" : "false")
-              .Append(",\"goal\":\"").Append(npc.Mind.CurrentGoal).Append('"');
-
-            if (_renderer.TryGetActorView(npc.Id.Value, out var view) && view != null)
-            {
-                var viewYaw = view.transform.rotation.eulerAngles.y;
-                sb.Append(",\"viewYaw\":").Append(F(viewYaw));
-                var animator = view.GetComponentInChildren<Animator>();
-                if (animator != null && animator.isActiveAndEnabled)
+                if (!_renderer.TryGetNpcViewPosition(npc.Id.Value, out var viewPos))
                 {
-                    AppendAnimator(sb, animator);
+                    continue;
                 }
-            }
 
-            sb.Append('}');
+                AppendSeparator(sb, ref first);
+                sb.Append("{\"id\":").Append(npc.Id.Value)
+                  .Append(",\"name\":\"").Append(npc.DisplayName).Append('"')
+                  .Append(",\"simX\":").Append(F(npc.Position.X))
+                  .Append(",\"simY\":").Append(F(npc.Position.Y))
+                  .Append(",\"viewX\":").Append(F(viewPos.x))
+                  .Append(",\"viewY\":").Append(F(viewPos.y))
+                  .Append(",\"viewZ\":").Append(F(viewPos.z))
+                  .Append(",\"rot\":").Append(F(npc.RotationDegrees))
+                  .Append(",\"rotWant\":").Append(F(npc.Movement.DesiredRotationDegrees))
+                  .Append(",\"status\":\"").Append(npc.Movement.Status).Append('"')
+                  .Append(",\"moving\":").Append(npc.Movement.IsMoving ? "true" : "false")
+                  .Append(",\"path\":").Append(npc.Movement.PathIndex)
+                  .Append('/').Append(npc.Movement.JunctionPath.Count)
+                  .Append(",\"running\":").Append(npc.Mind.IsRunning ? "true" : "false")
+                  .Append(",\"goal\":\"").Append(npc.Mind.CurrentGoal).Append('"');
+                AppendView(sb, npc.Id.Value);
+                sb.Append('}');
+            }
+        }
+        else
+        {
+            for (var i = 0; i < snapshot.Npcs.Count; i++)
+            {
+                var npc = snapshot.Npcs[i];
+                if (!_renderer.TryGetNpcViewPosition(npc.Id.Value, out var viewPos))
+                {
+                    continue;
+                }
+
+                AppendSeparator(sb, ref first);
+                sb.Append("{\"id\":").Append(npc.Id.Value)
+                  .Append(",\"name\":\"").Append(npc.DisplayName).Append('"')
+                  .Append(",\"simX\":").Append(F(npc.Position.X))
+                  .Append(",\"simY\":").Append(F(npc.Position.Y))
+                  .Append(",\"viewX\":").Append(F(viewPos.x))
+                  .Append(",\"viewY\":").Append(F(viewPos.y))
+                  .Append(",\"viewZ\":").Append(F(viewPos.z))
+                  .Append(",\"rot\":").Append(F(npc.RotationDegrees))
+                  .Append(",\"status\":\"").Append(npc.MovementStatus).Append('"')
+                  .Append(",\"moving\":")
+                  .Append(npc.MovementStatus == "Moving" ? "true" : "false");
+                AppendView(sb, npc.Id.Value);
+                sb.Append('}');
+            }
         }
 
         sb.Append("]}");
         _lines.Add(sb.ToString());
+    }
+
+    private static void AppendSeparator(StringBuilder sb, ref bool first)
+    {
+        if (!first)
+        {
+            sb.Append(',');
+        }
+
+        first = false;
+    }
+
+    private void AppendView(StringBuilder sb, int npcId)
+    {
+        if (!_renderer.TryGetActorView(npcId, out var view) || view == null)
+        {
+            return;
+        }
+
+        var viewYaw = view.transform.rotation.eulerAngles.y;
+        sb.Append(",\"viewYaw\":").Append(F(viewYaw));
+        var animator = view.GetComponentInChildren<Animator>();
+        if (animator != null && animator.isActiveAndEnabled)
+        {
+            AppendAnimator(sb, animator);
+        }
     }
 
     private static void AppendAnimator(StringBuilder sb, Animator animator)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -56,6 +57,17 @@ public sealed class WorldHost : IDisposable
 
     private long _ticksRun;
     private double _busyMs;
+
+    /// <summary>
+    /// §83: tick-completion broadcast. Viewer send loops await this instead of
+    /// polling <see cref="Tick"/> on a timer — the old 62.5 ms poll added up to
+    /// a quarter-tick of send-time jitter to every frame, which the client's
+    /// playhead then had to buffer against. Swapped whole on every step;
+    /// RunContinuationsAsynchronously so a completing tick never runs viewer
+    /// serialisation on the tick thread.
+    /// </summary>
+    private TaskCompletionSource<bool> _tickSignal =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public WorldHost(int seed, GameMode mode, string savePath, string simDataPath, bool verboseTrace,
         bool includeDebugDetails = false, LlmHostOptions? llmOptions = null)
@@ -417,6 +429,7 @@ public sealed class WorldHost : IDisposable
             // connected viewer holds the gate while it serialises a frame —
             // which says something about contention but nothing at all about
             // what a tick costs, and that is the number capacity is planned on.
+            var stepped = false;
             lock (_gate)
             {
                 if (!_clock.IsPaused && !_engine.World.Completed)
@@ -426,11 +439,21 @@ public sealed class WorldHost : IDisposable
                     watch.Stop();
                     _busyMs += watch.Elapsed.TotalMilliseconds;
                     Interlocked.Increment(ref _ticksRun);
+                    stepped = true;
 
                     // Copy out before the ring buries it: at ~174 events/tick the
                     // 2048-entry buffer holds under twelve ticks.
                     DrainMcpEvents();
                 }
+            }
+
+            if (stepped)
+            {
+                // Outside the gate: waking every viewer must not extend the
+                // window in which the world is locked.
+                var signal = Interlocked.Exchange(ref _tickSignal,
+                    new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
+                signal.TrySetResult(true);
             }
 
             next += (long)(period.TotalSeconds * Stopwatch.Frequency);
@@ -448,6 +471,26 @@ public sealed class WorldHost : IDisposable
                 next = Stopwatch.GetTimestamp();
             }
         }
+    }
+
+    /// <summary>
+    /// Completes as soon as a tick finishes (or promptly if <see cref="Tick"/>
+    /// already differs from <paramref name="lastSeenTick"/>), and no later than
+    /// <paramref name="maxWait"/> — the timeout keeps a paused world's viewers
+    /// checking for clock changes at the old poll cadence. The signal is read
+    /// BEFORE the tick comparison so a step landing between the two cannot be
+    /// missed: that step completed this very signal.
+    /// </summary>
+    public async Task WaitForNextTickAsync(int lastSeenTick, TimeSpan maxWait, CancellationToken cancel)
+    {
+        var signal = Volatile.Read(ref _tickSignal).Task;
+        if (Tick != lastSeenTick)
+        {
+            return;
+        }
+
+        await Task.WhenAny(signal, Task.Delay(maxWait, cancel)).ConfigureAwait(false);
+        cancel.ThrowIfCancellationRequested();
     }
 
     // ── reading ───────────────────────────────────────────────────────────

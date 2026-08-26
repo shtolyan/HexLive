@@ -117,8 +117,10 @@ public sealed class ViewerConnection
         var lastTick = -1;
         var lastPaused = _host.IsPaused;
         var lastSpeed = _host.SpeedMultiplier;
-        // Poll a little finer than the tick so a frame goes out promptly after
-        // each step without spinning.
+        // §83: frames go out ON the tick — the loop awaits the host's tick
+        // signal instead of polling. This bound is only the fallback cadence
+        // for a paused/quiet world, so pause and speed changes are still
+        // noticed as promptly as the old poll loop noticed them.
         var poll = TimeSpan.FromSeconds(Math.Max(0.01f, _host.TickDeltaTime / 4f));
 
         try
@@ -163,7 +165,7 @@ public sealed class ViewerConnection
                     continue;
                 }
 
-                await Task.Delay(poll, cancel).ConfigureAwait(false);
+                await _host.WaitForNextTickAsync(lastTick, poll, cancel).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)

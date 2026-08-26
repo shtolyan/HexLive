@@ -191,6 +191,11 @@ public static class Program
         builder.Services.AddRouting();
         builder.Services.AddResponseCompression(options => options.EnableForHttps = true);
         builder.WebHost.UseKestrel();
+        // Kestrel's socket transport disables Nagle by default; stated
+        // explicitly because a 4 Hz frame stream must never be coalesced —
+        // rediscovering that through a 200 ms send hiccup would cost a day.
+        builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions>(
+            o => o.NoDelay = true);
         builder.WebHost.UseUrls($"http://0.0.0.0:{options.Port}");
         var app = builder.Build();
         app.UseResponseCompression();

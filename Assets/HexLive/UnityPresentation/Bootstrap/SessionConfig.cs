@@ -45,12 +45,17 @@ public static class SessionConfig
     // сам токен либо путь к файлу с ним (hexlive-player.txt рядом с сейвом
     // сервера); без аргумента — прежний анонимный зритель.
     private const string TokenArgument = "-hexlive-token";
+    // §83: сетевая репетиция — задержка+джиттер поверх реального сокета, чтобы
+    // сингапурский пинг воспроизводился на localhost. Формат
+    // "<baseMs>:<jitterMs>[:seed]"; без аргумента симулятора нет вовсе.
+    private const string NetSimArgument = "-hexlive-netsim";
     private const string ClientIdPref = "HexLive.RemoteClientId";
 
     private static bool _resolved;
     private static SimulationMode _mode = SimulationMode.Local;
     private static string? _serverUrl;
     private static string? _controlToken;
+    private static (double BaseMs, double JitterMs, int Seed)? _netSim;
 
     public static SimulationMode Mode
     {
@@ -78,6 +83,16 @@ public static class SessionConfig
         {
             Resolve();
             return _controlToken;
+        }
+    }
+
+    /// <summary>§83: параметры <c>-hexlive-netsim</c>; null — обычная сессия.</summary>
+    public static (double BaseMs, double JitterMs, int Seed)? NetSim
+    {
+        get
+        {
+            Resolve();
+            return _netSim;
         }
     }
 
@@ -173,6 +188,19 @@ public static class SessionConfig
                 continue;
             }
 
+            if (i + 1 < args.Length &&
+                string.Equals(args[i], NetSimArgument, StringComparison.OrdinalIgnoreCase))
+            {
+                _netSim = ParseNetSim(args[i + 1]);
+                if (_netSim is { } sim)
+                {
+                    Debug.Log($"[HexLive] NetSim: base={sim.BaseMs}ms " +
+                              $"jitter={sim.JitterMs}ms seed={sim.Seed}");
+                }
+
+                continue;
+            }
+
             if (i + 1 >= args.Length ||
                 !string.Equals(args[i], ServerArgument, StringComparison.OrdinalIgnoreCase))
             {
@@ -189,6 +217,32 @@ public static class SessionConfig
             _serverUrl = url;
             Debug.Log($"[HexLive] Session mode: Remote ({url})");
         }
+    }
+
+    // "<baseMs>:<jitterMs>[:seed]" — например "55:25" или "55:25:7". Кривое
+    // значение = симулятора нет: репетиционный флаг не должен уметь ронять
+    // обычный запуск.
+    private static (double BaseMs, double JitterMs, int Seed)? ParseNetSim(string value)
+    {
+        var parts = value.Split(':');
+        if (parts.Length is < 2 or > 3 ||
+            !double.TryParse(parts[0], System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var baseMs) ||
+            !double.TryParse(parts[1], System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var jitterMs))
+        {
+            Debug.LogWarning($"[HexLive] Ignoring malformed {NetSimArgument} '{value}' " +
+                             "(expected <baseMs>:<jitterMs>[:seed]).");
+            return null;
+        }
+
+        var seed = 1;
+        if (parts.Length == 3 && !int.TryParse(parts[2], out seed))
+        {
+            seed = 1;
+        }
+
+        return (baseMs, jitterMs, seed);
     }
 
     // Значение аргумента — сам токен ЛИБО путь к файлу с ним: сервер кладёт

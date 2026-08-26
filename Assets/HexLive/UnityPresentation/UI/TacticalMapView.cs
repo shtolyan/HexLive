@@ -259,18 +259,14 @@ namespace HexLive.UnityPresentation.UI
                     }
                     else
                     {
-                        // The addressable icon is non-blocking. This tidy
-                        // placeholder survives only until the next 4 Hz paint.
-                        painter.fillColor = TacticalMapPalette.WithAlpha(
-                            TacticalMapPalette.ClothingFallback, alpha);
-                        var inset = cellRect.width * 0.22f;
-                        painter.BeginPath();
-                        TraceRect(painter, new Rect(
-                            cellRect.x + inset,
-                            cellRect.y + inset,
-                            cellRect.width - inset * 2f,
-                            cellRect.height - inset * 2f));
-                        painter.Fill();
+                        context.DrawText(
+                            item.FallbackGlyph,
+                            cellRect.position + new Vector2(
+                                cellRect.width * 0.10f, -cellRect.height * 0.02f),
+                            cellRect.height * 0.72f,
+                            TacticalMapPalette.WithAlpha(
+                                TacticalMapPalette.ClothingFallback, alpha),
+                            null);
                     }
 
                     painter.strokeColor = TacticalMapPalette.WithAlpha(
@@ -788,12 +784,14 @@ namespace HexLive.UnityPresentation.UI
                     }
                     else
                     {
-                        painter.fillColor = TacticalMapPalette.WithAlpha(
-                            TacticalMapPalette.ClothingFallback, alpha);
-                        painter.BeginPath();
-                        painter.Arc(rect.center, rect.width * 0.22f,
-                            Angle.Degrees(0f), Angle.Degrees(360f));
-                        painter.Fill();
+                        context.DrawText(
+                            item.FallbackGlyph,
+                            rect.position + new Vector2(
+                                rect.width * 0.10f, -rect.height * 0.02f),
+                            rect.height * 0.72f,
+                            TacticalMapPalette.WithAlpha(
+                                TacticalMapPalette.ClothingFallback, alpha),
+                            null);
                     }
 
                     painter.strokeColor = TacticalMapPalette.WithAlpha(
@@ -1295,6 +1293,7 @@ namespace HexLive.UnityPresentation.UI
         public readonly int ObjectId;
         public readonly string DefinitionId;
         public readonly Sprite? Icon;
+        public readonly string FallbackGlyph;
         public readonly bool Live;
         public readonly int Importance;
         public readonly bool Overflow;
@@ -1304,6 +1303,7 @@ namespace HexLive.UnityPresentation.UI
             int objectId,
             string definitionId,
             Sprite? icon,
+            string fallbackGlyph,
             bool live,
             Float2 anchor,
             int importance,
@@ -1314,6 +1314,7 @@ namespace HexLive.UnityPresentation.UI
             ObjectId = objectId;
             DefinitionId = definitionId;
             Icon = icon;
+            FallbackGlyph = fallbackGlyph ?? string.Empty;
             Live = live;
             Importance = importance;
             Overflow = overflow;

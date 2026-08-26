@@ -106,8 +106,8 @@ namespace HexLive.UnityPresentation.UI
             root.Clear();
             root.pickingMode = PickingMode.Ignore;
 
-            var template = HexLive.UnityPresentation.Content.AtomicResources.Load<VisualTreeAsset>(PanelResource);
-            var sheet = HexLive.UnityPresentation.Content.AtomicResources.Load<StyleSheet>(StyleResource);
+            var template = Resources.Load<VisualTreeAsset>(PanelResource);
+            var sheet = Resources.Load<StyleSheet>(StyleResource);
             if (template == null || sheet == null)
             {
                 Debug.LogError("§150 Tactical map UXML/USS resources are missing.");
@@ -410,6 +410,7 @@ namespace HexLive.UnityPresentation.UI
                         candidate.ObjectId,
                         marker.DefinitionId,
                         ItemIcons.Load(marker.DefinitionId),
+                        ItemIcons.FallbackGlyph(marker.DefinitionId),
                         candidate.Live,
                         marker.Anchor,
                         marker.Importance));
@@ -422,6 +423,7 @@ namespace HexLive.UnityPresentation.UI
                         int.MaxValue,
                         string.Empty,
                         null,
+                        string.Empty,
                         first.Live,
                         first.Marker.Anchor,
                         0,

@@ -3,7 +3,8 @@
 `Tools/content.py build` resolves `wear`, `actor`, `hair` and `prosthetic`
 directly from their stable source conventions. Hair colour materials become
 entries of that same hair bundle; prosthetic source names are derived from ids
-such as `leg.wood.l`. Their owner icon remains mandatory. Other content
+such as `leg.wood.l`. An authored owner icon is embedded when present; otherwise
+the Player uses its stable emoji fallback. Other content
 families use one descriptor per logical object:
 
 ```text
@@ -28,8 +29,8 @@ Both `build` and `build-all` refuse to start while any tracked Git LFS asset is
 still a pointer stub. Hydrate the checkout with `git lfs checkout` (and
 `git lfs pull` if the object is not local) before building; a 130-byte pointer
 must never become a valid-looking immutable content blob. Generated metadata
-and bootstrap icon importer GUIDs are derived from `type/id`, so identical
-inputs produce the same bundle SHA and a repeated publish is a server no-op.
+GUIDs are derived from `type/id`, so identical inputs produce the same bundle
+SHA and a repeated publish is a server no-op.
 
 ```text
 python3 Tools/content.py build-all --platform StandaloneOSX --output <osx-root>
@@ -65,15 +66,12 @@ to publish all supported platforms together.
 The descriptor itself is embedded as the bundle's `metadata` entry. Visual
 gameplay objects (`wear`, `actor`, `hair`, `prosthetic`, `object`, `building`,
 `mob`) always resolve `Assets/HexLiveContent/Icons/<id>.png` when `icon` is not
-explicitly overridden. A missing owner icon is a hard build failure. The icon
-is embedded in this exact object's bundle and is never assigned to an icon
-group, catalog, or standalone bundle (§152.2).
-
-The one-time bootstrap inventory may embed the bootstrap placeholder in an
-icon-bearing owner that predates icon authoring; it marks that object's metadata
-with `iconPlaceholder=true`. This is still an entry of that exact owner bundle,
-never a shared icon payload, and a later real icon update revises only that
-object. Ordinary single-object publication keeps the hard owner-icon gate.
+explicitly overridden. When that Sprite exists it is embedded in this exact
+object's bundle and is never assigned to an icon group, catalog, or standalone
+bundle (§152.2). When it does not exist the candidate omits `iconAsset` and marks
+`iconFallback=emoji`; this is valid content, not a build failure. A later real
+icon republishes only its owner object. Legacy bootstrap records marked
+`iconPlaceholder=true` are ignored by the client in favour of the same emoji.
 
 Additional roots still belong to this one bundle. Hair descriptors, for
 example, embed colour materials with stable entry names:

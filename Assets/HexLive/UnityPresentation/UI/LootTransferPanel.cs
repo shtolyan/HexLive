@@ -878,7 +878,7 @@ public sealed class LootTransferPanel : MonoBehaviour
             return;
         }
 
-        var glyph = new Label("◆");
+        var glyph = new Label(ItemIcons.FallbackGlyph(itemId));
         glyph.style.color = Gold;
         glyph.style.fontSize = size * 0.55f;
         glyph.style.unityTextAlign = TextAnchor.MiddleCenter;

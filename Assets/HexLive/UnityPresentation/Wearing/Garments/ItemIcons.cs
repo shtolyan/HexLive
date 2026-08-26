@@ -15,6 +15,7 @@ public static class ItemIcons
     private static readonly Dictionary<string, Sprite> Cache = new();
     private static readonly Dictionary<string, ContentAssetHandle<Sprite>> Handles = new();
     private static readonly HashSet<string> Loading = new();
+    private static readonly HashSet<string> Missing = new();
     private static HashSet<string> _wearIds;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -24,6 +25,7 @@ public static class ItemIcons
         Cache.Clear();
         Handles.Clear();
         Loading.Clear();
+        Missing.Clear();
         _wearIds = null;
     }
 
@@ -34,14 +36,36 @@ public static class ItemIcons
     }
 
     /// <summary>
-    /// Compatibility entry point. It now warms only the live registry; loading
-    /// every icon would download every owning model and break atomic laziness.
+    /// Compatibility entry point. The world-aware prewarm lives in
+    /// <see cref="ScenePrewarm"/>; loading every registry icon here would also
+    /// download every owning model and break atomic laziness.
     /// </summary>
     public static void PrewarmAll() => ContentAssetService.Instance.RefreshRegistry();
 
+    /// <summary>
+    /// Starts icon loads for exactly the objects the current world can show.
+    /// Every request participates in <see cref="ContentQueue"/>, so the loading
+    /// curtain cannot open while a real owner icon is still in flight.
+    /// </summary>
+    public static void Prewarm(IEnumerable<string> ids)
+    {
+        if (ids == null)
+        {
+            return;
+        }
+
+        foreach (var id in ids)
+        {
+            Load(id);
+        }
+    }
+
+    /// <summary>Immediate UI fallback when an owner has no authored icon.</summary>
+    public static string FallbackGlyph(string id) => ItemCatalog.Resolve(id).Emoji;
+
     public static Sprite Load(string id)
     {
-        if (string.IsNullOrEmpty(id))
+        if (string.IsNullOrEmpty(id) || Missing.Contains(id))
         {
             return null;
         }
@@ -63,6 +87,14 @@ public static class ItemIcons
             {
                 Cache[id] = icon;
                 Handles[id] = loaded;
+            }
+            else
+            {
+                // Missing icon is an authoritative terminal result for this
+                // session. Do not restart the same owner-bundle request on
+                // every 4 Hz UI rebuild; every caller can show its emoji now.
+                Missing.Add(id);
+                loaded?.Dispose();
             }
             Loading.Remove(id);
             ContentQueue.End(ContentQueue.Kind.Icon);

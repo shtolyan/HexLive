@@ -36,12 +36,63 @@ public static class ScenePrewarm
         }
 
         ResolveWorkingSet(world);
+        WarmIcons(world);
         WarmWear(world);
         WarmActors(world);
         WarmHair(world);
         WarmProsthetics(world);
         WarmObjects(world);
         WarmMobs(world);
+    }
+
+    /// <summary>
+    /// Owner icons for everything the opening world can put in an inventory,
+    /// on a body, on the ground or inside a world container. Real icons finish
+    /// behind the loading curtain; objects without authored art terminate
+    /// immediately and use <see cref="Garments.ItemIcons.FallbackGlyph"/>.
+    /// This is intentionally a working set, not the whole wardrobe registry.
+    /// </summary>
+    private static void WarmIcons(WorldState world)
+    {
+        var ids = new HashSet<string>();
+        void Add(string id)
+        {
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                ids.Add(id);
+            }
+        }
+
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            foreach (var item in npc.WornItems)
+            {
+                Add(item.DefinitionId);
+            }
+            foreach (var item in npc.Inventory.Items)
+            {
+                Add(item.DefinitionId);
+            }
+        }
+
+        foreach (var corpse in world.Entities.Corpses.Values)
+        {
+            foreach (var item in corpse.WornItems)
+            {
+                Add(item.DefinitionId);
+            }
+        }
+
+        foreach (var worldObject in world.Entities.Objects.Values)
+        {
+            Add(worldObject.DefinitionId);
+            foreach (var item in worldObject.Contents)
+            {
+                Add(item.DefinitionId);
+            }
+        }
+
+        Garments.ItemIcons.Prewarm(ids);
     }
 
     private static void ResolveWorkingSet(WorldState world)

@@ -35,6 +35,7 @@ public sealed class ContentAssetService
         public AssetBundle Bundle;
         public bool Loading;
         public int References;
+        public int PendingAssetLoads;
         public readonly List<Action<AssetBundle>> Waiters = new();
     }
 
@@ -128,7 +129,16 @@ public sealed class ContentAssetService
         {
             foreach (var bundle in _instance._bundles.Values)
             {
-                bundle.Bundle?.Unload(true);
+                // With domain reload disabled Unity destroys native bundle
+                // objects when Play Mode exits, while the managed wrappers
+                // survive until SubsystemRegistration. Null-conditional access
+                // only checks the CLR reference and therefore calls Unload on
+                // a destroyed UnityEngine.Object. Use Unity's overloaded null
+                // check so a second Play starts from a clean cache.
+                if (bundle.Bundle != null)
+                {
+                    bundle.Bundle.Unload(true);
+                }
             }
         }
 
@@ -177,7 +187,7 @@ public sealed class ContentAssetService
             }
 
             var assetEntry = entry ?? record.variant.entryAsset ?? "main";
-            if (assetEntry == "icon" && record.variant.iconAsset != "icon")
+            if (assetEntry == "icon" && !record.HasRealIcon)
             {
                 completed(null);
                 return;
@@ -191,17 +201,20 @@ public sealed class ContentAssetService
                     return;
                 }
 
+                BeginAssetLoad(loadedSha);
                 var request = bundle.LoadAssetAsync<T>(assetEntry);
                 request.completed += _ =>
                 {
                     var asset = request.asset as T;
                     if (asset == null)
                     {
+                        EndAssetLoad(loadedSha);
                         completed(null);
                         return;
                     }
 
                     Retain(loadedSha);
+                    EndAssetLoad(loadedSha);
                     completed(new ContentAssetHandle<T>(
                         asset, () => Release(loadedSha)));
                 };
@@ -239,6 +252,7 @@ public sealed class ContentAssetService
                     return;
                 }
 
+                BeginAssetLoad(loadedSha);
                 var request = bundle.LoadAllAssetsAsync<T>();
                 request.completed += _ =>
                 {
@@ -250,6 +264,7 @@ public sealed class ContentAssetService
                                 asset, () => Release(loadedSha));
                         })
                         .ToArray();
+                    EndAssetLoad(loadedSha);
                     completed?.Invoke(handles);
                 };
             });
@@ -666,6 +681,25 @@ public sealed class ContentAssetService
         }
     }
 
+    private void BeginAssetLoad(string sha256)
+    {
+        if (_bundles.TryGetValue(sha256, out var state))
+        {
+            state.PendingAssetLoads++;
+        }
+    }
+
+    private void EndAssetLoad(string sha256)
+    {
+        if (!_bundles.TryGetValue(sha256, out var state))
+        {
+            return;
+        }
+
+        state.PendingAssetLoads = Math.Max(0, state.PendingAssetLoads - 1);
+        TryUnloadBundle(sha256, state);
+    }
+
     private void Release(string sha256)
     {
         if (!_bundles.TryGetValue(sha256, out var state))
@@ -674,9 +708,18 @@ public sealed class ContentAssetService
         }
 
         state.References = Math.Max(0, state.References - 1);
-        if (state.References == 0 && !state.Loading && state.Waiters.Count == 0)
+        TryUnloadBundle(sha256, state);
+    }
+
+    private void TryUnloadBundle(string sha256, BundleState state)
+    {
+        if (state.References == 0 && state.PendingAssetLoads == 0 &&
+            !state.Loading && state.Waiters.Count == 0)
         {
-            state.Bundle?.Unload(false);
+            if (state.Bundle != null)
+            {
+                state.Bundle.Unload(false);
+            }
             _bundles.Remove(sha256);
         }
     }

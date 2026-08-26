@@ -38,6 +38,17 @@ public sealed class ContentRecord
 
     public string Key => type + "/" + id;
     public bool IsActive => state == "active" && variant != null;
+
+    // Bootstrap records built before the emoji fallback contract contain a
+    // generated diamond Sprite. It is deliberately not real author art: the
+    // UI must treat it exactly like a missing icon and show ItemCatalog's
+    // stable emoji instead. Keeping this compatibility check on the record
+    // lets already-published revisions behave correctly without a mass
+    // republish.
+    public bool HasRealIcon =>
+        IsActive &&
+        variant.iconAsset == "icon" &&
+        metadata?.Value<bool?>("iconPlaceholder") != true;
 }
 
 [Serializable]

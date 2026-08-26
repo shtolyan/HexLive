@@ -29,15 +29,12 @@ public static class AtomicContentBatchBuild
     private const string DescriptorRoot = "Assets/AtomicContent";
     private const string GeneratedMetadataRoot = "Assets/AtomicContent/Generated";
     private const string RuntimeSourceRoot = "Assets/HexLiveContent/RuntimeSource";
-    private const string IconMetaTemplate =
-        "Assets/HexLiveContent/Icons/tool.axe_stone.png.meta";
     private static string _temporaryMetadata;
-    private static string _temporaryIcon;
 
     private static readonly HashSet<string> Types = new(StringComparer.Ordinal)
     {
         "wear", "actor", "hair", "prosthetic", "object", "building",
-        "mob", "ui", "vfx", "audio", "config",
+        "mob", "vfx", "audio", "config",
     };
 
     private static readonly HashSet<string> IconBearingTypes = new(StringComparer.Ordinal)
@@ -280,7 +277,7 @@ public static class AtomicContentBatchBuild
     {
         ValidateAsset(inputs.Main, "main");
         ValidateAsset(inputs.Metadata, "metadata");
-        if (IconBearingTypes.Contains(type) || !string.IsNullOrEmpty(inputs.Icon))
+        if (!string.IsNullOrEmpty(inputs.Icon))
         {
             ValidateAsset(inputs.Icon, "icon");
         }
@@ -371,11 +368,6 @@ public static class AtomicContentBatchBuild
 
     private static void CleanupGeneratedMetadata()
     {
-        if (!string.IsNullOrEmpty(_temporaryIcon))
-        {
-            AssetDatabase.DeleteAsset(_temporaryIcon);
-            _temporaryIcon = null;
-        }
         if (!string.IsNullOrEmpty(_temporaryMetadata))
         {
             AssetDatabase.DeleteAsset(_temporaryMetadata);
@@ -406,7 +398,7 @@ public static class AtomicContentBatchBuild
                 continue;
             }
             var id = garment.Id;
-            Add("wear", id, () => EnsureReleaseIcon("wear", id, ResolveWear(id)));
+            Add("wear", id, () => ResolveOwnerIcon("wear", id, ResolveWear(id)));
         }
 
         foreach (var guid in AssetDatabase.FindAssets(
@@ -414,7 +406,7 @@ public static class AtomicContentBatchBuild
         {
             var path = AssetDatabase.GUIDToAssetPath(guid);
             var id = Path.GetFileNameWithoutExtension(path);
-            Add("actor", id, () => EnsureReleaseIcon(
+            Add("actor", id, () => ResolveOwnerIcon(
                 "actor", id, ResolveConvention(
                     "actor", id, path, $"{IconRoot}/actor.{id}.png", "HexLive/Actors/" + id)));
         }
@@ -427,7 +419,7 @@ public static class AtomicContentBatchBuild
             var main = $"{hairRoot}/{id}/{id}.prefab";
             if (AssetDatabase.LoadMainAssetAtPath(main) != null)
             {
-                Add("hair", id, () => EnsureReleaseIcon("hair", id, ResolveHair(id)));
+                Add("hair", id, () => ResolveOwnerIcon("hair", id, ResolveHair(id)));
             }
         }
 
@@ -439,7 +431,7 @@ public static class AtomicContentBatchBuild
             var name = Path.GetFileNameWithoutExtension(path)["prosthetic_".Length..];
             var id = name.Replace('_', '.');
             Add("prosthetic", id,
-                () => EnsureReleaseIcon("prosthetic", id, ResolveProsthetic(id)));
+                () => ResolveOwnerIcon("prosthetic", id, ResolveProsthetic(id)));
         }
 
         DiscoverObjectRecipes(Add);
@@ -469,6 +461,11 @@ public static class AtomicContentBatchBuild
             .ToDictionary(group => group.Key, group => group.First().path, StringComparer.Ordinal);
 
         var ids = new HashSet<string>(PrototypeContentCatalog.CreateDefaults().Keys, StringComparer.Ordinal);
+        // Some player-buildable visuals are presentation variants rather than
+        // standalone simulation objects. The indoor furniture.hearth is drawn
+        // for campfire.spot, so it is absent from PrototypeContentCatalog but
+        // is still an independent logical ContentObject and must be published.
+        ids.UnionWith(BuildCatalogDefinition.All.Select(entry => entry.DefinitionId));
         ids.UnionWith(worldConfigs.Keys);
         ids.UnionWith(gearConfigs.Keys);
         foreach (var id in ids.OrderBy(value => value, StringComparer.Ordinal))
@@ -510,7 +507,7 @@ public static class AtomicContentBatchBuild
                     Entries = entries.ToArray(),
                     ExtraMetadata = metadata,
                 };
-                return EnsureReleaseIcon(type, id, inputs);
+                return ResolveOwnerIcon(type, id, inputs);
             });
         }
     }
@@ -527,14 +524,14 @@ public static class AtomicContentBatchBuild
                 continue;
             }
             var id = config.MobId;
-            add("mob", id, () => EnsureReleaseIcon("mob", id, ResolveMob(id)));
+            add("mob", id, () => ResolveOwnerIcon("mob", id, ResolveMob(id)));
         }
     }
 
     private static void DiscoverGenericRecipes(Action<string, string, Func<BuildInputs>> add)
     {
         var skipped = new[] { "/Actors/", "/Wear/", "/Objects/", "/Mobs/", "/Animals/",
-            "/WorldObjects/", "/Gear/" };
+            "/WorldObjects/", "/Gear/", "/UI/" };
         var authoringOnly = new HashSet<string>(StringComparer.Ordinal)
         {
             RuntimeSourceRoot + "/ActorAppearanceCatalog.asset",
@@ -606,77 +603,23 @@ public static class AtomicContentBatchBuild
         }
     }
 
-    private static BuildInputs EnsureReleaseIcon(string type, string id, BuildInputs inputs)
+    private static BuildInputs ResolveOwnerIcon(string type, string id, BuildInputs inputs)
     {
         if (!IconBearingTypes.Contains(type) ||
             AssetDatabase.LoadMainAssetAtPath(inputs.Icon) != null)
         {
             return inputs;
         }
-        inputs.Icon = CreateGeneratedPlaceholderIcon(type, id);
-        inputs.ExtraMetadata["iconPlaceholder"] = true;
-        Debug.LogWarning($"[AtomicContent] {type}/{id} uses embedded bootstrap placeholder icon.");
+        // An icon is optional author art. Do not bake a fake image merely to
+        // satisfy the transport schema: the runtime already owns a stable
+        // per-item/category emoji and can show it immediately without network
+        // content. A real image, when authored later, still lives only in this
+        // owner's next atomic revision.
+        inputs.Icon = null;
+        inputs.ExtraMetadata.Remove("iconPlaceholder");
+        inputs.ExtraMetadata["iconFallback"] = "emoji";
+        Debug.Log($"[AtomicContent] {type}/{id} has no authored icon; using Player emoji fallback.");
         return inputs;
-    }
-
-    private static string CreateGeneratedPlaceholderIcon(string type, string id)
-    {
-        EnsureGeneratedFolder();
-        _temporaryIcon = $"{GeneratedMetadataRoot}/icon.{Stable(type + "." + id)}.png";
-        var texture = new Texture2D(64, 64, TextureFormat.RGBA32, false, false)
-        {
-            name = $"{type}/{id} Placeholder Icon",
-        };
-        try
-        {
-            var pixels = new Color32[64 * 64];
-            var fill = type switch
-            {
-                "actor" => new Color32(112, 76, 145, 255),
-                "hair" => new Color32(116, 82, 58, 255),
-                "prosthetic" => new Color32(96, 116, 126, 255),
-                "building" => new Color32(126, 92, 54, 255),
-                "mob" => new Color32(146, 74, 66, 255),
-                _ => new Color32(64, 112, 132, 255),
-            };
-            var border = new Color32(226, 238, 242, 255);
-            for (var y = 0; y < 64; y++)
-            {
-                for (var x = 0; x < 64; x++)
-                {
-                    var dx = Mathf.Abs(x - 31.5f);
-                    var dy = Mathf.Abs(y - 31.5f);
-                    var diamond = dx + dy;
-                    pixels[y * 64 + x] = diamond switch
-                    {
-                        > 29f => new Color32(0, 0, 0, 0),
-                        > 25f => border,
-                        _ => fill,
-                    };
-                }
-            }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, false);
-            File.WriteAllBytes(_temporaryIcon, texture.EncodeToPNG());
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(texture);
-        }
-
-        WriteDeterministicIconMeta(_temporaryIcon, type, id);
-        AssetDatabase.ImportAsset(_temporaryIcon, ImportAssetOptions.ForceSynchronousImport);
-        if (AssetImporter.GetAtPath(_temporaryIcon) is not TextureImporter importer)
-        {
-            throw new InvalidOperationException(
-                $"Could not import generated placeholder icon for {type}/{id}.");
-        }
-        importer.textureType = TextureImporterType.Sprite;
-        importer.spriteImportMode = SpriteImportMode.Single;
-        importer.mipmapEnabled = false;
-        importer.alphaIsTransparency = true;
-        importer.SaveAndReimport();
-        return _temporaryIcon;
     }
 
     private static string FindObjectMain(string id)
@@ -740,7 +683,6 @@ public static class AtomicContentBatchBuild
         var tail = slash < 0 ? relative : relative[(slash + 1)..];
         return family switch
         {
-            "UI" => ("ui", Stable(tail)),
             "VFX" => ("vfx", Stable(tail)),
             "Decals" => ("vfx", "decal." + Stable(tail)),
             "BloodStainMats" => ("vfx", "blood-material." + Stable(tail)),
@@ -784,7 +726,7 @@ public static class AtomicContentBatchBuild
         var explicitMetadata = Optional(arguments, "-content-metadata");
         if (!string.IsNullOrEmpty(explicitMain))
         {
-            return EnsureReleaseIcon(type, id, new BuildInputs
+            return ResolveOwnerIcon(type, id, new BuildInputs
             {
                 Main = explicitMain,
                 Metadata = explicitMetadata ?? throw new InvalidOperationException(
@@ -860,7 +802,7 @@ public static class AtomicContentBatchBuild
         {
             resolved.Icon = explicitIcon;
         }
-        return EnsureReleaseIcon(type, id, resolved);
+        return ResolveOwnerIcon(type, id, resolved);
     }
 
     private static BuildInputs ResolveMob(string id)
@@ -1056,37 +998,6 @@ public static class AtomicContentBatchBuild
             new UTF8Encoding(false));
         AssetDatabase.ImportAsset(_temporaryMetadata, ImportAssetOptions.ForceSynchronousImport);
         return _temporaryMetadata;
-    }
-
-    private static void WriteDeterministicIconMeta(string assetPath, string type, string id)
-    {
-        if (!File.Exists(IconMetaTemplate))
-        {
-            throw new FileNotFoundException(
-                $"Missing Sprite importer template '{IconMetaTemplate}'.", IconMetaTemplate);
-        }
-
-        var guid = DeterministicToken("icon-guid", type, id);
-        var spriteId = DeterministicToken("icon-sprite", type, id);
-        var lines = File.ReadAllLines(IconMetaTemplate);
-        for (var index = 0; index < lines.Length; index++)
-        {
-            if (lines[index].StartsWith("guid: ", StringComparison.Ordinal))
-            {
-                lines[index] = "guid: " + guid;
-            }
-            else
-            {
-                var trimmed = lines[index].TrimStart();
-                if (trimmed.StartsWith("spriteID: ", StringComparison.Ordinal))
-                {
-                    lines[index] = lines[index][..(lines[index].Length - trimmed.Length)] +
-                                   "spriteID: " + spriteId;
-                }
-            }
-        }
-        File.WriteAllText(
-            assetPath + ".meta", string.Join("\n", lines) + "\n", new UTF8Encoding(false));
     }
 
     private static string DeterministicToken(string purpose, string type, string id)

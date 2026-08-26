@@ -68,6 +68,7 @@ public sealed class AssetRegistryStoreTests
             "prosthetic", "leg.wood.l", "StandaloneOSX", "unity6000-content1");
 
         Assert.That(ContentIdentity.IsType("icon"), Is.False);
+        Assert.That(ContentIdentity.IsType("ui"), Is.False);
         Assert.That(result.Record.Variants.Single().IconAsset, Is.EqualTo("icon"));
         Assert.That(resolved!.Variant!.IconAsset, Is.EqualTo("icon"));
         Assert.That(resolved.Variant.Sha256, Is.EqualTo(result.Record.Variants.Single().Sha256));
@@ -170,13 +171,19 @@ public sealed class AssetRegistryStoreTests
     }
 
     [Test]
-    public void VisualObjectWithoutOwnedIconIsRejected()
+    public async Task VisualObjectWithoutAuthoredIconUsesAtomicEmojiFallback()
     {
         var candidate = Candidate("wear", "skirt.anarchy", "bytes", hasIcon: false);
+        candidate.Metadata["iconFallback"] = JsonSerializer.SerializeToElement("emoji");
 
-        Assert.That(async () => await _store.PublishAsync(candidate),
-            Throws.TypeOf<ArgumentException>());
-        Assert.That(_store.RegistryRevision, Is.Zero);
+        var published = await _store.PublishAsync(candidate);
+        var resolved = _store.Resolve(
+            "wear", "skirt.anarchy", "StandaloneOSX", "unity6000-content1");
+
+        Assert.That(published.Record.Revision, Is.EqualTo(1));
+        Assert.That(resolved!.Variant!.IconAsset, Is.Null);
+        Assert.That(resolved.Metadata["iconFallback"].GetString(), Is.EqualTo("emoji"));
+        Assert.That(_store.RegistryRevision, Is.EqualTo(1));
     }
 
     [Test]

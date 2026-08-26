@@ -659,13 +659,6 @@ public sealed class AssetRegistryStore
                     "An icon must be the 'icon' entry in its owning bundle.", nameof(candidate));
             }
 
-            if (ContentIdentity.RequiresOwnedIcon(candidate.Type) && variant.IconAsset != "icon")
-            {
-                throw new ArgumentException(
-                    $"{candidate.Type}/{candidate.Id} must expose 'icon' inside its own payload.",
-                    nameof(candidate));
-            }
-
             var attachmentNames = new HashSet<string>(StringComparer.Ordinal);
             foreach (var attachment in variant.Attachments)
             {

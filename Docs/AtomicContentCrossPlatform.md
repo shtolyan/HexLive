@@ -38,7 +38,7 @@ The answers to the current Windows handoff are part of this contract:
   descriptor batch is exchanged between machines.
 - `build-all` owns the complete audio and `config/simdata` inventory too. Do not
   run a second platform-specific sound or simdata recipe.
-- The only acceptable bootstrap result is the complete 2,777-object inventory
+- The only acceptable bootstrap result is the complete 2,710-object inventory
   and digest in §2 with zero failed objects. The earlier 272/289-object Windows
   partial queues are diagnostic output, not publishable candidates.
 - Publication targets only the isolated staging root/port in §4. Production is
@@ -92,12 +92,12 @@ are not a substitute for a shared source commit.
   `FCO Waist Strappy Male`, have committed `GarmentDefinition`, art, and owner
   icon assets on the integration branch and must be built.
 
-The bootstrap inventory expected at the time of this runbook is 2,777 objects:
+The bootstrap inventory expected at the time of this runbook is 2,710 objects:
 
 ```text
 actor=5 audio=1128 building=7 config=754 hair=16 mob=1 object=37
-prosthetic=8 ui=67 vfx=69 wear=685
-assetBundle=1648 file=1129
+prosthetic=8 vfx=69 wear=685
+assetBundle=1581 file=1129
 ```
 
 For a canonical sorted list containing one `type/id` per line, both machines
@@ -110,7 +110,7 @@ find <output> -name candidate.json -type f -print0 \
 ```
 
 For the inventory above the digest is
-`c4202fac268e762980265222e1447809f7f07a45a4c93dee96c4dcd0b4f4289b`.
+`de2ec59dae44c2f531189cca3aa679cc225bff88897d8d71c0bf9766ffa7a7ce`.
 Windows may use an equivalent PowerShell/Python sort; compare UTF-8 lines and
 ordinal code-point order.
 

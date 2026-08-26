@@ -1320,6 +1320,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     !ContainerLootMath.CanAccept(
                         world, worldObject, new[] { carriedStick }))
                 {
+                    // Bug #235: отказ — тоже конец сцены. Заявку снимаем здесь,
+                    // потому что дальше её не снимет никто: хвост метода
+                    // пропущен, а PlanInterruption смотрит только на
+                    // Execution.Status == InProgress, который выше уже стал
+                    // Completed.
+                    ReleaseHearthClaim(npc, worldObject);
                     return false;
                 }
 
@@ -1342,6 +1348,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             else if (!ContainerLootMath.TryConsumeCampfireFuel(
                          world, worldObject, out fuel))
             {
+                // Bug #235: палку успели потратить между планом и завершением —
+                // подкинуть нечего. Отпускаем очаг, иначе он остаётся занят
+                // навсегда именно за той, кто пришла его поддержать.
+                ReleaseHearthClaim(npc, worldObject);
                 return false;
             }
             worldObject.ResourceAmount += fuel;
@@ -1356,6 +1366,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 !ContainerLootMath.TryConsumeCampfireFuel(
                     world, worldObject, out var fuel))
             {
+                // Bug #235: костёр уже зажгли (или буфер опустел) — розжигу
+                // нечего делать, но занятость обязана уйти вместе со сценой.
+                ReleaseHearthClaim(npc, worldObject);
                 return false;
             }
 
@@ -1383,6 +1396,19 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         $"{victim.DefinitionId} set by the fire (freed a slot)");
                 }
             }
+
+            // ⭐ Bug #235 «костёр занят». Единственный рукав костра, который
+            // забывал снять заявку на УСПЕШНОМ пути, — и потому стрелял не
+            // изредка, а после КАЖДОЙ штатной заначки у очага. Хвост метода
+            // занятость не трогает (он освобождает только узел), а
+            // PlanInterruption отпускает объект лишь пока
+            // Execution.Status == InProgress — здесь он уже Completed. Костёр
+            // так и оставался IsOccupied=true с CurrentUser той, кто просто
+            // положила рядом вещь: приказ игрока отбивался Reject(Occupied),
+            // автономные TendFire/CookMeat/FillBottle ловили
+            // InteractionBlocked, шунили очаг и копили обиду на «занявшую»
+            // (§28.15B), а огонь тух — подкинуть дров было некому.
+            ReleaseHearthClaim(npc, worldObject);
         }
         else if (completedInteraction.Type == InteractionType.Observe &&
                  CorpseMath.IsHumanDead(definition))
@@ -1441,6 +1467,30 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // improving at it.
 
         return true;
+    }
+
+    /// <summary>
+    /// Bug #235: снять заявку сцены с очага. Отдельный метод, потому что забыть
+    /// эти две строки можно в КАЖДОМ рукаве костра по отдельности — а забытые,
+    /// они не «подтекают», а запирают объект навсегда: хвост
+    /// <see cref="ApplyInteractionCompletion"/> освобождает только узел, и к
+    /// моменту рукава <c>Execution.Status</c> уже <c>Completed</c>, так что
+    /// страховка <c>PlanInterruption</c> (она смотрит только на
+    /// <c>InProgress</c>) сюда не дотягивается.
+    /// <para>
+    /// Чужую заявку не трогаем: если очаг числится за кем-то другим, эта сцена
+    /// его не занимала и освобождать его не её дело.
+    /// </para>
+    /// </summary>
+    private static void ReleaseHearthClaim(NPCState npc, WorldObjectState worldObject)
+    {
+        if (worldObject.CurrentUser is { } holder && !holder.Equals(npc.Id))
+        {
+            return;
+        }
+
+        worldObject.IsOccupied = false;
+        worldObject.CurrentUser = null;
     }
 
     // Рукава возвращают FALSE только чтобы ОТМЕНИТЬ попытку. True означает

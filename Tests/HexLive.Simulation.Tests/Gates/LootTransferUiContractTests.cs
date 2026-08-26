@@ -139,6 +139,55 @@ public sealed class LootTransferUiContractTests
     }
 
     [Test]
+    // §153.1: «Подарить» — тот же файл окна и тот же приказ, но одностороннее
+    // направление и живая цель. Проверяется именно то, что ломается молча:
+    // пункт меню, отдельный вход в панель, режим, гашение обратного жеста и
+    // ЧЕТЫРЕ строки локализации. Без последних окно открывается с сырыми
+    // ключами вместо текста, и никакой C# этого не заметит.
+    public void ContextMenuOffersGiftForAnAwakePersonAndThePanelGoesOneWay()
+    {
+        var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
+        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
+        var speech = File.ReadAllText(Presentation("UI", "SpeechCatalog.cs"));
+        var history = File.ReadAllText(Presentation("History", "GameHistoryFormatter.cs"));
+        var localization = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(adapter, Does.Contain("Loc.Get(\"menu.gift_person\")"));
+            Assert.That(adapter, Does.Contain("LootTransferPanel.OpenGift(carrier!.Id.Value, npcId)"));
+
+            Assert.That(panel, Does.Contain("public static void OpenGift("),
+                "Подарок входит в то же окно своим входом, а не флагом снаружи.");
+            Assert.That(panel, Does.Contain("InventoryTransferDirection.Take"));
+            Assert.That(panel, Does.Contain("Loc.Get(\"gift.take_forbidden\")"),
+                "Обратный жест обязан быть ОТКАЗОМ с текстом, а не молчаливым no-op.");
+            Assert.That(panel, Does.Contain("_statusHeld"),
+                "Отказ обязан пережить конец жеста, иначе игрок его не прочитает.");
+            Assert.That(panel, Does.Contain("IsGiftable("),
+                "У подарка своё условие цели: IsLootable закрыл бы окно сразу.");
+
+            // §153.3: ступень реакции обязана быть слышна — иначе «то, что надо»
+            // и «зачем ты мне это» выглядят над головой одинаково.
+            Assert.That(speech, Does.Contain("[\"GiftReceived:Loved\"]"));
+            Assert.That(speech, Does.Contain("[\"GiftReceived:Disliked\"]"));
+            Assert.That(history, Does.Contain("\"GiftGiven\" => F(\"history.GiftGiven\""));
+
+            foreach (var term in new[]
+                     {
+                         "menu.gift_person", "gift.title", "gift.drag_hint",
+                         "gift.take_forbidden", "history.GiftGiven",
+                         "history.detail.gift.Loved", "history.detail.gift.Disliked"
+                     })
+            {
+                Assert.That(localization, Does.Contain("- Term: " + term + "\n"),
+                    $"Строка {term} не заведена в I2 — окно покажет сырой ключ.");
+            }
+        });
+    }
+
+    [Test]
     public void EmptyRemainsAndWardrobeOpenTheTwoSidedContainerPanel()
     {
         var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));

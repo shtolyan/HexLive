@@ -190,6 +190,8 @@ public static class GameEventTypes
 
         // Social
         "RelationshipChanged",
+        // §153: игрок подарил вещь — и получательница на неё ответила.
+        "GiftGiven",
         "RomanceCompleted",
         "RomanceForced",
         "TalkCompleted",

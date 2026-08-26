@@ -1821,9 +1821,11 @@ internal static class ManualCommandExecutor
 
         // §128 r2 (#164): кого можно обыскать — один предикат на приём приказа и
         // на его исполнение (мёртвая, спящая, без сознания; несомый — только
-        // своими же руками).
+        // своими же руками). §153.1: с направлением Give тот же предикат
+        // добавляет живого человека в сознании — это подарок.
         if (!PlayerLootTargets.TryResolve(
-                world, looter, command.Other, out var other, out var carriedBySelf))
+                world, looter, command.Other, command.Direction,
+                out var other, out var carriedBySelf))
         {
             Reject(world, looter.Id, "TransferInventory", "PersonNotAvailable", admission);
             return;
@@ -1851,7 +1853,7 @@ internal static class ManualCommandExecutor
         }
 
         // §128: транзакция плана не роняет того, в чьих карманах роемся.
-        ClearForNewOrder(world, looter, "Ручной обмен с лежащим человеком",
+        ClearForNewOrder(world, looter, "Ручной обмен вещами с человеком",
             keepCarriedPerson: carriedBySelf);
         ClearAttackOrder(world, looter);
 
@@ -1864,7 +1866,15 @@ internal static class ManualCommandExecutor
         // ни подхода: сразу шаг передачи (у несомого нет ни CurrentJunction,
         // ни валидной геометрии лежания — станцию считать не по чему).
         var closeEnough = carriedBySelf;
-        if (!carriedBySelf)
+        if (!carriedBySelf && PlayerLootTargets.IsStandingRecipient(world, other))
+        {
+            // §153.1: у стоящей станции у ног нет — мерим до неё самой тем же
+            // радиусом, которым к человеку подходит помощь §53.
+            closeEnough = InteractionReach.CheckPersonStart(
+                world, looter, other, other.Position, InteractionReach.Aid,
+                $"Player gift to NPC{other.Id.Value}");
+        }
+        else if (!carriedBySelf)
         {
             // §111.13: приказ игрока идёт мимо планировщика, поэтому станцию он
             // занимает прямо здесь — иначе ручной обмен остался бы единственным

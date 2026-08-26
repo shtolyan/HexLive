@@ -234,6 +234,11 @@ public static class JournalCatalog
         // зеркало получает максимальный приоритет и называет виновника.
         r["RomanceForced"] = new JournalRule(
             0, JournalRole.FirstNpc, mirrorWeight: 100);
+        // §153: подарок помнят обе — дарительница как поступок, получательница
+        // как то, что ей принесли. Вес чуть выше беседы: вещь из рук в руки
+        // случается редко и значит больше.
+        r["GiftGiven"] = new JournalRule(54, JournalRole.ArrowTarget, mirrorWeight: 58,
+            extra: JournalExtra.Token, extraToken: "Item=");
         r["TalkQuarreled"] = new JournalRule(68, JournalRole.FirstNpc, mirrorWeight: 68);
         r["TalkCompleted"] = new JournalRule(34, JournalRole.FirstNpc, mirrorWeight: 30);
         // §146.12: договор о едином доме — крупная запись обеих переговорщиц.

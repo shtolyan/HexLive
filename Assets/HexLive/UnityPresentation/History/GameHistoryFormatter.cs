@@ -50,6 +50,10 @@ namespace HexLive.UnityPresentation.History
                 "RomanceCompleted" => F("history.RomanceCompleted", actor, target),
                 "RomanceForced" => F("history.RomanceForced", actor, target),
                 "TalkCompleted" => F("history.TalkCompleted", actor, target),
+                // §153.3: подарок читается в ленте как поступок дарительницы —
+                // кому, видно по стрелке, а КАК приняли живёт в детали.
+                "GiftGiven" => F("history.GiftGiven", actor,
+                    TargetFromArrow(record.Message, target)),
                 "CampsMerged" => F("history.CampsMerged", actor),
                 "TalkQuarreled" => F("history.TalkQuarreled", actor, target),
                 "TalkWaitTimeout" => F("history.TalkWaitTimeout", actor),
@@ -189,6 +193,7 @@ namespace HexLive.UnityPresentation.History
                 "TalkRequested" => F("history.detail.TalkRequested", Token(record.Message, "Affinity=")),
                 "TalkStarted" => F("history.detail.TalkStarted", TalkTopic(Token(record.Message, "Topic="))),
                 "TalkCompleted" => Loc.Get("history.detail.TalkCompleted"),
+                "GiftGiven" => GiftDetail(record.Message),
                 "CampsMerged" => Loc.Get("history.detail.CampsMerged"),
                 "TalkQuarreled" => Loc.Get("history.detail.TalkQuarreled"),
                 "TalkWaitTimeout" => Loc.Get("history.detail.TalkWaitTimeout"),
@@ -211,6 +216,23 @@ namespace HexLive.UnityPresentation.History
                 "DireStraits" => Loc.Get("history.detail.DireStraits"),
                 _ => CleanDetail(record.Message)
             };
+        }
+
+        /// <summary>
+        /// §153.3: строка ленты называет РЕАКЦИЮ, а не счёт. Неизвестная
+        /// ступень падает на сырое сообщение — как missing key в Loc, а не в
+        /// пустую строку: молчание читалось бы как «ничего не произошло».
+        /// </summary>
+        private static string GiftDetail(string message)
+        {
+            var reaction = Token(message, "Reaction=");
+            if (string.IsNullOrEmpty(reaction))
+            {
+                return CleanDetail(message);
+            }
+
+            var key = "history.detail.gift." + reaction;
+            return Loc.Has(key) ? Loc.Get(key) : CleanDetail(message);
         }
 
         private static string RelationshipDetail(string message)
@@ -250,6 +272,7 @@ namespace HexLive.UnityPresentation.History
         private static GameHistoryTone Tone(string type)
         {
             if (type is "Aided" or "AidRequested" or "AidStarted" or "RomanceCompleted" or "TalkCompleted" or "CampsMerged" or "TalkRequested" or
+                "GiftGiven" or // §153: вещь из рук в руки — это про людей
                 "TalkStarted" or "FoodShared" or "RelationshipChanged" or "Mourned" or
                 "Rescued" or // §105: её вытащили — это про людей, а не про урон
                 "HelpCryAnswered")

@@ -334,6 +334,17 @@ public static class SpeechCatalog
         // its owner bundle finishes loading. Loot itself is silent.
         ["LootHelplessTook"] = new("Gift", null, Rank.Action),
 
+        // ---- §153.3: подарок принят, и ступень реакции решает, ЧЕМ она
+        // ответит. Картинку тут всё равно заменит иконка самой вещи (§111.12),
+        // поэтому вся разница между «то, что надо» и «зачем ты мне это» живёт
+        // в голосе — без него все четыре ступени выглядели бы одинаково.
+        // Голый "GiftReceived" остаётся рабочим ключом для старых снапшотов.
+        ["GiftReceived:Loved"] = new("Gift", "happy_gift"),
+        ["GiftReceived:Liked"] = new("Gift", "happy_gift"),
+        ["GiftReceived:Neutral"] = new("Gift", null, Rank.Action),
+        ["GiftReceived:Disliked"] = new("Grumble", "angry_topic_grumble"),
+        ["GiftReceived"] = new("Gift", null, Rank.Action),
+
         // ---- разговор ------------------------------------------------------
         ["TalkRequest"] = new("SmallTalk", null, Rank.Talk),
         ["TalkIncoming"] = new("SmallTalk", null, Rank.Talk),

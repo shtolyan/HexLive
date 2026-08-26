@@ -915,6 +915,13 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     new EntityId(carrier.Id.Value), new EntityId(npcId),
                     forced: false)),
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
+            // §153.1: «Подарить» открывает то же окно обмена §128, но отдачей
+            // в одну сторону. Отдельного интерфейса передачи нет по замыслу:
+            // игрок уже умеет перетаскивать вещь между двумя панелями, и
+            // второе такое окно означало бы вторую его версию с багами.
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.gift_person"),
+                () => LootTransferPanel.OpenGift(carrier!.Id.Value, npcId),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
         // §146.12: two explicit diplomatic outcomes over the same command

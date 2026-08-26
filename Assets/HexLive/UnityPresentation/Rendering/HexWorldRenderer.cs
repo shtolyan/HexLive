@@ -4431,9 +4431,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 if (inWardrobe && !footwearOnWardrobeShelf)
                 {
                     var hanger = HexLive.UnityPresentation.Environment.WardrobeHangerFactory.Build();
-                    hanger.transform.SetParent(hungRoot.transform, false);
-                    hanger.transform.localPosition = wardrobeSocket;
-                    hanger.transform.localRotation = Quaternion.identity;
+                    if (hanger != null)
+                    {
+                        hanger.transform.SetParent(hungRoot.transform, false);
+                        hanger.transform.localPosition = wardrobeSocket;
+                        hanger.transform.localRotation = Quaternion.identity;
+                    }
                 }
                 AttachGarmentCondition(hungRoot, hung, worldObject);
                 return hungRoot;

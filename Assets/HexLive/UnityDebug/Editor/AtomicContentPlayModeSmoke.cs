@@ -250,7 +250,7 @@ public static class AtomicContentPlayModeSmoke
                       "representative payload validation started.");
         }
 
-        if (_pendingLoads != 0 || _passedLoads != 15)
+        if (_pendingLoads != 0 || _passedLoads != 16)
         {
             return;
         }
@@ -313,7 +313,8 @@ public static class AtomicContentPlayModeSmoke
             new FileInfo(ScreenshotPath).Length > 0)
         {
             Debug.Log($"[AtomicContentSmoke] PASS: live world + 2725 content records + " +
-                      $"15 representative payload checks + current-world owner icons; " +
+                      $"16 representative payload checks + authored wardrobe hanger + " +
+                      $"current-world owner icons; " +
                       $"screenshot={ScreenshotPath}");
             Finish(leaveInteractivePlayRunning: true);
         }
@@ -389,6 +390,7 @@ public static class AtomicContentPlayModeSmoke
         LoadMain(service, "hair", "AdellHair");
         LoadMain(service, "prosthetic", "arm.mechanical.l");
         LoadMain(service, "object", "bed.basic");
+        LoadAuthoredWardrobeHanger(service);
         LoadMain(service, "object", "food.meat_raw");
         LoadIcon(service, "object", "food.meat_raw");
         LoadMain(service, "object", "tool.machete");
@@ -621,6 +623,41 @@ public static class AtomicContentPlayModeSmoke
             var valid = handle?.Asset != null;
             handle?.Dispose();
             CompleteLoad(type + "/" + id + ":icon", valid);
+        });
+    }
+
+    private static void LoadAuthoredWardrobeHanger(ContentAssetService service)
+    {
+        _pendingLoads++;
+        service.LoadMain<GameObject>("object", "furniture.wardrobe", handle =>
+        {
+            GameObject hanger = null;
+            var valid = handle?.Asset != null;
+            if (valid)
+            {
+                // Validate the exact main asset returned by this owner load.
+                // Production calls the parameterless overload after the same
+                // prefab has entered ContentPrefabCache; the direct handle here
+                // intentionally avoids starting a second async cache request.
+                hanger = HexLive.UnityPresentation.Environment.WardrobeHangerFactory.Build(
+                    handle.Asset);
+                valid = hanger != null &&
+                        HexLive.UnityPresentation.ObjectFit.HasRenderableGeometry(hanger);
+                if (valid)
+                {
+                    var primitiveNames = new HashSet<string>(StringComparer.Ordinal)
+                    {
+                        "Cube", "Sphere", "Capsule", "Cylinder", "Plane", "Quad"
+                    };
+                    valid = hanger.GetComponentsInChildren<MeshFilter>(true)
+                        .All(filter => filter.sharedMesh != null &&
+                                       !primitiveNames.Contains(filter.sharedMesh.name));
+                }
+            }
+
+            if (hanger != null) UnityEngine.Object.Destroy(hanger);
+            handle?.Dispose();
+            CompleteLoad("object/furniture.wardrobe:authored-hanger", valid);
         });
     }
 

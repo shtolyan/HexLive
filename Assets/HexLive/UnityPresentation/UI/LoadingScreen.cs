@@ -1577,6 +1577,12 @@ namespace HexLive.UnityPresentation.UI
 
             IsReplaying = false;
 
+            // §41/§152: a remote client owns no WorldState, so the first live
+            // snapshot is the only authoritative list of objects which belong
+            // to this opening world. Queue their owner bundles now; every main
+            // load reads icon from the same handle before the curtain leaves.
+            Wearing.ScenePrewarm.ForSnapshot(_runner.CreateSnapshot());
+
             SetProgress(0.6f, Loc.Get("loading.island"));
             for (var i = 0; i < 6; i++)
             {

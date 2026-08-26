@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Content;
 
 namespace HexLive.UnityPresentation.Wearing
@@ -28,6 +29,9 @@ namespace HexLive.UnityPresentation.Wearing
 // дверь молчит на том, что уже в кэше или уже едет.
 public static class ScenePrewarm
 {
+    private static readonly string[] ItemOwnerTypes =
+        { "wear", "object", "building", "mob" };
+
     public static void ForWorld(WorldState world)
     {
         if (world == null)
@@ -36,7 +40,7 @@ public static class ScenePrewarm
         }
 
         ResolveWorkingSet(world);
-        WarmIcons(world);
+        WarmItems(world);
         WarmWear(world);
         WarmActors(world);
         WarmHair(world);
@@ -46,13 +50,164 @@ public static class ScenePrewarm
     }
 
     /// <summary>
-    /// Owner icons for everything the opening world can put in an inventory,
-    /// on a body, on the ground or inside a world container. Real icons finish
-    /// behind the loading curtain; objects without authored art terminate
-    /// immediately and use <see cref="Garments.ItemIcons.FallbackGlyph"/>.
-    /// This is intentionally a working set, not the whole wardrobe registry.
+    /// The presentation-side equivalent of <see cref="ForWorld"/>. Remote
+    /// clients own no <see cref="WorldState"/>, so the live snapshot is their
+    /// authoritative current-world working set. Repeating this on every new
+    /// snapshot is intentional and cheap: family caches suppress old ids while
+    /// a newly crafted, looted or spawned owner immediately opens one bundle
+    /// for both its <c>main</c> and <c>icon</c> entries.
     /// </summary>
-    private static void WarmIcons(WorldState world)
+    public static void ForSnapshot(WorldSnapshot snapshot)
+    {
+        if (snapshot == null)
+        {
+            return;
+        }
+
+        WarmSnapshotNpcs(snapshot.Npcs);
+        WarmSnapshotNpcs(snapshot.Corpses);
+
+        foreach (var worldObject in snapshot.Objects)
+        {
+            if (TryWorldObjectContentKey(
+                    worldObject.DefinitionId, worldObject.Id.Value,
+                    out var type, out var contentId))
+            {
+                WarmOwnerMain(type, contentId);
+            }
+
+            foreach (var slot in worldObject.Contents)
+            {
+                WarmItemOwner(slot.ItemDefinitionId);
+            }
+            foreach (var ingredientId in worldObject.CraftIngredients)
+            {
+                WarmItemOwner(ingredientId);
+            }
+            if (worldObject.RoastingRaw > 0)
+            {
+                WarmItemOwner("food.meat_raw");
+            }
+            if (worldObject.RoastingCooked > 0)
+            {
+                WarmItemOwner("food.meat_cooked");
+            }
+        }
+
+        foreach (var mob in snapshot.Mobs)
+        {
+            WarmOwnerMain("mob", mob.MobId);
+        }
+    }
+
+    private static void WarmSnapshotNpcs(IEnumerable<NpcSnapshot> npcs)
+    {
+        foreach (var npc in npcs)
+        {
+            WarmOwnerMain("actor", npc.ActorMesh);
+            HairContent.Prewarm(npc.Hairstyle);
+
+            foreach (var id in npc.WornItems)
+            {
+                WarmItemOwner(id);
+            }
+            foreach (var id in npc.InventoryItems)
+            {
+                WarmItemOwner(id);
+            }
+            foreach (var id in npc.HolsteredItems)
+            {
+                WarmItemOwner(id);
+            }
+            WarmItemOwner(npc.HeldItemId);
+            WarmItemOwner(npc.HeldGarmentId);
+            WarmItemOwner(npc.FavoriteWeaponId);
+
+            foreach (var container in npc.InventoryContainers)
+            {
+                WarmItemOwner(container.OwnerItemDefinitionId);
+                foreach (var slot in container.Slots)
+                {
+                    WarmItemOwner(slot.ItemDefinitionId);
+                }
+            }
+
+            foreach (var condition in npc.BodyPartConditions)
+            {
+                if (condition.Prosthetic is { } prosthetic)
+                {
+                    ProstheticContent.Load(
+                        prosthetic.Part,
+                        prosthetic.DefinitionId,
+                        prosthetic.Mechanical,
+                        null);
+                }
+            }
+        }
+    }
+
+    private static void WarmItemOwner(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return;
+        }
+
+        var service = ContentAssetService.Instance;
+        foreach (var type in ItemOwnerTypes)
+        {
+            if (!service.TryGetRecord(type, id, out _))
+            {
+                continue;
+            }
+
+            WarmOwnerMain(type, id);
+            return;
+        }
+
+        // The local pre-wind pass can run before the registry callback. Infer
+        // only stable simulation families here; LoadMain itself waits for the
+        // registry and a later live-snapshot pass confirms the exact type.
+        if (HexLive.Simulation.Content.GarmentLibrary.Active.Any(
+                garment => string.Equals(
+                    garment.Id, id, System.StringComparison.Ordinal)))
+        {
+            WarmOwnerMain("wear", id);
+        }
+        else if (id.StartsWith("building.", System.StringComparison.Ordinal) ||
+                 id.StartsWith("architecture.", System.StringComparison.Ordinal))
+        {
+            WarmOwnerMain("building", id);
+        }
+        else
+        {
+            WarmOwnerMain("object", id);
+        }
+    }
+
+    private static void WarmOwnerMain(string type, string id)
+    {
+        if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(id))
+        {
+            return;
+        }
+
+        if (type == "wear")
+        {
+            ActorWardrobe.PrewarmAsync(id);
+            return;
+        }
+
+        ContentPrefabCache.Prewarm(type, id);
+    }
+
+    /// <summary>
+    /// Owner payloads for everything the opening world can put in an inventory,
+    /// on a body or inside a world container. Each actual item opens one bundle:
+    /// its main prefab and icon are retained together behind the loading curtain.
+    /// This is intentionally a working set, not the whole item registry.
+    /// </summary>
+    private static void WarmItems(WorldState world)
     {
         var ids = new HashSet<string>();
         void Add(string id)
@@ -85,14 +240,16 @@ public static class ScenePrewarm
 
         foreach (var worldObject in world.Entities.Objects.Values)
         {
-            Add(worldObject.DefinitionId);
             foreach (var item in worldObject.Contents)
             {
                 Add(item.DefinitionId);
             }
         }
 
-        Garments.ItemIcons.Prewarm(ids);
+        foreach (var id in ids)
+        {
+            WarmItemOwner(id);
+        }
     }
 
     private static void ResolveWorkingSet(WorldState world)

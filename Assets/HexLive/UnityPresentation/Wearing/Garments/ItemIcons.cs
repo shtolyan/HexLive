@@ -67,8 +67,7 @@ public static class ItemIcons
     /// </summary>
     public static void PrewarmOwner(string type, string id)
     {
-        if (type is not ("wear" or "object" or "building" or "mob") ||
-            string.IsNullOrEmpty(id))
+        if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(id))
         {
             return;
         }

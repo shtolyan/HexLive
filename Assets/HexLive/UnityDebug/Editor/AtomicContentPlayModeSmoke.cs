@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.UI;
@@ -49,6 +50,7 @@ public static class AtomicContentPlayModeSmoke
     private static bool _installed;
     private static bool _connectRequested;
     private static bool _loadsStarted;
+    private static bool _workingSetIconsValidated;
     private static bool _screenshotRequested;
     private static int _pendingLoads;
     private static int _passedLoads;
@@ -81,6 +83,7 @@ public static class AtomicContentPlayModeSmoke
     {
         _connectRequested = false;
         _loadsStarted = false;
+        _workingSetIconsValidated = false;
         _screenshotRequested = false;
         _pendingLoads = 0;
         _passedLoads = 0;
@@ -221,7 +224,7 @@ public static class AtomicContentPlayModeSmoke
                       "representative payload validation started.");
         }
 
-        if (_pendingLoads != 0 || _passedLoads != 11)
+        if (_pendingLoads != 0 || _passedLoads != 15)
         {
             return;
         }
@@ -251,6 +254,15 @@ public static class AtomicContentPlayModeSmoke
             return;
         }
 
+        if (!_workingSetIconsValidated)
+        {
+            if (!ValidateCurrentWorldIcons(service, snapshot))
+            {
+                return;
+            }
+            _workingSetIconsValidated = true;
+        }
+
         if (_readyAt <= 0)
         {
             _readyAt = EditorApplication.timeSinceStartup;
@@ -275,7 +287,8 @@ public static class AtomicContentPlayModeSmoke
             new FileInfo(ScreenshotPath).Length > 0)
         {
             Debug.Log($"[AtomicContentSmoke] PASS: live world + 2710 content records + " +
-                      $"11 representative payload checks; screenshot={ScreenshotPath}");
+                      $"15 representative payload checks + current-world owner icons; " +
+                      $"screenshot={ScreenshotPath}");
             Finish(leaveInteractivePlayRunning: true);
         }
     }
@@ -350,11 +363,92 @@ public static class AtomicContentPlayModeSmoke
         LoadMain(service, "hair", "AdellHair");
         LoadMain(service, "prosthetic", "arm.mechanical.l");
         LoadMain(service, "object", "bed.basic");
+        LoadMain(service, "object", "food.meat_raw");
+        LoadIcon(service, "object", "food.meat_raw");
+        LoadMain(service, "object", "tool.machete");
+        LoadIcon(service, "object", "tool.machete");
         LoadMain(service, "building", "building.hut_1hex");
         LoadMain(service, "mob", "dog");
         LoadMain(service, "vfx", "blood.blood_0");
         LoadFile(service, "audio", "bank.master");
         LoadFile(service, "config", "simdata");
+    }
+
+    private static bool ValidateCurrentWorldIcons(
+        ContentAssetService service, WorldSnapshot snapshot)
+    {
+        if (snapshot == null)
+        {
+            Fail("remote world has no snapshot for owner-icon validation");
+            return false;
+        }
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        void Add(string id)
+        {
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                ids.Add(id);
+            }
+        }
+        void AddNpcs(IEnumerable<NpcSnapshot> npcs)
+        {
+            foreach (var npc in npcs)
+            {
+                foreach (var id in npc.WornItems) Add(id);
+                foreach (var id in npc.InventoryItems) Add(id);
+                foreach (var id in npc.HolsteredItems) Add(id);
+                Add(npc.HeldItemId);
+                Add(npc.HeldGarmentId);
+                Add(npc.FavoriteWeaponId);
+                foreach (var container in npc.InventoryContainers)
+                {
+                    Add(container.OwnerItemDefinitionId);
+                    foreach (var slot in container.Slots) Add(slot.ItemDefinitionId);
+                }
+            }
+        }
+
+        AddNpcs(snapshot.Npcs);
+        AddNpcs(snapshot.Corpses);
+        foreach (var worldObject in snapshot.Objects)
+        {
+            Add(worldObject.DefinitionId);
+            foreach (var slot in worldObject.Contents) Add(slot.ItemDefinitionId);
+            foreach (var id in worldObject.CraftIngredients) Add(id);
+            if (worldObject.RoastingRaw > 0) Add("food.meat_raw");
+            if (worldObject.RoastingCooked > 0) Add("food.meat_cooked");
+        }
+        foreach (var mob in snapshot.Mobs) Add(mob.MobId);
+
+        var realIcons = 0;
+        foreach (var id in ids)
+        {
+            ContentRecord record = null;
+            foreach (var type in new[] { "wear", "object", "building", "mob" })
+            {
+                if (service.TryGetRecord(type, id, out record))
+                {
+                    break;
+                }
+            }
+            if (record == null || !record.HasRealIcon)
+            {
+                continue;
+            }
+
+            realIcons++;
+            if (ItemIcons.Load(id) == null)
+            {
+                Fail($"current-world icon was not ready before curtain: " +
+                     $"{record.type}/{record.id}");
+                return false;
+            }
+        }
+
+        Debug.Log($"[AtomicContentSmoke] {realIcons} current-world owner icons " +
+                  "were ready before the first panel opened.");
+        return true;
     }
 
     private static void LoadMain(ContentAssetService service, string type, string id)

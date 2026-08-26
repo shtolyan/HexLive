@@ -1403,6 +1403,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private void RenderSnapshot(WorldSnapshot snapshot)
     {
+        // §152: the live snapshot is also the incremental content working set.
+        // Existing ids are cache hits; a newly crafted/looted/spawned owner
+        // starts one main+icon bundle load before any panel can reveal it.
+        ScenePrewarm.ForSnapshot(snapshot);
+
         UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.TilesWater");
         // §148: что наш лагерь видит и что помнит — считается ПЕРВЫМ делом:
         // от этого зависит, какие гексы вообще строить.

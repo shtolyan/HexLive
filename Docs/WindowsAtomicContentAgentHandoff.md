@@ -7,7 +7,7 @@ AssetBundle. Она не собирает Windows Player и не изменяе�
 
 - Ветка для получения изменений: `codex/content-release-fixes`.
 - Объявленный build SHA:
-  `5e317e5745191e54af7bb8ee58077003357f97fb`.
+  `49c03d5989d2ace629a932e3687f5f846703ce17`.
 - Unity: `6000.4.5f1`.
 - Платформа: `StandaloneWindows64`.
 - Runtime profile: `unity6000-content1`.
@@ -64,7 +64,7 @@ git status --short
 
 ```powershell
 git fetch origin
-git switch --detach 5e317e5745191e54af7bb8ee58077003357f97fb
+git switch --detach 49c03d5989d2ace629a932e3687f5f846703ce17
 git lfs pull
 git lfs checkout
 git rev-parse HEAD
@@ -74,7 +74,7 @@ git status --short
 Обязательный вывод `git rev-parse HEAD`:
 
 ```text
-5e317e5745191e54af7bb8ee58077003357f97fb
+49c03d5989d2ace629a932e3687f5f846703ce17
 ```
 
 Если SHA отличается или LFS не может получить payload, сборку не начинать.
@@ -95,7 +95,7 @@ Get-Content ProjectSettings\ProjectVersion.txt
 кандидатами:
 
 ```powershell
-$AtomicOutput = Join-Path (Get-Location) 'Build\AtomicContent\handoff-5e317e574\StandaloneWindows64'
+$AtomicOutput = Join-Path (Get-Location) 'Build\AtomicContent\handoff-49c03d598\StandaloneWindows64'
 
 py -3 Tools\content.py build-all `
   --platform StandaloneWindows64 `
@@ -293,14 +293,15 @@ Staging registryRevision: <номер>
 Staging Windows objects: 2725
 ```
 
-Отдельно сообщить записи четырёх последних визуальных исправлений:
+Отдельно сообщить записи пяти последних визуальных исправлений:
 
 ```powershell
 foreach ($Id in @(
     'shelter.tent',
     'station.drying_rack',
     'tool.bow',
-    'resource.arrow'
+    'resource.arrow',
+    'furniture.wardrobe'
 )) {
     Invoke-RestMethod "$StagingApi/objects/object/$Id`?platform=StandaloneWindows64&profile=unity6000-content1" |
         Select-Object type, id, revision, variant
@@ -310,7 +311,9 @@ foreach ($Id in @(
 У каждой записи после публикации обязан быть
 `variant.platform=StandaloneWindows64`; `tool.bow` и `resource.arrow` не должны
 иметь общих bundle dependencies. Иконка для них не собирается: UI немедленно
-показывает `🏹` и `🎯`.
+показывает `🏹` и `🎯`. Windows bundle `furniture.wardrobe` обязан
+содержать `HangerTemplate`; его нельзя заменять процедурными
+`Cube`/`Sphere`/`Cylinder`.
 
 ## 7. Последующие атомарные обновления одного объекта
 

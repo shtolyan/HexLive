@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -143,6 +145,7 @@ public static class Program
         }
 
         Console.WriteLine($"[server] asset root    {assetRegistry.RootPath}");
+        LogAssetCoverage(assetRegistry);
 
         // §145.4: ОДИН реестр лиз на процесс — MCP-агенты и сетевые игроки
         // делят его, различаясь префиксом owner'а (mcp:/ws:). Создаётся, как
@@ -364,6 +367,47 @@ public static class Program
         worlds.Host.Save();
         Console.WriteLine($"[world] saved at tick {worlds.Host.Tick}");
         return 0;
+    }
+
+    /// <summary>
+    /// §152.4: say out loud which platforms this registry can actually serve.
+    /// A Windows Player asking for content nobody published gets an index that
+    /// is short, not broken, so the gap has to be visible from the server side.
+    /// </summary>
+    private static void LogAssetCoverage(AssetRegistryStore registry)
+    {
+        AssetCoverageReport report;
+        try
+        {
+            report = registry.AuditCoverage();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                                       or InvalidDataException or JsonException)
+        {
+            Console.Error.WriteLine($"[assets] coverage audit failed: {ex.Message}");
+            return;
+        }
+
+        Console.WriteLine(
+            $"[assets] registry revision {report.RegistryRevision}, " +
+            $"{report.ActiveObjects} active, {report.RetiredObjects} retired, " +
+            $"{report.Platforms.Count} platform/profile pair(s)");
+        foreach (var platform in report.Platforms)
+        {
+            var line =
+                $"[assets] coverage {platform.Platform}/{platform.RuntimeProfile}: " +
+                $"{platform.Covered}/{report.ActiveObjects}";
+            if (platform.Missing.Count > 0)
+            {
+                var named = platform.Missing.Take(8)
+                    .Select(key => key.Type + "/" + key.Id);
+                line += $" — missing {platform.Missing.Count}: " +
+                    string.Join(", ", named) +
+                    (platform.Missing.Count > 8 ? ", …" : string.Empty);
+            }
+
+            Console.WriteLine(line);
+        }
     }
 
     private static async Task LeaseSweepAsync(

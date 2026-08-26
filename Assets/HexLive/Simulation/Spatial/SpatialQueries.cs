@@ -450,6 +450,16 @@ public static class SpatialQueries
             caches.JunctionPosGridBuilt = true;
         }
 
+        if (caches.JunctionPosGrid.Count == 0)
+        {
+            // Мир без единого джанкшена (голая тест-арена): границы сетки
+            // остаются инвертированными (Min=int.MaxValue, Max=int.MinValue),
+            // maxRing раздувается до ~2^31, а ранний выход требует уже
+            // найденного nearest — кольцевой обход становится вечным циклом
+            // (прогон dotnet test однажды провисел на нём 12 часов).
+            return null;
+        }
+
         var cx0 = GridCell(worldPosition.X);
         var cy0 = GridCell(worldPosition.Y);
         var maxRing = System.Math.Max(

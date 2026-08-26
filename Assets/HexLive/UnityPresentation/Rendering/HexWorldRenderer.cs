@@ -3923,7 +3923,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         // Fallback: plain transparent URP/Lit if the shader failed to import.
-        var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        var material = new Material(RequireRuntimeLitShader());
         material.SetFloat("_Surface", 1f); // transparent
         material.SetFloat("_Blend", 0f);   // alpha
         material.SetOverrideTag("RenderType", "Transparent");
@@ -6757,12 +6757,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private static Material CreateMaterial(Color color)
     {
-        var material = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+        var material = new Material(RequireRuntimeLitShader())
         {
             color = color
         };
 
         return material;
+    }
+
+    private static Shader RequireRuntimeLitShader()
+    {
+        var shader = Shader.Find("Universal Render Pipeline/Lit");
+        if (shader == null)
+        {
+            throw new System.InvalidOperationException(
+                "Universal Render Pipeline/Lit was stripped from Player. " +
+                "HexLiveReleaseBuilder must retain the runtime-generated world shader.");
+        }
+
+        return shader;
     }
 }
 

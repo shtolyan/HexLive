@@ -32,7 +32,8 @@ public sealed class ProstheticWorldDropView : MonoBehaviour
 
     public void Construct(string definitionId, int objectId)
     {
-        if (!TryDescribe(definitionId, objectId, out var part, out var mechanical))
+        if (!ProstheticContent.TryDescribeWorldDrop(
+                definitionId, objectId, out var part, out var mechanical))
         {
             return;
         }
@@ -85,26 +86,6 @@ public sealed class ProstheticWorldDropView : MonoBehaviour
         }
 
         Ground(instance);
-    }
-
-    private static bool TryDescribe(
-        string definitionId, int objectId, out BodyPart part, out bool mechanical)
-    {
-        mechanical = definitionId is ContentIds.MechanicalArm or ContentIds.MechanicalLeg;
-        var left = (objectId & 1) == 0;
-        if (definitionId is ContentIds.WoodenArm or ContentIds.MechanicalArm)
-        {
-            part = left ? BodyPart.ArmL : BodyPart.ArmR;
-            return true;
-        }
-        if (definitionId is ContentIds.WoodenLeg or ContentIds.MechanicalLeg)
-        {
-            part = left ? BodyPart.LegL : BodyPart.LegR;
-            return true;
-        }
-
-        part = default;
-        return false;
     }
 
     private static void Ground(GameObject instance)

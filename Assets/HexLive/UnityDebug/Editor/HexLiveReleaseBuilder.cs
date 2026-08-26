@@ -15,6 +15,9 @@ namespace HexLive.UnityDebug.Editor
     public static class HexLiveReleaseBuilder
     {
         private const string PcPipelineAssetPath = "Assets/Settings/PC_RPAsset.asset";
+        private const string RuntimeLitShaderName = "Universal Render Pipeline/Lit";
+        private const string RuntimeLitShaderGuid = "933532a4fcc9baf4fa0491de14d08ed7";
+        private const string GraphicsSettingsPath = "ProjectSettings/GraphicsSettings.asset";
         private const long MaximumPlayerBytes = 450L * 1024L * 1024L;
         private const long MaximumDataAndStreamingBytes = 50L * 1024L * 1024L;
         private const string OutputArgument = "-hexlive-build-output";
@@ -57,6 +60,7 @@ namespace HexLive.UnityDebug.Editor
             try
             {
                 ValidateNoForcedPlayerContent();
+                ValidateRuntimeGeneratedWorldRendering();
                 Debug.Log("[BuildGate] Atomic Player inputs are valid.");
                 exitCode = 0;
             }
@@ -425,7 +429,25 @@ namespace HexLive.UnityDebug.Editor
                     "render actors and palms while culling every hex and world prop.");
             }
 
-            Debug.Log("[BuildGate] Runtime-generated world uses classic MeshRenderer path.");
+            var runtimeLit = Shader.Find(RuntimeLitShaderName);
+            if (runtimeLit == null)
+            {
+                throw new InvalidOperationException(
+                    $"Required runtime shader is unavailable: {RuntimeLitShaderName}.");
+            }
+
+            var graphicsSettings = File.ReadAllText(GraphicsSettingsPath);
+            if (!graphicsSettings.Contains(
+                    $"guid: {RuntimeLitShaderGuid}", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"{RuntimeLitShaderName} must remain in GraphicsSettings always-included shaders. " +
+                    "The minimal Player creates terrain and fallback materials at runtime, so Unity's " +
+                    "normal scene-reference stripping cannot discover this dependency.");
+            }
+
+            Debug.Log("[BuildGate] Runtime-generated world uses classic MeshRenderer path " +
+                      $"with {RuntimeLitShaderName} retained.");
         }
 
         private static bool HasArgument(string name)

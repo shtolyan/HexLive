@@ -90,7 +90,11 @@ public static class ScenePrewarm
 
         foreach (var value in world.Entities.Objects.Values)
         {
-            Add(ObjectContentType(value.DefinitionId), value.DefinitionId);
+            if (TryWorldObjectContentKey(
+                    value.DefinitionId, value.Id.Value, out var type, out var contentId))
+            {
+                Add(type, contentId);
+            }
         }
         foreach (var mob in world.Mobs)
         {
@@ -212,8 +216,12 @@ public static class ScenePrewarm
                 continue;
             }
 
-            var type = ObjectContentType(worldObject.DefinitionId);
-            ContentPrefabCache.Prewarm(type, worldObject.DefinitionId);
+            if (TryWorldObjectContentKey(
+                    worldObject.DefinitionId, worldObject.Id.Value,
+                    out var type, out var contentId))
+            {
+                ContentPrefabCache.Prewarm(type, contentId);
+            }
         }
     }
 
@@ -256,11 +264,59 @@ public static class ScenePrewarm
         }
     }
 
-    private static string ObjectContentType(string id) =>
-        id.StartsWith("building.", System.StringComparison.Ordinal) ||
-        id.StartsWith("architecture.", System.StringComparison.Ordinal)
+    private static bool TryWorldObjectContentKey(
+        string definitionId, int objectId, out string type, out string contentId)
+    {
+        type = string.Empty;
+        contentId = string.Empty;
+        if (string.IsNullOrWhiteSpace(definitionId))
+        {
+            return false;
+        }
+
+        // A dropped garment is still the same atomic wear object as the fitted
+        // garment. Asking for object/clothing.* produced a false missing-record
+        // warning and left the real wear bundle on the lazy path.
+        if (HexLive.Simulation.Content.GarmentLibrary.Active.Any(
+                garment => string.Equals(
+                    garment.Id, definitionId, System.StringComparison.Ordinal)))
+        {
+            type = "wear";
+            contentId = definitionId;
+            return true;
+        }
+
+        // Simulation uses one id per prosthetic kind, but presentation objects
+        // are independently authored for left/right. Match the world-drop view's
+        // deterministic side selection before resolve/prewarm.
+        if (ProstheticContent.TryWorldDropObjectId(definitionId, objectId, out contentId))
+        {
+            type = "prosthetic";
+            return true;
+        }
+
+        // These are simulation/presentation anchors assembled from already
+        // loaded actors or procedural geometry. They deliberately own no
+        // ContentObject and therefore must not be reported as missing bundles.
+        if (IsPayloadFreeWorldAnchor(definitionId))
+        {
+            return false;
+        }
+
+        type = definitionId.StartsWith("building.", System.StringComparison.Ordinal) ||
+               definitionId.StartsWith("architecture.", System.StringComparison.Ordinal)
             ? "building"
             : "object";
+        contentId = definitionId;
+        return true;
+    }
+
+    private static bool IsPayloadFreeWorldAnchor(string definitionId) =>
+        definitionId.StartsWith("water.", System.StringComparison.Ordinal) ||
+        definitionId is "corpse.npc" or "grave.npc" or "body.limb_severed" ||
+        definitionId == HexLive.Simulation.Content.ContentIds.BuildSite ||
+        definitionId == HexLive.Simulation.Content.ContentIds.HutPlan ||
+        definitionId == HexLive.Simulation.Content.ContentIds.HumanRemains;
 }
 
 }

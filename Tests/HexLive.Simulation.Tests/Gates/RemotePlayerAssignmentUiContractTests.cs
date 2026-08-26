@@ -48,6 +48,22 @@ public sealed class RemotePlayerAssignmentUiContractTests
                 "Крафт-гейт обязан спрашивать владение, а не фракцию (#231).");
             Assert.That(crafting, Does.Not.Contain("npc.Faction != Faction.Colony"),
                 "Возврат буквальной проверки фракции вернёт NotManual соседним лагерям.");
+
+            // §149 r3 (#236): контекстное меню человека — последний старый
+            // гейт. «Своя» и «соседний лагерь» считаются от лагеря ТОЙ, КТО
+            // ОТДАЁТ приказ, теми же предикатами, что и приём приказа.
+            var menuTargets = Read("Assets", "HexLive", "Simulation", "Runtime",
+                "Helpers", "ManualMenuTargets.cs");
+            Assert.That(menuTargets, Does.Contain("FactionRelations.AreAllies(actor, target)"),
+                "«Своя» в меню обязана быть тем же вопросом, что в приёме приказа.");
+            Assert.That(input, Does.Contain(
+                "ManualMenuTargets.SameSide(carrier.Faction, target.Faction)"));
+            Assert.That(input, Does.Contain(
+                "ManualMenuTargets.NeighbourCamp(carrier.Faction, target.Faction)"));
+            Assert.That(input, Does.Not.Contain("target.Faction == Faction.Colony"),
+                "Буквальный гейт цели переворачивал меню у игрока лагеря Colony2..Colony6.");
+            Assert.That(input, Does.Not.Contain("carrier.Faction == Faction.Colony"),
+                "Буквальный гейт приказывающей прятал объединение лагерей §146.12.");
         });
     }
 

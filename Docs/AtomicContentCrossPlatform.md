@@ -4,6 +4,46 @@ This runbook is the operational companion to §152. Both platform variants of
 an object must be built from the same Git commit. Do not maintain a handwritten
 inventory, rename authoring ids, or inject platform-specific placeholder art.
 
+## 0. Two-machine handoff gate
+
+The release owner announces one immutable build SHA. macOS and Windows must
+check out that exact SHA, not merely the same moving branch name. Do not start a
+new queue while the integration branch is still advancing. Once the SHA is
+announced:
+
+```text
+git fetch origin
+git switch --detach <announced-build-sha>
+git lfs pull
+git lfs checkout
+git rev-parse HEAD
+```
+
+Both builders send the resulting full SHA to each other before invoking Unity.
+If either value differs, stop. Candidate directories produced from an older
+HEAD, a partial handwritten queue, or a local uncommitted fix are not merged
+with this bootstrap and must be kept outside the publish input.
+
+The answers to the current Windows handoff are part of this contract:
+
+- `FCO * Male`, `FAO Harness Male`, `TonnyFlash`, and DAZ hair colour names with
+  spaces are valid legacy ids/entries. Do not rename or escape them.
+- All active male raid garments are normal publication objects. Empty
+  `clothing.shirt_naughty*` and extracted Alloy residues are not active objects
+  and must not be force-built.
+- Owner icons are embedded in the owner's bundle. When real art is absent the
+  shared builder creates its deterministic marked placeholder; neither machine
+  supplies a platform-local `--icon`.
+- RuntimeSource objects are discovered by `build-all`; no handwritten
+  descriptor batch is exchanged between machines.
+- `build-all` owns the complete audio and `config/simdata` inventory too. Do not
+  run a second platform-specific sound or simdata recipe.
+- The only acceptable bootstrap result is the complete 2,777-object inventory
+  and digest in §2 with zero failed objects. The earlier 272/289-object Windows
+  partial queues are diagnostic output, not publishable candidates.
+- Publication targets only the isolated staging root/port in §4. Production is
+  unchanged until a cold-cache Player completes the end-to-end acceptance.
+
 ## 1. Synchronize the source
 
 The integration branch is `codex/content-release-fixes`.
@@ -17,10 +57,11 @@ git lfs checkout
 git rev-parse HEAD
 ```
 
-The macOS and Windows builders must exchange the final `git rev-parse HEAD`
-value before starting. If either checkout has source changes, commit them on a
-separate branch and merge first; candidate outputs are not a substitute for a
-shared source commit.
+The branch is used to fetch the announced commit; §0's detached exact-SHA
+checkout is the build state. The macOS and Windows builders must exchange the
+final `git rev-parse HEAD` value before starting. If either checkout has source
+changes, commit them on a separate branch and merge first; candidate outputs
+are not a substitute for a shared source commit.
 
 ## 2. Identity and authoring rules
 

@@ -7,13 +7,13 @@ AssetBundle. Она не собирает Windows Player и не изменяе�
 
 - Ветка для получения изменений: `codex/content-release-fixes`.
 - Объявленный build SHA:
-  `2d3c8eb49d2471dfdd37a656cda0d41368c13f3b`.
+  `5e317e5745191e54af7bb8ee58077003357f97fb`.
 - Unity: `6000.4.5f1`.
 - Платформа: `StandaloneWindows64`.
 - Runtime profile: `unity6000-content1`.
-- Ожидается ровно `2710` атомарных объектов.
+- Ожидается ровно `2725` атомарных объектов.
 - Ожидаемый SHA-256 отсортированного списка `type/id`:
-  `de2ec59dae44c2f531189cca3aa679cc225bff88897d8d71c0bf9766ffa7a7ce`.
+  `731c9be10a7842247a795524fade2b5100b19f88ad64da4c8e197ef332fcbdb1`.
 
 Сборка macOS и сборка Windows обязаны происходить из одного объявленного SHA.
 Имя ветки само по себе недостаточно: после синхронизации нужно перейти в
@@ -64,7 +64,7 @@ git status --short
 
 ```powershell
 git fetch origin
-git switch --detach 2d3c8eb49d2471dfdd37a656cda0d41368c13f3b
+git switch --detach 5e317e5745191e54af7bb8ee58077003357f97fb
 git lfs pull
 git lfs checkout
 git rev-parse HEAD
@@ -74,7 +74,7 @@ git status --short
 Обязательный вывод `git rev-parse HEAD`:
 
 ```text
-2d3c8eb49d2471dfdd37a656cda0d41368c13f3b
+5e317e5745191e54af7bb8ee58077003357f97fb
 ```
 
 Если SHA отличается или LFS не может получить payload, сборку не начинать.
@@ -95,7 +95,7 @@ Get-Content ProjectSettings\ProjectVersion.txt
 кандидатами:
 
 ```powershell
-$AtomicOutput = Join-Path (Get-Location) 'Build\AtomicContent\handoff-2d3c8eb49\StandaloneWindows64'
+$AtomicOutput = Join-Path (Get-Location) 'Build\AtomicContent\handoff-5e317e574\StandaloneWindows64'
 
 py -3 Tools\content.py build-all `
   --platform StandaloneWindows64 `
@@ -129,8 +129,8 @@ $Summary | Format-List platform, runtimeProfile, discovered, built, failed
 
 if ($Summary.platform -ne 'StandaloneWindows64') { throw 'Wrong platform' }
 if ($Summary.runtimeProfile -ne 'unity6000-content1') { throw 'Wrong runtime profile' }
-if ([int]$Summary.discovered -ne 1581) { throw 'Wrong Unity object inventory' }
-if ([int]$Summary.built -ne 1581) { throw 'Not all Unity objects were built' }
+if ([int]$Summary.discovered -ne 1596) { throw 'Wrong Unity object inventory' }
+if ([int]$Summary.built -ne 1596) { throw 'Not all Unity objects were built' }
 if ([int]$Summary.failed -ne 0) { throw 'Some bundles failed; do not publish' }
 ```
 
@@ -159,8 +159,8 @@ print(f"sha256={hashlib.sha256(payload).hexdigest()}")
 Обязательный результат:
 
 ```text
-objects=2710
-sha256=de2ec59dae44c2f531189cca3aa679cc225bff88897d8d71c0bf9766ffa7a7ce
+objects=2725
+sha256=731c9be10a7842247a795524fade2b5100b19f88ad64da4c8e197ef332fcbdb1
 ```
 
 Дополнительно проверить распределение объектов и payload:
@@ -194,10 +194,10 @@ print("profiles:", dict(profiles))
 Ожидается:
 
 ```text
-types: actor=5 audio=1128 building=7 config=754 hair=16 mob=1 object=37 prosthetic=8 vfx=69 wear=685
-payloads: assetBundle=1581 file=1129
-platforms: {'StandaloneWindows64': 2710}
-profiles: {'unity6000-content1': 2710}
+types: actor=5 audio=1128 building=7 config=754 hair=16 mob=2 object=51 prosthetic=8 vfx=69 wear=685
+payloads: assetBundle=1596 file=1129
+platforms: {'StandaloneWindows64': 2725}
+profiles: {'unity6000-content1': 2725}
 ```
 
 При любом расхождении не публиковать. Передать Марку:
@@ -260,8 +260,8 @@ $StagingApi = 'http://62.146.235.120:5124/api/assets/v1'
 $Index = Invoke-RestMethod "$StagingApi/index/StandaloneWindows64/unity6000-content1"
 
 "registryRevision=$($Index.registryRevision) objects=$($Index.objects.Count)"
-if ($Index.objects.Count -ne 2710) {
-    throw "Staging Windows index is incomplete: $($Index.objects.Count)/2710"
+if ($Index.objects.Count -ne 2725) {
+    throw "Staging Windows index is incomplete: $($Index.objects.Count)/2725"
 }
 ```
 
@@ -286,12 +286,31 @@ HEAD должен вернуть `200`, корректный `Content-Length` и
 
 ```text
 Windows SHA: <полный git SHA>
-Build objects: 2710
-Inventory digest: de2ec59dae44c2f531189cca3aa679cc225bff88897d8d71c0bf9766ffa7a7ce
+Build objects: 2725
+Inventory digest: 731c9be10a7842247a795524fade2b5100b19f88ad64da4c8e197ef332fcbdb1
 Publish exit: 0
 Staging registryRevision: <номер>
-Staging Windows objects: 2710
+Staging Windows objects: 2725
 ```
+
+Отдельно сообщить записи четырёх последних визуальных исправлений:
+
+```powershell
+foreach ($Id in @(
+    'shelter.tent',
+    'station.drying_rack',
+    'tool.bow',
+    'resource.arrow'
+)) {
+    Invoke-RestMethod "$StagingApi/objects/object/$Id`?platform=StandaloneWindows64&profile=unity6000-content1" |
+        Select-Object type, id, revision, variant
+}
+```
+
+У каждой записи после публикации обязан быть
+`variant.platform=StandaloneWindows64`; `tool.bow` и `resource.arrow` не должны
+иметь общих bundle dependencies. Иконка для них не собирается: UI немедленно
+показывает `🏹` и `🎯`.
 
 ## 7. Последующие атомарные обновления одного объекта
 

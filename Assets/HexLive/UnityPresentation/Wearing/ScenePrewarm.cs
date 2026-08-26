@@ -44,6 +44,21 @@ public static class ScenePrewarm
         WarmMobs(world);
     }
 
+    /// <summary>
+    /// §152 content type of a world object id — the SAME answer
+    /// <see cref="AtomicResources"/> gives when the model is finally loaded.
+    /// A §120 architecture module (`architecture.door.wood` and friends) is
+    /// published as a `building`, not as an `object`: asking for the wrong type
+    /// here made `Resolve` report the whole architecture family as unresolved
+    /// and left every module off the prewarm, so the first snapshot that drew a
+    /// door found no bundle (bug #238).
+    /// </summary>
+    private static string ContentTypeOf(string definitionId) =>
+        definitionId.StartsWith("building.", System.StringComparison.Ordinal) ||
+        definitionId.StartsWith("architecture.", System.StringComparison.Ordinal)
+            ? "building"
+            : "object";
+
     private static void ResolveWorkingSet(WorldState world)
     {
         var keys = new Dictionary<string, ContentObjectKey>();
@@ -90,8 +105,7 @@ public static class ScenePrewarm
 
         foreach (var value in world.Entities.Objects.Values)
         {
-            Add(value.DefinitionId.StartsWith("building.", System.StringComparison.Ordinal)
-                ? "building" : "object", value.DefinitionId);
+            Add(ContentTypeOf(value.DefinitionId), value.DefinitionId);
         }
         foreach (var mob in world.Mobs)
         {
@@ -213,9 +227,8 @@ public static class ScenePrewarm
                 continue;
             }
 
-            var type = worldObject.DefinitionId.StartsWith("building.",
-                System.StringComparison.Ordinal) ? "building" : "object";
-            ContentPrefabCache.Prewarm(type, worldObject.DefinitionId);
+            ContentPrefabCache.Prewarm(
+                ContentTypeOf(worldObject.DefinitionId), worldObject.DefinitionId);
         }
     }
 

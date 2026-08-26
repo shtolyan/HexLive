@@ -116,10 +116,21 @@ namespace HexLive.UnityPresentation.Environment
         /// </summary>
         public static GameObject? InstantiateModel(string definitionId, Vector3 position, Quaternion yaw)
         {
-            if (!ModelPrefabs.TryGetValue(definitionId, out var prefab))
+            if (!ModelPrefabs.TryGetValue(definitionId, out var prefab) || prefab == null)
             {
                 prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Objects/" + definitionId);
-                ModelPrefabs[definitionId] = prefab;
+                // §152: AtomicResources is ASYNCHRONOUS — the first call for an
+                // id that is not in the session cache yet starts the bundle
+                // request and returns null. Caching that null is what made the
+                // door vanish for a whole session (bug #238): the memo was
+                // written for the old synchronous Resources.Load, which never
+                // returned null for an asset that exists, so the retry the next
+                // snapshot makes hit the poisoned entry forever and the module
+                // logged "no model … it will not be drawn" exactly once.
+                if (prefab != null)
+                {
+                    ModelPrefabs[definitionId] = prefab;
+                }
             }
             if (prefab == null) return null;
 

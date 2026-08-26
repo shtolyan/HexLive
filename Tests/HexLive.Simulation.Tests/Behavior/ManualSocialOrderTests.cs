@@ -211,6 +211,122 @@ public sealed class ManualSocialOrderTests
             "Отказ обязан называть настоящую причину: помощь стоит припаса (§53.7).");
     }
 
+    // §53.9 (баг #240): БЕСПОМОЩНУЮ — ту, что сама не поест и не попьёт —
+    // кормят и поят именно тем, что выбрал игрок. Живая переоценка §53.3 по
+    // прибытии отвечала за лежачую Treat (у неё кровь в полу и открытая рана),
+    // и приказ «Накормить» молча умирал на «нечем перевязать», не тронув голода.
+    [Test]
+    public void AidFeedsAComatoseWardTheLiveAssessmentWouldRatherBandage()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var pair = TwoColonists(world);
+        var helper = pair[0];
+        var ward = pair[1];
+        TakeControl(engine, helper);
+        TakeControl(engine, ward);
+        PlaceOnFreeNeighbor(world, ward, helper);
+
+        // Еда есть, перевязать нечем — ровно та помощница, на которой приказ
+        // и обрывался.
+        helper.Inventory.Items.Add(new ItemInstance("food.meat_cooked"));
+        helper.Inventory.Items.RemoveAll(i => i.DefinitionId.Contains("bandage"));
+
+        ward.Wounds.Clear();
+        ward.Wounds.Add(new WoundState
+        {
+            Id = 240, Zone = BodyPart.ArmL, Severity = 0.10f,
+            Heal01 = 0f, Clot01 = 0f, Stabilized = false, BleedFactor = 1f, Seed = 240
+        });
+        ward.Needs.Blood = 0.30f;
+        ward.Needs.Hunger = 0.60f;
+        ward.Needs.Energy = 0f;
+        NeedsDecaySystem.EnterComa(world, ward, ComaCause.Exhaustion);
+
+        Assert.That(AidAssessment.Assess(ward, world.Tick, out _),
+            Is.EqualTo(AidKind.Treat),
+            "Сцена перестала быть той, ради которой тест написан: §53.3 обязана " +
+            "хотеть здесь ПЕРЕВЯЗКУ, иначе приказ «Накормить» ничего не проверяет.");
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new AidPersonCommand(helper.Id, ward.Id, AidKind.Feed));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            $"Aid отклонён: {admission.Reason}");
+
+        var fedHer = false;
+        for (var i = 0; i < 400 && ward.Needs.Hunger > 0.35f; i++)
+        {
+            ward.Needs.Energy = 0f; // держим её без сознания весь поход
+            engine.Step();
+            fedHer |= helper.Execution.CurrentInteraction == InteractionType.FeedOther;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fedHer, Is.True,
+                "Помощница так и не начала кормить: приказ игрока переигран " +
+                "переоценкой §53.3 и оборван на «нечем перевязать».");
+            Assert.That(ward.Needs.Hunger, Is.LessThan(0.35f),
+                "Голод лежачей не снизился — еда до неё не дошла (§53.7).");
+        });
+    }
+
+    // §53.9 (баг #240): у беспомощной нужда не обязана дорасти до §53.3-шного
+    // порога страдания. Жажда 0.4 у той, кто сама не попьёт, — это забота
+    // игрока; автономная формула здесь отвечает None, и приказ «Напоить»
+    // обрывался по прибытии как «ей уже не нужна помощь».
+    [Test]
+    public void AidHydratesAComatoseWardBelowTheAutonomousSufferingThreshold()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var pair = TwoColonists(world);
+        var helper = pair[0];
+        var ward = pair[1];
+        TakeControl(engine, helper);
+        TakeControl(engine, ward);
+        PlaceOnFreeNeighbor(world, ward, helper);
+
+        helper.BottleWater = WaterKind.Rain;
+        helper.BottleCharges = 2;
+
+        ward.Wounds.Clear();
+        ward.Needs.Blood = 1f;
+        ward.Health = 1f;
+        ward.Needs.Stress = 0f;
+        ward.Needs.Hunger = 0.10f;
+        ward.Needs.Thirst = 0.40f;
+        ward.Needs.Energy = 0f;
+        NeedsDecaySystem.EnterComa(world, ward, ComaCause.Exhaustion);
+
+        Assert.That(AidAssessment.Assess(ward, world.Tick, out _),
+            Is.EqualTo(AidKind.None),
+            "Сцена перестала быть той, ради которой тест написан: §53.3 обязана " +
+            "здесь молчать, иначе приказ «Напоить» ничего не проверяет.");
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new AidPersonCommand(helper.Id, ward.Id, AidKind.Hydrate));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            $"Aid отклонён: {admission.Reason}");
+
+        var gaveHerWater = false;
+        for (var i = 0; i < 400 && ward.Needs.Thirst >= 0.40f; i++)
+        {
+            ward.Needs.Energy = 0f;
+            engine.Step();
+            gaveHerWater |= helper.Execution.CurrentInteraction == InteractionType.HydrateOther;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(gaveHerWater, Is.True,
+                "Помощница так и не начала поить: приказ игрока оборван " +
+                "переоценкой §53.3 как «помощь больше не нужна».");
+            Assert.That(ward.Needs.Thirst, Is.LessThan(0.40f),
+                "Жажда лежачей не снизилась — вода до неё не дошла (§53.7).");
+        });
+    }
+
     [Test]
     public void AidToOutsiderIsRejectedBeforeSuppliesAreSpent()
     {

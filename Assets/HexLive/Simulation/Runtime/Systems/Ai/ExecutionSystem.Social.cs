@@ -363,6 +363,36 @@ public sealed partial class ExecutionSystem
     private static AidKind AssessAidKind(NPCState t, int tick, out float severity) =>
         AidAssessment.Assess(t, tick, out severity);
 
+    // §53.9: помощь, ВИД которой назначил игрок именно этой подопечной. Метка
+    // адресная: подобрать её чужим походом (или автономным выбором §53.3) —
+    // значит нести бинт туда, куда просили воду.
+    private static AidKind PlayerOrderedAid(NPCState npc, NPCState target) =>
+        npc.Mind.OrderedAidKind != AidKind.None &&
+        npc.Mind.OrderedAidFor is { } orderedFor && orderedFor.Equals(target.Id)
+            ? npc.Mind.OrderedAidKind
+            : AidKind.None;
+
+    // §53.9: сытую не кормят и напоенную не поят — но порог здесь на дне, а не
+    // на §53.3-шном SufferingThreshold (0.3). В том и смысл приказа: голод 0.4
+    // у лежачей, которая сама не поест, — это забота игрока, а не «ей ещё рано».
+    // Ноль всё-таки отсекается: пока помощница шла, подопечную могли накормить,
+    // и тратить на это последнее мясо не за чем.
+    private const float OrderedAidMinNeed = 0.05f;
+
+    private static bool OrderedAidStillNeeded(NPCState target, AidKind kind) => kind switch
+    {
+        AidKind.Feed => target.Needs.Hunger > OrderedAidMinNeed,
+        AidKind.Hydrate => target.Needs.Thirst > OrderedAidMinNeed,
+        _ => true
+    };
+
+    // §53.9: приказ отработан или брошен — метка снимается вместе с ним.
+    private static void ClearOrderedAid(NPCState npc)
+    {
+        npc.Mind.OrderedAidKind = AidKind.None;
+        npc.Mind.OrderedAidFor = null;
+    }
+
     // Spec §53: apply the help to the TARGET. §53.7: the matching supply has
     // just left the HELPER's own stores (AidSupply.TrySpend), and `spend` says
     // what it was — a meal's own nutrition feeds better than a scrap, a herbal
@@ -607,10 +637,22 @@ public sealed partial class ExecutionSystem
 
             AidKind kindNow;
             float severity;
+            var orderedKind = PlayerOrderedAid(npc, target);
             if (medicalOrder)
             {
                 kindNow = AidAssessment.AssessMedical(target, world.Tick);
                 severity = kindNow == AidKind.None ? 0f : 1f;
+            }
+            else if (orderedKind != AidKind.None)
+            {
+                // §53.9: игрок назвал вид помощи сам — переоценка §53.3 его не
+                // переигрывает. Для БЕСПОМОЩНОЙ (кома, умирание, лежит ничком)
+                // формула почти всегда отвечает Treat/Medicate, потому что у
+                // неё в полу кровь и здоровье, — и приказ «Накормить» умирал на
+                // «нечем перевязать», пока подопечная голодала. Проверка
+                // остаётся ровно одна: осталась ли нужда, ради которой шли.
+                kindNow = orderedKind;
+                severity = OrderedAidStillNeeded(target, orderedKind) ? 1f : 0f;
             }
             else
             {
@@ -848,6 +890,7 @@ public sealed partial class ExecutionSystem
                 target.Mind.PendingAidFrom = null;
             }
 
+            ClearOrderedAid(npc);
             npc.Plan.Status = PlanStatus.Completed;
             npc.Plan.Steps.Clear();
             npc.Plan.TargetObjectId = null;
@@ -926,6 +969,7 @@ public sealed partial class ExecutionSystem
         {
             t.Mind.PendingAidFrom = null;
         }
+        ClearOrderedAid(npc);
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Aid);
         PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, reason);
         npc.Mind.CurrentGoal = GoalType.None;

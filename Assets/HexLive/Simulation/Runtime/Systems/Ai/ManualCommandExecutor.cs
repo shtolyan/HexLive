@@ -326,6 +326,11 @@ internal static class ManualCommandExecutor
         npc.Plan.Steps.Clear();
         npc.Plan.RunRequested = false;
         npc.Mind.GoalLock = null;
+        // §53.9: назначенный игроком вид помощи живёт ровно один приказ —
+        // следующий приказ (любой) снимает его, чтобы метка не досталась
+        // чужому походу и не подменила автономный выбор §53.3.
+        npc.Mind.OrderedAidKind = AidKind.None;
+        npc.Mind.OrderedAidFor = null;
         // §121.7: принятая РУЧНАЯ команда продлевает lease внимания игрока.
         // Mode-independent inventory transfers §123/§128 also pass here, but
         // must neither switch AI mode nor create a dormant manual lease.
@@ -983,6 +988,11 @@ internal static class ManualCommandExecutor
 
         npc.Plan.Goal = GoalType.Aid;
         npc.Mind.CurrentGoal = GoalType.Aid;
+        // §53.9: вид помощи выбрал ИГРОК — он и доезжает до исполнения. Метка
+        // ставится ПОСЛЕ ClearForNewOrder (тот её как раз снимает) и адресована
+        // конкретной подопечной: другой поход её не подберёт.
+        npc.Mind.OrderedAidKind = command.Kind;
+        npc.Mind.OrderedAidFor = partner.Id;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",

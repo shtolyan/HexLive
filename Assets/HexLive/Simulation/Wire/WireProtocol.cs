@@ -87,6 +87,17 @@ public enum FrameKind : byte
     /// not.
     /// </summary>
     CraftingOptions = 12,
+
+    /// <summary>
+    /// Server → client: другой кадр целиком (байт вида + payload), сжатый
+    /// gzip'ом — §83.4. Шлётся ТОЛЬКО соединению, объявившему поддержку
+    /// заголовком upgrade-запроса <c>X-HexLive-Accepts: gzip</c>, поэтому
+    /// <see cref="Handshake.ProtocolVersion"/> не бампается: старый клиент
+    /// просто продолжает получать несжатые кадры. Выгода — на больших кадрах
+    /// (кейфрейм ~440 КБ ужимается в разы), и именно они душили медленный
+    /// канал так, что понг не успевал к дедлайну живости клиента.
+    /// </summary>
+    Compressed = 13,
 }
 
 public enum CommandKind : byte
@@ -317,6 +328,71 @@ public static class Frame
         handshake.Write(writer);
         writer.Flush();
         return Wrap(FrameKind.Handshake, stream.ToArray());
+    }
+
+    /// <summary>
+    /// §83.4: целый кадр (байт вида + payload) → кадр <see cref="FrameKind.Compressed"/>.
+    /// Layout payload'а повторяет блок simdata: int32 длина сырого, int32 длина
+    /// сжатого, gzip-байты — то же одно место и один формат на оба конца.
+    /// </summary>
+    public static byte[] Compress(byte[] frame)
+    {
+        byte[] packed;
+        using (var packedStream = new MemoryStream())
+        {
+            using (var gzip = new GZipStream(packedStream, CompressionLevel.Fastest, true))
+            {
+                gzip.Write(frame, 0, frame.Length);
+            }
+
+            packed = packedStream.ToArray();
+        }
+
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8);
+        writer.Write(frame.Length);
+        writer.Write(packed.Length);
+        writer.Write(packed);
+        writer.Flush();
+        return Wrap(FrameKind.Compressed, stream.ToArray());
+    }
+
+    /// <summary>Обратно: payload кадра Compressed → внутренний кадр целиком.</summary>
+    public static byte[] Decompress(byte[] payload)
+    {
+        using var stream = new MemoryStream(payload);
+        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        var rawLength = reader.ReadInt32();
+        var packedLength = reader.ReadInt32();
+
+        // Той же меркой, что simdata: длине разжатого нельзя верить на слово.
+        if (rawLength < 1 || rawLength > 64 * 1024 * 1024 ||
+            packedLength < 0 || packedLength > rawLength + 1024)
+        {
+            throw new InvalidDataException(
+                $"Compressed frame claims {rawLength} bytes packed into {packedLength} — not plausible.");
+        }
+
+        var packed = reader.ReadBytes(packedLength);
+        var raw = new byte[rawLength];
+        using (var packedStream = new MemoryStream(packed))
+        using (var gzip = new GZipStream(packedStream, CompressionMode.Decompress))
+        {
+            var read = 0;
+            while (read < rawLength)
+            {
+                var got = gzip.Read(raw, read, rawLength - read);
+                if (got <= 0)
+                {
+                    throw new InvalidDataException(
+                        $"Compressed frame ended after {read} of {rawLength} bytes.");
+                }
+
+                read += got;
+            }
+        }
+
+        return raw;
     }
 
     public static byte[] Command(CommandKind kind, float value)

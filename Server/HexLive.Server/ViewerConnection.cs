@@ -46,10 +46,14 @@ public sealed class ViewerConnection
     private const double CommandRatePerSecond = 10.0;
     private const double CommandBurst = 30.0;
 
+    // §83.4: ниже этого размера кадр не жмётся даже согласившемуся клиенту.
+    private const int CompressThresholdBytes = 4 * 1024;
+
     private readonly WorldHost _host;
     private readonly WebSocket _socket;
     private readonly string _simData;
     private readonly bool _includeDebugDetails;
+    private readonly bool _compress;
     private readonly string? _controlOwner;
     private readonly ControlLeases? _leases;
     private readonly HashSet<int>? _assignedNpcIds;
@@ -68,12 +72,13 @@ public sealed class ViewerConnection
     public ViewerConnection(
         WorldHost host, WebSocket socket, string simData, bool includeDebugDetails,
         string? controlOwner = null, ControlLeases? leases = null,
-        IReadOnlyList<int>? assignedNpcIds = null)
+        IReadOnlyList<int>? assignedNpcIds = null, bool compress = false)
     {
         _host = host;
         _socket = socket;
         _simData = simData;
         _includeDebugDetails = includeDebugDetails;
+        _compress = compress;
         _controlOwner = controlOwner;
         _leases = leases;
         _assignedNpcIds = assignedNpcIds is null
@@ -420,6 +425,15 @@ public sealed class ViewerConnection
 
     private async Task SendAsync(byte[] frame, CancellationToken cancel)
     {
+        // §83.4: большие кадры душат медленный канал так, что понг (едущий тем
+        // же TCP-потоком ПОЗАДИ них) не успевает к дедлайну живости клиента.
+        // Кейфрейм ~440 КБ сжимается в разы; мелочь (пинги, часы, обычные
+        // дельты) не трогаем — там заголовок дороже выгоды.
+        if (_compress && frame.Length > CompressThresholdBytes)
+        {
+            frame = Frame.Compress(frame);
+        }
+
         await _sendGate.WaitAsync(cancel).ConfigureAwait(false);
         try
         {

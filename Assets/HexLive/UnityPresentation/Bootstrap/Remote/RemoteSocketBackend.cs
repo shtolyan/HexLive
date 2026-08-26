@@ -77,9 +77,12 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     private const double StallAfterSeconds = 3.0;
 
     /// <summary>
-    /// An unanswered ping for this long means the socket is half-open — still
-    /// "Open" as far as the OS is concerned, but nothing crosses it. Tear it
-    /// down and reconnect rather than waiting forever on a dead pipe.
+    /// An unanswered ping for this long — WITH nothing at all arriving for the
+    /// same stretch — means the socket is half-open: still "Open" as far as the
+    /// OS is concerned, but nothing crosses it. Tear it down and reconnect
+    /// rather than waiting forever on a dead pipe. An overdue pong alone is NOT
+    /// death: it shares the TCP stream with the frames and on a slow link
+    /// queues behind a large keyframe still transferring.
     /// </summary>
     private const double DeadAfterSeconds = 10.0;
 
@@ -260,6 +263,11 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                     socket.Options.SetRequestHeader("X-HexLive-Client-Id", _clientId);
                 }
 
+                // §83.4: этот клиент умеет кадры FrameKind.Compressed. Старый
+                // сервер заголовка не знает и шлёт как раньше — совместимо в
+                // обе стороны без бампа ProtocolVersion.
+                socket.Options.SetRequestHeader("X-HexLive-Accepts", "gzip");
+
                 await socket.ConnectAsync(new Uri(_url), connectionLifetime.Token)
                     .ConfigureAwait(false);
 
@@ -275,6 +283,8 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                     _socket = socket;
                     _connectionCancel = connectionLifetime.Token;
                 }
+
+                Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
 
                 await PumpAsync(socket, connectionLifetime.Token).ConfigureAwait(false);
             }
@@ -372,6 +382,17 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                         return;
                     }
 
+                    // Живость меряется ПРИХОДЯЩИМИ БАЙТАМИ, не только понгом:
+                    // понг едет тем же TCP-потоком и на медленном канале
+                    // застревает ПОЗАДИ большого кейфрейма. Считать такую
+                    // паузу смертью сокета — значит рвать живое соединение на
+                    // середине загрузки и никогда не докачать её (ровно та
+                    // 12-секундная петля реконнекта, что показал прод).
+                    if (result.Count > 0)
+                    {
+                        Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
+                    }
+
                     message.Write(chunk, 0, result.Count);
                     if (result.EndOfMessage)
                     {
@@ -419,6 +440,33 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     {
         switch (kind)
         {
+            // §83.4: сервер сжал большой кадр (мы объявили поддержку заголовком
+            // upgrade-запроса). Разжать и раздать как обычный.
+            case FrameKind.Compressed:
+            {
+                byte[] inner;
+                try
+                {
+                    inner = Frame.Decompress(payload);
+                }
+                catch (Exception ex) when (
+                    ex is InvalidDataException or EndOfStreamException or IOException)
+                {
+                    Debug.LogWarning($"[HexLive] Compressed frame refused ({ex.Message}).");
+                    return;
+                }
+
+                if (inner.Length < 1)
+                {
+                    return;
+                }
+
+                var innerPayload = new byte[inner.Length - 1];
+                Buffer.BlockCopy(inner, 1, innerPayload, 0, innerPayload.Length);
+                Dispatch((FrameKind)inner[0], innerPayload);
+                return;
+            }
+
             case FrameKind.Handshake:
                 using (var stream = new MemoryStream(payload))
                 using (var reader = new BinaryReader(stream, Encoding.UTF8))
@@ -587,6 +635,14 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     private bool _serverClockIsNew;
 
     /// <summary>
+    /// Stopwatch-момент последнего ПРИНЯТОГО куска байтов текущего сокета —
+    /// пишется на сокет-потоке, читается пинг-циклом. Вторая половина проверки
+    /// живости: неотвеченный понг смертелен только вместе с полной тишиной в
+    /// приёме, иначе медленная докачка кейфрейма читается как смерть.
+    /// </summary>
+    private long _lastReceiveTimestamp;
+
+    /// <summary>
     /// Pings on a fixed cadence and watches for the reply. This is what turns a
     /// half-open socket — the kind a laptop lid or a NAT timeout leaves behind,
     /// where the OS still reports Open — into a reconnect instead of a world
@@ -616,7 +672,11 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                     }
                 }
 
-                if (waiting && unanswered.Elapsed.TotalSeconds > DeadAfterSeconds)
+                var sinceBytesSeconds =
+                    (Stopwatch.GetTimestamp() - Volatile.Read(ref _lastReceiveTimestamp)) /
+                    (double)Stopwatch.Frequency;
+                if (waiting && unanswered.Elapsed.TotalSeconds > DeadAfterSeconds &&
+                    sinceBytesSeconds > DeadAfterSeconds)
                 {
                     SetState(LinkState.Reconnecting, "No response from the server.");
                     socket.Abort();

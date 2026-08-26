@@ -241,10 +241,17 @@ public static class Program
                 }
             }
 
+            // §83.4: сжатие больших кадров — только клиенту, который его
+            // объявил. Отсутствие заголовка = старый клиент = прежние сырые
+            // кадры; ProtocolVersion поэтому не бампался.
+            var acceptsGzip = context.Request.Headers["X-HexLive-Accepts"]
+                .ToString().Contains("gzip", StringComparison.OrdinalIgnoreCase);
+
             using var socket = await context.WebSockets.AcceptWebSocketAsync();
             Console.WriteLine(
                 $"[viewer] connected from {context.Connection.RemoteIpAddress}" +
-                (controlOwner is null ? string.Empty : $" as {controlOwner}"));
+                (controlOwner is null ? string.Empty : $" as {controlOwner}") +
+                (acceptsGzip ? " (gzip)" : string.Empty));
             // Host, simdata AND lifetime all come from the supervisor at accept
             // time: an admin "new world" swaps the host, refreshes the simdata
             // and cancels this token, closing the connection so the client
@@ -252,7 +259,7 @@ public static class Program
             var viewer = new ViewerConnection(viewerSession.Host, socket, viewerSession.SimData,
                 options.IncludeDebugDetails, controlOwner,
                 controlOwner is null ? null : controlLeases,
-                assignedNpcIds);
+                assignedNpcIds, acceptsGzip);
             try
             {
                 await viewer.RunAsync(viewerSession.Lifetime);

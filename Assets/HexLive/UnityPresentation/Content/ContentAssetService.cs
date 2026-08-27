@@ -220,6 +220,11 @@ public sealed class ContentAssetService
                 }
 
                 BeginAssetLoad(loadedSha);
+                // Держим бандл ПОКА идёт асинхронная загрузка ассета. Раньше
+                // Retain стоял в completed, и Release чужого хэндла успевал
+                // выгрузить бандл из-под живого AssetBundleRequest: на Windows
+                // это падение в нативном коде, а не пустой asset.
+                Retain(loadedSha);
                 var request = bundle.LoadAssetAsync<T>(assetEntry);
                 request.completed += _ =>
                 {
@@ -227,12 +232,14 @@ public sealed class ContentAssetService
                     if (asset == null)
                     {
                         EndAssetLoad(loadedSha);
+                        Release(loadedSha);
                         completed(null);
                         return;
                     }
 
                     Retain(loadedSha);
                     EndAssetLoad(loadedSha);
+                    Release(loadedSha);
                     completed(new ContentAssetHandle<T>(
                         asset, () => Release(loadedSha)));
                 };
@@ -271,6 +278,9 @@ public sealed class ContentAssetService
                 }
 
                 BeginAssetLoad(loadedSha);
+                // Та же страховка, что и в LoadAsset: до конца запроса бандл
+                // не может быть выгружен чужим Release.
+                Retain(loadedSha);
                 var request = bundle.LoadAllAssetsAsync<T>();
                 request.completed += _ =>
                 {
@@ -283,6 +293,7 @@ public sealed class ContentAssetService
                         })
                         .ToArray();
                     EndAssetLoad(loadedSha);
+                    Release(loadedSha);
                     completed?.Invoke(handles);
                 };
             });
@@ -682,6 +693,7 @@ public sealed class ContentAssetService
             if (state.Bundle == null)
             {
                 LastError = $"Bundle {sha256} не открывается";
+                Debug.LogWarning($"[AtomicContent] {LastError} ({BlobPath(sha256)})");
                 _bundles.Remove(sha256);
             }
             foreach (var waiter in waiters)
@@ -1104,8 +1116,13 @@ public sealed class ContentAssetService
             .SelectMany(value => value.variant.attachments)
             .Where(value => value != null)
             .Select(value => value.sha256));
-        protectedHashes.UnionWith(_bundles.Where(pair => pair.Value.Bundle != null)
-            .Select(pair => pair.Key));
+        // Все известные бандлы, а не только уже открытые: пока идёт
+        // LoadFromFileAsync, файл держит Unity, и на Windows File.Delete по нему
+        // бросает sharing violation (на POSIX unlink проходит молча — поэтому
+        // дыра не видна на маке). То же для хэша, в который прямо сейчас
+        // докачивается блоб.
+        protectedHashes.UnionWith(_bundles.Keys);
+        protectedHashes.UnionWith(_blobRequests.Keys);
         foreach (var file in files)
         {
             if (total <= DefaultCacheLimitBytes || protectedHashes.Contains(file.Name))
@@ -1114,7 +1131,19 @@ public sealed class ContentAssetService
             }
 
             var length = file.Length;
-            file.Delete();
+            try
+            {
+                file.Delete();
+            }
+            catch (Exception exception)
+            {
+                // Исключение отсюда убивало корутину загрузки вместе с
+                // ContentQueue.End — очередь контента больше не сходилась.
+                Debug.LogWarning(
+                    $"[AtomicContent] блоб {file.Name} занят, чистка отложена: {exception.Message}");
+                continue;
+            }
+
             _verifiedHashes.Remove(file.Name);
             total -= length;
         }

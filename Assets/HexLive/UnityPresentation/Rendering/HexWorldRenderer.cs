@@ -4392,7 +4392,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // never be misrouted to object/<wear-id> and terminally cached missing.
         var isGarment = GarmentDropFactory.IsGarment(worldObject.DefinitionId) ||
             HexLive.UnityPresentation.Content.ContentAssetService.Instance.TryGetRecord(
-                "wear", worldObject.DefinitionId, out _);
+                "wear",
+                HexLive.UnityPresentation.Wearing.WearArtAliases.ArtId(
+                    worldObject.DefinitionId), out _);
         var objectPrefab = isGarment
             ? null
             : HexLive.UnityPresentation.Environment.WorldPropResources.Load(

@@ -153,6 +153,14 @@ public static class ScenePrewarm
             return;
         }
 
+        // A crafted garment borrowing another garment's bundle must warm as
+        // wear — the registry probe below would misroute it to object/<id>.
+        if (WearArtAliases.IsAliased(id))
+        {
+            WarmOwnerMain("wear", id);
+            return;
+        }
+
         var service = ContentAssetService.Instance;
         foreach (var type in ItemOwnerTypes)
         {
@@ -492,6 +500,15 @@ public static class ScenePrewarm
         {
             type = "wear";
             contentId = definitionId;
+            return true;
+        }
+
+        // A crafted garment with no bundle of its own resolves through its
+        // donor's wear record (WearArtAliases) — object/<id> does not exist.
+        if (WearArtAliases.IsAliased(definitionId))
+        {
+            type = "wear";
+            contentId = WearArtAliases.ArtId(definitionId);
             return true;
         }
 

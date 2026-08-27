@@ -126,6 +126,12 @@ public static class ItemIcons
 
     private static (string Type, string Id) Owner(string id)
     {
+        // A crafted garment with no bundle of its own shows its donor's icon
+        // (WearArtAliases) — the emoji fallback read as "item lost".
+        if (WearArtAliases.IsAliased(id))
+        {
+            return ("wear", WearArtAliases.ArtId(id));
+        }
         if (ContentAssetService.Instance.TryGetRecord("wear", id, out _))
         {
             return ("wear", id);

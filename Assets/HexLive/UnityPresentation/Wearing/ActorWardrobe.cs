@@ -34,10 +34,14 @@ public static class ActorWardrobe
         }
 
         Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.Wear);
+        // A crafted sim garment may borrow another garment's bundle
+        // (WearArtAliases). Cache stays keyed by the SIM id — the rest of the
+        // wardrobe pipeline never learns the substitution happened.
+        var artId = WearArtAliases.ArtId(simDefinitionId);
         // Metadata is part of the same owner bundle. Load it first so variant
         // materials are ready before a visual can be attached to a body.
-        Garments.GarmentVariants.PrewarmAsync(simDefinitionId, () =>
-            ContentAssetService.Instance.LoadMain<GameObject>("wear", simDefinitionId, loaded =>
+        Garments.GarmentVariants.PrewarmAsync(artId, () =>
+            ContentAssetService.Instance.LoadMain<GameObject>("wear", artId, loaded =>
         {
             var result = new List<Wear>();
             if (loaded?.Asset != null)

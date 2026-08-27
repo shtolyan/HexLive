@@ -119,6 +119,37 @@ public sealed class AssetIndexResponse
     public long RegistryRevision { get; set; }
     public bool IsDelta { get; set; }
     public List<AssetResolvedObject> Objects { get; set; } = new();
+
+    /// <summary>
+    /// §152.4: active objects that exist in the registry but have no payload
+    /// this platform/profile can load. They are NOT in <see cref="Objects"/>,
+    /// and dropping them silently is what makes a half-published platform look
+    /// like a complete index.
+    /// </summary>
+    public List<AssetObjectKey> PlatformMissing { get; set; } = new();
+}
+
+/// <summary>§152.4: what one platform/profile can actually load right now.</summary>
+public sealed class AssetPlatformCoverage
+{
+    public string Platform { get; set; } = string.Empty;
+    public string RuntimeProfile { get; set; } = string.Empty;
+    public int Covered { get; set; }
+    public List<AssetObjectKey> Missing { get; set; } = new();
+}
+
+public sealed class AssetCoverageReport
+{
+    public long RegistryRevision { get; set; }
+    public int ActiveObjects { get; set; }
+    public int RetiredObjects { get; set; }
+
+    /// <summary>
+    /// Every platform/profile pair the registry actually publishes for. A pair
+    /// absent from this list has no payload at all — the loudest possible form
+    /// of "this platform was never built".
+    /// </summary>
+    public List<AssetPlatformCoverage> Platforms { get; set; } = new();
 }
 
 public sealed class AssetResolveRequest

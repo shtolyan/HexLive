@@ -298,6 +298,129 @@ public sealed class AssetRegistryStoreTests
             Is.EqualTo(2));
     }
 
+    [Test]
+    public async Task WindowsIndexNamesTheObjectsItCannotLoad()
+    {
+        // The door is the §152 shape of bug #242: published, live, and absent
+        // from a Windows build. An index that just omits it is indistinguishable
+        // from a registry that never had it.
+        await _store.PublishAsync(BothPlatforms("wear", "skirt.anarchy", "skirt-v1"));
+        await _store.PublishAsync(Candidate("building", "door.wood", "door-v1", hasIcon: true));
+
+        var windows = _store.GetIndex("StandaloneWindows64", "unity6000-content1");
+        var mac = _store.GetIndex("StandaloneOSX", "unity6000-content1");
+
+        Assert.That(windows.Objects.Select(value => value.Type + "/" + value.Id),
+            Is.EqualTo(new[] { "wear/skirt.anarchy" }));
+        Assert.That(windows.PlatformMissing.Select(value => value.Type + "/" + value.Id),
+            Is.EqualTo(new[] { "building/door.wood" }));
+        Assert.That(mac.Objects, Has.Count.EqualTo(2));
+        Assert.That(mac.PlatformMissing, Is.Empty);
+    }
+
+    [Test]
+    public async Task RetiredObjectIsNotReportedAsAPlatformGap()
+    {
+        await _store.PublishAsync(Candidate("building", "door.wood", "door-v1", hasIcon: true));
+        await _store.PublishAsync(new ContentPublishCandidate
+        {
+            Type = "building",
+            Id = "door.wood",
+            State = "retired",
+            Metadata = Metadata("door.wood"),
+        });
+
+        var windows = _store.GetIndex("StandaloneWindows64", "unity6000-content1");
+
+        Assert.That(windows.PlatformMissing, Is.Empty);
+        Assert.That(windows.Objects.Single().State, Is.EqualTo("retired"));
+    }
+
+    [Test]
+    public async Task CoverageAuditListsEveryPublishedPlatformAndItsGaps()
+    {
+        await _store.PublishAsync(BothPlatforms("wear", "skirt.anarchy", "skirt-v1"));
+        await _store.PublishAsync(Candidate("building", "door.wood", "door-v1", hasIcon: true));
+        await _store.PublishAsync(new ContentPublishCandidate
+        {
+            Type = "hair",
+            Id = "bob.short",
+            State = "retired",
+            Metadata = Metadata("bob.short"),
+        });
+
+        var report = _store.AuditCoverage();
+        var mac = report.Platforms.Single(value => value.Platform == "StandaloneOSX");
+        var windows = report.Platforms.Single(value => value.Platform == "StandaloneWindows64");
+
+        Assert.That(report.ActiveObjects, Is.EqualTo(2));
+        Assert.That(report.RetiredObjects, Is.EqualTo(1));
+        Assert.That(report.Platforms, Has.Count.EqualTo(2));
+        Assert.That(mac.Covered, Is.EqualTo(2));
+        Assert.That(mac.Missing, Is.Empty);
+        Assert.That(windows.Covered, Is.EqualTo(1));
+        Assert.That(windows.Missing.Select(value => value.Type + "/" + value.Id),
+            Is.EqualTo(new[] { "building/door.wood" }));
+    }
+
+    [Test]
+    public async Task CoverageAuditOmitsAPlatformNothingWasEverBuiltFor()
+    {
+        await _store.PublishAsync(Candidate("wear", "skirt.anarchy", "skirt-v1", hasIcon: true));
+
+        var report = _store.AuditCoverage();
+
+        Assert.That(report.Platforms.Select(value => value.Platform),
+            Is.EqualTo(new[] { "StandaloneOSX" }));
+        Assert.That(_store.GetIndex("StandaloneWindows64", "unity6000-content1")
+            .PlatformMissing.Select(value => value.Type + "/" + value.Id),
+            Is.EqualTo(new[] { "wear/skirt.anarchy" }));
+    }
+
+    [Test]
+    public async Task PlatformGapDoesNotHideBehindAnOlderProfileFallback()
+    {
+        // §152.1 lets an old profile keep loading a history revision. That
+        // fallback is coverage, and must not be counted as a gap.
+        var first = BothPlatforms("wear", "skirt.anarchy", "skirt-v1");
+        await _store.PublishAsync(first);
+        var second = BothPlatforms("wear", "skirt.anarchy", "skirt-v2");
+        foreach (var variant in second.Variants)
+        {
+            variant.RuntimeProfile = "unity6000-content2";
+        }
+
+        await _store.PublishAsync(second);
+
+        var oldProfile = _store.GetIndex("StandaloneWindows64", "unity6000-content1");
+        var report = _store.AuditCoverage();
+
+        Assert.That(oldProfile.PlatformMissing, Is.Empty);
+        Assert.That(oldProfile.Objects.Single().Revision, Is.EqualTo(1));
+
+        // The audit lists what the registry publishes NOW, so a profile that
+        // only survives through history is not one of its pairs. The per-request
+        // index above is the answer for such a client, and it says "covered".
+        Assert.That(report.Platforms.Select(value => value.Platform + "/" + value.RuntimeProfile),
+            Is.EqualTo(new[]
+            {
+                "StandaloneOSX/unity6000-content2",
+                "StandaloneWindows64/unity6000-content2",
+            }));
+        Assert.That(report.Platforms
+            .Single(value => value.Platform == "StandaloneWindows64").Covered,
+            Is.EqualTo(1));
+    }
+
+    private ContentPublishCandidate BothPlatforms(string type, string id, string payload)
+    {
+        var candidate = Candidate(type, id, payload, hasIcon: true);
+        var windows = Candidate(type, id, payload + "-win", hasIcon: true).Variants[0];
+        windows.Platform = "StandaloneWindows64";
+        candidate.Variants.Add(windows);
+        return candidate;
+    }
+
     private ContentPublishCandidate Candidate(
         string type, string id, string payload, bool hasIcon)
     {

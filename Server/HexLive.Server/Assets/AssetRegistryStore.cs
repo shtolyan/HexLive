@@ -242,14 +242,96 @@ public sealed class AssetRegistryStore
         foreach (var key in keys.OrderBy(value => value.Type, StringComparer.Ordinal)
                      .ThenBy(value => value.Id, StringComparer.Ordinal))
         {
-            var resolved = Resolve(key.Type, key.Id, platform, runtimeProfile);
+            var current = ReadCurrent(key.Type, key.Id);
+            if (current is null)
+            {
+                continue;
+            }
+
+            var resolved = ResolveRecord(current, platform, runtimeProfile);
             if (resolved is not null)
             {
                 response.Objects.Add(resolved);
             }
+            else
+            {
+                // An active object with no payload for this client is a real
+                // publication gap, not an empty slot. Say so, or a Windows
+                // Player reads a short index as a complete one.
+                response.PlatformMissing.Add(
+                    new AssetObjectKey { Type = key.Type, Id = key.Id });
+            }
         }
 
         return response;
+    }
+
+    /// <summary>
+    /// §152.4: which platform/profile pairs the registry publishes for, and
+    /// which active objects each one cannot load. This is the diagnostic the
+    /// operator needs before believing a platform's content is complete.
+    ///
+    /// The pairs come from the CURRENT records, i.e. what publication targets
+    /// today. Coverage inside a pair still honours the §152.1 history fallback,
+    /// but a profile that exists only in history is not a pair of its own —
+    /// per-request <see cref="GetIndex"/> answers for such a client.
+    /// </summary>
+    public AssetCoverageReport AuditCoverage()
+    {
+        var report = new AssetCoverageReport { RegistryRevision = ReadRegistryRevision() };
+        var active = new List<ContentObjectRecord>();
+        foreach (var key in EnumerateCurrentKeys())
+        {
+            var current = ReadCurrent(key.Type, key.Id);
+            if (current is null)
+            {
+                continue;
+            }
+
+            if (string.Equals(current.State, "retired", StringComparison.Ordinal))
+            {
+                report.RetiredObjects++;
+            }
+            else
+            {
+                active.Add(current);
+            }
+        }
+
+        report.ActiveObjects = active.Count;
+        var pairs = active
+            .SelectMany(record => record.Variants)
+            .Select(variant => (variant.Platform, variant.RuntimeProfile))
+            .Distinct()
+            .OrderBy(pair => pair.Platform, StringComparer.Ordinal)
+            .ThenBy(pair => pair.RuntimeProfile, StringComparer.Ordinal);
+
+        foreach (var (platform, runtimeProfile) in pairs)
+        {
+            var coverage = new AssetPlatformCoverage
+            {
+                Platform = platform,
+                RuntimeProfile = runtimeProfile,
+            };
+            foreach (var record in active
+                         .OrderBy(value => value.Type, StringComparer.Ordinal)
+                         .ThenBy(value => value.Id, StringComparer.Ordinal))
+            {
+                if (ResolveRecord(record, platform, runtimeProfile) is not null)
+                {
+                    coverage.Covered++;
+                }
+                else
+                {
+                    coverage.Missing.Add(
+                        new AssetObjectKey { Type = record.Type, Id = record.Id });
+                }
+            }
+
+            report.Platforms.Add(coverage);
+        }
+
+        return report;
     }
 
     public AssetResolvedObject? Resolve(
@@ -258,11 +340,19 @@ public sealed class AssetRegistryStore
         ValidateIdentity(type, id);
         ValidateVariantSelection(platform, runtimeProfile);
         var current = ReadCurrent(type, id);
-        if (current is null)
-        {
-            return null;
-        }
+        return current is null ? null : ResolveRecord(current, platform, runtimeProfile);
+    }
 
+    /// <summary>
+    /// Variant selection for an already-read current record. Null means this
+    /// platform/profile has nothing to load for the object — the caller decides
+    /// whether that is a miss to report or an object to skip.
+    /// </summary>
+    private AssetResolvedObject? ResolveRecord(
+        ContentObjectRecord current, string platform, string runtimeProfile)
+    {
+        var type = current.Type;
+        var id = current.Id;
         if (string.Equals(current.State, "retired", StringComparison.Ordinal))
         {
             return ToResolved(current, null);

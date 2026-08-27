@@ -2073,6 +2073,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 }
             }
 
+            // §125.5/§148: спрятанную туманом не только не видно — её не надо
+            // и КРАСИТЬ. Бейки кожи (раны/грязь/пот) для невидимых — чистый
+            // расход тикового кадра; painter диффит по _paintedKeys, а
+            // раскрытие происходит в этом же цикле, так что на тике появления
+            // полный SyncActorView дорисует всё недостающее без разрыва.
+            var paintHidden = npcView == null || !npcView.activeSelf;
+
             _npcOnWater[key] = _waterCoords.Contains(npc.Tile);
             var targetRot = Quaternion.Euler(0f, SimulationUnityMapper.ToUnityYawDegrees(npc.RotationDegrees), 0f);
             var targetPose = TryGetCarriedPose(snapshot, npc, targetRot, out var carriedPose)
@@ -2187,7 +2194,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.SyncActor");
-            SyncActorView(snapshot, npc);
+            SyncActorView(snapshot, npc, paintHidden);
             UnityEngine.Profiling.Profiler.EndSample();
 
             // §127: the sim's completion cue is the one-shot edge. Sampling
@@ -2778,7 +2785,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             !_indoorCoords.Contains(npc.Tile));
     }
 
-    private void SyncActorView(WorldSnapshot snapshot, NpcSnapshot npc)
+    private void SyncActorView(WorldSnapshot snapshot, NpcSnapshot npc, bool paintHidden = false)
     {
         if (!_actorViews.TryGetValue(npc.Id.Value, out var actorView) || actorView == null)
         {
@@ -2838,11 +2845,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
         var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
         var earlyWaterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
-        UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.BodyCondition");
-        actorView.SetBodyCondition(npc.BodyParts, earlyUncoveredForDecals, npc.Hygiene, earlyThermalForSweat,
-            earlyRainWet, earlyWaterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
-            npc.Wounds, npc.BandagedZones, npc.SeveredParts, npc.BodyPartConditions);
-        UnityEngine.Profiling.Profiler.EndSample();
+        // Спрятанная туманом не красится: бейки кожи невидимой — расход
+        // тикового кадра впустую. Painter диффит по уже нанесённому, поэтому
+        // на тике появления (paintHidden=false в том же цикле, что и
+        // SetActive) один вызов дорисовывает всё накопившееся.
+        if (!paintHidden)
+        {
+            UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.BodyCondition");
+            actorView.SetBodyCondition(npc.BodyParts, earlyUncoveredForDecals, npc.Hygiene, earlyThermalForSweat,
+                earlyRainWet, earlyWaterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
+                npc.Wounds, npc.BandagedZones, npc.SeveredParts, npc.BodyPartConditions);
+            UnityEngine.Profiling.Profiler.EndSample();
+        }
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.

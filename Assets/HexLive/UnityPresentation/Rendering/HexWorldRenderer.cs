@@ -4006,7 +4006,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // tuned asset carries its distortion/foam texture with it. A runtime
         // COPY: the controller tints it per frame, and tinting the loaded
         // asset directly would dirty the .mat on disk in the editor.
-        var definitive = HexLive.UnityPresentation.Content.AtomicResources.Load<Material>("HexLive/Water/StylizedWaterDefinitive");
+        //
+        // ⭐ ЗАШИТ В PLAYER, не в атомарный бандл. Вода — часть каждого
+        // первого кадра острова, а шейдер из бандла собирается со своим
+        // набором URP-вариантов и на клиенте рисовался неправильно; вдобавок
+        // ленивый AtomicResources.Load отдавал null на первом кадре, и море
+        // мигало fallback-материалом. Материал в Resources тянет шейдер и
+        // текстуры в сборку Player-а с правильными вариантами и грузится
+        // синхронно.
+        var definitive = Resources.Load<Material>("HexLive/Water/StylizedWaterDefinitive");
         if (definitive != null)
         {
             _waterMaterial = new Material(definitive);

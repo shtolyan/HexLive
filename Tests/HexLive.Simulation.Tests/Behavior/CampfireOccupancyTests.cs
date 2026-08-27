@@ -1,9 +1,11 @@
 using System.Linq;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
@@ -75,6 +77,145 @@ public sealed class CampfireOccupancyTests
             Assert.That(fire.IsOccupied, Is.False);
             Assert.That(fire.CurrentUser, Is.Null);
         });
+    }
+
+    /// <summary>
+    /// Вторая половина той же заявки — УЗЕЛ подхода. Его освобождает
+    /// безусловный хвост <c>ApplyInteractionCompletion</c>, а рукав «набить
+    /// холодный очаг по приказу игрока» (#228) уходит из метода собственным
+    /// <c>return true</c> и хвост пропускает. Узел остаётся за колонисткой
+    /// навсегда: занятость узла не имеет срока (в отличие от брони) и снимается
+    /// только явным <c>FreeJunction</c> — или смертью владелицы. Каждый приказ
+    /// «подбросить дров» отнимал у костра один подход, пока к нему было не
+    /// подойти.
+    /// </summary>
+    [Test]
+    public void ManualStockingReleasesTheApproachJunction()
+    {
+        var engine = TestWorld.CreateEngine(22801);
+        var world = engine.World;
+        var npc = ManualColonistWithStick(world, engine);
+        var fire = SpawnColdFire(world, npc);
+
+        var order = ManualCommandExecutor.Apply(
+            world, new InteractCommand(npc.Id, fire.Id, InteractionType.Fuel));
+        Assert.That(order.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            order.Reason);
+
+        var approach = StepUntilSceneStarts(engine, npc, fire);
+        StepUntil(engine, () => npc.Execution.TargetObject != fire.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.True,
+                "Приказ не доиграл — тест меряет не то, что собирался.");
+            Assert.That(fire.IsOccupied, Is.False);
+            Assert.That(SpatialQueries.IsJunctionFree(world, approach), Is.True,
+                "Узел подхода остался занят после доигранного приказа: рукав " +
+                "ушёл из метода мимо хвоста, который единственный освобождает " +
+                "узел. Занятость узла бессрочна — костёр теряет подход навсегда.");
+        });
+    }
+
+    /// <summary>
+    /// Отказ на завершении: палку между приказом и концом сцены успели забрать
+    /// (§140 — чужак, обмен, съеденный инвентарь). Рукав снимает заявку с очага
+    /// и уходит с <c>false</c> — но сцену за собой не закрывает: план остаётся
+    /// <c>Active</c>, <c>Execution.Status</c> — <c>Completed</c>, а этого
+    /// состояния не читает НИКТО (ни один <c>if</c> исполнителя под него не
+    /// подходит). Колонистка застывает навсегда, держа узел подхода к костру, а
+    /// у ручной ещё и планировщик выключен — вытащить её оттуда некому.
+    /// </summary>
+    [Test]
+    public void FailedStockingClosesTheSceneInsteadOfWedgingIt()
+    {
+        var engine = TestWorld.CreateEngine(22801);
+        var world = engine.World;
+        var npc = ManualColonistWithStick(world, engine);
+        var fire = SpawnColdFire(world, npc);
+
+        var order = ManualCommandExecutor.Apply(
+            world, new InteractCommand(npc.Id, fire.Id, InteractionType.Fuel));
+        Assert.That(order.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            order.Reason);
+
+        var approach = StepUntilSceneStarts(engine, npc, fire);
+        // Палки больше нет: подкидывать нечего, рукав обязан отказать.
+        npc.Inventory.Items.Clear();
+        StepUntil(engine, () => npc.Execution.TargetObject != fire.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.False,
+                "Без палки в буфере очага не должно появиться топливо.");
+            Assert.That(npc.Execution.Status, Is.Not.EqualTo(ExecutionStatus.Completed),
+                "Колонистка осталась в Completed — тупик: ни одна ветка " +
+                "исполнителя это состояние не подхватывает, и она стоит так " +
+                "до конца игры.");
+            Assert.That(fire.IsOccupied, Is.False,
+                "Отказ оставил костёр занятым — это баг #235 со стороны отказа.");
+            Assert.That(fire.CurrentUser, Is.Null);
+            Assert.That(SpatialQueries.IsJunctionFree(world, approach), Is.True,
+                "Узел подхода остался за ней после отказа: хвост метода " +
+                "пропущен, а PlanInterruption сюда не звали вовсе.");
+        });
+    }
+
+    private static NPCState ManualColonistWithStick(WorldState world, SimulationEngine engine)
+    {
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        engine.Step(); // бутстрап ставит колонисток на их первый узел
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+        var control = ManualCommandExecutor.Apply(
+            world, new SetManualControlCommand(npc.Id, true));
+        Assert.That(control.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+        return npc;
+    }
+
+    /// <summary>Холодный очаг в двух-четырёх гексах — приказу нужна дорога, а
+    /// сцене нужен настоящий узел подхода, занятый настоящим стартом.</summary>
+    private static WorldObjectState SpawnColdFire(WorldState world, NPCState npc)
+    {
+        var start = npc.CurrentJunction!.Value;
+        var junction = world.Junctions.Items.Values.First(candidate =>
+            !candidate.Blocked &&
+            candidate.Tiles.Count > 0 &&
+            HexSpatialMath.HexDistance(npc.Tile, candidate.Tiles[0]) is >= 2 and <= 4 &&
+            Connectivity.Reachable(world, start, candidate.Id)).Id;
+        var tile = world.Junctions.Items[junction].Tiles[0];
+        var fire = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Campfire, npc.Fragment, tile, junction);
+        fire.ResourceAmount = 0f;
+        return fire;
+    }
+
+    /// <summary>Дошагать до начала сцены и вернуть узел, который её старт занял
+    /// под колонисткой — только он и обязан освободиться в конце.</summary>
+    private static JunctionId StepUntilSceneStarts(
+        SimulationEngine engine, NPCState npc, WorldObjectState fire)
+    {
+        StepUntil(engine, () =>
+            npc.Execution.Status == ExecutionStatus.InProgress &&
+            npc.Execution.TargetObject == fire.Id);
+        Assert.That(npc.Execution.Status, Is.EqualTo(ExecutionStatus.InProgress),
+            "Сцена у костра так и не началась — тест меряет не то, что собирался.");
+        var approach = npc.Plan.TargetJunctionId;
+        Assert.That(approach, Is.Not.Null, "Сцена без узла подхода.");
+        Assert.That(SpatialQueries.IsJunctionFree(engine.World, approach!.Value), Is.False,
+            "Старт сцены не занял узел — освобождать будет нечего.");
+        return approach.Value;
+    }
+
+    private static void StepUntil(
+        SimulationEngine engine, System.Func<bool> condition, int maxTicks = 600)
+    {
+        for (var i = 0; i < maxTicks && !condition(); i++)
+        {
+            engine.Step();
+        }
     }
 
     /// <summary>Горящий костёр НЕ на узле колонистки: §42-гейт «огонь потух»

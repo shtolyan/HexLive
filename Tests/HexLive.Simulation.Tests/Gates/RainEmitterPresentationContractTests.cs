@@ -51,4 +51,24 @@ public sealed class RainEmitterPresentationContractTests
                 "_rain.transform.localPosition = new Vector3(0f, 30f, 0f)"),
             "The live emitter must not remain pinned to the old world centre.");
     }
+
+    [Test]
+    public void RainContactsUseTheActualHexAndAnimatedWaterHeight_Bug257()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Rendering",
+            "HexWorldRenderer.cs"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain(
+                "HexSpatialMath.WorldToTile(new Float2(position.x, position.z))"));
+            Assert.That(source, Does.Contain("var surfaceY = GroundY(tile)"));
+            Assert.That(source, Does.Contain("WaterWave.HeightNow(position.x, position.z)"));
+            Assert.That(source, Does.Contain("EmitRainSplash(new Vector3(position.x, surfaceY + 0.03f"));
+            Assert.That(source, Does.Not.Contain("RainGroundPlane"),
+                "An infinite plane can only splash at one elevation band.");
+            Assert.That(source, Does.Not.Contain("ParticleSystemCollisionType.Planes"));
+        });
+    }
 }

@@ -1080,6 +1080,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // Spec 33.2 (iter 33): cartoon rain — a shower of little droplet particles
     // over the island whenever the weather says it's raining.
     private ParticleSystem _rain;
+    private ParticleSystem _rainSplash;
+    private ParticleSystem.Particle[] _rainParticles = Array.Empty<ParticleSystem.Particle>();
 
     private void UpdateRain(bool raining)
     {
@@ -1112,29 +1114,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             shape.shapeType = ParticleSystemShapeType.Box;
             shape.scale = new Vector3(60f, 60f, 1f); // XY box, perpendicular to fall
 
-            // Kill each drop at the walkable ground level. Land tops sit at
-            // TileHeight + elevation*ElevationStep with elevation >= 1 (water
-            // is the only elevation-0 surface), so a sea-level plane buries
-            // every splash inside the hex prism — and 0.465 wu under the
-            // water sheet (bug #176). One infinite plane can only serve one
-            // elevation band; pick the elevation-1 band the colony lives on.
-            var groundY = SimulationUnityMapper.TileHeight + ElevationStep + 0.03f;
-            var planeGo = new GameObject("RainGroundPlane");
-            planeGo.transform.SetParent(transform, false); // NOT under the rotated emitter
-            planeGo.transform.position = new Vector3(0f, groundY, 0f);
-            var collision = _rain.collision;
-            collision.enabled = true;
-            collision.type = ParticleSystemCollisionType.Planes;
-            collision.SetPlane(0, planeGo.transform);
-            collision.bounce = 0f;
-            collision.lifetimeLoss = 1f;
-
-            // ...and burst a few tiny droplets where it lands (the splash).
-            var splash = CreateSplashSystem(go.transform);
-            var subEmitters = _rain.subEmitters;
-            subEmitters.enabled = true;
-            subEmitters.AddSubEmitter(
-                splash, ParticleSystemSubEmitterType.Collision, ParticleSystemSubEmitterProperties.InheritNothing);
+            // Bug #257: an infinite collision plane can represent only one
+            // elevation band. Resolve every drop against the actual hex below
+            // it instead; ResolveRainGroundContacts also follows the animated
+            // water surface. The tiny splash remains the authored system, but
+            // is emitted manually at that exact contact point.
+            _rainSplash = CreateSplashSystem(go.transform);
+            _rainParticles = new ParticleSystem.Particle[main.maxParticles];
 
             var renderer = _rain.GetComponent<ParticleSystemRenderer>();
             if (renderer != null)
@@ -1169,6 +1155,72 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             _rain.Stop();
         }
+
+        if (_rain.isPlaying)
+        {
+            ResolveRainGroundContacts();
+        }
+    }
+
+    private void ResolveRainGroundContacts()
+    {
+        if (_rain == null || _rainSplash == null || _rainParticles.Length == 0)
+        {
+            return;
+        }
+
+        var count = _rain.GetParticles(_rainParticles);
+        var changed = false;
+        for (var i = 0; i < count; i++)
+        {
+            var particle = _rainParticles[i];
+            var position = particle.position;
+            var tile = HexSpatialMath.WorldToTile(new Float2(position.x, position.z));
+            if (!_tileElevations.ContainsKey(tile))
+            {
+                continue;
+            }
+
+            var surfaceY = GroundY(tile);
+            if (_waterCoords.Contains(tile))
+            {
+                surfaceY += ElevationStep * SwimVisuals.SurfaceStepOffset;
+                surfaceY += WaterWave.HeightNow(position.x, position.z);
+            }
+            if (position.y > surfaceY + 0.03f)
+            {
+                continue;
+            }
+
+            EmitRainSplash(new Vector3(position.x, surfaceY + 0.03f, position.z),
+                particle.randomSeed);
+            particle.remainingLifetime = 0f;
+            _rainParticles[i] = particle;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            _rain.SetParticles(_rainParticles, count);
+        }
+    }
+
+    private void EmitRainSplash(Vector3 position, uint seed)
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            var angle = (seed % 6283u) * 0.001f + i * (Mathf.PI * 2f / 3f);
+            var speed = 0.6f + ((seed >> (i * 5)) & 31u) / 31f * 1.1f;
+            var emit = new ParticleSystem.EmitParams
+            {
+                position = position,
+                velocity = new Vector3(
+                    Mathf.Cos(angle) * speed,
+                    speed * 0.85f,
+                    Mathf.Sin(angle) * speed)
+            };
+            _rainSplash.Emit(emit, 1);
+        }
     }
 
     // Tiny droplet burst where a raindrop hits the ground. Must live as a
@@ -1193,7 +1245,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         var emission = splash.emission;
         emission.rateOverTime = 0f;
-        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 3, 5, 1, 0.01f) });
+        emission.SetBursts(Array.Empty<ParticleSystem.Burst>());
 
         var shape = splash.shape;
         shape.shapeType = ParticleSystemShapeType.Hemisphere;

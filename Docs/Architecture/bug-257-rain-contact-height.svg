@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="620" viewBox="0 0 1120 620">
+  <defs>
+    <style>.bg{fill:#10151e}.panel{fill:#171e2a;stroke:#344058;stroke-width:2}.title{font:700 28px system-ui,sans-serif;fill:#f4f6fa}.head{font:700 20px system-ui,sans-serif;fill:#f4f6fa}.text{font:16px system-ui,sans-serif;fill:#c8d1df}.mono{font:15px ui-monospace,monospace;fill:#dce5f2}.tile{fill:#526447;stroke:#91c47b;stroke-width:3}.water{fill:#315d83;stroke:#82c6ef;stroke-width:3}.old{stroke:#ef6b73;stroke-width:4;stroke-dasharray:10 7}.drop{stroke:#82c6ef;stroke-width:4}.splash{fill:#76c49a}</style>
+  </defs>
+  <rect class="bg" width="1120" height="620"/>
+  <text class="title" x="36" y="48">Баг #257: брызг рождается на поверхности своего гекса</text>
+  <rect class="panel" x="28" y="76" width="1064" height="460" rx="20"/>
+  <line class="old" x1="65" y1="408" x2="1050" y2="408"/>
+  <text class="text" x="72" y="432">старый бесконечный plane: только elevation 1</text>
+  <polygon class="water" points="110,470 205,415 300,470 300,520 205,575 110,520"/>
+  <polygon class="tile" points="365,405 460,350 555,405 555,520 460,575 365,520"/>
+  <polygon class="tile" points="620,295 715,240 810,295 810,520 715,575 620,520"/>
+  <polygon class="tile" points="875,130 970,75 1065,130 1065,520 970,575 875,520"/>
+  <text class="head" x="150" y="500">вода e0</text><text class="mono" x="130" y="550">0.695 ± 0.04 wu</text>
+  <text class="head" x="420" y="445">e1</text><text class="mono" x="405" y="475">0.78 wu</text>
+  <text class="head" x="675" y="335">e2</text><text class="mono" x="660" y="365">1.33 wu</text>
+  <text class="head" x="930" y="170">e5</text><text class="mono" x="915" y="200">2.98 wu</text>
+  <line class="drop" x1="205" y1="120" x2="205" y2="405"/><circle class="splash" cx="205" cy="410" r="10"/>
+  <line class="drop" x1="460" y1="120" x2="460" y2="340"/><circle class="splash" cx="460" cy="345" r="10"/>
+  <line class="drop" x1="715" y1="120" x2="715" y2="230"/><circle class="splash" cx="715" cy="235" r="10"/>
+  <line class="drop" x1="970" y1="35" x2="970" y2="65"/><circle class="splash" cx="970" cy="70" r="10"/>
+  <text class="mono" x="36" y="575">TileHeight = 0.20 wu · ElevationStep = 0.55 wu · splash lift = 0.03 wu · wave amplitude = 0.04 wu</text>
+  <text class="text" x="36" y="603">WorldToTile(x,z) → GroundY(tile); для воды добавляется SurfaceStepOffset и живая волна.</text>
+</svg>

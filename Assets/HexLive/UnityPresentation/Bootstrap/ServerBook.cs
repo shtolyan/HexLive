@@ -21,6 +21,13 @@ namespace HexLive.UnityPresentation.Bootstrap
 /// </summary>
 public static class ServerBook
 {
+    // §152.4: production gained TLS after the atomic-content rollout. Keep the
+    // exact old address working for saved recents and command-line/menu input,
+    // but never let a release Player derive a plain-http Asset API from it.
+    private const string LegacyProductionUrl = "ws://62.146.235.120:5123/watch";
+    public const string ProductionUrl =
+        "wss://vmi3529459.contaboserver.net/watch";
+
     private const string RecentKey = "HexLive.Servers.Recent";
     private const string LastUrlKey = "HexLive.Servers.LastUrl";
     private const string LastWasRemoteKey = "HexLive.Servers.LastWasRemote";
@@ -155,6 +162,12 @@ public static class ServerBook
         if (url.IndexOf('/', afterScheme) < 0)
         {
             url += "/watch";
+        }
+
+        if (string.Equals(url, LegacyProductionUrl,
+                System.StringComparison.OrdinalIgnoreCase))
+        {
+            return ProductionUrl;
         }
 
         return url;

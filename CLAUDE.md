@@ -848,8 +848,11 @@ greys out >1× on a remote link, and the server enforces it regardless.
   беспарольная: `ssh -o BatchMode=yes hexlive-server true`. Если она не прошла,
   остановиться и попросить игрока восстановить ключ; не искать и не сохранять
   root-пароль в репозитории, shell history, логе или чате.
-- systemd unit: `hexlive.service`; порт: `5123`; публичный viewer:
-  `ws://62.146.235.120:5123/watch`.
+- systemd unit: `hexlive.service`; Kestrel origin: `127.0.0.1:5123`;
+  публичный TLS viewer: `wss://vmi3529459.contaboserver.net/watch`;
+  Asset API: `https://vmi3529459.contaboserver.net/api/assets/v1`. Caddy
+  (`caddy.service`, canonical source `Server/Caddyfile`, deployed path
+  `/etc/caddy/Caddyfile`) завершает TLS и проксирует весь host в origin.
 - Версионные бинарники: `/opt/hexlive/releases/<full-git-sha>`; активная версия —
   атомарный symlink `/opt/hexlive/current`.
 - **Вся постоянная жизнь сервера** находится в `/var/lib/hexlive`: `world.sav`,
@@ -958,12 +961,15 @@ journalctl -u hexlive.service -n 80 --no-pager
 
 ```bash
 curl --fail --silent --show-error --max-time 10 \
-  http://62.146.235.120:5123/
+  https://vmi3529459.contaboserver.net/
 curl --http1.1 --silent --output /dev/null --write-out '%{http_code}\n' \
   --max-time 3 -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
   -H 'Sec-WebSocket-Version: 13' \
   -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-  http://62.146.235.120:5123/watch
+  https://vmi3529459.contaboserver.net/watch
+curl --fail --silent --show-error --max-time 10 \
+  https://vmi3529459.contaboserver.net/api/assets/v1/index/StandaloneOSX/unity6000-content1 \
+  --output /dev/null
 ```
 
 Вторая команда должна напечатать `101`; timeout после upgrade допустим, потому
@@ -974,8 +980,7 @@ curl --http1.1 --silent --output /dev/null --write-out '%{http_code}\n' \
 финальном отчёте указать полный deployed SHA, старую и новую цель symlink,
 результаты тестов, HTTP/WS-проверок и restart/save-проверки.
 
-⚠️ `/admin` и player control пока доступны по plain HTTP/WS. До появления
-TLS-proxy не вводить пароль и не передавать token через публичный интернет:
-использовать SSH-туннель, например
-`ssh -N -L 15123:127.0.0.1:5123 hexlive-server`, и подключаться к
-`ws://localhost:15123/watch`.
+`/admin`, player control, viewer и Asset API снаружи используются только через
+HTTPS/WSS host выше. Порт 5123 остаётся Kestrel origin и временным legacy-входом
+на период миграции клиентов; новый Player нормализует прежний IP-адрес в WSS до
+подключения. Не возвращать в release-инструкции публичный `http/ws` endpoint.

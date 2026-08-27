@@ -59,14 +59,21 @@ namespace HexLive.UnityPresentation.Audio
         private float _nextTrackAt;
         private int _lengthMs = -1;   // снимается один раз на старте трека
         private string? _lastId;
+        private bool _tracksAvailableReported;
 
         private void Awake()
         {
             FmodSfx.MusicTracksChanged += MusicTracksBecameAvailable;
             var tracks = FmodSfx.MusicTracks;
-            Debug.Log(tracks.Length > 0
-                ? $"[Music] {tracks.Length} track(s): {string.Join(", ", tracks)}"
-                : "[Music] no verified audio/music records yet — silence");
+            if (tracks.Length > 0)
+            {
+                _tracksAvailableReported = true;
+                Debug.Log($"[Music] {tracks.Length} verified track(s): {string.Join(", ", tracks)}");
+            }
+            else
+            {
+                Debug.Log("[Music] waiting for verified audio/music records");
+            }
         }
 
         private void OnDestroy()
@@ -77,6 +84,12 @@ namespace HexLive.UnityPresentation.Audio
 
         private void MusicTracksBecameAvailable()
         {
+            if (!_tracksAvailableReported && FmodSfx.MusicTracks.Length > 0)
+            {
+                _tracksAvailableReported = true;
+                Debug.Log("[Music] verified tracks ready; playback schedule resumed");
+            }
+
             // If the first menu attempt happened before the live registry was
             // ready, do not leave the user in an artificial 60-second silence.
             if (_started && _menuMode && !_playing)

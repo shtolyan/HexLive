@@ -143,6 +143,7 @@ public static class ScenePrewarm
         {
             WarmOwnerMain("actor", npc.ActorMesh);
             HairContent.Prewarm(npc.Hairstyle);
+            WarmActorPaintMaps(npc.ActorMesh);
 
             foreach (var id in npc.WornItems)
             {
@@ -181,6 +182,22 @@ public static class ScenePrewarm
                 }
             }
         }
+    }
+
+    /// <summary>Карты покраски кожи этой актрисы. AtomicResources.Load ленивый:
+    /// первый же синхронный запрос (первая рана/пот/грязь В ИГРЕ) возвращает
+    /// null и роняет покраску в runtime-бейк — замеренный спайк ~170 мс на
+    /// тике. Прогретые за шторкой, они превращают тот же момент в чтение
+    /// готовой карты.</summary>
+    private static void WarmActorPaintMaps(string actorMesh)
+    {
+        if (string.IsNullOrEmpty(actorMesh))
+        {
+            return;
+        }
+
+        AtomicResources.Prewarm("HexLive/PaintMaps/skin_" + actorMesh);
+        AtomicResources.Prewarm("HexLive/PaintMaps/skinpos_" + actorMesh);
     }
 
     private static void WarmItemOwner(string id)
@@ -459,6 +476,7 @@ public static class ScenePrewarm
         foreach (var actor in actors)
         {
             ContentPrefabCache.Prewarm("actor", actor);
+            WarmActorPaintMaps(actor);
         }
     }
 

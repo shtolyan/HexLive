@@ -2004,7 +2004,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _routeIndex.Rebuild(snapshot.Junctions, snapshot.JunctionsBlockedStamp);
         }
 
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.Architecture");
         BindArchitectureElementViews(snapshot);
+        UnityEngine.Profiling.Profiler.EndSample();
 
         foreach (var npc in snapshot.Npcs)
         {
@@ -2101,6 +2103,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                 if (locomoting)
                 {
+                    UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.Route");
                     if (!_npcMovementRoutes.TryGetValue(key, out var route))
                     {
                         route = new List<Float2>();
@@ -2129,6 +2132,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                             previousPose = targetPose;
                         }
                     }
+                    UnityEngine.Profiling.Profiler.EndSample();
                 }
                 else
                 {
@@ -2182,7 +2186,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 speedActor.SetSimulationMovementIntent(npc.MovementStatus == "Moving");
             }
 
+            UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.SyncActor");
             SyncActorView(snapshot, npc);
+            UnityEngine.Profiling.Profiler.EndSample();
 
             // §127: the sim's completion cue is the one-shot edge. Sampling
             // the live hip bone here preserves the authored pose offset, then
@@ -2194,6 +2200,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // her feet; IN THE WATER (iteration 1: detected via _npcOnWater) it
             // billows on the surface around her instead — different spawn, no
             // ground puddle underwater.
+            UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.Blood");
             if (_npcOnWater.TryGetValue(key, out var onWaterNow) && onWaterNow)
             {
                 var waterSurfaceY = GroundY(npc.Tile) + ElevationStep * SwimVisuals.SurfaceStepOffset;
@@ -2203,6 +2210,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 EnsureBloodStains().OnNpcTick(key, npc.Blood, targetPos, snapshot.Tick);
             }
+            UnityEngine.Profiling.Profiler.EndSample();
         }
 
         SyncRomancePairs(snapshot);
@@ -2246,7 +2254,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _waterBlood?.Advance(snapshot.Tick);
         _intimacyStains?.Advance(snapshot.Tick, snapshot.IsRaining);
 
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.Grass");
         UpdateGrassFlattening(snapshot);
+        UnityEngine.Profiling.Profiler.EndSample();
 
         // §80/§107.4: фотосессия — сразу на входе в мир, дальше раз в игровые
         // сутки; свет даёт вспышка, поэтому часа суток тут нет. В снапшоте
@@ -2821,14 +2831,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
             hopEdgePoint,
             hopFlightDirection,
             snapshot.TickDeltaTime);
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.SyncWorn");
         actorView.SyncWorn(npc.WornItems);
+        UnityEngine.Profiling.Profiler.EndSample();
         var earlyThermalForSweat = UI.DebugControlsPanel.SweatOverride ?? npc.ThermalComfort;
         var earlyUncoveredForDecals = UI.DebugControlsPanel.HideClothing ? AllBodyZones : npc.UncoveredParts;
         var earlyRainWet = snapshot.IsRaining && !_indoorCoords.Contains(npc.Tile) ? 1f : 0f;
         var earlyWaterWet = _waterCoords.Contains(npc.Tile) ? 1f : 0f;
+        UnityEngine.Profiling.Profiler.BeginSample("Hex.RSA.BodyCondition");
         actorView.SetBodyCondition(npc.BodyParts, earlyUncoveredForDecals, npc.Hygiene, earlyThermalForSweat,
             earlyRainWet, earlyWaterWet, npc.WornWetness, npc.WornDirtiness, npc.WornBloodiness,
             npc.Wounds, npc.BandagedZones, npc.SeveredParts, npc.BodyPartConditions);
+        UnityEngine.Profiling.Profiler.EndSample();
         var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.

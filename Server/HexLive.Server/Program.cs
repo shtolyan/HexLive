@@ -160,6 +160,10 @@ public static class Program
         var account = Admin.AdminAccount.LoadOrCreate(options.AdminAccountPath);
         var sessions = new Admin.AdminSessions();
         var mailer = new Admin.AdminMailer();
+        var bugToken = AccessTokenFile.LoadOrCreate(
+            options.BugTokenPath, "BUG TRACKER API — agent access", "hexbug_");
+        var bugs = new Bugs.BugDatabase(options.BugDatabasePath);
+        bugs.ImportJsonOnce(options.BugImportPath);
 
         // Пути — АБСОЛЮТНЫМИ и всегда. Сейв задаётся относительным путём, и
         // запуск из другой папки молча заводит ДРУГОЙ мир и ДРУГОЙ админ-файл
@@ -168,6 +172,7 @@ public static class Program
         // целый вечер такой археологии.
         Console.WriteLine($"[server] save file     {Path.GetFullPath(options.SavePath)}");
         Console.WriteLine($"[server] admin account {Path.GetFullPath(options.AdminAccountPath)}");
+        Console.WriteLine($"[server] bug database  {Path.GetFullPath(options.BugDatabasePath)}");
 
         Console.WriteLine($"[server] asset root    {assetRegistry.RootPath}");
         Console.WriteLine($"[server] admin icons  {options.AdminIconRoot ?? "disabled"}");
@@ -305,7 +310,8 @@ public static class Program
 
         Admin.AdminEndpoints.Map(
             app, worlds, account, sessions, mailer, lifetime, assetRegistry, assetCatalog,
-            options.AdminIconRoot);
+            options.AdminIconRoot, bugs);
+        Bugs.BugApiEndpoints.Map(app, bugs, bugToken, playerToken, sessions);
 
         if (options.McpEnabled)
         {
@@ -675,6 +681,17 @@ public sealed class ServerOptions
 
     public string PlayerTokenPath =>
         Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-player.txt");
+
+    /// <summary>§114: central SQLite bug tracker, colocated with the save.</summary>
+    public string BugDatabasePath =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-bugs.sqlite3");
+
+    public string BugTokenPath =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-bugs-token.txt");
+
+    /// <summary>One-shot legacy import. The database records completion.</summary>
+    public string BugImportPath =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "BUGS.json");
 
     /// <summary>§149: постоянные назначения playerId → npcIds живут рядом с
     /// тем же сейвом и переносятся вместе с серверным runtime-каталогом.</summary>

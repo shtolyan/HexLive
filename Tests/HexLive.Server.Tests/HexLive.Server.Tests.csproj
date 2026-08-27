@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
+    <RuntimeIdentifiers>linux-x64;osx-arm64;win-x64</RuntimeIdentifiers>
     <RootNamespace>HexLive.Server.Tests</RootNamespace>
     <AssemblyName>HexLive.Server.Tests</AssemblyName>
     <Nullable>enable</Nullable>

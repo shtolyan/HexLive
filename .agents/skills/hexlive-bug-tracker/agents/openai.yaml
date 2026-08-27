@@ -1,0 +1,4 @@
+interface:
+  display_name: "HexLive Bug Tracker"
+  short_description: "Работа с серверной очередью багов HexLive"
+  default_prompt: "Используй $hexlive-bug-tracker, проверь серверную очередь HexLive и обработай её по workflow проекта."

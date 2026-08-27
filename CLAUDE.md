@@ -47,12 +47,12 @@ obstacle-блокировки, зоны падения/спавна, пути и
 - Числа из картинки (радиусы в wu, счёт узлов) повторить словами в ответе —
   текст остаётся, когда виджет уже не виден.
 
-## ⭐ BUGS.json — the in-game bug tracker (spec §114)
+## ⭐ Server bug tracker (spec §114)
 
-The player files bugs from inside the game (Bug tracker button in the debug
-panel) into **`BUGS.json` at the repo root**. When the user says «разбери
-баги» / «посмотри баг-трекер» (or at the start of any bug-fixing session),
-read it. The contract:
+The player files bugs from inside the game into the central server SQLite store.
+When the user says «разбери баги» / «посмотри баг-трекер», use the project skill
+`.agents/skills/hexlive-bug-tracker/SKILL.md`; do not read the retired reports
+array in `BUGS.json`.
 
 - **Your queue** = every report with `status` `"created"` or `"rework"`.
   Before work begins, immediately set it to `"in_progress"` and append a
@@ -61,8 +61,7 @@ read it. The contract:
 - After implementation, set `status` to `"ready_for_test"` and **append** a
   Russian comment describing the work and that it is ready for testing. The
   player alone decides `ready_for_test → fixed`, `ready_for_test → rework`, or
-  archive; an agent must never confirm a fix or archive it. Keep the JSON
-  pretty-printed (it is written by `JsonUtility`, 4-space-style indentation).
+  archive; an agent must never confirm a fix or archive it.
 - Keep `assignedAgent` and a compact Russian `agentHandoff` on the report.
   Rework retains them and is sent to its still-live owner first; otherwise the
   replacement agent must resume from the stored handoff and comments. Before a
@@ -72,19 +71,15 @@ read it. The contract:
   Never include unrelated dirty paths in that commit.
 - The lifecycle is `created → in_progress → ready_for_test → fixed`, with
   `ready_for_test → rework → in_progress` on a failed test. Archive is a
-  history flag for a confirmed fix; **never delete or reorder reports** and
-  never touch `nextId` except to preserve it.
-- The running game re-reads the file by mtime every ~2 s, so an edit made
-  while Play mode is up appears live; no restart needed.
-- **Builds write to the same repo file** (the store falls back through
-  `-hexlive-bugs <path>` → repo root → `persistentDataPath`). A build made
-  before 2026-08-04, or one running on a machine without the repo, still
-  writes to the sandbox
-  `~/Library/Application Support/DefaultCompany/HexLive/BUGS.json` — **check
-  it too and merge any reports into the repo file** (its ids start at 1001
-  so they never collide), then empty its `reports` back to `[]`.
+  history flag for a confirmed fix. Permanent deletion is an explicit player
+  or administrator action, never part of the agent workflow.
+- The game polls `/api/bugs/v1/reports` and sends mutations to the same API;
+  the web admin at `/admin/bugs` is another surface over the same rows.
+- `BUGS.json` is retained only for the Unity MCP lease. Its historical reports
+  are imported into SQLite once and must not be edited or reintroduced.
 
-Code: `UnityPresentation/UI/BugReportStore.cs` (schema + IO),
+Code: `Server/HexLive.Server/Bugs/` (SQLite + API + admin),
+`UnityPresentation/UI/BugReportStore.cs` (HTTP client),
 `UI/BugReportPanel.cs` (window), button in `DebugControlsPanel`.
 Основной текст существующего отчёта игрок может отредактировать из карточки;
 эта операция меняет только `text`, не пересоздаёт отчёт и не затрагивает его
@@ -126,7 +121,7 @@ python3 Tools/build_release.py            # macOS  → HexLive.app
 python Tools/build_release_windows.py     # Windows → HexLive/HexLive.exe
 ```
 
-Both share the version reservation, the `BUGS.json` snapshot and stamping, and
+Both share the version reservation, the server bug snapshot and stamping, and
 the report/manifest shape. `HexLiveReleaseBuilder` exposes `BuildMacOS` and
 `BuildWindows` over one `Run(BuildTarget)`; each refuses to run unless Unity was
 launched with the matching `-buildTarget`.
@@ -154,7 +149,7 @@ It builds the macOS development player into
 `~/hex-girls/Releases/v<version>/` on the internal disk, next to
 `BUILD_REPORT.md`, `build-manifest.json`, and the Unity log. The report lists
 the Git commits since the last successful scripted build, every dirty path that
-was also compiled, and a start-of-build `BUGS.json` snapshot: reports ready for
+was also compiled, and a start-of-build server API snapshot: reports ready for
 testing in this exact build, late-ready reports that did not make the snapshot,
 and open/in-progress work. `--dry-run` prints the same plan without launching
 Unity or changing the version; `--release` makes a non-development player.

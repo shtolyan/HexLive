@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using HexLive.Server.Assets;
+using HexLive.Server.Bugs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
@@ -27,7 +28,8 @@ public static class AdminEndpoints
 
     public static void Map(WebApplication app, WorldSupervisor worlds, AdminAccount account,
         AdminSessions sessions, AdminMailer mailer, CancellationTokenSource lifetime,
-        AssetRegistryStore assetRegistry, AssetGarmentCatalog assetCatalog, string? adminIconRoot)
+        AssetRegistryStore assetRegistry, AssetGarmentCatalog assetCatalog, string? adminIconRoot,
+        BugDatabase bugs)
     {
         app.MapGet("/admin", (HttpContext context) =>
         {
@@ -56,8 +58,11 @@ public static class AdminEndpoints
 
             return Html(AdminPages.Dashboard(
                 worlds.Host, account, IsInsecure(context), notice,
-                mailer.CanSendMail, overview, worlds.CatalogRegistryRevision));
+                mailer.CanSendMail, overview, worlds.CatalogRegistryRevision,
+                bugs.CountActionable()));
         });
+
+        BugAdminEndpoints.Map(app, bugs, sessions);
 
         app.MapPost("/admin/login", async (HttpContext context) =>
         {

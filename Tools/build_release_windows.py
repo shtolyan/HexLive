@@ -28,6 +28,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.request
 from typing import Any
 
 # Отчёты и план печатаются по-русски, а консоль на этой машине бывает в cp1251
@@ -45,11 +46,7 @@ DEFAULT_DISTRIBUTION = Path.home() / "hex-girls"
 DEFAULT_RELEASES = DEFAULT_DISTRIBUTION / "Releases"
 PROJECT_SETTINGS = ROOT / "ProjectSettings" / "ProjectSettings.asset"
 PENDING_VERSION = ROOT / "Library" / "HexLivePendingBuildVersion.txt"
-BUG_TRACKER = ROOT / "BUGS.json"
-# persistentDataPath on Windows; a player run without the repo writes here.
-LEGACY_BUG_TRACKER = (
-    Path.home() / "AppData" / "LocalLow" / "DefaultCompany" / "HexLive" / "BUGS.json"
-)
+BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://vmi3529459.contaboserver.net/api/bugs/v1").rstrip("/")
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
 PLAYER_METHOD = "HexLive.UnityDebug.Editor.HexLiveReleaseBuilder.BuildWindows"
 AUTO_REFRESH_BACKUP = ROOT / "Library" / "HexLiveBuildAutoRefreshBackup-Windows.json"
@@ -154,23 +151,14 @@ def read_json(path: Path) -> dict[str, Any]:
 
 
 def read_bug_tracker() -> dict[str, Any]:
-    tracker = read_json(BUG_TRACKER)
-    reports = tracker.get("reports")
+    try:
+        with urllib.request.urlopen(BUG_API + "/reports", timeout=15) as response:
+            reports = json.loads(response.read().decode("utf-8"))
+    except Exception as error:
+        raise RuntimeError(f"Could not read bug API {BUG_API}: {error}") from error
     if not isinstance(reports, list):
-        raise RuntimeError(f"Expected reports array in {BUG_TRACKER}")
-    return tracker
-
-
-def require_empty_legacy_bug_tracker() -> None:
-    if not LEGACY_BUG_TRACKER.is_file():
-        return
-    legacy = read_json(LEGACY_BUG_TRACKER)
-    reports = legacy.get("reports", [])
-    if reports:
-        raise RuntimeError(
-            f"Legacy bug store contains {len(reports)} report(s): {LEGACY_BUG_TRACKER}. "
-            "Merge them into the repository BUGS.json and empty the legacy reports array before building."
-        )
+        raise RuntimeError(f"Expected reports array from {BUG_API}")
+    return {"reports": reports}
 
 
 def active_reports(tracker: dict[str, Any], statuses: set[str]) -> list[dict[str, Any]]:
@@ -428,7 +416,7 @@ def require_successful_version_finalize(version: str, included_bug_ids: set[int]
     ]
     if missing:
         raise RuntimeError(
-            f"Successful Unity build did not stamp BUGS.json reports {missing} with version {version}"
+            f"Successful Unity build did not stamp server bug reports {missing} with version {version}"
         )
     return tracker
 
@@ -580,7 +568,7 @@ def write_reports(
         "",
         *markdown_bug_list(included),
         "",
-        "Этот список — срез `BUGS.json` на старте сборки; успешный post-build "
+        "Этот список — срез серверного баг-трекера на старте сборки; успешный post-build "
         f"ставит этим отчётам `readyForTestInVersion: {version}`.",
         "",
         "### Стали готовы после старта и не вошли",
@@ -688,7 +676,6 @@ def main() -> int:
     final_dir = releases / f"v{version}"
     previous = load_last_success(releases)
     git_info = collect_git(previous)
-    require_empty_legacy_bug_tracker()
     bugs_at_start = read_bug_tracker()
 
     print_plan(version, version_reason, variant, final_dir, git_info, bugs_at_start)
@@ -696,6 +683,8 @@ def main() -> int:
     if args.dry_run:
         print("DRY RUN: Unity не запускалась, версия и файлы не изменены.")
         return 0
+    if not os.environ.get("HEXLIVE_BUG_TOKEN", "").strip():
+        raise RuntimeError("HEXLIVE_BUG_TOKEN is required so the successful build can stamp bug versions")
 
     require_free_unity_lock()
     if final_dir.exists():
@@ -718,8 +707,8 @@ def main() -> int:
             str(exe_path),
             "-hexlive-build-summary",
             str(unity_summary_path),
-            "-hexlive-bugs",
-            str(BUG_TRACKER),
+            "-hexlive-bugs-api",
+            BUG_API,
         ]
         if args.release:
             player_arguments.append("-hexlive-release")

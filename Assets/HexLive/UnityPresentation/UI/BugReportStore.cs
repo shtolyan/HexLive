@@ -1,18 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
+using System.Text;
 using UnityEngine;
+using HexLive.UnityPresentation.Bootstrap;
 
 namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
-    /// The in-game bug tracker's storage: a single BUGS.json in the repo root
-    /// (next to Assets/), shared between the game and the agent. The player
-    /// files bugs from the BugReportPanel; the agent reads the same file in a
-    /// session, moves them through the workflow and appends a comment.
-    /// The file is the source of truth — the game reloads it whenever its
-    /// mtime changes, so an external edit shows up without restarting Play.
-    /// In a built player (no repo around) it falls back to persistentDataPath.
+    /// HTTP client for the central §114 SQLite bug tracker. The game keeps only
+    /// an in-memory view and never writes BUGS.json.
     /// </summary>
     public static class BugReportStore
     {
@@ -21,8 +19,6 @@ namespace HexLive.UnityPresentation.UI
         public const string StatusReadyForTest = "ready_for_test";
         public const string StatusFixed = "fixed";
         public const string StatusRework = "rework";
-        public const string UnityMcpStatusFree = "free";
-        public const string UnityMcpStatusBusy = "busy";
 
         [Serializable]
         public sealed class Comment
@@ -50,71 +46,18 @@ namespace HexLive.UnityPresentation.UI
             public string fixedInVersion;
             public bool archived;
             public List<Comment> comments = new();
+            public long revision;
         }
 
         [Serializable]
-        public sealed class UnityMcpLease
-        {
-            public string status = UnityMcpStatusFree;
-            public string ownerAgent = "";
-            public string task = "";
-            public string acquiredUtc = "";
-            public string heartbeatUtc = "";
-        }
-
         [Serializable]
         private sealed class FileModel
         {
-            public int nextId = 1;
-            public UnityMcpLease unityMcpLease = new();
             public List<Report> reports = new();
         }
 
         private static FileModel _model;
-        private static DateTime _loadedMtimeUtc;
-        private static string _filePath;
-
-        // Every surface — editor Play, a local build, the agent — must share
-        // ONE file, or bugs filed from a build land in a sandbox nobody reads
-        // (that happened on day one: persistentDataPath swallowed report #1).
-        // Resolution order: explicit -hexlive-bugs <path> → the repo root
-        // (editor derives it, a dev build on this machine finds it by its
-        // well-known path) → persistentDataPath as the last resort for a
-        // build on a machine without the repo.
-        public static string FilePath
-        {
-            get
-            {
-                if (_filePath != null)
-                {
-                    return _filePath;
-                }
-
-                // Fully qualified on purpose: this file sits in
-                // HexLive.UnityPresentation.UI, and the project owns a
-                // HexLive.UnityPresentation.Environment namespace. A namespace
-                // member shadows a using-directive, so a bare `Environment`
-                // binds to THAT and the assembly stops compiling.
-                var args = System.Environment.GetCommandLineArgs();
-                for (var i = 0; i < args.Length - 1; i++)
-                {
-                    if (args[i] == "-hexlive-bugs")
-                    {
-                        return _filePath = Path.GetFullPath(args[i + 1]);
-                    }
-                }
-
-#if UNITY_EDITOR
-                return _filePath = Path.GetFullPath(
-                    Path.Combine(Application.dataPath, "..", "BUGS.json"));
-#else
-                const string devRepo = "/Volumes/ORICO/HexLive";
-                return _filePath = Directory.Exists(devRepo)
-                    ? Path.Combine(devRepo, "BUGS.json")
-                    : Path.Combine(Application.persistentDataPath, "BUGS.json");
-#endif
-            }
-        }
+        private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(6) };
 
         public static IReadOnlyList<Report> Reports
         {
@@ -151,41 +94,26 @@ namespace HexLive.UnityPresentation.UI
             {
                 return false;
             }
-
-            var mtime = File.Exists(FilePath)
-                ? File.GetLastWriteTimeUtc(FilePath)
-                : DateTime.MinValue;
-            if (mtime == _loadedMtimeUtc)
-            {
-                return false;
-            }
-
-            _model = null;
-            EnsureLoaded();
-            return true;
+            return TryReloadFromServer();
         }
 
         public static Report Add(string text, string context)
         {
-            EnsureFreshForMutation();
-            var report = new Report
+            var request = new CreateRequest
             {
-                id = _model.nextId++,
-                createdUtc = Now(),
-                status = StatusCreated,
                 text = text,
                 context = context,
-                reportedInVersion = Application.version,
-                archived = false
+                reportedInVersion = Application.version
             };
+            var report = Send<Report>(HttpMethod.Post, "/reports", JsonUtility.ToJson(request), false);
+            if (report == null) return null;
+            EnsureLoaded();
             _model.reports.Add(report);
-            Save();
             return report;
         }
 
         public static void SetArchived(int id, bool archived)
         {
-            EnsureFreshForMutation();
             var report = Find(id);
             if (report == null)
             {
@@ -199,8 +127,9 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            report.archived = archived;
-            Save();
+            var updated = Send<Report>(HttpMethod.Post, $"/reports/{id}",
+                "{\"archived\":" + (archived ? "true" : "false") + "}", true);
+            Replace(updated);
         }
 
         public static void AddComment(int id, string text)
@@ -211,16 +140,8 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            EnsureFreshForMutation();
-            var report = Find(id);
-            if (report == null)
-            {
-                return;
-            }
-
-            report.comments ??= new List<Comment>();
-            report.comments.Add(new Comment { whenUtc = Now(), author = "user", text = trimmed });
-            Save();
+            Replace(Send<Report>(HttpMethod.Post, $"/reports/{id}/comments",
+                JsonUtility.ToJson(new CommentRequest { author="user", text=trimmed }), true));
         }
 
         /// <summary>
@@ -235,15 +156,14 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            EnsureFreshForMutation();
             var report = Find(id);
             if (report == null || report.text == trimmed)
             {
                 return;
             }
 
-            report.text = trimmed;
-            Save();
+            Replace(Send<Report>(HttpMethod.Post, $"/reports/{id}",
+                JsonUtility.ToJson(new TextRequest { text=trimmed }), true));
         }
 
         public static void EditUserComment(int id, int commentIndex, string text)
@@ -254,7 +174,6 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            EnsureFreshForMutation();
             var report = Find(id);
             if (report?.comments == null || commentIndex < 0 || commentIndex >= report.comments.Count)
             {
@@ -267,50 +186,36 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            comment.text = trimmed;
-            comment.whenUtc = Now();
-            Save();
+            Replace(Send<Report>(HttpMethod.Post, $"/reports/{id}/comments/{commentIndex}",
+                JsonUtility.ToJson(new CommentRequest { author="user", text=trimmed }), true));
         }
 
         public static void SendToRework(int id, string comment)
         {
-            EnsureFreshForMutation();
             var r = Find(id);
             if (r != null && r.status == StatusReadyForTest)
             {
-                r.status = StatusRework;
-                r.archived = false;
-                r.readyForTestInVersion = null;
-                r.fixedInVersion = null;
+                Replace(Send<Report>(HttpMethod.Post, $"/reports/{id}",
+                    "{\"status\":\"rework\",\"archived\":false,\"readyForTestInVersion\":\"\",\"fixedInVersion\":\"\"}", true));
                 if (!string.IsNullOrWhiteSpace(comment))
                 {
-                    r.comments ??= new List<Comment>();
-                    r.comments.Add(new Comment { whenUtc = Now(), author = "user", text = comment.Trim() });
+                    AddComment(id, comment);
                 }
-
-                Save();
             }
         }
 
         /// <summary>Player confirmation after testing a ready report.</summary>
         public static void MarkFixed(int id)
         {
-            EnsureFreshForMutation();
             var report = Find(id);
             if (report == null || report.status != StatusReadyForTest)
             {
                 return;
             }
 
-            report.status = StatusFixed;
-            report.comments ??= new List<Comment>();
-            report.comments.Add(new Comment
-            {
-                whenUtc = Now(),
-                author = "user",
-                text = "Подтверждено пользователем: исправлено."
-            });
-            Save();
+            Replace(Send<Report>(HttpMethod.Post, $"/reports/{id}",
+                "{\"status\":\"fixed\"}", true));
+            AddComment(id, "Подтверждено пользователем: исправлено.");
         }
 
         /// <summary>
@@ -320,7 +225,7 @@ namespace HexLive.UnityPresentation.UI
         /// </summary>
         public static List<int> CaptureReadyForTestReportIds()
         {
-            EnsureFreshForMutation();
+            EnsureLoaded();
             var ids = new List<int>();
             foreach (var report in _model.reports)
             {
@@ -341,7 +246,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            EnsureFreshForMutation();
+            EnsureLoaded();
             var ids = new HashSet<int>(reportIds);
             var changed = false;
             foreach (var report in _model.reports)
@@ -357,14 +262,13 @@ namespace HexLive.UnityPresentation.UI
                     continue;
                 }
 
-                report.readyForTestInVersion = version;
-                changed = true;
+                var updated = Send<Report>(HttpMethod.Post, $"/reports/{report.id}",
+                    JsonUtility.ToJson(new ReadyVersionRequest { readyForTestInVersion=version }), true);
+                Replace(updated);
+                changed = updated != null;
             }
 
-            if (changed)
-            {
-                Save();
-            }
+            _ = changed;
         }
 
         private static string Now() => DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'");
@@ -376,182 +280,84 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            RecoverInterruptedReplace(FilePath);
-            if (File.Exists(FilePath))
-            {
-                try
-                {
-                    _model = JsonUtility.FromJson<FileModel>(File.ReadAllText(FilePath));
-                    NormalizeModel();
-                }
-                catch (Exception e)
-                {
-                    // A malformed file must not eat the player's bug list —
-                    // keep it on disk untouched and start an empty session copy.
-                    Debug.LogError($"BUGS.json parse failed, leaving file as-is: {e.Message}");
-                }
-
-                _loadedMtimeUtc = File.GetLastWriteTimeUtc(FilePath);
-            }
-
             _model ??= new FileModel();
-            NormalizeModel();
+            TryReloadFromServer();
         }
 
-        private static void Save()
+        private static bool TryReloadFromServer()
         {
-            var path = FilePath;
-            var directory = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-
-            // Agents serialize Unity MCP ownership through a stable sibling
-            // lock file. Take the same byte-range lock and merge the newest
-            // lease before replacing BUGS.json, otherwise an in-game report
-            // submitted during MCP work could silently erase its owner.
-            using var unityMcpLock = AcquireUnityMcpLeaseLock(path);
-            MergeExternalUnityMcpLease(path);
-
-            var tempPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
-            File.WriteAllText(tempPath, JsonUtility.ToJson(_model, prettyPrint: true) + "\n");
             try
             {
-                if (File.Exists(path))
-                {
-                    File.Replace(tempPath, path, null);
-                }
-                else
-                {
-                    File.Move(tempPath, path);
-                }
-            }
-            catch (Exception e) when (e is PlatformNotSupportedException or IOException)
-            {
-                // Unity's API profile has no File.Move(source, destination,
-                // overwrite). Keep a recoverable two-rename fallback for
-                // platforms where File.Replace is unavailable.
-                var backupPath = path + ".replace-backup";
-                if (File.Exists(backupPath))
-                {
-                    File.Delete(backupPath);
-                }
-
-                if (File.Exists(path))
-                {
-                    File.Move(path, backupPath);
-                }
-
-                try
-                {
-                    File.Move(tempPath, path);
-                    if (File.Exists(backupPath))
-                    {
-                        File.Delete(backupPath);
-                    }
-                }
-                catch
-                {
-                    if (!File.Exists(path) && File.Exists(backupPath))
-                    {
-                        File.Move(backupPath, path);
-                    }
-
-                    throw;
-                }
-            }
-            finally
-            {
-                if (File.Exists(tempPath))
-                {
-                    File.Delete(tempPath);
-                }
-            }
-
-            _loadedMtimeUtc = File.GetLastWriteTimeUtc(path);
-        }
-
-        private static FileStream AcquireUnityMcpLeaseLock(string bugsPath)
-        {
-            var stream = new FileStream(
-                bugsPath + ".unity-mcp.lock",
-                FileMode.OpenOrCreate,
-                FileAccess.ReadWrite,
-                FileShare.ReadWrite);
-            var deadline = DateTime.UtcNow.AddSeconds(5);
-            try
-            {
-                while (true)
-                {
-                    try
-                    {
-                        stream.Lock(0, 1);
-                        return stream;
-                    }
-                    catch (IOException) when (DateTime.UtcNow < deadline)
-                    {
-                        // The CLI holds this only around one read/replace.
-                        // Briefly yield rather than fail the player's report.
-                        System.Threading.Thread.Sleep(10);
-                    }
-                }
-            }
-            catch
-            {
-                stream.Dispose();
-                throw;
-            }
-        }
-
-        private static void MergeExternalUnityMcpLease(string bugsPath)
-        {
-            if (!File.Exists(bugsPath))
-            {
-                return;
-            }
-
-            try
-            {
-                var disk = JsonUtility.FromJson<FileModel>(File.ReadAllText(bugsPath));
-                if (disk?.unityMcpLease != null)
-                {
-                    _model.unityMcpLease = disk.unityMcpLease;
-                    NormalizeUnityMcpLease();
-                }
+                var json = SendText(HttpMethod.Get, "/reports", null, true);
+                if (string.IsNullOrEmpty(json)) return false;
+                var fresh = JsonUtility.FromJson<FileModel>("{\"reports\":" + json + "}");
+                if (fresh?.reports == null) return false;
+                var previous = _model;
+                _model = fresh;
+                NormalizeModel();
+                var changed = previous == null || JsonUtility.ToJson(previous) != JsonUtility.ToJson(fresh);
+                return changed;
             }
             catch (Exception e)
             {
-                // Preserve the already loaded model and let the ordinary save
-                // path keep its existing behavior; the parse error is still
-                // visible and must not fabricate a new owner.
-                Debug.LogWarning($"Could not merge Unity MCP lease: {e.Message}");
+                Debug.LogWarning($"Bug tracker API unavailable: {e.Message}");
+                return false;
             }
         }
 
-        private static void RecoverInterruptedReplace(string path)
+        private static T Send<T>(HttpMethod method, string path, string json, bool authenticated) where T : class
         {
-            var backupPath = path + ".replace-backup";
-            if (!File.Exists(path) && File.Exists(backupPath))
-            {
-                File.Move(backupPath, path);
-            }
+            var text = SendText(method, path, json, authenticated);
+            return string.IsNullOrEmpty(text) ? null : JsonUtility.FromJson<T>(text);
         }
 
-        private static void EnsureFreshForMutation()
+        private static string SendText(HttpMethod method, string path, string json, bool authenticated)
         {
-            EnsureLoaded();
-            var mtime = File.Exists(FilePath)
-                ? File.GetLastWriteTimeUtc(FilePath)
-                : DateTime.MinValue;
-            if (mtime == _loadedMtimeUtc)
+            using var request = new HttpRequestMessage(method, ApiEndpoint() + path);
+            if (json != null) request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            if (authenticated)
             {
-                return;
+                var token = System.Environment.GetEnvironmentVariable("HEXLIVE_BUG_TOKEN") ??
+                            SessionConfig.ControlToken ?? ServerBook.LastToken;
+                if (!string.IsNullOrWhiteSpace(token))
+                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
-
-            _model = null;
-            EnsureLoaded();
+            using var response = Http.SendAsync(request).GetAwaiter().GetResult();
+            var body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            if (!response.IsSuccessStatusCode)
+                throw new IOException($"HTTP {(int)response.StatusCode}: {body}");
+            return body;
         }
+
+        private static string ApiEndpoint()
+        {
+            const string argument = "-hexlive-bugs-api";
+            var args = System.Environment.GetCommandLineArgs();
+            for (var i=0;i+1<args.Length;i++)
+                if (string.Equals(args[i], argument, StringComparison.OrdinalIgnoreCase))
+                    return args[i+1].TrimEnd('/');
+            var websocket = new Uri(SessionConfig.ServerUrl ?? ServerBook.ProductionUrl, UriKind.Absolute);
+            var builder = new UriBuilder(websocket)
+            {
+                Scheme = websocket.Scheme == "wss" ? "https" : "http",
+                Path = "/api/bugs/v1", Query = string.Empty, Fragment = string.Empty
+            };
+            return builder.Uri.ToString().TrimEnd('/');
+        }
+
+        private static void Replace(Report report)
+        {
+            if (report == null) return;
+            EnsureLoaded();
+            for (var i=0;i<_model.reports.Count;i++)
+                if (_model.reports[i].id==report.id) { _model.reports[i]=report; return; }
+            _model.reports.Add(report);
+        }
+
+        [Serializable] private sealed class CreateRequest { public string text; public string context; public string reportedInVersion; }
+        [Serializable] private sealed class TextRequest { public string text; }
+        [Serializable] private sealed class ReadyVersionRequest { public string readyForTestInVersion; }
+        [Serializable] private sealed class CommentRequest { public string author; public string text; }
 
         private static Report Find(int id)
         {
@@ -569,7 +375,6 @@ namespace HexLive.UnityPresentation.UI
         private static void NormalizeModel()
         {
             _model ??= new FileModel();
-            NormalizeUnityMcpLease();
             _model.reports ??= new List<Report>();
             foreach (var report in _model.reports)
             {
@@ -590,26 +395,6 @@ namespace HexLive.UnityPresentation.UI
                     report.archived = false;
                 }
             }
-        }
-
-        private static void NormalizeUnityMcpLease()
-        {
-            _model.unityMcpLease ??= new UnityMcpLease();
-            var lease = _model.unityMcpLease;
-            if (lease.status == UnityMcpStatusBusy &&
-                !string.IsNullOrWhiteSpace(lease.ownerAgent))
-            {
-                lease.task ??= "";
-                lease.acquiredUtc ??= "";
-                lease.heartbeatUtc ??= "";
-                return;
-            }
-
-            lease.status = UnityMcpStatusFree;
-            lease.ownerAgent = "";
-            lease.task = "";
-            lease.acquiredUtc = "";
-            lease.heartbeatUtc = "";
         }
 
         private static bool IsKnownStatus(string status) =>

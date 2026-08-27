@@ -3,15 +3,14 @@
   <!--
     Headless HexLive: the colony keeps living with no Unity anywhere.
 
-    Deliberately ZERO NuGet packages. WebSockets come from the ASP.NET Core
-    shared framework (already on any machine with the .NET runtime), and the
-    simulation comes from the same 130 source files Unity compiles. Keeping the
-    dependency list empty is what makes "the server and the game run identical
-    code" a fact rather than a hope.
+    The simulation remains package-free. The server host has one deliberate
+    infrastructure dependency: Microsoft.Data.Sqlite, used by the central
+    bug tracker (§114). The self-contained publish carries SQLite with it.
   -->
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
+    <RuntimeIdentifiers>linux-x64;osx-arm64;win-x64</RuntimeIdentifiers>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>HexLive.Server</RootNamespace>
@@ -23,6 +22,10 @@
 
   <ItemGroup>
     <ProjectReference Include="../../HexLive.Simulation.Standalone.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
   </ItemGroup>
 
   <!--

@@ -62,10 +62,11 @@ python3 Tools/unity_mcp_lease.py acquire --agent <stable-agent-task-name> --task
   agents race. Ordinary filesystem/code work that never calls Unity MCP needs no
   lease.
 
-## BUGS.json — the in-game bug tracker (spec §114)
+## Server bug tracker (spec §114)
 
 At the start of every bug-fixing session, and whenever the user asks to inspect
-or fix bugs, read `BUGS.json` at the repository root.
+or fix bugs, use `.agents/skills/hexlive-bug-tracker/SKILL.md`. The source of
+truth is the production server SQLite database exposed at `/api/bugs/v1`.
 
 - The work queue is every report whose `status` is `"created"` or `"rework"`.
   Before beginning work on one, immediately set its status to `"in_progress"`
@@ -90,14 +91,8 @@ or fix bugs, read `BUGS.json` at the repository root.
 - Status lifecycle is `created → in_progress → ready_for_test → fixed`, with
   `ready_for_test → rework → in_progress` for a failed test. `archived` is a
   separate history flag for a confirmed `fixed` report, not deletion.
-- Keep the JSON pretty-printed with four-space indentation. Never delete or
-  reorder reports, and never change `nextId` except to preserve the value
-  written by the game.
-- The running game reloads this file by mtime about every two seconds, so edits
-  appear live without restarting.
-- Builds resolve the store in this order: `-hexlive-bugs <path>`, repository
-  root, then `persistentDataPath`. Also inspect the legacy store at
-  `~/Library/Application Support/DefaultCompany/HexLive/BUGS.json`. Merge any
-  reports found there into the repository file without reordering existing
-  reports (legacy ids start at 1001), then leave its `reports` empty while
-  preserving its schema and `nextId`.
+- Do not edit `BUGS.json` for report work. It is a retired one-shot migration
+  source. The game and agents read and mutate reports through authenticated
+  HTTP; the web admin uses the same database.
+- `BUGS.json` remains only the coordination file for the Unity MCP lease below.
+  Never add reports back to it or treat its stale `reports` array as a queue.

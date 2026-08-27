@@ -635,17 +635,34 @@ public static class WorldSnapshotExporter
                 return InventoryContains(npc, "tool.bottle") ? "tool.bottle" : string.Empty;
 
             case InteractionType.Harvest:
-                if (npc.Mind.CurrentGoal == GoalType.MineBoulder &&
-                    InventoryContains(npc, "tool.pickaxe_stone"))
+                ObjectDefinition harvestTarget = null;
+                if (npc.Execution.TargetObject is { } harvestObjectId &&
+                    world.Entities.Objects.TryGetValue(harvestObjectId, out var harvestObject))
                 {
-                    return "tool.pickaxe_stone";
+                    world.Content.ObjectDefinitions.TryGetValue(
+                        harvestObject.DefinitionId, out harvestTarget);
                 }
 
-                // §84: the yucca is BLADE work (Cut, §79) — the hand shows the
-                // blade that sets her pace (machete 2.0 → axe 1.0 → knife
-                // 0.75). Without this arm a knife-only girl hacked the stalk
-                // EMPTY-HANDED: the generic list below only knows choppers.
-                if (npc.Mind.CurrentGoal == GoalType.HarvestYucca)
+                if (harvestTarget?.HasTag("Boulder") == true)
+                {
+                    return InventoryContains(npc, "tool.pickaxe_stone")
+                        ? "tool.pickaxe_stone"
+                        : string.Empty;
+                }
+
+                // §84 / #249: derive the prop from the actual target, not from
+                // the AI goal. A manual Interact order keeps PlayerOrder as its
+                // goal, so goal-based dispatch made both yucca and a medicinal
+                // bush play the empty-handed Work pose even with a knife.
+                if (harvestTarget?.HasTag("Yucca") == true)
+                {
+                    return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.knife");
+                }
+
+                // §44: the herb remains legal to strip bare-handed. When the
+                // colonist does carry a blade, however, show it and use the
+                // authored cutting swing instead of the generic crouched work.
+                if (harvestTarget?.HasTag("HerbBush") == true)
                 {
                     return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.knife");
                 }

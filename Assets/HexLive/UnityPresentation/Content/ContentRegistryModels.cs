@@ -38,6 +38,10 @@ public sealed class ContentRecord
 
     public string Key => type + "/" + id;
     public bool IsActive => state == "active" && variant != null;
+    // §154.2: explicit current-world resolve may return a retired object's
+    // immutable payload as legacy. It is loadable but never discoverable in
+    // Records(type), so it cannot re-enter wardrobe menus or spawn pools.
+    public bool IsLoadable => (state == "active" || state == "legacy") && variant != null;
 
     // Bootstrap records built before the emoji fallback contract contain a
     // generated diamond Sprite. It is deliberately not real author art: the
@@ -46,7 +50,7 @@ public sealed class ContentRecord
     // lets already-published revisions behave correctly without a mass
     // republish.
     public bool HasRealIcon =>
-        IsActive &&
+        IsLoadable &&
         variant.iconAsset == "icon" &&
         metadata?.Value<bool?>("iconPlaceholder") != true;
 }

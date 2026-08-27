@@ -107,7 +107,7 @@ public sealed class WeatherSystem : ISimulationSystem
         }
 
         var wardrobe = new System.Collections.Generic.List<GarmentParams>();
-        foreach (var garment in GarmentLibrary.Active)
+        foreach (var garment in GarmentLibrary.Spawnable)
         {
             if (garment.Sex != GarmentSex.Male)
             {

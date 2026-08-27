@@ -299,7 +299,7 @@ public sealed class WorldStateFactory
         var wardrobe = new List<GarmentParams>();
         var pants = new List<GarmentParams>();
         var footwear = new List<GarmentParams>();
-        foreach (var garment in GarmentLibrary.Active)
+        foreach (var garment in GarmentLibrary.Spawnable)
         {
             if (garment == null || garment.Sex == GarmentSex.Male ||
                 garment.Category is GarmentCategory.Underwear or GarmentCategory.Bag)
@@ -456,6 +456,7 @@ public sealed class WorldStateFactory
         foreach (var definitionId in armorKit)
         {
             if (!world.Content.ObjectDefinitions.ContainsKey(definitionId) ||
+                !GarmentLibrary.IsSpawnable(definitionId) ||
                 !GarmentLibrary.FitsSex(npc.Sex, definitionId))
             {
                 continue;
@@ -500,7 +501,7 @@ public sealed class WorldStateFactory
     private static string[] StartPool(Func<GarmentParams, bool> keep)
     {
         var pool = new List<string>();
-        foreach (var garment in GarmentLibrary.Active)
+        foreach (var garment in GarmentLibrary.Spawnable)
         {
             if (garment == null || garment.Sex == GarmentSex.Male || !keep(garment))
             {

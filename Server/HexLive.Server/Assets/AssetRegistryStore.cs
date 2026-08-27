@@ -104,9 +104,18 @@ public sealed class AssetRegistryStore
             // the transaction, not a promise made before another publisher ran.
             VerifyCandidates(candidate);
             var current = ReadCurrent(candidate.Type, candidate.Id);
+            candidate.Metadata = PreserveServerMetadata(current, candidate.Metadata);
             var proposedVariants = candidate.Variants
                 .Select(ToRecordVariant)
                 .ToList();
+            if (candidate.State == "retired" && current is not null &&
+                proposedVariants.Count == 0)
+            {
+                // §154.4: retirement is a catalogue state, not deletion. Keep
+                // immutable payload pointers so old saves can still resolve the
+                // item and reactivation does not require a re-upload.
+                proposedVariants.AddRange(current.Variants.Select(CloneVariant));
+            }
             if (retainCurrentVariants && current is not null &&
                 current.State == "active" && candidate.State == "active")
             {
@@ -266,6 +275,157 @@ public sealed class AssetRegistryStore
         return response;
     }
 
+    /// <summary>§154: current records for the authenticated admin/catalogue layer.</summary>
+    public IReadOnlyList<ContentObjectRecord> ReadCurrentRecords(string? type = null) =>
+        ReadSnapshot(type).Records;
+
+    /// <summary>
+    /// Reads the registry cursor and all current pointers under the same
+    /// cross-process lock as publish. Without this, a materialiser can observe
+    /// the new record just before ApplyTransaction advances registry-state and
+    /// incorrectly label new content with the old revision.
+    /// </summary>
+    public AssetRegistrySnapshot ReadSnapshot(string? type = null)
+    {
+        if (type is not null && !ContentIdentity.IsType(type))
+        {
+            throw new ArgumentException("Invalid content type.", nameof(type));
+        }
+
+        using var fileLock = AcquireFileLockSynchronously();
+        var records = EnumerateCurrentKeys()
+            .Where(key => type is null || string.Equals(key.Type, type, StringComparison.Ordinal))
+            .Select(key => ReadCurrent(key.Type, key.Id))
+            .Where(value => value is not null)
+            .Cast<ContentObjectRecord>()
+            .OrderBy(value => value.Type, StringComparer.Ordinal)
+            .ThenBy(value => value.Id, StringComparer.Ordinal)
+            .ToArray();
+        return new AssetRegistrySnapshot
+        {
+            RegistryRevision = ReadRegistryRevision(),
+            Records = records,
+        };
+    }
+
+    public ContentObjectRecord? ReadCurrentRecord(string type, string id)
+    {
+        ValidateIdentity(type, id);
+        return ReadCurrent(type, id);
+    }
+
+    /// <summary>
+    /// §154.4 metadata/state transaction used by the password-protected admin.
+    /// Payload bytes and variant pointers are retained verbatim; an optimistic
+    /// revision check prevents two operators/publishers from losing an update.
+    /// </summary>
+    public async Task<ContentPublishResult> UpdateRecordAsync(
+        string type,
+        string id,
+        long expectedRevision,
+        string state,
+        Dictionary<string, JsonElement> metadata,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateIdentity(type, id);
+        if (state is not ("active" or "retired"))
+        {
+            throw new ArgumentException("Content state must be active or retired.", nameof(state));
+        }
+        if (expectedRevision <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(expectedRevision));
+        }
+        metadata ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
+        await _publishGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await using var fileLock = await AcquireFileLockAsync(cancellationToken).ConfigureAwait(false);
+            var current = ReadCurrent(type, id)
+                ?? throw new InvalidOperationException($"Content object {type}/{id} does not exist.");
+            if (current.Revision != expectedRevision)
+            {
+                throw new InvalidOperationException(
+                    $"Content object changed from revision {expectedRevision} to {current.Revision}; reload it before saving.");
+            }
+
+            var proposedMetadata = CloneMetadata(metadata);
+            if (current.State == state && JsonEquals(current.Metadata, proposedMetadata))
+            {
+                return new ContentPublishResult
+                {
+                    Changed = false,
+                    RegistryRevision = ReadRegistryRevision(),
+                    Record = current,
+                };
+            }
+
+            var variants = current.Variants.Select(CloneVariant).ToList();
+            if (state == "active" && variants.Count == 0)
+            {
+                var lastActive = ReadHistory(type, id)
+                    .Where(value => value.State == "active" && value.Variants.Count > 0)
+                    .OrderByDescending(value => value.Revision)
+                    .FirstOrDefault();
+                if (lastActive is null)
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot reactivate {type}/{id}: no published payload exists in history.");
+                }
+                variants.AddRange(lastActive.Variants.Select(CloneVariant));
+            }
+            foreach (var variant in variants)
+            {
+                VerifyRetainedVariant(type, id, variant);
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            var record = new ContentObjectRecord
+            {
+                Type = type,
+                Id = id,
+                Revision = NextObjectRevision(type, id, current),
+                State = state,
+                Metadata = proposedMetadata,
+                Variants = variants,
+                PublishedAtUtc = now,
+            };
+            var registryRevision = checked(ReadRegistryRevision() + 1);
+            var change = new RegistryChange
+            {
+                RegistryRevision = registryRevision,
+                Type = type,
+                Id = id,
+                ObjectRevision = record.Revision,
+                State = state,
+                PublishedAtUtc = now,
+            };
+            var transactionPath = Path.Combine(
+                _staging, ".transaction-" + Guid.NewGuid().ToString("N") + ".json");
+            WriteJsonNew(transactionPath, new PublishTransaction
+            {
+                Record = record,
+                Change = change,
+                RegistryRevision = registryRevision,
+            });
+            // On failure the intent deliberately remains for startup recovery.
+            ApplyTransaction(record, change, registryRevision);
+            File.Delete(transactionPath);
+
+            return new ContentPublishResult
+            {
+                Changed = true,
+                RegistryRevision = registryRevision,
+                Record = record,
+            };
+        }
+        finally
+        {
+            _publishGate.Release();
+        }
+    }
+
     /// <summary>
     /// §152.4: which platform/profile pairs the registry publishes for, and
     /// which active objects each one cannot load. This is the diagnostic the
@@ -276,18 +436,15 @@ public sealed class AssetRegistryStore
     /// but a profile that exists only in history is not a pair of its own —
     /// per-request <see cref="GetIndex"/> answers for such a client.
     /// </summary>
-    public AssetCoverageReport AuditCoverage()
-    {
-        var report = new AssetCoverageReport { RegistryRevision = ReadRegistryRevision() };
-        var active = new List<ContentObjectRecord>();
-        foreach (var key in EnumerateCurrentKeys())
-        {
-            var current = ReadCurrent(key.Type, key.Id);
-            if (current is null)
-            {
-                continue;
-            }
+    public AssetCoverageReport AuditCoverage() => AuditCoverage(ReadSnapshot());
 
+    public AssetCoverageReport AuditCoverage(AssetRegistrySnapshot snapshot)
+    {
+        if (snapshot is null) throw new ArgumentNullException(nameof(snapshot));
+        var report = new AssetCoverageReport { RegistryRevision = snapshot.RegistryRevision };
+        var active = new List<ContentObjectRecord>();
+        foreach (var current in snapshot.Records)
+        {
             if (string.Equals(current.State, "retired", StringComparison.Ordinal))
             {
                 report.RetiredObjects++;
@@ -408,7 +565,8 @@ public sealed class AssetRegistryStore
                 continue;
             }
 
-            var resolved = Resolve(key.Type, key.Id, request.Platform, request.RuntimeProfile);
+            var resolved = ResolveRequired(
+                key.Type, key.Id, request.Platform, request.RuntimeProfile);
             if (resolved is null)
             {
                 response.Missing.Add(new AssetObjectKey { Type = key.Type, Id = key.Id });
@@ -420,6 +578,34 @@ public sealed class AssetRegistryStore
         }
 
         return response;
+    }
+
+    /// <summary>
+    /// §154.2: resolve is a current-world request, not catalogue discovery.
+    /// A retired id may still be worn or stored in a save, so return its last
+    /// compatible immutable payload as legacy without making it active again.
+    /// </summary>
+    private AssetResolvedObject? ResolveRequired(
+        string type, string id, string platform, string runtimeProfile)
+    {
+        ValidateIdentity(type, id);
+        ValidateVariantSelection(platform, runtimeProfile);
+        var current = ReadCurrent(type, id);
+        if (current is null || current.State != "retired")
+        {
+            return current is null ? null : ResolveRecord(current, platform, runtimeProfile);
+        }
+
+        var selected = FindVariant(current, platform, runtimeProfile);
+        if (selected is null)
+        {
+            selected = ReadHistory(type, id)
+                .Where(value => value.State == "active")
+                .OrderByDescending(value => value.Revision)
+                .Select(value => FindVariant(value, platform, runtimeProfile))
+                .FirstOrDefault(value => value is not null);
+        }
+        return selected is null ? null : ToResolved(current, selected, "legacy");
     }
 
     public IReadOnlyList<ContentObjectRecord> ReadHistory(string type, string id)
@@ -470,12 +656,12 @@ public sealed class AssetRegistryStore
     }
 
     private static AssetResolvedObject ToResolved(
-        ContentObjectRecord record, ContentObjectVariant? variant) => new()
+        ContentObjectRecord record, ContentObjectVariant? variant, string? state = null) => new()
     {
         Type = record.Type,
         Id = record.Id,
         Revision = record.Revision,
-        State = record.State,
+        State = state ?? record.State,
         Metadata = CloneMetadata(record.Metadata),
         Variant = variant,
     };
@@ -899,6 +1085,23 @@ public sealed class AssetRegistryStore
     private static Dictionary<string, JsonElement> CloneMetadata(
         Dictionary<string, JsonElement> source) => source.ToDictionary(
         pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+
+    private static Dictionary<string, JsonElement> PreserveServerMetadata(
+        ContentObjectRecord? current,
+        Dictionary<string, JsonElement> incoming)
+    {
+        var merged = CloneMetadata(incoming);
+        if (current is not null &&
+            !merged.ContainsKey("simulation") &&
+            current.Metadata.TryGetValue("simulation", out var simulation))
+        {
+            // §154.1: Unity/content.py owns visual metadata, the admin owns the
+            // simulation block. Rebuilding a mesh may not reset gameplay tuning.
+            merged["simulation"] = simulation.Clone();
+        }
+
+        return merged;
+    }
 
     private static string HashFile(string path)
     {

@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using HexLive.Server.Assets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
@@ -22,13 +26,38 @@ public static class AdminEndpoints
     private const string CookieName = "hexlive_admin";
 
     public static void Map(WebApplication app, WorldSupervisor worlds, AdminAccount account,
-        AdminSessions sessions, AdminMailer mailer, CancellationTokenSource lifetime)
+        AdminSessions sessions, AdminMailer mailer, CancellationTokenSource lifetime,
+        AssetRegistryStore assetRegistry, AssetGarmentCatalog assetCatalog)
     {
         app.MapGet("/admin", (HttpContext context) =>
-            SignedIn(context, sessions)
-                ? Html(AdminPages.Dashboard(worlds.Host, account, IsInsecure(context),
-                    context.Request.Query["notice"], mailer.CanSendMail))
-                : Html(AdminPages.Login(context.Request.Query["error"], account.PasswordIsTemporary)));
+        {
+            if (!SignedIn(context, sessions))
+            {
+                return Html(AdminPages.Login(
+                    context.Request.Query["error"], account.PasswordIsTemporary));
+            }
+
+            AssetCatalogOverview overview;
+            var notice = context.Request.Query["notice"].ToString();
+            try
+            {
+                overview = assetCatalog.ReadOverview();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
+                                       InvalidDataException or JsonException)
+            {
+                overview = new AssetCatalogOverview
+                {
+                    RegistryRevision = assetRegistry.RegistryRevision,
+                };
+                notice = "Catalog could not be read: " + ex.Message +
+                         (notice.Length == 0 ? string.Empty : " · " + notice);
+            }
+
+            return Html(AdminPages.Dashboard(
+                worlds.Host, account, IsInsecure(context), notice,
+                mailer.CanSendMail, overview, worlds.CatalogRegistryRevision));
+        });
 
         app.MapPost("/admin/login", async (HttpContext context) =>
         {
@@ -113,6 +142,132 @@ public static class AdminEndpoints
         });
 
         // ── everything below requires a session ───────────────────────────
+
+        app.MapGet("/admin/catalog", (HttpContext context) =>
+        {
+            if (!SignedIn(context, sessions)) return Redirect("/admin");
+            try
+            {
+                return Html(AdminPages.Catalog(
+                    assetCatalog.ReadOverview(), worlds.CatalogRegistryRevision,
+                    context.Request.Query["q"], context.Request.Query["type"],
+                    context.Request.Query["state"], context.Request.Query["notice"]));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
+                                       InvalidDataException or JsonException)
+            {
+                return Redirect(WithNotice("/admin", "Catalog could not be read: " + ex.Message));
+            }
+        });
+
+        app.MapGet("/admin/catalog/{type}/{id}", (HttpContext context, string type, string id) =>
+        {
+            if (!SignedIn(context, sessions)) return Redirect("/admin");
+            try
+            {
+                var record = assetRegistry.ReadCurrentRecord(type, id);
+                if (record is null)
+                {
+                    return Redirect(WithNotice("/admin/catalog", $"Object {type}/{id} was not found."));
+                }
+                var wear = type == "wear" ? assetCatalog.ReadWear(id) : null;
+                return Html(AdminPages.CatalogRecord(
+                    record, assetRegistry.ReadHistory(type, id), wear,
+                    assetRegistry.RegistryRevision, worlds.CatalogRegistryRevision,
+                    context.Request.Query["notice"]));
+            }
+            catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException or
+                                       InvalidDataException or JsonException)
+            {
+                return Redirect(WithNotice("/admin/catalog", "Object could not be read: " + ex.Message));
+            }
+        });
+
+        app.MapPost("/admin/catalog/wear/{id}", async (HttpContext context, string id) =>
+        {
+            if (!SignedIn(context, sessions)) return Redirect("/admin");
+            try
+            {
+                var form = await context.Request.ReadFormAsync(context.RequestAborted);
+                var expected = RequireLong(form["expectedRevision"].ToString(), "expected revision");
+                var record = assetRegistry.ReadCurrentRecord("wear", id)
+                    ?? throw new InvalidOperationException($"Wear object wear/{id} no longer exists.");
+                var covers = new List<string>();
+                foreach (var cover in form["covers"])
+                {
+                    if (!string.IsNullOrWhiteSpace(cover)) covers.Add(cover.Trim());
+                }
+                var simulation = new GarmentSimulationMetadata
+                {
+                    DisplayName = form["displayName"].ToString().Trim(),
+                    PrototypeId = form["prototypeId"].ToString().Trim(),
+                    Layer = form["layer"].ToString().Trim(),
+                    Sex = form["sex"].ToString().Trim(),
+                    Warmth = RequireFloat(form["warmth"].ToString(), "warmth"),
+                    Armor = RequireFloat(form["armor"].ToString(), "armor"),
+                    ThermalDelta = RequireFloat(form["thermalDelta"].ToString(), "thermal delta"),
+                    DressDurationTicks = RequireInt(
+                        form["dressDurationTicks"].ToString(), "dress duration"),
+                    Capacity = RequireInt(form["capacity"].ToString(), "capacity"),
+                    Covers = covers,
+                };
+                var result = await assetRegistry.UpdateRecordAsync(
+                    "wear", id, expected, record.State,
+                    assetCatalog.WithSimulationMetadata(record, simulation),
+                    context.RequestAborted);
+                var message = result.Changed
+                    ? $"Garment parameters saved as revision {result.Record.Revision}. Apply the pending catalog when ready."
+                    : "No garment parameters changed.";
+                return Redirect(WithNotice(ItemPath("wear", id), message));
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or
+                                       InvalidDataException or IOException or UnauthorizedAccessException or JsonException)
+            {
+                return Redirect(WithNotice(ItemPath("wear", id), "Could not save: " + ex.Message));
+            }
+        });
+
+        app.MapPost("/admin/catalog/{type}/{id}/state",
+            async (HttpContext context, string type, string id) =>
+            {
+                if (!SignedIn(context, sessions)) return Redirect("/admin");
+                try
+                {
+                    var form = await context.Request.ReadFormAsync(context.RequestAborted);
+                    var expected = RequireLong(form["expectedRevision"].ToString(), "expected revision");
+                    var state = form["state"].ToString();
+                    var record = assetRegistry.ReadCurrentRecord(type, id)
+                        ?? throw new InvalidOperationException($"Object {type}/{id} no longer exists.");
+                    var result = await assetRegistry.UpdateRecordAsync(
+                        type, id, expected, state, record.Metadata, context.RequestAborted);
+                    var message = result.Changed
+                        ? $"Object is now {result.Record.State} at revision {result.Record.Revision}."
+                        : $"Object was already {result.Record.State}.";
+                    return Redirect(WithNotice(ItemPath(type, id), message));
+                }
+                catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or
+                                           InvalidDataException or IOException or UnauthorizedAccessException or JsonException)
+                {
+                    return Redirect(WithNotice(ItemPath(type, id), "Could not change state: " + ex.Message));
+                }
+            });
+
+        app.MapPost("/admin/catalog/apply", (HttpContext context) =>
+        {
+            if (!SignedIn(context, sessions)) return Redirect("/admin");
+            try
+            {
+                var changed = worlds.ReloadCatalog();
+                return Redirect(WithNotice("/admin/catalog", changed
+                    ? $"Catalog revision {worlds.CatalogRegistryRevision} is now active in the current world."
+                    : "The current world already uses this catalog revision."));
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException or
+                                       UnauthorizedAccessException or InvalidDataException)
+            {
+                return Redirect(WithNotice("/admin/catalog", "Catalog was not applied: " + ex.Message));
+            }
+        });
 
         app.MapPost("/admin/pause", (HttpContext context) => Guarded(context, sessions, () =>
         {
@@ -263,6 +418,41 @@ public static class AdminEndpoints
     private static IResult Html(string html) => Results.Content(html, "text/html; charset=utf-8");
 
     private static IResult Redirect(string location) => Results.Redirect(location);
+
+    private static string ItemPath(string type, string id) =>
+        "/admin/catalog/" + Uri.EscapeDataString(type) + "/" + Uri.EscapeDataString(id);
+
+    private static string WithNotice(string path, string notice) =>
+        path + (path.IndexOf('?') >= 0 ? "&" : "?") +
+        "notice=" + Uri.EscapeDataString(notice);
+
+    private static long RequireLong(string value, string field)
+    {
+        if (!long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed) || parsed <= 0)
+        {
+            throw new InvalidDataException($"Invalid {field}.");
+        }
+        return parsed;
+    }
+
+    private static int RequireInt(string value, string field)
+    {
+        if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            throw new InvalidDataException($"Invalid {field}.");
+        }
+        return parsed;
+    }
+
+    private static float RequireFloat(string value, string field)
+    {
+        if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) ||
+            !float.IsFinite(parsed))
+        {
+            throw new InvalidDataException($"Invalid {field}.");
+        }
+        return parsed;
+    }
 
     private static async Task<IResult> HandleSpeed(
         HttpContext context, AdminSessions sessions, Action<float> setSpeed)

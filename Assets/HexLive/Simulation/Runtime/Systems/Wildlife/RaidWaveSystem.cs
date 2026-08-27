@@ -214,7 +214,8 @@ public sealed class RaidWaveSystem : ISimulationSystem
         {
             if (string.IsNullOrEmpty(piece) ||
                 !world.Content.ObjectDefinitions.TryGetValue(piece, out var definition) ||
-                !definition.HasTag("Clothing"))
+                !definition.HasTag("Clothing") ||
+                !GarmentLibrary.IsSpawnable(piece))
             {
                 if (SimTrace.Enabled)
                 {

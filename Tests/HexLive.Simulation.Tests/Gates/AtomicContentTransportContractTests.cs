@@ -50,6 +50,10 @@ public sealed class AtomicContentTransportContractTests
             Assert.That(service, Does.Contain("RefreshRegistryRoutine(endpoint)"),
                 "registry request обязан фиксировать endpoint на время async операции");
             Assert.That(service, Does.Contain("_priorityBlobDownloadQueue"));
+            Assert.That(service, Does.Contain("record.IsLoadable"));
+            Assert.That(service, Does.Contain("legacy.IsLoadable"),
+                "retired object from an old save must remain usable from verified offline cache");
+            Assert.That(service, Does.Contain("_pinned[record.Key] = record;"));
             Assert.That(fmod.IndexOf("ScanMusic();", System.StringComparison.Ordinal),
                 Is.LessThan(fmod.IndexOf("if (prewarmRequested)", System.StringComparison.Ordinal)),
                 "музыка меню ставится в очередь раньше общего SFX prewarm");

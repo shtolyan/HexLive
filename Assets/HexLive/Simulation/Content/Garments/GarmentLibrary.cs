@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace HexLive.Simulation.Content
 {
@@ -24,10 +25,29 @@ namespace HexLive.Simulation.Content
     public static class GarmentLibrary
     {
         private static List<GarmentParams> _active;
+        private static List<GarmentParams> _spawnable;
 
         // The active table the catalog reads. Lazily seeded from the defaults so
         // a host that never applies an asset still gets sane values.
-        public static IReadOnlyList<GarmentParams> Active => _active ??= BuildDefaults();
+        public static IReadOnlyList<GarmentParams> Active
+        {
+            get
+            {
+                EnsureSeeded();
+                return _active;
+            }
+        }
+
+        // §154.2: new spawns draw only from this view. Active retains retired
+        // definitions for objects already referenced by a save.
+        public static IReadOnlyList<GarmentParams> Spawnable
+        {
+            get
+            {
+                EnsureSeeded();
+                return _spawnable;
+            }
+        }
 
         // A fresh copy of the built-in table (never the live list).
         public static IReadOnlyList<GarmentParams> Defaults => BuildDefaults();
@@ -49,6 +69,7 @@ namespace HexLive.Simulation.Content
             }
 
             _active = list;
+            _spawnable = list.Where(value => value != null && !value.Retired).ToList();
         }
 
         // §84: можно ли ЭТОМУ телу надеть ЭТУ вещь. Женская вещь на мужском
@@ -71,9 +92,31 @@ namespace HexLive.Simulation.Content
             return true;
         }
 
+        /// <summary>§154.2 gate for every path that creates a new garment.</summary>
+        public static bool IsSpawnable(string definitionId)
+        {
+            foreach (var garment in Spawnable)
+            {
+                if (garment.Id == definitionId) return true;
+            }
+            return false;
+        }
+
         public static void ResetToDefaults()
         {
             _active = BuildDefaults();
+            _spawnable = new List<GarmentParams>(_active);
+        }
+
+        private static void EnsureSeeded()
+        {
+            if (_active != null)
+            {
+                return;
+            }
+
+            _active = BuildDefaults();
+            _spawnable = new List<GarmentParams>(_active);
         }
 
         // Materialize the active table into the shared definition dictionary.

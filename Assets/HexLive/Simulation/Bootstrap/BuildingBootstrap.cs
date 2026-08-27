@@ -1633,7 +1633,7 @@ public static class BuildingBootstrap
         var pantsCandidates = new List<string>();
         var bootCandidates = new List<string>();
         var protectiveCandidates = new List<string>();
-        foreach (var garment in GarmentLibrary.Active)
+        foreach (var garment in GarmentLibrary.Spawnable)
         {
             if (garment == null || garment.Sex == GarmentSex.Male ||
                 !world.Content.ObjectDefinitions.TryGetValue(garment.Id, out var definition) ||

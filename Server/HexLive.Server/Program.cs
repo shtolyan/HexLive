@@ -121,12 +121,25 @@ public static class Program
 
         using var lifetime = new CancellationTokenSource();
 
+        AssetRegistryStore assetRegistry;
+        AssetGarmentCatalog assetCatalog;
+        try
+        {
+            assetRegistry = new AssetRegistryStore(options.AssetRoot);
+            assetCatalog = new AssetGarmentCatalog(assetRegistry, options.SimDataPath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            Console.Error.WriteLine($"[fatal] asset registry: {ex.Message}");
+            return 1;
+        }
+
         WorldSupervisor worlds;
         try
         {
             // The supervisor owns the world AND its tick thread, so the admin
             // panel can start a fresh colony without restarting the process.
-            worlds = new WorldSupervisor(options.Seed, options.Mode, options.SavePath, options.SimDataPath,
+            worlds = new WorldSupervisor(options.Seed, options.Mode, options.SavePath, assetCatalog,
                 options.VerboseTrace, options.IncludeDebugDetails, options.Llm, lifetime.Token);
         }
         catch (Exception ex)
@@ -154,17 +167,6 @@ public static class Program
         // целый вечер такой археологии.
         Console.WriteLine($"[server] save file     {Path.GetFullPath(options.SavePath)}");
         Console.WriteLine($"[server] admin account {Path.GetFullPath(options.AdminAccountPath)}");
-
-        AssetRegistryStore assetRegistry;
-        try
-        {
-            assetRegistry = new AssetRegistryStore(options.AssetRoot);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            Console.Error.WriteLine($"[fatal] asset registry: {ex.Message}");
-            return 1;
-        }
 
         Console.WriteLine($"[server] asset root    {assetRegistry.RootPath}");
         LogAssetCoverage(assetRegistry);
@@ -299,7 +301,8 @@ public static class Program
             }
         });
 
-        Admin.AdminEndpoints.Map(app, worlds, account, sessions, mailer, lifetime);
+        Admin.AdminEndpoints.Map(
+            app, worlds, account, sessions, mailer, lifetime, assetRegistry, assetCatalog);
 
         if (options.McpEnabled)
         {
@@ -386,7 +389,7 @@ public static class Program
 
         // Last write wins: whatever happens, the colony that was alive a second
         // ago is on disk when this process ends.
-        worlds.Host.Save();
+        worlds.Save();
         Console.WriteLine($"[world] saved at tick {worlds.Host.Tick}");
         return 0;
     }
@@ -471,7 +474,7 @@ public static class Program
             while (!cancel.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(seconds), cancel).ConfigureAwait(false);
-                worlds.Host.Save();
+                worlds.Save();
             }
         }
         catch (OperationCanceledException)

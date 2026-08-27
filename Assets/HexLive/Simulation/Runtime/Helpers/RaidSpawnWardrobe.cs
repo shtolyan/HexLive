@@ -46,7 +46,7 @@ internal static class RaidSpawnWardrobe
     private static string[] Pool(WorldState world, Func<GarmentParams, bool> keep)
     {
         var result = new List<string>();
-        foreach (var garment in GarmentLibrary.Active)
+        foreach (var garment in GarmentLibrary.Spawnable)
         {
             if (garment == null || garment.Sex == GarmentSex.Male || !keep(garment) ||
                 !world.Content.ObjectDefinitions.TryGetValue(garment.Id, out var definition) ||

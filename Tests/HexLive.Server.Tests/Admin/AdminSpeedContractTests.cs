@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using HexLive.Server.Assets;
 using System.Threading.Tasks;
 using HexLive.Server.Admin;
 using Microsoft.AspNetCore.Http;
@@ -55,6 +57,46 @@ public sealed class AdminSpeedContractTests
             Assert.That(selected, Does.Contain("value='16'"));
             Assert.That(other, Does.Not.Contain("class='primary'"));
             Assert.That(other, Does.Not.Contain("aria-current"));
+        });
+    }
+
+    [Test]
+    public void WearCatalogCardEscapesMetadataAndExposesAllSimulationFields()
+    {
+        var record = new ContentObjectRecord
+        {
+            Type = "wear",
+            Id = "skirt.anarchy",
+            Revision = 7,
+            State = "active",
+            PublishedAtUtc = DateTimeOffset.UtcNow,
+        };
+        var entry = new GarmentCatalogEntry
+        {
+            Record = record,
+            ConfigurationSource = "record",
+            Simulation = new GarmentSimulationMetadata
+            {
+                DisplayName = "<script>alert(1)</script>",
+                PrototypeId = "skirt.anarchy",
+                Layer = "Wear",
+                Sex = "Female",
+                Covers = new List<string> { "Pelvis" },
+            },
+        };
+
+        var html = AdminPages.CatalogRecord(
+            record, new[] { record }, entry, liveRevision: 10, pinnedRevision: 9, notice: null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(html, Does.Not.Contain("<script>alert(1)</script>"));
+            Assert.That(html, Does.Contain("&lt;script&gt;alert(1)&lt;/script&gt;"));
+            Assert.That(html, Does.Contain("name='warmth'"));
+            Assert.That(html, Does.Contain("name='armor'"));
+            Assert.That(html, Does.Contain("name='thermalDelta'"));
+            Assert.That(html, Does.Contain("name='covers'"));
+            Assert.That(html, Does.Contain("expectedRevision"));
         });
     }
 

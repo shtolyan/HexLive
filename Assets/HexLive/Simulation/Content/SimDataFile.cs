@@ -263,18 +263,21 @@ namespace HexLive.Simulation.Content
                         }
                     }
 
-                    // §84: пол берётся из КОДОВЫХ умолчаний по id — в экспорте
-                    // такого поля нет, а без переноса импорт стирал бы пол у
-                    // всех вещей разом, и запрет молча переставал работать
-                    // именно в headless-пробах, где его и проверяют.
+                    // §84/§154: legacy exports omit sex and inherit it from the
+                    // code default; an atomic wear record includes it explicitly
+                    // so a brand-new server-authored item needs no code row.
                     var gid = Str(g, "id");
                     var gsex = GarmentSex.Any;
-                    foreach (var d in GarmentLibrary.Defaults)
+                    if (!System.Enum.TryParse<GarmentSex>(
+                            Str(g, "sex"), true, out gsex))
                     {
-                        if (d.Id == gid)
+                        foreach (var d in GarmentLibrary.Defaults)
                         {
-                            gsex = d.Sex;
-                            break;
+                            if (d.Id == gid)
+                            {
+                                gsex = d.Sex;
+                                break;
+                            }
                         }
                     }
 
@@ -297,6 +300,7 @@ namespace HexLive.Simulation.Content
                         PrototypeId = string.IsNullOrEmpty(Str(g, "prototypeId"))
                             ? gid
                             : Str(g, "prototypeId"),
+                        Retired = B(g, "retired"),
                     });
                 }
 

@@ -116,5 +116,11 @@ namespace HexLive.Simulation.Content
         // piece adds its pockets. Iron rule: panties/bra 1, top 2, pants 4,
         // jacket/vest 6; accessories (gloves, stockings, jewelry) grant 0.
         public int Capacity { get; }
+
+        /// <summary>
+        /// §154.2: kept in the effective catalogue so an old save still has a
+        /// definition, but excluded from every pool which creates a new item.
+        /// </summary>
+        public bool Retired { get; set; }
     }
 }

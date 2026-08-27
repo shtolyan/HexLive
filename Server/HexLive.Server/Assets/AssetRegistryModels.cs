@@ -152,6 +152,14 @@ public sealed class AssetCoverageReport
     public List<AssetPlatformCoverage> Platforms { get; set; } = new();
 }
 
+/// <summary>One lock-consistent view of current record pointers.</summary>
+public sealed class AssetRegistrySnapshot
+{
+    public long RegistryRevision { get; set; }
+    public IReadOnlyList<ContentObjectRecord> Records { get; set; } =
+        Array.Empty<ContentObjectRecord>();
+}
+
 public sealed class AssetResolveRequest
 {
     public string Platform { get; set; } = string.Empty;

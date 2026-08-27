@@ -238,7 +238,7 @@ public sealed class ContentAssetService
 
     public bool TryGetRecord(string type, string id, out ContentRecord record)
     {
-        return _pinned.TryGetValue(Key(type, id), out record) && record.IsActive;
+        return _pinned.TryGetValue(Key(type, id), out record) && record.IsLoadable;
     }
 
     public void LoadMain<T>(string type, string id, Action<ContentAssetHandle<T>> completed)
@@ -258,7 +258,7 @@ public sealed class ContentAssetService
 
         void Start()
         {
-            if (!_pinned.TryGetValue(Key(type, id), out var record) || !record.IsActive ||
+            if (!_pinned.TryGetValue(Key(type, id), out var record) || !record.IsLoadable ||
                 record.variant.payloadType != "assetBundle")
             {
                 completed(null);
@@ -333,7 +333,7 @@ public sealed class ContentAssetService
     {
         void Start()
         {
-            if (!_pinned.TryGetValue(Key(type, id), out var record) || !record.IsActive ||
+            if (!_pinned.TryGetValue(Key(type, id), out var record) || !record.IsLoadable ||
                 record.variant.payloadType != "assetBundle")
             {
                 completed?.Invoke(Array.Empty<ContentAssetHandle<T>>());
@@ -385,7 +385,7 @@ public sealed class ContentAssetService
     {
         void Start()
         {
-            if (!_pinned.TryGetValue(Key(type, id), out var record) || !record.IsActive ||
+            if (!_pinned.TryGetValue(Key(type, id), out var record) || !record.IsLoadable ||
                 record.variant.payloadType != "file")
             {
                 completed?.Invoke(null);
@@ -429,7 +429,7 @@ public sealed class ContentAssetService
     {
         void Start()
         {
-            if (!_pinned.TryGetValue(Key(type, id), out var record) || !record.IsActive ||
+            if (!_pinned.TryGetValue(Key(type, id), out var record) || !record.IsLoadable ||
                 record.variant.payloadType != "file" ||
                 !TryAttachment(record, attachmentName, out var attachment))
             {
@@ -561,6 +561,15 @@ public sealed class ContentAssetService
         {
             var response = JsonConvert.DeserializeObject<ContentResolveResponse>(
                 result.Text) ?? new ContentResolveResponse();
+            foreach (var record in response.objects ?? new List<ContentRecord>())
+            {
+                if (ValidRecord(record) && record.IsLoadable)
+                {
+                    // Context-only legacy records stay outside _known, hence
+                    // Records(type) and the wardrobe never discover them.
+                    _pinned[record.Key] = record;
+                }
+            }
             completed?.Invoke(response.missing ?? new List<ContentObjectKey>());
         }
         catch (Exception exception)
@@ -700,7 +709,13 @@ public sealed class ContentAssetService
         {
             if (pair.Value.state == "retired")
             {
-                _pinned[pair.Key] = pair.Value;
+                // The live index must not rediscover retired content, but an
+                // old save may explicitly resolve and verify its immutable
+                // payload. Keep that context-only record usable offline.
+                _pinned[pair.Key] = _verified.TryGetValue(pair.Key, out var legacy) &&
+                                    legacy.IsLoadable
+                    ? legacy
+                    : pair.Value;
                 continue;
             }
 

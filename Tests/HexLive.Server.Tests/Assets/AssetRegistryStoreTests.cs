@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using HexLive.Server.Assets;
 using NUnit.Framework;
@@ -252,6 +253,146 @@ public sealed class AssetRegistryStoreTests
         Assert.That(delta.Objects, Has.Count.EqualTo(1));
         Assert.That(delta.Objects[0].State, Is.EqualTo("retired"));
         Assert.That(delta.Objects[0].Variant, Is.Null);
+    }
+
+    [Test]
+    public async Task AdminMetadataUpdateRetainsPayloadAndRejectsLostUpdate()
+    {
+        var published = await _store.PublishAsync(
+            Candidate("wear", "skirt.anarchy", "skirt-v1", hasIcon: true));
+        var variant = published.Record.Variants.Single();
+        var metadata = published.Record.Metadata.ToDictionary(
+            pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+        metadata["simulation"] = JsonSerializer.SerializeToElement(new { warmth = 0.25f });
+
+        var updated = await _store.UpdateRecordAsync(
+            "wear", "skirt.anarchy", 1, "active", metadata);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(updated.Record.Revision, Is.EqualTo(2));
+            Assert.That(updated.Record.Variants.Single().Sha256, Is.EqualTo(variant.Sha256));
+            Assert.That(updated.Record.Metadata["simulation"].GetProperty("warmth").GetSingle(),
+                Is.EqualTo(0.25f));
+        });
+        Assert.That(async () => await _store.UpdateRecordAsync(
+                "wear", "skirt.anarchy", 1, "active", metadata),
+            Throws.TypeOf<InvalidOperationException>());
+    }
+
+    [Test]
+    public async Task VisualRepublishPreservesServerOwnedSimulationMetadata()
+    {
+        var first = await _store.PublishAsync(
+            Candidate("wear", "skirt.anarchy", "skirt-v1", hasIcon: true));
+        var metadata = first.Record.Metadata.ToDictionary(
+            pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+        metadata["simulation"] = JsonSerializer.SerializeToElement(new { warmth = 0.4f });
+        await _store.UpdateRecordAsync("wear", "skirt.anarchy", 1, "active", metadata);
+
+        var rebuilt = await _store.PublishAsync(
+            Candidate("wear", "skirt.anarchy", "skirt-v2", hasIcon: true));
+
+        Assert.That(rebuilt.Record.Revision, Is.EqualTo(3));
+        Assert.That(rebuilt.Record.Metadata["simulation"].GetProperty("warmth").GetSingle(),
+            Is.EqualTo(0.4f));
+    }
+
+    [Test]
+    public async Task RetiredObjectIsDiscoverableOnlyByExplicitWorldResolve()
+    {
+        var active = await _store.PublishAsync(
+            Candidate("wear", "skirt.anarchy", "skirt-v1", hasIcon: true));
+        await _store.UpdateRecordAsync(
+            "wear", "skirt.anarchy", active.Record.Revision, "retired", active.Record.Metadata);
+
+        var index = _store.GetIndex("StandaloneOSX", "unity6000-content1");
+        var resolved = _store.ResolveMany(new AssetResolveRequest
+        {
+            Platform = "StandaloneOSX",
+            RuntimeProfile = "unity6000-content1",
+            Objects = new List<AssetObjectKey>
+            {
+                new() { Type = "wear", Id = "skirt.anarchy" },
+            },
+        });
+
+        Assert.That(index.Objects.Single().State, Is.EqualTo("retired"));
+        Assert.That(index.Objects.Single().Variant, Is.Null);
+        Assert.That(resolved.Objects.Single().State, Is.EqualTo("legacy"));
+        Assert.That(resolved.Objects.Single().Variant!.Sha256,
+            Is.EqualTo(active.Record.Variants.Single().Sha256));
+    }
+
+    [Test]
+    public async Task EffectiveCatalogUsesAtomicWearAndKeepsRetiredDefinitionsForSaves()
+    {
+        var basePath = Path.Combine(_root, "base-simdata.json");
+        File.WriteAllText(basePath, """
+        {
+          "version": 5,
+          "garments": [
+            {
+              "id": "skirt.old",
+              "displayName": "Old Skirt",
+              "layer": "Wear",
+              "sex": "Female",
+              "warmth": 0.1,
+              "armor": 0.0,
+              "thermalDelta": 0.0,
+              "dressDurationTicks": 8,
+              "capacity": 1,
+              "covers": ["Pelvis"]
+            }
+          ]
+        }
+        """);
+        var old = await _store.PublishAsync(
+            Candidate("wear", "skirt.old", "old-bytes", hasIcon: true));
+        var fresh = await _store.PublishAsync(
+            Candidate("wear", "skirt.new", "new-bytes", hasIcon: true));
+        var catalog = new AssetGarmentCatalog(_store, basePath);
+
+        var before = catalog.Materialize();
+        Assert.Multiple(() =>
+        {
+            Assert.That(before.SpawnableWear, Is.EqualTo(1));
+            Assert.That(before.UnconfiguredWear, Is.EqualTo(1));
+        });
+
+        var newRecord = _store.ReadCurrentRecord("wear", "skirt.new")!;
+        var simulation = new GarmentSimulationMetadata
+        {
+            DisplayName = "New Skirt",
+            PrototypeId = "skirt.new",
+            Layer = "Wear",
+            Sex = "Female",
+            Warmth = 0.35f,
+            Armor = 0.05f,
+            ThermalDelta = 0.02f,
+            DressDurationTicks = 9,
+            Capacity = 2,
+            Covers = new List<string> { "Pelvis", "LegL", "LegR" },
+        };
+        await _store.UpdateRecordAsync("wear", "skirt.new", fresh.Record.Revision, "active",
+            catalog.WithSimulationMetadata(newRecord, simulation));
+        await _store.UpdateRecordAsync(
+            "wear", "skirt.old", old.Record.Revision, "retired", old.Record.Metadata);
+
+        var after = catalog.Materialize();
+        var garments = JsonNode.Parse(after.Json)!["garments"]!.AsArray();
+        var oldJson = garments.Single(value => value!["id"]!.GetValue<string>() == "skirt.old")!;
+        var newJson = garments.Single(value => value!["id"]!.GetValue<string>() == "skirt.new")!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(after.SpawnableWear, Is.EqualTo(1));
+            Assert.That(after.RetiredWear, Is.EqualTo(1));
+            Assert.That(after.UnconfiguredWear, Is.Zero);
+            Assert.That(oldJson["retired"]!.GetValue<bool>(), Is.True);
+            Assert.That(newJson["warmth"]!.GetValue<float>(), Is.EqualTo(0.35f));
+            Assert.That(File.Exists(after.Path), Is.True);
+        });
     }
 
     [Test]

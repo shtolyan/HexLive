@@ -1967,18 +1967,18 @@ namespace HexLive.UnityPresentation.Wearing
                 if (isBandage && !isPlaster)
                 {
                     var wrap = WrapOverlayFor(zoneName);
-                    // Оверлей ещё ЕДЕТ (запись в реестре есть, текстура нет) —
-                    // не приколачивать старую круглую нашлёпку: созданный ключ
-                    // никогда не пересоздаётся, и бинт до конца сессии выглядел
-                    // бы пластырем. Пропуск хода безопасен: пока ключа нет в
-                    // _stamps, Sync каждый тик поднимает needsPlacement и
-                    // размещение повторяется — обмотка ляжет, как только
-                    // текстура доедет. Если записи в реестре нет вовсе, честно
-                    // падаем на старый штамп ниже.
-                    if (wrap == null && WrapRects.ContainsKey(zoneName) &&
-                        HexLive.UnityPresentation.Content.ContentAssetService.Instance
-                            .TryResolveLegacyPath(
-                                $"HexLive/Decals/bandage_wrap_{zoneName}", out _))
+                    var wrapNormal = WrapNormalFor(zoneName);
+                    // #246: эти шесть зон ИМЕЮТ обязательную authored-обмотку.
+                    // Реестр и ассет приходят асинхронно, поэтому проверка
+                    // готовности реестра на первом кадре ещё ложно говорила
+                    // «записи нет» и навсегда создавала старую круглую
+                    // нашлёпку. Не создаём ключ, пока не приехали оба entry:
+                    // Sync повторит placement и поставит новую обмотку вместе
+                    // с её рельефом. Отсутствующий content здесь должен быть
+                    // виден как отсутствующий content, а не маскироваться
+                    // устаревшим визуалом.
+                    if (WrapRects.ContainsKey(zoneName) &&
+                        (wrap == null || wrapNormal == null))
                     {
                         return;
                     }
@@ -1996,7 +1996,7 @@ namespace HexLive.UnityPresentation.Wearing
                             Under = null,
                             Over = wrap,
                             OverGloss = null,
-                            OverNormal = WrapNormalFor(zoneName),
+                            OverNormal = wrapNormal,
                             IsBandage = true,
                             IsGauze = isGauze
                         };

@@ -13,6 +13,28 @@ namespace HexLive.Simulation.Tests.Gates;
 public sealed class BandageHandPropContractTests
 {
     [Test]
+    public void AuthoredLimbWrapWaitsForBothAtomicTexturesWithoutLegacyFallback()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
+            "Wearing", "SkinTexturePainter.cs"));
+        var start = source.IndexOf(
+            "if (isBandage && !isPlaster)", StringComparison.Ordinal);
+        var end = source.IndexOf("// §118.2: наклейка", start, StringComparison.Ordinal);
+        var branch = source[start..end];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(branch, Does.Contain("var wrap = WrapOverlayFor(zoneName);"));
+            Assert.That(branch, Does.Contain("var wrapNormal = WrapNormalFor(zoneName);"));
+            Assert.That(branch, Does.Contain("(wrap == null || wrapNormal == null)"));
+            Assert.That(branch, Does.Contain("OverNormal = wrapNormal"));
+            Assert.That(branch, Does.Not.Contain("TryResolveLegacyPath"),
+                "Registry readiness must not choose the retired round bandage forever.");
+        });
+    }
+
+    [Test]
     public void TreatInteractionsExportBandageOnlyWhileTheyAreActive()
     {
         var world = TestWorld.CreateWorld(13772);

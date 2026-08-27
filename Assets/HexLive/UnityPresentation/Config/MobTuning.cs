@@ -66,11 +66,21 @@ namespace HexLive.UnityPresentation.Config
             }
         }
 
+        /// <summary>Mob ids retired from content that can still arrive over the
+        /// wire: a server running a pre-retirement build, or one whose save was
+        /// written before the retirement, keeps streaming them. They own no mob
+        /// bundle any more, so requesting one would terminally log a false
+        /// missing-record error; the honest render for retired content is
+        /// nothing at all. Save loading purges them on the simulation side
+        /// (WorldSaveSerializer.MigrateRetiredContent) — this guard covers the
+        /// window until every server has restarted on that code.</summary>
+        public static bool IsRetired(string mobId) => mobId == "shark";
+
         /// <summary>The mob's prefab: the asset's direct reference first, the
         /// legacy Resources path second, null = caller's hardcoded fallback.</summary>
         public static GameObject LoadPrefab(string mobId)
         {
-            return string.IsNullOrEmpty(mobId)
+            return string.IsNullOrEmpty(mobId) || IsRetired(mobId)
                 ? null
                 : ContentPrefabCache.GetOrRequest("mob", mobId);
         }

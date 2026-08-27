@@ -32,6 +32,38 @@ public static class ScenePrewarm
     private static readonly string[] ItemOwnerTypes =
         { "wear", "object", "building", "mob" };
 
+    // ForSnapshot повторяется на КАЖДЫЙ живой снапшот (4 Гц) по каждому
+    // объекту мира. LINQ Any по GarmentLibrary.Active здесь был линейным
+    // сканом 685 вещей с замыканием на вызов: на 9213 объектах большого
+    // острова это ~6.3 млн вызовов делегата за тик — замеренные ~460 мс
+    // кадра (3 fps у prod-зрителя, 2026-08-27). Один HashSet отвечает за O(1).
+    private static HashSet<string> _catalogGarmentIds;
+    private static object _catalogGarmentSource;
+    private static int _catalogGarmentCount = -1;
+
+    private static bool IsCatalogGarment(string definitionId)
+    {
+        var active = HexLive.Simulation.Content.GarmentLibrary.Active;
+        if (_catalogGarmentIds == null ||
+            !ReferenceEquals(_catalogGarmentSource, active) ||
+            _catalogGarmentCount != active.Count)
+        {
+            var ids = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (var garment in active)
+            {
+                if (garment != null)
+                {
+                    ids.Add(garment.Id);
+                }
+            }
+            _catalogGarmentIds = ids;
+            _catalogGarmentSource = active;
+            _catalogGarmentCount = active.Count;
+        }
+
+        return _catalogGarmentIds.Contains(definitionId);
+    }
+
     public static void ForWorld(WorldState world)
     {
         if (world == null)
@@ -96,7 +128,12 @@ public static class ScenePrewarm
 
         foreach (var mob in snapshot.Mobs)
         {
-            WarmOwnerMain("mob", mob.MobId);
+            // A retired mob id (an old server's legacy save) owns no bundle;
+            // asking for it would log a false missing-record error.
+            if (!Config.MobLibrary.IsRetired(mob.MobId))
+            {
+                WarmOwnerMain("mob", mob.MobId);
+            }
         }
     }
 
@@ -176,9 +213,7 @@ public static class ScenePrewarm
         // The local pre-wind pass can run before the registry callback. Infer
         // only stable simulation families here; LoadMain itself waits for the
         // registry and a later live-snapshot pass confirms the exact type.
-        if (HexLive.Simulation.Content.GarmentLibrary.Active.Any(
-                garment => string.Equals(
-                    garment.Id, id, System.StringComparison.Ordinal)))
+        if (IsCatalogGarment(id))
         {
             WarmOwnerMain("wear", id);
         }
@@ -315,7 +350,10 @@ public static class ScenePrewarm
         }
         foreach (var mob in world.Mobs)
         {
-            Add("mob", mob.MobId);
+            if (!Config.MobLibrary.IsRetired(mob.MobId))
+            {
+                Add("mob", mob.MobId);
+            }
         }
 
         ContentAssetService.Instance.Resolve(keys.Values, missing =>
@@ -447,7 +485,8 @@ public static class ScenePrewarm
         var ids = new HashSet<string>();
         foreach (var mob in world.Mobs)
         {
-            if (!string.IsNullOrEmpty(mob.MobId))
+            if (!string.IsNullOrEmpty(mob.MobId) &&
+                !Config.MobLibrary.IsRetired(mob.MobId))
             {
                 ids.Add(mob.MobId);
             }
@@ -494,9 +533,7 @@ public static class ScenePrewarm
         // A dropped garment is still the same atomic wear object as the fitted
         // garment. Asking for object/clothing.* produced a false missing-record
         // warning and left the real wear bundle on the lazy path.
-        if (HexLive.Simulation.Content.GarmentLibrary.Active.Any(
-                garment => string.Equals(
-                    garment.Id, definitionId, System.StringComparison.Ordinal)))
+        if (IsCatalogGarment(definitionId))
         {
             type = "wear";
             contentId = definitionId;

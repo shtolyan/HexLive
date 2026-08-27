@@ -911,7 +911,18 @@ public static class WorldSaveSerializer
 
         MigrateRetiredGarments(world, world.Entities.Npcs.Values);
         MigrateRetiredGarments(world, world.Entities.Corpses.Values);
+
+        // The water predator was retired (its save section reads as an empty
+        // legacy slot above), but a pre-retire save also carries its id inside
+        // the ordinary mob list and the §147 patrol slots. MobCatalog.For hands
+        // any unknown id neutral fallback stats, so the ghost keeps patrolling
+        // a live server — invisible to every client, because no mob art with
+        // that id exists in the content registry any more.
+        world.Mobs.RemoveAll(mob => mob.MobId == RetiredSharkMobId);
+        world.MobSpawnSlots.RemoveAll(slot => slot.MobId == RetiredSharkMobId);
     }
+
+    private const string RetiredSharkMobId = "shark";
 
     // These armor ids never had shipping art or localization. Strip them from
     // old saves as well as new content, otherwise a saved wearer remains an

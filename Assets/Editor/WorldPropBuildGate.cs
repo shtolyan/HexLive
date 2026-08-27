@@ -47,6 +47,15 @@ namespace HexLive.Editor
                 var renderers = prefab.GetComponentsInChildren<Renderer>(true);
                 if (renderers.Length < entry.minRenderers)
                     violations.Add($"{entry.id}: renderers {renderers.Length} < {entry.minRenderers}");
+                foreach (var meshRenderer in prefab.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    var filter = meshRenderer.GetComponent<MeshFilter>();
+                    if (filter == null || filter.sharedMesh == null)
+                        violations.Add($"{entry.id}: renderer {meshRenderer.name} has no mesh");
+                }
+                foreach (var skinned in prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                    if (skinned.sharedMesh == null)
+                        violations.Add($"{entry.id}: skinned renderer {skinned.name} has no mesh");
                 var materialNames = new HashSet<string>(renderers
                     .SelectMany(renderer => renderer.sharedMaterials)
                     .Where(material => material != null)

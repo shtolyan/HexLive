@@ -31,7 +31,7 @@ namespace HexLive.Editor
             material.shader = shader;
             material.mainTexture = texture;
             material.SetTexture("_BaseMap", texture);
-            material.SetColor("_BaseColor", Color.white);
+            material.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.82f));
             material.SetFloat("_Surface", 1f);
             material.SetFloat("_Blend", 0f);
             material.SetFloat("_ZWrite", 0f);

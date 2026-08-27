@@ -50,7 +50,6 @@ namespace HexLive.UnityPresentation.UI
         }
 
         [Serializable]
-        [Serializable]
         private sealed class FileModel
         {
             public List<Report> reports = new();

@@ -27,6 +27,20 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §81.15 / #250: pause, do not abort, a manual order while the
+            // abuse scene owns its mark. Timed interactions use absolute ticks,
+            // so slide their window by this frozen fast tick as well.
+            if (AbuseMath.SceneOwnsManualMark(world, npc))
+            {
+                if (npc.Execution.Status == ExecutionStatus.InProgress)
+                {
+                    npc.Execution.StartTick++;
+                    npc.Execution.EndTick++;
+                }
+
+                continue;
+            }
+
             // Bug #95 / spec 41.5: manual orders are allowed to wake a sleeper
             // and remain queued, but no interaction may start over the GetUp
             // clip. This also covers an order whose target is already underfoot

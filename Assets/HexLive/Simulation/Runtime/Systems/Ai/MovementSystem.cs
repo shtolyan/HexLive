@@ -367,6 +367,15 @@ public sealed class MovementSystem : ISimulationSystem
                 continue;
             }
 
+            // §81.15 / #250: the abuse scene owns the mark's body only for
+            // its approach/scene window. Keep the manual plan and its path
+            // intact, so the exact queued order resumes after the claim ends.
+            if (AbuseMath.SceneOwnsManualMark(world, npc))
+            {
+                PauseGaitAndBreath(npc);
+                continue;
+            }
+
             // §71: a girl who is not walking anywhere is, by definition, not
             // running — clear the gait flag before any of the early-outs below,
             // or a stale "running" would keep the run clip playing while she

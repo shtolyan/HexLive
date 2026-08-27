@@ -49,7 +49,10 @@ public sealed partial class ExecutionSystem
         // put the patient down before the next combat pass.
         if (npc.Execution.Status == ExecutionStatus.InProgress &&
             npc.Execution.CurrentInteraction == InteractionType.Abuse &&
-            mark.IsCarryingPerson)
+            (mark.IsCarryingPerson || !AbuseMath.SceneOwnsManualMark(world, mark)) &&
+            (mark.Plan.Status == PlanStatus.Active ||
+             mark.Execution.Status == ExecutionStatus.InProgress ||
+             mark.IsCarryingPerson))
         {
             PlanInterruption.TryAbortForCombat(world, mark, InterruptionCause.AbuseMark,
                 $"Active abuse by NPC{npc.Id.Value}");
@@ -220,9 +223,12 @@ public sealed partial class ExecutionSystem
                 mark.Execution.Status == ExecutionStatus.InProgress ||
                 mark.IsCarryingPerson)
             {
-                PlanInterruption.TryAbortForCombat(world, mark, InterruptionCause.AbuseMark,
-                    $"Abused by NPC{npc.Id.Value}");
-                mark.Mind.CurrentGoal = GoalType.None;
+                if (!AbuseMath.SceneOwnsManualMark(world, mark) || mark.IsCarryingPerson)
+                {
+                    PlanInterruption.TryAbortForCombat(world, mark, InterruptionCause.AbuseMark,
+                        $"Abused by NPC{npc.Id.Value}");
+                    mark.Mind.CurrentGoal = GoalType.None;
+                }
             }
 
             // §97: ⭐ ВХОД В НАСТОЯЩИЙ БОЙ. Прежде сцена била «сценарно», в

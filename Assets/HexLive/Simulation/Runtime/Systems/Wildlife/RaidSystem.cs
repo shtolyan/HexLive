@@ -277,14 +277,18 @@ public sealed class RaidSystem : ISimulationSystem
                 mark.Execution.Status == ExecutionStatus.InProgress ||
                 mark.IsCarryingPerson)
             {
-                PlanInterruption.TryAbortForCombat(world, mark, InterruptionCause.AbuseMark,
-                    $"Braces for NPC{claimer.Id.Value}");
-                mark.Mind.CurrentGoal = GoalType.None;
+                if (!AbuseMath.SceneOwnsManualMark(world, mark) || mark.IsCarryingPerson)
+                {
+                    PlanInterruption.TryAbortForCombat(world, mark, InterruptionCause.AbuseMark,
+                        $"Braces for NPC{claimer.Id.Value}");
+                    mark.Mind.CurrentGoal = GoalType.None;
+                }
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, mark.Id, "MarkBraces",
                         $"Abuser=NPC{claimer.Id.Value} " +
-                        $"Dist={HexSpatialMath.HexDistance(mark.Tile, claimer.Tile)}");
+                        $"Dist={HexSpatialMath.HexDistance(mark.Tile, claimer.Tile)} " +
+                        $"ManualOrderPaused={AbuseMath.SceneOwnsManualMark(world, mark)}");
                 }
             }
 

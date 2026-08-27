@@ -15,6 +15,28 @@ namespace HexLive.Simulation.Runtime
 // подошли подруги».
 public static class AbuseMath
 {
+    /// <summary>
+    /// §81.15 / #250: an approaching/running abuse scene temporarily owns a
+    /// manually controlled mark's body, but not her queued player plan. Fast
+    /// movement and execution use this one predicate to pause the order; once
+    /// the claim is released, the unchanged plan resumes naturally.
+    /// </summary>
+    public static bool SceneOwnsManualMark(WorldState world, NPCState mark)
+    {
+        if (!ManualControlMath.IsManual(mark) ||
+            mark.Mind.PendingAbuseFrom is not { } abuserId ||
+            !world.Entities.Npcs.TryGetValue(abuserId, out var abuser) ||
+            abuser.Health <= 0f ||
+            abuser.Mind.CurrentGoal != GoalType.Abuse)
+        {
+            return false;
+        }
+
+        return abuser.Execution.CurrentInteraction == InteractionType.Abuse ||
+            HexSpatialMath.HexDistance(mark.Tile, abuser.Tile) <=
+                Spec57.AnswerReadyRadiusTiles;
+    }
+
     // Что ему сейчас нужно от неё. Жажда идёт вперёд голода — она убивает
     // быстрее, тот же порядок держит §53.
     // Что он у неё возьмёт.

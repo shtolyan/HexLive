@@ -1224,6 +1224,22 @@ MonoBehaviour:
         \u0431\u044B\u0441\u0442\u0440\u0435\u0435."
       Flags: 0101
       Languages_Touch: []
+    - Term: effect.maimed.title
+      TermType: 0
+      Description:
+      Languages:
+      - Lost limb
+      - "\u041f\u043e\u0442\u0435\u0440\u044f\u043d\u0430 \u043a\u043e\u043d\u0435\u0447\u043d\u043e\u0441\u0442\u044c"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: effect.maimed.desc
+      TermType: 0
+      Description:
+      Languages:
+      - The limb was amputated. Without a prosthetic its function is lost.
+      - "\u041a\u043e\u043d\u0435\u0447\u043d\u043e\u0441\u0442\u044c \u0430\u043c\u043f\u0443\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0430. \u0411\u0435\u0437 \u043f\u0440\u043e\u0442\u0435\u0437\u0430 \u0435\u0451 \u0444\u0443\u043d\u043a\u0446\u0438\u044f \u0443\u0442\u0440\u0430\u0447\u0435\u043d\u0430."
+      Flags: 0101
+      Languages_Touch: []
     - Term: effect.adrenaline.title
       TermType: 0
       Description: 

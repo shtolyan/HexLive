@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Agents.Effects;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Gates;
@@ -28,6 +29,22 @@ public sealed class LocalizationCoverageContractTests
                     @"Languages:\s*\n\s*-\s+.+\n\s*-\s+.+",
                     RegexOptions.CultureInvariant),
                 Is.True, $"goal.{goal} must have non-empty English and Russian translations");
+        }
+    }
+
+    [Test]
+    public void EveryStatusEffectHasLocalizedTitleAndDescription()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+
+        foreach (var effect in Enum.GetNames<EffectKind>())
+        {
+            var id = effect.ToLowerInvariant();
+            Assert.That(source, Does.Contain($"    - Term: effect.{id}.title\n"),
+                $"effect.{id}.title is missing");
+            Assert.That(source, Does.Contain($"    - Term: effect.{id}.desc\n"),
+                $"effect.{id}.desc is missing");
         }
     }
 }

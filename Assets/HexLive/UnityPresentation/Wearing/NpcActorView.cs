@@ -5533,6 +5533,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
+        // #243: model and grip live in two entries of one atomic object. Do not
+        // instantiate a known tool with a fallback grip during the short window
+        // in which `main` is ready but `gear-config` is not: _currentPropId
+        // would then make that wrong pose permanent for the whole interaction.
+        var gearConfig = Config.GearLibrary.ConfigFor(itemId);
+        if (Config.GearLibrary.RequiresAuthoredConfig(itemId) && gearConfig == null)
+        {
+            return;
+        }
+
         // Runtime props have one source: object/<id>. A null is an asynchronous
         // state, not permission to freeze a different mesh into this hand.
         var model = Config.GearLibrary.LoadPrefab(itemId);
@@ -5557,8 +5567,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // prefab root. Applying the common grip used to overwrite that root
         // rotation, making a correct ground model turn wrong only in hand.
         var prefabAxisCorrection = _handProp.transform.localRotation;
-        var keepPrefabAxisCorrection =
-            Config.GearLibrary.ConfigFor(itemId)?.preservePrefabRotationInHand == true;
+        var keepPrefabAxisCorrection = gearConfig?.preservePrefabRotationInHand == true;
         var prefabLocalScale = _handProp.transform.localScale;
 
         // Placement priority (each higher tier wins): the gear asset's tuned

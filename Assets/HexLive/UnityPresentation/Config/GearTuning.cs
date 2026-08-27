@@ -75,8 +75,35 @@ namespace HexLive.UnityPresentation.Config
             }
         }
 
-        public static GearConfig ConfigFor(string gearId) =>
-            gearId != null && Configs.TryGetValue(gearId, out var c) ? c : null;
+        public static GearConfig ConfigFor(string gearId)
+        {
+            if (string.IsNullOrEmpty(gearId))
+            {
+                return null;
+            }
+            if (Configs.TryGetValue(gearId, out var cached))
+            {
+                return cached;
+            }
+
+            // Atomic content owns GearConfig as the `gear-config` entry of the
+            // SAME object record as the model. The retired directory scan
+            // cannot synchronously enumerate a live registry, so request the
+            // exact owner lazily and let the view retry while it is pending.
+            var loaded = HexLive.UnityPresentation.Content.AtomicResources.Load<GearConfig>(
+                "HexLive/Objects/" + gearId);
+            if (loaded != null)
+            {
+                Register(loaded);
+            }
+            return loaded;
+        }
+
+        /// <summary>True for the finite authored gear table. These items must
+        /// wait for their atomic GearConfig instead of freezing a generic grip
+        /// while the companion entry is still downloading.</summary>
+        public static bool RequiresAuthoredConfig(string gearId) =>
+            !string.IsNullOrEmpty(gearId) && GearCatalog.Defaults.ContainsKey(gearId);
 
         /// <summary>The item's model: the config's DIRECT prefab reference
         /// first, its legacy Resources path second, then the

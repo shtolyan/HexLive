@@ -1180,7 +1180,8 @@ public static class WorldSnapshotExporter
             // Legacy presentation strings carry a VISUAL age. Clotting dries
             // the mark and ends pain/wet-gloss cues without lying to typed
             // medical consumers: OpenWounds below keeps authoritative Heal01.
-            var visualHeal = HexLive.Simulation.Runtime.WoundMath.VisualHeal01(wound);
+            var visualHeal = HexLive.Simulation.Runtime.WoundMath.VisualHeal01(
+                wound, npc.Body.IsSevered(wound.Zone));
             // §118.2: поля 4 и 5 — свёртываемость и глубина, для крови,
             // проступающей СКВОЗЬ повязку. Дописаны в хвост сознательно: все
             // четыре читателя строки проверяют Length >= 3 и берут [0..2],

@@ -38,11 +38,18 @@ public sealed class NpcLimpPoseContractTests
         Assert.Multiple(() =>
         {
             Assert.That(source, Does.Contain(
-                "var missingLeg = _posture == \"Crawl\" ||"),
+                "var missingLeg = _legsLost || _posture == \"Crawl\" ||"),
                 "The view must not disagree with BodyState.IsProne when a non-severed leg reaches zero function.");
             Assert.That(source, Does.Contain(
-                "_winded = winded;\n        RefreshLeglessPresentation();"),
+                "_legsLost = legsLost; // §50: до RefreshLeglessPresentation — он это читает\n" +
+                "        RefreshLeglessPresentation();"),
                 "A changed authoritative posture must refresh the locomotion override immediately.");
+            Assert.That(source, Does.Contain(
+                "if (_animSet == null && TryLoadAnimSet())"),
+                "An asynchronous config miss must be retried for actors that already exist.");
+            Assert.That(source, Does.Contain(
+                "!HasVisibleProsthetic(BodyPart.LegL)"),
+                "An installed-but-invisible prosthetic must not make the visible bare stump walk.");
         });
     }
 

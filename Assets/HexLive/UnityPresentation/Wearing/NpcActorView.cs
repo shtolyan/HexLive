@@ -1896,16 +1896,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         // Shared clip config (talk/death variants, per-weapon idle/attack).
-        if (!_animSetTried)
-        {
-            _animSetTried = true;
-            _animSet = HexLive.UnityPresentation.Content.AtomicResources.Load<NpcAnimSet>("HexLive/NpcAnimSet");
-            if (_animSet == null)
-            {
-                Debug.LogWarning("[NpcAnim] NpcAnimSet not found at Resources/HexLive/NpcAnimSet " +
-                    "— talk/death variants and weapon attacks fall back to the base clips.");
-            }
-        }
+        // AtomicResources starts an asynchronous request on the first miss.
+        // Do not turn that miss into a permanent process-wide decision: a
+        // server snapshot can construct actors before the config bundle has
+        // completed, and the missing crawl clip then made amputees walk.
+        TryLoadAnimSet();
 
         ApplySleepPose();
 
@@ -2658,7 +2653,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                     condition,
                     _severedBoneOriginalScale.TryGetValue(condition.Part, out var originalScale)
                         ? originalScale
-                        : Vector3.one);
+                        : Vector3.one,
+                    RefreshLeglessPresentation);
                 if (visual != null)
                 {
                     _prostheticVisuals[condition.Part] = visual;
@@ -2724,8 +2720,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // просто добило до нуля. Теперь факт едет своим полем (LegsLost) и
         // обморок его не стирает.
         var missingLeg = _legsLost || _posture == "Crawl" ||
-            (_severedZones.Contains("LegL") && !_prostheticZones.Contains(BodyPart.LegL)) ||
-            (_severedZones.Contains("LegR") && !_prostheticZones.Contains(BodyPart.LegR));
+            (_severedZones.Contains("LegL") && !HasVisibleProsthetic(BodyPart.LegL)) ||
+            (_severedZones.Contains("LegR") && !HasVisibleProsthetic(BodyPart.LegR));
         if (_legless == missingLeg)
         {
             return;
@@ -5991,6 +5987,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // (Faint/Crawl/Limp/ArmHang/HeadClutch/Upright) and the winded flag.
     public void SetPosture(string postureHint, bool winded, bool legsLost = false)
     {
+        // The atomic NpcAnimSet prewarm is asynchronous. Poll its pinned handle
+        // from the normal snapshot path and apply it to already-created actors
+        // as soon as it arrives; otherwise the one early miss is permanent and
+        // a legitimate Crawl hint falls through to the authored walk clips.
+        if (_animSet == null && TryLoadAnimSet())
+        {
+            ApplyActorLocomotion();
+        }
+
         _posture = string.IsNullOrEmpty(postureHint) ? "Upright" : postureHint;
         _winded = winded;
         _legsLost = legsLost; // §50: до RefreshLeglessPresentation — он это читает
@@ -6011,6 +6016,28 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetBool(LimpingParam, false);
         }
     }
+
+    private static bool TryLoadAnimSet()
+    {
+        if (_animSet != null)
+        {
+            return true;
+        }
+
+        _animSet = HexLive.UnityPresentation.Content.AtomicResources.Load<NpcAnimSet>(
+            "HexLive/NpcAnimSet");
+        if (_animSet == null && !_animSetTried)
+        {
+            Debug.LogWarning("[NpcAnim] NpcAnimSet is still loading; " +
+                "actors will retry from the snapshot path.");
+        }
+
+        _animSetTried = true;
+        return _animSet != null;
+    }
+
+    private bool HasVisibleProsthetic(BodyPart part) =>
+        _prostheticVisuals.TryGetValue(part, out var visual) && visual.HasModel;
 
     /// <summary>§118: carry arms over normal walking (Carrying.fbx sample).</summary>
     public void SetCarryingPerson(bool carrying) => _carryingPerson = carrying;

@@ -71,6 +71,14 @@ internal sealed class ProstheticVisual
     /// </summary>
     public bool IsReady => _loadCompleted;
 
+    /// <summary>
+    /// Completion alone is not enough for locomotion presentation: a failed
+    /// bundle request is "ready" so the loading curtain can close, but the
+    /// player still sees a bare stump. Until an actual model is attached the
+    /// actor must keep the stump crawl instead of appearing to walk on air.
+    /// </summary>
+    public bool HasModel { get; private set; }
+
     public bool Matches(ProstheticSnapshot snapshot) =>
         snapshot != null &&
         snapshot.Part == Part &&
@@ -81,7 +89,8 @@ internal sealed class ProstheticVisual
         Transform host,
         BodyBones bodyBones,
         BodyPartConditionSnapshot condition,
-        Vector3 startBoneOriginalLocalScale)
+        Vector3 startBoneOriginalLocalScale,
+        Action modelLoaded = null)
     {
         if (host == null || bodyBones == null || condition?.Prosthetic == null ||
             !TryBoneNames(condition.Part, out var startName, out var endName))
@@ -99,7 +108,7 @@ internal sealed class ProstheticVisual
 
         return Create(
             host, start, end, condition, startBoneOriginalLocalScale,
-            createGrip: true, targetLayer: -1, modelLoaded: null);
+            createGrip: true, targetLayer: -1, modelLoaded: modelLoaded);
     }
 
     /// <summary>
@@ -203,6 +212,7 @@ internal sealed class ProstheticVisual
 
         var instance = UnityEngine.Object.Instantiate(prefab, _visualRoot.transform, false);
         instance.name = $"Model {DefinitionId} {Part}";
+        HasModel = true;
         if (_targetLayer >= 0)
         {
             SetLayerDeep(instance.transform, _targetLayer);

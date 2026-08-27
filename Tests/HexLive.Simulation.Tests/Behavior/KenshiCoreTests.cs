@@ -232,6 +232,10 @@ public sealed class KenshiCoreTests
         var effects = new System.Collections.Generic.List<ActiveEffect>();
 
         EffectEvaluator.Collect(patient, world.Tick, 0f, false, false, effects);
+        var snapshot = WorldSnapshotExporter.Export(world).Npcs
+            .Single(entry => entry.Id == patient.Id);
+        var visualHeal = float.Parse(snapshot.Wounds.Single().Split('|')[2],
+            System.Globalization.CultureInfo.InvariantCulture);
 
         Assert.Multiple(() =>
         {
@@ -239,6 +243,9 @@ public sealed class KenshiCoreTests
                 "A dry stump must not keep a red bleeding status forever.");
             Assert.That(effects.Any(effect => effect.Kind == EffectKind.Injured), Is.True,
                 "The remaining injury must still be visible as an injury.");
+            Assert.That(visualHeal, Is.EqualTo(WoundMath.ClottedStumpVisualHealFloor)
+                .Within(0.001f),
+                "A dry stump must keep only a faint scar, not the wet-cut presentation.");
         });
 
         wound.Clot01 = 0.5f;

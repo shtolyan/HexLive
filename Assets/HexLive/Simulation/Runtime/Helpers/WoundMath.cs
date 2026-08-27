@@ -23,6 +23,11 @@ internal static class WoundMath
     // authoritative Heal01 remains unchanged until real recovery advances it.
     internal const float ClottedVisualHealFloor = 0.65f;
 
+    // A treated/clotted stump is still an injury, but it must read as a dry
+    // scar rather than a wet pool of blood. The ordinary dry-cut floor stays
+    // lower because an intact cut still needs aftercare.
+    internal const float ClottedStumpVisualHealFloor = 0.90f;
+
     // Full close in 300 slow ticks (= 4800 ticks = 20 real minutes) at
     // neutral pace; sleeping doubles it, marching halves it.
     public static float HealPerSlowTick => SimBalance.HealPerSlowTick;
@@ -136,6 +141,16 @@ internal static class WoundMath
         MathUtil.Clamp01(System.Math.Max(
             wound.Heal01,
             wound.Clot01 * ClottedVisualHealFloor));
+
+    internal static float VisualHeal01(WoundState wound, bool severedZone)
+    {
+        var clotFloor = severedZone
+            ? ClottedStumpVisualHealFloor
+            : ClottedVisualHealFloor;
+        return MathUtil.Clamp01(System.Math.Max(
+            wound.Heal01,
+            wound.Clot01 * clotFloor));
+    }
 
     public static int BandageTicks(NPCState healer)
     {

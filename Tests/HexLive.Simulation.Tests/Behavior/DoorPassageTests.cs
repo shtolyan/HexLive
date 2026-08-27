@@ -364,6 +364,100 @@ public sealed class DoorPassageTests
         });
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Баг #237: «двери запирают жителей внутри».
+    //
+    // §146 дал дом с дверью КАЖДОМУ девичьему лагерю, а владельцем двери в коде
+    // осталась константа Faction.Colony. Замер по живому серверному сейву
+    // (HugeIsland, seed 149187134, тик 144476): шесть хижин, у пяти жительницы —
+    // Colony2…Colony6, и ни одна не имела права открыть собственную дверь.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>#237: владелец двери — лагерь, который в этом доме живёт.</summary>
+    [Test]
+    public void DoorBelongsToTheCampThatActuallyLivesThere()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var door = Door(world);
+        var portalId = door.Junctions[0];
+        var hut = Hut(world);
+
+        // Второй девичий лагерь ставит свой дом там же, где стоит хижина —
+        // ровно случай §146.5 (StakeCampHutPlans разметил его в 2-4 гексах).
+        world.FactionHomes[Faction.Colony2] = hut.Tile;
+        world.DoorStateVersion++;
+
+        Assert.That(BuildingDoorRules.TryClose(world, door.Id), Is.True);
+
+        var inside = InteriorJunction(world);
+        var outside = OutsideNeighborOfPortal(world, portalId);
+        var forbidden = DoorTopology.ForbiddenFor(world, Faction.Colony2);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(DoorTopology.OwnerFaction(world, door), Is.EqualTo(Faction.Colony2),
+                "Дверь принадлежит ближайшему девичьему лагерю, а не константе Colony.");
+            Assert.That(FactionRelations.AreAllies(
+                Faction.Colony2, DoorTopology.OwnerFaction(world, door)), Is.True,
+                "Жительница обязана иметь право открыть свою же дверь.");
+            Assert.That(forbidden is null || !forbidden.Contains(portalId), Is.True,
+                "Роутер не смеет запрещать жительнице её собственный портал.");
+            Assert.That(HexPathfinder.FindPath(
+                    world, inside, outside, null, hardAvoid: forbidden), Is.Not.Empty,
+                "Изнутри собственного дома обязан существовать маршрут наружу (#237).");
+
+            // Аутсайдер дверей не строит и владельцем не становится никогда.
+            world.FactionHomes[Faction.Outsiders] = hut.Tile;
+            world.DoorStateVersion++;
+            Assert.That(DoorTopology.OwnerFaction(world, door), Is.EqualTo(Faction.Colony2));
+        });
+    }
+
+    /// <summary>
+    /// #237: запрет роутера обязан совпадать с правом открыть створку. Между
+    /// «враждебна» и «союзница» жил НЕЙТРАЛЬНЫЙ лагерь (§146.12, solo-camp
+    /// режимы): роутер вёл её сквозь закрытую дверь, движенческий гейт
+    /// отказывал, путь сбрасывался — вечная петля вместо честного PathFailed.
+    /// </summary>
+    [Test]
+    public void RouterBansClosedDoorForEveryoneWhoMayNotOpenIt()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        world.Mode = Bootstrap.GameMode.HugeIsland; // лагеря нейтральны, не враждебны
+        var door = Door(world);
+        var portalId = door.Junctions[0];
+        var hut = Hut(world);
+        world.FactionHomes[Faction.Colony2] = hut.Tile;
+        world.DoorStateVersion++;
+
+        Assert.That(BuildingDoorRules.TryClose(world, door.Id), Is.True);
+
+        var owner = DoorTopology.OwnerFaction(world, door);
+        var neighbourCamp = Faction.Colony3;
+        Assert.Multiple(() =>
+        {
+            Assert.That(FactionRelations.AreHostile(world, neighbourCamp, owner), Is.False,
+                "В solo-camp мире соседний девичий лагерь именно НЕЙТРАЛЕН — это и есть щель.");
+            Assert.That(FactionRelations.AreAllies(neighbourCamp, owner), Is.False,
+                "…и открыть чужую дверь он всё равно не вправе.");
+
+            var forbidden = DoorTopology.ForbiddenFor(world, neighbourCamp);
+            Assert.That(forbidden, Is.Not.Null);
+            Assert.That(forbidden, Does.Contain(portalId),
+                "Кто не вправе открыть — тому портал запрещён и роутером (#237).");
+        });
+
+        // Гейт движения обязан отвечать тем же: путь есть только у союзницы.
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Faction = neighbourCamp;
+        ArmStepThroughPortal(world, npc,
+            OutsideNeighborOfPortal(world, portalId), portalId,
+            InsideNeighborOfPortal(world, portalId));
+        new MovementSystem().Run(world);
+        Assert.That(door.IsDoorOpen, Is.False,
+            "Нейтральная соседка чужую дверь не открывает.");
+    }
+
     [Test]
     public void KillSwitchLeavesDoorsUntouched()
     {

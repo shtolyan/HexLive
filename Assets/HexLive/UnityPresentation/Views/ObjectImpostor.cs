@@ -6,6 +6,11 @@ using UnityEngine.Rendering;
 namespace HexLive.UnityPresentation.Views
 {
 
+/// <summary>Marks the billboard as presentation-only. Hover/click keeps using
+/// the hidden authored mesh, so zoom cannot change an object's hit area.</summary>
+[DisallowMultipleComponent]
+public sealed class ObjectImpostorVisual : MonoBehaviour { }
+
 /// <summary>
 /// §150.4: world-space импостор дальнего обзора. Квад (MeshRenderer +
 /// MeshFilter с общим читаемым мешем — SpriteRenderer невидим для
@@ -490,6 +495,7 @@ public sealed class ObjectImpostor : MonoBehaviour
     {
         var go = new GameObject("Impostor");
         go.transform.SetParent(transform, false);
+        go.AddComponent<ObjectImpostorVisual>();
         var filter = go.AddComponent<MeshFilter>();
         filter.sharedMesh = EnsureQuadMesh();
         _quadRenderer = go.AddComponent<MeshRenderer>();

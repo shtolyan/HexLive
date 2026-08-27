@@ -122,6 +122,16 @@ public sealed class WorldObjectView : MonoBehaviour
                 continue;
             }
 
+            // #247: the distant square is a picture, not a new hitbox. Its
+            // transparent corners and square bounds used to cover neighbours
+            // and its lifted centre made the cursor feel vertically shifted.
+            // Real renderers remain enabled while forceRenderingOff, so their
+            // authored triangles provide exactly the same pick at every zoom.
+            if (renderer.TryGetComponent<ObjectImpostorVisual>(out _))
+            {
+                continue;
+            }
+
             if (!MeshRayPicker.HasMeshData(renderer))
             {
                 continue;
@@ -183,6 +193,11 @@ public sealed class WorldObjectView : MonoBehaviour
             var renderer = _renderers[i];
             if (renderer == null || !renderer.enabled ||
                 !renderer.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (renderer.TryGetComponent<ObjectImpostorVisual>(out _))
             {
                 continue;
             }

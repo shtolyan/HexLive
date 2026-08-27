@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="420" viewBox="0 0 960 420">
+  <rect width="960" height="420" fill="#10151c"/>
+  <style>
+    text { fill:#e9eef5; font:18px sans-serif }
+    .small { font-size:15px; fill:#aebccc }
+    .mesh { fill:#59b88a; stroke:#b9f3d7; stroke-width:3 }
+    .quad { fill:none; stroke:#efad4d; stroke-width:3; stroke-dasharray:10 7 }
+    .ray { stroke:#65b8ff; stroke-width:4; marker-end:url(#arrow) }
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#65b8ff"/></marker></defs>
+  <text x="35" y="40">#247 — одна зона клика при любом zoom</text>
+  <text class="small" x="35" y="70">Impostor ON: 64 wu · OFF: 56 wu · billboard center = authored bounds.center.y</text>
+  <path class="mesh" d="M420 320 L455 185 L492 250 L530 125 L570 320 Z"/>
+  <rect class="quad" x="360" y="95" width="280" height="245"/>
+  <text class="small" x="650" y="112">квад: рисуется, не pick</text>
+  <text class="small" x="650" y="142">authored triangles: pick</text>
+  <line class="ray" x1="110" y1="165" x2="468" y2="237"/>
+  <text x="55" y="150">луч курсора</text>
+  <line class="ray" x1="110" y1="285" x2="390" y2="285"/>
+  <text class="small" x="55" y="320">прозрачный угол → промах, сосед доступен</text>
+  <text class="small" x="35" y="390">WorldObjectView пропускает ObjectImpostorVisual; forceRenderingOff не меняет геометрию MeshRayPicker.</text>
+</svg>

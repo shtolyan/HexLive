@@ -125,6 +125,10 @@ public sealed class TacticalMapUiContractTests
             Assert.That(impostor, Does.Contain("255 - matteDelta"));
             Assert.That(impostor, Does.Contain("TransparentCutout"));
             Assert.That(impostor, Does.Contain("TextureWrapMode.Clamp"));
+            Assert.That(impostor, Does.Contain("ObjectImpostorVisual"));
+            Assert.That(Read("Assets", "HexLive", "UnityPresentation", "Views",
+                "WorldObjectView.cs"), Does.Contain(
+                "renderer.TryGetComponent<ObjectImpostorVisual>(out _)"));
             Assert.That(impostor, Does.Not.Contain("WorldToScreenPoint"));
             Assert.That(input, Does.Contain("impostor.DistantActive"));
             Assert.That(spec, Does.Contain("### §150.4"));

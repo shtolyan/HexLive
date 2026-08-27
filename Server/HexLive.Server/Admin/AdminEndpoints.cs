@@ -27,7 +27,7 @@ public static class AdminEndpoints
 
     public static void Map(WebApplication app, WorldSupervisor worlds, AdminAccount account,
         AdminSessions sessions, AdminMailer mailer, CancellationTokenSource lifetime,
-        AssetRegistryStore assetRegistry, AssetGarmentCatalog assetCatalog)
+        AssetRegistryStore assetRegistry, AssetGarmentCatalog assetCatalog, string? adminIconRoot)
     {
         app.MapGet("/admin", (HttpContext context) =>
         {
@@ -151,13 +151,38 @@ public static class AdminEndpoints
                 return Html(AdminPages.Catalog(
                     assetCatalog.ReadOverview(), worlds.CatalogRegistryRevision,
                     context.Request.Query["q"], context.Request.Query["type"],
-                    context.Request.Query["state"], context.Request.Query["notice"]));
+                    context.Request.Query["state"], context.Request.Query["category"],
+                    ParsePage(context.Request.Query["page"]), context.Request.Query["notice"]));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
                                        InvalidDataException or JsonException)
             {
                 return Redirect(WithNotice("/admin", "Catalog could not be read: " + ex.Message));
             }
+        });
+
+        app.MapGet("/admin/icons/{id}", (HttpContext context, string id) =>
+        {
+            if (!SignedIn(context, sessions)) return Redirect("/admin");
+            if (string.IsNullOrWhiteSpace(adminIconRoot) || !ContentIdentity.IsId(id))
+            {
+                return Results.NotFound();
+            }
+
+            var root = Path.GetFullPath(adminIconRoot);
+            var candidate = Path.GetFullPath(Path.Combine(root, id + ".png"));
+            var prefix = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+                         Path.DirectorySeparatorChar;
+            var comparison = OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+            if (!candidate.StartsWith(prefix, comparison) || !File.Exists(candidate))
+            {
+                return Results.NotFound();
+            }
+
+            context.Response.Headers.CacheControl = "private,no-cache";
+            return Results.File(candidate, "image/png", enableRangeProcessing: false);
         });
 
         app.MapGet("/admin/catalog/{type}/{id}", (HttpContext context, string type, string id) =>
@@ -434,6 +459,11 @@ public static class AdminEndpoints
         }
         return parsed;
     }
+
+    private static int ParsePage(string? value) =>
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var page) && page > 0
+            ? page
+            : 1;
 
     private static int RequireInt(string value, string field)
     {

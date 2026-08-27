@@ -29,6 +29,7 @@ namespace HexLive.Server
 ///   --save PATH     save file (default ./hexlive-server.sav)
 ///   --simdata PATH  exported catalogs (default &lt;repo&gt;/SimData/simdata.json)
 ///   --asset-root PATH persistent atomic content (default /var/lib/hexlive/assets)
+///   --admin-icon-root PATH direct PNG previews for the authenticated catalog
 ///   --autosave N    seconds between saves (default 60)
 ///   --debug-details include the per-NPC debug dumps in every frame
 /// </summary>
@@ -169,6 +170,7 @@ public static class Program
         Console.WriteLine($"[server] admin account {Path.GetFullPath(options.AdminAccountPath)}");
 
         Console.WriteLine($"[server] asset root    {assetRegistry.RootPath}");
+        Console.WriteLine($"[server] admin icons  {options.AdminIconRoot ?? "disabled"}");
         LogAssetCoverage(assetRegistry);
 
         // §145.4: ОДИН реестр лиз на процесс — MCP-агенты и сетевые игроки
@@ -302,7 +304,8 @@ public static class Program
         });
 
         Admin.AdminEndpoints.Map(
-            app, worlds, account, sessions, mailer, lifetime, assetRegistry, assetCatalog);
+            app, worlds, account, sessions, mailer, lifetime, assetRegistry, assetCatalog,
+            options.AdminIconRoot);
 
         if (options.McpEnabled)
         {
@@ -573,6 +576,20 @@ public sealed class ServerOptions
     /// <summary>§152: persistent objects are independent of this server build.</summary>
     public string AssetRoot { get; private set; } = "/var/lib/hexlive/assets";
 
+    private string? _adminIconRoot;
+
+    /// <summary>
+    /// §154.3 optional direct PNG previews for the authenticated admin. These
+    /// are source/export textures, never files decoded from an AssetBundle.
+    /// </summary>
+    public string? AdminIconRoot
+    {
+        get => _adminIconRoot ??= FindAdminIconRoot();
+        private set => _adminIconRoot = string.IsNullOrWhiteSpace(value)
+            ? null
+            : Path.GetFullPath(value);
+    }
+
     /// <summary>Administrative one-shot mode, reachable only from the process CLI.</summary>
     public string? PublishCandidatePath { get; private set; }
 
@@ -611,6 +628,20 @@ public sealed class ServerOptions
                 return candidate;
             }
 
+            directory = directory.Parent;
+        }
+
+        return null;
+    }
+
+    private static string? FindAdminIconRoot()
+    {
+        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (directory != null)
+        {
+            var candidate = Path.Combine(
+                directory.FullName, "Assets", "HexLiveContent", "Icons");
+            if (Directory.Exists(candidate)) return candidate;
             directory = directory.Parent;
         }
 
@@ -708,6 +739,9 @@ public sealed class ServerOptions
                 case "--asset-root" when i + 1 < args.Length:
                     options.AssetRoot = args[++i];
                     break;
+                case "--admin-icon-root" when i + 1 < args.Length:
+                    options.AdminIconRoot = args[++i];
+                    break;
                 case "--publish-candidate" when i + 1 < args.Length:
                     options.PublishCandidatePath = args[++i];
                     break;
@@ -769,6 +803,7 @@ public sealed class ServerOptions
                         "  --save PATH      save file (default hexlive-server.sav)\n" +
                         "  --simdata PATH   exported catalogs (default SimData/simdata.json)\n" +
                         "  --asset-root PATH persistent atomic content (default /var/lib/hexlive/assets)\n" +
+                        "  --admin-icon-root PATH direct PNG previews for authenticated catalog\n" +
                         "  --publish-candidate PATH  validate/promote one staged object, then exit\n" +
                         "  --publish-candidates DIR  promote sorted candidate JSON files, then exit\n" +
                         "  --retain-current-asset-variants  add a platform without dropping verified existing variants\n" +

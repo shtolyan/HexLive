@@ -89,6 +89,27 @@ public sealed class GarmentCatalogEntry
     public GarmentSimulationMetadata? Simulation { get; set; }
     public string ConfigurationSource { get; set; } = "missing";
     public bool Spawnable => Record.State == "active" && Simulation is not null;
+
+    public GarmentCategory Category
+    {
+        get
+        {
+            if (Simulation is null ||
+                !Enum.TryParse<WearLayer>(Simulation.Layer, true, out var layer))
+            {
+                return GarmentCategory.Unclassified;
+            }
+
+            var covers = new List<BodyPart>();
+            foreach (var value in Simulation.Covers ?? new List<string>())
+            {
+                if (Enum.TryParse<BodyPart>(value, true, out var part)) covers.Add(part);
+            }
+
+            return GarmentCategoryRules.Classify(
+                Record.Id, Simulation.DisplayName, layer, covers, Simulation.Capacity);
+        }
+    }
 }
 
 public sealed class AssetCatalogTypeStats

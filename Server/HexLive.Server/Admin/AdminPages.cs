@@ -59,6 +59,10 @@ th{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.6px}
 .badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px}.badge.active{color:var(--good)}.badge.retired{color:var(--bad)}
 .checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:5px 12px}.checks label{margin:0;color:var(--ink)}.checks input{width:auto;margin-right:6px}
 .nav{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:22px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+.thumb{position:relative;width:58px;height:58px;display:grid;place-items:center;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:#0d1117;color:var(--dim);font-size:20px;flex:0 0 auto}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0d1117}.thumb.detail{width:132px;height:132px;border-radius:14px}
+.object-cell{display:flex;gap:12px;align-items:center;min-width:270px}.record-head{display:flex;gap:18px;align-items:center}
+.pager{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:16px}.pager a,.pager span{display:inline-block;min-width:34px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:6px 9px;text-decoration:none}.pager .current{background:var(--gold);border-color:var(--gold);color:#1a1205;font-weight:700}.pager .gap{border:0;color:var(--dim)}
 ";
 
     public static string Login(string? error, bool temporaryPassword)
@@ -296,24 +300,31 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
     }
 
     public static string Catalog(AssetCatalogOverview catalog, long pinnedRevision,
-        string? query, string? type, string? state, string? notice)
+        string? query, string? type, string? state, string? category, int page, string? notice)
     {
+        const int pageSize = 10;
         query = query?.Trim() ?? string.Empty;
         type = type?.Trim() ?? string.Empty;
         state = state?.Trim() ?? string.Empty;
+        category = category?.Trim() ?? string.Empty;
         var wearById = catalog.Wear.ToDictionary(value => value.Record.Id, StringComparer.Ordinal);
-        var records = catalog.Records.Where(record =>
+        var filtered = catalog.Records.Where(record =>
             (type.Length == 0 || record.Type == type) &&
             (state.Length == 0 || record.State == state) &&
-            (query.Length == 0 || record.Id.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-             (record.Type == "wear" && wearById.TryGetValue(record.Id, out var wear) &&
-              (wear.Simulation?.DisplayName ?? string.Empty)
-              .Contains(query, StringComparison.OrdinalIgnoreCase)))).ToArray();
+            (category.Length == 0 ||
+             (record.Type == "wear" && wearById.TryGetValue(record.Id, out var categoryWear) &&
+              string.Equals(categoryWear.Category.ToString(), category, StringComparison.OrdinalIgnoreCase))) &&
+            MatchesSearch(record, wearById, query)).ToArray();
+        var pageCount = Math.Max(1, (filtered.Length + pageSize - 1) / pageSize);
+        page = Math.Clamp(page, 1, pageCount);
+        var records = filtered.Skip((page - 1) * pageSize).Take(pageSize).ToArray();
+        var from = filtered.Length == 0 ? 0 : (page - 1) * pageSize + 1;
+        var to = Math.Min(page * pageSize, filtered.Length);
 
         var body = new StringBuilder();
-        body.Append("<div class='nav'><div><h1>Content catalog</h1><p class='sub' style='margin:0'>")
-            .Append("Atomic server records and simulation garment tuning.</p></div>")
-            .Append("<a href='/admin'>Back to dashboard</a></div>");
+        body.Append("<div class='nav'><div><h1>Каталог контента</h1><p class='sub' style='margin:0'>")
+            .Append("Атомарные объекты сервера и параметры симуляции.</p></div>")
+            .Append("<a href='/admin'>К панели сервера</a></div>");
         if (!string.IsNullOrEmpty(notice))
         {
             body.Append("<div class='note'>").Append(Escape(notice)).Append("</div>");
@@ -321,43 +332,45 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
 
         var pending = catalog.RegistryRevision != pinnedRevision;
         body.Append("<div class='grid'>")
-            .Append(Stat(catalog.RegistryRevision.ToString(CultureInfo.InvariantCulture), "live revision"))
-            .Append(Stat(pinnedRevision.ToString(CultureInfo.InvariantCulture), "world revision"))
-            .Append(Stat(catalog.Records.Count.ToString(CultureInfo.InvariantCulture), "records"))
-            .Append(Stat(catalog.Wear.Count(value => value.Spawnable).ToString(CultureInfo.InvariantCulture), "spawnable wear"))
-            .Append(Stat(catalog.Wear.Count(value => value.Record.State == "retired").ToString(CultureInfo.InvariantCulture), "retired wear"))
-            .Append(Stat(catalog.UnconfiguredWear.ToString(CultureInfo.InvariantCulture), "unconfigured wear"))
+            .Append(Stat(catalog.RegistryRevision.ToString(CultureInfo.InvariantCulture), "ревизия реестра"))
+            .Append(Stat(pinnedRevision.ToString(CultureInfo.InvariantCulture), "ревизия мира"))
+            .Append(Stat(catalog.Records.Count.ToString(CultureInfo.InvariantCulture), "всего объектов"))
+            .Append(Stat(catalog.Wear.Count(value => value.Spawnable).ToString(CultureInfo.InvariantCulture), "доступно одежды"))
+            .Append(Stat(catalog.Wear.Count(value => value.Record.State == "retired").ToString(CultureInfo.InvariantCulture), "снято одежды"))
+            .Append(Stat(catalog.UnconfiguredWear.ToString(CultureInfo.InvariantCulture), "без параметров"))
             .Append("</div>");
 
         if (pending)
         {
-            body.Append("<div class='note' style='margin-top:18px'><div class='row'><b>Catalog changes are pending.</b>")
-                .Append("<span>Current players still use revision ").Append(pinnedRevision)
-                .Append(". Applying saves and reloads the same world.</span>")
+            body.Append("<div class='note' style='margin-top:18px'><div class='row'><b>Есть неприменённые изменения.</b>")
+                .Append("<span>Текущий мир пока использует ревизию ").Append(pinnedRevision)
+                .Append(". Применение сохранит и перезагрузит этот же мир.</span>")
                 .Append("<form method='post' action='/admin/catalog/apply' onsubmit=\"return confirm('Save and reload the current world with catalog revision ")
                 .Append(catalog.RegistryRevision).Append("?')\">")
-                .Append("<button class='primary'>Apply catalog to world</button></form></div></div>");
+                .Append("<button class='primary'>Применить каталог к миру</button></form></div></div>");
         }
         else
         {
-            body.Append("<p class='ok'>The running world uses the current catalog revision.</p>");
+            body.Append("<p class='ok'>Мир использует актуальную ревизию каталога.</p>");
         }
 
-        body.Append("<h2>By content type</h2><div class='grid'>");
+        body.Append("<h2>По типам контента</h2><div class='grid'>");
         foreach (var stat in catalog.Types)
         {
-            body.Append("<div class='stat'><b>").Append(Escape(stat.Type)).Append("</b><span>")
-                .Append(stat.Active).Append(" active · ").Append(stat.Retired).Append(" retired<br>")
-                .Append(stat.Variants).Append(" variants · ").Append(Escape(HumanBytes(stat.Bytes)))
+            body.Append("<div class='stat'><b><a href='")
+                .Append(Escape(CatalogUrl(string.Empty, stat.Type, string.Empty, string.Empty, 1)))
+                .Append("'>").Append(Escape(TypeLabel(stat.Type))).Append("</a></b><span>")
+                .Append(stat.Active).Append(" активно · ").Append(stat.Retired).Append(" снято<br>")
+                .Append(stat.Variants).Append(" вариантов · ").Append(Escape(HumanBytes(stat.Bytes)))
                 .Append("</span></div>");
         }
         body.Append("</div>");
 
-        body.Append("<h2>Platform coverage</h2><div class='card'><div class='scroll'><table><thead><tr>")
-            .Append("<th>Platform / runtime profile</th><th>Covered</th><th>Missing active objects</th></tr></thead><tbody>");
+        body.Append("<h2>Покрытие платформ</h2><div class='card'><div class='scroll'><table><thead><tr>")
+            .Append("<th>Платформа / профиль</th><th>Опубликовано</th><th>Нет активных объектов</th></tr></thead><tbody>");
         if (catalog.Coverage.Platforms.Count == 0)
         {
-            body.Append("<tr><td colspan='3' class='dim'>No platform variants have been published.</td></tr>");
+            body.Append("<tr><td colspan='3' class='dim'>Платформенные варианты ещё не опубликованы.</td></tr>");
         }
         foreach (var platform in catalog.Coverage.Platforms)
         {
@@ -367,11 +380,11 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
                 .Append("</td><td>");
             if (platform.Missing.Count == 0)
             {
-                body.Append("<span class='ok'>complete</span>");
+                body.Append("<span class='ok'>полностью</span>");
             }
             else
             {
-                body.Append("<span class='bad'>").Append(platform.Missing.Count).Append(" missing</span><br><span class='mono dim'>")
+                body.Append("<span class='bad'>нет ").Append(platform.Missing.Count).Append("</span><br><span class='mono dim'>")
                     .Append(Escape(string.Join(", ", platform.Missing.Take(20)
                         .Select(value => value.Type + "/" + value.Id))))
                     .Append(platform.Missing.Count > 20 ? ", …" : string.Empty).Append("</span>");
@@ -380,21 +393,27 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
         }
         body.Append("</tbody></table></div></div>");
 
-        body.Append("<h2>Records</h2><div class='card'>")
+        body.Append("<h2>Объекты</h2><div class='card'>")
             .Append("<form method='get' action='/admin/catalog' class='block'><div class='row'>")
-            .Append("<input name='q' placeholder='id or display name' value='").Append(Escape(query)).Append("'>")
-            .Append("<select name='type'><option value=''>all types</option>");
+            .Append("<input name='q' placeholder='ID, название или русское слово' value='").Append(Escape(query)).Append("'>")
+            .Append("<select name='type'><option value=''>Все типы</option>");
         foreach (var available in catalog.Types.Select(value => value.Type))
         {
-            body.Append(Option(available, available, type));
+            body.Append(Option(available, TypeLabel(available), type));
         }
-        body.Append("</select><select name='state'><option value=''>all states</option>")
-            .Append(Option("active", "active", state))
-            .Append(Option("retired", "retired", state))
-            .Append("</select><button>Filter</button></div></form>")
-            .Append("<p class='dim'>Showing ").Append(records.Length).Append(" of ")
-            .Append(catalog.Records.Count).Append(" records.</p><div class='scroll'><table><thead><tr>")
-            .Append("<th>Object</th><th>Name / configuration</th><th>State</th><th>Revision</th><th>Variants</th><th>Size</th>")
+        body.Append("</select><select name='category'><option value=''>Все категории одежды</option>");
+        foreach (var available in catalog.Wear.Select(value => value.Category).Distinct().OrderBy(value => value))
+        {
+            body.Append(Option(available.ToString(), CategoryLabel(available), category));
+        }
+        body.Append("</select><select name='state'><option value=''>Все состояния</option>")
+            .Append(Option("active", "Активные", state))
+            .Append(Option("retired", "Снятые", state))
+            .Append("</select><button>Найти</button><a href='/admin/catalog'>Сбросить</a></div></form>")
+            .Append("<p class='dim'>Показано ").Append(from).Append("–").Append(to).Append(" из ")
+            .Append(filtered.Length).Append(" найденных (всего ").Append(catalog.Records.Count)
+            .Append("). По 10 на странице.</p><div class='scroll'><table><thead><tr>")
+            .Append("<th>Объект</th><th>Название / категория</th><th>Состояние</th><th>Ревизия</th><th>Варианты</th><th>Размер</th>")
             .Append("</tr></thead><tbody>");
         foreach (var record in records)
         {
@@ -403,10 +422,17 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
             var name = wear?.Simulation?.DisplayName ?? MetadataString(record, "displayName");
             var configuration = wear is null ? string.Empty : wear.ConfigurationSource;
             var size = record.Variants.Sum(value => value.Size + value.Attachments.Sum(item => item.Size));
-            body.Append("<tr><td><a class='mono' href='/admin/catalog/")
+            body.Append("<tr><td><div class='object-cell'>");
+            AppendIcon(body, record.Id, detail: false);
+            body.Append("<a class='mono' href='/admin/catalog/")
                 .Append(Path(record.Type)).Append('/').Append(Path(record.Id)).Append("'>")
-                .Append(Escape(record.Type)).Append('/').Append(Escape(record.Id)).Append("</a></td><td>")
+                .Append(Escape(record.Type)).Append('/').Append(Escape(record.Id)).Append("</a></div></td><td>")
                 .Append(Escape(name.Length == 0 ? "—" : name));
+            if (wear is not null)
+            {
+                body.Append("<br><span class='badge'>")
+                    .Append(Escape(CategoryLabel(wear.Category))).Append("</span>");
+            }
             if (configuration.Length > 0)
             {
                 body.Append("<br><span class='")
@@ -418,8 +444,14 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
                 .Append("</td><td>").Append(record.Variants.Count).Append("</td><td>")
                 .Append(Escape(HumanBytes(size))).Append("</td></tr>");
         }
-        body.Append("</tbody></table></div></div>");
-        return Page("Content catalog", body.ToString());
+        if (records.Length == 0)
+        {
+            body.Append("<tr><td colspan='6' class='dim'>По этим фильтрам ничего не найдено.</td></tr>");
+        }
+        body.Append("</tbody></table></div>");
+        AppendPagination(body, query, type, state, category, page, pageCount);
+        body.Append("</div>");
+        return Page("Каталог контента", body.ToString());
     }
 
     public static string CatalogRecord(ContentObjectRecord record,
@@ -437,7 +469,9 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
             body.Append("<div class='note'>").Append(Escape(notice)).Append("</div>");
         }
 
-        body.Append("<div class='card'><div class='row'><span class='badge ")
+        body.Append("<div class='card'><div class='record-head'>");
+        AppendIcon(body, record.Id, detail: true);
+        body.Append("<div><div class='row'><span class='badge ")
             .Append(Escape(record.State)).Append("'>").Append(Escape(record.State)).Append("</span>")
             .Append("<span class='dim'>published ").Append(Escape(record.PublishedAtUtc.ToString("u")))
             .Append("</span><form method='post' action='/admin/catalog/")
@@ -448,7 +482,14 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
             .Append("')\"><input type='hidden' name='expectedRevision' value='")
             .Append(record.Revision).Append("'><input type='hidden' name='state' value='")
             .Append(record.State == "active" ? "retired" : "active").Append("'><button class='danger'>")
-            .Append(record.State == "active" ? "Retire" : "Reactivate").Append("</button></form></div></div>");
+            .Append(record.State == "active" ? "Retire" : "Reactivate")
+            .Append("</button></form></div>");
+        if (wear is not null)
+        {
+            body.Append("<p style='margin-bottom:0'><span class='badge'>")
+                .Append(Escape(CategoryLabel(wear.Category))).Append("</span></p>");
+        }
+        body.Append("</div></div></div>");
 
         if (record.Type == "wear")
         {
@@ -560,6 +601,160 @@ onsubmit=""return confirm('Shut the server down? The world is saved first, and n
         "<option value='" + Escape(value) + "'" +
         (string.Equals(value, selected, StringComparison.Ordinal) ? " selected" : string.Empty) +
         ">" + Escape(label) + "</option>";
+
+    private static bool MatchesSearch(ContentObjectRecord record,
+        IReadOnlyDictionary<string, GarmentCatalogEntry> wearById, string query)
+    {
+        if (query.Length == 0) return true;
+        wearById.TryGetValue(record.Id, out var wear);
+        var name = wear?.Simulation?.DisplayName ?? MetadataString(record, "displayName");
+        var category = wear?.Category ?? GarmentCategory.Unclassified;
+        var searchable = string.Join(" ", new[]
+        {
+            record.Type,
+            TypeLabel(record.Type),
+            TypeAliases(record.Type),
+            record.Id,
+            name,
+            category.ToString(),
+            CategoryLabel(category),
+            CategoryAliases(category),
+        });
+        return query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .All(token => searchable.Contains(token, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string TypeLabel(string type) => type switch
+    {
+        "wear" => "Одежда",
+        "actor" => "Персонажи",
+        "hair" => "Волосы",
+        "prosthetic" => "Протезы",
+        "object" => "Предметы и инструменты",
+        "building" => "Здания и мебель",
+        "mob" => "Мобы",
+        "ui" => "Интерфейс",
+        "config" => "Настройки",
+        "audio" => "Звуки",
+        "vfx" => "Эффекты",
+        _ => type,
+    };
+
+    private static string TypeAliases(string type) => type switch
+    {
+        "wear" => "вещи гардероб",
+        "actor" => "актёр актер персонаж человек",
+        "hair" => "причёска прическа волосы",
+        "prosthetic" => "протез рука нога",
+        "object" => "предмет ресурс инструмент мясо копьё копье",
+        "building" => "постройка мебель кровать верстак",
+        "mob" => "животное враг",
+        "config" => "конфиг баланс simdata",
+        "audio" => "звук музыка голос",
+        "vfx" => "эффект частицы",
+        _ => string.Empty,
+    };
+
+    private static string CategoryLabel(GarmentCategory category) => category switch
+    {
+        GarmentCategory.Underwear => "Бельё",
+        GarmentCategory.Top => "Верх",
+        GarmentCategory.Bottom => "Низ",
+        GarmentCategory.Dress => "Платья",
+        GarmentCategory.Outerwear => "Верхняя одежда",
+        GarmentCategory.Footwear => "Обувь",
+        GarmentCategory.Gloves => "Перчатки",
+        GarmentCategory.Headwear => "Головные уборы",
+        GarmentCategory.Neckwear => "Шея",
+        GarmentCategory.Jewellery => "Украшения",
+        GarmentCategory.Armwear => "Наручи",
+        GarmentCategory.Legwear => "Чулки и носки",
+        GarmentCategory.Belt => "Ремни",
+        GarmentCategory.Bag => "Сумки и рюкзаки",
+        GarmentCategory.Outfit => "Комплекты",
+        GarmentCategory.Accessory => "Аксессуары",
+        _ => "Без категории",
+    };
+
+    private static string CategoryAliases(GarmentCategory category) => category switch
+    {
+        GarmentCategory.Underwear => "белье бельё трусы бюстгальтер лифчик",
+        GarmentCategory.Top => "топ рубашка блузка свитер корсет",
+        GarmentCategory.Bottom => "юбка брюки штаны шорты легинсы",
+        GarmentCategory.Dress => "платье сарафан",
+        GarmentCategory.Outerwear => "куртка пальто жилет худи плащ",
+        GarmentCategory.Footwear => "ботинки туфли сандалии кроссовки обувь",
+        GarmentCategory.Gloves => "перчатки варежки",
+        GarmentCategory.Headwear => "шапка кепка очки головной убор",
+        GarmentCategory.Neckwear => "шарф воротник галстук ожерелье",
+        GarmentCategory.Jewellery => "украшение серьги браслет кулон",
+        GarmentCategory.Armwear => "нарукавники манжеты наручи",
+        GarmentCategory.Legwear => "чулки носки колготки гетры",
+        GarmentCategory.Belt => "ремень пояс",
+        GarmentCategory.Bag => "сумка рюкзак кошелёк кошелек",
+        GarmentCategory.Outfit => "комплект костюм комбинезон",
+        GarmentCategory.Accessory => "аксессуар",
+        _ => string.Empty,
+    };
+
+    private static void AppendIcon(StringBuilder body, string id, bool detail)
+    {
+        body.Append("<span class='thumb").Append(detail ? " detail" : string.Empty)
+            .Append("' aria-hidden='true'>◇<img src='/admin/icons/")
+            .Append(Path(id)).Append("' alt='' onerror=\"this.remove()\"></span>");
+    }
+
+    private static void AppendPagination(StringBuilder body, string query, string type,
+        string state, string category, int page, int pageCount)
+    {
+        if (pageCount <= 1) return;
+        body.Append("<nav class='pager' aria-label='Страницы'>");
+        if (page > 1)
+        {
+            body.Append("<a href='").Append(Escape(CatalogUrl(query, type, state, category, page - 1)))
+                .Append("'>←</a>");
+        }
+
+        var pages = new SortedSet<int> { 1, pageCount };
+        for (var value = Math.Max(1, page - 2); value <= Math.Min(pageCount, page + 2); value++)
+        {
+            pages.Add(value);
+        }
+
+        var previous = 0;
+        foreach (var value in pages)
+        {
+            if (previous > 0 && value - previous > 1) body.Append("<span class='gap'>…</span>");
+            if (value == page)
+            {
+                body.Append("<span class='current' aria-current='page'>").Append(value).Append("</span>");
+            }
+            else
+            {
+                body.Append("<a href='").Append(Escape(CatalogUrl(query, type, state, category, value)))
+                    .Append("'>").Append(value).Append("</a>");
+            }
+            previous = value;
+        }
+
+        if (page < pageCount)
+        {
+            body.Append("<a href='").Append(Escape(CatalogUrl(query, type, state, category, page + 1)))
+                .Append("'>→</a>");
+        }
+        body.Append("</nav>");
+    }
+
+    private static string CatalogUrl(string query, string type, string state, string category, int page)
+    {
+        var values = new List<string>();
+        if (query.Length > 0) values.Add("q=" + Uri.EscapeDataString(query));
+        if (type.Length > 0) values.Add("type=" + Uri.EscapeDataString(type));
+        if (state.Length > 0) values.Add("state=" + Uri.EscapeDataString(state));
+        if (category.Length > 0) values.Add("category=" + Uri.EscapeDataString(category));
+        if (page > 1) values.Add("page=" + page.ToString(CultureInfo.InvariantCulture));
+        return values.Count == 0 ? "/admin/catalog" : "/admin/catalog?" + string.Join("&", values);
+    }
 
     private static string MetadataString(ContentObjectRecord record, string key)
     {

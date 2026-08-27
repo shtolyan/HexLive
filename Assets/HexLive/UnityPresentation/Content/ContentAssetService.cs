@@ -1348,6 +1348,36 @@ public sealed class ContentAssetService
         {
             if (!File.Exists(_verifiedStampsPath))
             {
+                // Миграция существующего кэша: файл в blobs/ появляется ТОЛЬКО
+                // через PromotePartial после полной SHA-256-проверки (download
+                // пишет в partial/ и переносится атомарно), поэтому уже лежащий
+                // кэш штампуется как проверенный БЕЗ пересчёта. Без этого
+                // первый запуск после обновления честно хешировал сотни
+                // мегабайт только ради заполнения штампов.
+                foreach (var path in Directory.GetFiles(_blobs))
+                {
+                    var info = new FileInfo(path);
+                    if ((info.Attributes &
+                         (FileAttributes.Directory | FileAttributes.ReparsePoint)) != 0)
+                    {
+                        continue;
+                    }
+
+                    _verifiedStamps[info.Name] = new VerifiedStamp
+                    {
+                        sha256 = info.Name,
+                        size = info.Length,
+                        mtimeTicks = info.LastWriteTimeUtc.Ticks,
+                    };
+                }
+
+                if (_verifiedStamps.Count > 0)
+                {
+                    _verifiedStampsDirty = true;
+                    FlushVerifiedStamps();
+                    Debug.Log("[AtomicContent] стат-кэш верификации засеян " +
+                              $"{_verifiedStamps.Count} существующими блобами.");
+                }
                 return;
             }
 

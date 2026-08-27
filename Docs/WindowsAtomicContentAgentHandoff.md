@@ -1,54 +1,53 @@
-# HexLive: инструкция Windows-агенту по сборке и публикации Atomic Content
+# HexLive: Windows Atomic Content — сборка и публикация в production
 
-Эта инструкция предназначена для текущей полной Windows-сборки независимых
-AssetBundle. Она не собирает Windows Player и не изменяет production.
+Эта инструкция собирает полный вариант независимых AssetBundle для
+`StandaloneWindows64` и добавляет его в уже работающий production-реестр.
+Windows Player она не собирает.
 
-## Зафиксированный исходный код
+## Зафиксированный контракт
 
-- Ветка для получения изменений: `codex/content-release-fixes`.
-- Объявленный build SHA:
-  `49c03d5989d2ace629a932e3687f5f846703ce17`.
+- Единственная ветка-источник: `origin/master`.
+- Content baseline: `7a49bb988a08a8b4e6a41dd58547afb6069e89f2`.
 - Unity: `6000.4.5f1`.
 - Платформа: `StandaloneWindows64`.
 - Runtime profile: `unity6000-content1`.
-- Ожидается ровно `2725` атомарных объектов.
-- Ожидаемый SHA-256 отсортированного списка `type/id`:
+- Production API: `http://62.146.235.120:5123/api/assets/v1`.
+- Production service: `hexlive.service`.
+- Production asset root: `/var/lib/hexlive/assets`.
+- Production publisher: `/opt/hexlive/current/HexLive.Server`.
+- Полный активный inventory: `2725` объектов.
+- SHA-256 отсортированного списка `type/id`:
   `731c9be10a7842247a795524fade2b5100b19f88ad64da4c8e197ef332fcbdb1`.
 
-Сборка macOS и сборка Windows обязаны происходить из одного объявленного SHA.
-Имя ветки само по себе недостаточно: после синхронизации нужно перейти в
-detached HEAD именно на SHA выше.
+Baseline — commit из `master`, из которого собран текущий content contract.
+Документационные commit после него допустимы. Изменения в `Assets`, `Packages`,
+`ProjectSettings`, `SimData` или `Tools/content.py` после baseline требуют сначала
+согласованно обновить macOS-варианты; приведённый ниже gate такую сборку остановит.
 
-## Что запрещено менять или собирать вручную
+Эта инструкция работает только с production `hexlive.service` на порту `5123`.
+Не подменять приведённые service, port, API или filesystem paths другими.
 
-- Не переименовывать legacy ID с пробелами: `FCO * Male`,
-  `FAO Harness Male`, `TonnyFlash` и названия цветов волос с пробелами валидны.
+## Что нельзя делать
+
+- Не переходить в старую feature-ветку и не брать из неё отдельные commit.
+- Не делать `reset`, не удалять и не подмешивать чужие локальные изменения.
+- Не собирать Addressables catalog, content release или Windows Player.
 - Не создавать общий bundle иконок и не запускать отдельную сборку иконок.
-  Настоящая иконка находится внутри bundle своего предмета.
-- Не передавать `--icon` с прозрачным или любым другим плейсхолдером. Если
-  настоящей иконки нет, bundle публикуется без `iconAsset`, а Player немедленно
-  показывает штатный emoji fallback.
-- Не собирать UI вручную. Bootstrap UI остаётся в Player, а каталог
-  `RuntimeSource/UI` исключён из atomic content inventory.
-- Не добавлять акулу: она отключена как незавершённый объект. Текущий mob
-  inventory содержит только рабочий контент, обнаруженный `build-all`.
-- Не собирать старые частичные очереди из 272/289 объектов и не дополнять их
-  вручную. Нужен новый полный `build-all` в отдельную выходную папку.
-- Не создавать вручную descriptors для RuntimeSource. Их перечисляет
-  `Tools/content.py build-all`.
-- Не запускать отдельно audio или `config/simdata`: `build-all` добавляет их
-  автоматически.
-- Не публиковать в production: запрещены порт `5123` и
-  `/var/lib/hexlive/assets`.
+  Настоящая иконка входит в bundle своего объекта как `icon`; при её отсутствии
+  Player сразу показывает штатный emoji fallback.
+- Не передавать `--icon` с плейсхолдером.
+- Не переименовывать legacy ID с пробелами. Текущий контракт допускает пробелы в
+  `FCO * Male`, `FAO Harness Male`, `TonnyFlash` и именах вариантов волос.
+- Не собирать bootstrap UI: он остаётся в Player; отдельного UI bundle нет.
+- Не возвращать акулу: незавершённый объект исключён из inventory.
+- Не собирать вручную старые частичные очереди. Нужен новый полный `build-all`.
+- Не запускать одновременно две Unity-сборки или два publisher.
+- Не публиковать через HTTP: публичного upload API нет, используется только SSH.
 
-## 1. Подготовка Windows-машины
+## 1. Подготовить чистый `master`
 
-Открыть PowerShell в корне HexLive. Unity Editor для этого checkout должен быть
-закрыт: batchmode не может открыть проект одновременно с интерактивным Editor.
-Если `Get-Process Unity` показывает живую сборку, не убивать её — дождаться
-завершения или закрыть штатно.
-
-Проверить свободное место и состояние проекта:
+Открыть PowerShell в корне HexLive. Интерактивный Unity Editor для этого checkout
+должен быть закрыт. Не завершать чужой Unity-процесс принудительно.
 
 ```powershell
 Get-PSDrive -PSProvider FileSystem
@@ -56,46 +55,98 @@ Get-Process Unity -ErrorAction SilentlyContinue
 git status --short
 ```
 
-Если `git status --short` показывает исходники или ассеты с локальными
-изменениями, остановиться. Не делать `reset`, не подмешивать эти изменения в
-кандидаты и не использовать `stash` без согласования с владельцем изменений.
+Для полной очереди желательно иметь не менее 25 ГБ свободного места. Если
+`git status --short` показывает локальные изменения исходников или ассетов,
+остановиться и сообщить их список владельцу checkout.
 
-## 2. Получить точный SHA
+Получить только `master`:
 
 ```powershell
+$ContentBaseline = '7a49bb988a08a8b4e6a41dd58547afb6069e89f2'
+
 git fetch origin
-git switch --detach 49c03d5989d2ace629a932e3687f5f846703ce17
+git switch master
+git pull --ff-only origin master
 git lfs pull
 git lfs checkout
-git rev-parse HEAD
-git status --short
+
+$BuildSha = (git rev-parse HEAD).Trim()
+$OriginMaster = (git rev-parse origin/master).Trim()
+"BuildSha=$BuildSha"
+"OriginMaster=$OriginMaster"
+
+if ($BuildSha -ne $OriginMaster) {
+    throw 'Local master is not exactly origin/master'
+}
+
+git merge-base --is-ancestor $ContentBaseline $BuildSha
+if ($LASTEXITCODE -ne 0) {
+    throw 'Content baseline is not in current master history'
+}
+
+git diff --quiet $ContentBaseline $BuildSha -- `
+    Assets Packages ProjectSettings SimData Tools/content.py
+if ($LASTEXITCODE -ne 0) {
+    throw 'Content-relevant files changed after the coordinated baseline; do not build'
+}
+
+if (git status --porcelain) {
+    throw 'Checkout is dirty after synchronization; do not build'
+}
 ```
 
-Обязательный вывод `git rev-parse HEAD`:
-
-```text
-49c03d5989d2ace629a932e3687f5f846703ce17
-```
-
-Если SHA отличается или LFS не может получить payload, сборку не начинать.
-Не собирать AssetBundle из Git LFS pointer-файлов.
-
-Проверить версию проекта:
+Эта проверка оставляет агента на актуальном `master`; detached HEAD и feature-
+ветки не используются. Проверить Unity:
 
 ```powershell
 Get-Content ProjectSettings\ProjectVersion.txt
 ```
 
-Ожидается `m_EditorVersion: 6000.4.5f1`. Эта команда не собирает Player и не
-переключает проект на macOS; Unity запускается сразу с `StandaloneWindows64`.
+Ожидается `m_EditorVersion: 6000.4.5f1`. Если LFS не скачан полностью,
+`Tools/content.py` дополнительно обнаружит pointer-файлы и остановит сборку.
 
-## 3. Собрать полный независимый Windows inventory
-
-Использовать новую выходную папку, не смешанную со старыми 272/289
-кандидатами:
+## 2. Проверить production до сборки
 
 ```powershell
-$AtomicOutput = Join-Path (Get-Location) 'Build\AtomicContent\handoff-49c03d598\StandaloneWindows64'
+ssh -o BatchMode=yes hexlive-server `
+  "systemctl is-active hexlive.service; readlink -f /opt/hexlive/current; df -h /var/lib/hexlive /tmp"
+
+$ProdApi = 'http://62.146.235.120:5123/api/assets/v1'
+$MacBefore = Invoke-RestMethod `
+  "$ProdApi/index/StandaloneOSX/unity6000-content1"
+$WinBefore = Invoke-RestMethod `
+  "$ProdApi/index/StandaloneWindows64/unity6000-content1"
+
+"registryRevision=$($MacBefore.registryRevision) macOS=$($MacBefore.objects.Count) Windows=$($WinBefore.objects.Count)"
+
+if ($MacBefore.objects.Count -ne 2725) {
+    throw 'Production macOS inventory is incomplete; do not publish Windows variants'
+}
+if ($WinBefore.objects.Count -ne 0) {
+    throw 'Production already contains Windows variants; stop and reconcile before bootstrap'
+}
+if ($MacBefore.registryRevision -ne $WinBefore.registryRevision) {
+    throw 'Production index snapshots disagree; repeat preflight'
+}
+
+$RegistryBefore = [int64]$MacBefore.registryRevision
+```
+
+На момент актуализации инструкции ожидается `registryRevision=4518`,
+`macOS=2725`, `Windows=0`. Если данные изменились, не подгонять проверки вручную.
+
+## 3. Собрать полный Windows inventory
+
+Использовать новую папку, не смешанную со старыми кандидатами:
+
+```powershell
+$ShortSha = $BuildSha.Substring(0, 12)
+$AtomicOutput = Join-Path (Get-Location) `
+  "Build\AtomicContent\windows-$ShortSha\StandaloneWindows64"
+
+if (Test-Path $AtomicOutput) {
+    throw "Output already exists: $AtomicOutput"
+}
 
 py -3 Tools\content.py build-all `
   --platform StandaloneWindows64 `
@@ -103,24 +154,22 @@ py -3 Tools\content.py build-all `
   --output $AtomicOutput
 
 if ($LASTEXITCODE -ne 0) {
-    throw "Atomic content build failed with exit code $LASTEXITCODE"
+    throw "Atomic content build failed; inspect $AtomicOutput\unity.log"
 }
 ```
 
-Команда сама:
+`build-all` сам:
 
-1. находит полный активный inventory;
-2. собирает каждый Unity-объект отдельным самодостаточным bundle;
+1. перечисляет весь активный inventory;
+2. собирает каждый Unity-объект в отдельный самодостаточный bundle;
 3. проверяет ноль внешних bundle dependencies;
-4. включает `main`, обязательную metadata и настоящую owner icon, если она есть;
+4. кладёт `main`, metadata и owner icon в один bundle объекта;
 5. добавляет raw audio, `.vis`, FMOD banks и `config/simdata`;
-6. считает SHA-256 каждого payload и записывает `candidate.json`.
+6. вычисляет SHA-256 и создаёт `candidate.json` для каждого объекта.
 
-Не запускать одновременно вторую Unity-сборку этого проекта.
+## 4. Провалидировать кандидаты
 
-## 4. Проверить результат до загрузки
-
-Проверить summary:
+Проверить Unity summary:
 
 ```powershell
 $SummaryPath = Join-Path $AtomicOutput 'build-all-summary.json'
@@ -134,11 +183,11 @@ if ([int]$Summary.built -ne 1596) { throw 'Not all Unity objects were built' }
 if ([int]$Summary.failed -ne 0) { throw 'Some bundles failed; do not publish' }
 ```
 
-Посчитать полный inventory и его канонический digest. Этот блок использует
-Python, чтобы сортировка была ordinal и одинаковой на Windows/macOS:
+Посчитать полный inventory ordinal-сортировкой:
 
 ```powershell
 @'
+import collections
 import hashlib
 import json
 import pathlib
@@ -146,14 +195,33 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 lines = []
+types = collections.Counter()
+payloads = collections.Counter()
+platforms = collections.Counter()
+profiles = collections.Counter()
+
 for path in root.rglob("candidate.json"):
     value = json.loads(path.read_text(encoding="utf-8"))
     lines.append(f"{value['type']}/{value['id']}")
+    types[value["type"]] += 1
+    for variant in value["variants"]:
+        payloads[variant["payloadType"]] += 1
+        platforms[variant["platform"]] += 1
+        profiles[variant["runtimeProfile"]] += 1
+
 lines.sort()
-payload = "".join(line + "\n" for line in lines).encode("utf-8")
+digest = hashlib.sha256(
+    "".join(line + "\n" for line in lines).encode("utf-8")
+).hexdigest()
 print(f"objects={len(lines)}")
-print(f"sha256={hashlib.sha256(payload).hexdigest()}")
+print(f"sha256={digest}")
+print("types:", " ".join(f"{k}={v}" for k, v in sorted(types.items())))
+print("payloads:", " ".join(f"{k}={v}" for k, v in sorted(payloads.items())))
+print("platforms:", dict(platforms))
+print("profiles:", dict(profiles))
 '@ | py -3 - $AtomicOutput
+
+if ($LASTEXITCODE -ne 0) { throw 'Candidate audit failed' }
 ```
 
 Обязательный результат:
@@ -161,139 +229,85 @@ print(f"sha256={hashlib.sha256(payload).hexdigest()}")
 ```text
 objects=2725
 sha256=731c9be10a7842247a795524fade2b5100b19f88ad64da4c8e197ef332fcbdb1
-```
-
-Дополнительно проверить распределение объектов и payload:
-
-```powershell
-@'
-import collections
-import json
-import pathlib
-import sys
-
-root = pathlib.Path(sys.argv[1])
-types = collections.Counter()
-payloads = collections.Counter()
-platforms = collections.Counter()
-profiles = collections.Counter()
-for path in root.rglob("candidate.json"):
-    value = json.loads(path.read_text(encoding="utf-8"))
-    types[value["type"]] += 1
-    for variant in value["variants"]:
-        payloads[variant["payloadType"]] += 1
-        platforms[variant["platform"]] += 1
-        profiles[variant["runtimeProfile"]] += 1
-print("types:", " ".join(f"{k}={v}" for k, v in sorted(types.items())))
-print("payloads:", " ".join(f"{k}={v}" for k, v in sorted(payloads.items())))
-print("platforms:", dict(platforms))
-print("profiles:", dict(profiles))
-'@ | py -3 - $AtomicOutput
-```
-
-Ожидается:
-
-```text
 types: actor=5 audio=1128 building=7 config=754 hair=16 mob=2 object=51 prosthetic=8 vfx=69 wear=685
 payloads: assetBundle=1596 file=1129
 platforms: {'StandaloneWindows64': 2725}
 profiles: {'unity6000-content1': 2725}
 ```
 
-При любом расхождении не публиковать. Передать Марку:
+При любом расхождении ничего не публиковать. Сохранить `$BuildSha`, summary,
+фактический digest и `unity.log` при ошибке.
 
-- полный SHA из `git rev-parse HEAD`;
-- весь `$SummaryPath`;
-- фактические `objects`, digest и распределение;
-- файл `$AtomicOutput\unity.log` при ошибке.
+## 5. Опубликовать в production по SSH
 
-Не чинить несовпадение переименованием ID, плейсхолдером или ручным исключением.
-
-## 5. Опубликовать только в изолированный staging
-
-Публикацию начинает только один агент после того, как macOS-варианты уже
-находятся в staging. Не запускать параллельный publish с Mac.
-
-Сначала проверить SSH-доступ:
-
-```powershell
-ssh hexlive-server "systemctl is-active hexlive-staging.service"
-```
-
-Ожидается `active`. Если SSH alias/key отсутствует, ничего не публиковать и
-сообщить владельцу. Публичный upload API создавать нельзя.
-
-Загрузить Windows-варианты:
+Публикацию запускает только один агент. `--retain-current-variants` обязателен:
+он сохраняет проверенный `StandaloneOSX` вариант и добавляет Windows-вариант к
+той же атомарной записи.
 
 ```powershell
 py -3 Tools\content.py publish-all `
   --input $AtomicOutput `
   --host hexlive-server `
   --required-platform StandaloneWindows64 `
-  --remote-root /var/lib/hexlive-staging/assets `
+  --remote-root /var/lib/hexlive/assets `
   --remote-user hexlive `
-  --server-dll /opt/hexlive-staging/current/HexLive.Server `
+  --server-dll /opt/hexlive/current/HexLive.Server `
   --retain-current-variants
 
 if ($LASTEXITCODE -ne 0) {
-    throw "Atomic content publish failed with exit code $LASTEXITCODE"
+    throw 'Production publish failed; do not start another publisher'
 }
 ```
 
-Ключ `--retain-current-variants` обязателен: он сохраняет уже проверенный
-`StandaloneOSX` вариант того же объекта и добавляет Windows-вариант. Сервер
-сам проверяет staged SHA/size, сериализует публикации одного ID и атомарно
-переключает record. Повтор команды с теми же SHA безопасен.
+Команда сначала локально перепроверяет каждый `candidate.json`, payload size и
+SHA-256, затем одним архивом кладёт bytes во временный SSH-каталог. Сервер публикует
+объекты по одному под межпроцессной блокировкой и атомарно меняет каждую record.
+Повтор той же полностью проверенной команды безопасен: уже совпавшие записи
+будут `no-op`. При ошибке не создавать ручные records и не переносить blobs
+вручную.
 
-Категорически не заменять staging-пути следующими production-путями:
-
-```text
-/var/lib/hexlive/assets
-/opt/hexlive/current/HexLive.Server
-port 5123
-```
-
-## 6. Проверить staging API после публикации
+## 6. Проверить production после публикации
 
 ```powershell
-$StagingApi = 'http://62.146.235.120:5124/api/assets/v1'
-$Index = Invoke-RestMethod "$StagingApi/index/StandaloneWindows64/unity6000-content1"
+$MacAfter = Invoke-RestMethod `
+  "$ProdApi/index/StandaloneOSX/unity6000-content1"
+$WinAfter = Invoke-RestMethod `
+  "$ProdApi/index/StandaloneWindows64/unity6000-content1"
 
-"registryRevision=$($Index.registryRevision) objects=$($Index.objects.Count)"
-if ($Index.objects.Count -ne 2725) {
-    throw "Staging Windows index is incomplete: $($Index.objects.Count)/2725"
+"registryRevision=$($WinAfter.registryRevision) macOS=$($MacAfter.objects.Count) Windows=$($WinAfter.objects.Count)"
+
+if ($MacAfter.objects.Count -ne 2725) { throw 'macOS variants were lost' }
+if ($WinAfter.objects.Count -ne 2725) { throw 'Windows inventory is incomplete' }
+if ($MacAfter.registryRevision -ne $WinAfter.registryRevision) {
+    throw 'Platform indexes disagree after publish'
+}
+if ([int64]$WinAfter.registryRevision -ne ($RegistryBefore + 2725)) {
+    throw 'Unexpected registry delta; inspect concurrent or partial publication'
 }
 ```
 
-Проверить предмет с иконкой внутри его же bundle:
+Проверить owner icon и immutable blob:
 
 ```powershell
-$Machete = Invoke-RestMethod "$StagingApi/objects/object/tool.machete?platform=StandaloneWindows64&profile=unity6000-content1"
-$Machete | ConvertTo-Json -Depth 8
+$Machete = Invoke-RestMethod `
+  "$ProdApi/objects/object/tool.machete?platform=StandaloneWindows64&profile=unity6000-content1"
 
-if ($Machete.variant.platform -ne 'StandaloneWindows64') { throw 'Wrong machete platform' }
-if ($Machete.variant.runtimeProfile -ne 'unity6000-content1') { throw 'Wrong machete profile' }
-if ($Machete.variant.iconAsset -ne 'icon') { throw 'Machete owner icon is not embedded' }
+if ($Machete.variant.platform -ne 'StandaloneWindows64') { throw 'Wrong platform' }
+if ($Machete.variant.entryAsset -ne 'main') { throw 'Missing main asset' }
+if ($Machete.variant.iconAsset -ne 'icon') { throw 'Owner icon is not embedded' }
 
 curl.exe --fail --silent --show-error --head `
-  "$StagingApi/blobs/$($Machete.variant.sha256)"
+  "$ProdApi/blobs/$($Machete.variant.sha256)"
+curl.exe --fail --silent --show-error --range 0-1023 --output NUL `
+  --write-out "HTTP %{http_code}, bytes %{size_download}`n" `
+  "$ProdApi/blobs/$($Machete.variant.sha256)"
 ```
 
-HEAD должен вернуть `200`, корректный `Content-Length` и
-`Cache-Control: public,max-age=31536000,immutable`.
+HEAD должен вернуть `200`, правильный `Content-Length`, `Accept-Ranges: bytes`,
+ETag с SHA и `Cache-Control: public,max-age=31536000,immutable`. Range должен
+вернуть `206`.
 
-После проверки передать владельцу:
-
-```text
-Windows SHA: <полный git SHA>
-Build objects: 2725
-Inventory digest: 731c9be10a7842247a795524fade2b5100b19f88ad64da4c8e197ef332fcbdb1
-Publish exit: 0
-Staging registryRevision: <номер>
-Staging Windows objects: 2725
-```
-
-Отдельно сообщить записи пяти последних визуальных исправлений:
+Проверить несколько критичных world objects:
 
 ```powershell
 foreach ($Id in @(
@@ -303,25 +317,50 @@ foreach ($Id in @(
     'resource.arrow',
     'furniture.wardrobe'
 )) {
-    Invoke-RestMethod "$StagingApi/objects/object/$Id`?platform=StandaloneWindows64&profile=unity6000-content1" |
-        Select-Object type, id, revision, variant
+    $Record = Invoke-RestMethod `
+      "$ProdApi/objects/object/$Id`?platform=StandaloneWindows64&profile=unity6000-content1"
+    if ($Record.variant.platform -ne 'StandaloneWindows64') {
+        throw "Missing Windows variant: $Id"
+    }
+    $Record | Select-Object type, id, revision, variant
 }
 ```
 
-У каждой записи после публикации обязан быть
-`variant.platform=StandaloneWindows64`; `tool.bow` и `resource.arrow` не должны
-иметь общих bundle dependencies. Иконка для них не собирается: UI немедленно
-показывает `🏹` и `🎯`. Windows bundle `furniture.wardrobe` обязан
-содержать `HangerTemplate`; его нельзя заменять процедурными
-`Cube`/`Sphere`/`Cylinder`.
+`tool.bow` и `resource.arrow` не имеют внешних bundle dependencies. Если у них
+нет authored icon, UI использует emoji `🏹` и `🎯`; отдельного icon bundle нет.
+`furniture.wardrobe` содержит `HangerTemplate` и не должен заменяться
+процедурными `Cube`/`Sphere`/`Cylinder`.
 
-## 7. Последующие атомарные обновления одного объекта
-
-Это не используется для первого полного bootstrap. После его приёмки одну
-вещь можно пересобрать отдельно, например:
+Проверить, что world server продолжает работать:
 
 ```powershell
-$OneOutput = Join-Path (Get-Location) 'Build\AtomicContent\single\FCO Pants Male\StandaloneWindows64'
+ssh hexlive-server "systemctl is-active hexlive.service"
+Invoke-WebRequest 'http://62.146.235.120:5123/' -UseBasicParsing
+```
+
+Итоговый отчёт должен содержать:
+
+```text
+Branch: master
+Build SHA: <полный SHA origin/master>
+Unity bundles: 1596/1596, failed=0
+Objects: 2725
+Inventory digest: 731c9be10a7842247a795524fade2b5100b19f88ad64da4c8e197ef332fcbdb1
+Publish exit: 0
+Production macOS objects: 2725
+Production Windows objects: 2725
+Registry revision before/after: <до>/<после>
+hexlive.service: active
+```
+
+## 7. Последующее обновление одного объекта
+
+Для изменения одной вещи не запускают `build-all`. Windows-кандидат собирается
+отдельно:
+
+```powershell
+$OneOutput = Join-Path (Get-Location) `
+  'Build\AtomicContent\single\FCO Pants Male\StandaloneWindows64'
 
 py -3 Tools\content.py build `
   --type wear `
@@ -331,10 +370,12 @@ py -3 Tools\content.py build `
   --output $OneOutput
 ```
 
-Не передавать `--icon`: настоящий icon автоматически попадает в этот же owner
-bundle. Публикация одного Windows candidate выполняется только после сборки
-соответствующего macOS-варианта или при наличии совместимого macOS-варианта в
-staging, с теми же правилами exact SHA и `--retain-current-variants`.
+Не передавать `--icon`: authored icon автоматически входит в owner bundle.
+Семантическое обновление должно иметь согласованные macOS и Windows candidates;
+их публикуют вместе одной командой `content.py publish` с двумя `--candidate` и
+двумя `--required-platform`. `--retain-current-variants` используется только
+для добавления отсутствующего платформенного варианта с неизменной metadata, а
+не для выпуска разных версий объекта под одним revision.
 
-Канонический расширенный runbook находится в
-`Docs/AtomicContentCrossPlatform.md`, архитектурный контракт — в `Spec/152.md`.
+Архитектурный контракт: `Spec/152.md`. Команды этой инструкции являются
+актуальным production flow.

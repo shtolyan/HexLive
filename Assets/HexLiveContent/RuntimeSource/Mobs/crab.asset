@@ -15,7 +15,8 @@ MonoBehaviour:
   kind: 2
   prefab: {fileID: 919132149155446097, guid: 3a5dcfad73cc442e7b661fe5aabd83aa, type: 3}
   prefabResourcePath:
-  footprintFraction: 0.32
+  footprintFraction: 0.16
+  visualYawOffsetDegrees: 90
   walkStrideLengthsPerSecond: 1
   runStrideLengthsPerSecond: 1.8
   runEnterLengthsPerSecond: 2

@@ -5782,6 +5782,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             var body = Instantiate(prefab, root.transform);
             body.name = "Body";
+            if (config != null && Mathf.Abs(config.visualYawOffsetDegrees) > 0.001f)
+            {
+                // The root keeps facing the actual travel vector for combat,
+                // animation speed and effects. Species such as crabs rotate
+                // only their authored body so locomotion reads as sideways.
+                body.transform.localRotation *= Quaternion.Euler(
+                    0f, config.visualYawOffsetDegrees, 0f);
+            }
             if (ObjectFit.WorldBounds(body, out var bounds))
             {
                 // Pack models are authored at real-world size; normalize the

@@ -50,6 +50,8 @@ namespace HexLive.UnityPresentation.Config
         [Header("Вид / анимация (презентация)")]
         [Tooltip("Длина тела на хексе как доля радиуса хекса (0.84 = волк, краб мелкий ~0.24).")]
         [Range(0.05f, 2f)] public float footprintFraction = 0.84f;
+        [Tooltip("Визуальный поворот тела вокруг Y относительно направления движения. 90° = животное движется боком.")]
+        [Range(-180f, 180f)] public float visualYawOffsetDegrees;
         [Tooltip("Скорость земли, которую отражает клип ходьбы, в длинах тела/сек.")]
         [Range(0.2f, 5f)] public float walkStrideLengthsPerSecond = 1.1f;
         [Tooltip("Скорость земли, которую отражает клип бега, в длинах тела/сек.")]

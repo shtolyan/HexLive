@@ -6787,7 +6787,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.64",
-            "readyForTestInVersion": "0.1.74",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7342,7 +7342,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.69",
-            "readyForTestInVersion": "0.1.74",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7371,7 +7371,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.69",
-            "readyForTestInVersion": "0.1.74",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7400,7 +7400,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.69",
-            "readyForTestInVersion": "0.1.74",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7429,7 +7429,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.69",
-            "readyForTestInVersion": "0.1.74",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7458,7 +7458,7 @@
             ],
             "fixCommit": "",
             "reportedInVersion": "0.1.69",
-            "readyForTestInVersion": "0.1.74",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7487,7 +7487,7 @@
             ],
             "fixCommit": "c132b6ea5e8d56bcd601a255b219ae4ac3d03a38",
             "reportedInVersion": "",
-            "readyForTestInVersion": "",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7497,22 +7497,22 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Rope craft verified: focused regression ManualRopeOrderCraftsWhileAFinishedRopeLiesUnderfoot passed 1/1; git diff --check clean."
                 },
                 {
-                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "whenUtc": "",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: #233 and #234 share a parent, conflict in CraftProjectMath.cs/ManualCraftingTests.cs, and encode different duplicate-suppression policies. Need one consolidated spec-backed manual-crafting fix retaining rope+bandage regressions before merge."
                 },
                 {
-                    "createdUtc": "2026-08-27T03:26:28Z",
+                    "whenUtc": "",
                     "author": "sveta-heartbeat",
                     "text": "Started combined post-review blocker pass: unify #233/#234 manual craft duplicate-suppression policy into one spec-backed fix, preserve both regressions, resolve conflicts before merge."
                 },
                 {
-                    "createdUtc": "2026-08-27T03:49:05Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Unified spec-backed #233/#234 fix in clean worktree /private/tmp/HexLive-bug-233-234-craft-policy-1025: accepted manual item-craft orders bypass the §119.2 duplicate-output economy gate for all item recipes, while autonomous crafting still suppresses duplicates. Checks: dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter \"FullyQualifiedName~ManualCraftingTests.ManualRopeOrderCraftsWhileAFinishedRopeLiesUnderfoot|FullyQualifiedName~ManualCraftingTests.ManualBandageOrderCraftsEvenWithAFinishedBandageLyingNearby\" = 2/2 passed; dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter \"FullyQualifiedName~ManualCraftingTests\" --no-restore = 12/12 passed; git diff --cached --check clean before commit."
                 }
@@ -7531,7 +7531,7 @@
             ],
             "fixCommit": "c132b6ea5e8d56bcd601a255b219ae4ac3d03a38",
             "reportedInVersion": "",
-            "readyForTestInVersion": "",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7541,22 +7541,22 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Bandage craft verified: focused regression ManualBandageOrderCraftsEvenWithAFinishedBandageLyingNearby passed 1/1; git diff --check clean."
                 },
                 {
-                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "whenUtc": "",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: #233 and #234 conflict and encode different duplicate-suppression policies; #234 bypasses ManualControlMath.IsManual/global kill-switch semantics. Need consolidated spec-backed fix with both regression tests before merge."
                 },
                 {
-                    "createdUtc": "2026-08-27T03:26:28Z",
+                    "whenUtc": "",
                     "author": "sveta-heartbeat",
                     "text": "Started combined post-review blocker pass: unify #233/#234 manual craft duplicate-suppression policy into one spec-backed fix, preserve both regressions, resolve conflicts before merge."
                 },
                 {
-                    "createdUtc": "2026-08-27T03:49:05Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Unified spec-backed #233/#234 fix in clean worktree /private/tmp/HexLive-bug-233-234-craft-policy-1025: accepted manual item-craft orders bypass the §119.2 duplicate-output economy gate for all item recipes, while autonomous crafting still suppresses duplicates. Checks: dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter \"FullyQualifiedName~ManualCraftingTests.ManualRopeOrderCraftsWhileAFinishedRopeLiesUnderfoot|FullyQualifiedName~ManualCraftingTests.ManualBandageOrderCraftsEvenWithAFinishedBandageLyingNearby\" = 2/2 passed; dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter \"FullyQualifiedName~ManualCraftingTests\" --no-restore = 12/12 passed; git diff --cached --check clean before commit."
                 }
@@ -7576,7 +7576,7 @@
             ],
             "fixCommit": "30401e50b41f309d845c3c4369830dc2b8ba5f00",
             "reportedInVersion": "",
-            "readyForTestInVersion": "",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7586,17 +7586,17 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Campfire occupancy verified: CampfireOccupancyTests passed 2/2; git diff --check clean."
                 },
                 {
-                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "whenUtc": "",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: campfire occupancy success paths are covered, but failure paths can leave the acting NPC wedged with execution marked Completed and no plan/execution reset. Add failure-lifecycle regression and fix before merge."
                 },
                 {
-                    "createdUtc": "2026-08-27T06:27:04Z",
+                    "whenUtc": "",
                     "author": "sveta",
                     "text": "Post-review blocker taken for focused worker: failure paths can leave campfire occupancy wedged when hearth action execution completes/fails before reset. Need regression/fix plus focused green CampfireOccupancyTests and git diff --check."
                 },
@@ -7606,7 +7606,7 @@
                     "text": "Post-review blocker closed in commit 30401e50b41f309d845c3c4369830dc2b8ba5f00: failed hearth completion now aborts the scene through PlanInterruption so campfire claim, manual plan/execution, and approach junction are released; manual cold-fire stocking no longer returns before the common junction-release tail. Verification: CampfireOccupancyTests passed 4/4; CampfireOccupancyTests|ManualControlTests passed 42/42; git diff --check clean. Worktree /private/tmp/HexLive-bug-235-campfire-occupied clean after commit."
                 },
                 {
-                    "createdUtc": "2026-08-27T07:27:26Z",
+                    "whenUtc": "",
                     "author": "sveta-heartbeat",
                     "text": "Parent heartbeat verified #235 post-review fix evidence from BUGS/ledger and commit 30401e50b41f309d845c3c4369830dc2b8ba5f00 exists in /private/tmp/HexLive-bug-235-campfire-occupied. Clearing assignedAgent and keeping ready_for_test."
                 }
@@ -7635,7 +7635,7 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Non-default camp ownership verified: focused tests 3/3 + 1/1 passed; git diff --check clean."
                 }
@@ -7655,7 +7655,7 @@
             ],
             "fixCommit": "3043fd989",
             "reportedInVersion": "",
-            "readyForTestInVersion": "3043fd989",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7665,26 +7665,27 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Still open: focused attempts exposed owner/faction/path failures; no verified green commit."
                 },
                 {
-                    "createdUtc": "2026-08-27T01:26:55Z",
+                    "whenUtc": "",
+                    "author": "",
                     "text": "Heartbeat 2026-08-27 08:25: only remaining open bug; launching non-blind focused finish from existing dirty worktree after parent inspection showed owner/faction/path regressions."
                 },
                 {
-                    "createdUtc": "2026-08-27T01:37:18Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Fixed in b7118593c: DoorTopology now derives door owner from the owning hut anchor/nearest girl-camp home and router hard-avoid uses AreAllies so neutral non-owners cannot path through closed foreign doors. Verified focused tests green: DoorPassageTests + Probe237Tests, 10 passed; git diff --check clean."
                 },
                 {
-                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "whenUtc": "",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: OwnerFaction is inferred from nearest current FactionHome, so after camp merge/removal a hut door can be reassigned and still trap merged residents. Add camp-merge/removal regression and make ownership stable before merge."
                 },
                 {
-                    "createdUtc": "2026-08-27T05:49:02Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Post-review fix in 3043fd989: door ownership is now persisted on WorldObjectState.OwnerFaction, saved as blob v60, migrated for <=59 saves, carried from build sites to raised buildings, and rewritten on camp merge so homes do not reassigned to nearest third-camp FactionHome. Verified on Mac: /usr/local/share/dotnet/dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter DoorPassageTests --no-restore => 13/13 passed; git diff --check clean; worktree clean after commit."
                 }
@@ -7713,32 +7714,32 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Missing door model/bundles verified: focused contract tests 2/2 passed; git diff --check clean."
                 },
                 {
-                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "whenUtc": "",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: code retry/type-selection helps only if a compatible Windows door bundle exists; BUGS evidence still records Windows platformMissing for building/door.wood. Publish/test the Windows door bundle or keep unresolved."
                 },
                 {
-                    "createdUtc": "2026-08-27T07:27:26Z",
+                    "whenUtc": "",
                     "author": "sveta-heartbeat",
                     "text": "Started focused post-review pass for #238/#242 Windows door bundle proof: verify whether building/door.wood is present in Windows build output/registry/bundles, add proof or minimal diagnostic/fix, and leave #242 open until #238 evidence is real."
                 },
                 {
-                    "createdUtc": "2026-08-27T07:52:03Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Post-review Windows-door proof failed; #238 remains blocked by missing Windows content publication. Clean worktree /private/tmp/HexLive-bug-238-windows-door-proof-1425 at master 3a4c7cb6. Production smoke: GET /api/assets/v1/index/StandaloneWindows64/unity6000-content1 -> registryRevision 4518, objects 0, platformMissing 0, empty digest e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; GET /objects/building/architecture.door.wood?platform=StandaloneWindows64&profile=unity6000-content1 -> HTTP 404. Server record /var/lib/hexlive/assets/records/building/architecture.door.wood.json has only StandaloneOSX/unity6000-content1 sha256 7c6f505969e29c15931e1090d7c8cfee309fdb142e53c0a470ccd73e582f71a4 size 186879, has_windows=False. macOS control index still has 2725 objects and contains building/architecture.door.wood. Local bundle attempt: python3 Tools/content.py build --type building --id architecture.door.wood --platform StandaloneWindows64 --runtime-profile unity6000-content1 --output /tmp/hexlive-door-win-build-proof-238 failed before Unity because git-lfs is not installed; dotnet is also not installed on the Mac, so no focused dotnet test could be run. No code/content commit was made; publish/build must be rerun from a host with git-lfs, dotnet, Unity Windows support, and production publish credentials."
                 },
                 {
-                    "createdUtc": "2026-08-27T08:26:46Z",
+                    "whenUtc": "",
                     "author": "sveta-heartbeat",
                     "text": "Starting focused post-review follow-up for the proven blocker: production asset registry publishes 2725 macOS objects but 0 Windows objects, and building/architecture.door.wood is platformMissing. Worker should fix Windows content publication/registry proof or return a precise blocker; do not claim readiness without real Windows proof."
                 },
                 {
-                    "createdUtc": "2026-08-27T09:40:00Z",
+                    "whenUtc": "",
                     "author": "hexlive-bug-238-windows-content-publish-20260827-1525",
                     "text": "Проход остановлен точным блокером. Фикса нет, статус остаётся in_progress, fixCommits не трогал. (1) СРЕДА: Unity Editor игрока ЖИВОЙ на этом же чекауте — Temp/UnityLockfile присутствует, pgrep -fl 'Unity.app/Contents/MacOS/Unity' даёт pid 68532 '/Applications/Unity/Hub/Editor/6000.4.5f1/Unity.app/Contents/MacOS/Unity -projectPath /Volumes/ORICO/HexLive' плюс AssetImportWorker0/1 (pid 69127/69129); Unity Hub держит проект с buildTarget StandaloneOSX. Поэтому 'python3 Tools/content.py build-all --platform StandaloneWindows64' запускать нельзя (это второй Unity на залоченном проекте), а переключение живого редактора на Windows-таргет означало бы полный реимпорт 12.4 ГБ прямо в сессии игрока. (2) ПРАВА СЕССИИ: исполнение почти полностью закрыто — 'dotnet --version', '/usr/local/share/dotnet/dotnet --version', 'python3 Tools/content.py --help', 'python3 <probe>.py', 'git lfs version' и 'curl https://vmi3529459.contaboserver.net/api/assets/v1/index/StandaloneWindows64/unity6000-content1' все вернули 'This command requires approval' и были автоматически отклонены (неинтерактивная сессия). Прошли только 'python3 --version' -> Python 3.9.6 и 'git diff --check' -> без вывода. Поэтому ни dotnet test, ни живой smoke прод-реестра в этом проходе НЕ выполнялись и не заявляются. (3) ПОПРАВКА к комментарию 07:52: git-lfs УСТАНОВЛЕН — отказ песочницы раскрыл '/opt/homebrew/bin/git-lfs' -> '/opt/homebrew/Cellar/git-lfs/3.2.0/bin/git-lfs'; в репозитории просто выключены LFS-фильтры ('git config --get filter.lfs.process' пусто). Не тащить 'git-lfs не установлен' дальше как причину. (4) ИСХОДНИК ДВЕРИ ЦЕЛ: Assets/HexLiveContent/RuntimeSource/Objects/architecture.door.wood.fbx = 86700 байт, заголовок 'Kaydara FBX Binary', не LFS-указатель. Авторской иконки Assets/HexLiveContent/Icons/architecture.door.wood.png нет, значит объект публикуется без iconAsset и с metadata.iconFallback=emoji. Реальный content-объект — building/architecture.door.wood (id задан в Simulation/Core/DoorTopology.cs:24, а AtomicContentBatchBuild.ObjectType сопоставляет 'architecture.*' типу building); 'building/door.wood' существует только как синтетический id в Tests/HexLive.Server.Tests/Assets/AssetRegistryStoreTests.cs. Пробел, таким образом, чисто публикационный, а не авторский. (5) НОВЫЙ ВТОРОЙ СЛОЙ БЛОКЕРА — обязателен к учёту следующим исполнителем: санкционированный Windows-only путь из Docs/AtomicContentCrossPlatform.md §4 ('publish-all --required-platform StandaloneWindows64 --retain-current-variants') будет ОТКЛОНЁН сервером для каждого объекта, у которого metadata изменилась со времени macOS-бутстрапа. AssetRegistryStore.PublishAsync (Server/HexLive.Server/Assets/AssetRegistryStore.cs:118-123) бросает 'Cannot retain platform variants while changing object metadata; publish all platforms for this semantic update.', и того же требует Spec/152.md:47-51. Текущий сборщик больше не пишет legacy metadata.iconPlaceholder (Assets/Editor/AtomicContent/AtomicContentBatchBuild.cs:649-653 удаляет ключ и ставит iconFallback=emoji), а клиент до сих пор терпит старые записи с iconPlaceholder=true (UnityPresentation/Content/ContentRegistryModels.cs:51) — то есть прод-записи собраны СТАРЫМ сборщиком. Дверь без авторской иконки попадает ровно в этот класс, поэтому Windows-only retain её на проде не починит. Это вывод из кода, а не измерение: проверяется одной командой на сервере — сравнить metadata в /var/lib/hexlive/assets/records/building/architecture.door.wood.json с metadata свежесобранного candidate.json. (6) ЧТО НУЖНО ДЛЯ ЗАКРЫТИЯ: хост с ЗАКРЫТЫМ Unity Editor (или отдельный чекаут со своим Library), Windows Build Support для 6000.4.5f1, 'git lfs pull && git lfs checkout', объявленный неизменяемый SHA по §152.1 и сборка ОБЕИХ платформ с этого одного SHA: 'python3 Tools/content.py build-all --platform StandaloneOSX --output <osx>' и 'py -3 Tools/content.py build-all --platform StandaloneWindows64 --output <win>', затем ОДИН 'python3 Tools/content.py publish-all --input <osx> --input <win> --host hexlive-server ...' — публикация обеих платформ разом снимает проблему retain/metadata из пункта 5. Сначала staging /var/lib/hexlive-staging/assets, порт 5124. Доказательством считать три ответа: GET /api/assets/v1/index/StandaloneWindows64/unity6000-content1 -> objects>0 и building/architecture.door.wood ОТСУТСТВУЕТ в platformMissing; GET /api/assets/v1/objects/building/architecture.door.wood?platform=StandaloneWindows64&profile=unity6000-content1 -> HTTP 200 с variant.sha256; HEAD /api/assets/v1/blobs/<sha256> -> 200. Кода, спеки и тестов в этом проходе не менял, коммита нет; 'git diff --check' чисто."
                 }
@@ -7757,7 +7758,7 @@
             ],
             "fixCommit": "ab9b85aabdae8c130c532952ec43843fb89baad6",
             "reportedInVersion": "",
-            "readyForTestInVersion": "",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7767,7 +7768,7 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Gifts menu advanced to ready_for_test with verified commit; focused gate passed per heartbeat verification."
                 }
@@ -7787,7 +7788,7 @@
             ],
             "fixCommit": "9dbbd56b7f905c52c9eddc0d5c66252663224d72",
             "reportedInVersion": "",
-            "readyForTestInVersion": "",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7797,17 +7798,17 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Feed/water incapacitated advanced to ready_for_test with verified commit per heartbeat verification."
                 },
                 {
-                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "whenUtc": "",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: ordered aid kind is transient and not serialized, while Aid goal/target/plan are serialized; after save/load feed/hydrate can fall back to Treat/no aid. Persist or reconstruct ordered aid kind and add save/load regression before merge."
                 },
                 {
-                    "createdUtc": "2026-08-27T07:27:26Z",
+                    "whenUtc": "",
                     "author": "sveta-heartbeat",
                     "text": "Restored #240 post-review persistence fix evidence from ledger and verified commit 85b4d8a2fc84d051031e7b564633ee4de83b8472 exists in /private/tmp/HexLive-bug-240-feed-water-incapacitated. Fix persists OrderedAidKind/OrderedAidFor with save/load regressions; marked ready_for_test."
                 }
@@ -7826,7 +7827,7 @@
             ],
             "fixCommit": "2323f0cabd9483aff0182552136a6349f2e734eb",
             "reportedInVersion": "0.1.70/current server build",
-            "readyForTestInVersion": "",
+            "readyForTestInVersion": "0.1.77",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7836,22 +7837,22 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Fresh background worker started 2026-08-27 05:24 Asia/Saigon: hexlive-bug-241-win-crash-diagnostics-20260827-0524."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:44:05Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Claude background diagnostics attempt timed out after 900s (claude_ask.sh exit code 4: Claude не уложился в 900с). No verified #241 commit/checks were produced. Verification after timeout: HEAD is 9940f08c72cbc8d8029a5f50a8780bf177c98231 (unrelated previous fix), worktree has an uncommitted rename/modify of Tests/HexLive.Simulation.Tests/Gates/AddressableHandleLifetimeContractTests.cs -> ContentHandleLifetimeContractTests.cs. Leaving bug open and unassigned for a fresh worker to inspect/continue or clean up."
                 },
                 {
-                    "utc": "2026-08-26T23:26:19Z",
+                    "whenUtc": "",
                     "author": "sveta-heartbeat",
                     "text": "06:25 heartbeat: prior dirty diagnostics worktree exists but no verified commit; starting a clean dedicated pass with LFS filters disabled to isolate Windows crash/handle diagnostics."
                 },
                 {
-                    "createdUtc": "2026-08-26T23:49:38Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Clean #241 pass verified and committed. Change guards ContentAssetService bundle/file lifetimes around async asset loads and cache trim, and replaces stale Addressables lifetime gate with ContentHandleLifetimeContractTests. Claude timed out at 900s while running an unfiltered Simulation test pass; I killed the orphaned dotnet testhost, independently ran the focused gate green, verified git diff --check, and committed the focused diff. Checks: /usr/local/share/dotnet/dotnet test Tests/HexLive.Simulation.Tests --filter FullyQualifiedName~ContentHandleLifetimeContractTests --no-restore --nologo => Passed 5/5; git diff --check HEAD^..HEAD => clean; post-commit status clean with LFS filters disabled."
                 }
@@ -7860,7 +7861,7 @@
         {
             "id": 242,
             "createdUtc": "2026-08-26 14:54 UTC",
-            "status": "open",
+            "status": "created",
             "text": "bundle delivery validation for current Windows/server build\n\nПроверить, действительно ли нужные content/set bundles влиты и доступны в текущей Windows/server версии, особенно для двери и строительных ассетов. Сверить bundle manifest, build output, loader paths и runtime logs. Это поддерживающая задача к пропавшей модели двери и предстоящей загрузке бандлов с новым ключом.",
             "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
             "assignedAgent": "",
@@ -7880,22 +7881,22 @@
                     "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
                 },
                 {
-                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Verified fix committed by Claude worker: bae5f0255df2c22571e8ac40d66b24441eea971c. Added additive server registry diagnostics for platform-missing active objects (AssetIndexResponse.platformMissing), coverage audit logging, Spec/152 notes, and focused tests. Checks: dotnet test Tests/HexLive.Server.Tests 118/118 passed; live registry smoke logged Windows missing coverage and OSX full coverage; GET Windows index returned platformMissing for building/door.wood; empty registry smoke logged 0 platform/profile pairs; git diff --check clean. SpecStructureGate remained 5/6 due to pre-existing §218 reference debt outside touched files."
                 },
                 {
-                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "whenUtc": "",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: diagnostics were added, but no bundle/manifest/build-output/registry-data change proves the Windows door asset is published; treat #238/#242 unresolved until Windows door bundle is present and Player-tested."
                 },
                 {
-                    "createdUtc": "2026-08-27T07:52:03Z",
+                    "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Additional evidence from #238 post-review pass confirms the blocker is real, not just missing documentation: production 5123 publishes 2725 macOS objects but 0 Windows objects, and building/architecture.door.wood record has no StandaloneWindows64 variant. #242 stays open until a real Windows build/publish plus Player-facing registry/blob proof exists."
                 },
                 {
-                    "createdUtc": "2026-08-27T09:40:00Z",
+                    "whenUtc": "",
                     "author": "hexlive-bug-238-windows-content-publish-20260827-1525",
                     "text": "Остаётся open; изменений по #242 в этом проходе нет. Полный разбор блокера записан в комментарий #238 от 2026-08-27T09:40Z; здесь только то, что меняет план по #242. (a) Проверка bundle/manifest/loader по Windows невозможна на этой машине: Unity Editor игрока жив на том же чекауте (Temp/UnityLockfile, pid 68532), а dotnet/python-скрипты/curl/ssh в сессии отклонены как 'This command requires approval'. Ни один Windows candidate.json не собран, поэтому сверять manifest не с чем. (b) Серверная половина #242 уже покрыта тестами и в правках не нуждается: Tests/HexLive.Server.Tests/Assets/AssetRegistryStoreTests.cs содержит WindowsBootstrapRetainsPublishedMacVariant, WindowsIndexNamesTheObjectsItCannotLoad и покрытие AuditCoverage по building/door.wood. Дыра не в диагностике реестра, а в отсутствии Windows-сборки. (c) Найденное ограничение, которое меняет runbook: Docs/AtomicContentCrossPlatform.md §4 предлагает Windows-only publish с --retain-current-variants, но AssetRegistryStore.cs:118-123 откажет по несовпадению metadata для объектов, собранных старым сборщиком (legacy iconPlaceholder против нынешнего iconFallback=emoji). Планировать нужно совместную публикацию обеих платформ с одного SHA (§152.1, Spec/152.md:47-51), а не докладку Windows поверх старого macOS-бутстрапа. Перед тем как считать #242 закрытым, доказательства должны включать Windows index с objects>0, отсутствие building/architecture.door.wood в platformMissing и успешный HEAD blob."
                 }

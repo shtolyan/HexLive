@@ -3,26 +3,30 @@ using UnityEngine;
 namespace HexLive.UnityPresentation.Rendering
 {
 
-// Spec 20.16 / §40.18-B: THE single source of truth for the SWIMMER's swell —
-// the height a body in deep water snaps to (Height).
+// Spec 20.16 / §40.18-B: THE single source of truth for the water swell —
+// OWNED here, not buried in the third-party material. These fields drive both
+// the surface MESH (pushed into the shader every frame by PushToShader) AND
+// the height a swimmer snaps to (Height), so there is exactly one place to
+// tune the wave and the two can never drift apart.
 //
 //   y(x,z,t) = sin( t*Speed + (x*dirX + z*dirZ) * Frequency ) * Amplitude
 //   dirX = cos(DirectionDegrees/57), dirZ = sin(DirectionDegrees/57)
 //
-// PushToShader feeds these params into the live water material when it
-// exposes the matching _Waves* uniforms. That was authored for the retired
-// "Definitive Stylized Water URP" material; the canonical hand-written
-// `HexLive/StylizedWater` shader (Spec 20.16 r2) carries its own gentle
-// _WaveAmp=0.06 vertex wave with a DIFFERENT formula, so for it the push is
-// a deliberate no-op and the swimmer's bob is an approximation of the visual
-// surface (±0.1 wu против ±0.06 wu — расхождение живёт в игре с атомарной
-// миграции и глазом не читается).
+// The shader's vertex offset computes the IDENTICAL expression from the pushed
+// material uniforms (see the "single-source world-space swell" block in
+// "Definitive Stylized Water URP.shader").
 public static class WaterWave
 {
     // Crest height in WORLD UNITS — how far the surface rises above still level
     // at a wave peak. THE amplitude knob; SwimTest exposes it live. Both the
     // mesh and the swimmer scale by exactly this.
-    public static float Amplitude = 0.1f;
+    //
+    // ⭐ Гребень обязан помещаться под кромку берега. §31C.4 (июль, r2) поднял
+    // штиль к пляжу: запас до кромки = SurfaceDropFrac × ElevationStep =
+    // 0.1 × 0.55 ≈ 0.055 wu. Прежние 0.1 wu на пике перехлёстывали пляж —
+    // «вода стала выше» и тёмные полосы-впадины через каждые ~4.5 wu.
+    // 0.04 < 0.055: качка видна, кромка сухая, пловец (Height) сел синхронно.
+    public static float Amplitude = 0.04f;
 
     // Spatial frequency (radians per world unit). Wavelength = 2π / Frequency.
     public static float Frequency = 1.4f;

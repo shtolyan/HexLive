@@ -487,7 +487,23 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     {
         _startPaused = startPaused;
         _initialSpeed = initialSpeed;
-        Bootstrap(definition);
+        Bootstrap(definition, null);
+    }
+
+    /// <summary>
+    /// §41.3 (r3): мир, уже построенный ВОРКЕРОМ за шторкой. Worldgen — чистая
+    /// симуляция (тот же довод, что у намотки §41.3 и у удалённого
+    /// BuildInitialWorld): на большом острове синхронный Create в главном
+    /// потоке замораживал редактор на минуты сразу после «Реестр контента
+    /// готов». Экран загрузки строит мир на Task.Run и отдаёт его сюда готовым.
+    /// </summary>
+    public void Configure(
+        WorldBootstrapDefinition definition, HexLive.Simulation.Core.WorldState prebuiltWorld,
+        bool startPaused = true, float initialSpeed = 1f)
+    {
+        _startPaused = startPaused;
+        _initialSpeed = initialSpeed;
+        Bootstrap(definition, prebuiltWorld);
     }
 
     private void Bootstrap()
@@ -503,10 +519,11 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         }
 
         var definition = WorldBootstrapJsonParser.Parse(_bootstrapAsset.WorldJson.text);
-        Bootstrap(definition);
+        Bootstrap(definition, null);
     }
 
-    private void Bootstrap(WorldBootstrapDefinition definition)
+    private void Bootstrap(
+        WorldBootstrapDefinition definition, HexLive.Simulation.Core.WorldState prebuiltWorld)
     {
         // A remote client does not own a local fallback world. Building one
         // here was pure waste: Continue synchronously generated seed 0,
@@ -520,8 +537,10 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
             return;
         }
 
-        var factory = new WorldStateFactory();
-        var world = factory.Create(definition);
+        // §41.3 (r3): экран загрузки строит большой остров на воркере и отдаёт
+        // готовый мир; синхронный Create здесь остаётся для dev-сцен и
+        // редких fallback-путей с маленькими мирами.
+        var world = prebuiltWorld ?? new WorldStateFactory().Create(definition);
         var saveHeader = SaveGame.TryReadHeader();
         _gameHistory.OpenForWorld(world.Seed, saveHeader != null && saveHeader.seed == world.Seed);
 

@@ -112,6 +112,22 @@ namespace HexLive.UnityDebug.Editor
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? ".");
                 Directory.CreateDirectory(Path.GetDirectoryName(summaryPath) ?? ".");
 
+                // ⭐ Детерминизм float против сервера. IL2CPP компилирует C#
+                // клангом, а кланг на arm64 по умолчанию СКЛЕИВАЕТ a*b + c в
+                // FMA (одно округление вместо двух). Mono-редактор и .NET 9
+                // сервер так не делают — и на большом острове worldgen-шум
+                // качает MathF.Round(height*6) на границе: один тайл сменил
+                // высоту, и клиент отбивается с «Topology mismatch» (замер
+                // 2026-08-27: server 0xECB0DA57, IL2CPP-плеер 0x67AEA5B3 на
+                // одном и том же коммите; Mono-редактор с сервером сходился).
+                // «Порядок float-операций — это поведение» — контракцию
+                // выключаем. Флаг не сериализуется в ProjectSettings, поэтому
+                // проставляется на каждый запуск сборки.
+                PlayerSettings.SetAdditionalIl2CppArgs(
+                    "--compiler-flags=\"-ffp-contract=off\"");
+                Debug.Log("[HexLiveReleaseBuilder] IL2CPP: -ffp-contract=off " +
+                          "(float-паритет worldgen с Mono/.NET 9).");
+
                 // The FMOD integration is machine-local and ignored by Git.
                 // Reassert the atomic-content mode on every release build:
                 // editor event indexing is allowed, bank copying is not.
@@ -257,6 +273,11 @@ namespace HexLive.UnityDebug.Editor
                 violations.AddRange(Directory.EnumerateFiles(
                         "Assets/StreamingAssets", "*", SearchOption.AllDirectories)
                     .Where(path => !path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
+                    // Finder-мусор (.DS_Store) — не игровой контент: он
+                    // появляется от одного открытия папки и не должен
+                    // останавливать публикацию.
+                    .Where(path => !Path.GetFileName(path).StartsWith(
+                        ".", StringComparison.Ordinal))
                     .Select(path => path.Replace('\\', '/')));
             }
 
@@ -346,6 +367,14 @@ namespace HexLive.UnityDebug.Editor
                 "Assets/Resources/PerformanceTestRunInfo.json",
                 "Assets/Resources/PerformanceTestRunSettings.json",
                 "Assets/Resources/HexLive/DebugPanelSettings.asset",
+                // Spec 20.16 (r3): вода — часть каждого ПЕРВОГО кадра острова
+                // и обязана рендериться до готовности Asset API, ровно как UI.
+                // Бандловая доставка воды уже отзывалась двумя багами: ленивый
+                // AtomicResources.Load отдавал null на первом кадре (море
+                // мигало fallback-материалом и месяцами жило на нём), а шейдер
+                // из бандла собирался с чужим набором URP-вариантов. Материал
+                // зашит в Player; его шейдер и текстуры едут вместе с ним.
+                "Assets/Resources/HexLive/Water/StylizedWaterDefinitive.mat",
                 "Assets/Resources/HexLive/UI/Fonts/Caveat-Regular.ttf",
                 "Assets/Resources/HexLive/UI/GameModePanel.uss",
                 "Assets/Resources/HexLive/UI/GameModePanel.uxml",

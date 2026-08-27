@@ -459,7 +459,14 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             var tex = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>($"HexLive/Decals/bandage_wrap_{zoneName}");
-            _wrapOverlays[zoneName] = tex;
+            // ⚠ AtomicResources.Load ленивый: первый вызов стартует загрузку и
+            // отдаёт null. Кэшировать этот null навсегда — значит до конца
+            // сессии рисовать бинт старой круглой нашлёпкой («пластырь» вместо
+            // обмотки). Кэшируется только доехавшая текстура; промах — ретрай.
+            if (tex != null)
+            {
+                _wrapOverlays[zoneName] = tex;
+            }
             return tex;
         }
 
@@ -474,7 +481,12 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             var tex = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>($"HexLive/Decals/bandage_wrap_{zoneName}_n");
-            _wrapNormals[zoneName] = tex;
+            // Та же ленивая ловушка, что у WrapOverlayFor: null не кэшировать,
+            // иначе рельеф марли навсегда остаётся плоским.
+            if (tex != null)
+            {
+                _wrapNormals[zoneName] = tex;
+            }
             return tex;
         }
         // Matching relief maps (RGB = encoded tangent normal, A = stamp
@@ -1955,6 +1967,22 @@ namespace HexLive.UnityPresentation.Wearing
                 if (isBandage && !isPlaster)
                 {
                     var wrap = WrapOverlayFor(zoneName);
+                    // Оверлей ещё ЕДЕТ (запись в реестре есть, текстура нет) —
+                    // не приколачивать старую круглую нашлёпку: созданный ключ
+                    // никогда не пересоздаётся, и бинт до конца сессии выглядел
+                    // бы пластырем. Пропуск хода безопасен: пока ключа нет в
+                    // _stamps, Sync каждый тик поднимает needsPlacement и
+                    // размещение повторяется — обмотка ляжет, как только
+                    // текстура доедет. Если записи в реестре нет вовсе, честно
+                    // падаем на старый штамп ниже.
+                    if (wrap == null && WrapRects.ContainsKey(zoneName) &&
+                        HexLive.UnityPresentation.Content.ContentAssetService.Instance
+                            .TryResolveLegacyPath(
+                                $"HexLive/Decals/bandage_wrap_{zoneName}", out _))
+                    {
+                        return;
+                    }
+
                     if (wrap != null && WrapRects.TryGetValue(zoneName, out var wrapRect))
                     {
                         _stamps[key] = new Stamp

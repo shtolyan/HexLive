@@ -1252,6 +1252,40 @@ namespace HexLive.UnityPresentation.UI
             // Spec 41.1: bootstrap PAUSED; the loader unpauses after the fade.
             var speed = _continueChosen && _save is { speed: > 0f } ? _save.speed : 1f;
 
+            // §41.3 (r3): ГЕНЕРАЦИЯ МИРА — НА ВОРКЕРЕ. Worldgen — чистая
+            // симуляция (тот же довод, что у намотки ниже и у удалённого
+            // BuildInitialWorld): на большом острове синхронный Create в
+            // главном потоке замораживал редактор на минуты сразу после
+            // «Реестр контента готов» — UI, музыка и MCP умирали, хотя это
+            // просто честная работа. Здесь главный поток только крутит шторку.
+            HexLive.Simulation.Bootstrap.WorldBootstrapDefinition builtDefinition = null;
+            HexLive.Simulation.Core.WorldState builtWorld = null;
+            var buildSeed = seed;
+            var buildMode = mode;
+            var buildTask = System.Threading.Tasks.Task.Run(() =>
+            {
+                builtDefinition = HexLive.Simulation.Bootstrap
+                    .PrototypeWorldDefinitionFactory.Create(buildSeed, buildMode);
+                builtWorld = new HexLive.Simulation.Bootstrap.WorldStateFactory()
+                    .Create(builtDefinition);
+            });
+            while (!buildTask.IsCompleted)
+            {
+                SetProgress(0.03f, Loc.Get("loading.world"));
+                yield return null;
+            }
+            if (buildTask.IsFaulted)
+            {
+                // Молча упасть нельзя (Task проглотит исключение, экран ждал бы
+                // вечно). Причина в лог; дальше прежний синхронный путь как
+                // последний шанс — он упадёт с той же ошибкой, но на виду.
+                Debug.LogError("[HexLive] Worldgen на воркере упал: " +
+                    buildTask.Exception?.GetBaseException());
+                builtDefinition = HexLive.Simulation.Bootstrap
+                    .PrototypeWorldDefinitionFactory.Create(seed, mode);
+                builtWorld = null;
+            }
+
             // §41.3: прогрев арта забираем у Configure себе — он поедет рядом с
             // намоткой, а не перед ней. Флаг снимаем сразу: он статический, и
             // остальные вызывающие Configure (dev-сцены, подключение к серверу)
@@ -1260,7 +1294,7 @@ namespace HexLive.UnityPresentation.UI
             try
             {
                 _runner.Configure(
-                    HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(seed, mode),
+                    builtDefinition, builtWorld,
                     startPaused: true, initialSpeed: speed);
 
                 // Spec 41.2 v2: apply the saved MODEL onto the freshly built

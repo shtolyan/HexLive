@@ -358,7 +358,27 @@ namespace HexLive.UnityPresentation.UI
             // could stop the shared colony with it, and it worked.
             _pauseButton.SetEnabled(!remote);
 
+            // На удалёнке SpeedMultiplier — НАБЛЮДАЕМАЯ скорость плейхеда
+            // (заявленная × микро-подстройка буфера, ~0.98..1.02 каждый кадр),
+            // и точное Approximately мигало подсветкой 1× непрерывно.
+            // Кнопки представляют пресеты — подсвечивается БЛИЖАЙШИЙ.
             var speed = _runner != null ? _runner.SpeedMultiplier : 1f;
+            var nearest = 0;
+            var nearestError = float.MaxValue;
+            for (var i = 0; i < Speeds.Length; i++)
+            {
+                var error = float.IsInfinity(Speeds[i])
+                    ? (float.IsInfinity(speed) ? 0f : float.MaxValue)
+                    : float.IsInfinity(speed)
+                        ? float.MaxValue
+                        : Mathf.Abs(Mathf.Log(Mathf.Max(0.01f, speed) / Speeds[i]));
+                if (error < nearestError)
+                {
+                    nearestError = error;
+                    nearest = i;
+                }
+            }
+
             for (var i = 0; i < _speedButtons.Count; i++)
             {
                 var locked = remote && Speeds[i] > 1f;
@@ -368,9 +388,7 @@ namespace HexLive.UnityPresentation.UI
                     speedLabel.style.color = locked ? new Color(0.45f, 0.49f, 0.52f) : Text;
                 }
 
-                var active = !locked && !paused && (float.IsInfinity(Speeds[i])
-                    ? float.IsInfinity(speed)
-                    : Mathf.Approximately(speed, Speeds[i]));
+                var active = !locked && !paused && i == nearest;
                 _speedButtons[i].style.backgroundColor = active ? Gold : Raised;
                 if (_speedButtons[i].userData is Label label)
                 {

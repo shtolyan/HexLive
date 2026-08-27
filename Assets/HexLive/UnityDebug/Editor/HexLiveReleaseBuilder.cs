@@ -365,10 +365,13 @@ namespace HexLive.UnityDebug.Editor
             }
 
             // §152: «обязательные эффекты» — Player-контент по решению трекера.
-            // bug-253 вернул VFX крови: как и UI, они обязаны работать до
-            // готовности Asset API и грузятся синхронным Resources.Load.
+            // bug-253 вернул VFX крови, bug-256 — общие decals состояния:
+            // как и UI, они обязаны работать до готовности Asset API и
+            // грузятся синхронным Resources.Load.
             if (normalized.StartsWith(
-                    "Assets/Resources/HexLive/VFX/", StringComparison.Ordinal))
+                    "Assets/Resources/HexLive/VFX/", StringComparison.Ordinal) ||
+                normalized.StartsWith(
+                    "Assets/Resources/HexLive/Decals/", StringComparison.Ordinal))
             {
                 return false;
             }

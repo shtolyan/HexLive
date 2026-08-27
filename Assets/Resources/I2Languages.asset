@@ -3519,9 +3519,89 @@ MonoBehaviour:
       - "\U0001FA79 \u041F\u043E\u043C\u043E\u0433\u0430\u0435\u0442 \u0440\u0430\u043D\u0435\u043D\u043E\u0439"
       Flags: 0101
       Languages_Touch: []
+    - Term: goal.PickUpPerson
+      TermType: 0
+      Description:
+      Languages:
+      - Carrying an injured person
+      - "\u041d\u0435\u0441\u0451\u0442 \u0440\u0430\u043d\u0435\u043d\u043e\u0433\u043e"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.PutInBed
+      TermType: 0
+      Description:
+      Languages:
+      - Putting into bed
+      - "\u0423\u043a\u043b\u0430\u0434\u044b\u0432\u0430\u0435\u0442 \u0432 \u043a\u0440\u043e\u0432\u0430\u0442\u044c"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.Splint
+      TermType: 0
+      Description:
+      Languages:
+      - Applying a splint
+      - "\u041d\u0430\u043a\u043b\u0430\u0434\u044b\u0432\u0430\u0435\u0442 \u0448\u0438\u043d\u0443"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.FitProsthetic
+      TermType: 0
+      Description:
+      Languages:
+      - Fitting a prosthetic
+      - "\u0423\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 \u043f\u0440\u043e\u0442\u0435\u0437"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.CraftSplint
+      TermType: 0
+      Description:
+      Languages:
+      - Making a splint
+      - "\u0414\u0435\u043b\u0430\u0435\u0442 \u0448\u0438\u043d\u0443"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.CraftWoodenArm
+      TermType: 0
+      Description:
+      Languages:
+      - Making a wooden arm
+      - "\u0414\u0435\u043b\u0430\u0435\u0442 \u0434\u0435\u0440\u0435\u0432\u044f\u043d\u043d\u0443\u044e \u0440\u0443\u043a\u0443"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.CraftWoodenLeg
+      TermType: 0
+      Description:
+      Languages:
+      - Making a wooden leg
+      - "\u0414\u0435\u043b\u0430\u0435\u0442 \u0434\u0435\u0440\u0435\u0432\u044f\u043d\u043d\u0443\u044e \u043d\u043e\u0433\u0443"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.PlayerInventory
+      TermType: 0
+      Description:
+      Languages:
+      - Managing inventory
+      - "\u0420\u0430\u0437\u0431\u0438\u0440\u0430\u0435\u0442 \u0438\u043d\u0432\u0435\u043d\u0442\u0430\u0440\u044c"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.StowClothes
+      TermType: 0
+      Description:
+      Languages:
+      - Stowing clothes
+      - "\u0423\u0431\u0438\u0440\u0430\u0435\u0442 \u043e\u0434\u0435\u0436\u0434\u0443"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: goal.Romance
+      TermType: 0
+      Description:
+      Languages:
+      - Seeking intimacy
+      - "\u0418\u0449\u0435\u0442 \u0431\u043b\u0438\u0437\u043e\u0441\u0442\u0438"
+      Flags: 0101
+      Languages_Touch: []
     - Term: goal.PlaceSite
       TermType: 0
-      Description: 
+      Description:
       Languages:
       - Marking a build site
       - "\u0420\u0430\u0437\u043C\u0435\u0447\u0430\u0435\u0442 \u0441\u0442\u0440\u043E\u0439\u043A\u0443"

@@ -252,6 +252,7 @@ public static class ScenePrewarm
         }
     }
 
+
     private static void ResolveWorkingSet(WorldState world)
     {
         var keys = new Dictionary<string, ContentObjectKey>();

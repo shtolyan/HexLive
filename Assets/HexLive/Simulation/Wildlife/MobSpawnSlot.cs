@@ -39,7 +39,7 @@ public sealed class MobSpawnSlot
 {
     public int SlotId;
 
-    // "dog" | "crab" | "shark" — каталожный id вида.
+    // "dog" | "crab" — каталожный id вида.
     public string MobId = string.Empty;
 
     public MobSlotState State;

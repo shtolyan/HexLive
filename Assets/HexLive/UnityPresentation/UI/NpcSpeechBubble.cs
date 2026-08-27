@@ -422,7 +422,7 @@ public sealed class NpcSpeechBubble : MonoBehaviour
     }
 
     // Load a texture from Resources and wrap it in a runtime Sprite (cached).
-    // We build the sprite from the Texture2D rather than HexLive.UnityPresentation.Content.AtomicResources.Load<Sprite>
+    // We build the sprite from the Texture2D rather than Resources.Load<Sprite>
     // so the PNG needs no Sprite importer settings.
     private static Sprite ResolveSprite(
         string cacheKey,
@@ -436,7 +436,7 @@ public sealed class NpcSpeechBubble : MonoBehaviour
             return cached;
         }
 
-        var tex = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>(resourcePath);
+        var tex = Resources.Load<Texture2D>(resourcePath);
         Sprite sprite = null;
         if (tex != null)
         {

@@ -259,18 +259,14 @@ namespace HexLive.UnityPresentation.UI
                     }
                     else
                     {
-                        // The addressable icon is non-blocking. This tidy
-                        // placeholder survives only until the next 4 Hz paint.
-                        painter.fillColor = TacticalMapPalette.WithAlpha(
-                            TacticalMapPalette.ClothingFallback, alpha);
-                        var inset = cellRect.width * 0.22f;
-                        painter.BeginPath();
-                        TraceRect(painter, new Rect(
-                            cellRect.x + inset,
-                            cellRect.y + inset,
-                            cellRect.width - inset * 2f,
-                            cellRect.height - inset * 2f));
-                        painter.Fill();
+                        context.DrawText(
+                            item.FallbackGlyph,
+                            cellRect.position + new Vector2(
+                                cellRect.width * 0.10f, -cellRect.height * 0.02f),
+                            cellRect.height * 0.72f,
+                            TacticalMapPalette.WithAlpha(
+                                TacticalMapPalette.ClothingFallback, alpha),
+                            null);
                     }
 
                     painter.strokeColor = TacticalMapPalette.WithAlpha(
@@ -310,15 +306,6 @@ namespace HexLive.UnityPresentation.UI
                     painter.MoveTo(center + new Vector2(size * 0.45f, 0f));
                     painter.LineTo(center + new Vector2(size, -size * 0.55f));
                     painter.Stroke();
-                }
-                else if (mob.Kind == TacticalMapMobKind.Shark)
-                {
-                    painter.BeginPath();
-                    painter.MoveTo(center + new Vector2(0f, -size));
-                    painter.LineTo(center + new Vector2(size * 0.82f, size * 0.72f));
-                    painter.LineTo(center + new Vector2(-size * 0.48f, size * 0.42f));
-                    painter.ClosePath();
-                    painter.Fill();
                 }
                 else
                 {
@@ -797,12 +784,14 @@ namespace HexLive.UnityPresentation.UI
                     }
                     else
                     {
-                        painter.fillColor = TacticalMapPalette.WithAlpha(
-                            TacticalMapPalette.ClothingFallback, alpha);
-                        painter.BeginPath();
-                        painter.Arc(rect.center, rect.width * 0.22f,
-                            Angle.Degrees(0f), Angle.Degrees(360f));
-                        painter.Fill();
+                        context.DrawText(
+                            item.FallbackGlyph,
+                            rect.position + new Vector2(
+                                rect.width * 0.10f, -rect.height * 0.02f),
+                            rect.height * 0.72f,
+                            TacticalMapPalette.WithAlpha(
+                                TacticalMapPalette.ClothingFallback, alpha),
+                            null);
                     }
 
                     painter.strokeColor = TacticalMapPalette.WithAlpha(
@@ -865,15 +854,6 @@ namespace HexLive.UnityPresentation.UI
                     painter.MoveTo(center + new Vector2(size * 0.45f, 0f));
                     painter.LineTo(center + new Vector2(size, -size * 0.55f));
                     painter.Stroke();
-                }
-                else if (mob.Kind == TacticalMapMobKind.Shark)
-                {
-                    painter.BeginPath();
-                    painter.MoveTo(center + new Vector2(0f, -size));
-                    painter.LineTo(center + new Vector2(size * 0.82f, size * 0.72f));
-                    painter.LineTo(center + new Vector2(-size * 0.48f, size * 0.42f));
-                    painter.ClosePath();
-                    painter.Fill();
                 }
                 else
                 {
@@ -1126,7 +1106,6 @@ namespace HexLive.UnityPresentation.UI
         public static readonly Color PersonBorder = new(0.94f, 0.98f, 1f, 0.96f);
         public static readonly Color Wolf = new(0.98f, 0.29f, 0.25f, 1f);
         public static readonly Color Crab = new(1f, 0.55f, 0.18f, 1f);
-        public static readonly Color Shark = new(0.38f, 0.72f, 0.87f, 1f);
         public static readonly Color Selected = new(1f, 0.80f, 0.31f, 1f);
         public static readonly Color CameraFrame = new(0.92f, 0.96f, 1f, 0.82f);
 
@@ -1149,7 +1128,6 @@ namespace HexLive.UnityPresentation.UI
         public static Color MobColor(TacticalMapMobKind kind) => kind switch
         {
             TacticalMapMobKind.Crab => Crab,
-            TacticalMapMobKind.Shark => Shark,
             _ => Wolf
         };
 
@@ -1315,6 +1293,7 @@ namespace HexLive.UnityPresentation.UI
         public readonly int ObjectId;
         public readonly string DefinitionId;
         public readonly Sprite? Icon;
+        public readonly string FallbackGlyph;
         public readonly bool Live;
         public readonly int Importance;
         public readonly bool Overflow;
@@ -1324,6 +1303,7 @@ namespace HexLive.UnityPresentation.UI
             int objectId,
             string definitionId,
             Sprite? icon,
+            string fallbackGlyph,
             bool live,
             Float2 anchor,
             int importance,
@@ -1334,6 +1314,7 @@ namespace HexLive.UnityPresentation.UI
             ObjectId = objectId;
             DefinitionId = definitionId;
             Icon = icon;
+            FallbackGlyph = fallbackGlyph ?? string.Empty;
             Live = live;
             Importance = importance;
             Overflow = overflow;
@@ -1344,7 +1325,6 @@ namespace HexLive.UnityPresentation.UI
     {
         Wolf,
         Crab,
-        Shark,
         Other
     }
 
@@ -1369,11 +1349,6 @@ namespace HexLive.UnityPresentation.UI
             if (string.Equals(mobId, "crab", StringComparison.OrdinalIgnoreCase))
             {
                 return TacticalMapMobKind.Crab;
-            }
-
-            if (string.Equals(mobId, "shark", StringComparison.OrdinalIgnoreCase))
-            {
-                return TacticalMapMobKind.Shark;
             }
 
             if (mobId.IndexOf("dog", StringComparison.OrdinalIgnoreCase) >= 0 ||

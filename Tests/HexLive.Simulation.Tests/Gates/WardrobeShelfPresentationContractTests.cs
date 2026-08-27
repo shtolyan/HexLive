@@ -7,6 +7,28 @@ namespace HexLive.Simulation.Tests.Gates;
 public sealed class WardrobeShelfPresentationContractTests
 {
     [Test]
+    public void OccupiedHangerComesFromTheWardrobeOwnerBundle()
+    {
+        var root = TestContext.CurrentContext.TestDirectory;
+        while (root != null && !Directory.Exists(Path.Combine(root, "Assets")))
+            root = Directory.GetParent(root)?.FullName;
+
+        Assert.That(root, Is.Not.Null, "project root");
+        var factory = File.ReadAllText(Path.Combine(root!,
+            "Assets/HexLive/UnityPresentation/Environment/WardrobeHangerFactory.cs"));
+        var exporter = File.ReadAllText(Path.Combine(root,
+            "Tools/blender/export_wardrobe_module.py"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(factory, Does.Contain("WardrobeAssembly.ResourcePath"));
+            Assert.That(factory, Does.Contain("HangerTemplate"));
+            Assert.That(factory, Does.Not.Contain("CreatePrimitive"));
+            Assert.That(exporter, Does.Contain("HangerTemplate"));
+        });
+    }
+
+    [Test]
     public void FootwearUsesOneBoundsAwareShelfPlacementForCreateAndSync()
     {
         var root = TestContext.CurrentContext.TestDirectory;

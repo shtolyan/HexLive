@@ -15,6 +15,7 @@ public static class ItemIcons
     private static readonly Dictionary<string, Sprite> Cache = new();
     private static readonly Dictionary<string, ContentAssetHandle<Sprite>> Handles = new();
     private static readonly HashSet<string> Loading = new();
+    private static readonly HashSet<string> Missing = new();
     private static HashSet<string> _wearIds;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -24,6 +25,7 @@ public static class ItemIcons
         Cache.Clear();
         Handles.Clear();
         Loading.Clear();
+        Missing.Clear();
         _wearIds = null;
     }
 
@@ -34,14 +36,51 @@ public static class ItemIcons
     }
 
     /// <summary>
-    /// Compatibility entry point. It now warms only the live registry; loading
-    /// every icon would download every owning model and break atomic laziness.
+    /// Compatibility entry point. The world-aware prewarm lives in
+    /// <see cref="ScenePrewarm"/>; loading every registry icon here would also
+    /// download every owning model and break atomic laziness.
     /// </summary>
     public static void PrewarmAll() => ContentAssetService.Instance.RefreshRegistry();
 
+    /// <summary>
+    /// Starts icon loads for exactly the objects the current world can show.
+    /// Every request participates in <see cref="ContentQueue"/>, so the loading
+    /// curtain cannot open while a real owner icon is still in flight.
+    /// </summary>
+    public static void Prewarm(IEnumerable<string> ids)
+    {
+        if (ids == null)
+        {
+            return;
+        }
+
+        foreach (var id in ids)
+        {
+            Load(id);
+        }
+    }
+
+    /// <summary>
+    /// Reads an owner's icon as soon as its <c>main</c> entry opens the bundle.
+    /// The service de-duplicates by SHA, so this pins a second asset from the
+    /// already open bundle; it does not download or open an icon bundle.
+    /// </summary>
+    public static void PrewarmOwner(string type, string id)
+    {
+        if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(id))
+        {
+            return;
+        }
+
+        StartLoad(id, type, id);
+    }
+
+    /// <summary>Immediate UI fallback when an owner has no authored icon.</summary>
+    public static string FallbackGlyph(string id) => ItemCatalog.Resolve(id).Emoji;
+
     public static Sprite Load(string id)
     {
-        if (string.IsNullOrEmpty(id))
+        if (string.IsNullOrEmpty(id) || Missing.Contains(id))
         {
             return null;
         }
@@ -49,25 +88,40 @@ public static class ItemIcons
         {
             return cached;
         }
-        if (!Loading.Add(id))
-        {
-            return null;
-        }
 
         var (type, objectId) = Owner(id);
+        StartLoad(id, type, objectId);
+        return null;
+    }
+
+    private static void StartLoad(string cacheId, string type, string objectId)
+    {
+        if (Missing.Contains(cacheId) || Cache.ContainsKey(cacheId) ||
+            !Loading.Add(cacheId))
+        {
+            return;
+        }
+
         ContentQueue.Begin(ContentQueue.Kind.Icon);
         ContentAssetService.Instance.LoadIcon(type, objectId, loaded =>
         {
             var icon = loaded?.Asset;
             if (icon != null)
             {
-                Cache[id] = icon;
-                Handles[id] = loaded;
+                Cache[cacheId] = icon;
+                Handles[cacheId] = loaded;
             }
-            Loading.Remove(id);
+            else
+            {
+                // Missing icon is an authoritative terminal result for this
+                // session. Do not restart the same owner-bundle request on
+                // every 4 Hz UI rebuild; every caller can show its emoji now.
+                Missing.Add(cacheId);
+                loaded?.Dispose();
+            }
+            Loading.Remove(cacheId);
             ContentQueue.End(ContentQueue.Kind.Icon);
         });
-        return null;
     }
 
     private static (string Type, string Id) Owner(string id)

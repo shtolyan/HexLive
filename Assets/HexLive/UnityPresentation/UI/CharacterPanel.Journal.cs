@@ -119,7 +119,7 @@ namespace HexLive.UnityPresentation.UI
             icon.style.height = 46f;
             icon.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
             icon.pickingMode = PickingMode.Ignore;
-            var texture = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/UI/IdentityJournalIcon");
+            var texture = Resources.Load<Texture2D>("HexLive/UI/IdentityJournalIcon");
             if (texture != null)
             {
                 icon.style.backgroundImage = new StyleBackground(texture);

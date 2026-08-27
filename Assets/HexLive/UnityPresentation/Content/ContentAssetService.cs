@@ -35,12 +35,22 @@ public sealed class ContentAssetService
         public AssetBundle Bundle;
         public bool Loading;
         public int References;
+        public int PendingAssetLoads;
         public readonly List<Action<AssetBundle>> Waiters = new();
     }
 
     private sealed class BlobState
     {
         public readonly List<Action<bool>> Waiters = new();
+    }
+
+    private sealed class BlobDownloadJob
+    {
+        public ContentRecord Record;
+        public string Sha256;
+        public long Size;
+        public string Label;
+        public Action<bool> Completed;
     }
 
     private static ContentAssetService _instance;
@@ -51,6 +61,7 @@ public sealed class ContentAssetService
     private readonly Dictionary<string, ContentRecord> _previous = new(StringComparer.Ordinal);
     private readonly Dictionary<string, BundleState> _bundles = new(StringComparer.Ordinal);
     private readonly Dictionary<string, BlobState> _blobRequests = new(StringComparer.Ordinal);
+    private readonly Queue<BlobDownloadJob> _blobDownloadQueue = new();
     private readonly HashSet<string> _verifiedHashes = new(StringComparer.Ordinal);
     private readonly List<Action> _registryWaiters = new();
 
@@ -60,8 +71,17 @@ public sealed class ContentAssetService
     private readonly string _partial;
     private readonly string _registryStatePath;
     private ContentRegistryState _state = new();
+    private int _activeBlobDownloads;
     private bool _refreshStarted;
     private bool _registryReady;
+
+    // Six is deliberately browser-like. A fresh client can request more than
+    // two thousand audio payloads and attachments during §41.4 prewarm; opening
+    // one HTTP connection per object exhausted an SSH tunnel (and is equally
+    // hostile to a reverse proxy). Queued requests still participate in
+    // ContentQueue progress, but only this many touch the network at once.
+    private const int MaxConcurrentBlobDownloads = 6;
+    private const int BlobDownloadAttempts = 3;
 
     private ContentAssetService()
     {
@@ -93,10 +113,12 @@ public sealed class ContentAssetService
     public bool TryResolveLegacyPath(string path, out ContentRecord record)
     {
         record = _pinned.Values.FirstOrDefault(value => value.IsActive &&
-            string.Equals(
-                (string)value.metadata?["legacyResourcePath"],
-                path,
-                StringComparison.Ordinal));
+            (string.Equals(
+                 (string)value.metadata?["legacyResourcePath"], path,
+                 StringComparison.Ordinal) ||
+             value.metadata?["legacyResourcePaths"] is Newtonsoft.Json.Linq.JArray aliases &&
+             aliases.Values<string>().Any(alias => string.Equals(
+                 alias, path, StringComparison.Ordinal))));
         return record != null;
     }
 
@@ -107,7 +129,24 @@ public sealed class ContentAssetService
         {
             foreach (var bundle in _instance._bundles.Values)
             {
-                bundle.Bundle?.Unload(true);
+                // With domain reload disabled Unity destroys native bundle
+                // objects when Play Mode exits, while the managed wrappers
+                // survive until SubsystemRegistration. Null-conditional access
+                // only checks the CLR reference and therefore calls Unload on
+                // a destroyed UnityEngine.Object. Use Unity's overloaded null
+                // check so a second Play starts from a clean cache.
+                // A failed/aborted interactive smoke may leave LoadFromFileAsync
+                // or LoadAssetAsync in flight while Play Mode exits. Unity owns
+                // those native requests and tears them down with the play world;
+                // explicitly unloading here blocks the main thread and emits one
+                // error per working-set object. Only close bundles which reached
+                // a quiescent state. The managed service is discarded below in
+                // either case.
+                if (bundle.Bundle != null && !bundle.Loading &&
+                    bundle.PendingAssetLoads == 0)
+                {
+                    bundle.Bundle.Unload(true);
+                }
             }
         }
 
@@ -156,7 +195,7 @@ public sealed class ContentAssetService
             }
 
             var assetEntry = entry ?? record.variant.entryAsset ?? "main";
-            if (assetEntry == "icon" && record.variant.iconAsset != "icon")
+            if (assetEntry == "icon" && !record.HasRealIcon)
             {
                 completed(null);
                 return;
@@ -170,17 +209,30 @@ public sealed class ContentAssetService
                     return;
                 }
 
+                // §152.2: `main` and `icon` are two entries of this one atomic
+                // owner bundle. When a current-world object opens its model,
+                // request its Sprite immediately through the same SHA-backed
+                // BundleState. This cannot download/open an icon bundle and it
+                // never touches owners which the world did not request.
+                if (assetEntry == "main" && record.HasRealIcon)
+                {
+                    ItemIcons.PrewarmOwner(record.type, record.id);
+                }
+
+                BeginAssetLoad(loadedSha);
                 var request = bundle.LoadAssetAsync<T>(assetEntry);
                 request.completed += _ =>
                 {
                     var asset = request.asset as T;
                     if (asset == null)
                     {
+                        EndAssetLoad(loadedSha);
                         completed(null);
                         return;
                     }
 
                     Retain(loadedSha);
+                    EndAssetLoad(loadedSha);
                     completed(new ContentAssetHandle<T>(
                         asset, () => Release(loadedSha)));
                 };
@@ -218,6 +270,7 @@ public sealed class ContentAssetService
                     return;
                 }
 
+                BeginAssetLoad(loadedSha);
                 var request = bundle.LoadAllAssetsAsync<T>();
                 request.completed += _ =>
                 {
@@ -229,6 +282,7 @@ public sealed class ContentAssetService
                                 asset, () => Release(loadedSha));
                         })
                         .ToArray();
+                    EndAssetLoad(loadedSha);
                     completed?.Invoke(handles);
                 };
             });
@@ -645,6 +699,25 @@ public sealed class ContentAssetService
         }
     }
 
+    private void BeginAssetLoad(string sha256)
+    {
+        if (_bundles.TryGetValue(sha256, out var state))
+        {
+            state.PendingAssetLoads++;
+        }
+    }
+
+    private void EndAssetLoad(string sha256)
+    {
+        if (!_bundles.TryGetValue(sha256, out var state))
+        {
+            return;
+        }
+
+        state.PendingAssetLoads = Math.Max(0, state.PendingAssetLoads - 1);
+        TryUnloadBundle(sha256, state);
+    }
+
     private void Release(string sha256)
     {
         if (!_bundles.TryGetValue(sha256, out var state))
@@ -653,9 +726,18 @@ public sealed class ContentAssetService
         }
 
         state.References = Math.Max(0, state.References - 1);
-        if (state.References == 0 && !state.Loading && state.Waiters.Count == 0)
+        TryUnloadBundle(sha256, state);
+    }
+
+    private void TryUnloadBundle(string sha256, BundleState state)
+    {
+        if (state.References == 0 && state.PendingAssetLoads == 0 &&
+            !state.Loading && state.Waiters.Count == 0)
         {
-            state.Bundle?.Unload(false);
+            if (state.Bundle != null)
+            {
+                state.Bundle.Unload(false);
+            }
             _bundles.Remove(sha256);
         }
     }
@@ -685,16 +767,74 @@ public sealed class ContentAssetService
         pending.Waiters.Add(completed);
         _blobRequests[sha256] = pending;
         ContentQueue.Begin(ContentQueue.Kind.Download);
-        ContentCoroutines.Run(DownloadBlob(record, sha256, size, label, success =>
+        _blobDownloadQueue.Enqueue(new BlobDownloadJob
         {
-            ContentQueue.End(ContentQueue.Kind.Download);
-            var waiters = pending.Waiters.ToArray();
-            _blobRequests.Remove(sha256);
-            foreach (var waiter in waiters)
+            Record = record,
+            Sha256 = sha256,
+            Size = size,
+            Label = label,
+            Completed = success => CompleteBlobRequest(sha256, pending, success),
+        });
+        StartQueuedBlobDownloads();
+    }
+
+    private void StartQueuedBlobDownloads()
+    {
+        while (_activeBlobDownloads < MaxConcurrentBlobDownloads &&
+               _blobDownloadQueue.Count > 0)
+        {
+            var job = _blobDownloadQueue.Dequeue();
+            _activeBlobDownloads++;
+            ContentCoroutines.Run(DownloadBlobWithRetries(job, success =>
             {
-                waiter(success);
+                _activeBlobDownloads--;
+                ContentQueue.End(ContentQueue.Kind.Download);
+                job.Completed(success);
+                StartQueuedBlobDownloads();
+            }));
+        }
+    }
+
+    private void CompleteBlobRequest(string sha256, BlobState pending, bool success)
+    {
+        var waiters = pending.Waiters.ToArray();
+        _blobRequests.Remove(sha256);
+        foreach (var waiter in waiters)
+        {
+            waiter(success);
+        }
+    }
+
+    private IEnumerator DownloadBlobWithRetries(
+        BlobDownloadJob job, Action<bool> completed)
+    {
+        string transientError = null;
+        for (var attempt = 1; attempt <= BlobDownloadAttempts; attempt++)
+        {
+            var succeeded = false;
+            yield return DownloadBlob(
+                job.Record, job.Sha256, job.Size, job.Label,
+                success => succeeded = success);
+            if (succeeded)
+            {
+                if (!string.IsNullOrEmpty(transientError) && LastError == transientError)
+                {
+                    LastError = string.Empty;
+                }
+                completed(true);
+                yield break;
             }
-        }));
+
+            transientError = LastError;
+            if (attempt < BlobDownloadAttempts)
+            {
+                Status = $"Повторяем {job.Record.type}/{job.Record.id} " +
+                         $"({job.Label}, {attempt + 1}/{BlobDownloadAttempts})";
+                yield return new WaitForSecondsRealtime(0.5f * attempt);
+            }
+        }
+
+        completed(false);
     }
 
     private IEnumerator DownloadBlob(

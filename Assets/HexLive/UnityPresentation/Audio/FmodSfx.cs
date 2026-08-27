@@ -27,7 +27,7 @@ namespace HexLive.UnityPresentation.Audio
             // §104 r5: чем именно попали. Вид выбирает по HitWeaponId снапшота:
             // пустой id — кулак, клинковое снаряжение — лезвие, зубы зверя
             // остаются на wolf_bite. Раньше человеческий удар не звучал вовсе —
-            // hit_flesh играл только на укус акулы, отрыв конечности, разделку
+            // hit_flesh играл только на отрыв конечности, разделку
             // туши и на удар девушки ПО ВОЛКУ.
             public const string HitPunch = "hit_punch";       // кулаком по телу
             public const string HitBlade = "hit_blade";       // клинком по телу
@@ -138,6 +138,7 @@ namespace HexLive.UnityPresentation.Audio
         private static bool _ready;
         private static bool _failed;
         private static bool _loading;
+        private static bool _prewarmRequested;
         private static ContentAssetService _subscribedService;
         private static FMOD.ChannelGroup _master;
         private static System.Random _rng = new(9257);
@@ -154,6 +155,7 @@ namespace HexLive.UnityPresentation.Audio
             _ready = false;
             _failed = false;
             _loading = false;
+            _prewarmRequested = false;
             if (_subscribedService != null)
             {
                 _subscribedService.RegistryRefreshed -= RegistryBecameReady;
@@ -170,6 +172,7 @@ namespace HexLive.UnityPresentation.Audio
             _musicChannel = default;
             _musicSound = default;
             _musicGroup = default;
+            MusicTracksChanged = null;
         }
 
         /// <summary>Load every currently registered sound up front (§41.4:
@@ -184,6 +187,7 @@ namespace HexLive.UnityPresentation.Audio
             var service = ContentAssetService.Instance;
             if (!service.RegistryReady)
             {
+                _prewarmRequested = true;
                 if (_subscribedService == null)
                 {
                     _subscribedService = service;
@@ -193,12 +197,13 @@ namespace HexLive.UnityPresentation.Audio
                 return;
             }
 
+            // Only the small shared SFX working set belongs behind the loading
+            // curtain. Voice lines are independent atomic objects and are
+            // fetched when their group is requested; pulling every recorded
+            // line (and every viseme attachment) queued 2100+ blobs before one
+            // remote NPC could appear.
             var records = service.Records("audio")
-                .Where(record =>
-                {
-                    var kind = (string)record.metadata?["kind"];
-                    return kind is "sfx" or "voice";
-                })
+                .Where(record => (string)record.metadata?["kind"] == "sfx")
                 .ToArray();
             if (records.Length == 0)
             {
@@ -259,7 +264,16 @@ namespace HexLive.UnityPresentation.Audio
                 _subscribedService.RegistryRefreshed -= RegistryBecameReady;
                 _subscribedService = null;
             }
-            Prewarm();
+            // Music asks for the registry from the bootstrap menu, before the
+            // world loading curtain owns the expensive SFX/voice prewarm.
+            // Do not turn that music-only request into a synchronous scan of
+            // every voice file. Prewarm remains explicit via WarmContent().
+            var prewarmRequested = _prewarmRequested;
+            _prewarmRequested = false;
+            if (prewarmRequested)
+            {
+                Prewarm();
+            }
             ScanMusic();
         }
 
@@ -626,6 +640,8 @@ namespace HexLive.UnityPresentation.Audio
         private static FMOD.ChannelGroup _musicGroup;
         private static bool _musicGroupReady;
 
+        public static event System.Action? MusicTracksChanged;
+
         /// <summary>Ид-ы найденных треков (имя файла без расширения), по алфавиту.</summary>
         public static string[] MusicTracks
         {
@@ -670,9 +686,15 @@ namespace HexLive.UnityPresentation.Audio
                 {
                     if (!string.IsNullOrEmpty(path))
                     {
+                        var changed = !MusicPaths.TryGetValue(id, out var oldPath) ||
+                                      oldPath != path;
                         MusicPaths[id] = path;
                         _musicIds = MusicPaths.Keys
                             .OrderBy(value => value, System.StringComparer.Ordinal).ToArray();
+                        if (changed)
+                        {
+                            MusicTracksChanged?.Invoke();
+                        }
                     }
                 });
             }
@@ -729,7 +751,16 @@ namespace HexLive.UnityPresentation.Audio
                 }
 
                 var mode = FMOD.MODE.CREATESTREAM | FMOD.MODE.LOOP_OFF | FMOD.MODE._2D;
-                if (core.createStream(path, mode, out var sound) != FMOD.RESULT.OK)
+                // Blob names are pure SHA-256 and deliberately have no file
+                // extension. Tell FMOD the codec explicitly instead of making
+                // it guess from the cache path (the macOS runtime otherwise
+                // probes OGG/MOD/etc. and rejects a valid MP3 payload).
+                var exInfo = new FMOD.CREATESOUNDEXINFO
+                {
+                    cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
+                    suggestedsoundtype = FMOD.SOUND_TYPE.MPEG,
+                };
+                if (core.createStream(path, mode, ref exInfo, out var sound) != FMOD.RESULT.OK)
                 {
                     Debug.LogWarning($"[FmodSfx] music '{id}' failed to open: {path}");
                     return false;
@@ -790,15 +821,32 @@ namespace HexLive.UnityPresentation.Audio
                 return;
             }
 
+            // Clear the shared state before touching native FMOD. During a
+            // no-domain-reload Play Mode exit RuntimeManager can already be
+            // tearing its system down while MusicDirector.OnDestroy runs. A
+            // stale native handle must never be retried by another director or
+            // by the next Play session.
+            var channel = _musicChannel;
+            var sound = _musicSound;
             _musicOpen = false;
-            if (_musicChannel.isPlaying(out var playing) == FMOD.RESULT.OK && playing)
-            {
-                _musicChannel.stop();
-            }
-
-            _musicSound.release(); // стрим держит открытый файл — отпускаем
             _musicChannel = default;
             _musicSound = default;
+
+            if (!FMODUnity.RuntimeManager.IsInitialized)
+            {
+                return;
+            }
+
+            if (channel.hasHandle() &&
+                channel.isPlaying(out var playing) == FMOD.RESULT.OK && playing)
+            {
+                channel.stop();
+            }
+
+            if (sound.hasHandle())
+            {
+                sound.release(); // стрим держит открытый файл — отпускаем
+            }
         }
 
         private static FMOD.VECTOR ToFmod(Vector3 v) =>

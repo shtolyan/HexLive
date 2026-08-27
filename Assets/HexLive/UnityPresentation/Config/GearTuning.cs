@@ -83,33 +83,11 @@ namespace HexLive.UnityPresentation.Config
         /// Resources/HexLive/Objects/&lt;id&gt; convention.</summary>
         public static GameObject LoadPrefab(string gearId)
         {
-            // Authored glTF sources are editor inputs only; Player always loads
-            // their native mirrors through the shared world-prop boundary.
-            var native = WorldPropResources.Load(gearId);
-            if (native != null && WorldPropResources.NativeName(gearId) != gearId)
-            {
-                return native;
-            }
-
-            var config = ConfigFor(gearId);
-            if (config != null)
-            {
-                if (config.prefab != null)
-                {
-                    return config.prefab;
-                }
-
-                if (!string.IsNullOrEmpty(config.prefabResourcePath))
-                {
-                    var fromPath = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(config.prefabResourcePath);
-                    if (fromPath != null)
-                    {
-                        return fromPath;
-                    }
-                }
-            }
-
-            return null;
+            // Runtime geometry has exactly one owner: object/<gearId>. The old
+            // NativeName inequality accidentally discarded perfectly valid
+            // bundles such as tool.spear (its native name equals its id), then
+            // permanently installed a procedural prop on the first async miss.
+            return WorldPropResources.Load(gearId);
         }
 
         public static AnimationClip[] AttackClipsFor(string gearId)

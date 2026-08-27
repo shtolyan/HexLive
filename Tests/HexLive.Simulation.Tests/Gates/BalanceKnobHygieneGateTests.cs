@@ -94,7 +94,6 @@ public sealed class BalanceKnobHygieneGateTests
             ["FireWarmthRange2"] = "11 против 4 — там же",
             ["Enabled"] = "true против false",
             ["TalkRelationshipGain"] = "0.02 против 0.075",
-            ["SleepComfortLeafNight"] = "0.85 против 0.3",
             ["SleepComfortBedNight"] = "1.4 против 1",
             ["AidErrandBidShare"] = "0.9 против 0.85",
             ["GrindSeverChance"] = "0.1 против 0.25",

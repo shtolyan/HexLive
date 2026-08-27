@@ -2,7 +2,7 @@ namespace HexLive.Simulation.Runtime
 {
 
 // Wildlife-director knobs: population caps, respawn cadence, raid timing and
-// hunt chances that used to be private consts in Mob/Rabbit/SharkSystem.
+// hunt chances that used to be private consts in Mob/Rabbit systems.
 // Static so the WorldBalance config asset can push tuned values at boot;
 // systems read them through shims at the old const names. (Per-mob COMBAT
 // stats — bite, HP, windup — stay in MobCatalog/MobConfig assets.)
@@ -55,8 +55,6 @@ public static class WildlifeBalance
     public static float RabbitBowHitChance = 0.6f;
     public static float ArrowRecoverChance = 0.4f;
 
-    public static int MaxSharks = 2;
-
     // ─────────────────────────────────────────────────────────────
     // §147: виртуальные мобы (слоты-патрули).
     // ─────────────────────────────────────────────────────────────
@@ -64,22 +62,19 @@ public static class WildlifeBalance
     // >0 = слотовый спавнер ЗАМЕНЯЕТ амбиентный (они не смешиваются; гости
     // ночного рейда §46 ортогональны и приходят поверх в любом режиме).
     // ⭐ §147.6: включено и в режиме 0 (решение игрока) — прежние популяции
-    // (2 волка, 4 краба, 2 акулы) стали слотами. Это ОСОЗНАННЫЙ сдвиг
+    // (2 волка, 4 краба) стали слотами. Это ОСОЗНАННЫЙ сдвиг
     // поведения мира: спящий волк не охотится, пока рядом никого нет;
     // эталон golden trace принят заново этим же коммитом.
     public static int WolfSlots = 2;
     public static int CrabSlots = 4;
-    public static int SharkSlots = 2;
 
     // §146.6-парные ручки большого острова (селекторы ниже).
     public static int BigIslandWolfSlots = 12;
     public static int BigIslandCrabSlots = 24;
-    public static int BigIslandSharkSlots = 12;
 
     // §146.9: roughly twice the land/water area of BigIsland.
     public static int HugeIslandWolfSlots = 24;
     public static int HugeIslandCrabSlots = 48;
-    public static int HugeIslandSharkSlots = 24;
 
     // §147.3: радиус материализации — это радиус СУЩЕСТВОВАНИЯ, не агра.
     // 8 ≥ любого реалистичного радиуса восприятия (§125): волк становится

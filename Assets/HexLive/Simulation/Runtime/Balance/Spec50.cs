@@ -22,7 +22,7 @@ public static class Spec50
 
     // A limb severs the moment a bite drives an arm/leg to 0 HP AND either:
     //  • the blow's own damage ≥ LimbSeverThreshold  (a big single hit — the
-    //    shark's 0.2, a future weapon — tears it clean off), OR
+    //    a future heavy weapon — tears it clean off), OR
     //  • a deterministic roll < GrindSeverChance     (the small dog bite that
     //    finally destroys an already-mauled leg rips it off — rare, so most
     //    zeroed legs stay attached-but-useless as before).

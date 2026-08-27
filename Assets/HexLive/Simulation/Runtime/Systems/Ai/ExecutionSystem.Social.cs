@@ -697,7 +697,7 @@ public sealed partial class ExecutionSystem
             // крест перевязки, а не еда. Раньше все пять видов помощи давали
             // одну иконку («Food»), и врач с бинтом читался как подавальщица.
             // Вид разбирает ключ по двоеточию (тот же приём, что у
-            // DangerSpotted:shark), так что неизвестный вид падает на общий.
+            // DangerSpotted:<kind>), так что неизвестный вид падает на общий.
             SocialCueSignals.Stamp(world, npc, $"AidStarted:{kindNow}", target.Id);
             SocialCueSignals.Stamp(world, target, "AidStarted", npc.Id);
             Trace.Emit(world, npc.Id, "AidStarted",
@@ -934,12 +934,12 @@ public sealed partial class ExecutionSystem
     // Spec 28.15E: choose the subject of a talk. A weighted, deterministic draw
     // biased by the pair's situation — hungry housemates talk food, cold ones
     // talk weather/fire, scared ones talk dogs, friends flirt and joke, rivals
-    // grumble — with the island's escape/shark themes always simmering. The
+    // grumble — with the island's escape theme always simmering. The
     // roll is a stateless hash of (tick, pair) so it's resume-safe and both the
     // sim and any replay agree. Presentation turns the value into an emoji.
     private static readonly TalkTopic[] TalkTopicOrder =
     {
-        TalkTopic.SmallTalk, TalkTopic.Escape, TalkTopic.Sharks, TalkTopic.Dogs,
+        TalkTopic.SmallTalk, TalkTopic.Escape, TalkTopic.Dogs,
         TalkTopic.Weather, TalkTopic.Food, TalkTopic.Fire, TalkTopic.Home,
         TalkTopic.Gossip, TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble,
         // §108: последняя — тема про ЧЕЛОВЕКА, и единственная, у которой есть
@@ -947,7 +947,7 @@ public sealed partial class ExecutionSystem
         TalkTopic.Stranger
     };
 
-    private static readonly float[] TalkTopicWeights = new float[13];
+    private static readonly float[] TalkTopicWeights = new float[12];
 
     // §108: буфер собравшихся. Один на систему — исполнитель однопоточный, и
     // разговор считается по одной паре за раз.
@@ -975,20 +975,19 @@ public sealed partial class ExecutionSystem
         var w = TalkTopicWeights;
         w[0] = 1.00f;                                   // SmallTalk
         w[1] = 0.60f + 0.60f * System.Math.Max(cold, rain); // Escape (misery → wanting off the rock)
-        w[2] = 0.40f;                                   // Sharks (the island's ever-present menace)
-        w[3] = 0.40f + 1.00f * stress;                  // Dogs (fear talk)
-        w[4] = 0.30f + 1.20f * rain + 1.00f * cold + 0.80f * hot; // Weather
-        w[5] = 0.30f + 1.50f * hunger;                  // Food
-        w[6] = 0.30f + 1.00f * cold;                    // Fire (warmth)
-        w[7] = 0.50f + 0.80f * (1f - social);           // Home (homesick when starved of company)
-        w[8] = 0.50f;                                   // Gossip
-        w[9] = 0.20f + 1.20f * like;                    // Flirt (they warm to each other)
-        w[10] = 0.40f + 0.80f * like;                   // Joke
-        w[11] = 0.30f + 1.00f * dislike + 0.60f * hunger; // Grumble (dislike / crankiness)
+        w[2] = 0.40f + 1.00f * stress;                  // Dogs (fear talk)
+        w[3] = 0.30f + 1.20f * rain + 1.00f * cold + 0.80f * hot; // Weather
+        w[4] = 0.30f + 1.50f * hunger;                  // Food
+        w[5] = 0.30f + 1.00f * cold;                    // Fire (warmth)
+        w[6] = 0.50f + 0.80f * (1f - social);           // Home (homesick when starved of company)
+        w[7] = 0.50f;                                   // Gossip
+        w[8] = 0.20f + 1.20f * like;                    // Flirt (they warm to each other)
+        w[9] = 0.40f + 0.80f * like;                    // Joke
+        w[10] = 0.30f + 1.00f * dislike + 0.60f * hunger; // Grumble (dislike / crankiness)
         // §108: о чужаке говорят только когда есть кружок и есть за что. Вес 0
         // в остальное время — тема не «редкая», её просто НЕТ, пока условия не
         // сложились, и попасть в неё случайно невозможно.
-        w[12] = GroupHuntMath.TopicAvailable(world, npc, target, GatheredBuffer, out _, out var hate)
+        w[11] = GroupHuntMath.TopicAvailable(world, npc, target, GatheredBuffer, out _, out var hate)
             ? Spec108.GroupHuntTopicWeight + Spec108.GroupHuntTopicHateGain * hate
             : 0f;
 

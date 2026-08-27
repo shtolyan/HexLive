@@ -44,7 +44,7 @@ public static class HutFurnitureFactory
     /// outdoor 12/18/2, and carries a real spit so meat roasts on it.
     /// Simulation warmth, fuel and cooking stay the normal campfire contract.
     /// </summary>
-    public static GameObject BuildHearth()
+    public static GameObject? BuildHearth()
     {
         var authored = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(HearthPrefabPath);
         if (authored != null)
@@ -63,10 +63,12 @@ public static class HutFurnitureFactory
             return host;
         }
 
-        throw new System.InvalidOperationException(
-            "Missing authored hearth at Resources/" + HearthPrefabPath +
-            ". There is exactly one indoor hearth model; rebuild it with " +
-            "Tools/blender/build_arch_elements.py and export_arch_elements.py.");
+        // AtomicResources starts an asynchronous object-bundle request on the
+        // first miss. The world renderer retries construction on subsequent
+        // snapshots, exactly like every other remotely supplied prefab. A
+        // synchronous exception here aborts the whole render diff every frame
+        // before the verified hearth bundle has a chance to arrive.
+        return null;
     }
 
 }

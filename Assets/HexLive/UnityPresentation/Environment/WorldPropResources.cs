@@ -40,8 +40,9 @@ namespace HexLive.UnityPresentation.Environment
         public static void Prewarm(string id) => ContentPrefabCache.Prewarm("object", id);
 
         /// <summary>
-        /// Instantiate the same Player-safe authored prop used by world drops;
-        /// procedural geometry is only a genuine missing-asset fallback.
+        /// Instantiate the same Player-safe authored prop used by world drops.
+        /// A null result means that its independent bundle is still loading or
+        /// failed validation; it must never be replaced with another model.
         /// </summary>
         public static GameObject? Build(string id)
         {
@@ -57,7 +58,7 @@ namespace HexLive.UnityPresentation.Environment
                 UnityEngine.Object.Destroy(instance);
             }
 
-            return LowPolyToolFactory.Build(id);
+            return null;
         }
     }
 }

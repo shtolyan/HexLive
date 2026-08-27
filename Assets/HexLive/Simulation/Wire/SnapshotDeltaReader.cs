@@ -99,9 +99,6 @@ public static class SnapshotDeltaReader
         ApplySection(r, into.Crabs, c => c.Id,
             (reader, c) => WorldSnapshotCodec.ReadCrabRecord(reader, c));
 
-        ApplySection(r, into.Sharks, s => s.Id,
-            (reader, s) => WorldSnapshotCodec.ReadSharkRecord(reader, s));
-
         ApplySection(r, into.MobSlots, s => s.SlotId,
             (reader, s) => WorldSnapshotCodec.ReadMobSlotRecord(reader, s));
 

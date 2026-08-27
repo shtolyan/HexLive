@@ -67,7 +67,8 @@ public sealed class WeaponFitOrderContractTests
     public void SpearAssetDoesNotCarryAnAbsoluteScaleOverride()
     {
         var spear = File.ReadAllText(Path.Combine(
-            RepoPaths.Root, "Assets", "Resources", "HexLive", "Gear", "spear.asset"));
+            RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "Gear",
+            "spear.asset"));
         var gearConfig = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Config", "GearConfig.cs"));
 

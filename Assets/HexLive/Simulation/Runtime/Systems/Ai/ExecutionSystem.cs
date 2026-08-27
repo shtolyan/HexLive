@@ -1325,8 +1325,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
                 ContainerLootMath.GiveToContainer(
                     world, worldObject, npc, new[] { carriedStick });
-                Trace.Emit(world, npc.Id, "FireFuelQueued",
-                    $"{worldObject.DefinitionId} queued={carriedStick.DefinitionId}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "FireFuelQueued",
+                        $"{worldObject.DefinitionId} queued={carriedStick.DefinitionId}");
+                }
                 worldObject.IsOccupied = false;
                 worldObject.CurrentUser = null;
                 return true;
@@ -1411,8 +1414,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else if (definition.HasTag("HerbBush"))
         {
-            Trace.Emit(world, npc.Id, "HerbStripped",
-                $"{worldObject.DefinitionId} stripped -> leaves scattered");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "HerbStripped",
+                    $"{worldObject.DefinitionId} stripped -> leaves scattered");
+            }
         }
         else
         {

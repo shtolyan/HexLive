@@ -223,8 +223,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.05f)] public float sleepEnergyBaseBonus = 0.002f;
         [Tooltip("Энергетическая добавка костра отключена, чтобы длительность сна не зависела от соседнего огня. Тепло и комфорт костра остаются.")]
         [Range(0f, 0.05f)] public float sleepEnergyFireBonus = 0f;
-        [Tooltip("Добавка за сон на листовом коврике.")]
-        [Range(0f, 0.05f)] public float sleepEnergyLeafBedBonus = 0.006f;
         [Tooltip("Добавка за настоящую кровать поверх земли. 0.002 + база 0.002 = 0→100% за 4 игровых часа.")]
         [Range(0f, 0.05f)] public float sleepEnergyBasicBedBonus = 0.002f;
 
@@ -495,11 +493,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float naturalScarringFactor = 0.25f;
         [Tooltip("§118.8: лежание на земле лечение не ускоряет.")]
         [Range(1f, 16f)] public float groundRestHealMultiplier = 1f;
-        [Tooltip("§118.8: зарезервировано — bed.leaf существует только как сейв-алиас bed.basic, RestFactors эту ручку не читает.")]
-        [Range(1f, 16f)] public float leafBedHealMultiplier = 1.5f;
         [Tooltip("§118.8: кровать лечит вдвое быстрее — сутки на полную шкалу.")]
         [Range(1f, 16f)] public float basicBedHealMultiplier = 2f;
-        [Range(0f, 1f)] public float leafBedDegenerationMultiplier = 0.5f;
         [Range(0f, 1f)] public float basicBedDegenerationMultiplier = 0f;
         [Tooltip("§118.8: отлёживание — раненая ниже порога сама ложится и не встаёт до выздоровления.")]
         public bool woundedRestEnabled = true;

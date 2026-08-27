@@ -273,8 +273,8 @@ namespace HexLive.Simulation.Tests.Blueprints
         public void ConstructorPanelLeavesFurnitureRotationToWorldHandles()
         {
             var uxml = File.ReadAllText(Path.Combine(
-                RepoPaths.Root, "Assets", "Resources", "HexLive", "UI", "HutConstructor",
-                "HutConstructorPanel.uxml"));
+                RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "UI",
+                "HutConstructor", "HutConstructorPanel.uxml"));
             var designer = File.ReadAllText(Path.Combine(
                 RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "HutTest",
                 "HutLayoutDesigner.cs"));

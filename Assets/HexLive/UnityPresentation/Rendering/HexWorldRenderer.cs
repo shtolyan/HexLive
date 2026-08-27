@@ -1403,6 +1403,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private void RenderSnapshot(WorldSnapshot snapshot)
     {
+        // §152: the live snapshot is also the incremental content working set.
+        // Existing ids are cache hits; a newly crafted/looted/spawned owner
+        // starts one main+icon bundle load before any panel can reveal it.
+        ScenePrewarm.ForSnapshot(snapshot);
+
         UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.TilesWater");
         // §148: что наш лагерь видит и что помнит — считается ПЕРВЫМ делом:
         // от этого зависит, какие гексы вообще строить.
@@ -1690,6 +1695,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (!hasView)
             {
                 objectView = CreateObjectView(worldObject, _junctionPositions, snapshot.Tick);
+                if (objectView == null)
+                {
+                    // The object's independent bundle is still travelling.
+                    // Do not enter it into _objectViews until the authored view
+                    // exists: the next snapshot retries this exact object.
+                    _objectViewTiles.Remove(key);
+                    continue;
+                }
                 _objectViews[key] = objectView;
                 // PERF: resolve the optional per-view components ONCE, here.
                 // Which of them a view owns is fixed by the prefab it was built
@@ -1974,9 +1987,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
         foreach (var npc in snapshot.Npcs)
         {
             var key = npc.Id.Value;
-            if (!_npcViews.TryGetValue(key, out var npcView))
+            if (!_npcViews.TryGetValue(key, out var npcView) || npcView == null)
             {
                 npcView = CreateNpcView(npc);
+                if (npcView == null)
+                {
+                    // The actor bundle is asynchronous. Never cache a body made
+                    // from primitives while it travels: the next snapshot asks
+                    // for this exact actor again and installs only authored art.
+                    continue;
+                }
                 _npcViews[key] = npcView;
             }
 
@@ -2493,6 +2513,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // появиться СРАЗУ лежачим — падение уже случилось, и
                 // проигрывать его заново значило бы врать о том, когда.
                 view = CreateNpcView(body);
+                if (view == null)
+                {
+                    continue;
+                }
                 _corpseViews[key] = view;
                 if (_actorViews.TryGetValue(key, out var restored) && restored != null)
                 {
@@ -2909,7 +2933,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         actorView.SignalHit(npc.HitStampTick, npc.HitWeaponId, npc.HitPart,
             SimulationUnityMapper.ToUnityPosition(npc.HitFrom, ActorGroundY(npc.Tile)));
         // §29C.3-hit: a health drop staggers her — only while standing still.
-        // Остаётся фолбэком для урона НЕ от удара (падение, акула, огонь): там
+        // Остаётся фолбэком для урона НЕ от удара (падение, огонь): там
         // хит-штампа нет, а вздрогнуть всё равно надо.
         actorView.SignalHealth(npc.Health);
         // Spec 33.1: a carried weapon rides slung on the back when it isn't in
@@ -3923,7 +3947,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
 
         // Fallback: plain transparent URP/Lit if the shader failed to import.
-        var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        var material = new Material(RequireRuntimeLitShader());
         material.SetFloat("_Surface", 1f); // transparent
         material.SetFloat("_Blend", 0f);   // alpha
         material.SetOverrideTag("RenderType", "Transparent");
@@ -4072,7 +4096,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 spitView.Refresh(worldObject.RoastingRaw, worldObject.RoastingCooked);
                 return fireGo;
             }
-            // campfire_final prefab missing → fall through to the legacy path.
+            return null;
         }
 
         // Spec §54: a build-site shows the piece ASSEMBLING from its delivered
@@ -4153,9 +4177,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // perch on (a sim obstacle with a Sit interaction).
         if (worldObject.DefinitionId == "stump.palm")
         {
+            var stump = HexLive.UnityPresentation.Environment.StumpFactory.Build(HexRadius);
+            if (stump == null) return null;
             var stumpRoot = new GameObject("Object stump.palm");
             stumpRoot.transform.SetParent(_objectsRoot, false);
-            var stump = HexLive.UnityPresentation.Environment.StumpFactory.Build(HexRadius);
             stump.transform.SetParent(stumpRoot.transform, false);
             stump.transform.localPosition = new Vector3(
                 0f, HexLive.UnityPresentation.Environment.StumpFactory.BaseLift, 0f);
@@ -4174,7 +4199,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var frondCount = worldObject.DefinitionId == "resource.palm_crown_small"
                 ? HexLive.Simulation.Runtime.SimBalance.SmallPalmCrownLeaves
                 : HexLive.Simulation.Runtime.SimBalance.BigPalmCrownLeaves;
-            var crown = HexLive.UnityPresentation.Environment.PalmCrownFactory.Build(HexRadius * 0.85f, frondCount);
+            var crown = HexLive.UnityPresentation.Environment.PalmCrownFactory.Build(
+                worldObject.DefinitionId, HexRadius * 0.85f, frondCount);
             if (crown != null)
             {
                 var crownRoot = new GameObject("Object resource.palm_crown");
@@ -4208,12 +4234,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     bedAnchor, ObjectGroundY(worldObject));
                 return bed;
             }
+            return null;
         }
 
 
         if (worldObject.DefinitionId == ContentIds.Hut1Hex)
         {
             var hut = HexLive.UnityPresentation.Environment.HutAssembly.BuildFinished(worldObject);
+            if (hut == null) return null;
             hut.transform.SetParent(_objectsRoot, false);
             var hutAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             hut.transform.position = SimulationUnityMapper.ToUnityPosition(
@@ -4266,6 +4294,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     carcassAnchor, GroundY(worldObject.Tile));
                 return carcassRoot;
             }
+            return null;
         }
 
         // §118.5 / bug #103: loose prosthetics live in the same external
@@ -4306,15 +4335,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 return wardrobeRoot;
             }
             if (wardrobe != null) Destroy(wardrobe);
+            return null;
         }
 
-        // Spec 31C.3: real prefabs first (Resources/HexLive/Objects/<id>),
-        // primitives as the eternal fallback.
-        // The current rock GLBs are mirrored as native FBXs under Resources.
-        // ScriptedImporter mesh sub-assets work in Editor but were absent from
-        // Player 0.1.4 even though their prefab wrappers survived the build.
-        var objectPrefab = HexLive.UnityPresentation.Environment.WorldPropResources.Load(
-            worldObject.DefinitionId);
+        // One logical owner, one request. Garment discovery itself is async;
+        // consult the live record too so a not-yet-loaded wear definition can
+        // never be misrouted to object/<wear-id> and terminally cached missing.
+        var isGarment = GarmentDropFactory.IsGarment(worldObject.DefinitionId) ||
+            HexLive.UnityPresentation.Content.ContentAssetService.Instance.TryGetRecord(
+                "wear", worldObject.DefinitionId, out _);
+        var objectPrefab = isGarment
+            ? null
+            : HexLive.UnityPresentation.Environment.WorldPropResources.Load(
+                worldObject.DefinitionId);
         if (objectPrefab != null)
         {
             var prefabRoot = new GameObject($"Object {worldObject.DefinitionId}");
@@ -4323,14 +4356,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // Each native source carries its own authored material contract.
             // Never replace rock slots with a material from a different backup
             // mesh — that produced the rainbow-rock failure from bug #55.
-            // A prefab whose imported GLB dependency was stripped still loads as
-            // a non-null empty root in a Player. Do not accept that as a visual:
-            // destroy it and continue to the procedural fallback below. This is
-            // what made stones/boulders disappear without a log error.
+            // A non-null empty root is not a visual. Reject it explicitly; the
+            // exact logical owner must be repaired instead of being replaced by
+            // another mesh or a procedural primitive.
             if (ObjectFit.HasRenderableGeometry(instance))
             {
+                var parkedBottle = worldObject.DefinitionId == "tool.bottle" &&
+                    worldObject.Junctions.Count > 0 &&
+                    _collectorJunctions.Contains(worldObject.Junctions[0]);
                 FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
-                    scatter: worldObject.RotationDegrees == 0f);
+                    scatter: !parkedBottle && worldObject.RotationDegrees == 0f);
+                if (parkedBottle)
+                {
+                    instance.transform.localPosition += Vector3.up * 0.12f;
+                    instance.transform.localRotation = Quaternion.identity;
+                    prefabRoot.name = $"Object {worldObject.DefinitionId} (parked)";
+                }
                 var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 prefabRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                     anchorPos, GroundY(worldObject.Tile));
@@ -4339,31 +4380,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             Destroy(prefabRoot);
-        }
-
-        // §54.15: a tool.bottle sharing a collector's junction is PARKED in the
-        // vessel slot — it stands upright on the stone stand under the funnel
-        // (the WC_point marker sits 0.12 above ground) instead of scattering
-        // in the grass like a dropped tool.
-        if (worldObject.DefinitionId == "tool.bottle" && worldObject.Junctions.Count > 0 &&
-            _collectorJunctions.Contains(worldObject.Junctions[0]))
-        {
-            var parked = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(
-                worldObject.DefinitionId);
-            if (parked != null)
-            {
-                var parkedRoot = new GameObject($"Object {worldObject.DefinitionId} (parked)");
-                parkedRoot.transform.SetParent(_objectsRoot, false);
-                parked.transform.SetParent(parkedRoot.transform, false);
-                FitObjectPrefab(parked, worldObject.DefinitionId, worldObject.Id.Value,
-                    scatter: false);
-                parked.transform.localPosition += Vector3.up * 0.12f; // the stand's top
-                parked.transform.localRotation = Quaternion.identity; // upright, dead centre
-                var parkedPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
-                parkedRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
-                    parkedPos, GroundY(worldObject.Tile));
-                return parkedRoot;
-            }
+            Debug.LogError($"[AtomicContent] object/{worldObject.DefinitionId} main не содержит renderable geometry.");
+            return null;
         }
 
         // §35.5B: a garment at a drying-rack junction HANGS on the rack instead
@@ -4413,9 +4431,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 if (inWardrobe && !footwearOnWardrobeShelf)
                 {
                     var hanger = HexLive.UnityPresentation.Environment.WardrobeHangerFactory.Build();
-                    hanger.transform.SetParent(hungRoot.transform, false);
-                    hanger.transform.localPosition = wardrobeSocket;
-                    hanger.transform.localRotation = Quaternion.identity;
+                    if (hanger != null)
+                    {
+                        hanger.transform.SetParent(hungRoot.transform, false);
+                        hanger.transform.localPosition = wardrobeSocket;
+                        hanger.transform.localRotation = Quaternion.identity;
+                    }
                 }
                 AttachGarmentCondition(hungRoot, hung, worldObject);
                 return hungRoot;
@@ -4444,33 +4465,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             AttachGarmentCondition(garmentRoot, garment, worldObject);
             return garmentRoot;
         }
-
-        // Spec 20.16: procedural low-poly model for known tools/resources/food
-        // before the generic primitive fallback.
-        var lowPoly = HexLive.UnityPresentation.Environment.LowPolyToolFactory.Build(worldObject.DefinitionId);
-        if (lowPoly != null)
+        if (GarmentDropFactory.IsGarment(worldObject.DefinitionId))
         {
-            var modelRoot = new GameObject($"Object {worldObject.DefinitionId}");
-            modelRoot.transform.SetParent(_objectsRoot, false);
-            lowPoly.transform.SetParent(modelRoot.transform, false);
-            FitObjectPrefab(lowPoly, worldObject.DefinitionId, worldObject.Id.Value);
-            var anchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
-            modelRoot.transform.position = SimulationUnityMapper.ToUnityPosition(anchor, GroundY(worldObject.Tile));
-            return modelRoot;
+            return null;
         }
-
-        var primitiveType = GetObjectPrimitive(worldObject.DefinitionId);
-        var scale = GetObjectScale(worldObject.DefinitionId);
-        var root = new GameObject($"Object {worldObject.DefinitionId}");
-        root.transform.SetParent(_objectsRoot, false);
-
-        var visual = CreatePrimitiveVisual(root.transform, primitiveType, scale, GetObjectColor(worldObject.DefinitionId));
-        visual.name = "Visual";
-
-        var pos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
-        root.transform.position = SimulationUnityMapper.ToUnityPosition(pos, GroundY(worldObject.Tile));
-        MaybeAttachCampfire(root, worldObject.DefinitionId);
-        return root;
+        // A record-backed object that is not ready stays absent for this frame.
+        // Caching a sphere/cube here made the first asynchronous miss permanent.
+        return null;
     }
 
     private GameObject CreateHumanRemainsView(
@@ -4501,12 +4502,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"[remains] Missing sprite variant '{variant}'.");
-            var fallback = CreatePrimitiveVisual(
-                root.transform, PrimitiveType.Capsule,
-                new Vector3(0.2f, 0.65f, 0.08f), new Color(0.82f, 0.78f, 0.62f));
-            fallback.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            fallback.transform.localPosition = Vector3.up * 0.04f;
+            // AtomicResources is asynchronous. Leave this frame empty and let
+            // SyncObjects retry; a first null must not become a permanent
+            // capsule in the saved world's presentation.
+            Destroy(root);
+            return null;
         }
 
         var anchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
@@ -5252,9 +5252,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             var key = dog.Id;
             liveKeys.Add(key);
-            if (!_mobViews.TryGetValue(key, out var mobView))
+            if (!_mobViews.TryGetValue(key, out var mobView) || mobView == null)
             {
                 mobView = CreateMobView(dog.MobId, dog.Id);
+                if (mobView == null)
+                {
+                    continue;
+                }
                 _mobViews[key] = mobView;
             }
 
@@ -5318,9 +5322,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             var key = -crab.Id - 1;
             liveKeys.Add(key);
-            if (!_crabViews.TryGetValue(crab.Id, out var crabView))
+            if (!_crabViews.TryGetValue(crab.Id, out var crabView) || crabView == null)
             {
                 crabView = CreateMobView(HexLive.Simulation.Content.MobIds.Crab, crab.Id);
+                if (crabView == null)
+                {
+                    continue;
+                }
                 _crabViews[crab.Id] = crabView;
             }
 
@@ -5364,9 +5372,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var key = isCrab ? -slot.ReservedMobId - 1 : slot.ReservedMobId;
             liveKeys.Add(key);
             var views = isCrab ? _crabViews : _mobViews;
-            if (!views.TryGetValue(slot.ReservedMobId, out var previewView))
+            if (!views.TryGetValue(slot.ReservedMobId, out var previewView) || previewView == null)
             {
                 previewView = CreateMobView(slot.MobId, slot.ReservedMobId);
+                if (previewView == null)
+                {
+                    continue;
+                }
                 views[slot.ReservedMobId] = previewView;
             }
 
@@ -5450,27 +5462,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // and every per-mob view number come from the mob's MobConfig asset
     // (footprint on the hex, stride tuning, blood splash, wound stamps).
     // Adding a tiger = drop a MobConfig asset with a prefab path — no new
-    // view code. A mob with no prefab keeps its legacy primitive body.
+    // view code. A missing or travelling bundle never becomes a primitive.
     private GameObject CreateMobView(string mobId, int id)
     {
         var root = new GameObject($"Mob {mobId} #{id}");
         root.transform.SetParent(_npcsRoot, false);
 
         var config = Config.MobLibrary.Get(mobId);
-        // The prefab comes ONLY from the mob's config asset (wolf.asset
-        // declares HexLive/Animals/wolf_dog) — no hardcoded paths; a mob
-        // without one gets its primitive body below.
+        // The prefab comes ONLY from the mob's atomic config/main payload — no
+        // hardcoded path and no primitive body when it is still travelling.
         var prefab = Config.MobLibrary.LoadPrefab(mobId);
         if (prefab != null)
         {
             var body = Instantiate(prefab, root.transform);
             body.name = "Body";
-            var renderer = body.GetComponentInChildren<SkinnedMeshRenderer>();
-            if (renderer != null)
+            if (ObjectFit.WorldBounds(body, out var bounds))
             {
                 // Pack models are authored at real-world size; normalize the
                 // footprint on the hex per config (wolf: 0.84×HexRadius).
-                var size = renderer.bounds.size;
+                var size = bounds.size;
                 var length = Mathf.Max(size.x, size.z);
                 var footprint = config != null ? config.footprintFraction : 0.84f;
                 if (length > 0.001f)
@@ -5493,48 +5503,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return root;
         }
 
-        return mobId == HexLive.Simulation.Content.MobIds.Crab
-            ? BuildCrabPrimitive(root)
-            : BuildDogPrimitive(root);
-    }
-
-    private GameObject BuildDogPrimitive(GameObject root)
-    {
-        var bodyLength = HexRadius * 0.28f;
-        var body = CreatePrimitiveVisual(root.transform, PrimitiveType.Capsule,
-            new Vector3(bodyLength * 0.45f, bodyLength * 0.5f, bodyLength * 0.45f),
-            new Color(0.35f, 0.30f, 0.28f));
-        body.name = "Body";
-        body.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-        body.transform.localPosition = new Vector3(0f, bodyLength * 0.35f, 0f);
-        var head = CreatePrimitiveVisual(root.transform, PrimitiveType.Sphere,
-            Vector3.one * bodyLength * 0.35f, new Color(0.30f, 0.25f, 0.23f));
-        head.name = "Head";
-        head.transform.localPosition = new Vector3(0f, bodyLength * 0.5f, bodyLength * 0.55f);
-        return root;
-    }
-
-    private GameObject BuildCrabPrimitive(GameObject root)
-    {
-        var size = HexRadius * 0.12f;
-        var shell = CreatePrimitiveVisual(root.transform, PrimitiveType.Sphere,
-            new Vector3(size * 1.6f, size * 0.6f, size * 1.2f), new Color(0.80f, 0.25f, 0.15f));
-        shell.name = "Shell";
-        shell.transform.localPosition = new Vector3(0f, size * 0.3f, 0f);
-        var clawL = CreatePrimitiveVisual(root.transform, PrimitiveType.Sphere,
-            Vector3.one * size * 0.45f, new Color(0.85f, 0.30f, 0.18f));
-        clawL.name = "ClawL";
-        clawL.transform.localPosition = new Vector3(-size * 0.9f, size * 0.25f, size * 0.6f);
-        var clawR = CreatePrimitiveVisual(root.transform, PrimitiveType.Sphere,
-            Vector3.one * size * 0.45f, new Color(0.85f, 0.30f, 0.18f));
-        clawR.name = "ClawR";
-        clawR.transform.localPosition = new Vector3(size * 0.9f, size * 0.25f, size * 0.6f);
-        return root;
+        Destroy(root);
+        return null;
     }
 
     private GameObject CreateNpcView(NpcSnapshot npc)
     {
-        // Spec 31B.5: the girls get real bodies; primitives are the fallback.
+        // Spec 31B.5/§152: the girls get their exact actor payload; a pending or
+        // missing actor never turns into a permanent primitive body.
         if (!string.IsNullOrEmpty(npc.ActorMesh))
         {
             var actorPrefab = ContentPrefabCache.GetOrRequest("actor", npc.ActorMesh);
@@ -5566,46 +5542,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        var root = new GameObject($"NPC {npc.Id.Value}");
-        root.transform.SetParent(_npcsRoot, false);
-
-        var bodyRadius = HexRadius * NpcRadiusFactor;
-        var bodyHeight = HexRadius * NpcHeightFactor;
-        var headRadius = bodyRadius * 0.7f;
-
-        var skinColor = GetNpcBodyColor(npc.Id.Value);
-        var visorColor = new Color(0.08f, 0.08f, 0.08f);
-
-        var body = CreatePrimitiveVisual(
-            root.transform,
-            PrimitiveType.Cylinder,
-            new Vector3(bodyRadius, bodyHeight, bodyRadius),
-            skinColor);
-        body.name = "Body";
-
-        var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        head.name = "Head";
-        head.transform.SetParent(root.transform, false);
-        head.transform.localScale = Vector3.one * headRadius;
-        head.transform.localPosition = new Vector3(0f, bodyHeight * 2f + headRadius * 0.5f, 0f);
-        var headRenderer = head.GetComponent<MeshRenderer>();
-        if (headRenderer is not null)
+        if (string.IsNullOrEmpty(npc.ActorMesh))
         {
-            headRenderer.sharedMaterial = CreateMaterial(skinColor);
+            Debug.LogError($"[AtomicContent] NPC {npc.Id.Value} has no actor content id.");
         }
-
-        var visor = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        visor.name = "Visor";
-        visor.transform.SetParent(head.transform, false);
-        visor.transform.localScale = new Vector3(0.85f, 0.35f, 0.3f);
-        visor.transform.localPosition = new Vector3(0f, 0.05f, 0.4f);
-        var visorRenderer = visor.GetComponent<MeshRenderer>();
-        if (visorRenderer is not null)
-        {
-            visorRenderer.sharedMaterial = CreateMaterial(visorColor);
-        }
-
-        return root;
+        return null;
     }
 
     // Junction positions are immutable after worldgen — one id→position
@@ -6757,12 +6698,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private static Material CreateMaterial(Color color)
     {
-        var material = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+        var material = new Material(RequireRuntimeLitShader())
         {
             color = color
         };
 
         return material;
+    }
+
+    private static Shader RequireRuntimeLitShader()
+    {
+        var shader = Shader.Find("Universal Render Pipeline/Lit");
+        if (shader == null)
+        {
+            throw new System.InvalidOperationException(
+                "Universal Render Pipeline/Lit was stripped from Player. " +
+                "HexLiveReleaseBuilder must retain the runtime-generated world shader.");
+        }
+
+        return shader;
     }
 }
 

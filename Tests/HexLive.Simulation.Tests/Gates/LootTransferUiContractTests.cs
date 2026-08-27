@@ -1,5 +1,7 @@
+using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Gates
@@ -8,6 +10,12 @@ namespace HexLive.Simulation.Tests.Gates
 /// <summary>Headless source gate for the §128 Unity UI that dotnet cannot instantiate.</summary>
 public sealed class LootTransferUiContractTests
 {
+    private static string ReadLocalization() => Regex.Replace(
+        File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset")),
+        @"\\u([0-9a-fA-F]{4})",
+        match => ((char)Convert.ToInt32(match.Groups[1].Value, 16)).ToString());
+
     private static string Presentation(params string[] parts) => Path.Combine(
         new[] { RepoPaths.Root, "Assets", "HexLive", "UnityPresentation" }
             .Concat(parts).ToArray());
@@ -75,8 +83,7 @@ public sealed class LootTransferUiContractTests
         var shared = File.ReadAllText(Presentation("UI", "InventoryQuickAction.cs"));
         var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
         var character = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        var localization = File.ReadAllText(Path.Combine(
-            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+        var localization = ReadLocalization();
 
         Assert.Multiple(() =>
         {
@@ -100,8 +107,8 @@ public sealed class LootTransferUiContractTests
             Assert.That(character, Does.Contain("InventoryQuickActions.Resolve("));
             Assert.That(character, Does.Contain("TryInventoryQuickAction("));
 
-            Assert.That(localization, Does.Contain("Term: 'loot.equipping'"));
-            Assert.That(localization, Does.Contain("Term: 'loot.no_quick_action'"));
+            Assert.That(localization, Does.Contain("Term: loot.equipping"));
+            Assert.That(localization, Does.Contain("Term: loot.no_quick_action"));
         });
     }
 
@@ -114,8 +121,7 @@ public sealed class LootTransferUiContractTests
         var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
         var bootstrap = File.ReadAllText(Presentation("Bootstrap", "PrototypeRuntimeBootstrap.cs"));
         var camera = File.ReadAllText(Presentation("Input", "RtsCameraController.cs"));
-        var localization = File.ReadAllText(Path.Combine(
-            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+        var localization = ReadLocalization();
 
         Assert.Multiple(() =>
         {
@@ -131,10 +137,10 @@ public sealed class LootTransferUiContractTests
             Assert.That(bootstrap, Does.Contain("AddComponent<LootTransferPanel>()"));
             Assert.That(camera, Does.Contain("UI.LootTransferPanel.IsOpen"));
             Assert.That(camera, Does.Contain("UI.LootTransferPanel.Close()"));
-            Assert.That(localization, Does.Contain("Term: 'menu.loot_person'"));
-            Assert.That(localization, Does.Contain("Term: 'loot.title'"));
-            Assert.That(localization, Does.Contain("'Обобрать'"));
-            Assert.That(localization, Does.Contain("'Обмен вещами'"));
+            Assert.That(localization, Does.Contain("Term: menu.loot_person"));
+            Assert.That(localization, Does.Contain("Term: loot.title"));
+            Assert.That(localization, Does.Contain("Обобрать"));
+            Assert.That(localization, Does.Contain("Обмен вещами"));
         });
     }
 

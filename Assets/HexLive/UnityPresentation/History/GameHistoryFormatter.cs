@@ -96,7 +96,6 @@ namespace HexLive.UnityPresentation.History
                 "PreyFled" => F("history.PreyFled", actor),
                 "PredatorKilled" => Loc.Get("history.PredatorKilled"),
                 "Murdered" => Loc.Get("history.Murdered"),
-                "SharkBite" => F("history.SharkBite", actor),
                 "LimbSevered" => F("history.LimbSevered", actor),
                 "Fainted" => F("history.Fainted", actor),
                 // The coma path emits these two — the old "Collapsed" title waited
@@ -265,7 +264,7 @@ namespace HexLive.UnityPresentation.History
             }
 
             if (type is "NpcDied" or "BledOut" or "StarvedToDeath" or "VitalPartDestroyed" or "Drowned" or
-                "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "RomanceForced" or "SharkBite" or "LimbSevered" or
+                "DogFight" or "NightRaid" or "Murdered" or "Preyed" or "RomanceForced" or "LimbSevered" or
                 "MobTookLimb" or // §135: добычу унесли в зубах — это красная строка
                 "Collapsed" or // §105: она при смерти — тревожнее этого в колонии ничего нет
                 "HelpCry" or "HelpMoan" or // §57.10: слабый зов умирающей — красная строка

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Wearing.Garments
@@ -24,64 +26,93 @@ namespace HexLive.UnityPresentation.Wearing.Garments
     /// </remarks>
     public static class GarmentVariants
     {
-        private static Dictionary<string, GarmentDefinition> _byId;
-        private static Dictionary<string, List<GarmentDefinition>> _byArt;
+        private static readonly Dictionary<string, GarmentDefinition> ById = new();
+        private static readonly Dictionary<string, List<GarmentDefinition>> ByArt = new();
+        private static readonly Dictionary<string,
+            HexLive.UnityPresentation.Content.ContentAssetHandle<GarmentDefinition>> Handles = new();
+        private static readonly Dictionary<string, List<Action>> Waiters = new();
 
-        private static Dictionary<string, GarmentDefinition> Index
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Forget();
+
+        /// <summary>
+        /// Loads this item's own metadata entry. The GarmentDefinition and its
+        /// variant materials live in the same owner bundle as the prefab/icon;
+        /// there is no shared GarmentCatalog payload.
+        /// </summary>
+        public static void PrewarmAsync(string itemId, Action completed = null)
         {
-            get
+            if (string.IsNullOrEmpty(itemId))
             {
-                Build();
-                return _byId;
+                completed?.Invoke();
+                return;
             }
+            if (ById.ContainsKey(itemId))
+            {
+                completed?.Invoke();
+                return;
+            }
+            if (Waiters.TryGetValue(itemId, out var pending))
+            {
+                if (completed != null)
+                {
+                    pending.Add(completed);
+                }
+                return;
+            }
+
+            pending = new List<Action>();
+            if (completed != null)
+            {
+                pending.Add(completed);
+            }
+            Waiters[itemId] = pending;
+            HexLive.UnityPresentation.Content.ContentAssetService.Instance
+                .LoadAsset<GarmentDefinition>("wear", itemId, "metadata", loaded =>
+                {
+                    if (loaded?.Asset != null)
+                    {
+                        Handles[itemId] = loaded;
+                        Add(loaded.Asset);
+                    }
+                    else
+                    {
+                        loaded?.Dispose();
+                    }
+
+                    var callbacks = Waiters[itemId].ToArray();
+                    Waiters.Remove(itemId);
+                    foreach (var callback in callbacks)
+                    {
+                        callback();
+                    }
+                });
         }
 
-        // Both indexes are filled in ONE pass so Forget() can never leave half
-        // the lookup warm and half of it stale.
-        private static void Build()
+        private static void Add(GarmentDefinition garment)
         {
-            if (_byId != null)
+            if (garment == null || string.IsNullOrEmpty(garment.id))
             {
                 return;
             }
-
-            _byId = new Dictionary<string, GarmentDefinition>();
-            _byArt = new Dictionary<string, List<GarmentDefinition>>();
-            var catalog = HexLive.UnityPresentation.Content.AtomicResources.Load<GarmentCatalog>(GarmentCatalog.ResourcePath);
-            if (catalog == null || catalog.garments == null)
+            ById[garment.id] = garment;
+            if (!ByArt.TryGetValue(garment.ArtId, out var family))
             {
-                _byId = null;
-                _byArt = null;
-                return;
+                family = new List<GarmentDefinition>();
+                ByArt[garment.ArtId] = family;
             }
-
-            foreach (var g in catalog.garments)
+            family.RemoveAll(value => value == null || value.id == garment.id);
+            family.Add(garment);
+            family.Sort((left, right) =>
             {
-                if (g == null || string.IsNullOrEmpty(g.id))
+                var leftPrototype = left.id == left.ArtId;
+                var rightPrototype = right.id == right.ArtId;
+                if (leftPrototype != rightPrototype)
                 {
-                    continue;
+                    return leftPrototype ? -1 : 1;
                 }
-
-                _byId[g.id] = g;
-
-                if (!_byArt.TryGetValue(g.ArtId, out var family))
-                {
-                    family = new List<GarmentDefinition>();
-                    _byArt[g.ArtId] = family;
-                }
-
-                // The prototype leads its own family: a chooser that opens on
-                // the original reads as "this is the default colour", and the
-                // catalog's order between variants is otherwise arbitrary.
-                if (g.id == g.ArtId)
-                {
-                    family.Insert(0, g);
-                }
-                else
-                {
-                    family.Add(g);
-                }
-            }
+                return string.CompareOrdinal(left.id, right.id);
+            });
         }
 
         /// <summary>Art folder this item loads from — its prototype, or itself.</summary>
@@ -95,14 +126,24 @@ namespace HexLive.UnityPresentation.Wearing.Garments
             // An unknown id is its own art: the wardrobe must keep working for
             // anything the catalog has not been told about yet (dev scenes load
             // prefabs by path), rather than resolving to nothing.
-            return Index.TryGetValue(itemId, out var def) ? def.ArtId : itemId;
+            if (ById.TryGetValue(itemId, out var definition))
+            {
+                return definition.ArtId;
+            }
+
+            PrewarmAsync(itemId);
+            return HexLive.UnityPresentation.Content.ContentAssetService.Instance.TryGetRecord(
+                       "wear", itemId, out var record)
+                ? record.metadata?.Value<string>("artId") ?? itemId
+                : itemId;
         }
 
         /// <summary>Materials for this item, or null to keep the prototype's.</summary>
         public static Material[] MaterialsOf(string itemId)
         {
-            if (string.IsNullOrEmpty(itemId) || !Index.TryGetValue(itemId, out var def))
+            if (string.IsNullOrEmpty(itemId) || !ById.TryGetValue(itemId, out var def))
             {
+                PrewarmAsync(itemId);
                 return null;
             }
 
@@ -128,8 +169,15 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 return System.Array.Empty<GarmentDefinition>();
             }
 
-            Build();
-            return _byArt.TryGetValue(artId, out var family)
+            foreach (var record in HexLive.UnityPresentation.Content.ContentAssetService.Instance
+                         .Records("wear")
+                         .Where(record => string.Equals(
+                             record.metadata?.Value<string>("artId") ?? record.id,
+                             artId, StringComparison.Ordinal)))
+            {
+                PrewarmAsync(record.id);
+            }
+            return ByArt.TryGetValue(artId, out var family)
                 ? family
                 : System.Array.Empty<GarmentDefinition>();
         }
@@ -137,8 +185,14 @@ namespace HexLive.UnityPresentation.Wearing.Garments
         /// <summary>Drop the cache — the catalog changed under us (editor only).</summary>
         public static void Forget()
         {
-            _byId = null;
-            _byArt = null;
+            foreach (var handle in Handles.Values)
+            {
+                handle?.Dispose();
+            }
+            Handles.Clear();
+            ById.Clear();
+            ByArt.Clear();
+            Waiters.Clear();
         }
     }
 }

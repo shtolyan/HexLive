@@ -11,7 +11,7 @@ using HexLive.Simulation.Social;
 namespace HexLive.Simulation.Runtime
 {
 
-// Spec §50: severing a limb. Shared by the emergent triggers (dog/shark bites
+// Spec §50: severing a limb. Shared by the emergent triggers (predator bites
 // that overwhelm an already-mauled limb) and the prepared HazardSystem.
 public static class AmputateSystemHelpers
 {
@@ -106,7 +106,7 @@ public static class AmputateSystemHelpers
         }
     }
 
-    // §50 dev/test entry: land ONE bite on a part exactly like a dog/shark —
+    // §50 dev/test entry: land one bite on a part exactly like a predator —
     // dock the zone's HP, bleed a little, file the wound decal, then run the
     // sever-on-bite check. Used by the AmputationTest scene's damage buttons so
     // a limb tears off "on damage when it should" through the real path.

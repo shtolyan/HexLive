@@ -119,6 +119,22 @@ namespace HexLive.Editor
 
         private static void ValidateStagedAssembly(Entry entry, ISet<string> violations)
         {
+            BedAssembly.EditorAssemblyPrefabResolver = LoadAssemblySource;
+            BedAssembly.EditorObjectPrefabResolver = LoadObjectSource;
+            try
+            {
+                ValidateStagedAssemblyWithAuthoringAssets(entry, violations);
+            }
+            finally
+            {
+                BedAssembly.EditorAssemblyPrefabResolver = null;
+                BedAssembly.EditorObjectPrefabResolver = null;
+            }
+        }
+
+        private static void ValidateStagedAssemblyWithAuthoringAssets(
+            Entry entry, ISet<string> violations)
+        {
             var bill = entry.stagedBill;
             GameObject empty = null;
             try
@@ -174,6 +190,23 @@ namespace HexLive.Editor
             {
                 if (complete != null) UnityEngine.Object.DestroyImmediate(complete);
             }
+        }
+
+        private static GameObject LoadAssemblySource(string formerResourcePath)
+        {
+            const string prefix = "HexLive/Objects/";
+            var name = formerResourcePath.StartsWith(prefix, StringComparison.Ordinal)
+                ? formerResourcePath.Substring(prefix.Length)
+                : formerResourcePath;
+            return AssetDatabase.LoadAssetAtPath<GameObject>(
+                $"Assets/HexLiveContent/RuntimeSource/Objects/{name}.fbx");
+        }
+
+        private static GameObject LoadObjectSource(string id)
+        {
+            var name = WorldPropResources.NativeName(id);
+            return AssetDatabase.LoadAssetAtPath<GameObject>(
+                $"Assets/HexLiveContent/RuntimeSource/Objects/{name}.fbx");
         }
 
         private static void ValidateStageChannel(

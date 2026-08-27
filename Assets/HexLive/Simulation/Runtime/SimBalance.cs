@@ -141,7 +141,6 @@ namespace HexLive.Simulation.Runtime
         // approximation produced by several stacked systems.
         public static float SleepEnergyBaseBonus = 0.002f;
         public static float SleepEnergyFireBonus = 0f;
-        public static float SleepEnergyLeafBedBonus = 0.006f; // + on a leaf mat
         public static float SleepEnergyBasicBedBonus = 0.002f;
         public static float ChairComfort = 0.4f;            // comfort per sit in a chair
 
@@ -315,7 +314,7 @@ namespace HexLive.Simulation.Runtime
         public static float MinSplittableDamage = 0.09f; // hits below this don't split into gashes
 
         // ─────────────────────────────────────────────────────────────
-        // Combat — dogs & sharks.
+        // Combat — predators.
         // ─────────────────────────────────────────────────────────────
         public static float NpcStrikePerPass = 0.15f;   // an NPC's bare strike-back baseline per landed hit
 

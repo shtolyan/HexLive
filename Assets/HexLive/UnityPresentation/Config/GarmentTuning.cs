@@ -18,23 +18,19 @@ namespace HexLive.UnityPresentation.Config
     {
         public static void LoadAndApply()
         {
-            GarmentCatalog catalog;
+            GarmentCatalog catalog = null;
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
                 catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<GarmentCatalog>(
                     "Assets/HexLiveContent/RuntimeSource/GarmentCatalog.asset");
             }
-            else
 #endif
-            {
-                catalog = HexLive.UnityPresentation.Content.AtomicResources.Load<GarmentCatalog>(
-                    GarmentCatalog.ResourcePath);
-            }
             if (catalog == null)
             {
-                // No asset yet (e.g. before the editor tool has been run) —
-                // keep the built-in defaults.
+                // Runtime content is object metadata from the live registry;
+                // never download a shared GarmentCatalog. The engine-free
+                // defaults/simdata remain the simulation source of truth.
                 return;
             }
 

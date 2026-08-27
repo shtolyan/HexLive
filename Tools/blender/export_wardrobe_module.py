@@ -2,9 +2,11 @@
 
 import bpy
 import math
+from pathlib import Path
 from mathutils import Matrix
 
-OUTPUT = "/Volumes/ORICO/HexLive/Assets/HexLiveContent/RuntimeSource/Objects/furniture.wardrobe.fbx"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+OUTPUT = str(PROJECT_ROOT / "Assets/HexLiveContent/RuntimeSource/Objects/furniture.wardrobe.fbx")
 root = bpy.data.objects["HL_Wardrobe_Module"]
 
 descendants = []
@@ -71,6 +73,39 @@ for source in descendants:
     local = inverse @ source.matrix_world
     clone.data.transform(local)
     clone.parent = export_root
+    clone.matrix_parent_inverse = Matrix.Identity(4)
+    clone.matrix_basis = Matrix.Identity(4)
+    clone.hide_viewport = False
+    clone.hide_render = False
+    copies.append(clone)
+
+# One authored hanger template belongs to the wardrobe object itself. Runtime
+# garments clone this child from the already-open furniture.wardrobe bundle;
+# there is no procedural Unity cylinder and no second hanger/icon bundle.
+hanger_source = bpy.data.objects.get("HL_Wardrobe_RealHanger_00")
+if hanger_source is None:
+    raise RuntimeError("HL_Wardrobe_RealHanger_00 is required for HangerTemplate")
+hanger_template = bpy.data.objects.new("HangerTemplate", None)
+export_collection.objects.link(hanger_template)
+hanger_template.parent = export_root
+hanger_template.matrix_parent_inverse = Matrix.Identity(4)
+hanger_template.matrix_basis = Matrix.Identity(4)
+hanger_inverse = hanger_source.matrix_world.inverted()
+hanger_descendants = []
+hanger_stack = list(hanger_source.children)
+while hanger_stack:
+    hanger_part = hanger_stack.pop()
+    hanger_descendants.append(hanger_part)
+    hanger_stack.extend(hanger_part.children)
+for source in hanger_descendants:
+    if source.type != 'MESH':
+        continue
+    clone = source.copy()
+    clone.data = source.data.copy()
+    clone.name = source.name.replace("HL_Wardrobe_Hanger_00_", "Hanger_")
+    export_collection.objects.link(clone)
+    clone.data.transform(hanger_inverse @ source.matrix_world)
+    clone.parent = hanger_template
     clone.matrix_parent_inverse = Matrix.Identity(4)
     clone.matrix_basis = Matrix.Identity(4)
     clone.hide_viewport = False

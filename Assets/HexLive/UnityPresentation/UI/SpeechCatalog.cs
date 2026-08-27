@@ -98,7 +98,6 @@ public static class SpeechCatalog
         ["hurt_wound"] = new("Pain", Rank.Alarm, 5f),
         ["happy_victory"] = new("Victory", Rank.Action, 10f),
         ["fear_flee"] = new("Flee", Rank.Alarm, 12f),
-        ["fear_shark"] = new("Sharks", Rank.Alarm, 15f),
         ["hurt_death"] = new("Death", Rank.Alarm, 0f),
         ["hurt_faint"] = new("Faint", Rank.Alarm, 20f),
         ["cry_corpse"] = new("Grief", Rank.Action, 25f),
@@ -132,7 +131,6 @@ public static class SpeechCatalog
         // ---- D. conversation (one per TalkTopic) -------------------------
         ["happy_topic_smalltalk"] = new("SmallTalk", Rank.Talk, 0f),
         ["sad_topic_escape"] = new("Escape", Rank.Talk, 0f),
-        ["fear_topic_sharks"] = new("Sharks", Rank.Talk, 0f),
         ["angry_topic_dogs"] = new("Dogs", Rank.Talk, 0f),
         ["sad_topic_weather"] = new("Weather", Rank.Talk, 0f),
         ["happy_topic_food"] = new("Food", Rank.Talk, 0f),
@@ -208,7 +206,6 @@ public static class SpeechCatalog
         {
             "SmallTalk" => "happy_topic_smalltalk",
             "Escape" => "sad_topic_escape",
-            "Sharks" => "fear_topic_sharks",
             "Dogs" => "angry_topic_dogs",
             "Weather" => "sad_topic_weather",
             "Food" => "happy_topic_food",
@@ -296,9 +293,8 @@ public static class SpeechCatalog
 
         // ---- угроза замечена издалека (§62/§72) --------------------------
         // Над головой — жёлтый треугольник: это ещё не бой, это «вижу».
-        // Реплика уже про конкретного: зверь, акула или человек.
+        // Реплика уже про конкретного зверя или человека.
         ["DangerSpotted:dog"] = new("Warning", "fear_wolf"),
-        ["DangerSpotted:shark"] = new("Warning", "fear_shark"),
         ["DangerSpotted:*"] = new("Warning", "fear_flee"),
         ["DangerSpotted"] = new("Warning", "fear_wolf"),
         // §80: чужак-человек. Над ним всплывает ЛИЦО (портрет перекрывает
@@ -343,8 +339,7 @@ public static class SpeechCatalog
         ["TalkQuarrel"] = new("Grumble", null, Rank.Talk),
         ["Resentment"] = new("Grumble", null, Rank.Talk),
 
-        // Увидела убийство. Раньше здесь всплывала АКУЛА 🦈 — та же болезнь, что
-        // собака на человека: картинка из соседней строки таблицы.
+        // Увидела убийство: картинка смерти, а не соседняя строка таблицы.
         ["WitnessedMurder"] = new("Death", "cry_corpse"),
 
         // ---- §81: сцена абьюза. Своих групп на хекскуфе пока нет — берём

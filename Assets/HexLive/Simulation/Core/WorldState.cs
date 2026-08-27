@@ -145,7 +145,7 @@ public sealed class WorldState
     public System.Collections.Generic.HashSet<Common.JunctionId> ClimbSeams { get; } = new();
 
     // Spec 40.18: sea junctions opened for swimming — a shallow ring the
-    // pathfinder may cross at ~4x cost (a slow, shark-risked last resort).
+    // pathfinder may cross at ~4x cost (a slow last resort).
     public System.Collections.Generic.HashSet<Common.JunctionId> SwimJunctions { get; } = new();
 
     // Spec 40.18 step 4: the strait crossing to the second island — swim
@@ -186,7 +186,7 @@ public sealed class WorldState
     // Spec 29C.3: lightweight wildlife, not NPCs.
     public System.Collections.Generic.List<Wildlife.MobState> Mobs { get; } = new();
 
-    // §147.1: патрульные слоты виртуальных зверей (волки, крабы, акулы —
+    // §147.1: патрульные слоты виртуальных зверей (волки и крабы —
     // вперемешку, вид в MobSpawnSlot.MobId). Virtual-слот не владеет
     // MobState/RabbitState вовсе; блоб v53. Урок §41.2/§46 v4: всё состояние
     // слота живёт здесь и в сейве, ничего не выводится из сида задним числом.
@@ -297,9 +297,6 @@ public sealed class WorldState
 
     // Spec 29F.1: prey.
     public System.Collections.Generic.List<Wildlife.RabbitState> Rabbits { get; } = new();
-
-    // Spec 40.18: sharks patrolling the swim ring — bite swimmers.
-    public System.Collections.Generic.List<Wildlife.SharkState> Sharks { get; } = new();
 
     public int NextRabbitId { get; set; } = 1;
 }

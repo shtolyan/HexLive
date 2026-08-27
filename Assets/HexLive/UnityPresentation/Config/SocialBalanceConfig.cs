@@ -80,8 +80,6 @@ namespace HexLive.UnityPresentation.Config
         [Header("§49 — комфорт сна за ночь")]
         [Tooltip("Комфорт за ночь сна на голой траве. Мало — чтобы всё равно хотелось строить кровать.")]
         [Range(0f, 1f)] public float sleepComfortGrassNight = 0.05f;
-        [Tooltip("Комфорт за ночь на листовом коврике (tier-1).")]
-        [Range(0f, 1f)] public float sleepComfortLeafNight = 0.30f;
         [Tooltip("Комфорт за ночь на нормальной кровати (полная полоска).")]
         [Range(0f, 1f)] public float sleepComfortBedNight = 1.0f;
         [Tooltip("Добавка к комфорту за ночь, если спит рядом с горящим костром.")]

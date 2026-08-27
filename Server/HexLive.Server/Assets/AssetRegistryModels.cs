@@ -12,11 +12,11 @@ public static class ContentIdentity
     private static readonly HashSet<string> Types = new(StringComparer.Ordinal)
     {
         "wear", "actor", "hair", "prosthetic", "object", "building",
-        "mob", "ui", "vfx", "audio", "config",
+        "mob", "vfx", "audio", "config",
     };
 
     private static readonly Regex IdPattern = new(
-        "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$", RegexOptions.CultureInvariant);
+        "^[A-Za-z0-9][A-Za-z0-9._ -]{0,127}$", RegexOptions.CultureInvariant);
     private static readonly Regex VariantPattern = new(
         "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$", RegexOptions.CultureInvariant);
     private static readonly Regex ShaPattern = new(
@@ -31,8 +31,6 @@ public static class ContentIdentity
 
     public static bool IsSha256(string? value) => value is not null && ShaPattern.IsMatch(value);
 
-    public static bool RequiresOwnedIcon(string type) =>
-        type is "wear" or "actor" or "hair" or "prosthetic" or "object" or "building" or "mob";
 }
 
 public sealed class ContentObjectRecord

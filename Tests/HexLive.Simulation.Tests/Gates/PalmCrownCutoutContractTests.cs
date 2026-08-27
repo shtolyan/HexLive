@@ -73,8 +73,8 @@ namespace HexLive.Simulation.Tests.Gates
         [Test]
         public void HiddenCrownShaderHasOnlyAnAuthoredAlphaShadowPass()
         {
-            var shaderPath = Path.Combine(RepoPaths.Root, "Assets", "Resources",
-                "HexLive", "Shaders", "StandingPalmCrownShadowOnly.shader");
+            var shaderPath = Path.Combine(RepoPaths.Root, "Assets", "HexLiveContent",
+                "RuntimeSource", "Shaders", "StandingPalmCrownShadowOnly.shader");
             var shader = File.ReadAllText(shaderPath);
             Assert.Multiple(() =>
             {

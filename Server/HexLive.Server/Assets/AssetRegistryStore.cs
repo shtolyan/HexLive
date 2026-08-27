@@ -88,7 +88,9 @@ public sealed class AssetRegistryStore
     }
 
     public async Task<ContentPublishResult> PublishAsync(
-        ContentPublishCandidate candidate, CancellationToken cancellationToken = default)
+        ContentPublishCandidate candidate,
+        bool retainCurrentVariants = false,
+        CancellationToken cancellationToken = default)
     {
         ValidateCandidate(candidate);
         VerifyCandidates(candidate);
@@ -104,6 +106,28 @@ public sealed class AssetRegistryStore
             var current = ReadCurrent(candidate.Type, candidate.Id);
             var proposedVariants = candidate.Variants
                 .Select(ToRecordVariant)
+                .ToList();
+            if (retainCurrentVariants && current is not null &&
+                current.State == "active" && candidate.State == "active")
+            {
+                var incoming = proposedVariants.Select(VariantKey)
+                    .ToHashSet(StringComparer.Ordinal);
+                var retained = current.Variants
+                    .Where(value => !incoming.Contains(VariantKey(value)))
+                    .ToArray();
+                if (retained.Length != 0 && !JsonEquals(current.Metadata, candidate.Metadata))
+                {
+                    throw new InvalidDataException(
+                        "Cannot retain platform variants while changing object metadata; " +
+                        "publish all platforms for this semantic update.");
+                }
+                foreach (var variant in retained)
+                {
+                    VerifyRetainedVariant(candidate.Type, candidate.Id, variant);
+                    proposedVariants.Add(CloneVariant(variant));
+                }
+            }
+            proposedVariants = proposedVariants
                 .OrderBy(value => value.Platform, StringComparer.Ordinal)
                 .ThenBy(value => value.RuntimeProfile, StringComparer.Ordinal)
                 .ToList();
@@ -635,13 +659,6 @@ public sealed class AssetRegistryStore
                     "An icon must be the 'icon' entry in its owning bundle.", nameof(candidate));
             }
 
-            if (ContentIdentity.RequiresOwnedIcon(candidate.Type) && variant.IconAsset != "icon")
-            {
-                throw new ArgumentException(
-                    $"{candidate.Type}/{candidate.Id} must expose 'icon' inside its own payload.",
-                    nameof(candidate));
-            }
-
             var attachmentNames = new HashSet<string>(StringComparer.Ordinal);
             foreach (var attachment in variant.Attachments)
             {
@@ -691,6 +708,46 @@ public sealed class AssetRegistryStore
             Sha256 = attachment.Sha256,
             Size = attachment.Size,
         }).OrderBy(attachment => attachment.Name, StringComparer.Ordinal).ToList(),
+    };
+
+    private static string VariantKey(ContentObjectVariant value) =>
+        value.Platform + "\n" + value.RuntimeProfile;
+
+    private void VerifyRetainedVariant(string type, string id, ContentObjectVariant variant)
+    {
+        if (!TryGetVerifiedBlob(variant.Sha256, out _, out var size) || size != variant.Size)
+        {
+            throw new InvalidDataException(
+                $"Cannot retain missing or corrupt blob for {type}/{id} " +
+                $"{variant.Platform}/{variant.RuntimeProfile}.");
+        }
+        foreach (var attachment in variant.Attachments)
+        {
+            if (!TryGetVerifiedBlob(attachment.Sha256, out _, out var attachmentSize) ||
+                attachmentSize != attachment.Size)
+            {
+                throw new InvalidDataException(
+                    $"Cannot retain missing or corrupt attachment '{attachment.Name}' " +
+                    $"for {type}/{id} {variant.Platform}/{variant.RuntimeProfile}.");
+            }
+        }
+    }
+
+    private static ContentObjectVariant CloneVariant(ContentObjectVariant value) => new()
+    {
+        Platform = value.Platform,
+        RuntimeProfile = value.RuntimeProfile,
+        Sha256 = value.Sha256,
+        Size = value.Size,
+        PayloadType = value.PayloadType,
+        EntryAsset = value.EntryAsset,
+        IconAsset = value.IconAsset,
+        Attachments = value.Attachments.Select(attachment => new ContentObjectAttachment
+        {
+            Name = attachment.Name,
+            Sha256 = attachment.Sha256,
+            Size = attachment.Size,
+        }).ToList(),
     };
 
     private static bool SamePublishedValue(

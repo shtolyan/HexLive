@@ -6711,7 +6711,7 @@ namespace HexLive.UnityPresentation.UI
                 iconView.style.height = 27f;
                 iconView.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
                 iconView.pickingMode = PickingMode.Ignore;
-                var iconTexture = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>(iconResource);
+                var iconTexture = Resources.Load<Texture2D>(iconResource);
                 if (iconTexture != null)
                 {
                     iconView.style.backgroundImage = new StyleBackground(iconTexture);
@@ -6951,7 +6951,7 @@ namespace HexLive.UnityPresentation.UI
             backpackIcon.style.height = 46f;
             backpackIcon.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
             backpackIcon.pickingMode = PickingMode.Ignore;
-            var backpackTexture = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/UI/IdentityBackpackIcon");
+            var backpackTexture = Resources.Load<Texture2D>("HexLive/UI/IdentityBackpackIcon");
             if (backpackTexture != null)
             {
                 backpackIcon.style.backgroundImage = new StyleBackground(backpackTexture);

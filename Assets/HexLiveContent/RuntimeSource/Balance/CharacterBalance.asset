@@ -83,7 +83,6 @@ MonoBehaviour:
   chairComfort: 0.4
   sleepEnergyBaseBonus: 0.002
   sleepEnergyFireBonus: 0
-  sleepEnergyLeafBedBonus: 0.006
   sleepEnergyBasicBedBonus: 0.002
   exhaustedSleepWakeEnergy: 0.45
   comaWakeThreshold: 0.15
@@ -202,9 +201,7 @@ MonoBehaviour:
   cutRecoveryPerSlowTick: 0.00033333333
   naturalScarringFactor: 0.25
   groundRestHealMultiplier: 1
-  leafBedHealMultiplier: 1.5
   basicBedHealMultiplier: 2
-  leafBedDegenerationMultiplier: 0.5
   basicBedDegenerationMultiplier: 0
   woundedRestEnabled: 1
   woundedRestEnterHealth: 0.5

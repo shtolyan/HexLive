@@ -52,11 +52,6 @@ public sealed class MobSystem : ISimulationSystem
         if (wolfSlots > 0)
         {
             RunWolfSlots(world, wolfSlots);
-            // §147.6: акулы — превью навсегда: SharkSystem не зарегистрирована
-            // (гейт §30), поэтому у их слотов нет ни радиуса материализации,
-            // ни цикла смерти — чистая амбиентная жизнь на кольцах воды.
-            MobSlots.EnsureSlots(world, Content.MobIds.Shark,
-                MobSlots.SharkSlotsFor(world.Mode));
         }
         // Spec 41.2 v2: the timer lives in WorldState so it survives a save.
         else if (world.Tick >= world.NextMobSpawnCheckTick)

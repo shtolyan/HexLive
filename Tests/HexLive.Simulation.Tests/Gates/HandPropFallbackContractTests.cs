@@ -4,11 +4,11 @@ using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Gates;
 
-/// <summary>§20 / bug #202: an empty native prefab must not suppress the visible fallback.</summary>
+/// <summary>§20/§152: a hand prop may only use its exact atomic owner.</summary>
 public sealed class HandPropFallbackContractTests
 {
     [Test]
-    public void EmptyNativeHandPrefabFallsBackToProceduralProp()
+    public void PendingOrEmptyHandPrefabNeverBecomesAProceduralProp()
     {
         var source = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
@@ -22,14 +22,13 @@ public sealed class HandPropFallbackContractTests
             StringComparison.Ordinal);
         var validate = method.IndexOf("ObjectFit.HasRenderableGeometry(_handProp)",
             StringComparison.Ordinal);
-        var fallback = method.IndexOf("LowPolyToolFactory.Build(itemId)",
-            StringComparison.Ordinal);
 
         Assert.Multiple(() =>
         {
             Assert.That(validate, Is.GreaterThan(load));
-            Assert.That(fallback, Is.GreaterThan(validate));
-            Assert.That(method, Does.Contain("if (_handProp == null)"));
+            Assert.That(method, Does.Contain("if (model == null)"));
+            Assert.That(method, Does.Not.Contain("LowPolyToolFactory"));
+            Assert.That(method, Does.Not.Contain("CreatePrimitive"));
         });
     }
 }

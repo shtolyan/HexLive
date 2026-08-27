@@ -32,6 +32,46 @@ internal static class ProstheticContent
         return string.IsNullOrEmpty(id) ? string.Empty : "prosthetic/" + id;
     }
 
+    /// <summary>
+    /// A loose prosthetic keeps one simulation id for both sides, while its
+    /// atomic art is side-specific. Use the same deterministic side selection
+    /// as <see cref="ProstheticWorldDropView"/> so prewarm resolves the exact
+    /// bundle which the world view will request.
+    /// </summary>
+    internal static bool TryWorldDropObjectId(
+        string definitionId, int objectId, out string contentId)
+    {
+        if (!TryDescribeWorldDrop(
+                definitionId, objectId, out var part, out var mechanical))
+        {
+            contentId = string.Empty;
+            return false;
+        }
+
+        contentId = ObjectId(part, definitionId, mechanical);
+        return !string.IsNullOrEmpty(contentId);
+    }
+
+    internal static bool TryDescribeWorldDrop(
+        string definitionId, int objectId, out BodyPart part, out bool mechanical)
+    {
+        mechanical = definitionId is ContentIds.MechanicalArm or ContentIds.MechanicalLeg;
+        var left = (objectId & 1) == 0;
+        if (definitionId is ContentIds.WoodenArm or ContentIds.MechanicalArm)
+        {
+            part = left ? BodyPart.ArmL : BodyPart.ArmR;
+            return true;
+        }
+        if (definitionId is ContentIds.WoodenLeg or ContentIds.MechanicalLeg)
+        {
+            part = left ? BodyPart.LegL : BodyPart.LegR;
+            return true;
+        }
+
+        part = default;
+        return false;
+    }
+
     private static string ObjectId(BodyPart part, string definitionId, bool mechanical)
     {
         if (part is not (BodyPart.ArmL or BodyPart.ArmR or BodyPart.LegL or BodyPart.LegR))

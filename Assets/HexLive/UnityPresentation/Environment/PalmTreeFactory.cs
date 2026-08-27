@@ -13,12 +13,12 @@ namespace HexLive.UnityPresentation.Environment
     /// </summary>
     public static class PalmTreeFactory
     {
-        public static bool IsPalm(string definitionId) => definitionId == "tree.palm";
+        public static bool IsPalm(string definitionId) =>
+            definitionId is "tree.palm" or "tree.palm_small";
 
         public static GameObject? Build(string definitionId)
         {
-            var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(
-                "HexLive/Objects/palm_final_native");
+            var prefab = WorldPropResources.Load(definitionId);
             if (prefab == null || !ObjectFit.HasRenderableGeometry(prefab))
             {
                 return null;

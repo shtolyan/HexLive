@@ -17,7 +17,11 @@ public sealed class HutHearthVisualContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(furniture, Does.Contain("new GameObject(\"fire_point\")"));
+            Assert.That(furniture, Does.Contain(
+                "AtomicResources.Load<GameObject>(HearthPrefabPath)"));
+            Assert.That(furniture, Does.Contain("child.name != \"fire_point\""));
+            Assert.That(furniture, Does.Contain(
+                "child.SetParent(host.transform, worldPositionStays: true)"));
             Assert.That(renderer, Does.Contain("GetComponentInChildren<"));
             Assert.That(renderer, Does.Contain(
                 "HexLive.UnityPresentation.Environment.CampfireEffect>(true)"));
@@ -34,9 +38,8 @@ public sealed class HutHearthVisualContractTests
         var audio = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Audio",
             "FmodSfx.cs"));
-        var sample = Path.Combine(
-            RepoPaths.Root, "Assets", "StreamingAssets", "HexLive", "Sfx",
-            "loop_fire_0.wav");
+        var sample = Path.Combine(RepoPaths.Root, "Assets", "HexLiveContent",
+            "AudioSource", "HexLive", "Sfx", "loop_fire_0.wav");
 
         Assert.Multiple(() =>
         {
@@ -46,8 +49,9 @@ public sealed class HutHearthVisualContractTests
             Assert.That(effect, Does.Contain("FmodSfx.StopLoop(ref _crackle)"));
             Assert.That(audio, Does.Contain(
                 "[Sfx.LoopFire] = new Def(0.85f, 1.2f, 28f, 0f, loop: true)"));
+            Assert.That(audio, Does.Contain("service.GetRawFile(\"audio\", record.id"));
             Assert.That(File.Exists(sample), Is.True,
-                "В runtime StreamingAssets должен ехать сам crackle-сэмпл.");
+                "Исходный crackle-сэмпл должен публиковаться как atomic audio blob.");
             Assert.That(new FileInfo(sample).Length, Is.GreaterThan(44),
                 "WAV не должен оказаться пустым файлом или LFS-указателем.");
         });

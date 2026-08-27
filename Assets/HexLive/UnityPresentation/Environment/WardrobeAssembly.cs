@@ -29,10 +29,10 @@ namespace HexLive.UnityPresentation.Environment
         private static void ResolveClothingSlots()
         {
             if (_clothingSlotsResolved) return;
-            _clothingSlotsResolved = true;
 
             var prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(ResourcePath);
             if (prefab == null) return;
+            _clothingSlotsResolved = true;
 
             // The FBX's imported root carries Unity's Blender-axis conversion.
             // A socket measured relative to prefab.transform is still in the
@@ -67,6 +67,11 @@ namespace HexLive.UnityPresentation.Environment
             var root = new GameObject("Wardrobe furniture (authored)");
             var model = Object.Instantiate(prefab, root.transform);
             model.name = "furniture.wardrobe model";
+            // Hanger geometry is stored in this same atomic owner bundle as a
+            // cloneable template. It must not render until a simulation garment
+            // actually occupies one of the authored ClothingSlot sockets.
+            var hangerTemplate = FindDescendant(model.transform, "HangerTemplate");
+            if (hangerTemplate != null) hangerTemplate.gameObject.SetActive(false);
             foreach (var collider in model.GetComponentsInChildren<Collider>(true))
             {
                 if (Application.isPlaying) Object.Destroy(collider);

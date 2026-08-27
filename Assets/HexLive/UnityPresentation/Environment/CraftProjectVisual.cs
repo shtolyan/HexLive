@@ -12,6 +12,7 @@ namespace HexLive.UnityPresentation.Environment
         private readonly List<GameObject> _ingredients = new();
         private Transform? _output;
         private string _ingredientSignature = string.Empty;
+        private bool _contentPending;
 
         public void Sync(ObjectSnapshot snapshot)
         {
@@ -20,7 +21,7 @@ namespace HexLive.UnityPresentation.Environment
             PositionOutput(onTable);
 
             var signature = string.Join("|", snapshot.CraftIngredients);
-            if (signature != _ingredientSignature)
+            if (signature != _ingredientSignature || _contentPending)
             {
                 RebuildIngredients(snapshot.CraftIngredients, onTable);
                 _ingredientSignature = signature;
@@ -51,16 +52,26 @@ namespace HexLive.UnityPresentation.Environment
 
         private void RebuildIngredients(IReadOnlyList<string> ids, bool onTable)
         {
+            var prefabs = new GameObject[Mathf.Min(ids.Count, 6)];
+            for (var i = 0; i < prefabs.Length; i++)
+            {
+                prefabs[i] = WorldPropResources.Load(ids[i]);
+                if (prefabs[i] == null)
+                {
+                    _contentPending = true;
+                    return;
+                }
+            }
+
+            _contentPending = false;
             foreach (var go in _ingredients) if (go != null) Destroy(go);
             _ingredients.Clear();
-            for (var i = 0; i < ids.Count && i < 6; i++)
+            for (var i = 0; i < prefabs.Length; i++)
             {
-                // §119.1 / bug #137: use the authored Player-safe model first,
-                // exactly like a world drop. Crafting used to call the
-                // procedural factory first, silently replacing valid native
-                // resources, then clamp everything to 0.16 wu.
-                var model = WorldPropResources.Build(ids[i]) ??
-                            GameObject.CreatePrimitive(PrimitiveType.Cube);
+                // §119.1 / §152: use the exact authored owner, exactly like a
+                // world drop. There is no procedural substitute while its
+                // independent bundle is still travelling.
+                var model = Object.Instantiate(prefabs[i]);
                 model.name = $"Craft Ingredient {i:00} {ids[i]}";
                 model.transform.SetParent(transform, false);
                 model.transform.localScale *= ObjectFit.FitScaleFactor(model, ids[i]);

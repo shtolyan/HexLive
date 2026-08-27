@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.UnityPresentation.Content;
 
 namespace HexLive.UnityPresentation.Wearing
@@ -28,6 +29,9 @@ namespace HexLive.UnityPresentation.Wearing
 // дверь молчит на том, что уже в кэше или уже едет.
 public static class ScenePrewarm
 {
+    private static readonly string[] ItemOwnerTypes =
+        { "wear", "object", "building", "mob" };
+
     public static void ForWorld(WorldState world)
     {
         if (world == null)
@@ -36,12 +40,216 @@ public static class ScenePrewarm
         }
 
         ResolveWorkingSet(world);
+        WarmItems(world);
         WarmWear(world);
         WarmActors(world);
         WarmHair(world);
         WarmProsthetics(world);
         WarmObjects(world);
         WarmMobs(world);
+    }
+
+    /// <summary>
+    /// The presentation-side equivalent of <see cref="ForWorld"/>. Remote
+    /// clients own no <see cref="WorldState"/>, so the live snapshot is their
+    /// authoritative current-world working set. Repeating this on every new
+    /// snapshot is intentional and cheap: family caches suppress old ids while
+    /// a newly crafted, looted or spawned owner immediately opens one bundle
+    /// for both its <c>main</c> and <c>icon</c> entries.
+    /// </summary>
+    public static void ForSnapshot(WorldSnapshot snapshot)
+    {
+        if (snapshot == null)
+        {
+            return;
+        }
+
+        WarmSnapshotNpcs(snapshot.Npcs);
+        WarmSnapshotNpcs(snapshot.Corpses);
+
+        foreach (var worldObject in snapshot.Objects)
+        {
+            if (TryWorldObjectContentKey(
+                    worldObject.DefinitionId, worldObject.Id.Value,
+                    out var type, out var contentId))
+            {
+                WarmOwnerMain(type, contentId);
+            }
+
+            foreach (var slot in worldObject.Contents)
+            {
+                WarmItemOwner(slot.ItemDefinitionId);
+            }
+            foreach (var ingredientId in worldObject.CraftIngredients)
+            {
+                WarmItemOwner(ingredientId);
+            }
+            if (worldObject.RoastingRaw > 0)
+            {
+                WarmItemOwner("food.meat_raw");
+            }
+            if (worldObject.RoastingCooked > 0)
+            {
+                WarmItemOwner("food.meat_cooked");
+            }
+        }
+
+        foreach (var mob in snapshot.Mobs)
+        {
+            WarmOwnerMain("mob", mob.MobId);
+        }
+    }
+
+    private static void WarmSnapshotNpcs(IEnumerable<NpcSnapshot> npcs)
+    {
+        foreach (var npc in npcs)
+        {
+            WarmOwnerMain("actor", npc.ActorMesh);
+            HairContent.Prewarm(npc.Hairstyle);
+
+            foreach (var id in npc.WornItems)
+            {
+                WarmItemOwner(id);
+            }
+            foreach (var id in npc.InventoryItems)
+            {
+                WarmItemOwner(id);
+            }
+            foreach (var id in npc.HolsteredItems)
+            {
+                WarmItemOwner(id);
+            }
+            WarmItemOwner(npc.HeldItemId);
+            WarmItemOwner(npc.HeldGarmentId);
+            WarmItemOwner(npc.FavoriteWeaponId);
+
+            foreach (var container in npc.InventoryContainers)
+            {
+                WarmItemOwner(container.OwnerItemDefinitionId);
+                foreach (var slot in container.Slots)
+                {
+                    WarmItemOwner(slot.ItemDefinitionId);
+                }
+            }
+
+            foreach (var condition in npc.BodyPartConditions)
+            {
+                if (condition.Prosthetic is { } prosthetic)
+                {
+                    ProstheticContent.Load(
+                        prosthetic.Part,
+                        prosthetic.DefinitionId,
+                        prosthetic.Mechanical,
+                        null);
+                }
+            }
+        }
+    }
+
+    private static void WarmItemOwner(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return;
+        }
+
+        var service = ContentAssetService.Instance;
+        foreach (var type in ItemOwnerTypes)
+        {
+            if (!service.TryGetRecord(type, id, out _))
+            {
+                continue;
+            }
+
+            WarmOwnerMain(type, id);
+            return;
+        }
+
+        // The local pre-wind pass can run before the registry callback. Infer
+        // only stable simulation families here; LoadMain itself waits for the
+        // registry and a later live-snapshot pass confirms the exact type.
+        if (HexLive.Simulation.Content.GarmentLibrary.Active.Any(
+                garment => string.Equals(
+                    garment.Id, id, System.StringComparison.Ordinal)))
+        {
+            WarmOwnerMain("wear", id);
+        }
+        else if (id.StartsWith("building.", System.StringComparison.Ordinal) ||
+                 id.StartsWith("architecture.", System.StringComparison.Ordinal))
+        {
+            WarmOwnerMain("building", id);
+        }
+        else
+        {
+            WarmOwnerMain("object", id);
+        }
+    }
+
+    private static void WarmOwnerMain(string type, string id)
+    {
+        if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(id))
+        {
+            return;
+        }
+
+        if (type == "wear")
+        {
+            ActorWardrobe.PrewarmAsync(id);
+            return;
+        }
+
+        ContentPrefabCache.Prewarm(type, id);
+    }
+
+    /// <summary>
+    /// Owner payloads for everything the opening world can put in an inventory,
+    /// on a body or inside a world container. Each actual item opens one bundle:
+    /// its main prefab and icon are retained together behind the loading curtain.
+    /// This is intentionally a working set, not the whole item registry.
+    /// </summary>
+    private static void WarmItems(WorldState world)
+    {
+        var ids = new HashSet<string>();
+        void Add(string id)
+        {
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                ids.Add(id);
+            }
+        }
+
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            foreach (var item in npc.WornItems)
+            {
+                Add(item.DefinitionId);
+            }
+            foreach (var item in npc.Inventory.Items)
+            {
+                Add(item.DefinitionId);
+            }
+        }
+
+        foreach (var corpse in world.Entities.Corpses.Values)
+        {
+            foreach (var item in corpse.WornItems)
+            {
+                Add(item.DefinitionId);
+            }
+        }
+
+        foreach (var worldObject in world.Entities.Objects.Values)
+        {
+            foreach (var item in worldObject.Contents)
+            {
+                Add(item.DefinitionId);
+            }
+        }
+
+        foreach (var id in ids)
+        {
+            WarmItemOwner(id);
+        }
     }
 
     private static void ResolveWorkingSet(WorldState world)
@@ -90,8 +298,11 @@ public static class ScenePrewarm
 
         foreach (var value in world.Entities.Objects.Values)
         {
-            Add(value.DefinitionId.StartsWith("building.", System.StringComparison.Ordinal)
-                ? "building" : "object", value.DefinitionId);
+            if (TryWorldObjectContentKey(
+                    value.DefinitionId, value.Id.Value, out var type, out var contentId))
+            {
+                Add(type, contentId);
+            }
         }
         foreach (var mob in world.Mobs)
         {
@@ -213,9 +424,12 @@ public static class ScenePrewarm
                 continue;
             }
 
-            var type = worldObject.DefinitionId.StartsWith("building.",
-                System.StringComparison.Ordinal) ? "building" : "object";
-            ContentPrefabCache.Prewarm(type, worldObject.DefinitionId);
+            if (TryWorldObjectContentKey(
+                    worldObject.DefinitionId, worldObject.Id.Value,
+                    out var type, out var contentId))
+            {
+                ContentPrefabCache.Prewarm(type, contentId);
+            }
         }
     }
 
@@ -257,6 +471,60 @@ public static class ScenePrewarm
             }
         }
     }
+
+    private static bool TryWorldObjectContentKey(
+        string definitionId, int objectId, out string type, out string contentId)
+    {
+        type = string.Empty;
+        contentId = string.Empty;
+        if (string.IsNullOrWhiteSpace(definitionId))
+        {
+            return false;
+        }
+
+        // A dropped garment is still the same atomic wear object as the fitted
+        // garment. Asking for object/clothing.* produced a false missing-record
+        // warning and left the real wear bundle on the lazy path.
+        if (HexLive.Simulation.Content.GarmentLibrary.Active.Any(
+                garment => string.Equals(
+                    garment.Id, definitionId, System.StringComparison.Ordinal)))
+        {
+            type = "wear";
+            contentId = definitionId;
+            return true;
+        }
+
+        // Simulation uses one id per prosthetic kind, but presentation objects
+        // are independently authored for left/right. Match the world-drop view's
+        // deterministic side selection before resolve/prewarm.
+        if (ProstheticContent.TryWorldDropObjectId(definitionId, objectId, out contentId))
+        {
+            type = "prosthetic";
+            return true;
+        }
+
+        // These are simulation/presentation anchors assembled from already
+        // loaded actors or procedural geometry. They deliberately own no
+        // ContentObject and therefore must not be reported as missing bundles.
+        if (IsPayloadFreeWorldAnchor(definitionId))
+        {
+            return false;
+        }
+
+        type = definitionId.StartsWith("building.", System.StringComparison.Ordinal) ||
+               definitionId.StartsWith("architecture.", System.StringComparison.Ordinal)
+            ? "building"
+            : "object";
+        contentId = definitionId;
+        return true;
+    }
+
+    private static bool IsPayloadFreeWorldAnchor(string definitionId) =>
+        definitionId.StartsWith("water.", System.StringComparison.Ordinal) ||
+        definitionId is "corpse.npc" or "grave.npc" or "body.limb_severed" ||
+        definitionId == HexLive.Simulation.Content.ContentIds.BuildSite ||
+        definitionId == HexLive.Simulation.Content.ContentIds.HutPlan ||
+        definitionId == HexLive.Simulation.Content.ContentIds.HumanRemains;
 }
 
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -59,17 +60,39 @@ public static class Program
         // §152.3: the installed server binary is also the SSH-only promotion
         // command. It never starts a world or opens an upload endpoint in this
         // mode; all bytes must already be under asset-root/staging.
-        if (options.PublishCandidatePath is not null)
+        if (options.PublishCandidatePath is not null || options.PublishCandidatesDirectory is not null)
         {
             try
             {
                 var registry = new AssetRegistryStore(options.AssetRoot);
-                var candidate = AssetRegistryStore.ReadCandidateFile(options.PublishCandidatePath);
-                var published = await registry.PublishAsync(candidate).ConfigureAwait(false);
-                Console.WriteLine(
-                    $"[assets] {(published.Changed ? "published" : "no-op")} " +
-                    $"{published.Record.Type}/{published.Record.Id} revision " +
-                    $"{published.Record.Revision}, registry {published.RegistryRevision}");
+                var paths = options.PublishCandidatePath is not null
+                    ? new[] { options.PublishCandidatePath }
+                    : Directory.GetFiles(
+                            Path.GetFullPath(options.PublishCandidatesDirectory!),
+                            "*.json", SearchOption.TopDirectoryOnly)
+                        .OrderBy(path => path, StringComparer.Ordinal)
+                        .ToArray();
+                if (paths.Length == 0)
+                {
+                    throw new InvalidDataException("candidate directory contains no JSON files");
+                }
+
+                var changed = 0;
+                foreach (var path in paths)
+                {
+                    var candidate = AssetRegistryStore.ReadCandidateFile(path);
+                    var published = await registry.PublishAsync(
+                        candidate, options.RetainCurrentAssetVariants).ConfigureAwait(false);
+                    if (published.Changed)
+                    {
+                        changed++;
+                    }
+                    Console.WriteLine(
+                        $"[assets] {(published.Changed ? "published" : "no-op")} " +
+                        $"{published.Record.Type}/{published.Record.Id} revision " +
+                        $"{published.Record.Revision}, registry {published.RegistryRevision}");
+                }
+                Console.WriteLine($"[assets] batch complete: {paths.Length} objects, {changed} changed");
                 return 0;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
@@ -507,6 +530,15 @@ public sealed class ServerOptions
     /// <summary>Administrative one-shot mode, reachable only from the process CLI.</summary>
     public string? PublishCandidatePath { get; private set; }
 
+    /// <summary>SSH-only bootstrap/resume mode for many independent candidates.</summary>
+    public string? PublishCandidatesDirectory { get; private set; }
+
+    /// <summary>
+    /// Administrative platform bootstrap: keep verified variants absent from
+    /// the incoming candidate. Metadata must remain byte-for-byte equivalent.
+    /// </summary>
+    public bool RetainCurrentAssetVariants { get; private set; }
+
     private string? _simDataPath;
 
     /// <summary>
@@ -633,6 +665,12 @@ public sealed class ServerOptions
                 case "--publish-candidate" when i + 1 < args.Length:
                     options.PublishCandidatePath = args[++i];
                     break;
+                case "--publish-candidates" when i + 1 < args.Length:
+                    options.PublishCandidatesDirectory = args[++i];
+                    break;
+                case "--retain-current-asset-variants":
+                    options.RetainCurrentAssetVariants = true;
+                    break;
                 case "--autosave" when i + 1 < args.Length:
                     options.AutosaveSeconds = int.Parse(args[++i]);
                     break;
@@ -686,6 +724,8 @@ public sealed class ServerOptions
                         "  --simdata PATH   exported catalogs (default SimData/simdata.json)\n" +
                         "  --asset-root PATH persistent atomic content (default /var/lib/hexlive/assets)\n" +
                         "  --publish-candidate PATH  validate/promote one staged object, then exit\n" +
+                        "  --publish-candidates DIR  promote sorted candidate JSON files, then exit\n" +
+                        "  --retain-current-asset-variants  add a platform without dropping verified existing variants\n" +
                         "  --autosave N     seconds between saves, 0 to disable (default 60)\n" +
                         "  --debug-details  include per-NPC debug dumps in every frame\n" +
                         "  --verbose-trace  match the editor's trace verbosity (only ~2% more events)\n" +

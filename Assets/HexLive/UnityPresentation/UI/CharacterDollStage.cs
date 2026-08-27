@@ -984,7 +984,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var template = HexLive.UnityPresentation.Content.AtomicResources.Load<Material>("HexLive/UI/HealthDoll");
+            var template = Resources.Load<Material>("HexLive/UI/HealthDoll");
             var shader = template != null ? template.shader : Shader.Find("HexLive/HealthDoll");
             if (shader == null || !string.Equals(
                     shader.name, "HexLive/HealthDoll", StringComparison.Ordinal) ||

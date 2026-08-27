@@ -1424,7 +1424,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
     // Квадратный тайл: превью вещи (те же инвентарные иконки
     // Resources/HexLive/UI/Items/<id>, id = папка = definition id) и имя
-    // префаба под ним. Без иконки — первая буква имени как заглушка.
+    // префаба под ним. Без авторской иконки — общий emoji fallback предмета.
     private VisualElement MakeWearTile(WearEntry entry, Action onClick)
     {
         var tile = new VisualElement();
@@ -1462,7 +1462,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         }
         else
         {
-            var placeholder = new Label(entry.DisplayName.Substring(0, 1));
+            var placeholder = new Label(ItemIcons.FallbackGlyph(entry.Group));
             placeholder.style.color = Muted;
             placeholder.style.fontSize = 24;
             placeholder.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -1942,9 +1942,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         }
         else
         {
-            // A colourway ships its own icon; a missing one is a hole in the
-            // drop, so it reads as an empty frame rather than a stand-in.
-            var placeholder = new Label("?");
+            var placeholder = new Label(ItemIcons.FallbackGlyph(def.id));
             placeholder.style.color = Muted;
             placeholder.style.fontSize = 20;
             placeholder.pickingMode = PickingMode.Ignore;

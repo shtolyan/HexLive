@@ -91,9 +91,6 @@ public sealed class MobSlotTests
                 Is.EqualTo(WildlifeBalance.BigIslandWolfSlots));
             Assert.That(world.MobSpawnSlots.Count(s => s.MobId == MobIds.Crab),
                 Is.EqualTo(WildlifeBalance.BigIslandCrabSlots));
-            Assert.That(world.MobSpawnSlots.Count(s => s.MobId == MobIds.Shark),
-                Is.EqualTo(WildlifeBalance.BigIslandSharkSlots),
-                "акульи слоты — превью навсегда (§147.6)");
             // Слоты рождаются вдали от людей (радиус материализации 8 <
             // дистанция спавна от лагеря 9), поэтому на первом тике никто
             // не материализован и амбиентного спавна нет.
@@ -196,7 +193,6 @@ public sealed class MobSlotTests
         {
             Assert.That(WildlifeBalance.WolfSlots, Is.EqualTo(2));
             Assert.That(WildlifeBalance.CrabSlots, Is.EqualTo(4));
-            Assert.That(WildlifeBalance.SharkSlots, Is.EqualTo(2));
         });
 
         var world = TestWorld.CreateWorld();

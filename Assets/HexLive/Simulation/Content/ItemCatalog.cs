@@ -276,7 +276,8 @@ namespace HexLive.Simulation.Content
             if (id.StartsWith("clothing.") || id.StartsWith("underwear.")) return ItemCategory.Clothing;
             if (id.StartsWith("food.")) return ItemCategory.Food;
             if (id.StartsWith("water.")) return ItemCategory.Water;
-            if (id is "item.bandage" or "item.pill") return ItemCategory.Medicine;
+            if (id is "item.bandage" or "item.pill" or "item.plaster")
+                return ItemCategory.Medicine;
             if (id.StartsWith("tool.")) return ItemCategory.Tool;
             if (id.StartsWith("resource.")) return ItemCategory.Resource;
 

@@ -13,9 +13,19 @@ namespace HexLive.UnityPresentation.Content
 /// </summary>
 public static class ContentPrefabCache
 {
+    public enum Availability
+    {
+        Loading,
+        Ready,
+        Missing,
+        Failed,
+    }
+
     private static readonly Dictionary<string, ContentAssetHandle<GameObject>> Handles =
         new(StringComparer.Ordinal);
     private static readonly HashSet<string> Loading = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, Availability> Terminal =
+        new(StringComparer.Ordinal);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset()
@@ -27,6 +37,7 @@ public static class ContentPrefabCache
 
         Handles.Clear();
         Loading.Clear();
+        Terminal.Clear();
     }
 
     public static void Prewarm(string type, string id)
@@ -36,20 +47,39 @@ public static class ContentPrefabCache
 
     public static GameObject GetOrRequest(string type, string id)
     {
+        _ = Request(type, id, out var prefab);
+        return prefab;
+    }
+
+    /// <summary>
+    /// Starts (or observes) one session-pinned prefab request without conflating
+    /// an asynchronous first miss with a missing object. Presentation callers
+    /// must keep retrying while this returns <see cref="Availability.Loading"/>;
+    /// they must not install a procedural replacement in the meantime.
+    /// </summary>
+    public static Availability Request(string type, string id, out GameObject prefab)
+    {
+        prefab = null;
         if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(id))
         {
-            return null;
+            return Availability.Missing;
         }
 
         var key = type + "/" + id;
         if (Handles.TryGetValue(key, out var ready))
         {
-            return ready?.Asset;
+            prefab = ready?.Asset;
+            return prefab != null ? Availability.Ready : Availability.Failed;
+        }
+
+        if (Terminal.TryGetValue(key, out var terminal))
+        {
+            return terminal;
         }
 
         if (!Loading.Add(key))
         {
-            return null;
+            return Availability.Loading;
         }
 
         ContentQueue.Begin(ContentQueue.Kind.Asset);
@@ -60,12 +90,17 @@ public static class ContentPrefabCache
             if (loaded == null || loaded.Asset == null)
             {
                 loaded?.Dispose();
+                var missing = !ContentAssetService.Instance.TryGetRecord(type, id, out _);
+                Terminal[key] = missing ? Availability.Missing : Availability.Failed;
+                Debug.LogError(missing
+                    ? $"[AtomicContent] Нет active record для {key}; визуальный fallback запрещён."
+                    : $"[AtomicContent] Bundle {key} не дал renderable entry 'main'; визуальный fallback запрещён.");
                 return;
             }
 
             Handles[key] = loaded;
         });
-        return null;
+        return Availability.Loading;
     }
 }
 

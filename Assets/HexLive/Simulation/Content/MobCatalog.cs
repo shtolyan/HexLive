@@ -4,7 +4,7 @@ namespace HexLive.Simulation.Content
 {
     /// <summary>
     /// One combat/behaviour config PER MOB TYPE — the engine-free source the
-    /// simulation reads for dogs, sharks and every future creature. Mirrors the
+    /// simulation reads for dogs and every future creature. Mirrors the
     /// <see cref="GarmentLibrary"/> pattern exactly:
     ///
     ///   • <see cref="Defaults"/> — the built-in table below. Engine-free, so
@@ -83,36 +83,13 @@ namespace HexLive.Simulation.Content
                     RaidChancePerDay = 0.08f,     // night pack-raid probability per day
                     RaidPackSize = 3,             // dogs per night raid
                 },
-                // The shark (§40.18): water-only, bites swimmers. Only AttackDamage
-                // is live today; the rest are sensible placeholders.
-                [MobIds.Shark] = new MobStats
-                {
-                    Id = MobIds.Shark,
-                    MaxHealth = 1.0f,
-                    AttackDamage = 0.2f,            // bite to the leg (also a sever trigger)
-                    CutFraction = 1.00f,
-                    BloodLossMultiplier = 1.40f,
-                    AttackWindupSeconds = 0.1f,
-                    AttackCooldownSeconds = 0.8f,
-                    AggroRadiusTiles = 2,
-                    RoamChance = 0.2f,
-                    ChaseStepsPerTick = 1,
-                    GlideSegmentSeconds = 1.0f,
-                    GlideSnapDistance = 6.0f,
-                    // A shark strikes from below the swimmer — no visible
-                    // side-by-side stand-off to keep, so no clamp.
-                    MeleeHoldDistance = 0f,
-                    AttackMediums = AttackMedium.Water, // §106: bites swimmers only, inert ashore
-                    RaidChancePerDay = 0f,
-                    RaidPackSize = 0,
-                },
             };
         }
     }
 
     /// <summary>§106: where a creature's attack works. A wolf bites on land and
-    /// is dormant against a swimmer; a shark is the exact inverse. Flags so an
-    /// amphibious predator (a croc, one day) is one value, not a new axis.
+    /// is dormant against a swimmer. Flags leave room for future water-only and
+    /// amphibious predators without adding another combat axis.
     /// Humans have no mob sheet — their Land-only medium is declared once in
     /// <c>CombatMedium.NpcMelee</c>, not here.</summary>
     [System.Flags]
@@ -129,7 +106,6 @@ namespace HexLive.Simulation.Content
     public static class MobIds
     {
         public const string Dog = "dog";
-        public const string Shark = "shark";
         // Wildlife with no combat sheet still identifies its VIEW config by
         // this id (crab.asset, when one exists).
         public const string Crab = "crab";

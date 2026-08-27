@@ -6,41 +6,40 @@ namespace HexLive.UnityPresentation.Environment
     /// <summary>A lightweight wooden hanger created only for an occupied wardrobe slot.</summary>
     public static class WardrobeHangerFactory
     {
-        public static GameObject Build()
+        public static GameObject? Build(GameObject? wardrobePrefab = null)
         {
+            var wardrobe = wardrobePrefab ??
+                HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(
+                    WardrobeAssembly.ResourcePath);
+            var template = wardrobe != null
+                ? FindDescendant(wardrobe.transform, "HangerTemplate")
+                : null;
+            if (template == null) return null;
+
             var root = new GameObject("Occupied wardrobe hanger");
-            // Clothing now owns the shared wardrobe yaw and its authored socket
-            // position. The hanger is only its support geometry: its shoulder
-            // span must run across the rail (local X), not along it (local Z).
-            // This turns the hanger 90° without changing the garment root.
-            AddTwig(root.transform, "shoulder L", new Vector3(0f, -.075f, 0f),
-                new Vector3(-0.12f, -.18f, 0f), .010f);
-            AddTwig(root.transform, "shoulder R", new Vector3(0f, -.075f, 0f),
-                new Vector3(.12f, -.18f, 0f), .010f);
-            AddTwig(root.transform, "base", new Vector3(-.12f, -.18f, 0f),
-                new Vector3(.12f, -.18f, 0f), .008f);
-            AddTwig(root.transform, "hook stem", new Vector3(0f, -.075f, 0f),
-                Vector3.zero, .008f);
-            AddTwig(root.transform, "hook", Vector3.zero,
-                new Vector3(.055f, .035f, 0f), .008f);
+            var model = Object.Instantiate(template.gameObject, root.transform);
+            model.name = "HangerTemplate (authored instance)";
+            model.transform.localPosition = Vector3.zero;
+            model.transform.localRotation = Quaternion.identity;
+            model.transform.localScale = Vector3.one;
+            model.SetActive(true);
+            foreach (var collider in model.GetComponentsInChildren<Collider>(true))
+            {
+                if (Application.isPlaying) Object.Destroy(collider);
+                else Object.DestroyImmediate(collider);
+            }
             return root;
         }
 
-        private static void AddTwig(Transform parent, string name, Vector3 a, Vector3 b, float radius)
+        private static Transform? FindDescendant(Transform root, string name)
         {
-            var twig = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            twig.name = name;
-            twig.transform.SetParent(parent, false);
-            var direction = b - a;
-            twig.transform.localPosition = (a + b) * .5f;
-            twig.transform.localRotation = Quaternion.FromToRotation(Vector3.up, direction.normalized);
-            twig.transform.localScale = new Vector3(radius, direction.magnitude * .5f, radius);
-            var collider = twig.GetComponent<Collider>();
-            if (Application.isPlaying) Object.Destroy(collider); else Object.DestroyImmediate(collider);
-            var renderer = twig.GetComponent<Renderer>();
-            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            var material = new Material(shader) { color = new Color(.36f, .20f, .09f, 1f) };
-            renderer.sharedMaterial = material;
+            if (root.name == name) return root;
+            for (var i = 0; i < root.childCount; i++)
+            {
+                var found = FindDescendant(root.GetChild(i), name);
+                if (found != null) return found;
+            }
+            return null;
         }
     }
 }

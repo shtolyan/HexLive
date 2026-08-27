@@ -95,8 +95,6 @@ public sealed class WorldSnapshot
 
     public List<CrabSnapshot> Crabs { get; } = new();
 
-    public List<SharkSnapshot> Sharks { get; } = new();
-
     // §147.5: патрульные слоты (сортированы по SlotId, как остальные секции).
     public List<MobSlotSnapshot> MobSlots { get; } = new();
 
@@ -220,16 +218,6 @@ public sealed class MobSnapshot
     public string CarriedLimbPart { get; set; } = string.Empty;
 }
 
-// Spec 40.18: a shark patrolling the water (presentation renders a fin/model).
-public sealed class SharkSnapshot
-{
-    public int Id { get; set; }
-
-    public TileCoord Tile { get; set; } = TileCoord.Zero;
-
-    public Float2 Position { get; set; } = Float2.Zero;
-}
-
 // §147.5: патрульный слот виртуального зверя. Меняется только на переходах
 // состояний (Virtual→Live→Cooldown→Virtual) — в стедистейте дельта-секция
 // не шлёт ни байта; сами превью клиент считает из (Seed, Tick) чистой
@@ -238,7 +226,7 @@ public sealed class MobSlotSnapshot
 {
     public int SlotId { get; set; }
 
-    // "dog" | "crab" | "shark" — вид для выбора вью.
+    // "dog" | "crab" — вид для выбора вью.
     public string MobId { get; set; } = string.Empty;
 
     // Ordinal Wildlife.MobSlotState. Virtual — клиент рисует превью с ключом
@@ -304,7 +292,7 @@ public sealed class JunctionSnapshot
     public bool IsClimbSeam { get; set; }
 
     // Spec 40.18: an opened swim junction — presentation draws water an NPC can
-    // cross (and sites the swim animation / shark patrol).
+    // cross and sites the swim animation.
     public bool IsSwimmable { get; set; }
 
     public List<JunctionId> Neighbors { get; } = new();

@@ -34,7 +34,10 @@ public static class ActorWardrobe
         }
 
         Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.Wear);
-        ContentAssetService.Instance.LoadMain<GameObject>("wear", simDefinitionId, loaded =>
+        // Metadata is part of the same owner bundle. Load it first so variant
+        // materials are ready before a visual can be attached to a body.
+        Garments.GarmentVariants.PrewarmAsync(simDefinitionId, () =>
+            ContentAssetService.Instance.LoadMain<GameObject>("wear", simDefinitionId, loaded =>
         {
             var result = new List<Wear>();
             if (loaded?.Asset != null)
@@ -54,24 +57,40 @@ public static class ActorWardrobe
             Cache[simDefinitionId] = result;
             Loading.Remove(simDefinitionId);
             Garments.ContentQueue.End(Garments.ContentQueue.Kind.Wear);
-        });
+        }));
     }
 
     public static IReadOnlyList<Wear> GetVisuals(string simDefinitionId)
     {
+        return TryGetVisuals(simDefinitionId, out var visuals) ? visuals : Empty;
+    }
+
+    /// <summary>
+    /// Separates an authoritative empty result from the temporary empty shape
+    /// returned while this object's bundle is still travelling. Callers which
+    /// cache presentation state must use this door: treating a pending load as
+    /// "this item has no art" leaves the simulation dressed and the body nude.
+    /// </summary>
+    public static bool TryGetVisuals(
+        string simDefinitionId,
+        out IReadOnlyList<Wear> visuals)
+    {
         if (string.IsNullOrEmpty(simDefinitionId))
         {
-            return Empty;
+            visuals = Empty;
+            return true;
         }
         if (Cache.TryGetValue(simDefinitionId, out var cached))
         {
-            return cached;
+            visuals = cached;
+            return true;
         }
 
         // Lazy misses remain retryable: completion fills Cache; no permanent
         // empty result is stored while this object's own blob travels.
         PrewarmAsync(simDefinitionId);
-        return Empty;
+        visuals = Empty;
+        return false;
     }
 }
 

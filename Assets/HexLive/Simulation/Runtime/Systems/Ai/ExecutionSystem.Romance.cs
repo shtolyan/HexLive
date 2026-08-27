@@ -163,9 +163,12 @@ public sealed partial class ExecutionSystem
                 forced ? "RomanceForcedStarted" : "RomanceStarted", partner.Id);
             SocialCueSignals.Stamp(world, partner,
                 forced ? "RomanceResisting" : "RomanceStarted", leader.Id);
-            Trace.Emit(world, leader.Id, "RomanceStarted",
-                $"Partner=NPC{partner.Id.Value} Forced={forced} " +
-                $"Pose={placement.Key} Duration={Spec127.DurationTicks}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, leader.Id, "RomanceStarted",
+                    $"Partner=NPC{partner.Id.Value} Forced={forced} " +
+                    $"Pose={placement.Key} Duration={Spec127.DurationTicks}");
+            }
             return;
         }
 

@@ -281,14 +281,9 @@ public static class WorldSaveSerializer
             w.Write(rabbit.SpookedUntilTick);
         }
 
-        w.Write(world.Sharks.Count);
-        foreach (var shark in world.Sharks)
-        {
-            w.Write(shark.Id);
-            WriteTile(w, shark.Tile);
-            w.Write(shark.Junction.Value);
-            WriteFloat2(w, shark.Position);
-        }
+        // Keep the removed water-predator section as an empty legacy slot so
+        // existing saves retain the byte layout of every section after it.
+        w.Write(0);
 
         w.Write(world.Reservations.Junctions.Count);
         foreach (var pair in world.Reservations.Junctions)
@@ -667,17 +662,15 @@ public static class WorldSaveSerializer
             });
         }
 
-        world.Sharks.Clear();
-        var sharkCount = r.ReadInt32();
-        for (var i = 0; i < sharkCount; i++)
+        // Removed water-predator records are consumed and discarded solely for
+        // backward-compatible loading of existing saves.
+        var removedPredatorCount = r.ReadInt32();
+        for (var i = 0; i < removedPredatorCount; i++)
         {
-            world.Sharks.Add(new SharkState
-            {
-                Id = r.ReadInt32(),
-                Tile = ReadTile(r),
-                Junction = new JunctionId(r.ReadInt32()),
-                Position = ReadFloat2(r)
-            });
+            _ = r.ReadInt32();
+            _ = ReadTile(r);
+            _ = r.ReadInt32();
+            _ = ReadFloat2(r);
         }
 
         world.Reservations.Junctions.Clear();

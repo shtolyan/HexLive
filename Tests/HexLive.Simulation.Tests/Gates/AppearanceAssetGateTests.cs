@@ -11,7 +11,7 @@ namespace HexLive.Simulation.Tests.Gates
 /// §85: пул цветов глаз обязан разрешаться в реальные ассеты.
 /// <para>
 /// Симуляция катит СТРОКУ (<c>"blue_green"</c>), а вид грузит по ней папку
-/// <c>Resources/HexLive/Eyes/&lt;id&gt;/</c>. Между ними нет ни компилятора, ни
+/// <c>HexLiveContent/RuntimeSource/Eyes/&lt;id&gt;/</c>. Между ними нет ни компилятора, ни
 /// ссылки — ровно та щель, в которую §74.4 уже проваливался с причёсками: пул
 /// правится в C#, ассеты живут на диске, и расхождение не падает, а тихо
 /// оставляет девушку с глазами от префаба тела.
@@ -27,7 +27,7 @@ namespace HexLive.Simulation.Tests.Gates
 public sealed class AppearanceAssetGateTests
 {
     private static string EyesRoot =>
-        Path.Combine(RepoPaths.Root, "Assets", "Resources", "HexLive", "Eyes");
+        Path.Combine(RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "Eyes");
 
     private static string TexturesRoot =>
         Path.Combine(RepoPaths.Root, "Assets", "HexLive", "Art", "Eyes", "Textures");
@@ -59,7 +59,7 @@ public sealed class AppearanceAssetGateTests
             .ToList();
 
         Assert.That(missing, Is.Empty,
-            $"В {Path.Combine("Resources", "HexLive", "Eyes", "Common")} нет общих " +
+            $"В {Path.Combine("HexLiveContent", "RuntimeSource", "Eyes", "Common")} нет общих " +
             "материалов глаз: " + string.Join(", ", missing));
     }
 

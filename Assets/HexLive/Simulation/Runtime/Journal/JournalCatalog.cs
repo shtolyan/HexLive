@@ -148,6 +148,10 @@ public static class JournalCatalog
             extra: JournalExtra.LeadingWord);
         r["Rescued"] = new JournalRule(92, perspective: JournalPerspective.Received,
             extra: JournalExtra.Token, extraToken: "Cause=");
+        r["ShipwreckSurvivorAppeared"] = new JournalRule(
+            92, perspective: JournalPerspective.Received);
+        r["ShipwreckSurvivorJoined"] = new JournalRule(
+            88, perspective: JournalPerspective.Received);
         r["FaintedBloodLoss"] = new JournalRule(88, perspective: JournalPerspective.Received);
         r["FellAsleepExhausted"] = new JournalRule(80, perspective: JournalPerspective.Received);
         r["Fainted"] = new JournalRule(80, perspective: JournalPerspective.Received);
@@ -163,7 +167,6 @@ public static class JournalCatalog
             perspective: JournalPerspective.Received);
         r["PreyFled"] = new JournalRule(88, JournalRole.FirstNpc,
             perspective: JournalPerspective.Received);
-        r["SharkBite"] = new JournalRule(93, perspective: JournalPerspective.Received);
         r["DogFight"] = new JournalRule(78, extra: JournalExtra.Token, extraToken: "Dog=");
         r["DogShot"] = new JournalRule(66, extra: JournalExtra.Token, extraToken: "Dog=");
         r["DogKilled"] = new JournalRule(70);

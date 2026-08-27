@@ -87,7 +87,7 @@ public static class WorldSnapshotCodec
     /// v32: §127 paired romance state and washable pelvis stain.
     /// v33: §133/#205 physical carried/worn item owner ids for inventory cards.
     /// v34: #218 per-pair last interaction tick for relationship ordering.
-    public const int WireVersion = 34;
+    public const int WireVersion = 35;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -114,7 +114,6 @@ public static class WorldSnapshotCodec
         WriteMobs(snapshot, w);
         WriteMobSlots(snapshot, w);
         WriteCrabs(snapshot, w);
-        WriteSharks(snapshot, w);
         WriteDeathRecords(snapshot, w);
         WriteJournals(snapshot, w);
 
@@ -182,7 +181,6 @@ public static class WorldSnapshotCodec
         ReadMobs(r, into);
         ReadMobSlots(r, into);
         ReadCrabs(r, into);
-        ReadSharks(r, into);
         ReadDeathRecords(r, into);
         ReadJournals(r, into);
 
@@ -1654,40 +1652,6 @@ public static class WorldSnapshotCodec
         c.Id = r.ReadInt32();
         c.Tile = WireIo.ReadTile(r);
         c.Position = WireIo.ReadFloat2(r);
-    }
-
-    private static void WriteSharks(WorldSnapshot snapshot, BinaryWriter w)
-    {
-        var items = snapshot.Sharks;
-        w.Write(items.Count);
-        for (var i = 0; i < items.Count; i++)
-        {
-            WriteSharkRecord(w, items[i]);
-        }
-    }
-
-    internal static void WriteSharkRecord(BinaryWriter w, SharkSnapshot s)
-    {
-        w.Write(s.Id);
-        WireIo.WriteTile(w, s.Tile);
-        WireIo.WriteFloat2(w, s.Position);
-    }
-
-    private static void ReadSharks(BinaryReader r, WorldSnapshot into)
-    {
-        var count = r.ReadInt32();
-        WireIo.Resize(into.Sharks, count);
-        for (var i = 0; i < count; i++)
-        {
-            ReadSharkRecord(r, into.Sharks[i]);
-        }
-    }
-
-    internal static void ReadSharkRecord(BinaryReader r, SharkSnapshot s)
-    {
-        s.Id = r.ReadInt32();
-        s.Tile = WireIo.ReadTile(r);
-        s.Position = WireIo.ReadFloat2(r);
     }
 
     private static void WriteDeathRecords(WorldSnapshot snapshot, BinaryWriter w)

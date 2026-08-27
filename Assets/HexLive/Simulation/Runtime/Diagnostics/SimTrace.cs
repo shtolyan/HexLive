@@ -133,7 +133,6 @@ internal static class Trace
             // которую им тюнят.
             "RaidFoughtBack",
             "RaidStruck",
-            "SharkBite",
             "StarvedToDeath",
             "Sunburn",
             "VitalPartDestroyed",

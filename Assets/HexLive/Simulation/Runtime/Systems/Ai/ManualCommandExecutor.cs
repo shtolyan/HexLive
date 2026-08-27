@@ -2491,8 +2491,11 @@ internal static class ManualCommandExecutor
         }
 
         Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
-        Trace.EmitSystem(world, "BuildSitePlanned",
-            $"Product={ContentIds.HutPlan} Tile={command.Tile} Site={site.Id.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "BuildSitePlanned",
+                $"Product={ContentIds.HutPlan} Tile={command.Tile} Site={site.Id.Value}");
+        }
     }
 
     private static void ApplyPlaceFurnitureSite(
@@ -2543,7 +2546,7 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        var householdHearth = command.CatalogId == "furniture.hearth";
+        var householdHearth = command.CatalogId == ContentIds.FurnitureHearth;
         var site = Core.WorldObjectMutations.SpawnObject(
             world, ContentIds.BuildSite,
             world.Junctions.Items[anchor].Fragment, command.Tile, anchor);
@@ -2555,8 +2558,11 @@ internal static class ManualCommandExecutor
         Core.WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
         Bootstrap.BuildingBootstrap.ApplyFurnitureBill(site, product, householdHearth);
         Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
-        Trace.EmitSystem(world, "BuildSitePlanned",
-            $"Product={product} Tile={command.Tile} Site={site.Id.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "BuildSitePlanned",
+                $"Product={product} Tile={command.Tile} Site={site.Id.Value}");
+        }
     }
 
     /// <summary>Пустая ли площадка: ни предмета в складе, ни материала или
@@ -2669,9 +2675,12 @@ internal static class ManualCommandExecutor
         }
 
         Bootstrap.BuildingBootstrap.RememberPlanSite(world, site);
-        Trace.EmitSystem(world, "BuildSitePlanned",
-            $"Product={ContentIds.HutPlan} Blueprint={blueprintId} " +
-            $"Tile={command.Tile} Site={site.Id.Value}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "BuildSitePlanned",
+                $"Product={ContentIds.HutPlan} Blueprint={blueprintId} " +
+                $"Tile={command.Tile} Site={site.Id.Value}");
+        }
     }
 
     private static void ApplyUpdateBuildingBlueprint(
@@ -2711,9 +2720,12 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        Trace.EmitSystem(world, "BuildingBlueprintUpdated",
-            $"Owner={owner.Id.Value} Blueprint={owner.BlueprintId} " +
-            $"Modules={draft.Elements.Count}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "BuildingBlueprintUpdated",
+                $"Owner={owner.Id.Value} Blueprint={owner.BlueprintId} " +
+                $"Modules={draft.Elements.Count}");
+        }
     }
 
     private static void ApplyFreeArchitecture(
@@ -2729,8 +2741,11 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        Trace.EmitSystem(world, "FreeArchitectureChanged",
-            $"Place={command.Placements.Count} Remove={command.RemovedSlotKeys.Count}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "FreeArchitectureChanged",
+                $"Place={command.Placements.Count} Remove={command.RemovedSlotKeys.Count}");
+        }
     }
 
     private static void ApplyRotateBuildSite(
@@ -2774,8 +2789,12 @@ internal static class ManualCommandExecutor
             Core.WorldObjectMutations.SetObstacleBlocking(world, site, blocked: true);
         }
 
-        Trace.EmitSystem(world, "BuildSiteAdjusted",
-            $"Site={site.Id.Value} Product={site.BuildProduct} Rotation={site.RotationDegrees:0}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "BuildSiteAdjusted",
+                $"Site={site.Id.Value} Product={site.BuildProduct} " +
+                $"Rotation={site.RotationDegrees:0}");
+        }
     }
 
     private static void ApplyCancelBuildSite(
@@ -2809,8 +2828,11 @@ internal static class ManualCommandExecutor
             }
         }
 
-        Trace.EmitSystem(world, "BuildSiteCancelled",
-            $"Site={site.Id.Value} Product={site.BuildProduct}");
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "BuildSiteCancelled",
+                $"Site={site.Id.Value} Product={site.BuildProduct}");
+        }
     }
 }
 

@@ -695,7 +695,7 @@ public static class HexPathfinder
 
     // Spec 40.18 step 4: the strait to the second island is a cheap swim (2x),
     // so a foraging NPC will actually make the hop for an island-exclusive
-    // resource. The wider ring stays SwimCost (4x), a shark-risked last resort.
+    // resource. The wider ring stays SwimCost (4x), a slow last resort.
     private const long StraitCost = 20L;
 
     // stepDelta is the signed elevation change of THIS edge (see StepDelta):

@@ -1,7 +1,9 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using HexLive.Simulation.Content;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace HexLive.UnityPresentation.Environment
 {
@@ -16,6 +18,15 @@ namespace HexLive.UnityPresentation.Environment
     /// </summary>
     public sealed class BedAssembly : MonoBehaviour
     {
+#if UNITY_EDITOR
+        // Player content is asynchronous and must never be requested while an
+        // editor build gate is inspecting authoring assets. The world-prop gate
+        // installs these resolvers only for the duration of its validation, so
+        // the exact runtime assembly code can be exercised against source FBX
+        // objects without starting ContentAssetService or an edit-mode coroutine.
+        public static Func<string, GameObject?>? EditorAssemblyPrefabResolver;
+        public static Func<string, GameObject?>? EditorObjectPrefabResolver;
+#endif
         // Tuned by the player in BedSleepPoseTest: authored 0.24 with slider
         // -0.30 = -0.06. This is the animated BODY ROOT, not the bed surface;
         // the Sleep clip's baked body offset then rests the body on the leaves.
@@ -209,23 +220,11 @@ namespace HexLive.UnityPresentation.Environment
         private static GameObject? Instantiate(string product, out BedAssembly asm)
         {
             asm = null!;
-            if (product == "station.drying_rack")
-            {
-                var rack = BuildNativeDryingRack();
-                if (HasExpectedDryingRack(rack))
-                {
-                    asm = rack.GetComponent<BedAssembly>() ?? rack.AddComponent<BedAssembly>();
-                    return rack;
-                }
-                DestroyRuntimeObject(rack);
-            }
-
-            // Never fall back to drying_rack_final: its four nested stands are
-            // legacy stick_final→GLB wrappers. If the native assembly contract
-            // fails, use the emergency primitive assembly below instead.
-            var prefab = product == "station.drying_rack"
-                ? null
-                : HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(PrefabPath(product));
+            // Every assembled product owns one complete atomic object bundle,
+            // including the drying rack. Never compose it from resource bundles:
+            // that would re-introduce cross-object dependencies and would make a
+            // first asynchronous miss indistinguishable from a missing piece.
+            var prefab = LoadObjectPrefab(product);
             GameObject? go = null;
             if (prefab != null)
             {
@@ -250,7 +249,10 @@ namespace HexLive.UnityPresentation.Environment
                 }
             }
 
-            go ??= BuildSafeFallback(product);
+            if (go == null)
+            {
+                return null;
+            }
             if (product == ContentIds.BedBasic)
                 go.transform.localScale = new Vector3(BedWidthScale, 1f, BedLengthScale);
             asm = go.GetComponent<BedAssembly>() ?? go.AddComponent<BedAssembly>();
@@ -260,8 +262,8 @@ namespace HexLive.UnityPresentation.Environment
         private static GameObject BuildNativeDryingRack()
         {
             var root = new GameObject("drying_rack_final (native assembly)");
-            var stick = WorldPropResources.Load("resource.stick");
-            var rope = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Objects/rope_lashing");
+            var stick = LoadObjectPrefab("resource.stick");
+            var rope = LoadAssemblyPrefab("HexLive/Objects/rope_lashing");
             if (stick == null || rope == null) return root;
 
             AddNative(root.transform, stick, "stick_00", new Vector3(-0.44f, 0.3675f, 0f),
@@ -283,6 +285,28 @@ namespace HexLive.UnityPresentation.Environment
                 AddNative(root.transform, rope, $"rope_{i:00}", joints[i], Quaternion.identity);
             }
             return root;
+        }
+
+        private static GameObject? LoadAssemblyPrefab(string resourcePath)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying && EditorAssemblyPrefabResolver != null)
+            {
+                return EditorAssemblyPrefabResolver(resourcePath);
+            }
+#endif
+            return HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>(resourcePath);
+        }
+
+        private static GameObject? LoadObjectPrefab(string id)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying && EditorObjectPrefabResolver != null)
+            {
+                return EditorObjectPrefabResolver(id);
+            }
+#endif
+            return WorldPropResources.Load(id);
         }
 
         private static void AddNative(Transform parent, GameObject prefab, string name,

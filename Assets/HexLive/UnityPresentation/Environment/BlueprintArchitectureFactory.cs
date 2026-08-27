@@ -116,10 +116,16 @@ namespace HexLive.UnityPresentation.Environment
         /// </summary>
         public static GameObject? InstantiateModel(string definitionId, Vector3 position, Quaternion yaw)
         {
-            if (!ModelPrefabs.TryGetValue(definitionId, out var prefab))
+            if (!ModelPrefabs.TryGetValue(definitionId, out var prefab) || prefab == null)
             {
                 prefab = HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/Objects/" + definitionId);
-                ModelPrefabs[definitionId] = prefab;
+                // AtomicResources is asynchronous. Never cache its first null:
+                // the next snapshot must retry until this independent building
+                // bundle is verified and available.
+                if (prefab != null)
+                {
+                    ModelPrefabs[definitionId] = prefab;
+                }
             }
             if (prefab == null) return null;
 

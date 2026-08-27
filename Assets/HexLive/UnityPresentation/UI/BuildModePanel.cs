@@ -169,8 +169,8 @@ namespace HexLive.UnityPresentation.UI
             root.style.flexGrow = 1f;
             root.pickingMode = PickingMode.Ignore;
 
-            var tree = HexLive.UnityPresentation.Content.AtomicResources.Load<VisualTreeAsset>(PanelResource);
-            var sheet = HexLive.UnityPresentation.Content.AtomicResources.Load<StyleSheet>(StyleResource);
+            var tree = Resources.Load<VisualTreeAsset>(PanelResource);
+            var sheet = Resources.Load<StyleSheet>(StyleResource);
             if (tree == null || sheet == null)
             {
                 UnityEngine.Debug.LogError("[BuildMode] UI Toolkit resources are missing.", this);

@@ -110,12 +110,6 @@ public static class SimulationSystemRegistry
         // опоздало бы на свою же запись. Как и они, ничего в мире не меняет.
         engine.Register(new JournalSystem());
 
-        // NOT registered, on purpose-of-record rather than by decision: SharkSystem.
-        // It is implemented (Systems/Wildlife/SharkSystem.cs, TickLayer.Medium) and
-        // world.Sharks IS persisted by WorldSaveSerializer, so sharks are spawned and
-        // saved — but never stepped, and have never been in any shipped run. Adding it
-        // here would change live behaviour, which this move must not do. Left out to
-        // preserve parity; revisit as its own change, not as a side effect of a refactor.
     }
 }
 

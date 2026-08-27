@@ -12,15 +12,14 @@ namespace HexLive.Simulation.Social
 public enum TalkTopic
 {
     // Neutral filler — the default when nothing in particular is pressing.
-    SmallTalk,
+    SmallTalk = 0,
 
     // Island-survival themes (the game's setting — always in the pool).
-    Escape,   // plans to leave — the raft, a passing ship, "we'll get off this rock"
-    Sharks,   // the thing in the water; who dares swim
-    Dogs,     // the wild dogs; keeping watch
-    Weather,  // the cold, the rain, the sun
-    Food,     // coconuts, the catch, who's cooking
-    Fire,     // the campfire, keeping it lit, warmth
+    Escape = 1,   // plans to leave — the raft, a passing ship, "we'll get off this rock"
+    Dogs = 3,     // the wild dogs; keeping watch (2 is reserved for save compatibility)
+    Weather = 4,  // the cold, the rain, the sun
+    Food = 5,     // coconuts, the catch, who's cooking
+    Fire = 6,     // the campfire, keeping it lit, warmth
 
     // Relationship-coloured themes (picked from mutual affinity + mood).
     Home,     // homesickness, the life left behind

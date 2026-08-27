@@ -230,6 +230,9 @@ public static class GoalCatalog
 
         // ── Общение и забота ─────────────────────────────────────────────
         Add(GoalType.Socialize);
+        // §127: запускается продолжением разговора либо ручным приказом,
+        // поэтому аукцион её не считает и generic loop recovery сцену не рвёт.
+        Add(GoalType.Romance, reactive: true, loop: LoopPolicy.Sticky);
         Add(GoalType.Aid);
         Add(GoalType.TreatWounds);
         Add(GoalType.Mourn, InteractionType.Observe);

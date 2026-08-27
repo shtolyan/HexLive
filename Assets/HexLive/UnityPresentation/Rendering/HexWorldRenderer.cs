@@ -1621,6 +1621,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             _objectViewTiles.Remove(key);
             _prevObjectPositions.Remove(key);
             _currObjectPositions.Remove(key);
+            ContentResidency.ForgetObject(key);
 
             // Spec §54: a felled tree tilts over and leaves a stump instead of
             // vanishing — the logs the sim scattered land around it in the same
@@ -1865,6 +1866,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 objectView.SetActive(!shouldHide);
             }
 
+            // §155: лежащая/висящая одежда — тяжёлый wear-комплект; её вью
+            // участвует в буфере резидентности наравне с девушками.
+            if (GarmentDropFactory.IsGarment(worldObject.DefinitionId))
+            {
+                ContentResidency.ReportGroundGarment(
+                    key, worldObject.DefinitionId, visible: !shouldHide);
+            }
+
             // Spec 29E.3: the campfire burns only while it has fuel.
             if (worldObject.DefinitionId == "campfire.spot")
             {
@@ -2063,8 +2072,45 @@ public sealed class HexWorldRenderer : MonoBehaviour
         foreach (var npc in snapshot.Npcs)
         {
             var key = npc.Id.Value;
+            // §155: видимость считается ДО создания вью — судьба и создания,
+            // и выгрузки решается одним и тем же предикатом.
+            // §148: чужой человек виден, только пока кто-то из наших
+            // держит его гекс в восприятии. Память о нём — это «?» на
+            // последнем известном месте (SyncUnknownNpcMarkers), а не
+            // застывшее тело: тело ушло бы оттуда, и картинка врала бы.
+            var isOurs = IsPlayerOwned(npc);
+            var strangerVisible = isOurs || TileVisibleNow(npc.Tile);
+            if (!isOurs && strangerVisible)
+            {
+                _lastSeenNpcTiles[key] = npc.Tile;
+            }
+
+            var hiddenByFog = (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(key))
+                // Гейт на ВСЁ ВРЕМЯ ЗАГРУЗКИ, а не на первую сборку: экран
+                // ждёт, пока каждое тело ростера дошьётся, а выключенный
+                // актёр дошиться не может (зависание #146). Одной первой
+                // сборки не хватило (баг #182): причёска приезжает много
+                // кадров спустя, и девушки соседних лагерей (§146) успевали
+                // погаснуть прямо посреди своей загрузки — занавес ждал их
+                // вечно. Под занавесом их всё равно никто не видит.
+                || (_cullInitialBuildDone && !UI.LoadingScreen.IsActive && !strangerVisible);
+
             if (!_npcViews.TryGetValue(key, out var npcView) || npcView == null)
             {
+                // §155: вью скрытой ЧУЖОЙ не строится вовсе — это вторая
+                // половина выгрузки по восприятию (первая — вытеснение из
+                // буфера в EvictResidencyView): без этого гейта следующий же
+                // снапшот пересобрал бы только что вытесненный комплект. Под
+                // занавесом строим всех (гейт занавеса ждёт тела ростера), и
+                // своих строим всегда: дебаг-туман §125.5 прячет и своих, а их
+                // вью нужны панелям, портретам и сторожку #146.
+                if (hiddenByFog && !isOurs && ContentResidency.Enabled &&
+                    _cullInitialBuildDone && !UI.LoadingScreen.IsActive)
+                {
+                    ContentResidency.ForgetNpc(key);
+                    continue;
+                }
+
                 npcView = CreateNpcView(npc);
                 if (npcView == null)
                 {
@@ -2096,33 +2142,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // мобов; симуляция об этом не знает.
             if (npcView != null)
             {
-                // §148: чужой человек виден, только пока кто-то из наших
-                // держит его гекс в восприятии. Память о нём — это «?» на
-                // последнем известном месте (SyncUnknownNpcMarkers), а не
-                // застывшее тело: тело ушло бы оттуда, и картинка врала бы.
-                var isOurs = IsPlayerOwned(npc);
-                var strangerVisible = isOurs || TileVisibleNow(npc.Tile);
-                if (!isOurs)
-                {
-                    if (strangerVisible)
-                    {
-                        _lastSeenNpcTiles[key] = npc.Tile;
-                    }
-                }
-
-                var hiddenByFog = (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(key))
-                    // Гейт на ВСЁ ВРЕМЯ ЗАГРУЗКИ, а не на первую сборку: экран
-                    // ждёт, пока каждое тело ростера дошьётся, а выключенный
-                    // актёр дошиться не может (зависание #146). Одной первой
-                    // сборки не хватило (баг #182): причёска приезжает много
-                    // кадров спустя, и девушки соседних лагерей (§146) успевали
-                    // погаснуть прямо посреди своей загрузки — занавес ждал их
-                    // вечно. Под занавесом их всё равно никто не видит.
-                    || (_cullInitialBuildDone && !UI.LoadingScreen.IsActive && !strangerVisible);
                 if (npcView.activeSelf == hiddenByFog)
                 {
                     npcView.SetActive(!hiddenByFog);
                 }
+
+                // §155: учёт резидентности — какая девушка с живым вью какие
+                // комплекты (тело/волосы/одежда) держит и видима ли она.
+                // Пин: своя и выбранная не вытесняются даже скрытыми — карточка
+                // отношений может держать выбор на скрытом чужаке (#146), и её
+                // портрету нужен живой актёр.
+                ContentResidency.ReportNpc(key, npc, visible: !hiddenByFog,
+                    pinned: isOurs || Input.NpcSelection.Contains(key));
             }
 
             // §125.5/§148: спрятанную туманом не только не видно — её не надо
@@ -2394,11 +2425,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 _corpseViews[key] = _npcViews[key];
                 _corpseActorViews[key] = deadActor;
                 handedOver = true;
+                // §155: комплекты переезжают вместе с телом и пинятся — труп
+                // не вытесняется (их мало, а моргнуть телом хуже экономии).
+                ContentResidency.TransferNpcToCorpse(key);
             }
 
             if (!handedOver)
             {
                 Destroy(_npcViews[key]);
+                ContentResidency.ForgetNpc(key);
             }
             else if (_npcImpostors.TryGetValue(key, out var deadImpostor) &&
                 deadImpostor != null)
@@ -2436,9 +2471,66 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // visible geometry and the analytic click path cannot diverge.
         UnityEngine.Profiling.Profiler.EndSample();
 
+        // §155: учёт прохода закрыт — если буфер скрывшихся переполнен,
+        // вытесняем самых давних (вью рушит EvictResidencyView, ссылки на
+        // комплекты снимает сам учёт).
+        ContentResidency.EndPass(EvictResidencyView);
+
         // Memory fog: the full first build of this world is behind us — from
         // here on, frozen hexes get no new object views until seen again.
         _cullInitialBuildDone = true;
+    }
+
+    /// <summary>§155: снос вью вытесненной сущности. Девушка сносится как
+    /// «не виденная вовсе» — следующий снапшот, когда она вернётся в
+    /// восприятие, соберёт её тем же путём, что и первый взгляд. Ключи —
+    /// формата ContentResidency ("npc/12", "obj/4711").</summary>
+    private bool EvictResidencyView(string entityKey)
+    {
+        if (entityKey.StartsWith("npc/", StringComparison.Ordinal) &&
+            int.TryParse(entityKey.Substring(4), out var npcId))
+        {
+            if (_npcViews.TryGetValue(npcId, out var view) && view != null)
+            {
+                Destroy(view);
+            }
+            if (_npcImpostors.TryGetValue(npcId, out var impostor) && impostor != null)
+            {
+                // §150.4: диск возвращает рендереры перед смертью, как при
+                // гибели — иначе дальний режим остался бы с холостой записью.
+                impostor.SetDistant(false, 0);
+                Destroy(impostor);
+            }
+            _npcImpostors.Remove(npcId);
+            _npcViews.Remove(npcId);
+            _actorViews.Remove(npcId);
+            _prevNpcPoses.Remove(npcId);
+            _currNpcPoses.Remove(npcId);
+            _npcMovementRoutes.Remove(npcId);
+            _npcOnWater.Remove(npcId);
+            return true;
+        }
+
+        if (entityKey.StartsWith("obj/", StringComparison.Ordinal) &&
+            int.TryParse(entityKey.Substring(4), out var objectId))
+        {
+            if (_objectViews.TryGetValue(objectId, out var view))
+            {
+                _objectViews.Remove(objectId);
+                _objectViewParts.Remove(objectId);
+                _objectViewTiles.Remove(objectId);
+                _prevObjectPositions.Remove(objectId);
+                _currObjectPositions.Remove(objectId);
+                _treeViewKeys.Remove(objectId);
+                if (view != null)
+                {
+                    Destroy(view);
+                }
+            }
+            return true;
+        }
+
+        return false;
     }
 
     // ⭐ Bug #146 watchdog: «девушки не рендерятся, пока не кликнешь». Три
@@ -2660,6 +2752,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 view.SetActive(!cullHideCorpse);
             }
 
+            // §155: тело из сейва/подключения строится здесь, минуя
+            // TransferNpcToCorpse, — без учёта его комплекты остались бы с
+            // нулём ссылок, и вытеснение выдернуло бы общие ассеты из-под
+            // лежащего тела.
+            ContentResidency.ReportCorpse(key, body);
+
             var targetRotation = Quaternion.Euler(
                 0f, SimulationUnityMapper.ToUnityYawDegrees(body.RotationDegrees), 0f);
             var targetPose = TryGetCarriedPose(snapshot, body, targetRotation, out var carriedPose)
@@ -2716,6 +2814,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             Destroy(_corpseViews[key]);
             _corpseViews.Remove(key);
             _corpseActorViews.Remove(key);
+            ContentResidency.ForgetCorpse(key);
         }
     }
 

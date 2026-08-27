@@ -96,6 +96,30 @@ public static class ActorWardrobe
         visuals = Empty;
         return false;
     }
+
+    /// <summary>Резидентность (ContentResidency): отпустить комплект шмотки,
+    /// на которую не осталось живых вью. False — загрузка ещё в полёте,
+    /// вытеснение повторят позже. Следующий TryGetVisuals начнёт загрузку
+    /// заново — это тот же ленивый путь, что и первый взгляд.</summary>
+    public static bool Evict(string simDefinitionId)
+    {
+        if (string.IsNullOrEmpty(simDefinitionId))
+        {
+            return true;
+        }
+        if (Loading.Contains(simDefinitionId))
+        {
+            return false;
+        }
+
+        if (Handles.TryGetValue(simDefinitionId, out var handle))
+        {
+            handle?.Dispose();
+            Handles.Remove(simDefinitionId);
+        }
+        Cache.Remove(simDefinitionId);
+        return true;
+    }
 }
 
 }

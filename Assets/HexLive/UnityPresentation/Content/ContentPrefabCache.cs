@@ -45,6 +45,33 @@ public static class ContentPrefabCache
         _ = GetOrRequest(type, id);
     }
 
+    /// <summary>Резидентность (ContentResidency): отпустить один префаб.
+    /// Используется только для тяжёлой семьи actor — объекты, постройки и
+    /// мобы резидентны. False — загрузка в полёте, вытеснение повторят
+    /// позже. Terminal тоже чистится: после выгрузки запрос честно начинает
+    /// сначала.</summary>
+    public static bool Evict(string type, string id)
+    {
+        if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(id))
+        {
+            return true;
+        }
+
+        var key = type + "/" + id;
+        if (Loading.Contains(key))
+        {
+            return false;
+        }
+
+        if (Handles.TryGetValue(key, out var handle))
+        {
+            handle?.Dispose();
+            Handles.Remove(key);
+        }
+        Terminal.Remove(key);
+        return true;
+    }
+
     public static GameObject GetOrRequest(string type, string id)
     {
         _ = Request(type, id, out var prefab);

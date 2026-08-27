@@ -155,6 +155,65 @@ public static class AtomicResources
     public static void Prewarm(string formerResourcePath) =>
         _ = Load<UnityEngine.Object>(formerResourcePath);
 
+    /// <summary>Резидентность (ContentResidency): отпустить все хэндлы одного
+    /// бывшего Resources-пути (карты покраски актрисы и т.п.). False —
+    /// какая-то загрузка этого объекта ещё в полёте, вытеснение повторят
+    /// позже.</summary>
+    public static bool EvictPath(string formerResourcePath)
+    {
+        if (!TryIdentity(formerResourcePath, out var type, out var id))
+        {
+            return true;
+        }
+        if (ContentAssetService.Instance.TryResolveLegacyPath(
+                formerResourcePath, out var resolved))
+        {
+            type = resolved.type;
+            id = resolved.id;
+        }
+
+        var prefix = type + "/" + id + "#";
+        foreach (var loading in Loading)
+        {
+            if (loading.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        var stale = new List<string>();
+        foreach (var pair in Handles)
+        {
+            if (pair.Key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                pair.Value?.Dispose();
+                stale.Add(pair.Key);
+            }
+        }
+        foreach (var key in stale)
+        {
+            Handles.Remove(key);
+        }
+
+        stale.Clear();
+        foreach (var pair in AllHandles)
+        {
+            if (pair.Key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                foreach (var handle in pair.Value)
+                {
+                    handle?.Dispose();
+                }
+                stale.Add(pair.Key);
+            }
+        }
+        foreach (var key in stale)
+        {
+            AllHandles.Remove(key);
+        }
+        return true;
+    }
+
     private static string EntryFor<T>() where T : UnityEngine.Object => typeof(T).Name switch
     {
         "StyleSheet" => "style",

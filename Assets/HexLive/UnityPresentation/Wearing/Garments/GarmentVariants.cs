@@ -182,6 +182,42 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 : System.Array.Empty<GarmentDefinition>();
         }
 
+        /// <summary>Резидентность (ContentResidency): отпустить метаданные
+        /// одной вещи — их хэндл держит ТОТ ЖЕ wear-бандл, что и префаб, и без
+        /// этого выгрузка гардероба не освобождает ни байта. False — загрузка
+        /// в полёте, вытеснение повторят позже.</summary>
+        public static bool Evict(string itemId)
+        {
+            if (string.IsNullOrEmpty(itemId))
+            {
+                return true;
+            }
+            if (Waiters.ContainsKey(itemId))
+            {
+                return false;
+            }
+
+            if (Handles.TryGetValue(itemId, out var handle))
+            {
+                handle?.Dispose();
+                Handles.Remove(itemId);
+            }
+
+            if (ById.TryGetValue(itemId, out var garment))
+            {
+                ById.Remove(itemId);
+                if (garment != null && ByArt.TryGetValue(garment.ArtId, out var family))
+                {
+                    family.RemoveAll(value => value == null || value.id == itemId);
+                    if (family.Count == 0)
+                    {
+                        ByArt.Remove(garment.ArtId);
+                    }
+                }
+            }
+            return true;
+        }
+
         /// <summary>Drop the cache — the catalog changed under us (editor only).</summary>
         public static void Forget()
         {

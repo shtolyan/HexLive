@@ -178,6 +178,10 @@ namespace HexLive.UnityPresentation.Wearing
             return map;
         }
 
+        /// <summary>Резидентность (ContentResidency): забыть карту актрисы,
+        /// чей комплект вытеснен; хэндл ассета отпускает AtomicResources.</summary>
+        public static void Evict(string key) => Cache.Remove(key);
+
         // No-domain-reload runs keep statics between plays — a regenerated
         // asset must not be shadowed by a stale cache entry.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

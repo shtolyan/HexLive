@@ -88,6 +88,43 @@ public static class HairContent
         done(result.Asset.GetComponent<Wear>());
     }
 
+    /// <summary>Резидентность (ContentResidency): отпустить причёску, которую
+    /// больше никто не носит в кадре, — префаб и все загруженные цвета одного
+    /// бандла. False — загрузка в полёте, вытеснение повторят позже.</summary>
+    public static bool Evict(string hairId)
+    {
+        if (string.IsNullOrEmpty(hairId))
+        {
+            return true;
+        }
+        if (Prewarming.Contains(hairId))
+        {
+            return false;
+        }
+
+        if (Hair.TryGetValue(hairId, out var handle))
+        {
+            handle?.Dispose();
+            Hair.Remove(hairId);
+        }
+
+        var colourPrefix = hairId + "/";
+        var stale = new List<string>();
+        foreach (var pair in Materials)
+        {
+            if (pair.Key.StartsWith(colourPrefix, System.StringComparison.Ordinal))
+            {
+                pair.Value?.Dispose();
+                stale.Add(pair.Key);
+            }
+        }
+        foreach (var key in stale)
+        {
+            Materials.Remove(key);
+        }
+        return true;
+    }
+
     public static IEnumerator LoadColour(
         string hair,
         ActorAppearanceCatalog.HairColour colour,

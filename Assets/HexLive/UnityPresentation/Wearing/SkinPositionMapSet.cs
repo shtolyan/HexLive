@@ -317,6 +317,10 @@ namespace HexLive.UnityPresentation.Wearing
             return set;
         }
 
+        /// <summary>Резидентность (ContentResidency): забыть набор актрисы,
+        /// чей комплект вытеснен; хэндл ассета отпускает AtomicResources.</summary>
+        public static void Evict(string key) => Cache.Remove(key);
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Cache.Clear();
     }

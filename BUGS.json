@@ -7565,15 +7565,16 @@
         {
             "id": 235,
             "createdUtc": "2026-08-26 14:54 UTC",
-            "status": "open",
+            "status": "ready_for_test",
             "text": "улучшение костра — «занято кем-то другим», build/construction lock не снимается",
             "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
             "assignedAgent": "",
             "agentHandoff": "",
             "fixCommits": [
-                "47f8fb15c"
+                "47f8fb15c",
+                "30401e50b41f309d845c3c4369830dc2b8ba5f00"
             ],
-            "fixCommit": "47f8fb15c",
+            "fixCommit": "30401e50b41f309d845c3c4369830dc2b8ba5f00",
             "reportedInVersion": "",
             "readyForTestInVersion": "",
             "fixedInVersion": "",
@@ -7593,6 +7594,21 @@
                     "createdUtc": "2026-08-27T02:48:46Z",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: campfire occupancy success paths are covered, but failure paths can leave the acting NPC wedged with execution marked Completed and no plan/execution reset. Add failure-lifecycle regression and fix before merge."
+                },
+                {
+                    "createdUtc": "2026-08-27T06:27:04Z",
+                    "author": "sveta",
+                    "text": "Post-review blocker taken for focused worker: failure paths can leave campfire occupancy wedged when hearth action execution completes/fails before reset. Need regression/fix plus focused green CampfireOccupancyTests and git diff --check."
+                },
+                {
+                    "whenUtc": "2026-08-27 06:54 UTC",
+                    "author": "sveta-subagent",
+                    "text": "Post-review blocker closed in commit 30401e50b41f309d845c3c4369830dc2b8ba5f00: failed hearth completion now aborts the scene through PlanInterruption so campfire claim, manual plan/execution, and approach junction are released; manual cold-fire stocking no longer returns before the common junction-release tail. Verification: CampfireOccupancyTests passed 4/4; CampfireOccupancyTests|ManualControlTests passed 42/42; git diff --check clean. Worktree /private/tmp/HexLive-bug-235-campfire-occupied clean after commit."
+                },
+                {
+                    "createdUtc": "2026-08-27T07:27:26Z",
+                    "author": "sveta-heartbeat",
+                    "text": "Parent heartbeat verified #235 post-review fix evidence from BUGS/ledger and commit 30401e50b41f309d845c3c4369830dc2b8ba5f00 exists in /private/tmp/HexLive-bug-235-campfire-occupied. Clearing assignedAgent and keeping ready_for_test."
                 }
             ]
         },
@@ -7628,17 +7644,18 @@
         {
             "id": 237,
             "createdUtc": "2026-08-26 14:54 UTC",
-            "status": "open",
+            "status": "ready_for_test",
             "text": "двери/доступ в здания запирают жителей внутри (особенно выход в воду)",
             "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
             "assignedAgent": "",
             "agentHandoff": "",
             "fixCommits": [
-                "b7118593c"
+                "b7118593c",
+                "3043fd989"
             ],
-            "fixCommit": "b7118593c",
+            "fixCommit": "3043fd989",
             "reportedInVersion": "",
-            "readyForTestInVersion": "b7118593c",
+            "readyForTestInVersion": "3043fd989",
             "fixedInVersion": "",
             "archived": false,
             "comments": [
@@ -7665,16 +7682,21 @@
                     "createdUtc": "2026-08-27T02:48:46Z",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: OwnerFaction is inferred from nearest current FactionHome, so after camp merge/removal a hut door can be reassigned and still trap merged residents. Add camp-merge/removal regression and make ownership stable before merge."
+                },
+                {
+                    "createdUtc": "2026-08-27T05:49:02Z",
+                    "author": "sveta-subagent",
+                    "text": "Post-review fix in 3043fd989: door ownership is now persisted on WorldObjectState.OwnerFaction, saved as blob v60, migrated for <=59 saves, carried from build sites to raised buildings, and rewritten on camp merge so homes do not reassigned to nearest third-camp FactionHome. Verified on Mac: /usr/local/share/dotnet/dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter DoorPassageTests --no-restore => 13/13 passed; git diff --check clean; worktree clean after commit."
                 }
             ]
         },
         {
             "id": 238,
             "createdUtc": "2026-08-26 14:54 UTC",
-            "status": "open",
+            "status": "in_progress",
             "text": "модель двери не спавнится в текущей версии — проверить asset bundles",
             "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
-            "assignedAgent": "",
+            "assignedAgent": "hexlive-bug-238-windows-content-publish-20260827-1525",
             "agentHandoff": "",
             "fixCommits": [
                 "c7980566e"
@@ -7699,6 +7721,26 @@
                     "createdUtc": "2026-08-27T02:48:46Z",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: code retry/type-selection helps only if a compatible Windows door bundle exists; BUGS evidence still records Windows platformMissing for building/door.wood. Publish/test the Windows door bundle or keep unresolved."
+                },
+                {
+                    "createdUtc": "2026-08-27T07:27:26Z",
+                    "author": "sveta-heartbeat",
+                    "text": "Started focused post-review pass for #238/#242 Windows door bundle proof: verify whether building/door.wood is present in Windows build output/registry/bundles, add proof or minimal diagnostic/fix, and leave #242 open until #238 evidence is real."
+                },
+                {
+                    "createdUtc": "2026-08-27T07:52:03Z",
+                    "author": "sveta-subagent",
+                    "text": "Post-review Windows-door proof failed; #238 remains blocked by missing Windows content publication. Clean worktree /private/tmp/HexLive-bug-238-windows-door-proof-1425 at master 3a4c7cb6. Production smoke: GET /api/assets/v1/index/StandaloneWindows64/unity6000-content1 -> registryRevision 4518, objects 0, platformMissing 0, empty digest e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; GET /objects/building/architecture.door.wood?platform=StandaloneWindows64&profile=unity6000-content1 -> HTTP 404. Server record /var/lib/hexlive/assets/records/building/architecture.door.wood.json has only StandaloneOSX/unity6000-content1 sha256 7c6f505969e29c15931e1090d7c8cfee309fdb142e53c0a470ccd73e582f71a4 size 186879, has_windows=False. macOS control index still has 2725 objects and contains building/architecture.door.wood. Local bundle attempt: python3 Tools/content.py build --type building --id architecture.door.wood --platform StandaloneWindows64 --runtime-profile unity6000-content1 --output /tmp/hexlive-door-win-build-proof-238 failed before Unity because git-lfs is not installed; dotnet is also not installed on the Mac, so no focused dotnet test could be run. No code/content commit was made; publish/build must be rerun from a host with git-lfs, dotnet, Unity Windows support, and production publish credentials."
+                },
+                {
+                    "createdUtc": "2026-08-27T08:26:46Z",
+                    "author": "sveta-heartbeat",
+                    "text": "Starting focused post-review follow-up for the proven blocker: production asset registry publishes 2725 macOS objects but 0 Windows objects, and building/architecture.door.wood is platformMissing. Worker should fix Windows content publication/registry proof or return a precise blocker; do not claim readiness without real Windows proof."
+                },
+                {
+                    "createdUtc": "2026-08-27T09:40:00Z",
+                    "author": "hexlive-bug-238-windows-content-publish-20260827-1525",
+                    "text": "Проход остановлен точным блокером. Фикса нет, статус остаётся in_progress, fixCommits не трогал. (1) СРЕДА: Unity Editor игрока ЖИВОЙ на этом же чекауте — Temp/UnityLockfile присутствует, pgrep -fl 'Unity.app/Contents/MacOS/Unity' даёт pid 68532 '/Applications/Unity/Hub/Editor/6000.4.5f1/Unity.app/Contents/MacOS/Unity -projectPath /Volumes/ORICO/HexLive' плюс AssetImportWorker0/1 (pid 69127/69129); Unity Hub держит проект с buildTarget StandaloneOSX. Поэтому 'python3 Tools/content.py build-all --platform StandaloneWindows64' запускать нельзя (это второй Unity на залоченном проекте), а переключение живого редактора на Windows-таргет означало бы полный реимпорт 12.4 ГБ прямо в сессии игрока. (2) ПРАВА СЕССИИ: исполнение почти полностью закрыто — 'dotnet --version', '/usr/local/share/dotnet/dotnet --version', 'python3 Tools/content.py --help', 'python3 <probe>.py', 'git lfs version' и 'curl https://vmi3529459.contaboserver.net/api/assets/v1/index/StandaloneWindows64/unity6000-content1' все вернули 'This command requires approval' и были автоматически отклонены (неинтерактивная сессия). Прошли только 'python3 --version' -> Python 3.9.6 и 'git diff --check' -> без вывода. Поэтому ни dotnet test, ни живой smoke прод-реестра в этом проходе НЕ выполнялись и не заявляются. (3) ПОПРАВКА к комментарию 07:52: git-lfs УСТАНОВЛЕН — отказ песочницы раскрыл '/opt/homebrew/bin/git-lfs' -> '/opt/homebrew/Cellar/git-lfs/3.2.0/bin/git-lfs'; в репозитории просто выключены LFS-фильтры ('git config --get filter.lfs.process' пусто). Не тащить 'git-lfs не установлен' дальше как причину. (4) ИСХОДНИК ДВЕРИ ЦЕЛ: Assets/HexLiveContent/RuntimeSource/Objects/architecture.door.wood.fbx = 86700 байт, заголовок 'Kaydara FBX Binary', не LFS-указатель. Авторской иконки Assets/HexLiveContent/Icons/architecture.door.wood.png нет, значит объект публикуется без iconAsset и с metadata.iconFallback=emoji. Реальный content-объект — building/architecture.door.wood (id задан в Simulation/Core/DoorTopology.cs:24, а AtomicContentBatchBuild.ObjectType сопоставляет 'architecture.*' типу building); 'building/door.wood' существует только как синтетический id в Tests/HexLive.Server.Tests/Assets/AssetRegistryStoreTests.cs. Пробел, таким образом, чисто публикационный, а не авторский. (5) НОВЫЙ ВТОРОЙ СЛОЙ БЛОКЕРА — обязателен к учёту следующим исполнителем: санкционированный Windows-only путь из Docs/AtomicContentCrossPlatform.md §4 ('publish-all --required-platform StandaloneWindows64 --retain-current-variants') будет ОТКЛОНЁН сервером для каждого объекта, у которого metadata изменилась со времени macOS-бутстрапа. AssetRegistryStore.PublishAsync (Server/HexLive.Server/Assets/AssetRegistryStore.cs:118-123) бросает 'Cannot retain platform variants while changing object metadata; publish all platforms for this semantic update.', и того же требует Spec/152.md:47-51. Текущий сборщик больше не пишет legacy metadata.iconPlaceholder (Assets/Editor/AtomicContent/AtomicContentBatchBuild.cs:649-653 удаляет ключ и ставит iconFallback=emoji), а клиент до сих пор терпит старые записи с iconPlaceholder=true (UnityPresentation/Content/ContentRegistryModels.cs:51) — то есть прод-записи собраны СТАРЫМ сборщиком. Дверь без авторской иконки попадает ровно в этот класс, поэтому Windows-only retain её на проде не починит. Это вывод из кода, а не измерение: проверяется одной командой на сервере — сравнить metadata в /var/lib/hexlive/assets/records/building/architecture.door.wood.json с metadata свежесобранного candidate.json. (6) ЧТО НУЖНО ДЛЯ ЗАКРЫТИЯ: хост с ЗАКРЫТЫМ Unity Editor (или отдельный чекаут со своим Library), Windows Build Support для 6000.4.5f1, 'git lfs pull && git lfs checkout', объявленный неизменяемый SHA по §152.1 и сборка ОБЕИХ платформ с этого одного SHA: 'python3 Tools/content.py build-all --platform StandaloneOSX --output <osx>' и 'py -3 Tools/content.py build-all --platform StandaloneWindows64 --output <win>', затем ОДИН 'python3 Tools/content.py publish-all --input <osx> --input <win> --host hexlive-server ...' — публикация обеих платформ разом снимает проблему retain/metadata из пункта 5. Сначала staging /var/lib/hexlive-staging/assets, порт 5124. Доказательством считать три ответа: GET /api/assets/v1/index/StandaloneWindows64/unity6000-content1 -> objects>0 и building/architecture.door.wood ОТСУТСТВУЕТ в platformMissing; GET /api/assets/v1/objects/building/architecture.door.wood?platform=StandaloneWindows64&profile=unity6000-content1 -> HTTP 200 с variant.sha256; HEAD /api/assets/v1/blobs/<sha256> -> 200. Кода, спеки и тестов в этом проходе не менял, коммита нет; 'git diff --check' чисто."
                 }
             ]
         },
@@ -7734,13 +7776,14 @@
         {
             "id": 240,
             "createdUtc": "2026-08-26 14:54 UTC",
-            "status": "open",
+            "status": "ready_for_test",
             "text": "фича: накормить/напоить лежащего беспомощного персонажа",
             "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
             "assignedAgent": "",
             "agentHandoff": "",
             "fixCommits": [
-                "9dbbd56b7f905c52c9eddc0d5c66252663224d72"
+                "9dbbd56b7f905c52c9eddc0d5c66252663224d72",
+                "85b4d8a2fc84d051031e7b564633ee4de83b8472"
             ],
             "fixCommit": "9dbbd56b7f905c52c9eddc0d5c66252663224d72",
             "reportedInVersion": "",
@@ -7762,6 +7805,11 @@
                     "createdUtc": "2026-08-27T02:48:46Z",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: ordered aid kind is transient and not serialized, while Aid goal/target/plan are serialized; after save/load feed/hydrate can fall back to Treat/no aid. Persist or reconstruct ordered aid kind and add save/load regression before merge."
+                },
+                {
+                    "createdUtc": "2026-08-27T07:27:26Z",
+                    "author": "sveta-heartbeat",
+                    "text": "Restored #240 post-review persistence fix evidence from ledger and verified commit 85b4d8a2fc84d051031e7b564633ee4de83b8472 exists in /private/tmp/HexLive-bug-240-feed-water-incapacitated. Fix persists OrderedAidKind/OrderedAidFor with save/load regressions; marked ready_for_test."
                 }
             ]
         },
@@ -7840,6 +7888,16 @@
                     "createdUtc": "2026-08-27T02:48:46Z",
                     "author": "codex-final-review",
                     "text": "Final Codex review found blocker: diagnostics were added, but no bundle/manifest/build-output/registry-data change proves the Windows door asset is published; treat #238/#242 unresolved until Windows door bundle is present and Player-tested."
+                },
+                {
+                    "createdUtc": "2026-08-27T07:52:03Z",
+                    "author": "sveta-subagent",
+                    "text": "Additional evidence from #238 post-review pass confirms the blocker is real, not just missing documentation: production 5123 publishes 2725 macOS objects but 0 Windows objects, and building/architecture.door.wood record has no StandaloneWindows64 variant. #242 stays open until a real Windows build/publish plus Player-facing registry/blob proof exists."
+                },
+                {
+                    "createdUtc": "2026-08-27T09:40:00Z",
+                    "author": "hexlive-bug-238-windows-content-publish-20260827-1525",
+                    "text": "Остаётся open; изменений по #242 в этом проходе нет. Полный разбор блокера записан в комментарий #238 от 2026-08-27T09:40Z; здесь только то, что меняет план по #242. (a) Проверка bundle/manifest/loader по Windows невозможна на этой машине: Unity Editor игрока жив на том же чекауте (Temp/UnityLockfile, pid 68532), а dotnet/python-скрипты/curl/ssh в сессии отклонены как 'This command requires approval'. Ни один Windows candidate.json не собран, поэтому сверять manifest не с чем. (b) Серверная половина #242 уже покрыта тестами и в правках не нуждается: Tests/HexLive.Server.Tests/Assets/AssetRegistryStoreTests.cs содержит WindowsBootstrapRetainsPublishedMacVariant, WindowsIndexNamesTheObjectsItCannotLoad и покрытие AuditCoverage по building/door.wood. Дыра не в диагностике реестра, а в отсутствии Windows-сборки. (c) Найденное ограничение, которое меняет runbook: Docs/AtomicContentCrossPlatform.md §4 предлагает Windows-only publish с --retain-current-variants, но AssetRegistryStore.cs:118-123 откажет по несовпадению metadata для объектов, собранных старым сборщиком (legacy iconPlaceholder против нынешнего iconFallback=emoji). Планировать нужно совместную публикацию обеих платформ с одного SHA (§152.1, Spec/152.md:47-51), а не докладку Windows поверх старого macOS-бутстрапа. Перед тем как считать #242 закрытым, доказательства должны включать Windows index с objects>0, отсутствие building/architecture.door.wood в platformMissing и успешный HEAD blob."
                 }
             ]
         }

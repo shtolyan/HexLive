@@ -252,6 +252,20 @@ public sealed class NPCMind
 
     public int PendingAidSinceTick { get; set; }
 
+    // §53.9: ВИД помощи, который назначил ИГРОК (AidPersonCommand). Пока метка
+    // стоит, RunAid по прибытии не переторговывает вид по §53.3: беспомощную —
+    // ту, что сама не поест и не попьёт, — кормят и поят именно тем, что выбрал
+    // игрок. Без метки живая переоценка почти всегда отвечала за лежачую
+    // Treat/Medicate (у неё же кровь и здоровье в полу), и приказ «Накормить»
+    // молча умирал на «нечем перевязать», не тронув ни голода, ни жажды.
+    // Пара ПЕРСИСТИТСЯ (сейв v60), в отличие от транзиентного PendingAidFrom:
+    // цель Aid, план и его цель уже переживают сохранение, так что без неё
+    // загруженная помощница доходила до подопечной и там переторговывала вид
+    // по §53.3 — приказ игрока превращался в Treat или гас совсем.
+    public AidKind OrderedAidKind { get; set; } = AidKind.None;
+
+    public HexLive.Simulation.Common.EntityId? OrderedAidFor { get; set; }
+
     // §118.4: a fight may force a rescuer to put down the patient so both
     // hands are free. This remembers that exact patient until the combat scene
     // ends, so RescueSystem resumes the interrupted evacuation before bidding

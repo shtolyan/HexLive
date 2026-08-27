@@ -570,7 +570,8 @@ public sealed class BatheUndressAtHomeTests
             // сцена); 56 → 57 в §133.10 (выбранный комплект и точный объект
             // снятой вещи).
             // 59 → 60 in §120.10: queued architecture demolition and
-            // the pending replacement definition of that exact slot.
+            // the pending replacement definition of that exact slot; also §53.9
+            // (#240, ordered player aid kind and target).
             Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(60));
         });
     }

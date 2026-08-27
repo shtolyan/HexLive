@@ -105,7 +105,18 @@ public static class ScenePrewarm
                     worldObject.DefinitionId, worldObject.Id.Value,
                     out var type, out var contentId))
             {
-                WarmOwnerMain(type, contentId);
+                // ⭐ ЛЕЖАЩАЯ одежда НЕ греется. Wear-бандлы — самая тяжёлая
+                // семья (5.4 ГБ кэша, в RAM распакованные текстуры кратно
+                // больше), а на острове сотни тряпок; их предзагрузка держала
+                // весь гардероб мира в памяти всю сессию — Player раздувался
+                // до 30–50 ГБ (замер 2026-08-28) ещё за шторкой. Земляная
+                // тряпка грузится ЛЕНИВО, когда её вью реально строится
+                // (туман §148 прячет большую часть навсегда). Надетое на
+                // присутствующих греет WarmSnapshotNpcs — телам ждать нечего.
+                if (type != "wear")
+                {
+                    WarmOwnerMain(type, contentId);
+                }
             }
 
             foreach (var slot in worldObject.Contents)
@@ -406,20 +417,10 @@ public static class ScenePrewarm
             }
         }
 
-        var garments = new HashSet<string>();
-        foreach (var garment in HexLive.Simulation.Content.GarmentLibrary.Active)
-        {
-            garments.Add(garment.Id);
-        }
-
-        foreach (var worldObject in world.Entities.Objects.Values)
-        {
-            if (garments.Contains(worldObject.DefinitionId))
-            {
-                ids.Add(worldObject.DefinitionId);
-            }
-        }
-
+        // ⭐ Лежащая на земле одежда сюда НЕ входит (симметрично ForSnapshot):
+        // предзагрузка всего гардероба мира держала сотни wear-бандлов с их
+        // распакованными текстурами в RAM всю сессию. Земляные тряпки грузятся
+        // лениво при построении вью; за шторкой телам нужно только надетое.
         foreach (var id in ids)
         {
             GarmentDropFactory.Prewarm(id);

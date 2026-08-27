@@ -132,6 +132,18 @@ public sealed class ContentAssetService
         new(StringComparer.Ordinal);
     private bool _verifiedStampsDirty;
 
+    // ⭐ Пейсинг тёплого кэша. Стат-кэш сделал проверку блоба мгновенной — и
+    // ПЕРВЫЙ вход на тёплом кэше стал отдавать весь working set (сотни
+    // wear/hair-бандлов + ~тысячу аудио) в AssetBundle.LoadFromFileAsync
+    // ОДНИМ синхронным взрывом вместо прежних шести за раз. Сотни параллельно
+    // открытых бандлов с 4K-текстурами — это буферы декомпрессии на десятки
+    // гигабайт: замер 2026-08-28 — Player раздулся до ~50 ГБ RSS и выглядел
+    // зависшим. Поэтому ПЕРВОЕ обращение к блобу за сессию всегда проходит
+    // через 6-слотовую очередь (один кадр задержки — кадровый дозатор для
+    // всего, что стреляет в колбэке: открытие бандла, LoadAssetAsync, FMOD
+    // createSound), а мгновенный синхронный ответ разрешён только повторным.
+    private readonly HashSet<string> _settledBlobs = new(StringComparer.Ordinal);
+
     // Six is deliberately browser-like. A fresh client can request more than
     // two thousand audio payloads and attachments during §41.4 prewarm; opening
     // one HTTP connection per object exhausted an SSH tunnel (and is equally
@@ -914,7 +926,12 @@ public sealed class ContentAssetService
         // здесь. Прежний синхронный HasVerifiedBlob хешировал каждый wear-blob
         // на главном потоке — ~180 бандлов тёплого кэша держали занавес
         // минутами при нулевом трафике.
-        if (_verifiedHashes.Contains(sha256) || TryTrustPersistedStamp(sha256, size))
+        // Мгновенный синхронный ответ — только ПОВТОРНОМУ обращению (see
+        // _settledBlobs): первый заход каждого блоба обязан пройти через
+        // очередь ниже, чтобы открытия бандлов шли по шесть за раз, а не
+        // всем working set-ом разом.
+        if (_settledBlobs.Contains(sha256) &&
+            (_verifiedHashes.Contains(sha256) || TryTrustPersistedStamp(sha256, size)))
         {
             var path = BlobPath(sha256);
             if (IsStandaloneFile(path) && new FileInfo(path).Length == size)
@@ -1025,6 +1042,20 @@ public sealed class ContentAssetService
     private IEnumerator DownloadBlob(
         ContentRecord record, string sha256, long size, string label, Action<bool> completed)
     {
+        // Проверенный (штампом или в этой сессии) блоб, идущий через очередь
+        // ПЕРВЫЙ раз: один кадр задержки — это и есть дозатор для всего, что
+        // стреляет в completed (открытие бандла, LoadAssetAsync, FMOD).
+        var pacedBlob = BlobPath(sha256);
+        if ((_verifiedHashes.Contains(sha256) || TryTrustPersistedStamp(sha256, size)) &&
+            IsStandaloneFile(pacedBlob) && new FileInfo(pacedBlob).Length == size)
+        {
+            yield return null;
+            _settledBlobs.Add(sha256);
+            Touch(pacedBlob);
+            completed(true);
+            yield break;
+        }
+
         // Кэшированный blob прошлых сессий: полное совпадение размера — это
         // кандидат, но правда только в хеше. Считаем его на worker (см.
         // EnsureBlob: главный поток не хеширует), успех — без сети.

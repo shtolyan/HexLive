@@ -41,6 +41,7 @@ public sealed class ContentAssetService
         public bool Loading;
         public int References;
         public int PendingAssetLoads;
+        public bool UnloadScheduled;
         public readonly List<Action<AssetBundle>> Waiters = new();
     }
 
@@ -818,6 +819,29 @@ public sealed class ContentAssetService
     private void TryUnloadBundle(string sha256, BundleState state)
     {
         if (state.References == 0 && state.PendingAssetLoads == 0 &&
+            !state.Loading && state.Waiters.Count == 0 && !state.UnloadScheduled)
+        {
+            state.UnloadScheduled = true;
+            ContentCoroutines.Run(UnloadBundleDeferred(sha256, state));
+        }
+    }
+
+    // Never Unload(false) synchronously from inside an AssetBundleRequest
+    // completion callback: Unity still counts that request as "an async load
+    // operation in progress", the unload cannot complete, and the NATIVE
+    // bundle survives as a ghost while _bundles already forgot the SHA. The
+    // next LoadFromFileAsync of the same SHA then fails forever with "another
+    // AssetBundle with the same files is already loaded" and the item stays
+    // invisible until restart. One frame later the operation is truly retired
+    // and the unload is clean; a re-request that landed in between simply
+    // fails the recheck and keeps the bundle.
+    private IEnumerator UnloadBundleDeferred(string sha256, BundleState state)
+    {
+        yield return null;
+        state.UnloadScheduled = false;
+        if (_bundles.TryGetValue(sha256, out var current) &&
+            ReferenceEquals(current, state) &&
+            state.References == 0 && state.PendingAssetLoads == 0 &&
             !state.Loading && state.Waiters.Count == 0)
         {
             if (state.Bundle != null)

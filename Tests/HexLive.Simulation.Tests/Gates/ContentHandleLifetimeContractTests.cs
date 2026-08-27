@@ -163,6 +163,37 @@ public sealed class ContentHandleLifetimeContractTests
     }
 
     /// <summary>
+    /// Unload(false) из колбэка завершения AssetBundleRequest не завершается:
+    /// Unity ещё числит операцию «в полёте», нативный бандл остаётся призраком,
+    /// и следующий LoadFromFileAsync того же SHA вечно падает с «another
+    /// AssetBundle with the same files is already loaded» (вещь невидима до
+    /// перезапуска; наблюдалось 2026-08-27 на prod-зрителе). Выгрузка обязана
+    /// быть отложенной, а сам TryUnloadBundle — не трогать бандл синхронно.
+    /// </summary>
+    [Test]
+    public void BundleUnloadIsDeferredOffTheCompletionCallback()
+    {
+        var source = Presentation(Path.Combine("Content", "ContentAssetService.cs"));
+        var tryUnload = Between(source, "private void TryUnloadBundle(",
+            "private IEnumerator UnloadBundleDeferred(");
+        var deferred = Between(source, "private IEnumerator UnloadBundleDeferred(",
+            "private void EnsureRecordBlob(");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(tryUnload, Does.Not.Contain(".Unload("),
+                "синхронный Unload из completion-колбэка оставляет нативный бандл-призрак");
+            Assert.That(tryUnload, Does.Contain("UnloadScheduled"),
+                "повторное планирование выгрузки должно быть идемпотентным");
+            Assert.That(deferred, Does.Contain("yield return null;"),
+                "выгрузка обязана уйти минимум на следующий кадр");
+            Assert.That(deferred, Does.Contain("ReferenceEquals(current, state)"),
+                "отложенная проверка не должна выгрузить перезапрошенный бандл");
+            Assert.That(deferred, Does.Contain("state.Bundle.Unload(false);"));
+        });
+    }
+
+    /// <summary>
     /// §152 закрыл Addressables. Гейт, сторожащий несуществующее API, врёт
     /// молча — поэтому путь контента проверяется на их отсутствие.
     /// </summary>

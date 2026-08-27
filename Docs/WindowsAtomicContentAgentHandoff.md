@@ -7,7 +7,7 @@ Windows Player она не собирает.
 ## Зафиксированный контракт
 
 - Единственная ветка-источник: `origin/master`.
-- Content baseline: `7a49bb988a08a8b4e6a41dd58547afb6069e89f2`.
+- Content baseline: `ad1b14e1a0e3810778c21835503dae91d5ded43a`.
 - Unity: `6000.4.5f1`.
 - Платформа: `StandaloneWindows64`.
 - Runtime profile: `unity6000-content1`.
@@ -23,6 +23,8 @@ Baseline — commit из `master`, из которого собран текущ
 Документационные commit после него допустимы. Изменения в `Assets`, `Packages`,
 `ProjectSettings`, `SimData` или `Tools/content.py` после baseline требуют сначала
 согласованно обновить macOS-варианты; приведённый ниже gate такую сборку остановит.
+Текущий baseline включает reference-only repair native prefab `tool.bottle` для
+Unity 6000.4.5f1: геометрия и metadata существующего macOS-варианта не менялись.
 
 Эта инструкция работает только с production `hexlive.service` на порту `5123`.
 Не подменять приведённые service, port, API или filesystem paths другими.
@@ -62,7 +64,7 @@ git status --short
 Получить только `master`:
 
 ```powershell
-$ContentBaseline = '7a49bb988a08a8b4e6a41dd58547afb6069e89f2'
+$ContentBaseline = 'ad1b14e1a0e3810778c21835503dae91d5ded43a'
 
 git fetch origin
 git switch master

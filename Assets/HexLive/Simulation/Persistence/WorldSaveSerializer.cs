@@ -127,7 +127,13 @@ public static class WorldSaveSerializer
     // этого загрузка посреди сушки оставляла закреплённого NPC голым навсегда.
     // v59 (#218): последний прямой социальный контакт в каждой направленной
     // записи отношений; старые записи получают 0 и стабильный fallback-порядок.
-    public const int BlobVersion = 59;
+    // v60 (§53.9, #240): назначенный игроком ВИД помощи и её адресат. Цель Aid,
+    // план и цель плана сериализуются целиком, поэтому загруженная помощница
+    // продолжала поход — но по прибытии переторговывала вид по §53.3, и приказ
+    // «Накормить» превращался в Treat или молча гас как «помощь больше не
+    // нужна». Блоб ≤59 читается «приказа не было», то есть ровно так, как этот
+    // сейв и был записан.
+    public const int BlobVersion = 60;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1674,6 +1680,12 @@ public static class WorldSaveSerializer
             w.Write(piece.DefinitionId);
             WriteNullableObject(w, piece.GroundObjectId);
         }
+
+        // §53.9 / v60 (#240): приказ игрока «чем именно помочь» и кому. Метка
+        // адресная, поэтому едет парой: один вид без подопечной подобрал бы
+        // чужой поход, а одна подопечная без вида вернула бы переоценку §53.3.
+        w.Write((int)npc.Mind.OrderedAidKind);
+        WriteNullableEntity(w, npc.Mind.OrderedAidFor);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -2308,6 +2320,14 @@ public static class WorldSaveSerializer
                     DefinitionId = worn.DefinitionId
                 });
             }
+        }
+
+        // §53.9 (#240): вид помощи, назначенный игроком, и её адресат. Блоб ≤59
+        // приказа не нёс — такой сейв просыпается без него, как и был записан.
+        if (version >= 60)
+        {
+            npc.Mind.OrderedAidKind = (AidKind)r.ReadInt32();
+            npc.Mind.OrderedAidFor = ReadNullableEntity(r);
         }
 
         return npc;

@@ -568,8 +568,9 @@ public sealed class BatheUndressAtHomeTests
             // просто открывается заново); 54 → 55 в §133.9 (#193,
             // сохраняемый запрет смены одежды); 55 → 56 в §127 (парная
             // сцена); 56 → 57 в §133.10 (выбранный комплект и точный объект
-            // снятой вещи).
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(59));
+            // снятой вещи); 59 → 60 в §53.9 (#240, приказанный игроком вид
+            // помощи и её адресат).
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(60));
         });
     }
 

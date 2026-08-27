@@ -1,9 +1,11 @@
+using System.IO;
 using System.Linq;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using NUnit.Framework;
@@ -70,6 +72,33 @@ public sealed class ManualSocialOrderTests
         person.CurrentJunction = destinationId;
         SpatialMutations.MoveEntityToTile(world, person.Id, previousTile, person.Tile);
         SpatialMutations.OccupyJunction(world, destinationId, person.Id);
+    }
+
+    // §41.2: загрузка — это мир, собранный фабрикой по ТОМУ ЖЕ сиду, поверх
+    // которого лёг блоб. Проверка обязана ходить этим путём: поле, которого в
+    // блобе нет, на живом мире не отличить от сохранённого.
+    private static SimulationEngine ReloadFromSave(WorldState world)
+    {
+        using var buffer = new MemoryStream();
+        using (var writer = new BinaryWriter(
+                   buffer, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        buffer.Position = 0;
+        var loaded = TestWorld.CreateWorld();
+        using (var reader = new BinaryReader(
+                   buffer, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Read(loaded, reader);
+        }
+
+        var clock = new SimulationClock();
+        clock.Resume();
+        var engine = new SimulationEngine(loaded, new SimulationSettings(), clock);
+        SimulationSystemRegistry.RegisterDefaults(engine);
+        return engine;
     }
 
     // ── Поговорить ───────────────────────────────────────────────────────
@@ -323,6 +352,155 @@ public sealed class ManualSocialOrderTests
                 "Помощница так и не начала поить: приказ игрока оборван " +
                 "переоценкой §53.3 как «помощь больше не нужна».");
             Assert.That(ward.Needs.Thirst, Is.LessThan(0.40f),
+                "Жажда лежачей не снизилась — вода до неё не дошла (§53.7).");
+        });
+    }
+
+    // §53.9 (баг #240): цель Aid, план и его цель переживают сохранение — а вид
+    // помощи не переживал. Загруженная помощница доходила до лежачей и там
+    // переторговывала приказ по §53.3: «Накормить» превращалось в Treat и гасло
+    // на «нечем перевязать». Проверяется и метка после загрузки, и то, что
+    // догруженный поход всё-таки кормит.
+    [Test]
+    public void OrderedFeedSurvivesSaveLoadAndStillFeedsTheComatoseWard()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var pair = TwoColonists(world);
+        var helper = pair[0];
+        var ward = pair[1];
+        TakeControl(engine, helper);
+        TakeControl(engine, ward);
+        PlaceOnFreeNeighbor(world, ward, helper);
+
+        helper.Inventory.Items.Add(new ItemInstance("food.meat_cooked"));
+        helper.Inventory.Items.RemoveAll(i => i.DefinitionId.Contains("bandage"));
+
+        ward.Wounds.Clear();
+        ward.Wounds.Add(new WoundState
+        {
+            Id = 240, Zone = BodyPart.ArmL, Severity = 0.10f,
+            Heal01 = 0f, Clot01 = 0f, Stabilized = false, BleedFactor = 1f, Seed = 240
+        });
+        ward.Needs.Blood = 0.30f;
+        ward.Needs.Hunger = 0.60f;
+        ward.Needs.Energy = 0f;
+        NeedsDecaySystem.EnterComa(world, ward, ComaCause.Exhaustion);
+
+        Assert.That(AidAssessment.Assess(ward, world.Tick, out _),
+            Is.EqualTo(AidKind.Treat),
+            "Сцена перестала быть той, ради которой тест написан: §53.3 обязана " +
+            "хотеть здесь ПЕРЕВЯЗКУ, иначе приказ «Накормить» ничего не проверяет.");
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new AidPersonCommand(helper.Id, ward.Id, AidKind.Feed));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            $"Aid отклонён: {admission.Reason}");
+
+        var reloaded = ReloadFromSave(world);
+        var loadedHelper = reloaded.World.Entities.Npcs[helper.Id];
+        var loadedWard = reloaded.World.Entities.Npcs[ward.Id];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loadedHelper.Mind.OrderedAidKind, Is.EqualTo(AidKind.Feed),
+                "Вид помощи не пережил сохранение — по прибытии приказ игрока " +
+                "переторгует §53.3 (у лежачей это Treat).");
+            Assert.That(loadedHelper.Mind.OrderedAidFor, Is.EqualTo(ward.Id),
+                "Метка адресная: без подопечной её подберёт чужой поход.");
+            Assert.That(loadedHelper.Mind.CurrentGoal, Is.EqualTo(GoalType.Aid),
+                "Сама цель Aid сериализуется — если её нет, тест меряет не то.");
+        });
+
+        var fedHer = false;
+        for (var i = 0; i < 400 && loadedWard.Needs.Hunger > 0.35f; i++)
+        {
+            loadedWard.Needs.Energy = 0f; // держим её без сознания весь поход
+            reloaded.Step();
+            fedHer |= loadedHelper.Execution.CurrentInteraction == InteractionType.FeedOther;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fedHer, Is.True,
+                "После загрузки помощница так и не начала кормить: приказ игрока " +
+                "переигран переоценкой §53.3 и оборван на «нечем перевязать».");
+            Assert.That(loadedWard.Needs.Hunger, Is.LessThan(0.35f),
+                "Голод лежачей не снизился — еда до неё не дошла (§53.7).");
+        });
+    }
+
+    // §53.9 (баг #240): та же потеря с другой стороны — у беспомощной нужда не
+    // дотягивает до порога страдания §53.3, автономная формула отвечает None, и
+    // загруженный приказ «Напоить» обрывался как «помощь больше не нужна».
+    // Припас — надколотый кокос, а не бутылка: её заряды сейв не несёт (это
+    // отдельная дыра, к этому приказу отношения не имеющая).
+    [Test]
+    public void OrderedHydrateSurvivesSaveLoadAndStillWatersTheComatoseWard()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var pair = TwoColonists(world);
+        var helper = pair[0];
+        var ward = pair[1];
+        TakeControl(engine, helper);
+        TakeControl(engine, ward);
+        PlaceOnFreeNeighbor(world, ward, helper);
+
+        helper.Inventory.Items.Add(new ItemInstance(ContentIds.CoconutPierced)
+        {
+            ResourceAmount = 2f
+        });
+
+        ward.Wounds.Clear();
+        ward.Needs.Blood = 1f;
+        ward.Health = 1f;
+        ward.Needs.Stress = 0f;
+        ward.Needs.Hunger = 0.10f;
+        ward.Needs.Thirst = 0.40f;
+        ward.Needs.Energy = 0f;
+        NeedsDecaySystem.EnterComa(world, ward, ComaCause.Exhaustion);
+
+        Assert.That(AidAssessment.Assess(ward, world.Tick, out _),
+            Is.EqualTo(AidKind.None),
+            "Сцена перестала быть той, ради которой тест написан: §53.3 обязана " +
+            "здесь молчать, иначе приказ «Напоить» ничего не проверяет.");
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new AidPersonCommand(helper.Id, ward.Id, AidKind.Hydrate));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            $"Aid отклонён: {admission.Reason}");
+
+        var reloaded = ReloadFromSave(world);
+        var loadedHelper = reloaded.World.Entities.Npcs[helper.Id];
+        var loadedWard = reloaded.World.Entities.Npcs[ward.Id];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loadedHelper.Mind.OrderedAidKind, Is.EqualTo(AidKind.Hydrate),
+                "Вид помощи не пережил сохранение — по прибытии §53.3 ответит " +
+                "None, и приказ «Напоить» погаснет как ненужный.");
+            Assert.That(loadedHelper.Mind.OrderedAidFor, Is.EqualTo(ward.Id),
+                "Метка адресная: без подопечной её подберёт чужой поход.");
+            Assert.That(loadedHelper.Mind.CurrentGoal, Is.EqualTo(GoalType.Aid),
+                "Сама цель Aid сериализуется — если её нет, тест меряет не то.");
+        });
+
+        var gaveHerWater = false;
+        for (var i = 0; i < 400 && loadedWard.Needs.Thirst >= 0.40f; i++)
+        {
+            loadedWard.Needs.Energy = 0f;
+            reloaded.Step();
+            gaveHerWater |=
+                loadedHelper.Execution.CurrentInteraction == InteractionType.HydrateOther;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(gaveHerWater, Is.True,
+                "После загрузки помощница так и не начала поить: приказ игрока " +
+                "оборван переоценкой §53.3 как «помощь больше не нужна».");
+            Assert.That(loadedWard.Needs.Thirst, Is.LessThan(0.40f),
                 "Жажда лежачей не снизилась — вода до неё не дошла (§53.7).");
         });
     }

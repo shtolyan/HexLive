@@ -331,6 +331,64 @@ public sealed class ManualCraftingTests
         });
     }
 
+    // §138.5 (#233): готовая верёвка почти всегда лежит в лагере — это
+    // стройматериал. Заказ игрока обязан вить новую, а не умирать молча в
+    // дубль-гейте §119.2, который панель крафта не считает и который поэтому
+    // не может доехать до игрока ни одной причиной.
+    [Test]
+    public void ManualRopeOrderCraftsWhileAFinishedRopeLiesUnderfoot()
+    {
+        var engine = TestWorld.CreateEngine(138010);
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        SimDataFile.Require(RepoPaths.SimData);
+        Strip(world, ContentIds.Fiber, ContentIds.Rope);
+        Add(npc, ContentIds.Fiber,
+            RecipeCatalog.InputCount(GoalType.CraftRope, ContentIds.Fiber));
+        var lying = Spawn(world, npc, ContentIds.Rope, npc.Tile);
+
+        // Восприятие наполняется тиком: на живом мире (сервер, тик 298k)
+        // лежащая рядом верёвка УЖЕ воспринята к моменту приказа, и только
+        // тогда дубль-гейт §119.2 успевает сработать. Заказ на нулевом тике
+        // проскакивал мимо бага и делал регрессию слепой.
+        engine.Step();
+        engine.Step();
+        Assert.That(npc.Perception.Objects.Any(perceived =>
+            perceived.Id == lying.Id && perceived.IsReachable), Is.True,
+            "The fixture only reproduces #233 while the finished rope is perceived.");
+
+        var option = Option(world, npc, GoalType.CraftRope);
+        Assert.Multiple(() =>
+        {
+            Assert.That(option.CanCraft, Is.True,
+                "The panel offers the recipe with a finished rope in sight.");
+            Assert.That(option.StationTag, Is.Empty,
+                "The shipped rope is a hand craft, not a campfire job.");
+        });
+
+        engine.Commands.Enqueue(new CraftItemCommand(npc.Id, GoalType.CraftRope));
+        StepUntil(engine, () =>
+            npc.Inventory.Items.Any(item => item.DefinitionId == ContentIds.Rope) &&
+            npc.Mind.CurrentGoal == GoalType.None &&
+            npc.Plan.Status == PlanStatus.Completed,
+            300);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Count(item =>
+                item.DefinitionId == ContentIds.Rope), Is.EqualTo(1),
+                "The accepted order produced exactly one new rope.");
+            Assert.That(npc.Inventory.Items.Any(item =>
+                item.DefinitionId == ContentIds.Fiber), Is.False,
+                "The fiber bill was actually paid.");
+            Assert.That(world.Entities.Objects.ContainsKey(lying.Id), Is.True,
+                "The rope that was already lying there is untouched.");
+            Assert.That(world.Entities.Objects.Values.Any(obj =>
+                obj.DefinitionId == ContentIds.Rope && obj.IsCraftProject), Is.False,
+                "No half-finished rope project is left behind.");
+        });
+    }
+
     [Test]
     public void ManualStoneAxeWalksToTheRemoteGroundBillBeforeCrafting()
     {
@@ -394,6 +452,61 @@ public sealed class ManualCraftingTests
             Assert.That(npc.Tile, Is.EqualTo(remote));
             Assert.That(npc.Inventory.Items.Count(item =>
                 item.DefinitionId == ContentIds.AxeStone), Is.EqualTo(1));
+        });
+    }
+
+    // #234: «действие доступно, а результата нет». Панель считает бинт
+    // доступным (бинт лежит рядом её не волнует), а исполнитель молча ронял
+    // план: §119-защита от дубля видела готовый выход в восприятии и
+    // отказывалась начать цикл. Для ИИ это правильно — решение перенаправят на
+    // PickUp; ЯВНЫЙ приказ игрока перенаправлять некому.
+    [Test]
+    public void ManualBandageOrderCraftsEvenWithAFinishedBandageLyingNearby()
+    {
+        var engine = TestWorld.CreateEngine(138010);
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        SimDataFile.Require(RepoPaths.SimData);
+        Strip(world, ContentIds.HerbLeaf, ContentIds.Bandage);
+        Add(npc, ContentIds.HerbLeaf, 2);
+        var lying = Spawn(world, npc, ContentIds.Bandage, npc.Tile);
+
+        // Восприятие обязано УЖЕ держать лежащий бинт к первому тику
+        // исполнения — иначе гонка прячет баг: на холодном восприятии цикл
+        // успевал начаться и приказ проходил.
+        engine.Step();
+        Assert.That(CraftProjectMath.HasReachableCompletedOutput(
+            world, npc, GoalType.CraftBandage), Is.True,
+            "Фикстура обязана воспроизводить именно «готовый выход на виду».");
+
+        var option = Option(world, npc, GoalType.CraftBandage);
+        Assert.Multiple(() =>
+        {
+            Assert.That(option.CanCraft, Is.True,
+                "Панель обязана предлагать бинт — это и видел игрок.");
+            Assert.That(option.StationTag, Is.Empty,
+                "Бинт в поставке — крафт на месте, без костра.");
+        });
+
+        engine.Commands.Enqueue(new CraftItemCommand(npc.Id, GoalType.CraftBandage));
+        StepUntil(engine, () =>
+            npc.Inventory.Items.Any(item => item.DefinitionId == ContentIds.Bandage) &&
+            npc.Plan.Status == PlanStatus.Completed,
+            300);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Count(item =>
+                item.DefinitionId == ContentIds.Bandage), Is.EqualTo(1),
+                "Заказ обязан выдать ровно один новый бинт.");
+            Assert.That(npc.Inventory.Items.Any(item =>
+                item.DefinitionId == ContentIds.HerbLeaf), Is.False,
+                "Оба листа травы оплачены.");
+            Assert.That(world.Entities.Objects.ContainsKey(lying.Id), Is.True,
+                "Лежавший рядом чужой бинт приказ не трогает.");
+            Assert.That(world.Entities.Objects.Values.Any(obj =>
+                obj.DefinitionId == ContentIds.Bandage && obj.IsCraftProject), Is.False,
+                "Незавершённых проектов после приказа не остаётся.");
         });
     }
 

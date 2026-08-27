@@ -15,6 +15,15 @@ namespace HexLive.Simulation.Runtime
 /// </summary>
 internal static class CraftProjectMath
 {
+    // §138.5 (#233/#234): §119.2 is an economy duplicate guard, not
+    // crafting physics. Autonomous demand must pick up an available output;
+    // an accepted manual craft order means the player explicitly asked for one
+    // more item. Manual craft goals cannot be assigned by auction/planning, so
+    // a manual item-craft goal is the durable proof of that accepted order.
+    internal static bool IsPlayerOrderedCraft(NPCState npc, GoalType goal) =>
+        ManualControlMath.IsManual(npc) &&
+        NpcControlPolicy.IsManualCraftGoal(goal);
+
     internal static bool CanBeginCycle(
         WorldState world, NPCState npc, GoalType goal, WorldObjectState station)
     {
@@ -29,7 +38,8 @@ internal static class CraftProjectMath
         // Decision and Planning normally redirect the demand to PickUp, but a
         // result may enter perception between those passes. No item recipe is
         // allowed to pay another bill while its finished output is visible.
-        if (HasReachableCompletedOutput(world, npc, goal))
+        if (!IsPlayerOrderedCraft(npc, goal) &&
+            HasReachableCompletedOutput(world, npc, goal))
         {
             return false;
         }
@@ -219,7 +229,8 @@ internal static class CraftProjectMath
         // A late perception update can race the plan. Keep the invariant at
         // the mutation boundary too: never create/resume manufacturing while
         // a finished copy is already available to this worker.
-        if (HasReachableCompletedOutput(world, npc, goal))
+        if (!IsPlayerOrderedCraft(npc, goal) &&
+            HasReachableCompletedOutput(world, npc, goal))
         {
             return false;
         }

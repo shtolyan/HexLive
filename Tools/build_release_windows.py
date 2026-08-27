@@ -670,6 +670,9 @@ def tail_log(log_path: Path) -> None:
 
 def main() -> int:
     args = parse_args()
+    local_bug_token = Path.home() / ".config" / "hexlive" / "bug-token"
+    if not os.environ.get("HEXLIVE_BUG_TOKEN") and local_bug_token.is_file():
+        os.environ["HEXLIVE_BUG_TOKEN"] = local_bug_token.read_text(encoding="utf-8").strip()
     releases = args.output_root.expanduser().resolve()
     version, version_reason = planned_version()
     variant = "release" if args.release else "development"

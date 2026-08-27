@@ -11,7 +11,7 @@ Use `scripts/bugs.py`; it preserves JSON encoding and surfaces HTTP conflicts.
 ## Authentication
 
 Mutations require the agent Bearer token. Prefer `HEXLIVE_BUG_TOKEN`; otherwise
-pass `--token-file`. On the server the token is
+the CLI reads `~/.config/hexlive/bug-token` (overridable with `--token-file`). On the server the token is
 `/var/lib/hexlive/hexlive-bugs-token.txt`. Never print or commit it.
 
 Reads and new player reports are public. Status changes, agent fields,

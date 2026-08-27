@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Small stdlib client for the HexLive bug API. Never logs the bearer token."""
-import argparse, json, os, sys, urllib.error, urllib.request
+import argparse, json, os, pathlib, sys, urllib.error, urllib.request
 
 DEFAULT="https://vmi3529459.contaboserver.net/api/bugs/v1"
 
 def token(args):
     value=os.environ.get("HEXLIVE_BUG_TOKEN","").strip()
     if not value and args.token_file:
-        with open(args.token_file,encoding="utf-8") as f: value=f.read().strip()
+        with open(pathlib.Path(args.token_file).expanduser(),encoding="utf-8") as f: value=f.read().strip()
     return value
 
 def call(args,method,path,payload=None,auth=False):
@@ -28,7 +28,7 @@ def call(args,method,path,payload=None,auth=False):
         raise SystemExit(f"HTTP {e.code}: {body}")
 
 def main():
-    p=argparse.ArgumentParser(); p.add_argument("--api",default=DEFAULT); p.add_argument("--token-file")
+    p=argparse.ArgumentParser(); p.add_argument("--api",default=DEFAULT); p.add_argument("--token-file",default="~/.config/hexlive/bug-token")
     sub=p.add_subparsers(dest="cmd",required=True)
     sub.add_parser("list"); sub.add_parser("queue")
     g=sub.add_parser("get"); g.add_argument("id",type=int)

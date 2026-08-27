@@ -4001,28 +4001,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return _waterMaterial;
         }
 
-        // Spec 20.16: prefer the imported "Definitive Stylized Water URP"
-        // material (depth gradient, animated foam, fresnel, refraction) — the
-        // tuned asset carries its distortion/foam texture with it. A runtime
-        // COPY: the controller tints it per frame, and tinting the loaded
-        // asset directly would dirty the .mat on disk in the editor.
+        // Spec 20.16 (r2): ВОДА — это самописный `HexLive/StylizedWater`,
+        // зашитый в Player (Always Included Shaders). Никакого бандла и
+        // никакой ленивой загрузки: шейдер компилируется со сборкой и
+        // доступен на первом же кадре.
         //
-        // ⭐ ЗАШИТ В PLAYER, не в атомарный бандл. Вода — часть каждого
-        // первого кадра острова, а шейдер из бандла собирается со своим
-        // набором URP-вариантов и на клиенте рисовался неправильно; вдобавок
-        // ленивый AtomicResources.Load отдавал null на первом кадре, и море
-        // мигало fallback-материалом. Материал в Resources тянет шейдер и
-        // текстуры в сборку Player-а с правильными вариантами и грузится
-        // синхронно.
-        var definitive = Resources.Load<Material>("HexLive/Water/StylizedWaterDefinitive");
-        if (definitive != null)
-        {
-            _waterMaterial = new Material(definitive);
-            ActiveWaterMaterial = _waterMaterial;
-            return _waterMaterial;
-        }
-
-        // Fallback: my hand-written stylized water shader.
+        // История, чтобы сюда не вернулись: «Definitive Stylized Water URP»
+        // был задуман первым выбором, но с миграции на атомарный контент
+        // ленивый AtomicResources.Load отдавал null на первом обращении,
+        // результат кэшировался в статике — и игра МЕСЯЦАМИ рисовала этот
+        // fallback. Когда definitive однажды реально загрузился, он прочитался
+        // игроком как регресс (приподнятая волна, полосы у берега). Именно
+        // этот вид — канонический; definitive лежит референсом в ThirdParty
+        // вне Resources и в сборку не попадает.
         var stylized = Shader.Find("HexLive/StylizedWater");
         if (stylized != null)
         {

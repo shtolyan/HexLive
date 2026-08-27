@@ -9,7 +9,6 @@ using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Spatial;
-using HexLive.UnityPresentation.Wearing.Garments;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -26,6 +25,10 @@ namespace HexLive.UnityPresentation.UI
         private const string PanelResource = "HexLive/UI/TacticalMapPanel";
         private const string StyleResource = "HexLive/UI/TacticalMapPanel";
         private const float PresentationRefreshSeconds = 0.25f;
+        // §150.1: at the 5° minimum pitch a top-corner ray meets the ground
+        // plane tens of kilometres away; the footprint only has to stay honest
+        // near the island (max orbit distance is 260 wu).
+        private const float MaxFootprintRayDistance = 600f;
 
         [SerializeField] private SimulationRunnerBehaviour? _runner;
 
@@ -45,8 +48,7 @@ namespace HexLive.UnityPresentation.UI
         private readonly HashSet<int> _visibleMarkerIds = new();
         private readonly HashSet<JunctionId> _storedGarmentJunctions = new();
         private readonly HashSet<MarkerTileKey> _emittedMarkerKeys = new();
-        private readonly HashSet<MarkerTileDefinitionKey> _emittedItemTypes = new();
-        private readonly List<RememberedItemCandidate> _itemCandidates = new();
+        private readonly HashSet<TileCoord> _emittedItemTiles = new();
         private readonly List<int> _staleMarkerIds = new();
         private int _lastTick = int.MinValue;
         private int _lastSeed = int.MinValue;
@@ -319,7 +321,6 @@ namespace HexLive.UnityPresentation.UI
                     _worldRenderer!.ObjectAnchorPosition(worldObject),
                     kind,
                     worldObject.DefinitionId,
-                    Importance(runner, worldObject.DefinitionId),
                     lit,
                     homeCamp);
             }
@@ -350,24 +351,28 @@ namespace HexLive.UnityPresentation.UI
             _frame.Markers.Clear();
             _frame.DroppedItems.Clear();
 
-            // Aggregate palms/camps, then retain at most one icon per distinct
-            // portable definition. Per tile: <=4 types stay exact; >4 becomes
-            // the three most important definitions plus one stack glyph.
+            // §150.1: the HUD map is Dune-simple. Every remembered portable on
+            // a hex collapses into one dot at the hex centre, so per-definition
+            // icons, importance ranking and stack glyphs no longer exist.
             _emittedMarkerKeys.Clear();
-            _emittedItemTypes.Clear();
-            _itemCandidates.Clear();
+            _emittedItemTiles.Clear();
             foreach (var pair in _rememberedMarkers)
             {
                 var marker = pair.Value;
                 var live = _frame.VisibleTiles.Contains(marker.Tile);
                 if (marker.Kind == TacticalMapMarkerKind.Item)
                 {
-                    var typeKey = new MarkerTileDefinitionKey(
-                        marker.Tile, marker.DefinitionId);
-                    if (_emittedItemTypes.Add(typeKey))
+                    if (_emittedItemTiles.Add(marker.Tile))
                     {
-                        _itemCandidates.Add(new RememberedItemCandidate(
-                            pair.Key, marker, live));
+                        _frame.DroppedItems.Add(new TacticalMapDroppedItem(
+                            marker.Tile,
+                            pair.Key,
+                            marker.DefinitionId,
+                            null,
+                            string.Empty,
+                            live,
+                            HexSpatialMath.TileToWorld(marker.Tile),
+                            0));
                     }
                     continue;
                 }
@@ -387,67 +392,7 @@ namespace HexLive.UnityPresentation.UI
                     marker.AlwaysKnown));
             }
 
-            _itemCandidates.Sort(CompareItemCandidates);
-            var index = 0;
-            while (index < _itemCandidates.Count)
-            {
-                var first = _itemCandidates[index];
-                var end = index + 1;
-                while (end < _itemCandidates.Count &&
-                       _itemCandidates[end].Marker.Tile.Equals(first.Marker.Tile))
-                {
-                    end++;
-                }
-
-                var count = end - index;
-                var exactCount = count > 4 ? 3 : count;
-                for (var i = 0; i < exactCount; i++)
-                {
-                    var candidate = _itemCandidates[index + i];
-                    var marker = candidate.Marker;
-                    _frame.DroppedItems.Add(new TacticalMapDroppedItem(
-                        marker.Tile,
-                        candidate.ObjectId,
-                        marker.DefinitionId,
-                        ItemIcons.Load(marker.DefinitionId),
-                        ItemIcons.FallbackGlyph(marker.DefinitionId),
-                        candidate.Live,
-                        marker.Anchor,
-                        marker.Importance));
-                }
-
-                if (count > 4)
-                {
-                    _frame.DroppedItems.Add(new TacticalMapDroppedItem(
-                        first.Marker.Tile,
-                        int.MaxValue,
-                        string.Empty,
-                        null,
-                        string.Empty,
-                        first.Live,
-                        first.Marker.Anchor,
-                        0,
-                        overflow: true));
-                }
-
-                index = end;
-            }
-
             _frame.DroppedItems.Sort(CompareDroppedItems);
-        }
-
-        private static int CompareItemCandidates(
-            RememberedItemCandidate left, RememberedItemCandidate right)
-        {
-            var q = left.Marker.Tile.Q.CompareTo(right.Marker.Tile.Q);
-            if (q != 0) return q;
-            var r = left.Marker.Tile.R.CompareTo(right.Marker.Tile.R);
-            if (r != 0) return r;
-            var importance = right.Marker.Importance.CompareTo(left.Marker.Importance);
-            if (importance != 0) return importance;
-            var definition = string.CompareOrdinal(
-                left.Marker.DefinitionId, right.Marker.DefinitionId);
-            return definition != 0 ? definition : left.ObjectId.CompareTo(right.ObjectId);
         }
 
         private static int CompareDroppedItems(
@@ -505,13 +450,6 @@ namespace HexLive.UnityPresentation.UI
                 definitionId.StartsWith("underwear.", StringComparison.Ordinal) ||
                 definitionId.StartsWith("armor.", StringComparison.Ordinal);
         }
-
-        private static int Importance(
-            SimulationRunnerBehaviour runner, string definitionId) =>
-            runner.TryGetObjectDefinition(definitionId, out var definition) &&
-            definition != null
-                ? ItemCatalog.Importance(definition)
-                : ItemCatalog.ImportanceById(definitionId);
 
         private void RefreshPeople(WorldSnapshot snapshot, SimulationRunnerBehaviour runner)
         {
@@ -603,9 +541,9 @@ namespace HexLive.UnityPresentation.UI
                 var corner = i switch
                 {
                     0 => new Vector2(0f, 0f),
-                    1 => new Vector2(Screen.width, 0f),
-                    2 => new Vector2(Screen.width, Screen.height),
-                    _ => new Vector2(0f, Screen.height)
+                    1 => new Vector2(camera.pixelWidth, 0f),
+                    2 => new Vector2(camera.pixelWidth, camera.pixelHeight),
+                    _ => new Vector2(0f, camera.pixelHeight)
                 };
                 var ray = camera.ScreenPointToRay(corner);
                 if (!ground.Raycast(ray, out var distance) || distance <= 0f)
@@ -614,7 +552,7 @@ namespace HexLive.UnityPresentation.UI
                     return;
                 }
 
-                var hit = ray.GetPoint(distance);
+                var hit = ray.GetPoint(Mathf.Min(distance, MaxFootprintRayDistance));
                 _frame.CameraFootprint.Add(new Float2(hit.x, hit.z));
             }
         }
@@ -681,7 +619,6 @@ namespace HexLive.UnityPresentation.UI
             public readonly Float2 Anchor;
             public readonly TacticalMapMarkerKind Kind;
             public readonly string DefinitionId;
-            public readonly int Importance;
             public readonly bool Lit;
             public readonly bool AlwaysKnown;
 
@@ -690,7 +627,6 @@ namespace HexLive.UnityPresentation.UI
                 Float2 anchor,
                 TacticalMapMarkerKind kind,
                 string definitionId,
-                int importance,
                 bool lit,
                 bool alwaysKnown)
             {
@@ -698,46 +634,9 @@ namespace HexLive.UnityPresentation.UI
                 Anchor = anchor;
                 Kind = kind;
                 DefinitionId = definitionId;
-                Importance = importance;
                 Lit = lit;
                 AlwaysKnown = alwaysKnown;
             }
-        }
-
-        private readonly struct RememberedItemCandidate
-        {
-            public readonly int ObjectId;
-            public readonly RememberedMarker Marker;
-            public readonly bool Live;
-
-            public RememberedItemCandidate(
-                int objectId, RememberedMarker marker, bool live)
-            {
-                ObjectId = objectId;
-                Marker = marker;
-                Live = live;
-            }
-        }
-
-        private readonly struct MarkerTileDefinitionKey : IEquatable<MarkerTileDefinitionKey>
-        {
-            private readonly TileCoord _tile;
-            private readonly string _definitionId;
-
-            public MarkerTileDefinitionKey(TileCoord tile, string definitionId)
-            {
-                _tile = tile;
-                _definitionId = definitionId;
-            }
-
-            public bool Equals(MarkerTileDefinitionKey other) =>
-                _tile.Equals(other._tile) &&
-                string.Equals(_definitionId, other._definitionId, StringComparison.Ordinal);
-
-            public override bool Equals(object? obj) =>
-                obj is MarkerTileDefinitionKey other && Equals(other);
-
-            public override int GetHashCode() => HashCode.Combine(_tile, _definitionId);
         }
 
         private readonly struct MarkerTileKey : IEquatable<MarkerTileKey>

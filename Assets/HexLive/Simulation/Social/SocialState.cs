@@ -36,7 +36,7 @@ public sealed class RelationshipData
 
     public float Affinity { get; set; }
 
-    /// <summary>Bug #218: latest direct social contact with this person.</summary>
+    /// <summary>§107.8 / Bug #218: latest direct social contact with this person.</summary>
     public int LastInteractionTick { get; set; }
 }
 

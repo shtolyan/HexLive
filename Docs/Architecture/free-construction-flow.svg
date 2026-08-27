@@ -1,10 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="940" height="560" viewBox="0 0 940 560">
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="730" viewBox="0 0 940 730">
   <defs>
     <style>
       .bg{fill:#171a1c}.hex{fill:#22272a;stroke:#667178;stroke-width:3}.grid{fill:none;stroke:#4d585e;stroke-width:1.5}
       .free{fill:#55c58a}.busy{fill:#e86370}.amber{fill:#f4ad4e}.wall{stroke:#f4ad4e;stroke-width:12;stroke-linecap:round}
       .roof{fill:#4a7f63;fill-opacity:.62;stroke:#76c69a;stroke-width:3}.txt{fill:#edf2f4;font:18px sans-serif}.small{fill:#b9c3c8;font:15px sans-serif}
       .box{fill:#242a2e;stroke:#667178;stroke-width:2}.arrow{stroke:#76c69a;stroke-width:4;fill:none;marker-end:url(#head)}
+      .demolish{stroke:#d94b45;stroke-width:6;fill:none}.cut{stroke:#d94b45;stroke-width:4}.salvage{fill:#d3a667;stroke:#f1d39e;stroke-width:2}
     </style>
     <marker id="head" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#76c69a"/></marker>
   </defs>
@@ -47,4 +48,32 @@
   <text class="small" x="710" y="433">• BlueprintId</text>
   <text class="small" x="710" y="459">• общего объекта «дом»</text>
   <text class="small" x="710" y="485">• требования замкнуть комнату</text>
+
+  <!-- Demolition state machine. The physical 0.5-wu segment remains until work completes. -->
+  <line x1="28" y1="535" x2="918" y2="535" stroke="#4d585e" stroke-width="2"/>
+  <text class="txt" x="28" y="568">Снос одного 0,5-wu LEGO-пролёта</text>
+
+  <rect class="box" x="28" y="590" width="238" height="110" rx="12"/>
+  <line class="wall" x1="68" y1="642" x2="218" y2="642"/>
+  <circle class="busy" cx="68" cy="642" r="8"/><circle class="busy" cx="218" cy="642" r="8"/>
+  <text class="small" x="49" y="685">стоит + topology закрыто</text>
+
+  <path class="arrow" d="M278,645 L360,645"/>
+  <text class="small" x="287" y="625">Delete</text>
+
+  <rect class="box" x="372" y="590" width="238" height="110" rx="12"/>
+  <line class="wall" x1="412" y1="642" x2="562" y2="642"/>
+  <line class="cut" x1="470" y1="618" x2="504" y2="666"/>
+  <line class="cut" x1="504" y1="618" x2="470" y2="666"/>
+  <circle class="busy" cx="412" cy="642" r="8"/><circle class="busy" cx="562" cy="642" r="8"/>
+  <text class="small" x="393" y="685">красные колышки + топор</text>
+
+  <path class="arrow" d="M622,645 L704,645"/>
+  <text class="small" x="628" y="625">24 ticks</text>
+
+  <rect class="box" x="716" y="590" width="202" height="110" rx="12"/>
+  <circle class="salvage" cx="756" cy="640" r="11"/>
+  <circle class="salvage" cx="786" cy="640" r="11"/>
+  <path class="roof" d="M820,656 L848,624 L876,656 Z"/>
+  <text class="small" x="736" y="685">½ ресурсов; slot свободен</text>
 </svg>

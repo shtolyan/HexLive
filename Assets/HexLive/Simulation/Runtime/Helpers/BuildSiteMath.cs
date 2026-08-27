@@ -43,13 +43,17 @@ internal static class BuildSiteMath
     public static bool IsFreeArchitectureSite(WorldObjectState site) =>
         FreeArchitectureRules.IsFreePiece(site) && !string.IsNullOrEmpty(site.BuildProduct);
 
+    public static bool IsDemolitionSite(WorldObjectState site) =>
+        FreeArchitectureRules.IsDemolitionSite(site);
+
     /// <summary>Authored construction method shared by bidding and execution.
     /// A missing/unknown product is conservative and still requires a hammer.</summary>
     public static bool NeedsHammer(WorldState world, WorldObjectState site) =>
-        string.IsNullOrEmpty(site.BuildProduct) ||
-        !world.Content.ObjectDefinitions.TryGetValue(
-            site.BuildProduct, out var definition) ||
-        !definition.HasTag(ObjectTags.HandBuilt);
+        !IsDemolitionSite(site) &&
+        (string.IsNullOrEmpty(site.BuildProduct) ||
+         !world.Content.ObjectDefinitions.TryGetValue(
+             site.BuildProduct, out var definition) ||
+         !definition.HasTag(ObjectTags.HandBuilt));
 
     public static int Delivered(WorldObjectState site, string materialId)
     {
@@ -160,6 +164,8 @@ internal static class BuildSiteMath
     // (unstaged sites: campfire, hut pieces).
     public static int Remaining(WorldObjectState site, string materialId)
     {
+        if (IsDemolitionSite(site)) return 0;
+
         if (IsFreeArchitectureSite(site) && !site.ArchitectureElements[0].Buildable)
         {
             // A roof may be planned immediately, but it is not a work target
@@ -227,6 +233,8 @@ internal static class BuildSiteMath
 
     public static bool IsStocked(WorldObjectState site)
     {
+        if (IsDemolitionSite(site)) return true;
+
         foreach (var mat in AllMaterials)
         {
             if (TotalRemaining(site, mat) > 0)
@@ -239,8 +247,9 @@ internal static class BuildSiteMath
     }
 
     public static bool IsSite(WorldObjectState obj) =>
-        obj != null && !string.IsNullOrEmpty(obj.BuildProduct) &&
-        (!IsFreeArchitectureSite(obj) || obj.ArchitectureElements[0].Buildable);
+        obj != null && (IsDemolitionSite(obj) ||
+        (!string.IsNullOrEmpty(obj.BuildProduct) &&
+         (!IsFreeArchitectureSite(obj) || obj.ArchitectureElements[0].Buildable)));
 
     // §54.14 (r2): FUNCTIONAL stage checks on a live campfire. Delivered
     // materials stay in Contents after the bill closes, so these read the same

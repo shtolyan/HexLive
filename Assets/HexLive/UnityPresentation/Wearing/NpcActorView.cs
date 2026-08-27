@@ -4054,6 +4054,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             "FeedOther" => "food.coconut",
             "HydrateOther" => "food.coconut_pierced",
+            // §137.7 r2: unlike the other bare-handed aid verbs, treatment
+            // keeps the bandage exported by the simulation in the acting hand.
+            // ActingHandPropAnchor prefers the right hand and falls back to a
+            // functional left hand only when the right one is unusable.
+            "TreatOther" => heldItemId,
             _ => string.Empty
         };
         // §110: утешение над ЛЕЖАЩЕЙ — не крафтовый присед, а МОЛИТВА: она

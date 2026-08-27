@@ -111,6 +111,7 @@ MonoBehaviour:
   coolOffSunClear: 0.45
   coolOffSettleTicks: 120
   tanRate: 0.00001
+  tanFadeRate: 0.00016668
   tanStrength: 0.8
   sunburnRate: 0.0012
   sunExposureRate: 0.04

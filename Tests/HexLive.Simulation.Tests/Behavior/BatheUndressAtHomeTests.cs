@@ -569,7 +569,9 @@ public sealed class BatheUndressAtHomeTests
             // сохраняемый запрет смены одежды); 55 → 56 в §127 (парная
             // сцена); 56 → 57 в §133.10 (выбранный комплект и точный объект
             // снятой вещи).
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(59));
+            // 59 → 60 in §120.10: queued architecture demolition and
+            // the pending replacement definition of that exact slot.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(60));
         });
     }
 

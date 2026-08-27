@@ -107,3 +107,6 @@ _ArtSource/Voice/lipsync_analysis.json
 /[Aa]ssets/Resources/PerformanceTestRunInfo.json.meta
 /[Aa]ssets/Resources/PerformanceTestRunSettings.json
 /[Aa]ssets/Resources/PerformanceTestRunSettings.json.meta
+
+# Артефакты прогонов dotnet test (.trx) — локальные результаты, не исходники.
+/Tests/**/TestResults/

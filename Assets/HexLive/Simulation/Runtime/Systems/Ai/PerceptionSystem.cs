@@ -158,6 +158,11 @@ public sealed class PerceptionSystem : ISimulationSystem
                 {
                     perceived.AvailableInteractions.Add(interaction.Type);
                 }
+                if (BuildSiteMath.IsSite(obj) &&
+                    !perceived.AvailableInteractions.Contains(InteractionType.Build))
+                {
+                    perceived.AvailableInteractions.Add(InteractionType.Build);
+                }
 
                 npc.Perception.Objects.Add(perceived);
 
@@ -310,6 +315,11 @@ public sealed class PerceptionSystem : ISimulationSystem
                     foreach (var interaction in definition.Interactions)
                     {
                         remembered.AvailableInteractions.Add(interaction.Type);
+                    }
+                    if (liveRemembered != null && BuildSiteMath.IsSite(liveRemembered) &&
+                        !remembered.AvailableInteractions.Contains(InteractionType.Build))
+                    {
+                        remembered.AvailableInteractions.Add(InteractionType.Build);
                     }
 
                     view.MemoryView.Add(remembered);

@@ -34,6 +34,15 @@ public sealed class ArchitectureElementState
     public int WorkRequired { get; set; } = 1;
     public int WorkDone { get; set; }
 
+    // §120.10: deleting a delivered LEGO piece edits the desired plan
+    // immediately, but does not teleport the physical wall out of the world.
+    // The existing object remains authoritative until a builder dismantles it.
+    // A non-empty replacement turns the same slot into a fresh construction
+    // site after teardown (wall -> window/door), so two objects never own one
+    // canonical architecture slot at the same time.
+    public bool DemolitionPlanned { get; set; }
+    public string ReplacementDefinitionId { get; set; } = string.Empty;
+
     public int RequiredTotal => RequiredSticks + RequiredBoards + RequiredRope + RequiredLeaves;
     public int DeliveredTotal => DeliveredSticks + DeliveredBoards + DeliveredRope + DeliveredLeaves;
     public float Progress => RequiredTotal <= 0

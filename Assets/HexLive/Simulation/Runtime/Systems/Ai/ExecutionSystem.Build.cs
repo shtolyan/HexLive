@@ -119,6 +119,26 @@ public sealed partial class ExecutionSystem
     // and the site despawns. The hammer is a tool — it is NOT consumed.
     private static void ApplyFurnitureSite(WorldState world, NPCState npc, WorldObjectState site)
     {
+        // §120.10: teardown is an operation on the standing LEGO piece, not
+        // a negative construction bill. It requests no deliveries and the old
+        // topology stays authoritative until this axe cycle completes.
+        if (BuildSiteMath.IsDemolitionSite(site))
+        {
+            if (!Content.GearCatalog.HasCapability(
+                    npc.Inventory.Items, Content.GearCapability.ChopWood))
+            {
+                Trace.Emit(world, npc.Id, "ExecFailed",
+                    $"Demolition requires an axe/saw at Object={site.Id.Value}");
+                return;
+            }
+
+            var definition = site.DefinitionId;
+            Blueprints.FreeArchitectureRules.CompleteDemolition(world, site);
+            Trace.Emit(world, npc.Id, "ArchitectureDemolished",
+                $"{definition} dismantled at Tile={site.Tile.Q},{site.Tile.R}");
+            return;
+        }
+
         var stockedBefore = BuildSiteMath.IsStocked(site);
         // §77: normally the load is already in the pile (mid-animation handoff)
         // and this deposits nothing. It stays here as the fallback for the

@@ -242,7 +242,9 @@ public static class WorldSnapshotExporter
                     DeliveredLeaves = element.DeliveredLeaves,
                     Buildable = element.Buildable,
                     WorkRequired = element.WorkRequired,
-                    WorkDone = element.WorkDone
+                    WorkDone = element.WorkDone,
+                    DemolitionPlanned = element.DemolitionPlanned,
+                    ReplacementDefinitionId = element.ReplacementDefinitionId
                 });
             }
             exported.ArchitectureOwnerObjectId = obj.ArchitectureOwnerId?.Value;
@@ -724,6 +726,13 @@ public static class WorldSnapshotExporter
                     world.Entities.Objects.TryGetValue(siteId, out var site) &&
                     Runtime.BuildSiteMath.IsSite(site))
                 {
+                    if (Runtime.BuildSiteMath.IsDemolitionSite(site))
+                    {
+                        return FirstCarriedWithCapability(
+                            npc, GearCapability.ChopWood,
+                            "tool.machete", "tool.axe_stone", "tool.saw");
+                    }
+
                     foreach (var material in Runtime.BuildSiteMath.AllMaterials)
                     {
                         if (Runtime.BuildSiteMath.Needs(site, material) &&
@@ -750,6 +759,15 @@ public static class WorldSnapshotExporter
 
             case InteractionType.HydrateOther:
                 return FirstCarried(npc, "tool.bottle", "food.coconut_pierced");
+
+            // §137.7 r2: the treatment clip is "Searching Pockets" — the
+            // visible object that makes that motion read as first aid is the
+            // dressing itself. Execution has already validated/reserved the
+            // supply before either interaction becomes active; the physical
+            // item remains authoritative and is still spent only on completion.
+            case InteractionType.TreatSelf:
+            case InteractionType.TreatOther:
+                return ContentIds.Bandage;
 
             default:
                 return string.Empty;
@@ -843,6 +861,20 @@ public static class WorldSnapshotExporter
             {
                 return id;
             }
+        }
+
+        return string.Empty;
+    }
+
+    private static string FirstCarriedWithCapability(
+        NPCState npc, GearCapability capability, params string[] preferredIds)
+    {
+        var preferred = FirstCarried(npc, preferredIds);
+        if (!string.IsNullOrEmpty(preferred)) return preferred;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (GearCatalog.For(item.DefinitionId).Has(capability))
+                return item.DefinitionId;
         }
 
         return string.Empty;

@@ -34,6 +34,24 @@ namespace HexLive.Simulation.Runtime.Blueprints
             piece != null && piece.ArchitectureOwnerObjectId == piece.Id.Value &&
             piece.ArchitectureElements.Count == 1;
 
+        public static bool IsDemolitionSite(WorldObjectState piece) =>
+            IsFreePiece(piece) && piece.ArchitectureElements[0].DemolitionPlanned;
+
+        public static bool IsDemolitionSite(ObjectSnapshot piece) =>
+            IsFreePiece(piece) && piece.ArchitectureElements[0].DemolitionPlanned;
+
+        /// <summary>The element the editor should show, as distinct from the
+        /// physical element that remains until demolition finishes. Empty means
+        /// the slot is absent from the desired plan.</summary>
+        public static string PlannedDefinitionId(ObjectSnapshot piece)
+        {
+            if (!IsFreePiece(piece)) return string.Empty;
+            var state = piece.ArchitectureElements[0];
+            return state.DemolitionPlanned
+                ? state.ReplacementDefinitionId
+                : state.DefinitionId;
+        }
+
         public static bool TryDecode(
             string definitionId, string slotKey, out BlueprintElementData element)
         {
@@ -124,16 +142,29 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 if (freeBySlot.ContainsKey(pair.Key)) removals.Add(pair.Key);
             }
 
+            var deferredReplacements = new HashSet<string>(StringComparer.Ordinal);
             foreach (var slot in removals)
             {
                 if (!freeBySlot.TryGetValue(slot, out var piece)) continue;
                 affectedTiles.Add(piece.Tile);
-                ForgetPiece(world, piece.Id);
-                WorldObjectMutations.DespawnObject(world, piece.Id);
+                placementBySlot.TryGetValue(slot, out var replacement);
+                if (CanCancelImmediately(piece))
+                {
+                    ForgetPiece(world, piece.Id);
+                    WorldObjectMutations.DespawnObject(world, piece.Id);
+                    continue;
+                }
+
+                var replacementDefinition = replacement == null
+                    ? string.Empty
+                    : DefinitionForKind(replacement.Kind);
+                QueueDemolition(piece, replacementDefinition);
+                deferredReplacements.Add(slot);
             }
 
             foreach (var placement in placementBySlot.Values)
             {
+                if (deferredReplacements.Contains(placement.SlotKey)) continue;
                 affectedTiles.Add(placement.AnchorTile);
                 Spawn(world, placement);
             }
@@ -169,6 +200,60 @@ namespace HexLive.Simulation.Runtime.Blueprints
             piece.BuildProduct = string.Empty;
             RepairTopology(world);
             RefreshTileFlags(world, new[] { piece.Tile });
+        }
+
+        /// <summary>
+        /// Finishes one physical teardown. Half of every actually delivered
+        /// construction material is laid at the module's anchor; the rest is the
+        /// irrecoverable cost of pulling a lashed, weathered module apart.
+        /// Replacement reuses the same ObjectId and canonical SlotKey only
+        /// after the old topology has been released.
+        /// </summary>
+        public static void CompleteDemolition(WorldState world, WorldObjectState piece)
+        {
+            if (!IsDemolitionSite(piece)) return;
+            var state = piece.ArchitectureElements[0];
+            var replacement = state.ReplacementDefinitionId;
+            var tile = piece.Tile;
+
+            DropHalfMaterials(world, piece);
+            piece.Contents.Clear();
+
+            if (string.IsNullOrEmpty(replacement))
+            {
+                ForgetPiece(world, piece.Id);
+                WorldObjectMutations.DespawnObject(world, piece.Id);
+                RefreshAll(world, new[] { tile });
+                return;
+            }
+
+            if (piece.DefinitionId == DoorTopology.DoorDefinitionId)
+            {
+                foreach (var junctionId in piece.Junctions)
+                {
+                    if (world.Junctions.Items.TryGetValue(junctionId, out var junction))
+                        junction.Door = false;
+                }
+            }
+
+            state.DefinitionId = replacement;
+            state.DeliveredSticks = 0;
+            state.DeliveredBoards = 0;
+            state.DeliveredRope = 0;
+            state.DeliveredLeaves = 0;
+            state.WorkDone = 0;
+            state.DemolitionPlanned = false;
+            state.ReplacementDefinitionId = string.Empty;
+            piece.DefinitionId = replacement;
+            piece.BuildProduct = replacement;
+            piece.BillLogs = 0;
+            piece.BillStones = 0;
+            piece.BillLeaves = 0;
+            piece.BillSticks = 0;
+            piece.BillRope = 0;
+            piece.BillBoards = 0;
+            piece.IsDoorOpen = true;
+            RefreshAll(world, new[] { tile });
         }
 
         public static void RefreshAll(WorldState world)
@@ -218,6 +303,56 @@ namespace HexLive.Simulation.Runtime.Blueprints
             {
                 if (!npc.Memory.KnownObjects.Remove(pieceId)) continue;
                 npc.Memory.Version++;
+            }
+        }
+
+        private static bool CanCancelImmediately(WorldObjectState piece)
+        {
+            if (!IsFreePiece(piece)) return false;
+            var state = piece.ArchitectureElements[0];
+            return state.DeliveredTotal == 0 && state.WorkDone == 0 &&
+                   piece.Contents.Count == 0;
+        }
+
+        private static void QueueDemolition(
+            WorldObjectState piece, string replacementDefinition)
+        {
+            var state = piece.ArchitectureElements[0];
+            // Undoing the edit before anybody swings an axe simply restores
+            // the already standing/assembling piece.
+            if (replacementDefinition == state.DefinitionId)
+            {
+                state.DemolitionPlanned = false;
+                state.ReplacementDefinitionId = string.Empty;
+                return;
+            }
+
+            state.DemolitionPlanned = true;
+            state.ReplacementDefinitionId = replacementDefinition ?? string.Empty;
+        }
+
+        private static void DropHalfMaterials(WorldState world, WorldObjectState piece)
+        {
+            var anchor = piece.Junctions.FirstOrDefault();
+            if (!world.Junctions.Items.ContainsKey(anchor)) return;
+            foreach (var material in BuildSiteMath.AllMaterials)
+            {
+                var recover = piece.Contents.Count(item => item.DefinitionId == material) / 2;
+                for (var i = piece.Contents.Count - 1; i >= 0 && recover > 0; i--)
+                {
+                    var item = piece.Contents[i];
+                    if (item.DefinitionId != material) continue;
+                    piece.Contents.RemoveAt(i);
+                    var dropped = WorldObjectMutations.SpawnObject(
+                        world, item.DefinitionId, piece.Fragment, piece.Tile, anchor);
+                    dropped.Wetness = item.Wetness;
+                    dropped.Durability = item.Durability;
+                    dropped.ResourceAmount = item.ResourceAmount;
+                    dropped.Dirtiness = item.Dirtiness;
+                    dropped.Bloodiness = item.Bloodiness;
+                    dropped.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : null;
+                    recover--;
+                }
             }
         }
 

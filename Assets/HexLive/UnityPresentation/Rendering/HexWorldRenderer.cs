@@ -225,12 +225,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, GameObject> _unknownNpcMarkers = new();
 
     // §148: тайлы, чью затенённость уже применили — перекрашиваем только те,
-    // у кого состояние сменилось (иначе это тысячи SetPropertyBlock за тик).
+    // у кого состояние сменилось (иначе это тысячи перекрасок за тик).
     private readonly Dictionary<TileCoord, int> _tileShadeApplied = new();
 
-    private readonly Dictionary<Renderer, MaterialPropertyBlock> _tileShadeSaved = new();
+    // B0: подмена на общий тонированный материал вместо MaterialPropertyBlock —
+    // MPB выбивает рендерер из SRP Batcher, а тайлов тысячи. Хранится исходный
+    // массив sharedMaterials и возвращается при возврате гекса в восприятие.
+    private readonly Dictionary<Renderer, Material[]> _tileShadeSaved = new();
 
-    private MaterialPropertyBlock _tileShadeScratch;
+    // PERF (B0): набор рендереров тайла окончателен после CreateTileView, так
+    // что обход GetComponentsInChildren выполняется один раз на тайл.
+    private readonly Dictionary<GameObject, Renderer[]> _tileRendererCache = new();
     // The frozen hexes as their OWN set, by design: a future pass will restyle
     // them (grayscale/whiteout shader) by iterating exactly this collection.
     private readonly HashSet<TileCoord> _cullFrozenTiles = new();
@@ -263,15 +268,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private int _fogObserverNpcId = -1;
 
     // §125.5: подсвеченная граница радиуса выбранной — «докуда она видит».
-    // Тайлы кольца красятся своим MaterialPropertyBlock (материалы общие на
-    // десятки тайлов, менять material.color нельзя), исходный блок хранится
-    // и возвращается при снятии.
+    // B0: кольцо тоже красится подменой на общий тонированный материал (MPB
+    // ломал SRP-батчинг); исходный массив sharedMaterials хранится и
+    // возвращается при снятии.
     // Unity API cannot run while this MonoBehaviour's static fields initialize.
     private static int FogRingBaseColor;
     private static int FogRingLegacyColor;
     private static bool _fogRingShaderIdsReady;
-    private readonly Dictionary<Renderer, MaterialPropertyBlock> _fogRingSaved = new();
-    private MaterialPropertyBlock _fogRingScratch = null!;
+    private readonly Dictionary<Renderer, Material[]> _fogRingSaved = new();
     private readonly List<TileCoord> _fogRingTiles = new();
     private TileCoord _fogRingCenter = TileCoord.Zero;
     private int _fogRingRadius = -1;
@@ -477,6 +481,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly HashSet<Renderer> _overviewGrassRenderers = new();
     private readonly Dictionary<Renderer, bool> _overviewSavedForceRenderingOff = new();
     private readonly List<Renderer> _overviewRendererScratch = new(64);
+
+    // §150.4: world-space импосторы дальнего обзора. Флора и лежащие вещи на
+    // отдалении заменяются квадами в тех же мировых якорях; люди — портретными
+    // дисками. Список компактится лениво (виды умирают вместе с объектами).
+    private bool _overviewImpostorsActive;
+    private readonly List<Views.ObjectImpostor> _impostors = new();
+    private readonly Dictionary<int, Views.ObjectImpostor> _npcImpostors = new();
+    private Quaternion _impostorFacing = Quaternion.identity;
+    private bool _impostorFacingValid;
 
     private readonly struct Pose
     {
@@ -743,12 +756,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private void Awake()
     {
         EnsureFogRingShaderIds();
-        _fogRingScratch = new MaterialPropertyBlock();
     }
 
     private void OnDisable()
     {
         SetOverviewGrassHidden(false);
+        SetOverviewImpostorsActive(false);
     }
 
     private void Update()
@@ -1704,6 +1717,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     continue;
                 }
                 _objectViews[key] = objectView;
+                // §150.4: импостор создаётся ДО WorldObjectView.Init ниже,
+                // чтобы его квад попал в аналитический пикинг вида.
+                TryAttachOverviewImpostor(worldObject, objectView);
                 // PERF: resolve the optional per-view components ONCE, here.
                 // Which of them a view owns is fixed by the prefab it was built
                 // from, so the per-tick loop below just reads the record.
@@ -1765,7 +1781,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // from the snapshot also removes the Build action at completion.
             if (parts.ObjectView != null)
             {
-                if (worldObject.ArchitectureOwnerObjectId is { } ownerId &&
+                if (FreeArchitectureRules.IsFreePiece(worldObject) &&
+                    (!string.IsNullOrEmpty(worldObject.BuildProduct) ||
+                     FreeArchitectureRules.IsDemolitionSite(worldObject)))
+                {
+                    parts.ObjectView.SetContextProxy(worldObject.Id.Value, ContentIds.BuildSite);
+                }
+                else if (worldObject.ArchitectureOwnerObjectId is { } ownerId &&
                     _unfinishedPlanBuildingOwners.Contains(ownerId))
                 {
                     parts.ObjectView.SetContextProxy(ownerId, ContentIds.BuildSite);
@@ -1998,6 +2020,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     continue;
                 }
                 _npcViews[key] = npcView;
+                if (npcView != null)
+                {
+                    // §150.4: человек в дальнем обзоре — портретный диск.
+                    var npcImpostor = Views.ObjectImpostor.AttachNpc(
+                        npcView, NpcImpostorTint(key));
+                    _impostors.Add(npcImpostor);
+                    _npcImpostors[key] = npcImpostor;
+                    if (_overviewImpostorsActive)
+                    {
+                        npcImpostor.SetDistant(true, CurrentGameDay());
+                    }
+                }
             }
 
             // ActorGroundY is the STATIC surface (tile top − sink); the live
@@ -2297,7 +2331,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 Destroy(_npcViews[key]);
             }
+            else if (_npcImpostors.TryGetValue(key, out var deadImpostor) &&
+                deadImpostor != null)
+            {
+                // §150.4: трупы живут настоящими мешами — переехавший в реестр
+                // тел вид сдаёт свой портретный диск (с возвратом рендереров,
+                // если дальний режим был активен).
+                deadImpostor.SetDistant(false, 0);
+                Destroy(deadImpostor);
+            }
 
+            _npcImpostors.Remove(key);
             _npcViews.Remove(key);
             _actorViews.Remove(key);
             _lastTalkResultTick.Remove(key);
@@ -2315,7 +2359,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // гексов памяти. Обе строки — чистая презентация поверх готового кадра.
         SyncUnknownNpcMarkers(snapshot);
         ApplyMemoryShade();
-        RefreshOverviewRendererGroups();
+        // A-1: overview-группы пополняются при создании рендерера (см.
+        // BuildGrassClump), пер-тикового переобхода всех тайлов больше нет.
+        // The distant profile is grass suppression plus §150.4 world-space
+        // impostors in the same anchors. Buildings, stations, furniture,
+        // corpses, mobs and VFX keep their real renderers at any zoom, so
+        // visible geometry and the analytic click path cannot diverge.
         UnityEngine.Profiling.Profiler.EndSample();
 
         // Memory fog: the full first build of this world is behind us — from
@@ -4789,28 +4838,24 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 continue;
             }
 
-            foreach (var renderer in view.GetComponentsInChildren<Renderer>())
+            foreach (var renderer in TileRenderers(view))
             {
                 if (renderer == null || _fogRingSaved.ContainsKey(renderer))
                 {
                     continue;
                 }
 
-                var before = new MaterialPropertyBlock();
-                renderer.GetPropertyBlock(before);
-                _fogRingSaved[renderer] = before;
+                var saved = renderer.sharedMaterials;
+                _fogRingSaved[renderer] = saved;
 
-                var material = renderer.sharedMaterial;
-                var property = material != null && material.HasProperty(FogRingBaseColor)
-                    ? FogRingBaseColor
-                    : FogRingLegacyColor;
-                var tint = material != null && material.HasProperty(property)
-                    ? material.GetColor(property)
-                    : Color.white;
+                var ringed = new Material[saved.Length];
+                for (var i = 0; i < ringed.Length; i++)
+                {
+                    ringed[i] = ShadeCounterpart(saved[i], Color.Lerp(
+                        DryBaseColor(saved[i]), new Color(0.35f, 0.75f, 1f), 0.55f));
+                }
 
-                renderer.GetPropertyBlock(_fogRingScratch);
-                _fogRingScratch.SetColor(property, Color.Lerp(tint, new Color(0.35f, 0.75f, 1f), 0.55f));
-                renderer.SetPropertyBlock(_fogRingScratch);
+                renderer.sharedMaterials = ringed;
             }
         }
     }
@@ -4821,12 +4866,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             if (pair.Key != null)
             {
-                pair.Key.SetPropertyBlock(pair.Value);
+                pair.Key.sharedMaterials = pair.Value;
             }
         }
 
         _fogRingSaved.Clear();
         _fogRingRadius = -1;
+    }
+
+    /// <summary>B0: набор рендереров тайла (гекс, обрыв, трава, riverbed)
+    /// окончателен после <see cref="CreateTileView"/> — кэшируем, чтобы
+    /// перекраски не гоняли GetComponentsInChildren по тысячам тайлов.</summary>
+    private Renderer[] TileRenderers(GameObject view)
+    {
+        if (!_tileRendererCache.TryGetValue(view, out var renderers))
+        {
+            renderers = view.GetComponentsInChildren<Renderer>(true);
+            _tileRendererCache[view] = renderers;
+        }
+
+        return renderers;
     }
 
     /// <summary>Perception culling: rebuilds the visible-tile union and the
@@ -4956,6 +5015,199 @@ public sealed class HexWorldRenderer : MonoBehaviour
     public bool TryGetLastSeenNpcTile(int npcId, out TileCoord tile) =>
         _lastSeenNpcTiles.TryGetValue(npcId, out tile);
 
+    /// <summary>§150.4: читает отсечка кликов SmallProps — вид с живым
+    /// импостором остаётся кликабельным на любом отдалении.</summary>
+    public bool OverviewImpostorsActive => _overviewImpostorsActive;
+
+    /// <summary>§150.4: включить/выключить импосторы дальнего обзора. На
+    /// переднем фронте каждый импостор при нужде печёт текстуру из ещё
+    /// видимых мешей своего definition, затем меши гасятся forceRenderingOff.</summary>
+    public void SetOverviewImpostorsActive(bool active)
+    {
+        if (_overviewImpostorsActive == active)
+        {
+            return;
+        }
+
+        _overviewImpostorsActive = active;
+        var day = CurrentGameDay();
+        if (active)
+        {
+            RefreshNpcImpostorPortraits();
+        }
+
+        for (var i = _impostors.Count - 1; i >= 0; i--)
+        {
+            var impostor = _impostors[i];
+            if (impostor == null)
+            {
+                _impostors.RemoveAt(i);
+                continue;
+            }
+
+            impostor.SetDistant(active, day);
+        }
+    }
+
+    private int CurrentGameDay() =>
+        _lastRenderedTick <= 0
+            ? 0
+            : _lastRenderedTick /
+              Mathf.Max(1, HexLive.Simulation.Runtime.WorldBalance.DayLengthTicks);
+
+    /// <summary>§150.4: диск человека несёт портрет дня из NpcPortraitCache;
+    /// пока снимка нет — цвет фракции (и заказ снимка вне очереди).</summary>
+    private void RefreshNpcImpostorPortraits()
+    {
+        if (_portraitCache == null)
+        {
+            return;
+        }
+
+        foreach (var pair in _npcImpostors)
+        {
+            if (pair.Value == null)
+            {
+                continue;
+            }
+
+            if (_portraitCache.TryGet(pair.Key, out var portrait))
+            {
+                pair.Value.SetNpcPortrait(portrait, NpcImpostorTint(pair.Key));
+            }
+            else
+            {
+                _portraitCache.RequestNow(pair.Key);
+                pair.Value.SetNpcPortrait(null, NpcImpostorTint(pair.Key));
+            }
+        }
+    }
+
+    private Color NpcImpostorTint(int npcId)
+    {
+        if (_lastSnapshot != null)
+        {
+            foreach (var npc in _lastSnapshot.Npcs)
+            {
+                if (npc.Id.Value == npcId)
+                {
+                    return IsPlayerOwned(npc)
+                        ? new Color(0.42f, 0.86f, 0.55f)
+                        : new Color(0.92f, 0.62f, 0.35f);
+                }
+            }
+        }
+
+        return new Color(0.75f, 0.78f, 0.8f);
+    }
+
+    /// <summary>§150.4: все квады смотрят в камеру одним общим кватернионом —
+    /// один цикл за кадр вместо тысяч per-object Update.</summary>
+    private void LateUpdate()
+    {
+        if (!_overviewImpostorsActive)
+        {
+            _impostorFacingValid = false;
+            return;
+        }
+
+        var camera = Camera.main;
+        if (camera == null)
+        {
+            return;
+        }
+
+        var rotation = camera.transform.rotation;
+        if (_impostorFacingValid &&
+            Quaternion.Angle(rotation, _impostorFacing) < 0.05f)
+        {
+            return;
+        }
+
+        _impostorFacing = rotation;
+        _impostorFacingValid = true;
+        for (var i = _impostors.Count - 1; i >= 0; i--)
+        {
+            var impostor = _impostors[i];
+            if (impostor == null)
+            {
+                _impostors.RemoveAt(i);
+                continue;
+            }
+
+            impostor.FaceCamera(rotation);
+        }
+    }
+
+    /// <summary>§150.4: кто получает импостор. Флора и лежащие переносимые
+    /// вещи; постройки, станции, мебель, костры, трупы и звери живут мешами.
+    /// Предикаты подняты из до-bug-230 версии (df75043cd^).</summary>
+    private void TryAttachOverviewImpostor(ObjectSnapshot worldObject, GameObject view)
+    {
+        if (view == null)
+        {
+            return;
+        }
+
+        var flora = IsOverviewFlora(worldObject.DefinitionId);
+        if (!flora && !IsOverviewLooseItem(worldObject))
+        {
+            return;
+        }
+
+        var impostor = Views.ObjectImpostor.Attach(
+            view,
+            worldObject.DefinitionId,
+            flora ? 2.6f : 0.8f,
+            flora ? new Color(0.32f, 0.52f, 0.3f) : new Color(0.62f, 0.58f, 0.5f));
+        _impostors.Add(impostor);
+        if (_overviewImpostorsActive)
+        {
+            impostor.SetDistant(true, CurrentGameDay());
+        }
+    }
+
+    private bool IsOverviewLooseItem(ObjectSnapshot worldObject)
+    {
+        if (worldObject.Junctions.Count > 0 &&
+            _rackJunctions.Contains(worldObject.Junctions[0]) &&
+            GarmentDropFactory.IsGarment(worldObject.DefinitionId))
+        {
+            return false;
+        }
+
+        if (_runner != null &&
+            _runner.TryGetObjectDefinition(worldObject.DefinitionId, out var definition) &&
+            definition != null)
+        {
+            if (definition.Layer.HasValue || ItemCatalog.Classify(definition) != ItemCategory.Misc)
+            {
+                return true;
+            }
+
+            for (var i = 0; i < definition.Interactions.Count; i++)
+            {
+                if (definition.Interactions[i].Type == InteractionType.PickUp)
+                {
+                    return true;
+                }
+            }
+        }
+
+        var id = worldObject.DefinitionId;
+        return id.StartsWith("food.", StringComparison.Ordinal) ||
+            id.StartsWith("tool.", StringComparison.Ordinal) ||
+            id.StartsWith("item.", StringComparison.Ordinal) ||
+            id.StartsWith("resource.", StringComparison.Ordinal) ||
+            id.StartsWith("clothing.", StringComparison.Ordinal) ||
+            id.StartsWith("underwear.", StringComparison.Ordinal) ||
+            id.StartsWith("armor.", StringComparison.Ordinal);
+    }
+
+    private static bool IsOverviewFlora(string definitionId) =>
+        definitionId.StartsWith("tree.", StringComparison.Ordinal) ||
+        definitionId.StartsWith("plant.", StringComparison.Ordinal);
+
     private void RefreshOverviewSuppression()
     {
         _overviewGrassRenderers.RemoveWhere(renderer => renderer == null);
@@ -5021,22 +5273,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
         _overviewRendererScratch.Clear();
-    }
-
-    private void RefreshOverviewRendererGroups()
-    {
-        foreach (var grass in _grassByTile.Values)
-        {
-            if (grass != null)
-            {
-                RegisterOverviewRenderers(grass, _overviewGrassRenderers);
-            }
-        }
-
-        // The distant profile deliberately contains grass only. Trees, yucca,
-        // loose resources, actors, furniture and VFX keep their real renderers,
-        // so their visible geometry and click colliders cannot diverge.
-        RefreshOverviewSuppression();
     }
 
     private const float UnknownMarkerLift = 1.15f;
@@ -5137,10 +5373,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
     internal static MemoryShadeStyle ShadeStyle = MemoryShadeStyle.Grayscale;
 
     /// <summary>§148: перекрасить гексы памяти. Красим ТОЛЬКО те, чьё
-    /// состояние сменилось: тайлов тысячи, а MaterialPropertyBlock не бесплатен.
-    /// Оригинальный блок каждого рендерера сохраняется и возвращается при
-    /// возврате гекса в живое восприятие (материалы общие на десятки тайлов —
-    /// красить material.color нельзя).</summary>
+    /// состояние сменилось: тайлов тысячи. B0: вместо MaterialPropertyBlock
+    /// (он выбивает рендерер из SRP Batcher) подменяем sharedMaterials на
+    /// общий тонированный материал из тех же квантованных кэшей, что красят
+    /// сам террейн; исходный массив хранится и возвращается при возврате
+    /// гекса в живое восприятие.</summary>
     private void ApplyMemoryShade()
     {
         var styleKey = (int)ShadeStyle;
@@ -5162,7 +5399,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             _tileShadeApplied[pair.Key] = wanted;
-            foreach (var renderer in view.GetComponentsInChildren<Renderer>(true))
+            foreach (var renderer in TileRenderers(view))
             {
                 if (renderer == null)
                 {
@@ -5171,28 +5408,61 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
                 if (!_tileShadeSaved.TryGetValue(renderer, out var saved))
                 {
-                    saved = new MaterialPropertyBlock();
-                    renderer.GetPropertyBlock(saved);
+                    saved = renderer.sharedMaterials;
                     _tileShadeSaved[renderer] = saved;
                 }
 
                 if (wanted == 0)
                 {
-                    renderer.SetPropertyBlock(saved);
+                    renderer.sharedMaterials = saved;
                     continue;
                 }
 
-                _tileShadeScratch ??= new MaterialPropertyBlock();
-                _tileShadeScratch.Clear();
-                var baseColor = renderer.sharedMaterial != null &&
-                    renderer.sharedMaterial.HasProperty(FogRingBaseColor)
-                        ? renderer.sharedMaterial.GetColor(FogRingBaseColor)
-                        : Color.white;
-                _tileShadeScratch.SetColor(FogRingBaseColor, MemoryTint(baseColor));
-                _tileShadeScratch.SetColor(FogRingLegacyColor, MemoryTint(baseColor));
-                renderer.SetPropertyBlock(_tileShadeScratch);
+                var tinted = new Material[saved.Length];
+                for (var i = 0; i < tinted.Length; i++)
+                {
+                    tinted[i] = ShadeCounterpart(
+                        saved[i], MemoryTint(DryBaseColor(saved[i])));
+                }
+
+                renderer.sharedMaterials = tinted;
             }
         }
+    }
+
+    /// <summary>B0: общий тонированный собрат материала тайла. Идёт через те
+    /// же кэши, что и сам террейн, поэтому дождевая мокрость и SRP-батчинг
+    /// действуют и на перекрашенные гексы. Riverbed (queue 2999) сохраняет
+    /// свою очередь — обычный opaque в _CameraDepthTexture превратил бы реку
+    /// в «мелкую пену» (см. комментарий у RiverbedMaterial).</summary>
+    private static Material ShadeCounterpart(Material source, Color tint) =>
+        source != null && source.renderQueue == 2999
+            ? RiverbedMaterial(tint)
+            : GetFlatMaterial(tint);
+
+    /// <summary>B0: СУХОЙ базовый цвет материала. Читать текущий color нельзя:
+    /// дождь темнит общие материалы, и тон, снятый в дождь, остался бы тёмным
+    /// навсегда в квантованном кэше.</summary>
+    private static Color DryBaseColor(Material material)
+    {
+        if (material == null)
+        {
+            return Color.white;
+        }
+
+        if (_materialDryColors.TryGetValue(material, out var dry))
+        {
+            return dry;
+        }
+
+        if (material.HasProperty(FogRingBaseColor))
+        {
+            return material.GetColor(FogRingBaseColor);
+        }
+
+        return material.HasProperty(FogRingLegacyColor)
+            ? material.GetColor(FogRingLegacyColor)
+            : Color.white;
     }
 
     private static Color MemoryTint(Color source)
@@ -5958,6 +6228,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     // Dry base colours for the wet-terrain effect (rain darkens the cache).
     private static readonly Dictionary<int, Color> _flatBaseColors = new();
+    // B0: обратная карта материал → сухой цвет для перекрасок памяти/кольца.
+    private static readonly Dictionary<Material, Color> _materialDryColors = new();
     private static Color _grassBaseColor = Color.white;
 
     // Riverbed variant of the flat terrain material: identical look, but
@@ -5981,6 +6253,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             renderQueue = 2999
         };
         _riverbedMaterials[key] = material;
+        _materialDryColors[material] = color;
         return material;
     }
 
@@ -6003,6 +6276,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         material.SetFloat("_Cull", 0f); // double-sided: skirt interiors never show
         _flatMaterials[key] = material;
         _flatBaseColors[key] = color;
+        _materialDryColors[material] = color;
         return material;
     }
 
@@ -6026,6 +6300,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         material.SetFloat("_Smoothness", 0f);
         material.SetFloat("_Cull", 0f); // single triangles seen from both sides
         _grassMaterial = material;
+        _materialDryColors[material] = _grassBaseColor;
         return material;
     }
 
@@ -6039,6 +6314,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
         meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         meshFilter.sharedMesh = BuildGrassMesh(radius, topY, coord);
         _grassByTile[coord] = go;
+        // A-1: регистрация при создании (не пер-тиковый переобход всех тайлов);
+        // ApplyOverviewRenderer внутри сразу выдаёт клочку текущий профиль
+        // обзора, даже если он создан уже на отдалении.
+        RegisterOverviewRenderers(go, _overviewGrassRenderers);
     }
 
     // A lying body flattens the grass under it: the tile's tuft clump hides

@@ -83,6 +83,10 @@ namespace HexLive.UnityPresentation.Input
         [SerializeField] private float _overviewHideDistance = 32f;
         [Tooltip("§150: мелкие детали возвращаются только после этого порога.")]
         [SerializeField] private float _overviewShowDistance = 28f;
+        [Tooltip("§150.4: дальше этого порога флора и вещи заменяются импосторами.")]
+        [SerializeField] private float _overviewImpostorFarDistance = 64f;
+        [Tooltip("§150.4: меши возвращаются только после этого порога.")]
+        [SerializeField] private float _overviewImpostorNearDistance = 56f;
 
         private enum Mode
         {
@@ -118,6 +122,7 @@ namespace HexLive.UnityPresentation.Input
         private float _distanceVelocity;
         private float _requestedDistance;
         private bool _overviewActive;
+        private bool _overviewImpostorsActive;
         private Vector3 _smoothedPivot;
         private Vector3 _pivotVelocity;
         private bool _hasSmoothedPivot;
@@ -294,7 +299,9 @@ namespace HexLive.UnityPresentation.Input
             NpcSelection.SelectionChanged -= OnSelectionChanged;
             NpcSelection.CameraRequested -= OnCameraRequested;
             _overviewActive = false;
+            _overviewImpostorsActive = false;
             _worldRenderer?.SetOverviewGrassHidden(false);
+            _worldRenderer?.SetOverviewImpostorsActive(false);
         }
 
         // §123: selection no longer implies follow. Losing every selected actor
@@ -400,9 +407,24 @@ namespace HexLive.UnityPresentation.Input
                 _overviewActive = true;
             }
 
-            // §150: distance may suppress grass for readability, but every
-            // interactive world mesh remains present and uses the normal ray path.
+            // §150.4: второй гистерезис — дальше 64 wu флора и лежащие вещи
+            // живут world-space импосторами, меши возвращаются после 56 wu.
+            if (_overviewImpostorsActive)
+            {
+                if (_smoothedDistance <= _overviewImpostorNearDistance)
+                {
+                    _overviewImpostorsActive = false;
+                }
+            }
+            else if (_smoothedDistance >= _overviewImpostorFarDistance)
+            {
+                _overviewImpostorsActive = true;
+            }
+
+            // §150: distance may suppress grass for readability; impostors
+            // stand in the same world anchors and use the normal ray path.
             _worldRenderer?.SetOverviewGrassHidden(_overviewActive);
+            _worldRenderer?.SetOverviewImpostorsActive(_overviewImpostorsActive);
         }
 
         // ---- Free mode -------------------------------------------------------

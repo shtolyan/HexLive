@@ -242,11 +242,13 @@ public sealed class TemperatureSystem : ISimulationSystem
             // стены и очаг, а не про тень.
             var effectiveUv = EffectiveUv(world, npc.Tile);
             var uncovered = CollectUncoveredParts(world, npc);
-            if (effectiveUv > 0.5f && uncovered.Count > 0)
+            var tanningExposure = effectiveUv > 0.5f && uncovered.Count > 0;
+            if (tanningExposure)
             {
                 // Spec 40.7: bare skin under the sun slowly tans (weathered
                 // survivor). effectiveUv already carries the shade penalty
-                // (isShaded -> x0.2), so you tan LESS in shade. Rate tuned for
+                // (isShaded -> x0.2), so ordinary shade falls below this gate
+                // and starts fading instead. Rate tuned for
                 // ~10 SUNNY GAME DAYS of open sun to a full tan — a per-DAY
                 // pacing, so when DayLengthTicks moved 2400 → 24000 (10× more
                 // sun ticks per day) TanRate/SunburnRate/SunExposureRate were
@@ -332,12 +334,23 @@ public sealed class TemperatureSystem : ISimulationSystem
             }
 
             // Spec 40.7: out of the sun (or fully covered), the acute burn heals
-            // and a fraction of it settles into permanent tan — red browns down.
-            if (npc.Needs.Sunburn > 0f && (effectiveUv <= 0.5f || uncovered.Count == 0))
+            // and a fraction of it settles into tan — red browns down first.
+            if (npc.Needs.Sunburn > 0f && !tanningExposure)
             {
                 var heal = System.Math.Min(npc.Needs.Sunburn, 0.0025f);
                 npc.Needs.Sunburn -= heal;
                 npc.Needs.TanLevel = MathUtil.Clamp01(npc.Needs.TanLevel + heal * 0.4f);
+            }
+
+            // §40.7 r2: tan is no longer permanent. The same predicate that
+            // stops tanning starts a slow linear fade: night, cast shade,
+            // roof/water, weak UV and (future) complete clothing cover all
+            // mean that no tanning UV reaches bare skin. Acute redness may
+            // still settle into brown just above; once that short phase is
+            // gone, a full tan returns to zero in four no-UV game days.
+            if (!tanningExposure)
+            {
+                npc.Needs.TanLevel = FadeTan(npc.Needs.TanLevel);
             }
         }
     }
@@ -360,6 +373,9 @@ public sealed class TemperatureSystem : ISimulationSystem
 
         return body > target ? System.Math.Max(target, body - rate) : body;
     }
+
+    internal static float FadeTan(float tanLevel) =>
+        System.Math.Max(0f, tanLevel - SimBalance.TanFadeRate);
 
     internal static float SignedFromTemperature(float temperature)
     {

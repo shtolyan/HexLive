@@ -1,5 +1,5 @@
 {
-    "nextId": 223,
+    "nextId": 243,
     "unityMcpLease": {
         "status": "free",
         "ownerAgent": "",
@@ -7471,6 +7471,375 @@
                     "whenUtc": "2026-08-24 15:28 UTC",
                     "author": "codex",
                     "text": "Исправлено в b7f300b950ba9c5194c36447bee3a69d4f62a89a. Удалены снятие на месте при опасной жаре, fallback у дальнего берега и продолжение старого unsafe resume; разрешены свободный гардероб/сушилка или зона костра радиусом 2. Legacy LaundryBatch больше не создаёт наземную вещь, standalone-стирка возвращает тот же экземпляр в исходное место. Готово к проверке игроком; Unity/CLI-тесты не запускались из-за неподтверждённого состояния Editor."
+                }
+            ]
+        },
+        {
+            "id": 233,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "ready_for_test",
+            "text": "regression: крафт верёвок не работает на сервере",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "c132b6ea5e8d56bcd601a255b219ae4ac3d03a38"
+            ],
+            "fixCommit": "c132b6ea5e8d56bcd601a255b219ae4ac3d03a38",
+            "reportedInVersion": "",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Rope craft verified: focused regression ManualRopeOrderCraftsWhileAFinishedRopeLiesUnderfoot passed 1/1; git diff --check clean."
+                },
+                {
+                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "author": "codex-final-review",
+                    "text": "Final Codex review found blocker: #233 and #234 share a parent, conflict in CraftProjectMath.cs/ManualCraftingTests.cs, and encode different duplicate-suppression policies. Need one consolidated spec-backed manual-crafting fix retaining rope+bandage regressions before merge."
+                },
+                {
+                    "createdUtc": "2026-08-27T03:26:28Z",
+                    "author": "sveta-heartbeat",
+                    "text": "Started combined post-review blocker pass: unify #233/#234 manual craft duplicate-suppression policy into one spec-backed fix, preserve both regressions, resolve conflicts before merge."
+                },
+                {
+                    "createdUtc": "2026-08-27T03:49:05Z",
+                    "author": "sveta-subagent",
+                    "text": "Unified spec-backed #233/#234 fix in clean worktree /private/tmp/HexLive-bug-233-234-craft-policy-1025: accepted manual item-craft orders bypass the §119.2 duplicate-output economy gate for all item recipes, while autonomous crafting still suppresses duplicates. Checks: dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter \"FullyQualifiedName~ManualCraftingTests.ManualRopeOrderCraftsWhileAFinishedRopeLiesUnderfoot|FullyQualifiedName~ManualCraftingTests.ManualBandageOrderCraftsEvenWithAFinishedBandageLyingNearby\" = 2/2 passed; dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter \"FullyQualifiedName~ManualCraftingTests\" --no-restore = 12/12 passed; git diff --cached --check clean before commit."
+                }
+            ]
+        },
+        {
+            "id": 234,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "ready_for_test",
+            "text": "regression: крафт бинтов не работает (тот же общий регресс craft/action completion?)",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "c132b6ea5e8d56bcd601a255b219ae4ac3d03a38"
+            ],
+            "fixCommit": "c132b6ea5e8d56bcd601a255b219ae4ac3d03a38",
+            "reportedInVersion": "",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Bandage craft verified: focused regression ManualBandageOrderCraftsEvenWithAFinishedBandageLyingNearby passed 1/1; git diff --check clean."
+                },
+                {
+                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "author": "codex-final-review",
+                    "text": "Final Codex review found blocker: #233 and #234 conflict and encode different duplicate-suppression policies; #234 bypasses ManualControlMath.IsManual/global kill-switch semantics. Need consolidated spec-backed fix with both regression tests before merge."
+                },
+                {
+                    "createdUtc": "2026-08-27T03:26:28Z",
+                    "author": "sveta-heartbeat",
+                    "text": "Started combined post-review blocker pass: unify #233/#234 manual craft duplicate-suppression policy into one spec-backed fix, preserve both regressions, resolve conflicts before merge."
+                },
+                {
+                    "createdUtc": "2026-08-27T03:49:05Z",
+                    "author": "sveta-subagent",
+                    "text": "Unified spec-backed #233/#234 fix in clean worktree /private/tmp/HexLive-bug-233-234-craft-policy-1025: accepted manual item-craft orders bypass the §119.2 duplicate-output economy gate for all item recipes, while autonomous crafting still suppresses duplicates. Checks: dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter \"FullyQualifiedName~ManualCraftingTests.ManualRopeOrderCraftsWhileAFinishedRopeLiesUnderfoot|FullyQualifiedName~ManualCraftingTests.ManualBandageOrderCraftsEvenWithAFinishedBandageLyingNearby\" = 2/2 passed; dotnet test Tests/HexLive.Simulation.Tests/HexLive.Simulation.Tests.csproj --filter \"FullyQualifiedName~ManualCraftingTests\" --no-restore = 12/12 passed; git diff --cached --check clean before commit."
+                }
+            ]
+        },
+        {
+            "id": 235,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "open",
+            "text": "улучшение костра — «занято кем-то другим», build/construction lock не снимается",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "47f8fb15c"
+            ],
+            "fixCommit": "47f8fb15c",
+            "reportedInVersion": "",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Campfire occupancy verified: CampfireOccupancyTests passed 2/2; git diff --check clean."
+                },
+                {
+                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "author": "codex-final-review",
+                    "text": "Final Codex review found blocker: campfire occupancy success paths are covered, but failure paths can leave the acting NPC wedged with execution marked Completed and no plan/execution reset. Add failure-lifecycle regression and fix before merge."
+                }
+            ]
+        },
+        {
+            "id": 236,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "fixed",
+            "text": "проверить сценарий выдачи НЕдефолтного лагеря end-to-end",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "4630814cf"
+            ],
+            "fixCommit": "4630814cf",
+            "reportedInVersion": "",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Non-default camp ownership verified: focused tests 3/3 + 1/1 passed; git diff --check clean."
+                }
+            ]
+        },
+        {
+            "id": 237,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "open",
+            "text": "двери/доступ в здания запирают жителей внутри (особенно выход в воду)",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "b7118593c"
+            ],
+            "fixCommit": "b7118593c",
+            "reportedInVersion": "",
+            "readyForTestInVersion": "b7118593c",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Still open: focused attempts exposed owner/faction/path failures; no verified green commit."
+                },
+                {
+                    "createdUtc": "2026-08-27T01:26:55Z",
+                    "text": "Heartbeat 2026-08-27 08:25: only remaining open bug; launching non-blind focused finish from existing dirty worktree after parent inspection showed owner/faction/path regressions."
+                },
+                {
+                    "createdUtc": "2026-08-27T01:37:18Z",
+                    "author": "sveta-subagent",
+                    "text": "Fixed in b7118593c: DoorTopology now derives door owner from the owning hut anchor/nearest girl-camp home and router hard-avoid uses AreAllies so neutral non-owners cannot path through closed foreign doors. Verified focused tests green: DoorPassageTests + Probe237Tests, 10 passed; git diff --check clean."
+                },
+                {
+                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "author": "codex-final-review",
+                    "text": "Final Codex review found blocker: OwnerFaction is inferred from nearest current FactionHome, so after camp merge/removal a hut door can be reassigned and still trap merged residents. Add camp-merge/removal regression and make ownership stable before merge."
+                }
+            ]
+        },
+        {
+            "id": 238,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "open",
+            "text": "модель двери не спавнится в текущей версии — проверить asset bundles",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "c7980566e"
+            ],
+            "fixCommit": "c7980566e",
+            "reportedInVersion": "",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Missing door model/bundles verified: focused contract tests 2/2 passed; git diff --check clean."
+                },
+                {
+                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "author": "codex-final-review",
+                    "text": "Final Codex review found blocker: code retry/type-selection helps only if a compatible Windows door bundle exists; BUGS evidence still records Windows platformMissing for building/door.wood. Publish/test the Windows door bundle or keep unresolved."
+                }
+            ]
+        },
+        {
+            "id": 239,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "ready_for_test",
+            "text": "фича: дарить произвольные предметы через меню персонажа",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "ab9b85aabdae8c130c532952ec43843fb89baad6"
+            ],
+            "fixCommit": "ab9b85aabdae8c130c532952ec43843fb89baad6",
+            "reportedInVersion": "",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Gifts menu advanced to ready_for_test with verified commit; focused gate passed per heartbeat verification."
+                }
+            ]
+        },
+        {
+            "id": 240,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "open",
+            "text": "фича: накормить/напоить лежащего беспомощного персонажа",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "9dbbd56b7f905c52c9eddc0d5c66252663224d72"
+            ],
+            "fixCommit": "9dbbd56b7f905c52c9eddc0d5c66252663224d72",
+            "reportedInVersion": "",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Feed/water incapacitated advanced to ready_for_test with verified commit per heartbeat verification."
+                },
+                {
+                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "author": "codex-final-review",
+                    "text": "Final Codex review found blocker: ordered aid kind is transient and not serialized, while Aid goal/target/plan are serialized; after save/load feed/hydrate can fall back to Treat/no aid. Persist or reconstruct ordered aid kind and add save/load regression before merge."
+                }
+            ]
+        },
+        {
+            "id": 241,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "ready_for_test",
+            "text": "диагностика: периодические вылеты на Windows (утечки памяти? asset bundles?)",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "2323f0cabd9483aff0182552136a6349f2e734eb"
+            ],
+            "fixCommit": "2323f0cabd9483aff0182552136a6349f2e734eb",
+            "reportedInVersion": "0.1.70/current server build",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Fresh background worker started 2026-08-27 05:24 Asia/Saigon: hexlive-bug-241-win-crash-diagnostics-20260827-0524."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:44:05Z",
+                    "author": "sveta-subagent",
+                    "text": "Claude background diagnostics attempt timed out after 900s (claude_ask.sh exit code 4: Claude не уложился в 900с). No verified #241 commit/checks were produced. Verification after timeout: HEAD is 9940f08c72cbc8d8029a5f50a8780bf177c98231 (unrelated previous fix), worktree has an uncommitted rename/modify of Tests/HexLive.Simulation.Tests/Gates/AddressableHandleLifetimeContractTests.cs -> ContentHandleLifetimeContractTests.cs. Leaving bug open and unassigned for a fresh worker to inspect/continue or clean up."
+                },
+                {
+                    "utc": "2026-08-26T23:26:19Z",
+                    "author": "sveta-heartbeat",
+                    "text": "06:25 heartbeat: prior dirty diagnostics worktree exists but no verified commit; starting a clean dedicated pass with LFS filters disabled to isolate Windows crash/handle diagnostics."
+                },
+                {
+                    "createdUtc": "2026-08-26T23:49:38Z",
+                    "author": "sveta-subagent",
+                    "text": "Clean #241 pass verified and committed. Change guards ContentAssetService bundle/file lifetimes around async asset loads and cache trim, and replaces stale Addressables lifetime gate with ContentHandleLifetimeContractTests. Claude timed out at 900s while running an unfiltered Simulation test pass; I killed the orphaned dotnet testhost, independently ran the focused gate green, verified git diff --check, and committed the focused diff. Checks: /usr/local/share/dotnet/dotnet test Tests/HexLive.Simulation.Tests --filter FullyQualifiedName~ContentHandleLifetimeContractTests --no-restore --nologo => Passed 5/5; git diff --check HEAD^..HEAD => clean; post-commit status clean with LFS filters disabled."
+                }
+            ]
+        },
+        {
+            "id": 242,
+            "createdUtc": "2026-08-26 14:54 UTC",
+            "status": "open",
+            "text": "bundle delivery validation for current Windows/server build\n\nПроверить, действительно ли нужные content/set bundles влиты и доступны в текущей Windows/server версии, особенно для двери и строительных ассетов. Сверить bundle manifest, build output, loader paths и runtime logs. Это поддерживающая задача к пропавшей модели двери и предстоящей загрузке бандлов с новым ключом.",
+            "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
+            "assignedAgent": "",
+            "agentHandoff": "",
+            "fixCommits": [
+                "bae5f0255df2c22571e8ac40d66b24441eea971c"
+            ],
+            "fixCommit": "bae5f0255df2c22571e8ac40d66b24441eea971c",
+            "reportedInVersion": "0.1.70/current server build",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-26 14:54 UTC",
+                    "author": "sveta",
+                    "text": "Заведено из голосового отчёта Толи. Передано в очередь Lod/Fable; чинить аккуратно, с минимальными изменениями и регресс-тестами где возможно."
+                },
+                {
+                    "createdUtc": "2026-08-26T22:43:17Z",
+                    "author": "sveta-subagent",
+                    "text": "Verified fix committed by Claude worker: bae5f0255df2c22571e8ac40d66b24441eea971c. Added additive server registry diagnostics for platform-missing active objects (AssetIndexResponse.platformMissing), coverage audit logging, Spec/152 notes, and focused tests. Checks: dotnet test Tests/HexLive.Server.Tests 118/118 passed; live registry smoke logged Windows missing coverage and OSX full coverage; GET Windows index returned platformMissing for building/door.wood; empty registry smoke logged 0 platform/profile pairs; git diff --check clean. SpecStructureGate remained 5/6 due to pre-existing §218 reference debt outside touched files."
+                },
+                {
+                    "createdUtc": "2026-08-27T02:48:46Z",
+                    "author": "codex-final-review",
+                    "text": "Final Codex review found blocker: diagnostics were added, but no bundle/manifest/build-output/registry-data change proves the Windows door asset is published; treat #238/#242 unresolved until Windows door bundle is present and Player-tested."
                 }
             ]
         }

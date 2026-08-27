@@ -22,6 +22,8 @@ public sealed class ArchitectureElementSnapshot
     public bool Buildable { get; set; }
     public int WorkRequired { get; set; }
     public int WorkDone { get; set; }
+    public bool DemolitionPlanned { get; set; }
+    public string ReplacementDefinitionId { get; set; } = string.Empty;
     public int RequiredTotal => RequiredSticks + RequiredBoards + RequiredRope + RequiredLeaves;
     public int DeliveredTotal => DeliveredSticks + DeliveredBoards + DeliveredRope + DeliveredLeaves;
     public float Progress => RequiredTotal <= 0

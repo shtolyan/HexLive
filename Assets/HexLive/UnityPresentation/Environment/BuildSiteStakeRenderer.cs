@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
@@ -18,8 +19,8 @@ namespace HexLive.UnityPresentation.Environment
     /// Пустой <c>build.site</c> не рисует ничего (выученное правило «пустой
     /// BuildProduct → невидимый якорь»), поэтому только колышки делают свежую
     /// разметку видимой. Правило игрока: колышки бесплатны, появляются вместе
-    /// с разметкой и исчезают, как только в постройку доставлен ПЕРВЫЙ
-    /// ингредиент, — дальше рост показывают сами доставленные детали.
+    /// с разметкой и исчезают, как только в постройке появляется ПЕРВЫЙ
+    /// материал или начинается работа, — дальше рост показывают сами детали.
     ///
     /// Раскладка точек — тот же чистый <see cref="BlueprintPlanningMarkers"/>,
     /// что у конструктора: дом ставит колышки по элементам утверждённого
@@ -43,6 +44,7 @@ namespace HexLive.UnityPresentation.Environment
         private HexWorldRenderer? _worldRenderer;
         private Transform? _root;
         private Material? _stakeMaterial;
+        private Material? _demolitionStakeMaterial;
         private Mesh? _stakeMesh;
         private float _nextRefresh;
 
@@ -104,13 +106,19 @@ namespace HexLive.UnityPresentation.Environment
             _seen.Clear();
             foreach (var obj in snapshot.Objects)
             {
-                if (string.IsNullOrEmpty(obj.BuildProduct)) continue;
+                if (string.IsNullOrEmpty(obj.BuildProduct) &&
+                    !FreeArchitectureRules.IsDemolitionSite(obj)) continue;
                 _modulesByOwner.TryGetValue(obj.Id.Value, out var modules);
                 if (!WantsStakes(obj, modules)) continue;
 
                 _seen.Add(obj.Id.Value);
+                var component = obj.ArchitectureElements.Count == 1
+                    ? obj.ArchitectureElements[0]
+                    : null;
                 var signature = $"{obj.Tile.Q}:{obj.Tile.R}:{obj.RotationDegrees:0}:{obj.BuildProduct}" +
-                                $":{(modules?.Count ?? 0)}";
+                                $":{(modules?.Count ?? 0)}:{component?.SlotKey}:" +
+                                $"{component?.DeliveredTotal}:{component?.WorkDone}:" +
+                                $"{component?.DemolitionPlanned}:{component?.ReplacementDefinitionId}";
                 if (_stakes.TryGetValue(obj.Id.Value, out var existing) &&
                     existing.Signature == signature)
                 {
@@ -138,12 +146,14 @@ namespace HexLive.UnityPresentation.Environment
             }
         }
 
-        /// <summary>Колышки живут, пока в постройке нет ни одного ингредиента.
-        /// У plan-площадки материалы копятся В МОДУЛЯХ — сумма идёт по ним.
-        /// В открытом режиме стройки колышки подменяет полный призрак.</summary>
+        /// <summary>Строительные колышки живут только до первого физического
+        /// материала/удара. Красная разметка сноса остаётся до завершения,
+        /// потому что без неё невидимое задание нельзя выбрать.</summary>
         private static bool WantsStakes(ObjectSnapshot site, List<ObjectSnapshot> modules)
         {
-            if (UI.BuildModePanel.IsOpen) return false;
+            if (FreeArchitectureRules.IsDemolitionSite(site)) return true;
+            if (FreeArchitectureRules.IsFreePiece(site))
+                return !BuildSiteStakeVisibility.HasElementProgress(site);
             return !BuildSiteStakeVisibility.HasPhysicalProgress(site, modules);
         }
 
@@ -155,9 +165,10 @@ namespace HexLive.UnityPresentation.Environment
 
             var groundY = _worldRenderer!.GroundTopY(site.Tile);
             var anchor = _worldRenderer.ObjectAnchorPosition(site);
+            var demolition = FreeArchitectureRules.IsDemolitionSite(site);
             foreach (var point in StakePoints(site, anchor, modules))
             {
-                AddStake(root.transform, new Vector3(point.X, groundY, point.Y));
+                AddStake(root.transform, new Vector3(point.X, groundY, point.Y), demolition);
             }
 
             // Bug #198: these stakes are the only visible geometry of a fresh
@@ -166,8 +177,9 @@ namespace HexLive.UnityPresentation.Environment
             // Register the derived marker as a proxy for the authoritative
             // build.site; the normal object menu then supplies the catalogued
             // Build interaction and sends the real site ObjectId to the sim.
-            root.AddComponent<Views.WorldObjectView>()
-                .Init(site.Id.Value, site.DefinitionId);
+            var view = root.AddComponent<Views.WorldObjectView>();
+            view.Init(site.Id.Value, site.DefinitionId);
+            view.SetContextProxy(site.Id.Value, ContentIds.BuildSite);
 
             return root;
         }
@@ -175,6 +187,16 @@ namespace HexLive.UnityPresentation.Environment
         private static IEnumerable<Float2> StakePoints(
             ObjectSnapshot site, Float2 anchor, List<ObjectSnapshot> modules)
         {
+            if (FreeArchitectureRules.IsFreePiece(site))
+            {
+                var state = site.ArchitectureElements[0];
+                if (!FreeArchitectureRules.TryDecode(
+                        state.DefinitionId, state.SlotKey, out var element))
+                    return System.Array.Empty<Float2>();
+                return BlueprintPlanningMarkers.ForElement(element)
+                    .Select(marker => marker.Position);
+            }
+
             if (site.BuildProduct == ContentIds.HutPlan)
             {
                 return PlanStakePoints(site, anchor, modules);
@@ -254,7 +276,7 @@ namespace HexLive.UnityPresentation.Environment
             }
         }
 
-        private void AddStake(Transform parent, Vector3 groundPosition)
+        private void AddStake(Transform parent, Vector3 groundPosition, bool demolition)
         {
             var stake = new GameObject("Stake");
             stake.transform.SetParent(parent, false);
@@ -271,7 +293,7 @@ namespace HexLive.UnityPresentation.Environment
             var filter = stake.AddComponent<MeshFilter>();
             filter.sharedMesh = StakeMesh();
             var renderer = stake.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = StakeMaterial();
+            renderer.sharedMaterial = demolition ? DemolitionStakeMaterial() : StakeMaterial();
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
@@ -298,6 +320,20 @@ namespace HexLive.UnityPresentation.Environment
             return _stakeMaterial;
         }
 
+        private Material DemolitionStakeMaterial()
+        {
+            if (_demolitionStakeMaterial != null) return _demolitionStakeMaterial;
+            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            _demolitionStakeMaterial = new Material(shader) { name = "DemolitionSiteStake" };
+            var warning = new Color(0.72f, 0.19f, 0.12f);
+            _demolitionStakeMaterial.color = warning;
+            if (_demolitionStakeMaterial.HasProperty("_BaseColor"))
+                _demolitionStakeMaterial.SetColor("_BaseColor", warning);
+            if (_demolitionStakeMaterial.HasProperty("_Smoothness"))
+                _demolitionStakeMaterial.SetFloat("_Smoothness", 0f);
+            return _demolitionStakeMaterial;
+        }
+
         private void EnsureRoot()
         {
             if (_root != null) return;
@@ -320,6 +356,7 @@ namespace HexLive.UnityPresentation.Environment
         private void OnDestroy()
         {
             if (_stakeMaterial != null) Destroy(_stakeMaterial);
+            if (_demolitionStakeMaterial != null) Destroy(_demolitionStakeMaterial);
         }
     }
 }

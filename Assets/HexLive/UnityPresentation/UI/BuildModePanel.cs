@@ -1328,8 +1328,10 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (!FreeArchitectureRules.IsFreePiece(obj)) continue;
                 var state = obj.ArchitectureElements[0];
+                var plannedDefinition = FreeArchitectureRules.PlannedDefinitionId(obj);
+                if (string.IsNullOrEmpty(plannedDefinition)) continue;
                 if (!FreeArchitectureRules.TryDecode(
-                        state.DefinitionId, state.SlotKey, out var element)) continue;
+                        plannedDefinition, state.SlotKey, out var element)) continue;
                 element.Id = $"free_{obj.Id.Value}";
                 element.Origin = BlueprintElementOrigin.Manual;
                 draft.Elements.Add(element);

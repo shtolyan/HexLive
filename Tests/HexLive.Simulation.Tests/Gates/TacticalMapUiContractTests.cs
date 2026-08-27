@@ -19,6 +19,11 @@ public sealed class TacticalMapUiContractTests
         var roster = Read("Assets", "HexLive", "UnityPresentation", "UI", "CharacterPanel.cs");
         var uxml = Read("Assets", "HexLiveContent", "RuntimeSource", "UI",
             "TacticalMapPanel.uxml");
+        var uss = Read("Assets", "HexLiveContent", "RuntimeSource", "UI",
+            "TacticalMapPanel.uss");
+        var impostor = Read("Assets", "HexLive", "UnityPresentation", "Views",
+            "ObjectImpostor.cs");
+        var spec = Read("Spec", "150.md");
         var bootstrap = Read("Assets", "HexLive", "UnityPresentation", "Bootstrap",
             "PrototypeRuntimeBootstrap.cs");
 
@@ -33,23 +38,31 @@ public sealed class TacticalMapUiContractTests
             Assert.That(panel, Does.Contain("SetMiniCollapsed(true)"));
             Assert.That(panel, Does.Contain("SetPortraitCache(NpcPortraitCache"));
             Assert.That(panel, Does.Not.Contain("new DistantWorldMarkersView()"));
-            Assert.That(panel, Does.Contain("ItemIcons.Load(marker.DefinitionId)"));
+            // §150.1: the HUD map is dots-only — no icons, portraits or
+            // importance ranking; one dot per hex for dropped portables.
+            Assert.That(panel, Does.Not.Contain("ItemIcons.Load"));
             Assert.That(panel, Does.Contain("IsPortable(runner"));
             Assert.That(panel, Does.Contain("InteractionType.PickUp"));
             Assert.That(panel, Does.Contain("ItemCatalog.Classify(definition)"));
-            Assert.That(panel, Does.Contain("exactCount = count > 4 ? 3 : count"));
-            Assert.That(panel, Does.Contain("overflow: true"));
             Assert.That(panel, Does.Contain("snapshot.Mobs.Count"));
             Assert.That(panel, Does.Contain("snapshot.Crabs.Count"));
             Assert.That(panel, Does.Contain("_storedGarmentJunctions"));
             Assert.That(panel, Does.Contain("_emittedMarkerKeys.Clear()"));
-            Assert.That(panel, Does.Contain("_emittedItemTypes.Clear()"));
+            Assert.That(panel, Does.Contain("_emittedItemTiles.Clear()"));
             Assert.That(panel, Does.Contain("if (!visible && !homeCamp)"));
-            Assert.That(view, Does.Contain("DrawCamp(painter"));
+            // §150.1: the camera frame is ray-capped, viewport-sized and
+            // clamped into the island rectangle under an overflow mask.
+            Assert.That(panel, Does.Contain("camera.pixelWidth"));
+            Assert.That(panel, Does.Contain("MaxFootprintRayDistance"));
+            Assert.That(uss, Does.Contain(".tactical-map-host {"));
+            Assert.That(uss, Does.Contain("overflow: hidden;"));
+            Assert.That(view, Does.Contain("DrawDot("));
+            Assert.That(view, Does.Contain("ClampToIslandRect"));
             Assert.That(view, Does.Contain("marker.Live || marker.AlwaysKnown"));
             Assert.That(view, Does.Contain("frame.DroppedItems"));
             Assert.That(view, Does.Contain("context.Allocate(4, 6, texture)"));
-            Assert.That(view, Does.Contain("Mathf.Clamp(hexRadius * 0.82f, 7f, 12f)"));
+            Assert.That(view, Does.Contain("Mathf.Clamp(hexRadius * 0.6f, 3f, 5f)"));
+            Assert.That(view, Does.Not.Contain("TacticalMapMobKind.Shark"));
             Assert.That(view, Does.Contain("internal sealed class DistantWorldMarkersView"));
             Assert.That(view, Does.Contain("pickingMode = PickingMode.Ignore"));
             Assert.That(view, Does.Not.Contain("new GameObject("));
@@ -73,6 +86,10 @@ public sealed class TacticalMapUiContractTests
             Assert.That(camera, Does.Contain("public float SmoothedDistance"));
             Assert.That(camera, Does.Contain("_overviewHideDistance = 32f"));
             Assert.That(camera, Does.Contain("_overviewShowDistance = 28f"));
+            // §150.4: второй гистерезис дальнего обзора — импосторы.
+            Assert.That(camera, Does.Contain("_overviewImpostorFarDistance = 64f"));
+            Assert.That(camera, Does.Contain("_overviewImpostorNearDistance = 56f"));
+            Assert.That(camera, Does.Contain("_worldRenderer?.SetOverviewImpostorsActive"));
             Assert.That(camera, Does.Not.Contain("_floraHideDistance"));
             Assert.That(camera, Does.Not.Contain("TryPickOverviewPerson"));
             Assert.That(camera, Does.Not.Contain("TryGetExploredTileCenter"));
@@ -90,7 +107,22 @@ public sealed class TacticalMapUiContractTests
             Assert.That(renderer, Does.Contain("_overviewGrassRenderers"));
             Assert.That(renderer, Does.Not.Contain("_overviewFloraRenderers"));
             Assert.That(renderer, Does.Not.Contain("BeginOverviewPortraitReveal"));
-            Assert.That(renderer, Does.Contain("The distant profile deliberately contains grass only"));
+            Assert.That(renderer, Does.Contain(
+                "The distant profile is grass suppression plus §150.4 world-space"));
+            // §150.4: импосторы — world-space квады в мировых якорях; экранная
+            // проекция маркеров (урок bug-230) остаётся под запретом.
+            Assert.That(renderer, Does.Contain("public void SetOverviewImpostorsActive(bool active)"));
+            Assert.That(renderer, Does.Contain("TryAttachOverviewImpostor"));
+            Assert.That(renderer, Does.Contain("IsOverviewFlora"));
+            Assert.That(renderer, Does.Contain("IsOverviewLooseItem"));
+            Assert.That(renderer, Does.Not.Contain("WorldToScreenPoint"));
+            Assert.That(impostor, Does.Contain("MeshRenderer"));
+            Assert.That(impostor, Does.Not.Contain("AddComponent<SpriteRenderer>"));
+            Assert.That(impostor, Does.Contain("forceRenderingOff"));
+            Assert.That(impostor, Does.Contain("SubmitRenderRequest"));
+            Assert.That(impostor, Does.Not.Contain("WorldToScreenPoint"));
+            Assert.That(input, Does.Contain("impostor.DistantActive"));
+            Assert.That(spec, Does.Contain("### §150.4"));
             Assert.That(renderer, Does.Not.Contain("SetTacticalMapMode"));
             Assert.That(renderer, Does.Not.Contain("TacticalHexSprite"));
             Assert.That(renderer, Does.Not.Contain("TacticalMapPlaneY"));

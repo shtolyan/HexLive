@@ -2170,7 +2170,6 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // уходили в чужой лагерь, стоило пройти рядом с ним.
                 return queuedBuildSiteId is { } queuedSite &&
                     queuedSite.Equals(perceived.Id) &&
-                    definition.HasTag("FurnitureSite") &&
                     world.Entities.Objects.TryGetValue(perceived.Id, out var fsite) &&
                     BuildSiteMath.IsSite(fsite) &&
                     DecisionSystem.IsOurSite(world, npc, fsite) &&

@@ -219,10 +219,13 @@ namespace HexLive.Simulation.Runtime
         // Sun / tan / sunburn (on uncovered parts, in open sun).
         // Per-slow-tick rates, so they scale with DayLengthTicks: when the day
         // went 2400 → 24000 ticks, the sun window got 10× more ticks and all
-        // three rates below were cut ×10 to keep the same per-DAY pacing
+        // sun-side rates below were cut ×10 to keep the same per-DAY pacing
         // (~10 sunny days to a full tan, ~2-3 burn events/day half-dressed).
+        // TanFadeRate is the inverse contract: at the current 1500 slow ticks
+        // per game day, 1 / 6000 removes a full tan in four no-UV days.
         // ─────────────────────────────────────────────────────────────
         public static float TanRate = 0.00009f;       // tan gained per (UV−0.5) per uncovered part. DEFAULT ONLY — tune live via CharacterBalance.asset (tanRate); BalanceTuning mirrors it over this at boot.
+        public static float TanFadeRate = 0.00016668f; // tan lost per no-tanning slow tick; float-safe clamp reaches zero within 6000 ticks / four game days
         public static float TanStrength = 1f;          // overall tan DARKNESS (presentation-only): NpcActorView scales the tan tint toward bare skin by this. 1 = full look, lower = paler/less dark. Tune live via CharacterBalance.asset (tanStrength).
         public static float SunburnRate = 0.0012f;    // acute redness reaches a visible peak within one open-sun day
         public static float SunExposureRate = 0.04f;  // exposure meter gained (fills toward a burn event)

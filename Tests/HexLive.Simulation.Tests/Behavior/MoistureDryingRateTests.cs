@@ -112,6 +112,87 @@ public sealed class MoistureDryingRateTests
         });
     }
 
+    [Test]
+    public void RainAndWaterStopAtOuterGarmentInsteadOfSoakingCarriedClothingThrough()
+    {
+        const string pantiesId = "underwear.thong_anarchy";
+        const string backpackId = "gear.backpack_riot";
+        const string jacketId = "clothing.jacket_ranger";
+        var world = TestWorld.CreateWorld(-28147312);
+        PrepareDryWeather(world);
+        var npc = world.Entities.Npcs.Values.First();
+        var outdoor = FindOrdinaryOutdoorTile(world);
+        npc.Tile = outdoor;
+        npc.WornItems.Clear();
+        npc.Inventory.Items.Clear();
+
+        var panties = new ItemInstance(pantiesId) { Wetness = 0.2f };
+        var backpack = new ItemInstance(backpackId) { Wetness = 0.2f };
+        Assert.That(world.Content.ObjectDefinitions[jacketId].Layer, Is.Not.Null,
+            "Setup must use a shipped wearable, not the legacy clothing.coat id.");
+        var dryCoat = new ItemInstance(jacketId);
+        var dampPants = new ItemInstance(ContentIds.LeatherPants) { Wetness = 0.5f };
+        npc.WornItems.Add(panties);
+        npc.WornItems.Add(backpack);
+        EquipmentMath.Recalculate(world, npc);
+
+        // First carried cell belongs to the panties. Fill the body's own carry
+        // cells so the second garment demonstrably lands in the backpack tail.
+        npc.Inventory.Items.Add(dryCoat);
+        var carry = InventoryLayoutBuilder.Build(world, npc).Containers.Single(
+            container => container.Kind == InventoryContainerKind.Carry);
+        for (var i = 0; i < carry.BaseCapacity + carry.StrengthBonus; i++)
+        {
+            npc.Inventory.Items.Add(new ItemInstance($"test.rain.filler.{i}"));
+        }
+        npc.Inventory.Items.Add(dampPants);
+
+        Assert.That(InventoryLayoutBuilder.TryCollectOwnedContents(
+            world, npc, 0, out var pantiesContents), Is.True);
+        Assert.That(pantiesContents.Any(item => ReferenceEquals(item, dryCoat)), Is.True,
+            "Setup: куртка должна лежать именно в кармане трусов.");
+        Assert.That(InventoryLayoutBuilder.TryCollectOwnedContents(
+            world, npc, 1, out var backpackContents), Is.True);
+        Assert.That(backpackContents.Any(item => ReferenceEquals(item, dampPants)), Is.True,
+            "Setup: штаны должны лежать именно в бонусной части рюкзака.");
+
+        var groundCoat = SpawnPickup(world, jacketId, outdoor);
+        world.Environment.IsRaining = true;
+        Assert.That(ShelterMath.RainReaches(world, outdoor), Is.True);
+
+        new MoistureSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panties.Wetness, Is.EqualTo(1f), "Внешние трусы обязаны промокнуть.");
+            Assert.That(backpack.Wetness, Is.EqualTo(1f), "Сам рюкзак обязан промокнуть.");
+            Assert.That(dryCoat.Wetness, Is.Zero, "Сухая куртка внутри трусов промокла насквозь.");
+            Assert.That(dampPants.Wetness, Is.EqualTo(0.498f).Within(0.00001f),
+                "Уже мокрая одежда в рюкзаке должна естественно сохнуть, а не замереть.");
+            Assert.That(groundCoat.Wetness, Is.EqualTo(1f),
+                "Куртка без внешнего контейнера на земле по-прежнему мокнет.");
+        });
+
+        world.Environment.IsRaining = false;
+        npc.Tile = world.Tiles.Items.First(pair =>
+            pair.Value.Flags.HasFlag(TileFlags.Water)).Key;
+        panties.Wetness = 0f;
+        backpack.Wetness = 0f;
+        dryCoat.Wetness = 0f;
+        dampPants.Wetness = 0f;
+
+        new MoistureSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panties.Wetness, Is.EqualTo(1f));
+            Assert.That(backpack.Wetness, Is.EqualTo(1f));
+            Assert.That(dryCoat.Wetness, Is.Zero);
+            Assert.That(dampPants.Wetness, Is.Zero,
+                "Вода не должна проходить сквозь внешний контейнер и на водном тайле.");
+        });
+    }
+
     private static void PrepareDryWeather(WorldState world)
     {
         world.Environment.IsRaining = false;

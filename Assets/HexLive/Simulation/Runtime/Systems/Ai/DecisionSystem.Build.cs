@@ -107,6 +107,7 @@ public sealed partial class DecisionSystem
             activeDream == DreamType.OwnBed &&
             IsDreamBuilder(npc, world);
         WorldObjectState firstSite = null;
+        WorldObjectState demolitionSite = null;
         WorldObjectState houseSite = null;
         WorldObjectState dreamSite = null;
         WorldObjectState collectorSite = null;
@@ -181,6 +182,14 @@ public sealed partial class DecisionSystem
             {
                 hearthUpgrade ??= site;
             }
+            else if (BuildSiteMath.IsDemolitionSite(site))
+            {
+                // §120.10: no replacement may be raised through the old
+                // physical module. Keep the survival-critical bare hearth
+                // exception above, then tear architecture down before taking
+                // another ordinary construction site.
+                demolitionSite ??= site;
+            }
             else if (site.DefinitionId == ContentIds.BuildSite &&
                 site.BuildProduct == ContentIds.BedBasic)
             {
@@ -194,7 +203,8 @@ public sealed partial class DecisionSystem
                 }
             }
             else if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct) ||
-                     BuildSiteMath.IsFreeArchitectureSite(site))
+                     BuildSiteMath.IsFreeArchitectureSite(site) ||
+                     BuildSiteMath.IsDemolitionSite(site))
             {
                 // §120: a HOUSE is the colony's shelter, not a comfort upgrade.
                 // Left as the unranked `firstSite` fallback it is starved
@@ -237,7 +247,7 @@ public sealed partial class DecisionSystem
         var needsSpitNow = npc.Inventory.Items.Contains(ContentIds.MeatRaw);
         return needsSpitNow && hearthUpgrade != null
             ? hearthUpgrade
-            : collectorSite ?? houseSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ??
+            : demolitionSite ?? collectorSite ?? houseSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ??
               firstSite ?? starvedSite;
     }
 

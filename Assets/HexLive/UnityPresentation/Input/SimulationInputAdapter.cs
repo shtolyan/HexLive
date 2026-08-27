@@ -316,6 +316,15 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return false;
         }
 
+        // §150.4: вид с активным импостором виден на любом отдалении — его
+        // квад живёт на обычном слое, и отсечка SmallProps на него не
+        // распространяется: видимое обязано быть кликабельным.
+        if (view.TryGetComponent<ObjectImpostor>(out var impostor) &&
+            impostor.DistantActive)
+        {
+            return false;
+        }
+
         var layer = view.gameObject.layer;
         var cull = _camera.layerCullDistances[layer];
         if (cull <= 0f)

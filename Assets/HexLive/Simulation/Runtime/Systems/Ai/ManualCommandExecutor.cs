@@ -2085,6 +2085,15 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        // §120.10: a free architecture object keeps its real wall/floor
+        // definition for rendering and topology. While it is being built or
+        // demolished, its INSTANCE exposes the generic build-site verb.
+        if (BuildSiteMath.IsSite(worldObject) &&
+            world.Content.ObjectDefinitions.TryGetValue(ContentIds.BuildSite, out var siteDefinition))
+        {
+            definition = siteDefinition;
+        }
+
         InteractionDefinition? interaction = null;
         foreach (var candidate in definition.Interactions)
         {
@@ -2098,6 +2107,14 @@ internal static class ManualCommandExecutor
         if (interaction is null)
         {
             Reject(world, npc.Id, "Interact", "NoSuchAction", admission);
+            return;
+        }
+
+        if (BuildSiteMath.IsDemolitionSite(worldObject) &&
+            !Content.GearCatalog.HasCapability(
+                npc.Inventory.Items, Content.GearCapability.ChopWood))
+        {
+            Reject(world, npc.Id, "Interact", "MissingTool", admission);
             return;
         }
 

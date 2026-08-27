@@ -8,6 +8,7 @@ using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Spatial;
+using HexLive.Simulation.AI;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
@@ -143,6 +144,153 @@ public sealed class FreeArchitectureTests
         Assert.That(restored.ArchitectureElements, Has.Count.EqualTo(1));
         Assert.That(restored.ArchitectureElements[0].SlotKey, Is.EqualTo(placement.SlotKey));
         Assert.That(restored.BuildProduct, Is.EqualTo("architecture.wall.wood"));
+    }
+
+    [Test]
+    public void FreePieceIsAPerceivedBuildTargetAndKeepsItsCanonicalMarkerNodes()
+    {
+        var engine = TestWorld.CreateEngine(12013);
+        var world = engine.World;
+        var tile = BuildableTile(world);
+        var segment = BlueprintGeometry.HexPerimeter(tile).First();
+        var placement = FreeArchitecturePlacementData.FromElement(new BlueprintElementData
+        {
+            Id = "wall",
+            Kind = BlueprintElementKind.Wall,
+            Segment = segment
+        });
+        Assert.That(engine.ApplyManualCommand(new ApplyFreeArchitectureCommand(
+            new[] { placement }, System.Array.Empty<string>())).Accepted, Is.True);
+        var piece = FreeArchitectureRules.FreePieces(world).Single(candidate =>
+            candidate.ArchitectureElements.Single().SlotKey == placement.SlotKey);
+
+        engine.Step();
+
+        Assert.That(BuildSiteMath.IsSite(piece), Is.True);
+        Assert.That(world.Entities.Npcs.Values.Where(npc => npc.Faction == Faction.Colony)
+            .All(npc => npc.Perception.Objects.Any(seen => seen.Id == piece.Id &&
+                seen.AvailableInteractions.Contains(InteractionType.Build))), Is.True,
+            "A real free LEGO object must expose Build without pretending to be build.site content.");
+        Assert.That(BlueprintPlanningMarkers.ForElement(placement.ToElement("marker"))
+            .Select(marker => marker.Position), Is.EquivalentTo(new[]
+            {
+                BlueprintGeometry.ToWorld(segment.A),
+                BlueprintGeometry.ToWorld(segment.B)
+            }));
+    }
+
+    [Test]
+    public void DeliveredWallQueuesDemolitionAndReturnsHalfAtItsAnchor()
+    {
+        var engine = TestWorld.CreateEngine(12014);
+        var world = engine.World;
+        var tile = BuildableTile(world);
+        var segment = BlueprintGeometry.HexPerimeter(tile).First();
+        var placement = FreeArchitecturePlacementData.FromElement(new BlueprintElementData
+        {
+            Id = "wall",
+            Kind = BlueprintElementKind.Wall,
+            Segment = segment
+        });
+        Assert.That(engine.ApplyManualCommand(new ApplyFreeArchitectureCommand(
+            new[] { placement }, System.Array.Empty<string>())).Accepted, Is.True);
+        var wall = FreeArchitectureRules.FreePieces(world).Single(candidate =>
+            candidate.ArchitectureElements.Single().SlotKey == placement.SlotKey);
+        FillBill(wall);
+        FreeArchitectureRules.Complete(world, wall);
+        var wallId = wall.Id;
+        var wallAnchor = wall.Junctions[0];
+        var objectsBeforeDemolition = world.Entities.Objects.Keys.ToHashSet();
+        var blockedBefore = wall.BlockedJunctions.ToArray();
+        var expectedReturns = wall.Contents
+            .GroupBy(item => item.DefinitionId)
+            .ToDictionary(group => group.Key, group => group.Count() / 2);
+        var groundBefore = expectedReturns.ToDictionary(pair => pair.Key, pair =>
+            world.Entities.Objects.Values.Count(obj => obj.DefinitionId == pair.Key));
+
+        var admission = engine.ApplyManualCommand(new ApplyFreeArchitectureCommand(
+            System.Array.Empty<FreeArchitecturePlacementData>(), new[] { placement.SlotKey }));
+
+        Assert.That(admission.Accepted, Is.True, admission.Reason);
+        Assert.That(world.Entities.Objects.ContainsKey(wallId), Is.True,
+            "Deleting the drawing must not teleport a delivered wall away.");
+        Assert.That(FreeArchitectureRules.IsDemolitionSite(wall), Is.True);
+        Assert.That(wall.BlockedJunctions, Is.EquivalentTo(blockedBefore),
+            "The physical wall keeps topology until teardown finishes.");
+        Assert.That(BuildSiteMath.IsSite(wall), Is.True);
+
+        FreeArchitectureRules.CompleteDemolition(world, wall);
+
+        Assert.That(world.Entities.Objects.ContainsKey(wallId), Is.False);
+        var recovered = world.Entities.Objects.Values
+            .Where(obj => !objectsBeforeDemolition.Contains(obj.Id) &&
+                          expectedReturns.ContainsKey(obj.DefinitionId))
+            .ToArray();
+        Assert.That(recovered.All(obj => obj.Junctions.Contains(wallAnchor)), Is.True,
+            "Recovered parts must land at the demolished module, not at the worker's feet.");
+        foreach (var pair in expectedReturns)
+        {
+            Assert.That(world.Entities.Objects.Values.Count(obj => obj.DefinitionId == pair.Key),
+                Is.EqualTo(groundBefore[pair.Key] + pair.Value),
+                $"Exactly half of {pair.Key} must survive demolition.");
+        }
+    }
+
+    [Test]
+    public void OpeningReplacementWaitsForOldWallDemolitionAndSurvivesSaveLoad()
+    {
+        const int seed = 12015;
+        var engine = TestWorld.CreateEngine(seed);
+        var world = engine.World;
+        var tile = BuildableTile(world);
+        var segment = BlueprintGeometry.HexPerimeter(tile)
+            .First(candidate => BlueprintGeometry.TryDoorPortal(candidate, out _));
+        var wallPlacement = FreeArchitecturePlacementData.FromElement(new BlueprintElementData
+        {
+            Id = "wall",
+            Kind = BlueprintElementKind.Wall,
+            Segment = segment
+        });
+        Assert.That(engine.ApplyManualCommand(new ApplyFreeArchitectureCommand(
+            new[] { wallPlacement }, System.Array.Empty<string>())).Accepted, Is.True);
+        var wall = FreeArchitectureRules.FreePieces(world).Single(candidate =>
+            candidate.ArchitectureElements.Single().SlotKey == wallPlacement.SlotKey);
+        FillBill(wall);
+        FreeArchitectureRules.Complete(world, wall);
+        var originalId = wall.Id;
+        var doorPlacement = FreeArchitecturePlacementData.FromElement(new BlueprintElementData
+        {
+            Id = "door",
+            Kind = BlueprintElementKind.Door,
+            Segment = segment
+        });
+
+        Assert.That(engine.ApplyManualCommand(new ApplyFreeArchitectureCommand(
+            new[] { doorPlacement }, new[] { wallPlacement.SlotKey })).Accepted, Is.True);
+        Assert.That(wall.DefinitionId, Is.EqualTo("architecture.wall.wood"));
+        Assert.That(wall.ArchitectureElements[0].DemolitionPlanned, Is.True);
+        Assert.That(wall.ArchitectureElements[0].ReplacementDefinitionId,
+            Is.EqualTo("architecture.door.wood"));
+
+        using var blob = new MemoryStream();
+        using (var writer = new BinaryWriter(blob, System.Text.Encoding.UTF8, true))
+            WorldSaveSerializer.Write(world, writer);
+        blob.Position = 0;
+        var loaded = TestWorld.CreateWorld(seed);
+        using (var reader = new BinaryReader(blob, System.Text.Encoding.UTF8, true))
+            WorldSaveSerializer.Read(loaded, reader);
+        var restored = loaded.Entities.Objects[originalId];
+        Assert.That(restored.ArchitectureElements[0].DemolitionPlanned, Is.True);
+        Assert.That(restored.ArchitectureElements[0].ReplacementDefinitionId,
+            Is.EqualTo("architecture.door.wood"));
+
+        FreeArchitectureRules.CompleteDemolition(loaded, restored);
+        Assert.That(loaded.Entities.Objects[originalId].DefinitionId,
+            Is.EqualTo("architecture.door.wood"));
+        Assert.That(loaded.Entities.Objects[originalId].BuildProduct,
+            Is.EqualTo("architecture.door.wood"));
+        Assert.That(loaded.Entities.Objects[originalId].ArchitectureElements[0].DemolitionPlanned,
+            Is.False);
     }
 
     private static TileCoord BuildableTile(WorldState world) =>

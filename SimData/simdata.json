@@ -167,6 +167,7 @@
     "SimBalance.SunburnRate": 0.00120000006,
     "SimBalance.SunburnVitalFloor": 0.449999988,
     "SimBalance.SweatThirstFactor": 0.181999996,
+    "SimBalance.TanFadeRate": 0.000166679994,
     "SimBalance.TanRate": 9.99999975E-06,
     "SimBalance.TanStrength": 0.800000012,
     "SimBalance.TemperatureAmplitude": 9.5,

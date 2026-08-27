@@ -1044,6 +1044,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var buildSite = FindBuildSite(npc, world);
         var hasHammer = Content.GearCatalog.HasCapability(
             npc.Inventory.Items, Content.GearCapability.Hammer);
+        var hasDemolitionTool = Content.GearCatalog.HasCapability(
+            npc.Inventory.Items, Content.GearCapability.ChopWood);
         // §54.13: the old 0.55/any-danger gate held the window open only
         // ~1-36% of npc-ticks (10-day soak) — thirst equilibrates at
         // 0.5-0.6 and a day-old wolf memory froze building colony-wide.
@@ -1155,7 +1157,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // staged sites take bundles, not single pieces (see below).
         var buildFurnitureRaise = buildSite != null && buildWindow &&
             BuildSiteMath.IsStocked(buildSite) &&
-            (siteWaivesHammer || (ctx.CanUseToolsOrWeapons && hasHammer));
+            (BuildSiteMath.IsDemolitionSite(buildSite)
+                ? ctx.CanUseToolsOrWeapons && hasDemolitionTool
+                : siteWaivesHammer || (ctx.CanUseToolsOrWeapons && hasHammer));
 
         // Spec 29E: the fire chain still needs these — a lighter/wood and a
         // seen campfire drive the fuel/craft goals further below.

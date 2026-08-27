@@ -12,7 +12,8 @@ namespace HexLive.Simulation.Runtime
 {
 
 // Spec 35.5 / §120: wetting and drying for every item instance in the world —
-// body, worn/carried items, and every loose pickup lying on the ground.
+// body, exposed worn items, protected carried clothing, and every loose pickup
+// lying on the ground.
 public sealed class MoistureSystem : ISimulationSystem
 {
     public string Name => nameof(MoistureSystem);
@@ -136,7 +137,14 @@ public sealed class MoistureSystem : ISimulationSystem
     {
         foreach (var item in items)
         {
-            if (touchesWater)
+            var clothing = IsClothing(world, item.DefinitionId);
+            // §35.5 r2: Inventory.Items is the shared pack behind the derived
+            // backpack/garment-pocket layout (§52). Water stops at that outer
+            // worn shell: the backpack or even the panties can soak, but a
+            // jacket stowed inside does not soak through. Carried non-clothing
+            // keeps its established item wetness behaviour.
+            var getsWetter = touchesWater && (worn || !clothing);
+            if (getsWetter)
             {
                 var before = item.Wetness;
                 item.Wetness = 1f;
@@ -151,7 +159,7 @@ public sealed class MoistureSystem : ISimulationSystem
             }
             else
             {
-                var dryRate = IsClothing(world, item.DefinitionId)
+                var dryRate = clothing
                     ? clothingDryRate
                     : ordinaryDryRate;
                 item.Wetness = System.MathF.Max(0f, item.Wetness - dryRate);

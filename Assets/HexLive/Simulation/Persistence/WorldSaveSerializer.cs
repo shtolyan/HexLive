@@ -127,7 +127,8 @@ public static class WorldSaveSerializer
     // этого загрузка посреди сушки оставляла закреплённого NPC голым навсегда.
     // v59 (#218): последний прямой социальный контакт в каждой направленной
     // записи отношений; старые записи получают 0 и стабильный fallback-порядок.
-    public const int BlobVersion = 59;
+    // v60 (§120.10): queued architecture demolition + in-slot replacement.
+    public const int BlobVersion = 60;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1026,6 +1027,8 @@ public static class WorldSaveSerializer
             w.Write(element.Buildable);
             w.Write(element.WorkRequired);
             w.Write(element.WorkDone);
+            w.Write(element.DemolitionPlanned);
+            w.Write(element.ReplacementDefinitionId);
         }
         WriteNullableObject(w, obj.ArchitectureOwnerId);
         w.Write(obj.IsDoorOpen);
@@ -1098,7 +1101,7 @@ public static class WorldSaveSerializer
             var architectureCount = r.ReadInt32();
             for (var i = 0; i < architectureCount; i++)
             {
-                obj.ArchitectureElements.Add(new ArchitectureElementState
+                var element = new ArchitectureElementState
                 {
                     ElementId = r.ReadInt32(),
                     DefinitionId = r.ReadString(),
@@ -1119,7 +1122,13 @@ public static class WorldSaveSerializer
                     Buildable = r.ReadBoolean(),
                     WorkRequired = r.ReadInt32(),
                     WorkDone = r.ReadInt32()
-                });
+                };
+                if (version >= 60)
+                {
+                    element.DemolitionPlanned = r.ReadBoolean();
+                    element.ReplacementDefinitionId = r.ReadString();
+                }
+                obj.ArchitectureElements.Add(element);
             }
         }
         else if (Runtime.BuildSiteMath.IsArchitecturalBuilding(obj.BuildProduct) ||

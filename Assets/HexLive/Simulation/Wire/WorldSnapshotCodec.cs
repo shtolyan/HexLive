@@ -87,6 +87,7 @@ public static class WorldSnapshotCodec
     /// v32: §127 paired romance state and washable pelvis stain.
     /// v33: §133/#205 physical carried/worn item owner ids for inventory cards.
     /// v34: #218 per-pair last interaction tick for relationship ordering.
+    /// v35: §120.10 architecture demolition and queued slot replacement.
     public const int WireVersion = 35;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
@@ -581,6 +582,8 @@ public static class WorldSnapshotCodec
                 w.Write(element.Buildable);
                 w.Write(element.WorkRequired);
                 w.Write(element.WorkDone);
+                w.Write(element.DemolitionPlanned);
+                WireIo.WriteString(w, element.ReplacementDefinitionId);
             }
         }
 
@@ -713,7 +716,9 @@ public static class WorldSnapshotCodec
                         DeliveredLeaves = r.ReadInt32(),
                         Buildable = r.ReadBoolean(),
                         WorkRequired = r.ReadInt32(),
-                        WorkDone = r.ReadInt32()
+                        WorkDone = r.ReadInt32(),
+                        DemolitionPlanned = r.ReadBoolean(),
+                        ReplacementDefinitionId = r.ReadString()
                     });
                 }
             }

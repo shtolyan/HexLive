@@ -62,6 +62,7 @@ internal sealed class ContentIndexResponse
 [Serializable]
 internal sealed class ContentRegistryState
 {
+    public string endpoint = string.Empty;
     public long registryRevision;
     public string etag = string.Empty;
     public List<ContentRecord> knownRecords = new();

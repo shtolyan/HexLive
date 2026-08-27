@@ -7,7 +7,6 @@ namespace HexLive.UnityPresentation.Content
 public static class ContentEndpoint
 {
     private const string Argument = "-hexlive-assets";
-    private const string DefaultLocal = "http://localhost:5123/api/assets/v1";
 
     public static string Current
     {
@@ -21,20 +20,31 @@ public static class ContentEndpoint
 
             var server = SessionConfig.ServerUrl;
             if (!string.IsNullOrWhiteSpace(server) &&
-                Uri.TryCreate(server, UriKind.Absolute, out var websocket))
+                Uri.TryCreate(server, UriKind.Absolute, out _))
             {
-                var builder = new UriBuilder(websocket)
-                {
-                    Scheme = websocket.Scheme == "wss" ? "https" : "http",
-                    Path = "/api/assets/v1",
-                    Query = string.Empty,
-                    Fragment = string.Empty,
-                };
-                return builder.Uri.ToString().TrimEnd('/');
+                return FromGameServer(server);
             }
 
-            return DefaultLocal;
+            // Registry/music start while the main menu is still open, before
+            // the player has selected a simulation server. Content is not a
+            // localhost build sidecar: the normal bootstrap source is prod.
+            // A developer who really runs a local Asset API opts in explicitly
+            // with -hexlive-assets.
+            return FromGameServer(ServerBook.ProductionUrl);
         }
+    }
+
+    private static string FromGameServer(string server)
+    {
+        var websocket = new Uri(server, UriKind.Absolute);
+        var builder = new UriBuilder(websocket)
+        {
+            Scheme = websocket.Scheme == "wss" ? "https" : "http",
+            Path = "/api/assets/v1",
+            Query = string.Empty,
+            Fragment = string.Empty,
+        };
+        return builder.Uri.ToString().TrimEnd('/');
     }
 
     private static string CommandLineValue()

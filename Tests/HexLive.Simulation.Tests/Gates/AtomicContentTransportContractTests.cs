@@ -16,6 +16,11 @@ public sealed class AtomicContentTransportContractTests
             "ContentEndpoint.cs");
         var serverBook = Read("Assets", "HexLive", "UnityPresentation", "Bootstrap",
             "ServerBook.cs");
+        var session = Read("Assets", "HexLive", "UnityPresentation", "Bootstrap",
+            "SessionConfig.cs");
+        var service = Read("Assets", "HexLive", "UnityPresentation", "Content",
+            "ContentAssetService.cs");
+        var fmod = Read("Assets", "HexLive", "UnityPresentation", "Audio", "FmodSfx.cs");
         var proxy = Read("Server", "Caddyfile");
         var spec = Read("Spec", "152.md");
 
@@ -27,6 +32,10 @@ public sealed class AtomicContentTransportContractTests
             Assert.That(endpoint, Does.Contain(
                 "Scheme = websocket.Scheme == \"wss\" ? \"https\" : \"http\""));
             Assert.That(endpoint, Does.Contain("-hexlive-assets"));
+            Assert.That(endpoint, Does.Contain(
+                "return FromGameServer(ServerBook.ProductionUrl);"),
+                "до выбора мира реестр и музыка обязаны идти с prod, а не localhost");
+            Assert.That(endpoint, Does.Not.Contain("DefaultLocal"));
             Assert.That(serverBook, Does.Contain(
                 "wss://vmi3529459.contaboserver.net/watch"));
             Assert.That(serverBook, Does.Contain("LegacyProductionUrl"));
@@ -37,6 +46,13 @@ public sealed class AtomicContentTransportContractTests
                 "https://vmi3529459.contaboserver.net/api/assets/v1"));
             Assert.That(spec, Does.Contain(
                 "PlayerSettings.insecureHttpOption=DevelopmentOnly"));
+            Assert.That(session, Does.Contain("public static event Action? ServerChanged;"));
+            Assert.That(service, Does.Contain("RefreshRegistryRoutine(endpoint)"),
+                "registry request обязан фиксировать endpoint на время async операции");
+            Assert.That(service, Does.Contain("_priorityBlobDownloadQueue"));
+            Assert.That(fmod.IndexOf("ScanMusic();", System.StringComparison.Ordinal),
+                Is.LessThan(fmod.IndexOf("if (prewarmRequested)", System.StringComparison.Ordinal)),
+                "музыка меню ставится в очередь раньше общего SFX prewarm");
         });
     }
 

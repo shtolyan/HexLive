@@ -3,13 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Wearing;
 using HexLive.UnityPresentation.Wearing.Garments;
 using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace HexLive.UnityPresentation.Content
 {
@@ -53,7 +58,29 @@ public sealed class ContentAssetService
         public Action<bool> Completed;
     }
 
+    private sealed class HttpTextResponse
+    {
+        public HttpStatusCode StatusCode;
+        public bool Success;
+        public string Text = string.Empty;
+        public string ETag = string.Empty;
+        public string Error = string.Empty;
+    }
+
+    private sealed class BlobHttpProgress
+    {
+        public long Bytes;
+    }
+
+    private sealed class BlobHttpResponse
+    {
+        public HttpStatusCode StatusCode;
+        public bool Success;
+        public string Error = string.Empty;
+    }
+
     private static ContentAssetService _instance;
+    private static readonly HttpClient Http = CreateHttpClient();
 
     private readonly Dictionary<string, ContentRecord> _known = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ContentRecord> _pinned = new(StringComparer.Ordinal);
@@ -61,6 +88,7 @@ public sealed class ContentAssetService
     private readonly Dictionary<string, ContentRecord> _previous = new(StringComparer.Ordinal);
     private readonly Dictionary<string, BundleState> _bundles = new(StringComparer.Ordinal);
     private readonly Dictionary<string, BlobState> _blobRequests = new(StringComparer.Ordinal);
+    private readonly Queue<BlobDownloadJob> _priorityBlobDownloadQueue = new();
     private readonly Queue<BlobDownloadJob> _blobDownloadQueue = new();
     private readonly HashSet<string> _verifiedHashes = new(StringComparer.Ordinal);
     private readonly List<Action> _registryWaiters = new();
@@ -74,6 +102,7 @@ public sealed class ContentAssetService
     private int _activeBlobDownloads;
     private bool _refreshStarted;
     private bool _registryReady;
+    private string _registryEndpoint = string.Empty;
 
     // Six is deliberately browser-like. A fresh client can request more than
     // two thousand audio payloads and attachments during §41.4 prewarm; opening
@@ -94,6 +123,7 @@ public sealed class ContentAssetService
         Directory.CreateDirectory(_records);
         Directory.CreateDirectory(_partial);
         LoadLocalState();
+        SessionConfig.ServerChanged += ServerChanged;
     }
 
     public static ContentAssetService Instance => _instance ??= new ContentAssetService();
@@ -127,6 +157,7 @@ public sealed class ContentAssetService
     {
         if (_instance != null)
         {
+            SessionConfig.ServerChanged -= _instance.ServerChanged;
             foreach (var bundle in _instance._bundles.Values)
             {
                 // With domain reload disabled Unity destroys native bundle
@@ -160,10 +191,19 @@ public sealed class ContentAssetService
             return;
         }
 
+        var endpoint = ContentEndpoint.Current;
+        if (!string.IsNullOrEmpty(_registryEndpoint) &&
+            !string.Equals(_registryEndpoint, endpoint, StringComparison.OrdinalIgnoreCase))
+        {
+            _registryReady = false;
+        }
+        _registryEndpoint = endpoint;
         _refreshStarted = true;
         ContentQueue.Begin(ContentQueue.Kind.Registry);
-        ContentCoroutines.Run(RefreshRegistryRoutine());
+        ContentCoroutines.Run(RefreshRegistryRoutine(endpoint));
     }
+
+    private void ServerChanged() => RefreshRegistry();
 
     public bool TryGetRecord(string type, string id, out ContentRecord record)
     {
@@ -321,6 +361,8 @@ public sealed class ContentAssetService
                 return;
             }
 
+            var priority = string.Equals(
+                (string)record.metadata?["kind"], "music", StringComparison.Ordinal);
             EnsureRecordBlob(record, success =>
             {
                 if (success)
@@ -332,7 +374,7 @@ public sealed class ContentAssetService
 
                 var fallback = VerifiedFallback(record.Key, record.variant.sha256);
                 completed?.Invoke(fallback == null ? null : BlobPath(fallback.variant.sha256));
-            });
+            }, priority);
         }
 
         if (_registryReady)
@@ -462,20 +504,23 @@ public sealed class ContentAssetService
             runtimeProfile = RuntimeProfile,
             objects = identities,
         };
-        using var request = new UnityWebRequest(
-            ContentEndpoint.Current + "/resolve", UnityWebRequest.kHttpVerbPOST);
-        request.uploadHandler = new UploadHandlerRaw(
-            System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload)));
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-        request.timeout = 15;
+        var request = SendTextAsync(
+            ContentEndpoint.Current + "/resolve",
+            HttpMethod.Post,
+            JsonConvert.SerializeObject(payload),
+            null,
+            15);
         ContentQueue.Begin(ContentQueue.Kind.Registry);
-        yield return request.SendWebRequest();
+        while (!request.IsCompleted)
+        {
+            yield return null;
+        }
         ContentQueue.End(ContentQueue.Kind.Registry);
 
-        if (request.result != UnityWebRequest.Result.Success)
+        var result = CompletedTextResponse(request);
+        if (!result.Success)
         {
-            LastError = $"Resolve контента недоступен: {request.error}";
+            LastError = $"Resolve контента недоступен: {result.Error}";
             Debug.LogWarning("[AtomicContent] " + LastError);
             completed?.Invoke(identities);
             yield break;
@@ -484,7 +529,7 @@ public sealed class ContentAssetService
         try
         {
             var response = JsonConvert.DeserializeObject<ContentResolveResponse>(
-                request.downloadHandler.text) ?? new ContentResolveResponse();
+                result.Text) ?? new ContentResolveResponse();
             completed?.Invoke(response.missing ?? new List<ContentObjectKey>());
         }
         catch (Exception exception)
@@ -495,30 +540,57 @@ public sealed class ContentAssetService
         }
     }
 
-    private IEnumerator RefreshRegistryRoutine()
+    private IEnumerator RefreshRegistryRoutine(string endpoint)
     {
         Status = "Получаем реестр контента";
-        var platform = PlatformName();
-        var url = $"{ContentEndpoint.Current}/index/{platform}/{RuntimeProfile}" +
-                  (_state.registryRevision > 0 ? $"?after={_state.registryRevision}" : string.Empty);
-        using var request = UnityWebRequest.Get(url);
-        request.timeout = 10;
-        if (!string.IsNullOrEmpty(_state.etag))
+        if (!string.IsNullOrEmpty(_state.endpoint) &&
+            !string.Equals(_state.endpoint, endpoint, StringComparison.OrdinalIgnoreCase))
         {
-            request.SetRequestHeader("If-None-Match", _state.etag);
+            // Delta revisions and ETags belong to one registry endpoint only.
+            // Blobs remain SHA-addressed and reusable, but records from two
+            // independent servers must never be merged.
+            _state = new ContentRegistryState();
+            _known.Clear();
+        }
+        _state.endpoint = endpoint;
+        var platform = PlatformName();
+        var url = $"{endpoint}/index/{platform}/{RuntimeProfile}" +
+                  (_state.registryRevision > 0 ? $"?after={_state.registryRevision}" : string.Empty);
+        var request = SendTextAsync(
+            url,
+            HttpMethod.Get,
+            null,
+            _state.etag,
+            10);
+        while (!request.IsCompleted)
+        {
+            yield return null;
         }
 
-        yield return request.SendWebRequest();
-        if (request.responseCode == 304)
+        if (!string.Equals(endpoint, ContentEndpoint.Current,
+                StringComparison.OrdinalIgnoreCase))
         {
+            ContentQueue.End(ContentQueue.Kind.Registry);
+            _refreshStarted = false;
+            RefreshRegistry();
+            yield break;
+        }
+
+        var result = CompletedTextResponse(request);
+        if (result.StatusCode == HttpStatusCode.NotModified)
+        {
+            LastError = string.Empty;
+            _state.endpoint = endpoint;
+            WriteAtomic(_registryStatePath,
+                JsonConvert.SerializeObject(_state, Formatting.Indented));
             PinKnownRecords();
             CompleteRegistry();
             yield break;
         }
 
-        if (request.result != UnityWebRequest.Result.Success)
+        if (!result.Success)
         {
-            LastError = $"Реестр недоступен: {request.error}";
+            LastError = $"Реестр недоступен: {result.Error}";
             Debug.LogWarning($"[AtomicContent] {LastError}; используем проверенный локальный кэш.");
             PinOfflineRecords();
             CompleteRegistry();
@@ -528,7 +600,7 @@ public sealed class ContentAssetService
         ContentIndexResponse response;
         try
         {
-            response = JsonConvert.DeserializeObject<ContentIndexResponse>(request.downloadHandler.text);
+            response = JsonConvert.DeserializeObject<ContentIndexResponse>(result.Text);
             if (response == null || response.objects == null)
             {
                 throw new InvalidDataException("empty registry response");
@@ -556,10 +628,11 @@ public sealed class ContentAssetService
         }
 
         _state.registryRevision = response.registryRevision;
-        _state.etag = request.GetResponseHeader("ETag") ?? string.Empty;
+        _state.etag = result.ETag;
         _state.knownRecords = _known.Values
             .OrderBy(value => value.Key, StringComparer.Ordinal).ToList();
         WriteAtomic(_registryStatePath, JsonConvert.SerializeObject(_state, Formatting.Indented));
+        LastError = string.Empty;
         PinKnownRecords();
         CompleteRegistry();
         UpdatePreviouslyCachedInBackground();
@@ -568,6 +641,7 @@ public sealed class ContentAssetService
     private void CompleteRegistry()
     {
         _registryReady = true;
+        _refreshStarted = false;
         Status = LastError.Length == 0 ? "Реестр контента готов" : LastError;
         ContentQueue.End(ContentQueue.Kind.Registry);
         var callbacks = _registryWaiters.ToArray();
@@ -754,19 +828,32 @@ public sealed class ContentAssetService
         }
     }
 
-    private void EnsureRecordBlob(ContentRecord record, Action<bool> completed)
+    private void EnsureRecordBlob(
+        ContentRecord record, Action<bool> completed, bool priority = false)
     {
         EnsureBlob(
-            record, record.variant.sha256, record.variant.size, "payload", completed);
+            record, record.variant.sha256, record.variant.size, "payload", completed, priority);
     }
 
     private void EnsureBlob(
-        ContentRecord record, string sha256, long size, string label, Action<bool> completed)
+        ContentRecord record, string sha256, long size, string label, Action<bool> completed,
+        bool priority = false)
     {
-        if (HasVerifiedBlob(sha256, size))
+        // Мгновенный ответ — только по уже проверенному В ЭТОЙ СЕССИИ хешу.
+        // Первый запрос сессии на кэшированный blob обязан пройти через
+        // очередь: там его SHA-256 считается на worker (DownloadBlob), а не
+        // здесь. Прежний синхронный HasVerifiedBlob хешировал каждый wear-blob
+        // на главном потоке — ~180 бандлов тёплого кэша держали занавес
+        // минутами при нулевом трафике.
+        if (_verifiedHashes.Contains(sha256))
         {
-            completed(true);
-            return;
+            var path = BlobPath(sha256);
+            if (IsStandaloneFile(path) && new FileInfo(path).Length == size)
+            {
+                Touch(path);
+                completed(true);
+                return;
+            }
         }
 
         if (_blobRequests.TryGetValue(sha256, out var pending))
@@ -779,23 +866,33 @@ public sealed class ContentAssetService
         pending.Waiters.Add(completed);
         _blobRequests[sha256] = pending;
         ContentQueue.Begin(ContentQueue.Kind.Download);
-        _blobDownloadQueue.Enqueue(new BlobDownloadJob
+        var job = new BlobDownloadJob
         {
             Record = record,
             Sha256 = sha256,
             Size = size,
             Label = label,
             Completed = success => CompleteBlobRequest(sha256, pending, success),
-        });
+        };
+        if (priority)
+        {
+            _priorityBlobDownloadQueue.Enqueue(job);
+        }
+        else
+        {
+            _blobDownloadQueue.Enqueue(job);
+        }
         StartQueuedBlobDownloads();
     }
 
     private void StartQueuedBlobDownloads()
     {
         while (_activeBlobDownloads < MaxConcurrentBlobDownloads &&
-               _blobDownloadQueue.Count > 0)
+               (_priorityBlobDownloadQueue.Count > 0 || _blobDownloadQueue.Count > 0))
         {
-            var job = _blobDownloadQueue.Dequeue();
+            var job = _priorityBlobDownloadQueue.Count > 0
+                ? _priorityBlobDownloadQueue.Dequeue()
+                : _blobDownloadQueue.Dequeue();
             _activeBlobDownloads++;
             ContentCoroutines.Run(DownloadBlobWithRetries(job, success =>
             {
@@ -852,6 +949,31 @@ public sealed class ContentAssetService
     private IEnumerator DownloadBlob(
         ContentRecord record, string sha256, long size, string label, Action<bool> completed)
     {
+        // Кэшированный blob прошлых сессий: полное совпадение размера — это
+        // кандидат, но правда только в хеше. Считаем его на worker (см.
+        // EnsureBlob: главный поток не хеширует), успех — без сети.
+        var cachedBlob = BlobPath(sha256);
+        if (!_verifiedHashes.Contains(sha256) &&
+            IsStandaloneFile(cachedBlob) && new FileInfo(cachedBlob).Length == size)
+        {
+            var cachedVerification = Task.Run(() => VerifyFile(cachedBlob, sha256, size));
+            while (!cachedVerification.IsCompleted)
+            {
+                Status = $"Проверяем {record.type}/{record.id} ({label})";
+                yield return null;
+            }
+            if (!cachedVerification.IsFaulted && cachedVerification.Result)
+            {
+                _verifiedHashes.Add(sha256);
+                Touch(cachedBlob);
+                completed(true);
+                yield break;
+            }
+
+            // Кэш повреждён — честная перекачка ниже.
+            File.Delete(cachedBlob);
+        }
+
         var partial = Path.Combine(_partial, sha256 + ".part");
         if (File.Exists(partial) && new FileInfo(partial).Length > size)
         {
@@ -882,31 +1004,21 @@ public sealed class ContentAssetService
         Status = $"Загружаем {record.type}/{record.id} ({label})";
         DownloadedBytes = (ulong)existing;
         DownloadTotalBytes = size;
-        using var request = UnityWebRequest.Get($"{ContentEndpoint.Current}/blobs/{sha256}");
-        var handler = new DownloadHandlerFile(partial, append: existing > 0)
+        var progress = new BlobHttpProgress();
+        var request = DownloadToPartialAsync(
+            $"{ContentEndpoint.Current}/blobs/{sha256}", partial, existing, progress, 120);
+        while (!request.IsCompleted)
         {
-            removeFileOnAbort = false,
-        };
-        request.downloadHandler = handler;
-        request.timeout = 120;
-        if (existing > 0)
-        {
-            request.SetRequestHeader("Range", $"bytes={existing}-");
-        }
-
-        var operation = request.SendWebRequest();
-        while (!operation.isDone)
-        {
-            DownloadedBytes = (ulong)existing + request.downloadedBytes;
+            DownloadedBytes = (ulong)Math.Max(0, existing + Interlocked.Read(ref progress.Bytes));
             yield return null;
         }
 
-        DownloadedBytes = (ulong)existing + request.downloadedBytes;
-        if (request.result != UnityWebRequest.Result.Success ||
-            (existing > 0 && request.responseCode != 206))
+        DownloadedBytes = (ulong)Math.Max(0, existing + Interlocked.Read(ref progress.Bytes));
+        var result = CompletedBlobResponse(request);
+        if (!result.Success)
         {
-            LastError = $"{record.type}/{record.id}: {request.error ?? "сервер не продолжил download"}";
-            if (existing > 0 && request.responseCode == 200 && File.Exists(partial))
+            LastError = $"{record.type}/{record.id}: {result.Error}";
+            if (existing > 0 && result.StatusCode == HttpStatusCode.OK && File.Exists(partial))
             {
                 File.Delete(partial);
             }
@@ -936,16 +1048,206 @@ public sealed class ContentAssetService
         completed(true);
     }
 
+    private static HttpClient CreateHttpClient()
+    {
+        var handler = new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+        };
+        return new HttpClient(handler)
+        {
+            // Each operation owns a bounded CancellationTokenSource. A global
+            // timeout would also cover time spent waiting for a pooled socket.
+            Timeout = System.Threading.Timeout.InfiniteTimeSpan,
+        };
+    }
+
+    private static async Task<HttpTextResponse> SendTextAsync(
+        string url,
+        HttpMethod method,
+        string json,
+        string etag,
+        int timeoutSeconds)
+    {
+        using var cancellation = new CancellationTokenSource(
+            TimeSpan.FromSeconds(timeoutSeconds));
+        using var request = new HttpRequestMessage(method, url);
+        if (json != null)
+        {
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+        }
+        if (!string.IsNullOrEmpty(etag))
+        {
+            request.Headers.TryAddWithoutValidation("If-None-Match", etag);
+        }
+
+        try
+        {
+            using var response = await Http.SendAsync(
+                    request, HttpCompletionOption.ResponseContentRead, cancellation.Token)
+                .ConfigureAwait(false);
+            var text = response.Content == null
+                ? string.Empty
+                : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return new HttpTextResponse
+            {
+                StatusCode = response.StatusCode,
+                Success = response.IsSuccessStatusCode,
+                Text = text,
+                ETag = response.Headers.ETag?.ToString() ?? string.Empty,
+                Error = response.IsSuccessStatusCode
+                    ? string.Empty
+                    : $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}",
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            return new HttpTextResponse { Error = $"timeout {timeoutSeconds}s" };
+        }
+        catch (Exception exception)
+        {
+            return new HttpTextResponse { Error = exception.Message };
+        }
+    }
+
+    private static HttpTextResponse CompletedTextResponse(Task<HttpTextResponse> task)
+    {
+        if (task.IsCanceled)
+        {
+            return new HttpTextResponse { Error = "request canceled" };
+        }
+        if (task.IsFaulted)
+        {
+            return new HttpTextResponse
+            {
+                Error = task.Exception?.GetBaseException().Message ?? "request failed",
+            };
+        }
+        return task.Result;
+    }
+
+    private static async Task<BlobHttpResponse> DownloadToPartialAsync(
+        string url,
+        string partial,
+        long existing,
+        BlobHttpProgress progress,
+        int timeoutSeconds)
+    {
+        using var cancellation = new CancellationTokenSource(
+            TimeSpan.FromSeconds(timeoutSeconds));
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        if (existing > 0)
+        {
+            request.Headers.Range = new RangeHeaderValue(existing, null);
+        }
+
+        try
+        {
+            using var response = await Http.SendAsync(
+                    request, HttpCompletionOption.ResponseHeadersRead, cancellation.Token)
+                .ConfigureAwait(false);
+            if (existing > 0 && response.StatusCode != HttpStatusCode.PartialContent)
+            {
+                return new BlobHttpResponse
+                {
+                    StatusCode = response.StatusCode,
+                    Error = response.StatusCode == HttpStatusCode.OK
+                        ? "сервер не продолжил download"
+                        : $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}",
+                };
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                return new BlobHttpResponse
+                {
+                    StatusCode = response.StatusCode,
+                    Error = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}",
+                };
+            }
+
+            var rangeStart = response.Content?.Headers.ContentRange?.From;
+            if (existing > 0 && rangeStart.HasValue && rangeStart.Value != existing)
+            {
+                return new BlobHttpResponse
+                {
+                    StatusCode = response.StatusCode,
+                    Error = $"сервер продолжил download с {rangeStart.Value}, ожидалось {existing}",
+                };
+            }
+
+            using var source = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            using var destination = new FileStream(
+                partial,
+                existing > 0 ? FileMode.Append : FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                128 * 1024,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            var buffer = new byte[128 * 1024];
+            while (true)
+            {
+                var read = await source.ReadAsync(
+                        buffer, 0, buffer.Length, cancellation.Token)
+                    .ConfigureAwait(false);
+                if (read == 0)
+                {
+                    break;
+                }
+                await destination.WriteAsync(buffer, 0, read, cancellation.Token)
+                    .ConfigureAwait(false);
+                Interlocked.Add(ref progress.Bytes, read);
+            }
+            await destination.FlushAsync(cancellation.Token).ConfigureAwait(false);
+            return new BlobHttpResponse
+            {
+                StatusCode = response.StatusCode,
+                Success = true,
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            return new BlobHttpResponse { Error = $"timeout {timeoutSeconds}s" };
+        }
+        catch (Exception exception)
+        {
+            return new BlobHttpResponse { Error = exception.Message };
+        }
+    }
+
+    private static BlobHttpResponse CompletedBlobResponse(Task<BlobHttpResponse> task)
+    {
+        if (task.IsCanceled)
+        {
+            return new BlobHttpResponse { Error = "download canceled" };
+        }
+        if (task.IsFaulted)
+        {
+            return new BlobHttpResponse
+            {
+                Error = task.Exception?.GetBaseException().Message ?? "download failed",
+            };
+        }
+        return task.Result;
+    }
+
     private void PromotePartial(string partial, string sha256)
     {
         var destination = BlobPath(sha256);
-        if (!File.Exists(destination))
-        {
-            File.Move(partial, destination);
-        }
-        else if (File.Exists(partial))
+        var expectedSize = new FileInfo(partial).Length;
+        if (IsStandaloneFile(destination) &&
+            VerifyFile(destination, sha256, expectedSize))
         {
             File.Delete(partial);
+        }
+        else
+        {
+            // Early atomic-content dev builds populated this cache with
+            // symlinks into a worktree. Once that tree is removed Mono still
+            // reports File.Exists=true and Length=the link-text length; the old
+            // code consequently threw away the freshly verified .part and
+            // preserved a dead link. Cache blobs are standalone files only.
+            File.Delete(destination); // also unlinks a broken ReparsePoint
+            File.Move(partial, destination);
         }
         _verifiedHashes.Add(sha256);
         Touch(destination);
@@ -960,7 +1262,7 @@ public sealed class ContentAssetService
     private bool HasVerifiedBlob(string sha256, long size)
     {
         var path = BlobPath(sha256);
-        if (!File.Exists(path) || new FileInfo(path).Length != size)
+        if (!IsStandaloneFile(path) || new FileInfo(path).Length != size)
         {
             return false;
         }
@@ -1177,7 +1479,7 @@ public sealed class ContentAssetService
 
     private static bool VerifyFile(string path, string sha256, long expectedSize)
     {
-        if (!File.Exists(path) || new FileInfo(path).Length != expectedSize)
+        if (!IsStandaloneFile(path) || new FileInfo(path).Length != expectedSize)
         {
             return false;
         }
@@ -1187,6 +1489,24 @@ public sealed class ContentAssetService
         var actual = BitConverter.ToString(hash.ComputeHash(stream)).Replace("-", string.Empty)
             .ToLowerInvariant();
         return string.Equals(actual, sha256, StringComparison.Ordinal);
+    }
+
+    private static bool IsStandaloneFile(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            var attributes = File.GetAttributes(path);
+            return (attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) == 0;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     private static void Touch(string path)

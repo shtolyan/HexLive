@@ -135,6 +135,13 @@ namespace HexLive.UnityPresentation.UI
         // the player watches days roll by, not raw ticks.
         private Label _timeReadout;
 
+        // За шторкой кадры никому не нужны — важна пропускная способность
+        // асинхронной загрузки. Дефолтный BelowNormal ограничивает интеграцию
+        // AssetBundle/Asset-загрузок парой миллисекунд на кадр; при ~180 wear-
+        // бандлах это минуты чистого ожидания. High поднимает бюджет на время
+        // загрузочного экрана и возвращается на выходе.
+        private ThreadPriority _previousLoadingPriority;
+
         private void OnEnable()
         {
             IsActive = true;
@@ -152,6 +159,7 @@ namespace HexLive.UnityPresentation.UI
         private void OnDestroy()
         {
             IsActive = false;
+            Application.backgroundLoadingPriority = _previousLoadingPriority;
             // Корутина умирает молча (domain reload в игре), а воркер намотки —
             // нет: он крутил бы мёртвый мир в фоне. Флаг он проверяет каждый
             // тик, так что остановка занимает один шаг.
@@ -172,6 +180,13 @@ namespace HexLive.UnityPresentation.UI
 
         public void Begin(SimulationRunnerBehaviour runner)
         {
+            // Не в OnEnable: экран создаётся бутстрапом ещё до конца
+            // инициализации play mode, и Unity успевает вернуть приоритету
+            // асинхронной загрузки дефолт ПОСЛЕ раннего OnEnable (замер
+            // 2026-08-27: OnEnable ставил High, к первому кадру снова
+            // BelowNormal).
+            _previousLoadingPriority = Application.backgroundLoadingPriority;
+            Application.backgroundLoadingPriority = ThreadPriority.High;
             _runner = runner;
             _worlds = SaveGame.ListWorlds();
             _save = SaveGame.TryReadHeader();

@@ -111,6 +111,57 @@ public sealed class ContentHandleLifetimeContractTests
         });
     }
 
+    [Test]
+    public void VerifiedCacheRejectsWorktreeLinksAndPromoteReplacesThem()
+    {
+        var source = Presentation(Path.Combine("Content", "ContentAssetService.cs"));
+        var promote = Between(source, "private void PromotePartial(",
+            "private bool HasVerifiedBlob(");
+        var standalone = Between(source, "private static bool IsStandaloneFile(",
+            "private static void Touch(");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("IsStandaloneFile(path)"),
+                "SHA cache не может считать symlink verified blob");
+            Assert.That(standalone, Does.Contain("FileAttributes.ReparsePoint"),
+                "symlink/junction обязаны отбрасываться на macOS и Windows");
+            Assert.That(promote, Does.Contain("File.Delete(destination);"),
+                "legacy link удаляется перед установкой verified .part");
+            Assert.That(promote.IndexOf("File.Delete(destination);", StringComparison.Ordinal),
+                Is.LessThan(promote.IndexOf("File.Move(partial, destination);",
+                    StringComparison.Ordinal)));
+        });
+    }
+
+    /// <summary>
+    /// UnityWebRequest может навсегда зависнуть в Editor ещё до открытия
+    /// сокета и не соблюсти свой timeout. Реестр, resolve и большие blobs
+    /// поэтому обязаны идти через один потоковый HttpClient transport.
+    /// </summary>
+    [Test]
+    public void NetworkTransportStreamsThroughHttpClientAndKeepsResumeSafety()
+    {
+        var source = Presentation(Path.Combine("Content", "ContentAssetService.cs"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Contain("new HttpClient(handler)"));
+            Assert.That(source, Does.Contain("HttpCompletionOption.ResponseHeadersRead"),
+                "blob нельзя целиком буферизовать в памяти");
+            Assert.That(source, Does.Contain("new RangeHeaderValue(existing, null)"),
+                "оборванный .part обязан продолжаться byte-range запросом");
+            Assert.That(source, Does.Contain("FileMode.Append"));
+            Assert.That(source, Does.Contain("VerifyFile(partial, sha256, size)"),
+                "до promote обязательна проверка размера и SHA-256");
+            Assert.That(source, Does.Contain("MaxConcurrentBlobDownloads = 6"));
+            Assert.That(source, Does.Not.Contain("UnityWebRequest"),
+                "зависший Unity transport не должен оставаться ни в одном content path");
+            Assert.That(source, Does.Not.Contain("DownloadHandlerFile"));
+            Assert.That(source, Does.Not.Contain("UnityEngine.Networking"));
+        });
+    }
+
     /// <summary>
     /// §152 закрыл Addressables. Гейт, сторожащий несуществующее API, врёт
     /// молча — поэтому путь контента проверяется на их отсутствие.

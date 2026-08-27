@@ -270,11 +270,14 @@ namespace HexLive.UnityPresentation.Audio
             // every voice file. Prewarm remains explicit via WarmContent().
             var prewarmRequested = _prewarmRequested;
             _prewarmRequested = false;
+            // Menu music is three streaming files and must not sit behind the
+            // shared SFX working set. Queue it first; ContentAssetService also
+            // gives metadata.kind=music jobs priority over ordinary blobs.
+            ScanMusic();
             if (prewarmRequested)
             {
                 Prewarm();
             }
-            ScanMusic();
         }
 
         private static void OpenSounds(Dictionary<string, List<string>> groups)

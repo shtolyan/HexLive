@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="hut-constructor-root" class="hut-constructor-root">
+        <ui:VisualElement name="constructor-panel" class="constructor-panel">
+            <ui:VisualElement class="tray-header">
+                <ui:VisualElement class="mode-tabs">
+                    <ui:Button name="mode-construction" class="mode-tab" />
+                    <ui:Button name="mode-furniture" class="mode-tab" />
+                </ui:VisualElement>
+                <ui:VisualElement class="header-copy">
+                    <ui:Label name="title-label" class="panel-title" />
+                    <ui:Label name="status-label" class="panel-status" />
+                </ui:VisualElement>
+                <ui:VisualElement class="header-actions">
+                    <ui:Button name="undo" class="icon-button" text="↶" />
+                    <ui:Button name="redo" class="icon-button" text="↷" />
+                    <ui:Button name="save" class="header-button" />
+                    <ui:Button name="export" class="header-button accent" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement class="tray-body">
+                <ui:ScrollView name="category-scroll" class="category-scroll">
+                    <ui:VisualElement name="category-list" class="category-list" />
+                </ui:ScrollView>
+
+                <ui:VisualElement class="catalog-area">
+                    <ui:Label name="category-title" class="category-title" />
+                    <ui:ScrollView name="catalog-scroll" mode="Horizontal" class="catalog-scroll">
+                        <ui:VisualElement name="catalog-list" class="catalog-list" />
+                    </ui:ScrollView>
+                    <ui:Label name="shortcut-label" class="shortcut-label" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="selection-card">
+                    <ui:Label name="selection-title" class="selection-title" />
+                    <ui:Label name="selection-label" class="selection-label" />
+                    <ui:Label name="selection-description" class="selection-description" />
+                    <ui:Label name="availability-label" class="availability-label" />
+                    <ui:VisualElement class="selection-actions">
+                        <ui:Button name="delete-selection" class="selection-button danger" />
+                        <ui:Button name="finish-selection" class="selection-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

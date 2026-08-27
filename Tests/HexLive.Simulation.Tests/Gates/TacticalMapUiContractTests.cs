@@ -17,9 +17,9 @@ public sealed class TacticalMapUiContractTests
         var input = Read("Assets", "HexLive", "UnityPresentation", "Input", "SimulationInputAdapter.cs");
         var renderer = Read("Assets", "HexLive", "UnityPresentation", "Rendering", "HexWorldRenderer.cs");
         var roster = Read("Assets", "HexLive", "UnityPresentation", "UI", "CharacterPanel.cs");
-        var uxml = Read("Assets", "HexLiveContent", "RuntimeSource", "UI",
+        var uxml = Read("Assets", "Resources", "HexLive", "UI",
             "TacticalMapPanel.uxml");
-        var uss = Read("Assets", "HexLiveContent", "RuntimeSource", "UI",
+        var uss = Read("Assets", "Resources", "HexLive", "UI",
             "TacticalMapPanel.uss");
         var impostor = Read("Assets", "HexLive", "UnityPresentation", "Views",
             "ObjectImpostor.cs");

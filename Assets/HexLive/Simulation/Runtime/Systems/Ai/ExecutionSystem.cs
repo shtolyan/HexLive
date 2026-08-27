@@ -1320,13 +1320,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     !ContainerLootMath.CanAccept(
                         world, worldObject, new[] { carriedStick }))
                 {
-                    // Bug #235: отказ — тоже конец сцены. Заявку снимаем здесь,
-                    // потому что дальше её не снимет никто: хвост метода
-                    // пропущен, а PlanInterruption смотрит только на
-                    // Execution.Status == InProgress, который выше уже стал
-                    // Completed.
-                    ReleaseHearthClaim(npc, worldObject);
-                    return false;
+                    // Bug #235: отказ — тоже конец сцены, и закрыть его надо
+                    // целиком: заявку с очага, узел подхода и саму сцену.
+                    return FailHearthScene(world, npc, worldObject,
+                        $"Cannot stock {worldObject.DefinitionId} " +
+                        $"(stick={carriedStick is not null} buffer full)");
                 }
 
                 ContainerLootMath.GiveToContainer(
@@ -1335,30 +1333,37 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     $"{worldObject.DefinitionId} queued={carriedStick.DefinitionId}");
                 worldObject.IsOccupied = false;
                 worldObject.CurrentUser = null;
-                return true;
+                // ⭐ Bug #235: здесь стоял `return true` — и он уносил рукав МИМО
+                // хвоста метода, единственного места, где освобождается УЗЕЛ
+                // подхода. Занятость узла бессрочна (в отличие от брони) и
+                // снимается только явным FreeJunction или смертью владелицы, так
+                // что каждый приказ «подбросить дров» отнимал у костра один
+                // подход навсегда. Уходить из рукава раньше хвоста нельзя.
             }
-
-            // Spec 29E.3 / §54 / §151: a burning fire and autonomous TendFire
-            // consume fuel immediately; buffered logs preserve their 4x value.
-            var fuel = ContainerLootMath.FuelTicksPerStick;
-            if (npc.Inventory.Items.Contains(ContentIds.Stick))
+            else
             {
-                npc.Inventory.Items.Remove(ContentIds.Stick);
+                // Spec 29E.3 / §54 / §151: a burning fire and autonomous TendFire
+                // consume fuel immediately; buffered logs preserve their 4x value.
+                var fuel = ContainerLootMath.FuelTicksPerStick;
+                if (npc.Inventory.Items.Contains(ContentIds.Stick))
+                {
+                    npc.Inventory.Items.Remove(ContentIds.Stick);
+                }
+                else if (!ContainerLootMath.TryConsumeCampfireFuel(
+                             world, worldObject, out fuel))
+                {
+                    // Bug #235: палку успели потратить между планом и завершением —
+                    // подкинуть нечего. Отпускаем очаг, иначе он остаётся занят
+                    // навсегда именно за той, кто пришла его поддержать.
+                    return FailHearthScene(world, npc, worldObject,
+                        $"Cannot fuel {worldObject.DefinitionId} (no wood left on arrival)");
+                }
+                worldObject.ResourceAmount += fuel;
+                Trace.Emit(world, npc.Id, wasLit ? "FireFueled" : "FireLit",
+                    $"{worldObject.DefinitionId} Fuel={worldObject.ResourceAmount:F0} ticks");
+                worldObject.IsOccupied = false;
+                worldObject.CurrentUser = null;
             }
-            else if (!ContainerLootMath.TryConsumeCampfireFuel(
-                         world, worldObject, out fuel))
-            {
-                // Bug #235: палку успели потратить между планом и завершением —
-                // подкинуть нечего. Отпускаем очаг, иначе он остаётся занят
-                // навсегда именно за той, кто пришла его поддержать.
-                ReleaseHearthClaim(npc, worldObject);
-                return false;
-            }
-            worldObject.ResourceAmount += fuel;
-            Trace.Emit(world, npc.Id, wasLit ? "FireFueled" : "FireLit",
-                $"{worldObject.DefinitionId} Fuel={worldObject.ResourceAmount:F0} ticks");
-            worldObject.IsOccupied = false;
-            worldObject.CurrentUser = null;
         }
         else if (completedInteraction.Type == InteractionType.Ignite)
         {
@@ -1368,8 +1373,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             {
                 // Bug #235: костёр уже зажгли (или буфер опустел) — розжигу
                 // нечего делать, но занятость обязана уйти вместе со сценой.
-                ReleaseHearthClaim(npc, worldObject);
-                return false;
+                return FailHearthScene(world, npc, worldObject,
+                    $"Cannot ignite {worldObject.DefinitionId} " +
+                    $"(lit={worldObject.ResourceAmount > 0f} or buffer empty)");
             }
 
             worldObject.ResourceAmount = fuel;
@@ -1491,6 +1497,32 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
         worldObject.IsOccupied = false;
         worldObject.CurrentUser = null;
+    }
+
+    /// <summary>
+    /// Bug #235: закрыть СОРВАННУЮ сцену у очага целиком. Снять заявку с костра
+    /// мало — рукав, вернувший <c>false</c>, не закрывает больше ничего: хвост
+    /// <see cref="ApplyInteractionCompletion"/> пропущен (а он единственный
+    /// освобождает узел подхода), план остаётся <c>Active</c>, а
+    /// <c>Execution.Status</c> — <c>Completed</c>. Этого состояния не читает НИ
+    /// ОДНА ветка исполнителя: старт ждёт <c>None</c>, продолжение — только
+    /// <c>InProgress</c>. Колонистка застывала навсегда, держа узел у костра, а
+    /// у ручной ещё и планировщик выключен — вытащить её оттуда было некому.
+    /// <para>
+    /// Поэтому отказ уходит тем же путём, что и все соседние отказы у объектов:
+    /// <c>TryAbort</c> распускает план, execution, узел и бронь. Причина
+    /// <c>ExecutionFailure</c> проходит и у ручного персонажа (§121.5) и заодно
+    /// говорит игроку, что его приказ сорвался.
+    /// </para>
+    /// </summary>
+    private static bool FailHearthScene(
+        WorldState world, NPCState npc, WorldObjectState worldObject, string reason)
+    {
+        ReleaseHearthClaim(npc, worldObject);
+        PlanInterruption.TryAbort(
+            world, npc, InterruptionCause.ExecutionFailure, reason);
+        npc.Mind.CurrentGoal = GoalType.None;
+        return false;
     }
 
     // Рукава возвращают FALSE только чтобы ОТМЕНИТЬ попытку. True означает

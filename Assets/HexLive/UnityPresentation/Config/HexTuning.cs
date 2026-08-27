@@ -1,4 +1,5 @@
 using HexLive.Simulation.Runtime;
+using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
@@ -16,9 +17,17 @@ namespace HexLive.UnityPresentation.Config
     /// </summary>
     public static class HexTuning
     {
-        // Under a Resources folder so the shipping game can load it with no
-        // scene reference.
+        // Legacy editor/resource identity. In a Player the asset is delivered
+        // as the atomic config/hextuningconfig object (§152).
         public const string ResourcePath = "HexLive/HexTuningConfig";
+        private static ContentAssetHandle<HexTuningConfig> _runtimeHandle;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetRuntimeHandle()
+        {
+            _runtimeHandle?.Dispose();
+            _runtimeHandle = null;
+        }
 
         public static void Apply(HexTuningConfig c)
         {
@@ -103,8 +112,34 @@ namespace HexLive.UnityPresentation.Config
             c.waveSpeed = WaterWave.Speed;
         }
 
-        // The game's startup path: load the asset from Resources and apply it,
-        // so tuned values ship without touching code constants.
+        /// <summary>
+        /// Applies the presentation tuning shipped as atomic content. Keep the
+        /// returned handle pinned: unloading its bundle would invalidate the
+        /// ScriptableObject while the session is alive.
+        /// </summary>
+        public static void LoadAtomic(System.Action<bool> completed)
+        {
+            ContentAssetService.Instance.LoadMain<HexTuningConfig>(
+                "config", "hextuningconfig", loaded =>
+                {
+                    if (loaded?.Asset == null)
+                    {
+                        loaded?.Dispose();
+                        Debug.LogError(
+                            "[HexTuning] No verified config/hextuningconfig object is available.");
+                        completed?.Invoke(false);
+                        return;
+                    }
+
+                    _runtimeHandle?.Dispose();
+                    _runtimeHandle = loaded;
+                    Apply(loaded.Asset);
+                    Debug.Log("[HexTuning] Applied atomic config/hextuningconfig.");
+                    completed?.Invoke(true);
+                });
+        }
+
+        // Editor/dev-fixture path. The ordinary game startup uses LoadAtomic.
         public static void LoadAndApply()
         {
             HexTuningConfig config;

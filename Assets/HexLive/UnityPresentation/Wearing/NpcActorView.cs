@@ -753,8 +753,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // dialed without editing code — the step is ~0.55 world high):
     //   LedgeSeatLift — DIRECT Y offset, ALWAYS applied (negative lowers her);
     //   LedgeSeatBack — slide back onto the rim (toward the high tile).
-    public static float LedgeSeatLift = 0.40f;
-    public static float LedgeSeatBack = 0.45f;
+    public static float LedgeSeatLift = -0.344f;
+    public static float LedgeSeatBack = 0.20f;
     // §78.5: the seat coordinates above (and the stump's bare anchor) are
     // tuned on the girls' bodies. The male skeleton on the same Sit clip
     // rests his butt a touch too high and too far back, so a MALE actor

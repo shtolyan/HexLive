@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <style>
+      .bg{fill:#10151e}.panel{fill:#171e2a;stroke:#344058;stroke-width:2}.title{font:700 28px system-ui,sans-serif;fill:#f4f6fa}.head{font:700 20px system-ui,sans-serif;fill:#f4f6fa}.text{font:16px system-ui,sans-serif;fill:#c8d1df}.mono{font:15px ui-monospace,monospace;fill:#dce5f2}.ground{stroke:#82c6ef;stroke-width:5}.good{stroke:#76c49a;stroke-width:5}.bad{stroke:#ef6b73;stroke-width:5;stroke-dasharray:10 7}.guide{stroke:#59667a;stroke-width:2;stroke-dasharray:5 6}.actor{fill:#f2c879}.accent{fill:#76c49a}.warn{fill:#ef6b73}
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ef6b73"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="700"/>
+  <text class="title" x="38" y="48">Баг #251: три независимых контракта высоты отдыха</text>
+
+  <rect class="panel" x="30" y="76" width="540" height="520" rx="20"/>
+  <text class="head" x="58" y="116">Край гекса — исправлено</text>
+  <line class="ground" x1="70" y1="420" x2="520" y2="420"/>
+  <text class="mono" x="76" y="448">G — поверхность текущего гекса</text>
+  <line class="guide" x1="70" y1="340" x2="520" y2="340"/>
+  <line class="bad" x1="110" y1="340" x2="485" y2="340"/>
+  <circle class="warn" cx="170" cy="340" r="13"/>
+  <text class="mono" x="200" y="332">сломанный fallback: G + 0.400</text>
+  <line class="good" x1="110" y1="489" x2="485" y2="489"/>
+  <circle class="accent" cx="170" cy="489" r="13"/>
+  <text class="mono" x="200" y="481">авторская посадка: G − 0.344</text>
+  <line x1="505" y1="348" x2="505" y2="481" stroke="#ef6b73" stroke-width="3" marker-end="url(#arrow)"/>
+  <text class="head" x="385" y="408" fill="#ef6b73">Δ = 0.744 wu</text>
+  <text class="text" x="58" y="550">На ступень выше (+0.55): правильно G+0.206,</text>
+  <text class="text" x="58" y="576">сломано G+0.950 — та же ошибка 0.744 wu.</text>
+
+  <rect class="panel" x="600" y="76" width="570" height="245" rx="20"/>
+  <text class="head" x="628" y="116">Пенёк — отдельный якорь</text>
+  <line class="ground" x1="638" y1="260" x2="1130" y2="260"/>
+  <rect x="775" y="170" width="125" height="90" rx="8" fill="#7d5a3a" stroke="#eda861" stroke-width="3"/>
+  <line class="good" x1="730" y1="260" x2="945" y2="260"/>
+  <circle class="actor" cx="837" cy="151" r="16"/>
+  <text class="mono" x="930" y="190">корень = ObjectGroundY</text>
+  <text class="mono" x="930" y="218">меш пенька: 0.30 wu</text>
+  <text class="text" x="628" y="295">LedgeSeatLift сюда не добавляется.</text>
+
+  <rect class="panel" x="600" y="351" width="570" height="245" rx="20"/>
+  <text class="head" x="628" y="391">Кровать — авторская sleep-точка</text>
+  <line class="ground" x1="638" y1="540" x2="1130" y2="540"/>
+  <rect x="730" y="485" width="265" height="45" rx="8" fill="#526447" stroke="#91c47b" stroke-width="3"/>
+  <line class="good" x1="720" y1="467" x2="1010" y2="467"/>
+  <circle class="actor" cx="865" cy="450" r="16"/>
+  <text class="mono" x="650" y="430">SleepRootLocalY = 0.370 wu</text>
+  <text class="mono" x="650" y="575">пол хижины: +0.107475 wu к корню объекта</text>
+
+  <text class="mono" x="38" y="642">Источник: HexTuningConfig.asset · ElevationStep = 0.55 wu · значения не нарисованы «на глаз»</text>
+  <text class="text" x="38" y="674">Загрузка config/hextuningconfig теперь происходит до запуска локального или удалённого мира.</text>
+</svg>

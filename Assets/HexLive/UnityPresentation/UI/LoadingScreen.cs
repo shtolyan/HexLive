@@ -1159,6 +1159,27 @@ namespace HexLive.UnityPresentation.UI
             _menuBox.style.display = DisplayStyle.None;
             _progressStrip.style.display = DisplayStyle.Flex;
 
+            // §21/§152: visual movement tuning is atomic content too. Apply it
+            // before choosing either backend: a remote world still renders its
+            // actors locally and must not fall back to stale code constants.
+            var hexTuningReady = false;
+            var hexTuningApplied = false;
+            Config.HexTuning.LoadAtomic(success =>
+            {
+                hexTuningApplied = success;
+                hexTuningReady = true;
+            });
+            while (!hexTuningReady)
+            {
+                SetProgress(0.01f, ContentStatus());
+                yield return null;
+            }
+            if (!hexTuningApplied)
+            {
+                ShowContentFailure(ContentAssetService.Instance.LastError);
+                yield break;
+            }
+
             // §Server: watching someone else's world skips this whole block —
             // there is no seed to pick, no save to restore and no offline time
             // to wind, because the world never stopped running.

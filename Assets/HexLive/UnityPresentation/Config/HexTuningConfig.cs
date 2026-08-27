@@ -61,10 +61,10 @@ namespace HexLive.UnityPresentation.Config
         [Header("Сидение на краю (ledge)")]
         [Tooltip("Прямой сдвиг попы по Y на краю — применяется ВСЕГДА (минус = ниже к земле; на верхней кромке подъём-на-ступень = 0).")]
         [MirrorIgnore]
-        [Range(-1f, 1f)] public float ledgeSeatLift = 0.4f;
+        [Range(-1f, 1f)] public float ledgeSeatLift = -0.344f;
         [Tooltip("Сдвиг НАЗАД на кромку (к верхнему тайлу): чтобы подъём приходился на землю, а не висел над обрывом. Больше = глубже на край.")]
         [MirrorIgnore]
-        [Range(0f, 1f)] public float ledgeSeatBack = 0.45f;
+        [Range(0f, 1f)] public float ledgeSeatBack = 0.2f;
         [Tooltip("МУЖСКАЯ посадка: сдвиг ВПЕРЁД (+Z, по взгляду) относительно женской точки. Один на оба сиденья — и пенёк, и край. Девушек не трогает.")]
         [MirrorIgnore]
         [Range(0f, 0.5f)] public float maleSeatForward = 0.08f;

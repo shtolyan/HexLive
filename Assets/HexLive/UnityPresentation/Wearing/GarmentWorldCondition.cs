@@ -34,7 +34,7 @@ namespace HexLive.UnityPresentation.Wearing
         public void Construct(GameObject visual)
         {
             var shader = Shader.Find("HexLive/GarmentTear");
-            var tearMask = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/tear_mask");
+            var tearMask = Resources.Load<Texture2D>("HexLive/Decals/tear_mask");
             foreach (var renderer in visual.GetComponentsInChildren<MeshRenderer>(true))
             {
                 var filter = renderer.GetComponent<MeshFilter>();

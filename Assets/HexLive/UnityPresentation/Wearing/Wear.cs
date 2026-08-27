@@ -610,7 +610,7 @@ public sealed class Wear : MonoBehaviour
         // shader: GarmentTear is opaque alpha-test and turned sheer fabric
         // solid black. Their holes are punched into the albedo ALPHA by the
         // wear painter instead — the original shader blends them out.
-        var tearMask = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/tear_mask");
+        var tearMask = Resources.Load<Texture2D>("HexLive/Decals/tear_mask");
         foreach (var material in _meshRenderer.materials)
         {
             if (IsTransparentMaterial(material))

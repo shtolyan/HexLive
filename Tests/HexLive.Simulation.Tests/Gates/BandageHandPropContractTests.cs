@@ -13,7 +13,7 @@ namespace HexLive.Simulation.Tests.Gates;
 public sealed class BandageHandPropContractTests
 {
     [Test]
-    public void AuthoredLimbWrapWaitsForBothAtomicTexturesWithoutLegacyFallback()
+    public void AuthoredLimbWrapLoadsBothBootstrapTexturesWithoutLegacyFallback()
     {
         var source = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
@@ -31,6 +31,31 @@ public sealed class BandageHandPropContractTests
             Assert.That(branch, Does.Contain("OverNormal = wrapNormal"));
             Assert.That(branch, Does.Not.Contain("TryResolveLegacyPath"),
                 "Registry readiness must not choose the retired round bandage forever.");
+            Assert.That(source, Does.Contain(
+                "Resources.Load<Texture2D>($\"HexLive/Decals/bandage_wrap_{zoneName}\")"));
+            Assert.That(source, Does.Contain(
+                "Resources.Load<Texture2D>($\"HexLive/Decals/bandage_wrap_{zoneName}_n\")"));
+            Assert.That(source, Does.Not.Contain(
+                "AtomicResources.Load<Texture2D>($\"HexLive/Decals/bandage_wrap_"),
+                "Arm wraps must be available synchronously with the Player.");
+        });
+    }
+
+    [TestCase("ArmL")]
+    [TestCase("ArmR")]
+    [TestCase("LegL")]
+    [TestCase("LegR")]
+    [TestCase("Torso")]
+    [TestCase("Pelvis")]
+    public void EveryAuthoredWrapZoneShipsAlbedoAndNormalInPlayer(string zone)
+    {
+        var root = Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "HexLive", "Decals");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(Path.Combine(root, $"bandage_wrap_{zone}.png")), Is.True);
+            Assert.That(File.Exists(Path.Combine(root, $"bandage_wrap_{zone}_n.png")), Is.True);
         });
     }
 

@@ -57,11 +57,11 @@ public sealed class MobWoundPainter : MonoBehaviour, HexLive.UnityPresentation.W
         }
 
         _artLoaded = true;
-        _texSplash = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splash");
+        _texSplash = Resources.Load<Texture2D>("HexLive/Decals/blood_splash");
         _woundOver = new Texture2D?[WoundVariantNames.Length];
         for (var i = 0; i < WoundVariantNames.Length; i++)
         {
-            _woundOver[i] = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
+            _woundOver[i] = Resources.Load<Texture2D>($"HexLive/Decals/{WoundVariantNames[i]}");
         }
     }
 

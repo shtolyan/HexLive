@@ -418,20 +418,20 @@ namespace HexLive.UnityPresentation.Wearing
             // tan). Fallbacks: molly's blood_splash, then procedural.
             Texture? texture = type switch
             {
-                DecalType.Scratch => HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/wound_scratch"),
-                DecalType.Blood => HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splat"),
+                DecalType.Scratch => Resources.Load<Texture2D>("HexLive/Decals/wound_scratch"),
+                DecalType.Blood => Resources.Load<Texture2D>("HexLive/Decals/blood_splat"),
                 // fal.ai droplets on black, luminance-keyed to alpha: bright
                 // specular cores stay, background fully transparent — reads as
                 // a glistening spray of sweat right on the skin.
-                DecalType.Sweat => HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/sweat_drops"),
+                DecalType.Sweat => Resources.Load<Texture2D>("HexLive/Decals/sweat_drops"),
                 // All wound dressings deliberately share one stable white
                 // gauze appearance, including herbal dressings.
-                DecalType.Bandage => HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/gauze_wrap"),
-                DecalType.Gauze => HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/gauze_wrap"),
+                DecalType.Bandage => Resources.Load<Texture2D>("HexLive/Decals/gauze_wrap"),
+                DecalType.Gauze => Resources.Load<Texture2D>("HexLive/Decals/gauze_wrap"),
                 // fal.ai granular dust on black, luminance-keyed: powder
                 // grains + clumps like the logo's weathered grime — the old
                 // procedural blobs read as flat paint.
-                DecalType.Dirt => HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/dirt_dust"),
+                DecalType.Dirt => Resources.Load<Texture2D>("HexLive/Decals/dirt_dust"),
                 // Intentionally procedural: the silhouette is a copy of the
                 // blood pool, recoloured ivory and made more transparent.
                 DecalType.IntimacyStain => null,
@@ -440,7 +440,7 @@ namespace HexLive.UnityPresentation.Wearing
 
             if (texture == null && (type == DecalType.Scratch || type == DecalType.Blood))
             {
-                texture = HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/blood_splash");
+                texture = Resources.Load<Texture2D>("HexLive/Decals/blood_splash");
             }
 
             texture ??= MakeTexture(type);
@@ -458,8 +458,8 @@ namespace HexLive.UnityPresentation.Wearing
             // normal — they'd flatten the skin pores.
             var normalMap = type switch
             {
-                DecalType.Sweat => HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/sweat_drops_n"),
-                DecalType.Dirt => HexLive.UnityPresentation.Content.AtomicResources.Load<Texture2D>("HexLive/Decals/dirt_dust_n"),
+                DecalType.Sweat => Resources.Load<Texture2D>("HexLive/Decals/sweat_drops_n"),
+                DecalType.Dirt => Resources.Load<Texture2D>("HexLive/Decals/dirt_dust_n"),
                 _ => null
             };
             var normalBlend = normalMap == null ? 0f : type == DecalType.Sweat ? 1f : 0.7f;

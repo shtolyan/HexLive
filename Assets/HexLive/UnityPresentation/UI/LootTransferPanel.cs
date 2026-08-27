@@ -39,6 +39,18 @@ public sealed class LootTransferPanel : MonoBehaviour
     private Label _leftCapacity = null!;
     private Label _rightCapacity = null!;
     private Label _status = null!;
+    private Label _title = null!;
+    private Label _arrows = null!;
+
+    // §153.1: то же окно, но отдачей в одну сторону. Отдельного интерфейса
+    // передачи нет по замыслу — это была бы вторая версия §128 со своими
+    // багами; вместо неё окно знает про РЕЖИМ и гасит обратное направление.
+    private bool _gift;
+
+    // Отказ обязан пережить конец жеста: ClearDrag возвращает подсказку по
+    // умолчанию, и без этого флага «забрать нельзя» гасло бы в том же кадре,
+    // в котором появилось, — то есть его бы никто не прочитал.
+    private bool _statusHeld;
 
     private int _looterId = -1;
 
@@ -176,7 +188,18 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     public static void Open(int looterId, int otherId)
     {
-        _instance?.OpenInternal(looterId, otherId);
+        _instance?.OpenInternal(looterId, otherId, gift: false);
+    }
+
+    /// <summary>
+    /// §153.1: «Подарить» — то же окно обмена, но цель может быть на ногах и в
+    /// сознании, а вещи ходят только НАЛЕВО→НАПРАВО. Забрать что-нибудь у
+    /// живого человека, пока он смотрит, подарок не разрешает: это уже §111,
+    /// и оно должно называться своим именем.
+    /// </summary>
+    public static void OpenGift(int looterId, int otherId)
+    {
+        _instance?.OpenInternal(looterId, otherId, gift: true);
     }
 
     /// <summary>
@@ -190,7 +213,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     public static void Close() => _instance?.Hide();
 
-    private void OpenInternal(int looterId, int otherId)
+    private void OpenInternal(int looterId, int otherId, bool gift)
     {
         if (_runner == null || !_runner.IsReady || !_runner.SupportsNpcCommands ||
             looterId < 0 || otherId < 0 || looterId == otherId)
@@ -202,19 +225,26 @@ public sealed class LootTransferPanel : MonoBehaviour
         var looter = FindNpc(snapshot, looterId);
         var other = FindNpc(snapshot, otherId);
         // §128: несомый — цель, только если он на руках у САМОГО обыскивающего.
+        // §153.1: подарить можно и стоящей в сознании — зеркало сим-предиката
+        // PlayerLootTargets.TryResolve с направлением Give.
         if (looter == null || other == null || !_runner.CanControlNpc(looter.Id) ||
-            looter.Health <= 0f || !IsLootable(other) ||
+            looter.Health <= 0f ||
+            !(gift ? IsGiftable(other) : IsLootable(other)) ||
             (other.CarriedByNpcId is not null && other.CarriedByNpcId != looterId))
         {
             return;
         }
 
+        _gift = gift;
+        _title.text = Loc.Get(gift ? "gift.title" : "loot.title");
+        _arrows.text = gift ? "➜" : "⇄";
         _looterId = looterId;
         _otherId = otherId;
         _otherObjectId = -1;
         _lastTick = -1;
         _signature = string.Empty;
         _pending = false;
+        _statusHeld = false;
         _rebuildDeferred = false;
         ClearAutoWear();
         _doubleClick.Reset();
@@ -242,12 +272,16 @@ public sealed class LootTransferPanel : MonoBehaviour
             return;
         }
 
+        _gift = false;
+        _title.text = Loc.Get("loot.title");
+        _arrows.text = "⇄";
         _looterId = looterId;
         _otherObjectId = objectId;
         _otherId = -objectId;
         _lastTick = -1;
         _signature = string.Empty;
         _pending = false;
+        _statusHeld = false;
         _rebuildDeferred = false;
         ClearAutoWear();
         _doubleClick.Reset();
@@ -310,12 +344,12 @@ public sealed class LootTransferPanel : MonoBehaviour
         header.style.flexDirection = FlexDirection.Row;
         header.style.alignItems = Align.Center;
         header.style.marginBottom = 9f;
-        var title = new Label(Loc.Get("loot.title"));
-        title.style.color = Gold;
-        title.style.fontSize = 17f;
-        title.style.unityFontStyleAndWeight = FontStyle.Bold;
-        title.style.flexGrow = 1f;
-        header.Add(title);
+        _title = new Label(Loc.Get("loot.title"));
+        _title.style.color = Gold;
+        _title.style.fontSize = 17f;
+        _title.style.unityFontStyleAndWeight = FontStyle.Bold;
+        _title.style.flexGrow = 1f;
+        header.Add(_title);
         var close = new Label("✕");
         close.style.color = TextDim;
         close.style.fontSize = 15f;
@@ -344,14 +378,14 @@ public sealed class LootTransferPanel : MonoBehaviour
         _leftPane.name = "loot-own-window";
         _rightPane.name = "loot-target-window";
         panes.Add(_leftPane);
-        var arrows = new Label("⇄");
-        arrows.style.width = 34f;
-        arrows.style.flexShrink = 0f;
-        arrows.style.color = Gold;
-        arrows.style.fontSize = 21f;
-        arrows.style.unityTextAlign = TextAnchor.MiddleCenter;
-        arrows.pickingMode = PickingMode.Ignore;
-        panes.Add(arrows);
+        _arrows = new Label("⇄");
+        _arrows.style.width = 34f;
+        _arrows.style.flexShrink = 0f;
+        _arrows.style.color = Gold;
+        _arrows.style.fontSize = 21f;
+        _arrows.style.unityTextAlign = TextAnchor.MiddleCenter;
+        _arrows.pickingMode = PickingMode.Ignore;
+        panes.Add(_arrows);
         panes.Add(_rightPane);
         _frame.Add(panes);
 
@@ -465,8 +499,12 @@ public sealed class LootTransferPanel : MonoBehaviour
         }
 
         var other = FindNpc(snapshot, _otherId);
+        // §153.1: окно закрывается по СВОЕМУ условию. В подарке цель на ногах и
+        // в сознании — проверять её тем же IsLootable значило бы закрывать окно
+        // в тот же кадр, в который его открыли.
         if (looter == null || other == null || looter.Health <= 0f ||
-            !_runner.CanControlNpc(looter.Id) || !IsLootable(other) ||
+            !_runner.CanControlNpc(looter.Id) ||
+            !(_gift ? IsGiftable(other) : IsLootable(other)) ||
             (other.CarriedByNpcId is not null && other.CarriedByNpcId != _looterId))
         {
             Hide();
@@ -499,7 +537,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         if (signature != _pendingSignature)
         {
             _pending = false;
-            _status.text = Loc.Get("loot.drag_hint");
+            _status.text = DragHint();
         }
         else if (snapshot.Tick > _pendingTick &&
                  looter.CurrentGoal != "PlayerInventory" &&
@@ -902,6 +940,8 @@ public sealed class LootTransferPanel : MonoBehaviour
         element.RegisterCallback<PointerDownEvent>(evt =>
         {
             if (_pending || evt.button != 0) return;
+            // Новый жест снимает удержанный отказ: игрок уже прочитал его.
+            _statusHeld = false;
             ClearDrag();
             _drag = item;
             _dragPrepared = true;
@@ -988,6 +1028,16 @@ public sealed class LootTransferPanel : MonoBehaviour
             ? InventoryTransferDirection.Take
             : InventoryTransferDirection.Give;
 
+        // §153.1: в режиме подарка обратный жест не отправляется вовсе. Слать
+        // приказ, который симуляция отклонит по PersonNotAvailable, и было бы
+        // «маркер есть, никто не идёт» из §121.1 — игрок читает это как поломку.
+        if (_gift && direction == InventoryTransferDirection.Take)
+        {
+            _statusHeld = true;
+            _status.text = Loc.Get("gift.take_forbidden");
+            return;
+        }
+
         // §128.5: справа вещь — другой приказ. Сторону жест уже определил выше:
         // из мешка к себе — Take, из своих карманов в мешок — Give.
         if (_otherObjectId >= 0)
@@ -1026,6 +1076,16 @@ public sealed class LootTransferPanel : MonoBehaviour
         switch (quick)
         {
             case InventoryQuickAction.TakeFromOther:
+                // §153.1: в подарке двойной клик по чужой панели ничего не
+                // забирает — и не заводит отложенное «надеть» на вещь, которая
+                // никуда не поедет.
+                if (_gift)
+                {
+                    _statusHeld = true;
+                    _status.text = Loc.Get("gift.take_forbidden");
+                    break;
+                }
+
                 DropOn(_looterId, item);
                 ArmAutoWear(item);
                 break;
@@ -1176,9 +1236,9 @@ public sealed class LootTransferPanel : MonoBehaviour
         _dragDoubleClick = false;
         _dragPointerId = -1;
         _dragCell = null;
-        if (resetStatus && !_pending && _status != null)
+        if (resetStatus && !_pending && !_statusHeld && _status != null)
         {
-            _status.text = Loc.Get("loot.drag_hint");
+            _status.text = DragHint();
         }
 
         // §128.1a: пересборку, которую жест придержал, отпускаем сразу — иначе
@@ -1314,6 +1374,18 @@ public sealed class LootTransferPanel : MonoBehaviour
         person.Health <= 0f || person.IsUnconscious || person.IsDying ||
         person.IsFainted || person.CurrentInteraction == "Sleep";
 
+    /// <summary>§153.1: кому можно подарить — живому, не при смерти и не в
+    /// отключке. Зеркало сим-предиката PlayerLootTargets.TryResolveGiftRecipient;
+    /// правду на месте всё равно проверяет симуляция.</summary>
+    private static bool IsGiftable(NpcSnapshot person) =>
+        person.Health > 0f && !person.IsUnconscious && !person.IsDying &&
+        !person.IsFainted;
+
+    /// <summary>Подсказка внизу окна зависит от РЕЖИМА: в подарке вещи ходят
+    /// только в одну сторону, и обещать обмен было бы враньём.</summary>
+    private string DragHint() =>
+        Loc.Get(_gift ? "gift.drag_hint" : "loot.drag_hint");
+
     private void Hide()
     {
         if (_root != null) _root.style.display = DisplayStyle.None;
@@ -1321,6 +1393,8 @@ public sealed class LootTransferPanel : MonoBehaviour
         _otherId = -1;
         _otherObjectId = -1;
         _pending = false;
+        _statusHeld = false;
+        _gift = false;
         IsOpen = false;
         _rebuildDeferred = false;
         ClearAutoWear();

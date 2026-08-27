@@ -6,6 +6,33 @@ namespace HexLive.Simulation.Tests.Gates;
 public sealed class RainEmitterPresentationContractTests
 {
     [Test]
+    public void RainAndHitBloodKeepTheirBootstrapParticlePipeline_Bug253()
+    {
+        var graphics = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "ProjectSettings", "GraphicsSettings.asset"));
+        var blood = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Rendering",
+            "BloodSplashVfx.cs"));
+        var bloodRoot = Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "HexLive", "VFX", "ToonBlood");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(graphics, Does.Contain("0406db5a14f94604a8c57ccfbc9f3b46"),
+                "URP Particles/Unlit must not be stripped from the Player.");
+            Assert.That(blood, Does.Contain(
+                "Resources.Load<GameObject>(\"HexLive/VFX/ToonBlood/BloodSplatDirectional\")"));
+            Assert.That(blood, Does.Not.Contain("AtomicResources.Load<GameObject>"),
+                "Mandatory hit effects cannot wait for the live content registry.");
+            Assert.That(File.Exists(Path.Combine(bloodRoot, "BloodSplatDirectional.prefab")),
+                Is.True);
+            Assert.That(File.Exists(Path.Combine(bloodRoot, "BloodSplatDirectional2.prefab")),
+                Is.True);
+            Assert.That(File.Exists(Path.Combine(bloodRoot, "BloodSplatWide.prefab")), Is.True);
+        });
+    }
+
+    [Test]
     public void DenseRainVolumeFollowsCameraWithoutDraggingWorldParticles_Bug189()
     {
         var source = File.ReadAllText(Path.Combine(

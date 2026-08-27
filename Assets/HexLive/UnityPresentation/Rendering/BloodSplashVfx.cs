@@ -33,9 +33,9 @@ public static class BloodSplashVfx
             {
                 _prefabs = new[]
                 {
-                    HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatDirectional"),
-                    HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatDirectional2"),
-                    HexLive.UnityPresentation.Content.AtomicResources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatWide")
+                    Resources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatDirectional"),
+                    Resources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatDirectional2"),
+                    Resources.Load<GameObject>("HexLive/VFX/ToonBlood/BloodSplatWide")
                 };
             }
             return _prefabs;

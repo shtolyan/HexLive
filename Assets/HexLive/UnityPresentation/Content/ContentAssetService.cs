@@ -99,11 +99,38 @@ public sealed class ContentAssetService
     private readonly string _records;
     private readonly string _partial;
     private readonly string _registryStatePath;
+    private readonly string _verifiedStampsPath;
     private ContentRegistryState _state = new();
     private int _activeBlobDownloads;
     private bool _refreshStarted;
     private bool _registryReady;
     private string _registryEndpoint = string.Empty;
+
+    // Персистентный стат-кэш верификации: sha -> (size, mtimeTicks) файла,
+    // чей SHA-256 уже сходился. Blob контент-адресуем и после promote не
+    // меняется, поэтому неизменившийся по размеру и mtime файл не хешируется
+    // заново при каждом запуске — иначе тёплый кэш на сотни мегабайт честно
+    // пересчитывался целиком за каждой шторкой («Проверяем …» на каждой
+    // вещи). Хеш по-прежнему считается при скачивании и при любом изменении
+    // файла; порча, меняющая содержимое без изменения размера и mtime,
+    // ловится дальше самим AssetBundle.LoadFromFileAsync.
+    [Serializable]
+    private sealed class VerifiedStampFile
+    {
+        public List<VerifiedStamp> stamps = new();
+    }
+
+    [Serializable]
+    private sealed class VerifiedStamp
+    {
+        public string sha256;
+        public long size;
+        public long mtimeTicks;
+    }
+
+    private readonly Dictionary<string, VerifiedStamp> _verifiedStamps =
+        new(StringComparer.Ordinal);
+    private bool _verifiedStampsDirty;
 
     // Six is deliberately browser-like. A fresh client can request more than
     // two thousand audio payloads and attachments during §41.4 prewarm; opening
@@ -120,10 +147,12 @@ public sealed class ContentAssetService
         _records = Path.Combine(_root, "records");
         _partial = Path.Combine(_root, "partial");
         _registryStatePath = Path.Combine(_root, "registry-state.json");
+        _verifiedStampsPath = Path.Combine(_root, "verified-blobs.json");
         Directory.CreateDirectory(_blobs);
         Directory.CreateDirectory(_records);
         Directory.CreateDirectory(_partial);
         LoadLocalState();
+        LoadVerifiedStamps();
         SessionConfig.ServerChanged += ServerChanged;
     }
 
@@ -158,6 +187,7 @@ public sealed class ContentAssetService
     {
         if (_instance != null)
         {
+            _instance.FlushVerifiedStamps();
             SessionConfig.ServerChanged -= _instance.ServerChanged;
             foreach (var bundle in _instance._bundles.Values)
             {
@@ -869,7 +899,7 @@ public sealed class ContentAssetService
         // здесь. Прежний синхронный HasVerifiedBlob хешировал каждый wear-blob
         // на главном потоке — ~180 бандлов тёплого кэша держали занавес
         // минутами при нулевом трафике.
-        if (_verifiedHashes.Contains(sha256))
+        if (_verifiedHashes.Contains(sha256) || TryTrustPersistedStamp(sha256, size))
         {
             var path = BlobPath(sha256);
             if (IsStandaloneFile(path) && new FileInfo(path).Length == size)
@@ -924,6 +954,13 @@ public sealed class ContentAssetService
                 ContentQueue.End(ContentQueue.Kind.Download);
                 job.Completed(success);
                 StartQueuedBlobDownloads();
+                // Очередь осушена — самое время сбросить накопленные штампы
+                // верификации на диск одним атомарным файлом.
+                if (_activeBlobDownloads == 0 &&
+                    _priorityBlobDownloadQueue.Count == 0 && _blobDownloadQueue.Count == 0)
+                {
+                    FlushVerifiedStamps();
+                }
             }));
         }
     }
@@ -989,6 +1026,7 @@ public sealed class ContentAssetService
             if (!cachedVerification.IsFaulted && cachedVerification.Result)
             {
                 _verifiedHashes.Add(sha256);
+                RememberVerifiedBlob(sha256, cachedBlob);
                 Touch(cachedBlob);
                 completed(true);
                 yield break;
@@ -1274,6 +1312,7 @@ public sealed class ContentAssetService
             File.Move(partial, destination);
         }
         _verifiedHashes.Add(sha256);
+        RememberVerifiedBlob(sha256, destination);
         Touch(destination);
         TrimCache();
     }
@@ -1291,14 +1330,114 @@ public sealed class ContentAssetService
             return false;
         }
 
-        if (!_verifiedHashes.Contains(sha256) && !VerifyFile(path, sha256, size))
+        if (!_verifiedHashes.Contains(sha256) && !TryTrustPersistedStamp(sha256, size) &&
+            !VerifyFile(path, sha256, size))
         {
             return false;
         }
 
         _verifiedHashes.Add(sha256);
+        RememberVerifiedBlob(sha256, path);
         Touch(path);
         return true;
+    }
+
+    private void LoadVerifiedStamps()
+    {
+        try
+        {
+            if (!File.Exists(_verifiedStampsPath))
+            {
+                return;
+            }
+
+            var file = JsonConvert.DeserializeObject<VerifiedStampFile>(
+                File.ReadAllText(_verifiedStampsPath));
+            foreach (var stamp in file?.stamps ?? new List<VerifiedStamp>())
+            {
+                if (!string.IsNullOrEmpty(stamp?.sha256))
+                {
+                    _verifiedStamps[stamp.sha256] = stamp;
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            // Повреждённый стат-кэш — не проблема: всё просто перехешируется.
+            Debug.LogWarning($"[AtomicContent] verified-blobs.json не читается: {exception.Message}");
+            _verifiedStamps.Clear();
+        }
+    }
+
+    /// <summary>Файл с этим SHA уже сходился раньше и с тех пор не менялся
+    /// (размер и mtime совпадают со штампом) — доверяем без пересчёта.</summary>
+    private bool TryTrustPersistedStamp(string sha256, long size)
+    {
+        if (!_verifiedStamps.TryGetValue(sha256, out var stamp) || stamp.size != size)
+        {
+            return false;
+        }
+
+        var path = BlobPath(sha256);
+        if (!IsStandaloneFile(path))
+        {
+            return false;
+        }
+
+        var info = new FileInfo(path);
+        if (info.Length != stamp.size ||
+            info.LastWriteTimeUtc.Ticks != stamp.mtimeTicks)
+        {
+            return false;
+        }
+
+        _verifiedHashes.Add(sha256);
+        return true;
+    }
+
+    private void RememberVerifiedBlob(string sha256, string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            if (_verifiedStamps.TryGetValue(sha256, out var stamp) &&
+                stamp.size == info.Length && stamp.mtimeTicks == info.LastWriteTimeUtc.Ticks)
+            {
+                return;
+            }
+
+            _verifiedStamps[sha256] = new VerifiedStamp
+            {
+                sha256 = sha256,
+                size = info.Length,
+                mtimeTicks = info.LastWriteTimeUtc.Ticks,
+            };
+            _verifiedStampsDirty = true;
+        }
+        catch (Exception)
+        {
+            // Штамп — оптимизация; файл без штампа просто перехешируется.
+        }
+    }
+
+    private void FlushVerifiedStamps()
+    {
+        if (!_verifiedStampsDirty)
+        {
+            return;
+        }
+
+        _verifiedStampsDirty = false;
+        var file = new VerifiedStampFile();
+        file.stamps.AddRange(_verifiedStamps.Values);
+        try
+        {
+            WriteAtomic(_verifiedStampsPath, JsonConvert.SerializeObject(file));
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning($"[AtomicContent] verified-blobs.json не записался: {exception.Message}");
+        }
     }
 
     private void PersistVerifiedRecord(ContentRecord record)
@@ -1471,6 +1610,10 @@ public sealed class ContentAssetService
             }
 
             _verifiedHashes.Remove(file.Name);
+            if (_verifiedStamps.Remove(file.Name))
+            {
+                _verifiedStampsDirty = true;
+            }
             total -= length;
         }
     }

@@ -3,6 +3,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Core
 {
@@ -25,13 +26,60 @@ public static class DoorTopology
     public static bool IsDoorPiece(WorldObjectState piece) => piece != null &&
         piece.DefinitionId == DoorDefinitionId && piece.IsArchitectureElement;
 
-    // §129: who may open this door. Nothing but the colony can produce a door
-    // today (hut build §120 and the bootstrap hut are both Colony), so this is
-    // a constant — and the SINGLE place to swap in a persisted field when
-    // outsider construction lands. All hostility decisions downstream go
-    // through FactionRelations, never a hand-rolled comparison.
-    public static Faction OwnerFaction(WorldState world, WorldObjectState door) =>
-        Faction.Colony;
+    // §129 / #237: кто вправе открыть эту дверь. Здесь стояла константа
+    // Faction.Colony — верная ровно до §146, который дал дом с дверью КАЖДОМУ
+    // девичьему лагерю. Живой серверный сейв (HugeIsland): шесть хижин, у пяти
+    // жительницы Colony2…Colony6 — и ни одна не имела права открыть СВОЮ
+    // дверь, поэтому роутер запирал их в собственном доме.
+    //
+    // Владелец ВЫВОДИТСЯ, а не хранится: §146.5 StakeCampHutPlans ставит сайт
+    // хижины в 2-4 гексах от очага своего лагеря, так что «ближайший девичий
+    // очаг» — точная обратная функция к тому, кто этот дом застолбил. Вывод
+    // работает и на уже сохранённых мирах (миграции нет) и остаётся тем самым
+    // ЕДИНСТВЕННЫМ местом, куда позже встанет сохраняемое поле.
+    //
+    // Аутсайдеры и Castaway домов не строят и владельцами не становятся
+    // никогда. Все решения о вражде ниже идут через FactionRelations, а не
+    // через самописное сравнение.
+    public static Faction OwnerFaction(WorldState world, WorldObjectState door)
+    {
+        if (world is null || door is null)
+        {
+            return Faction.Colony;
+        }
+
+        var anchor = OwnerAnchorTile(world, door);
+        var owner = Faction.Colony;
+        var best = int.MaxValue;
+        // AllFactions идёт по ординалу — порядок словаря FactionHomes не смеет
+        // попадать в реплей (правило BedSiteSystem). Ничья по расстоянию
+        // достаётся младшему ординалу.
+        foreach (var faction in AllFactions)
+        {
+            if (!FactionRelations.IsGirlCamp(faction) ||
+                !world.FactionHomes.TryGetValue(faction, out var home))
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.HexDistance(anchor, home);
+            if (distance < best)
+            {
+                best = distance;
+                owner = faction;
+            }
+        }
+
+        return owner;
+    }
+
+    // Дверь — LEGO-элемент §120: её собственный Tile стоит на периметре, между
+    // двумя гексами. Меряем от здания, которому она принадлежит.
+    private static TileCoord OwnerAnchorTile(WorldState world, WorldObjectState door) =>
+        door.ArchitectureOwnerId is { } ownerId &&
+        world.Entities.Objects.TryGetValue(ownerId, out var building)
+            ? building.Tile
+            : door.Tile;
 
     /// <summary>Портал закрытой двери? (пустой кэш ⇒ всегда false)</summary>
     public static bool IsClosedDoorPortal(WorldState world, JunctionId junctionId)
@@ -65,6 +113,9 @@ public static class DoorTopology
             : null;
     }
 
+    // ⭐ Порядок — ординал Faction, и это контракт: OwnerFaction разрешает
+    // ничью по расстоянию младшим ординалом, а порядок словаря в реплей не
+    // попадает.
     private static readonly Faction[] AllFactions =
         {
             Faction.Colony, Faction.Outsiders, Faction.Colony2, Faction.Colony3,
@@ -112,7 +163,14 @@ public static class DoorTopology
             var owner = OwnerFaction(world, door);
             foreach (var faction in AllFactions)
             {
-                if (!FactionRelations.AreHostile(world, faction, owner))
+                // #237: запрет роутера обязан совпадать с правом открыть
+                // створку, а гейт движения спрашивает именно AreAllies. Между
+                // «враждебна» и «союзница» жил НЕЙТРАЛЬНЫЙ лагерь (§146.12,
+                // solo-camp режимы): роутер вёл её сквозь чужую закрытую дверь,
+                // гейт отказывал, путь сбрасывался — вечная петля вместо
+                // честного PathFailed. С выключенным §72 AreAllies истинна для
+                // всех, поэтому kill-switch по-прежнему отдаёт пустые наборы.
+                if (FactionRelations.AreAllies(faction, owner))
                 {
                     continue;
                 }

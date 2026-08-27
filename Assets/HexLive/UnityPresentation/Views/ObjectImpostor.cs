@@ -346,18 +346,48 @@ public sealed class ObjectImpostor : MonoBehaviour
             }
 
             request.destination = _bakeTarget;
-            RenderPipeline.SubmitRenderRequest(camera, request);
+            // URP versions/build targets do not consistently preserve the
+            // camera clear alpha in SubmitRenderRequest. Recover coverage from
+            // two opaque mattes instead: white-black is exactly (1-alpha), so
+            // genuinely black details stay opaque while the background vanishes.
+            var black = CaptureMatte(camera, request, Color.black);
+            var white = CaptureMatte(camera, request, Color.white);
+            if (black == null || white == null || black.Length != white.Length)
+            {
+                return false;
+            }
 
-            var previousActive = RenderTexture.active;
-            RenderTexture.active = _bakeTarget;
+            var pixels = new Color32[black.Length];
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                var matteDelta = Mathf.Max(
+                    white[i].r - black[i].r,
+                    Mathf.Max(white[i].g - black[i].g, white[i].b - black[i].b));
+                var alpha = (byte)Mathf.Clamp(255 - matteDelta, 0, 255);
+                if (alpha == 0)
+                {
+                    pixels[i] = new Color32(0, 0, 0, 0);
+                    continue;
+                }
+
+                // The black-matte pass is premultiplied by coverage. Undo it
+                // before mip generation to avoid a dark fringe around cutouts.
+                pixels[i] = new Color32(
+                    (byte)Mathf.Clamp(Mathf.RoundToInt(black[i].r * 255f / alpha), 0, 255),
+                    (byte)Mathf.Clamp(Mathf.RoundToInt(black[i].g * 255f / alpha), 0, 255),
+                    (byte)Mathf.Clamp(Mathf.RoundToInt(black[i].b * 255f / alpha), 0, 255),
+                    alpha);
+            }
+
             texture = new Texture2D(BakeTextureSize, BakeTextureSize,
                 TextureFormat.RGBA32, mipChain: true)
             {
-                name = $"Impostor {_definitionId}"
+                name = $"Impostor {_definitionId}",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
             };
-            texture.ReadPixels(new Rect(0, 0, BakeTextureSize, BakeTextureSize), 0, 0);
+            texture.SetPixels32(pixels);
             texture.Apply(updateMipmaps: true, makeNoLongerReadable: true);
-            RenderTexture.active = previousActive;
         }
         finally
         {
@@ -376,6 +406,34 @@ public sealed class ObjectImpostor : MonoBehaviour
         worldSize = size;
         centerLift = bounds.center.y - transform.position.y;
         return true;
+    }
+
+    private static Color32[]? CaptureMatte(
+        Camera camera, RenderPipeline.StandardRequest request, Color background)
+    {
+        camera.backgroundColor = background;
+        RenderPipeline.SubmitRenderRequest(camera, request);
+
+        var previousActive = RenderTexture.active;
+        Texture2D? readback = null;
+        try
+        {
+            RenderTexture.active = _bakeTarget;
+            readback = new Texture2D(BakeTextureSize, BakeTextureSize,
+                TextureFormat.RGBA32, mipChain: false);
+            readback.ReadPixels(new Rect(0, 0, BakeTextureSize, BakeTextureSize), 0, 0);
+            readback.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+            return readback.GetPixels32();
+        }
+        finally
+        {
+            RenderTexture.active = previousActive;
+            camera.backgroundColor = new Color(0f, 0f, 0f, 0f);
+            if (readback != null)
+            {
+                Destroy(readback);
+            }
+        }
     }
 
     private static Camera? EnsureBakeCamera(Transform owner)
@@ -414,6 +472,11 @@ public sealed class ObjectImpostor : MonoBehaviour
 
         // Cutout: пишет глубину, не сортируется как transparent, дружит с
         // инстансингом — сотни пальм остаются считанными батчами.
+        material.SetOverrideTag("RenderType", "TransparentCutout");
+        material.SetFloat("_Surface", 0f);
+        material.SetFloat("_SrcBlend", (float)BlendMode.One);
+        material.SetFloat("_DstBlend", (float)BlendMode.Zero);
+        material.SetFloat("_ZWrite", 1f);
         material.SetFloat("_AlphaClip", 1f);
         material.EnableKeyword("_ALPHATEST_ON");
         material.SetFloat("_Cutoff", AlphaCutoff);

@@ -120,6 +120,11 @@ public sealed class TacticalMapUiContractTests
             Assert.That(impostor, Does.Not.Contain("AddComponent<SpriteRenderer>"));
             Assert.That(impostor, Does.Contain("forceRenderingOff"));
             Assert.That(impostor, Does.Contain("SubmitRenderRequest"));
+            Assert.That(impostor, Does.Contain("CaptureMatte(camera, request, Color.black)"));
+            Assert.That(impostor, Does.Contain("CaptureMatte(camera, request, Color.white)"));
+            Assert.That(impostor, Does.Contain("255 - matteDelta"));
+            Assert.That(impostor, Does.Contain("TransparentCutout"));
+            Assert.That(impostor, Does.Contain("TextureWrapMode.Clamp"));
             Assert.That(impostor, Does.Not.Contain("WorldToScreenPoint"));
             Assert.That(input, Does.Contain("impostor.DistantActive"));
             Assert.That(spec, Does.Contain("### §150.4"));

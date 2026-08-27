@@ -410,6 +410,65 @@ public sealed class PlayerCharacterAssignmentsTests
         });
     }
 
+    // §149 r3 / #236: контекстное меню обязано отвечать то же, что приём
+    // приказа. Пока «своя» была буквальной Faction.Colony, у игрока лагеря
+    // Colony2..Colony6 меню переворачивалось: девушка ПЕРВОГО лагеря попадала
+    // в ветку своей (охота §56, «взять на руки» стоящей), хотя приём считает её
+    // чужой и отбивает `PersonNotAvailable`/`NotAlly`; а объединение лагерей
+    // §146.12 не показывалось вовсе — оно требовало carrier.Faction == Colony.
+    [Test]
+    public void ManualMenuTargetsMatchAdmissionForAnAssignedNeighbouringCampGirl()
+    {
+        using var host = CreateHost(GameMode.HugeIsland, "huge-menu.sav");
+        var assignments = PlayerCharacterAssignments.Load(
+            Path.Combine(_directory, "huge-menu.json"), continueExistingWorld: false);
+        assignments.Reconcile(host, Id(44), characterLimit: 1);
+        var second = assignments.Reconcile(host, Id(45), characterLimit: 1);
+        Assert.That(second, Is.Not.Empty, "Второй игрок обязан получить персонажа.");
+
+        var neighbour = second[0];
+        var manual = host.SubmitManualCommand(
+            new SetManualControlCommand(new EntityId(neighbour), true));
+
+        var (actorFaction, targetFaction, allies, targetLying) = host.Read(world =>
+        {
+            var actor = world.Entities.Npcs[new EntityId(neighbour)];
+            var target = world.Entities.Npcs[new EntityId(1)];
+            return (actor.Faction, target.Faction,
+                FactionRelations.AreAllies(actor, target),
+                target.IsLyingDown(world.Tick));
+        });
+
+        // Тот самый приказ, который старое меню предлагало на девушке первого
+        // лагеря: «взять на руки» стоящую чужую.
+        var carry = host.SubmitManualCommand(
+            new CarryPersonCommand(new EntityId(neighbour), new EntityId(1)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(manual.Accepted, Is.True);
+            Assert.That(actorFaction, Is.Not.EqualTo(HexLive.Simulation.Agents.Faction.Colony),
+                "Смысл теста — именно ЧУЖОЙ лагерь; иначе он проходит и на старом гейте.");
+            Assert.That(targetFaction, Is.EqualTo(HexLive.Simulation.Agents.Faction.Colony),
+                "Цель — девушка ПЕРВОГО лагеря: её и путал буквальный гейт.");
+            Assert.That(targetLying, Is.False, "Стоящая: лежачую носят любую.");
+            Assert.That(allies, Is.False, "Разные лагеря — приём считает её чужой.");
+            Assert.That(carry.Accepted, Is.False,
+                "Приём отбивает «взять на руки» стоящую чужую (PersonNotAvailable).");
+
+            Assert.That(ManualMenuTargets.SameSide(actorFaction, targetFaction), Is.False,
+                "Меню обязано молчать там, где приём отбивает: старый гейт " +
+                "target.Faction == Faction.Colony предлагал охоту §56 и носилки.");
+            Assert.That(ManualMenuTargets.SameSide(actorFaction, actorFaction), Is.True,
+                "Соседка по СВОЕМУ лагерю обязана остаться своей.");
+            Assert.That(ManualMenuTargets.NeighbourCamp(actorFaction, targetFaction), Is.True,
+                "§146.12: старый гейт требовал carrier.Faction == Faction.Colony, " +
+                "и у игрока лагеря Colony2..Colony6 объединения не было в меню вовсе.");
+            Assert.That(ManualMenuTargets.NeighbourCamp(actorFaction, actorFaction), Is.False,
+                "Свой лагерь с самим собой не объединяют (AlreadySameCamp).");
+        });
+    }
+
     [Test]
     public void ServerCraftingReadModelContainsOnlyAssignedManualCharacters()
     {

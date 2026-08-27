@@ -926,13 +926,17 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
+        // §149 r3 (#236): «своя» — лагерь ТОЙ, КТО ОТДАЁТ приказ. Буквальная
+        // Faction.Colony у игрока лагеря Colony2..Colony6 переворачивала меню:
+        // соседка по лагерю уходила в ветку чужой, а чужая — в ветку своей.
+        var sameSide = carrier != null &&
+            ManualMenuTargets.SameSide(carrier.Faction, target.Faction);
+
         // §146.12: two explicit diplomatic outcomes over the same command
         // bus. Both directed affinities must be >50%; the simulation repeats
         // every check and owns the actual atomic merge.
         var neighbourCamp = !dead && carrier != null &&
-            carrier.Faction == Faction.Colony &&
-            target.Faction is Faction.Colony2 or Faction.Colony3 or
-                Faction.Colony4 or Faction.Colony5 or Faction.Colony6;
+            ManualMenuTargets.NeighbourCamp(carrier.Faction, target.Faction);
         if (neighbourCamp)
         {
             var mutualAffinity = AffinityTo(carrier!, npcId) > 0.50f &&
@@ -981,7 +985,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         if (!dead && HexLive.Simulation.Runtime.Spec121.ManualDarkOrdersEnabled &&
             canOrderSocial)
         {
-            if (target.Faction == Faction.Colony && !target.IsUnconscious)
+            if (sameSide && !target.IsUnconscious)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.dark.prey"),
                     () => OpenConfirmMenu(mousePos, NpcTitle(npcId),
@@ -989,7 +993,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                         () => EnqueueOrder(carrier!.Id.Value, new PreyPersonCommand(
                             new EntityId(carrier.Id.Value), new EntityId(npcId))))));
             }
-            else if (target.Faction != Faction.Colony && !lying)
+            else if (!sameSide && !lying)
             {
                 _entries.Add(new ContextMenuEntry(Loc.Get("menu.dark.abuse"),
                     () => OpenConfirmMenu(mousePos, NpcTitle(npcId),
@@ -1021,7 +1025,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         }
         // §118.4 r2 (#166): СВОИХ берут на руки всегда — спят они или нет, здоровы
         // или переломаны. Чужой на ногах в руки не даётся: это уже не носилки.
-        else if (lying || target.Faction == Faction.Colony)
+        else if (lying || sameSide)
         {
             var canCarry = carrier != null && _selectedColonyIds.Count == 1 &&
                 carrier.CarriedNpcId is null &&

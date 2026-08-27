@@ -17,38 +17,7 @@ public sealed class WorldStateFactory
 
     public WorldState Create(WorldBootstrapDefinition bootstrap)
     {
-        var world = new WorldState
-        {
-            Tick = 0,
-            TickDeltaTime = bootstrap.Simulation.TickDeltaTime,
-            Seed = bootstrap.Simulation.Seed,
-            Mode = bootstrap.Simulation.Mode
-        };
-
-        foreach (var pair in PrototypeContentCatalog.CreateDefaults())
-        {
-            world.Content.ObjectDefinitions[pair.Key] = pair.Value;
-        }
-
-        // Per-object assets (WorldObjectConfig → WorldObjectLibrary): merge
-        // asset-declared actions/tags over the defaults, add new object types.
-        WorldObjectLibrary.ApplyTo(world.Content.ObjectDefinitions);
-        // One canonical bed. Unity config overrides from an older editor session
-        // may still register the retired ids; they are save-input aliases only.
-        world.Content.ObjectDefinitions.Remove(ContentIds.BedLeaf);
-        world.Content.ObjectDefinitions.Remove(ContentIds.HutBed);
-
-        world.Environment.GlobalTemperature = bootstrap.Environment.GlobalTemperature;
-
-        foreach (var fragmentBootstrap in bootstrap.Fragments)
-        {
-            AddFragment(world, fragmentBootstrap);
-        }
-
-        BuildAdjacency(world);
-        BlockEdgeJunctions(world);
-        BlockCliffAndSeaJunctions(world);
-        OpenSwimRing(world);
+        var world = CreateTopology(bootstrap);
         BuildStepDeltas(world);
 
         foreach (var objectBootstrap in bootstrap.Objects)
@@ -269,6 +238,54 @@ public sealed class WorldStateFactory
             SeedHugeIslandGarments(world);
         }
 
+        return world;
+    }
+
+    /// <summary>
+    /// Static geometry only: content catalog, tiles, junctions, adjacency and
+    /// the blocked/swim classification — everything <see cref="Wire.TopologyChecksum"/>
+    /// hashes, and nothing else. No objects, no NPCs, no wardrobe rolls and no
+    /// per-edge step deltas: those exist for the SIMULATION, and a remote
+    /// viewer never simulates. On the production big island the full
+    /// <see cref="Create"/> is minutes of main-thread-equivalent work while
+    /// this is seconds — and the checksum is identical by construction, because
+    /// the checksum deliberately hashes worldgen-static integers only (tiles
+    /// and the junction graph), never <c>Blocked</c>, objects or NPCs.
+    /// </summary>
+    public WorldState CreateTopology(WorldBootstrapDefinition bootstrap)
+    {
+        var world = new WorldState
+        {
+            Tick = 0,
+            TickDeltaTime = bootstrap.Simulation.TickDeltaTime,
+            Seed = bootstrap.Simulation.Seed,
+            Mode = bootstrap.Simulation.Mode
+        };
+
+        foreach (var pair in PrototypeContentCatalog.CreateDefaults())
+        {
+            world.Content.ObjectDefinitions[pair.Key] = pair.Value;
+        }
+
+        // Per-object assets (WorldObjectConfig → WorldObjectLibrary): merge
+        // asset-declared actions/tags over the defaults, add new object types.
+        WorldObjectLibrary.ApplyTo(world.Content.ObjectDefinitions);
+        // One canonical bed. Unity config overrides from an older editor session
+        // may still register the retired ids; they are save-input aliases only.
+        world.Content.ObjectDefinitions.Remove(ContentIds.BedLeaf);
+        world.Content.ObjectDefinitions.Remove(ContentIds.HutBed);
+
+        world.Environment.GlobalTemperature = bootstrap.Environment.GlobalTemperature;
+
+        foreach (var fragmentBootstrap in bootstrap.Fragments)
+        {
+            AddFragment(world, fragmentBootstrap);
+        }
+
+        BuildAdjacency(world);
+        BlockEdgeJunctions(world);
+        BlockCliffAndSeaJunctions(world);
+        OpenSwimRing(world);
         return world;
     }
 

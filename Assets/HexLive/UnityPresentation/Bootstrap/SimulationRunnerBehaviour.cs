@@ -508,6 +508,18 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
 
     private void Bootstrap(WorldBootstrapDefinition definition)
     {
+        // A remote client does not own a local fallback world. Building one
+        // here was pure waste: Continue synchronously generated seed 0,
+        // prewarmed its content and only then threw that engine away before
+        // opening the socket. The visible result was a several-second frozen
+        // curtain before the first "Connecting" frame. The authoritative seed
+        // arrives in Handshake; RemoteSocketBackend regenerates exactly that
+        // topology on a worker.
+        if (TryBootstrapRemote())
+        {
+            return;
+        }
+
         var factory = new WorldStateFactory();
         var world = factory.Create(definition);
         var saveHeader = SaveGame.TryReadHeader();
@@ -576,6 +588,34 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         _backend = CreateBackend(new LocalEngineBackend(engine, clock, settings));
         SimulationSource.Current = this;
         _lastLoggedSeq = 0;
+    }
+
+    private bool TryBootstrapRemote()
+    {
+        if (SessionConfig.Mode != SimulationMode.Remote)
+        {
+            return false;
+        }
+
+        var url = SessionConfig.ServerUrl;
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            // Defensive fallback for dev callers which selected Remote without
+            // an address. LoadingScreen never does this; preserving a local
+            // world here keeps those callers usable and retains the old error.
+            Debug.LogError("[HexLive] Remote session requested with no server URL — staying local.");
+            return false;
+        }
+
+        _backend?.Shutdown();
+        _contentWarmed = false;
+        var remote = new Remote.RemoteSocketBackend(
+            url, SessionConfig.ControlToken, SessionConfig.ClientId);
+        _backend = remote;
+        SimulationSource.Current = this;
+        _lastLoggedSeq = 0;
+        remote.Connect();
+        return true;
     }
 
     /// <summary>
@@ -651,9 +691,9 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     }
 
     /// <summary>
-    /// Picks the backend for this session. The local engine is built either way —
-    /// it costs one worldgen and it means a failed connection can still fall back
-    /// to a playable game instead of a black screen.
+    /// Picks the backend for a world which was deliberately built locally.
+    /// Remote mode returns earlier through <see cref="TryBootstrapRemote"/> so
+    /// pressing Continue never creates and discards a seed-0 fallback world.
     /// </summary>
     private static ISimulationBackend CreateBackend(LocalEngineBackend local)
     {
@@ -661,22 +701,6 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         {
             case SimulationMode.Loopback:
                 return new LoopbackBackend(local);
-
-            case SimulationMode.Remote:
-                var url = SessionConfig.ServerUrl;
-                if (string.IsNullOrWhiteSpace(url))
-                {
-                    Debug.LogError("[HexLive] Remote session requested with no server URL — staying local.");
-                    return local;
-                }
-
-                local.Shutdown();
-                // §121.9: с токеном игрока сервер разрешит NpcCommand, и весь
-                // ручной режим оживёт на удалёнке сам (SupportsNpcCommands).
-                var remote = new Remote.RemoteSocketBackend(
-                    url, SessionConfig.ControlToken, SessionConfig.ClientId);
-                remote.Connect();
-                return remote;
 
             default:
                 return local;

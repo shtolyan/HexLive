@@ -304,6 +304,12 @@ public sealed class Handshake
 
                 read += got;
             }
+
+            if (gzip.ReadByte() >= 0)
+            {
+                throw new InvalidDataException(
+                    $"Compressed frame expands beyond its declared {rawLength} bytes.");
+            }
         }
 
         return Encoding.UTF8.GetString(raw);
@@ -348,6 +354,19 @@ public static class Frame
             packed = packedStream.ToArray();
         }
 
+        // A handshake already contains gzip-compressed simdata. Depending on
+        // the concrete bytes, a second Fastest pass can grow it (the production
+        // handshake observed on 2026-08-27 grew 34 204 -> 35 817 bytes). Sending
+        // a larger transport envelope wastes bandwidth and, more importantly,
+        // used to trip the receiver's old "raw + 1024" plausibility guard so
+        // the client discarded its first Handshake and stayed Connecting
+        // forever. Compression is an optimization: when it does not pay for its
+        // own kind/length header, send the original frame byte-for-byte.
+        if (packed.Length + 9 >= frame.Length)
+        {
+            return frame;
+        }
+
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8);
         writer.Write(frame.Length);
@@ -365,9 +384,14 @@ public static class Frame
         var rawLength = reader.ReadInt32();
         var packedLength = reader.ReadInt32();
 
-        // Той же меркой, что simdata: длине разжатого нельзя верить на слово.
+        // Той же меркой, что simdata: длинам нельзя верить на слово. Но
+        // packed не обязан быть меньше raw: старый prod уже успел выдать
+        // валидный, но расширившийся gzip-handshake. Клиент обязан его принять;
+        // новый сервер выше просто пошлёт такой кадр несжатым. Оба
+        // буфера и точное тело по-прежнему ограничены 64 MiB.
         if (rawLength < 1 || rawLength > 64 * 1024 * 1024 ||
-            packedLength < 0 || packedLength > rawLength + 1024)
+            packedLength < 1 || packedLength > 64 * 1024 * 1024 ||
+            packedLength != payload.Length - 8)
         {
             throw new InvalidDataException(
                 $"Compressed frame claims {rawLength} bytes packed into {packedLength} — not plausible.");

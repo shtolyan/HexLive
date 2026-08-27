@@ -66,6 +66,13 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     /// </summary>
     private const int MaxConnectAttempts = 8;
 
+    // An HTTP/WebSocket upgrade and the first protocol Handshake are separate
+    // milestones. Neither may own the loading curtain forever: a TLS black hole
+    // can stall ConnectAsync, while a peer which sends frames but no valid
+    // Handshake keeps the byte-liveness watchdog satisfied indefinitely.
+    private const double ConnectAttemptTimeoutSeconds = 12.0;
+    private const double HandshakeTimeoutSeconds = 12.0;
+
     /// <summary>Ping cadence. Also the liveness probe — see <see cref="StallAfterSeconds"/>.</summary>
     private const double PingIntervalSeconds = 2.0;
 
@@ -133,6 +140,20 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     private WorldState? _localWorld;
     private bool _ready;
+
+    private sealed class InitialWorldBuild
+    {
+        public Handshake Handshake { get; set; } = null!;
+        public WorldState World { get; set; } = null!;
+        public WorldSnapshot StaticSnapshot { get; set; } = null!;
+        public uint Checksum { get; set; }
+    }
+
+    // Worldgen is pure simulation work but used to run in ConsumeHandshake on
+    // Unity's main thread. On a production island that made the editor/player
+    // look dead exactly when the loading curtain said the island was waking.
+    // Tick only polls this task and atomically adopts its finished result.
+    private Task<InitialWorldBuild>? _initialWorldBuild;
 
     /// <param name="controlToken">§121.9: токен игрока (<c>--control</c> на
     /// сервере). Null — прежний анонимный зритель.</param>
@@ -268,8 +289,14 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                 // обе стороны без бампа ProtocolVersion.
                 socket.Options.SetRequestHeader("X-HexLive-Accepts", "gzip");
 
-                await socket.ConnectAsync(new Uri(_url), connectionLifetime.Token)
-                    .ConfigureAwait(false);
+                using (var connectAttempt =
+                       CancellationTokenSource.CreateLinkedTokenSource(connectionLifetime.Token))
+                {
+                    connectAttempt.CancelAfter(
+                        TimeSpan.FromSeconds(ConnectAttemptTimeoutSeconds));
+                    await socket.ConnectAsync(new Uri(_url), connectAttempt.Token)
+                        .ConfigureAwait(false);
+                }
 
                 lock (_inbox)
                 {
@@ -290,7 +317,13 @@ public sealed class RemoteSocketBackend : ISimulationBackend
             }
             catch (OperationCanceledException)
             {
-                return;
+                if (cancel.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                SetState(LinkState.Reconnecting,
+                    $"Connection attempt timed out after {ConnectAttemptTimeoutSeconds:0} seconds.");
             }
             catch (UriFormatException ex)
             {
@@ -452,7 +485,22 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                 catch (Exception ex) when (
                     ex is InvalidDataException or EndOfStreamException or IOException)
                 {
-                    Debug.LogWarning($"[HexLive] Compressed frame refused ({ex.Message}).");
+                    bool waitingForHandshake;
+                    lock (_inbox)
+                    {
+                        waitingForHandshake = _handshake == null;
+                    }
+                    if (waitingForHandshake)
+                    {
+                        // There is no usable session to preserve. Waiting for
+                        // later snapshots after rejecting frame #1 only leaves
+                        // LoadingScreen in an eternal Connecting state.
+                        Fail($"Server handshake is invalid: {ex.Message}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[HexLive] Compressed frame refused ({ex.Message}).");
+                    }
                     return;
                 }
 
@@ -651,6 +699,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     private async Task PingLoopAsync(ClientWebSocket socket, CancellationToken cancel)
     {
         var unanswered = Stopwatch.StartNew();
+        var waitingForHandshake = Stopwatch.StartNew();
         try
         {
             while (!cancel.IsCancellationRequested && socket.State == WebSocketState.Open)
@@ -658,6 +707,20 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                 await Task.Delay(TimeSpan.FromSeconds(PingIntervalSeconds), cancel).ConfigureAwait(false);
                 if (socket.State != WebSocketState.Open)
                 {
+                    return;
+                }
+
+                bool handshakeAccepted;
+                lock (_inbox)
+                {
+                    handshakeAccepted = _handshake != null;
+                }
+                if (!handshakeAccepted &&
+                    waitingForHandshake.Elapsed.TotalSeconds > HandshakeTimeoutSeconds)
+                {
+                    SetState(LinkState.Reconnecting,
+                        $"No valid handshake after {HandshakeTimeoutSeconds:0} seconds.");
+                    socket.Abort();
                     return;
                 }
 
@@ -900,6 +963,11 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     /// </summary>
     private void ConsumeHandshake()
     {
+        if (TryCompleteInitialWorldBuild())
+        {
+            return;
+        }
+
         Handshake? handshake;
         lock (_inbox)
         {
@@ -954,34 +1022,112 @@ public sealed class RemoteSocketBackend : ISimulationBackend
             return;
         }
 
+        Debug.Log($"[HexLive] Building seed {handshake.Seed} topology on a worker.");
+        _initialWorldBuild = Task.Run(() => BuildInitialWorld(handshake));
+    }
+
+    private static InitialWorldBuild BuildInitialWorld(Handshake handshake)
+    {
         // §146.2: the island is a function of (seed, mode) — regenerate with
         // the server's mode or the checksum below would refuse every BigIsland
         // world with a misleading "different builds".
+        var clock = Stopwatch.StartNew();
         var definition = PrototypeWorldDefinitionFactory.Create(
             handshake.Seed, (GameMode)handshake.Mode);
-        _localWorld = new WorldStateFactory().Create(definition);
+        var definitionMs = clock.ElapsedMilliseconds;
 
-        var checksum = TopologyChecksum.Compute(_localWorld);
-        if (checksum != handshake.TopologyChecksum)
+        // Topology ONLY. The full Create also spawns every object and NPC,
+        // rolls wardrobes and bakes ~200k junctions' step deltas — simulation
+        // furniture a viewer never touches: entities arrive in the first wire
+        // keyframe, and this world is read for Content definitions, tiles and
+        // junctions alone. On the production big island the full build was the
+        // main course of a 237-second connect.
+        clock.Restart();
+        var world = new WorldStateFactory().CreateTopology(definition);
+        var topologyMs = clock.ElapsedMilliseconds;
+
+        clock.Restart();
+        var checksum = TopologyChecksum.Compute(world);
+        var checksumMs = clock.ElapsedMilliseconds;
+
+        clock.Restart();
+        var snapshot = WorldSnapshotExporter.Export(world);
+        Debug.Log($"[HexLive] Topology build: definition {definitionMs} ms, " +
+                  $"junctions {topologyMs} ms, checksum {checksumMs} ms, " +
+                  $"export {clock.ElapsedMilliseconds} ms " +
+                  $"({world.Junctions.Items.Count} junctions).");
+
+        return new InitialWorldBuild
+        {
+            Handshake = handshake,
+            World = world,
+            Checksum = checksum,
+            StaticSnapshot = snapshot,
+        };
+    }
+
+    /// <returns>True while a build is still pending or after its result was
+    /// adopted; false when there was no build (or a stale build was discarded)
+    /// and a newly arrived handshake may be consumed in this same tick.</returns>
+    private bool TryCompleteInitialWorldBuild()
+    {
+        var task = _initialWorldBuild;
+        if (task == null)
+        {
+            return false;
+        }
+        if (!task.IsCompleted)
+        {
+            return true;
+        }
+
+        _initialWorldBuild = null;
+        if (task.IsCanceled)
+        {
+            Fail("The local topology build was canceled.");
+            return true;
+        }
+        if (task.IsFaulted)
+        {
+            Fail("The local topology build failed: " +
+                 (task.Exception?.GetBaseException().Message ?? "unknown error"));
+            return true;
+        }
+
+        var result = task.Result;
+        lock (_inbox)
+        {
+            if (!ReferenceEquals(_handshake, result.Handshake))
+            {
+                // The socket reconnected while the old seed was building. Its
+                // result belongs to the retired connection; consume the new
+                // handshake below instead of ever publishing stale geometry.
+                return false;
+            }
+        }
+
+        var handshake = result.Handshake;
+        if (result.Checksum != handshake.TopologyChecksum)
         {
             // Worldgen is deterministic, so this means the two ends are not the
             // same build. Refuse: every position we draw would be subtly wrong,
             // and retrying cannot fix a version difference.
             Fail($"Topology mismatch: server 0x{handshake.TopologyChecksum:X8}, " +
-                 $"local 0x{checksum:X8}. The client and server are running different builds.");
-            return;
+                 $"local 0x{result.Checksum:X8}. The client and server are running different builds.");
+            return true;
         }
+
+        _localWorld = result.World;
 
         // Static geometry comes from our own world; the wire only carries what
         // moves. Tiles as well as junctions — both are worldgen output, and the
         // checksum above is what proves ours match the server's.
-        var local = WorldSnapshotExporter.Export(_localWorld);
-        foreach (var junction in local.Junctions)
+        foreach (var junction in result.StaticSnapshot.Junctions)
         {
             _snapshot.Junctions.Add(junction);
         }
 
-        foreach (var tile in local.Tiles)
+        foreach (var tile in result.StaticSnapshot.Tiles)
         {
             _snapshot.Tiles.Add(tile);
         }
@@ -1003,7 +1149,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
             handshake.SpeedMultiplier, handshake.Paused);
         _ready = true;
         Debug.Log($"[HexLive] Watching seed {handshake.Seed} from tick {handshake.Tick} " +
-                  $"(topology 0x{checksum:X8} matches).");
+                  $"(topology 0x{result.Checksum:X8} matches).");
 
         // §149: права ПОЛУЧЕННЫЕ, а не запрошенные. Без этой строки лог отвечал
         // только «к чему подключился» и молчал о том, чем разрешено управлять:
@@ -1013,6 +1159,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         Debug.Log($"[HexLive] Control: enabled={handshake.ControlEnabled} " +
                   $"owner={(string.IsNullOrEmpty(handshake.ControlOwner) ? "—" : handshake.ControlOwner)} " +
                   $"assigned=[{string.Join(",", handshake.AssignedNpcIds)}]");
+        return true;
     }
 
     private void DecodeEvents(List<byte[]> frames)

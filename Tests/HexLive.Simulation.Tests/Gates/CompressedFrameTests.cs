@@ -37,6 +37,22 @@ public sealed class CompressedFrameTests
     }
 
     [Test]
+    public void IncompressibleFrameStaysUnwrapped()
+    {
+        // A transport codec is allowed to decline compression. Handshake
+        // simdata is already gzip and the real production payload once grew by
+        // 1.6 KiB on a second Fastest pass, stranding clients before Handshake.
+        var payload = new byte[34 * 1024];
+        new Random(83).NextBytes(payload);
+        var inner = Frame.Wrap(FrameKind.Handshake, payload);
+
+        var result = Frame.Compress(inner);
+
+        Assert.That(result, Is.EqualTo(inner));
+        Assert.That((FrameKind)result[0], Is.EqualTo(FrameKind.Handshake));
+    }
+
+    [Test]
     public void CompressedFrameWithImplausibleLengthsIsRefused()
     {
         using var stream = new MemoryStream();

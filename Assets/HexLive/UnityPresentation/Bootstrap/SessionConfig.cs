@@ -57,6 +57,19 @@ public static class SessionConfig
     private static string? _controlToken;
     private static (double BaseMs, double JitterMs, int Seed)? _netSim;
 
+    public static event Action? ServerChanged;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        _resolved = false;
+        _mode = SimulationMode.Local;
+        _serverUrl = null;
+        _controlToken = null;
+        _netSim = null;
+        ServerChanged = null;
+    }
+
     public static SimulationMode Mode
     {
         get
@@ -131,6 +144,8 @@ public static class SessionConfig
     public static void UseServer(string? url, string? controlToken = null)
     {
         Resolve();
+        var previousMode = _mode;
+        var previousUrl = _serverUrl;
         if (!string.IsNullOrWhiteSpace(controlToken))
         {
             _controlToken = ResolveToken(controlToken!);
@@ -140,11 +155,22 @@ public static class SessionConfig
         {
             _mode = SimulationMode.Local;
             _serverUrl = null;
+            NotifyServerChanged(previousMode, previousUrl);
             return;
         }
 
         _mode = SimulationMode.Remote;
-        _serverUrl = url;
+        _serverUrl = ServerBook.Normalize(url);
+        NotifyServerChanged(previousMode, previousUrl);
+    }
+
+    private static void NotifyServerChanged(SimulationMode previousMode, string? previousUrl)
+    {
+        if (previousMode != _mode ||
+            !string.Equals(previousUrl, _serverUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            ServerChanged?.Invoke();
+        }
     }
 
     private static void Resolve()
@@ -214,8 +240,8 @@ public static class SessionConfig
             }
 
             _mode = SimulationMode.Remote;
-            _serverUrl = url;
-            Debug.Log($"[HexLive] Session mode: Remote ({url})");
+            _serverUrl = ServerBook.Normalize(url);
+            Debug.Log($"[HexLive] Session mode: Remote ({_serverUrl})");
         }
     }
 

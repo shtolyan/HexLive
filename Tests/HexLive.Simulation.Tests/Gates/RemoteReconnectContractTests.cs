@@ -15,6 +15,10 @@ public sealed class RemoteReconnectContractTests
         RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Bootstrap", "Remote",
         "RemoteSocketBackend.cs"));
 
+    private static string Runner() => File.ReadAllText(Path.Combine(
+        RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Bootstrap",
+        "SimulationRunnerBehaviour.cs"));
+
     [Test]
     public void RetryBudgetResetsOnlyAfterProtocolHandshake()
     {
@@ -53,5 +57,39 @@ public sealed class RemoteReconnectContractTests
         Assert.That(backend, Does.Contain("_sendGate.WaitAsync(connectionCancel)"));
         Assert.That(backend, Does.Contain("connectionLifetime.Cancel();"));
         Assert.That(backend, Does.Not.Contain("_sendGate.WaitAsync(_shutdown.Token)"));
+    }
+
+    [Test]
+    public void ConnectAndProtocolHandshakeBothHaveDeadlines()
+    {
+        var backend = Backend();
+
+        Assert.That(backend, Does.Contain("ConnectAttemptTimeoutSeconds"));
+        Assert.That(backend, Does.Contain("connectAttempt.CancelAfter"));
+        Assert.That(backend, Does.Contain("HandshakeTimeoutSeconds"));
+        Assert.That(backend, Does.Contain("No valid handshake after"));
+        Assert.That(backend, Does.Contain("Server handshake is invalid"));
+    }
+
+    [Test]
+    public void RemoteContinueDoesNotBuildAndDiscardALocalFallbackWorld()
+    {
+        var runner = Runner();
+        var remoteFastPath = runner.IndexOf("if (TryBootstrapRemote())", StringComparison.Ordinal);
+        var localWorldgen = runner.IndexOf("var factory = new WorldStateFactory()", StringComparison.Ordinal);
+
+        Assert.That(remoteFastPath, Is.GreaterThan(0));
+        Assert.That(remoteFastPath, Is.LessThan(localWorldgen));
+        Assert.That(runner, Does.Contain("RemoteSocketBackend(") );
+    }
+
+    [Test]
+    public void AuthoritativeTopologyBuildRunsOffTheUnityThread()
+    {
+        var backend = Backend();
+
+        Assert.That(backend, Does.Contain("Task.Run(() => BuildInitialWorld(handshake))"));
+        Assert.That(backend, Does.Contain("TryCompleteInitialWorldBuild()"));
+        Assert.That(backend, Does.Contain("ReferenceEquals(_handshake, result.Handshake)"));
     }
 }

@@ -28,7 +28,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 VOICE_DIR = REPO / "_ArtSource/Voice"
-VOICES = REPO / "Assets/HexLiveContent/AudioSource/HexLive/Sfx/Voices"
+VOICES = REPO / "Assets/StreamingAssets/HexLive/Sfx/Voices"
 sys.path.insert(0, str(VOICE_DIR))
 
 import numpy as np  # noqa: E402

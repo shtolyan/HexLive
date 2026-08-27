@@ -40,8 +40,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 STUB = ROOT / "Assets" / "HexLive" / "UnityPresentation" / "Audio" / "FmodStub.local.cs"
 FMOD_PLUGIN = ROOT / "Assets" / "Plugins" / "FMOD"
-MASTER_BANK = (ROOT / "Assets" / "HexLiveContent" / "AudioSource" /
-               "FMODBanks" / "Master.bank")
+MASTER_BANK = ROOT / "Assets" / "StreamingAssets" / "FMODBanks" / "Master.bank"
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
 
 # Bank FMT-chunk format version -> the FMOD line that writes it. Only the lines
@@ -357,9 +356,9 @@ def main() -> int:
 
     print(
         "\nГотово: интеграция на месте и проект компилируется. Осталось настроить "
-        "FMODStudioSettings (authoring source → Assets/HexLiveContent/AudioSource/FMODBanks, "
-        "ImportType = AssetBundle, BankLoadType = None): Player не копирует банки, "
-        "а raw audio records загружаются через ContentAssetService."
+        "FMODStudioSettings (Player banks → Assets/StreamingAssets/FMODBanks, "
+        "ImportType = StreamingAssets, BankLoadType = All): банки и общие звуки "
+        "входят в Player и не зависят от ContentAssetService."
     )
     return 0
 

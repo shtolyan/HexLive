@@ -1,16 +1,16 @@
 #nullable enable
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using HexLive.UnityPresentation.Content;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Audio
 {
     /// <summary>
-    /// Spec §67/§152: thin FMOD Core wrapper over independently versioned raw
-    /// audio objects. Records with metadata kind=sfx/voice and the same group
-    /// form the random variants of one sound; bytes always come through the
-    /// verified SHA cache, never StreamingAssets.
+    /// Spec §67/§152: thin FMOD Core wrapper over Player-owned audio. Files
+    /// with the same logical prefix form the random variants of one sound;
+    /// SFX, voices, music and Studio banks ship in StreamingAssets and never
+    /// wait for the live-content registry.
     /// The FMOD Studio bank pipeline can replace this later without touching
     /// call sites — they only know ids like <see cref="Sfx.ChopWood"/>.
     /// </summary>
@@ -138,8 +138,6 @@ namespace HexLive.UnityPresentation.Audio
         private static bool _ready;
         private static bool _failed;
         private static bool _loading;
-        private static bool _prewarmRequested;
-        private static ContentAssetService _subscribedService;
         private static FMOD.ChannelGroup _master;
         private static System.Random _rng = new(9257);
 
@@ -155,12 +153,6 @@ namespace HexLive.UnityPresentation.Audio
             _ready = false;
             _failed = false;
             _loading = false;
-            _prewarmRequested = false;
-            if (_subscribedService != null)
-            {
-                _subscribedService.RegistryRefreshed -= RegistryBecameReady;
-                _subscribedService = null;
-            }
             _rng = new System.Random(9257);
 
             // §70: музыкальный стрим и его группа умирают вместе с системой FMOD.
@@ -184,100 +176,47 @@ namespace HexLive.UnityPresentation.Audio
                 return;
             }
 
-            var service = ContentAssetService.Instance;
-            if (!service.RegistryReady)
+            var root = Path.Combine(Application.streamingAssetsPath, "HexLive", "Sfx");
+            if (!Directory.Exists(root))
             {
-                _prewarmRequested = true;
-                if (_subscribedService == null)
-                {
-                    _subscribedService = service;
-                    service.RegistryRefreshed += RegistryBecameReady;
-                }
-                service.RefreshRegistry();
-                return;
-            }
-
-            // Only the small shared SFX working set belongs behind the loading
-            // curtain. Voice lines are independent atomic objects and are
-            // fetched when their group is requested; pulling every recorded
-            // line (and every viseme attachment) queued 2100+ blobs before one
-            // remote NPC could appear.
-            var records = service.Records("audio")
-                .Where(record => (string)record.metadata?["kind"] == "sfx")
-                .ToArray();
-            if (records.Length == 0)
-            {
+                Debug.LogError($"[FmodSfx] Player audio directory is missing: {root}");
                 _ready = true;
                 return;
             }
 
             _loading = true;
             var groups = new Dictionary<string, List<string>>(System.StringComparer.Ordinal);
-            var pending = records.Length;
-            foreach (var record in records)
+            foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+                         .Where(IsAudioFile)
+                         .Where(path => !IsVoiceFile(path)))
             {
-                var group = (string)record.metadata?["group"];
-                if (string.IsNullOrEmpty(group))
+                var group = GroupId(path);
+                if (!groups.TryGetValue(group, out var paths))
                 {
-                    group = record.id;
+                    paths = new List<string>();
+                    groups[group] = paths;
                 }
-
-                void Complete(string path, string visemePath)
-                {
-                    if (!string.IsNullOrEmpty(path))
-                    {
-                        if (!groups.TryGetValue(group, out var paths))
-                        {
-                            paths = new List<string>();
-                            groups[group] = paths;
-                        }
-                        paths.Add(path);
-                        if (!string.IsNullOrEmpty(visemePath))
-                        {
-                            VisemePaths[path] = visemePath;
-                        }
-                    }
-
-                    pending--;
-                    if (pending == 0)
-                    {
-                        OpenSounds(groups);
-                    }
-                }
-
-                var kind = (string)record.metadata?["kind"];
-                if (kind == "voice")
-                {
-                    service.GetRawFileWithAttachment("audio", record.id, "vis", Complete);
-                }
-                else
-                {
-                    service.GetRawFile("audio", record.id, path => Complete(path, null));
-                }
+                paths.Add(path);
             }
+            OpenSounds(groups);
         }
 
-        private static void RegistryBecameReady()
+        private static bool IsAudioFile(string path)
         {
-            if (_subscribedService != null)
-            {
-                _subscribedService.RegistryRefreshed -= RegistryBecameReady;
-                _subscribedService = null;
-            }
-            // Music asks for the registry from the bootstrap menu, before the
-            // world loading curtain owns the expensive SFX/voice prewarm.
-            // Do not turn that music-only request into a synchronous scan of
-            // every voice file. Prewarm remains explicit via WarmContent().
-            var prewarmRequested = _prewarmRequested;
-            _prewarmRequested = false;
-            // Menu music is three streaming files and must not sit behind the
-            // shared SFX working set. Queue it first; ContentAssetService also
-            // gives metadata.kind=music jobs priority over ordinary blobs.
-            ScanMusic();
-            if (prewarmRequested)
-            {
-                Prewarm();
-            }
+            var extension = Path.GetExtension(path);
+            return extension.Equals(".wav", System.StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals(".ogg", System.StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals(".mp3", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsVoiceFile(string path) => path.Replace('\\', '/').Contains(
+            "/Voices/", System.StringComparison.Ordinal);
+
+        private static string GroupId(string path)
+        {
+            var stem = Path.GetFileNameWithoutExtension(path);
+            var split = stem.LastIndexOf('_');
+            return split >= 0 && int.TryParse(stem[(split + 1)..], out _) ? stem[..split] : stem;
         }
 
         private static void OpenSounds(Dictionary<string, List<string>> groups)
@@ -295,53 +234,12 @@ namespace HexLive.UnityPresentation.Audio
                     LoadedDefs[id] = def;
                 }
 
-                // Voice groups are discovered from live record metadata.
-                foreach (var groupId in groups.Keys)
-                {
-                    if (groupId == "voice" ||
-                        groupId.StartsWith("voice_", System.StringComparison.Ordinal))
-                    {
-                        LoadedDefs.TryAdd(groupId, VoiceDef);
-                    }
-                }
-
                 foreach (var (id, def) in LoadedDefs)
                 {
                     var files = groups.TryGetValue(id, out var groupFiles)
                         ? groupFiles.ToArray()
                         : System.Array.Empty<string>();
-                    System.Array.Sort(files);
-                    var list = new List<FMOD.Sound>(files.Length);
-                    var pathList = new List<string>(files.Length);
-                    foreach (var file in files)
-                    {
-                        var mode = FMOD.MODE.CREATESAMPLE
-                            | (def.Loop ? FMOD.MODE.LOOP_NORMAL : FMOD.MODE.LOOP_OFF)
-                            | (def.Spatial
-                                ? FMOD.MODE._3D | FMOD.MODE._3D_LINEARSQUAREROLLOFF
-                                : FMOD.MODE._2D);
-                        if (core.createSound(file, mode, out var sound) != FMOD.RESULT.OK)
-                        {
-                            continue;
-                        }
-
-                        if (def.Spatial)
-                        {
-                            sound.set3DMinMaxDistance(def.MinDist, def.MaxDist);
-                        }
-
-                        list.Add(sound);
-                        pathList.Add(file);
-                    }
-
-                    if (list.Count == 0)
-                    {
-                        Debug.LogWarning($"[FmodSfx] no verified audio records for '{id}'");
-                        continue;
-                    }
-
-                    Sounds[id] = list.ToArray();
-                    Paths[id] = pathList.ToArray();
+                    OpenGroup(core, id, def, files);
                 }
 
                 _ready = true;
@@ -354,6 +252,77 @@ namespace HexLive.UnityPresentation.Audio
                 _loading = false;
                 Debug.LogError($"[FmodSfx] init failed, sound disabled: {e.Message}");
             }
+        }
+
+        private static bool OpenGroup(FMOD.System core, string id, Def def, string[] files)
+        {
+            System.Array.Sort(files);
+            var list = new List<FMOD.Sound>(files.Length);
+            var pathList = new List<string>(files.Length);
+            foreach (var file in files)
+            {
+                var mode = FMOD.MODE.CREATESAMPLE
+                    | (def.Loop ? FMOD.MODE.LOOP_NORMAL : FMOD.MODE.LOOP_OFF)
+                    | (def.Spatial
+                        ? FMOD.MODE._3D | FMOD.MODE._3D_LINEARSQUAREROLLOFF
+                        : FMOD.MODE._2D);
+                if (core.createSound(file, mode, out var sound) != FMOD.RESULT.OK)
+                {
+                    continue;
+                }
+
+                if (def.Spatial)
+                {
+                    sound.set3DMinMaxDistance(def.MinDist, def.MaxDist);
+                }
+
+                list.Add(sound);
+                pathList.Add(file);
+                var viseme = Path.ChangeExtension(file, ".vis");
+                if (File.Exists(viseme))
+                {
+                    VisemePaths[file] = viseme;
+                }
+            }
+
+            if (list.Count == 0)
+            {
+                Debug.LogWarning($"[FmodSfx] no Player audio files for '{id}'");
+                return false;
+            }
+
+            Sounds[id] = list.ToArray();
+            Paths[id] = pathList.ToArray();
+            return true;
+        }
+
+        private static bool EnsureVoiceGroup(string id)
+        {
+            if (Sounds.ContainsKey(id))
+            {
+                return true;
+            }
+            if (!_ready || !id.StartsWith("voice_", System.StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            var root = Path.Combine(Application.streamingAssetsPath, "HexLive", "Sfx", "Voices");
+            if (!Directory.Exists(root))
+            {
+                return false;
+            }
+            var files = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+                .Where(IsAudioFile)
+                .Where(path => string.Equals(GroupId(path), id, System.StringComparison.Ordinal))
+                .ToArray();
+            if (files.Length == 0)
+            {
+                return false;
+            }
+
+            LoadedDefs[id] = VoiceDef;
+            return OpenGroup(FMODUnity.RuntimeManager.CoreSystem, id, VoiceDef, files);
         }
 
         /// <summary>The camera is the ears: position + orientation each frame.</summary>
@@ -373,12 +342,13 @@ namespace HexLive.UnityPresentation.Audio
         }
 
         /// <summary>Есть ли такой звук (учитывая голосовые группы из скана).</summary>
-        public static bool HasSound(string id) => _ready && Sounds.ContainsKey(id);
+        public static bool HasSound(string id) => _ready &&
+            (Sounds.ContainsKey(id) || EnsureVoiceGroup(id));
 
         // ---- §67.12: маршрут через события FMOD Studio --------------------
         // Если Studio-событие доступно, громкость/эффекты/дистанции берутся из
-        // него. Иначе тот же verified raw object играет через FMOD Core; ни
-        // банки, ни StreamingAssets не являются runtime fallback.
+        // него. Иначе тот же Player-owned файл играет через FMOD Core; этот
+        // fallback всегда доступен без сети и без content registry.
         // §67.12 r2: играть ли ЛУПЫ (эмбиент, костёр) событиями Studio.
         // Пока false — см. комментарий в StartLoop: у сгенерированных событий
         // нет луп-региона, поэтому они одноразовые. Ставится в true сразу
@@ -431,7 +401,8 @@ namespace HexLive.UnityPresentation.Audio
         /// пока звучит предыдущая (IsPlaying).</summary>
         public static Loop PlayTracked(string id, Vector3 position, float volumeGain = 1f)
         {
-            if (!_ready || !Sounds.TryGetValue(id, out var variants))
+            if (!_ready || (!Sounds.TryGetValue(id, out var variants) &&
+                            (!EnsureVoiceGroup(id) || !Sounds.TryGetValue(id, out variants))))
             {
                 return default;
             }
@@ -633,7 +604,7 @@ namespace HexLive.UnityPresentation.Audio
         //  2) он нужен уже в ГЛАВНОМ МЕНЮ, то есть до того, как появится мир,
         //     а вместе с ним и Prewarm — поэтому у музыки свой ленивый init;
         //  3) одновременно звучит ровно один трек, так что и хэндл один.
-        // Каждый трек — отдельный raw object audio/<id>, metadata.kind=music.
+        // Каждый трек лежит в Player StreamingAssets/HexLive/Music.
         private static readonly Dictionary<string, string> MusicPaths = new();
         private static string[] _musicIds = System.Array.Empty<string>();
         private static bool _musicScanned;
@@ -662,45 +633,22 @@ namespace HexLive.UnityPresentation.Audio
                 return;
             }
 
-            var service = ContentAssetService.Instance;
-            if (!service.RegistryReady)
+            _musicScanned = true;
+            var root = Path.Combine(Application.streamingAssetsPath, "HexLive", "Music");
+            if (!Directory.Exists(root))
             {
-                if (_subscribedService == null)
-                {
-                    _subscribedService = service;
-                    service.RegistryRefreshed += RegistryBecameReady;
-                }
-                service.RefreshRegistry();
+                Debug.LogWarning($"[FmodSfx] Player music directory is missing: {root}");
                 return;
             }
 
-            _musicScanned = true;
-            var records = service.Records("audio")
-                .Where(record => (string)record.metadata?["kind"] == "music")
-                .ToArray();
-            foreach (var record in records)
+            foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.TopDirectoryOnly)
+                         .Where(IsAudioFile))
             {
-                var id = (string)record.metadata?["trackId"];
-                if (string.IsNullOrEmpty(id))
-                {
-                    id = record.id;
-                }
-                service.GetRawFile("audio", record.id, path =>
-                {
-                    if (!string.IsNullOrEmpty(path))
-                    {
-                        var changed = !MusicPaths.TryGetValue(id, out var oldPath) ||
-                                      oldPath != path;
-                        MusicPaths[id] = path;
-                        _musicIds = MusicPaths.Keys
-                            .OrderBy(value => value, System.StringComparer.Ordinal).ToArray();
-                        if (changed)
-                        {
-                            MusicTracksChanged?.Invoke();
-                        }
-                    }
-                });
+                MusicPaths[Path.GetFileNameWithoutExtension(path)] = path;
             }
+            _musicIds = MusicPaths.Keys
+                .OrderBy(value => value, System.StringComparer.Ordinal).ToArray();
+            MusicTracksChanged?.Invoke();
         }
 
         // Своя core-группа, подвешенная под мастер-ШИНУ Studio (а не под

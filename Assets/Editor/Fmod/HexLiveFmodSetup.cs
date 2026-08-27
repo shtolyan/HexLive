@@ -7,7 +7,7 @@ using UnityEditor;
 using UnityEngine;
 
 // ---------------------------------------------------------------------------
-//  Настройка FMOD без копирования банков в Player (§152).
+//  Настройка FMOD на банки, входящие в Player (§67/§152).
 //
 //  Зачем это код, а не «сделай руками по вики». `FMODStudioSettings.asset`
 //  живёт внутри `Assets/Plugins/FMOD/Resources/`, а вся эта папка —
@@ -15,16 +15,15 @@ using UnityEngine;
 //  проектом: каждая переустановка интеграции и каждая новая машина начинают с
 //  чистого листа, и «почему нет звука» приходится вспоминать заново.
 //
-//  Банки остаются authoring-source в HexLiveContent/AudioSource и публикуются
-//  как raw audio objects. Runtime получает каждый файл через SHA cache.
-//  ImportType.AssetBundle здесь означает только «не копировать SourceBankPath
-//  в StreamingAssets при Player build»; FMOD bundle pipeline не запускается.
+//  Банки лежат в StreamingAssets/FMODBanks рядом с общими SFX/голосами.
+//  Runtime грузит их локально при старте; сеть и live-content registry звуку
+//  не нужны.
 //
 //  Menu: HexLive ▸ FMOD ▸ Настроить на банки из репозитория
 // ---------------------------------------------------------------------------
 public static class HexLiveFmodSetup
 {
-    private const string SourceBankPath = "Assets/HexLiveContent/AudioSource/FMODBanks";
+    private const string SourceBankPath = "Assets/StreamingAssets/FMODBanks";
     private const string MasterBankName = "Master";
 
     [MenuItem("HexLive/FMOD/Настроить на банки из репозитория")]
@@ -108,9 +107,8 @@ public static class HexLiveFmodSetup
     }
 
     /// <summary>
-    /// Applies the build-safe FMOD authoring mode used by the atomic content
-    /// pipeline. Banks remain source files for raw ContentObjects; FMOD may
-    /// index their events in the editor but must not copy them into Player.
+    /// Applies the build-safe FMOD mode: banks are already in StreamingAssets,
+    /// so FMOD indexes and auto-loads them without generating bundle stubs.
     /// </summary>
     public static string ConfigureAtomicPlayer()
     {
@@ -155,13 +153,14 @@ public static class HexLiveFmodSetup
         settings.SourceProjectPath = string.Empty;
         settings.SourceBankPath = SourceBankPath;
 
-        settings.ImportType = ImportType.AssetBundle;
-        settings.TargetBankFolder = string.Empty;
-        settings.BankLoadType = BankLoadType.None;
-        settings.AutomaticEventLoading = false;
+        settings.ImportType = ImportType.StreamingAssets;
+        settings.TargetBankFolder = "FMODBanks";
+        settings.BankLoadType = BankLoadType.All;
+        settings.AutomaticEventLoading = true;
         settings.AutomaticSampleLoading = false;
         settings.HideSetupWizard = true;
         settings.MasterBanks?.Clear();
+        settings.MasterBanks?.Add(MasterBankName);
         settings.Banks?.Clear();
         settings.BanksToLoad?.Clear();
         EditorUtility.SetDirty(settings);
@@ -169,7 +168,7 @@ public static class HexLiveFmodSetup
 
         var total = banks.Sum(path => new FileInfo(path).Length);
         return $"[FMOD] настроено на {SourceBankPath}: банок {banks.Length} " +
-               $"({total} байт), automatic Player copy=off, BankLoadType=None. " +
+               $"({total} байт), Player StreamingAssets, BankLoadType=All. " +
                $"Версия интеграции 0x{FMOD.VERSION.number:x8}.";
     }
 }

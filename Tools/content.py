@@ -309,37 +309,9 @@ def raw_file(args: argparse.Namespace) -> int:
 
 
 def add_raw_candidates(output: Path, platform: str, profile: str) -> None:
-    audio_root = REPO / "Assets/HexLiveContent/AudioSource"
-    media_root = audio_root / "HexLive"
-    for payload in sorted((media_root / "Music").glob("*")):
-        if payload.suffix.lower() not in {".mp3", ".ogg", ".wav"}:
-            continue
-        write_raw_candidate(
-            output, "audio", payload.stem, platform, profile, payload,
-            {"kind": "music", "trackId": payload.stem})
-
-    sfx_root = media_root / "Sfx"
-    for payload in sorted(sfx_root.rglob("*")):
-        if payload.suffix.lower() not in {".ogg", ".wav", ".mp3"}:
-            continue
-        voice = "Voices" in payload.parts
-        group = re.sub(r"_[0-9]+$", "", payload.stem)
-        attachments = []
-        vis = payload.with_suffix(".vis")
-        if voice:
-            if not vis.is_file():
-                raise FileNotFoundError(f"voice payload has no owned .vis attachment: {payload}")
-            attachments.append(("vis", vis))
-        write_raw_candidate(
-            output, "audio", payload.stem, platform, profile, payload,
-            {"kind": "voice" if voice else "sfx", "group": group}, attachments)
-
-    for payload in sorted(audio_root.glob("*.bank")):
-        content_id = "bank." + payload.stem.lower().replace(".", "-")
-        write_raw_candidate(
-            output, "audio", content_id, platform, profile, payload,
-            {"kind": "bank", "bank": payload.name})
-
+    # §67/§152: shared audio is Player bootstrap content. SFX, voices, music
+    # and FMOD banks live in StreamingAssets and are deliberately not emitted
+    # as independently downloadable ContentObjects.
     write_raw_candidate(
         output, "config", "simdata", platform, profile,
         REPO / "SimData/simdata.json", {"kind": "simdata"})

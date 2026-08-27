@@ -18,8 +18,8 @@ namespace HexLive.UnityDebug.Editor
         private const string RuntimeLitShaderName = "Universal Render Pipeline/Lit";
         private const string RuntimeLitShaderGuid = "933532a4fcc9baf4fa0491de14d08ed7";
         private const string GraphicsSettingsPath = "ProjectSettings/GraphicsSettings.asset";
-        private const long MaximumPlayerBytes = 450L * 1024L * 1024L;
-        private const long MaximumDataAndStreamingBytes = 50L * 1024L * 1024L;
+        private const long MaximumPlayerBytes = 850L * 1024L * 1024L;
+        private const long MaximumDataAndStreamingBytes = 400L * 1024L * 1024L;
         private const string OutputArgument = "-hexlive-build-output";
         private const string SummaryArgument = "-hexlive-build-summary";
         private const string ReleaseArgument = "-hexlive-release";
@@ -278,6 +278,7 @@ namespace HexLive.UnityDebug.Editor
                     // останавливать публикацию.
                     .Where(path => !Path.GetFileName(path).StartsWith(
                         ".", StringComparison.Ordinal))
+                    .Where(IsForbiddenPlayerContent)
                     .Select(path => path.Replace('\\', '/')));
             }
 
@@ -329,6 +330,16 @@ namespace HexLive.UnityDebug.Editor
             }
 
             var normalized = path.Replace('\\', '/');
+            if (normalized.StartsWith("Assets/StreamingAssets/HexLive/Sfx/",
+                    StringComparison.Ordinal) ||
+                normalized.StartsWith("Assets/StreamingAssets/HexLive/Music/",
+                    StringComparison.Ordinal) ||
+                normalized.StartsWith("Assets/StreamingAssets/FMODBanks/",
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+
             if (normalized.StartsWith("Assets/StreamingAssets/", StringComparison.Ordinal) ||
                 normalized.StartsWith("Assets/ImportedActors/", StringComparison.Ordinal) ||
                 normalized.StartsWith("Assets/HexLiveContent/", StringComparison.Ordinal) ||
@@ -349,6 +360,15 @@ namespace HexLive.UnityDebug.Editor
             // intentionally shipped in Player, never as ui/* content objects.
             if (normalized.StartsWith(
                     "Assets/Resources/HexLive/UI/", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            // §152: «обязательные эффекты» — Player-контент по решению трекера.
+            // bug-253 вернул VFX крови: как и UI, они обязаны работать до
+            // готовности Asset API и грузятся синхронным Resources.Load.
+            if (normalized.StartsWith(
+                    "Assets/Resources/HexLive/VFX/", StringComparison.Ordinal))
             {
                 return false;
             }

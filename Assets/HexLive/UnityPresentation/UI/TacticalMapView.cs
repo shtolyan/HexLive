@@ -174,6 +174,11 @@ namespace HexLive.UnityPresentation.UI
                 batch.Add(ToUi(tile.Center, frame, map));
             }
 
+            // UIR отводит одному меш-аллокейту максимум 65535 вершин; путь на
+            // тысячи гексов превышал лимит (замер: ~139k вершин,
+            // ArgumentOutOfRangeException спамом). Чанкуем: сотни гексов на
+            // путь — по-прежнему на порядки меньше команд, чем путь на гекс.
+            const int hexesPerPath = 700;
             foreach (var pair in _tileBatches)
             {
                 if (pair.Value.Count == 0)
@@ -182,26 +187,36 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 painter.fillColor = pair.Key;
-                painter.BeginPath();
-                foreach (var center in pair.Value)
+                var batch = pair.Value;
+                for (var start = 0; start < batch.Count; start += hexesPerPath)
                 {
-                    TracePointyHex(painter, center, hexRadius);
+                    painter.BeginPath();
+                    var end = Mathf.Min(start + hexesPerPath, batch.Count);
+                    for (var i = start; i < end; i++)
+                    {
+                        TracePointyHex(painter, batch[i], hexRadius);
+                    }
+                    painter.Fill();
                 }
-                painter.Fill();
             }
 
             if (drawLines)
             {
                 painter.strokeColor = TacticalMapPalette.TileLine;
-                painter.BeginPath();
                 foreach (var pair in _tileBatches)
                 {
-                    foreach (var center in pair.Value)
+                    var batch = pair.Value;
+                    for (var start = 0; start < batch.Count; start += hexesPerPath)
                     {
-                        TracePointyHex(painter, center, hexRadius);
+                        painter.BeginPath();
+                        var end = Mathf.Min(start + hexesPerPath, batch.Count);
+                        for (var i = start; i < end; i++)
+                        {
+                            TracePointyHex(painter, batch[i], hexRadius);
+                        }
+                        painter.Stroke();
                     }
                 }
-                painter.Stroke();
             }
         }
 

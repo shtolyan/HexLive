@@ -291,21 +291,36 @@ internal static class ManualCommandExecutor
         world.Tick < npc.Mind.CryingUntilTick ||
         world.Tick < npc.Mind.PlayDeadUntilTick;
 
+    // Bug #281 / §121: тумблер меняет РЕЖИМ, а не позу тела. Уложенная в
+    // кровать беспамятная (§105.17) держит бессрочную Sleep-интеракцию —
+    // снос приказа поднял бы её через LyingSpot.MoveToStand, т.е.
+    // телепортировал бы на землю рядом с кроватью. Смена контроля обязана
+    // оставить её лежать.
+    private static bool KeepsRestPoseAcrossModeSwitch(WorldState world, NPCState npc) =>
+        npc.IsUnconscious(world.Tick) &&
+        npc.Execution.Status == ExecutionStatus.InProgress &&
+        npc.Execution.CurrentInteraction == InteractionType.Sleep;
+
     // ⭐ Общее начало любого действия: снять с себя всё, что держал прошлый
     // приказ. Без этого спам кликов течёт резервациями (см. правило 1).
+    // keepRestPose (bug #281): пропустить снос живой интеракции — только для
+    // смены режима контроля над лежащей без сознания, никогда для приказов.
     private static void ClearForNewOrder(
-        WorldState world, NPCState npc, string reason, bool keepCarriedPerson = false)
+        WorldState world, NPCState npc, string reason, bool keepCarriedPerson = false,
+        bool keepRestPose = false)
     {
         // Bug #95 / spec 41.5: a manual order may wake a sleeper, but it must
         // not make the sim translate the body while GetUp is still playing.
         // Capture this before Abort clears CurrentInteraction, then retain the
         // replacement order behind the same grace as a completed sleep.
-        var interruptedSleep = npc.Execution.Status == ExecutionStatus.InProgress &&
+        var interruptedSleep = !keepRestPose &&
+            npc.Execution.Status == ExecutionStatus.InProgress &&
             npc.Execution.CurrentInteraction == InteractionType.Sleep;
 
-        if (npc.Plan.Status == PlanStatus.Active ||
+        if (!keepRestPose &&
+            (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress ||
-            npc.IsCarryingPerson || npc.Mind.InterruptedRescuePatientId is not null)
+            npc.IsCarryingPerson || npc.Mind.InterruptedRescuePatientId is not null))
         {
             if (keepCarriedPerson && npc.IsCarryingPerson)
             {
@@ -370,7 +385,8 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        ClearForNewOrder(world, npc, "Игрок взял управление");
+        ClearForNewOrder(world, npc, "Игрок взял управление",
+            keepRestPose: KeepsRestPoseAcrossModeSwitch(world, npc));
 
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Mind.ManualAttackNpcId = null;
@@ -417,7 +433,8 @@ internal static class ManualCommandExecutor
     {
         // keepCarriedPerson НЕ ставим: как и прежний тумблер off, возврат под
         // ИИ безопасно кладёт ношу — дальше RescueSystem сам решит поднять.
-        ClearForNewOrder(world, npc, reason);
+        ClearForNewOrder(world, npc, reason,
+            keepRestPose: KeepsRestPoseAcrossModeSwitch(world, npc));
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Mind.ManualAttackNpcId = null;
         npc.Mind.ManualAttackMobId = null;
@@ -1764,7 +1781,8 @@ internal static class ManualCommandExecutor
             if (npc.Mind.ManualControl == command.Enabled) continue;
             ClearForNewOrder(world, npc, command.Enabled
                 ? "Игрок взял групповое управление"
-                : "Игрок вернул группу ИИ");
+                : "Игрок вернул группу ИИ",
+                keepRestPose: KeepsRestPoseAcrossModeSwitch(world, npc));
             npc.Mind.CurrentGoal = GoalType.None;
             ClearAttackOrder(world, npc);
             npc.Mind.ManualControl = command.Enabled;

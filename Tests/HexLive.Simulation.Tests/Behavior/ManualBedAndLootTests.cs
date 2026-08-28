@@ -210,6 +210,81 @@ public sealed class ManualBedAndLootTests
         });
     }
 
+    // Довести пациентку до кровати штатным §124.1-путём и вернуть сцену.
+    private (SimulationEngine Engine, NPCState Patient, WorldObjectState Bed)
+        TuckedInScene()
+    {
+        var (engine, carrier, patient) = CarryScene();
+        var world = engine.World;
+        var bed = SpawnReachableBed(world, carrier);
+
+        engine.Commands.Enqueue(new PutPersonInBedCommand(carrier.Id, bed.Id));
+        engine.Step();
+        for (var i = 0; i < 2000 && carrier.IsCarryingPerson; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.That(patient.Execution.TargetObject, Is.EqualTo(bed.Id),
+            "Прекондиция: пациентка не уложена в кровать.");
+        return (engine, patient, bed);
+    }
+
+    [Test]
+    public void ModeToggleKeepsTheUnconsciousPatientInBed_Bug281()
+    {
+        var (engine, patient, bed) = TuckedInScene();
+        var position = patient.Position;
+
+        // 🎮 включили и вернули ИИ: смена РЕЖИМА не смеет поднимать лежащую
+        // без сознания из кровати и телепортировать её на землю рядом.
+        engine.Commands.Enqueue(new SetManualControlCommand(patient.Id, true));
+        engine.Step();
+        Assert.That(patient.Execution.CurrentInteraction,
+            Is.EqualTo(InteractionType.Sleep),
+            "Bug #281: взятие в ручной режим подняло пациентку из кровати.");
+
+        engine.Commands.Enqueue(new SetManualControlCommand(patient.Id, false));
+        engine.Step();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Execution.Status,
+                Is.EqualTo(ExecutionStatus.InProgress));
+            Assert.That(patient.Execution.CurrentInteraction,
+                Is.EqualTo(InteractionType.Sleep));
+            Assert.That(patient.Execution.TargetObject, Is.EqualTo(bed.Id));
+            Assert.That(bed.IsOccupied, Is.True);
+            Assert.That(bed.CurrentUser, Is.EqualTo(patient.Id));
+            Assert.That(patient.Position, Is.EqualTo(position),
+                "Bug #281: смена режима телепортировала тело.");
+        });
+    }
+
+    [Test]
+    public void GroupModeToggleKeepsTheUnconsciousPatientInBed_Bug281()
+    {
+        var (engine, patient, bed) = TuckedInScene();
+        var position = patient.Position;
+
+        engine.Commands.Enqueue(new SetGroupManualControlCommand(
+            new[] { patient.Id }, enabled: true));
+        engine.Step();
+        engine.Commands.Enqueue(new SetGroupManualControlCommand(
+            new[] { patient.Id }, enabled: false));
+        engine.Step();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(patient.Execution.CurrentInteraction,
+                Is.EqualTo(InteractionType.Sleep),
+                "Bug #281: групповой тумблер поднял пациентку из кровати.");
+            Assert.That(patient.Execution.TargetObject, Is.EqualTo(bed.Id));
+            Assert.That(bed.CurrentUser, Is.EqualTo(patient.Id));
+            Assert.That(patient.Position, Is.EqualTo(position));
+        });
+    }
+
     [Test]
     public void OccupiedBedRejectsThePutOrder()
     {

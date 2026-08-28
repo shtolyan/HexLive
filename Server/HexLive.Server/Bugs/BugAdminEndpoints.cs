@@ -15,7 +15,7 @@ public static class BugAdminEndpoints
     {
         app.MapGet("/admin/bugs", (HttpContext c) =>
             SignedIn(c,sessions)
-                ? Html(BugAdminPages.List(bugs.List(), c.Request.Query["status"].ToString(), c.Request.Query["q"].ToString(), c.Request.Query["notice"].ToString()))
+                ? Html(BugAdminPages.List(bugs.List(), c.Request.Query["status"].ToString(), c.Request.Query["q"].ToString(), c.Request.Query["notice"].ToString(), Page(c)))
                 : Results.Redirect("/admin"));
 
         app.MapGet("/admin/bugs/{id:int}", (HttpContext c, int id) =>
@@ -81,6 +81,9 @@ public static class BugAdminEndpoints
 
     internal static IResult RedirectWithNotice(string path,string notice) =>
         Results.Redirect(path+"?notice="+Uri.EscapeDataString(notice));
+
+    private static int Page(HttpContext context) =>
+        int.TryParse(context.Request.Query["page"].ToString(),out var page) && page>0 ? page : 1;
 
     private static bool SignedIn(HttpContext c,AdminSessions sessions) => sessions.IsSignedIn(c.Request.Cookies[Cookie]??string.Empty);
     private static IResult Html(string value) => Results.Content(value,"text/html; charset=utf-8");

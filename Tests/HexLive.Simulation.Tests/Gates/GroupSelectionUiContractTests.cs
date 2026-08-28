@@ -10,7 +10,7 @@ namespace HexLive.Simulation.Tests.Gates
                 Path.Combine(parts));
 
         [Test]
-        public void SelectionIsOrderedAndArrowKeysOnlyRotateTheCamera()
+        public void SelectionIsOrderedAndArrowKeysPanLikeWasd()
         {
             var selection = File.ReadAllText(Presentation("Input", "NpcSelection.cs"));
             var camera = File.ReadAllText(Presentation("Input", "RtsCameraController.cs"));
@@ -22,7 +22,10 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(selection, Does.Contain("void Toggle"));
                 Assert.That(selection, Does.Contain("Selected.ToArray()"));
                 Assert.That(camera, Does.Contain("SelectionDragThresholdPixels = 6f"));
-                Assert.That(camera, Does.Contain("HandleKeyboardRotation"));
+                // Дальний обзор: стрелки панорамируют вместе с WASD, а вращение
+                // живёт в собственном обработчике свободной камеры.
+                Assert.That(camera, Does.Contain("HandleFreePan"));
+                Assert.That(camera, Does.Contain("HandleFreeRotation"));
                 Assert.That(camera, Does.Contain("leftArrowKey.isPressed"));
                 Assert.That(camera, Does.Not.Contain("CycleOrbitTarget"));
                 Assert.That(camera, Does.Not.Contain("BuildOrbitRoster"));
@@ -63,7 +66,7 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(camera, Does.Contain("EnterOrbitSelection"));
                 Assert.That(camera, Does.Contain("TryGetSelectionFrame"));
                 Assert.That(camera, Does.Contain("NpcSelection.RightUiCoverage"));
-                Assert.That(camera, Does.Contain("Mathf.Max(_requestedDistance, fit)"));
+                Assert.That(camera, Does.Contain("_requestedDistance = FitDistance(radius)"));
                 Assert.That(camera, Does.Contain("if (HasPanInput())"));
                 Assert.That(camera, Does.Contain("ExitOrbit();"));
                 Assert.That(camera, Does.Contain("TryGetNpcViewPosition"));

@@ -402,6 +402,9 @@ public sealed class KenshiCoreTests
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
+        // §139 поднял посев атрибутов (+0.1): засеянная Toughness гасит шаг
+        // деградации ниже нужного 0.01. Тесту нужен сам механизм, не посев.
+        patient.Attributes.Toughness = 0f;
         patient.Body.Parts[BodyPart.Torso] = 0f;
         patient.Body.Condition(BodyPart.Torso).CriticalTrauma = 0.99f;
         patient.Wounds.Add(new WoundState

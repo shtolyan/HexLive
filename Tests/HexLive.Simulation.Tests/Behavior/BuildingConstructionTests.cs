@@ -657,14 +657,16 @@ public sealed class BuildingConstructionTests
         });
     }
 
-    [TestCase(0f, 0f)]
-    [TestCase(29f, 0f)]
+    // §66.3: ровно 0 зарезервировано как «поворот не назначен», поэтому
+    // нулевая симметрия нормализуется в 360 (тот же угол, живой сентинел).
+    [TestCase(0f, 360f)]
+    [TestCase(29f, 360f)]
     [TestCase(31f, 60f)]
     [TestCase(89f, 60f)]
     [TestCase(91f, 120f)]
     [TestCase(181f, 180f)]
     [TestCase(329f, 300f)]
-    [TestCase(331f, 0f)]
+    [TestCase(331f, 360f)]
     public void HutYawSnapsToPointyTopHexSymmetries(float requested, float expected)
     {
         Assert.That(StructurePlacement.QuantizeHexSymmetryYaw(requested),

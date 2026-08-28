@@ -149,7 +149,9 @@ public sealed class DyingTests
         var girl = world.Entities.Npcs.Values.First();
         foreach (var part in girl.Body.Parts.Keys.ToArray())
         {
-            girl.Body.Parts[part] = 0.001f;
+            // Ниже урона ОДНОГО тика истощения, какой бы он ни был после
+            // ретюнов (§139 растянул смерть от жажды на двое суток).
+            girl.Body.Parts[part] = SimBalance.StarveDamageOne / 2f;
         }
 
         girl.Health = girl.Body.Mean();
@@ -189,40 +191,50 @@ public sealed class DyingTests
         var engine = TestWorld.CreateEngine();
         var world = engine.World;
         var girl = world.Entities.Npcs.Values.First();
-        // Соседкам нечем и незачем помогать: без припасов §53 не поднимет
-        // заявку, а собственный голод выше SelfHungerGate закрывает гейт §53.5.
-        foreach (var other in world.Entities.Npcs.Values)
+        // «Никто не дотянулся» больше нельзя выстроить лишением припасов:
+        // §53.7 aid-errand крафтит бинт из травы и успевает раньше, чем тает
+        // запас (гонка держалась на одном тике и переломилась ретюном §139).
+        // Тест меряет ЧАСЫ окна, а не помощь — помощь выключается целиком.
+        Spec53.Enabled = false;
+        try
         {
-            other.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Bandage);
-            other.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Pill);
-            other.Needs.Hunger = 0.8f;
-            other.CompassionTrait = 0f;
-        }
-
-        BleedToDeath(girl);
-        // Голодное тело не заживляет ран и не восполняет кровь (HealHungerGate
-        // 0.6) — единственный выход из окна ей закрыт.
-        girl.Needs.Hunger = 0.8f;
-
-        var diedAt = -1;
-        for (var i = 0; i < 3000 && diedAt < 0; i++)
-        {
-            engine.Step();
-            if (!world.Entities.Npcs.ContainsKey(girl.Id))
+            foreach (var other in world.Entities.Npcs.Values)
             {
-                diedAt = world.Tick;
+                other.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Bandage);
+                other.Inventory.Items.RemoveAll(item => item.DefinitionId == ContentIds.Pill);
+                other.Needs.Hunger = 0.8f;
+                other.CompassionTrait = 0f;
             }
-        }
 
-        Assert.That(diedAt, Is.GreaterThan(300),
-            "Смерть НЕ мгновенная — окно обязано дать колонии шанс добежать.");
-        Assert.That(diedAt, Is.LessThan(2500),
-            "…но и не бесконечная: запас всё-таки кончается.");
-        Assert.That(world.Entities.Corpses.ContainsKey(girl.Id), Is.True,
-            "Смерть по-прежнему наступает единственным способом — свипом MobSystem.");
-        var death = world.DeathRecords.LastOrDefault(d => d.EntityId.Equals(girl.Id));
-        Assert.That(death?.Cause, Does.Contain("BledOut"),
-            "Причина смерти доезжает до DeathRecord — событие эмитится ДО обнуления Health.");
+            BleedToDeath(girl);
+            // Голодное тело не заживляет ран и не восполняет кровь (HealHungerGate
+            // 0.6) — единственный выход из окна ей закрыт.
+            girl.Needs.Hunger = 0.8f;
+
+            var diedAt = -1;
+            for (var i = 0; i < 3000 && diedAt < 0; i++)
+            {
+                engine.Step();
+                if (!world.Entities.Npcs.ContainsKey(girl.Id))
+                {
+                    diedAt = world.Tick;
+                }
+            }
+
+            Assert.That(diedAt, Is.GreaterThan(300),
+                "Смерть НЕ мгновенная — окно обязано дать колонии шанс добежать.");
+            Assert.That(diedAt, Is.LessThan(2500),
+                "…но и не бесконечная: запас всё-таки кончается.");
+            Assert.That(world.Entities.Corpses.ContainsKey(girl.Id), Is.True,
+                "Смерть по-прежнему наступает единственным способом — свипом MobSystem.");
+            var death = world.DeathRecords.LastOrDefault(d => d.EntityId.Equals(girl.Id));
+            Assert.That(death?.Cause, Does.Contain("BledOut"),
+                "Причина смерти доезжает до DeathRecord — событие эмитится ДО обнуления Health.");
+        }
+        finally
+        {
+            Spec53.Enabled = true;
+        }
     }
 
     [Test]

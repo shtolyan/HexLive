@@ -76,7 +76,7 @@ public sealed class RemoteReconnectContractTests
     {
         var runner = Runner();
         var remoteFastPath = runner.IndexOf("if (TryBootstrapRemote())", StringComparison.Ordinal);
-        var localWorldgen = runner.IndexOf("var factory = new WorldStateFactory()", StringComparison.Ordinal);
+        var localWorldgen = runner.IndexOf("new WorldStateFactory().Create(definition)", StringComparison.Ordinal);
 
         Assert.That(remoteFastPath, Is.GreaterThan(0));
         Assert.That(remoteFastPath, Is.LessThan(localWorldgen));

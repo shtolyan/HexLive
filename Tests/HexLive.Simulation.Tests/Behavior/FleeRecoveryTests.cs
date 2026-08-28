@@ -46,9 +46,13 @@ public sealed class FleeRecoveryTests
         world.Reservations.Junctions.Clear();
         world.Mobs.Clear();
         npc.Mind.Cooldowns.Clear();
-        npc.Body.Parts[BodyPart.LegL] = 0.5f;
+        // bug-191/§121: ноги 0.40+ дают право на АВАРИЙНЫЙ прыжок при
+        // бегстве, так что «физически невозможным» подъём делает только
+        // нога ниже порога ползания.
+        npc.Body.Parts[BodyPart.LegL] = 0.3f;
         npc.Body.Parts[BodyPart.LegR] = 0.5f;
         Assert.That(npc.Body.CanJump, Is.False);
+        Assert.That(PlanningSystem.CanUseCriticalTraversal(npc), Is.False);
 
         var startTile = new TileCoord(0, 0);
         var nearTile = new TileCoord(1, 0);

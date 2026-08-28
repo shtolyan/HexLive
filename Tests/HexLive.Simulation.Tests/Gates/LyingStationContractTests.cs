@@ -54,8 +54,10 @@ public sealed class LyingStationContractTests
             }
 
             // Планировщик обязан брать станцию ДО брони узла подхода, иначе
-            // двое в одном тике уйдут на одну и ту же точку.
-            Assert.That(planner, Does.Contain("LyingStations.TryClaim("));
+            // двое в одном тике уйдут на одну и ту же точку. Он клеймит
+            // КОНКРЕТНЫЙ слот (bug-255: доказать каждую станцию по приоритету,
+            // а не первую геометрически пригодную).
+            Assert.That(planner, Does.Contain("LyingStations.TryClaimSlot("));
 
             // Место освобождается в общей воронке срыва плана, а не по месту.
             Assert.That(interrupt, Does.Contain("LyingStations.ReleaseStation("));

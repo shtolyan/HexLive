@@ -53,18 +53,30 @@ public sealed class WorkbenchCraftingTests
     }
 
     [Test]
-    public void WorkbenchYaw_PutsTheFixedPointOnAnExactInteriorJunction()
+    public void WorkbenchYaw_UsesHexSymmetriesAndKeepsTheWorkPointNearTheGrid()
     {
+        // §119/§120: верстак квантуется к шести симметриям гекса 0°+60°k
+        // (ровно 0 — сентинел §66.3, поэтому нормализация даёт (0, 360]).
+        // На этих осях рабочая точка 0.75 wu НЕ совпадает с узлом точно —
+        // узлы этого радиуса лежат на 30°+60°k — и WorkbenchJunction берёт
+        // БЛИЖАЙШИЙ свободный узел (~0.1 wu). Контракт: yaw кратен 60 и
+        // рабочая точка всегда в одном шаге суб-сетки от узла.
         foreach (var requested in new[] { 0f, 31f, 89f, 151f, 221f, 359f })
         {
             var yaw = StructurePlacement.QuantizeHexYaw(requested);
+            Assert.That(yaw, Is.GreaterThan(0f).And.LessThanOrEqualTo(360f));
+            Assert.That(yaw % 60f, Is.EqualTo(0f).Within(0.001f),
+                $"Yaw {yaw}° is not a hex symmetry.");
+
             var radians = (yaw + 180f) * (System.MathF.PI / 180f);
             var expectedX = System.MathF.Cos(radians) * Spec119.WorkbenchStandDistance;
             var expectedY = System.MathF.Sin(radians) * Spec119.WorkbenchStandDistance;
-            Assert.That(HexPointLayout.GetInteriorTemplates().Any(template =>
-                System.MathF.Abs(template.Offset.X - expectedX) < 0.0001f &&
-                System.MathF.Abs(template.Offset.Y - expectedY) < 0.0001f), Is.True,
-                $"Yaw {yaw}° did not land the 0.75 wu work point on the sub-grid.");
+            var nearestSq = HexPointLayout.GetInteriorTemplates().Min(template =>
+                (template.Offset.X - expectedX) * (template.Offset.X - expectedX) +
+                (template.Offset.Y - expectedY) * (template.Offset.Y - expectedY));
+            Assert.That(System.MathF.Sqrt(nearestSq), Is.LessThan(0.15f),
+                $"Yaw {yaw}° left the 0.75 wu work point farther than one " +
+                "sub-grid cell from the nearest interior junction.");
         }
     }
 

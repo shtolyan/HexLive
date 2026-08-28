@@ -22,10 +22,22 @@ namespace HexLive.Simulation.Tests.Behavior
 /// </summary>
 public sealed class HandBuiltTagTests
 {
-    /// <summary>Ровно то, что перечислял старый список в коде.</summary>
+    /// <summary>
+    /// Стартовая четвёрка — ровно то, что перечислял старый список в коде.
+    /// §120 добавил plan-дом и его LEGO-модули: их вяжут руками, без тега
+    /// такую стройку нельзя было бы завершить без молотка
+    /// (<c>BuildSiteMath.NeedsHammer</c>).
+    /// </summary>
     private static readonly string[] HistoricalHandBuilt =
     {
+        "architecture.door.wood",
+        "architecture.floor.board",
+        "architecture.roof.palm",
+        "architecture.support.wood",
+        "architecture.wall.wood",
+        "architecture.window.wood",
         "building.hut_1hex",
+        "building.hut_plan",
         "campfire.spot",
         "station.drying_rack",
         "station.water_collector",

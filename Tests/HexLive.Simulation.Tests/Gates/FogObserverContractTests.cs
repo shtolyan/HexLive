@@ -20,12 +20,15 @@ namespace HexLive.Simulation.Tests.Gates
             {
                 Assert.That(renderer, Does.Contain("private int _fogObserverNpcId = -1;"));
                 Assert.That(renderer, Does.Contain("ResolveFogObserverId(snapshot, requestedId, _fogObserverNpcId)"));
-                Assert.That(renderer, Does.Contain("npc.Faction != HexLive.Simulation.Agents.Faction.Colony || npc.Health <= 0f"));
+                // §149: наблюдателем может стать управляемая игроком девушка
+                // (Feud-режим) или колонистка; мёртвые и посторонние — нет.
+                Assert.That(renderer, Does.Contain(
+                    "var controllable = _runner != null && _runner.CanControlNpc(npc.Id);"));
+                Assert.That(renderer, Does.Contain("if (!controllable && !colony)"));
                 Assert.That(renderer, Does.Contain("previousIsValid |= npc.Id.Value == previousId;"));
                 Assert.That(renderer, Does.Contain("firstColonyId == int.MaxValue ? -1 : firstColonyId"));
                 Assert.That(renderer, Does.Contain("_fogHidesNpcs = selectedOnly;"));
-                Assert.That(renderer, Does.Contain(
-                    "npc.Faction != HexLive.Simulation.Agents.Faction.Colony &&"),
+                Assert.That(renderer, Does.Contain("!IsPlayerOwnedNpc(npc) &&"),
                     "Selected-only fog must never deactivate the player's own colonists.");
                 Assert.That(renderer, Does.Contain("var selectedId = _fogObserverNpcId;"),
                     "The perception ring must follow the validated observer, not the relation target.");

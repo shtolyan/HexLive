@@ -198,7 +198,20 @@ public sealed class ReachThroughObstacleTests
     public void WaterIsNeverABarrierAndNullOwnerIsStrictest()
     {
         var world = TestWorld.CreateWorld();
-        var checkedBlocked = 0;
+        var checkedExclusive = 0;
+        var checkedShared = 0;
+
+        // §26.6A r5 (bug-161): обод проходит junction только для его
+        // ЕДИНСТВЕННОГО владельца. Стены plan-дома делят угловые точки между
+        // модулями — такая точка остаётся стеной даже для каждого из них.
+        var owners = new Dictionary<JunctionId, int>();
+        foreach (var obstacle in world.Entities.Objects.Values)
+        {
+            foreach (var blockedId in obstacle.BlockedJunctions)
+            {
+                owners[blockedId] = owners.TryGetValue(blockedId, out var n) ? n + 1 : 1;
+            }
+        }
 
         foreach (var obstacle in world.Entities.Objects.Values.ToList())
         {
@@ -206,13 +219,24 @@ public sealed class ReachThroughObstacleTests
             {
                 Assert.That(SpatialQueries.IsBarrierFor(world, blockedId, null), Is.True,
                     "Без объекта в руках любое занятое тело — стена.");
-                Assert.That(SpatialQueries.IsBarrierFor(world, blockedId, obstacle), Is.False,
-                    "Своё тело обязано остаться проходимым для обода.");
-                checkedBlocked++;
+                if (owners[blockedId] == 1)
+                {
+                    Assert.That(SpatialQueries.IsBarrierFor(world, blockedId, obstacle), Is.False,
+                        "Своё эксклюзивное тело обязано остаться проходимым для обода.");
+                    checkedExclusive++;
+                }
+                else
+                {
+                    Assert.That(SpatialQueries.IsBarrierFor(world, blockedId, obstacle), Is.True,
+                        "Разделённая с другим объектом точка — стена и для владельца.");
+                    checkedShared++;
+                }
             }
         }
 
-        Assert.That(checkedBlocked, Is.GreaterThan(0), "В мире не нашлось ни одного футпринта.");
+        Assert.That(checkedExclusive, Is.GreaterThan(0), "В мире не нашлось ни одного футпринта.");
+        Assert.That(checkedShared, Is.GreaterThan(0),
+            "Ни одной разделённой точки — вторая половина инварианта не проверена.");
 
         var wet = new List<JunctionId>();
         foreach (var junction in world.Junctions.Items.Values)

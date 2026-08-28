@@ -54,10 +54,14 @@ public sealed class ArchitectureModelContentContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(source, Does.Contain("private static string ContentTypeOf(string definitionId)"),
-                "Тип объекта считается в ОДНОМ месте — две копии уже разошлись.");
             Assert.That(source, Does.Contain("definitionId.StartsWith(\"architecture.\""),
                 "Архитектурный модуль публикуется как building, а не как object.");
+            // Ранний pre-wind проход классифицирует до прихода реестра и обязан
+            // вести architecture. в ту же семью building, что и основной путь.
+            Assert.That(source, Does.Contain("id.StartsWith(\"architecture.\""),
+                "Pre-wind проход разошёлся с основной классификацией.");
+            Assert.That(source, Does.Contain("WarmOwnerMain(\"building\", id)"),
+                "Pre-wind обязан греть архитектуру как building.");
             Assert.That(source, Does.Not.Contain("? \"building\" : \"object\""),
                 "Старая двухветочная классификация без architecture. вернулась.");
             Assert.That(loader, Does.Contain("tail.StartsWith(\"architecture.\", StringComparison.Ordinal)"),

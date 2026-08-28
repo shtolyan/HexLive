@@ -113,7 +113,7 @@ public sealed class IdentityPortraitUiContractTests
             Assert.That(backpack, Does.Contain("inventoryButtonAccent"));
             Assert.That(backpack, Does.Contain("SetBorder(button, NeonCyanDim, 1.5f)"));
             Assert.That(backpack, Does.Contain(
-                "AtomicResources.Load<Texture2D>(\"HexLive/UI/IdentityBackpackIcon\")"));
+                "Resources.Load<Texture2D>(\"HexLive/UI/IdentityBackpackIcon\")"));
         });
     }
 
@@ -139,10 +139,12 @@ public sealed class IdentityPortraitUiContractTests
     }
 
     [Test]
-    public void GeneratedIdentityIconsAreAtomicContentWithFallbacks()
+    public void GeneratedIdentityIconsShipInPlayerResourcesWithFallbacks()
     {
+        // Бутстрап-иконки UI живут в Player Resources (как эмодзи-баблы), не в
+        // atomic-реестре: панель обязана рисоваться до прихода каталога.
         var ui = Path.Combine(
-            RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "UI");
+            RepoPaths.Root, "Assets", "Resources", "HexLive", "UI");
         var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
         var names = new[]
         {
@@ -168,10 +170,10 @@ public sealed class IdentityPortraitUiContractTests
     }
 
     [Test]
-    public void NeonGridIsAnAtomicShaderWithAnUnscaledAnimationClock()
+    public void NeonGridIsAPlayerShaderWithAnUnscaledAnimationClock()
     {
         var shaderPath = Path.Combine(
-            RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "UI",
+            RepoPaths.Root, "Assets", "Resources", "HexLive", "UI",
             "PortraitNeonGrid.shader");
         Assert.That(File.Exists(shaderPath), Is.True);
         var shader = File.ReadAllText(shaderPath);
@@ -184,7 +186,7 @@ public sealed class IdentityPortraitUiContractTests
             Assert.That(shader, Does.Contain("_UnscaledTime"));
             Assert.That(shader, Does.Contain("floorCoordinates"));
             Assert.That(stage, Does.Contain(
-                "AtomicResources.Load<Shader>(NeonGridShaderPath)"));
+                "Resources.Load<Shader>(NeonGridShaderPath)"));
             Assert.That(stage, Does.Contain("!shader.isSupported"));
             Assert.That(stage, Does.Contain("Time.unscaledTime"));
         });

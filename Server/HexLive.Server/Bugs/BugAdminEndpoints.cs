@@ -31,10 +31,12 @@ public static class BugAdminEndpoints
             var f=await c.Request.ReadFormAsync();
             try
             {
-                var report=bugs.Create(new CreateBugRequest { Text=f["text"].ToString(), Context=f["context"].ToString(), ReportedInVersion=f["reportedInVersion"].ToString() });
-                return Results.Redirect($"/admin/bugs/{report.Id}?notice=Создано");
+                bugs.Create(new CreateBugRequest { Text=f["text"].ToString(), Context=f["context"].ToString(), ReportedInVersion=f["reportedInVersion"].ToString() });
+                // PRG back to the list: the freshly created report is already
+                // the first card, and refreshing cannot submit the form twice.
+                return RedirectWithNotice("/admin/bugs", "Отправлено");
             }
-            catch(InvalidDataException e) { return Results.Redirect("/admin/bugs?notice="+Uri.EscapeDataString(e.Message)); }
+            catch(InvalidDataException e) { return RedirectWithNotice("/admin/bugs", e.Message); }
         });
 
         app.MapPost("/admin/bugs/{id:int}/edit", async (HttpContext c,int id) =>
@@ -45,9 +47,9 @@ public static class BugAdminEndpoints
             try
             {
                 bugs.Update(id,new UpdateBugRequest { Text=f["text"].ToString(), Status=status, AssignedAgent=f["assignedAgent"].ToString(), AgentHandoff=f["agentHandoff"].ToString(), Archived=f.ContainsKey("archived") });
-                return Results.Redirect($"/admin/bugs/{id}?notice=Сохранено");
+                return RedirectWithNotice($"/admin/bugs/{id}", "Сохранено");
             }
-            catch(InvalidDataException e) { return Results.Redirect($"/admin/bugs/{id}?notice="+Uri.EscapeDataString(e.Message)); }
+            catch(InvalidDataException e) { return RedirectWithNotice($"/admin/bugs/{id}", e.Message); }
         });
 
         app.MapPost("/admin/bugs/{id:int}/comment", async (HttpContext c,int id) =>
@@ -66,16 +68,19 @@ public static class BugAdminEndpoints
             bugs.Update(id,new UpdateBugRequest { Status=BugStatuses.Rework, Archived=false, ReadyForTestInVersion=string.Empty, FixedInVersion=string.Empty });
             var text=f["text"].ToString().Trim();
             if(text.Length>0) bugs.AddComment(id,new AddBugCommentRequest { Author="user",Text=text });
-            return Results.Redirect($"/admin/bugs/{id}?notice=Возвращено+на+доработку");
+            return RedirectWithNotice($"/admin/bugs/{id}", "Возвращено на доработку");
         });
 
         app.MapPost("/admin/bugs/{id:int}/delete", (HttpContext c,int id) =>
         {
             if (!SignedIn(c,sessions)) return Results.Redirect("/admin");
             bugs.Delete(id);
-            return Results.Redirect("/admin/bugs?notice=Удалено");
+            return RedirectWithNotice("/admin/bugs", "Удалено");
         });
     }
+
+    internal static IResult RedirectWithNotice(string path,string notice) =>
+        Results.Redirect(path+"?notice="+Uri.EscapeDataString(notice));
 
     private static bool SignedIn(HttpContext c,AdminSessions sessions) => sessions.IsSignedIn(c.Request.Cookies[Cookie]??string.Empty);
     private static IResult Html(string value) => Results.Content(value,"text/html; charset=utf-8");

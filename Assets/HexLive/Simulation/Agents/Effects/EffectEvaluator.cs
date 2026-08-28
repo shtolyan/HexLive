@@ -24,7 +24,10 @@ namespace HexLive.Simulation.Agents.Effects
         // "baking dangerously" window is > 0.5, not the momentary 1.0 spike.
         private const float SunOverexposed = 0.5f;
         private const float HighUv = 0.6f;          // effective UV the panel calls "high"
-        private const float SunburnShow = 0.3f;     // Sunburn redness worth flagging
+        // Sunburn redness worth flagging. Internal: TemperatureSystem пишет
+        // вклад в Комфорт с ТОГО ЖЕ порога, чип и строка зажигаются вместе
+        // (bug #283).
+        internal const float SunburnShow = 0.3f;
         private const float WetShow = 0.5f;         // worn Wetness that kills warmth
         private const float StressShow = 0.6f;      // stress climbing toward collapse
         private const float FilthyShow = 0.3f;      // hygiene this low = grubby

@@ -2997,6 +2997,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _clashedSimItems.Clear();
         }
 
+        // §155.5: вне шторки НОВЫЕ вещи надеваются по ОДНОЙ за пасс —
+        // экипировка это инстанциация префаба и пришивка ~57 костей, и
+        // одевание появившейся девушки целиком в один кадр было частью
+        // секундного фриза появления. За 3–5 пассов (меньше полутора секунд
+        // на 4 Гц) она одета полностью; под шторкой — как раньше, всё сразу.
+        var equipBudget = HexLive.UnityPresentation.UI.LoadingScreen.IsActive
+            ? int.MaxValue
+            : 1;
+
         foreach (var simId in wornDefinitionIds)
         {
             // Trust BodyBones (the real render state), NOT just the cache. A
@@ -3035,6 +3044,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             if (!ActorWardrobe.TryGetVisuals(simId, out var prefabs))
             {
                 continue;
+            }
+
+            // §155.5: реальная пришивка — только в рамках бюджета пасса.
+            // Пропущенная вещь не попадает в _equippedSimItems и честно
+            // приходит на следующий SyncWorn.
+            if (prefabs.Count > 0 && equipBudget <= 0)
+            {
+                continue;
+            }
+
+            if (prefabs.Count > 0)
+            {
+                equipBudget--;
             }
 
             var isNewItem = !_equippedSimItems.ContainsKey(simId);

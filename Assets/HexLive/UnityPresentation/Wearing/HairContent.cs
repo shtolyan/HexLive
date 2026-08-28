@@ -23,6 +23,11 @@ public static class HairContent
         Prewarming.Clear();
     }
 
+    /// <summary>§155.5: готова ли причёска к мгновенной выдаче — тёплое
+    /// появление не собирает вью, пока тяжёлые двери не прогреты.</summary>
+    public static bool IsCached(string hairId) =>
+        string.IsNullOrEmpty(hairId) || Hair.ContainsKey(hairId);
+
     public static string HairAddress(string hair) => $"hair/{hair}";
     public static string ColourAddress(string hair, string colour, string surface) =>
         $"hair/{hair}/colour/{colour}/{surface}";

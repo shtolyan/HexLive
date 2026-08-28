@@ -2086,6 +2086,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
         BindArchitectureElementViews(snapshot);
         UnityEngine.Profiling.Profiler.EndSample();
 
+        // §155.5: вне шторки за один снапшот-пасс собирается не больше ОДНОЙ
+        // новой девушки — сборка вью (тело + пришивка одежды + ткань) стоит
+        // сотни миллисекунд, и караван из нескольких появившихся разом клал
+        // кадр на секунды (капча 2026-08-28: кадр 829 = 1.7 с).
+        var appearanceBudget = UI.LoadingScreen.IsActive || !_cullInitialBuildDone
+            ? int.MaxValue
+            : 1;
+
         foreach (var npc in snapshot.Npcs)
         {
             var key = npc.Id.Value;
@@ -2126,6 +2134,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 {
                     ContentResidency.ForgetNpc(key);
                     continue;
+                }
+
+                // §155.5: тёплое появление. Вне шторки вью не собирается, пока
+                // тяжёлые двери (тело, причёска, надетое) не отдадут из кэша:
+                // сборка на холодных дверях читала ассеты с диска прямо в
+                // кадре (Loading.ReadObject 463 мс в кадре-фризе). Пассы до
+                // готовности греют двери асинхронно и выходят.
+                if (_cullInitialBuildDone && !UI.LoadingScreen.IsActive)
+                {
+                    if (appearanceBudget <= 0 || !NpcAppearanceWarm(npc))
+                    {
+                        continue;
+                    }
+
+                    appearanceBudget--;
                 }
 
                 npcView = CreateNpcView(npc);
@@ -6035,6 +6058,40 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         Destroy(root);
         return null;
+    }
+
+    /// <summary>§155.5: греет тяжёлые двери появляющейся девушки и отвечает,
+    /// можно ли собирать вью БЕЗ дисковых чтений в кадре. Каждый вызов на
+    /// непрогретой двери стартует её асинхронную загрузку; готовность
+    /// наступает через пассы, когда всё в кэшах. Карты покраски появление не
+    /// гейтят — их промах дорог, но одноразов, поэтому они только греются.</summary>
+    private bool NpcAppearanceWarm(NpcSnapshot npc)
+    {
+        var ready = !string.IsNullOrEmpty(npc.ActorMesh) &&
+            ContentPrefabCache.Request("actor", npc.ActorMesh, out _) ==
+            ContentPrefabCache.Availability.Ready;
+
+        if (!Wearing.HairContent.IsCached(npc.Hairstyle))
+        {
+            Wearing.HairContent.Prewarm(npc.Hairstyle);
+            ready = false;
+        }
+
+        foreach (var worn in npc.WornItems)
+        {
+            // TryGetVisuals сам стартует PrewarmAsync на промахе.
+            if (!string.IsNullOrEmpty(worn) &&
+                !Wearing.ActorWardrobe.TryGetVisuals(worn, out _))
+            {
+                ready = false;
+            }
+        }
+
+        HexLive.UnityPresentation.Content.AtomicResources.Prewarm(
+            "HexLive/PaintMaps/skin_" + npc.ActorMesh);
+        HexLive.UnityPresentation.Content.AtomicResources.Prewarm(
+            "HexLive/PaintMaps/skinpos_" + npc.ActorMesh);
+        return ready;
     }
 
     private GameObject CreateNpcView(NpcSnapshot npc)

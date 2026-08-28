@@ -51,8 +51,7 @@ public sealed class WorldObjectView : MonoBehaviour
         ObjectId = objectId;
         DefinitionId = definitionId ?? string.Empty;
         ClearContextProxy();
-        _renderers = GetComponentsInChildren<Renderer>(true);
-        _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
+        RefreshGeometry();
     }
 
     public void Init(int objectId, string definitionId, Renderer[] renderers)
@@ -74,6 +73,28 @@ public sealed class WorldObjectView : MonoBehaviour
     {
         ContextObjectId = ObjectId;
         ContextDefinitionId = DefinitionId;
+    }
+
+    /// <summary>
+    /// Refresh the analytical picking surface after a streaming/dynamic view
+    /// replaces its child geometry. Build sites can exist before their content
+    /// prefab arrives, so the renderer list captured by Init may be empty even
+    /// though the bed appears a few frames later.
+    /// </summary>
+    public void RefreshGeometry()
+    {
+        if (_highlighted)
+        {
+            Rendering.HoverHighlight.Active.Clear(_renderers);
+        }
+
+        _renderers = GetComponentsInChildren<Renderer>(true);
+        _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
+
+        if (_highlighted)
+        {
+            Rendering.HoverHighlight.Active.Apply(_renderers);
+        }
     }
 
     /// <summary>

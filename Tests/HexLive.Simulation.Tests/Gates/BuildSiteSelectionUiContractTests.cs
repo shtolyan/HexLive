@@ -48,6 +48,22 @@ public sealed class BuildSiteSelectionUiContractTests
         });
     }
 
+    [Test]
+    public void StreamedPartialFurnitureRefreshesItsPickingGeometry()
+    {
+        var pile = Read("Environment", "BuildSitePile.cs");
+        var view = Read("Views", "WorldObjectView.cs");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(pile, Does.Contain(".RefreshGeometry()"),
+                "Когда prefab кровати догрузился, build-site обязан обновить hit surface.");
+            Assert.That(view, Does.Contain("public void RefreshGeometry()"));
+            Assert.That(view, Does.Contain("GetComponentsInChildren<Renderer>(true)"));
+            Assert.That(view, Does.Contain("GetComponentsInChildren<WorldObjectPickBounds>(true)"));
+        });
+    }
+
     private static string Read(string folder, string file) => File.ReadAllText(
         Path.Combine(RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
             folder, file));

@@ -31,6 +31,27 @@ namespace HexLive.Simulation.Tests.Gates
         }
 
         [Test]
+        public void WindowsReleaseForcesD3D11ForStartupStability()
+        {
+            var builder = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "HexLive", "UnityDebug", "Editor",
+                "HexLiveReleaseBuilder.cs"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(builder, Does.Contain("BuildPlayerWithSafeGraphicsApi(buildOptions)"));
+                Assert.That(builder, Does.Contain("BuildTarget.StandaloneWindows64"));
+                Assert.That(builder,
+                    Does.Contain("new[] { GraphicsDeviceType.Direct3D11 }"));
+                Assert.That(builder,
+                    Does.Not.Contain("GraphicsDeviceType.Direct3D12 }"));
+                Assert.That(builder,
+                    Does.Contain("SetUseDefaultGraphicsAPIs(target, usedDefaultApis)"),
+                    "The batch build must restore the interactive Editor preference.");
+            });
+        }
+
+        [Test]
         public void AtomicScenePrewarmRoutesWorldObjectsToTheirOwningType()
         {
             var prewarm = File.ReadAllText(Path.Combine(

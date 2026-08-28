@@ -246,11 +246,16 @@ namespace HexLive.UnityPresentation.UI
             }
 
             EnsureLoaded();
-            var ids = new HashSet<int>(reportIds);
+            // Не итерировать живой _model.reports: Replace после Send может
+            // ДОПОЛНИТЬ этот же список (Add, когда id не нашёлся после
+            // серверной перезагрузки модели) — сборка v0.1.78 упала ровно
+            // здесь с «Collection was modified». Идём по снапшоту id и ищем
+            // каждый отчёт заново.
             var changed = false;
-            foreach (var report in _model.reports)
+            foreach (var id in new HashSet<int>(reportIds))
             {
-                if (!ids.Contains(report.id) ||
+                var report = Find(id);
+                if (report == null ||
                     (report.status != StatusReadyForTest && report.status != StatusFixed))
                 {
                     continue;
@@ -261,7 +266,7 @@ namespace HexLive.UnityPresentation.UI
                     continue;
                 }
 
-                var updated = Send<Report>(HttpMethod.Post, $"/reports/{report.id}",
+                var updated = Send<Report>(HttpMethod.Post, $"/reports/{id}",
                     JsonUtility.ToJson(new ReadyVersionRequest { readyForTestInVersion=version }), true);
                 Replace(updated);
                 changed = updated != null;

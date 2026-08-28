@@ -21,18 +21,76 @@ namespace HexLive.UnityPresentation.UI
     {
         private const float IslandPadding = 8f;
 
+        // Перф-регресс 2026-08-28 (HugeIsland, капча 216 кадров): один
+        // generateVisualContent на всё перегенерировал 8160 painter2D-гексов
+        // на КАЖДЫЙ тик снапшота — 66–71 мс UIR на кадр, треть всего времени
+        // плохих кадров. Слоение: тайловая подложка (этот элемент)
+        // перерисовывается только когда изменился отпечаток тайлов, и не чаще
+        // TileRepaintSeconds; живой оверлей (люди/мобы/камера) — лёгкий
+        // дочерний элемент, репейнт каждый SetFrame.
+        private const float TileRepaintSeconds = 0.75f;
+
         private TacticalMapFrame? _frame;
+        private readonly OverlayLayer _overlay;
+        private uint _tileFingerprint;
+        private bool _tilesDirty;
+        private float _nextTileRepaintAt;
+        private readonly System.Collections.Generic.Dictionary<
+            Color, System.Collections.Generic.List<Vector2>> _tileBatches = new();
 
         public TacticalMapView()
         {
             pickingMode = PickingMode.Position;
             generateVisualContent += OnGenerateVisualContent;
+
+            _overlay = new OverlayLayer();
+            _overlay.pickingMode = PickingMode.Ignore;
+            _overlay.style.position = Position.Absolute;
+            _overlay.style.top = 0;
+            _overlay.style.left = 0;
+            _overlay.style.right = 0;
+            _overlay.style.bottom = 0;
+            Add(_overlay);
         }
 
         public void SetFrame(TacticalMapFrame frame)
         {
             _frame = frame;
-            MarkDirtyRepaint();
+            _overlay.SetFrame(frame);
+
+            var fingerprint = TileFingerprint(frame);
+            if (fingerprint != _tileFingerprint)
+            {
+                _tileFingerprint = fingerprint;
+                _tilesDirty = true;
+            }
+
+            if (_tilesDirty && Time.unscaledTime >= _nextTileRepaintAt)
+            {
+                _tilesDirty = false;
+                _nextTileRepaintAt = Time.unscaledTime + TileRepaintSeconds;
+                MarkDirtyRepaint();
+            }
+        }
+
+        /// <summary>Дешёвый отпечаток тайлового состояния: разведка и «видно
+        /// сейчас». Высота и вода статичны и в отпечатке не нужны; координата
+        /// подмешивается, чтобы сдвиг набора не схлопывался в тот же хэш.</summary>
+        private static uint TileFingerprint(TacticalMapFrame frame)
+        {
+            var h = 2166136261u;
+            void Mix(uint v) => h = (h ^ v) * 16777619u;
+            Mix((uint)frame.Tiles.Count);
+            for (var i = 0; i < frame.Tiles.Count; i++)
+            {
+                var tile = frame.Tiles[i];
+                var bits = (uint)(tile.Coord.Q * 73856093 ^ tile.Coord.R * 19349663);
+                if (tile.Explored) bits ^= 0x40000000u;
+                if (tile.Visible) bits ^= 0x80000000u;
+                Mix(bits);
+            }
+
+            return h;
         }
 
         public bool TryMapToWorld(Vector2 localPosition, out Float2 point)
@@ -90,6 +148,13 @@ namespace HexLive.UnityPresentation.UI
             painter.lineJoin = LineJoin.Round;
             painter.lineWidth = Mathf.Clamp(hexRadius * 0.075f, 0.45f, 1.15f);
 
+            // Гексы пакетами по цвету: один BeginPath/Fill на цвет вместо
+            // 8160 отдельных путей — painter2D-команды и есть стоимость UIR.
+            foreach (var batch in _tileBatches.Values)
+            {
+                batch.Clear();
+            }
+
             for (var i = 0; i < frame.Tiles.Count; i++)
             {
                 var tile = frame.Tiles[i];
@@ -98,25 +163,102 @@ namespace HexLive.UnityPresentation.UI
                     continue;
                 }
 
-                var center = ToUi(tile.Center, frame, map);
-                painter.fillColor = TacticalMapPalette.TileColor(
+                var color = TacticalMapPalette.TileColor(
                     tile.Water, tile.Explored, tile.Visible, tile.Elevation);
-                painter.strokeColor = TacticalMapPalette.TileLine;
-                painter.BeginPath();
-                TracePointyHex(painter, center, hexRadius);
-                painter.Fill();
-                if (drawLines)
+                if (!_tileBatches.TryGetValue(color, out var batch))
                 {
-                    painter.Stroke();
+                    batch = new System.Collections.Generic.List<Vector2>();
+                    _tileBatches[color] = batch;
+                }
+
+                batch.Add(ToUi(tile.Center, frame, map));
+            }
+
+            // UIR отводит одному меш-аллокейту максимум 65535 вершин; путь на
+            // тысячи гексов превышал лимит (замер: ~139k вершин,
+            // ArgumentOutOfRangeException спамом). Чанкуем: сотни гексов на
+            // путь — по-прежнему на порядки меньше команд, чем путь на гекс.
+            const int hexesPerPath = 700;
+            foreach (var pair in _tileBatches)
+            {
+                if (pair.Value.Count == 0)
+                {
+                    continue;
+                }
+
+                painter.fillColor = pair.Key;
+                var batch = pair.Value;
+                for (var start = 0; start < batch.Count; start += hexesPerPath)
+                {
+                    painter.BeginPath();
+                    var end = Mathf.Min(start + hexesPerPath, batch.Count);
+                    for (var i = start; i < end; i++)
+                    {
+                        TracePointyHex(painter, batch[i], hexRadius);
+                    }
+                    painter.Fill();
                 }
             }
 
-            DrawMarkers(painter, frame, map, hexRadius);
-            DrawDroppedItems(painter, frame, map, hexRadius);
-            DrawMobs(painter, frame, map, hexRadius);
-            DrawUnknownPeople(painter, frame, map, hexRadius);
-            DrawPeople(painter, frame, map, hexRadius);
-            DrawCameraFootprint(painter, frame, map);
+            if (drawLines)
+            {
+                painter.strokeColor = TacticalMapPalette.TileLine;
+                foreach (var pair in _tileBatches)
+                {
+                    var batch = pair.Value;
+                    for (var start = 0; start < batch.Count; start += hexesPerPath)
+                    {
+                        painter.BeginPath();
+                        var end = Mathf.Min(start + hexesPerPath, batch.Count);
+                        for (var i = start; i < end; i++)
+                        {
+                            TracePointyHex(painter, batch[i], hexRadius);
+                        }
+                        painter.Stroke();
+                    }
+                }
+            }
+        }
+
+        /// <summary>Живой слой карты: контакты, люди, камера. Дочерний элемент
+        /// рисуется поверх тайловой подложки и перерисовывается каждый
+        /// SetFrame — он и должен жить на частоте снапшота, но он лёгкий:
+        /// десятки точек, а не тысячи гексов.</summary>
+        private sealed class OverlayLayer : VisualElement
+        {
+            private TacticalMapFrame? _frame;
+
+            public OverlayLayer()
+            {
+                generateVisualContent += OnGenerateVisualContent;
+            }
+
+            public void SetFrame(TacticalMapFrame frame)
+            {
+                _frame = frame;
+                MarkDirtyRepaint();
+            }
+
+            private void OnGenerateVisualContent(MeshGenerationContext context)
+            {
+                var frame = _frame;
+                var rect = contentRect;
+                if (frame == null || !frame.HasBounds || rect.width < 2f || rect.height < 2f ||
+                    !TryGetTransform(rect, frame, out var map))
+                {
+                    return;
+                }
+
+                var painter = context.painter2D;
+                var hexRadius = HexSpatialMath.HexRadius * map.Scale;
+                painter.lineJoin = LineJoin.Round;
+                DrawMarkers(painter, frame, map, hexRadius);
+                DrawDroppedItems(painter, frame, map, hexRadius);
+                DrawMobs(painter, frame, map, hexRadius);
+                DrawUnknownPeople(painter, frame, map, hexRadius);
+                DrawPeople(painter, frame, map, hexRadius);
+                DrawCameraFootprint(painter, frame, map);
+            }
         }
 
         // §150.1: the HUD map is Dune-simple — every contact is a flat square
@@ -239,7 +381,7 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
-        private void DrawCameraFootprint(
+        private static void DrawCameraFootprint(
             Painter2D painter, TacticalMapFrame frame, MapTransform map)
         {
             if (frame.CameraFootprint.Count < 3)

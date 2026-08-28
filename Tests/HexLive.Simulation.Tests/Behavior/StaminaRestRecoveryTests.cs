@@ -10,6 +10,50 @@ namespace HexLive.Simulation.Tests.Behavior;
 public sealed class StaminaRestRecoveryTests
 {
     [Test]
+    public void ExhaustedColonistChoosesRestAfterTheCurrentJobEnds()
+    {
+        var world = TestWorld.CreateWorld(267);
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Plan.Steps.Clear();
+        npc.Plan.Status = PlanStatus.Completed;
+        npc.Mind.CurrentGoal = GoalType.None;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+        npc.Needs.Energy = 1f;
+        npc.Needs.Comfort = 1f;
+        npc.Needs.Stamina = 0f;
+
+        new DecisionSystem().Run(world);
+
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Sit),
+            "Нулевая выносливость после завершённой работы обязана выиграть " +
+            "аукцион отдыха даже при полном комфорте.");
+    }
+
+    [Test]
+    public void ExhaustedSitFallsBackToTheGroundWhenThereIsNoSeat()
+    {
+        var world = TestWorld.CreateWorld(2671);
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Plan.Steps.Clear();
+        npc.Plan.Status = PlanStatus.None;
+        npc.Mind.CurrentGoal = GoalType.Sit;
+        npc.Mind.ManualControl = false;
+        npc.Mind.AdrenalineUntilTick = 0;
+        npc.Mind.RestCooldownUntilTick = 0;
+        npc.CurrentJunction = null; // no ledge candidate; ground rest needs none
+        npc.Movement.IsMoving = false;
+        npc.Needs.Stamina = 0f;
+
+        new PlanningSystem().BuildGroundSitPlan(world, npc);
+
+        Assert.That(npc.Plan.Steps.Single().Type, Is.EqualTo(PlanStepType.IdleRest),
+            "Без стула или уступа истощённая должна сесть там, где стоит.");
+    }
+
+    [Test]
     public void SittingNeverLowersStaminaWhenDynamicCeilingFalls()
     {
         var world = TestWorld.CreateWorld(152);

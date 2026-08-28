@@ -56,4 +56,26 @@ public sealed class HarvestHandPropContractTests
 
         Assert.That(snapshot.HeldItemId, Is.Empty);
     }
+
+    [Test]
+    public void ManualCoconutProcessExportsKnifeEvenWhenGoalIsPlayerOrder()
+    {
+        var world = TestWorld.CreateWorld(272);
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Knife));
+        npc.Mind.CurrentGoal = GoalType.PlayerOrder;
+
+        var here = npc.CurrentJunction ?? world.Junctions.Items.Keys.First();
+        var tile = world.Junctions.Items[here].Tiles[0];
+        var coconut = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Coconut, new FragmentId(1), tile, here);
+        npc.Execution.CurrentInteraction = InteractionType.Process;
+        npc.Execution.TargetObject = coconut.Id;
+
+        var snapshot = WorldSnapshotExporter.Export(world).Npcs.Single(candidate =>
+            candidate.Id.Value == npc.Id.Value);
+
+        Assert.That(snapshot.HeldItemId, Is.EqualTo(ContentIds.Knife));
+    }
 }

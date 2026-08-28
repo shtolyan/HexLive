@@ -43,6 +43,11 @@ public sealed class PlanStep
 
     public InteractionType? Interaction { get; set; }
 
+    // §121 / #266: two catalog actions may share one broad interaction type
+    // (split.log and saw.log are both Process). Manual orders preserve the
+    // exact menu row instead of silently taking the first action of that type.
+    public string InteractionId { get; set; } = string.Empty;
+
     public int? TimeoutEndTick { get; set; }
 
     // §40.6 r16: source ownership for one personal-laundry iteration.

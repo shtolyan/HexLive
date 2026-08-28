@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+import sys
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -365,19 +366,49 @@ def arrow() -> None:
           double_faces, feather)
 
 
+def import_mesh_source(path: Path):
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.fbx(filepath=str(path))
+    return [obj for obj in bpy.data.objects if obj not in before and obj.type == "MESH"]
+
+
+def world_bounds(objects):
+    points = [obj.matrix_world @ Vector(corner) for obj in objects for corner in obj.bound_box]
+    low = Vector((min(point.x for point in points), min(point.y for point in points),
+                  min(point.z for point in points)))
+    high = Vector((max(point.x for point in points), max(point.y for point in points),
+                   max(point.z for point in points)))
+    return low, high
+
+
+def bake_source_instances(owner, source_objects, transforms) -> None:
+    for instance_index, transform in enumerate(transforms):
+        for source in source_objects:
+            mesh = source.data.copy()
+            mesh.transform(transform @ source.matrix_world)
+            obj = bpy.data.objects.new(f"{source.name}.{instance_index:02d}", mesh)
+            owner.objects.link(obj)
+            for polygon in mesh.polygons:
+                polygon.use_smooth = False
+    for source in source_objects:
+        bpy.data.objects.remove(source, do_unlink=True)
+
+
 def stump() -> None:
+    """Bake the pre-§152 stump: the approved native log stood on end."""
     owner = collection("stump.palm")
-    bark = material("Stump.Bark", (0.31, 0.13, 0.055, 1.0), 0.98)
-    cut = material("Stump.Cut", (0.75, 0.49, 0.19, 1.0), 0.9)
-    dark = material("Stump.Rings", (0.43, 0.22, 0.075, 1.0), 0.96)
-    cone(owner, "tapered bark", (0, 0, 0), 0.34, 0.285, 0.30, bark, 14)
-    cylinder(owner, "fresh cut", (0, 0, 0.154), 0.275, 0.014, cut, 14)
-    for index, radius in enumerate((0.07, 0.14, 0.215)):
-        torus(owner, f"growth ring {index}", (0, 0, 0.164 + index * 0.001), radius, 0.009, dark)
-    for angle in (18, 104, 196, 278):
-        radians = math.radians(angle)
-        beam(owner, f"cut ray {angle}", (0, 0, 0.172),
-             (math.cos(radians) * 0.25, math.sin(radians) * 0.25, 0.172), 0.006, dark, 5)
+    source = import_mesh_source(OBJECTS / "log_final_native.fbx")
+    low, high = world_bounds(source)
+    size = high - low
+    native_length = max(0.001, size.x)
+    native_diameter = max(0.001, size.y, size.z)
+    # Old StumpFactory: Height=.30, diameter=HexRadius(1.5)*.42=.63,
+    # local X turned into Unity up. Blender's corresponding up axis is Z.
+    scale = Matrix.Diagonal((0.30 / native_length,
+                             0.63 / native_diameter,
+                             0.63 / native_diameter, 1.0))
+    upright = Matrix.Rotation(math.radians(-90.0), 4, "Y")
+    bake_source_instances(owner, source, [upright @ scale])
 
 
 def leaf_mesh(owner, name, base, tip, width, mat):
@@ -397,28 +428,26 @@ def leaf_mesh(owner, name, base, tip, width, mat):
 
 
 def crown(owner_name: str, fronds: int, length: float) -> None:
+    """Bake the exact pre-§152 PalmCrownFactory assembly into one owner."""
     owner = collection(owner_name)
-    green = material(owner_name + ".Leaf", (0.12, 0.42, 0.14, 1.0), 0.9)
-    light = material(owner_name + ".LeafLight", (0.25, 0.58, 0.18, 1.0), 0.88)
-    stem = material(owner_name + ".Stem", (0.31, 0.28, 0.09, 1.0), 0.92)
-    cylinder(owner, "crown heart", (0, 0, 0.055), 0.11, 0.18, stem, 10)
-    for index in range(fronds):
-        angle = index * math.tau / fronds + (index % 2) * 0.13
-        radial = Vector((math.cos(angle), math.sin(angle), 0.0))
-        start = Vector((0, 0, 0.12))
-        end = radial * length + Vector((0, 0, -0.10 - (index % 3) * 0.035))
-        beam(owner, f"frond stem {index:02d}", start, end, 0.018, stem, 6)
-        for leaflet in range(1, 8):
-            t = leaflet / 8.5
-            centre = start.lerp(end, t)
-            sideways = Vector((-radial.y, radial.x, 0.0))
-            leaf_len = length * (0.22 - abs(t - 0.52) * 0.10)
-            for side in (-1, 1):
-                leaf_tip = centre + sideways * side * leaf_len + radial * length * 0.035
-                leaf_tip.z -= 0.02 + 0.025 * t
-                leaf_mesh(owner, f"leaflet {index:02d}-{leaflet:02d}-{side}",
-                          centre, leaf_tip, leaf_len * 0.18,
-                          light if (leaflet + index) % 4 == 0 else green)
+    source = import_mesh_source(OBJECTS / "palm_frond_native.fbx")
+    low, high = world_bounds(source)
+    size = high - low
+    native_length = max(0.001, size.x, size.y, size.z)
+    pitches = (-58.0, -40.0, -22.0, -4.0, 16.0, 30.0)
+    transforms = []
+    for index in range(max(1, fronds)):
+        pitch = pitches[index % len(pitches)]
+        ring_scale = 0.85 if pitch > 0.0 else 1.0
+        uniform = Matrix.Scale(length / native_length * ring_scale, 4)
+        # Unity used Quaternion.Euler(pitch, i*137.5, roll). Under the FBX
+        # Y-up→Blender Z-up conversion those axes become Y/Z/X respectively.
+        rotation = (
+            Matrix.Rotation(math.radians(index * 137.5), 4, "Z") @
+            Matrix.Rotation(math.radians(-pitch), 4, "Y") @
+            Matrix.Rotation(math.radians((index % 3 - 1) * 10.0), 4, "X"))
+        transforms.append(rotation @ uniform)
+    bake_source_instances(owner, source, transforms)
 
 
 def small_palm() -> None:
@@ -518,6 +547,18 @@ def merge_by_material(owner_name: str) -> None:
 
 
 def main() -> None:
+    if "--only-palm-drops" in sys.argv:
+        clean_scene()
+        stump()
+        crown("resource.palm_crown", fronds=42, length=1.275)
+        crown("resource.palm_crown_small", fronds=8, length=1.275)
+        for asset_id in (
+                "stump.palm", "resource.palm_crown", "resource.palm_crown_small"):
+            merge_by_material(asset_id)
+            export_collection(asset_id, OBJECTS / f"{asset_id}.fbx")
+        print("Restored the three pre-§152 palm-drop visuals as atomic FBXs.")
+        return
+
     clean_scene()
     pill()
     plaster()
@@ -530,8 +571,8 @@ def main() -> None:
     bow()
     arrow()
     stump()
-    crown("resource.palm_crown", fronds=11, length=1.02)
-    crown("resource.palm_crown_small", fronds=7, length=0.76)
+    crown("resource.palm_crown", fronds=42, length=1.275)
+    crown("resource.palm_crown_small", fronds=8, length=1.275)
     small_palm()
     crab()
     for asset_id in (

@@ -34,7 +34,8 @@ public sealed class CommandCodecCoverageGateTests
         new SetManualControlCommand(new EntityId(11), true),
         new SetOutfitLockCommand(new EntityId(111), true),
         new MoveToCommand(new EntityId(12), new Float2(3.5f, -7.25f), run: true),
-        new InteractCommand(new EntityId(13), new ObjectId(77), InteractionType.Harvest),
+        new InteractCommand(
+            new EntityId(13), new ObjectId(77), InteractionType.Process, "saw.log"),
         new AttackNpcCommand(new EntityId(14), new EntityId(41)),
         new CarryPersonCommand(new EntityId(15), new EntityId(51)),
         new PutDownPersonCommand(new EntityId(16)),
@@ -157,6 +158,34 @@ public sealed class CommandCodecCoverageGateTests
                 $"{original.GetType().Name}: перекодированные байты разошлись — " +
                 "reader и writer читают/пишут разные поля.");
         }
+    }
+
+    [Test]
+    public void ExactPalmHarvestCommandIsFullyConsumedByServerFrameReader()
+    {
+        // #271: production still ran the pre-InteractionId reader. The fresh
+        // client appended "chop.palm", the old server saw trailing bytes and
+        // rejected the order after the character had already approached in the
+        // local view. Keep the client writer and strict server frame reader in
+        // one contract test so that exact actions cannot drift independently.
+        var frame = Frame.NpcCommand(
+            271,
+            new InteractCommand(
+                new EntityId(13), new ObjectId(271),
+                InteractionType.Harvest, "chop.palm"));
+
+        Assert.That(frame[0], Is.EqualTo((byte)FrameKind.NpcCommand));
+        var payload = frame.Skip(1).ToArray();
+        var decoded = Frame.ReadNpcCommand(payload);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(decoded.CorrelationId, Is.EqualTo(271));
+            Assert.That(decoded.Command, Is.TypeOf<InteractCommand>());
+            Assert.That(
+                ((InteractCommand)decoded.Command).InteractionId,
+                Is.EqualTo("chop.palm"));
+        });
     }
 }
 

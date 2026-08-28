@@ -158,11 +158,14 @@ public sealed class MoveToCommand : ISimulationCommand
 /// одной цели PlayerOrder хватает на все глаголы сразу.</summary>
 public sealed class InteractCommand : ISimulationCommand
 {
-    public InteractCommand(EntityId npc, ObjectId target, InteractionType interaction)
+    public InteractCommand(
+        EntityId npc, ObjectId target, InteractionType interaction,
+        string interactionId = "")
     {
         Npc = npc;
         Target = target;
         Interaction = interaction;
+        InteractionId = interactionId ?? string.Empty;
     }
 
     public EntityId Npc { get; }
@@ -170,6 +173,10 @@ public sealed class InteractCommand : ISimulationCommand
     public ObjectId Target { get; }
 
     public InteractionType Interaction { get; }
+
+    /// <summary>Exact catalog action selected by the player. Empty keeps the
+    /// legacy type-only behaviour used by autonomous and LLM orders.</summary>
+    public string InteractionId { get; }
 
     public EntityId? TargetEntity => Npc;
 }

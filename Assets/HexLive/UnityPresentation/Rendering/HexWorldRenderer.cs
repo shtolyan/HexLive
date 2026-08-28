@@ -122,6 +122,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private readonly Dictionary<int, ObjectViewParts> _objectViewParts = new();
 
+    // Bug #268: all decorative vegetation is advanced by this renderer's one
+    // frame loop. Hundreds of grass tiles must not each own an Update method.
+    private readonly List<VegetationWindTarget> _vegetationWindTargets = new();
+
+    private struct VegetationWindTarget
+    {
+        public Transform Transform;
+        public Quaternion BaseRotation;
+        public float Phase;
+        public float MaxTiltDegrees;
+    }
+
     private readonly struct HutCutawayView
     {
         public readonly TileCoord Tile;
@@ -774,6 +786,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             return;
         }
+
+        UpdateVegetationWind();
 
         _runner ??= FindAnyObjectByType<SimulationRunnerBehaviour>();
         if (_runner is null || !_runner.IsReady)
@@ -1628,6 +1642,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // frame, so it reads as "chopped down".
             if (_treeViewKeys.Remove(key) && view != null)
             {
+                UnregisterVegetationWind(view.transform);
                 var fall = view.AddComponent<HexLive.UnityPresentation.Environment.TreeFall>();
                 fall.Fell(HexRadius);
             }
@@ -2001,7 +2016,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // not the building's own forward — its model child composes that
             // footprint yaw with the module's local yaw (ArchitectureModuleView),
             // so writing it onto the module's root here would apply it twice.
-            if (worldObject.RotationDegrees != 0f && parts.Module == null)
+            if (worldObject.RotationDegrees != 0f && parts.Module == null &&
+                !HexLive.UnityPresentation.Environment.PalmTreeFactory.IsPalm(
+                    worldObject.DefinitionId))
             {
                 var architectureFootprint =
                     worldObject.DefinitionId == ContentIds.Hut1Hex ||
@@ -4398,12 +4415,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var palm = HexLive.UnityPresentation.Environment.PalmTreeFactory.Build(worldObject.DefinitionId);
             if (palm != null)
             {
-                palm.transform.SetParent(_objectsRoot, false);
+                // The imported FBX root owns its axis-conversion rotation.
+                // Never write yaw onto that transform: doing so lays the whole
+                // source model on its side. A presentation pivot owns natural
+                // yaw, wind and TreeFall while the authored child stays intact.
+                var palmRoot = new GameObject($"Object {worldObject.DefinitionId}");
+                palmRoot.transform.SetParent(_objectsRoot, false);
                 var palmAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
-                palm.transform.position = SimulationUnityMapper.ToUnityPosition(
+                palmRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                     palmAnchor, GroundY(worldObject.Tile));
+                // Natural palms have no authored footprint yaw. Give every
+                // object id one stable full-circle yaw, so fog unload/reload
+                // and save/load never reshuffle the grove.
+                palmRoot.transform.localRotation = Quaternion.Euler(
+                    0f, DeterministicVegetationYaw(worldObject.Id.Value), 0f);
+                palm.transform.SetParent(palmRoot.transform, false);
+                RegisterVegetationWind(
+                    palmRoot.transform, worldObject.Id.Value, maxTiltDegrees: 1.35f);
                 // §54.2: fell it with the same tilt+stump animation as any tree.
-                return palm;
+                return palmRoot;
             }
         }
 
@@ -6543,12 +6573,105 @@ public sealed class HexWorldRenderer : MonoBehaviour
         meshRenderer.sharedMaterial = GetGrassMaterial();
         meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         meshFilter.sharedMesh = BuildGrassMesh(radius, topY, coord);
+        RegisterVegetationWind(
+            go.transform, coord.Q * 73856093 ^ coord.R * 19349663,
+            maxTiltDegrees: 2.2f);
         _grassByTile[coord] = go;
         // A-1: регистрация при создании (не пер-тиковый переобход всех тайлов);
         // ApplyOverviewRenderer внутри сразу выдаёт клочку текущий профиль
         // обзора, даже если он создан уже на отдалении.
         RegisterOverviewRenderers(go, _overviewGrassRenderers);
     }
+
+    private void RegisterVegetationWind(Transform target, int phaseSeed, float maxTiltDegrees)
+    {
+        _vegetationWindTargets.Add(new VegetationWindTarget
+        {
+            Transform = target,
+            BaseRotation = target.localRotation,
+            Phase = Hash01(PositiveHash(phaseSeed) ^ 0xA511E9B3u) * Mathf.PI * 2f,
+            MaxTiltDegrees = maxTiltDegrees,
+        });
+    }
+
+    private void UnregisterVegetationWind(Transform target)
+    {
+        for (var i = _vegetationWindTargets.Count - 1; i >= 0; i--)
+        {
+            if (_vegetationWindTargets[i].Transform == target)
+            {
+                _vegetationWindTargets.RemoveAt(i);
+            }
+        }
+    }
+
+    private void UpdateVegetationWind()
+    {
+        if (_vegetationWindTargets.Count == 0)
+        {
+            return;
+        }
+
+        // One deterministic weather band lasts long enough to read as weather,
+        // not jitter. The last four seconds blend into the next weak/medium/
+        // strong band without a snap.
+        const float bandSeconds = 18f;
+        const float transitionSeconds = 4f;
+        var time = Time.time;
+        var band = Mathf.FloorToInt(time / bandSeconds);
+        var withinBand = time - band * bandSeconds;
+        var blend = Mathf.SmoothStep(0f, 1f,
+            Mathf.InverseLerp(bandSeconds - transitionSeconds, bandSeconds, withinBand));
+        var strength = Mathf.Lerp(WindBandStrength(band), WindBandStrength(band + 1), blend);
+        var direction = Mathf.LerpAngle(WindBandDirection(band), WindBandDirection(band + 1), blend) *
+                        Mathf.Deg2Rad;
+        var directionX = Mathf.Sin(direction);
+        var directionZ = -Mathf.Cos(direction);
+
+        for (var i = _vegetationWindTargets.Count - 1; i >= 0; i--)
+        {
+            var target = _vegetationWindTargets[i];
+            if (target.Transform == null)
+            {
+                _vegetationWindTargets.RemoveAt(i);
+                continue;
+            }
+
+            var flutter = 0.76f + 0.24f * Mathf.Sin(time * 1.55f + target.Phase);
+            var tilt = target.MaxTiltDegrees * strength * flutter;
+            target.Transform.localRotation = target.BaseRotation * Quaternion.Euler(
+                directionX * tilt, 0f, directionZ * tilt);
+        }
+    }
+
+    private static float WindBandStrength(int band)
+    {
+        return (PositiveHash(band) % 3) switch
+        {
+            0 => 0.22f,
+            1 => 0.55f,
+            _ => 1f,
+        };
+    }
+
+    private static float WindBandDirection(int band) =>
+        Hash01(PositiveHash(band) ^ 0x68BC21EBu) * 360f;
+
+    private static float DeterministicVegetationYaw(int objectId) =>
+        Hash01(PositiveHash(objectId) ^ 0xC2B2AE35u) * 360f;
+
+    private static uint PositiveHash(int value)
+    {
+        var hash = unchecked((uint)value) + 0x9E3779B9u;
+        hash ^= hash >> 16;
+        hash *= 0x85EBCA6Bu;
+        hash ^= hash >> 13;
+        hash *= 0xC2B2AE35u;
+        return hash ^ (hash >> 16);
+    }
+
+    private static float Hash01(uint value) =>
+        (value & 0x00FFFFFFu) / 16777215f;
 
     // A lying body flattens the grass under it: the tile's tuft clump hides
     // while someone sleeps/faints/lies dead there and pops back after. Cost is

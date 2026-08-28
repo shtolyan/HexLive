@@ -134,7 +134,9 @@ public static class WorldSaveSerializer
     // «Накормить» превращался в Treat или молча гас как «помощь больше не
     // нужна». Блоб ≤59 читается «приказа не было», то есть ровно так, как этот
     // сейв и был записан.
-    public const int BlobVersion = 60;
+    // v61 (#266): точный id выбранного взаимодействия в каждом PlanStep.
+    // Одного InteractionType недостаточно: split.log и saw.log оба Process.
+    public const int BlobVersion = 61;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1418,6 +1420,10 @@ public static class WorldSaveSerializer
                 w.Write((int)interaction);
             }
 
+            WriteNullableString(w, string.IsNullOrEmpty(step.InteractionId)
+                ? null
+                : step.InteractionId);
+
             w.Write(step.TimeoutEndTick.HasValue);
             if (step.TimeoutEndTick is { } timeout)
             {
@@ -1973,15 +1979,19 @@ public static class WorldSaveSerializer
         var stepCount = r.ReadInt32();
         for (var i = 0; i < stepCount; i++)
         {
-            plan.Steps.Add(new PlanStep
+            var step = new PlanStep
             {
                 Type = (PlanStepType)r.ReadInt32(),
                 TargetJunction = ReadNullableJunction(r),
                 TargetObject = ReadNullableObject(r),
                 Interaction = r.ReadBoolean() ? (InteractionType)r.ReadInt32() : null,
-                TimeoutEndTick = r.ReadBoolean() ? r.ReadInt32() : null,
-                LaundryFromInventory = version >= 58 && r.ReadBoolean()
-            });
+            };
+            step.InteractionId = version >= 61
+                ? ReadNullableString(r) ?? string.Empty
+                : string.Empty;
+            step.TimeoutEndTick = r.ReadBoolean() ? r.ReadInt32() : null;
+            step.LaundryFromInventory = version >= 58 && r.ReadBoolean();
+            plan.Steps.Add(step);
         }
 
         var execution = npc.Execution;

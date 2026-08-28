@@ -901,6 +901,60 @@ public sealed class ManualControlTests
     }
 
     [Test]
+    public void SameTypeLogActionsKeepTheExactMenuChoiceThroughSaveLoad()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Add(new ItemInstance("tool.saw"));
+
+        var logDefinition = world.Content.ObjectDefinitions[ContentIds.Log];
+        var saw = logDefinition.Interactions.Single(
+            interaction => interaction.Id == "saw.log");
+
+        var here = npc.CurrentJunction!.Value;
+        var neighbor = SpatialQueries.GetPassableNeighbors(world, here).First();
+        var tile = world.Junctions.Items[neighbor].Tiles[0];
+        var log = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Log, new FragmentId(1), tile, neighbor);
+
+        var admission = ManualCommandExecutor.Apply(
+            world,
+            new InteractCommand(
+                npc.Id, log.Id, InteractionType.Process, "saw.log"));
+
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
+        var interactStep = npc.Plan.Steps.Single(step => step.Type == PlanStepType.Interact);
+        Assert.That(interactStep.InteractionId, Is.EqualTo("saw.log"));
+        Assert.That(
+            ExecutionSystem.ResolveInteraction(
+                world, npc, logDefinition, interactStep.Interaction,
+                interactStep.InteractionId),
+            Is.SameAs(saw));
+
+        using var buffer = new MemoryStream();
+        using (var writer = new BinaryWriter(
+                   buffer, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        buffer.Position = 0;
+        var reloadedWorld = new HexLive.Simulation.Bootstrap.WorldStateFactory()
+            .Create(HexLive.Simulation.Bootstrap.PrototypeWorldDefinitionFactory.Create(12345));
+        using (var reader = new BinaryReader(
+                   buffer, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Read(reloadedWorld, reader);
+        }
+
+        var reloadedStep = reloadedWorld.Entities.Npcs[npc.Id].Plan.Steps
+            .Single(step => step.Type == PlanStepType.Interact);
+        Assert.That(reloadedStep.InteractionId, Is.EqualTo("saw.log"));
+    }
+
+    [Test]
     public void OrderToAnNpcUnderAiIsRefused()
     {
         var engine = TestWorld.CreateEngine();

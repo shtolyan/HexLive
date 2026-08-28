@@ -420,7 +420,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 var interaction = ResolveInteraction(
-                    world, npc, definition, GetPlannedInteractionType(npc.Plan));
+                    world, npc, definition, GetPlannedInteractionType(npc.Plan),
+                    GetPlannedInteractionId(npc.Plan));
                 if (interaction is null)
                 {
                     // §54.2 r2 (#168): раньше здесь оставался только Failed — и
@@ -892,7 +893,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // applies one duration-share; the final share lands at
                     // completion (total = duration shares = the full effect).
                     var inProgressInteraction = ResolveInteraction(
-                        world, npc, definition, npc.Execution.CurrentInteraction);
+                        world, npc, definition, npc.Execution.CurrentInteraction,
+                        GetPlannedInteractionId(npc.Plan));
                     if (inProgressInteraction is not null && total > 0)
                     {
                         ApplyEffectsScaled(npc, inProgressInteraction.Effects, 1f / total);
@@ -923,7 +925,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 var completedInteraction = ResolveInteraction(
-                    world, npc, definition, npc.Execution.CurrentInteraction);
+                    world, npc, definition, npc.Execution.CurrentInteraction,
+                    GetPlannedInteractionId(npc.Plan));
                 if (completedInteraction is null)
                 {
                     npc.Plan.Status = PlanStatus.Failed;
@@ -2834,6 +2837,23 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return null;
     }
 
+    private static string GetPlannedInteractionId(NPCPlanState plan)
+    {
+        var start = plan.CurrentStepIndex;
+        if (start < 0) start = 0;
+        if (start > plan.Steps.Count) start = plan.Steps.Count;
+        for (var i = start; i < plan.Steps.Count; i++)
+        {
+            var step = plan.Steps[i];
+            if (step.Type == PlanStepType.Interact)
+            {
+                return step.InteractionId;
+            }
+        }
+
+        return string.Empty;
+    }
+
     /// <summary>
     /// Turns an actor smoothly away from a furniture anchor before the seat or
     /// bed animation starts.  The simulation position deliberately remains on
@@ -2890,7 +2910,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     // здесь напрямую — арена с подставленным планом молча проходила и на старом
     // коде, потому что до этой развилки исполнитель не доходил.
     internal static InteractionDefinition? ResolveInteraction(
-        WorldState world, NPCState npc, ObjectDefinition definition, InteractionType? type)
+        WorldState world, NPCState npc, ObjectDefinition definition, InteractionType? type,
+        string interactionId = "")
     {
         if (type is null)
         {
@@ -2930,6 +2951,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (!string.IsNullOrEmpty(interactionId))
+            {
+                if (interaction.Id == interactionId)
+                {
+                    return interaction;
+                }
+
+                continue;
+            }
+
             first ??= interaction;
             var canExecute = interaction.RequiredCapabilities.Count == 0 ||
                 DecisionSystem.HasAnyCapability(npc, interaction.RequiredCapabilities);
@@ -2944,6 +2975,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             {
                 return interaction;
             }
+        }
+
+        if (!string.IsNullOrEmpty(interactionId))
+        {
+            return null;
         }
 
         // Returning the first matching action when none is executable keeps

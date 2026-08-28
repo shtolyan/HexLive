@@ -5,9 +5,11 @@ using NUnit.Framework;
 namespace HexLive.Simulation.Tests.Gates;
 
 /// <summary>
-/// §130 r4 / bug #134: camera placement starts the glance but must not shorten
-/// it. These source-contract gates cover the presentation code without opening
-/// a second Unity Editor while the player is testing the game.
+/// §130 r5: решением игрока взгляд в камеру возвращён к r1 — «просто
+/// пялится» (сильные веса, гистерезис по дистанции, 5 секунд). Ревизии
+/// r2–r4 (малые веса, блендеры, фронтальный конус, безотзывной таймер
+/// bug #134) в игре читались как дёрганье и откачены — см. Spec/130.md
+/// §130.3. Эти source-контракты не дают тихо вернуть их назад.
 /// </summary>
 public sealed class CameraGazeContractTests
 {
@@ -16,36 +18,34 @@ public sealed class CameraGazeContractTests
         Path.Combine(parts));
 
     [Test]
-    public void CloseUpGlanceLastsSixSeconds()
+    public void CloseUpGlanceLastsFiveSecondsWithDistanceHysteresis()
     {
         var camera = File.ReadAllText(Presentation("Input", "RtsCameraController.cs"));
 
-        Assert.That(camera, Does.Contain("CloseUpGazeSeconds = 6f"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(camera, Does.Contain("CloseUpGazeSeconds = 5f"));
+            Assert.That(camera, Does.Contain("CloseUpGazeEnterDistance = 2.0f"));
+            Assert.That(camera, Does.Contain("CloseUpGazeExitDistance = 2.6f"));
+        });
     }
 
     [Test]
-    public void StartedGlanceIsNotCancelledByCameraPlacement()
+    public void GazeHasNoFrontalConeAndNoWeightBlender()
     {
         var gaze = File.ReadAllText(Presentation("Rendering", "CameraCloseUpGaze.cs"));
-        var lateUpdateStart = gaze.IndexOf("private void LateUpdate()", StringComparison.Ordinal);
-        var activeStart = gaze.IndexOf(
-            "if (_activeView != null)", lateUpdateStart, StringComparison.Ordinal);
-        var triggerStart = gaze.IndexOf(
-            "if (!_renderer.TryGetNearestCameraGazeCandidate", activeStart,
-            StringComparison.Ordinal);
-        Assert.That(lateUpdateStart, Is.GreaterThanOrEqualTo(0));
-        Assert.That(activeStart, Is.GreaterThan(lateUpdateStart));
-        Assert.That(triggerStart, Is.GreaterThan(activeStart));
+        var view = File.ReadAllText(Presentation("Wearing", "NpcActorView.cs"));
 
-        var activeBranch = gaze[activeStart..triggerStart];
         Assert.Multiple(() =>
         {
-            Assert.That(activeBranch, Does.Contain("_activeView.UpdateCameraGaze(lens)"));
-            Assert.That(activeBranch, Does.Not.Contain("IsWithin("));
-            Assert.That(activeBranch, Does.Not.Contain("IsFrontal("));
-            Assert.That(activeBranch, Does.Not.Contain("_activeView.EndCameraGaze()"));
+            // r3: конус «только спереди» мигал на краю и убивал взгляд.
+            Assert.That(gaze, Does.Not.Contain("IsFrontal"));
             Assert.That(gaze, Does.Not.Contain("frontalEnterDot"));
-            Assert.That(gaze, Does.Not.Contain("frontalExitDot"));
+            // r2/r3: блендер набора весов давал дёрганье вместо плавности —
+            // плавность обеспечивает штатный разгон IKPositionWeight.
+            Assert.That(view, Does.Not.Contain("_cameraGazeBlend"));
+            // r1-веса: глаза решают, голова доворачивает.
+            Assert.That(view, Does.Contain("_lookAtIK.solver.eyesWeight = 1f"));
         });
     }
 }

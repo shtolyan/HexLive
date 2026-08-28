@@ -26,7 +26,6 @@ namespace HexLive.Simulation.Agents.Effects
         private const float HighUv = 0.6f;          // effective UV the panel calls "high"
         private const float SunburnShow = 0.3f;     // Sunburn redness worth flagging
         private const float WetShow = 0.5f;         // worn Wetness that kills warmth
-        private const float WindedFloor = 0.15f;    // stamina floor = winded
         private const float StressShow = 0.6f;      // stress climbing toward collapse
         private const float FilthyShow = 0.3f;      // hygiene this low = grubby
         private const float LonelyShow = 0.2f;      // social this low = lonely
@@ -218,9 +217,12 @@ namespace HexLive.Simulation.Agents.Effects
             }
 
             // Winded reads only while conscious — a faint already says it louder.
-            if (!fainted && !comatose && needs.Stamina < WindedFloor)
+            if (!fainted && !comatose &&
+                needs.Stamina < Runtime.SimBalance.StaminaExhaustedThreshold)
             {
-                results.Add(new ActiveEffect(EffectKind.Exhausted, 1f - needs.Stamina / WindedFloor));
+                results.Add(new ActiveEffect(
+                    EffectKind.Exhausted,
+                    1f - needs.Stamina / Runtime.SimBalance.StaminaExhaustedThreshold));
             }
 
             if (needs.Hunger < WellFedShow)

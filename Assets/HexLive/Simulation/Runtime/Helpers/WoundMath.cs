@@ -164,8 +164,9 @@ internal static class WoundMath
 
     /// <summary>⭐ §118.2: ПЛАСТЫРЬ — заклеить ровно одну рану, самую опасную.
     ///
-    /// Ровно то поведение, которое до §118.2 было у бинта: приоритет активного
-    /// кровотечения, затем самая глубокая сухая. Оно никуда не делось — просто
+    /// Ровно то поведение, которое до §118.2 было у бинта: выбор самой
+    /// опасной раны (кровотечение усиливает, глубина решает — bug #284).
+    /// Оно никуда не делось — просто
     /// переехало на дешёвый расходник, а бинт поднялся до целой зоны.
     ///
     /// Зону пластырь НЕ помечает: на торсе может висеть пяток пластырей, по
@@ -186,13 +187,17 @@ internal static class WoundMath
         return true;
     }
 
-    /// <summary>Общий выбор жертвы для повязки и пластыря: активно кровоточащая
-    /// всегда вперёд сухой, среди равных — самая глубокая.</summary>
+    /// <summary>Общий выбор жертвы для повязки и пластыря: самая ОПАСНАЯ рана.
+    /// Активное кровотечение усиливает опасность (до ×2), но не отменяет
+    /// глубину (bug #284): раньше категориальный приоритет «кровоточащая
+    /// всегда вперёд сухой» мотал бинт на свежую царапину руки, пока
+    /// разбитая (давно свернувшаяся, но нестабилизированная) нога ждала.
+    /// Деградация зоны живёт не в Severity, а в CriticalTrauma — она входит
+    /// в скор, иначе «нога вдребезги» оценивается исходной мелкой раной.</summary>
     private static WoundState PickMostDangerous(NPCState npc)
     {
         WoundState chosen = null;
         var danger = 0f;
-        var choseActiveBleed = false;
         foreach (var wound in npc.Wounds)
         {
             if (wound.Stabilized || wound.Heal01 >= 1f)
@@ -201,15 +206,12 @@ internal static class WoundMath
             }
 
             var openDanger = wound.Severity * (1f - wound.Heal01) * wound.BleedFactor;
-            var activeBleed = wound.Clot01 < 1f;
-            var score = activeBleed ? openDanger * (1f - wound.Clot01) : openDanger;
-            if (chosen == null ||
-                (activeBleed && !choseActiveBleed) ||
-                (activeBleed == choseActiveBleed && score > danger))
+            var score = openDanger * (1f + (1f - wound.Clot01)) +
+                npc.Body.Condition(wound.Zone).CriticalTrauma;
+            if (chosen == null || score > danger)
             {
                 chosen = wound;
                 danger = score;
-                choseActiveBleed = activeBleed;
             }
         }
 
@@ -219,10 +221,11 @@ internal static class WoundMath
     public static bool StabilizeMostDangerous(
         NPCState npc, bool herbal, out WoundState stabilized)
     {
-        // Active hemorrhage always wins; among equals the deepest cut. The
-        // chosen wound only picks the ZONE — the dressing then covers all of
-        // it (see below). §118.2: the same picker serves the plaster, which
-        // stops at that one wound.
+        // The most dangerous wound wins: active hemorrhage amplifies danger
+        // (up to ×2) but never outranks depth (bug #284). The chosen wound
+        // only picks the ZONE — the dressing then covers all of it (see
+        // below). §118.2: the same picker serves the plaster, which stops at
+        // that one wound.
         stabilized = PickMostDangerous(npc);
         if (stabilized == null)
         {

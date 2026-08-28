@@ -272,8 +272,10 @@ public sealed class KenshiCoreTests
         });
     }
 
+    // Bug #284: кровотечение усиливает опасность (до ×2), но не отменяет
+    // глубину — разбитая (сухая) нога важнее свежей царапины на руке.
     [Test]
-    public void Bandage_PrefersActiveBleedBeforeDeeperClottedCut()
+    public void Bandage_PrefersDeepWoundOverShallowActiveBleed_Bug284()
     {
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
@@ -291,7 +293,57 @@ public sealed class KenshiCoreTests
 
         Assert.That(WoundMath.StabilizeMostDangerous(
             patient, herbal: false, out var stabilized), Is.True);
-        Assert.That(stabilized.Id, Is.EqualTo(2));
+        Assert.That(stabilized.Id, Is.EqualTo(1));
+        Assert.That(stabilized.Zone, Is.EqualTo(BodyPart.LegL));
+    }
+
+    // Обе кровоточат: глубокая почти свернувшаяся всё равно важнее мелкой
+    // свежей — множитель (2 - Clot01) не смеет переворачивать глубину.
+    [Test]
+    public void Bandage_DeepAlmostClottedBeatsShallowFreshBleed_Bug284()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1, Zone = BodyPart.LegL, Severity = 0.8f,
+            Heal01 = 0f, Clot01 = 0.9f, Stabilized = false, BleedFactor = 1.2f
+        });
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 2, Zone = BodyPart.ArmL, Severity = 0.08f,
+            Heal01 = 0f, Clot01 = 0f, Stabilized = false, BleedFactor = 1.2f
+        });
+
+        Assert.That(WoundMath.StabilizeMostDangerous(
+            patient, herbal: false, out var stabilized), Is.True);
+        Assert.That(stabilized.Id, Is.EqualTo(1));
+    }
+
+    // Деградация живёт в CriticalTrauma зоны, не в Severity раны: добитая
+    // деградацией нога перевешивает даже при мелкой исходной ране.
+    [Test]
+    public void Bandage_DegeneratedZoneOutranksItsOriginalSeverity_Bug284()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Body.Condition(BodyPart.LegL).CriticalTrauma = 0.5f;
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1, Zone = BodyPart.LegL, Severity = 0.06f,
+            Heal01 = 0f, Clot01 = 1f, Stabilized = false, BleedFactor = 1.2f
+        });
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 2, Zone = BodyPart.ArmL, Severity = 0.08f,
+            Heal01 = 0f, Clot01 = 0.5f, Stabilized = false, BleedFactor = 1.2f
+        });
+
+        Assert.That(WoundMath.StabilizeMostDangerous(
+            patient, herbal: false, out var stabilized), Is.True);
+        Assert.That(stabilized.Zone, Is.EqualTo(BodyPart.LegL));
     }
 
     [Test]

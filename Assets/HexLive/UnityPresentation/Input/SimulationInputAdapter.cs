@@ -162,7 +162,10 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         ContextMenuPanel.BlocksWorldPointer ||
         LootTransferPanel.IsOpen ||
         GameMenu.IsOpen ||
-        EndSummaryPanel.IsOpen;
+        EndSummaryPanel.IsOpen ||
+        // Bug #279: окно отчёта об ошибке блокирует мир своим флагом — общий
+        // NpcSelection.PointerOverUi затирается CharacterPanel каждый кадр.
+        BugReportPanel.IsOpen;
 
     private void RenewRemoteLeaseForSelection()
     {

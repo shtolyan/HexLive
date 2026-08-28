@@ -76,6 +76,13 @@ namespace HexLive.UnityPresentation.Config
         /// window until every server has restarted on that code.</summary>
         public static bool IsRetired(string mobId) => mobId == "shark";
 
+        /// <summary>Туша (§54.4) носит id моба в Variant. Старые сейвы и ещё
+        /// не обновлённые серверы стримят legacy-variant "rabbit" —
+        /// историческое имя крабьей системы (§147): записи mob/rabbit никогда
+        /// не было, дичь в мире — краб.</summary>
+        public static string CarcassMobId(string variant) =>
+            variant == "rabbit" ? MobIds.Crab : variant;
+
         /// <summary>The mob's prefab: the asset's direct reference first, the
         /// legacy Resources path second, null = caller's hardcoded fallback.</summary>
         public static GameObject LoadPrefab(string mobId)

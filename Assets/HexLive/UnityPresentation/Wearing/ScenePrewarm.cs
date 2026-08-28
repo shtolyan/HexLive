@@ -102,7 +102,7 @@ public static class ScenePrewarm
         foreach (var worldObject in snapshot.Objects)
         {
             if (TryWorldObjectContentKey(
-                    worldObject.DefinitionId, worldObject.Id.Value,
+                    worldObject.DefinitionId, worldObject.Id.Value, worldObject.Variant,
                     out var type, out var contentId))
             {
                 // ⭐ ЛЕЖАЩАЯ одежда НЕ греется. Wear-бандлы — самая тяжёлая
@@ -371,7 +371,8 @@ public static class ScenePrewarm
         foreach (var value in world.Entities.Objects.Values)
         {
             if (TryWorldObjectContentKey(
-                    value.DefinitionId, value.Id.Value, out var type, out var contentId))
+                    value.DefinitionId, value.Id.Value, value.Variant,
+                    out var type, out var contentId))
             {
                 Add(type, contentId);
             }
@@ -491,7 +492,7 @@ public static class ScenePrewarm
             }
 
             if (TryWorldObjectContentKey(
-                    worldObject.DefinitionId, worldObject.Id.Value,
+                    worldObject.DefinitionId, worldObject.Id.Value, worldObject.Variant,
                     out var type, out var contentId))
             {
                 ContentPrefabCache.Prewarm(type, contentId);
@@ -540,7 +541,8 @@ public static class ScenePrewarm
     }
 
     private static bool TryWorldObjectContentKey(
-        string definitionId, int objectId, out string type, out string contentId)
+        string definitionId, int objectId, string variant,
+        out string type, out string contentId)
     {
         type = string.Empty;
         contentId = string.Empty;
@@ -575,6 +577,25 @@ public static class ScenePrewarm
         {
             type = "prosthetic";
             return true;
+        }
+
+        // §54.4: туша — модель самого моба (волк в позе Death, краб пузом
+        // кверху); своего бандла у неё нет и не будет. Прогрев греет
+        // mob/<Variant>; незарегистрированный или ушедший из каталога моб
+        // честно не греется и не репортится как пропажа. Спрашивать
+        // object/carcass.animal — это ложный «Нет active record» в логе.
+        if (definitionId == HexLive.Simulation.Content.ContentIds.CarcassAnimal)
+        {
+            var carcassMob = Config.MobLibrary.CarcassMobId(variant);
+            if (!string.IsNullOrEmpty(carcassMob) &&
+                !Config.MobLibrary.IsRetired(carcassMob) &&
+                Config.MobLibrary.Get(carcassMob) != null)
+            {
+                type = "mob";
+                contentId = carcassMob;
+                return true;
+            }
+            return false;
         }
 
         // These are simulation/presentation anchors assembled from already

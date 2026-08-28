@@ -61,7 +61,10 @@ public sealed class RabbitSystem : ISimulationSystem
         {
             world.Rabbits.Remove(dead);
             // Spec §54: the kill leaves a carcass to be butchered (no instant loot).
-            ExecutionSystem.SpawnCarcass(world, dead.Tile, dead.Junction, "rabbit");
+            // Variant — это id моба для рендера туши (§54.4): дичь этой системы
+            // в мире — КРАБ (§147, исторически система звалась Rabbit), и
+            // литерал "rabbit" делал тушу невидимой — mob/rabbit не существует.
+            ExecutionSystem.SpawnCarcass(world, dead.Tile, dead.Junction, Content.MobIds.Crab);
             // §147.4: слот убитого краба — в кулдаун (не-слотовые id — no-op).
             MobSlots.OnMobRemoved(world, Content.MobIds.Crab, dead.Id, RespawnCheckTicks);
         }

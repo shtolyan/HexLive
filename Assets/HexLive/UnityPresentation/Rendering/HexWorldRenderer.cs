@@ -4483,22 +4483,31 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return hut;
         }
 
-        // Spec §54/29C.3: a slain mob's carcass is its own model in the
-        // animator's Death state — a fresh kill plays the dying clip once, a
-        // carcass restored from a save skips straight to the final frame.
-        // Variant holds the mob id (the sim writes dead.MobId); a mob with no
-        // configured prefab (rabbit) keeps the procedural slumped-body prop.
+        // Spec §54/29C.3: a slain mob's carcass is its own model — no carcass
+        // asset exists on purpose. A mob whose animator has a Death state
+        // (wolf) lies in it: a fresh kill plays the dying clip once, a carcass
+        // restored from a save skips straight to the final frame. A mob with
+        // no death clip at all (crab — a static FBX) is the SAME model flipped
+        // belly-up. Variant holds the mob id (the sim writes dead.MobId);
+        // CarcassMobId maps the legacy "rabbit" variant of old saves/servers
+        // to the crab it always meant.
         if (worldObject.DefinitionId == "carcass.animal")
         {
-            var deadMobConfig = Config.MobLibrary.Get(worldObject.Variant);
-            var deadMobPrefab = Config.MobLibrary.LoadPrefab(worldObject.Variant);
+            var carcassMobId = Config.MobLibrary.CarcassMobId(worldObject.Variant);
+            var deadMobConfig = Config.MobLibrary.Get(carcassMobId);
+            var deadMobPrefab = Config.MobLibrary.LoadPrefab(carcassMobId);
             if (deadMobPrefab != null)
             {
-                var carcassRoot = new GameObject($"Object {worldObject.DefinitionId} ({worldObject.Variant})");
+                var carcassRoot = new GameObject($"Object {worldObject.DefinitionId} ({carcassMobId})");
                 carcassRoot.transform.SetParent(_objectsRoot, false);
                 var deadMob = Instantiate(deadMobPrefab, carcassRoot.transform);
                 deadMob.name = "Body";
-                var deadRenderer = deadMob.GetComponentInChildren<SkinnedMeshRenderer>();
+                // Краб — статичный меш: масштаб меряется по ЛЮБОМУ рендереру,
+                // не только по скиннингу.
+                var deadSkinned = deadMob.GetComponentInChildren<SkinnedMeshRenderer>();
+                Renderer deadRenderer = deadSkinned != null
+                    ? deadSkinned
+                    : deadMob.GetComponentInChildren<Renderer>();
                 if (deadRenderer != null)
                 {
                     var deadSize = deadRenderer.bounds.size;
@@ -4508,24 +4517,50 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     {
                         deadMob.transform.localScale *= HexRadius * footprint / deadLength;
                     }
-
-                    // The death pose collapses far outside the bind-pose AABB.
-                    deadRenderer.updateWhenOffscreen = true;
                 }
 
-                deadMob.transform.localRotation =
-                    Quaternion.Euler(0f, (worldObject.Id.Value * 61) % 360, 0f);
-                var deadAnimator = deadMob.GetComponent<Animator>();
-                if (deadAnimator != null)
+                if (deadSkinned != null)
                 {
+                    // The death pose collapses far outside the bind-pose AABB.
+                    deadSkinned.updateWhenOffscreen = true;
+                }
+
+                var deadYaw = (worldObject.Id.Value * 61) % 360;
+                var deadAnimator = deadMob.GetComponent<Animator>();
+                var hasDeathState = deadAnimator != null &&
+                    deadAnimator.runtimeAnimatorController != null &&
+                    deadAnimator.HasState(0, Animator.StringToHash("Death"));
+                if (hasDeathState)
+                {
+                    deadMob.transform.localRotation = Quaternion.Euler(0f, deadYaw, 0f);
                     var fresh = snapshotTick - worldObject.SpawnTick <= 10;
                     deadAnimator.SetBool("Dead", true);
                     deadAnimator.Play("Death", 0, fresh ? 0f : 1f);
+                }
+                else
+                {
+                    // Пузом кверху. Аниматор без контроллера глушится, чтобы
+                    // не сбрасывать позу на bind.
+                    if (deadAnimator != null)
+                    {
+                        deadAnimator.enabled = false;
+                    }
+                    deadMob.transform.localRotation =
+                        Quaternion.Euler(0f, deadYaw, 0f) * Quaternion.Euler(180f, 0f, 0f);
                 }
 
                 var carcassAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 carcassRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                     carcassAnchor, GroundY(worldObject.Tile));
+
+                if (!hasDeathState && deadRenderer != null)
+                {
+                    // Флип идёт вокруг пивота (он у ног живой модели), поэтому
+                    // перевёрнутое тело оказывается под землёй — прижать
+                    // панцирем к грунту по фактическим границам.
+                    var lift = carcassRoot.transform.position.y - deadRenderer.bounds.min.y;
+                    deadMob.transform.position += Vector3.up * lift;
+                }
                 return carcassRoot;
             }
             return null;

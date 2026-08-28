@@ -10,9 +10,15 @@ Use `scripts/bugs.py`; it preserves JSON encoding and surfaces HTTP conflicts.
 
 ## Authentication
 
-Mutations require the agent Bearer token. Prefer `HEXLIVE_BUG_TOKEN`; otherwise
-the CLI reads `~/.config/hexlive/bug-token` (overridable with `--token-file`). On the server the token is
-`/var/lib/hexlive/hexlive-bugs-token.txt`. Never print or commit it.
+Mutations require the bug-only agent Bearer token. By the project owner's
+explicit decision, the portable token is tracked as `bug-token` beside this
+file in the private repository so every repository checkout can operate the
+tracker. `scripts/bugs.py` checks `HEXLIVE_BUG_TOKEN`, an explicit
+`--token-file`, the repository token, then `~/.config/hexlive/bug-token`.
+On the server the matching token is `/var/lib/hexlive/hexlive-bugs-token.txt`.
+Never print it, paste it into chat/logs, or reuse it for SSH, player control, or
+admin access. If repository visibility ever stops being private, rotate this
+token immediately.
 
 Reads and new player reports are public. Status changes, agent fields,
 comments authored by an agent, and deletion are authenticated.

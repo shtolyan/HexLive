@@ -3,11 +3,20 @@
 import argparse, json, os, pathlib, sys, urllib.error, urllib.request
 
 DEFAULT="https://vmi3529459.contaboserver.net/api/bugs/v1"
+REPOSITORY_TOKEN=pathlib.Path(__file__).resolve().parents[1]/"bug-token"
+USER_TOKEN=pathlib.Path("~/.config/hexlive/bug-token").expanduser()
 
 def token(args):
     value=os.environ.get("HEXLIVE_BUG_TOKEN","").strip()
-    if not value and args.token_file:
-        with open(pathlib.Path(args.token_file).expanduser(),encoding="utf-8") as f: value=f.read().strip()
+    paths=[]
+    if args.token_file: paths.append(pathlib.Path(args.token_file).expanduser())
+    paths.extend((REPOSITORY_TOKEN,USER_TOKEN))
+    for path in paths:
+        if value or not path.is_file(): continue
+        if path == REPOSITORY_TOKEN and os.name != "nt":
+            try: path.chmod(0o600)
+            except OSError: pass
+        value=path.read_text(encoding="utf-8").strip()
     return value
 
 def call(args,method,path,payload=None,auth=False):
@@ -16,7 +25,7 @@ def call(args,method,path,payload=None,auth=False):
     if data is not None: headers["Content-Type"]="application/json"
     if auth:
         value=token(args)
-        if not value: raise SystemExit("HEXLIVE_BUG_TOKEN or --token-file is required")
+        if not value: raise SystemExit("bug token is missing (environment, --token-file, repository, or user config)")
         headers["Authorization"]="Bearer "+value
     request=urllib.request.Request(args.api.rstrip("/")+path,data=data,headers=headers,method=method)
     try:
@@ -28,7 +37,7 @@ def call(args,method,path,payload=None,auth=False):
         raise SystemExit(f"HTTP {e.code}: {body}")
 
 def main():
-    p=argparse.ArgumentParser(); p.add_argument("--api",default=DEFAULT); p.add_argument("--token-file",default="~/.config/hexlive/bug-token")
+    p=argparse.ArgumentParser(); p.add_argument("--api",default=DEFAULT); p.add_argument("--token-file")
     sub=p.add_subparsers(dest="cmd",required=True)
     sub.add_parser("list"); sub.add_parser("queue")
     g=sub.add_parser("get"); g.add_argument("id",type=int)

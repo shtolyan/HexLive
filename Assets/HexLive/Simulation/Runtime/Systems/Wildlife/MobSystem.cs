@@ -886,14 +886,42 @@ public sealed class MobSystem : ISimulationSystem
 
     internal static void ReadySpearHands(WorldState world, NPCState npc)
     {
+        // Bug #278: «освободить руки под копьё» — уронить ношу КИСТЕЙ, а не
+        // вывалить весь запас брёвен/веток/камней/листьев из карманов и
+        // рюкзака (§52.5). Отдельного хранилища рук в симуляции нет — кисти в
+        // раскладке заполняются ПОСЛЕДНИМИ (InventoryLayoutBuilder.AddHands),
+        // поэтому «в кистях лежит груз» ⇔ UsedSlots > Capacity − handSlots.
+        // Роняем ровно до этого порога; порог же гасит и повторные вызовы
+        // (собака рядом дёргает ReadySpearHands каждый medium-проход).
+        var handSlots = System.Math.Min(npc.Body.IntactHands, SimBalance.HandSlots);
+        var keep = npc.Inventory.Capacity - handSlots;
+        if (npc.Inventory.UsedSlots <= keep)
+        {
+            return;
+        }
+
         var dropped = 0;
+        var ground = true;
         foreach (var mat in _bulkyHandItems)
         {
-            while (npc.Inventory.Items.Find(i => i.DefinitionId == mat) is { } item)
+            while (ground && npc.Inventory.UsedSlots > keep &&
+                   npc.Inventory.Items.Find(i => i.DefinitionId == mat) is { } item)
             {
                 npc.Inventory.Items.Remove(item);
-                ExecutionSystem.DropItemAtFeet(world, npc, item);
+                if (ExecutionSystem.DropItemAtFeet(world, npc, item) is null)
+                {
+                    // Некуда положить — вернуть в пакет, не уничтожать.
+                    npc.Inventory.Items.Add(item);
+                    ground = false;
+                    break;
+                }
+
                 dropped++;
+            }
+
+            if (!ground)
+            {
+                break;
             }
         }
 

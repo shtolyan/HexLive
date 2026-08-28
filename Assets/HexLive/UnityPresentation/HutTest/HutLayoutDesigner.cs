@@ -459,7 +459,14 @@ namespace HexLive.UnityPresentation.HutTest
                 {
                     root.Q<Button>("export").clicked += BuildAndClose;
                 }
-                if (EditingExisting || DirectWorldConstruction)
+                // Bug #277 / §120.9 r2: в редакторе СУЩЕСТВУЮЩЕГО дома вкладка
+                // «Мебель» открыта — домашняя мебель живёт на junction-слотах
+                // чертежа, и это единственный способ поставить сушилку или
+                // очаг внутри дома (§66-путь по центрам гексов внутри
+                // футпринта всегда занят). Исполнитель реконсайлит дельту и
+                // сам отклоняет правку начатой/готовой мебели. Скрыта вкладка
+                // только в прямом мировом конструкторе.
+                if (DirectWorldConstruction)
                 {
                     var furnitureMode = root.Q<Button>("mode-furniture");
                     if (furnitureMode != null) furnitureMode.style.display = DisplayStyle.None;
@@ -1372,8 +1379,6 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void SetCatalogMode(BuildCatalogMode mode)
         {
-            if (EditingExisting && mode == BuildCatalogMode.Furniture)
-                mode = BuildCatalogMode.Construction;
             _catalogMode = mode;
             _activeCatalogEntry = null;
             _outdoorGridTile = null;

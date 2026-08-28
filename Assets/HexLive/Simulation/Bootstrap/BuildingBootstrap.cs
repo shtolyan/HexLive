@@ -347,7 +347,18 @@ public static class BuildingBootstrap
         draft.AnchorQ = stableAnchor.Q;
         draft.AnchorR = stableAnchor.R;
         draft.Normalize();
-        if (!SameFurniture(previous, draft))
+        // §120.9 r2 (bug #277): мебельная дельта реконсайлится, а не
+        // отклоняется глухо. Двигать/убирать/вертеть можно только мебель, чья
+        // площадка ещё ПУСТА (ни материала, ни работы) — начатую или готовую
+        // ревизия отклоняет целиком: материалы игрока не телепортируются и не
+        // пропадают. Здесь только валидация и сбор работы; мутации — ниже,
+        // после ВСЕХ проверок размещения.
+        List<WorldObjectState> orphanedFurniture = null;
+        List<(WorldObjectState Site, float Yaw)> turnedFurniture = null;
+        if (!SameFurniture(previous, draft) &&
+            !TryPlanFurnitureDelta(
+                world, owner, previous, draft,
+                out orphanedFurniture, out turnedFurniture))
         {
             error = "FurnitureEditUnsupported";
             return false;
@@ -401,6 +412,28 @@ public static class BuildingBootstrap
         if (owner.DefinitionId == ContentIds.Hut1Hex) owner.DefinitionId = ContentIds.HutPlan;
         if (owner.BuildProduct == ContentIds.Hut1Hex) owner.BuildProduct = ContentIds.HutPlan;
 
+        // Bug #277: осиротевшие ПУСТЫЕ площадки мебели уходят ДО
+        // RepairPlanTopology/CompleteHut — иначе остались бы ничьи Blocked
+        // (та же ловушка, что в ApplyCancelBuildSite). Новые и переехавшие
+        // placement стейкает CompleteHut → StakePlanFurnitureSites; у
+        // недостроенного дома мебель размечается при достройке, как всегда.
+        if (orphanedFurniture != null)
+        {
+            foreach (var site in orphanedFurniture)
+            {
+                WorldObjectMutations.DespawnObject(world, site.Id);
+                foreach (var npc in world.Entities.Npcs.Values)
+                {
+                    if (npc.Memory.KnownObjects.Remove(site.Id)) npc.Memory.Version++;
+                }
+            }
+        }
+
+        if (turnedFurniture != null)
+        {
+            foreach (var (site, yaw) in turnedFurniture) site.RotationDegrees = yaw;
+        }
+
         var bill = BuildingRules.ReconcileHutElements(
             world, owner, completeLegacySlots);
         owner.BillSticks = Math.Max(bill.Sticks,
@@ -442,6 +475,78 @@ public static class BuildingBootstrap
         {
             CompleteHut(world, owner);
         }
+        return true;
+    }
+
+    /// <summary>
+    /// Bug #277 / §120.9 r2: проверяет мебельную дельту ревизии и собирает
+    /// работу по миру. false — дельта трогает мебель, у которой уже есть
+    /// прогресс (доставленный материал, начатая работа или сам готовый
+    /// предмет): такая мебель не телепортируется. Только сбор, без мутаций —
+    /// вызывающий применяет их после ВСЕХ проверок размещения.
+    /// </summary>
+    private static bool TryPlanFurnitureDelta(
+        WorldState world, WorldObjectState owner,
+        Runtime.Blueprints.BuildingBlueprintDraft previous,
+        Runtime.Blueprints.BuildingBlueprintDraft draft,
+        out List<WorldObjectState> orphaned,
+        out List<(WorldObjectState Site, float Yaw)> turned)
+    {
+        orphaned = new List<WorldObjectState>();
+        turned = new List<(WorldObjectState, float)>();
+        var steps = HexSymmetrySteps(owner.RotationDegrees);
+        var planAnchorTile = Runtime.Blueprints.BlueprintBuildingPlan.AnchorTile(previous);
+        var index = PlanJunctionIndex(world, owner);
+
+        // Мировая identity размеченной мебели — (product, повёрнутый anchor
+        // junction), ровно как в StakePlanFurnitureSites. Поворот сравнивается
+        // по yawStep ЧЕРТЕЖЕЙ, а не по мировому углу объекта: у построенной
+        // мебели мировой угол не обязан совпадать с формулой штампа площадки.
+        var kept = new Dictionary<(string Product, JunctionId Anchor), int>();
+        foreach (var placement in draft.Furniture)
+        {
+            var product = PlanFurnitureProduct(placement.DefinitionId);
+            if (product == null) continue;
+            var anchorKey = RotatePlanJunction(
+                placement.PrimaryJunction, planAnchorTile, owner.Tile, steps);
+            if (index.TryGetValue(anchorKey, out var anchorId))
+            {
+                kept[(product, anchorId)] =
+                    Runtime.Blueprints.BlueprintGeometry.NormalizeSector(placement.YawStep);
+            }
+        }
+
+        foreach (var placement in previous.Furniture)
+        {
+            var product = PlanFurnitureProduct(placement.DefinitionId);
+            if (product == null) continue;
+            var tile = RotatePlanTile(placement.Tile, planAnchorTile, owner.Tile, steps);
+            if (!world.Tiles.Items.ContainsKey(tile)) continue;
+            var anchorKey = RotatePlanJunction(
+                placement.PrimaryJunction, planAnchorTile, owner.Tile, steps);
+            if (!index.TryGetValue(anchorKey, out var anchorId)) continue;
+            var existing = FindPlanFurniture(world, tile, product, anchorId);
+            if (existing == null) continue; // ещё не размечена — мир не задет
+            var started = existing.DefinitionId != ContentIds.BuildSite ||
+                existing.Contents.Count > 0 || existing.CraftWorkDone > 0;
+            if (!kept.TryGetValue((product, anchorId), out var yawStep))
+            {
+                if (started) return false;
+                orphaned.Add(existing);
+                continue;
+            }
+
+            if (Runtime.Blueprints.BlueprintGeometry.NormalizeSector(
+                    placement.YawStep) == yawStep)
+            {
+                continue; // placement не менялся — мир не трогается
+            }
+
+            if (started) return false;
+            turned.Add((existing, StructurePlacement.QuantizeHexYaw(
+                owner.RotationDegrees + yawStep * 60f)));
+        }
+
         return true;
     }
 

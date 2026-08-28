@@ -127,15 +127,21 @@ public sealed partial class ExecutionSystem
             if (!Content.GearCatalog.HasCapability(
                     npc.Inventory.Items, Content.GearCapability.ChopWood))
             {
-                Trace.Emit(world, npc.Id, "ExecFailed",
-                    $"Demolition requires an axe/saw at Object={site.Id.Value}");
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecFailed",
+                        $"Demolition requires an axe/saw at Object={site.Id.Value}");
+                }
                 return;
             }
 
             var definition = site.DefinitionId;
             Blueprints.FreeArchitectureRules.CompleteDemolition(world, site);
-            Trace.Emit(world, npc.Id, "ArchitectureDemolished",
-                $"{definition} dismantled at Tile={site.Tile.Q},{site.Tile.R}");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ArchitectureDemolished",
+                    $"{definition} dismantled at Tile={site.Tile.Q},{site.Tile.R}");
+            }
             return;
         }
 

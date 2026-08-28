@@ -785,19 +785,34 @@ public static class BuildingRules
         var desired = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
         var actual = ArchitectureObjects(world, owner).ToArray();
         var kept = new HashSet<string>(StringComparer.Ordinal);
+        var keptPieces = new List<WorldObjectState>();
         var remove = new List<ObjectId>();
 
         foreach (var piece in actual)
         {
             var element = piece.ArchitectureElements[0];
-            if (!desired.TryGetValue(element.SlotKey, out var definition) ||
+            if (!desired.TryGetValue(element.SlotKey, out _) ||
                 !kept.Add(element.SlotKey))
             {
                 remove.Add(piece.Id);
                 continue;
             }
 
-            ApplyDefinition(element, definition, completed: true);
+            keptPieces.Add(piece);
+        }
+
+        // A consistent save keeps each piece's instance state: geometry is
+        // re-taken from the blueprint, but Delivered*/WorkDone/Buildable are
+        // truth the save carried — stamping them "completed" would resurrect
+        // a dismantled or half-built module as finished. Only when the piece
+        // SET itself diverged from the plan (bug #188: shell and furniture
+        // raised from different plans) is the whole completed house rebuilt,
+        // because saved progress against a foreign plan is meaningless.
+        var rebase = remove.Count > 0 || kept.Count < definitions.Count;
+        foreach (var piece in keptPieces)
+        {
+            var element = piece.ArchitectureElements[0];
+            ApplyDefinition(element, desired[element.SlotKey], completed: rebase);
             piece.Tile = owner.Tile;
             piece.Fragment = owner.Fragment;
             piece.RotationDegrees = owner.RotationDegrees;

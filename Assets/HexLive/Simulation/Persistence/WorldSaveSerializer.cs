@@ -1184,7 +1184,12 @@ public static class WorldSaveSerializer
         definitionId == ContentIds.BedBasic ||
         definitionId == ContentIds.Workbench ||
         definitionId == ContentIds.DryingRack ||
-        definitionId == ContentIds.WaterCollector;
+        definitionId == ContentIds.WaterCollector ||
+        // Легаси-кровати переименовываются в bed.basic ПОЗЖЕ, в
+        // MigrateRetiredContent — ремонт yaw обязан узнавать их ещё
+        // под старым id, иначе 31° доезжает до мира нетронутым.
+        definitionId == ContentIds.BedLeaf ||
+        definitionId == ContentIds.HutBed;
 
     private static void WriteNpc(BinaryWriter w, NPCState npc)
     {

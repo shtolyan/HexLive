@@ -255,8 +255,13 @@ internal static class BuildSiteMath
     // materials stay in Contents after the bill closes, so these read the same
     // whether the upgrade bill is still open or finished. A legacy fire spawned
     // without the staged contents (old saves, dev scenes) reads as bare stage 1.
+    // The authored hut hearth is ring-complete by construction: its smaller
+    // 12-stone bill closes a full ring, and the §120 plan path raises it
+    // without carrying the site's Contents, so counting delivered stones
+    // against the 18-stone outdoor bill would read a finished hearth as bare.
     public static bool CampfireRingComplete(WorldObjectState fire) =>
-        fire != null && Delivered(fire, MaterialStones) >= SimBalance.CampfireBillStones;
+        fire != null && (fire.Variant == BuildingRules.HutHearthVariant ||
+        Delivered(fire, MaterialStones) >= SimBalance.CampfireBillStones);
 
     // The spit = stages 2-4 (posts, crossbar, lashings) — complete when the
     // full stick and rope bills are in. The stone ring (stage 5, §54.17 r3)

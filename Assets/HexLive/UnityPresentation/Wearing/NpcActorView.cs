@@ -461,6 +461,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private const float RainSoakPerSecond = 0.25f;
     private const float SweatSoakPerSecond = 0.08f;
     private const float SkinDryPerSecond = 0.022f;
+    // Bug #286: кожа начинает блестеть, только когда сим САМ считает её
+    // горячей (EffectEvaluator.ThermalMild = 0.4). Ниже — комфортная полоса:
+    // +4° «санктуария» лагеря (SimBalance.IndoorWarmthBonus) держат спящую на
+    // ThermalComfort ≈ +0.1..0.2, и без этой мёртвой зоны она блестела всю
+    // ночь при «нормальной» температуре в панели.
+    private const float SweatThermalGate = 0.4f;
     private float _skinWetness;
     private float _clothRainWetness;
     private float _wetnessLastTime;
@@ -2234,7 +2240,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // leaves her glistening for ~a minute, cooling down doesn't
         // instantly dry the sweat, and while she stays hot the wetness
         // never drains below her sweat level.
-        var sweatLevel = Mathf.Clamp01(thermal / 0.6f);
+        var sweatLevel = Mathf.Clamp01(
+            (thermal - SweatThermalGate) / (1f - SweatThermalGate));
         var wetTarget = Mathf.Max(rainWet > 0.5f ? 1f : 0f, sweatLevel);
         if (waterWet > 0.5f)
         {

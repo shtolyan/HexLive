@@ -840,10 +840,12 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             var ok = HasEveryTool(carried, interaction);
             var objectId = view.ContextObjectId;
             var type = interaction.Type;
+            var interactionId = interaction.Id;
             _entries.Add(new ContextMenuEntry(
-                Loc.Get($"interaction.{type}.verb"),
+                InteractionVerb(interaction),
                 () => EnqueueOrder(actorId,
-                    new InteractCommand(actor, new ObjectId(objectId), type)),
+                    new InteractCommand(
+                        actor, new ObjectId(objectId), type, interactionId)),
                 ok,
                 ok ? null : Loc.Get("menu.missing_tool")));
         }
@@ -1377,6 +1379,15 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         }
 
         return false;
+    }
+
+    private static string InteractionVerb(InteractionDefinition interaction)
+    {
+        var actionKey = $"interaction.{interaction.Id}.verb";
+        var localized = Loc.Get(actionKey);
+        return localized == actionKey
+            ? Loc.Get($"interaction.{interaction.Type}.verb")
+            : localized;
     }
 
     // ── Земля под курсором ───────────────────────────────────────────────

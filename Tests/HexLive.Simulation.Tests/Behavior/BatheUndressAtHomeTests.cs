@@ -571,8 +571,9 @@ public sealed class BatheUndressAtHomeTests
             // снятой вещи).
             // 59 → 60 in §120.10: queued architecture demolition and
             // the pending replacement definition of that exact slot; also §53.9
-            // (#240, ordered player aid kind and target).
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(60));
+            // (#240, ordered player aid kind and target). 60 → 61 in #266:
+            // exact catalog interaction id for same-type manual actions.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(61));
         });
     }
 

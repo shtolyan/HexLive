@@ -2117,7 +2117,9 @@ internal static class ManualCommandExecutor
         InteractionDefinition? interaction = null;
         foreach (var candidate in definition.Interactions)
         {
-            if (candidate.Type == command.Interaction)
+            if (candidate.Type == command.Interaction &&
+                (string.IsNullOrEmpty(command.InteractionId) ||
+                 candidate.Id == command.InteractionId))
             {
                 interaction = candidate;
                 break;
@@ -2252,7 +2254,8 @@ internal static class ManualCommandExecutor
             Type = PlanStepType.Interact,
             TargetObject = worldObject.Id,
             TargetJunction = target,
-            Interaction = command.Interaction
+            Interaction = command.Interaction,
+            InteractionId = interaction.Id
         });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
@@ -2262,7 +2265,7 @@ internal static class ManualCommandExecutor
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
                 $"Order=Interact Obj={worldObject.Id.Value} Def={worldObject.DefinitionId} " +
-                $"Action={command.Interaction} Junction={target.Value}");
+                $"Action={interaction.Id}/{command.Interaction} Junction={target.Value}");
         }
     }
 

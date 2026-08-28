@@ -71,5 +71,35 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(prosthetics, Does.Contain("TryDescribeWorldDrop("));
             });
         }
+
+        [Test]
+        public void LoadingCurtainDoesNotPrewarmBackpackMainBundles_Bug273()
+        {
+            var prewarm = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Wearing",
+                "ScenePrewarm.cs"));
+            var snapshotStart = prewarm.IndexOf(
+                "private static void WarmSnapshotNpcs", System.StringComparison.Ordinal);
+            var snapshotEnd = prewarm.IndexOf(
+                "private static void WarmActorPaintMaps", snapshotStart,
+                System.StringComparison.Ordinal);
+            var snapshotWarm = prewarm[snapshotStart..snapshotEnd];
+            var localStart = prewarm.IndexOf(
+                "private static void WarmItems", System.StringComparison.Ordinal);
+            var localEnd = prewarm.IndexOf(
+                "private static void ResolveWorkingSet", localStart,
+                System.StringComparison.Ordinal);
+            var localWarm = prewarm[localStart..localEnd];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(snapshotWarm, Does.Contain("npc.WornItems"));
+                Assert.That(snapshotWarm, Does.Contain("npc.HeldItemId"));
+                Assert.That(snapshotWarm, Does.Not.Contain("npc.InventoryItems"));
+                Assert.That(snapshotWarm, Does.Not.Contain("npc.InventoryContainers"));
+                Assert.That(snapshotWarm, Does.Not.Contain("npc.FavoriteWeaponId"));
+                Assert.That(localWarm, Does.Not.Contain("npc.Inventory.Items"));
+            });
+        }
     }
 }

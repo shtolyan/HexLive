@@ -82,10 +82,19 @@ namespace HexLive.UnityPresentation.UI
             return n;
         }
 
+        // Последний сырой ответ GET /reports. Сравнение СТРОК заменяет прежний
+        // JsonUtility.ToJson обеих моделей целиком «только чтобы сравнить» —
+        // вместе с синхронным HTTP это давало циклический провал кадра
+        // 600–800 мс каждые 2 секунды (профайл 2026-08-28: 660 мс из 705 в
+        // DebugControlsPanel.Update).
+        private static string _lastServerJson;
+        private static System.Threading.Tasks.Task<string> _refresh;
+
         /// <summary>
-        /// Reloads from disk if the file changed since we last read it (the
-        /// agent edits it from outside Play mode). Returns true when the
-        /// in-memory list was replaced, so the panel knows to rebuild.
+        /// Poll the server WITHOUT blocking the frame: kicks an async GET and
+        /// reports the previous poll's outcome. Returns true when the in-memory
+        /// list was replaced, so the panel knows to rebuild. Parsing happens on
+        /// the main thread, but only when the raw payload actually changed.
         /// </summary>
         public static bool CheckExternalChange()
         {
@@ -93,7 +102,67 @@ namespace HexLive.UnityPresentation.UI
             {
                 return false;
             }
-            return TryReloadFromServer();
+
+            if (_refresh == null)
+            {
+                // Токен и endpoint читаются ЗДЕСЬ, на главном потоке —
+                // SessionConfig/ServerBook не для тредпула.
+                _refresh = FetchReportsTextAsync(ApiEndpoint(), CurrentToken());
+                return false;
+            }
+
+            if (!_refresh.IsCompleted)
+            {
+                return false;
+            }
+
+            string json = null;
+            if (_refresh.Status == System.Threading.Tasks.TaskStatus.RanToCompletion)
+            {
+                json = _refresh.Result;
+            }
+            _refresh = null;
+            if (string.IsNullOrEmpty(json) || json == _lastServerJson)
+            {
+                return false;
+            }
+
+            var fresh = JsonUtility.FromJson<FileModel>("{\"reports\":" + json + "}");
+            if (fresh?.reports == null)
+            {
+                return false;
+            }
+
+            _lastServerJson = json;
+            _model = fresh;
+            NormalizeModel();
+            return true;
+        }
+
+        private static async System.Threading.Tasks.Task<string> FetchReportsTextAsync(
+            string endpoint, string token)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, endpoint + "/reports");
+                if (!string.IsNullOrWhiteSpace(token))
+                {
+                    request.Headers.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                using var response = await Http.SendAsync(request).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+                return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+                // Недоступный трекер — не событие для каждого опроса; синхронный
+                // путь (EnsureLoaded/мутации) свой warning уже пишет.
+                return null;
+            }
         }
 
         public static Report Add(string text, string context)
@@ -294,13 +363,16 @@ namespace HexLive.UnityPresentation.UI
             {
                 var json = SendText(HttpMethod.Get, "/reports", null, true);
                 if (string.IsNullOrEmpty(json)) return false;
+                // Сырая строка ответа и есть признак изменения — сериализовать
+                // обе модели целиком ради сравнения было половиной провала
+                // кадра (см. CheckExternalChange).
+                if (json == _lastServerJson) return false;
                 var fresh = JsonUtility.FromJson<FileModel>("{\"reports\":" + json + "}");
                 if (fresh?.reports == null) return false;
-                var previous = _model;
+                _lastServerJson = json;
                 _model = fresh;
                 NormalizeModel();
-                var changed = previous == null || JsonUtility.ToJson(previous) != JsonUtility.ToJson(fresh);
-                return changed;
+                return true;
             }
             catch (Exception e)
             {
@@ -308,6 +380,10 @@ namespace HexLive.UnityPresentation.UI
                 return false;
             }
         }
+
+        private static string CurrentToken() =>
+            System.Environment.GetEnvironmentVariable("HEXLIVE_BUG_TOKEN") ??
+            SessionConfig.ControlToken ?? ServerBook.LastToken;
 
         private static T Send<T>(HttpMethod method, string path, string json, bool authenticated) where T : class
         {
@@ -321,8 +397,7 @@ namespace HexLive.UnityPresentation.UI
             if (json != null) request.Content = new StringContent(json, Encoding.UTF8, "application/json");
             if (authenticated)
             {
-                var token = System.Environment.GetEnvironmentVariable("HEXLIVE_BUG_TOKEN") ??
-                            SessionConfig.ControlToken ?? ServerBook.LastToken;
+                var token = CurrentToken();
                 if (!string.IsNullOrWhiteSpace(token))
                     request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }

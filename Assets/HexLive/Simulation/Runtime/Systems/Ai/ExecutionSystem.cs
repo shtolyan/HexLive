@@ -315,7 +315,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
-            if (BuildSiteMath.IsSite(worldObject) &&
+            if (BuildSiteMath.UsesGenericSiteInteractions(worldObject) &&
                 world.Content.ObjectDefinitions.TryGetValue(ContentIds.BuildSite, out var siteDefinition))
             {
                 definition = siteDefinition;

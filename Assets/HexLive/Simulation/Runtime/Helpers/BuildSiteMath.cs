@@ -251,6 +251,17 @@ internal static class BuildSiteMath
         (!string.IsNullOrEmpty(obj.BuildProduct) &&
          (!IsFreeArchitectureSite(obj) || obj.ArchitectureElements[0].Buildable)));
 
+    /// <summary>
+    /// Whether interaction lookup must expose the generic build-site verbs.
+    /// The stage-1 campfire is deliberately raised early and keeps an open
+    /// upgrade bill for its spit/ring.  It is therefore still a site for
+    /// builders, but already a real hearth for every other interaction.
+    /// </summary>
+    public static bool UsesGenericSiteInteractions(WorldObjectState obj) =>
+        IsSite(obj) &&
+        !(obj.DefinitionId == ContentIds.Campfire &&
+          obj.BuildProduct == ContentIds.Campfire);
+
     // §54.14 (r2): FUNCTIONAL stage checks on a live campfire. Delivered
     // materials stay in Contents after the bill closes, so these read the same
     // whether the upgrade bill is still open or finished. A legacy fire spawned

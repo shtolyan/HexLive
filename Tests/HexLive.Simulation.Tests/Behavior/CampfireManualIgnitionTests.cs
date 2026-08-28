@@ -129,6 +129,48 @@ public sealed class CampfireManualIgnitionTests
                 "AI должен видеть уже загруженный холодный костёр как готовый к розжигу.");
         });
     }
+
+    [Test]
+    public void RaisedCampfireWithOpenUpgradeBillStillAcceptsFuelOrder()
+    {
+        var engine = TestWorld.CreateEngine(27402);
+        var world = engine.World;
+        var npc = Colonist(world);
+        engine.Step();
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+        ManualCommandExecutor.Apply(
+            world, new SetManualControlCommand(npc.Id, true));
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+
+        var fire = SpawnColdFire(world, npc);
+        fire.BuildProduct = ContentIds.Campfire;
+        fire.BillSticks = BuildSiteMath.CampfireStage1Sticks + 3;
+        fire.BillRope = 2;
+        fire.BillStones = 18;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BuildSiteMath.IsSite(fire), Is.True,
+                "Открытый счёт улучшений по-прежнему должен быть виден строителям.");
+            Assert.That(BuildSiteMath.UsesGenericSiteInteractions(fire), Is.False,
+                "Поднятый костёр уже обязан сохранять собственные действия.");
+        });
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new InteractCommand(
+                npc.Id, fire.Id, InteractionType.Fuel, "fuel.fire"));
+
+        Assert.That(admission.Status,
+            Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
+
+        StepUntil(engine, () =>
+            ContainerLootMath.HasQueuedCampfireFuel(world, fire));
+
+        Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.True,
+            "Исполнение тоже не должно повторно подменять костёр стройплощадкой.");
+    }
 }
 
 }

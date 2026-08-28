@@ -4489,28 +4489,25 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - It
-      - s gone'
+      - "It's gone"
       - "\u0426\u0435\u043B\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435\u0442"
-      Flags: 010100
+      Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NoSuchAction
       TermType: 0
       Description: 
       Languages:
-      - She can
-      - t do that with it'
+      - "She can't do that with it"
       - "\u0421 \u044D\u0442\u0438\u043C \u0442\u0430\u043A \u043D\u0435\u043B\u044C\u0437\u044F"
-      Flags: 010100
+      Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.Incapacitated
       TermType: 0
       Description: 
       Languages:
-      - She can
-      - t right now'
+      - "She can't right now"
       - "\u0421\u0435\u0439\u0447\u0430\u0441 \u043E\u043D\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442"
-      Flags: 010100
+      Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NotManual
       TermType: 0

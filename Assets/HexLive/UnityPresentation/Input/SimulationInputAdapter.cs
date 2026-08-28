@@ -233,6 +233,21 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // радиуса-исключения больше нет.
         if (objectHit != null)
         {
+            // #255: a bed or another stationary station can sit directly
+            // under every visible triangle of a lying ward. It is furniture,
+            // not the portable "item under her" protected by §121.1 r2. Let
+            // the exact body ray win in that one case so her aid menu remains
+            // reachable; coconuts, clothes and other PickUp objects keep the
+            // player's item-first rule unchanged.
+            if (!IsPortablePickTarget(objectHit) &&
+                TryRaycastNpc(snapshot, mousePos, out var lyingNpcId, out _) &&
+                TryFindPerson(snapshot!, lyingNpcId, out var lyingPerson, out var lyingDead) &&
+                !lyingDead && IsLyingPerson(lyingPerson))
+            {
+                npcId = lyingNpcId;
+                objectHit = null;
+            }
+
             return;
         }
 
@@ -252,6 +267,31 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             mobId = PickMobUnderCursor(snapshot, mousePos, out _);
         }
     }
+
+    private bool IsPortablePickTarget(WorldObjectView view)
+    {
+        if (_runner == null ||
+            !_runner.TryGetObjectDefinition(view.ContextDefinitionId, out var definition) ||
+            definition == null)
+        {
+            // Unknown legacy objects keep the conservative item-first rule.
+            return true;
+        }
+
+        foreach (var interaction in definition.Interactions)
+        {
+            if (interaction.Type == InteractionType.PickUp)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsLyingPerson(NpcSnapshot person) =>
+        person.IsUnconscious || person.IsDying || person.IsFainted ||
+        person.IsPlayingDead || person.CurrentInteraction == "Sleep";
 
     private void ClearHover()
     {
@@ -900,8 +940,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 () => EnqueueNpcAttack(me, npcId)));
         }
 
-        var lying = dead || target.IsUnconscious || target.IsDying || target.IsFainted ||
-            target.IsPlayingDead || target.CurrentInteraction == "Sleep";
+        var lying = dead || IsLyingPerson(target);
 
         // §121.9: социальные приказы. Меню не предугадывает сим: занятая или
         // не в духе цель откажет по прибытии честным cue (TalkRejected), а

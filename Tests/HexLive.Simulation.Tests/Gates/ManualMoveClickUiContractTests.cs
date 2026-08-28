@@ -52,4 +52,22 @@ public sealed class ManualMoveClickUiContractTests
             Assert.That(adapter, Does.Contain("ContextMenuPanel.BlocksWorldPointer"));
         });
     }
+
+    [Test]
+    public void LyingWardCanBeTargetedThroughStationButNotThroughPortableItem()
+    {
+        var adapter = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Input",
+            "SimulationInputAdapter.cs"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(adapter, Does.Contain("!IsPortablePickTarget(objectHit)"));
+            Assert.That(adapter, Does.Contain("IsLyingPerson(lyingPerson)"));
+            Assert.That(adapter, Does.Contain("interaction.Type == InteractionType.PickUp"));
+            Assert.That(adapter, Does.Contain("objectHit = null;"));
+            Assert.That(adapter, Does.Contain("Add(\"menu.aid.hydrate\", AidKind.Hydrate)"));
+            Assert.That(adapter, Does.Contain("Add(\"menu.aid.feed\", AidKind.Feed)"));
+        });
+    }
 }

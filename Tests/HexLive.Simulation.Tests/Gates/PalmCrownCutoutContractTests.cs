@@ -86,5 +86,25 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(shader, Does.Not.Contain("_CameraPalmCrownCutoutSphere"));
             });
         }
+
+        [Test]
+        public void AtomicPalmDropsBakeTheApprovedNativeArtAtLegacyCounts()
+        {
+            var authoring = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Tools", "blender", "author_atomic_world_props.py"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(authoring, Does.Contain(
+                    "source = import_mesh_source(OBJECTS / \"log_final_native.fbx\")"));
+                Assert.That(authoring, Does.Contain(
+                    "source = import_mesh_source(OBJECTS / \"palm_frond_native.fbx\")"));
+                Assert.That(authoring, Does.Contain(
+                    "crown(\"resource.palm_crown\", fronds=42, length=1.275)"));
+                Assert.That(authoring, Does.Contain(
+                    "crown(\"resource.palm_crown_small\", fronds=8, length=1.275)"));
+                Assert.That(authoring, Does.Contain("--only-palm-drops"));
+            });
+        }
     }
 }

@@ -287,6 +287,8 @@ namespace HexLive.Simulation.Runtime
         public static float StaminaRestGain = 0.06f;   // stamina/tick while resting
         public static float StaminaWorkDrain = 0.05f;  // stamina/tick while working
         public static float StaminaIdleGain = 0.015f;  // stamina/tick while idle
+        public const float StaminaExhaustedThreshold = 0.15f;
+        public const float StaminaExhaustedSitBoost = 3f;
         public static float StressUpRate = 0.05f;      // stress/tick in danger/combat/pain/starvation
         public static float StressDownRate = 0.03f;    // stress shed/tick in calm
 

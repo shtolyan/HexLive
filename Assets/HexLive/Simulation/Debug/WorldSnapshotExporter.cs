@@ -991,7 +991,7 @@ public static class WorldSnapshotExporter
             ThermalDiscomfort = npc.Needs.ThermalDiscomfort,
             ThermalComfort = npc.Needs.ThermalComfort,
             Stamina = npc.Needs.Stamina,
-            Winded = npc.Needs.Stamina < 0.15f,
+            Winded = npc.Needs.Stamina < SimBalance.StaminaExhaustedThreshold,
             IsRunning = npc.Mind.IsRunning,       // §71
             Breath = npc.Needs.Breath,            // §71
             Hygiene = npc.Needs.Hygiene,

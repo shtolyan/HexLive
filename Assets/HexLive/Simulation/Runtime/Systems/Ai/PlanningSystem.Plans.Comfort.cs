@@ -656,6 +656,15 @@ public sealed partial class PlanningSystem
         if (spot is not { } sitSpot ||
             !SpatialMutations.TryReserveJunction(world, sitSpot, npc.Id, world.Tick, 96))
         {
+            // #267: once the current job has finished on an empty stamina bar,
+            // a real seat is preferred but not required. Sit right here rather
+            // than failing the rest goal and immediately starting a new chore.
+            if (npc.Needs.Stamina < SimBalance.StaminaExhaustedThreshold)
+            {
+                BuildIdleRestPlan(world, npc);
+                return;
+            }
+
             npc.Plan.Status = PlanStatus.Failed;
             SetGoalCooldown(world, npc, GoalType.Sit);
             if (SimTrace.Enabled)

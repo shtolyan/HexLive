@@ -524,14 +524,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // a seat (the old ground-sit fallback is gone), so without one Sit
             // doesn't even bid — else she'd churn Sit→NoLedge→cooldown forever
             // on a flat island.
-            var sitAvail = npc.Needs.Comfort < SimBalance.SitComfortThreshold &&
-                npc.Needs.Hunger < SimBalance.SitNeedGate && npc.Needs.Thirst < SimBalance.SitNeedGate &&
-                !sleepAvail &&
-                // Sitting is worth it only for a seat she's essentially next to —
-                // a ledge within ~2 hexes, not one hiked to across the map (user:
-                // walk right up to it, never sit "from afar"). Was 8R.
-                (HasPerceivedSeat(npc, world) ||
-                 AnyLedgeNear(world, npc, HexSpatialMath.HexRadius * 2f));
+            var staminaExhausted =
+                npc.Needs.Stamina < SimBalance.StaminaExhaustedThreshold;
+            var sitAvail = staminaExhausted ||
+                (npc.Needs.Comfort < SimBalance.SitComfortThreshold &&
+                 npc.Needs.Hunger < SimBalance.SitNeedGate &&
+                 npc.Needs.Thirst < SimBalance.SitNeedGate &&
+                 !sleepAvail &&
+                 // Sitting is worth it only for a seat she's essentially next to —
+                 // a ledge within ~2 hexes, not one hiked to across the map (user:
+                 // walk right up to it, never sit "from afar"). Was 8R.
+                 (HasPerceivedSeat(npc, world) ||
+                  AnyLedgeNear(world, npc, HexSpatialMath.HexRadius * 2f)));
             // Spec 29C.4 restraint: dress only against cold — an overheated
             // NPC reaching for more clothes is a doom loop.
             // Spec 29C.4A: fresh danger overrides the weather — arm up.
@@ -989,7 +993,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // сдвигает, чем человек занимает свободную минуту.
         AddGoalScore(npc, world.Tick, GoalType.Sit,
             (1f - npc.Needs.Comfort) * 0.5f + (1f - npc.Needs.Stamina) * 0.25f +
-                TraitMath.LeisureBonus(npc), ctx.SitAvail);
+                TraitMath.LeisureBonus(npc) +
+                (npc.Needs.Stamina < SimBalance.StaminaExhaustedThreshold
+                    ? SimBalance.StaminaExhaustedSitBoost
+                    : 0f),
+            ctx.SitAvail);
         AddGoalScore(npc, world.Tick, GoalType.Dress, ctx.DressNeed,
             ctx.DressAvail &&
             (!npc.Mind.OutfitLocked ||

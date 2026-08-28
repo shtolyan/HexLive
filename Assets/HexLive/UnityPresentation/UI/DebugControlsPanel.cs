@@ -114,11 +114,16 @@ namespace HexLive.UnityPresentation.UI
 
             // A ready-to-test count signals that the player has something to
             // verify; the agent never confirms a fix on the player's behalf.
+            // Сюда НЕЛЬЗЯ ходить в сеть: трекер опрашивает сервер только пока
+            // его окно открыто (BugReportPanel.Update). Кнопка читает уже
+            // загруженную модель; пока трекер ни разу не открывали — просто
+            // «Report bug» без счётчика.
             if (_bugLabel != null && Time.unscaledTime >= _nextBugLabelRefresh)
             {
                 _nextBugLabelRefresh = Time.unscaledTime + 2f;
-                BugReportStore.CheckExternalChange();
-                var readyCount = BugReportStore.CountWithStatus(BugReportStore.StatusReadyForTest);
+                var readyCount = BugReportStore.IsLoaded
+                    ? BugReportStore.CountWithStatus(BugReportStore.StatusReadyForTest)
+                    : 0;
                 _bugLabel.text = readyCount > 0
                     ? string.Format(Loc.Get("bugs.debug.ready"), readyCount)
                     : "Report bug";

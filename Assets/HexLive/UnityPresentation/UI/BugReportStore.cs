@@ -67,6 +67,10 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
+        /// <summary>Модель уже в памяти? Дебаг-кнопка спрашивает счётчик
+        /// только тогда — сама она загрузку (и сеть) не инициирует.</summary>
+        public static bool IsLoaded => _model != null;
+
         public static int CountWithStatus(string status)
         {
             EnsureLoaded();

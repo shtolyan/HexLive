@@ -1173,9 +1173,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // seen campfire drive the fuel/craft goals further below.
         var hasLighter = Content.GearCatalog.HasCapability(
             npc.Inventory.Items, Content.GearCapability.Ignite);
-        // Spec §54: "wood in hand" for fire/craft now means a STICK.
-        var hasWood = npc.Inventory.Items.Contains(ContentIds.Stick);
         var (campfireSeen, campfireFuel, campfireObj) = FindCampfire(npc, world);
+        // §151.2: a queued log/board is already usable fuel, and any carried
+        // Wood can be fed directly. The old stick-only gate stranded both a
+        // log carrier and a fully stocked cold pit forever.
+        var hasWood = campfireObj is not null &&
+            ContainerLootMath.HasCampfireFuelAvailable(world, npc, campfireObj);
         // §126/§49 r2: вместе с ночным затвором ушла и его топливная цепочка —
         // арифметика «хватит ли дров дожечь до утра», которая поднимала ставку
         // дров перед сном. Тяга к дровам осталась обычная (fuelLow ниже): у
@@ -1320,7 +1323,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // nothing else ever picked a scattered stick up for the bed.
         var gatherWoodTargetReachable = PlanningSystem.HasObjectCandidateForGoal(
             world, npc, GoalType.GatherWood);
-        var gatherWoodAvail = ((fuelLow && carriedSticks == 0 && carriedLogs == 0) ||
+        var gatherWoodAvail = ((fuelLow && !hasWood) ||
                 (piece is { } pLog && carriedLogs < pLog.Logs) ||
                 siteNeedsLogs ||
                 (siteNeedsSticks &&

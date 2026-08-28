@@ -4444,6 +4444,38 @@ MonoBehaviour:
       - "\u041D\u0435\u0442 \u043D\u0443\u0436\u043D\u043E\u0433\u043E \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u0430"
       Flags: 0101
       Languages_Touch: []
+    - Term: toast.order_rejected.NoFuel
+      TermType: 0
+      Description:
+      Languages:
+      - No firewood in inventory
+      - "\u041D\u0435\u0442 \u0434\u0440\u043E\u0432 \u0432 \u0438\u043D\u0432\u0435\u043D\u0442\u0430\u0440\u0435"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.FuelBufferFull
+      TermType: 0
+      Description:
+      Languages:
+      - The firewood buffer is full
+      - "\u0417\u0430\u043F\u0430\u0441 \u0434\u0440\u043E\u0432 \u0443 \u043A\u043E\u0441\u0442\u0440\u0430 \u043F\u043E\u043B\u043E\u043D"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.FireHasNoFuel
+      TermType: 0
+      Description:
+      Languages:
+      - Put firewood in the fire first
+      - "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u043F\u043E\u0434\u043B\u043E\u0436\u0438\u0442\u0435 \u0434\u0440\u043E\u0432\u0430"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.FireAlreadyLit
+      TermType: 0
+      Description:
+      Languages:
+      - The fire is already burning
+      - "\u041A\u043E\u0441\u0442\u0451\u0440 \u0443\u0436\u0435 \u0433\u043E\u0440\u0438\u0442"
+      Flags: 0101
+      Languages_Touch: []
     - Term: toast.order_rejected.Occupied
       TermType: 0
       Description: 

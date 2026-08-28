@@ -146,6 +146,55 @@ internal static class ContainerLootMath
             ? FuelTicksPerStick * 4f
             : FuelTicksPerStick;
 
+    private static readonly string[] CampfireFuelPreference =
+    {
+        ContentIds.Stick, ContentIds.Board, ContentIds.Log
+    };
+
+    /// <summary>§151.2: the action and the container accept the same Wood set.
+    /// Prefer cheap fuel before a four-stick log, but keep content-tagged wood
+    /// extensible without another hard-coded interaction branch.</summary>
+    public static ItemInstance FindCarriedCampfireFuel(WorldState world, NPCState npc)
+    {
+        foreach (var preferred in CampfireFuelPreference)
+        {
+            foreach (var item in npc.Inventory.Items)
+            {
+                if (item.DefinitionId == preferred && IsWood(world, item))
+                {
+                    return item;
+                }
+            }
+        }
+
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (IsWood(world, item)) return item;
+        }
+
+        return null;
+    }
+
+    public static bool HasCampfireFuelAvailable(
+        WorldState world, NPCState npc, WorldObjectState fire) =>
+        FindCarriedCampfireFuel(world, npc) is not null ||
+        HasQueuedCampfireFuel(world, fire);
+
+    public static bool TryConsumeCarriedCampfireFuel(
+        WorldState world, NPCState npc, out float fuelTicks)
+    {
+        var item = FindCarriedCampfireFuel(world, npc);
+        if (item is null)
+        {
+            fuelTicks = 0f;
+            return false;
+        }
+
+        npc.Inventory.Items.Remove(item);
+        fuelTicks = FuelTicks(item);
+        return true;
+    }
+
     /// <summary>§151: consume the oldest queued stack member into active fuel.</summary>
     public static bool TryConsumeCampfireFuel(
         WorldState world, WorldObjectState fire, out float fuelTicks)

@@ -40,8 +40,11 @@ public sealed class CampfireManualIgnitionTests
         }
     }
 
-    [Test]
-    public void ManualFuelStocksColdPitAndIgniteNeedsLighter()
+    [TestCase(ContentIds.Stick, ContainerLootMath.FuelTicksPerStick)]
+    [TestCase(ContentIds.Board, ContainerLootMath.FuelTicksPerStick)]
+    [TestCase(ContentIds.Log, ContainerLootMath.FuelTicksPerStick * 4f)]
+    public void ManualFuelStocksAnyWoodAndIgniteNeedsLighter(
+        string fuelId, float expectedFuel)
     {
         var engine = TestWorld.CreateEngine(22801);
         var world = engine.World;
@@ -53,7 +56,7 @@ public sealed class CampfireManualIgnitionTests
             world, new SetManualControlCommand(npc.Id, true));
         Assert.That(control.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
         npc.Inventory.Items.Clear();
-        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+        npc.Inventory.Items.Add(new ItemInstance(fuelId));
         var fire = SpawnColdFire(world, npc);
 
         var stock = ManualCommandExecutor.Apply(
@@ -69,7 +72,7 @@ public sealed class CampfireManualIgnitionTests
             Assert.That(fire.ResourceAmount, Is.Zero,
                 "«Подбросить» не должно зажигать холодный костёр.");
             Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.True);
-            Assert.That(npc.Inventory.Items.Contains(ContentIds.Stick), Is.False);
+            Assert.That(npc.Inventory.Items.Contains(fuelId), Is.False);
         });
 
         var withoutLighter = ManualCommandExecutor.Apply(
@@ -91,11 +94,39 @@ public sealed class CampfireManualIgnitionTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(fire.ResourceAmount, Is.GreaterThan(0f));
+            Assert.That(fire.ResourceAmount,
+                Is.InRange(expectedFuel - 16f, expectedFuel),
+                "Между розжигом и наблюдением проходит один slow tick горения.");
             Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.False,
                 "Розжиг должен перевести первую вещь из буфера в активное топливо.");
             Assert.That(npc.Inventory.Items.Contains(GearCatalog.Lighter), Is.True,
                 "Зажигалка — многоразовый инструмент и не расходуется.");
+        });
+    }
+
+    [Test]
+    public void QueuedWoodCountsAsAutonomousFireFuelWithoutCarriedStick()
+    {
+        var world = TestWorld.CreateWorld(274);
+        var npc = Colonist(world);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Log));
+        var fire = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Campfire, npc.Fragment, npc.Tile,
+            npc.CurrentJunction ?? world.Junctions.Items.Keys.First());
+        fire.ResourceAmount = 0f;
+
+        var log = ContainerLootMath.FindCarriedCampfireFuel(world, npc);
+        ContainerLootMath.GiveToContainer(world, fire, npc, new[] { log! });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items, Is.Empty);
+            Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.True);
+            Assert.That(
+                ContainerLootMath.HasCampfireFuelAvailable(world, npc, fire),
+                Is.True,
+                "AI должен видеть уже загруженный холодный костёр как готовый к розжигу.");
         });
     }
 }

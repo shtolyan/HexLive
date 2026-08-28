@@ -661,9 +661,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     var manualColdStocking = npc.Plan.Goal == GoalType.PlayerOrder &&
                         worldObject.ResourceAmount <= 0f;
-                    var carriedStick = npc.Inventory.Items.Find(
-                        item => item.DefinitionId == ContentIds.Stick);
-                    var hasWoodNow = carriedStick is not null ||
+                    var carriedFuel = ContainerLootMath.FindCarriedCampfireFuel(world, npc);
+                    var hasWoodNow = carriedFuel is not null ||
                         (!manualColdStocking &&
                          ContainerLootMath.HasQueuedCampfireFuel(world, worldObject));
                     // §45 r5 parity: the DECISION layer already lets a genuinely
@@ -689,9 +688,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         !Content.GearCatalog.HasCapability(
                             npc.Inventory.Items, Content.GearCapability.Ignite) &&
                         !canFrictionLight;
-                    var fuelBufferFull = manualColdStocking && carriedStick is not null &&
+                    var fuelBufferFull = manualColdStocking && carriedFuel is not null &&
                         !ContainerLootMath.CanAccept(
-                            world, worldObject, new[] { carriedStick });
+                            world, worldObject, new[] { carriedFuel });
                     if (!hasWoodNow || missingLighter || fuelBufferFull)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
@@ -1337,25 +1336,24 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             var wasLit = worldObject.ResourceAmount > 0f;
             if (!wasLit && npc.Plan.Goal == GoalType.PlayerOrder)
             {
-                var carriedStick = npc.Inventory.Items.Find(
-                    item => item.DefinitionId == ContentIds.Stick);
-                if (carriedStick is null ||
+                var carriedFuel = ContainerLootMath.FindCarriedCampfireFuel(world, npc);
+                if (carriedFuel is null ||
                     !ContainerLootMath.CanAccept(
-                        world, worldObject, new[] { carriedStick }))
+                        world, worldObject, new[] { carriedFuel }))
                 {
                     // Bug #235: отказ — тоже конец сцены, и закрыть его надо
                     // целиком: заявку с очага, узел подхода и саму сцену.
                     return FailHearthScene(world, npc, worldObject,
                         $"Cannot stock {worldObject.DefinitionId} " +
-                        $"(stick={carriedStick is not null} buffer full)");
+                        $"(wood={carriedFuel is not null} buffer full)");
                 }
 
                 ContainerLootMath.GiveToContainer(
-                    world, worldObject, npc, new[] { carriedStick });
+                    world, worldObject, npc, new[] { carriedFuel });
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "FireFuelQueued",
-                        $"{worldObject.DefinitionId} queued={carriedStick.DefinitionId}");
+                        $"{worldObject.DefinitionId} queued={carriedFuel.DefinitionId}");
                 }
                 worldObject.IsOccupied = false;
                 worldObject.CurrentUser = null;
@@ -1370,13 +1368,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             {
                 // Spec 29E.3 / §54 / §151: a burning fire and autonomous TendFire
                 // consume fuel immediately; buffered logs preserve their 4x value.
-                var fuel = ContainerLootMath.FuelTicksPerStick;
-                if (npc.Inventory.Items.Contains(ContentIds.Stick))
-                {
-                    npc.Inventory.Items.Remove(ContentIds.Stick);
-                }
-                else if (!ContainerLootMath.TryConsumeCampfireFuel(
-                             world, worldObject, out fuel))
+                if (!ContainerLootMath.TryConsumeCarriedCampfireFuel(
+                        world, npc, out var fuel) &&
+                    !ContainerLootMath.TryConsumeCampfireFuel(
+                        world, worldObject, out fuel))
                 {
                     // Bug #235: палку успели потратить между планом и завершением —
                     // подкинуть нечего. Отпускаем очаг, иначе он остаётся занят

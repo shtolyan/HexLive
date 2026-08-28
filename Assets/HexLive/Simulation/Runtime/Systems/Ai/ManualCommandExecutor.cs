@@ -2177,6 +2177,23 @@ internal static class ManualCommandExecutor
             }
         }
 
+        if (command.Interaction == InteractionType.Fuel)
+        {
+            var fuel = ContainerLootMath.FindCarriedCampfireFuel(world, npc);
+            if (fuel is null)
+            {
+                Reject(world, npc.Id, "Interact", "NoFuel", admission);
+                return;
+            }
+
+            if (worldObject.ResourceAmount <= 0f &&
+                !ContainerLootMath.CanAccept(world, worldObject, new[] { fuel }))
+            {
+                Reject(world, npc.Id, "Interact", "FuelBufferFull", admission);
+                return;
+            }
+        }
+
         if (worldObject.IsOccupied && worldObject.CurrentUser is { } user && !user.Equals(npc.Id))
         {
             Reject(world, npc.Id, "Interact", "Occupied", admission);

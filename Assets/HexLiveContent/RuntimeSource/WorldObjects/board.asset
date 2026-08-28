@@ -17,10 +17,5 @@ MonoBehaviour:
   tags:
   - Wood
   - Resource
-  actions:
-  - actionId: pickup.board
-    type: 2
-    requiredCapabilities: []
-    durationTicks: 4
-    yields: []
+  actions: []
 

@@ -144,6 +144,11 @@ The Windows script differs where the platform forces it:
 - Publication retries the staging→`v<version>` rename: Windows refuses to
   rename a directory while any file under it is open, and a `tail -f` on
   `unity-build.log` is enough to lose a finished build.
+- The pre-build bug snapshot uses the Windows-provided `curl.exe`/Schannel
+  directly against the HTTPS production API, without an HTTP proxy. Certificate
+  verification is mandatory; never add `-k`/`--insecure`. The build token is
+  discovered from the private repository skill first and the per-user config
+  second, so a fresh trusted checkout needs no manual token setup.
 
 It builds the macOS development player into
 `~/hex-girls/Releases/v<version>/` on the internal disk, next to

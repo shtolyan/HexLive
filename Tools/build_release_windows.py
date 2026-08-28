@@ -47,6 +47,8 @@ DEFAULT_RELEASES = DEFAULT_DISTRIBUTION / "Releases"
 PROJECT_SETTINGS = ROOT / "ProjectSettings" / "ProjectSettings.asset"
 PENDING_VERSION = ROOT / "Library" / "HexLivePendingBuildVersion.txt"
 BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://vmi3529459.contaboserver.net/api/bugs/v1").rstrip("/")
+REPOSITORY_BUG_TOKEN = ROOT / ".agents" / "skills" / "hexlive-bug-tracker" / "bug-token"
+USER_BUG_TOKEN = Path.home() / ".config" / "hexlive" / "bug-token"
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
 PLAYER_METHOD = "HexLive.UnityDebug.Editor.HexLiveReleaseBuilder.BuildWindows"
 AUTO_REFRESH_BACKUP = ROOT / "Library" / "HexLiveBuildAutoRefreshBackup-Windows.json"
@@ -150,15 +152,88 @@ def read_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def windows_curl_executable() -> Path:
+    system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+    candidates = (
+        system_root / "System32" / "curl.exe",
+        system_root / "Sysnative" / "curl.exe",
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    raise RuntimeError(
+        "Windows system curl.exe is missing; expected it under "
+        f"{system_root}. Install the current Windows updates instead of disabling TLS verification."
+    )
+
+
+def read_bug_tracker_with_windows_tls(url: str) -> Any:
+    # curl.exe supplied by Windows uses Schannel and the Windows certificate
+    # store. Bypass environment/system HTTP proxies for this fixed production
+    # API so an expired interception certificate cannot break the build gate.
+    # TLS verification remains mandatory: there is deliberately no -k or
+    # --insecure escape hatch here.
+    command = [
+        str(windows_curl_executable()),
+        "--fail",
+        "--silent",
+        "--show-error",
+        "--location",
+        "--proto",
+        "=https",
+        "--proto-redir",
+        "=https",
+        "--noproxy",
+        "*",
+        "--connect-timeout",
+        "10",
+        "--max-time",
+        "15",
+        "--header",
+        "Accept: application/json",
+        url,
+    ]
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        details = result.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(
+            f"Windows system TLS could not read bug API {BUG_API}: "
+            f"{details or f'curl.exe exited with {result.returncode}'}"
+        )
+    return json.loads(result.stdout.decode("utf-8"))
+
+
 def read_bug_tracker() -> dict[str, Any]:
+    url = BUG_API + "/reports"
     try:
-        with urllib.request.urlopen(BUG_API + "/reports", timeout=15) as response:
-            reports = json.loads(response.read().decode("utf-8"))
+        if os.name == "nt":
+            reports = read_bug_tracker_with_windows_tls(url)
+        else:
+            with urllib.request.urlopen(url, timeout=15) as response:
+                reports = json.loads(response.read().decode("utf-8"))
     except Exception as error:
         raise RuntimeError(f"Could not read bug API {BUG_API}: {error}") from error
     if not isinstance(reports, list):
         raise RuntimeError(f"Expected reports array from {BUG_API}")
     return {"reports": reports}
+
+
+def configure_bug_token() -> None:
+    if os.environ.get("HEXLIVE_BUG_TOKEN", "").strip():
+        return
+    for path in (REPOSITORY_BUG_TOKEN, USER_BUG_TOKEN):
+        if not path.is_file():
+            continue
+        value = path.read_text(encoding="utf-8").strip()
+        if value:
+            os.environ["HEXLIVE_BUG_TOKEN"] = value
+            return
 
 
 def active_reports(tracker: dict[str, Any], statuses: set[str]) -> list[dict[str, Any]]:
@@ -670,9 +745,7 @@ def tail_log(log_path: Path) -> None:
 
 def main() -> int:
     args = parse_args()
-    local_bug_token = Path.home() / ".config" / "hexlive" / "bug-token"
-    if not os.environ.get("HEXLIVE_BUG_TOKEN") and local_bug_token.is_file():
-        os.environ["HEXLIVE_BUG_TOKEN"] = local_bug_token.read_text(encoding="utf-8").strip()
+    configure_bug_token()
     releases = args.output_root.expanduser().resolve()
     version, version_reason = planned_version()
     variant = "release" if args.release else "development"

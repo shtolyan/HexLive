@@ -167,13 +167,14 @@ namespace HexLive.UnityPresentation.Input
         private const float PalmCrownShowDistance = 2.5f;
         private const float PalmCrownCheckMovement = 0.1f;
 
-        // §130 r4 / bug #134: камера почти вплотную (мин. зум 0.7) запускает
-        // шестисекундную реакцию NPC. После старта движение объектива её не
-        // обрывает: безопасный доворот задают малые веса LookAtIK, а не
-        // дополнительные дистанционные/угловые проверки. Повторный взгляд
-        // той же NPC — не раньше кулдауна и только после нового подъезда.
-        private const float CloseUpGazeEnterDistance = 2.5f;
-        private const float CloseUpGazeSeconds = 6f;
+        // §130 r5 = возврат к r1 (решение игрока: «первый раз самое лучшее
+        // было»): камера почти вплотную (мин. зум 0.7) — NPC на несколько
+        // секунд смотрит в объектив. Вход/выход с гистерезисом, метры от
+        // объектива до лица; пере-взгляд той же NPC не раньше кулдауна.
+        // Конусы/блендеры r2-r4 сняты — от них взгляд дёргался и не читался.
+        private const float CloseUpGazeEnterDistance = 2.0f;
+        private const float CloseUpGazeExitDistance = 2.6f;
+        private const float CloseUpGazeSeconds = 5f;
         private const float CloseUpGazeCooldownSeconds = 30f;
 
         // §131: стартовый кадр игры — камера сразу у головы первой выделенной,
@@ -269,6 +270,7 @@ namespace HexLive.UnityPresentation.Input
 
             closeUpGaze.Construct(
                 CloseUpGazeEnterDistance,
+                CloseUpGazeExitDistance,
                 CloseUpGazeSeconds,
                 CloseUpGazeCooldownSeconds);
             transform.position = _startPosition;

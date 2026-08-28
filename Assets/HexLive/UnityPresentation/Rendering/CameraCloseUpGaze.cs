@@ -8,10 +8,9 @@ namespace HexLive.UnityPresentation.Rendering
     /// <summary>
     /// §130: камера подъехала почти вплотную к лицу NPC — она на несколько
     /// секунд поднимает взгляд в объектив и чуть улыбается, потом
-    /// возвращается к своей обычной жизни. Позиция объектива только запускает
-    /// реакцию: начатый взгляд живёт полный таймер, а безопасный доворот
-    /// ограничивают малые веса LookAtIK. Один взгляд на один «подъезд»:
-    /// пере-взвод требует выйти из зоны, плюс пер-NPC кулдаун.
+    /// возвращается к своей обычной жизни. Один взгляд на один «подъезд»:
+    /// пере-взвод требует выйти из зоны, плюс пер-NPC кулдаун. Пороги
+    /// вход/выход с гистерезисом, как у CameraPalmCrownVisibility (§112).
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Camera))]
@@ -19,6 +18,7 @@ namespace HexLive.UnityPresentation.Rendering
     public sealed class CameraCloseUpGaze : MonoBehaviour
     {
         private float _enterDistance;
+        private float _exitDistance;
         private float _gazeSeconds;
         private float _cooldownSeconds;
 
@@ -32,10 +32,12 @@ namespace HexLive.UnityPresentation.Rendering
 
         public void Construct(
             float enterDistance,
+            float exitDistance,
             float gazeSeconds,
             float cooldownSeconds)
         {
             _enterDistance = Mathf.Max(0f, enterDistance);
+            _exitDistance = Mathf.Max(_enterDistance, exitDistance);
             _gazeSeconds = Mathf.Max(0f, gazeSeconds);
             _cooldownSeconds = Mathf.Max(0f, cooldownSeconds);
         }
@@ -75,11 +77,13 @@ namespace HexLive.UnityPresentation.Rendering
                     // Кончился по таймеру (или его погасили ragdoll/портрет).
                     ReleaseActive(withCooldown: true);
                 }
+                else if (!IsWithin(_activeView, lens, _exitDistance))
+                {
+                    _activeView.EndCameraGaze();
+                    ReleaseActive(withCooldown: true);
+                }
                 else
                 {
-                    // §130 r4 / bug #134: после триггера не обрываем реакцию
-                    // из-за движения камеры. Малые head/eyes weights и нулевой
-                    // bodyWeight в NpcActorView не дают докрутить тело или шею.
                     _activeView.UpdateCameraGaze(lens);
                     return;
                 }
@@ -126,6 +130,16 @@ namespace HexLive.UnityPresentation.Rendering
 
             _activeView = null;
             _activeId = -1;
+        }
+
+        private static bool IsWithin(NpcActorView view, Vector3 lens, float distance)
+        {
+            if (!view.TryGetFace(out var center, out _, out _, out _))
+            {
+                return false;
+            }
+
+            return (center - lens).sqrMagnitude <= distance * distance;
         }
     }
 }

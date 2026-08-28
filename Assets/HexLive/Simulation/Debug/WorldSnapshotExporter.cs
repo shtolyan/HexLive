@@ -177,14 +177,22 @@ public static class WorldSnapshotExporter
             var isSite = !string.IsNullOrEmpty(obj.BuildProduct);
             foreach (var item in obj.Contents)
             {
+                // §151.2 / bug #275: a live campfire keeps construction
+                // materials and queued fuel in the same persisted list.  The
+                // renderer's Delivered* fields drive staged construction art,
+                // so counting a marked fuel stick here visually built the
+                // spit even though the authoritative bill still needed that
+                // stick.  The next real delivery then looked one stage late.
+                var isDeliveredBuildMaterial = isSite &&
+                    !ContainerLootMath.IsQueuedCampfireFuel(obj, item);
                 switch (item.DefinitionId)
                 {
-                    case "resource.log": if (isSite) exported.DeliveredLogs++; break;
-                    case "resource.stone": if (isSite) exported.DeliveredStones++; break;
-                    case "resource.palm_leaf": if (isSite) exported.DeliveredLeaves++; break;
-                    case "resource.stick": if (isSite) exported.DeliveredSticks++; break;
-                    case "resource.rope": if (isSite) exported.DeliveredRope++; break;
-                    case ContentIds.Board: if (isSite) exported.DeliveredBoards++; break;
+                    case "resource.log": if (isDeliveredBuildMaterial) exported.DeliveredLogs++; break;
+                    case "resource.stone": if (isDeliveredBuildMaterial) exported.DeliveredStones++; break;
+                    case "resource.palm_leaf": if (isDeliveredBuildMaterial) exported.DeliveredLeaves++; break;
+                    case "resource.stick": if (isDeliveredBuildMaterial) exported.DeliveredSticks++; break;
+                    case "resource.rope": if (isDeliveredBuildMaterial) exported.DeliveredRope++; break;
+                    case ContentIds.Board: if (isDeliveredBuildMaterial) exported.DeliveredBoards++; break;
                     // §54.14 (r2): spit meat renders whether or not the
                     // upgrade bill is still open.
                     case "food.meat_raw": exported.RoastingRaw++; break;

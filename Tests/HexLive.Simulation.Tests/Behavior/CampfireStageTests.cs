@@ -3,6 +3,7 @@ using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -115,6 +116,41 @@ public sealed class CampfireStageTests
         Deliver(site, BuildSiteMath.MaterialSticks, 3);
         Deliver(site, BuildSiteMath.MaterialRope, 2);
         Assert.That(BuildSiteMath.IsStocked(site), Is.True);
+    }
+
+    [Test]
+    public void QueuedFuelDoesNotAdvanceTheRenderedUpgradeStage()
+    {
+        var world = TestWorld.CreateWorld(275);
+        var npc = world.Entities.Npcs.Values.First();
+        var fire = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Campfire, npc.Fragment, npc.Tile,
+            npc.CurrentJunction ?? world.Junctions.Items.Keys.First());
+        fire.BuildProduct = ContentIds.Campfire;
+        fire.BillSticks = SimBalance.CampfireBillSticks;
+        fire.BillRope = SimBalance.CampfireBillRope;
+        fire.BillStones = SimBalance.CampfireBillStones;
+        Deliver(fire, BuildSiteMath.MaterialSticks, BuildSiteMath.CampfireStage1Sticks);
+
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+        var fuel = ContainerLootMath.FindCarriedCampfireFuel(world, npc);
+        ContainerLootMath.GiveToContainer(world, fire, npc, new[] { fuel! });
+
+        var snapshot = WorldSnapshotExporter.Export(world).Objects.Single(obj =>
+            obj.Id.Equals(fire.Id));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.DeliveredSticks,
+                Is.EqualTo(BuildSiteMath.CampfireStage1Sticks),
+                "Топливная палка не должна визуально ставить стойку вертела.");
+            Assert.That(BuildSiteMath.Delivered(fire, BuildSiteMath.MaterialSticks),
+                Is.EqualTo(BuildSiteMath.CampfireStage1Sticks),
+                "Серверный bill и снимок обязаны показывать один этап.");
+            Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.True,
+                "Палка при этом должна остаться видимым топливом контейнера.");
+        });
     }
 
     [Test]

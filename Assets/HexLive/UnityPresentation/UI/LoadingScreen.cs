@@ -1647,6 +1647,14 @@ namespace HexLive.UnityPresentation.UI
 
             IsReplaying = false;
 
+            // §67/§41.4: блокирующий прогрев (FMOD-сэмплы, раны/кровь, мобы) —
+            // как на локальном пути. Его здесь не было ВОВСЕ: FmodSfx.Prewarm
+            // зовётся только из WarmContent, и на серверной сессии _ready
+            // оставался false — вся озвучка (SFX, голоса) молчала при живой
+            // музыке, которая греется отдельной веткой ещё из меню. Замер
+            // 2026-08-28: _ready=false, soundGroups=0 на подключённом клиенте.
+            _runner.WarmContent();
+
             // §41/§152: a remote client owns no WorldState, so the first live
             // snapshot is the only authoritative list of objects which belong
             // to this opening world. Queue their owner bundles now; every main

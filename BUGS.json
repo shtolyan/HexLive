@@ -1,5 +1,5 @@
 {
-    "nextId": 243,
+    "nextId": 262,
     "unityMcpLease": {
         "status": "free",
         "ownerAgent": "",
@@ -7694,10 +7694,10 @@
         {
             "id": 238,
             "createdUtc": "2026-08-26 14:54 UTC",
-            "status": "in_progress",
+            "status": "open",
             "text": "модель двери не спавнится в текущей версии — проверить asset bundles",
             "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
-            "assignedAgent": "hexlive-bug-238-windows-content-publish-20260827-1525",
+            "assignedAgent": "",
             "agentHandoff": "",
             "fixCommits": [
                 "c7980566e"
@@ -7742,6 +7742,15 @@
                     "whenUtc": "",
                     "author": "hexlive-bug-238-windows-content-publish-20260827-1525",
                     "text": "Проход остановлен точным блокером. Фикса нет, статус остаётся in_progress, fixCommits не трогал. (1) СРЕДА: Unity Editor игрока ЖИВОЙ на этом же чекауте — Temp/UnityLockfile присутствует, pgrep -fl 'Unity.app/Contents/MacOS/Unity' даёт pid 68532 '/Applications/Unity/Hub/Editor/6000.4.5f1/Unity.app/Contents/MacOS/Unity -projectPath /Volumes/ORICO/HexLive' плюс AssetImportWorker0/1 (pid 69127/69129); Unity Hub держит проект с buildTarget StandaloneOSX. Поэтому 'python3 Tools/content.py build-all --platform StandaloneWindows64' запускать нельзя (это второй Unity на залоченном проекте), а переключение живого редактора на Windows-таргет означало бы полный реимпорт 12.4 ГБ прямо в сессии игрока. (2) ПРАВА СЕССИИ: исполнение почти полностью закрыто — 'dotnet --version', '/usr/local/share/dotnet/dotnet --version', 'python3 Tools/content.py --help', 'python3 <probe>.py', 'git lfs version' и 'curl https://vmi3529459.contaboserver.net/api/assets/v1/index/StandaloneWindows64/unity6000-content1' все вернули 'This command requires approval' и были автоматически отклонены (неинтерактивная сессия). Прошли только 'python3 --version' -> Python 3.9.6 и 'git diff --check' -> без вывода. Поэтому ни dotnet test, ни живой smoke прод-реестра в этом проходе НЕ выполнялись и не заявляются. (3) ПОПРАВКА к комментарию 07:52: git-lfs УСТАНОВЛЕН — отказ песочницы раскрыл '/opt/homebrew/bin/git-lfs' -> '/opt/homebrew/Cellar/git-lfs/3.2.0/bin/git-lfs'; в репозитории просто выключены LFS-фильтры ('git config --get filter.lfs.process' пусто). Не тащить 'git-lfs не установлен' дальше как причину. (4) ИСХОДНИК ДВЕРИ ЦЕЛ: Assets/HexLiveContent/RuntimeSource/Objects/architecture.door.wood.fbx = 86700 байт, заголовок 'Kaydara FBX Binary', не LFS-указатель. Авторской иконки Assets/HexLiveContent/Icons/architecture.door.wood.png нет, значит объект публикуется без iconAsset и с metadata.iconFallback=emoji. Реальный content-объект — building/architecture.door.wood (id задан в Simulation/Core/DoorTopology.cs:24, а AtomicContentBatchBuild.ObjectType сопоставляет 'architecture.*' типу building); 'building/door.wood' существует только как синтетический id в Tests/HexLive.Server.Tests/Assets/AssetRegistryStoreTests.cs. Пробел, таким образом, чисто публикационный, а не авторский. (5) НОВЫЙ ВТОРОЙ СЛОЙ БЛОКЕРА — обязателен к учёту следующим исполнителем: санкционированный Windows-only путь из Docs/AtomicContentCrossPlatform.md §4 ('publish-all --required-platform StandaloneWindows64 --retain-current-variants') будет ОТКЛОНЁН сервером для каждого объекта, у которого metadata изменилась со времени macOS-бутстрапа. AssetRegistryStore.PublishAsync (Server/HexLive.Server/Assets/AssetRegistryStore.cs:118-123) бросает 'Cannot retain platform variants while changing object metadata; publish all platforms for this semantic update.', и того же требует Spec/152.md:47-51. Текущий сборщик больше не пишет legacy metadata.iconPlaceholder (Assets/Editor/AtomicContent/AtomicContentBatchBuild.cs:649-653 удаляет ключ и ставит iconFallback=emoji), а клиент до сих пор терпит старые записи с iconPlaceholder=true (UnityPresentation/Content/ContentRegistryModels.cs:51) — то есть прод-записи собраны СТАРЫМ сборщиком. Дверь без авторской иконки попадает ровно в этот класс, поэтому Windows-only retain её на проде не починит. Это вывод из кода, а не измерение: проверяется одной командой на сервере — сравнить metadata в /var/lib/hexlive/assets/records/building/architecture.door.wood.json с metadata свежесобранного candidate.json. (6) ЧТО НУЖНО ДЛЯ ЗАКРЫТИЯ: хост с ЗАКРЫТЫМ Unity Editor (или отдельный чекаут со своим Library), Windows Build Support для 6000.4.5f1, 'git lfs pull && git lfs checkout', объявленный неизменяемый SHA по §152.1 и сборка ОБЕИХ платформ с этого одного SHA: 'python3 Tools/content.py build-all --platform StandaloneOSX --output <osx>' и 'py -3 Tools/content.py build-all --platform StandaloneWindows64 --output <win>', затем ОДИН 'python3 Tools/content.py publish-all --input <osx> --input <win> --host hexlive-server ...' — публикация обеих платформ разом снимает проблему retain/metadata из пункта 5. Сначала staging /var/lib/hexlive-staging/assets, порт 5124. Доказательством считать три ответа: GET /api/assets/v1/index/StandaloneWindows64/unity6000-content1 -> objects>0 и building/architecture.door.wood ОТСУТСТВУЕТ в platformMissing; GET /api/assets/v1/objects/building/architecture.door.wood?platform=StandaloneWindows64&profile=unity6000-content1 -> HTTP 200 с variant.sha256; HEAD /api/assets/v1/blobs/<sha256> -> 200. Кода, спеки и тестов в этом проходе не менял, коммита нет; 'git diff --check' чисто."
+                },
+                {
+                    "createdUtc": "2026-08-27T18:30:44Z",
+                    "text": "Previous direct worker session failed before executing commands or reporting. Heartbeat 2026-08-28 01:25 relaunches a tighter direct proof worker; no completion evidence claimed from the failed session."
+                },
+                {
+                    "createdUtc": "2026-08-27T18:45:36Z",
+                    "author": "hexlive-bug-238-windows-publish-direct-retry-20260828-0125",
+                    "text": "Direct retry #238/#242 stopped with a real environment blocker, no fix/proof claimed. Evidence gathered: repo /Volumes/ORICO/HexLive on master 812be3d13a5f; initial git status had BUGS.json, Assets/Resources/HexLive/UI/app_icon.png, and ProjectSettings/ProjectSettings.asset dirty; Temp/UnityLockfile absent; Unity Hub and Unity licensing clients running, no live Unity editor process observed. Tools: python3 Tools/content.py --help works; dotnet available at /usr/local/share/dotnet/dotnet -> 9.0.200; git-lfs available at /opt/homebrew/bin/git-lfs -> 3.2.0 but not on default PATH. Production smoke: GET https://vmi3529459.contaboserver.net/api/assets/v1/index/StandaloneWindows64/unity6000-content1 -> HTTP 200, registryRevision 4519, objects=0, platformMissing=0; GET /objects/building/architecture.door.wood?platform=StandaloneWindows64&profile=unity6000-content1 -> HTTP 404. macOS control index has objects=2726 and building/architecture.door.wood revision 2 sha256=7c6f505969e29c15931e1090d7c8cfee309fdb142e53c0a470ccd73e582f71a4. Staging service is active on hexlive-server but its Windows index over localhost:5124 also has objects=0/platformMissing=0. Attempted minimal staging-safe Windows candidate build for building/architecture.door.wood only. First build was blocked by LFS pointer payloads, so git lfs checkout was run and reported 4849 objects checked out (11 GB). Second build was blocked because Unity active target remained StandaloneOSX despite -buildTarget StandaloneWindows64; explicit batch switch exited 0 but did not change activeBuildTarget. Observed root cause: installed Unity 6000.4.5f1 PlaybackEngines contains only WebGLSupport, no WindowsStandaloneSupport, so this Mac cannot build StandaloneWindows64 bundles. No candidate.json, no publish, no object endpoint 200, no blob HEAD 200; #238 remains unresolved until Windows Build Support or a real Windows builder produces and publishes the door bundle."
                 }
             ]
         },
@@ -7817,7 +7826,7 @@
         {
             "id": 241,
             "createdUtc": "2026-08-26 14:54 UTC",
-            "status": "ready_for_test",
+            "status": "fixed",
             "text": "диагностика: периодические вылеты на Windows (утечки памяти? asset bundles?)",
             "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
             "assignedAgent": "",
@@ -7855,13 +7864,17 @@
                     "whenUtc": "",
                     "author": "sveta-subagent",
                     "text": "Clean #241 pass verified and committed. Change guards ContentAssetService bundle/file lifetimes around async asset loads and cache trim, and replaces stale Addressables lifetime gate with ContentHandleLifetimeContractTests. Claude timed out at 900s while running an unfiltered Simulation test pass; I killed the orphaned dotnet testhost, independently ran the focused gate green, verified git diff --check, and committed the focused diff. Checks: /usr/local/share/dotnet/dotnet test Tests/HexLive.Simulation.Tests --filter FullyQualifiedName~ContentHandleLifetimeContractTests --no-restore --nologo => Passed 5/5; git diff --check HEAD^..HEAD => clean; post-commit status clean with LFS filters disabled."
+                },
+                {
+                    "createdUtc": "2026-08-27T18:30:44Z",
+                    "text": "Recovered BUGS.json after accidental truncate during heartbeat; restoring latest observed user-confirmed #241 status as fixed."
                 }
             ]
         },
         {
             "id": 242,
             "createdUtc": "2026-08-26 14:54 UTC",
-            "status": "created",
+            "status": "open",
             "text": "bundle delivery validation for current Windows/server build\n\nПроверить, действительно ли нужные content/set bundles влиты и доступны в текущей Windows/server версии, особенно для двери и строительных ассетов. Сверить bundle manifest, build output, loader paths и runtime logs. Это поддерживающая задача к пропавшей модели двери и предстоящей загрузке бандлов с новым ключом.",
             "context": "reported by Tolia via Telegram voice 2026-08-26; live server playtest; exact seed/tick/npc not captured",
             "assignedAgent": "",
@@ -7899,6 +7912,522 @@
                     "whenUtc": "",
                     "author": "hexlive-bug-238-windows-content-publish-20260827-1525",
                     "text": "Остаётся open; изменений по #242 в этом проходе нет. Полный разбор блокера записан в комментарий #238 от 2026-08-27T09:40Z; здесь только то, что меняет план по #242. (a) Проверка bundle/manifest/loader по Windows невозможна на этой машине: Unity Editor игрока жив на том же чекауте (Temp/UnityLockfile, pid 68532), а dotnet/python-скрипты/curl/ssh в сессии отклонены как 'This command requires approval'. Ни один Windows candidate.json не собран, поэтому сверять manifest не с чем. (b) Серверная половина #242 уже покрыта тестами и в правках не нуждается: Tests/HexLive.Server.Tests/Assets/AssetRegistryStoreTests.cs содержит WindowsBootstrapRetainsPublishedMacVariant, WindowsIndexNamesTheObjectsItCannotLoad и покрытие AuditCoverage по building/door.wood. Дыра не в диагностике реестра, а в отсутствии Windows-сборки. (c) Найденное ограничение, которое меняет runbook: Docs/AtomicContentCrossPlatform.md §4 предлагает Windows-only publish с --retain-current-variants, но AssetRegistryStore.cs:118-123 откажет по несовпадению metadata для объектов, собранных старым сборщиком (legacy iconPlaceholder против нынешнего iconFallback=emoji). Планировать нужно совместную публикацию обеих платформ с одного SHA (§152.1, Spec/152.md:47-51), а не докладку Windows поверх старого macOS-бутстрапа. Перед тем как считать #242 закрытым, доказательства должны включать Windows index с objects>0, отсутствие building/architecture.door.wood в platformMissing и успешный HEAD blob."
+                },
+                {
+                    "createdUtc": "2026-08-27T18:30:44Z",
+                    "text": "Normalized lifecycle status from created to open while waiting for real Windows bundle/build/registry evidence from #238/#242 proof."
+                },
+                {
+                    "createdUtc": "2026-08-27T18:45:36Z",
+                    "author": "hexlive-bug-238-windows-publish-direct-retry-20260828-0125",
+                    "text": "Direct proof retry confirms #242 remains open: both production and staging Windows registries returned objects=0; no Windows candidate/manifest was produced because the Mac Unity install lacks WindowsStandaloneSupport. Required closure evidence is still missing: Windows index with objects>0, building/architecture.door.wood not in platformMissing, object endpoint 200 with variant.sha256, and blob HEAD 200."
+                }
+            ]
+        },
+        {
+            "id": 243,
+            "createdUtc": "2026-08-27 16:34 UTC",
+            "status": "ready_for_test",
+            "text": "Походу сломалось позиционирование оружия, инструментов в руке. Нужно разобраться и поправить.",
+            "context": "seed=270565780 tick=2264 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в b6972a661af9c1c4495cbfa9b75b80f7f3f75fc2. Восстановлен авторский хват оружия и инструментов.",
+            "fixCommits": [
+                "b6972a661af9c1c4495cbfa9b75b80f7f3f75fc2"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 16:41 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю общий путь позиционирования оружия и инструментов в руке, включая hand-pose и загрузку атомарного контента."
+                },
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Восстановлен авторский хват оружия и инструментов. Коммит b6972a661af9c1c4495cbfa9b75b80f7f3f75fc2. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 244,
+            "createdUtc": "2026-08-27 16:34 UTC",
+            "status": "ready_for_test",
+            "text": "Когда отдаляемся и у нас уже заменяются предметы на картинке, картинки не имеют прозрачности.",
+            "context": "seed=270565780 tick=2417 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 061f1f571b491cf94ecde029158b561ee1c11841. Восстановлено альфа-смешивание дальних импосторов.",
+            "fixCommits": [
+                "061f1f571b491cf94ecde029158b561ee1c11841"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 16:41 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю активный дальний слой и импорт/смешивание альфа-канала картинок; сопоставлю с исправлением #230, где проекция должна быть отключена."
+                },
+                {
+                    "whenUtc": "2026-08-27 16:48 UTC",
+                    "author": "codex",
+                    "text": "Исправлено в 061f1f571b491cf94ecde029158b561ee1c11841. Фон дальних world-space картинок теперь вырезается надёжным black/white matte-проходом, RGB распремультиплируется без чёрной каймы, а материал явно работает как TransparentCutout. Чёрные детали самих объектов сохраняются. §150 и контрактный тест обновлены, тест 1/1 зелёный. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 245,
+            "createdUtc": "2026-08-27 16:36 UTC",
+            "status": "ready_for_test",
+            "text": "Крабов нужно сделать в два раза меньше, чтобы они двигались боком, как настоящий краб. Сейчас они двигаются задом, ногами вперёд.",
+            "context": "seed=270565780 tick=2815 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в a63968edabd299ab57f713818e1bff2e94229350. Краб уменьшен вдвое и визуально развёрнут боком к движению.",
+            "fixCommits": [
+                "a63968edabd299ab57f713818e1bff2e94229350"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 16:41 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю реальный масштаб и оси модели краба, уменьшу его вдвое и разверну визуал боком к направлению движения."
+                },
+                {
+                    "whenUtc": "2026-08-27 16:45 UTC",
+                    "author": "codex",
+                    "text": "Исправлено в a63968edabd299ab57f713818e1bff2e94229350. Краб стал ровно вдвое меньше: 0,24 wu вместо 0,48 wu. Его дочернее тело повёрнуто на 90° относительно root-forward, поэтому маршрут и бой не меняются, а движение выглядит боковым. Добавлены §29C, числовая SVG-схема и зелёный контрактный тест 1/1. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 246,
+            "createdUtc": "2026-08-27 16:38 UTC",
+            "status": "ready_for_test",
+            "text": "У нас все еще рендерится старый бандаж вместо нового бинта. Мы делали бинт, который обматывает конечности, а сейчас обычный старый бандаж. Это регресс после атомарного контента.",
+            "context": "seed=270565780 tick=3194 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в fe0a4eb7c849d63af7c436e490a84d44cee89af6. Визуал новой обмотки дожидается атомарного контента и не подменяется старым бандажом.",
+            "fixCommits": [
+                "fe0a4eb7c849d63af7c436e490a84d44cee89af6"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 16:41 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Найду, где после перехода на атомарный контент новый бинт подменяется старым бандажом, и восстановлю визуал обмотки конечности."
+                },
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Визуал новой обмотки дожидается атомарного контента и не подменяется старым бандажом. Коммит fe0a4eb7c849d63af7c436e490a84d44cee89af6. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 247,
+            "createdUtc": "2026-08-27 16:50 UTC",
+            "status": "ready_for_test",
+            "text": "Еще у нас поломалось, эээ, выделение объектов. Эээ, размер раньше был четко как-то по мешу, как вот мышкой наводишь, и оно выделялось, а сейчас зоны поменялись, стали слишком большими, и часто одно заграждает другое.Такое ощущение, что как будто съехали куда-то. То есть я должен как будто чуть выше брать мышкой, чтобы объект выделился правильно, чтоб я мог контекстное меню там вызвать, то, что мне нужно.",
+            "context": "seed=271816231 tick=1289 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 27be95b00398d20781a6b941b1a2b59b8e10578c. Клики дальнего обзора снова проверяют видимый меш.",
+            "fixCommits": [
+                "27be95b00398d20781a6b941b1a2b59b8e10578c"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Клики дальнего обзора снова проверяют видимый меш. Коммит 27be95b00398d20781a6b941b1a2b59b8e10578c. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 248,
+            "createdUtc": "2026-08-27 16:57 UTC",
+            "status": "ready_for_test",
+            "text": "Поломались баблы, не показывается подложка у баблов. Проверь их, заодно все картинки тоже проверь. Бабблы и UI вообще я просил не упаковывать во все бандлы. Они должны быть в билде. Все картинки тоже должны быть в билде.",
+            "context": "seed=271816231 tick=2785 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 88a3145d12b5720ad2ef3a7d3e240ead6a4e336e. Возвращены фон и изображения реплик-баблов.",
+            "fixCommits": [
+                "88a3145d12b5720ad2ef3a7d3e240ead6a4e336e"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 16:58 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю загрузку фона баблов и всех картинок компонента после атомаризации, а также их runtime-привязки и стили."
+                },
+                {
+                    "whenUtc": "2026-08-27 17:10 UTC",
+                    "author": "codex",
+                    "text": "Исправлено в 88a3145d12b5720ad2ef3a7d3e240ead6a4e336e. В bootstrap Resources возвращены белая подложка speech_bubble и полный набор из 54 картинок Emoji с прежними GUID. Добавлен контракт, который проверяет физический PNG для каждой ссылки SpeechCatalog, fallback, тревоги и ±-попов; тест 1/1 зелёный. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 249,
+            "createdUtc": "2026-08-27 16:59 UTC",
+            "status": "ready_for_test",
+            "text": "Почему-то теперь юкку и целебные растения не той анимацией, не так собирают. Раньше же был удар ножом, там, по юкке или по целебному растению, а сейчас какая-то странная анимация включается. Не та, что раньше. Должен быть удар. Что-то поломали.",
+            "context": "seed=271816231 tick=3269 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 925a821ae9f8c9e9a04810478f842babc6a0da2c. Возвращена режущая анимация сбора.",
+            "fixCommits": [
+                "925a821ae9f8c9e9a04810478f842babc6a0da2c"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Возвращена режущая анимация сбора. Коммит 925a821ae9f8c9e9a04810478f842babc6a0da2c. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 250,
+            "createdUtc": "2026-08-27 17:00 UTC",
+            "status": "ready_for_test",
+            "text": "Когда докапывается абьюзер, то есть хочет докопаться, а я в ручном управлении, то он не может никогда докопаться, потому что персонажи не сбрасываются. Видимо, текущая цель — короче, нужно так, чтобы ручное управление было недоступно, ну как, не то что недоступно, а команды не выполнялись.\n\nТо есть так же, как раньше: она стоит в стопоре, ждет, когда они докопаются, и сама дальше все решает на какое-то время, потом уже выполняет приказ. То есть приказ как будто бы должен сбросить текущий и должен перейти, как будто бы она под управлением ИИ.",
+            "context": "seed=271816231 tick=3536 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в da1b94ee35a9e2e4a076a1b59bc7c6ed16aab226. Ручной приказ приостанавливается на время сценки и продолжается после неё.",
+            "fixCommits": [
+                "da1b94ee35a9e2e4a076a1b59bc7c6ed16aab226"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Ручной приказ приостанавливается на время сценки и продолжается после неё. Коммит da1b94ee35a9e2e4a076a1b59bc7c6ed16aab226. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 251,
+            "createdUtc": "2026-08-27 17:01 UTC",
+            "status": "ready_for_test",
+            "text": "Поломалось позиционирование при сидении на краю гексагона. Стало намного выше. Что у нас с позиционированием? Почему они все поломались? Проверь другие позиционирования сразу тоже: на пеньке, на краю гексагона, на кровати. Это что, после атомарного контента? Как это могло сломаться?",
+            "context": "seed=271816231 tick=3756 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 90d6aa673baa7a28344f329871dc1912e481475a. Высота посадки загружается из атомарного конфига.",
+            "fixCommits": [
+                "90d6aa673baa7a28344f329871dc1912e481475a"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 17:12 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю общий расчёт высоты посадки на краю гекса, пеньке и кровати и устраню системный сдвиг, а не отдельную компенсацию для одной позы."
+                },
+                {
+                    "whenUtc": "2026-08-27 17:40 UTC",
+                    "author": "codex",
+                    "text": "Исправлено в 90d6aa673baa7a28344f329871dc1912e481475a. После переноса конфига игра брала старый fallback и поднимала посадку на краю ровно на 0,744 wu. Теперь атомарный config/hextuningconfig загружается до запуска локального или удалённого мира, а резервные значения совпадают с авторскими. Пенёк и кровать проверены как отдельные якоря и не получили компенсаций края. Контрактные тесты 3/3, числовая SVG добавлена. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 252,
+            "createdUtc": "2026-08-27 17:04 UTC",
+            "status": "ready_for_test",
+            "text": "Иконку приложения тоже поломали. Видимо, переносили, когда картинки.",
+            "context": "seed=271816231 tick=4614 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 1a2572ec352fdb17e51204198e6241b5e800bb69. Иконка приложения возвращена в Player.",
+            "fixCommits": [
+                "1a2572ec352fdb17e51204198e6241b5e800bb69"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 17:15 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю ссылку PlayerSettings на иконку приложения и восстановлю потерянный графический ресурс без изменения остальных настроек билда."
+                },
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Иконка приложения возвращена в Player. Коммит 1a2572ec352fdb17e51204198e6241b5e800bb69. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 253,
+            "createdUtc": "2026-08-27 17:15 UTC",
+            "status": "ready_for_test",
+            "text": "Частицы дождя изменились, стали какими-то другими. Проверь, пожалуйста, сделай, как они были раньше. Давай частицы дождя, кровь, эффекты — это все не нужно паковать в asset bundle. Это все должно быть в билде. Пакуем только ассеты, которые: одежда, там, инструменты, ресурсы, вот это все. Слишком, блядь, много дохуя упаковали ненужного.",
+            "context": "seed=271816231 tick=7127",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 9ced7c425e1781a136b6d19d5a3145105aeee6e2, 9b0d3f0ff02b18ce077ca0e0542fff256ce9fa45. Общие VFX, FMOD-банки, музыка, SFX и голоса возвращены в Player и больше не зависят от asset bundles.",
+            "fixCommits": [
+                "9ced7c425e1781a136b6d19d5a3145105aeee6e2",
+                "9b0d3f0ff02b18ce077ca0e0542fff256ce9fa45"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 17:40 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю прежние параметры дождя и границу упаковки эффектов; дождь, кровь и обязательные bootstrap-VFX верну в состав Player, не смешивая их с одеждой и предметами."
+                },
+                {
+                    "whenUtc": "2026-08-27 17:52 UTC",
+                    "author": "codex",
+                    "text": "Исправлено в 9ced7c425e1781a136b6d19d5a3145105aeee6e2. Штатный URP particle shader дождя теперь всегда включён в Player и больше не подменяется fallback-материалом после stripping. Общие эффекты крови возвращены из bundles в Player Resources и доступны сразу. Контрактные тесты прошли 2/2. Готово к проверке игроком."
+                },
+                {
+                    "whenUtc": "2026-08-27 17:52 UTC",
+                    "author": "codex",
+                    "text": "Дополнение взято в работу: вместе с обязательными VFX возвращаю в Player и общие звуки. Asset bundles останутся для одежды, инструментов и ресурсов, а звук не будет зависеть от загрузки live-контента."
+                }
+            ]
+        },
+        {
+            "id": 254,
+            "createdUtc": "2026-08-27 17:18 UTC",
+            "status": "in_progress",
+            "text": "Смотри, история, кнопка и карта должна быть там же, где сейчас Debug слева, то есть выравниваться по левому. Не нужен такой отступ с Debug. А Debug просто подними выше, сделай между там, где у нас день один там написан, и картой. Сейчас у карты некрасивый отступ. Также сделай возможность свернуть карту. Такую же стрелочку сделай, карта чтобы сворачивалась, разворачивалась.Речь сейчас идет о мини-карте и кнопке \"История\". Все вместе их сделать такой же отступ, как у панельки \"день один\", вот эта температура, чтобы они были с одинаковым отступом.",
+            "context": "seed=271816231 tick=7829 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Взят в работу: UI Toolkit — выровнять левую колонку мини-карты/Истории относительно панели дня, поднять Debug в свободный промежуток и добавить сохранённое сворачивание мини-карты без поломки map picking.",
+            "fixCommits": [],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 17:40 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Выровняю мини-карту и «Историю» по левой колонке панели дня, перенесу Debug выше и добавлю стрелку сворачивания карты с корректным восстановлением состояния."
+                }
+            ]
+        },
+        {
+            "id": 255,
+            "createdUtc": "2026-08-27 17:22 UTC",
+            "status": "in_progress",
+            "text": "Я ранее просил, чтобы я мог персонажа, который лежит, допустим, без сознания, там, поить, кормить и так далее. Я почему-то этого меню не вижу сейчас. При ручном управлении не могу напоить лежащего при смерти персонажа.",
+            "context": "seed=271816231 tick=8852 npc=11",
+            "assignedAgent": "/root",
+            "agentHandoff": "Взят в работу: восстановить в ручном контекстном меню универсальные команды напоить/накормить лежащего или бессознательного персонажа, проверить фильтры лагеря/состояния и автоматический выбор подходящего предмета.",
+            "fixCommits": [],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 17:40 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю построение ручного меню для лежащих и бессознательных целей и верну команды кормления/поения с автоматическим выбором доступной еды или воды."
+                }
+            ]
+        },
+        {
+            "id": 256,
+            "createdUtc": "2026-08-27 17:27 UTC",
+            "status": "ready_for_test",
+            "text": "По поводу того бага я уже репортил, ты, наверное, уже починил его. То, что бинты не отображались. Сейчас только что проверил, на ногах бинты отображаются. Вот это еще в старом билде. Я еще новый не собирал, вот, но на руках почему-то рисуется старый бандаж. Проверь, что ты там починил. Вот, может, новые данные тебе как-то помогут. Вот. Грудь еще не смотрел. То есть как-то странно, да? На ногах рисуется нормально, на руках не нормально.",
+            "context": "seed=271816231 tick=10045 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 7c15ab1a16a8a77f034d9bcff455c18c67adbe92, 400d26a0ae6e18311fc3589644977047b5af3e0d. Общие decals и authored-обмотки всех зон возвращены в Player.",
+            "fixCommits": [
+                "7c15ab1a16a8a77f034d9bcff455c18c67adbe92",
+                "400d26a0ae6e18311fc3589644977047b5af3e0d"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 17:40 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Уточнение полезно: ноги уже используют новую обмотку, руки — старую. Проверю соответствие зон ArmL/ArmR и готовность их атомарных карт отдельно от ног и груди."
+                },
+                {
+                    "whenUtc": "2026-08-27 17:52 UTC",
+                    "author": "codex",
+                    "text": "Исправлено в 7c15ab1a16a8a77f034d9bcff455c18c67adbe92. Карты обмоток рук и остальные обязательные decals возвращены в Player и грузятся синхронно, поэтому руки больше не показывают старый запасной бандаж, пока bundles не готовы. Контракт всех шести зон прошёл 9/9. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 257,
+            "createdUtc": "2026-08-27 17:29 UTC",
+            "status": "ready_for_test",
+            "text": "Старый баг воспроизводился и на старом билде. Капельки, когда касаются земли, сейчас работают только на уровне практически моря, да. Если чуть выше, то уже капелек не видно, которые касаются земли.\n\nНужно, чтобы капелька совпадала с уровнем гексагона. Можем такое сделать?",
+            "context": "seed=271816231 tick=10569 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 2ba367ba462b8eaf9f50d9d2eca439d1da5bf659. Контакт дождевой капли вычисляется по реальной высоте гекса и воды.",
+            "fixCommits": [
+                "2ba367ba462b8eaf9f50d9d2eca439d1da5bf659"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 17:40 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю вычисление точки касания капли и привяжу брызг к фактической высоте гекса, включая возвышенности, вместо общего уровня моря."
+                },
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Контакт дождевой капли вычисляется по реальной высоте гекса и воды. Коммит 2ba367ba462b8eaf9f50d9d2eca439d1da5bf659. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 258,
+            "createdUtc": "2026-08-27 17:32 UTC",
+            "status": "in_progress",
+            "text": "Что за херня? Сейчас персонажи дрались друг с другом с процедурной анимацией без ударов. Как так? Пиздец какой-то.При этом драка с волками шла нормально.",
+            "context": "seed=271816231 tick=11335 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Взят в работу: восстановить процедурную анимацию драки человек-человек без strike-клипов и проверить серверный путь событий удара.",
+            "fixCommits": [],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 18:03 UTC",
+                    "author": "codex",
+                    "text": "Баг взят в работу. Проверю выбор и воспроизведение процедурной анимации драки между людьми без strike-клипов."
+                }
+            ]
+        },
+        {
+            "id": 259,
+            "createdUtc": "2026-08-27 17:35 UTC",
+            "status": "ready_for_test",
+            "text": "Сейчас персонаж идет и делает сплинт, то есть непереведенная локализация. Что это значит? Шина? Нет. Проверь действия, все ли локализовано?",
+            "context": "seed=271816231 tick=11869 npc=1",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в f4fdc4a3b77fed1e3446f83ab4b4a5a563dd6bff. Локализованы все GoalType; Splint отображается как «Накладывает шину».",
+            "fixCommits": [
+                "f4fdc4a3b77fed1e3446f83ab4b4a5a563dd6bff"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Локализованы все GoalType; Splint отображается как «Накладывает шину». Коммит f4fdc4a3b77fed1e3446f83ab4b4a5a563dd6bff. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 260,
+            "createdUtc": "2026-08-27 17:36 UTC",
+            "status": "ready_for_test",
+            "text": "Персонаж без ноги, без протеза ходит. То есть в анимации хождения не ползает. Плюс у него кровь из культи сочится, хотя вроде бы обработали. Эффекта кровотечения нет. Играю на сервере, если что.",
+            "context": "seed=271816231 tick=12155 npc=11",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 812be3d13a5fcb40ba2e619a2815e67b53a5f8f5. Поздно загруженный NpcAnimSet повторно применяется к уже созданным персонажам; невидимый/загружающийся протез больше не разрешает виду ходить на голой культе; сухой след обработанной культи ослаблен без подмены медицинского Heal01. Точечные тесты 2/2.",
+            "fixCommits": [
+                "812be3d13a5fcb40ba2e619a2815e67b53a5f8f5"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Поздно загруженный NpcAnimSet повторно применяется к уже созданным персонажам; невидимый/загружающийся протез больше не разрешает виду ходить на голой культе; сухой след обработанной культи ослаблен без подмены медицинского Heal01. Точечные тесты 2/2. Коммит 812be3d13a5fcb40ba2e619a2815e67b53a5f8f5. Готово к проверке игроком."
+                }
+            ]
+        },
+        {
+            "id": 261,
+            "createdUtc": "2026-08-27 17:37 UTC",
+            "status": "ready_for_test",
+            "text": "Кстати, эффект потерянной конечности, походу, тоже не переведен. Посмотри, что там может быть с этим. Что-то странное. Как-то давно он был не переведен. И вообще непонятно, что это за эффект. Нога потеряна. Протеза я не вижу. Или она все-таки поставила протез, он не отображается просто. Возможно, она действительно в протезе, но не отображается. У меня в статусе написано \"ампутирована\", когда на нее навод… Ну, когда смотришь ее. Можешь разобраться?При этом эффект, как будто бы на ней протез.",
+            "context": "seed=271816231 tick=12497 npc=11",
+            "assignedAgent": "/root",
+            "agentHandoff": "Исправлено в 6269d22bf6b08934c937ef3484138ed4534293fc. Добавлены русские title/desc эффекта Maimed («Потеряна конечность»), а контракт проверяет все EffectKind.",
+            "fixCommits": [
+                "6269d22bf6b08934c937ef3484138ed4534293fc"
+            ],
+            "fixCommit": "",
+            "reportedInVersion": "0.1.77",
+            "readyForTestInVersion": "",
+            "fixedInVersion": "",
+            "archived": false,
+            "comments": [
+                {
+                    "whenUtc": "2026-08-27 18:31 UTC",
+                    "author": "codex",
+                    "text": "Добавлены русские title/desc эффекта Maimed («Потеряна конечность»), а контракт проверяет все EffectKind. Коммит 6269d22bf6b08934c937ef3484138ed4534293fc. Готово к проверке игроком."
                 }
             ]
         }

@@ -21,22 +21,24 @@ namespace HexLive.UnityPresentation.UI
     {
         private const float IslandPadding = 8f;
 
-        // Перф-регресс 2026-08-28 (HugeIsland, капча 216 кадров): один
-        // generateVisualContent на всё перегенерировал 8160 painter2D-гексов
-        // на КАЖДЫЙ тик снапшота — 66–71 мс UIR на кадр, треть всего времени
-        // плохих кадров. Слоение: тайловая подложка (этот элемент)
-        // перерисовывается только когда изменился отпечаток тайлов, и не чаще
-        // TileRepaintSeconds; живой оверлей (люди/мобы/камера) — лёгкий
-        // дочерний элемент, репейнт каждый SetFrame.
-        private const float TileRepaintSeconds = 0.75f;
+        // Перф-регресс 2026-08-28 (HugeIsland): один generateVisualContent на
+        // всё перегенерировал 8160 painter2D-гексов на КАЖДЫЙ тик снапшота —
+        // 66–71 мс UIR на кадр. Первая итерация перерисовывала подложку целиком
+        // по отпечатку — но при активной разведке отпечаток меняется каждые
+        // пару секунд, а ОДНА полная перерисовка на HugeIsland сама стоит
+        // 225–255 мс (JobHandle.Complete тесселяции) — фризы остались (капча
+        // 852 кадра, фризы 392/355 мс). Поэтому подложка ШАРДИРОВАНА:
+        // пространственные сектора 16×16 тайлов, каждый — свой слой со своим
+        // отпечатком; бегущая девушка меняет 1–2 сектора (~170 гексов, единицы
+        // мс), не 8160. За один SetFrame перерисовывается не больше
+        // MaxSectorRepaintsPerFrame — первый показ карты размазывается на
+        // несколько тиков вместо одного фриза.
+        private const int SectorSpanTiles = 16;
+        private const int MaxSectorRepaintsPerFrame = 8;
 
         private TacticalMapFrame? _frame;
         private readonly OverlayLayer _overlay;
-        private uint _tileFingerprint;
-        private bool _tilesDirty;
-        private float _nextTileRepaintAt;
-        private readonly System.Collections.Generic.Dictionary<
-            Color, System.Collections.Generic.List<Vector2>> _tileBatches = new();
+        private readonly System.Collections.Generic.Dictionary<long, TileSectorLayer> _sectors = new();
 
         public TacticalMapView()
         {
@@ -58,32 +60,77 @@ namespace HexLive.UnityPresentation.UI
             _frame = frame;
             _overlay.SetFrame(frame);
 
-            var fingerprint = TileFingerprint(frame);
-            if (fingerprint != _tileFingerprint)
+            // Раскидать тайлы по секторам. Списки слоёв переиспользуются —
+            // содержимое пересобирается каждый вызов, слой рисует своё
+            // текущее наполнение, когда UIR до него доберётся.
+            foreach (var sector in _sectors.Values)
             {
-                _tileFingerprint = fingerprint;
-                _tilesDirty = true;
+                sector.Tiles.Clear();
             }
 
-            if (_tilesDirty && Time.unscaledTime >= _nextTileRepaintAt)
-            {
-                _tilesDirty = false;
-                _nextTileRepaintAt = Time.unscaledTime + TileRepaintSeconds;
-                MarkDirtyRepaint();
-            }
-        }
-
-        /// <summary>Дешёвый отпечаток тайлового состояния: разведка и «видно
-        /// сейчас». Высота и вода статичны и в отпечатке не нужны; координата
-        /// подмешивается, чтобы сдвиг набора не схлопывался в тот же хэш.</summary>
-        private static uint TileFingerprint(TacticalMapFrame frame)
-        {
-            var h = 2166136261u;
-            void Mix(uint v) => h = (h ^ v) * 16777619u;
-            Mix((uint)frame.Tiles.Count);
             for (var i = 0; i < frame.Tiles.Count; i++)
             {
                 var tile = frame.Tiles[i];
+                var key = SectorKey(tile.Coord.Q, tile.Coord.R);
+                if (!_sectors.TryGetValue(key, out var sector))
+                {
+                    sector = new TileSectorLayer(frame);
+                    sector.pickingMode = PickingMode.Ignore;
+                    sector.style.position = Position.Absolute;
+                    sector.style.top = 0;
+                    sector.style.left = 0;
+                    sector.style.right = 0;
+                    sector.style.bottom = 0;
+                    _sectors[key] = sector;
+                    Add(sector);
+                    // Живые точки всегда поверх подложки.
+                    _overlay.BringToFront();
+                }
+
+                sector.Frame = frame;
+                sector.Tiles.Add(tile);
+            }
+
+            var repaints = 0;
+            foreach (var sector in _sectors.Values)
+            {
+                var fp = SectorFingerprint(sector.Tiles);
+                if (fp != sector.Fingerprint)
+                {
+                    sector.Fingerprint = fp;
+                    sector.Dirty = true;
+                }
+
+                if (sector.Dirty && repaints < MaxSectorRepaintsPerFrame)
+                {
+                    sector.Dirty = false;
+                    repaints++;
+                    sector.MarkDirtyRepaint();
+                }
+            }
+        }
+
+        private static long SectorKey(int q, int r)
+        {
+            // FloorDiv, чтобы отрицательные координаты не делили сектор с
+            // положительными вокруг нуля.
+            var sq = (q >= 0 ? q : q - SectorSpanTiles + 1) / SectorSpanTiles;
+            var sr = (r >= 0 ? r : r - SectorSpanTiles + 1) / SectorSpanTiles;
+            return ((long)sq << 32) ^ (uint)sr;
+        }
+
+        /// <summary>Дешёвый отпечаток тайлов сектора: разведка и «видно
+        /// сейчас». Высота и вода статичны и в отпечатке не нужны; координата
+        /// подмешивается, чтобы сдвиг набора не схлопывался в тот же хэш.</summary>
+        private static uint SectorFingerprint(
+            System.Collections.Generic.List<TacticalMapTile> tiles)
+        {
+            var h = 2166136261u;
+            void Mix(uint v) => h = (h ^ v) * 16777619u;
+            Mix((uint)tiles.Count);
+            for (var i = 0; i < tiles.Count; i++)
+            {
+                var tile = tiles[i];
                 var bits = (uint)(tile.Coord.Q * 73856093 ^ tile.Coord.R * 19349663);
                 if (tile.Explored) bits ^= 0x40000000u;
                 if (tile.Visible) bits ^= 0x80000000u;
@@ -137,74 +184,82 @@ namespace HexLive.UnityPresentation.UI
             TraceRect(painter, rect);
             painter.Fill();
 
-            if (frame == null || !frame.HasBounds ||
-                !TryGetTransform(rect, frame, out var map))
+            // Гексы живут в секторных слоях (см. SetFrame) — родитель рисует
+            // только океан.
+        }
+
+        /// <summary>Секторный слой подложки: свои 16×16 тайлов, свой
+        /// отпечаток, своя перерисовка. Бегущая девушка перерисовывает 1–2
+        /// таких слоя, а не весь остров.</summary>
+        private sealed class TileSectorLayer : VisualElement
+        {
+            public readonly System.Collections.Generic.List<TacticalMapTile> Tiles = new();
+            public TacticalMapFrame? Frame;
+            public uint Fingerprint;
+            public bool Dirty;
+
+            private readonly System.Collections.Generic.Dictionary<
+                Color, System.Collections.Generic.List<Vector2>> _batches = new();
+
+            public TileSectorLayer(TacticalMapFrame frame)
             {
-                return;
+                Frame = frame;
+                generateVisualContent += OnGenerateVisualContent;
             }
 
-            var hexRadius = HexSpatialMath.HexRadius * map.Scale;
-            var drawLines = hexRadius >= 2.8f;
-            painter.lineJoin = LineJoin.Round;
-            painter.lineWidth = Mathf.Clamp(hexRadius * 0.075f, 0.45f, 1.15f);
-
-            // Гексы пакетами по цвету: один BeginPath/Fill на цвет вместо
-            // 8160 отдельных путей — painter2D-команды и есть стоимость UIR.
-            foreach (var batch in _tileBatches.Values)
+            private void OnGenerateVisualContent(MeshGenerationContext context)
             {
-                batch.Clear();
-            }
-
-            for (var i = 0; i < frame.Tiles.Count; i++)
-            {
-                var tile = frame.Tiles[i];
-                if (tile.Water)
+                var frame = Frame;
+                var rect = contentRect;
+                if (frame == null || !frame.HasBounds || rect.width < 2f || rect.height < 2f ||
+                    !TryGetTransform(rect, frame, out var map))
                 {
-                    continue;
+                    return;
                 }
 
-                var color = TacticalMapPalette.TileColor(
-                    tile.Water, tile.Explored, tile.Visible, tile.Elevation);
-                if (!_tileBatches.TryGetValue(color, out var batch))
+                var painter = context.painter2D;
+                var hexRadius = HexSpatialMath.HexRadius * map.Scale;
+                var drawLines = hexRadius >= 2.8f;
+                painter.lineJoin = LineJoin.Round;
+                painter.lineWidth = Mathf.Clamp(hexRadius * 0.075f, 0.45f, 1.15f);
+
+                // Пакеты по цвету: один путь на цвет вместо пути на гекс.
+                foreach (var batch in _batches.Values)
                 {
-                    batch = new System.Collections.Generic.List<Vector2>();
-                    _tileBatches[color] = batch;
+                    batch.Clear();
                 }
 
-                batch.Add(ToUi(tile.Center, frame, map));
-            }
-
-            // UIR отводит одному меш-аллокейту максимум 65535 вершин; путь на
-            // тысячи гексов превышал лимит (замер: ~139k вершин,
-            // ArgumentOutOfRangeException спамом). Чанкуем: сотни гексов на
-            // путь — по-прежнему на порядки меньше команд, чем путь на гекс.
-            const int hexesPerPath = 700;
-            foreach (var pair in _tileBatches)
-            {
-                if (pair.Value.Count == 0)
+                for (var i = 0; i < Tiles.Count; i++)
                 {
-                    continue;
-                }
-
-                painter.fillColor = pair.Key;
-                var batch = pair.Value;
-                for (var start = 0; start < batch.Count; start += hexesPerPath)
-                {
-                    painter.BeginPath();
-                    var end = Mathf.Min(start + hexesPerPath, batch.Count);
-                    for (var i = start; i < end; i++)
+                    var tile = Tiles[i];
+                    if (tile.Water)
                     {
-                        TracePointyHex(painter, batch[i], hexRadius);
+                        continue;
                     }
-                    painter.Fill();
-                }
-            }
 
-            if (drawLines)
-            {
-                painter.strokeColor = TacticalMapPalette.TileLine;
-                foreach (var pair in _tileBatches)
+                    var color = TacticalMapPalette.TileColor(
+                        tile.Water, tile.Explored, tile.Visible, tile.Elevation);
+                    if (!_batches.TryGetValue(color, out var batch))
+                    {
+                        batch = new System.Collections.Generic.List<Vector2>();
+                        _batches[color] = batch;
+                    }
+
+                    batch.Add(ToUi(tile.Center, frame, map));
+                }
+
+                // Лимит UIR — 65535 вершин на меш-аллокейт; сектор в ~170
+                // гексов далёк от него, но чанк оставлен на случай крупных
+                // секторов у береговой линии.
+                const int hexesPerPath = 700;
+                foreach (var pair in _batches)
                 {
+                    if (pair.Value.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    painter.fillColor = pair.Key;
                     var batch = pair.Value;
                     for (var start = 0; start < batch.Count; start += hexesPerPath)
                     {
@@ -214,7 +269,26 @@ namespace HexLive.UnityPresentation.UI
                         {
                             TracePointyHex(painter, batch[i], hexRadius);
                         }
-                        painter.Stroke();
+                        painter.Fill();
+                    }
+                }
+
+                if (drawLines)
+                {
+                    painter.strokeColor = TacticalMapPalette.TileLine;
+                    foreach (var pair in _batches)
+                    {
+                        var batch = pair.Value;
+                        for (var start = 0; start < batch.Count; start += hexesPerPath)
+                        {
+                            painter.BeginPath();
+                            var end = Mathf.Min(start + hexesPerPath, batch.Count);
+                            for (var i = start; i < end; i++)
+                            {
+                                TracePointyHex(painter, batch[i], hexRadius);
+                            }
+                            painter.Stroke();
+                        }
                     }
                 }
             }

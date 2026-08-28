@@ -136,7 +136,7 @@ namespace HexLive.UnityPresentation.UI
             _box = box;
             box.style.position = Position.Absolute;
             box.style.left = 14f;
-            box.style.top = 150f; // below the top-left weather widget
+            box.style.top = 64f; // between the top-left weather widget and history/map
             box.style.width = 176f;
             box.style.flexDirection = FlexDirection.Column;
             box.style.backgroundColor = Panel;
@@ -247,7 +247,7 @@ namespace HexLive.UnityPresentation.UI
             _expandTab = new VisualElement();
             _expandTab.style.position = Position.Absolute;
             _expandTab.style.left = 14f;
-            _expandTab.style.top = 150f;
+            _expandTab.style.top = 64f;
             _expandTab.style.width = 30f;
             _expandTab.style.height = 30f;
             _expandTab.style.flexDirection = FlexDirection.Row;

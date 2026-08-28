@@ -26,6 +26,10 @@ public sealed class TacticalMapUiContractTests
         var spec = Read("Spec", "150.md");
         var bootstrap = Read("Assets", "HexLive", "UnityPresentation", "Bootstrap",
             "PrototypeRuntimeBootstrap.cs");
+        var history = Read("Assets", "HexLive", "UnityPresentation", "UI",
+            "GameHistoryPanel.cs");
+        var debug = Read("Assets", "HexLive", "UnityPresentation", "UI",
+            "DebugControlsPanel.cs");
 
         Assert.Multiple(() =>
         {
@@ -74,6 +78,9 @@ public sealed class TacticalMapUiContractTests
             Assert.That(view, Does.Contain("frame.UnknownPeople"));
             Assert.That(view, Does.Contain("person.Dead"));
             Assert.That(uxml, Does.Contain("miniMapExpandTab"));
+            Assert.That(uss, Does.Contain("left: 14px;"));
+            Assert.That(history, Does.Contain("_expandTab.style.left = 14f;"));
+            Assert.That(debug, Does.Contain("_expandTab.style.top = 64f;"));
             Assert.That(uxml, Does.Contain("distantWorldMarkersHost"));
             Assert.That(panel, Does.Contain("_worldRenderer.PlayerVisibilityReady"));
             Assert.That(panel, Does.Contain("IsTileVisibleToPlayer(tile.Coord)"));

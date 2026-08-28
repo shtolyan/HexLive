@@ -185,7 +185,7 @@ namespace HexLive.UnityPresentation.UI
         {
             _expandTab = new VisualElement();
             _expandTab.style.position = Position.Absolute;
-            _expandTab.style.left = 52f;
+            _expandTab.style.left = 14f;
             _expandTab.style.top = 150f;
             _expandTab.style.height = 30f;
             _expandTab.style.minWidth = 92f;

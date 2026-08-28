@@ -674,15 +674,32 @@ public static class WorldSnapshotExporter
                 return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.saw", "tool.pickaxe_stone");
 
             case InteractionType.Process:
-                var processingLog = npc.Execution.TargetObject is { } processObjectId &&
-                    world.Entities.Objects.TryGetValue(processObjectId, out var processObject) &&
-                    processObject.DefinitionId == ContentIds.Log;
+                WorldObjectState processObject = null;
+                if (npc.Execution.TargetObject is { } processObjectId)
+                {
+                    world.Entities.Objects.TryGetValue(processObjectId, out processObject);
+                }
+
+                var processingLog = processObject?.DefinitionId == ContentIds.Log;
                 if (processingLog &&
                     HexLive.Simulation.Runtime.DecisionSystem
                         .WoodenProstheticBoardShortfall(world, npc) > 0 &&
                     InventoryContains(npc, GearCatalog.Saw))
                 {
                     return GearCatalog.Saw;
+                }
+
+                // #272: a manual order uses PlayerOrder rather than Eat/Drink.
+                // The target, not the AI goal, is the authoritative reason a
+                // blade is currently drawn. Otherwise the simulation pierces
+                // the coconut correctly while presentation shows an empty hand.
+                if (processObject is not null &&
+                    world.Content.ObjectDefinitions.TryGetValue(
+                        processObject.DefinitionId, out var processDefinition) &&
+                    processDefinition.HasTag("Coconut"))
+                {
+                    return FirstCarried(
+                        npc, "tool.machete", "tool.knife", "tool.axe_stone");
                 }
 
                 if ((npc.Mind.CurrentGoal == GoalType.Drink || npc.Mind.CurrentGoal == GoalType.Eat) &&

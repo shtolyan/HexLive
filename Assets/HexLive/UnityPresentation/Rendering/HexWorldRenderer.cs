@@ -4692,8 +4692,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     scatter: !parkedBottle && worldObject.RotationDegrees == 0f);
                 if (parkedBottle)
                 {
+                    // Не сбрасывать поворот в identity: префаб бутылки несёт
+                    // Z-up→Y-up обёртку FBX-импортёра (X=-90), без неё бутылка
+                    // ложится на бок (баги #106/#280). FitObjectPrefab со
+                    // scatter:false поворот не трогает — авторская вертикальная
+                    // поза уже стоит.
                     instance.transform.localPosition += Vector3.up * 0.12f;
-                    instance.transform.localRotation = Quaternion.identity;
                     prefabRoot.name = $"Object {worldObject.DefinitionId} (parked)";
                 }
                 var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);

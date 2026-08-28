@@ -4415,19 +4415,25 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var palm = HexLive.UnityPresentation.Environment.PalmTreeFactory.Build(worldObject.DefinitionId);
             if (palm != null)
             {
-                palm.transform.SetParent(_objectsRoot, false);
+                // The imported FBX root owns its axis-conversion rotation.
+                // Never write yaw onto that transform: doing so lays the whole
+                // source model on its side. A presentation pivot owns natural
+                // yaw, wind and TreeFall while the authored child stays intact.
+                var palmRoot = new GameObject($"Object {worldObject.DefinitionId}");
+                palmRoot.transform.SetParent(_objectsRoot, false);
                 var palmAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
-                palm.transform.position = SimulationUnityMapper.ToUnityPosition(
+                palmRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                     palmAnchor, GroundY(worldObject.Tile));
                 // Natural palms have no authored footprint yaw. Give every
                 // object id one stable full-circle yaw, so fog unload/reload
                 // and save/load never reshuffle the grove.
-                palm.transform.localRotation = Quaternion.Euler(
+                palmRoot.transform.localRotation = Quaternion.Euler(
                     0f, DeterministicVegetationYaw(worldObject.Id.Value), 0f);
+                palm.transform.SetParent(palmRoot.transform, false);
                 RegisterVegetationWind(
-                    palm.transform, worldObject.Id.Value, maxTiltDegrees: 1.35f);
+                    palmRoot.transform, worldObject.Id.Value, maxTiltDegrees: 1.35f);
                 // §54.2: fell it with the same tilt+stump animation as any tree.
-                return palm;
+                return palmRoot;
             }
         }
 

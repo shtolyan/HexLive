@@ -17,7 +17,13 @@ public sealed class VegetationWindContractTests
             Assert.That(renderer, Does.Contain(
                 "DeterministicVegetationYaw(worldObject.Id.Value)"));
             Assert.That(renderer, Does.Contain(
-                "RegisterVegetationWind(\n                    palm.transform"));
+                "var palmRoot = new GameObject($\"Object {worldObject.DefinitionId}\")"));
+            Assert.That(renderer, Does.Contain(
+                "palm.transform.SetParent(palmRoot.transform, false)"));
+            Assert.That(renderer, Does.Contain(
+                "RegisterVegetationWind(\n                    palmRoot.transform"));
+            Assert.That(renderer, Does.Not.Contain(
+                "palm.transform.localRotation = Quaternion.Euler"));
             Assert.That(renderer, Does.Contain(
                 "RegisterVegetationWind(\n            go.transform"));
             Assert.That(renderer, Does.Contain("UpdateVegetationWind();"));

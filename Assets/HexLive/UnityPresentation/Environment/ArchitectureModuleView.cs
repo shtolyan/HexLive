@@ -146,9 +146,6 @@ namespace HexLive.UnityPresentation.Environment
                 return;
             }
 
-            // The model hangs under THIS object's view, so the WorldObjectView
-            // the render diff puts on the same object finds these renderers on
-            // its own — §121 hover picking needs no cached list here.
             wrapper.transform.SetParent(transform, worldPositionStays: false);
             _model = wrapper;
             // §120 cutaway: this module's own renderers, resolved once with the
@@ -156,6 +153,16 @@ namespace HexLive.UnityPresentation.Environment
             // away has to come up cut away too, or the room the player is
             // looking into grows a wall back one delivery at a time.
             _renderers = wrapper.GetComponentsInChildren<Renderer>(true);
+            // Bug #282: §152 content bundles are asynchronous, so this view is
+            // created (and WorldObjectView.Init caches its picking surface)
+            // snapshots BEFORE the model exists. Without a refresh the plan
+            // house keeps a forever-empty hit surface and cannot be hovered or
+            // selected in manual mode — the site itself has no geometry of its
+            // own (BuildSitePile skips HutPlan), so the modules ARE the house's
+            // only clickable body. Null-safe: on the very first Sync the
+            // WorldObjectView is added right after this call and its own Init
+            // covers that case.
+            GetComponent<HexLive.UnityPresentation.Views.WorldObjectView>()?.RefreshGeometry();
             if (_cutawayHidden) ApplyCutaway();
             ConfigureDoor(wrapper);
         }

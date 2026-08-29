@@ -20,7 +20,7 @@ public sealed class CrabPresentationContractTests
         {
             Assert.That(config, Does.Contain("public float visualYawOffsetDegrees"));
             Assert.That(crab, Does.Contain("footprintFraction: 0.16"));
-            Assert.That(crab, Does.Contain("visualYawOffsetDegrees: 90"));
+            Assert.That(crab, Does.Contain("visualYawOffsetDegrees: -90"));
             Assert.That(renderer, Does.Contain(
                 "body.transform.localRotation *= Quaternion.Euler("));
             Assert.That(renderer, Does.Contain("config.visualYawOffsetDegrees"));

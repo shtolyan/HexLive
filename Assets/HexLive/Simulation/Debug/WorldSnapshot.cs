@@ -69,6 +69,11 @@ public sealed class WorldSnapshot
 
     public List<TileSnapshot> Tiles { get; } = new();
 
+    // §146.14 (bug #291): домашние якоря лагерей — для пункта «Сделать домом»
+    // в меню костра UI обязан знать, чей дом где, не владея WorldState.
+    // ≤7 записей, порядок — ординал фракции (детерминизм провода).
+    public List<CampHomeSnapshot> CampHomes { get; } = new();
+
     public List<JunctionSnapshot> Junctions { get; } = new();
 
     public List<ObjectSnapshot> Objects { get; } = new();
@@ -248,6 +253,14 @@ public sealed class MobSlotWaypoint
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
     public Float2 Position { get; set; } = Float2.Zero;
+}
+
+/// <summary>§146.14: один домашний якорь лагеря (см. WorldState.FactionHomes).</summary>
+public sealed class CampHomeSnapshot
+{
+    public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;
+
+    public TileCoord Tile { get; set; }
 }
 
 public sealed class TileSnapshot

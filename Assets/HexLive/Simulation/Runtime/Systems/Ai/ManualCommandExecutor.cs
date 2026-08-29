@@ -86,6 +86,9 @@ internal static class ManualCommandExecutor
             case MergeCampsCommand mergeCamps:
                 ApplyMergeCamps(world, mergeCamps, admission);
                 break;
+            case SetCampHomeCommand setCampHome:
+                ApplySetCampHome(world, setCampHome, admission);
+                break;
             case AidPersonCommand aidPerson:
                 ApplyAidPerson(world, aidPerson, admission);
                 break;
@@ -199,6 +202,7 @@ internal static class ManualCommandExecutor
         TalkToCommand => "TalkTo",
         RomancePersonCommand c => c.Forced ? "ForceRomance" : "Romance",
         MergeCampsCommand => "MergeCamps",
+        SetCampHomeCommand => "SetCampHome",
         AidPersonCommand => "Aid",
         TreatLimbsCommand => "TreatLimbs",
         MedicalAidCommand => "MedicalAid",
@@ -430,6 +434,64 @@ internal static class ManualCommandExecutor
             Trace.Debug(world, npc.Id, "OutfitLockChanged",
                 $"Enabled={(command.Enabled ? 1 : 0)} " +
                 $"Selected={npc.Mind.DesiredOutfit.Count}");
+        }
+    }
+
+    // §146.14 (bug #291): сделать свой очаг домом лагеря. Состояние, не план:
+    // ни ClearForNewOrder, ни ClearAttackOrder — тумблер и текущий приказ не
+    // трогаются, работает и над не-ручной (requireManual: false).
+    private static void ApplySetCampHome(
+        WorldState world, SetCampHomeCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(
+                world, command.Npc, "SetCampHome", requireManual: false,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (!FactionRelations.IsGirlCamp(npc.Faction))
+        {
+            Reject(world, npc.Id, "SetCampHome", "NotGirlCamp", admission);
+            return;
+        }
+
+        if (!world.Entities.Objects.TryGetValue(command.Hearth, out var fire))
+        {
+            Reject(world, npc.Id, "SetCampHome", "NoSuchObject", admission);
+            return;
+        }
+
+        // Недостроенная площадка — ещё не очаг. Гореть костру НЕ обязательно:
+        // очаг рождается холодным, требовать огня — запретить переезд ночью.
+        if (fire.DefinitionId != ContentIds.Campfire)
+        {
+            Reject(world, npc.Id, "SetCampHome", "NotAHearth", admission);
+            return;
+        }
+
+        if (CampHomeMath.IsForeignCampTile(world, npc.Faction, fire.Tile))
+        {
+            Reject(world, npc.Id, "SetCampHome", "ForeignCamp", admission);
+            return;
+        }
+
+        if (world.FactionHomes.TryGetValue(npc.Faction, out var old) &&
+            old.Equals(fire.Tile))
+        {
+            Reject(world, npc.Id, "SetCampHome", "AlreadyHome", admission);
+            return;
+        }
+
+        world.FactionHomes[npc.Faction] = fire.Tile;
+        // §129: у непроштампованных зданий право открыть дверь выводится по
+        // ближайшему очагу, а кэш запретов ключуется на версии — без бампа
+        // старый вердикт держится до следующего чиха (как CampDiplomacyMath).
+        world.DoorStateVersion++;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CampHomeMoved",
+                $"Camp={npc.Faction} Hearth={fire.Id.Value} Home={fire.Tile.Q},{fire.Tile.R}");
         }
     }
 

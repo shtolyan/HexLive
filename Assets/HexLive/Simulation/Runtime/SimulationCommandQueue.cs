@@ -367,6 +367,25 @@ public sealed class RomancePersonCommand : ISimulationCommand
 /// sides have more than 50% affinity. <c>UseTargetCamp</c> chooses whether the
 /// neighbour's camp is occupied as the shared home; false invites her home.
 /// </summary>
+/// <summary>§146.14 (bug #291): сделать СВОЙ очаг домом лагеря. Меняет только
+/// якорь FactionHomes своей фракции (+DoorStateVersion); чужой очаг
+/// отклоняется — присоединение к чужому лагерю остаётся дипломатией §146.12.
+/// Актор — NPC: фракция дома берётся из неё, отказ приходит тостом.</summary>
+public sealed class SetCampHomeCommand : ISimulationCommand
+{
+    public SetCampHomeCommand(EntityId npc, ObjectId hearth)
+    {
+        Npc = npc;
+        Hearth = hearth;
+    }
+
+    public EntityId Npc { get; }
+
+    public ObjectId Hearth { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 public sealed class MergeCampsCommand : ISimulationCommand
 {
     public MergeCampsCommand(EntityId npc, EntityId target, bool useTargetCamp)

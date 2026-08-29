@@ -116,6 +116,7 @@ public static class WorldSnapshotExporter
 
         ExportTiles(world, snapshot);
         ExportJunctions(world, snapshot);
+        ExportCampHomes(world, snapshot);
 
         // Entity lists come out in ASCENDING ID order, always — see SortById.
 
@@ -403,6 +404,24 @@ public static class WorldSnapshotExporter
     // Tiles: coords and elevation are fixed at bootstrap; only flags mutate
     // (building floors/shelter). Reuse the snapshot objects and rewrite the
     // fields — a full rebuild happens only if the world's tile set changed.
+    // §146.14 (bug #291): порядок — ординал фракции, чтобы кадр был
+    // детерминирован и дельта заголовка не дёргалась от порядка словаря.
+    private static void ExportCampHomes(WorldState world, WorldSnapshot snapshot)
+    {
+        snapshot.CampHomes.Clear();
+        foreach (Faction faction in System.Enum.GetValues(typeof(Faction)))
+        {
+            if (world.FactionHomes.TryGetValue(faction, out var tile))
+            {
+                snapshot.CampHomes.Add(new CampHomeSnapshot
+                {
+                    Faction = faction,
+                    Tile = tile
+                });
+            }
+        }
+    }
+
     private static void ExportTiles(WorldState world, WorldSnapshot snapshot)
     {
         var tiles = snapshot.Tiles;

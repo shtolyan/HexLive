@@ -901,6 +901,39 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             }
         }
 
+        // §146.14 (bug #291): «Сделать домом» — только на СВОЁМ очаге (наш
+        // лагерь или ничья земля; предикат общий с исполнителем —
+        // CampHomeMath, правило §149 r3). На чужом очаге пункта нет вовсе:
+        // присоединение к чужому лагерю — только дипломатией §146.12. Именно
+        // EnqueueCommand, не EnqueueOrder: перенос якоря — состояние лагеря,
+        // переводить девушку в ручной режим ради него нельзя.
+        if (definition.HasTag("Campfire") && snapshot != null && clicked != null)
+        {
+            NpcSnapshot? orderer = null;
+            foreach (var candidate in snapshot.Npcs)
+            {
+                if (candidate.Id.Value == actorId)
+                {
+                    orderer = candidate;
+                    break;
+                }
+            }
+
+            if (orderer != null && !CampHomeMath.IsForeignCampTile(
+                    snapshot.CampHomes, orderer.Faction, clicked.Tile))
+            {
+                var already = CampHomeMath.IsHomeTile(
+                    snapshot.CampHomes, orderer.Faction, clicked.Tile);
+                var hearthId = view.ContextObjectId;
+                _entries.Add(new ContextMenuEntry(
+                    Loc.Get("menu.make_home"),
+                    () => runner.EnqueueCommand(
+                        new SetCampHomeCommand(actor, new ObjectId(hearthId))),
+                    !already,
+                    already ? Loc.Get("menu.make_home.already") : null));
+            }
+        }
+
         // §128.5: ОБЫСКАТЬ ВЕЩЬ — истлевшее тело, снятый рюкзак, аптечку.
         // Пустой мешок или шкаф тоже открывается: это не только источник,
         // но и назначение для перетаскивания вещей из левой панели.

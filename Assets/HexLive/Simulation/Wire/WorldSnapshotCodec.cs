@@ -88,7 +88,8 @@ public static class WorldSnapshotCodec
     /// v33: §133/#205 physical carried/worn item owner ids for inventory cards.
     /// v34: #218 per-pair last interaction tick for relationship ordering.
     /// v35: §120.10 architecture demolition and queued slot replacement.
-    public const int WireVersion = 35;
+    /// v36: §146.14 camp home anchors for the campfire «make home» menu.
+    public const int WireVersion = 36;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -223,6 +224,14 @@ public static class WorldSnapshotCodec
         WireIo.WriteFloat2(w, snapshot.SunDirection);
         w.Write(snapshot.SunElevationDegrees);
         w.Write(snapshot.JunctionsBlockedStamp);
+        // §146.14: домашние якоря лагерей (≤7, порядок — ординал фракции).
+        // Живут в заголовке: меняются редко, дельта резендит блок целиком.
+        w.Write((byte)snapshot.CampHomes.Count);
+        foreach (var home in snapshot.CampHomes)
+        {
+            w.Write((byte)home.Faction);
+            WireIo.WriteTile(w, home.Tile);
+        }
     }
 
     internal static void ReadHeaderRecord(BinaryReader r, WorldSnapshot into)
@@ -241,6 +250,16 @@ public static class WorldSnapshotCodec
         into.SunDirection = WireIo.ReadFloat2(r);
         into.SunElevationDegrees = r.ReadSingle();
         into.JunctionsBlockedStamp = r.ReadInt32();
+        var campHomes = r.ReadByte();
+        into.CampHomes.Clear();
+        for (var i = 0; i < campHomes; i++)
+        {
+            into.CampHomes.Add(new Debug.CampHomeSnapshot
+            {
+                Faction = (Agents.Faction)r.ReadByte(),
+                Tile = WireIo.ReadTile(r)
+            });
+        }
     }
 
     // ── tiles ─────────────────────────────────────────────────────────────

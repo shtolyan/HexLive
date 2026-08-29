@@ -73,6 +73,7 @@ public static class SimulationCommandCodec
         ApplyFreeArchitecture = 34,
         MedicalAid = 35,
         GatherAllOnHex = 36,
+        SetCampHome = 37,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -114,6 +115,11 @@ public static class SimulationCommandCodec
                 w.Write(c.Target.Value);
                 w.Write((int)c.Interaction);
                 w.Write(c.InteractionId);
+                break;
+            case SetCampHomeCommand c:
+                w.Write((ushort)CommandType.SetCampHome);
+                WriteEntity(w, c.Npc);
+                w.Write(c.Hearth.Value);
                 break;
             case AttackNpcCommand c:
                 w.Write((ushort)CommandType.AttackNpc);
@@ -325,6 +331,9 @@ public static class SimulationCommandCodec
                 return new GatherAllOnHexCommand(
                     ReadEntity(r), new ObjectId(r.ReadInt32()),
                     (InteractionType)r.ReadInt32(), r.ReadString());
+            case CommandType.SetCampHome:
+                return new SetCampHomeCommand(
+                    ReadEntity(r), new ObjectId(r.ReadInt32()));
             case CommandType.AttackNpc:
                 return new AttackNpcCommand(ReadEntity(r), ReadEntity(r));
             case CommandType.CarryPerson:

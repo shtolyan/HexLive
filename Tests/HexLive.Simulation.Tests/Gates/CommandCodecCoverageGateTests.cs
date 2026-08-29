@@ -39,6 +39,7 @@ public sealed class CommandCodecCoverageGateTests
         new GatherAllOnHexCommand(
             new EntityId(131), new ObjectId(771), InteractionType.PickUp,
             "palm.leaf.pick"),
+        new SetCampHomeCommand(new EntityId(291), new ObjectId(2911)),
         new AttackNpcCommand(new EntityId(14), new EntityId(41)),
         new CarryPersonCommand(new EntityId(15), new EntityId(51)),
         new PutDownPersonCommand(new EntityId(16)),

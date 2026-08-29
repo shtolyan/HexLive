@@ -468,6 +468,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // ночь при «нормальной» температуре в панели.
     private const float SweatThermalGate = 0.4f;
     private float _skinWetness;
+    // Bug #290: пот — отдельный слой; он не имеет права держать дождевую воду.
+    private float _skinSweat;
     private float _clothRainWetness;
     private float _wetnessLastTime;
 
@@ -2234,15 +2236,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var dt = _wetnessLastTime > 0f ? Mathf.Max(0f, now - _wetnessLastTime) : 0f;
         _wetnessLastTime = now;
 
-        // Unified skin-wetness pool (clothes-like drying, a touch faster):
-        // rain fills it toward 1 fast; sweat fills it toward the current
-        // sweat level slower; it always DRAINS gradually — rain stopping
-        // leaves her glistening for ~a minute, cooling down doesn't
-        // instantly dry the sweat, and while she stays hot the wetness
-        // never drains below her sweat level.
+        // Bug #290: дождь/вода и ПОТ — два РАЗНЫХ слоя мокроты кожи. Раньше
+        // пул был единым, и его дно при осушении равнялось sweatLevel: тёплым
+        // днём (ThermalComfort > SweatThermalGate) дождевая вода «застревала»
+        // на теле навсегда — одежда честно высыхала до нуля, а кожа блестела,
+        // как после купания, и по мере ВЫСЫХАНИЯ одежды (warmth возвращался)
+        // блестела только сильнее. Теперь дождевой пул кожи — точное зеркало
+        // ткани (дно 0, ~45 с до сухости), пот живёт отдельным слоем со своей
+        // прежней инерцией, а видимая мокрота — max двух слоёв.
         var sweatLevel = Mathf.Clamp01(
             (thermal - SweatThermalGate) / (1f - SweatThermalGate));
-        var wetTarget = Mathf.Max(rainWet > 0.5f ? 1f : 0f, sweatLevel);
+        var wetTarget = rainWet > 0.5f ? 1f : 0f;
         if (waterWet > 0.5f)
         {
             // A water tile dunks the body: the sim snaps BodyWetness to 1
@@ -2252,13 +2256,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
         else if (wetTarget > _skinWetness)
         {
-            var rise = rainWet > 0.5f ? RainSoakPerSecond : SweatSoakPerSecond;
-            _skinWetness = Mathf.Min(wetTarget, _skinWetness + dt * rise);
+            _skinWetness = Mathf.Min(wetTarget, _skinWetness + dt * RainSoakPerSecond);
         }
         else
         {
-            _skinWetness = Mathf.Max(wetTarget, _skinWetness - dt * SkinDryPerSecond);
+            _skinWetness = Mathf.Max(0f, _skinWetness - dt * SkinDryPerSecond);
         }
+
+        // Пот: прежние ~12 с набора до своего уровня и мягкий спад — «жарко →
+        // блестит» не меняется, но пот больше не держит дождевую воду на теле.
+        _skinSweat = _skinSweat < sweatLevel
+            ? Mathf.Min(sweatLevel, _skinSweat + dt * SweatSoakPerSecond)
+            : Mathf.Max(sweatLevel, _skinSweat - dt * SkinDryPerSecond);
+        var skinWet01 = Mathf.Max(_skinWetness, _skinSweat);
 
         // Cloth rain sheen is inertial too (rain-only — sweat doesn't soak the
         // shirt): fabric visibly darkens within seconds of standing in rain.
@@ -2444,9 +2454,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // The painter needs the current wet-skin gloss: it is the BASE of
             // the painted gloss map, so droplet pixels (0.95) sit on top of
             // the same sheen the rest of the body shows.
-            var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, _skinWetness);
+            var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, skinWet01);
             _skinPainter.Sync(_woundScratch, _bandagedScratch,
-                PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint,
+                PaintSweatDroplets ? skinWet01 : 0f, _uncoveredScratch, wetSmoothnessForPaint,
                 _gauzeScratch, _zoneDamageScratch, _zoneBruiseScratch, _bleedScratch,
                 _plasterScratch);
             // v4.3: the projector RAIN droplets serve rain AND sweat — the
@@ -2456,12 +2466,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // retired (SweatDropletProjectors).
             _skinDecals.Sync(null, _uncoveredScratch, hygiene,
                 SweatDropletProjectors ? thermal : 0f,
-                Mathf.Max(_clothRainWetness, _skinWetness), null, null,
+                Mathf.Max(_clothRainWetness, skinWet01), null, null,
                 intimacySoil);
         }
         else
         {
-            _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness, _bandagedScratch,
+            _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, skinWet01, _bandagedScratch,
                 _gauzeScratch, intimacySoil);
         }
 
@@ -2472,7 +2482,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // The gloss reads straight from the unified wetness pool — rain and
         // sweat both feed it, so whichever is stronger wins naturally.
         _skinMpb ??= new MaterialPropertyBlock();
-        var sweat01 = _skinWetness;
+        var sweat01 = skinWet01;
         var smoothness = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, sweat01);
         foreach (var (renderer, index) in _skinTintTargets)
         {

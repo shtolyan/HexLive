@@ -2521,8 +2521,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             {
                 foreach (var entry in wounds)
                 {
-                    var sep = entry.LastIndexOf('|');
-                    if (sep > 0 && float.TryParse(entry.Substring(sep + 1),
+                    // §118.2 appends Clot01/Severity/Plastered after Heal01.
+                    // Keep reading the wire field by contract index, not tail.
+                    var parts = entry.Split('|');
+                    if (parts.Length >= 3 && float.TryParse(parts[2],
                             System.Globalization.NumberStyles.Float,
                             System.Globalization.CultureInfo.InvariantCulture, out var heal))
                     {

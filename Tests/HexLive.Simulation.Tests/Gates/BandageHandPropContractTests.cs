@@ -60,6 +60,26 @@ public sealed class BandageHandPropContractTests
     }
 
     [Test]
+    public void ActorBloodSoakReadsHealFieldFromExtendedWoundWire_Bug288()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
+            "Wearing", "NpcActorView.cs"));
+        var start = source.IndexOf("var bloodSoak = 0f;", StringComparison.Ordinal);
+        var end = source.IndexOf("if (wornDirtiness != null)", start, StringComparison.Ordinal);
+        var block = source[start..end];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(block, Does.Contain("entry.Split('|')"));
+            Assert.That(block, Does.Contain("parts[2]"),
+                "Wounds export as Zone|Seed|Heal01|Clot01|Severity|Plastered; clothing blood must fade from Heal01.");
+            Assert.That(block, Does.Not.Contain("LastIndexOf('|')"),
+                "The tail field is Plastered now, not Heal01.");
+        });
+    }
+
+    [Test]
     public void TreatInteractionsExportBandageOnlyWhileTheyAreActive()
     {
         var world = TestWorld.CreateWorld(13772);

@@ -1280,12 +1280,29 @@ internal static class ManualCommandExecutor
 
             case SelfActionKind.TreatSelf:
             {
-                var bandages = MedicalSupplyMath.BandageCount(npc) +
-                    (MedicalSupplyMath.TryFindReachableBandageSource(world, npc, out _) ? 1 : 0);
-                if (!DecisionSystem.SelfTreatmentIndicated(npc, bandages))
+                if (!Spec53.SelfTreatEnabled)
                 {
-                    Reject(world, npc.Id, "SelfAction",
-                        bandages > 0 ? "NotNeeded" : "NoBandage", admission);
+                    Reject(world, npc.Id, "SelfAction", "FeatureDisabled", admission);
+                    return;
+                }
+
+                if (!npc.Body.HasUsableHand)
+                {
+                    Reject(world, npc.Id, "SelfAction", "MissingHands", admission);
+                    return;
+                }
+
+                if (npc.IsFighting || !AidAssessment.NeedsDressing(npc))
+                {
+                    Reject(world, npc.Id, "SelfAction", "NotNeeded", admission);
+                    return;
+                }
+
+                var hasBandage = MedicalSupplyMath.BandageCount(npc) > 0 ||
+                    MedicalSupplyMath.TryFindReachableBandageSource(world, npc, out _);
+                if (!hasBandage)
+                {
+                    Reject(world, npc.Id, "SelfAction", "NoBandage", admission);
                     return;
                 }
 

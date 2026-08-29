@@ -58,7 +58,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
-    public void CharacterPanelUsesOneLargeFlatInventoryGridAndOnlyRelationsScroll()
+    public void CharacterPanelUsesOneLargeFlatInventoryGridAndRelationWindow()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
 
@@ -70,8 +70,15 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(source, Does.Contain("_invItemsPane.style.flexGrow = 1f"));
             Assert.That(source, Does.Not.Contain("_invItemsPane.style.width = Length.Percent(50f)"));
             Assert.That(source, Does.Not.Contain("_invDollPane.style.width = Length.Percent(50f)"));
-            Assert.That(source, Does.Contain("new ScrollView(ScrollViewMode.Horizontal)"));
-            Assert.That(source, Does.Contain("relationship-scroll"));
+            // Bug #218: лента отношений — окно из трёх карточек со стрелками,
+            // без скролла: скроллер в 58px полосы съедал низ карточек.
+            Assert.That(source, Does.Not.Contain("new ScrollView(ScrollViewMode.Horizontal)"));
+            Assert.That(source, Does.Contain("relationship-window"));
+            Assert.That(source, Does.Contain("private const int RelationWindow = 3;"));
+            Assert.That(source, Does.Contain("BuildRelationArrow(\"‹\""));
+            Assert.That(source, Does.Contain("BuildRelationArrow(\"›\""));
+            Assert.That(source, Does.Contain("_relationSigWindowStart != windowStart"));
+            Assert.That(source, Does.Contain("_relationWindowAnchorId"));
             Assert.That(source, Does.Contain("b.LastInteractionTick.CompareTo(a.LastInteractionTick)"));
             Assert.That(source, Does.Not.Contain("var maxTabs = Mathf.Min(relations.Count, 5)"));
             Assert.That(source, Does.Not.Contain("new ScrollView(ScrollViewMode.Vertical)"));

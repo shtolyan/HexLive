@@ -844,6 +844,9 @@ namespace HexLive.UnityPresentation.UI
                 _relationSig.Clear();
                 _relationSigSelected = int.MinValue;
                 _relationsBuiltEmpty = false;
+                // Bug #218: окно из трёх открывается у новой колонистки с
+                // самых свежих, а не с якоря предыдущей.
+                _relationWindowAnchorId = -1;
             }
 
             // §105 r3: ХП — витальное здоровье, придавленное конечностями
@@ -5109,7 +5112,10 @@ namespace HexLive.UnityPresentation.UI
             {
                 selected = relations[0];
                 _selectedRelationId = selected.OtherId;
+                _relationWindowAnchorId = -1;
             }
+
+            var windowStart = ResolveRelationWindowStart(relations);
 
             // PERF: this subtree — a tab per relation, each with a portrait, plus
             // the focus card — was torn down and rebuilt EVERY tick, which is
@@ -5118,16 +5124,21 @@ namespace HexLive.UnityPresentation.UI
             // a relationship moves or the player picks another tab, so rebuild on
             // exactly that, the way the effect chips and the inventory list
             // already do.
-            if (!_relationsBuiltEmpty && RelationsUnchanged(relations))
+            if (!_relationsBuiltEmpty && RelationsUnchanged(relations, windowStart))
             {
                 return;
             }
 
-            RememberRelations(relations);
+            RememberRelations(relations, windowStart);
             _relationsBuiltEmpty = false;
+            // Нормализация якоря после Clamp (иначе на хвосте списка стрелка
+            // «залипает»); окно на левом краю снова следует за свежими.
+            _relationWindowAnchorId = windowStart == 0
+                ? -1
+                : relations[windowStart].OtherId;
 
             _relationsContainer.Clear();
-            _relationsContainer.Add(BuildRelationTabs(relations, selected.OtherId, npc));
+            _relationsContainer.Add(BuildRelationTabs(relations, windowStart, selected.OtherId, npc));
             _relationsContainer.Add(BuildRelationFocusCard(selected));
         }
 
@@ -5166,9 +5177,39 @@ namespace HexLive.UnityPresentation.UI
         private int _relationSigSelected = int.MinValue;
         private bool _relationsBuiltEmpty;
 
-        private bool RelationsUnchanged(List<RelationshipSnapshot> relations)
+        // Bug #218: окно из трёх карточек со стрелками вместо скролла.
+        // Якорь — OtherId ЛЕВОЙ видимой карточки: список живой (пересортировка
+        // по LastInteractionTick каждым взаимодействием), голый индекс тихо
+        // показывал бы других людей. -1 = «следовать за самыми свежими».
+        private const int RelationWindow = 3;
+        private int _relationWindowAnchorId = -1;
+        private int _relationSigWindowStart = int.MinValue;
+
+        private int ResolveRelationWindowStart(List<RelationshipSnapshot> relations)
         {
+            var max = Mathf.Max(0, relations.Count - RelationWindow);
+            if (_relationWindowAnchorId < 0)
+            {
+                return 0;
+            }
+
+            for (var i = 0; i < relations.Count; i++)
+            {
+                if (relations[i].OtherId == _relationWindowAnchorId)
+                {
+                    return Mathf.Min(i, max);
+                }
+            }
+
+            return 0; // якорь умер/выпал из списка — вернуться к свежим
+        }
+
+        private bool RelationsUnchanged(List<RelationshipSnapshot> relations, int windowStart)
+        {
+            // Bug #218: индекс окна — часть сигнатуры, иначе клик по стрелке
+            // не перерисует панель (список и выбранная не изменились).
             if (_relationSigSelected != _selectedRelationId ||
+                _relationSigWindowStart != windowStart ||
                 _relationSig.Count != relations.Count)
             {
                 return false;
@@ -5185,7 +5226,7 @@ namespace HexLive.UnityPresentation.UI
             return true;
         }
 
-        private void RememberRelations(List<RelationshipSnapshot> relations)
+        private void RememberRelations(List<RelationshipSnapshot> relations, int windowStart)
         {
             _relationSig.Clear();
             for (var i = 0; i < relations.Count; i++)
@@ -5194,32 +5235,75 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _relationSigSelected = _selectedRelationId;
+            _relationSigWindowStart = windowStart;
         }
 
-        private VisualElement BuildRelationTabs(List<RelationshipSnapshot> relations, int selectedId, NpcSnapshot npc)
+        // Bug #218: не скролл, а ОКНО из трёх карточек со стрелками по краям.
+        // Стрелка смещает окно ровно на одного человека; крайняя стрелка
+        // гаснет (opacity + PickingMode.Ignore — идиома этого же файла).
+        // Скроллер в 58px полосы съедал низ карточек и указатель выбранной.
+        private VisualElement BuildRelationTabs(
+            List<RelationshipSnapshot> relations, int windowStart, int selectedId, NpcSnapshot npc)
         {
-            var scroll = new ScrollView(ScrollViewMode.Horizontal);
-            scroll.name = "relationship-scroll";
-            scroll.style.height = 58f;
-            scroll.style.flexShrink = 0f;
-            scroll.style.marginBottom = 8f;
-            scroll.style.backgroundColor = new Color(0.054f, 0.069f, 0.080f, 0.72f);
-            scroll.horizontalScrollerVisibility = ScrollerVisibility.Auto;
-            scroll.verticalScrollerVisibility = ScrollerVisibility.Hidden;
-            SetBorder(scroll, Stroke, 1f);
-            SetRadius(scroll, 10f);
+            var bar = new VisualElement();
+            bar.name = "relationship-window";
+            bar.style.flexDirection = FlexDirection.Row;
+            bar.style.alignItems = Align.Center;
+            bar.style.height = 58f;
+            bar.style.flexShrink = 0f;
+            bar.style.marginBottom = 8f;
+            bar.style.backgroundColor = new Color(0.054f, 0.069f, 0.080f, 0.72f);
+            SetBorder(bar, Stroke, 1f);
+            SetRadius(bar, 10f);
 
-            var tabs = scroll.contentContainer;
-            tabs.style.flexDirection = FlexDirection.Row;
-            tabs.style.alignItems = Align.Center;
-            tabs.style.height = 48f;
-
-            for (var i = 0; i < relations.Count; i++)
+            var maxStart = Mathf.Max(0, relations.Count - RelationWindow);
+            bar.Add(BuildRelationArrow("‹", windowStart > 0, () =>
             {
-                tabs.Add(BuildRelationTab(relations[i], relations[i].OtherId == selectedId, npc));
+                _relationWindowAnchorId = relations[windowStart - 1].OtherId;
+                _refreshedTick = -1;
+                UpdateRelations(npc);
+            }));
+
+            var end = Mathf.Min(relations.Count, windowStart + RelationWindow);
+            for (var i = windowStart; i < end; i++)
+            {
+                bar.Add(BuildRelationTab(relations[i], relations[i].OtherId == selectedId, npc));
             }
 
-            return scroll;
+            bar.Add(BuildRelationArrow("›", windowStart < maxStart, () =>
+            {
+                _relationWindowAnchorId = relations[windowStart + 1].OtherId;
+                _refreshedTick = -1;
+                UpdateRelations(npc);
+            }));
+
+            return bar;
+        }
+
+        private VisualElement BuildRelationArrow(
+            string glyph, bool enabled, System.Action onClick)
+        {
+            var arrow = new Label(glyph);
+            arrow.style.width = 22f;
+            arrow.style.height = Length.Percent(100);
+            arrow.style.flexShrink = 0f;
+            arrow.style.fontSize = 20;
+            arrow.style.unityTextAlign = TextAnchor.MiddleCenter;
+            arrow.style.color = Text;
+            arrow.style.opacity = enabled ? 1f : 0.45f;
+            arrow.pickingMode = enabled ? PickingMode.Position : PickingMode.Ignore;
+            if (enabled)
+            {
+                arrow.RegisterCallback<MouseEnterEvent>(_ => arrow.style.color = GoldDim);
+                arrow.RegisterCallback<MouseLeaveEvent>(_ => arrow.style.color = Text);
+                arrow.RegisterCallback<MouseDownEvent>(evt =>
+                {
+                    onClick();
+                    evt.StopPropagation();
+                });
+            }
+
+            return arrow;
         }
 
         private VisualElement BuildRelationTab(RelationshipSnapshot rel, bool selected, NpcSnapshot npc)
@@ -5228,9 +5312,12 @@ namespace HexLive.UnityPresentation.UI
             tab.style.flexDirection = FlexDirection.Row;
             tab.style.alignItems = Align.Center;
             tab.style.height = Length.Percent(100);
-            tab.style.flexGrow = 0f;
-            tab.style.flexShrink = 0f;
-            tab.style.width = selected ? 150f : 128f;
+            // Bug #218: три карточки делят полосу окна поровну — фиксированные
+            // ширины были нужны только скроллу.
+            tab.style.flexGrow = 1f;
+            tab.style.flexShrink = 1f;
+            tab.style.flexBasis = 0f;
+            tab.style.minWidth = 0f;
             tab.style.paddingLeft = 9f;
             tab.style.paddingRight = 9f;
             tab.style.backgroundColor = selected

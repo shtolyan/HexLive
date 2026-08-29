@@ -249,6 +249,15 @@ public sealed partial class ExecutionSystem
             var product = site.BuildProduct;
             var tile = site.Tile;
             var owner = site.Owner;
+            // #237: непроштампованный дом (площадка игрока §120.8, старый мир)
+            // достаётся лагерю ТОЙ, кто его достроил. Записать это надо до
+            // подъёма — дальше здание уже не помнит строительницу, а вывод по
+            // ближайшему очагу переназначает дверь при первом же слиянии.
+            if (BuildSiteMath.IsArchitecturalBuilding(product))
+            {
+                Core.DoorTopology.StampOwner(world, site, npc.Faction);
+            }
+
             RaiseFurnitureSite(world, site, npc.Fragment, npc.CurrentJunction);
 
             Trace.Emit(world, npc.Id, "FurnitureBuilt",
@@ -273,6 +282,9 @@ public sealed partial class ExecutionSystem
         // §64: a personal bed's ownership rides from the site onto the
         // finished piece — this is what makes the raised bed hers.
         var owner = site.Owner;
+        // #237: так же едет и лагерь-хозяин дома. Потеряй его здесь — и право
+        // открыть дверь снова начнёт вычисляться по ближайшему очагу.
+        var ownerFaction = site.OwnerFaction;
         // §66: so does the yaw the site was staked at — the bed must come up
         // lying side-on to the fire, not on whatever default the prefab has.
         var yaw = site.RotationDegrees;
@@ -292,6 +304,7 @@ public sealed partial class ExecutionSystem
 
         var raised = WorldObjectMutations.SpawnObject(world, product, fragment, tile, j);
         raised.Owner = owner;
+        raised.OwnerFaction = ownerFaction;
         raised.BlueprintId = blueprintId;
         raised.RotationDegrees = yaw;
         if (!string.IsNullOrEmpty(variant)) raised.Variant = variant;

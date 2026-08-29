@@ -136,7 +136,15 @@ public static class WorldSaveSerializer
     // сейв и был записан.
     // v61 (#266): точный id выбранного взаимодействия в каждом PlanStep.
     // Одного InteractionType недостаточно: split.log и saw.log оба Process.
-    public const int BlobVersion = 61;
+    // v62 (§129/#237): у здания появился ХРАНИМЫЙ лагерь-хозяин
+    // (WorldObjectState.OwnerFaction) — право открыть дверь больше не
+    // вычисляется по ближайшему живому очагу. Блоб ≤61 штампуется на загрузке
+    // ровно тем владельцем, по которому мир и жил (MigrateBuildingOwnership),
+    // так что старый сейв продолжается без единого изменения поведения, а
+    // следующее слияние лагерей уже не переназначает дверь третьему лагерю.
+    // (Ветка #237 занимала под это v60 — на мастере номер был уже занят
+    // §120.10/#240, при портировании штамп переехал на v62.)
+    public const int BlobVersion = 62;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -818,6 +826,33 @@ public static class WorldSaveSerializer
         }
 
         MigrateRetiredContent(world, version);
+        MigrateBuildingOwnership(world, version);
+    }
+
+    // v62 (§129/#237): дом, у которого лагерь-хозяин не записан, получает его
+    // РОВНО по прежнему правилу — ближайший девичий очаг. Это не догадка: до
+    // v62 право открыть дверь так и вычислялось, поэтому сейв продолжается с
+    // тем же владельцем, что был у него секунду назад. Штамп ставится один раз
+    // и здесь, где очаги уже прочитаны: дальше слияние лагерей перепишет его
+    // сознательно, а исчезновение соседнего очага больше ничего не меняет.
+    private static void MigrateBuildingOwnership(WorldState world, int loadedVersion)
+    {
+        if (loadedVersion >= 62 || world.FactionHomes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.OwnerFaction.HasValue ||
+                (!BuildingRules.IsCompletedBuilding(obj) &&
+                 !Runtime.BuildSiteMath.IsArchitecturalBuilding(obj.BuildProduct)))
+            {
+                continue;
+            }
+
+            obj.OwnerFaction = Core.DoorTopology.DeriveOwnerFromHomes(world, obj.Tile);
+        }
     }
 
     // Save migration: content retired from the bootstrap still lives inside
@@ -1054,6 +1089,9 @@ public static class WorldSaveSerializer
 
         // v50 (§120.8): чей чертёж строит этот plan-объект (0 = committed).
         w.Write(obj.BlueprintId);
+
+        // v62 (§129/#237): лагерь-хозяин здания.
+        WriteNullableFaction(w, obj.OwnerFaction);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1164,6 +1202,10 @@ public static class WorldSaveSerializer
         obj.ArchitectureOwnerId = version >= 34 ? ReadNullableObject(r) : null;
         obj.IsDoorOpen = version >= 37 ? r.ReadBoolean() : true;
         obj.BlueprintId = version >= 50 ? r.ReadInt32() : 0;
+        // v62 (#237). У блоба ≤61 штампа нет — его проставляет разовая
+        // миграция MigrateBuildingOwnership, когда прочитаны и объекты, и
+        // очаги: здесь FactionHomes ещё может быть не тем, чем станет.
+        obj.OwnerFaction = version >= 62 ? ReadNullableFaction(r) : null;
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including
@@ -2638,6 +2680,18 @@ public static class WorldSaveSerializer
 
     private static ObjectId? ReadNullableObject(BinaryReader r) =>
         r.ReadBoolean() ? new ObjectId(r.ReadInt32()) : null;
+
+    private static void WriteNullableFaction(BinaryWriter w, Faction? faction)
+    {
+        w.Write(faction.HasValue);
+        if (faction is { } value)
+        {
+            w.Write((int)value);
+        }
+    }
+
+    private static Faction? ReadNullableFaction(BinaryReader r) =>
+        r.ReadBoolean() ? (Faction)r.ReadInt32() : null;
 
     private static void WriteNullableJunction(BinaryWriter w, JunctionId? id)
     {

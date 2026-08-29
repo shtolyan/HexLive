@@ -87,6 +87,10 @@ public static class BuildingBootstrap
         var hut = WorldObjectMutations.SpawnObject(
             world, ContentIds.HutPlan, center.Fragment, hutTile, anchorId);
         hut.BlueprintId = blueprintId;
+        // #237: дом стартового лагеря принадлежит ЕМУ, и это записано, а не
+        // выведено — иначе после §146.13 слияния/гибели лагеря дверь достаётся
+        // соседу по расстоянию (см. DoorTopology.OwnerFaction).
+        Core.DoorTopology.StampOwner(world, hut, faction);
         BuildingRules.EnsureHutElements(world, hut, completed: true);
         // Keep the hex itself on one of its six 60° symmetries and choose the
         // symmetry whose door normal is closest to camp. Arbitrary yaw rotates
@@ -271,6 +275,14 @@ public static class BuildingBootstrap
                 // Патологический сид: лагерь остаётся без чертежа — игрок или
                 // прибытия §132 поставят его позже; мир от этого не ломается.
                 world.PlayerBlueprints.Remove(blueprintId);
+            }
+            else
+            {
+                // #237: чей это будет дом — известно ЗДЕСЬ, в момент
+                // застолбления, и записывается на площадку. Подъём унесёт
+                // штамп на готовое здание (RaiseFurnitureSite), а слияние
+                // лагерей перепишет его на канонический лагерь.
+                Core.DoorTopology.StampOwner(world, site, faction);
             }
         }
     }

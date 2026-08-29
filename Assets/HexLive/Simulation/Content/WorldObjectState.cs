@@ -36,6 +36,17 @@ public sealed class WorldObjectState
     // this back to null when the owner dies so a survivor can claim the bed.
     public EntityId? Owner { get; set; }
 
+    // §129/#237: чей это дом — ЛАГЕРЬ, а не человек. Ставится один раз, там
+    // где здание рождается (застолблённый чертёж лагеря §146.5, стартовый дом,
+    // подъём площадки строительницей), едет с площадки на поднятое здание и
+    // переписывается только слиянием лагерей (§146.13). Право открыть дверь
+    // читается отсюда: выводить владельца по БЛИЖАЙШЕМУ живому FactionHome
+    // нельзя — после слияния или исчезновения лагеря ближайшим оказывается
+    // третий, и дом запирает собственных жительниц (#237).
+    // null = не проштамповано (старый сейв/мир без лагерей) — тогда действует
+    // прежний вывод по расстоянию, см. DoorTopology.OwnerFaction.
+    public Agents.Faction? OwnerFaction { get; set; }
+
     // Spec §50: a per-object variant tag the renderer reads (e.g. which limb a
     // "body.limb_severed" object is, so it bakes the matching bone chain).
     public string Variant { get; set; } = string.Empty;

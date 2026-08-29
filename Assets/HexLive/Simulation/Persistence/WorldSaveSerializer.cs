@@ -144,7 +144,10 @@ public static class WorldSaveSerializer
     // следующее слияние лагерей уже не переназначает дверь третьему лагерю.
     // (Ветка #237 занимала под это v60 — на мастере номер был уже занят
     // §120.10/#240, при портировании штамп переехал на v62.)
-    public const int BlobVersion = 62;
+    // v63 (§121.11, #294): постоянный темп ручных приказов per NPC. Двойного
+    // клика больше нет, темп — настройка персонажа, и она обязана переживать
+    // выход из игры. Блоб ≤62 читается новым умолчанием «бегом».
+    public const int BlobVersion = 63;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1752,6 +1755,11 @@ public static class WorldSaveSerializer
         // чужой поход, а одна подопечная без вида вернула бы переоценку §53.3.
         w.Write((int)npc.Mind.OrderedAidKind);
         WriteNullableEntity(w, npc.Mind.OrderedAidFor);
+
+        // §121.11 / v63 (#294): постоянный темп ручных приказов. Настройка
+        // игрока про КОНКРЕТНУЮ девушку — переживает выход из игры так же, как
+        // сам тумблер управления и запрет смены одежды.
+        w.Write(npc.Mind.RunByDefault);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -2398,6 +2406,14 @@ public static class WorldSaveSerializer
         {
             npc.Mind.OrderedAidKind = (AidKind)r.ReadInt32();
             npc.Mind.OrderedAidFor = ReadNullableEntity(r);
+        }
+
+        // §121.11 (#294): блоб ≤62 писался в мире, где темп задавал жест, а не
+        // настройка. Такой сейв просыпается на новом умолчании (бегом) — то
+        // же, что увидит новый мир, и ровно то, чего просил игрок.
+        if (version >= 63)
+        {
+            npc.Mind.RunByDefault = r.ReadBoolean();
         }
 
         return npc;

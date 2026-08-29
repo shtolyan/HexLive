@@ -33,7 +33,11 @@ public sealed class CommandCodecCoverageGateTests
     {
         new SetManualControlCommand(new EntityId(11), true),
         new SetOutfitLockCommand(new EntityId(111), true),
+        new SetRunByDefaultCommand(new EntityId(114), true),
         new MoveToCommand(new EntityId(12), new Float2(3.5f, -7.25f), run: true),
+        // §121.11: «темп не задан» — полноправное значение на проводе, а не
+        // false. Свой штамп, иначе забытый бит HasValue проехал бы молча.
+        new MoveToCommand(new EntityId(121), new Float2(-4.25f, 6.5f)),
         new InteractCommand(
             new EntityId(13), new ObjectId(77), InteractionType.Process, "saw.log"),
         new GatherAllOnHexCommand(

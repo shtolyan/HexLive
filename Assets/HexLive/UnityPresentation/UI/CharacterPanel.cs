@@ -127,6 +127,16 @@ namespace HexLive.UnityPresentation.UI
         private Label _controlPlayerGlyph;
         private VisualElement _controlAiIcon;
         private VisualElement _controlPlayerIcon;
+        // §121.11 (bug #294): тумблер «Шагом / Бегом» — постоянный темп ручных
+        // приказов этой девушки, снятый из снапшота, а не запомненный кнопкой.
+        private VisualElement _paceButton;
+        private VisualElement _paceWalkSegment;
+        private VisualElement _paceRunSegment;
+        private Label _paceWalkGlyph;
+        private Label _paceRunGlyph;
+        private VisualElement _paceWalkIcon;
+        private VisualElement _paceRunIcon;
+        private bool _runByDefaultNow = true;
         private Label _orderToast;
         // §123.5: дубль тоста отказа ВНУТРИ окна инвентаря — карточка
         // персонажа с основным тостом закрыта этим окном (940×620), и отказ
@@ -823,6 +833,7 @@ namespace HexLive.UnityPresentation.UI
                     ? Loc.Goal("WashClothes")
                     : Loc.Goal(npc.CurrentGoal);
             RefreshControlToggle(npc); // §121
+            RefreshPaceToggle(npc); // §121.11 — после: читает _controlAvailable
 
             // Spec §64: the dream pill — show her aspiration, hide it when she has
             // nothing left to dream of ("None"/empty).
@@ -6724,6 +6735,7 @@ namespace HexLive.UnityPresentation.UI
             col.Add(vitalsCluster);
 
             col.Add(BuildControlToggle());
+            col.Add(BuildPaceToggle()); // §121.11: тот же тумблер, нижний угол
             col.Add(BuildStopButton());
             col.Add(BuildInventoryButton());
             col.Add(BuildJournalButton()); // §136: под рюкзаком у правого края
@@ -6779,70 +6791,17 @@ namespace HexLive.UnityPresentation.UI
             button.style.overflow = Overflow.Hidden;
             button.tooltip = Loc.Get("panel.control.tooltip");
 
-            VisualElement BuildSegment(
-                string iconResource,
-                string fallbackGlyph,
-                string tooltip,
-                out Label glyphLabel,
-                out VisualElement iconView)
-            {
-                var segment = new VisualElement();
-                segment.style.width = Length.Percent(50f);
-                segment.style.height = Length.Percent(100f);
-                segment.style.alignItems = Align.Center;
-                segment.style.justifyContent = Justify.Center;
-                segment.tooltip = tooltip;
-
-                iconView = new VisualElement();
-                iconView.style.width = 27f;
-                iconView.style.height = 27f;
-                iconView.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
-                iconView.pickingMode = PickingMode.Ignore;
-                var iconTexture = Resources.Load<Texture2D>(iconResource);
-                if (iconTexture != null)
-                {
-                    iconView.style.backgroundImage = new StyleBackground(iconTexture);
-                }
-                else
-                {
-                    iconView.style.display = DisplayStyle.None;
-                }
-                segment.Add(iconView);
-
-                // Text is deliberately only a missing-resource fallback: a
-                // bad or delayed content import must not remove the control.
-                glyphLabel = new Label(fallbackGlyph);
-                glyphLabel.style.fontSize = 17f;
-                glyphLabel.style.color = Text;
-                glyphLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                glyphLabel.style.display = iconTexture == null
-                    ? DisplayStyle.Flex
-                    : DisplayStyle.None;
-                glyphLabel.pickingMode = PickingMode.Ignore;
-                segment.Add(glyphLabel);
-                return segment;
-            }
-
-            _controlAiSegment = BuildSegment(
+            _controlAiSegment = BuildToggleSegment(
                 "HexLive/UI/IdentityAiIcon", "🧠", Loc.Get("panel.control.ai"),
                 out _controlAiGlyph, out _controlAiIcon);
-            _controlPlayerSegment = BuildSegment(
+            _controlPlayerSegment = BuildToggleSegment(
                 "HexLive/UI/IdentityManualIcon", "🎮", Loc.Get("panel.control.manual"),
                 out _controlPlayerGlyph, out _controlPlayerIcon);
             SetRadius(_controlAiSegment, 9f);
             SetRadius(_controlPlayerSegment, 9f);
             button.Add(_controlAiSegment);
             button.Add(_controlPlayerSegment);
-
-            var divider = new VisualElement();
-            divider.style.position = Position.Absolute;
-            divider.style.left = 43f;
-            divider.style.top = 7f;
-            divider.style.bottom = 7f;
-            divider.style.width = 1f;
-            divider.style.backgroundColor = StrokeStrong;
-            divider.pickingMode = PickingMode.Ignore;
-            button.Add(divider);
+            button.Add(BuildToggleDivider());
 
             button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
             button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
@@ -6856,6 +6815,170 @@ namespace HexLive.UnityPresentation.UI
 
             _controlButton = button;
             return button;
+        }
+
+        // §121.11 (bug #294): половинка двухсегментного тумблера карточки.
+        // Общая для 🧠/🎮 и для «шагом/бегом» намеренно: игрок просил «ровно
+        // такой же тумблер, те же элементы, те же отступы», а вторая копия
+        // этой вёрстки разошлась бы с первой на первой же правке стиля.
+        private VisualElement BuildToggleSegment(
+            string iconResource,
+            string fallbackGlyph,
+            string tooltip,
+            out Label glyphLabel,
+            out VisualElement iconView)
+        {
+            var segment = new VisualElement();
+            segment.style.width = Length.Percent(50f);
+            segment.style.height = Length.Percent(100f);
+            segment.style.alignItems = Align.Center;
+            segment.style.justifyContent = Justify.Center;
+            segment.tooltip = tooltip;
+
+            iconView = new VisualElement();
+            iconView.style.width = 27f;
+            iconView.style.height = 27f;
+            iconView.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
+            iconView.pickingMode = PickingMode.Ignore;
+            var iconTexture = Resources.Load<Texture2D>(iconResource);
+            if (iconTexture != null)
+            {
+                iconView.style.backgroundImage = new StyleBackground(iconTexture);
+            }
+            else
+            {
+                iconView.style.display = DisplayStyle.None;
+            }
+            segment.Add(iconView);
+
+            // Text is deliberately only a missing-resource fallback: a
+            // bad or delayed content import must not remove the control.
+            glyphLabel = new Label(fallbackGlyph);
+            glyphLabel.style.fontSize = 17f;
+            glyphLabel.style.color = Text;
+            glyphLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            glyphLabel.style.display = iconTexture == null
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+            glyphLabel.pickingMode = PickingMode.Ignore;
+            segment.Add(glyphLabel);
+            return segment;
+        }
+
+        private VisualElement BuildToggleDivider()
+        {
+            var divider = new VisualElement();
+            divider.style.position = Position.Absolute;
+            divider.style.left = 43f;
+            divider.style.top = 7f;
+            divider.style.bottom = 7f;
+            divider.style.width = 1f;
+            divider.style.backgroundColor = StrokeStrong;
+            divider.pickingMode = PickingMode.Ignore;
+            return divider;
+        }
+
+        // §121.11 (bug #294): «Шагом / Бегом» — второй тумблер той же породы,
+        // в НИЖНЕМ левом углу карточки, с тем же отступом 12 px, что и 🧠/🎮
+        // сверху. Двойного клика на бег больше нет: одиночный клик всегда
+        // отдаёт приказ идти, а темп берётся отсюда. Состояние читается из
+        // снапшота по той же причине, что и у тумблера управления: авторитет —
+        // симуляция, а кнопка, помнящая своё, показывала бы одно, пока
+        // колонистка бежит другое.
+        private VisualElement BuildPaceToggle()
+        {
+            var button = new VisualElement();
+            button.style.position = Position.Absolute;
+            button.style.left = 12f;
+            button.style.bottom = 12f;
+            button.style.width = 88f;
+            button.style.height = 34f;
+            button.style.flexDirection = FlexDirection.Row;
+            button.style.alignItems = Align.Center;
+            button.style.backgroundColor = IdentityGlass;
+            SetBorder(button, StrokeStrong, 1f);
+            SetRadius(button, 10f);
+            button.style.overflow = Overflow.Hidden;
+            button.tooltip = Loc.Get("panel.pace.tooltip");
+
+            _paceWalkSegment = BuildToggleSegment(
+                "HexLive/UI/IdentityWalkIcon", "🚶", Loc.Get("panel.pace.walk"),
+                out _paceWalkGlyph, out _paceWalkIcon);
+            _paceRunSegment = BuildToggleSegment(
+                "HexLive/UI/IdentityRunIcon", "🏃", Loc.Get("panel.pace.run"),
+                out _paceRunGlyph, out _paceRunIcon);
+            SetRadius(_paceWalkSegment, 9f);
+            SetRadius(_paceRunSegment, 9f);
+            button.Add(_paceWalkSegment);
+            button.Add(_paceRunSegment);
+            button.Add(BuildToggleDivider());
+
+            button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
+            button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
+                button,
+                !_controlAvailable ? Stroke : _runByDefaultNow ? GoldDim : NeonCyanDim));
+            button.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                TogglePace();
+                evt.StopPropagation();
+            });
+
+            _paceButton = button;
+            return button;
+        }
+
+        private void TogglePace()
+        {
+            if (_runner == null || !_runner.SupportsNpcCommands ||
+                !_controlAvailable || !NpcSelection.HasSelection)
+            {
+                return;
+            }
+
+            _runner.EnqueueCommand(new HexLive.Simulation.Runtime.SetRunByDefaultCommand(
+                new HexLive.Simulation.Common.EntityId(NpcSelection.SelectedId),
+                !_runByDefaultNow));
+        }
+
+        // §121.11: тумблер темпа прячется и гаснет ровно по тем же правилам,
+        // что и тумблер управления — на чужой колонистке приказывать нечем, а
+        // значит и темпом её приказов распоряжаться не нам.
+        private void RefreshPaceToggle(NpcSnapshot npc)
+        {
+            if (_paceButton == null)
+            {
+                return;
+            }
+
+            _paceButton.style.display = _runner != null
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+            _runByDefaultNow = npc.RunByDefault;
+            if (!_controlAvailable)
+            {
+                _paceButton.tooltip = Loc.Get("panel.control.readonly");
+                _paceWalkSegment.style.backgroundColor = Color.clear;
+                _paceRunSegment.style.backgroundColor = Color.clear;
+                _paceWalkGlyph.style.color = TextMute;
+                _paceRunGlyph.style.color = TextMute;
+                _paceWalkIcon.style.opacity = 0.35f;
+                _paceRunIcon.style.opacity = 0.35f;
+                SetBorderColor(_paceButton, Stroke);
+                return;
+            }
+
+            _paceButton.tooltip = Loc.Get("panel.pace.tooltip");
+            _paceWalkSegment.style.backgroundColor = _runByDefaultNow
+                ? Color.clear
+                : new Color(NeonCyan.r, NeonCyan.g, NeonCyan.b, 0.22f);
+            _paceRunSegment.style.backgroundColor = _runByDefaultNow
+                ? new Color(Gold.r, Gold.g, Gold.b, 0.24f)
+                : Color.clear;
+            _paceWalkGlyph.style.color = _runByDefaultNow ? TextMute : NeonCyan;
+            _paceRunGlyph.style.color = _runByDefaultNow ? Gold : TextMute;
+            _paceWalkIcon.style.opacity = _runByDefaultNow ? 0.42f : 1f;
+            _paceRunIcon.style.opacity = _runByDefaultNow ? 1f : 0.42f;
+            SetBorderColor(_paceButton, _runByDefaultNow ? GoldDim : NeonCyanDim);
         }
 
         private void ToggleManualControl()
@@ -7586,6 +7709,13 @@ namespace HexLive.UnityPresentation.UI
                 _controlButton.tooltip = Loc.Get("panel.control.tooltip");
                 _controlAiSegment.tooltip = Loc.Get("panel.control.ai");
                 _controlPlayerSegment.tooltip = Loc.Get("panel.control.manual");
+            }
+
+            if (_paceButton != null)
+            {
+                _paceButton.tooltip = Loc.Get("panel.pace.tooltip");
+                _paceWalkSegment.tooltip = Loc.Get("panel.pace.walk");
+                _paceRunSegment.tooltip = Loc.Get("panel.pace.run");
             }
 
             if (_inventoryButton != null)

@@ -116,6 +116,24 @@ public sealed class SetManualControlCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§121.11 (bug #294): постоянный темп ручных приказов персонажа —
+/// бегом (истина) или шагом. Состояние, а не приказ: текущий поход не
+/// трогается, тумблер управления не переключается.</summary>
+public sealed class SetRunByDefaultCommand : ISimulationCommand
+{
+    public SetRunByDefaultCommand(EntityId npc, bool run)
+    {
+        Npc = npc;
+        Run = run;
+    }
+
+    public EntityId Npc { get; }
+
+    public bool Run { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§133.9: freeze or release one NPC's current outfit.</summary>
 public sealed class SetOutfitLockCommand : ISimulationCommand
 {
@@ -134,10 +152,13 @@ public sealed class SetOutfitLockCommand : ISimulationCommand
 
 /// <summary>§121: идти в точку. Точка, а не узел: клик игрока приходит по
 /// поверхности мира, а ближайший узел — уже дело симуляции.
-/// Run=false — одиночный клик, Run=true — двойной.</summary>
+/// <para>§121.11 (bug #294): <c>Run = null</c> — «темп не задан», то есть взять
+/// постоянную настройку персонажа (<c>Mind.RunByDefault</c>). Именно это шлёт
+/// клик игрока: жеста-темпа больше нет. Явное значение остаётся для тех, кто
+/// действительно знает темп — MCP-инструмент и сценарии.</para></summary>
 public sealed class MoveToCommand : ISimulationCommand
 {
-    public MoveToCommand(EntityId npc, Float2 worldPosition, bool run = false)
+    public MoveToCommand(EntityId npc, Float2 worldPosition, bool? run = null)
     {
         Npc = npc;
         WorldPosition = worldPosition;
@@ -148,7 +169,7 @@ public sealed class MoveToCommand : ISimulationCommand
 
     public Float2 WorldPosition { get; }
 
-    public bool Run { get; }
+    public bool? Run { get; }
 
     public EntityId? TargetEntity => Npc;
 }
@@ -536,7 +557,7 @@ public sealed class SelfActionCommand : ISimulationCommand
 public sealed class GroupMoveCommand : GroupSimulationCommand
 {
     public GroupMoveCommand(
-        IEnumerable<EntityId> actors, Float2 worldPosition, bool run = false)
+        IEnumerable<EntityId> actors, Float2 worldPosition, bool? run = null)
         : base(actors)
     {
         WorldPosition = worldPosition;
@@ -545,7 +566,10 @@ public sealed class GroupMoveCommand : GroupSimulationCommand
 
     public Float2 WorldPosition { get; }
 
-    public bool Run { get; }
+    /// <summary>§121.11: <c>null</c> — у каждой участницы свой постоянный темп.
+    /// Один общий флаг на группу был бы ровно тем враньём, от которого настройка
+    /// и заводится: у девушек она разная.</summary>
+    public bool? Run { get; }
 }
 
 public sealed class GroupStopCommand : GroupSimulationCommand

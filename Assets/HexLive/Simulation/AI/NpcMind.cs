@@ -474,6 +474,14 @@ public sealed class NPCMind
     // из игры так же, как то, во что она одета.
     public bool ManualControl { get; set; }
 
+    // §121.11 (bug #294): ПОСТОЯННЫЙ темп ручных приказов этой девушки. Раньше
+    // темп задавался жестом — двойной клик значил «бегом», — и одиночный клик
+    // не имел способа сказать «бегом» вовсе. Теперь клик один, а темп — это
+    // настройка персонажа, живущая в симуляции (как и сам тумблер управления)
+    // и переживающая выход из игры. По умолчанию бежит: игрок просил, чтобы
+    // приказ исполнялся быстро, пока он явно не попросил шаг.
+    public bool RunByDefault { get; set; } = true;
+
     // §133.9 / bug #193: player-owned outfit latch. While enabled, ordinary
     // Dress/Undress and player wear/stow/drop commands cannot change clothing.
     // §133.10 upgrades the latch into a persistent selected outfit: enabling it

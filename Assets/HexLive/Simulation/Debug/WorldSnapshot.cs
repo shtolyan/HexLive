@@ -744,6 +744,12 @@ public sealed class NpcSnapshot
     /// иначе кнопка показывала бы одно, а персонаж делал другое.</summary>
     public bool IsManualControl { get; set; }
 
+    /// <summary>§121.11 (bug #294): постоянный темп её ручных приказов —
+    /// бегом или шагом. Тумблер в карточке читает ЭТО, а не своё поле: темп
+    /// живёт в симуляции ровно на тех же правах, что и сам ручной режим.
+    /// По умолчанию бегом.</summary>
+    public bool RunByDefault { get; set; } = true;
+
     /// <summary>§133.9: player froze this NPC's current outfit.</summary>
     public bool OutfitLocked { get; set; }
 

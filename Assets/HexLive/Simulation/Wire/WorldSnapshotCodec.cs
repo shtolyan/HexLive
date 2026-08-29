@@ -89,7 +89,8 @@ public static class WorldSnapshotCodec
     /// v34: #218 per-pair last interaction tick for relationship ordering.
     /// v35: §120.10 architecture demolition and queued slot replacement.
     /// v36: §146.14 camp home anchors for the campfire «make home» menu.
-    public const int WireVersion = 36;
+    /// v37: §121.11/#294 per-NPC default pace for the walk/run card toggle.
+    public const int WireVersion = 37;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -1022,6 +1023,7 @@ public static class WorldSnapshotCodec
         w.Write(n.KnownObjectCount);
         WireIo.WriteNullableInt(w, n.GoalLockEndTick);
         w.Write(n.IsManualControl); // §121
+        w.Write(n.RunByDefault); // §121.11
         w.Write(n.OutfitLocked); // §133.9
     }
 
@@ -1374,6 +1376,7 @@ public static class WorldSnapshotCodec
         n.KnownObjectCount = r.ReadInt32();
         n.GoalLockEndTick = WireIo.ReadNullableInt(r);
         n.IsManualControl = r.ReadBoolean(); // §121
+        n.RunByDefault = r.ReadBoolean(); // §121.11
         n.OutfitLocked = r.ReadBoolean(); // §133.9
     }
 

@@ -44,6 +44,9 @@ internal static class ManualCommandExecutor
             case SetManualControlCommand setManual:
                 ApplySetManual(world, setManual, admission);
                 break;
+            case SetRunByDefaultCommand setRunByDefault:
+                ApplySetRunByDefault(world, setRunByDefault, admission);
+                break;
             case SetOutfitLockCommand setOutfitLock:
                 ApplySetOutfitLock(world, setOutfitLock, admission);
                 break;
@@ -188,6 +191,7 @@ internal static class ManualCommandExecutor
     private static string OrderName(ISimulationCommand command) => command switch
     {
         SetManualControlCommand => "SetManual",
+        SetRunByDefaultCommand => "SetRunByDefault",
         SetOutfitLockCommand => "SetOutfitLock",
         MoveToCommand => "MoveTo",
         InteractCommand => "Interact",
@@ -418,6 +422,36 @@ internal static class ManualCommandExecutor
         }
     }
 
+    // §121.11 (bug #294): темп по умолчанию — СОСТОЯНИЕ персонажа, не приказ.
+    // Ни ClearForNewOrder, ни ClearAttackOrder: игрок переключает «шагом/бегом»
+    // ровно так же, как «сделать домом» (§146.14) — не роняя текущий поход и не
+    // трогая тумблер управления (requireManual: false). Идущий приказ подхватит
+    // новый темп сразу: MovementSystem каждый тик читает Plan.RunRequested,
+    // который здесь и переписывается, пока это ручной поход.
+    private static void ApplySetRunByDefault(
+        WorldState world, SetRunByDefaultCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(
+                world, command.Npc, "SetRunByDefault", requireManual: false,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        npc.Mind.RunByDefault = command.Run;
+        if (npc.Mind.ManualControl && npc.Mind.CurrentGoal == GoalType.PlayerOrder &&
+            npc.Plan.Goal == GoalType.PlayerOrder)
+        {
+            npc.Plan.RunRequested = command.Run;
+        }
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "RunByDefaultChanged",
+                $"Pace={(command.Run ? "Run" : "Walk")}");
+        }
+    }
+
     private static void ApplySetOutfitLock(
         WorldState world, SetOutfitLockCommand command, AdmissionTracker admission)
     {
@@ -615,16 +649,24 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        InstallMovePlan(world, npc, destination, junction, command.Run);
+        var run = PaceFor(npc, command.Run);
+        InstallMovePlan(world, npc, destination, junction, run);
 
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
                 $"Order=MoveTo Junction={destination.Value} " +
                 $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} " +
-                $"Pace={(command.Run ? "Run" : "Walk")}");
+                $"Pace={(run ? "Run" : "Walk")}");
         }
     }
+
+    // §121.11 (bug #294): темп приказа. Клик игрока темпа не несёт (null) —
+    // его решает постоянная настройка САМОГО персонажа, поэтому групповой
+    // приказ ходит разным темпом у разных девушек. Явное значение остаётся за
+    // теми, кто действительно знает темп (MCP-инструмент, тесты, сценарии).
+    private static bool PaceFor(NPCState npc, bool? requested) =>
+        requested ?? npc.Mind.RunByDefault;
 
     private static void InstallMovePlan(
         WorldState world, NPCState npc, JunctionId destination, Junction junction,
@@ -1765,13 +1807,14 @@ internal static class ManualCommandExecutor
             SpatialMutations.TryReserveJunction(
                 world, assignment.Destination, assignment.Npc.Id,
                 world.Tick, Spec121.ManualReserveTicks);
+            var run = PaceFor(assignment.Npc, command.Run);
             InstallMovePlan(
-                world, assignment.Npc, assignment.Destination, destination, command.Run);
+                world, assignment.Npc, assignment.Destination, destination, run);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, assignment.Npc.Id, "ManualOrderAccepted",
                     $"Order=GroupMove Junction={assignment.Destination.Value} " +
-                    $"Pace={(command.Run ? "Run" : "Walk")}");
+                    $"Pace={(run ? "Run" : "Walk")}");
             }
             accepted++;
         }

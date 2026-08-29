@@ -6,8 +6,14 @@ namespace HexLive.Simulation.Tests.Gates;
 /// <summary>Headless source gate for the §121 Unity click cadence.</summary>
 public sealed class ManualMoveClickUiContractTests
 {
+    /// <summary>
+    /// §121.11 (bug #294): один клик — всегда приказ идти, и он НЕ несёт темпа.
+    /// Гейт стережёт обе половины: жеста двойного клика в вводе не осталось
+    /// вовсе, а команда уходит без аргумента темпа — иначе клиент снова начал
+    /// бы решать за симуляцию, каким шагом идти.
+    /// </summary>
     [Test]
-    public void GroundSingleClickWalksAndNearbyDoubleClickRuns()
+    public void GroundSingleClickAlwaysMovesAndCarriesNoPaceGesture()
     {
         var path = Path.Combine(
             new[] { RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
@@ -16,16 +22,77 @@ public sealed class ManualMoveClickUiContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(adapter, Does.Contain("DoubleClickSeconds = 0.30f"));
-            Assert.That(adapter, Does.Contain("DoubleClickRadiusPixels = 18f"));
+            Assert.That(adapter, Does.Not.Contain("DoubleClickSeconds"));
+            Assert.That(adapter, Does.Not.Contain("DoubleClickRadiusPixels"));
+            Assert.That(adapter, Does.Not.Contain("ConsumeGroundDoubleClick"));
+            Assert.That(adapter, Does.Not.Contain("ResetGroundClickCadence"));
             Assert.That(adapter, Does.Contain(
-                "ConsumeGroundDoubleClick(mousePos, Time.unscaledTime)"));
+                "new MoveToCommand(new EntityId(ManualNpcId), point)"));
             Assert.That(adapter, Does.Contain(
-                "new MoveToCommand(new EntityId(ManualNpcId), point, run)"));
-            Assert.That(adapter, Does.Contain(
-                "new GroupMoveCommand(SelectedActors(), point, run)"));
-            Assert.That(adapter, Does.Contain("ResetGroundClickCadence();"),
-                "A menu/entity click must not complete a stale ground double-click.");
+                "new GroupMoveCommand(SelectedActors(), point)"));
+        });
+    }
+
+    /// <summary>
+    /// §121.11: темп — постоянная настройка ПЕРСОНАЖА, и решает её симуляция.
+    /// Тумблер карточки только шлёт команду и рисует то, что приехало в
+    /// снапшоте: кнопка, помнящая своё, показывала бы одно, пока колонистка
+    /// бежит другое — ровно та же ловушка, что у тумблера 🧠/🎮.
+    /// </summary>
+    [Test]
+    public void PaceIsACharacterSettingOwnedByTheSimulation()
+    {
+        var panel = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "UI",
+            "CharacterPanel.cs"));
+        var executor = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "HexLive", "Simulation", "Runtime",
+            "Systems", "Ai", "ManualCommandExecutor.cs"));
+
+        Assert.Multiple(() =>
+        {
+            // Тот же тумблер, что 🧠/🎮: одна вёрстка сегмента на оба, тот же
+            // отступ 12 px, но в НИЖНЕМ левом углу карточки.
+            Assert.That(panel, Does.Contain("private VisualElement BuildPaceToggle()"));
+            Assert.That(panel, Does.Contain("BuildToggleSegment("));
+            Assert.That(panel, Does.Contain("HexLive/UI/IdentityWalkIcon"));
+            Assert.That(panel, Does.Contain("HexLive/UI/IdentityRunIcon"));
+            Assert.That(panel, Does.Contain("button.style.left = 12f;"));
+            Assert.That(panel, Does.Contain("button.style.bottom = 12f;"));
+            Assert.That(panel, Does.Contain("new HexLive.Simulation.Runtime.SetRunByDefaultCommand("));
+            Assert.That(panel, Does.Contain("_runByDefaultNow = npc.RunByDefault;"));
+            Assert.That(panel, Does.Contain("Loc.Get(\"panel.pace.walk\")"));
+            Assert.That(panel, Does.Contain("Loc.Get(\"panel.pace.run\")"));
+
+            // Приказ без темпа берёт его у самой девушки, поэтому групповой
+            // приказ ходит разным темпом у разных участниц.
+            Assert.That(executor, Does.Contain(
+                "private static bool PaceFor(NPCState npc, bool? requested) =>"));
+            Assert.That(executor, Does.Contain("requested ?? npc.Mind.RunByDefault"));
+            Assert.That(executor, Does.Contain(
+                "var run = PaceFor(assignment.Npc, command.Run);"));
+        });
+    }
+
+    [Test]
+    public void PaceToggleHasBothLocalizedTermsAndItsIcons()
+    {
+        var loc = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loc, Does.Contain("    - Term: panel.pace.walk\n"));
+            Assert.That(loc, Does.Contain("    - Term: panel.pace.run\n"));
+            Assert.That(loc, Does.Contain("    - Term: panel.pace.tooltip\n"));
+            foreach (var icon in new[] { "IdentityWalkIcon", "IdentityRunIcon" })
+            {
+                var png = Path.Combine(
+                    RepoPaths.Root, "Assets", "Resources", "HexLive", "UI", icon + ".png");
+                Assert.That(File.Exists(png), Is.True, $"{icon}.png is missing");
+                Assert.That(File.Exists(png + ".meta"), Is.True,
+                    $"{icon}.png.meta is missing — Unity would invent a new guid");
+            }
         });
     }
 

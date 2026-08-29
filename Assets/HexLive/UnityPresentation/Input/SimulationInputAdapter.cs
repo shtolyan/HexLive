@@ -31,6 +31,10 @@ namespace HexLive.UnityPresentation.Input
 /// действий (объект — его взаимодействия из каталога; человек или зверь —
 /// «атаковать/выбрать»); по клику в пустую землю отдаёт приказ идти.
 ///
+/// §121.11 (bug #294): ОДИН клик — всегда приказ идти. Жеста-темпа (двойного
+/// клика на бег) здесь больше нет: темп — постоянная настройка персонажа,
+/// тумблер «шагом/бегом» в карточке, и решает её симуляция.
+///
 /// ⭐ Ручной режим читается ИЗ СНАПШОТА, а не из своего поля. Тумблер живёт в
 /// симуляции, и она же авторитет: кнопка, помнящая своё, рано или поздно
 /// показывает одно, пока персонаж делает другое.
@@ -44,8 +48,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     // только к зверям и к людям БЕЗ готового вида (первые кадры после спавна,
     // примитивы прототипных сцен) — у остальных был честный точный луч.
     private const float PickRadiusPixels = 70f;
-    private const float DoubleClickSeconds = 0.30f;
-    private const float DoubleClickRadiusPixels = 18f;
     // Server lease may be configured as low as five seconds. A selected manual
     // actor proves the viewer is still actively presenting that control, so a
     // cheap idempotent heartbeat every two seconds keeps ownership alive while
@@ -57,8 +59,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     private WorldObjectView? _hovered;
     private int _hoveredNpcId = -1;
     private int _hoveredMobId = -1;
-    private float _lastGroundClickTime = float.NegativeInfinity;
-    private Vector2 _lastGroundClickPosition;
     private float _nextRemoteLeaseHeartbeatAt;
 
     private readonly List<ContextMenuEntry> _entries = new();
@@ -112,11 +112,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         UpdateHover();
     }
 
-    private void OnDisable()
-    {
-        ClearHover();
-        ResetGroundClickCadence();
-    }
+    private void OnDisable() => ClearHover();
 
     private void RefreshControlSelection()
     {
@@ -564,7 +560,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         if (ContextMenuPanel.IsOpen)
         {
             ContextMenuPanel.Close();
-            ResetGroundClickCadence();
             return true;
         }
 
@@ -575,7 +570,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         if (_hoveredNpcId >= 0)
         {
-            ResetGroundClickCadence();
             // §121.9: клик по себе — меню самодействий, не приказ и не выбор.
             if (_hoveredNpcId == OrderNpcId)
             {
@@ -591,29 +585,29 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         if (_hoveredMobId >= 0)
         {
-            ResetGroundClickCadence();
             OpenMobMenu(mousePos, _hoveredMobId);
             return true;
         }
 
         if (_hovered != null)
         {
-            ResetGroundClickCadence();
             OpenObjectMenu(mousePos, _hovered);
             return true;
         }
 
         if (TryPickGroundPoint(mousePos, out var point))
         {
-            var run = ConsumeGroundDoubleClick(mousePos, Time.unscaledTime);
+            // §121.11 (bug #294): ОДИН клик — всегда идти. Темпа жест больше не
+            // несёт (run: null): им владеет постоянная настройка персонажа в
+            // симуляции, и у каждой выделенной девушки она своя.
             if (_selectedColonyIds.Count == 1 && ManualNpcId >= 0)
             {
                 _runner.EnqueueCommand(
-                    new MoveToCommand(new EntityId(ManualNpcId), point, run));
+                    new MoveToCommand(new EntityId(ManualNpcId), point));
             }
             else
             {
-                _runner.EnqueueCommand(new GroupMoveCommand(SelectedActors(), point, run));
+                _runner.EnqueueCommand(new GroupMoveCommand(SelectedActors(), point));
             }
             DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(point, GroundMarkerY(point)));
             return true;
@@ -718,7 +712,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         PickTarget(snapshot, mousePos, out var npcId, out var mobId, out var objectHit);
         if (npcId >= 0)
         {
-            ResetGroundClickCadence();
             if (npcId == OrderNpcId)
             {
                 OpenSelfMenu(mousePos, npcId);
@@ -733,14 +726,12 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         if (mobId >= 0)
         {
-            ResetGroundClickCadence();
             OpenMobMenu(mousePos, mobId);
             return true;
         }
 
         if (objectHit != null)
         {
-            ResetGroundClickCadence();
             OpenObjectMenu(mousePos, objectHit);
             return true;
         }
@@ -772,32 +763,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         EnsureManual(actorId);
         _runner.EnqueueCommand(command);
-    }
-
-    // The first click is dispatched immediately as Walk. If a second release
-    // lands close enough and soon enough, its Run order atomically replaces
-    // the first one through the normal command queue. Unscaled time keeps the
-    // gesture usable while the simulation itself is paused.
-    private bool ConsumeGroundDoubleClick(Vector2 position, float now)
-    {
-        var elapsed = now - _lastGroundClickTime;
-        var isDouble = elapsed >= 0f && elapsed <= DoubleClickSeconds &&
-            Vector2.Distance(position, _lastGroundClickPosition) <= DoubleClickRadiusPixels;
-        if (isDouble)
-        {
-            ResetGroundClickCadence();
-            return true;
-        }
-
-        _lastGroundClickTime = now;
-        _lastGroundClickPosition = position;
-        return false;
-    }
-
-    private void ResetGroundClickCadence()
-    {
-        _lastGroundClickTime = float.NegativeInfinity;
-        _lastGroundClickPosition = default;
     }
 
     private void OpenObjectMenu(Vector2 mousePos, WorldObjectView view)

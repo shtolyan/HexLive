@@ -920,6 +920,24 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             }
         }
 
+        // §54.14 (bug #293): «Пожарить мясо» — прямо в меню костра. Раньше
+        // повесить кусок на вертел можно было только через вкладку крафта в
+        // рюкзаке, и игрок этого пути не находил вовсе. Приказ тот же самый,
+        // которым мясо вешает сама колонистка (рецепт CookMeat): огонь,
+        // готовый вертел и свободные крюки проверяет симуляция, а не меню
+        // прошлого кадра. Пункт показан, только когда сырое мясо при себе —
+        // иначе он был бы обещанием без содержания.
+        if (definition.HasTag(ObjectTags.Campfire))
+        {
+            var hasRawMeat = carried.Contains(ContentIds.MeatRaw);
+            _entries.Add(new ContextMenuEntry(
+                Loc.Get("menu.cook_meat"),
+                () => EnqueueOrder(actorId,
+                    new CraftItemCommand(actor, GoalType.CookMeat)),
+                hasRawMeat,
+                hasRawMeat ? null : Loc.Get("menu.cook_meat.no_meat")));
+        }
+
         // §128.5: ОБЫСКАТЬ ВЕЩЬ — истлевшее тело, снятый рюкзак, аптечку.
         // Пустой мешок или шкаф тоже открывается: это не только источник,
         // но и назначение для перетаскивания вещей из левой панели.

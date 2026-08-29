@@ -25239,6 +25239,22 @@ MonoBehaviour:
       - 'Собрать все'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.cook_meat'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Roast meat'
+      - 'Пожарить мясо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.cook_meat.no_meat'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No raw meat at hand'
+      - 'Нет сырого мяса при себе'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'toast.order_rejected.NothingToBuild'
       TermType: 0
       Description:

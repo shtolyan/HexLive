@@ -171,6 +171,102 @@ public sealed class CampfireManualIgnitionTests
         Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.True,
             "Исполнение тоже не должно повторно подменять костёр стройплощадкой.");
     }
+
+    /// <summary>
+    /// Bug #292: достроенный костёр (BuildProduct пуст — ровно так он лежит в
+    /// мире игрока, seed 402898084) больше не строится ни из меню, ни приказом.
+    /// Пока счёт открыт, оба пути обязаны работать: закрывает его как раз
+    /// последний Build.
+    /// </summary>
+    [Test]
+    public void FinishedCampfireOffersNoBuildAndRejectsTheOrder()
+    {
+        var engine = TestWorld.CreateEngine(29201);
+        var world = engine.World;
+        var npc = Colonist(world);
+        engine.Step();
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+        ManualCommandExecutor.Apply(world, new SetManualControlCommand(npc.Id, true));
+        npc.Inventory.Items.Clear();
+
+        var fire = SpawnColdFire(world, npc);
+        fire.BillSticks = SimBalance.CampfireBillSticks;
+        fire.BillRope = SimBalance.CampfireBillRope;
+        fire.BillStones = SimBalance.CampfireBillStones;
+
+        // Ещё площадка: счёт открыт.
+        fire.BuildProduct = ContentIds.Campfire;
+        var open = Exported(world, fire);
+        Assert.Multiple(() =>
+        {
+            Assert.That(BuildSiteView.AcceptsBuildOrder(open), Is.True);
+            Assert.That(ManualCommandExecutor.Apply(
+                    world, new InteractCommand(
+                        npc.Id, fire.Id, InteractionType.Build, "build.upgrade")).Status,
+                Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
+        });
+
+        // Апгрейды закрыты — ApplyFurnitureSite снимает продукт.
+        fire.BuildProduct = string.Empty;
+        var finished = Exported(world, fire);
+        var rejected = ManualCommandExecutor.Apply(
+            world, new InteractCommand(
+                npc.Id, fire.Id, InteractionType.Build, "build.upgrade"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BuildSiteView.AcceptsBuildOrder(finished), Is.False,
+                "Готовый костёр не должен предлагать «Строить» в меню.");
+            Assert.That(rejected.Status,
+                Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+            Assert.That(rejected.Reason, Is.EqualTo("NothingToBuild"),
+                "Молчаливое принятие уводило приказ в ApplyBuildPiece — то есть " +
+                "эти руки достраивали другую стройку колонии.");
+        });
+    }
+
+    /// <summary>
+    /// Bug #293: приказ игрока кладёт дрова в ВИДИМУЮ очередь и у горящего
+    /// костра — вещь не должна растворяться в счётчике огня.
+    /// </summary>
+    [Test]
+    public void PlayerFuelOrderQueuesWoodOnALitFire()
+    {
+        var engine = TestWorld.CreateEngine(29301);
+        var world = engine.World;
+        var npc = Colonist(world);
+        engine.Step();
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+        ManualCommandExecutor.Apply(world, new SetManualControlCommand(npc.Id, true));
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+
+        var fire = SpawnColdFire(world, npc);
+        fire.ResourceAmount = 5000f; // горит
+
+        var order = ManualCommandExecutor.Apply(
+            world, new InteractCommand(npc.Id, fire.Id, InteractionType.Fuel));
+        Assert.That(order.Status,
+            Is.EqualTo(ManualCommandAdmissionStatus.Accepted), order.Reason);
+
+        StepUntil(engine, () => ContainerLootMath.HasQueuedCampfireFuel(world, fire));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ContainerLootMath.HasQueuedCampfireFuel(world, fire), Is.True,
+                "Игрок должен видеть, куда делась палка.");
+            Assert.That(npc.Inventory.Items.Contains(ContentIds.Stick), Is.False);
+            Assert.That(fire.ResourceAmount, Is.LessThanOrEqualTo(5000f),
+                "Активное топливо только догорает: очередь ждёт своего часа.");
+        });
+    }
+
+    private static HexLive.Simulation.Debug.ObjectSnapshot Exported(
+        WorldState world, WorldObjectState obj) =>
+        HexLive.Simulation.Debug.WorldSnapshotExporter.Export(world).Objects
+            .Single(exported => exported.Id.Equals(obj.Id));
 }
 
 }

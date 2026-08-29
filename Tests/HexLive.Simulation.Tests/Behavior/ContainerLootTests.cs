@@ -211,6 +211,141 @@ public sealed class ContainerLootTests
         });
     }
 
+    /// <summary>
+    /// §151.3 (bug #293): сырое мясо кладут на вертел и снимают готовое тем же
+    /// окном обыска. Пределы топлива и крюков независимы.
+    /// </summary>
+    [Test]
+    public void CampfireSpitAcceptsRawMeatAndGivesTheCookedChunkBack()
+    {
+        var world = TestWorld.CreateWorld(151004);
+        var npc = Colonist(world);
+        var fire = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Campfire, npc.Fragment, npc.Tile, Junction(world, npc));
+        var rawMeat = new ItemInstance(ContentIds.MeatRaw);
+        npc.Inventory.Items.Add(rawMeat);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ContainerLootMath.Capacity(world, fire),
+                Is.EqualTo(ContainerLootMath.CampfireFuelCapacity),
+                "Без вертела жарочных ячеек нет вовсе.");
+            Assert.That(ContainerLootMath.CanAccept(world, fire, new[] { rawMeat }), Is.False,
+                "Вешать мясо не на что, пока вертел не собран.");
+        });
+
+        // Вертел = полный счёт палок и верёвки (§54.14, стадии 2-4).
+        for (var i = 0; i < SimBalance.CampfireBillSticks; i++)
+        {
+            fire.Contents.Add(new ItemInstance(ContentIds.Stick));
+        }
+
+        for (var i = 0; i < SimBalance.CampfireBillRope; i++)
+        {
+            fire.Contents.Add(new ItemInstance(ContentIds.Rope));
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ContainerLootMath.Capacity(world, fire),
+                Is.EqualTo(ContainerLootMath.CampfireFuelCapacity +
+                           ContainerLootMath.CampfireSpitCells));
+            Assert.That(ContainerLootMath.CanAccept(world, fire, new[] { rawMeat }), Is.True);
+            Assert.That(ContainerLootMath.CanAccept(
+                    world, fire, new[] { new ItemInstance(ContentIds.MeatCooked) }), Is.False,
+                "Готовое мясо обратно на вертел не вешают.");
+        });
+
+        ContainerLootMath.GiveToContainer(world, fire, npc, new[] { rawMeat });
+        var cells = new List<(string ItemId, int Count, int SourceIndex)>();
+        ContainerLootMath.BuildCells(world, fire, cells);
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items, Does.Not.Contain(rawMeat));
+            Assert.That(cells.Select(cell => cell.ItemId),
+                Is.EquivalentTo(new[] { ContentIds.MeatRaw }),
+                "Доставленные палки и верёвка — материал стройки, а не содержимое.");
+            Assert.That(rawMeat.ResourceAmount, Is.Zero,
+                "Прогресс прожарки начинается с нуля и крутится FireSystem.");
+            Assert.That(BuildSiteMath.Delivered(fire, BuildSiteMath.MaterialSticks),
+                Is.EqualTo(SimBalance.CampfireBillSticks),
+                "Мясо не имеет права засчитаться в строительный счёт.");
+        });
+
+        // Крюки кончаются раньше ячеек: их предел стережёт приём.
+        var overflow = new List<ItemInstance>();
+        for (var i = 0; i < SimBalance.CampfireSpitCapacity; i++)
+        {
+            overflow.Add(new ItemInstance(ContentIds.MeatRaw));
+        }
+
+        Assert.That(ContainerLootMath.CanAccept(world, fire, overflow), Is.False);
+
+        // Прожарили — и сняли готовый кусок тем же окном.
+        fire.ResourceAmount = 5000f;
+        for (var i = 0; i < 400; i++)
+        {
+            if (BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked) > 0) break;
+            new FireSystem().Run(world);
+        }
+
+        ContainerLootMath.BuildCells(world, fire, cells);
+        var cooked = cells.FindIndex(cell => cell.ItemId == ContentIds.MeatCooked);
+        Assert.That(cooked, Is.GreaterThanOrEqualTo(0),
+            "Готовый кусок обязан быть видимой ячейкой станции.");
+        Assert.That(ContainerLootMath.TryResolve(
+            world, fire, cooked, ContentIds.MeatCooked, 1,
+            out var moving, out var groundSources), Is.True);
+        ContainerLootMath.TakeFromContainer(world, fire, npc, moving, groundSources);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Contains(ContentIds.MeatCooked), Is.True);
+            Assert.That(BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked), Is.Zero);
+            Assert.That(npc.Inventory.Items
+                .Single(item => item.DefinitionId == ContentIds.MeatCooked).ResourceAmount,
+                Is.Zero, "Служебное число снимается вместе с вещью.");
+        });
+    }
+
+    /// <summary>§151.3: три полена не имеют права занять место мяса.</summary>
+    [Test]
+    public void CampfireFuelQueueAndSpitHooksAreIndependentLimits()
+    {
+        var world = TestWorld.CreateWorld(151005);
+        var npc = Colonist(world);
+        var fire = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Campfire, npc.Fragment, npc.Tile, Junction(world, npc));
+        for (var i = 0; i < SimBalance.CampfireBillSticks; i++)
+        {
+            fire.Contents.Add(new ItemInstance(ContentIds.Stick));
+        }
+
+        for (var i = 0; i < SimBalance.CampfireBillRope; i++)
+        {
+            fire.Contents.Add(new ItemInstance(ContentIds.Rope));
+        }
+
+        var fuel = new[]
+        {
+            new ItemInstance(ContentIds.Stick),
+            new ItemInstance(ContentIds.Board),
+            new ItemInstance(ContentIds.Log)
+        };
+        foreach (var item in fuel) npc.Inventory.Items.Add(item);
+        ContainerLootMath.GiveToContainer(world, fire, npc, fuel);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ContainerLootMath.CanAccept(
+                    world, fire, new[] { new ItemInstance(ContentIds.MeatRaw) }), Is.True,
+                "Полная очередь топлива не должна закрывать вертел.");
+            Assert.That(ContainerLootMath.CanAccept(
+                    world, fire, new[] { new ItemInstance(ContentIds.Stone) }), Is.False,
+                "Камень костру по-прежнему не еда и не дрова.");
+        });
+    }
+
     private static NPCState Colonist(WorldState world) =>
         world.Entities.Npcs.Values.First(npc => npc.Faction == Faction.Colony);
 

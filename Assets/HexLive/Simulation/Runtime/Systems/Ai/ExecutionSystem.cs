@@ -1333,21 +1333,31 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             // visible buffer. Ignition is a separate Ignite order. Autonomous
             // TendFire intentionally keeps its single-step lighter/friction
             // chain, so separating the menu does not break the NPC brain.
+            //
+            // §151.2 r2 (bug #293): приказ игрока кладёт дрова в ВИДИМУЮ
+            // очередь и у ГОРЯЩЕГО костра. Раньше они растворялись в счётчике
+            // огня, и вещь для игрока просто исчезала. Суммарное время горения
+            // от этого не меняется: FireSystem сам берёт следующую вещь из
+            // очереди, как только активное топливо выходит. Автономный
+            // TendFire по-прежнему жжёт немедленно.
             var wasLit = worldObject.ResourceAmount > 0f;
-            if (!wasLit && npc.Plan.Goal == GoalType.PlayerOrder)
+            var playerFuelOrder = npc.Plan.Goal == GoalType.PlayerOrder;
+            var carriedFuel = playerFuelOrder
+                ? ContainerLootMath.FindCarriedCampfireFuel(world, npc)
+                : null;
+            var queueFuel = carriedFuel is not null &&
+                ContainerLootMath.CanAccept(world, worldObject, new[] { carriedFuel });
+            if (!queueFuel && !wasLit && playerFuelOrder)
             {
-                var carriedFuel = ContainerLootMath.FindCarriedCampfireFuel(world, npc);
-                if (carriedFuel is null ||
-                    !ContainerLootMath.CanAccept(
-                        world, worldObject, new[] { carriedFuel }))
-                {
-                    // Bug #235: отказ — тоже конец сцены, и закрыть его надо
-                    // целиком: заявку с очага, узел подхода и саму сцену.
-                    return FailHearthScene(world, npc, worldObject,
-                        $"Cannot stock {worldObject.DefinitionId} " +
-                        $"(wood={carriedFuel is not null} buffer full)");
-                }
+                // Bug #235: отказ — тоже конец сцены, и закрыть его надо
+                // целиком: заявку с очага, узел подхода и саму сцену.
+                return FailHearthScene(world, npc, worldObject,
+                    $"Cannot stock {worldObject.DefinitionId} " +
+                    $"(wood={carriedFuel is not null} buffer full)");
+            }
 
+            if (queueFuel)
+            {
                 ContainerLootMath.GiveToContainer(
                     world, worldObject, npc, new[] { carriedFuel });
                 if (SimTrace.Enabled)
@@ -1366,8 +1376,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             }
             else
             {
-                // Spec 29E.3 / §54 / §151: a burning fire and autonomous TendFire
-                // consume fuel immediately; buffered logs preserve their 4x value.
+                // Spec 29E.3 / §54 / §151: autonomous TendFire — and a player's
+                // order whose visible queue is already full — consume fuel
+                // immediately; buffered logs preserve their 4x value.
                 if (!ContainerLootMath.TryConsumeCarriedCampfireFuel(
                         world, npc, out var fuel) &&
                     !ContainerLootMath.TryConsumeCampfireFuel(

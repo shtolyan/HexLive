@@ -26,6 +26,7 @@ public static class ContentPrefabCache
     private static readonly HashSet<string> Loading = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, Availability> Terminal =
         new(StringComparer.Ordinal);
+    private static ContentAssetService _registrySource;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset()
@@ -37,6 +38,44 @@ public static class ContentPrefabCache
 
         Handles.Clear();
         Loading.Clear();
+        Terminal.Clear();
+        _registrySource = null;
+    }
+
+    // Missing/Failed не смеют переживать восстановление реестра (найдено при
+    // диагностике бага #285): один момент деградированного реестра
+    // (PinOfflineRecords) навсегда оставлял id без модели на всю сессию —
+    // рендерер честно повторяет запрос каждый снапшот, но Terminal отвечал
+    // мгновенным отказом без загрузки. Здоровый refresh прощает терминальные
+    // отказы: следующий Request начинает новую загрузку — ровно одну на id
+    // за refresh, покадрового шторма ретраев нет (при неудаче Terminal
+    // ставится заново и снова молчит до следующего здорового refresh).
+    private static void EnsureRegistrySubscription()
+    {
+        var service = ContentAssetService.Instance;
+        if (ReferenceEquals(_registrySource, service))
+        {
+            return;
+        }
+
+        if (_registrySource != null)
+        {
+            _registrySource.RegistryRefreshed -= ForgiveTerminalOnHealthyRegistry;
+        }
+
+        _registrySource = service;
+        service.RegistryRefreshed += ForgiveTerminalOnHealthyRegistry;
+    }
+
+    private static void ForgiveTerminalOnHealthyRegistry()
+    {
+        // Оффлайн-пин и повреждённый ответ тоже завершают refresh — их не
+        // прощаем: записи те же, повторная загрузка лишь повторит LogError.
+        if (_registrySource == null || _registrySource.LastError.Length != 0)
+        {
+            return;
+        }
+
         Terminal.Clear();
     }
 
@@ -92,6 +131,7 @@ public static class ContentPrefabCache
             return Availability.Missing;
         }
 
+        EnsureRegistrySubscription();
         var key = type + "/" + id;
         if (Handles.TryGetValue(key, out var ready))
         {

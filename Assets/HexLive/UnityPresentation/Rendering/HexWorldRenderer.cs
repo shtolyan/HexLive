@@ -1778,9 +1778,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 objectView = CreateObjectView(worldObject, _junctionPositions, snapshot.Tick);
                 if (objectView == null)
                 {
-                    // The object's independent bundle is still travelling.
-                    // Do not enter it into _objectViews until the authored view
-                    // exists: the next snapshot retries this exact object.
+                    // The object's independent bundle is still travelling — or
+                    // its last attempt ended Missing/Failed and waits for a
+                    // healthy registry refresh to be forgiven
+                    // (ContentPrefabCache). Do not enter it into _objectViews
+                    // until the authored view exists: the next snapshot
+                    // retries this exact object.
                     _objectViewTiles.Remove(key);
                     continue;
                 }

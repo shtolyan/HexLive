@@ -63,6 +63,28 @@ public sealed class WorldObjectView : MonoBehaviour
         _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
     }
 
+    /// <summary>
+    /// Слой ВИДИМОЙ геометрии вида — для дистанционной отсечки клика (§121.1
+    /// «невидимое не кликается»). Корень вида остаётся на Default: SmallProps
+    /// назначается детям с renderers (SuppressSmallPropShadows), и камера
+    /// режет именно их, поэтому слой корня для отсечки — ложь. Квад импостора
+    /// (§150.4) живёт на обычном слое, но выключен через forceRenderingOff,
+    /// пока не активен, — фильтр пропускает его сам собой.
+    /// </summary>
+    public int VisibleGeometryLayer()
+    {
+        for (var i = 0; i < _renderers.Length; i++)
+        {
+            var renderer = _renderers[i];
+            if (renderer != null && !renderer.forceRenderingOff)
+            {
+                return renderer.gameObject.layer;
+            }
+        }
+
+        return gameObject.layer;
+    }
+
     public void SetContextProxy(int objectId, string definitionId)
     {
         ContextObjectId = objectId;

@@ -368,7 +368,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return false;
         }
 
-        var layer = view.gameObject.layer;
+        // Слой берётся с ВИДИМОЙ геометрии, не с корня вида: SmallProps
+        // назначается дочернему FBX-инстансу (SuppressSmallPropShadows), а
+        // корень остаётся на Default с cull 0 — проверка по корню была
+        // мёртвой, и задистанс-куленные пропы оставались кликабельными.
+        var layer = view.VisibleGeometryLayer();
         var cull = _camera.layerCullDistances[layer];
         if (cull <= 0f)
         {

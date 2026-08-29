@@ -36,6 +36,9 @@ public sealed class CommandCodecCoverageGateTests
         new MoveToCommand(new EntityId(12), new Float2(3.5f, -7.25f), run: true),
         new InteractCommand(
             new EntityId(13), new ObjectId(77), InteractionType.Process, "saw.log"),
+        new GatherAllOnHexCommand(
+            new EntityId(131), new ObjectId(771), InteractionType.PickUp,
+            "palm.leaf.pick"),
         new AttackNpcCommand(new EntityId(14), new EntityId(41)),
         new CarryPersonCommand(new EntityId(15), new EntityId(51)),
         new PutDownPersonCommand(new EntityId(16)),

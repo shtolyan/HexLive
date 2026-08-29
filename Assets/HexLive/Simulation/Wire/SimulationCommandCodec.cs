@@ -72,6 +72,7 @@ public static class SimulationCommandCodec
         RomancePerson = 33,
         ApplyFreeArchitecture = 34,
         MedicalAid = 35,
+        GatherAllOnHex = 36,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -102,6 +103,13 @@ public static class SimulationCommandCodec
                 break;
             case InteractCommand c:
                 w.Write((ushort)CommandType.Interact);
+                WriteEntity(w, c.Npc);
+                w.Write(c.Target.Value);
+                w.Write((int)c.Interaction);
+                w.Write(c.InteractionId);
+                break;
+            case GatherAllOnHexCommand c:
+                w.Write((ushort)CommandType.GatherAllOnHex);
                 WriteEntity(w, c.Npc);
                 w.Write(c.Target.Value);
                 w.Write((int)c.Interaction);
@@ -311,6 +319,10 @@ public static class SimulationCommandCodec
                     ReadEntity(r), WireIo.ReadFloat2(r), r.ReadBoolean());
             case CommandType.Interact:
                 return new InteractCommand(
+                    ReadEntity(r), new ObjectId(r.ReadInt32()),
+                    (InteractionType)r.ReadInt32(), r.ReadString());
+            case CommandType.GatherAllOnHex:
+                return new GatherAllOnHexCommand(
                     ReadEntity(r), new ObjectId(r.ReadInt32()),
                     (InteractionType)r.ReadInt32(), r.ReadString());
             case CommandType.AttackNpc:

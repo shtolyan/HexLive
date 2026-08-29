@@ -53,6 +53,9 @@ internal static class ManualCommandExecutor
             case InteractCommand interact:
                 ApplyInteract(world, interact, admission);
                 break;
+            case GatherAllOnHexCommand gatherAll:
+                ApplyGatherAllOnHex(world, gatherAll, admission);
+                break;
             case AttackNpcCommand attackNpc:
                 ApplyAttackNpc(world, attackNpc, admission);
                 break;
@@ -185,6 +188,7 @@ internal static class ManualCommandExecutor
         SetOutfitLockCommand => "SetOutfitLock",
         MoveToCommand => "MoveTo",
         InteractCommand => "Interact",
+        GatherAllOnHexCommand => "GatherAll",
         AttackNpcCommand => "AttackNpc",
         CarryPersonCommand => "CarryPerson",
         PutDownPersonCommand => "PutDownPerson",
@@ -341,6 +345,11 @@ internal static class ManualCommandExecutor
         npc.Plan.Steps.Clear();
         npc.Plan.RunRequested = false;
         npc.Mind.GoalLock = null;
+        // §121.10: очередь «собрать всё» живёт ровно до следующего приказа —
+        // любого. Игрок сказал «иди туда» посреди сбора листьев: продолжать
+        // сбор за его спиной значило бы, что приказ его не слушается.
+        // Приём самого «собрать всё» взводит очередь ПОСЛЕ этого вызова.
+        ManualGatherTargets.Clear(npc.Mind);
         // §53.9: назначенный игроком вид помощи живёт ровно один приказ —
         // следующий приказ (любой) снимает его, чтобы метка не досталась
         // чужому походу и не подменила автономный выбор §53.3.
@@ -2127,17 +2136,32 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        TryStartInteractOrder(
+            world, npc, command.Target, command.Interaction, command.InteractionId,
+            "Interact", admission);
+    }
+
+    // ⭐ §121.10: ОДНО тело приказа «сделай с этим предметом вот это» — его
+    // зовёт и одиночный Interact, и каждый подход очереди «собрать всё».
+    // Разойдись эти две дороги, «собрать» и «собрать все» подходили бы к
+    // одному и тому же листу по-разному, и вторая половина бага #270 (порядок
+    // и подход) чинилась бы отдельно от первой.
+    private static bool TryStartInteractOrder(
+        WorldState world, NPCState npc, ObjectId targetId,
+        InteractionType interactionType, string requestedInteractionId,
+        string verb, AdmissionTracker admission)
+    {
         // Правило 2: объект берётся из МИРА, а не из npc.Perception.
-        if (!world.Entities.Objects.TryGetValue(command.Target, out var worldObject))
+        if (!world.Entities.Objects.TryGetValue(targetId, out var worldObject))
         {
-            Reject(world, npc.Id, "Interact", "TargetGone", admission);
-            return;
+            Reject(world, npc.Id, verb, "TargetGone", admission);
+            return false;
         }
 
         if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
         {
-            Reject(world, npc.Id, "Interact", "TargetGone", admission);
-            return;
+            Reject(world, npc.Id, verb, "TargetGone", admission);
+            return false;
         }
 
         // §120.10: a free architecture object keeps its real wall/floor
@@ -2152,9 +2176,9 @@ internal static class ManualCommandExecutor
         InteractionDefinition? interaction = null;
         foreach (var candidate in definition.Interactions)
         {
-            if (candidate.Type == command.Interaction &&
-                (string.IsNullOrEmpty(command.InteractionId) ||
-                 candidate.Id == command.InteractionId))
+            if (candidate.Type == interactionType &&
+                (string.IsNullOrEmpty(requestedInteractionId) ||
+                 candidate.Id == requestedInteractionId))
             {
                 interaction = candidate;
                 break;
@@ -2163,27 +2187,27 @@ internal static class ManualCommandExecutor
 
         if (interaction is null)
         {
-            Reject(world, npc.Id, "Interact", "NoSuchAction", admission);
-            return;
+            Reject(world, npc.Id, verb, "NoSuchAction", admission);
+            return false;
         }
 
         if (BuildSiteMath.IsDemolitionSite(worldObject) &&
             !Content.GearCatalog.HasCapability(
                 npc.Inventory.Items, Content.GearCapability.ChopWood))
         {
-            Reject(world, npc.Id, "Interact", "MissingTool", admission);
-            return;
+            Reject(world, npc.Id, verb, "MissingTool", admission);
+            return false;
         }
 
-        if (command.Interaction == InteractionType.Sleep)
+        if (interactionType == InteractionType.Sleep)
         {
             var sleepReason = ExecutionSystem.GetSleepInterruptReason(
                 world, npc, manualOrder: true);
             if (sleepReason is not null)
             {
-                Reject(world, npc.Id, "Interact", sleepReason, admission);
+                Reject(world, npc.Id, verb, sleepReason, admission);
                 ExecutionSystem.StampSleepRefusal(world, npc, sleepReason);
-                return;
+                return false;
             }
         }
 
@@ -2193,52 +2217,52 @@ internal static class ManualCommandExecutor
         if (interaction.RequiredCapabilities.Count > 0 &&
             !DecisionSystem.HasAnyCapability(npc, interaction.RequiredCapabilities))
         {
-            Reject(world, npc.Id, "Interact", "MissingTool", admission);
-            return;
+            Reject(world, npc.Id, verb, "MissingTool", admission);
+            return false;
         }
 
-        if (command.Interaction == InteractionType.Ignite)
+        if (interactionType == InteractionType.Ignite)
         {
             if (worldObject.ResourceAmount > 0f)
             {
-                Reject(world, npc.Id, "Interact", "FireAlreadyLit", admission);
-                return;
+                Reject(world, npc.Id, verb, "FireAlreadyLit", admission);
+                return false;
             }
 
             if (!ContainerLootMath.HasQueuedCampfireFuel(world, worldObject))
             {
-                Reject(world, npc.Id, "Interact", "FireHasNoFuel", admission);
-                return;
+                Reject(world, npc.Id, verb, "FireHasNoFuel", admission);
+                return false;
             }
         }
 
-        if (command.Interaction == InteractionType.Fuel)
+        if (interactionType == InteractionType.Fuel)
         {
             var fuel = ContainerLootMath.FindCarriedCampfireFuel(world, npc);
             if (fuel is null)
             {
-                Reject(world, npc.Id, "Interact", "NoFuel", admission);
-                return;
+                Reject(world, npc.Id, verb, "NoFuel", admission);
+                return false;
             }
 
             if (worldObject.ResourceAmount <= 0f &&
                 !ContainerLootMath.CanAccept(world, worldObject, new[] { fuel }))
             {
-                Reject(world, npc.Id, "Interact", "FuelBufferFull", admission);
-                return;
+                Reject(world, npc.Id, verb, "FuelBufferFull", admission);
+                return false;
             }
         }
 
         if (worldObject.IsOccupied && worldObject.CurrentUser is { } user && !user.Equals(npc.Id))
         {
-            Reject(world, npc.Id, "Interact", "Occupied", admission);
-            return;
+            Reject(world, npc.Id, verb, "Occupied", admission);
+            return false;
         }
 
         if (worldObject.Junctions.Count == 0)
         {
-            Reject(world, npc.Id, "Interact", "Unreachable", admission);
-            return;
+            Reject(world, npc.Id, verb, "Unreachable", admission);
+            return false;
         }
 
         ClearForNewOrder(world, npc, "Новый приказ игрока");
@@ -2249,7 +2273,7 @@ internal static class ManualCommandExecutor
         // predicate.  In particular Sit/Sleep always reserve the nearest free
         // rim junction; their anchor is a pose marker, never a standing spot.
         var standBeside = PlanningSystem.RequiresBesideApproach(
-            world, anchor, command.Interaction);
+            world, anchor, interactionType);
 
         JunctionId target;
         if (standBeside)
@@ -2262,9 +2286,9 @@ internal static class ManualCommandExecutor
                     world, npc, anchor, Spec121.ManualReserveTicks, out target,
                     SpatialQueries.BesideReach(definition.ObstacleRadius), worldObject))
             {
-                Reject(world, npc.Id, "Interact", "Unreachable", admission);
+                Reject(world, npc.Id, verb, "Unreachable", admission);
                 npc.Mind.CurrentGoal = GoalType.None;
-                return;
+                return false;
             }
         }
         else
@@ -2273,9 +2297,9 @@ internal static class ManualCommandExecutor
             if (!SpatialMutations.TryReserveJunction(
                     world, target, npc.Id, world.Tick, Spec121.ManualReserveTicks))
             {
-                Reject(world, npc.Id, "Interact", "Occupied", admission);
+                Reject(world, npc.Id, verb, "Occupied", admission);
                 npc.Mind.CurrentGoal = GoalType.None;
-                return;
+                return false;
             }
         }
 
@@ -2283,9 +2307,9 @@ internal static class ManualCommandExecutor
             !Connectivity.Reachable(world, start, target, npc.Body.CanJump))
         {
             SpatialMutations.ReleaseJunctionReservation(world, target, npc.Id);
-            Reject(world, npc.Id, "Interact", "Unreachable", admission);
+            Reject(world, npc.Id, verb, "Unreachable", admission);
             npc.Mind.CurrentGoal = GoalType.None;
-            return;
+            return false;
         }
 
         // Двухшаговый план — байт в байт тот, что строит планировщик для любой
@@ -2306,7 +2330,7 @@ internal static class ManualCommandExecutor
             Type = PlanStepType.Interact,
             TargetObject = worldObject.Id,
             TargetJunction = target,
-            Interaction = command.Interaction,
+            Interaction = interactionType,
             InteractionId = interaction.Id
         });
         npc.Plan.CurrentStepIndex = 0;
@@ -2316,8 +2340,159 @@ internal static class ManualCommandExecutor
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
-                $"Order=Interact Obj={worldObject.Id.Value} Def={worldObject.DefinitionId} " +
-                $"Action={interaction.Id}/{command.Interaction} Junction={target.Value}");
+                $"Order={verb} Obj={worldObject.Id.Value} Def={worldObject.DefinitionId} " +
+                $"Action={interaction.Id}/{interactionType} Junction={target.Value}");
+        }
+
+        return true;
+    }
+
+    // ── §121.10 «Собрать всё на гексе» (баг #270) ────────────────────────
+    //
+    // Очередь, а не пачка. Игрок просил ровно этого: «чтобы пальмовые листья
+    // собирались по очереди, не все зараз». Поэтому приём НЕ делает ничего
+    // особенного — он ставит обычный ручной приказ на ПЕРВЫЙ подходящий
+    // предмет и взводит на NPC описание очереди; следующий подход выдаёт
+    // ManualOrderSystem, когда предыдущий доигран.
+
+    private static void ApplyGatherAllOnHex(
+        WorldState world, GatherAllOnHexCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(
+                world, command.Npc, "GatherAll", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "GatherAll", "Incapacitated", admission);
+            return;
+        }
+
+        // Гекс и «однотипность» берутся из КЛИКНУТОГО предмета: игрок показал
+        // пальцем на конкретный лист и сказал «все такие». Её собственный гекс
+        // тут ни при чём — к моменту сбора она всё равно будет стоять у этого.
+        if (!world.Entities.Objects.TryGetValue(command.Target, out var anchor))
+        {
+            Reject(world, npc.Id, "GatherAll", "TargetGone", admission);
+            return;
+        }
+
+        var definitionId = anchor.DefinitionId;
+        var tile = anchor.Tile;
+        var matches = ManualGatherTargets.Collect(
+            world, npc, definitionId, tile, command.Interaction);
+        if (matches.Count == 0)
+        {
+            Reject(world, npc.Id, "GatherAll", "TargetGone", admission);
+            return;
+        }
+
+        var budget = matches.Count < ManualGatherTargets.MaxQueueLength
+            ? matches.Count
+            : ManualGatherTargets.MaxQueueLength;
+
+        // Первый подход — обычный ручной приказ. Он же снимает старую очередь
+        // через ClearForNewOrder, поэтому взводим новую ПОСЛЕ него.
+        if (!TryStartInteractOrder(
+                world, npc, matches[0].Id, command.Interaction,
+                command.InteractionId, "GatherAll", admission))
+        {
+            return;
+        }
+
+        ManualGatherTargets.Arm(
+            npc.Mind, definitionId, tile, command.Interaction,
+            command.InteractionId, budget);
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualGatherAllArmed",
+                $"Def={definitionId} Tile={tile.Q},{tile.R} " +
+                $"Action={command.Interaction} Queue={budget}");
+        }
+    }
+
+    /// <summary>
+    /// §121.10: следующая задача очереди «собрать всё». Зовётся из
+    /// <c>ManualOrderSystem</c> ровно тогда, когда предыдущий приказ доигран и
+    /// цель уже вернулась в <c>None</c>.
+    /// <para>
+    /// <paramref name="previousCompleted"/> — исход предыдущего подхода. Оборванный
+    /// (не дошла, предмет исчез, кто-то занял) очередь ЗАКРЫВАЕТ: молча ходить
+    /// по кругу за недостижимым листом — это ровно тот «стоит и ничего не
+    /// делает», ради которого существует §30.15.
+    /// </para>
+    /// </summary>
+    internal static void ContinueGatherAll(
+        WorldState world, NPCState npc, bool previousCompleted)
+    {
+        if (!ManualGatherTargets.IsActive(npc.Mind))
+        {
+            return;
+        }
+
+        // Причина остановки называется своим именем: очередь читают по трассе,
+        // и «Incapacitated» на отпущенной под ИИ девушке — это ложный след.
+        if (!previousCompleted)
+        {
+            FinishGatherAll(world, npc, "OrderFailed");
+            return;
+        }
+
+        if (!npc.Mind.ManualControl)
+        {
+            FinishGatherAll(world, npc, "ManualReleased");
+            return;
+        }
+
+        if (npc.Health <= 0f || Incapacitated(world, npc))
+        {
+            FinishGatherAll(world, npc, "Incapacitated");
+            return;
+        }
+
+        var definitionId = npc.Mind.GatherAllDefinitionId;
+        var tile = npc.Mind.GatherAllTile!.Value;
+        var interaction = npc.Mind.GatherAllInteraction!.Value;
+        var interactionId = npc.Mind.GatherAllInteractionId;
+        var remaining = npc.Mind.GatherAllRemaining - 1;
+
+        var next = ManualGatherTargets.Next(world, npc, definitionId, tile, interaction);
+        if (next is null || remaining <= 0)
+        {
+            FinishGatherAll(world, npc, next is null ? "HexEmpty" : "QueueSpent");
+            return;
+        }
+
+        if (!TryStartInteractOrder(
+                world, npc, next.Id, interaction, interactionId, "GatherAll",
+                new AdmissionTracker(npc.Id, "GatherAll")))
+        {
+            // Отказ уже оттрассирован причиной; очередь закрываем — иначе она
+            // будет пытаться взять тот же предмет каждый средний проход.
+            FinishGatherAll(world, npc, "OrderRefused");
+            return;
+        }
+
+        ManualGatherTargets.Arm(
+            npc.Mind, definitionId, tile, interaction, interactionId, remaining);
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualGatherAllNext",
+                $"Obj={next.Id.Value} Def={definitionId} Left={remaining}");
+        }
+    }
+
+    private static void FinishGatherAll(WorldState world, NPCState npc, string outcome)
+    {
+        ManualGatherTargets.Clear(npc.Mind);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualGatherAllFinished", $"Outcome={outcome}");
         }
     }
 

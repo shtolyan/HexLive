@@ -25159,6 +25159,14 @@ MonoBehaviour:
       - 'Начать новую игру'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.gather_all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gather all'
+      - 'Собрать все'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

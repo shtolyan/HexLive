@@ -855,6 +855,23 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                         actor, new ObjectId(objectId), type, interactionId)),
                 ok,
                 ok ? null : Loc.Get("menu.missing_tool")));
+
+            // §121.10 (баг #270): рядом с «Подобрать» — «Собрать все». Собрать
+            // все — это собрать все однотипное на ГЕКСЕ кликнутого предмета.
+            // Количество намеренно НЕ считаем и не показываем: игрок просил
+            // упростить («давай даже не будем считать»), а сколько там листьев
+            // — знает мир, а не меню прошлого кадра. Приказ сам разберёт гекс
+            // по одному предмету за раз.
+            if (type == InteractionType.PickUp)
+            {
+                _entries.Add(new ContextMenuEntry(
+                    Loc.Get("menu.gather_all"),
+                    () => EnqueueOrder(actorId,
+                        new GatherAllOnHexCommand(
+                            actor, new ObjectId(objectId), type, interactionId)),
+                    ok,
+                    ok ? null : Loc.Get("menu.missing_tool")));
+            }
         }
 
         // §124.1: у несущей человека клик по кровати добавляет «Положить» —

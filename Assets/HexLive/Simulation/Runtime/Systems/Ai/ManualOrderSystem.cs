@@ -39,6 +39,13 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 continue;
             }
 
+            // §121.10: исход приказа считывается ДО свипа — тот сбрасывает
+            // Plan.Status в None, и «дошла и подобрала» стало бы неотличимо
+            // от «план сорвался». Очередь «собрать всё» живёт только на
+            // успехах: сорванный подход её закрывает.
+            var orderCompleted = npc.Plan.Status == PlanStatus.Completed &&
+                npc.Execution.Status != ExecutionStatus.InProgress;
+
             switch (npc.Mind.CurrentGoal)
             {
                 case GoalType.PlayerOrder:
@@ -87,6 +94,17 @@ public sealed class ManualOrderSystem : ISimulationSystem
                     }
 
                     break;
+            }
+
+            // §121.10 (баг #270): «собрать всё на гексе» — это ОЧЕРЕДЬ обычных
+            // ручных приказов, а не пакетный сбор. Следующий предмет берётся
+            // только когда предыдущий доигран (цель уже вернулась в None) —
+            // так гекс разбирается по одному листу за раз, и любой новый
+            // приказ игрока обрывает очередь сам собой (ClearForNewOrder).
+            if (npc.Mind.CurrentGoal == GoalType.None &&
+                ManualGatherTargets.IsActive(npc.Mind))
+            {
+                ManualCommandExecutor.ContinueGatherAll(world, npc, orderCompleted);
             }
 
             // §121.7: приказ завершён (цель None, сцепки нет) и реальный lease

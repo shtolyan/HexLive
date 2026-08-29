@@ -181,6 +181,43 @@ public sealed class InteractCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>
+/// §121.10 (баг #270): «собрать всё на гексе». Приказ НЕ мгновенный сбор пачкой
+/// и не отдельная механика — это ОЧЕРЕДЬ обычных ручных задач: одна и та же
+/// <see cref="InteractCommand"/>-логика повторяется по одному подходящему
+/// предмету за раз, пока на гексе есть однотипные.
+/// <para>
+/// Цель — тот самый предмет, по которому кликнул игрок: из него симуляция
+/// берёт и гекс, и <c>DefinitionId</c> «однотипности». Считать количество
+/// намеренно никто не просил (и UI его не показывает): игрок говорит «все»,
+/// а сколько их — знает мир, а не меню.
+/// </para>
+/// </summary>
+public sealed class GatherAllOnHexCommand : ISimulationCommand
+{
+    public GatherAllOnHexCommand(
+        EntityId npc, ObjectId target, InteractionType interaction,
+        string interactionId = "")
+    {
+        Npc = npc;
+        Target = target;
+        Interaction = interaction;
+        InteractionId = interactionId ?? string.Empty;
+    }
+
+    public EntityId Npc { get; }
+
+    /// <summary>Кликнутый предмет: якорь гекса и образец однотипности.</summary>
+    public ObjectId Target { get; }
+
+    public InteractionType Interaction { get; }
+
+    /// <summary>Точное действие каталога, выбранное игроком.</summary>
+    public string InteractionId { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§121: бить человека.</summary>
 public sealed class AttackNpcCommand : ISimulationCommand
 {

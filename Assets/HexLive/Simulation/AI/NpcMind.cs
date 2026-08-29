@@ -515,6 +515,31 @@ public sealed class NPCMind
     // живут в отдельном списке со своей нумерацией (см. MobState.Id).
     public int? ManualAttackMobId { get; set; }
 
+    // §121.10 (баг #270): живой приказ «собрать всё на гексе». Хранится ровно
+    // то, чем описывается СЛЕДУЮЩАЯ задача очереди: какой гекс, какие предметы
+    // считать однотипными, каким действием их брать и сколько подходов ещё
+    // разрешено. Самих целей тут нет намеренно — список предметов гекса
+    // перечитывается из мира перед каждым подходом, как того требует правило 2
+    // ManualCommandExecutor: за время похода гекс мог измениться.
+    //
+    // В сейв НЕ пишется, как и остальная сцена ручного режима: цель
+    // PlayerOrder при сохранении складывается в None, и недоигранной очереди
+    // после загрузки взяться неоткуда.
+    public string GatherAllDefinitionId { get; set; } = string.Empty;
+
+    public HexLive.Simulation.Common.TileCoord? GatherAllTile { get; set; }
+
+    public InteractionType? GatherAllInteraction { get; set; }
+
+    public string GatherAllInteractionId { get; set; } = string.Empty;
+
+    /// <summary>Сколько подходов очереди ещё разрешено. Бюджет ставится по
+    /// числу однотипных предметов на гексе в момент приказа: он доказывает
+    /// завершимость очереди даже если предмет почему-то перестал исчезать
+    /// после «успешного» подбора (полный рюкзак и прочая ложь исполнителя).
+    /// </summary>
+    public int GatherAllRemaining { get; set; }
+
     // §40.6: garments doffed at the shore for a bathe. After washing her body
     // she walks back to RedressShore and puts these EXACT ground pieces back
     // on — the same clothes she took off. Holds the dropped pile's object ids

@@ -484,6 +484,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private Transform? _objectsRoot;
     private Transform? _npcsRoot;
     private int _lastRenderedTick = -1;
+    // Bug #287: личность мира, а не только его часы — реконнект к НОВОМУ миру
+    // с тем же адресом сервера различим лишь по seed (тик мог и не прыгнуть).
+    private int _lastWorldSeed;
 
     private WorldSnapshot? _lastSnapshot;
 
@@ -812,7 +815,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // every colonist in a straight line over the island. Drop the previous
             // poses so this frame SNAPS instead.
             if (_lastRenderedTick >= 0 &&
-                (snapshot.Tick < _lastRenderedTick || snapshot.Tick - _lastRenderedTick > PoseSnapTicks))
+                (snapshot.Seed != _lastWorldSeed ||
+                 snapshot.Tick < _lastRenderedTick ||
+                 snapshot.Tick - _lastRenderedTick > PoseSnapTicks))
             {
                 _prevNpcPoses.Clear();
                 _currNpcPoses.Clear();
@@ -835,12 +840,28 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // view once before the memory fog may freeze anything.
                 _cullInitialBuildDone = false;
                 _objectViewTiles.Clear();
+
+                // §148 / bug #287: карта памяти тумана — ЗЕРКАЛО снапшота, а
+                // не биография вида. Мир сменился (другой seed или часы пошли
+                // назад) — забыть всё; иначе новая колония наследует
+                // разведанность предыдущего мира: провод честно присылает
+                // пустой Explored, но _everSeenTiles только копил Add и
+                // никогда не чистился. RebuildPerceptionCulling в этом же
+                // кадре наполнит множество заново из снапшота.
+                _everSeenTiles.Clear();
+                _cullVisibleTiles.Clear();
+                _cullFrozenTiles.Clear();
+                // §148.3: «?» на местах чужаков прошлого мира тоже забыть.
+                _lastSeenNpcTiles.Clear();
+                // Перекрасить memory-shade с нуля (оригиналы в _tileShadeSaved).
+                _tileShadeApplied.Clear();
             }
 
             UnityEngine.Profiling.Profiler.BeginSample("Hex.RenderSnapshot");
             RenderSnapshot(snapshot);
             UnityEngine.Profiling.Profiler.EndSample();
             _lastRenderedTick = snapshot.Tick;
+            _lastWorldSeed = snapshot.Seed;
             _lastSnapshot = snapshot;
         }
 

@@ -25239,6 +25239,14 @@ MonoBehaviour:
       - 'Собрать все'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'toast.order_rejected.NothingToBuild'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Nothing left to build here'
+      - 'Здесь уже всё построено'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

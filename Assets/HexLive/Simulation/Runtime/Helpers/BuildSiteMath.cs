@@ -313,4 +313,44 @@ internal static class BuildSiteMath
     };
 }
 
+/// <summary>
+/// §54.14 (bug #292): «есть ли ЗДЕСЬ что строить» — тот же вопрос, что решает
+/// <see cref="BuildSiteMath.IsSite(WorldObjectState)"/>, но по СНИМКУ. Меню
+/// игрока живёт в презентации и внутренний класс видеть не может, а
+/// спрашивать надо ровно то же: у костра глагол «Строить» остаётся в каталоге
+/// навсегда (он СВОЯ площадка, пока открыт upgrade-bill §54.14), поэтому
+/// достроенный костёр без этого предиката вечно предлагал строить себя.
+/// Форма правила повторена дословно; авторитетный отказ всё равно стоит в
+/// <c>ManualCommandExecutor</c> — меню могло быть открыто до последнего камня.
+/// </summary>
+public static class BuildSiteView
+{
+    public static bool IsSite(HexLive.Simulation.Debug.ObjectSnapshot obj) =>
+        obj != null &&
+        (Blueprints.FreeArchitectureRules.IsDemolitionSite(obj) ||
+         (!string.IsNullOrEmpty(obj.BuildProduct) &&
+          (!IsFreeArchitectureSite(obj) || obj.ArchitectureElements[0].Buildable)));
+
+    private static bool IsFreeArchitectureSite(
+        HexLive.Simulation.Debug.ObjectSnapshot obj) =>
+        Blueprints.FreeArchitectureRules.IsFreePiece(obj) &&
+        !string.IsNullOrEmpty(obj.BuildProduct);
+
+    /// <summary>Осмыслен ли приказ «строить» по этой цели: площадка (в том
+    /// числе снос) или анкер общинной стройки §35.3. Готовая мебель, живой
+    /// достроенный костёр и поднятый дом — не стройка.</summary>
+    /// <remarks>
+    /// Мерой служит именно «это ещё площадка» (непустой BuildProduct), а НЕ
+    /// «счёт материалов закрыт». Разница видна на реальном мире игрока
+    /// (seed 402898084): у достроенного костра `BuildProduct` пуст, а у
+    /// полностью укомплектованного, но ещё не поднятого — стоит, и последним
+    /// действием его закрывает как раз `Build`. Спрятать пункт по закрытому
+    /// счёту значило бы оставить такой костёр вечно недостроенным, если ИИ до
+    /// него не дойдёт.
+    /// </remarks>
+    public static bool AcceptsBuildOrder(HexLive.Simulation.Debug.ObjectSnapshot obj) =>
+        obj != null &&
+        (IsSite(obj) || obj.DefinitionId == ContentIds.ConstructionSite);
+}
+
 }

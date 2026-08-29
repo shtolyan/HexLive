@@ -799,9 +799,16 @@ public sealed class SimulationInputAdapter : MonoBehaviour
              definition.HasTag(ObjectTags.Wardrobe) ||
              definition.InventoryCapacity > 0);
 
+        // Приказ уходит по КОНТЕКСТНОЙ цели (секция дома проксирует меню на
+        // своего footprint-owner), поэтому и состояние стройки спрашиваем у неё.
+        var contextObject = view.ContextObjectId == view.ObjectId
+            ? clicked
+            : FindObject(snapshot, view.ContextObjectId);
+
         var carried = CarriedItems();
         var actorId = OrderNpcId;
         var actor = new EntityId(actorId);
+        var buildOffered = false;
         _entries.Clear();
         foreach (var interaction in definition.Interactions)
         {
@@ -809,6 +816,20 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             // inventory panel; the old one-item interaction must not create a
             // duplicate identically named menu entry beside it.
             if (isContainer && interaction.Type == InteractionType.Loot) continue;
+
+            // §54.14 (bug #292): готовая постройка не предлагает строить себя.
+            // У костра глагол Build стоит в каталоге ДВАЖДЫ (build.upgrade и
+            // build.furniture — §54.14 отдаёт оба одному обработчику), поэтому
+            // достроенный костёр показывал игроку две одинаковые строки
+            // «Строить», ведущие в никуда. Пункт остаётся ровно один и только
+            // пока у цели открыт строительный счёт; тот же предикат
+            // авторитетно повторяет ManualCommandExecutor.
+            if (interaction.Type == InteractionType.Build)
+            {
+                if (buildOffered || !BuildSiteView.AcceptsBuildOrder(contextObject)) continue;
+                buildOffered = true;
+            }
+
             var ok = HasEveryTool(carried, interaction);
             var objectId = view.ContextObjectId;
             var type = interaction.Type;

@@ -2304,6 +2304,19 @@ internal static class ManualCommandExecutor
             return false;
         }
 
+        // §54.14 (bug #292): «строить» осмысленно только на площадке (или на
+        // анкере общинной стройки §35.3). Костёр носит глагол Build в своём
+        // каталоге постоянно — он сам себе площадка, пока открыт upgrade-bill,
+        // — и по закрытому счёту приказ молча уходил в ApplyBuildPiece, то есть
+        // достраивал совсем ДРУГУЮ стройку колонии за счёт этих рук.
+        if (interactionType == InteractionType.Build &&
+            !BuildSiteMath.IsSite(worldObject) &&
+            worldObject.DefinitionId != ContentIds.ConstructionSite)
+        {
+            Reject(world, npc.Id, verb, "NothingToBuild", admission);
+            return false;
+        }
+
         if (interactionType == InteractionType.Sleep)
         {
             var sleepReason = ExecutionSystem.GetSleepInterruptReason(

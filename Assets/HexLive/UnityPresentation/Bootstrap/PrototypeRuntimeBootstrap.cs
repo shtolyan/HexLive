@@ -267,6 +267,12 @@ public static class PrototypeRuntimeBootstrap
             mainCamera.cullingMask &= ~(1 << portraitLayer);
         }
 
+        // PhotoBake (bug #244) — слой офф-скрин съёмки импосторов и
+        // портретов. Он пуст между синхронными проходами пекарен, но главная
+        // камера всё равно не смотрит на него: страховка от будущего
+        // асинхронного бейка, чей объект иначе мигнул бы на весь экран.
+        mainCamera.cullingMask &= ~(1 << Views.ObjectImpostor.PhotoBakeLayer());
+
         // PERF: short ground props (SmallProps layer, assigned in
         // HexWorldRenderer.SuppressSmallPropShadows) stop drawing beyond the
         // distance where they are a few pixels tall. A zero entry means "use

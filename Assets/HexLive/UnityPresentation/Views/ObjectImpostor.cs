@@ -328,17 +328,22 @@ public sealed class ObjectImpostor : MonoBehaviour
             bounds.center - direction * (size * 2f + 1f),
             Quaternion.LookRotation(direction));
 
-        // Изоляция как у портретов: на кадр пекарни вид живёт на слое
-        // Portrait, который главная камера не рисует; слои возвращаются в том
-        // же вызове, до следующего игрового кадра.
-        var portraitLayer = LayerMask.NameToLayer("Portrait");
+        // Изоляция на ВЫДЕЛЕННОМ слое PhotoBake, не на Portrait (bug #244):
+        // Portrait — жилой слой живой identity-карты, на нём ПОСТОЯННО висит
+        // неоновый задник PortraitStage — квад в 20 wu перед лицом выделенной
+        // девушки в мировых координатах. Пекарня, снимавшая маской Portrait
+        // рядом с объектом, ловила его в кадр, и оба matte-прохода видели
+        // одинаковый непрозрачный фон — альфа 255, задник запекался в
+        // текстуру импостора. PhotoBake пуст всегда: сюда объект переезжает
+        // только внутри этого же синхронного вызова и возвращается в finally.
+        var bakeLayer = PhotoBakeLayer();
         LayerScratch.Clear();
         SavedLayerScratch.Clear();
         GetComponentsInChildren(true, LayerScratch);
         foreach (var child in LayerScratch)
         {
             SavedLayerScratch.Add(child.gameObject.layer);
-            child.gameObject.layer = portraitLayer;
+            child.gameObject.layer = bakeLayer;
         }
 
         try
@@ -441,6 +446,15 @@ public sealed class ObjectImpostor : MonoBehaviour
         }
     }
 
+    /// <summary>Слой офф-скрин съёмки (bug #244): всегда пустой, объекты
+    /// живут на нём только внутри синхронного прохода пекарни. Fallback 30 —
+    /// безымянный незанятый индекс на случай устаревшего TagManager.</summary>
+    internal static int PhotoBakeLayer()
+    {
+        var layer = LayerMask.NameToLayer("PhotoBake");
+        return layer >= 0 ? layer : 30;
+    }
+
     private static Camera? EnsureBakeCamera(Transform owner)
     {
         if (_bakeCamera != null)
@@ -455,7 +469,7 @@ public sealed class ObjectImpostor : MonoBehaviour
         camera.orthographic = true;
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = new Color(0f, 0f, 0f, 0f);
-        camera.cullingMask = 1 << LayerMask.NameToLayer("Portrait");
+        camera.cullingMask = 1 << PhotoBakeLayer();
         camera.allowMSAA = false;
         _bakeTarget = new RenderTexture(BakeTextureSize, BakeTextureSize, 16,
             RenderTextureFormat.ARGB32)

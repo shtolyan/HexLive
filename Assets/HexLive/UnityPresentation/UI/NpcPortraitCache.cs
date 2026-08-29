@@ -198,12 +198,13 @@ namespace HexLive.UnityPresentation.UI
 
         private void Awake()
         {
-            _portraitLayer = LayerMask.NameToLayer("Portrait");
-            if (_portraitLayer < 0)
-            {
-                _portraitLayer = 31;
-                Debug.LogError("[NpcPortrait] Portrait layer is missing; using private layer 31.");
-            }
+            // PhotoBake, не Portrait (bug #244): на Portrait постоянно живёт
+            // неоновый задник identity-карты — квад в 20 wu перед лицом
+            // ВЫДЕЛЕННОЙ девушки в мировых координатах. Фотограф, снимавший
+            // маской Portrait, ловил его в кадр, когда выделенная стояла
+            // рядом с фотографируемой. PhotoBake пуст между синхронными
+            // проходами съёмки — фотобомбы невозможны по построению.
+            _portraitLayer = Views.ObjectImpostor.PhotoBakeLayer();
 
             _scratch = new RenderTexture(TextureSize, TextureSize, 16, RenderTextureFormat.ARGB32)
             {

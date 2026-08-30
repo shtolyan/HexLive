@@ -242,6 +242,10 @@ public static class JournalCatalog
         // случается редко и значит больше.
         r["GiftGiven"] = new JournalRule(54, JournalRole.ArrowTarget, mirrorWeight: 58,
             extra: JournalExtra.Token, extraToken: "Item=");
+        // Bug #312: кража с чужой земли — поступок, который воровка помнит.
+        // Свидетельницы пишут своё через RelationshipChanged (Cause=[Theft]).
+        r["ItemStolen"] = new JournalRule(56, extra: JournalExtra.Token,
+            extraToken: "Def=");
         r["TalkQuarreled"] = new JournalRule(68, JournalRole.FirstNpc, mirrorWeight: 68);
         r["TalkCompleted"] = new JournalRule(34, JournalRole.FirstNpc, mirrorWeight: 30);
         // §146.12: договор о едином доме — крупная запись обеих переговорщиц.

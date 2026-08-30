@@ -103,15 +103,36 @@ internal static class WoundMath
         return open;
     }
 
+    // Bug #306 (вердикт игрока): бинт — ценный ресурс, и на свернувшуюся
+    // царапину почти целой части (HP ≥ 0.9) его не тратят: такая рана не
+    // кровоточит, не деградирует и зарубцуется сама (§118.7
+    // NaturalScarringFactor). Бинт остаётся ране, которая ещё кровит, либо
+    // ране на действительно побитой части.
+    private const float MinorWoundPartHealth = 0.9f;
+
+    private static bool ScarsNaturally(NPCState npc, WoundState wound)
+    {
+        if (wound.Clot01 < 1f)
+        {
+            return false;
+        }
+
+        if (npc.Body.IsSevered(wound.Zone))
+        {
+            // A clotted stump scars naturally (§118), so spending a dressing
+            // on it after the bleeding window has closed would be wasteful.
+            return true;
+        }
+
+        return npc.Body.Parts.TryGetValue(wound.Zone, out var partHealth) &&
+            partHealth >= MinorWoundPartHealth;
+    }
+
     public static bool NeedsAftercare(NPCState npc)
     {
         foreach (var wound in npc.Wounds)
         {
-            // A clotted stump scars naturally (§118), so spending a dressing
-            // on it after the bleeding window has closed would be wasteful.
-            var naturallyClosingStump = npc.Body.IsSevered(wound.Zone) &&
-                wound.Clot01 >= 1f;
-            if (!wound.Stabilized && !naturallyClosingStump &&
+            if (!wound.Stabilized && !ScarsNaturally(npc, wound) &&
                 wound.Heal01 < 1f && wound.Severity > 0f)
             {
                 return true;
@@ -126,9 +147,7 @@ internal static class WoundMath
         var burden = 0f;
         foreach (var wound in npc.Wounds)
         {
-            var naturallyClosingStump = npc.Body.IsSevered(wound.Zone) &&
-                wound.Clot01 >= 1f;
-            if (!wound.Stabilized && !naturallyClosingStump && wound.Heal01 < 1f)
+            if (!wound.Stabilized && !ScarsNaturally(npc, wound) && wound.Heal01 < 1f)
             {
                 burden += wound.Severity * (1f - wound.Heal01) * wound.BleedFactor;
             }

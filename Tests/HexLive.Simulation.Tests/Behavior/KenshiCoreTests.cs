@@ -168,6 +168,9 @@ public sealed class KenshiCoreTests
         });
     }
 
+    // Bug #306: рана здесь лежит на ПОБИТОЙ ноге (HP 0.6) — на почти целой
+    // части свернувшаяся царапина зарубцуется сама и бинта не заслуживает
+    // (см. ClottedScratchOnHealthyPart_SpendsNoBandage ниже).
     [Test]
     public void ClottedIntactCut_RemainsAftercareAndExportsAsDryNotHealed()
     {
@@ -177,6 +180,7 @@ public sealed class KenshiCoreTests
         patient.Needs.Blood = 1f;
         patient.Needs.Hunger = 0f;
         patient.Needs.Thirst = 0f;
+        patient.Body.Parts[BodyPart.LegL] = 0.6f;
         patient.Wounds.Add(new WoundState
         {
             Id = 1181,
@@ -207,6 +211,41 @@ public sealed class KenshiCoreTests
                 "Dry presentation must not fake authoritative medical healing.");
             Assert.That(visualHeal, Is.EqualTo(WoundMath.ClottedVisualHealFloor)
                 .Within(0.001f));
+        });
+    }
+
+    // Bug #306 (вердикт игрока): «HP больше 90%, нет кровотечения, раны не
+    // деградируют — бинты не тратим». Свернувшаяся царапина на почти целой
+    // части зарубцуется сама (§118.7) и не считается ни афтеркером, ни
+    // бременем самолечения.
+    [Test]
+    public void ClottedScratchOnHealthyPart_SpendsNoBandage()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Needs.Blood = 1f;
+        patient.Body.Parts[BodyPart.LegL] = 0.98f;
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1183,
+            Zone = BodyPart.LegL,
+            Severity = 0.08f,
+            Heal01 = 0f,
+            Clot01 = 1f,
+            Stabilized = false,
+            BleedFactor = 1.2f,
+            Seed = 1183
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(MortalityHelpers.IsBleeding(patient), Is.False);
+            Assert.That(WoundMath.NeedsAftercare(patient), Is.False,
+                "Свернувшаяся царапина на здоровой части рубцуется сама.");
+            Assert.That(DecisionSystem.SelfTreatBurden(patient), Is.Zero);
+            Assert.That(DecisionSystem.SelfTreatmentIndicated(patient, 5), Is.False,
+                "Бинт не тратится на часть с HP выше 0.9 без кровотечения.");
         });
     }
 

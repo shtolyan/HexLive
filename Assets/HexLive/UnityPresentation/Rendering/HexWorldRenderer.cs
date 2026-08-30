@@ -1154,6 +1154,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             main.maxParticles = 9000;
             main.gravityModifier = 1.2f;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
+            // Bug #301: эмиттер висит в 30 wu над землёй, и при близкой камере
+            // его баунды вне кадра — Automatic culling СТАВИТ систему на паузу,
+            // капли не симулируются вовсе («дождь появился только когда
+            // открутил камеру»). Дождь обязан идти независимо от фрустума.
+            main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
 
             var emission = _rain.emission;
             emission.rateOverTime = 2600f; // lots of small drops
@@ -1296,6 +1301,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         main.maxParticles = 6000;
         main.gravityModifier = 1.4f;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
+        // Bug #301: брызги живут тем же правилом, что и капли — симулировать
+        // всегда, иначе пауза за кадром съедает первые всплески.
+        main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
 
         var emission = splash.emission;
         emission.rateOverTime = 0f;

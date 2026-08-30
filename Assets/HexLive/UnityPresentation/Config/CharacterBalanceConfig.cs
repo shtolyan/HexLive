@@ -194,13 +194,13 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Длительность питья бутылки в тиках (глоток за глотком).")]
         [Range(1, 60)] public int drinkBottleDurationTicks = 16;
         [Tooltip("Сколько жажды снимает СЫРАЯ бутылка (но риск болезни).")]
-        [Range(0f, 1f)] public float drinkThirstRaw = 0.7f;
+        [Range(0f, 1f)] public float drinkThirstRaw = 0.21f;
         [Tooltip("Сколько жажды снимает КИПЯЧЁНАЯ бутылка (безопасно).")]
-        [Range(0f, 1f)] public float drinkThirstBoiled = 0.85f;
+        [Range(0f, 1f)] public float drinkThirstBoiled = 0.26f;
         [Tooltip("Небольшой комфорт от кипячёной воды.")]
-        [Range(0f, 0.3f)] public float drinkComfortBoiled = 0.05f;
+        [Range(0f, 0.3f)] public float drinkComfortBoiled = 0.015f;
         [Tooltip("§52: сколько глотков в одной полной бутылке (наполняют, когда пустая).")]
-        [Range(1, 8)] public int bottleCapacity = 3;
+        [Range(1, 20)] public int bottleCapacity = 10;
         [Tooltip("Сколько маленьких глотков воды в дырявом кокосе.")]
         [Range(1, 8)] public int coconutWaterCapacity = 4;
 

@@ -972,9 +972,9 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // A bottleful is a real drink: relief raw 0.7 / boiled 0.85 (so the
-        // two-step chain matches the old single drink, 29H). Spec 29C.9: the
-        // thirst drops gulp by gulp across the duration, not in one jump.
+        // Bug #305: один глоток — 100 мл (литровая бутылка = 10 глотков), и
+        // его облегчение (DrinkThirstRaw/Boiled) задано ЗА ГЛОТОК. Spec 29C.9:
+        // the thirst drops gulp by gulp across the duration, not in one jump.
         // §54.15: RAIN water (the collector's leaf funnel, no ground contact)
         // is clean — boiled-grade thirst relief and NO sickness roll; only
         // the warm-drink comfort bonus stays boiled-only.
@@ -1069,6 +1069,23 @@ public sealed partial class ExecutionSystem
         {
             npc.BottleWater = WaterKind.None;
             npc.BottleCharges = 0;
+        }
+
+        // Bug #305: глоток теперь 100 мл, и одной жаждущей его мало — пьёт
+        // следующий сразу, тем же правилом, что кокосовые глотки (без полного
+        // пере-аукциона целей между глотками, но никогда мимо голодающего
+        // желудка — урок iter-8).
+        if (!driedOut && npc.Needs.Thirst >= 0.4f && npc.Needs.Hunger < 0.85f)
+        {
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + DrinkBottleDurationTicks;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"Drink (bottle, next sip) Left={npc.BottleCharges} Thirst={npc.Needs.Thirst:F2}");
+            }
+            return;
         }
 
         npc.Plan.Status = PlanStatus.Completed;

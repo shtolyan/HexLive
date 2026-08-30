@@ -2317,6 +2317,34 @@ internal static class ManualCommandExecutor
             return false;
         }
 
+        // Bug #310 (вердикт игрока): выдохшаяся не берётся за РАБОЧИЙ приказ —
+        // отклоняет его и садится отдыхать. Порог тот же, что красит стамину
+        // «выдохлась» (StaminaExhaustedThreshold). Еда/питьё/сон/подбор/лечение
+        // не гейтятся: уставшей как раз положено пить и лечиться.
+        if (npc.Needs.Stamina <= SimBalance.StaminaExhaustedThreshold &&
+            interactionType is InteractionType.Harvest or InteractionType.Process
+                or InteractionType.Build or InteractionType.BuildRaft
+                or InteractionType.Craft or InteractionType.Butcher)
+        {
+            Reject(world, npc.Id, verb, "Exhausted", admission);
+            ClearForNewOrder(world, npc, "Выдохлась — отдых вместо работы");
+            npc.Mind.CurrentGoal = GoalType.Sit;
+            ManualPlanner.BuildGroundSitPlan(world, npc);
+            if (npc.Plan.Status != PlanStatus.Active)
+            {
+                npc.Plan.Steps.Clear();
+                npc.Plan.Status = PlanStatus.None;
+                ManualPlanner.BuildIdleRestPlan(world, npc);
+            }
+
+            if (npc.Plan.Status != PlanStatus.Active)
+            {
+                npc.Mind.CurrentGoal = GoalType.None;
+            }
+
+            return false;
+        }
+
         if (interactionType == InteractionType.Sleep)
         {
             var sleepReason = ExecutionSystem.GetSleepInterruptReason(

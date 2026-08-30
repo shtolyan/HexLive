@@ -496,11 +496,23 @@ internal static class InventoryMath
     // Drop the lowest-importance pocket items until the pack fits again. Used
     // whenever capacity shrinks under a full load (undress, arm severed). Items
     // land at the NPC's feet with their instance state (wetness/durability).
+    //
+    // §52.5 r2 (вслед за bug #278 r2): перелив меряется ЯЧЕЙКАМИ, как и сама
+    // ёмкость. UsedSlots — ceil по стакам, поэтому: (а) гард считает
+    // ОСВОБОЖДЁННЫЕ ЯЧЕЙКИ, не инстансы — прежний по-инстансный guard 64
+    // истощался посреди неполного стака (охапка 48 листьев = одна ячейка =
+    // 48 сбросов) и мог оборваться, оставив перелив; (б) предмет, которому
+    // не нашлось точки сброса, возвращается в пакет, а не уничтожается.
+    // Ячейка освобождается целиком — это не каскад, а физика стака: нельзя
+    // держать пол-охапки. При Capacity = 0 (голая, обе руки потеряны — §50
+    // сознательно оставляет безрукой ноль) высыпается всё, кроме любимого
+    // оружия §75A: честный мир калек честен и с рюкзаком.
     public static void SpillOverflow(WorldState world, NPCState npc)
     {
         var inv = npc.Inventory;
-        var guard = 0;
-        while (inv.UsedSlots > inv.Capacity && guard++ < 64)
+        var freedCells = 0;
+        var used = inv.UsedSlots;
+        while (inv.UsedSlots > inv.Capacity && freedCells < 64)
         {
             var victim = LowestImportanceDroppable(world, npc);
             if (victim is null)
@@ -509,11 +521,21 @@ internal static class InventoryMath
             }
 
             inv.Items.Remove(victim);
-            ExecutionSystem.DropItemAtFeet(world, npc, victim);
+            if (ExecutionSystem.DropItemAtFeet(world, npc, victim) is null)
+            {
+                inv.Items.Add(victim);
+                break;
+            }
+
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "ItemSpilled", $"{victim.DefinitionId} (no pocket room)");
+            }
 
+            if (inv.UsedSlots < used)
+            {
+                freedCells++;
+                used = inv.UsedSlots;
             }
         }
     }

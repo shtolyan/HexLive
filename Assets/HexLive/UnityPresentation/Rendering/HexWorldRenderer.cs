@@ -1134,10 +1134,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             var main = _rain.main;
             main.startSpeed = 22f;
-            // Thin, dainty streaks — width comes from startSize in stretch mode.
-            main.startSize = new ParticleSystem.MinMaxCurve(0.035f, 0.06f);
+            // Streak width comes from startSize in stretch mode. Bug: с
+            // игровой камеры (30-50 wu) штрих в 3.5-6 см при альфе 0.55 —
+            // суб-пиксель: дождь ИГРАЛ, но был физически невидим («вижу
+            // только мокрую землю»). Толщина и альфа подняты до различимых
+            // с рабочей дистанции камеры.
+            main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.14f);
             main.startLifetime = 2.2f;
-            main.startColor = new Color(0.65f, 0.78f, 0.95f, 0.55f);
+            main.startColor = new Color(0.65f, 0.78f, 0.95f, 0.8f);
             main.maxParticles = 9000;
             main.gravityModifier = 1.2f;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
@@ -1185,10 +1189,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (raining && !_rain.isPlaying)
         {
             _rain.Play();
+            // Диагностика «дождь идёт, а капель не видно»: строка в Player.log
+            // отделяет «система не играет» от «играет, но не различима».
+            Debug.Log($"[Rain] particles playing (emitter y={_rain.transform.position.y:F1}, " +
+                      $"cam={(_cutawayCamera != null ? _cutawayCamera.transform.position.ToString() : "none")})");
         }
         else if (!raining && _rain.isPlaying)
         {
             _rain.Stop();
+            Debug.Log("[Rain] particles stopped");
         }
 
         if (_rain.isPlaying)
@@ -1271,9 +1280,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         var main = splash.main;
         main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f, 1.7f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.05f);
+        // Брызги укрупнены вместе с каплями — 2-5 см не читались с камеры.
+        main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.09f);
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.38f);
-        main.startColor = new Color(0.75f, 0.86f, 1f, 0.75f);
+        main.startColor = new Color(0.75f, 0.86f, 1f, 0.85f);
         main.maxParticles = 6000;
         main.gravityModifier = 1.4f;
         main.simulationSpace = ParticleSystemSimulationSpace.World;

@@ -256,6 +256,9 @@ public sealed class ObjectImpostor : MonoBehaviour
             {
                 var previous = baked.Material.GetTexture(BaseMapId) as Texture2D;
                 baked.Material.SetTexture(BaseMapId, texture);
+                // #244 r3: материал мог родиться заглушкой с цветным тинтом —
+                // без сброса тинт умножался на испечённую картинку навсегда.
+                baked.Material.SetColor(BaseColorId, Color.white);
                 if (previous != null)
                 {
                     Destroy(previous);
@@ -370,23 +373,29 @@ public sealed class ObjectImpostor : MonoBehaviour
             var pixels = new Color32[black.Length];
             for (var i = 0; i < pixels.Length; i++)
             {
-                var matteDelta = Mathf.Max(
-                    white[i].r - black[i].r,
-                    Mathf.Max(white[i].g - black[i].g, white[i].b - black[i].b));
-                var alpha = (byte)Mathf.Clamp(255 - matteDelta, 0, 255);
-                if (alpha == 0)
-                {
-                    pixels[i] = new Color32(0, 0, 0, 0);
-                    continue;
-                }
+                // #244 r3: альфа считается в ЛИНЕЙНОМ свете — проект Linear,
+                // а RT отдаёт sRGB-байты, и дельта по ним занижала мягкие
+                // края вдвое (a=0.5 читалась как 0.26).
+                var deltaLinear = Mathf.Max(
+                    Mathf.GammaToLinearSpace(white[i].r / 255f) -
+                    Mathf.GammaToLinearSpace(black[i].r / 255f),
+                    Mathf.Max(
+                        Mathf.GammaToLinearSpace(white[i].g / 255f) -
+                        Mathf.GammaToLinearSpace(black[i].g / 255f),
+                        Mathf.GammaToLinearSpace(white[i].b / 255f) -
+                        Mathf.GammaToLinearSpace(black[i].b / 255f)));
+                var alpha = (byte)Mathf.Clamp(
+                    Mathf.RoundToInt((1f - deltaLinear) * 255f), 0, 255);
 
-                // The black-matte pass is premultiplied by coverage. Undo it
-                // before mip generation to avoid a dark fringe around cutouts.
-                pixels[i] = new Color32(
-                    (byte)Mathf.Clamp(Mathf.RoundToInt(black[i].r * 255f / alpha), 0, 255),
-                    (byte)Mathf.Clamp(Mathf.RoundToInt(black[i].g * 255f / alpha), 0, 255),
-                    (byte)Mathf.Clamp(Mathf.RoundToInt(black[i].b * 255f / alpha), 0, 255),
-                    alpha);
+                // #244 r3: RGB чёрного прохода — ПРЕМУЛЬТИПЛИЦИРОВАННЫЙ цвет,
+                // и он остаётся таким НАМЕРЕННО. Прежняя распремультипликация
+                // чинила кайму на мипе 0, но ломала минификацию: на мипах 4-6
+                // (дистанции импостора 64-260 wu у мелких вещей) box-фильтр
+                // усреднял альфу с фоном выше катофа 0.4 — clip() пропускал
+                // весь квад тёмным квадратом. Премультиплированная альфа
+                // математически корректна под фильтром мипов; блендинг
+                // One/OneMinusSrcAlpha в материале завершает уравнение.
+                pixels[i] = new Color32(black[i].r, black[i].g, black[i].b, alpha);
             }
 
             texture = new Texture2D(BakeTextureSize, BakeTextureSize,
@@ -462,8 +471,10 @@ public sealed class ObjectImpostor : MonoBehaviour
             return _bakeCamera;
         }
 
+        // #244 r3: камера живёт В КОРНЕ СЦЕНЫ, не под первым испёкшимся
+        // видом — иначе разгрузка того объекта убивала её, и каждый цикл
+        // пересоздания тёк непере-Release()нным RT по 256 КБ.
         var go = new GameObject("ImpostorBakeCamera");
-        go.transform.SetParent(owner, false);
         var camera = go.AddComponent<Camera>();
         camera.enabled = false;
         camera.orthographic = true;
@@ -471,11 +482,18 @@ public sealed class ObjectImpostor : MonoBehaviour
         camera.backgroundColor = new Color(0f, 0f, 0f, 0f);
         camera.cullingMask = 1 << PhotoBakeLayer();
         camera.allowMSAA = false;
+        if (_bakeTarget != null)
+        {
+            _bakeTarget.Release();
+            Destroy(_bakeTarget);
+        }
+
         _bakeTarget = new RenderTexture(BakeTextureSize, BakeTextureSize, 16,
             RenderTextureFormat.ARGB32)
         {
             name = "ImpostorBakeRT"
         };
+        _bakeTarget.Create();
         camera.targetTexture = _bakeTarget;
         _bakeCamera = camera;
         return camera;
@@ -489,19 +507,22 @@ public sealed class ObjectImpostor : MonoBehaviour
             material.SetTexture(BaseMapId, texture);
         }
 
-        // Cutout: пишет глубину, не сортируется как transparent, дружит с
-        // инстансингом — сотни пальм остаются считанными батчами.
-        material.SetOverrideTag("RenderType", "TransparentCutout");
-        material.SetFloat("_Surface", 0f);
+        // #244 r3: премультиплированная прозрачность вместо cutout. Cutout
+        // резал по альфе, а на мипах 4-6 (дистанции импостора у мелких вещей)
+        // усреднённая с фоном альфа везде превышала катоф — квад рисовался
+        // тёмным квадратом целиком; текстура хранит премультиплированный RGB,
+        // блендинг One/OneMinusSrcAlpha корректен под box-фильтром мипов и
+        // заодно убирает тёмную кайму.
+        material.SetOverrideTag("RenderType", "Transparent");
+        material.SetFloat("_Surface", 1f);
         material.SetFloat("_SrcBlend", (float)BlendMode.One);
-        material.SetFloat("_DstBlend", (float)BlendMode.Zero);
-        material.SetFloat("_ZWrite", 1f);
-        material.SetFloat("_AlphaClip", 1f);
-        material.EnableKeyword("_ALPHATEST_ON");
-        material.SetFloat("_Cutoff", AlphaCutoff);
+        material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+        material.SetFloat("_ZWrite", 0f);
+        material.SetFloat("_AlphaClip", 0f);
+        material.DisableKeyword("_ALPHATEST_ON");
         material.SetFloat("_Cull", 0f); // двусторонний квад — ориентация не важна
         material.enableInstancing = true;
-        material.renderQueue = (int)RenderQueue.AlphaTest;
+        material.renderQueue = (int)RenderQueue.Transparent;
         return material;
     }
 

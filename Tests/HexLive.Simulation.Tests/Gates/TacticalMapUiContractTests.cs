@@ -129,8 +129,13 @@ public sealed class TacticalMapUiContractTests
             Assert.That(impostor, Does.Contain("SubmitRenderRequest"));
             Assert.That(impostor, Does.Contain("CaptureMatte(camera, request, Color.black)"));
             Assert.That(impostor, Does.Contain("CaptureMatte(camera, request, Color.white)"));
-            Assert.That(impostor, Does.Contain("255 - matteDelta"));
-            Assert.That(impostor, Does.Contain("TransparentCutout"));
+            // #244 r3: премультиплированная прозрачность вместо cutout —
+            // на мипах 4-6 (дистанции импостора у мелких вещей) box-фильтр
+            // усреднял альфу выше катофа и рисовал тёмный квадрат целиком.
+            Assert.That(impostor, Does.Contain("GammaToLinearSpace"));
+            Assert.That(impostor, Does.Not.Contain("TransparentCutout"));
+            Assert.That(impostor, Does.Contain("BlendMode.OneMinusSrcAlpha"));
+            Assert.That(impostor, Does.Not.Contain("EnableKeyword(\"_ALPHATEST_ON\")"));
             Assert.That(impostor, Does.Contain("TextureWrapMode.Clamp"));
             Assert.That(impostor, Does.Contain("ObjectImpostorVisual"));
             Assert.That(Read("Assets", "HexLive", "UnityPresentation", "Views",

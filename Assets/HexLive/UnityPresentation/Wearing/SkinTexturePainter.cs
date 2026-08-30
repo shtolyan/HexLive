@@ -504,11 +504,14 @@ namespace HexLive.UnityPresentation.Wearing
         // Spec 40.8-D v5: the wound over-art VARIANT table. Seed picks one so
         // repeated hits don't all look identical. Index-aligned: _woundGloss[i]
         // is the wet-core gloss for _woundOver[i]. All are BLOOD-ONLY art (no
-        // baked skin/flesh) so any tan tint reads right. Extra gash shapes
-        // (wound_gash_*) join the two originals (scratch claw + blood splat).
+        // baked skin/flesh) so any tan tint reads right.
+        // «blood_splat» ИСКЛЮЧЁН из пула ран вердиктом игрока 2026-08-30:
+        // его лужа с толстыми потёками и ровным срезом читалась на теле как
+        // уродливое пятно с жёсткой границей. Файл остаётся (fallback-арт и
+        // база синяков), просто раны его больше не выбирают.
         private static readonly string[] WoundVariantNames =
         {
-            "wound_scratch", "blood_splat",
+            "wound_scratch",
             "wound_gash_slash", "wound_gash_streak", "wound_gash_smear",
             "wound_gash_fork", "wound_gash_torn",
         };

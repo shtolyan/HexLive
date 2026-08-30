@@ -38,6 +38,27 @@ public sealed class BandageHandPropContractTests
             Assert.That(source, Does.Not.Contain(
                 "AtomicResources.Load<Texture2D>($\"HexLive/Decals/bandage_wrap_"),
                 "Arm wraps must be available synchronously with the Player.");
+
+            // #246/#256 r3: круглый фолбэк запрещён и НА LEGACY-ПУТИ. Гард
+            // стоит ДО развилки _map != null и покрывает недоехавшую карту
+            // покраски: без него самый ранний актёр (карта грузится async и
+            // первый вызов даёт null) получал круглую марлю навсегда — штамп
+            // кладётся один раз, подмена арта перерисовку не дёргает.
+            var placeAt = source.IndexOf(
+                "private void TryPlace(", StringComparison.Ordinal);
+            var guardAt = source.IndexOf(
+                "if (isBandage && !isPlaster && WrapRects.ContainsKey(zoneName) &&",
+                placeAt, StringComparison.Ordinal);
+            var forkAt = source.IndexOf(
+                "if (_map != null)", placeAt, StringComparison.Ordinal);
+            Assert.That(guardAt, Is.GreaterThan(placeAt),
+                "Ранний гард обмотки обязан существовать в TryPlace.");
+            Assert.That(guardAt, Is.LessThan(forkAt),
+                "Гард обязан стоять ДО развилки на legacy-путь.");
+            Assert.That(source, Does.Contain("_map == null ||"),
+                "Гард обязан покрывать недоехавшую карту покраски.");
+            Assert.That(source, Does.Contain("_nextMapRetryAt"),
+                "Без ретрая карты застрявший актёр остался бы без бинта совсем.");
         });
     }
 

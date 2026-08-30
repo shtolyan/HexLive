@@ -547,6 +547,9 @@ namespace HexLive.UnityPresentation.Wearing
         // Spec 40.8-G: editor-baked placement points — when present, wound/
         // droplet placement is a table lookup and BakeMesh never runs.
         private PaintPointMap? _map;
+        private string _mapName = string.Empty;
+        private int _mapVertexCount;
+        private float _nextMapRetryAt;
         // Spec 40.8-J: per-texel body positions — when present (and the point
         // map is v2), wounds and wraps paint through the seam-free projected
         // path instead of a per-slot rectangle.
@@ -715,7 +718,13 @@ namespace HexLive.UnityPresentation.Wearing
             if (!string.IsNullOrEmpty(actorMesh))
             {
                 var vertexCount = body.sharedMesh != null ? body.sharedMesh.vertexCount : 0;
-                _map = PaintPointMap.Load($"skin_{actorMesh}", vertexCount);
+                // #246/#256 r3: личность карты запоминается для ретрая —
+                // AtomicResources на первый синхронный вызов отдаёт null, и
+                // самый ранний актёр строился без карты НАВСЕГДА (повторить
+                // загрузку было нечем — actorMesh не сохранялся).
+                _mapName = $"skin_{actorMesh}";
+                _mapVertexCount = vertexCount;
+                _map = PaintPointMap.Load(_mapName, vertexCount);
                 // Spec 40.8-J: both halves must be present and current — the
                 // frames live in the point map, the texels in the position
                 // maps. Either one stale and decals stay per-slot (clipped at
@@ -1208,6 +1217,20 @@ namespace HexLive.UnityPresentation.Wearing
         private void PlaceNewStamps(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
             float sweat01, HashSet<string>? uncovered, HashSet<string>? gauzed = null)
         {
+            // #246/#256 r3: карта могла не доехать к Construct (async первый
+            // промах у самых ранних актёров) — без ретрая обмотка бинта ждала
+            // бы перезапуска игры. Дросселировано: PaintPointMap.Load пишет
+            // warning на каждый промах.
+            if (_map == null && _mapName.Length != 0 && Time.unscaledTime >= _nextMapRetryAt)
+            {
+                _nextMapRetryAt = Time.unscaledTime + 3f;
+                _map = PaintPointMap.Load(_mapName, _mapVertexCount);
+                if (_map != null && _map.HasProjectedFrames)
+                {
+                    _posMaps = SkinPositionMapSet.Load($"skinpos_{_mapName.Substring(5)}", _mapVertexCount);
+                }
+            }
+
             // Spec 40.8-G: with a baked point map every placement is a table
             // lookup — no pose bake, no triangle scans (the legacy path bakes
             // the skinned mesh, which was the top combat-frame CPU cost).
@@ -1918,6 +1941,21 @@ namespace HexLive.UnityPresentation.Wearing
             if (!Zones.TryGetValue(zoneName, out var zone))
             {
                 PlaceTombstone(key, seed, isBandage, isGauze);
+                return;
+            }
+
+            // ⭐ #246/#256 r3 («сразу круглый бинт → после перезапуска
+            // нормальный»): зона с обязательной authored-обмоткой НИКОГДА не
+            // рисует круглый фолбэк — ни при недоехавших текстурах обмотки,
+            // ни при недоехавшей карте покраски (_map == null: самый ранний
+            // актёр строится до прилёта skin_<актриса>, падал в legacy-путь
+            // ниже и получал круглую марлю НАВСЕГДА — штамп кладётся один
+            // раз, а подмена арта не входит в сигнатуру перерисовки). БЕЗ
+            // tombstone: Sync повторит размещение, когда карта доедет.
+            if (isBandage && !isPlaster && WrapRects.ContainsKey(zoneName) &&
+                (_map == null ||
+                 WrapOverlayFor(zoneName) == null || WrapNormalFor(zoneName) == null))
+            {
                 return;
             }
 

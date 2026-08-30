@@ -63,8 +63,15 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
+            // Bug #330 (вердикт игрока): перегретая предпочитает НАСТОЯЩУЮ
+            // воду — нырнуть (в воде и охлаждение сильнее — WaterCoolBonus, и
+            // гигиена отмывается сама). Водные кандидаты сортируются так,
+            // будто они вдвое ближе: тень выигрывает только когда воды рядом
+            // действительно нет.
+            var inWater = SpatialQueries.IsAllWaterJunction(world, junction.Id);
+            var rank = inWater ? distance * 0.5f : distance;
             var insert = 0;
-            while (insert < candidates.Count && candidates[insert].Distance <= distance)
+            while (insert < candidates.Count && candidates[insert].Distance <= rank)
             {
                 insert++;
             }
@@ -72,7 +79,7 @@ public sealed partial class PlanningSystem
             {
                 continue;
             }
-            candidates.Insert(insert, (junction.Id, distance));
+            candidates.Insert(insert, (junction.Id, rank));
             if (candidates.Count > candidateBudget)
             {
                 candidates.RemoveAt(candidates.Count - 1);

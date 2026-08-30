@@ -242,6 +242,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private Transform _gazeTarget;
     private float _gazeWeight;
     private float _gazeWeightTarget;
+    // Bug #311: взгляд в объектив входит и выходит ВДВОЕ плавнее обычного
+    // разгона; скорость возвращается к штатной, как только вес доехал.
+    private const float GazeBlendSpeedDefault = 2.5f;
+    private const float GazeBlendSpeedCamera = 1.25f;
+    private float _gazeBlendSpeed = GazeBlendSpeedDefault;
     private Transform _gazeProxy;
     private bool _portraitGaze; // §80: взгляд отдан камере портрета
     private bool _cameraGaze;   // §130: на пару секунд смотрит в объектив игрока
@@ -7167,6 +7172,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _cameraGaze = true;
+        _gazeBlendSpeed = GazeBlendSpeedCamera; // #311: вдвое плавнее вход
         _cameraGazeUntil = Time.time + seconds;
         _gazeProxy.position = lensWorldPos;
         _gazeTarget = _gazeProxy;
@@ -7196,6 +7202,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _cameraGaze = false;
         _gazeWeightTarget = 0f;
+        _gazeBlendSpeed = GazeBlendSpeedCamera; // #311: и выход вдвое плавнее
         _face?.SetCameraAttention(false);
     }
 
@@ -7801,7 +7808,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             EndCameraGaze();
         }
 
-        _gazeWeight = Mathf.MoveTowards(_gazeWeight, _gazeWeightTarget, Time.deltaTime * 2.5f);
+        _gazeWeight = Mathf.MoveTowards(
+            _gazeWeight, _gazeWeightTarget, Time.deltaTime * _gazeBlendSpeed);
+        if (Mathf.Approximately(_gazeWeight, _gazeWeightTarget))
+        {
+            _gazeBlendSpeed = GazeBlendSpeedDefault;
+        }
         _lookAtIK.solver.IKPositionWeight = _gazeWeight;
         if (_gazeTarget != null)
         {
@@ -7835,7 +7847,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 // §114 баг #116: ползущей корпус не крутим — см. ниже.
                 _lookAtIK.solver.bodyWeight = _posture == "Crawl" ? 0f : 0.15f;
                 _lookAtIK.solver.clampWeight = 0.5f;
-                _lookAtIK.solver.clampWeightEyes = 0.3f;
+                // #311: амплитуда глаз −20% — на широком развороте зрачки
+                // закатывались белками; остальное доворачивает голова.
+                _lookAtIK.solver.clampWeightEyes = 0.45f;
                 return;
             }
 

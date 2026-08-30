@@ -753,7 +753,19 @@ public static class WorldSnapshotExporter
                 // Axe stays preferred (plays the Chop clip); knife is the
                 // fallback. ChopCrown still needs ChopWood, so it always shows
                 // the axe first and never falls through to the knife here.
-                return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.saw", "tool.knife");
+                //
+                // Bug #309: пила из этого списка убрана — после #300 она бревно
+                // НЕ рубит (только пилит на доски), а список показывал её выше
+                // ножа: девушка резала ножом, в руке рисовалась пила. Распилка
+                // (saw.log) узнаётся по id действия текущего шага плана и
+                // честно показывает пилу.
+                if (CurrentInteractionId(npc) == "saw.log" &&
+                    InventoryContains(npc, GearCatalog.Saw))
+                {
+                    return GearCatalog.Saw;
+                }
+
+                return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.knife");
 
             case InteractionType.Butcher:
                 return FirstCarried(npc, "tool.machete", "tool.knife");
@@ -910,6 +922,20 @@ public static class WorldSnapshotExporter
         }
 
         return false;
+    }
+
+    // Bug #309: id каталожного действия текущего шага плана — авторитетный
+    // ответ «распилка это или рубка», когда тип взаимодействия один (Process).
+    private static string CurrentInteractionId(NPCState npc)
+    {
+        var plan = npc.Plan;
+        if (plan == null || plan.Steps == null ||
+            plan.CurrentStepIndex < 0 || plan.CurrentStepIndex >= plan.Steps.Count)
+        {
+            return string.Empty;
+        }
+
+        return plan.Steps[plan.CurrentStepIndex].InteractionId ?? string.Empty;
     }
 
     // Preference list, best tool first (§79 added a fourth candidate to two of

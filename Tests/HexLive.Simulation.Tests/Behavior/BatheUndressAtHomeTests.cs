@@ -576,7 +576,8 @@ public sealed class BatheUndressAtHomeTests
             // 61 → 62 in §129/#237: persisted building owner faction
             // (door camp ownership survives camp merge/removal).
             // 62 → 63 in §121.11/#294: persistent per-NPC manual run tempo.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(63));
+            // 63 → 64 in §76.14/#304: девятый навык — Атлетика.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(64));
         });
     }
 

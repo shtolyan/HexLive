@@ -491,6 +491,8 @@ namespace HexLive.UnityPresentation.UI
             new() { Id = "Medicine", Key = "skill.medicine", Color = Good },
             new() { Id = "Survival", Key = "skill.survival", Color = Comfort },
             new() { Id = "Social", Key = "skill.social", Color = Social },
+            // §76.14 (bug #304): бег и физическая работа.
+            new() { Id = "Athletics", Key = "skill.athletics", Color = Energy },
         };
 
         // §76: which page of the middle column is showing. Needs is the default

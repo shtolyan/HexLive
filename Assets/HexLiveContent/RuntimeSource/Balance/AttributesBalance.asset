@@ -39,6 +39,9 @@ MonoBehaviour:
   attributeTrainPerHit: 0.0004
   attributeTrainPerDamage: 0.004
   attributeTrainPerRunTick: 0.00002
+  athleticsBreathGain: 0.5
+  athleticsEnduranceTrainGain: 1
+  skillXpPerRunTick: 0.0002
   attributeTrainPerHardshipTick: 0.00005
   attributeHardshipGate: 0.7
   skillXpPerHit: 0.004

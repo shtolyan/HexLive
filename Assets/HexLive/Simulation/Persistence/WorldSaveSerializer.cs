@@ -147,7 +147,8 @@ public static class WorldSaveSerializer
     // v63 (§121.11, #294): постоянный темп ручных приказов per NPC. Двойного
     // клика больше нет, темп — настройка персонажа, и она обязана переживать
     // выход из игры. Блоб ≤62 читается новым умолчанием «бегом».
-    public const int BlobVersion = 63;
+    // v64 (§76.14, bug #304): девятый навык — Атлетика.
+    public const int BlobVersion = 64;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1287,6 +1288,7 @@ public static class WorldSaveSerializer
         w.Write(npc.Skills.Medicine);
         w.Write(npc.Skills.Survival);
         w.Write(npc.Skills.Social);
+        w.Write(npc.Skills.Athletics); // v64, §76.14
 
         // §28.15C v3 (v20): каким клипом она упала. Пишется для КАЖДОГО тела,
         // живого и мёртвого, одним и тем же куском — тело мёртвой это тот же
@@ -1830,6 +1832,8 @@ public static class WorldSaveSerializer
             npc.Skills.Medicine = r.ReadSingle();
             npc.Skills.Survival = r.ReadSingle();
             npc.Skills.Social = r.ReadSingle();
+            // §76.14 (v64): Атлетика; старые сейвы поднимаются с нулём.
+            npc.Skills.Athletics = version >= 64 ? r.ReadSingle() : 0f;
         }
 
         // §28.15C v3: до v20 мёртвых не существовало как сущностей — тело

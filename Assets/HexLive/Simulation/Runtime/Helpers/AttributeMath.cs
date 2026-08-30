@@ -190,8 +190,13 @@ internal static class AttributeMath
         Mult(npc, AttributeKind.Agility, Spec76.TurnSpeedGain);
 
     // §71 sprint reserve: the endurant girl spends breath slower.
+    // §76.14 (bug #304): к врождённой Выносливости добавляется выученная
+    // Атлетика — дыхание бегуньи тратится ещё до 2× медленнее на максимуме.
     public static float BreathDrainMult(NPCState npc) =>
-        System.MathF.Max(0f, InverseMult(npc, AttributeKind.Endurance, Spec76.BreathGain));
+        System.MathF.Max(0f, InverseMult(npc, AttributeKind.Endurance, Spec76.BreathGain)) *
+        System.MathF.Max(0f, 1f - (Spec76.SkillsEnabled
+            ? MathUtil.Clamp01(npc.Skills.Athletics) * Spec76.AthleticsBreathGain
+            : 0f));
 
     // ---- Body upkeep --------------------------------------------------------
 

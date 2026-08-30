@@ -15,7 +15,8 @@ public enum SkillKind
     Cooking,      // готовка — CookMeat
     Medicine,     // врачевание — TreatSelf / TreatOther / MedicateOther
     Survival,     // выживание — fire tending, bottle filling, butchering
-    Social        // общение — Talk / ConsoleOther
+    Social,       // общение — Talk / ConsoleOther
+    Athletics     // §76.14 (bug #304) — бег и физическая работа: дыхание, выносливость
 }
 
 // Spec §76: eight floats in 0..1, displayed to the player as levels 0..10.
@@ -33,7 +34,8 @@ public sealed class SkillSet
         SkillKind.Cooking,
         SkillKind.Medicine,
         SkillKind.Survival,
-        SkillKind.Social
+        SkillKind.Social,
+        SkillKind.Athletics
     };
 
     // Everyone starts a rank amateur — 0 means "no bonus at all", so an
@@ -54,6 +56,10 @@ public sealed class SkillSet
 
     public float Social { get; set; }
 
+    // §76.14 (bug #304): бег и физическая работа. Дольше дыхание при беге,
+    // быстрее раскрывается Выносливость.
+    public float Athletics { get; set; }
+
     public float Get(SkillKind kind) => kind switch
     {
         SkillKind.Combat => Combat,
@@ -64,6 +70,7 @@ public sealed class SkillSet
         SkillKind.Medicine => Medicine,
         SkillKind.Survival => Survival,
         SkillKind.Social => Social,
+        SkillKind.Athletics => Athletics,
         _ => 0f
     };
 
@@ -79,6 +86,7 @@ public sealed class SkillSet
             case SkillKind.Medicine: Medicine = value; break;
             case SkillKind.Survival: Survival = value; break;
             case SkillKind.Social: Social = value; break;
+            case SkillKind.Athletics: Athletics = value; break;
         }
     }
 }

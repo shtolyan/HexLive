@@ -78,6 +78,12 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 0.05f)] public float attributeTrainPerDamage = 0.004f;
         [Tooltip("Прирост Выносливости за быстрый тик бега. Только на бегу: шаг ничего не стоит и ничему не учит.")]
         [Range(0f, 0.001f)] public float attributeTrainPerRunTick = 0.00002f;
+        [Tooltip("§76.14: расход дыхания при беге × (1 − Атлетика × gain).")]
+        [Range(0f, 1f)] public float athleticsBreathGain = 0.5f;
+        [Tooltip("§76.14: тренировка Выносливости от бега × (1 + Атлетика × gain).")]
+        [Range(0f, 3f)] public float athleticsEnduranceTrainGain = 1;
+        [Tooltip("§76.14: XP Атлетики за тик настоящего бега.")]
+        [Range(0f, 0.005f)] public float skillXpPerRunTick = 0.0002f;
         [Tooltip("Прирост Неприхотливости за медленный тик, проведённый в нужде. Единственный её учитель — лишения.")]
         [Range(0f, 0.002f)] public float attributeTrainPerHardshipTick = 0.00005f;
         [Tooltip("Насколько глубоко в красное должна уйти нужда, чтобы считаться лишением. Сытая колония Неприхотливость не тренирует вовсе.")]

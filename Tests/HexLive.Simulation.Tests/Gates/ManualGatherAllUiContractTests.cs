@@ -25,8 +25,12 @@ public sealed class ManualGatherAllUiContractTests
             Assert.That(adapter, Does.Contain(
                 "new InteractCommand(\n                        actor, new ObjectId(objectId), type, interactionId)"),
                 "Одиночное «Подобрать» обязано остаться прежним InteractCommand.");
-            Assert.That(adapter, Does.Contain("if (type == InteractionType.PickUp)"),
-                "Второй пункт вешается на действие подбора, а не на весь каталог.");
+            // Bug #331: у вертела мясо и так берётся по кусочку — «собрать
+            // все» там не предлагается.
+            Assert.That(adapter, Does.Contain(
+                "if (type == InteractionType.PickUp && interactionId != \"take.from.spit\")"),
+                "Второй пункт вешается на действие подбора (кроме вертела), " +
+                "а не на весь каталог.");
             Assert.That(adapter, Does.Contain("Loc.Get(\"menu.gather_all\")"),
                 "§58: подпись пункта — термин I2, а не строка в C#.");
             Assert.That(adapter, Does.Contain(
@@ -41,7 +45,8 @@ public sealed class ManualGatherAllUiContractTests
     {
         var adapter = Adapter();
         var entry = adapter.Substring(adapter.IndexOf(
-            "if (type == InteractionType.PickUp)", System.StringComparison.Ordinal));
+            "if (type == InteractionType.PickUp && interactionId != \"take.from.spit\")",
+            System.StringComparison.Ordinal));
         entry = entry.Substring(0, entry.IndexOf('}'));
 
         Assert.That(entry, Does.Not.Contain("Count"),

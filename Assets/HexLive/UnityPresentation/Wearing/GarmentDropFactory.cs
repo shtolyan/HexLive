@@ -98,6 +98,12 @@ public static class GarmentDropFactory
                 continue;
             }
 
+            // Bug #303: рукавная вещь (кофта, рубашка, куртка) не лежит и не
+            // висит Т-позой — плечевые кости временно опускаются, поза
+            // запекается (приём перчаток выше), кости восстанавливаются.
+            var bakedSleeves = !hangingGloves &&
+                TryBakeLoweredSleeves(source, ref mesh);
+
             var piece = new GameObject(mesh.name);
             piece.transform.SetParent(root.transform, false);
             if (flatten)
@@ -120,7 +126,7 @@ public static class GarmentDropFactory
             // variant (for example a coloured T-shirt) renders with the
             // prototype materials only after it is taken off or washes ashore.
             view.AddComponent<MeshRenderer>().sharedMaterials = MaterialsForDrop(source, definitionId);
-            if (bakedGloveMesh) TrackGeneratedMesh(root, mesh);
+            if (bakedGloveMesh || bakedSleeves) TrackGeneratedMesh(root, mesh);
 
             pieces.Add(piece.transform);
             widths.Add(mesh.bounds.size.x);
@@ -166,6 +172,77 @@ public static class GarmentDropFactory
 
     private static bool IsPairedHandwear(string definitionId) =>
         GarmentStorageCategories.IsPairedHandwear(definitionId);
+
+    // ── Bug #303: опущенные рукава ───────────────────────────────────────
+    //
+    // Насколько опускается плечо из Т-позы (вердикт игрока: «опусти руки»,
+    // ~90°; 80° оставляет рукавам естественный зазор от боков).
+    private const float SleeveDropDegrees = 80f;
+
+    // Меш «с рукавами» — тот, что тянется по X заметно дальше корпуса.
+    // Безрукавка ~0.25 half-width, короткий рукав ~0.4, длинный ~0.8; порог
+    // отделяет и широкие платья без рукавов (их плечевые веса ронять нельзя —
+    // осядут бока подола).
+    private const float SleeveHalfWidthThreshold = 0.32f;
+
+    /// <summary>
+    /// Временно опускает плечевые кости DAZ-скелета вещи, запекает позу в
+    /// новый меш (приём перчаток) и восстанавливает кости в точности. Ось не
+    /// угадывается по локальным осям кости (урок HEEL_POSE_SPEC: импорт может
+    /// переставить оси) — поворот задаётся в мировых осях рендерера, вокруг
+    /// его forward, знак — по стороне плеча от середины тела.
+    /// </summary>
+    private static bool TryBakeLoweredSleeves(SkinnedMeshRenderer source, ref Mesh mesh)
+    {
+        if (mesh == null || mesh.bounds.extents.x < SleeveHalfWidthThreshold)
+        {
+            return false;
+        }
+
+        Transform left = null;
+        Transform right = null;
+        var bones = source.bones;
+        for (var i = 0; i < bones.Length; i++)
+        {
+            var bone = bones[i];
+            if (bone == null) continue;
+            if (bone.name == "lShldrBend") left = bone;
+            else if (bone.name == "rShldrBend") right = bone;
+        }
+
+        if (left == null && right == null)
+        {
+            return false;
+        }
+
+        var forward = source.transform.forward;
+        var centerX = source.transform.position.x;
+        var savedLeft = left != null ? left.rotation : Quaternion.identity;
+        var savedRight = right != null ? right.rotation : Quaternion.identity;
+        try
+        {
+            LowerShoulder(left, forward, centerX);
+            LowerShoulder(right, forward, centerX);
+            var baked = new Mesh { name = $"{mesh.name} sleeves-down" };
+            source.BakeMesh(baked);
+            mesh = baked;
+            return true;
+        }
+        finally
+        {
+            // Кости — общий шаблон гардероба: вернуть позу в точности, иначе
+            // следующий потребитель (примерка, другой дроп) получит её кривой.
+            if (left != null) left.rotation = savedLeft;
+            if (right != null) right.rotation = savedRight;
+        }
+    }
+
+    private static void LowerShoulder(Transform bone, Vector3 forward, float centerX)
+    {
+        if (bone == null) return;
+        var sign = bone.position.x >= centerX ? -1f : 1f;
+        bone.rotation = Quaternion.AngleAxis(sign * SleeveDropDegrees, forward) * bone.rotation;
+    }
 
     private static bool TryCreateHangingGlovePair(
         Transform parent, Mesh source, SkinnedMeshRenderer renderer, string definitionId,

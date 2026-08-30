@@ -22,7 +22,7 @@ public static class ContentEndpoint
             if (!string.IsNullOrWhiteSpace(server) &&
                 Uri.TryCreate(server, UriKind.Absolute, out _))
             {
-                return FromGameServer(server);
+                return EditorFriendly(FromGameServer(server));
             }
 
             // Registry/music start while the main menu is still open, before
@@ -30,8 +30,30 @@ public static class ContentEndpoint
             // localhost build sidecar: the normal bootstrap source is prod.
             // A developer who really runs a local Asset API opts in explicitly
             // with -hexlive-assets.
-            return FromGameServer(ServerBook.ProductionUrl);
+            return EditorFriendly(FromGameServer(ServerBook.ProductionUrl));
         }
+    }
+
+    /// <summary>
+    /// РЕДАКТОР не умеет в прод-HTTPS: UnityTls не проходит цепочку
+    /// Let's Encrypt-сертификата (Curl error 35), и каждая шторка вешалась
+    /// на «Проверяем …». Внутри редактора публичный HTTPS-host подменяется
+    /// legacy-HTTP origin ТОГО ЖЕ сервера (Kestrel на 5123 — §152.4 держит
+    /// его именно на переходный период). Только прод-host: локальные и свои
+    /// сервера не трогаются; Player этой ветки не имеет вовсе.
+    /// </summary>
+    private static string EditorFriendly(string endpoint)
+    {
+#if UNITY_EDITOR
+        var productionHost = new Uri(ServerBook.ProductionUrl, UriKind.Absolute).Host;
+        if (endpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+            new Uri(endpoint, UriKind.Absolute).Host.Equals(
+                productionHost, StringComparison.OrdinalIgnoreCase))
+        {
+            return FromGameServer(ServerBook.LegacyProductionUrl);
+        }
+#endif
+        return endpoint;
     }
 
     private static string FromGameServer(string server)

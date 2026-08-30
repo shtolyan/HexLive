@@ -24,7 +24,10 @@ public static class ServerBook
     // §152.4: production gained TLS after the atomic-content rollout. Keep the
     // exact old address working for saved recents and command-line/menu input,
     // but never let a release Player derive a plain-http Asset API from it.
-    private const string LegacyProductionUrl = "ws://62.146.235.120:5123/watch";
+    // internal: РЕДАКТОР — исключение (ContentEndpoint): его UnityTls не
+    // проходит цепочку прод-сертификата (Curl 35), и HTTPS Asset API вешал
+    // каждую шторку; Player этой константой по-прежнему не пользуется.
+    internal const string LegacyProductionUrl = "ws://62.146.235.120:5123/watch";
     public const string ProductionUrl =
         "wss://vmi3529459.contaboserver.net/watch";
 

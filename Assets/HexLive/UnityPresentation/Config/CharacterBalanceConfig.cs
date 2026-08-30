@@ -55,6 +55,8 @@ namespace HexLive.UnityPresentation.Config
         public bool loopEscapeEnabled = true;
         [Tooltip("Окно подсчёта попыток. 1200 = полдня игрового цикла событий (EventCycleTicks 2400).")]
         [Range(200, 9600)] public int loopWindowTicks = 1200;
+        [Tooltip("#326: «тихое» зависание — план есть, исполнения и движения нет столько тиков; дальше план сносится лестницей петель.")]
+        [Range(100, 4800)] public int loopStalledTicks = 400;
         [Tooltip("Sisyphus: столько раз взялась за ОДИН прицел (цель+объект) внутри окна, не доведя ни разу. Четыре — бюджет ретраев маршрута; пятая = «сюда ходить бессмысленно».")]
         [Range(2, 20)] public int loopRepeatAttempts = 5;
         [Tooltip("Oscillation: столько смен содержательной цели туда-обратно (A→B→A = два) без единого завершения. Шесть — три полных качания.")]

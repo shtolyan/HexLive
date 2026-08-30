@@ -203,8 +203,10 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _invDetailStats;
         private VisualElement _invPrimaryAction;
         private VisualElement _invDropAction;
+        private VisualElement _invFillAction; // §55.4 (bug #317)
         private Label _invPrimaryActionLabel;
         private Label _invDropActionLabel;
+        private Label _invFillActionLabel;
         private Label _invReadOnlyLabel;
         private int _inventoryActorId = -1;
         private bool _inventoryMutable;
@@ -2808,6 +2810,18 @@ namespace HexLive.UnityPresentation.UI
             _invDropActionLabel.pickingMode = PickingMode.Ignore;
             _invDropAction.Add(_invDropActionLabel);
             actions.Add(_invDropAction);
+
+            // §55.4 (bug #317): «Наполнить» — перелить воду вскрытых кокосов
+            // в выбранную бутылку небыстрым процессом (FillVesselCommand).
+            _invFillAction = InventoryActionButton(EnqueueFillVessel);
+            _invFillAction.style.marginLeft = 8f;
+            _invFillActionLabel = new Label(Loc.Get("inv.action.fill"));
+            _invFillActionLabel.style.color = Text;
+            _invFillActionLabel.style.fontSize = 13f;
+            _invFillActionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _invFillActionLabel.pickingMode = PickingMode.Ignore;
+            _invFillAction.Add(_invFillActionLabel);
+            actions.Add(_invFillAction);
             parent.Add(actions);
 
             _invReadOnlyLabel = new Label(Loc.Get("inv.readonly"));
@@ -4171,6 +4185,11 @@ namespace HexLive.UnityPresentation.UI
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invDropAction.style.display = _inventoryMutable && !(_outfitLockedNow && worn)
                 ? DisplayStyle.Flex : DisplayStyle.None;
+            // §55.4 (bug #317): «Наполнить» — только у неполной бутылки, когда
+            // в карманах есть кокосовая вода для перелива.
+            _invFillAction.style.display = _inventoryMutable && CanFillVessel(id, worn, water)
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            _invFillActionLabel.text = Loc.Get("inv.action.fill");
             _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPrimaryActionLabel.text = Loc.Get(worn
@@ -4182,6 +4201,42 @@ namespace HexLive.UnityPresentation.UI
             _invDetailView.style.display = DisplayStyle.Flex;
             _invDetailView.BringToFront();
             _invDetailView.schedule.Execute(PositionInventoryDetail);
+        }
+
+        // §55.4 (bug #317): «Наполнить» доступна у неполной бутылки при
+        // кокосовой воде в карманах — зеркало симового VesselTransferMath
+        // по данным снапшота (InventoryWater: id -> amount/capacity).
+        private static bool CanFillVessel(
+            string id, bool worn, Dictionary<string, WaterContainerState> water)
+        {
+            if (worn || id != GearCatalog.Bottle)
+            {
+                return false;
+            }
+
+            var hasRoom = !water.TryGetValue(GearCatalog.Bottle, out var bottle) ||
+                bottle.Amount < bottle.Capacity;
+            return hasRoom &&
+                water.TryGetValue("food.coconut_pierced", out var coconut) &&
+                coconut.Amount > 0f;
+        }
+
+        private void EnqueueFillVessel()
+        {
+            if (!_inventoryMutable || _runner == null || _invSelectedId == null ||
+                _inventoryActorId < 0 || _invSelectedWorn) return;
+            var snapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
+            var npc = snapshot != null ? FindNpc(snapshot, _inventoryActorId) : null;
+            if (npc == null) return;
+            var index = _invSelectedSourceIndex >= 0
+                ? _invSelectedSourceIndex
+                : FindCarriedSourceIndex(npc, _invSelectedId);
+            if (index < 0) return;
+            _runner.EnqueueCommand(new FillVesselCommand(
+                new HexLive.Simulation.Common.EntityId(_inventoryActorId),
+                new InventoryItemRef(InventoryItemSource.Carried, index, _invSelectedId)));
+            HideItemDetail();
+            _invSig = null;
         }
 
         private void EnqueueInventoryAction(InventoryAction action)
@@ -7676,6 +7731,7 @@ namespace HexLive.UnityPresentation.UI
             if (_outsiderRosterHeader != null)
                 _outsiderRosterHeader.text = Loc.Get("roster.outsiders");
             if (_invDropActionLabel != null) _invDropActionLabel.text = Loc.Get("inv.action.drop");
+            if (_invFillActionLabel != null) _invFillActionLabel.text = Loc.Get("inv.action.fill");
             if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
             if (_invPrimaryActionLabel != null && _invSelectedId != null)
                 _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn

@@ -22062,6 +22062,14 @@ MonoBehaviour:
       - "\u0412\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: inv.action.fill
+      TermType: 0
+      Description: 
+      Languages:
+      - Fill
+      - "\u041D\u0430\u043F\u043E\u043B\u043D\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
     - Term: inv.readonly
       TermType: 0
       Description: 

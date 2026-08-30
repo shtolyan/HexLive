@@ -122,6 +122,9 @@ public static class ContentIds
     public const string CarcassAnimal = "carcass.animal";
     public const string GraveNpc = "grave.npc";
     public const string PalmStump = "stump.palm";
+
+    // §54.2/#315: молодая пальма — то, что вырастает из пня.
+    public const string PalmSmall = "tree.palm_small";
 }
 
 }

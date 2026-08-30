@@ -1071,7 +1071,8 @@ public static class PrototypeContentCatalog
             {
                 Id = "stump.palm",
                 DisplayName = "Stump",
-                ObstacleRadius = 0.3f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
+                // Bug #315: пень на 15% уже (вердикт игрока; высота прежняя).
+                ObstacleRadius = 0.255f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 Interactions =
                 {
                     new InteractionDefinition

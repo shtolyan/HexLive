@@ -55,6 +55,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(1f, 60f)] public float fireBurnPerSlowTick = 16f;
         [Tooltip("Через сколько тиков сгнивает неподобранный фрукт на земле.")]
         [Range(300, 9600)] public int fruitRotTicks = 2400;
+        [Tooltip("#315: из пня вырастает новая пальма через столько тиков (сутки = 24000).")]
+        [Range(24000, 2400000)] public int stumpRegrowTicks = 480000;
         [Tooltip("§29A r2: фрукт падает не ближе стольких радиусов ствола (ObstacleRadius) от дерева. Один радиус — непроходимое кольцо, второй — отступ падения. 0 = без отступа.")]
         [Range(0f, 4f)] public float fruitDropClearanceFactor = 2f;
 

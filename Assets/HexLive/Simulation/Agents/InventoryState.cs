@@ -144,17 +144,26 @@ public sealed class InventoryState
     public static int StackSizeFor(string definitionId) =>
         definitionId == "resource.palm_leaf" ? LeafStackSize :
         IsMeatStack(definitionId) ? MeatStackSize :
+        IsFoodPortionStack(definitionId) ? MeatStackSize :
         IsMedicineStack(definitionId) ? MedicineStackSize : StackSize;
 
     public static bool IsStackable(string definitionId) =>
         !string.IsNullOrEmpty(definitionId) &&
         (definitionId.StartsWith("resource.", System.StringComparison.Ordinal) ||
          IsMeatStack(definitionId) ||
+         IsFoodPortionStack(definitionId) ||
          IsMedicineStack(definitionId));
 
     private static bool IsMeatStack(string definitionId) =>
         definitionId == ContentIds.MeatRaw ||
         definitionId == ContentIds.MeatCooked;
+
+    // §55.4 (bug #317): одинаковые половинки кокоса — порции еды БЕЗ
+    // инстансного состояния (вода живёт в pierced-кокосе, не в половинке),
+    // поэтому они складываются в одну ячейку той же глубины, что мясо.
+    // Pierced-кокос намеренно НЕ здесь: его ResourceAmount различает инстансы.
+    private static bool IsFoodPortionStack(string definitionId) =>
+        definitionId == ContentIds.CoconutOpen;
 
     private static bool IsMedicineStack(string definitionId) =>
         definitionId == "item.bandage" ||

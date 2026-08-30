@@ -168,6 +168,27 @@ public sealed class VesselTransferTests
     }
 
     [Test]
+    public void CoconutHalvesStackIntoOneSlotButPiercedOnesDoNot()
+    {
+        // §55.4 (bug #317): половинки кокоса — порции еды без инстансного
+        // состояния, складываются в ячейку глубиной как мясо. Pierced-кокос
+        // НЕ стакуется: его ResourceAmount различает инстансы.
+        Assert.That(InventoryState.IsStackable(ContentIds.CoconutOpen), Is.True);
+        Assert.That(InventoryState.StackSizeFor(ContentIds.CoconutOpen),
+            Is.EqualTo(InventoryState.MeatStackSize));
+        Assert.That(InventoryState.IsStackable(ContentIds.CoconutPierced), Is.False);
+
+        var inventory = new InventoryState();
+        for (var i = 0; i < 4; i++)
+        {
+            inventory.Items.Add(new ItemInstance(ContentIds.CoconutOpen));
+        }
+
+        Assert.That(inventory.UsedSlots, Is.EqualTo(1),
+            "Четыре одинаковые половинки занимают одну ячейку со счётчиком.");
+    }
+
+    [Test]
     public void PartialBottleKeepsItsWaterKindAndTopsUpOneToOne()
     {
         var engine = TestWorld.CreateEngine();

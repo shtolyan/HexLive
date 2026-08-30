@@ -848,7 +848,9 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             // упростить («давай даже не будем считать»), а сколько там листьев
             // — знает мир, а не меню прошлого кадра. Приказ сам разберёт гекс
             // по одному предмету за раз.
-            if (type == InteractionType.PickUp)
+            // Bug #331: у вертела «собрать все» лишено смысла — мясо и так
+            // берётся по кусочку (сам пункт называется «Взять кусочек»).
+            if (type == InteractionType.PickUp && interactionId != "take.from.spit")
             {
                 _entries.Add(new ContextMenuEntry(
                     Loc.Get("menu.gather_all"),

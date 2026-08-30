@@ -354,6 +354,22 @@ namespace HexLive.UnityPresentation.UI
                         return;
                     }
 
+                    // §150.4 r2 (чип после #244 r3): диск прозрачен через тот
+                    // же двухпроходный black/white matte, что у импосторов —
+                    // URP с preserveFramebufferAlpha=0 убивает альфу очистки,
+                    // и прежний одиночный кадр всегда отдавал a=255 (плотный
+                    // тёмный круг вместо вырезанной головы). Съёмка
+                    // синхронная, с ручной изоляцией и вспышкой на оба
+                    // прохода; без поддержки RenderRequest остаётся прежний
+                    // однокадровый путь (тестовые сцены без SRP).
+                    var matteRequest = new RenderPipeline.StandardRequest();
+                    if (RenderPipeline.SupportsRenderRequest(_camera, matteRequest))
+                    {
+                        CaptureWithMatte(_pendingNpcId, matteRequest);
+                        FinishBake();
+                        return;
+                    }
+
                     _camera.enabled = true;
                     _phase = BakePhase.Rendering;
                     return;
@@ -518,13 +534,47 @@ namespace HexLive.UnityPresentation.UI
             _nextBakeTime = Time.unscaledTime + BakeSpacingSeconds;
         }
 
-        private void Capture(int npcId)
+        private void CaptureWithMatte(int npcId, RenderPipeline.StandardRequest request)
         {
             if (npcId < 0)
             {
                 return;
             }
 
+            var texture = EnsurePortraitTexture(npcId);
+            request.destination = _scratch;
+            IsolatePortraitSubject();
+            _flash.enabled = true;
+            try
+            {
+                // Освещение обоих проходов идентично (вспышка включена на
+                // оба) — matte честен: различается только фон.
+                var black = Views.ObjectImpostor.CaptureMatte(
+                    _camera, request, Color.black, _scratch, TextureSize);
+                var white = Views.ObjectImpostor.CaptureMatte(
+                    _camera, request, Color.white, _scratch, TextureSize);
+                if (black == null || white == null || black.Length != white.Length)
+                {
+                    return;
+                }
+
+                var pixels = new Color32[black.Length];
+                Views.ObjectImpostor.ComposeMattePixels(black, white, pixels);
+                texture.SetPixels32(pixels);
+            }
+            finally
+            {
+                _flash.enabled = false;
+                RestorePortraitSubjectAfterRender();
+            }
+
+            ApplyCircleMask(texture);
+            texture.Apply(false);
+            RememberBake(npcId);
+        }
+
+        private Texture2D EnsurePortraitTexture(int npcId)
+        {
             if (!_portraits.TryGetValue(npcId, out var texture) || texture == null)
             {
                 texture = new Texture2D(TextureSize, TextureSize, TextureFormat.RGBA32, false)
@@ -535,22 +585,11 @@ namespace HexLive.UnityPresentation.UI
                 _portraits[npcId] = texture;
             }
 
-            var previous = RenderTexture.active;
-            RenderTexture.active = _scratch;
-            texture.ReadPixels(new Rect(0f, 0f, TextureSize, TextureSize), 0, 0, false);
-            RenderTexture.active = previous;
+            return texture;
+        }
 
-            // §90: круглая маска. Квадратный кадр с однотонной подложкой рядом
-            // с круглыми аватарками отношений выглядит инородно, а над головой
-            // он ещё и читается как «плашка», а не как лицо.
-            //
-            // Маска пишется В САМУ ТЕКСТУРУ, а не поверх шейдером: снимок и так
-            // делается раз в игровые сутки, поэтому дешевле один раз обнулить
-            // альфу по углам, чем гонять отдельный материал и в пузыре, и в
-            // трёх местах панели.
-            ApplyCircleMask(texture);
-            texture.Apply(false);
-
+        private void RememberBake(int npcId)
+        {
             // Одна строка на первый снимок каждой: если кадр снова окажется не
             // тем, разбор начнётся с чисел, а не с гипотезы.
             if (!_bakedAtTick.ContainsKey(npcId))
@@ -570,6 +609,35 @@ namespace HexLive.UnityPresentation.UI
                 Destroy(stale);
                 _sprites.Remove(npcId);
             }
+        }
+
+        // Legacy-затвор без RenderRequest (тестовые сцены вне SRP): один кадр
+        // включённой камеры, альфа кадра непрозрачна — известное ограничение.
+        private void Capture(int npcId)
+        {
+            if (npcId < 0)
+            {
+                return;
+            }
+
+            var texture = EnsurePortraitTexture(npcId);
+
+            var previous = RenderTexture.active;
+            RenderTexture.active = _scratch;
+            texture.ReadPixels(new Rect(0f, 0f, TextureSize, TextureSize), 0, 0, false);
+            RenderTexture.active = previous;
+
+            // §90: круглая маска. Квадратный кадр с однотонной подложкой рядом
+            // с круглыми аватарками отношений выглядит инородно, а над головой
+            // он ещё и читается как «плашка», а не как лицо.
+            //
+            // Маска пишется В САМУ ТЕКСТУРУ, а не поверх шейдером: снимок и так
+            // делается раз в игровые сутки, поэтому дешевле один раз обнулить
+            // альфу по углам, чем гонять отдельный материал и в пузыре, и в
+            // трёх местах панели.
+            ApplyCircleMask(texture);
+            texture.Apply(false);
+            RememberBake(npcId);
         }
 
         // Мягкий край в один пиксель: жёсткая обрезка даёт «лесенку» по кругу,
@@ -597,6 +665,12 @@ namespace HexLive.UnityPresentation.UI
                     var i = y * size + x;
                     var a = d >= radius ? 0f : 1f - (d - inner) / (radius - inner);
                     var p = pixels[i];
+                    // §150.4 r2: текстура диска ПРЕМУЛЬТИПЛИРОВАНА (материал
+                    // импостора смешивает One/OneMinusSrcAlpha) — маска обязана
+                    // гасить и RGB, иначе край получает светлую кайму.
+                    p.r = (byte)(p.r * a);
+                    p.g = (byte)(p.g * a);
+                    p.b = (byte)(p.b * a);
                     p.a = (byte)(p.a * a);
                     pixels[i] = p;
                 }

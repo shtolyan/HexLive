@@ -370,33 +370,14 @@ public sealed class ObjectImpostor : MonoBehaviour
                 return false;
             }
 
+            // #244 r3: RGB чёрного прохода — ПРЕМУЛЬТИПЛИЦИРОВАННЫЙ цвет, и
+            // он остаётся таким НАМЕРЕННО (распремультипликация чинила кайму
+            // на мипе 0, но ломала минификацию: на мипах 4-6 box-фильтр
+            // усреднял альфу с фоном выше катофа — квад рисовался тёмным
+            // квадратом целиком). Альфа — в линейном свете. Математика общая
+            // с фотографом портретов — ComposeMattePixels.
             var pixels = new Color32[black.Length];
-            for (var i = 0; i < pixels.Length; i++)
-            {
-                // #244 r3: альфа считается в ЛИНЕЙНОМ свете — проект Linear,
-                // а RT отдаёт sRGB-байты, и дельта по ним занижала мягкие
-                // края вдвое (a=0.5 читалась как 0.26).
-                var deltaLinear = Mathf.Max(
-                    Mathf.GammaToLinearSpace(white[i].r / 255f) -
-                    Mathf.GammaToLinearSpace(black[i].r / 255f),
-                    Mathf.Max(
-                        Mathf.GammaToLinearSpace(white[i].g / 255f) -
-                        Mathf.GammaToLinearSpace(black[i].g / 255f),
-                        Mathf.GammaToLinearSpace(white[i].b / 255f) -
-                        Mathf.GammaToLinearSpace(black[i].b / 255f)));
-                var alpha = (byte)Mathf.Clamp(
-                    Mathf.RoundToInt((1f - deltaLinear) * 255f), 0, 255);
-
-                // #244 r3: RGB чёрного прохода — ПРЕМУЛЬТИПЛИЦИРОВАННЫЙ цвет,
-                // и он остаётся таким НАМЕРЕННО. Прежняя распремультипликация
-                // чинила кайму на мипе 0, но ломала минификацию: на мипах 4-6
-                // (дистанции импостора 64-260 wu у мелких вещей) box-фильтр
-                // усреднял альфу с фоном выше катофа 0.4 — clip() пропускал
-                // весь квад тёмным квадратом. Премультиплированная альфа
-                // математически корректна под фильтром мипов; блендинг
-                // One/OneMinusSrcAlpha в материале завершает уравнение.
-                pixels[i] = new Color32(black[i].r, black[i].g, black[i].b, alpha);
-            }
+            ComposeMattePixels(black, white, pixels);
 
             texture = new Texture2D(BakeTextureSize, BakeTextureSize,
                 TextureFormat.RGBA32, mipChain: true)
@@ -428,7 +409,15 @@ public sealed class ObjectImpostor : MonoBehaviour
     }
 
     private static Color32[]? CaptureMatte(
-        Camera camera, RenderPipeline.StandardRequest request, Color background)
+        Camera camera, RenderPipeline.StandardRequest request, Color background) =>
+        CaptureMatte(camera, request, background, _bakeTarget!, BakeTextureSize);
+
+    /// <summary>Один matte-проход (#244): рендер с заданным фоном и чтение
+    /// пикселей. Общий с фотографом портретов (§150.4) — у того своя камера,
+    /// свой RT и свой размер кадра.</summary>
+    internal static Color32[]? CaptureMatte(
+        Camera camera, RenderPipeline.StandardRequest request, Color background,
+        RenderTexture target, int size)
     {
         camera.backgroundColor = background;
         RenderPipeline.SubmitRenderRequest(camera, request);
@@ -437,10 +426,10 @@ public sealed class ObjectImpostor : MonoBehaviour
         Texture2D? readback = null;
         try
         {
-            RenderTexture.active = _bakeTarget;
-            readback = new Texture2D(BakeTextureSize, BakeTextureSize,
+            RenderTexture.active = target;
+            readback = new Texture2D(size, size,
                 TextureFormat.RGBA32, mipChain: false);
-            readback.ReadPixels(new Rect(0, 0, BakeTextureSize, BakeTextureSize), 0, 0);
+            readback.ReadPixels(new Rect(0, 0, size, size), 0, 0);
             readback.Apply(updateMipmaps: false, makeNoLongerReadable: false);
             return readback.GetPixels32();
         }
@@ -452,6 +441,27 @@ public sealed class ObjectImpostor : MonoBehaviour
             {
                 Destroy(readback);
             }
+        }
+    }
+
+    /// <summary>#244 r3 matte-математика, общая с фотографом портретов:
+    /// премультиплированный RGB прямо из чёрного прохода + альфа в ЛИНЕЙНОМ
+    /// свете (дельта по sRGB-байтам занижала мягкие края вдвое).</summary>
+    internal static void ComposeMattePixels(Color32[] black, Color32[] white, Color32[] into)
+    {
+        for (var i = 0; i < into.Length; i++)
+        {
+            var deltaLinear = Mathf.Max(
+                Mathf.GammaToLinearSpace(white[i].r / 255f) -
+                Mathf.GammaToLinearSpace(black[i].r / 255f),
+                Mathf.Max(
+                    Mathf.GammaToLinearSpace(white[i].g / 255f) -
+                    Mathf.GammaToLinearSpace(black[i].g / 255f),
+                    Mathf.GammaToLinearSpace(white[i].b / 255f) -
+                    Mathf.GammaToLinearSpace(black[i].b / 255f)));
+            var alpha = (byte)Mathf.Clamp(
+                Mathf.RoundToInt((1f - deltaLinear) * 255f), 0, 255);
+            into[i] = new Color32(black[i].r, black[i].g, black[i].b, alpha);
         }
     }
 

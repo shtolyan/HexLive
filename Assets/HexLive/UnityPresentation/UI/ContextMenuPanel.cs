@@ -31,8 +31,9 @@ public sealed class ContextMenuEntry
 
     public string? DisabledHint { get; }
 
-    /// <summary>Bug #312: «опасный» пункт (кража) красится красным.</summary>
-    public bool Danger { get; init; }
+    /// <summary>Bug #312: «опасный» пункт (кража) красится красным.
+    /// set, а не init: Unity-профиль netstandard2.1 не несёт IsExternalInit.</summary>
+    public bool Danger { get; set; }
 }
 
 /// <summary>

@@ -278,21 +278,34 @@ public static class MeshRayPicker
         Vector3[] vertices, int[] triangles, Matrix4x4 localToWorld, Ray ray,
         out float distance)
     {
-        // Луч переводится в локальные координаты; параметр t у аффинного
-        // преобразования общий, а направление мирового луча нормировано —
-        // значит t и есть дистанция в мировых единицах.
+        // Луч переводится в локальные координаты. Bug #299: направление здесь
+        // НОРМИРУЕТСЯ. Крошечный авторский меш (доска — сантиметры в файле,
+        // ObjectFit компенсирует масштабом ×77) сжимал и направление луча, и
+        // рёбра треугольников, и детерминант Мёллера-Трумбора проваливался под
+        // абсолютный эпсилон «луч параллелен» на КАЖДОМ треугольнике — доска
+        // была непикаемой при идеальном попадании в габарит. С нормированным
+        // направлением локальный t — в локальных единицах; мировая дистанция
+        // восстанавливается делением на длину локального направления.
         var inverse = localToWorld.inverse;
         var origin = inverse.MultiplyPoint3x4(ray.origin);
         var direction = inverse.MultiplyVector(ray.direction);
+        var directionScale = direction.magnitude;
+        if (directionScale <= 0f)
+        {
+            distance = float.MaxValue;
+            return false;
+        }
+
+        direction /= directionScale;
         distance = float.MaxValue;
         var hit = false;
         for (var i = 0; i + 2 < triangles.Length; i += 3)
         {
             if (RayTriangle(origin, direction,
                     vertices[triangles[i]], vertices[triangles[i + 1]],
-                    vertices[triangles[i + 2]], out var t) && t < distance)
+                    vertices[triangles[i + 2]], out var t) && t / directionScale < distance)
             {
-                distance = t;
+                distance = t / directionScale;
                 hit = true;
             }
         }
@@ -304,9 +317,20 @@ public static class MeshRayPicker
         List<Vector3> vertices, List<int> triangles, int indexStart, int indexCount,
         Matrix4x4 localToWorld, Ray ray, out float distance)
     {
+        // Bug #299: та же нормировка, что в TryIntersectArrays — запечённый
+        // скиннинг живёт без масштаба (TRS без scale), так что здесь она
+        // тождественна, но пусть оба пути держат один инвариант.
         var inverse = localToWorld.inverse;
         var origin = inverse.MultiplyPoint3x4(ray.origin);
         var direction = inverse.MultiplyVector(ray.direction);
+        var directionScale = direction.magnitude;
+        if (directionScale <= 0f)
+        {
+            distance = float.MaxValue;
+            return false;
+        }
+
+        direction /= directionScale;
         distance = float.MaxValue;
         var hit = false;
         var end = Mathf.Min(indexStart + indexCount, triangles.Count);
@@ -314,9 +338,9 @@ public static class MeshRayPicker
         {
             if (RayTriangle(origin, direction,
                     vertices[triangles[i]], vertices[triangles[i + 1]],
-                    vertices[triangles[i + 2]], out var t) && t < distance)
+                    vertices[triangles[i + 2]], out var t) && t / directionScale < distance)
             {
-                distance = t;
+                distance = t / directionScale;
                 hit = true;
             }
         }
@@ -335,7 +359,12 @@ public static class MeshRayPicker
         var edge2 = c - a;
         var p = Vector3.Cross(direction, edge2);
         var det = Vector3.Dot(edge1, p);
-        if (det > -1e-8f && det < 1e-8f)
+        // Bug #299: эпсилон абсолютный, а det масштабируется квадратом длины
+        // ребра — у сантиметрового авторского меша он ~1e-6..1e-8 даже при
+        // нормированном направлении. 1e-12 оставляет отсев честно вырожденных
+        // треугольников; почти-параллельный луч с ненулевым det отфильтруют
+        // проверки u/v/t ниже.
+        if (det > -1e-12f && det < 1e-12f)
         {
             return false;
         }

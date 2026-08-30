@@ -5054,12 +5054,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var npc in snapshot.Npcs)
         {
-            // #146 rework: own colonists are player-owned bodies, not fog
-            // contacts. Hiding housemates made a talk target disappear while
-            // her selected partner spoke to empty space; clicking the missing
-            // roster entry then exempted that id and looked like a spawn.
-            if (!IsPlayerOwnedNpc(npc) &&
-                npc.Id.Value != selectedId && !FogSeesTile(npc.Tile))
+            // Bug #322 (вердикт игрока, отменяет широкую льготу #146): СВОИ
+            // тоже прячутся, выйдя из восприятия, — «ждём её и не знаем, что с
+            // ней», как с чужими. Видимыми остаются только выбранная и та, кем
+            // игрок непосредственно управляет; собеседница выбранной стоит в её
+            // радиусе восприятия и потому не исчезает (страх #146 не
+            // воспроизводится). Выбор скрытой из ростера её честно откроет —
+            // это взгляд игрока, а не спавн.
+            var exempt = npc.Id.Value == selectedId ||
+                (_runner != null && _runner.CanControlNpc(npc.Id));
+            if (!exempt && !FogSeesTile(npc.Tile))
             {
                 _fogHiddenNpcs.Add(npc.Id.Value);
             }

@@ -64,10 +64,16 @@ public sealed class SpearHandsTests
     public void OnlyTheHandLoadDrops_Bug278()
     {
         var (world, npc, keep) = Scene();
-        FillPockets(npc, keep);
+        // Брёвна подобраны РАНЬШЕ (лягут в карманы), листья — ПОЗЖЕ (кисть).
+        FillPockets(npc, keep - 1);
         for (var i = 0; i < 5; i++)
         {
             npc.Inventory.Items.Add(new ItemInstance(ContentIds.Log));
+        }
+
+        for (var i = 0; i < 48; i++)
+        {
+            npc.Inventory.Items.Add(new ItemInstance("resource.palm_leaf"));
         }
 
         var objectsBefore = world.Entities.Objects.Count;
@@ -76,18 +82,55 @@ public sealed class SpearHandsTests
 
         var logsLeft = npc.Inventory.Items.Count(
             i => i.DefinitionId == ContentIds.Log);
+        var leavesLeft = npc.Inventory.Items.Count(
+            i => i.DefinitionId == "resource.palm_leaf");
         var gained = world.Entities.Objects.Count - objectsBefore;
         Assert.Multiple(() =>
         {
-            Assert.That(npc.Inventory.UsedSlots, Is.LessThanOrEqualTo(keep),
-                "Руки обязаны освободиться под копьё.");
-            Assert.That(
-                npc.Inventory.Items.Count(i => i.DefinitionId == "tool.hammer"),
-                Is.EqualTo(keep), "Карманы/рюкзак не трогаются.");
-            Assert.That(gained, Is.EqualTo(5 - logsLeft),
-                "Каждое уроненное бревно — объект на земле; ничего не уничтожено.");
-            Assert.That(gained, Is.GreaterThan(0),
-                "Ноша рук обязана лечь на землю.");
+            Assert.That(logsLeft, Is.EqualTo(5),
+                "Bug #278 r2: брёвна лежат в карманах — их не роняют; кисти " +
+                "заполняются последними, снимать надо с конца списка.");
+            Assert.That(leavesLeft, Is.EqualTo(0),
+                "Охапка листьев в кисти — одна ячейка — падает целиком.");
+            Assert.That(gained, Is.EqualTo(48),
+                "Каждый уроненный лист — объект на земле; ничего не уничтожено.");
+        });
+    }
+
+    // Переполненный сверх ёмкости пакет: бой освобождает не больше ЯЧЕЕК,
+    // чем кистей, — перелив сверх Capacity лечит SpillOverflow, не драка.
+    [Test]
+    public void DropIsCappedAtHandCells_Bug278()
+    {
+        var (world, npc, keep) = Scene();
+        FillPockets(npc, keep);
+        for (var i = 0; i < 5; i++)
+        {
+            npc.Inventory.Items.Add(new ItemInstance(ContentIds.Log));
+        }
+
+        for (var i = 0; i < 5; i++)
+        {
+            npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+        }
+
+        for (var i = 0; i < 48; i++)
+        {
+            npc.Inventory.Items.Add(new ItemInstance("resource.palm_leaf"));
+        }
+
+        MobSystem.ReadySpearHands(world, npc);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Count(
+                    i => i.DefinitionId == ContentIds.Log),
+                Is.EqualTo(5),
+                "Освобождаются максимум handSlots ячеек — третий материал " +
+                "(из кармана) не трогается.");
+            Assert.That(npc.Inventory.Items.Count(
+                    i => i.DefinitionId == "tool.hammer"),
+                Is.EqualTo(keep), "Карманы не трогаются.");
         });
     }
 }

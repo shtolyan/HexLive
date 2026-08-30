@@ -596,6 +596,8 @@ namespace HexLive.UnityPresentation.Wearing
         private readonly Dictionary<string, float> _alpha = new(); // key -> current fade
         private readonly HashSet<string> _desired = new();
         private readonly List<string> _stale = new();
+        // Ключи-надгробия (Slot<0), снимаемые при позднем прилёте карты.
+        private readonly List<string> _tombstoneScratch = new();
         private int _lastStateHash;
 
         // ---- Spec 40.8-K: a flat cycle, spread out, plus a fresh lane ----
@@ -859,6 +861,47 @@ namespace HexLive.UnityPresentation.Wearing
             if (_body == null || _materials == null)
             {
                 return;
+            }
+
+            // Ретрай карты живёт ЗДЕСЬ, а не в PlaceNewStamps: тот зовётся
+            // только при needsPlacement, и у актрисы без свежих меток карта
+            // не переспрашивалась никогда — спеклы, синяки и кровь сквозь
+            // бинт (все гейтятся _map != null) молчали до перезапуска. Поздний
+            // прилёт карты будит полную перепечатку и снимает надгробия —
+            // они ставились по невозможности разместить, которая только что
+            // кончилась.
+            if (_map == null && _mapName.Length != 0 && Time.unscaledTime >= _nextMapRetryAt)
+            {
+                _nextMapRetryAt = Time.unscaledTime + 3f;
+                _map = PaintPointMap.Load(_mapName, _mapVertexCount);
+                if (_map != null)
+                {
+                    if (_map.HasProjectedFrames)
+                    {
+                        _posMaps = SkinPositionMapSet.Load(
+                            $"skinpos_{_mapName.Substring(5)}", _mapVertexCount);
+                    }
+
+                    _tombstoneScratch.Clear();
+                    foreach (var pair in _stamps)
+                    {
+                        if (pair.Value.Slot < 0)
+                        {
+                            _tombstoneScratch.Add(pair.Key);
+                        }
+                    }
+
+                    foreach (var key in _tombstoneScratch)
+                    {
+                        _stamps.Remove(key);
+                        _alpha.Remove(key);
+                    }
+
+                    _specklesDirty = true;
+                    _bruisesDirty = true;
+                    _lastStateHash = 0;
+                    _freshPending = true;
+                }
             }
 
             _wetSmoothness = Mathf.Clamp01(wetSmoothness);
@@ -1205,10 +1248,35 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             // A brand-new mark (or a lost target) must not wait for this
-            // painter's turn in the cycle — the fresh lane draws it next frame.
-            if (needsPlacement || targetsLost)
+            // painter's turn in the cycle — the fresh lane draws it next
+            // frame. Исчезнувшая метка (высохшая капля, зажившая рана,
+            // снятый бинт) — ТОЖЕ: раньше она ждала полного оборота кольца,
+            // и на раздутом кольце «высохшая, но блестящая» кожа жила
+            // минутами — слот с глянцем держал скаляр _Smoothness
+            // пришпиленным к 1 всё это время.
+            if (needsPlacement || targetsLost || _stale.Count > 0)
             {
                 _freshPending = true;
+            }
+
+            // Сторожок мокрой базы: у живого глянцевого слота база RT пеклась
+            // при другой мокроте, чем нынешняя, — перепечь, не дожидаясь
+            // оборота кольца. Подпись слота обнуляется, чтобы пробить и
+            // per-slot гейт RepaintAll (иначе слот, чья подпись записана с
+            // той же замершей мокротой, пропускался бы вечно). Это и есть
+            // «сушка доезжает до глаз»: без него замершая перепечатка
+            // оставляла винил при сухом теле.
+            if (_paintedWet != null)
+            {
+                for (var slot = 0; slot < _glossLive.Length; slot++)
+                {
+                    if (_glossLive[slot] &&
+                        Mathf.Abs(_paintedWet[slot] - _wetSmoothness) > 0.05f)
+                    {
+                        _paintedSig[slot] = 0;
+                        _freshPending = true;
+                    }
+                }
             }
         }
 
@@ -1217,19 +1285,9 @@ namespace HexLive.UnityPresentation.Wearing
         private void PlaceNewStamps(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
             float sweat01, HashSet<string>? uncovered, HashSet<string>? gauzed = null)
         {
-            // #246/#256 r3: карта могла не доехать к Construct (async первый
-            // промах у самых ранних актёров) — без ретрая обмотка бинта ждала
-            // бы перезапуска игры. Дросселировано: PaintPointMap.Load пишет
-            // warning на каждый промах.
-            if (_map == null && _mapName.Length != 0 && Time.unscaledTime >= _nextMapRetryAt)
-            {
-                _nextMapRetryAt = Time.unscaledTime + 3f;
-                _map = PaintPointMap.Load(_mapName, _mapVertexCount);
-                if (_map != null && _map.HasProjectedFrames)
-                {
-                    _posMaps = SkinPositionMapSet.Load($"skinpos_{_mapName.Substring(5)}", _mapVertexCount);
-                }
-            }
+            // #246/#256 r3→r4: ретрай карты переехал в начало Sync — здесь он
+            // случался только при needsPlacement, и актриса без свежих меток
+            // не переспрашивала карту никогда.
 
             // Spec 40.8-G: with a baked point map every placement is a table
             // lookup — no pose bake, no triangle scans (the legacy path bakes
@@ -3500,6 +3558,11 @@ namespace HexLive.UnityPresentation.Wearing
             {
                 RenderTexture.active = previous;
                 _materials[slot].SetTexture("_BaseMap", source);
+                // Провал не должен записаться как успех: с целой подписью
+                // слот пропускался гейтом до перезапуска. _slotDeferred
+                // заставляет RepaintAll записать подпись нулём и вернуться.
+                _slotDeferred = true;
+                _freshPending = true;
                 Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: repaint failed, original restored — {e.Message}");
             }
         }
@@ -3615,6 +3678,10 @@ namespace HexLive.UnityPresentation.Wearing
             {
                 RenderTexture.active = previous;
                 RestoreSlotGloss(slot);
+                // Провал — не успех: пусть подпись обнулится и ретрай придёт,
+                // а до него слот честно матовый (пин скаляра уже снят).
+                _slotDeferred = true;
+                _freshPending = true;
                 Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: gloss repaint failed — {e.Message}");
             }
         }
@@ -3750,6 +3817,8 @@ namespace HexLive.UnityPresentation.Wearing
             {
                 RenderTexture.active = previous;
                 RestoreSlotNormal(slot);
+                _slotDeferred = true;
+                _freshPending = true;
                 Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: normal repaint failed — {e.Message}");
             }
         }

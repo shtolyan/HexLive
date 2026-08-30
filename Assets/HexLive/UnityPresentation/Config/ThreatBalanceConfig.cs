@@ -106,6 +106,8 @@ namespace HexLive.UnityPresentation.Config
         public bool threatAlertEnabled = true;
         [Tooltip("Кулдаун ⚠️-реакции в тиках.")]
         [Range(0, 2400)] public int cueCooldownTicks = 600;
+        [Tooltip("§62.7: цель в кольце опасности — заморозка этой цели, тики.")]
+        [Range(0, 4800)] public int targetDangerCooldownTicks = 600;
         [Tooltip("Минимальное здоровье всех костей (доля), чтобы решиться атаковать первой.")]
         [Range(0f, 1f)] public float fitBoneHealth = 0.8f;
         [Tooltip("Атака первой — только если врагов не больше этого.")]

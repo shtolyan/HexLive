@@ -19,6 +19,35 @@ public sealed partial class PlanningSystem
     /// </summary>
     private void BuildStowClothesPlan(WorldState world, NPCState npc)
     {
+        // Bug #314: одежда из карманов сдаётся домой без ноги «дойти и
+        // поднять» — вещь сразу в руку, план из одной ноги к гардеробу.
+        if (npc.CurrentJunction is not null &&
+            npc.Execution.HeldGarment is null &&
+            StrayGarmentMath.FindPocketGarment(world, npc) is { } pocket &&
+            StowMath.FindUndressSpot(world, npc) is { } home)
+        {
+            npc.Inventory.Items.Remove(pocket);
+            npc.Execution.HeldGarment = pocket;
+            npc.Plan.TargetObjectId = home.StowObject;
+            npc.Plan.TargetJunctionId = home.Stand;
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.MoveToJunction, TargetJunction = home.Stand
+            });
+            npc.Plan.Steps.Add(new PlanStep
+            {
+                Type = PlanStepType.StowCarriedGarment, TargetJunction = home.Stand
+            });
+            npc.Plan.CurrentStepIndex = 0;
+            npc.Plan.Status = PlanStatus.Active;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "StowClothesPlanned",
+                    $"Pocket={pocket.DefinitionId} Stand={home.Stand.Value}");
+            }
+            return;
+        }
+
         if (npc.CurrentJunction is not { } from ||
             StrayGarmentMath.FindStray(world, npc) is not { } stray ||
             stray.Junctions.Count == 0)

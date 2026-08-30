@@ -33,8 +33,14 @@ public sealed class AtomicContentTransportContractTests
                 "Scheme = websocket.Scheme == \"wss\" ? \"https\" : \"http\""));
             Assert.That(endpoint, Does.Contain("-hexlive-assets"));
             Assert.That(endpoint, Does.Contain(
-                "return FromGameServer(ServerBook.ProductionUrl);"),
+                "return EditorFriendly(FromGameServer(ServerBook.ProductionUrl));"),
                 "до выбора мира реестр и музыка обязаны идти с prod, а не localhost");
+            // Подмена HTTPS→legacy-HTTP живёт СТРОГО под #if UNITY_EDITOR:
+            // редакторский UnityTls не проходит цепочку прод-сертификата
+            // (Curl 35), но Player этой ветки иметь не должен.
+            Assert.That(endpoint, Does.Contain("#if UNITY_EDITOR"));
+            Assert.That(endpoint, Does.Contain(
+                "return FromGameServer(ServerBook.LegacyProductionUrl);"));
             Assert.That(endpoint, Does.Not.Contain("DefaultLocal"));
             Assert.That(serverBook, Does.Contain(
                 "wss://vmi3529459.contaboserver.net/watch"));

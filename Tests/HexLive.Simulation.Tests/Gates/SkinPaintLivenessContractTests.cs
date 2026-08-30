@@ -90,13 +90,15 @@ public sealed class SkinPaintLivenessContractTests
         });
     }
 
-    // Вердикт игрока 2026-08-30 (фото-пруфы стенда): сухая кожа — матовая в
-    // НОЛЬ, и никакого пина скаляра. Стендовый замер (diag_alpha0.png)
-    // доказал: URP-вариант _METALLICSPECGLOSSMAP в проекте мёртв, карта
-    // блеска не читается, а её пин «_Smoothness=1 на слот» и был источником
-    // «винилового тела». Канал выключен; мокрый вид крови несёт арт штампа.
+    // Вердикты игрока 2026-08-30: сухая кожа — матовая в НОЛЬ, а раны —
+    // блестят. Стендовые замеры вскрыли настоящего убийцу канала: per-index
+    // MaterialPropertyBlock на SkinnedMeshRenderer глушит сэмплинг
+    // _MetallicGlossMap (probe_no_mpb: карта ожила ровно в момент снятия
+    // MPB) — потому гладкость/тинт кожи пишутся В МАТЕРИАЛЫ (per-NPC
+    // инстансы), а пин «1 на слот с картой» безопасен: per-pixel правду
+    // несёт живая карта (base = мокрота, ядро крови = глянец).
     [Test]
-    public void DrySkinIsFullyMatteAndTheDeadGlossChannelStaysOff()
+    public void SkinWritesGoToMaterialsAndTheGlossChannelLives()
     {
         var view = Wearing("NpcActorView.cs");
         var painter = Wearing("SkinTexturePainter.cs");
@@ -105,12 +107,14 @@ public sealed class SkinPaintLivenessContractTests
         {
             Assert.That(view, Does.Contain(
                 "internal const float DrySkinSmoothness = 0f;"),
-                "Сухая кожа матовая в ноль — блеск продаёт только мокроту.");
-            Assert.That(view, Does.Not.Contain("glossMapped ? 1f"),
-                "Пин скаляра к 1 — источник «винилового тела» — удалён.");
+                "Сухая кожа матовая в ноль — блеск продаёт мокроту и кровь.");
+            Assert.That(view, Does.Not.Contain("SetPropertyBlock(_skinMpb"),
+                "Per-index MPB на коже глушит карту гладкости — писать в материалы.");
+            Assert.That(view, Does.Contain("_skinTintMaterials"),
+                "Инстансы материалов кэшируются, а не аллоцируются геттером.");
             Assert.That(painter, Does.Contain(
-                "private const bool WoundGlossEnabled = false;"),
-                "Мёртвый канал карты блеска выключен до починки URP-варианта.");
+                "private const bool WoundGlossEnabled = true;"),
+                "Канал глянца ран жив — карта маскирует пин per-pixel.");
         });
     }
 

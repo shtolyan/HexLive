@@ -207,9 +207,9 @@ namespace HexLive.UnityPresentation.Wearing
         // exact. Прожектор «блина» делала не эта ручка, а линейная альфа
         // глянц-штампа: полупрозрачный ореол брызг блестел на визуально
         // чистой коже (стендовый замер 2026-08-30); теперь куб альфы в
-        // шейдерах глушит ореол. Ядро лужи: 0.93^3 x 0.75 ~ 0.6 гладкости —
+        // шейдерах глушит ореол. Ядро лужи: 0.93^3 x 0.85 ~ 0.68 гладкости —
         // явный мокрый блеск на фоне матовой (0) сухой кожи.
-        private const float WoundWetGloss = 0.75f;
+        private const float WoundWetGloss = 0.85f;
 
         // A LITTLE surface relief on the wound (v5 cut wound relief for UV-seam
         // ridge artifacts — but a flat smooth-1 surface only mirrors a
@@ -2836,15 +2836,14 @@ namespace HexLive.UnityPresentation.Wearing
         public static bool LogRepaintCost;
         private static int _rtCreations;
 
-        // ⭐ Карта блеска ВЫКЛЮЧЕНА НАВСЕГДА этой константой (стендовый замер
-        // 2026-08-30, diag_alpha0.png): URP-вариант _METALLICSPECGLOSSMAP в
-        // проекте мёртв — привязанная в рантайме карта не читается совсем
-        // (заливка альфы нулём/градиентом не меняет кадр). Годы «блеска ран»
-        // были no-op, а единственным реальным эффектом канала был вредный пин
-        // скаляра _Smoothness=1 на весь слот («виниловое тело»). Прежде чем
-        // включать обратно — почини сам вариант и докажи стендом WardrobeTest
-        // (кнопка «Мокрота»), что заливка карты видна в кадре.
-        private const bool WoundGlossEnabled = false;
+        // ⭐ Карта блеска СНОВА ЖИВА (стендовые замеры 2026-08-30): убийцей
+        // был не вариант шейдера, а per-index MaterialPropertyBlock на
+        // SkinnedMeshRenderer — с MPB на слоте URP перестаёт сэмплировать
+        // _MetallicGlossMap, и от канала оставался только вредный пин
+        // «весь слот — винил». Гладкость и тинт теперь пишутся в сами
+        // per-NPC инстансы материалов (NpcActorView._skinTintMaterials),
+        // MPB с кожи снят — и заливка карты видна в кадре (probe_no_mpb).
+        private const bool WoundGlossEnabled = true;
 
         // How many paint targets one repaint may CREATE. A 2048² target with
         // mips is ~22 MB and its allocation is a synchronous driver call — the

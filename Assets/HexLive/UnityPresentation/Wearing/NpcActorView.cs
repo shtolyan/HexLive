@@ -442,7 +442,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // tint rides the base-skin renderers only (captured before clothing, so
     // garments are untouched; covered skin is occluded, so only bare skin
     // shows). Applied via a property block — no material instancing.
-    private MaterialPropertyBlock _skinMpb;
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
 
@@ -486,6 +485,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // (renderer, materialIndex) pairs that are skin; everything eye/hair/mouth
     // related is excluded.
     private readonly List<(SkinnedMeshRenderer renderer, int index)> _skinTintTargets = new();
+    // Инстансы материалов тех же слотов (позиции совпадают с _skinTintTargets).
+    // Гладкость и тинт пишутся В МАТЕРИАЛ, не в MaterialPropertyBlock:
+    // per-index MPB на SkinnedMeshRenderer в этом URP ОТКЛЮЧАЕТ сэмплинг
+    // _MetallicGlossMap (стендовый замер 2026-08-30: карта оживает ровно в
+    // момент снятия MPB) — именно так когда-то «умер» блеск ран.
+    private readonly List<Material> _skinTintMaterials = new();
 
     // §74: donor actor → its body materials by slot name. Static: the actor
     // prefabs are shared assets, so four maps serve the whole colony.
@@ -2487,26 +2492,28 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // climbing toward a wet gloss — sunlight then pings off the body.
         // The gloss reads straight from the unified wetness pool — rain and
         // sweat both feed it, so whichever is stronger wins naturally.
-        _skinMpb ??= new MaterialPropertyBlock();
         var sweat01 = skinWet01;
         var smoothness = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, sweat01);
-        foreach (var (renderer, index) in _skinTintTargets)
+        for (var t = 0; t < _skinTintTargets.Count; t++)
         {
-            if (renderer == null)
+            var (renderer, index) = _skinTintTargets[t];
+            var material = _skinTintMaterials[t];
+            if (renderer == null || material == null)
             {
                 continue;
             }
 
-            // ⭐ Пин «1 на слот с картой блеска» УДАЛЁН (стендовый замер
-            // 2026-08-30, diag_alpha0.png): URP-вариант _METALLICSPECGLOSSMAP
-            // в проекте мёртв — привязанная в рантайме карта не читается
-            // вовсе, и пин был единственным реальным эффектом всего
-            // per-pixel глянца ран: рана превращала ВЕСЬ слот тела в винил
-            // (историческое «вся блестит»). Гладкость кожи — только честный
-            // скаляр мокроты; мокрый вид крови несёт сам арт штампа.
-            renderer.GetPropertyBlock(_skinMpb, index);
-            _skinMpb.SetFloat(SmoothnessId, smoothness);
-            renderer.SetPropertyBlock(_skinMpb, index);
+            // Пишем В МАТЕРИАЛ (per-NPC инстанс), не в MPB: per-index MPB
+            // глушит сэмплинг _MetallicGlossMap (стендовый замер 2026-08-30,
+            // карта ожила ровно в момент снятия MPB) — на этом когда-то и
+            // умер блеск ран. Слайдер URP — МНОЖИТЕЛЬ поверх альфы карты
+            // (ROUGHNESS_MAP_RESEARCH.md), поэтому слот с живой картой
+            // пинится к 1: per-pixel правду несёт карта (base = мокрота,
+            // ядро крови = глянец), остальные слоты — честный скаляр.
+            var glossMapped = _skinPainter != null &&
+                              ReferenceEquals(renderer, _skinPainter.Body) &&
+                              _skinPainter.SlotHasGlossMap(index);
+            material.SetFloat(SmoothnessId, glossMapped ? 1f : smoothness);
         }
 
         // Spec 40.10-C: cloth soaks blood over hurt zones and soils as hygiene
@@ -6344,11 +6351,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        _skinMpb ??= new MaterialPropertyBlock();
         // Per-submesh: only the skin material slots, never the eyes/lashes/etc.
-        foreach (var (renderer, index) in _skinTintTargets)
+        // В МАТЕРИАЛ, не в MPB — см. _skinTintMaterials.
+        for (var t = 0; t < _skinTintTargets.Count; t++)
         {
-            if (renderer == null)
+            var (renderer, index) = _skinTintTargets[t];
+            var material = _skinTintMaterials[t];
+            if (renderer == null || material == null)
             {
                 continue;
             }
@@ -6356,11 +6365,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Slots the painter is currently drawing marks into already carry
             // the tan baked into their texture — tint them white so it isn't
             // multiplied in a second time; elsewhere the _BaseColor multiply IS
-            // the tan (mirrors the gloss-map pin in SetBodyCondition).
+            // the tan.
             var painted = _skinPainter != null &&
                           ReferenceEquals(renderer, _skinPainter.Body) &&
                           _skinPainter.SlotHasAlbedoPaint(index);
-            renderer.GetPropertyBlock(_skinMpb, index);
             // A scheduled painter rebuild updates material slots over several
             // frames. Until this particular slot has the new tone baked into
             // its texture, compensate with _BaseColor so painted limbs never
@@ -6368,8 +6376,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var baseColor = painted
                 ? CompensatePaintedSkinTone(SkinTint, _skinPainter.PaintedSkinTone(index))
                 : tint;
-            _skinMpb.SetColor(BaseColorId, baseColor);
-            renderer.SetPropertyBlock(_skinMpb, index);
+            material.SetColor(BaseColorId, baseColor);
         }
     }
 
@@ -6630,6 +6637,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void BuildSkinTintTargets()
     {
         _skinTintTargets.Clear();
+        _skinTintMaterials.Clear();
         _corpseSupportSkins.Clear();
         if (_bodySkins == null)
         {
@@ -6652,6 +6660,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             var mats = skin.sharedMaterials;
+            Material[] instanced = null;
             for (var i = 0; i < mats.Length; i++)
             {
                 if (mats[i] == null)
@@ -6661,7 +6670,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
                 if (IsSkinMaterialName(mats[i].name))
                 {
+                    instanced ??= skin.materials; // per-NPC инстансы
                     _skinTintTargets.Add((skin, i));
+                    _skinTintMaterials.Add(instanced[i]);
+                    // Залежавшийся MPB слота глушил бы карту гладкости.
+                    skin.SetPropertyBlock(null, i);
                     if (!_corpseSupportSkins.Contains(skin))
                     {
                         _corpseSupportSkins.Add(skin);

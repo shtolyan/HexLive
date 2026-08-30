@@ -279,6 +279,37 @@ public sealed class ThreatAlertSystem : ISimulationSystem
         // cue gate above), so a genuinely unavoidable crossing is not aborted
         // again every medium tick.
         var ring = PathfindingSystem.DangerRing(world);
+
+        // §62.7: the errand's DESTINATION itself sits at the wolf — a detour
+        // would deliver her into the teeth anyway, so she changes her mind:
+        // the trip is dropped and its goal cooled, the auction picks another
+        // occupation. Starving/dehydrated girls skip the defer and brave the
+        // soft ring instead — a wolf parked at the only water must never
+        // starve the colony out of politeness. A carrier never defers either:
+        // a full abort would lay her patient on the ground (§105.17).
+        if (npc.Plan.TargetJunctionId is { } targetJunction &&
+            ring.Contains(targetJunction) &&
+            !npc.Mind.IsStarving &&
+            !npc.Mind.IsDehydrated &&
+            !npc.IsCarryingPerson)
+        {
+            var deferredGoal = npc.Plan.Goal != GoalType.None
+                ? npc.Plan.Goal
+                : npc.Mind.CurrentGoal;
+            if (PlanInterruption.TryAbort(world, npc, InterruptionCause.ThreatReroute,
+                    $"Destination sits in spotted dog {threat.Id}'s danger ring — deferring"))
+            {
+                PlanningSystem.SetGoalCooldown(world, npc, deferredGoal,
+                    Spec62.TargetDangerCooldownTicks);
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ThreatDeferred",
+                        $"Mob={threat.Id} Goal={deferredGoal} target in danger ring");
+                }
+
+                return;
+            }
+        }
         for (var i = npc.Movement.PathIndex; i < npc.Movement.JunctionPath.Count; i++)
         {
             if (!ring.Contains(npc.Movement.JunctionPath[i]))

@@ -309,6 +309,7 @@
     "Spec62.DangerRingTiles": 2,
     "Spec62.DangerStepCost": 80,
     "Spec62.FitBoneHealth": 0.800000012,
+    "Spec62.TargetDangerCooldownTicks": 600,
     "Spec62.ThreatAlertEnabled": true,
     "Spec72.CampKnowledgeRadiusTiles": 4,
     "Spec72.DangerRingTiles": 3,

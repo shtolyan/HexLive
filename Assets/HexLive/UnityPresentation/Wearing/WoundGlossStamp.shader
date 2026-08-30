@@ -44,7 +44,15 @@ Shader "Hidden/HexLive/WoundGlossStamp"
 
             half4 frag (Varyings IN) : SV_Target
             {
-                half a = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv).a * _GlossMax * _Fade;
+                half mask = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv).a;
+                // ⭐ Стендовый замер 2026-08-30: линейная альфа заставляла
+                // блестеть широкий полупрозрачный ореол брызг — кровь тех
+                // пикселей на коже почти невидима (тёмный красный при 0.3-0.5),
+                // а глянец от них честные 20-35% на визуально ЧИСТОЙ коже:
+                // «блеск сползал с раны» блином рядом с ней. Куб оставляет
+                // глянец только плотной луже крови (0.9³≈0.73), а ореол
+                // глушит (0.4³≈0.06) — раны блестят, кожа нет.
+                half a = mask * mask * mask * _GlossMax * _Fade;
                 return half4(0, 0, 0, a);
             }
             ENDHLSL

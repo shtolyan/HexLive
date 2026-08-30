@@ -90,6 +90,30 @@ public sealed class SkinPaintLivenessContractTests
         });
     }
 
+    // Вердикт игрока 2026-08-30 (фото-пруфы стенда): сухая кожа — матовая в
+    // НОЛЬ, и никакого пина скаляра. Стендовый замер (diag_alpha0.png)
+    // доказал: URP-вариант _METALLICSPECGLOSSMAP в проекте мёртв, карта
+    // блеска не читается, а её пин «_Smoothness=1 на слот» и был источником
+    // «винилового тела». Канал выключен; мокрый вид крови несёт арт штампа.
+    [Test]
+    public void DrySkinIsFullyMatteAndTheDeadGlossChannelStaysOff()
+    {
+        var view = Wearing("NpcActorView.cs");
+        var painter = Wearing("SkinTexturePainter.cs");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view, Does.Contain(
+                "internal const float DrySkinSmoothness = 0f;"),
+                "Сухая кожа матовая в ноль — блеск продаёт только мокроту.");
+            Assert.That(view, Does.Not.Contain("glossMapped ? 1f"),
+                "Пин скаляра к 1 — источник «винилового тела» — удалён.");
+            Assert.That(painter, Does.Contain(
+                "private const bool WoundGlossEnabled = false;"),
+                "Мёртвый канал карты блеска выключен до починки URP-варианта.");
+        });
+    }
+
     [Test]
     public void SchedulerPrunesDeadPainters()
     {

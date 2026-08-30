@@ -177,6 +177,11 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private Label _hitLabel;
     private VisualElement _hitButton;
     private float _dirt01;
+    // Стенд мокроты: 0..1 крутится кнопкой, рендерится игровыми формулами.
+    private float _wet01;
+    private Label _wetLabel;
+    private MaterialPropertyBlock _wetMpb;
+    private static readonly int SkinSmoothnessId = Shader.PropertyToID("_Smoothness");
     private float _tear01;
     private Label _dirtLabel;
     private Label _tearLabel;
@@ -193,6 +198,34 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         CollectWearEntries();
         CollectHairEntries();
         BuildUi();
+        StartCoroutine(SpawnWhenRegistryReady());
+    }
+
+    // Актёры — атомарный контент: синхронный AtomicResources.Load отдаёт
+    // null и до готовности реестра, и пока БАНДЛ актрисы едет асинхронно
+    // (first-miss — та же природа, что у карт кожи #246/#256). Сцена
+    // оставалась пустой с «Actor prefab not found». Ждём реестр, затем
+    // опрашиваем Load до появления префаба — хэндл кэшируется, и SpawnGirl
+    // внутри получит его мгновенно.
+    private System.Collections.IEnumerator SpawnWhenRegistryReady()
+    {
+        var content = HexLive.UnityPresentation.Content.ContentAssetService.Instance;
+        if (!content.RegistryReady)
+        {
+            content.RefreshRegistry();
+        }
+
+        while (!content.RegistryReady)
+        {
+            yield return null;
+        }
+
+        while (HexLive.UnityPresentation.Content.AtomicResources
+                   .Load<GameObject>($"HexLive/Actors/{_girl}") == null)
+        {
+            yield return new WaitForSecondsRealtime(0.25f);
+        }
+
         SpawnGirl(_girl);
     }
 
@@ -682,6 +715,9 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         TickCycle();
         TickScaleKeys();
         TickHitClick();
+        // Карта блеска взводится асинхронно (fresh-полоса планировщика) —
+        // пин скаляра на такие слоты должен догонять её каждый кадр.
+        ApplySkinSmoothness();
     }
 
     // ---- click-to-wound test ----
@@ -775,7 +811,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
     private void ApplyWounds()
     {
-        _skinPainter?.Sync(_wounds, _noBandages);
+        var wetSmoothness = Mathf.Lerp(
+            NpcActorView.DrySkinSmoothness, NpcActorView.WetSkinSmoothness, _wet01);
+        _skinPainter?.Sync(_wounds, _noBandages, _wet01, null, wetSmoothness);
+        ApplySkinSmoothness();
 
         var count = 0;
         foreach (var pair in _zoneHealth)
@@ -1311,9 +1350,52 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _tearLabel = (Label)tearButton[0];
         box.Add(tearButton);
 
+        // Стенд «раны блестят, кожа нет»: мокрота крутится 0→100%, применяя
+        // РОВНО игровые формулы (общие константы NpcActorView + тот же пин
+        // скаляра на слоты с картой блеска). Dev-сцена — строки сырые.
+        var wetButton = MakeButton(WetText(), Raised, CycleWet);
+        _wetLabel = (Label)wetButton[0];
+        box.Add(wetButton);
+
         box.Add(MakeButton(Loc.Get("wardrobe.hit_clear"), Raised, ClearWounds));
 
         RefreshGirlButtons();
+    }
+
+    private string WetText() => $"Мокрота: {Mathf.RoundToInt(_wet01 * 100f)}%";
+
+    private void CycleWet()
+    {
+        _wet01 = _wet01 >= 0.99f ? 0f : Mathf.Min(1f, _wet01 + 0.25f);
+        if (_wetLabel != null)
+        {
+            _wetLabel.text = WetText();
+        }
+
+        ApplyWounds();
+    }
+
+    // Игровой пин: слот с картой блеска держит скаляр 1 (per-pixel гладкость
+    // живёт в альфе карты), остальные — честный lerp сухая↔мокрая. Формулы и
+    // константы — ТЕ ЖЕ, что в NpcActorView.SetBodyCondition, иначе стенд врёт.
+    private void ApplySkinSmoothness()
+    {
+        var body = _skinPainter?.Body;
+        if (body == null)
+        {
+            return;
+        }
+
+        var smoothness = Mathf.Lerp(
+            NpcActorView.DrySkinSmoothness, NpcActorView.WetSkinSmoothness, _wet01);
+        _wetMpb ??= new MaterialPropertyBlock();
+        var slots = body.sharedMaterials.Length;
+        for (var slot = 0; slot < slots; slot++)
+        {
+            body.GetPropertyBlock(_wetMpb, slot);
+            _wetMpb.SetFloat(SkinSmoothnessId, smoothness);
+            body.SetPropertyBlock(_wetMpb, slot);
+        }
     }
 
     private string DirtText() => string.Format(Loc.Get("wardrobe.dirt_btn"), Mathf.RoundToInt(_dirt01 * 100f));

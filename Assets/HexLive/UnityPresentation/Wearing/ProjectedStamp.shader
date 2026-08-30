@@ -207,7 +207,10 @@ Shader "Hidden/HexLive/ProjectedStamp"
                 float2 duv = ResolveDecal(IN.uv, weight);
                 half art = SampleArt(duv).a;  // derivatives BEFORE any clip
                 clip(weight - 0.002);
-                return half4(0.0, 0.0, 0.0, art * _GlossMax * _Fade * weight);
+                // Куб альфы — как в WoundGlossStamp: блестит плотная кровь,
+                // полупрозрачный ореол брызг остаётся матовым (замер 2026-08-30).
+                half core = art * art * art;
+                return half4(0.0, 0.0, 0.0, core * _GlossMax * _Fade * weight);
             }
             ENDHLSL
         }

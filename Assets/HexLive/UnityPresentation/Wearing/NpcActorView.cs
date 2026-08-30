@@ -448,11 +448,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Wet-skin sheen: sweat is sold by GLOSS, not色 — the decals are
     // albedo-only, so the actual shine comes from raising the skin's
-    // smoothness while hot. 0.32 is the authored dry value on all actors.
-    private const float DrySkinSmoothness = 0.32f;
+    // smoothness while hot.
+    // ⭐ Вердикт игрока (2026-08-30, фото-пруф): сухая кожа обязана быть
+    // ПОЛНОСТЬЮ матовой — ноль. Прежняя «авторская» база 0.32 под тропическим
+    // солнцем давала френелевские блики на бёдрах/плечах, читавшиеся как
+    // «она вся блестит». Блеск теперь исключительно признак мокроты.
+    // internal: стенд WardrobeTest применяет ТЕ ЖЕ константы — иначе «в
+    // стенде матовая, в игре блестит» стало бы следующим витком регресса.
+    internal const float DrySkinSmoothness = 0f;
     // 0.85 read as plastic — pulled ~15% down: still a clear wet sheen,
     // but skin, not vinyl.
-    private const float WetSkinSmoothness = 0.72f;
+    internal const float WetSkinSmoothness = 0.72f;
 
     // Spec 35.5: unified inertial skin wetness. Rain soaks fast (fully wet in
     // ~4 s), sweat builds slower (~12 s to its level), and skin dries in
@@ -2491,16 +2497,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 continue;
             }
 
-            // Spec 40.8 v4: slots carrying the painted gloss map hold their
-            // per-pixel ABSOLUTE smoothness in the map alpha — URP Lit
-            // multiplies it by this scalar, so the scalar must be 1 there.
-            // Missing one slot here is the "whole body vinyl" failure mode
-            // (the 0.85-plastic scar): everywhere else keeps the wetness lerp.
-            var glossMapped = _skinPainter != null &&
-                              ReferenceEquals(renderer, _skinPainter.Body) &&
-                              _skinPainter.SlotHasGlossMap(index);
+            // ⭐ Пин «1 на слот с картой блеска» УДАЛЁН (стендовый замер
+            // 2026-08-30, diag_alpha0.png): URP-вариант _METALLICSPECGLOSSMAP
+            // в проекте мёртв — привязанная в рантайме карта не читается
+            // вовсе, и пин был единственным реальным эффектом всего
+            // per-pixel глянца ран: рана превращала ВЕСЬ слот тела в винил
+            // (историческое «вся блестит»). Гладкость кожи — только честный
+            // скаляр мокроты; мокрый вид крови несёт сам арт штампа.
             renderer.GetPropertyBlock(_skinMpb, index);
-            _skinMpb.SetFloat(SmoothnessId, glossMapped ? 1f : smoothness);
+            _skinMpb.SetFloat(SmoothnessId, smoothness);
             renderer.SetPropertyBlock(_skinMpb, index);
         }
 

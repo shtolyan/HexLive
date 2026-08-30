@@ -191,19 +191,25 @@ namespace HexLive.UnityPresentation.Wearing
         // multi-drop patches, so this is ~0.3x of a single drop's span.
         private const float RefractStrength = 0.05f;
         private const float RimBoost = 0.8f;     // additive meniscus highlight
-        // The gloss mask is soft — the same reasoning as the normal target above
-        // (1024 already cost ~5 MB per slot for a smoothness ramp; 512 is still
-        // finer than the ramp itself).
-        private const int GlossRtSize = 512;
+        // Стендовый замер 2026-08-30 (rt_slot3_gloss.png): при базе-нуле маска
+        // 512² на 2048²-альбедо в 4 раза грубее арта — глянец вылезал за края
+        // раны блестящим ореолом на чистой коже, а мипы на отдалении раздували
+        // его в «виниловый блин» больше самой крови. 1024 (~5 МБ на слот, и
+        // только на раненых слотах) держит блеск в границах арта; «мягкую
+        // рампу» больше не печём — база нулевая, маска несёт только рану.
+        private const int GlossRtSize = 1024;
 
         // ---- wound volume knobs (spec 40.8-D v5) ----
         // Fresh cuts glisten: absolute smoothness stamped into the wet core
-        // (base skin stays at the caller's dry/wet value, 0.32 dry).
+        // (base skin stays at the caller's dry/wet value — 0 dry с 2026-08-30).
         // Do NOT use 1.0: zero roughness collapses URP's GGX highlight to a
         // sub-pixel point, so some wounds look matte unless sun/view alignment
-        // is exact. 0.92 is still far above wet skin (0.72), but spreads a
-        // readable highlight across every wound at gameplay distance.
-        private const float WoundWetGloss = 0.92f;
+        // exact. Прожектор «блина» делала не эта ручка, а линейная альфа
+        // глянц-штампа: полупрозрачный ореол брызг блестел на визуально
+        // чистой коже (стендовый замер 2026-08-30); теперь куб альфы в
+        // шейдерах глушит ореол. Ядро лужи: 0.93^3 x 0.75 ~ 0.6 гладкости —
+        // явный мокрый блеск на фоне матовой (0) сухой кожи.
+        private const float WoundWetGloss = 0.75f;
 
         // A LITTLE surface relief on the wound (v5 cut wound relief for UV-seam
         // ridge artifacts — but a flat smooth-1 surface only mirrors a
@@ -2830,6 +2836,16 @@ namespace HexLive.UnityPresentation.Wearing
         public static bool LogRepaintCost;
         private static int _rtCreations;
 
+        // ⭐ Карта блеска ВЫКЛЮЧЕНА НАВСЕГДА этой константой (стендовый замер
+        // 2026-08-30, diag_alpha0.png): URP-вариант _METALLICSPECGLOSSMAP в
+        // проекте мёртв — привязанная в рантайме карта не читается совсем
+        // (заливка альфы нулём/градиентом не меняет кадр). Годы «блеска ран»
+        // были no-op, а единственным реальным эффектом канала был вредный пин
+        // скаляра _Smoothness=1 на весь слот («виниловое тело»). Прежде чем
+        // включать обратно — почини сам вариант и докажи стендом WardrobeTest
+        // (кнопка «Мокрота»), что заливка карты видна в кадре.
+        private const bool WoundGlossEnabled = false;
+
         // How many paint targets one repaint may CREATE. A 2048² target with
         // mips is ~22 MB and its allocation is a synchronous driver call — the
         // stall you feel as a freeze. A fresh wound can want three at once
@@ -3086,8 +3102,9 @@ namespace HexLive.UnityPresentation.Wearing
                                      "droplet albedo/gloss muted (normal relief only)");
                 }
 
-                if ((hasDroplet && _dropletStamp != null) ||
-                    (hasGloss && (_glossStamp != null || _projectedStamp != null)))
+                if (WoundGlossEnabled &&
+                    ((hasDroplet && _dropletStamp != null) ||
+                     (hasGloss && (_glossStamp != null || _projectedStamp != null))))
                 {
                     RepaintSlotGloss(slot, additive);
                 }

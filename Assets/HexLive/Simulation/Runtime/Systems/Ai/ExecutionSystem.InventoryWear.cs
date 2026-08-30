@@ -982,9 +982,10 @@ public sealed partial class ExecutionSystem
         }
 
         var moved = VesselTransferMath.FillBottleFromCoconuts(npc);
-        if (moved > 0)
+        if (moved > 0 && SimTrace.Enabled)
         {
-            Trace.Emit(world, npc.Id, "VesselFilled",
+            // Диагностика, не хроника: рядовой быт (как VesselPlaced/Taken).
+            Trace.Debug(world, npc.Id, "VesselFilled",
                 $"Poured {moved} sips into tool.bottle " +
                 $"{npc.BottleWater} x{npc.BottleCharges}");
         }

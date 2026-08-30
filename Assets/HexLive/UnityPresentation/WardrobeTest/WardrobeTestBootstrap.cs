@@ -813,7 +813,10 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     {
         var wetSmoothness = Mathf.Lerp(
             NpcActorView.DrySkinSmoothness, NpcActorView.WetSkinSmoothness, _wet01);
-        _skinPainter?.Sync(_wounds, _noBandages, _wet01, null, wetSmoothness);
+        // Пот/капли в параметре Sync — НОЛЬ, как в игре: текстурные капли
+        // отставлены вердиктом v4.3 (PaintSweatDroplets=false), капли живут
+        // в декальном дождевом проходе. Стенд показывает мокроту скаляром.
+        _skinPainter?.Sync(_wounds, _noBandages, 0f, null, wetSmoothness);
         ApplySkinSmoothness();
 
         var count = 0;

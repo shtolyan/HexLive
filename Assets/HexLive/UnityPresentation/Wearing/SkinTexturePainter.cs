@@ -757,11 +757,23 @@ namespace HexLive.UnityPresentation.Wearing
             // Глобальному шейдеру варианты держат SkinGlossKeepAlive.mat
             // (Resources/HexLive/Decals — попадают в Player всегда). Свойства и
             // кейворды пересадка сохраняет; renderQueue возвращаем руками.
+            // Bug #307: пересаживаются ТОЛЬКО крашеные слоты кожи. Ресницы/
+            // волосы — прозрачные материалы того же рендерера, и их
+            // transparent/alphatest-вариант живёт только в бандловой копии
+            // шейдера: пересадка на глобальный Lit (чей прозрачный вариант в
+            // Player вырезан) делала ресницы сплошным куском. Коже нужен
+            // глобальный шейдер ради карты глянца; ресницам он не нужен вовсе.
             var globalLit = Shader.Find("Universal Render Pipeline/Lit");
             if (globalLit != null)
             {
-                foreach (var material in _materials)
+                foreach (var slot in _paintSlots)
                 {
+                    if (slot < 0 || slot >= _materials.Length)
+                    {
+                        continue;
+                    }
+
+                    var material = _materials[slot];
                     if (material == null || material.shader == globalLit ||
                         material.shader == null || material.shader.name != globalLit.name)
                     {

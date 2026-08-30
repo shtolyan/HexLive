@@ -4097,9 +4097,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // planting-style CraftWork clip ONLY when the ward is LYING DOWN
         // (coma/faint/asleep/prone); over a STANDING ward she just stands and
         // shows the item, exactly as before.
+        // Bug #333: шина и протез — та же помощь руками; без этих глаголов
+        // вид не играл ВООБЩЕ ничего (ни приседа над лежачей, ни намотки над
+        // стоячей — она «просто стояла»).
         var aidingOther = !_legless &&
             interaction is "FeedOther" or "HydrateOther" or
-                           "TreatOther" or "MedicateOther" or "ConsoleOther";
+                           "TreatOther" or "MedicateOther" or "ConsoleOther" or
+                           "Splint" or "FitProsthetic";
         var aidPropId = interaction switch
         {
             "FeedOther" => "food.coconut",
@@ -4109,6 +4113,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // ActingHandPropAnchor prefers the right hand and falls back to a
             // functional left hand only when the right one is unusable.
             "TreatOther" => heldItemId,
+            // #333: шина/протез — предмет из руки симуляции, как у перевязки.
+            "Splint" or "FitProsthetic" => heldItemId,
             _ => string.Empty
         };
         // §110: утешение над ЛЕЖАЩЕЙ — не крафтовый присед, а МОЛИТВА: она
@@ -4130,7 +4136,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // подопечной перевязка тоже не сюда — там свой присед (kneelingCraft).
         var treating = !_legless && !_laying && _posture != "Crawl" &&
             !kneelingCraft && !praying &&
-            interaction is "TreatSelf" or "TreatOther";
+            interaction is "TreatSelf" or "TreatOther" or "Splint" or "FitProsthetic";
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
         _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
         SyncHeelPoseTarget();

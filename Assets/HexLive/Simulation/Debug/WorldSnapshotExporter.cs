@@ -770,6 +770,13 @@ public static class WorldSnapshotExporter
             case InteractionType.Butcher:
                 return FirstCarried(npc, "tool.machete", "tool.knife");
 
+            // Bug #333: наложение шины показывает шину в руке (поза — контур
+            // лечения, NpcActorView.treating/kneelingCraft).
+            case InteractionType.Splint:
+                return InventoryContains(npc, GearCatalog.SplintId)
+                    ? GearCatalog.SplintId
+                    : string.Empty;
+
             case InteractionType.Fuel:
                 return InventoryContains(npc, "resource.stick") ? "resource.stick" : string.Empty;
 

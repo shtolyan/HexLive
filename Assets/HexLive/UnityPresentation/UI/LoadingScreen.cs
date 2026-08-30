@@ -1784,6 +1784,7 @@ namespace HexLive.UnityPresentation.UI
 
             var waited = 0f;
             var nextReport = StallReportSeconds;
+            var nextBuildPass = 1f;
 
             // Queue first is load-bearing short-circuiting. ActorsReady applies
             // the now-cached wardrobe to a paused actor; calling it while an
@@ -1792,6 +1793,17 @@ namespace HexLive.UnityPresentation.UI
             // exact WaitForCompletion deadlock fixed in 105199ce.
             while (!Wearing.Garments.ContentQueue.IsIdle || !renderer.ActorsReady(ids))
             {
+                // ⭐ Под шторкой сим на паузе (тик 0), а синк рендерера идёт
+                // только на НОВЫЙ тик: первый проход заказал тела асинхронно,
+                // и без пинка второго прохода не наступало никогда — все
+                // девушки «вида нет» до перезапуска. Раз в секунду просим
+                // рендерер пройтись ещё раз по тому же тику.
+                if (waited >= nextBuildPass)
+                {
+                    nextBuildPass = waited + 1f;
+                    renderer.RequestActorBuildPass();
+                }
+
                 // Прогресс НАСТОЯЩИЙ: сделано из всего, что заказано. Полоска
                 // на этом участке живёт в верхней четверти — терраген и прогрев
                 // панелей уже позади.

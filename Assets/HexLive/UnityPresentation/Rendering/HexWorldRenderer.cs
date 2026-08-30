@@ -484,6 +484,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private Transform? _objectsRoot;
     private Transform? _npcsRoot;
     private int _lastRenderedTick = -1;
+
+    /// <summary>
+    /// §155.5/§41.4: принудительный повторный проход синка на ТОМ ЖЕ тике.
+    /// Под шторкой сим стоит на паузе (тик 0), а RenderSnapshot выполняется
+    /// только на новый тик: первый проход заказывал тела асинхронно, второго
+    /// прохода не наступало никогда — «NPC#1: вида нет» до перезапуска.
+    /// WaitForActors дёргает это, пока актрисы не собраны.
+    /// </summary>
+    public void RequestActorBuildPass() => _lastRenderedTick = -1;
     // Bug #287: личность мира, а не только его часы — реконнект к НОВОМУ миру
     // с тем же адресом сервера различим лишь по seed (тик мог и не прыгнуть).
     private int _lastWorldSeed;

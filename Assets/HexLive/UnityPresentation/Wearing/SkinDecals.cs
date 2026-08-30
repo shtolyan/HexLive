@@ -63,11 +63,21 @@ namespace HexLive.UnityPresentation.Wearing
         };
 
         // Sweat shows where skin glistens first: face, chest, then arms.
-        // 8 → 13 patches: the droplet sheet is all small beads now, so full
-        // heat covers the body in many little bubbles instead of a few blots.
+        // Bug #328 (вердикт игрока): капель впятеро больше и ПО ВСЕМУ телу —
+        // 13 → 64 маленьких пятна-кластера, ноги включены. Порядок оставляет
+        // прежнюю драматургию: лицо и грудь блестят первыми, полная жара
+        // усыпает всё тело.
         private static readonly string[] SweatSpread =
-            { "Head", "Head", "Torso", "Torso", "ArmL", "ArmR", "Head", "Torso",
-              "Torso", "Pelvis", "ArmL", "ArmR", "Torso" };
+            {
+              "Head", "Torso", "Torso", "ArmL", "ArmR", "Head", "Torso", "Pelvis",
+              "LegL", "LegR", "Torso", "ArmL", "ArmR", "Head", "LegL", "LegR",
+              "Head", "Torso", "Torso", "ArmL", "ArmR", "Head", "Torso", "Pelvis",
+              "LegL", "LegR", "Torso", "ArmL", "ArmR", "Head", "LegL", "LegR",
+              "Head", "Torso", "Torso", "ArmL", "ArmR", "Head", "Torso", "Pelvis",
+              "LegL", "LegR", "Torso", "ArmL", "ArmR", "Head", "LegL", "LegR",
+              "Head", "Torso", "Torso", "ArmL", "ArmR", "Head", "Torso", "Pelvis",
+              "LegL", "LegR", "Torso", "ArmL", "ArmR", "Head", "LegL", "LegR"
+            };
 
         private BodyBones? _bones;
         private Transform? _bodyRoot;

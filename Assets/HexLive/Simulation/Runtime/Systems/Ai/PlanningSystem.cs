@@ -226,7 +226,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // §54.17 r2: a roast on a perceived spit outranks the pack —
                 // otherwise "coconut in hand" wins forever and the cooked
                 // meat hangs untouched until it burns through colony turnover.
-                if (!inventoryOnly && TryBuildSpitTakePlan(world, npc, foodDefinitionId))
+                // Bug #323: и РУЧНАЯ тоже — но только у близкого костра
+                // (шаг к огню рядом — не «ушла сама»); дальний вертел для неё
+                // по-прежнему закрыт §121.6.
+                if (TryBuildSpitTakePlan(world, npc, foodDefinitionId,
+                        inventoryOnly ? ManualSpitTakeRadiusTiles : int.MaxValue))
                 {
                     continue;
                 }

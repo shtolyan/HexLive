@@ -607,6 +607,7 @@
     "AiBalance.LoopOscillations": 6,
     "AiBalance.LoopRepeatAttempts": 5,
     "AiBalance.LoopRepeatEmitTicks": 600,
+    "AiBalance.LoopStalledTicks": 400,
     "AiBalance.LoopWindowTicks": 1200,
     "AiBalance.MaxKnownObjects": 256,
     "AiBalance.MemoryTtlTicks": 2400,

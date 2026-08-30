@@ -295,13 +295,14 @@ internal static class ManualCommandExecutor
         return true;
     }
 
-    // Тело не в состоянии слушаться: кома, умирание, обморок, притворство,
-    // рыдания. Тумблер и «отставить» проходят — они меняют не действие, а
-    // режим, и должны работать над лежащей.
+    // Тело не в состоянии слушаться: кома, умирание, обморок, рыдания.
+    // Bug #319 (вердикт игрока): ПРИТВОРСТВО здесь больше не числится —
+    // притворяться мёртвой она решила сама, и прямой приказ игрока её
+    // «расталкивает»: ClearForNewOrder снимает окно притворства, тело встаёт
+    // и выполняет приказ. Тумблер и «отставить» проходят как раньше.
     private static bool Incapacitated(WorldState world, NPCState npc) =>
         npc.IsUnconscious(world.Tick) ||
-        world.Tick < npc.Mind.CryingUntilTick ||
-        world.Tick < npc.Mind.PlayDeadUntilTick;
+        world.Tick < npc.Mind.CryingUntilTick;
 
     // Bug #281 / §121: тумблер меняет РЕЖИМ, а не позу тела. Уложенная в
     // кровать беспамятная (§105.17) держит бессрочную Sleep-интеракцию —
@@ -321,6 +322,15 @@ internal static class ManualCommandExecutor
         WorldState world, NPCState npc, string reason, bool keepCarriedPerson = false,
         bool keepRestPose = false)
     {
+        // Bug #319: прямой приказ игрока расталкивает притворяющуюся мёртвой —
+        // притворство добровольное, и хозяин решает, что хватит. Штатный
+        // EndPlayDead освобождает лежанку/узел и даёт wake-grace, как любой
+        // другой подъём.
+        if (world.Tick < npc.Mind.PlayDeadUntilTick)
+        {
+            MortalityHelpers.EndPlayDead(world, npc, "PlayerOrder");
+        }
+
         // Bug #95 / spec 41.5: a manual order may wake a sleeper, but it must
         // not make the sim translate the body while GetUp is still playing.
         // Capture this before Abort clears CurrentInteraction, then retain the

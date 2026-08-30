@@ -20,7 +20,7 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 72fdaf44fda612743a560a54abd20caa, type: 2}
   - {fileID: 2100000, guid: 24341f90c0a62ff409f975cb1c42b528, type: 2}
   layer: 1
-  covers: 01000000020000000300000004000000
+  covers: 010000000300000004000000
   warmth: 0.06
   armor: 0.01
   thermalDelta: 0

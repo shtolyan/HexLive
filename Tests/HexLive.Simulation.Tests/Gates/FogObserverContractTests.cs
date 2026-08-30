@@ -28,8 +28,12 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(renderer, Does.Contain("previousIsValid |= npc.Id.Value == previousId;"));
                 Assert.That(renderer, Does.Contain("firstColonyId == int.MaxValue ? -1 : firstColonyId"));
                 Assert.That(renderer, Does.Contain("_fogHidesNpcs = selectedOnly;"));
-                Assert.That(renderer, Does.Contain("!IsPlayerOwnedNpc(npc) &&"),
-                    "Selected-only fog must never deactivate the player's own colonists.");
+                // Bug #322: свои вне восприятия наблюдательницы тоже прячутся;
+                // исключение — сама наблюдательница и управляемая (Feud).
+                Assert.That(renderer, Does.Contain(
+                    "var exempt = npc.Id.Value == selectedId ||"),
+                    "Selected-only fog hides own colonists too (bug #322); " +
+                    "only the observer and the controlled girl stay visible.");
                 Assert.That(renderer, Does.Contain("var selectedId = _fogObserverNpcId;"),
                     "The perception ring must follow the validated observer, not the relation target.");
                 Assert.That(renderer, Does.Not.Contain("_fogHidesNpcs = selectedId >= 0;"));

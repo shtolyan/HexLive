@@ -78,6 +78,7 @@ public static class SimulationCommandCodec
         GatherAllOnHex = 36,
         SetCampHome = 37,
         SetRunByDefault = 38,
+        FillVessel = 39, // §55.4 (bug #317)
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -225,6 +226,11 @@ public static class SimulationCommandCodec
                 WriteEntity(w, c.Npc);
                 WriteItemRef(w, c.Item);
                 w.Write((int)c.Action);
+                break;
+            case FillVesselCommand c:
+                w.Write((ushort)CommandType.FillVessel);
+                WriteEntity(w, c.Npc);
+                WriteItemRef(w, c.Item);
                 break;
             case TransferInventoryCommand c:
                 w.Write((ushort)CommandType.TransferInventory);
@@ -389,6 +395,8 @@ public static class SimulationCommandCodec
             case CommandType.ManageInventory:
                 return new ManageInventoryCommand(
                     ReadEntity(r), ReadItemRef(r), (InventoryAction)r.ReadInt32());
+            case CommandType.FillVessel:
+                return new FillVesselCommand(ReadEntity(r), ReadItemRef(r));
             case CommandType.TransferInventory:
                 return new TransferInventoryCommand(
                     ReadEntity(r), ReadEntity(r), ReadItemRef(r), r.ReadInt32(),

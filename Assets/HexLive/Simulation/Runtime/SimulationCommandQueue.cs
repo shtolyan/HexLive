@@ -850,6 +850,29 @@ public sealed class ManageInventoryCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>
+/// §55.4 (bug #317): «Наполнить» — перелить воду прочих ёмкостей инвентаря в
+/// выбранную (сегодня приёмник — только личная бутылка; кокос — источник,
+/// у его инстанса нет вида воды). Ячейка называется как в
+/// <see cref="ManageInventoryCommand"/> — индекс + ожидаемый id: панель
+/// рисует прошлый тик, устаревший приказ честно отклоняется. Сам перелив —
+/// небыстрый процесс на месте (FillVesselDurationTicks) через штатный план.
+/// </summary>
+public sealed class FillVesselCommand : ISimulationCommand
+{
+    public FillVesselCommand(EntityId npc, InventoryItemRef item)
+    {
+        Npc = npc;
+        Item = item;
+    }
+
+    public EntityId Npc { get; }
+
+    public InventoryItemRef Item { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 public enum InventoryTransferDirection
 {
     Take,

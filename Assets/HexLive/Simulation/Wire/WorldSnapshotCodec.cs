@@ -991,6 +991,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteString(w, n.ExecutionStatus);
         WireIo.WriteString(w, n.CurrentInteraction);
         WireIo.WriteString(w, n.HeldItemId);
+        WireIo.WriteString(w, n.OffhandItemId); // §55.4 (bug #317)
         WireIo.WriteNullableInt(w, n.RomancePartnerNpcId);
         WireIo.WriteString(w, n.RomanceClipKey);
         w.Write(n.RomanceForced);
@@ -1346,6 +1347,7 @@ public static class WorldSnapshotCodec
         n.ExecutionStatus = r.ReadString();
         n.CurrentInteraction = r.ReadString();
         n.HeldItemId = r.ReadString();
+        n.OffhandItemId = r.ReadString(); // §55.4 (bug #317)
         n.RomancePartnerNpcId = WireIo.ReadNullableInt(r);
         n.RomanceClipKey = r.ReadString();
         n.RomanceForced = r.ReadBoolean();

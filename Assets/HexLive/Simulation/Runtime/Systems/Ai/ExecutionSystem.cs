@@ -128,6 +128,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §55.4 (bug #317): перелив воды кокосов в бутылку — шаг на месте
+            // ПЕРЕД питьём; по завершении снимает себя из плана, и Steps[0]
+            // становится DrinkBottle.
+            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.FillVessel)
+            {
+                RunFillVessel(world, npc);
+                continue;
+            }
+
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.DrinkBottle)
             {
                 RunDrinkBottle(world, npc);

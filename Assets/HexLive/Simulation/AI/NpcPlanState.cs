@@ -100,7 +100,10 @@ public enum PlanStepType
     // TargetObject — сам контейнер; TimeoutEndTick пакует счёт и индекс ячейки,
     // ровно как в человеческой паре шагов выше.
     PlayerTakeFromContainer,
-    PlayerGiveToContainer
+    PlayerGiveToContainer,
+    // §55.4 (bug #317) append-only: перелить воду вскрытых кокосов инвентаря
+    // в личную бутылку — на месте, небыстро (FillVesselDurationTicks).
+    FillVessel
 }
 
 public enum PlanStatus

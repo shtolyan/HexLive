@@ -205,6 +205,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(1, 20)] public int bottleCapacity = 10;
         [Tooltip("Сколько маленьких глотков воды в дырявом кокосе.")]
         [Range(1, 8)] public int coconutWaterCapacity = 4;
+        [Tooltip("§55.4: сколько тиков занимает перелив воды кокосов в бутылку.")]
+        [Range(1, 120)] public int fillVesselDurationTicks = 24;
 
         [Header("Инвентарь (§52)")]
         [Tooltip("§52: сколько предметов держат голые руки. Общий инвентарь = руки + карманы всей надетой одежды.")]

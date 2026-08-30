@@ -359,6 +359,32 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // и без приказа она за ней не идёт.
                 var inventoryOnly = NpcControlPolicy.RequiresInventoryOnlySelfCare(npc);
 
+                // §55.4 (bug #317): неполная бутылка + вскрытые кокосы в
+                // карманах — сначала перелить их воду в бутылку (небыстро,
+                // FillVesselDurationTicks), потом пить из бутылки штатно.
+                // План целиком инвентарный, поэтому ручной policy его пускает.
+                if (VesselTransferMath.CanFillBottle(npc))
+                {
+                    npc.Plan.Steps.Add(new PlanStep
+                    {
+                        Type = PlanStepType.FillVessel
+                    });
+                    npc.Plan.Steps.Add(new PlanStep
+                    {
+                        Type = PlanStepType.DrinkBottle
+                    });
+                    npc.Plan.CurrentStepIndex = 0;
+                    npc.Plan.Status = PlanStatus.Active;
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanBuilt",
+                            $"Goal=Drink Steps=[FillVessel,DrinkBottle] " +
+                            $"Charges={npc.BottleCharges} " +
+                            $"CoconutSips={VesselTransferMath.CoconutSips(npc)}");
+                    }
+                    continue;
+                }
+
                 if (DecisionSystem.HasBottleWater(npc))
                 {
                     npc.Plan.Steps.Add(new PlanStep

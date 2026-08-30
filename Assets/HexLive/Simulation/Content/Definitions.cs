@@ -254,7 +254,11 @@ public enum InteractionType
     // Bug #228: manual stocking and ignition are separate commands. Fuel
     // remains the autonomous TendFire verb; Ignite is append-only because
     // saves and wire snapshots persist interaction ordinals.
-    Ignite
+    Ignite,
+    // §55.4 (bug #317): перелить воду из ёмкостей инвентаря в бутылку — на
+    // месте, без объекта мира (в отличие от FillBottle у источника). Дописано
+    // в конец: сейв и снапшот хранят взаимодействия ординалом.
+    FillVessel
 }
 
 }

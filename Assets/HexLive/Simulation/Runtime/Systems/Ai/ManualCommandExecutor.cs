@@ -128,6 +128,9 @@ internal static class ManualCommandExecutor
             case ManageInventoryCommand inventory:
                 ApplyManageInventory(world, inventory, admission);
                 break;
+            case FillVesselCommand fillVessel:
+                ApplyFillVessel(world, fillVessel, admission);
+                break;
             case TransferInventoryCommand transfer:
                 ApplyTransferInventory(world, transfer, admission);
                 break;
@@ -219,6 +222,7 @@ internal static class ManualCommandExecutor
         GroupAttackMobCommand => "GroupAttackMob",
         SetGroupManualControlCommand => "SetManual",
         ManageInventoryCommand => "Inventory",
+        FillVesselCommand => "FillVessel",
         TransferInventoryCommand => "TransferInventory",
         TransferContainerCommand => "TransferContainer",
         PlaceBuildingPlanCommand => "PlaceBuildingPlan",
@@ -1962,6 +1966,67 @@ internal static class ManualCommandExecutor
                 $"Order=Inventory Action={command.Action} Source={command.Item.Source} " +
                 $"Index={command.Item.Index} Def={command.Item.ExpectedDefinitionId} " +
                 $"GoalPreserved={npc.Mind.CurrentGoal}");
+        }
+    }
+
+    // §55.4 (bug #317): «Наполнить» — перелить воду вскрытых кокосов в личную
+    // бутылку. Приказ по образцу Interact (requireManual), но без подхода:
+    // обе ёмкости уже в её карманах — сразу небыстрый шаг FillVessel на месте.
+    private static void ApplyFillVessel(
+        WorldState world, FillVesselCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "FillVessel", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "FillVessel", "Incapacitated", admission);
+            return;
+        }
+
+        // Ячейка панели могла устареть (панель рисует прошлый тик) — приказ
+        // честно отклоняется, а не наполняет «что попало под этим номером».
+        var items = npc.Inventory.Items;
+        if (command.Item.Source != InventoryItemSource.Carried ||
+            command.Item.Index < 0 || command.Item.Index >= items.Count ||
+            items[command.Item.Index].DefinitionId != command.Item.ExpectedDefinitionId)
+        {
+            Reject(world, npc.Id, "FillVessel", "StaleItem", admission);
+            return;
+        }
+
+        // Приёмник — только бутылка: у инстанса кокоса нет вида воды, и перелив
+        // «в кокос» отмывал бы сырую воду от риска болезни (VesselTransferMath).
+        if (command.Item.ExpectedDefinitionId != Content.ContentIds.Bottle)
+        {
+            Reject(world, npc.Id, "FillVessel", "NotAVessel", admission);
+            return;
+        }
+
+        if (!VesselTransferMath.CanFillBottle(npc))
+        {
+            Reject(world, npc.Id, "FillVessel", "NothingToPour", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Приказ наполнить бутылку", keepCarriedPerson: true);
+        ClearAttackOrder(world, npc);
+
+        npc.Plan.Goal = GoalType.PlayerOrder;
+        npc.Plan.TargetItemDefinitionId = Content.ContentIds.Bottle;
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.FillVessel });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Mind.CurrentGoal = GoalType.PlayerOrder;
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=FillVessel Charges={npc.BottleCharges} " +
+                $"CoconutSips={VesselTransferMath.CoconutSips(npc)}");
         }
     }
 

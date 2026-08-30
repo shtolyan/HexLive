@@ -935,6 +935,78 @@ public sealed partial class ExecutionSystem
     private static bool IsPortableCoconutDrink(ObjectDefinition definition, InteractionType verb) =>
         verb == InteractionType.Drink && definition.HasTag("CoconutWater");
 
+    // §55.4 (bug #317): перелить воду вскрытых кокосов инвентаря в личную
+    // бутылку — на месте, небыстро (FillVesselDurationTicks, прогресс в
+    // Execution). Кокосы теряют ResourceAmount, бутылка получает глотки 1:1;
+    // пустая бутылка становится Raw, непустая сохраняет свой вид воды.
+    // Шаг снимает себя из плана: автономный план [FillVessel, DrinkBottle]
+    // продолжается штатным питьём, ручной одношаговый — завершается.
+    private static void RunFillVessel(WorldState world, NPCState npc)
+    {
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            if (!VesselTransferMath.CanFillBottle(npc))
+            {
+                npc.Plan.Status = PlanStatus.Failed;
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecFailed",
+                        "FillVessel: nothing to pour, or the bottle is full/lost");
+                }
+                return;
+            }
+
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.FillVessel;
+            npc.Execution.TargetObject = null;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + SimBalance.FillVesselDurationTicks;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"FillVessel Duration={SimBalance.FillVesselDurationTicks}ticks " +
+                    $"Charges={npc.BottleCharges} " +
+                    $"CoconutSips={VesselTransferMath.CoconutSips(npc)}");
+            }
+            return;
+        }
+
+        if (npc.Execution.Status != ExecutionStatus.InProgress)
+        {
+            return;
+        }
+
+        if (npc.Execution.EndTick - world.Tick > 0)
+        {
+            return;
+        }
+
+        var moved = VesselTransferMath.FillBottleFromCoconuts(npc);
+        if (moved > 0)
+        {
+            Trace.Emit(world, npc.Id, "VesselFilled",
+                $"Poured {moved} sips into tool.bottle " +
+                $"{npc.BottleWater} x{npc.BottleCharges}");
+        }
+
+        npc.Plan.Steps.RemoveAt(0);
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+
+        if (npc.Plan.Steps.Count == 0)
+        {
+            npc.Plan.Status = moved > 0 ? PlanStatus.Completed : PlanStatus.Failed;
+            npc.Mind.CurrentGoal = GoalType.None;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CycleReset",
+                    "Goal->None Plan->Done Execution->Cleared (vessel fill)");
+            }
+        }
+    }
+
     // Spec 29H: drink in place from the carried bottle — thirst quenched,
     // raw water carries the 30 % sickness roll, then the bottle empties.
     private static int DrinkBottleDurationTicks => SimBalance.DrinkBottleDurationTicks;

@@ -661,6 +661,11 @@ public static class WorldSnapshotExporter
             case InteractionType.FillBottle:
                 return InventoryContains(npc, "tool.bottle") ? "tool.bottle" : string.Empty;
 
+            // §55.4 (bug #317): перелив — бутылка в рабочей руке, кокос-источник
+            // едет отдельным полем OffhandItemId (ResolveOffhandItem).
+            case InteractionType.FillVessel:
+                return InventoryContains(npc, "tool.bottle") ? "tool.bottle" : string.Empty;
+
             case InteractionType.Harvest:
                 ObjectDefinition harvestTarget = null;
                 if (npc.Execution.TargetObject is { } harvestObjectId &&
@@ -852,6 +857,19 @@ public static class WorldSnapshotExporter
             default:
                 return string.Empty;
         }
+    }
+
+    // §55.4 (bug #317): предмет ВТОРОЙ руки. Сегодня один случай — перелив
+    // FillVessel: бутылка в рабочей руке (ResolveHeldItem), кокос-источник во
+    // второй, чтобы вид сыграл крафт-позу с двумя ёмкостями.
+    private static string ResolveOffhandItem(NPCState npc)
+    {
+        if (npc.Execution.CurrentInteraction == InteractionType.FillVessel)
+        {
+            return Runtime.VesselTransferMath.PourSourceId(npc);
+        }
+
+        return string.Empty;
     }
 
     private static string ResolveGroundCoconutInteractionItem(
@@ -1116,6 +1134,7 @@ public static class WorldSnapshotExporter
             RomanceAnchorY = npc.Mind.RomanceAnchorY,
             RomanceFacingDegrees = npc.Mind.RomanceFacingDegrees,
             HeldItemId = ResolveHeldItem(world, npc),
+            OffhandItemId = ResolveOffhandItem(npc), // §55.4 (bug #317)
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
             TalkTopicPeerId = npc.Execution.CurrentTalkTopicPeerId?.Value,

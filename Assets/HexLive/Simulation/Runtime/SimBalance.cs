@@ -115,6 +115,9 @@ namespace HexLive.Simulation.Runtime
         // refill only when dry.
         public static int BottleCapacity = 10;             // sips per fill
         public static int CoconutWaterCapacity = 4;        // pierced coconut gulps
+        // §55.4 (bug #317): перелить воду кокосов в бутылку — небыстрый
+        // процесс с прогрессом, длительностью как у выкладки крафта (§61).
+        public static int FillVesselDurationTicks = 24;
 
         // ─────────────────────────────────────────────────────────────
         // Spec §52: slot inventory. The pack has no base cap — the body

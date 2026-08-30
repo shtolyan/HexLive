@@ -72,6 +72,10 @@ public sealed class CommandCodecCoverageGateTests
             new EntityId(35),
             new InventoryItemRef(InventoryItemSource.Worn, 3, "underwear.bra"),
             InventoryAction.Drop),
+        // §55.4 (bug #317): «Наполнить» — перелив в выбранную ёмкость.
+        new FillVesselCommand(
+            new EntityId(38),
+            new InventoryItemRef(InventoryItemSource.Carried, 6, "tool.bottle")),
         new TransferInventoryCommand(
             new EntityId(36), new EntityId(63),
             new InventoryItemRef(InventoryItemSource.Carried, 2, "tool.knife"),

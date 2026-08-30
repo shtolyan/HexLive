@@ -779,6 +779,10 @@ public sealed class NpcSnapshot
     // for the current interaction. Empty means empty hands.
     public string HeldItemId { get; set; } = string.Empty;
 
+    // §55.4 (bug #317): вторая ёмкость во ВТОРОЙ руке — источник перелива
+    // (пробитый кокос), пока идёт FillVessel. Пусто = вторая рука свободна.
+    public string OffhandItemId { get; set; } = string.Empty;
+
     // Spec 28.15E: the subject of the current Talk (TalkTopic name), or "" when
     // not talking. The presentation shows the matching emoji in an overhead
     // bubble while the speaker is chatting.

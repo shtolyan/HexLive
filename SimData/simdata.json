@@ -79,6 +79,7 @@
     "SimBalance.FiberPerPlant": 4,
     "SimBalance.FightCommitGraceTicks": 40,
     "SimBalance.FireThawRecovery": 0.25,
+    "SimBalance.FillVesselDurationTicks": 24,
     "SimBalance.FireWarmthRange1": 18,
     "SimBalance.FireWarmthRange2": 11,
     "SimBalance.FleeRunSpeedFactor": 2.25,

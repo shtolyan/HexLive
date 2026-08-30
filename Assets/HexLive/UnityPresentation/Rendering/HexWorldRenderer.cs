@@ -1071,6 +1071,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         "architecture.support.wood"
     };
 
+    // Bug #321: сколько видов памяти тумана строится за один снапшот-пасс —
+    // большая разведка после загрузки раскатывается за несколько секунд, а не
+    // одним фризом кадра.
+    private const int FrozenViewBudget = 64;
+
     // Spec 40.2-B: ground blood stains manager (lazy — lives under the
     // renderer, cleared with it on scene teardown).
     private const int CorpseBleedTicks = 120; // 30 sim seconds after death
@@ -1787,6 +1792,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         UnityEngine.Profiling.Profiler.EndSample();
         UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.Objects");
+        var frozenViewsBuilt = 0; // #321: бюджет памяти тумана на один пасс
         foreach (var worldObject in snapshot.Objects)
         {
             var key = worldObject.Id.Value;
@@ -1808,11 +1814,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             // Виденная, но не видимая сейчас земля ЗАМОРОЖЕНА как память:
-            // существующий вид не трогаем (он и есть «как в последний раз»),
-            // новый — не создаём.
-            if (_cullActive && _cullFrozenTiles.Contains(worldObject.Tile))
+            // существующий вид не трогаем (он и есть «как в последний раз»).
+            // Bug #321 (вердикт игрока): ПАМЯТЬ ОБЯЗАНА БЫТЬ НАРИСОВАНА — на
+            // разведанном гексе камни/пальмы видны и под туманом. Поэтому вид
+            // без вида СОЗДАЁТСЯ и здесь (не больше FrozenViewBudget за пасс,
+            // чтобы не дёрнуть кадр при загрузке большой разведки), а вот
+            // потикового синка у замороженных по-прежнему нет — это и есть
+            // экономия §148.
+            var frozenMemory = _cullActive && _cullFrozenTiles.Contains(worldObject.Tile);
+            if (frozenMemory && (hasView || frozenViewsBuilt >= FrozenViewBudget))
             {
                 continue;
+            }
+
+            if (frozenMemory)
+            {
+                frozenViewsBuilt++;
             }
 
             _objectViewTiles[key] = worldObject.Tile;
@@ -1891,6 +1908,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var cachedParts = _objectViewParts[key];
                 cachedParts.ObjectView = contextView;
                 _objectViewParts[key] = cachedParts;
+            }
+
+            // Bug #321: замороженная память построена — потикового синка нет.
+            if (frozenMemory)
+            {
+                continue;
             }
 
             _objectViewParts.TryGetValue(key, out var parts);

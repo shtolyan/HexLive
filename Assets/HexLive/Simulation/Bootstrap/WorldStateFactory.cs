@@ -1349,6 +1349,14 @@ public sealed class WorldStateFactory
             npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreatePill());
             npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreatePill());
         }
+        else
+        {
+            // §55.4 (bug #317): стартовая колонистка большого острова выходит
+            // с ПУСТОЙ личной бутылкой — ровно как прибывающая новенькая
+            // (ColonyArrivalSystem). Остальной запас (бинты, таблетки,
+            // инструменты) остаётся мировым лутом §146.9.
+            npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
+        }
 
         // §72 / §79: the authored opening outsider keeps his established
         // machete+knife loadout. §72.14 treats recurring arrivals as their own

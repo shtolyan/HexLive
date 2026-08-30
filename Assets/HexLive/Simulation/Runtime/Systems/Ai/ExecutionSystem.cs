@@ -1717,6 +1717,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else
         {
+            // Bug #312: взять чужое на приватной земле чужого лагеря — кража:
+            // событие + удар по отношению свидетельниц. Считается ДО деспавна,
+            // пока вещь ещё несёт тайл и владельца.
+            var theft = TheftMath.IsTheft(world, npc, worldObject);
+
             // Item moves from world to inventory; the world object is gone,
             // so occupancy flags die with it (spec 29B.2).
             npc.Inventory.Items.Add(new ItemInstance(worldObject.DefinitionId)
@@ -1732,6 +1737,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     ? ClothingOwnership.ResolveOnTake(world, npc, worldObject)
                     : 0
             });
+            if (theft)
+            {
+                TheftMath.OnStolen(world, npc, worldObject);
+            }
+
             WorldObjectMutations.DespawnObject(world, worldObject.Id);
             if (SimTrace.Enabled)
             {

@@ -834,13 +834,19 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             var objectId = view.ContextObjectId;
             var type = interaction.Type;
             var interactionId = interaction.Id;
+            // Bug #312: взять чужое на приватной земле чужого лагеря — это
+            // «Украсть», красным. Предикат тот же, что применит симуляция
+            // (TheftMath), посчитан по снапшоту: якоря лагерей + владелец.
+            var theft = type == InteractionType.PickUp &&
+                IsTheftTarget(snapshot, clicked);
             _entries.Add(new ContextMenuEntry(
-                InteractionVerb(interaction),
+                theft ? Loc.Get("menu.steal") : InteractionVerb(interaction),
                 () => EnqueueOrder(actorId,
                     new InteractCommand(
                         actor, new ObjectId(objectId), type, interactionId)),
                 ok,
-                ok ? null : Loc.Get("menu.missing_tool")));
+                ok ? null : Loc.Get("menu.missing_tool"))
+            { Danger = theft });
 
             // §121.10 (баг #270): рядом с «Подобрать» — «Собрать все». Собрать
             // все — это собрать все однотипное на ГЕКСЕ кликнутого предмета.
@@ -853,12 +859,13 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             if (type == InteractionType.PickUp && interactionId != "take.from.spit")
             {
                 _entries.Add(new ContextMenuEntry(
-                    Loc.Get("menu.gather_all"),
+                    theft ? Loc.Get("menu.steal_all") : Loc.Get("menu.gather_all"),
                     () => EnqueueOrder(actorId,
                         new GatherAllOnHexCommand(
                             actor, new ObjectId(objectId), type, interactionId)),
                     ok,
-                    ok ? null : Loc.Get("menu.missing_tool")));
+                    ok ? null : Loc.Get("menu.missing_tool"))
+                { Danger = theft });
             }
         }
 
@@ -1438,6 +1445,46 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 {
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    // Bug #312: тот же предикат кражи, что применит симуляция (TheftMath),
+    // посчитанный по снапшоту: вещь на приватной земле НЕсоюзного лагеря
+    // (5 гексов от его якоря), и владелец вещи — не союзник.
+    private bool IsTheftTarget(WorldSnapshot? snapshot, ObjectSnapshot? target)
+    {
+        if (snapshot == null || target == null)
+        {
+            return false;
+        }
+
+        var myFaction = PlayerCampView.Of(_runner, snapshot);
+        if (target.OwnerNpcId is { } ownerId)
+        {
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Id.Value == ownerId)
+                {
+                    if (FactionRelations.AreAllies(myFaction, npc.Faction))
+                    {
+                        return false;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        foreach (var home in snapshot.CampHomes)
+        {
+            if (!FactionRelations.AreAllies(myFaction, home.Faction) &&
+                HexSpatialMath.HexDistance(target.Tile, home.Tile) <=
+                    TheftMath.PrivateGroundRadiusTiles)
+            {
+                return true;
             }
         }
 

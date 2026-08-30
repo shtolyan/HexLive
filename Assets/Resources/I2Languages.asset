@@ -25264,6 +25264,22 @@ MonoBehaviour:
       - 'Начать новую игру'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.steal'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Steal'
+      - "\u0423\u043A\u0440\u0430\u0441\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.steal_all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Steal all'
+      - "\u0423\u043A\u0440\u0430\u0441\u0442\u044C \u0432\u0441\u0451"
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'menu.gather_all'
       TermType: 0
       Description:

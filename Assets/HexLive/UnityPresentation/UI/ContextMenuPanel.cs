@@ -30,6 +30,9 @@ public sealed class ContextMenuEntry
     public bool Enabled { get; }
 
     public string? DisabledHint { get; }
+
+    /// <summary>Bug #312: «опасный» пункт (кража) красится красным.</summary>
+    public bool Danger { get; init; }
 }
 
 /// <summary>
@@ -279,7 +282,11 @@ public sealed class ContextMenuPanel : MonoBehaviour
         {
             style =
             {
-                color = entry.Enabled ? Text : TextMute,
+                // Bug #312: кража горит красным — игрок должен видеть, что
+                // это не просто «подобрать».
+                color = !entry.Enabled ? TextMute
+                    : entry.Danger ? new Color(0.910f, 0.365f, 0.365f)
+                    : Text,
                 fontSize = 13,
             }
         };

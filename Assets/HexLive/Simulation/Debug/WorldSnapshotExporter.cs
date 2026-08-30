@@ -773,8 +773,8 @@ public static class WorldSnapshotExporter
             // Bug #333: наложение шины показывает шину в руке (поза — контур
             // лечения, NpcActorView.treating/kneelingCraft).
             case InteractionType.Splint:
-                return InventoryContains(npc, GearCatalog.SplintId)
-                    ? GearCatalog.SplintId
+                return InventoryContains(npc, ContentIds.Splint)
+                    ? ContentIds.Splint
                     : string.Empty;
 
             case InteractionType.Fuel:

@@ -326,15 +326,18 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // она вскакивала бы и падала на каждом шаге зверя туда-сюда.
             // Потолок PlayDeadMaxTicks считается от старта: волк, поселившийся
             // у лагеря, иначе уложил бы её навсегда.
+            // Bug #318: потолок ОБЯЗАТЕЛЕН в обеих ветках. Ветка §118 его
+            // потеряла, и волк, поселившийся рядом, укладывал её навсегда —
+            // окно перевзводилось каждый Slow-тик без предела. По потолку она
+            // встаёт и принимает бой (угрозные системы берут своё), а волк,
+            // потерявший «труп» из интереса, уходит своим чередом.
             if (npc.Mind.PlayDeadSinceTick != 0 &&
                 world.Tick < npc.Mind.PlayDeadUntilTick &&
                 MortalityHelpers.HostileNearby(world, npc))
             {
-                npc.Mind.PlayDeadUntilTick = Spec118.Enabled
-                    ? world.Tick + Spec105.PlayDeadHoldTicks
-                    : System.Math.Min(
-                        world.Tick + Spec105.PlayDeadHoldTicks,
-                        npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks);
+                npc.Mind.PlayDeadUntilTick = System.Math.Min(
+                    world.Tick + Spec105.PlayDeadHoldTicks,
+                    npc.Mind.PlayDeadSinceTick + Spec105.PlayDeadMaxTicks);
             }
 
             // Spec 31C.7A: a sleeping body burns less — hour-long sleep

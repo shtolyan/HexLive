@@ -1688,6 +1688,16 @@ public sealed partial class PlanningSystem : ISimulationSystem
     internal static bool TryGetEdgeSeatGeometry(
         WorldState world, Junction junction, bool waterOnly,
         out TileCoord standTile, out Float2 facing)
+        => TryGetEdgeSeatGeometry(
+            world, junction, waterOnly, requireCanonical: true, out standTile, out facing);
+
+    // Bug #332: каноничность — правило ПЛАНИРОВЩИКА («куда сесть»), а не позы.
+    // Уже сидящая на НЕканоническом джанкшене шва (ручное «присесть», §137
+    // Idle-отдых, снос прибытия) без этой оговорки теряла весь подъём на
+    // уступ и проваливалась телом в верхний гекс.
+    internal static bool TryGetEdgeSeatGeometry(
+        WorldState world, Junction junction, bool waterOnly, bool requireCanonical,
+        out TileCoord standTile, out Float2 facing)
     {
         standTile = default;
         facing = Float2.Zero;
@@ -1785,7 +1795,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             }
         }
 
-        if (canonical != junction.Id)
+        if (requireCanonical && canonical != junction.Id)
         {
             return false;
         }

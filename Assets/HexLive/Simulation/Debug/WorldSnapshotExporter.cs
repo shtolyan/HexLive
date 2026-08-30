@@ -1473,8 +1473,16 @@ public static class WorldSnapshotExporter
 
         // Iter 28: sitting at a junction whose tiles step exactly one
         // level = a ledge seat; the view plants the butt on the upper step.
+        // Bug #332: (1) поза считается БЕЗ требования каноничности джанкшена —
+        // каноничность выбирает, КУДА сесть, а уже сидящую на любом джанкшене
+        // шва надо поднять на уступ, иначе тело тонет в верхнем гексе;
+        // (2) §137-отдых («Rest», всегда без объекта) — тоже edge-поза, но
+        // только когда она сидит СНИЗУ у ступени (stepsUp>0): его клип авторен
+        // на плоской земле, и rim-dangle со stepsUp=0 ему не нужен.
+        var restPose = npcSnapshot.CurrentInteraction == "Rest";
         var usesEdgePose = npcSnapshot.CurrentInteraction == "WashClothes" ||
-            npcSnapshot.CurrentInteraction == "Sit" && npc.Execution.TargetObject is null;
+            npcSnapshot.CurrentInteraction == "Sit" && npc.Execution.TargetObject is null ||
+            restPose;
         if (usesEdgePose &&
             npc.CurrentJunction is { } sitJunctionId &&
             world.Junctions.Items.TryGetValue(sitJunctionId, out var sitJunction) &&
@@ -1482,7 +1490,8 @@ public static class WorldSnapshotExporter
         {
             var waterOnly = npcSnapshot.CurrentInteraction == "WashClothes";
             npcSnapshot.IsLedgeSit = Runtime.PlanningSystem.TryGetEdgeSeatGeometry(
-                world, sitJunction, waterOnly, out var seatStandTile, out _);
+                world, sitJunction, waterOnly, requireCanonical: false,
+                out var seatStandTile, out _);
 
             // How far below the seat (higher tile) her own tile sits: 0 if
             // she stands on the higher tile (a land/water rim — sit right on
@@ -1492,6 +1501,10 @@ public static class WorldSnapshotExporter
             var seatElevation = world.Tiles.Items.TryGetValue(seatStandTile, out var seatStand)
                 ? seatStand.Elevation : standElevation;
             npcSnapshot.LedgeSeatStepsUp = System.Math.Max(0, seatElevation - standElevation);
+            if (restPose && npcSnapshot.LedgeSeatStepsUp == 0)
+            {
+                npcSnapshot.IsLedgeSit = false;
+            }
         }
 
         foreach (var relation in npc.Social.Relationships)

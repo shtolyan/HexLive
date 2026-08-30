@@ -14,6 +14,24 @@ namespace HexLive.Simulation.Tests.Gates
 /// </summary>
 public sealed class CharacterDollAndInventoryUiContractTests
 {
+
+    // Bug #295: гейт «указатель над UI» меряет ВИДИМЫЕ поверхности панели, а
+    // не контейнер _stage во всю ширину — его габарит включал ряды мысли и
+    // эффектов, и правые две трети полосы над карточкой глотали клики «идти».
+    [Test]
+    public void PointerGateMeasuresVisibleSurfacesNotTheFullWidthStage()
+    {
+        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source, Does.Not.Contain("PointerOverElement(_stage"),
+                "Габарит _stage — вся ширина экрана; клики над пустотой гибли.");
+            Assert.That(source, Does.Contain("PointerOverElement(_card, mousePos, scale)"));
+            Assert.That(source, Does.Contain("PointerOverElement(_effectsRow, mousePos, scale)"));
+        });
+    }
+
     private static string ReadLocalization() => Regex.Replace(
         File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset")),

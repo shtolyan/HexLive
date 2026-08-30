@@ -658,7 +658,19 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var overBar = _shown && PointerOverElement(_stage, mousePos, scale);
+            // Bug #295: НЕ мерить _stage целиком. Stage — колонка на всю
+            // ширину, и её habarит включает ряды мысли/мечты/эффектов над
+            // карточкой: маленькие чипы слева, а блокировала кликов ВСЯ
+            // полоса их высоты во всю ширину экрана — правые две трети над
+            // панелью глотали приказ «идти». Меряем только реально видимые
+            // поверхности (скрытые display:none дают нулевой прямоугольник и
+            // отсеиваются внутри PointerOverElement).
+            var overBar = _shown &&
+                (PointerOverElement(_card, mousePos, scale) ||
+                 PointerOverElement(_groupCard, mousePos, scale) ||
+                 PointerOverElement(_thought, mousePos, scale) ||
+                 PointerOverElement(_dream, mousePos, scale) ||
+                 PointerOverElement(_effectsRow, mousePos, scale));
             var overRoster = PointerOverElement(_roster, mousePos, scale);
 
             // The floating windows (inventory / limb health) sit ABOVE the bar —

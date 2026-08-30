@@ -180,7 +180,6 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     // Стенд мокроты: 0..1 крутится кнопкой, рендерится игровыми формулами.
     private float _wet01;
     private Label _wetLabel;
-    private MaterialPropertyBlock _wetMpb;
     private static readonly int SkinSmoothnessId = Shader.PropertyToID("_Smoothness");
     private float _tear01;
     private Label _dirtLabel;
@@ -1391,13 +1390,21 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         var smoothness = Mathf.Lerp(
             NpcActorView.DrySkinSmoothness, NpcActorView.WetSkinSmoothness, _wet01);
-        _wetMpb ??= new MaterialPropertyBlock();
-        var slots = body.sharedMaterials.Length;
-        for (var slot = 0; slot < slots; slot++)
+        // Зеркально игре (NpcActorView): В МАТЕРИАЛ, не в MPB — per-index
+        // MPB глушит сэмплинг карты глянца; слот с живой картой пинится к 1
+        // (слайдер URP — множитель поверх альфы карты, иначе глянец раны
+        // умножается на сухой ноль и заперт).
+        var mats = body.materials;
+        for (var slot = 0; slot < mats.Length; slot++)
         {
-            body.GetPropertyBlock(_wetMpb, slot);
-            _wetMpb.SetFloat(SkinSmoothnessId, smoothness);
-            body.SetPropertyBlock(_wetMpb, slot);
+            if (mats[slot] == null || !mats[slot].HasProperty(SkinSmoothnessId))
+            {
+                continue;
+            }
+
+            body.SetPropertyBlock(null, slot);
+            var glossMapped = _skinPainter.SlotHasGlossMap(slot);
+            mats[slot].SetFloat(SkinSmoothnessId, glossMapped ? 1f : smoothness);
         }
     }
 

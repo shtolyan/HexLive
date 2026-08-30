@@ -744,6 +744,33 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             _materials = body.materials; // instantiate once, per NPC
+            // ⭐ Пересадка на ГЛОБАЛЬНЫЙ URP/Lit (замер 2026-08-30,
+            // probe_global_shader): атомарный бандл актрисы несёт СВОЮ копию
+            // шейдера «Universal Render Pipeline/Lit», из которой при сборке
+            // контента вырезан вариант _METALLICSPECGLOSSMAP — рантайм-кейворд
+            // падал в несуществующий вариант, карта глянца молча игнорировалась,
+            // и от канала блеска ран оставался только виниловый пин. Именно на
+            // переезде актрис в бандлы «красивая эра» блеска и кончилась.
+            // Глобальному шейдеру варианты держат SkinGlossKeepAlive.mat
+            // (Resources/HexLive/Decals — попадают в Player всегда). Свойства и
+            // кейворды пересадка сохраняет; renderQueue возвращаем руками.
+            var globalLit = Shader.Find("Universal Render Pipeline/Lit");
+            if (globalLit != null)
+            {
+                foreach (var material in _materials)
+                {
+                    if (material == null || material.shader == globalLit ||
+                        material.shader == null || material.shader.name != globalLit.name)
+                    {
+                        continue;
+                    }
+
+                    var queue = material.renderQueue;
+                    material.shader = globalLit;
+                    material.renderQueue = queue;
+                }
+            }
+
             _originalAlbedo = new Texture?[_materials.Length];
             _originalNormal = new Texture?[_materials.Length];
             _slotRt = new RenderTexture?[_materials.Length];

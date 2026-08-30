@@ -115,6 +115,9 @@ public sealed class SkinPaintLivenessContractTests
             Assert.That(painter, Does.Contain(
                 "private const bool WoundGlossEnabled = true;"),
                 "Канал глянца ран жив — карта маскирует пин per-pixel.");
+            Assert.That(painter, Does.Contain("material.shader = globalLit;"),
+                "Бандловая копия URP/Lit без варианта карты пересаживается на " +
+                "глобальный шейдер — иначе карта глянца молча игнорируется.");
         });
     }
 

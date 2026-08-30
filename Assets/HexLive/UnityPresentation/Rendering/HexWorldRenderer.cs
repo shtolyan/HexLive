@@ -1143,12 +1143,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             var main = _rain.main;
             main.startSpeed = 22f;
-            // Streak width comes from startSize in stretch mode. Bug: с
-            // игровой камеры (30-50 wu) штрих в 3.5-6 см при альфе 0.55 —
-            // суб-пиксель: дождь ИГРАЛ, но был физически невидим («вижу
-            // только мокрую землю»). Толщина и альфа подняты до различимых
-            // с рабочей дистанции камеры.
-            main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.14f);
+            // Streak width comes from startSize in stretch mode. Bug #298:
+            // укрупнение штриха до 8-14 см читалось игроком как «огромный
+            // дождь» — размер возвращён к исходным тонким каплям, а
+            // различимость с игровой камеры (30-50 wu) несёт только альфа
+            // (0.55 -> 0.8): при ней тонкий штрих уже не суб-пиксельно бледный.
+            main.startSize = new ParticleSystem.MinMaxCurve(0.035f, 0.06f);
             main.startLifetime = 2.2f;
             main.startColor = new Color(0.65f, 0.78f, 0.95f, 0.8f);
             main.maxParticles = 9000;
@@ -1289,8 +1289,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         var main = splash.main;
         main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f, 1.7f);
-        // Брызги укрупнены вместе с каплями — 2-5 см не читались с камеры.
-        main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.09f);
+        // Bug #298: брызги вернулись к прежним 2-5 см вместе с каплями.
+        main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.05f);
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.38f);
         main.startColor = new Color(0.75f, 0.86f, 1f, 0.85f);
         main.maxParticles = 6000;

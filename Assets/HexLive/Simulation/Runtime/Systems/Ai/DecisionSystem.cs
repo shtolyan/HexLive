@@ -625,15 +625,21 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 }
             }
             var wantsBackpack = !wearsBackpack && KnowsReachableBackpack(npc, world);
+            // Bug #313 (вердикт игрока): одеваться решает УЛИЧНЫЙ холод, а не
+            // текущий комфорт. Раздетая грелась у костра, дискомфорт стекал в
+            // ноль — и порог DressThermalThreshold не давал ей одеться никогда:
+            // она бегала голой между костром и делами по морозу. effectiveTemp
+            // здесь и так БЕЗ костра (Global + EquippedWarmth×10), так что
+            // «на улице холодно её гардеробу» читается прямо из него; порог по
+            // дискомфорту снят. Защита от кружения у шкафа остаётся тройной:
+            // реальный холод (DressColdTemp), недоодетость (WarmthCeiling) и
+            // достижимый НАСТОЯЩИЙ апгрейд тепла (§52.7).
+            var coldForWardrobe = effectiveTemp < SimBalance.DressColdTemp &&
+                npc.EquippedWarmth < SimBalance.DressWarmthCeiling;
             var dressAvail = maintainSelectedOutfit ||
                 (!npc.Mind.OutfitLocked && !pendingRedress &&
                  (wantsBackpack || wantsArmor || wantsCover ||
-                  (npc.Needs.ThermalDiscomfort >= SimBalance.DressThermalThreshold &&
-                   effectiveTemp < SimBalance.DressColdTemp && // spec 42: dress against REAL cold only —
-                   // a merely-cool girl (14..16) must not circle the wardrobe all
-                   // day while the fire/water chain starves (worn=183/soak once)
-                   npc.EquippedWarmth < SimBalance.DressWarmthCeiling && // already bundled up: more cloth
-                   // won't fix 10°C — the campfire will (stops armor-swap churn)
+                  (coldForWardrobe &&
                    HasInteraction(npc, InteractionType.Dress) &&
                    // §52.7: ...and only when something in reach is a REAL warmth
                    // upgrade — no trek to an equal/worse shirt (the girl's own
@@ -654,6 +660,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     ? System.Math.Max(npc.Needs.ThermalDiscomfort, 0.6f)
                     : npc.Needs.ThermalDiscomfort,
                 sunPressure);
+            if (coldForWardrobe)
+            {
+                // Bug #313: у костра дискомфорт стекает в ноль, и раздетая на
+                // морозе «не видела» причин одеться. Уличный холод даёт нужде
+                // пол на уровне прежнего порога — одевание обгоняет досуг, но
+                // не еду/воду/опасность.
+                dressNeed = System.Math.Max(dressNeed, SimBalance.DressThermalThreshold);
+            }
             if (wantsCover)
             {
                 // §133: прикрыться при чужаке важнее и холода, и загара.
@@ -1323,7 +1337,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // nothing else ever picked a scattered stick up for the bed.
         var gatherWoodTargetReachable = PlanningSystem.HasObjectCandidateForGoal(
             world, npc, GoalType.GatherWood);
-        var gatherWoodAvail = ((fuelLow && !hasWood) ||
+        // Bug #316 (вердикт игрока): дрова не носят по одной палке. Пока в
+        // карманах меньше партии (и нет бревна/доски — те сами по себе большая
+        // вязанка), а палки ещё видны, сбор топлива продолжается.
+        var carriedFuelBatchDone = carriedSticks >= SimBalance.FuelHaulBatchSticks ||
+            carriedLogs > 0 || carriedBoards > 0;
+        var gatherWoodAvail = ((fuelLow && !carriedFuelBatchDone) ||
                 (piece is { } pLog && carriedLogs < pLog.Logs) ||
                 siteNeedsLogs ||
                 (siteNeedsSticks &&
@@ -1361,7 +1380,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             npc.Needs.Energy < TraitMath.EffectiveSleepThreshold(npc) ||
             npc.Needs.ThermalComfort < AiBalance.FreezingComfortThreshold ||
             world.Tick - npc.Mind.LastFreezingTick < SimBalance.FrictionLightGraceTicks;
-        var tendFireAvail = hasWood && fuelLow &&
+        // Bug #316: с одной палкой к костру не идёт, пока рядом ещё есть что
+        // подобрать — сначала партия. Потухший костёр и замёрзшая топят сразу.
+        var stillBatchingFuel = fuelLow && campfireFuel > 0f &&
+            npc.Needs.ThermalComfort >= -0.15f &&
+            !carriedFuelBatchDone && gatherWoodTargetReachable;
+        var tendFireAvail = hasWood && fuelLow && !stillBatchingFuel &&
             (campfireFuel > 0f || canFrictionLight || (ctx.CanUseToolsOrWeapons && hasLighter)) &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.TendFire);
 
@@ -2408,10 +2432,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // ПРЯМО СЕЙЧАС, а не память о волке на том берегу.
         var stowThreatened = npc.IsFighting || npc.Perception.Hostiles.Count > 0 ||
             npc.Health < 0.4f || npc.Needs.Hunger >= 0.6f || npc.Needs.Thirst >= 0.6f;
+        // Bug #314: одежда в карманах — тоже беспорядок; сдаётся домой тем же
+        // фоновым StowClothes.
         var stowClothesAvail = !stowThreatened && npc.Body.CanUseToolsOrWeapons &&
             npc.Mind.RedressGarments.Count == 0 &&
             StowMath.FindUndressSpot(world, npc) is not null &&
-            StrayGarmentMath.FindStray(world, npc) is not null;
+            (StrayGarmentMath.FindStray(world, npc) is not null ||
+             StrayGarmentMath.FindPocketGarment(world, npc) is not null);
         AddGoalScore(npc, world.Tick, GoalType.StowClothes, 0.18f, stowClothesAvail);
 
         // Spec 35.4: overheating drives a trip to shade or the river. Gate on

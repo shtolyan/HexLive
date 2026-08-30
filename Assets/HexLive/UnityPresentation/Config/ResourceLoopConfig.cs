@@ -43,6 +43,8 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 30)] public int campfireStarterSticks = 14;
         [Tooltip("Сколько тиков после последнего замерзания доступно трение-разжигание (ручное сверло).")]
         [Range(0, 1200)] public int frictionLightGraceTicks = 400;
+        [Tooltip("§54/#316: сколько палок набирает за один подход, прежде чем нести к костру.")]
+        [Range(1, 10)] public int fuelHaulBatchSticks = 3;
 
         [Header("Единственная кровать — билл (§54.2)")]
         [Tooltip("bed.basic: брёвна боковых направляющих.")]

@@ -22,6 +22,7 @@ MonoBehaviour:
   campfireSpitCapacity: 6
   campfireStarterSticks: 14
   frictionLightGraceTicks: 400
+  fuelHaulBatchSticks: 3
   bedLeafBillLeaves: 46
   bedLeafBillSticks: 8
   bedLeafBillRope: 8

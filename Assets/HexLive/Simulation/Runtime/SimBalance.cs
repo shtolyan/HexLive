@@ -289,6 +289,11 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Stamina / stress (soft — colour the UI, nudge rest, feed collapse).
         // ─────────────────────────────────────────────────────────────
+        // Bug #316 (вердикт игрока): дрова не носят по одной палке — партия
+        // на один подход к костру. Пока в карманах меньше и палки ещё видны,
+        // сбор продолжается; замёрзшая или потухший костёр топят сразу.
+        public static int FuelHaulBatchSticks = 3;
+
         public static float StaminaRestGain = 0.06f;   // stamina/tick while resting
         public static float StaminaWorkDrain = 0.05f;  // stamina/tick while working
         public static float StaminaIdleGain = 0.015f;  // stamina/tick while idle

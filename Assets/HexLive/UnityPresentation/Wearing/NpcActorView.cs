@@ -3624,6 +3624,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _deadWasAlreadyLying;
     private bool _corpseCarried;
     private float _deathFreezeAt = -1f; // Time.time, когда клип докрутится
+    // Bug #325: у восстановленного трупа Play(FallenIdle) мог тихо не
+    // связаться (актриса ещё собирается, аниматор не активен) — заморозка
+    // фиксировала СТОЯЧУЮ позу навсегда. Поза смерти теперь добивается
+    // повторами, пока аниматор реально не окажется в FallenIdle.
+    private bool _deathPosePending;
+    private float _deathPoseDeadline;
     private float _deathSurfaceY;
     private static readonly int DeathStateHash = Animator.StringToHash("Death");
     private static readonly int FallenIdleStateHash = Animator.StringToHash("FallenIdle");
@@ -3666,14 +3672,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             if (!_laying)
             {
                 SetFallen(true, sleepAfter: false, surfaceY: surfaceY);
-                if (_animator != null)
-                {
-                    _animator.Play(FallenIdleStateHash, 0, 0f);
-                    _animator.Update(0f);
-                }
             }
 
-            FreezeDeathPose();
+            // Bug #325: заморозка ТОЛЬКО после того, как аниматор доказал, что
+            // стоит в FallenIdle. На свежесобранной актрисе (труп вошёл в
+            // восприятие, §155.5 тёплая сборка) Play тихо не связывался, и
+            // FreezeDeathPose фиксировал стоячую позу навсегда.
+            if (TryApplyLyingDeathPose())
+            {
+                FreezeDeathPose();
+            }
+            else
+            {
+                _deathPosePending = true;
+                _deathPoseDeadline = Time.time + 3f;
+            }
+
             return;
         }
 
@@ -3710,10 +3724,33 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void FreezeDeathPose()
     {
         _deathFreezeAt = -1f;
+        _deathPosePending = false;
         if (_animator != null)
         {
             _animator.enabled = false;
         }
+    }
+
+    // Bug #325: попытка уложить труп в FallenIdle с ПРОВЕРКОЙ, что состояние
+    // реально связалось. Ложь = аниматор ещё не готов (актриса собирается) —
+    // вызывающий обязан повторить, а не замораживать стоячую позу.
+    private bool TryApplyLyingDeathPose()
+    {
+        if (_laying)
+        {
+            return true; // уже лежит своей цепочкой — фиксируем как есть
+        }
+
+        if (_animator == null || !_animator.isActiveAndEnabled ||
+            _animator.runtimeAnimatorController == null)
+        {
+            return false;
+        }
+
+        _animator.Play(FallenIdleStateHash, 0, 0f);
+        _animator.Update(0f);
+        return _animator.GetCurrentAnimatorStateInfo(0).shortNameHash ==
+            FallenIdleStateHash;
     }
 
     /// <summary>§124: PlayableGraph переносимой позы требует включённый
@@ -7652,6 +7689,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (_deathFreezeAt >= 0f && Time.time >= _deathFreezeAt)
         {
             FreezeDeathPose();
+        }
+
+        // Bug #325: лежачая поза смерти добивается повторами, пока актриса
+        // не собралась; по дедлайну — честный лежачий фолбэк вместо стоячего.
+        if (_deathPosePending && _dead)
+        {
+            if (TryApplyLyingDeathPose())
+            {
+                FreezeDeathPose();
+            }
+            else if (Time.time >= _deathPoseDeadline)
+            {
+                SetLaying(true, null, _deathSurfaceY);
+                FreezeDeathPose();
+            }
         }
 
         SampleMotion();

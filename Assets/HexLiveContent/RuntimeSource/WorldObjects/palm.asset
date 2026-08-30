@@ -20,6 +20,7 @@ MonoBehaviour:
     type: 9
     requiredCapabilities:
     - 4
+    - 128
     durationTicks: 60
     yields:
     - item: {fileID: 11400000, guid: 04b5961c3a7043c8922b289aaf9e9ba2, type: 2}

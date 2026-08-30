@@ -305,6 +305,11 @@ public static class PrototypeContentCatalog
                         Id = "chop.palm",
                         Type = InteractionType.Harvest,
 
+                        // Bug #300: пила больше не несёт ChopWood (она только
+                        // пилит), поэтому валка явно принимает оба инструмента:
+                        // рубящий (топор/мачете) ИЛИ пилящий.
+                        RequiredCapabilities = { GearCapability.ChopWood, GearCapability.Saw },
+
                         // Spec 35.2 (iter 29): a palm is 60 by axe, 30 by saw.
                         DurationTicks = 60,
                         // Spec §54.2: a BIG palm (3 trunk segments) fells into 3

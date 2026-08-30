@@ -575,7 +575,8 @@ public sealed class BatheUndressAtHomeTests
             // exact catalog interaction id for same-type manual actions.
             // 61 → 62 in §129/#237: persisted building owner faction
             // (door camp ownership survives camp merge/removal).
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(62));
+            // 62 → 63 in §121.11/#294: persistent per-NPC manual run tempo.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(63));
         });
     }
 

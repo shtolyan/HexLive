@@ -43,7 +43,9 @@ public sealed class LlmControlAdapterTests
             Assert.That(stop.Npc, Is.EqualTo(npcId));
             Assert.That(move.Npc, Is.EqualTo(npcId));
             Assert.That(move.WorldPosition, Is.EqualTo(new Float2(3.5f, -2f)));
-            Assert.That(move.Run, Is.False);
+            // §121.11 (#294): темп — постоянная настройка NPC; null значит
+            // «не навязывать» — сим возьмёт её собственный тумблер.
+            Assert.That(move.Run, Is.Null);
             Assert.That(interact.Npc, Is.EqualTo(npcId));
             Assert.That(interact.Target, Is.EqualTo(new ObjectId(11)));
             Assert.That(interact.Interaction, Is.EqualTo(InteractionType.Harvest));

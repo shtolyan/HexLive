@@ -443,6 +443,22 @@ namespace HexLive.Simulation.Content
                 new("clothing.shirt_riot", "Buttoned Shirt", WearLayer.Wear, 0.09f, 0.01f, 0.00f, dress, 2, BodyPart.Torso),
                 new("clothing.pants_ranger", "Ranger Trousers", WearLayer.Wear, 0.17f, 0.05f, 0.00f, dress, 4, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR),
                 new("clothing.vest_ranger", "Padded Vest", WearLayer.Outerwear, 0.14f, 0.15f, 0.00f, dress, 1, BodyPart.Torso),
+                // --- Helmets (bug #329, 2026-08 drop: Blender normalize →
+                // head-bone skin — not the DAZ wardrobe path). Armor per §29C.4;
+                // hard shells stop a head bite better than any cloth.
+                new("clothing.helmet_space", "Space Helmet", WearLayer.Outerwear, 0.06f, 0.15f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_moto", "Motorcycle Helmet", WearLayer.Outerwear, 0.05f, 0.20f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_carbon", "Baseball Helmet", WearLayer.Outerwear, 0.04f, 0.15f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_knight", "Sci-Fi Helmet", WearLayer.Outerwear, 0.06f, 0.25f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_m1", "M1 Steel Helmet", WearLayer.Outerwear, 0.05f, 0.25f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_racing", "Racing Helmet", WearLayer.Outerwear, 0.05f, 0.20f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_retro", "Retro Moto Helmet", WearLayer.Outerwear, 0.05f, 0.18f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_t1", "T1 Racing Helmet", WearLayer.Outerwear, 0.05f, 0.20f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_tactical_headset", "Tactical Helmet with Headset", WearLayer.Outerwear, 0.06f, 0.28f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_bull", "Bull Riding Helmet", WearLayer.Outerwear, 0.05f, 0.22f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_tactical", "Tactical Helmet", WearLayer.Outerwear, 0.06f, 0.28f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_vietnam", "Pilot Helmet", WearLayer.Outerwear, 0.06f, 0.24f, 0.00f, dress, 0, BodyPart.Head),
+                new("clothing.helmet_vintage", "Vintage Helmet", WearLayer.Outerwear, 0.05f, 0.22f, 0.00f, dress, 0, BodyPart.Head),
                 new("clothing.blouse_waist_riot_denim", "Blouse Tied at the Waist (Denim)", WearLayer.Outerwear, 0.06f, 0.01f, 0.00f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.blouse_waist_riot" },
                 new("clothing.blouse_waist_riot_green", "Blouse Tied at the Waist (Green)", WearLayer.Outerwear, 0.06f, 0.01f, 0.00f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.blouse_waist_riot" },
                 new("clothing.blouse_waist_riot_squaresclear", "Blouse Tied at the Waist (SquaresClear)", WearLayer.Outerwear, 0.06f, 0.01f, 0.00f, dress, 2, BodyPart.Pelvis, BodyPart.LegL, BodyPart.LegR) { PrototypeId = "clothing.blouse_waist_riot" },

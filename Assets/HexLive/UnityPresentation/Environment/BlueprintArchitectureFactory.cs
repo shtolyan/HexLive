@@ -146,6 +146,28 @@ namespace HexLive.UnityPresentation.Environment
                     remapped[i] = UrpVariant(sourceMaterials[i]);
                 renderer.sharedMaterials = remapped;
             }
+
+            // Bug #302: модуль авторски рос от поверхности пола до карниза.
+            // Низ теперь на земле (ModuleLift = 0), а чтобы верх остался на
+            // карнизе, модель растягивается по Y ровно на съеденный лифт.
+            if (IsGroundedEnvelope(definitionId))
+            {
+                var bounds = default(Bounds);
+                var has = false;
+                foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (!has) { bounds = renderer.bounds; has = true; }
+                    else bounds.Encapsulate(renderer.bounds);
+                }
+
+                if (has && bounds.size.y > 0.01f)
+                {
+                    var stretch = (bounds.size.y + HutAssembly.FloorSurfaceLift) / bounds.size.y;
+                    var scale = model.transform.localScale;
+                    model.transform.localScale = new Vector3(scale.x, scale.y * stretch, scale.z);
+                }
+            }
+
             return root;
         }
 
@@ -177,10 +199,13 @@ namespace HexLive.UnityPresentation.Environment
                 Quaternion.LookRotation(outward, Vector3.up));
             if (model != null) return model;
 
+            // Bug #302: запасной цилиндр тоже стоит на земле, верх на прежнем
+            // месте (FloorSurfaceLift + SupportHeight).
+            var fallbackTop = HutAssembly.FloorSurfaceLift + SupportHeight;
             var root = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             root.transform.localPosition = new Vector3(
-                point.X, HutAssembly.FloorSurfaceLift + SupportHeight * 0.5f, point.Y);
-            root.transform.localScale = new Vector3(0.065f, SupportHeight * 0.5f, 0.065f);
+                point.X, fallbackTop * 0.5f, point.Y);
+            root.transform.localScale = new Vector3(0.065f, fallbackTop * 0.5f, 0.065f);
             root.GetComponent<Renderer>().sharedMaterial = Bark;
             return root;
         }
@@ -209,13 +234,25 @@ namespace HexLive.UnityPresentation.Environment
         /// drift: the walkable deck for anything standing on the floor, the
         /// ground plane for the floor boards themselves, the eave for a roof.
         /// </summary>
+        // Bug #302: опоры/стены/окна/двери стоят НА ЗЕМЛЕ, а не на высоте
+        // поверхности пола — у строения без пола они «левитировали» на
+        // 0.107 wu. Верх при этом остаётся на прежней высоте карниза:
+        // InstantiateModel растягивает такой модуль по Y на съеденный лифт,
+        // так что крыша не отрывается, а при полном поле низ прячется в полу
+        // (игрок просил именно «утопить в пол»).
         public static float ModuleLift(string definitionId) => definitionId switch
         {
             "architecture.floor.board" => 0f,
             "architecture.roof.palm" => RoofEaveHeight,
             "architecture.roof.palm.flat" => RoofEaveHeight,
-            _ => HutAssembly.FloorSurfaceLift
+            _ => 0f
         };
+
+        /// <summary>Полноростовые «конвертные» модули, которым bug #302
+        /// опустил низ на землю и компенсировал верх растяжкой.</summary>
+        private static bool IsGroundedEnvelope(string definitionId) => definitionId
+            is "architecture.support.wood" or "architecture.wall.wood"
+            or "architecture.window.wood" or "architecture.door.wood";
 
         /// <summary>
         /// Turns the LocalYaw the simulation stores on an architecture element

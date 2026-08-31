@@ -48,16 +48,26 @@ public static class HelmetWearBuilder
     [MenuItem("HexLive/Build Helmet Wear Prefabs (Racing+Retro Only)")]
     public static void BuildRacingRetro()
     {
-        foreach (var hid in new[] { "helmet_racing", "helmet_retro" })
+        var jobs = new (string Path, string Hid)[]
+        {
+            ($"{SourceFolder}/helmet_racing.fbx", "helmet_racing"),
+            // r8: retro тоже прямо из фбх игрока — глянец/красный подклад/
+            // прозрачный визор живут в материалах самого файла.
+            ($"{SourceFolder}/helmet_retro_new/source/helmet.fbx", "helmet_retro"),
+            // r7: t1 идёт ПРЯМО из фбх игрока — Unity уже собирает его один
+            // в один (экстрагированные .mat рядом), Blender не участвует.
+            ($"{SourceFolder}/t1-helmet/source/HELMET 69.fbx", "helmet_t1"),
+        };
+        foreach (var job in jobs)
         {
             try
             {
-                BuildOne($"{SourceFolder}/{hid}.fbx");
-                Debug.Log($"HelmetWearBuilder: rebuilt {hid}");
+                BuildOne(job.Path, job.Hid);
+                Debug.Log($"HelmetWearBuilder: rebuilt {job.Hid}");
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"HelmetWearBuilder: {hid}: {e}");
+                Debug.LogError($"HelmetWearBuilder: {job.Hid}: {e}");
             }
         }
 
@@ -71,6 +81,13 @@ public static class HelmetWearBuilder
         foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { SourceFolder }))
         {
             var path = AssetDatabase.GUIDToAssetPath(guid);
+            // Сырцы игрока живут в подпапках (helmet_retro_new/source/…) —
+            // BuildAll берёт только сгенерированные пары в корне Helmets.
+            if (Path.GetDirectoryName(path)!.Replace('\\', '/') != SourceFolder)
+            {
+                continue;
+            }
+
             try
             {
                 BuildOne(path);
@@ -86,9 +103,9 @@ public static class HelmetWearBuilder
         Debug.Log($"HelmetWearBuilder: built {built} helmet prefabs");
     }
 
-    private static void BuildOne(string fbxPath)
+    private static void BuildOne(string fbxPath, string hidOverride = null)
     {
-        var hid = Path.GetFileNameWithoutExtension(fbxPath); // helmet_space
+        var hid = hidOverride ?? Path.GetFileNameWithoutExtension(fbxPath); // helmet_space
         var itemId = "clothing." + hid;
 
         var importer = (ModelImporter)AssetImporter.GetAtPath(fbxPath);
@@ -148,8 +165,22 @@ public static class HelmetWearBuilder
                 headWorld += local;
             }
 
+            // r7: нормализация размера — сырцы игрока приходят в произвольных
+            // единицах; шлем приводится к 0.26 м по большему горизонтальному
+            // габариту (мои сгенерированные fbx уже такие — фактор ~1).
+            var extent = Mathf.Max(max.x - min.x, max.z - min.z);
+            var center = (min + max) * 0.5f;
+            if (extent > 0.0001f)
+            {
+                var factor = 0.26f / extent;
+                for (var i = 0; i < bakedVertices.Count; i++)
+                {
+                    bakedVertices[i] = center + (bakedVertices[i] - center) * factor;
+                }
+            }
+
             var target = headWorld + HeadCenterOffset;
-            var shift = target - (min + max) * 0.5f;
+            var shift = target - center;
             for (var i = 0; i < bakedVertices.Count; i++)
             {
                 bakedVertices[i] += shift;
@@ -170,7 +201,30 @@ public static class HelmetWearBuilder
 
             var headIndex = Chain.Length - 1;
 
-            var mesh = new Mesh { name = hid };
+            var itemFolder = $"{WearFolder}/{itemId}";
+            if (!AssetDatabase.IsValidFolder(itemFolder))
+            {
+                AssetDatabase.CreateFolder(WearFolder, itemId);
+            }
+
+            // GUID меша стабилен: данные заливаются ПРЯМО в существующий
+            // ассет (Clear + Set*) — Delete/Create менял GUID и рвал ссылки
+            // префаба, а CopySerialized процедурный меш не переносит
+            // (на диске оставался m_VertexCount: 0).
+            var meshPath = $"{itemFolder}/{hid}.mesh.asset";
+            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+            if (mesh == null)
+            {
+                mesh = new Mesh { name = hid };
+                AssetDatabase.CreateAsset(mesh, meshPath);
+                mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+            }
+
+            mesh.Clear();
+            mesh.name = hid;
+            // >65535 вершин (сырцы игрока без децимации) требуют 32-битных
+            // индексов ДО заливки треугольников — иначе меш рвётся в кашу.
+            mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             mesh.SetVertices(bakedVertices);
             mesh.SetNormals(bakedNormals);
             mesh.SetUVs(0, bakedUvs);
@@ -195,17 +249,7 @@ public static class HelmetWearBuilder
 
             mesh.bindposes = bindposes;
             mesh.RecalculateBounds();
-
-            var itemFolder = $"{WearFolder}/{itemId}";
-            if (!AssetDatabase.IsValidFolder(itemFolder))
-            {
-                AssetDatabase.CreateFolder(WearFolder, itemId);
-            }
-
-            var meshPath = $"{itemFolder}/{hid}.mesh.asset";
-            AssetDatabase.DeleteAsset(meshPath);
-            AssetDatabase.CreateAsset(mesh, meshPath);
-            mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+            EditorUtility.SetDirty(mesh);
 
             Material material;
             var matPath = $"{itemFolder}/{hid}.mat";
@@ -217,9 +261,17 @@ public static class HelmetWearBuilder
                 };
                 material.SetTexture("_BaseMap", albedo);
                 material.SetFloat("_Smoothness", 0.2f);
-                AssetDatabase.DeleteAsset(matPath);
-                AssetDatabase.CreateAsset(material, matPath);
-                material = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+                var existingMat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+                if (existingMat != null)
+                {
+                    EditorUtility.CopySerialized(material, existingMat);
+                    material = existingMat;
+                }
+                else
+                {
+                    AssetDatabase.CreateAsset(material, matPath);
+                    material = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+                }
             }
             else
             {
@@ -242,9 +294,17 @@ public static class HelmetWearBuilder
                 visor.SetColor("_BaseColor", new Color(0.03f, 0.03f, 0.045f, 1f));
                 visor.SetFloat("_Smoothness", 0.92f);
                 visor.SetFloat("_Metallic", 0.25f);
-                AssetDatabase.DeleteAsset(visorPath);
-                AssetDatabase.CreateAsset(visor, visorPath);
-                visor = AssetDatabase.LoadAssetAtPath<Material>(visorPath);
+                var existingVisor = AssetDatabase.LoadAssetAtPath<Material>(visorPath);
+                if (existingVisor != null)
+                {
+                    EditorUtility.CopySerialized(visor, existingVisor);
+                    visor = existingVisor;
+                }
+                else
+                {
+                    AssetDatabase.CreateAsset(visor, visorPath);
+                    visor = AssetDatabase.LoadAssetAtPath<Material>(visorPath);
+                }
             }
 
             var sharedMaterials = new Material[subTriangles.Count];

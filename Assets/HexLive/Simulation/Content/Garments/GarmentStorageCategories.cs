@@ -38,7 +38,11 @@ namespace HexLive.Simulation.Content
 
         /// <summary>Вещь, которая на земле сохраняет форму: обувь и сумки.</summary>
         public static bool KeepsShapeOnGround(string definitionId)
-            => IsFootwear(definitionId) || IsBag(definitionId);
+            // Bug #329: жёсткий головной убор (шлем, кепка, очки) на земле
+            // держит форму — расплющенный до 12% и уложенный «на спину» шлем
+            // читался бы как блин, а GroundVisual и так ставит дно на пол.
+            => IsFootwear(definitionId) || IsBag(definitionId) ||
+               CategoryFor(definitionId) == GarmentCategory.Headwear;
 
         /// <summary>
         /// A garment stored as a compact left/right pair: explicit gloves, or

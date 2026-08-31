@@ -42,6 +42,28 @@ public static class HelmetWearBuilder
     // Центр шлема относительно кости head: чуть выше и вперёд основания черепа.
     private static readonly Vector3 HeadCenterOffset = new(0f, 0.075f, 0.02f);
 
+    /// <summary>Bug #329 (текстуры racing/retro): пересборка ТОЛЬКО этих двух —
+    /// полный BuildAll перезаписал бы 11 префабов с настроенными игроком
+    /// headwearFit-офсетами.</summary>
+    [MenuItem("HexLive/Build Helmet Wear Prefabs (Racing+Retro Only)")]
+    public static void BuildRacingRetro()
+    {
+        foreach (var hid in new[] { "helmet_racing", "helmet_retro" })
+        {
+            try
+            {
+                BuildOne($"{SourceFolder}/{hid}.fbx");
+                Debug.Log($"HelmetWearBuilder: rebuilt {hid}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"HelmetWearBuilder: {hid}: {e}");
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+    }
+
     [MenuItem("HexLive/Build Helmet Wear Prefabs")]
     public static void BuildAll()
     {

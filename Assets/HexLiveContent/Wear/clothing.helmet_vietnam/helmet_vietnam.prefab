@@ -184,6 +184,10 @@ MonoBehaviour:
     toeDegrees: 0
     lift: 0
     axis: {x: 0, y: 0, z: 0}
+  headwearFit:
+    position: {x: 0.000000015599653, y: 0.000026426336, z: 0.040958136}
+    rotation: {x: 0, y: 180, z: 0}
+    scale: {x: 1, y: 1, z: 1}
   hidesHair: 1
 --- !u!1 &5493686139414783068
 GameObject:

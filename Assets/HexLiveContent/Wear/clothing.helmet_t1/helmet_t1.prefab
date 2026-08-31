@@ -57,7 +57,20 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b3b77678c2d8747a38a9bcf7c8beed04, type: 2}
+  - {fileID: 2100000, guid: c67ed14d7ccb5493a85fde6899db6029, type: 2}
+  - {fileID: 2100000, guid: d805330ec71bb4a09b497333afc731b6, type: 2}
+  - {fileID: 2100000, guid: 39601a6e56d024669bd58a0dd3907371, type: 2}
+  - {fileID: 2100000, guid: d1edbdcf9d30244de8508de4671dd6a5, type: 2}
+  - {fileID: 2100000, guid: d3c31d105d06d4ee6bb966ad6d085be3, type: 2}
+  - {fileID: 2100000, guid: 3ae1027bbae6c48b9ba02c161e020d7e, type: 2}
+  - {fileID: 2100000, guid: d805330ec71bb4a09b497333afc731b6, type: 2}
+  - {fileID: 2100000, guid: 967bbb4618c644bb1b65a0c9502d4652, type: 2}
+  - {fileID: 2100000, guid: e752585c7a52b4f649d644772dc45437, type: 2}
+  - {fileID: 2100000, guid: 008d4def5765240408c4d2253342d4d6, type: 2}
+  - {fileID: 2100000, guid: d805330ec71bb4a09b497333afc731b6, type: 2}
+  - {fileID: 2100000, guid: babded20dfcf1476eaf8c3b2e3a25e77, type: 2}
+  - {fileID: 2100000, guid: 3ae1027bbae6c48b9ba02c161e020d7e, type: 2}
+  - {fileID: 2100000, guid: d805330ec71bb4a09b497333afc731b6, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -253,6 +266,10 @@ MonoBehaviour:
     toeDegrees: 0
     lift: 0
     axis: {x: 0, y: 0, z: 0}
+  headwearFit:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0}
+    scale: {x: 0, y: 0, z: 0}
   hidesHair: 1
 --- !u!1 &5984593130382002892
 GameObject:

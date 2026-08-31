@@ -123,6 +123,17 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private VisualElement _hideWearRow;
     private TextField _commentField;
 
+    // §31B.4F: посадка головного убора — runtime-гизмо + числовые поля.
+    // Секция панели видна только у вещей со слотом Head; гизмо живёт на кости
+    // head живого экземпляра, числа персистятся в префаб кнопкой «Сохранить».
+    private WardrobeFitGizmo _fitGizmo;
+    private VisualElement _fitBox;
+    private bool _fitApplicable;
+    private readonly FloatField[] _fitPosFields = new FloatField[3];
+    private readonly FloatField[] _fitRotFields = new FloatField[3];
+    private readonly FloatField[] _fitScaleFields = new FloatField[3];
+    private readonly Dictionary<WardrobeFitGizmo.Mode, VisualElement> _fitModeButtons = new();
+
     // Заметки об осмотре. Живут рядом с манифестами поставок, а не в префабе:
     // это разговор про вещь, а не её свойство, и читать их будет тот, кто
     // правит конвейер, — по одному файлу, а не по девяноста двум ассетам.
@@ -251,6 +262,14 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         var orbit = camGo.AddComponent<WardrobeOrbitCamera>();
         orbit.Owner = this;
         _camera = cam;
+
+        // §31B.4F: гизмо посадки головных уборов. Живёт всегда, но видно
+        // только пока выбрана надетая вещь со слотом Head (SetTarget).
+        var gizmoGo = new GameObject("HeadwearFitGizmo");
+        _fitGizmo = gizmoGo.AddComponent<WardrobeFitGizmo>();
+        _fitGizmo.Owner = this;
+        _fitGizmo.Cam = cam;
+        _fitGizmo.TargetEdited += OnFitGizmoEdited;
 
         var lightGo = new GameObject("Sun");
         var sun = lightGo.AddComponent<Light>();
@@ -713,6 +732,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     {
         TickCycle();
         TickScaleKeys();
+        TickFitKeys();
         TickHitClick();
         // Карта блеска взводится асинхронно (fresh-полоса планировщика) —
         // пин скаляра на такие слоты должен догонять её каждый кадр.
@@ -743,6 +763,12 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     private void TickHitClick()
     {
         if (!_hitMode || _bodyBones == null || _camera == null)
+        {
+            return;
+        }
+
+        // Клик, который навёлся на ручку гизмо посадки, — его, а не раны.
+        if (_fitGizmo != null && _fitGizmo.PointerBusy)
         {
             return;
         }
@@ -947,6 +973,12 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
     {
         var keyboard = Keyboard.current;
         if (keyboard == null)
+        {
+            return;
+        }
+
+        // Стрелки в текстовом поле двигают каретку, а не размер вещи.
+        if (IsTextInputFocused())
         {
             return;
         }
@@ -1651,6 +1683,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         hint.style.marginBottom = 6f;
         _scaleBox.Add(hint);
 
+        BuildFitSection(_scaleBox);
         BuildWearFlags(_scaleBox);
 
         var save = MakeButton(Loc.Get("wardrobe.save_prefabs"), Accent, SaveDirty);
@@ -1658,6 +1691,327 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         _scaleBox.Add(save);
 
         RefreshScalePanel();
+    }
+
+    // ---- §31B.4F: посадка головного убора (гизмо + числа) ----
+    //
+    // Шлемы bug-329 запечены одной константой на все тринадцать штук, и
+    // половина сидит криво. Секция даёт те же инструменты, что редактор Unity:
+    // гизмо move/rotate/scale (W/E/R, Q — спрятать) прямо в сцене и числовые
+    // поля той же позы. И то и другое правит HeadwearFit — локальную поправку
+    // кости head вещи, применяемую после сшивания; «Сохранить» пишет в префаб.
+
+    private static bool HasHeadSlot(Wear asset)
+    {
+        if (asset == null)
+        {
+            return false;
+        }
+
+        foreach (var slot in asset.Slots)
+        {
+            if (slot == VisualWearSlot.Head)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void BuildFitSection(VisualElement box)
+    {
+        _fitBox = new VisualElement();
+        _fitBox.style.marginBottom = 6f;
+        box.Add(_fitBox);
+
+        _fitBox.Add(MakeTitle(Loc.Get("wardrobe.fit_title")));
+
+        var modes = new VisualElement();
+        modes.style.flexDirection = FlexDirection.Row;
+        modes.style.marginBottom = 3f;
+        _fitBox.Add(modes);
+
+        _fitModeButtons.Clear();
+        foreach (var (mode, term) in new[]
+                 {
+                     (WardrobeFitGizmo.Mode.Move, "wardrobe.fit_mode_move"),
+                     (WardrobeFitGizmo.Mode.Rotate, "wardrobe.fit_mode_rotate"),
+                     (WardrobeFitGizmo.Mode.Scale, "wardrobe.fit_mode_scale"),
+                     (WardrobeFitGizmo.Mode.None, "wardrobe.fit_mode_off"),
+                 })
+        {
+            var pick = mode;
+            var button = MakeButton(Loc.Get(term), Raised, () => SetFitMode(pick));
+            button.style.flexGrow = 1f;
+            button.style.flexBasis = 0f;
+            button.style.height = 24f;
+            button.style.marginRight = 3f;
+            button.style.marginBottom = 0f;
+            button.style.paddingLeft = 0f;
+            button.style.paddingRight = 0f;
+            button.style.justifyContent = Justify.Center;
+            var label = (Label)button[0];
+            label.style.fontSize = 10;
+            label.style.flexGrow = 1f;
+            label.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _fitModeButtons[pick] = button;
+            modes.Add(button);
+        }
+
+        var hint = new Label(Loc.Get("wardrobe.fit_hint"));
+        hint.style.color = Muted;
+        hint.style.fontSize = 10;
+        hint.style.whiteSpace = WhiteSpace.Normal;
+        hint.style.marginTop = 3f;
+        hint.style.marginBottom = 4f;
+        _fitBox.Add(hint);
+
+        MakeFitRow(_fitBox, Loc.Get("wardrobe.fit_pos"), _fitPosFields);
+        MakeFitRow(_fitBox, Loc.Get("wardrobe.fit_rot"), _fitRotFields);
+        MakeFitRow(_fitBox, Loc.Get("wardrobe.fit_scale3"), _fitScaleFields);
+
+        var reset = MakeButton(Loc.Get("wardrobe.fit_reset"), Raised, ResetFit);
+        reset.style.height = 24f;
+        reset.style.marginTop = 3f;
+        reset.style.justifyContent = Justify.Center;
+        ((Label)reset[0]).style.fontSize = 10;
+        _fitBox.Add(reset);
+
+        RefreshFitModeButtons();
+    }
+
+    // Строка «подпись + три числа». isDelayed: значение уходит по Enter/blur,
+    // а не на каждый символ — иначе «0.» уже применяется как ноль.
+    private void MakeFitRow(VisualElement parent, string title, FloatField[] fields)
+    {
+        var row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.alignItems = Align.Center;
+        row.style.marginBottom = 2f;
+
+        var label = new Label(title);
+        label.style.color = Muted;
+        label.style.fontSize = 10;
+        label.style.width = 78f;
+        row.Add(label);
+
+        for (var i = 0; i < 3; i++)
+        {
+            var field = new FloatField { isDelayed = true };
+            field.style.flexGrow = 1f;
+            field.style.flexBasis = 0f;
+            field.style.marginRight = i < 2 ? 2f : 0f;
+            field.RegisterValueChangedCallback(_ => OnFitFieldsChanged());
+            fields[i] = field;
+            row.Add(field);
+        }
+
+        parent.Add(row);
+    }
+
+    private void SetFitMode(WardrobeFitGizmo.Mode mode)
+    {
+        _fitGizmo?.SetMode(mode);
+        RefreshFitModeButtons();
+    }
+
+    private void RefreshFitModeButtons()
+    {
+        var current = _fitGizmo != null ? _fitGizmo.CurrentMode : WardrobeFitGizmo.Mode.Move;
+        foreach (var pair in _fitModeButtons)
+        {
+            pair.Value.style.backgroundColor = pair.Key == current ? AccentSel : Raised;
+        }
+    }
+
+    // W/E/R/Q как в Unity. Пока фокус в текстовом поле — буквы печатаются,
+    // а не переключают режимы.
+    private void TickFitKeys()
+    {
+        if (!_fitApplicable || _fitGizmo == null)
+        {
+            return;
+        }
+
+        var keyboard = Keyboard.current;
+        if (keyboard == null || IsTextInputFocused())
+        {
+            return;
+        }
+
+        if (keyboard.wKey.wasPressedThisFrame)
+        {
+            SetFitMode(WardrobeFitGizmo.Mode.Move);
+        }
+
+        if (keyboard.eKey.wasPressedThisFrame)
+        {
+            SetFitMode(WardrobeFitGizmo.Mode.Rotate);
+        }
+
+        if (keyboard.rKey.wasPressedThisFrame)
+        {
+            SetFitMode(WardrobeFitGizmo.Mode.Scale);
+        }
+
+        if (keyboard.qKey.wasPressedThisFrame)
+        {
+            SetFitMode(WardrobeFitGizmo.Mode.None);
+        }
+    }
+
+    // Фокус может сидеть на внутреннем TextElement поля — идём вверх по дереву.
+    private bool IsTextInputFocused()
+    {
+        var focused = _document?.rootVisualElement?.panel?.focusController?.focusedElement;
+        for (var element = focused as VisualElement; element != null; element = element.parent)
+        {
+            if (element is TextField || element is FloatField)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void SetFitFields(HeadwearFit fit)
+    {
+        var scale = fit.Scale; // ноль в данных показываем как авторские единицы
+        for (var i = 0; i < 3; i++)
+        {
+            _fitPosFields[i]?.SetValueWithoutNotify(fit.position[i]);
+            _fitRotFields[i]?.SetValueWithoutNotify(fit.rotation[i]);
+            _fitScaleFields[i]?.SetValueWithoutNotify(scale[i]);
+        }
+    }
+
+    private HeadwearFit FitFromFields()
+    {
+        return new HeadwearFit
+        {
+            position = new Vector3(
+                _fitPosFields[0].value, _fitPosFields[1].value, _fitPosFields[2].value),
+            rotation = new Vector3(
+                _fitRotFields[0].value, _fitRotFields[1].value, _fitRotFields[2].value),
+            scale = new Vector3(
+                _fitScaleFields[0].value, _fitScaleFields[1].value, _fitScaleFields[2].value),
+        };
+    }
+
+    private void OnFitFieldsChanged()
+    {
+        if (_selectedKey == null || !_byKey.TryGetValue(_selectedKey, out var entry) ||
+            !HasHeadSlot(entry.Asset))
+        {
+            return;
+        }
+
+        ApplyFit(entry, FitFromFields());
+    }
+
+    private void ResetFit()
+    {
+        if (_selectedKey == null || !_byKey.TryGetValue(_selectedKey, out var entry) ||
+            !HasHeadSlot(entry.Asset))
+        {
+            return;
+        }
+
+        ApplyFit(entry, default);
+    }
+
+    // В ПРЕФАБ-АССЕТ (контракт панели, как SetConfigScale) и сразу на живую
+    // кость — без пере-надевания: поправка идёт ПОСЛЕ сшивания и не запекается.
+    private void ApplyFit(WearEntry entry, HeadwearFit fit)
+    {
+        entry.Asset.SetHeadwearFit(fit);
+        var live = _bodyBones != null ? _bodyBones.GetWorn(entry.EquipKey) : null;
+        if (live != null)
+        {
+            live.SetHeadwearFit(fit);
+            live.ApplyHeadwearFitNow();
+        }
+
+        _dirty.Add(entry.Key);
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(entry.Asset);
+#endif
+        SetFitFields(fit);
+        RefreshSaveLabel();
+    }
+
+    // Гизмо подвинуло живую кость — считываем её локальную позу в данные.
+    // Полный RefreshScalePanel здесь был бы перестройкой чипов на каждый кадр
+    // драга, поэтому обновляются только поля и счётчик на кнопке сохранения.
+    private void OnFitGizmoEdited()
+    {
+        if (_selectedKey == null || !_byKey.TryGetValue(_selectedKey, out var entry))
+        {
+            return;
+        }
+
+        var live = _bodyBones != null ? _bodyBones.GetWorn(entry.EquipKey) : null;
+        var bone = live != null ? live.HeadwearFitBone : null;
+        if (bone == null)
+        {
+            return;
+        }
+
+        var fit = new HeadwearFit
+        {
+            position = bone.localPosition,
+            rotation = NormalizeEuler(bone.localRotation.eulerAngles),
+            scale = bone.localScale,
+        };
+
+        entry.Asset.SetHeadwearFit(fit);
+        live.SetHeadwearFit(fit);
+        _dirty.Add(entry.Key);
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(entry.Asset);
+#endif
+        SetFitFields(fit);
+        RefreshSaveLabel();
+    }
+
+    private void RefreshFitSection(WearEntry entry)
+    {
+        if (_fitBox == null)
+        {
+            return;
+        }
+
+        _fitApplicable = entry != null && HasHeadSlot(entry.Asset);
+        _fitBox.style.display = _fitApplicable ? DisplayStyle.Flex : DisplayStyle.None;
+
+        // Гизмо есть только у НАДЕТОЙ вещи: ему нужна живая кость head.
+        Transform bone = null;
+        if (_fitApplicable && _bodyBones != null)
+        {
+            var live = _bodyBones.GetWorn(entry.EquipKey);
+            bone = live != null ? live.HeadwearFitBone : null;
+        }
+
+        _fitGizmo?.SetTarget(bone);
+        if (_fitApplicable)
+        {
+            SetFitFields(entry.Asset.GetHeadwearFit());
+        }
+    }
+
+    // Эйлеры из кватерниона приходят 0..360 — в полях удобнее ±180.
+    private static Vector3 NormalizeEuler(Vector3 euler)
+    {
+        return new Vector3(
+            NormalizeAngle(euler.x), NormalizeAngle(euler.y), NormalizeAngle(euler.z));
+    }
+
+    private static float NormalizeAngle(float angle)
+    {
+        angle = Mathf.Repeat(angle, 360f);
+        return angle > 180f ? angle - 360f : angle;
     }
 
     // ---- то, что раньше правилось только в инспекторе ----
@@ -2240,6 +2594,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
 
         RebuildNoHideRow(entry);
         RebuildHideWearRow(entry);
+        RefreshFitSection(entry);
 
         if (_commentField != null)
         {
@@ -2251,17 +2606,24 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             _commentField.SetEnabled(entry != null);
         }
 
+        RefreshSaveLabel();
+
+        RefreshAllRows();
+        // Every path that changes the selection already lands here, so the
+        // variants strip follows it from one place instead of six.
+        RefreshVariantsPanel();
+    }
+
+    // Счётчик несохранённого на кнопке — отдельно от полного RefreshScalePanel:
+    // гизмо дёргает его каждый кадр драга, перестройка чипов там не по карману.
+    private void RefreshSaveLabel()
+    {
         if (_saveLabel != null)
         {
             _saveLabel.text = _dirty.Count > 0
                 ? string.Format(Loc.Get("wardrobe.save_prefabs_count"), _dirty.Count)
                 : Loc.Get("wardrobe.save_prefabs");
         }
-
-        RefreshAllRows();
-        // Every path that changes the selection already lands here, so the
-        // variants strip follows it from one place instead of six.
-        RefreshVariantsPanel();
     }
 
     // ---- ui primitives (DebugControlsPanel conventions) ----

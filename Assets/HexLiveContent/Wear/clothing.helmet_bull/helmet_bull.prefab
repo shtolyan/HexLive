@@ -412,4 +412,8 @@ MonoBehaviour:
     toeDegrees: 0
     lift: 0
     axis: {x: 0, y: 0, z: 0}
+  headwearFit:
+    position: {x: -0.000000002044544, y: -0.018702175, z: 0.009762915}
+    rotation: {x: 0, y: 0, z: 0}
+    scale: {x: 1.2624002, y: 1.2871628, z: 1.2275968}
   hidesHair: 1

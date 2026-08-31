@@ -438,6 +438,13 @@ namespace HexLive.UnityPresentation.UI
                 DrawDot(painter, center, halfSize,
                     person.Dead ? TacticalMapPalette.WithAlpha(color, 0.55f) : color);
 
+                if (person.Controlled && !person.Dead)
+                {
+                    // Bug #337: звезда над управляемой — «наш персонаж».
+                    DrawStar(painter, new Vector2(
+                        center.x, center.y - halfSize - 4f), halfSize * 0.8f);
+                }
+
                 if (!person.Selected)
                 {
                     continue;
@@ -453,6 +460,25 @@ namespace HexLive.UnityPresentation.UI
                     (halfSize + 2f) * 2f));
                 painter.Stroke();
             }
+        }
+
+        private static void DrawStar(Painter2D painter, Vector2 center, float radius)
+        {
+            painter.fillColor = TacticalMapPalette.Selected;
+            painter.BeginPath();
+            for (var k = 0; k < 10; k++)
+            {
+                var r = (k & 1) == 0 ? radius : radius * 0.45f;
+                var angle = -Mathf.PI / 2f + k * Mathf.PI / 5f;
+                var point = new Vector2(
+                    center.x + Mathf.Cos(angle) * r,
+                    center.y + Mathf.Sin(angle) * r);
+                if (k == 0) painter.MoveTo(point);
+                else painter.LineTo(point);
+            }
+
+            painter.ClosePath();
+            painter.Fill();
         }
 
         private static void DrawCameraFootprint(
@@ -1394,6 +1420,10 @@ namespace HexLive.UnityPresentation.UI
         public readonly Texture2D? Portrait;
         public readonly bool Dead;
 
+        // Bug #337: «наш персонаж» — та, кем игрок непосредственно управляет;
+        // на карте помечается звездой, лагерные цвета не меняются.
+        public readonly bool Controlled;
+
         public TacticalMapPerson(
             int npcId,
             Float2 position,
@@ -1401,7 +1431,8 @@ namespace HexLive.UnityPresentation.UI
             bool hostile,
             bool selected,
             Texture2D? portrait,
-            bool dead)
+            bool dead,
+            bool controlled = false)
         {
             NpcId = npcId;
             Position = position;
@@ -1410,6 +1441,7 @@ namespace HexLive.UnityPresentation.UI
             Selected = selected;
             Portrait = portrait;
             Dead = dead;
+            Controlled = controlled;
         }
     }
 

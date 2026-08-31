@@ -88,7 +88,16 @@ public sealed class PerceptionSystem : ISimulationSystem
             // (замер 2026-08-28: explored застыл на 807 при живой игре).
             // Множество ПОКА одно на мир — приватность разведки между
             // лагерями осознанно отложена (см. §148.1).
-            if (FactionRelations.IsGirlCamp(npc.Faction) && npc.Health > 0f)
+            // Bug #337 (частичная §148.1): на сервере разведку пишут ТОЛЬКО
+            // девушки, выданные игрокам (PlayerControlledNpcs), — карта
+            // остаётся тем, что видел сам игрок, а не всей биографией шести
+            // лагерей. Локально набор пуст — прежнее правило «любой девичий
+            // лагерь» (§149) сохраняется. Уже разведанное — биография и не
+            // стирается.
+            var explores = world.PlayerControlledNpcs.Count > 0
+                ? world.PlayerControlledNpcs.Contains(npc.Id.Value)
+                : FactionRelations.IsGirlCamp(npc.Faction);
+            if (explores && npc.Health > 0f)
             {
                 var exploreRadius = PerceptionMath.RadiusTiles(npc);
                 for (var dq = -exploreRadius; dq <= exploreRadius; dq++)

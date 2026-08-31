@@ -2178,8 +2178,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // последнем известном месте (SyncUnknownNpcMarkers), а не
             // застывшее тело: тело ушло бы оттуда, и картинка врала бы.
             var isOurs = IsPlayerOwned(npc);
-            var strangerVisible = isOurs || TileVisibleNow(npc.Tile);
-            if (!isOurs && strangerVisible)
+            // Bug #337: от скрытия освобождает только УПРАВЛЯЕМАЯ, не весь
+            // лагерь — соседка, ушедшая из восприятия, прячется как чужая
+            // («мы ждём её и не знаем, что с ней», тот же вердикт, что #322).
+            // Локально CanControlNpc покрывает колонию — там ничего не меняется.
+            var controlled = _runner != null && _runner.CanControlNpc(npc.Id);
+            var strangerVisible = controlled || TileVisibleNow(npc.Tile);
+            if (!controlled && strangerVisible)
             {
                 _lastSeenNpcTiles[key] = npc.Tile;
             }
@@ -4039,6 +4044,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     public float GroundTopY(TileCoord coord) => GroundY(coord);
 
+    /// <summary>Bug #336: опорная высота ПОВЕРХНОСТИ под объектом — на полу
+    /// дома это доски (+FloorSurfaceLift), не спрятанный под ними террейн.
+    /// Колышки стройплощадки в доме обязаны торчать из пола, иначе их не
+    /// видно и не выбрать.</summary>
+    public float ObjectGroundTopY(ObjectSnapshot worldObject) =>
+        ObjectGroundY(worldObject);
+
     private float ObjectGroundY(ObjectSnapshot worldObject)
     {
         var y = GroundY(worldObject.Tile);
@@ -5274,11 +5286,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _cullEyes.Clear();
         foreach (var npc in snapshot.Npcs)
         {
-            // Eyes are OUR girls only (player request): the world exists for
-            // the player exactly as far as her own camp perceives it. The
-            // §146 rival camps (Colony2/Colony3) reveal nothing and are
-            // themselves hidden below until one of ours actually sees them.
-            if (IsPlayerOwned(npc) && npc.Health > 0f)
+            // Bug #337 (сужение прежнего «Eyes are OUR girls only»): глаза —
+            // только те, КЕМ ИГРОК УПРАВЛЯЕТ. На сервере это выданная девушка
+            // (AssignedNpcIds рукопожатия), и соседки её лагеря карту больше
+            // не светят; локально CanControlNpc покрывает всю колонию, так
+            // что одиночная игра не меняется. Мёртвые глаз не дают.
+            if (_runner != null && _runner.CanControlNpc(npc.Id) && npc.Health > 0f)
             {
                 _cullEyes.Add((npc.Tile, npc.PerceptionRadiusTiles));
             }

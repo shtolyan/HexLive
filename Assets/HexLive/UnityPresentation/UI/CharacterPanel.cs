@@ -6204,6 +6204,21 @@ namespace HexLive.UnityPresentation.UI
 
             var visibleOutsiders = 0;
 
+            // Bug #337: звезда «наш персонаж» имеет смысл только при
+            // ВЫБОРОЧНОМ управлении (сервер: выдана одна девушка из лагеря).
+            // Локально управляема вся колония — звёзды у всех были бы шумом.
+            _selectiveControl = false;
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Health > 0f &&
+                    PlayerCampView.IsMine(_runner, snapshot, npc) &&
+                    !(_runner != null && _runner.CanControlNpc(npc.Id)))
+                {
+                    _selectiveControl = true;
+                    break;
+                }
+            }
+
             var ordered = new List<NpcSnapshot>(snapshot.Npcs);
             ordered.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
             foreach (var npc in ordered)
@@ -6239,6 +6254,8 @@ namespace HexLive.UnityPresentation.UI
                     : DisplayStyle.None;
             }
         }
+
+        private bool _selectiveControl;
 
         private VisualElement BuildRosterCard(NpcSnapshot npc)
         {
@@ -6296,9 +6313,15 @@ namespace HexLive.UnityPresentation.UI
 
             var text = new VisualElement();
             text.style.flexGrow = 1f;
-            var name = new Label(Loc.NpcName(npc.DisplayName));
+            // Bug #337: «наш персонаж» (под непосредственным управлением
+            // игрока) помечен звездой — на сервере это выданная девушка.
+            var mineControlled = _selectiveControl &&
+                _runner != null && _runner.CanControlNpc(npc.Id);
+            var name = new Label(mineControlled
+                ? "★ " + Loc.NpcName(npc.DisplayName)
+                : Loc.NpcName(npc.DisplayName));
             name.style.fontSize = 12f;
-            name.style.color = Text;
+            name.style.color = mineControlled ? Gold : Text;
             name.style.unityFontStyleAndWeight = FontStyle.Bold;
             name.pickingMode = PickingMode.Ignore;
             text.Add(name);

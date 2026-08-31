@@ -723,9 +723,42 @@ public static class HexPathfinder
         return stepDelta > 0 ? SeamUpCost : SeamDownCost;
     }
 
-    private static bool IsClimbSeamWalk(WorldState world, JunctionId from, JunctionId to)
+    // Bug #334: шов, у которого ВСЕ не-шовные соседи заблокированы, покидается
+    // только вдоль кромки. Полный запрет seam→seam замуровывал вставшую там
+    // девушку навсегда (Ника у кроватей: 4 соседа Blocked + 2 шва) — при том,
+    // что в двух шовных шагах кромка открывалась на свободный узел. Скольжение
+    // разрешено ровно тогда, когда хотя бы один конец ребра — такой
+    // «замурованный» шов; у здоровых швов запрет прежний, так что срезать
+    // маршрут ходьбой по кромке по-прежнему нельзя. Публичный — Connectivity
+    // обязана быть проекцией этого же правила (§40.6 r5).
+    public static bool IsClimbSeamWalk(WorldState world, JunctionId from, JunctionId to)
     {
-        return world.ClimbSeams.Contains(from) && world.ClimbSeams.Contains(to);
+        return world.ClimbSeams.Contains(from) && world.ClimbSeams.Contains(to) &&
+            !IsStrandedSeam(world, from) && !IsStrandedSeam(world, to);
+    }
+
+    private static bool IsStrandedSeam(WorldState world, JunctionId id)
+    {
+        if (!world.Junctions.Items.TryGetValue(id, out var junction))
+        {
+            return false;
+        }
+
+        foreach (var neighborId in junction.Neighbors)
+        {
+            if (world.ClimbSeams.Contains(neighborId))
+            {
+                continue;
+            }
+
+            if (world.Junctions.Items.TryGetValue(neighborId, out var neighbor) &&
+                !neighbor.Blocked)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 

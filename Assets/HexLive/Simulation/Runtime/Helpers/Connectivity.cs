@@ -156,9 +156,10 @@ internal static class Connectivity
                         // lip, not crossing one). The optimistic component
                         // graph used to include that edge for jump-capable
                         // actors, so planning could approve two laundry legs
-                        // that FindPath could never connect.
-                        !(world.ClimbSeams.Contains(currentId) &&
-                          world.ClimbSeams.Contains(neighborId)))
+                        // that FindPath could never connect. Bug #334: the
+                        // shared predicate now also carries the stranded-seam
+                        // slide exception — mirror it, not the raw pair check.
+                        !Navigation.HexPathfinder.IsClimbSeamWalk(world, currentId, neighborId))
                     {
                         world.JunctionComponents[neighborId] = component;
                         _queue.Enqueue(neighborId);
@@ -215,7 +216,7 @@ internal static class Connectivity
                     if (world.JunctionComponentsFlat.TryGetValue(neighborId, out var mark) && mark == 0 &&
                         world.Junctions.Items.TryGetValue(neighborId, out var neighbor) && !neighbor.Blocked &&
                         !Navigation.HexPathfinder.RequiresJump(world, currentId, neighborId) &&
-                        !(world.ClimbSeams.Contains(currentId) && world.ClimbSeams.Contains(neighborId)))
+                        !Navigation.HexPathfinder.IsClimbSeamWalk(world, currentId, neighborId))
                     {
                         world.JunctionComponentsFlat[neighborId] = component;
                         _queue.Enqueue(neighborId);
@@ -276,8 +277,7 @@ internal static class Connectivity
                 var neighborId = junction.Neighbors[n];
                 if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor) ||
                     neighbor.Blocked ||
-                    (world.ClimbSeams.Contains(junction.Id) &&
-                     world.ClimbSeams.Contains(neighborId)) ||
+                    Navigation.HexPathfinder.IsClimbSeamWalk(world, junction.Id, neighborId) ||
                     !world.JunctionComponentsFlat.TryGetValue(neighborId, out var toComp) ||
                     toComp <= 0 || toComp == fromComp)
                 {

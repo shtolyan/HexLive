@@ -27,6 +27,11 @@ namespace HexLive.UnityPresentation.Wearing.Garments
         [Tooltip("Отображаемое имя (запасное, если нет строки в локализации).")]
         public string displayName = string.Empty;
 
+        [Header("Вывод из оборота (§154.2)")]
+        [Tooltip("Bug #335: retired-вещь остаётся в каталоге ради старых сейвов, " +
+                 "но исключается из всех выдач, создающих новый предмет.")]
+        public bool retired;
+
         [Header("Категория хранения")]
         [Tooltip("Смысловая категория вещи: обувь — полка, перчатки — парный подвес. Не путать со слоем одежды.")]
         public GarmentCategory category = GarmentCategory.Unclassified;
@@ -82,6 +87,7 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 Category = category == GarmentCategory.Unclassified
                     ? GarmentCategoryRules.Classify(id, displayName, layer, parts, capacity)
                     : category,
+                Retired = retired,
             };
         }
     }

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_jane_bluest
   prototypeId: clothing.skirt_jane
   displayName: Tiered Skirt (BluesT)
+  retired: 1
   category: 3
   variantMaterials:
   - {fileID: 2100000, guid: 09d4b437a1c57694985bef26343b8d83, type: 2}

@@ -223,14 +223,47 @@ public static class HelmetWearBuilder
             }
             else
             {
-                material = materials.Count > 0 ? materials[0] : null;
+                // r5: без атласа каждый сабмеш несёт СВОЙ материал из FBX —
+                // единый material здесь означал бы «первый материал на всё».
+                material = null;
+            }
+
+            // Bug #329 r4: сабмеш визора (материал 'visor_glass' из Blender)
+            // получает СВОЁ тёмное глянцевое стекло — бейк в один матовый
+            // материал терял блеск, который виден в исходнике.
+            Material visor = null;
+            var visorPath = $"{itemFolder}/{hid}_visor.mat";
+            if (materials.Any(m => m != null && m.name.StartsWith("visor_glass")))
+            {
+                visor = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+                {
+                    name = hid + "_visor"
+                };
+                visor.SetColor("_BaseColor", new Color(0.03f, 0.03f, 0.045f, 1f));
+                visor.SetFloat("_Smoothness", 0.92f);
+                visor.SetFloat("_Metallic", 0.25f);
+                AssetDatabase.DeleteAsset(visorPath);
+                AssetDatabase.CreateAsset(visor, visorPath);
+                visor = AssetDatabase.LoadAssetAtPath<Material>(visorPath);
             }
 
             var sharedMaterials = new Material[subTriangles.Count];
             for (var s = 0; s < sharedMaterials.Length; s++)
             {
-                sharedMaterials[s] = material != null ? material
-                    : (s < materials.Count ? materials[s] : null);
+                var source = s < materials.Count ? materials[s] : null;
+                if (visor != null && source != null && source.name.StartsWith("visor_glass"))
+                {
+                    sharedMaterials[s] = visor;
+                }
+                else
+                {
+                    sharedMaterials[s] = material != null ? material : source;
+                }
+
+                if (sharedMaterials[s] == null && materials.Count > 0)
+                {
+                    sharedMaterials[s] = materials[0];
+                }
             }
 
             var meshGo = new GameObject(hid + "_mesh");

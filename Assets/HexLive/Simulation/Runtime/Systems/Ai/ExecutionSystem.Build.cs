@@ -328,13 +328,25 @@ public sealed partial class ExecutionSystem
     /// architecture owns walls and the door corridor. Replace the generic
     /// radius applied by SpawnObject with the exact placement footprint; the
     /// committed constructor has already validated that it does not seal its
-    /// portal. Outdoors the ordinary obstacle contract remains unchanged.
+    /// portal. Outdoors the ordinary obstacle contract remains unchanged —
+    /// EXCEPT the bed (§120 r2, жалоба игрока 1 Sep 2026): кровать — та же
+    /// кровать, что и в доме, и блокирует авторским футпринтом ВЕЗДЕ.
+    /// Радиальный диск 1.25 wu (37 узлов на сетке 0.375) у достроенной
+    /// уличной кровати в 1.30 wu от дверного проёма накрыл весь дверной
+    /// фартук — колония заперла собственный дом (прод-сейв, кровать #60464).
+    /// Футпринт (те же ~14 узлов, что у домашней) обходится по краю.
     /// </summary>
     internal static void ApplyIndoorFurnitureFootprint(WorldState world, WorldObjectState raised)
     {
-        if (raised == null ||
-            !world.Tiles.Items.TryGetValue(raised.Tile, out var tile) ||
-            !tile.Flags.HasFlag(TileFlags.Indoor))
+        if (raised == null)
+        {
+            return;
+        }
+
+        var bedAnywhere = raised.DefinitionId == ContentIds.BedBasic;
+        if (!bedAnywhere &&
+            (!world.Tiles.Items.TryGetValue(raised.Tile, out var tile) ||
+             !tile.Flags.HasFlag(TileFlags.Indoor)))
         {
             return;
         }

@@ -44,6 +44,36 @@ public sealed class BuildingConstructionTests
             "Authoring footprint не имеет права перекрывать portal-junction.");
     }
 
+    // §120 r2: кровать — та же кровать и на улице. Радиальный диск 1.25 wu
+    // (37 узлов) у достроенной уличной кровати в 1.30 wu от двери накрывал
+    // весь дверной фартук — колония заперла собственный дом (прод-сейв,
+    // кровать #60464). Уличная кровать обязана блокировать тем же авторским
+    // футпринтом, что и домашняя.
+    [Test]
+    public void OutdoorRaisedBedUsesTheSameAuthoredFootprintAsIndoors()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var outdoorJunction = world.Junctions.Items.Values.First(j =>
+            !j.Blocked && j.Tiles.Count == 1 &&
+            world.Tiles.Items.TryGetValue(j.Tiles[0], out var t) &&
+            t.Flags.HasFlag(TileFlags.Walkable) &&
+            !t.Flags.HasFlag(TileFlags.Indoor) &&
+            HexSpatialMath.TileToWorld(j.Tiles[0]).Equals(j.WorldPosition));
+
+        var raised = WorldObjectMutations.SpawnObject(
+            world, ContentIds.BedBasic, outdoorJunction.Fragment,
+            outdoorJunction.Tiles[0], outdoorJunction.Id);
+        raised.RotationDegrees = 60f;
+        Assert.That(raised.BlockedJunctions, Has.Count.GreaterThan(20),
+            "SpawnObject всё ещё радиальный — иначе тест меряет не ту замену.");
+
+        ExecutionSystem.ApplyIndoorFurnitureFootprint(world, raised);
+
+        Assert.That(raised.BlockedJunctions, Has.Count.EqualTo(14),
+            "Уличная кровать обязана занимать авторский футпринт, как домашняя.");
+        Assert.That(raised.BlockedJunctions.All(id => world.Junctions.Items[id].Blocked), Is.True);
+    }
+
     // §120.3 r2: стартовый дом прототипа — конструкторное plan-здание
     // (чертёж Hut1Hex из реестра §120.8); hut_1hex остался только как путь
     // совместимости старых сейвов и проверяется отдельным legacy-тестом.

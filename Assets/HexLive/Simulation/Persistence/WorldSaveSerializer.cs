@@ -914,6 +914,23 @@ public static class WorldSaveSerializer
             WorldObjectMutations.DespawnObject(world, id);
         }
 
+        // §120 r2 (1 Sep 2026): уличная кровать блокирует авторским
+        // футпринтом (14 узлов), а не радиальным диском 1.25 wu (37 узлов) —
+        // диск достроенной кровати у двери накрывал весь дверной фартук и
+        // запирал дом. Кровати старых сейвов несут радиальный список в
+        // BlockedJunctions — перештамповать на загрузке (идемпотентно:
+        // футпринт пересчитывается в тот же футпринт).
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == ContentIds.BedBasic &&
+                string.IsNullOrEmpty(obj.BuildProduct) &&
+                world.Tiles.Items.TryGetValue(obj.Tile, out var bedTile) &&
+                !bedTile.Flags.HasFlag(TileFlags.Indoor))
+            {
+                WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: true);
+            }
+        }
+
         // Migration is spatial too: both legacy hut cots could retain one
         // anchor and render collapsed after becoming bed.basic.
         HexLive.Simulation.Bootstrap.BuildingBootstrap.RepairIntegratedCotAnchors(world);

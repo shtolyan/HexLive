@@ -7,36 +7,37 @@ using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Gates;
 
-/// <summary>Spec §20 / bug #341: the bottle has one compact hand/world size.</summary>
-public sealed class BottleObjectFitContractTests
+/// <summary>Specs §20/§118, bug #341: portable props share exact hand/world sizes.</summary>
+public sealed class PortablePropObjectFitContractTests
 {
-    private const float BottleTargetInHexRadii = 0.036f;
-    private const float BottleTargetWorldUnits = 0.054f;
-
-    [Test]
-    public void BottleTargetIsTheMeasuredCompactSize()
+    [TestCase("tool.bottle", 0.18f, 0.27f)]
+    [TestCase("med.splint", 0.12f, 0.18f)]
+    public void PortablePropKeepsItsExactSharedTarget(
+        string definitionId,
+        float expectedHexRadii,
+        float expectedWorldUnits)
     {
         var source = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "ObjectFit.cs"));
+        var prefix = Regex.Escape(
+            $"if (definitionId == \"{definitionId}\") return r * ");
         var match = Regex.Match(source,
-            "if \\(definitionId == \\\"tool\\.bottle\\\"\\) return r \\* " +
-            "(?<factor>[0-9]+(?:\\.[0-9]+)?)f;");
+            prefix + @"(?<factor>[0-9]+(?:\.[0-9]+)?)f;");
 
         Assert.That(match.Success, Is.True,
-            "tool.bottle must keep an explicit target in the shared ObjectFit table.");
+            $"{definitionId} must keep an explicit target in the shared ObjectFit table.");
         var factor = float.Parse(match.Groups["factor"].Value, CultureInfo.InvariantCulture);
 
         Assert.Multiple(() =>
         {
-            Assert.That(factor, Is.EqualTo(BottleTargetInHexRadii).Within(0.000001f));
+            Assert.That(factor, Is.EqualTo(expectedHexRadii).Within(0.000001f));
             Assert.That(factor * HexSpatialMath.HexRadius,
-                Is.EqualTo(BottleTargetWorldUnits).Within(0.000001f),
-                "The bottle regressed from its player-approved 0.054-world-unit size.");
+                Is.EqualTo(expectedWorldUnits).Within(0.000001f));
         });
     }
 
     [Test]
-    public void BottleHasNoHandOnlyAbsoluteScale()
+    public void BottleAndSplintUseTheCommonHandAndGroundFitPaths()
     {
         var gear = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "Gear", "bottle.asset"));
@@ -48,7 +49,7 @@ public sealed class BottleObjectFitContractTests
             "private static bool TryGetHandPropTransform", StringComparison.Ordinal);
         var fallbackEnd = actor.IndexOf(
             "private static bool TryGetLeftHandPropTransform", fallbackStart, StringComparison.Ordinal);
-        var fallbackTable = actor[fallbackStart..fallbackEnd];
+        var absoluteScaleTable = actor[fallbackStart..fallbackEnd];
 
         Assert.Multiple(() =>
         {
@@ -56,15 +57,19 @@ public sealed class BottleObjectFitContractTests
                 "Bottle grip scale must remain a multiplier over ObjectFit.");
             Assert.That(actor, Does.Contain(
                 "ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, cfgScale)"),
-                "The authored hand path must normalize through the same ObjectFit target.");
+                "The authored hand path must normalize through the shared ObjectFit target.");
+            Assert.That(actor, Does.Contain(
+                "ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, Vector3.one)"),
+                "The untuned splint hand path must normalize through the shared ObjectFit target.");
             Assert.That(renderer, Does.Contain(
                 "instance.transform.localScale *= ObjectFit.FitScaleFactor(instance, definitionId)"),
-                "The ground path must normalize through the same ObjectFit target.");
+                "The ground path must normalize through the shared ObjectFit target.");
             Assert.That(renderer, Does.Contain(
                 "FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value"),
                 "Atomic world props must pass through the shared ground fitter.");
-            Assert.That(fallbackTable, Does.Not.Contain("case \"tool.bottle\":"),
-                "Do not restore the retired hand-only absolute bottle scale.");
+            Assert.That(absoluteScaleTable, Does.Not.Contain("case \"tool.bottle\":"));
+            Assert.That(absoluteScaleTable, Does.Not.Contain("case \"med.splint\":"),
+                "The splint must not acquire a hand-only absolute scale.");
         });
     }
 }

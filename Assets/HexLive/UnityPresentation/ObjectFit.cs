@@ -51,10 +51,9 @@ namespace HexLive.UnityPresentation
             // A lighter is a tiny pocket object — 1/3 of the standard tool size,
             // applied to BOTH ground and hand (0.216 / 3).
             if (definitionId == "tool.lighter") return r * 0.072f;
-            // Bug #341: the bottle was about five times too large both on the
-            // ground and in hand. Keep its compact target in this shared table
-            // so neither presentation path can drift back to an absolute scale.
-            if (definitionId == "tool.bottle") return r * 0.036f;
+            // A one-litre bottle is shorter than a hand tool. Keep this in the
+            // shared fit table so the ground and hand cannot drift apart again.
+            if (definitionId == "tool.bottle") return r * 0.18f;
             // Tools & resources: 0.216 = the standard hand/ground tool size
             // (was 0.18; +20% after in-hand testing, applied to BOTH paths).
             if (definitionId.StartsWith("tool.") || definitionId.StartsWith("resource.")) return r * 0.216f;
@@ -62,6 +61,10 @@ namespace HexLive.UnityPresentation
             // Without this they fell to the 0.6 default and a bandage roll
             // rendered campfire-big on the ground and in hand.
             if (definitionId.StartsWith("item.")) return r * 0.12f;
+            // Bug #341: med.splint is a small carried medical prop. The med.* id
+            // used to miss every category and fall through to the 0.6 default,
+            // making the one-metre source mesh five times too large everywhere.
+            if (definitionId == "med.splint") return r * 0.12f;
             if (definitionId == "campfire.spot") return r * 0.55f;
             if (definitionId == "grave.npc") return r * 0.35f;
             if (definitionId == "rock.boulder") return r * 0.45f;

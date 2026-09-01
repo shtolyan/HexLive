@@ -698,7 +698,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private AnimationClip _armedRunClip;
     private AnimationClip _bareStanceClip;
 
-    // A standing action clip becomes the prone idle while legless.
+    // A standing action clip becomes the prone idle while legless. Drinking is
+    // deliberately not routed through this helper: bottle and pierced-coconut
+    // drinking share the canonical full-body drink take in every posture.
     private AnimationClip Standing(AnimationClip standing) =>
         _legless && ProneClip != null ? ProneClip : standing;
 
@@ -2809,8 +2811,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             "TurnOnSpotLeftA",
             "X Bot@Gathering Objects",
             "X Bot@Talking",
-            "X Bot@Dressing",
-            "X Bot@Drinking"
+            "X Bot@Dressing"
         };
         foreach (var baseName in clips)
         {
@@ -2840,7 +2841,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         OverrideClip("X Bot@Gathering Objects", ProneClip);
         OverrideClip("X Bot@Talking", ProneClip);
         OverrideClip("X Bot@Dressing", ProneClip);
-        OverrideClip("X Bot@Drinking", ProneClip);           // she drinks lying too
     }
 
     // Spec §50: ONE gentle blood fountain at the cut — a softer version of the
@@ -4300,7 +4300,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
             if (gathering && _animSet != null) OverrideClip("X Bot@Gathering Objects", Standing(_animSet.gather));
-            if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", Standing(_animSet.drink)); // legless drinks prone
+            // Bug #345: both bottle and pierced-coconut paths arrive as Drink.
+            // Keep one canonical take even while crawling/legless; posture must
+            // not silently replace the verb with prone idle. HeldItemId remains
+            // independent below, so the correct vessel still appears in hand.
+            if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", _animSet.drink);
             // §77.5: fit the work clip to the sim's window — one interaction,
             // one playthrough. Set AFTER the clip swap above, because the length
             // we divide by is the length of whatever take is actually bound.
@@ -4323,8 +4327,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // A full-body clip now covers these (incl. the axe swing and the craft
         // kneel) — suppress the procedural shoulder pose so it doesn't fight the
-        // clip. Eat keeps its own raise-to-mouth — except legless, where the
-        // prone idle carries eat/drink.
+        // clip. A legless actor suppresses Eat's procedural raise-to-mouth;
+        // Drink remains owned by its canonical full-body clip above.
         _action = _legless || !_hasUsableHand || chopping || kneelingCraft || praying
             ? ActionKind.None
             : actionKind;

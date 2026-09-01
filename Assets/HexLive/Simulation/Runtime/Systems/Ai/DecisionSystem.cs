@@ -3302,8 +3302,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // этого билл дома (71 доска у Hut1Hex) был недостижим для ИИ:
             // решение поднимало цель, а исполнение и планировщик, читающие
             // ЭТОТ метод, выбирали расщепление на палки вместо распила.
-            if ((obj.BuildProduct == ContentIds.Workbench ||
-                 BuildSiteMath.IsArchitecturalBuilding(obj.BuildProduct)) &&
+            // §120 (1 Sep 2026): и ЛЮБОЙ мебельный сайт каталога — верстак был
+            // вписан руками, а шкаф (8 досок) снова забыт: девушка с пилой,
+            // посланная за досками для шкафа, у бревна выбирала палки. Тот же
+            // ярус каталога, что и в мебельной очереди FindBuildSite.
+            if ((BuildSiteMath.IsArchitecturalBuilding(obj.BuildProduct) ||
+                 (obj.DefinitionId == ContentIds.BuildSite &&
+                  Content.BuildCatalogDefinition.TryGet(
+                      obj.BuildProduct, out var boardEntry) &&
+                  boardEntry.Mode == Content.BuildCatalogMode.Furniture)) &&
                 DecisionSystem.IsOurSite(world, helper, obj))
             {
                 required = System.Math.Max(required,

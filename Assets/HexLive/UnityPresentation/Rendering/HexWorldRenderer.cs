@@ -6870,11 +6870,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static float Hash01(uint value) =>
         (value & 0x00FFFFFFu) / 16777215f;
 
-    // A lying body flattens the grass under it: the tile's tuft clump hides
-    // while someone sleeps/faints/lies dead there and pops back after. Cost is
-    // O(lying bodies) per tick — only the affected tiles ever toggle.
+    // Bug #342: grass hides only for sleep directly on the ground. Other prone
+    // poses (crawl, faint, cry, corpse) keep the vegetation visible.
     private readonly Dictionary<TileCoord, GameObject> _grassByTile = new();
-    private readonly HashSet<TileCoord> _lyingTiles = new();
+    private readonly HashSet<TileCoord> _groundSleepTiles = new();
     private readonly HashSet<TileCoord> _floorTiles = new();
 
     // §120: hexes that already carry at least ONE raised floor sector of a
@@ -6965,36 +6964,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
         npc.PostureHint == "Crawl" ||
         (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress");
 
+    // Bug #342: grass suppression is a narrower presentation policy than the
+    // shared lying-pose union above. A bed sleep carries its exact bed object;
+    // only an in-progress Sleep with no object target is sleep on the ground.
+    internal static bool ShouldHideGrassForGroundSleep(NpcSnapshot npc) =>
+        npc.CurrentInteraction == "Sleep" &&
+        npc.ExecutionStatus == "InProgress" &&
+        npc.TargetObjectId is null;
+
     private void UpdateGrassFlattening(WorldSnapshot snapshot)
     {
-        _lyingTiles.Clear();
+        _groundSleepTiles.Clear();
         foreach (var npc in snapshot.Npcs)
         {
-            // Баг #125: несомая на руках НЕ приминает траву. Её несут именно
-            // потому, что она в обмороке или коме, так что IsLyingDown для неё
-            // истинно, а Tile у неё — тайл носильщика. Без этой проверки за
-            // парой тянулся след гаснущей травы по всему маршруту, хотя тело
-            // ни одного из этих гексов не касалось.
-            if (IsLyingDown(npc) && npc.CarriedByNpcId is null)
+            if (ShouldHideGrassForGroundSleep(npc))
             {
-                _lyingTiles.Add(npc.Tile);
+                _groundSleepTiles.Add(npc.Tile);
             }
         }
 
-        foreach (var obj in snapshot.Objects)
-        {
-            if (obj.DefinitionId == ContentIds.CorpseNpc ||
-                obj.DefinitionId == ContentIds.HumanRemains)
-            {
-                _lyingTiles.Add(obj.Tile);
-            }
-        }
-
-        // Re-grow where nobody lies anymore.
+        // Re-grow when the ground sleeper wakes or moves into a bed.
         _grassToggleScratch.Clear();
         foreach (var coord in _hiddenGrassTiles)
         {
-            if (!_lyingTiles.Contains(coord) && !_floorTiles.Contains(coord) &&
+            if (!_groundSleepTiles.Contains(coord) && !_floorTiles.Contains(coord) &&
                 !_architectureFloorTiles.Contains(coord))
             {
                 _grassToggleScratch.Add(coord);
@@ -7010,8 +7003,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        // Flatten under the newly lying.
-        HideGrassOn(_lyingTiles);
+        // Flatten under a newly sleeping ground body.
+        HideGrassOn(_groundSleepTiles);
 
         // An architectural floor covers the terrain tuft: the simulation's own
         // floored tiles (a finished hut), and — §120 — any hex where a single

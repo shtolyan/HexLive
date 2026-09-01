@@ -40,6 +40,12 @@ namespace HexLive.UnityPresentation.Config
     {
         // The Resources folder scanned by GearTuning.LoadAndApply.
         public const string ResourceFolder = "HexLive/Gear";
+        // §104.9: fists have no item/object id, so their presentation sheet
+        // owns one explicit config record instead of pretending the empty sim
+        // sentinel is an object path.
+        public const string FistContentType = "config";
+        public const string FistContentId = "gear.fist";
+        public const string FistContentPath = "HexLive/gear.fist";
 
         [Tooltip("Инвентарный id (tool.knife, tool.axe_stone…; пусто = кулаки).")]
         public string gearId = GearCatalog.Knife;

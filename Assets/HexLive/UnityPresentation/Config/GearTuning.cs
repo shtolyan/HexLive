@@ -52,6 +52,21 @@ namespace HexLive.UnityPresentation.Config
                 config.ApplyRecipe();
             }
         }
+
+        /// <summary>
+        /// Player bootstrap may warm presentation assets, but must never apply
+        /// their simulation values over server-authoritative simdata. The
+        /// first miss is retained by AtomicResources across the async registry
+        /// refresh; ConfigFor polls the same handle on combat frames.
+        /// </summary>
+        public static void PrewarmPresentation()
+        {
+            var fist = GearLibrary.LoadPublishedFist();
+            if (fist != null)
+            {
+                GearLibrary.Register(fist);
+            }
+        }
     }
 
     /// <summary>
@@ -77,32 +92,36 @@ namespace HexLive.UnityPresentation.Config
 
         public static GearConfig ConfigFor(string gearId)
         {
-            // Empty id is not "no config": it is GearCatalog.Fist, the
-            // canonical bare-hand sheet registered by LoadAndApply. Look in
-            // the cache before deciding that an atomic lazy-load is
-            // impossible (there is no object/ path for the empty sentinel).
-            gearId ??= string.Empty;
+            // Null is still "no item supplied". Only the explicit empty
+            // string is GearCatalog.Fist; collapsing both values made optional
+            // presentation lookups unexpectedly start loading fists.
+            if (gearId == null)
+            {
+                return null;
+            }
             if (Configs.TryGetValue(gearId, out var cached))
             {
                 return cached;
-            }
-            if (gearId.Length == 0)
-            {
-                return null;
             }
 
             // Atomic content owns GearConfig as the `gear-config` entry of the
             // SAME object record as the model. The retired directory scan
             // cannot synchronously enumerate a live registry, so request the
             // exact owner lazily and let the view retry while it is pending.
-            var loaded = HexLive.UnityPresentation.Content.AtomicResources.Load<GearConfig>(
-                "HexLive/Objects/" + gearId);
+            var loaded = gearId.Length == 0
+                ? LoadPublishedFist()
+                : HexLive.UnityPresentation.Content.AtomicResources.Load<GearConfig>(
+                    "HexLive/Objects/" + gearId);
             if (loaded != null)
             {
                 Register(loaded);
             }
             return loaded;
         }
+
+        internal static GearConfig LoadPublishedFist() =>
+            HexLive.UnityPresentation.Content.AtomicResources.Load<UnityEngine.Object>(
+                GearConfig.FistContentPath) as GearConfig;
 
         /// <summary>True for the finite authored gear table. These items must
         /// wait for their atomic GearConfig instead of freezing a generic grip

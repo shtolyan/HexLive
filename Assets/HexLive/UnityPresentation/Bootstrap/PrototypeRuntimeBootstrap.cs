@@ -37,6 +37,12 @@ public static class PrototypeRuntimeBootstrap
         // a local world; a remote server supplies its own simdata in handshake.
         ContentAssetService.Instance.RefreshRegistry();
 
+        // §104.9: the empty-id fist sheet has no owning item object from which
+        // it could be discovered lazily. Queue its PRESENTATION-ONLY record
+        // during the menu bootstrap; never overwrite server-authoritative
+        // GearCatalog/recipes with local Player asset values here.
+        Config.GearTuning.PrewarmPresentation();
+
         // Per-object wardrobe metadata is a live record, so one updated skirt
         // changes its own simulation presentation fields without a catalog.
         Wearing.Garments.WardrobeMeta.Load();

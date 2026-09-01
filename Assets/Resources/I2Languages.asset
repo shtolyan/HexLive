@@ -4068,6 +4068,30 @@ MonoBehaviour:
         \u043E\u043A\u043D\u0435"
       Flags: 0101
       Languages_Touch: []
+    - Term: loot.quantity_title
+      TermType: 0
+      Description:
+      Languages:
+      - "How many {0} should be moved?"
+      - "\u0421\u043A\u043E\u043B\u044C\u043A\u043E {0} \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C?"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: loot.quantity_confirm
+      TermType: 0
+      Description:
+      Languages:
+      - Move
+      - "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: loot.quantity_cancel
+      TermType: 0
+      Description:
+      Languages:
+      - Cancel
+      - "\u041E\u0442\u043C\u0435\u043D\u0430"
+      Flags: 0101
+      Languages_Touch: []
     - Term: loot.transferring
       TermType: 0
       Description: 

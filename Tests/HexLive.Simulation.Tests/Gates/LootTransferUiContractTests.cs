@@ -76,6 +76,29 @@ public sealed class LootTransferUiContractTests
     }
 
     [Test]
+    // §128.1b (#344): loot, gift и контейнеры сходятся в DropOn, поэтому
+    // выбор количества обязан стоять до развилки двух авторитетных команд.
+    public void StackTransfersAlwaysAskForAnExactQuantity()
+    {
+        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
+        var localization = ReadLocalization();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel, Does.Contain("InventoryState.IsStackable(_drag.DefinitionId)"));
+            Assert.That(panel, Does.Contain("ShowQuantityPicker(destinationId, _drag)"));
+            Assert.That(panel, Does.Contain("new SliderInt"));
+            Assert.That(panel, Does.Contain("new IntegerField"));
+            Assert.That(panel, Does.Contain("KeyCode.KeypadEnter"));
+            Assert.That(panel, Does.Contain("ExecuteTransfer(destinationId, item, count)"));
+            Assert.That(panel, Does.Contain("new TransferInventoryCommand("));
+            Assert.That(panel, Does.Contain("new TransferContainerCommand("));
+            Assert.That(localization, Does.Contain("Term: loot.quantity_title"));
+            Assert.That(localization, Does.Contain("Сколько {0} переместить?"));
+        });
+    }
+
+    [Test]
     // §128.4: правило двойного клика и его порог живут в ОДНОМ файле, и оба
     // инвентаря спрашивают именно его.
     public void DoubleClickRuleIsSharedBetweenExchangeAndColonistInventory()

@@ -41,6 +41,12 @@ public sealed class LootTransferPanel : MonoBehaviour
     private Label _status = null!;
     private Label _title = null!;
     private Label _arrows = null!;
+    private VisualElement _quantityOverlay = null!;
+    private Label _quantityTitle = null!;
+    private SliderInt _quantitySlider = null!;
+    private IntegerField _quantityInput = null!;
+    private Button _quantityConfirm = null!;
+    private Button _quantityCancel = null!;
 
     // §153.1: то же окно, но отдачей в одну сторону. Отдельного интерфейса
     // передачи нет по замыслу — это была бы вторая версия §128 со своими
@@ -77,6 +83,14 @@ public sealed class LootTransferPanel : MonoBehaviour
     private VisualElement? _dragGhost;
     private bool _dragDoubleClick;
     private readonly DoubleClickWatch _doubleClick = new();
+
+    // Bug #344: every cross-inventory move of a visible stack pauses here so
+    // the player chooses an exact count. One state serves loot, gifts and
+    // world containers because all three already converge on DropOn.
+    private bool _quantityOpen;
+    private bool _quantitySync;
+    private int _quantityDestinationId;
+    private DragItem _quantityItem;
 
     // §128.1a: снапшот приходит 4 раза в секунду и может пересобрать раскладку
     // прямо посреди жеста. Читать его продолжаем, дерево — не трогаем.
@@ -395,7 +409,109 @@ public sealed class LootTransferPanel : MonoBehaviour
         _status.style.unityTextAlign = TextAnchor.MiddleCenter;
         _status.style.marginTop = 7f;
         _frame.Add(_status);
+        BuildQuantityPicker();
         _root.Add(_frame);
+    }
+
+    private void BuildQuantityPicker()
+    {
+        _quantityOverlay = new VisualElement { name = "loot-quantity-overlay" };
+        _quantityOverlay.style.position = Position.Absolute;
+        _quantityOverlay.style.left = 0f;
+        _quantityOverlay.style.right = 0f;
+        _quantityOverlay.style.top = 0f;
+        _quantityOverlay.style.bottom = 0f;
+        _quantityOverlay.style.alignItems = Align.Center;
+        _quantityOverlay.style.justifyContent = Justify.Center;
+        _quantityOverlay.style.backgroundColor = new Color(0f, 0f, 0f, 0.68f);
+        _quantityOverlay.pickingMode = PickingMode.Position;
+
+        var card = new VisualElement { name = "loot-quantity-card" };
+        card.style.width = 430f;
+        card.style.paddingLeft = 18f;
+        card.style.paddingRight = 18f;
+        card.style.paddingTop = 16f;
+        card.style.paddingBottom = 16f;
+        card.style.backgroundColor = Raised;
+        SetBorder(card, GoldDim, 1f);
+        SetRadius(card, 12f);
+
+        _quantityTitle = new Label();
+        _quantityTitle.style.color = Text;
+        _quantityTitle.style.fontSize = 15f;
+        _quantityTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
+        _quantityTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
+        _quantityTitle.style.marginBottom = 12f;
+        card.Add(_quantityTitle);
+
+        var chooser = new VisualElement();
+        chooser.style.flexDirection = FlexDirection.Row;
+        chooser.style.alignItems = Align.Center;
+        _quantitySlider = new SliderInt { name = "loot-quantity-slider" };
+        _quantitySlider.style.flexGrow = 1f;
+        _quantitySlider.style.marginRight = 12f;
+        _quantityInput = new IntegerField { name = "loot-quantity-input" };
+        _quantityInput.style.width = 76f;
+        _quantityInput.isDelayed = false;
+        chooser.Add(_quantitySlider);
+        chooser.Add(_quantityInput);
+        card.Add(chooser);
+
+        var buttons = new VisualElement();
+        buttons.style.flexDirection = FlexDirection.Row;
+        buttons.style.justifyContent = Justify.FlexEnd;
+        buttons.style.marginTop = 14f;
+        _quantityCancel = QuantityButton(Loc.Get("loot.quantity_cancel"), CancelQuantity);
+        _quantityCancel.style.marginRight = 8f;
+        _quantityConfirm = QuantityButton(Loc.Get("loot.quantity_confirm"), ConfirmQuantity);
+        buttons.Add(_quantityCancel);
+        buttons.Add(_quantityConfirm);
+        card.Add(buttons);
+
+        _quantitySlider.RegisterValueChangedCallback(evt =>
+        {
+            if (_quantitySync) return;
+            _quantitySync = true;
+            _quantityInput.SetValueWithoutNotify(evt.newValue);
+            _quantitySync = false;
+        });
+        _quantityInput.RegisterValueChangedCallback(evt =>
+        {
+            if (_quantitySync) return;
+            _quantitySync = true;
+            _quantitySlider.SetValueWithoutNotify(Mathf.Clamp(
+                evt.newValue, _quantitySlider.lowValue, _quantitySlider.highValue));
+            _quantitySync = false;
+        });
+        _quantityOverlay.RegisterCallback<KeyDownEvent>(evt =>
+        {
+            if (evt.keyCode is KeyCode.Return or KeyCode.KeypadEnter)
+            {
+                ConfirmQuantity();
+                evt.StopPropagation();
+            }
+            else if (evt.keyCode == KeyCode.Escape)
+            {
+                CancelQuantity();
+                evt.StopPropagation();
+            }
+        });
+
+        _quantityOverlay.Add(card);
+        _frame.Add(_quantityOverlay);
+        _quantityOverlay.style.display = DisplayStyle.None;
+    }
+
+    private static Button QuantityButton(string text, Action clicked)
+    {
+        var button = new Button(clicked) { text = text };
+        button.style.minWidth = 116f;
+        button.style.height = 34f;
+        button.style.color = Text;
+        button.style.backgroundColor = Track;
+        SetBorder(button, StrokeStrong, 1f);
+        SetRadius(button, 7f);
+        return button;
     }
 
     private static VisualElement BuildPersonPane(
@@ -939,7 +1055,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         if (item.Index < 0) return;
         element.RegisterCallback<PointerDownEvent>(evt =>
         {
-            if (_pending || evt.button != 0) return;
+            if (_pending || _quantityOpen || evt.button != 0) return;
             // Новый жест снимает удержанный отказ: игрок уже прочитал его.
             _statusHeld = false;
             ClearDrag();
@@ -1038,6 +1154,69 @@ public sealed class LootTransferPanel : MonoBehaviour
             return;
         }
 
+        if (InventoryState.IsStackable(_drag.DefinitionId) && _drag.Count > 1)
+        {
+            ShowQuantityPicker(destinationId, _drag);
+            return;
+        }
+
+        ExecuteTransfer(destinationId, _drag, _drag.Count);
+    }
+
+    private void ShowQuantityPicker(int destinationId, DragItem item)
+    {
+        _quantityOpen = true;
+        _quantityDestinationId = destinationId;
+        _quantityItem = item;
+        _quantityTitle.text = string.Format(
+            Loc.Get("loot.quantity_title"), ItemName(item.DefinitionId));
+        _quantitySlider.lowValue = 1;
+        _quantitySlider.highValue = item.Count;
+        _quantitySlider.SetValueWithoutNotify(item.Count);
+        _quantityInput.SetValueWithoutNotify(item.Count);
+        _quantityConfirm.text = Loc.Get("loot.quantity_confirm");
+        _quantityCancel.text = Loc.Get("loot.quantity_cancel");
+        _quantityOverlay.style.display = DisplayStyle.Flex;
+        _quantityOverlay.BringToFront();
+        _quantityOverlay.Focus();
+        _quantityInput.Focus();
+    }
+
+    private void ConfirmQuantity()
+    {
+        if (!_quantityOpen) return;
+        var destinationId = _quantityDestinationId;
+        var item = _quantityItem;
+        var count = Mathf.Clamp(_quantityInput.value, 1, item.Count);
+        HideQuantityPicker();
+        ExecuteTransfer(destinationId, item, count);
+    }
+
+    private void CancelQuantity()
+    {
+        if (!_quantityOpen) return;
+        HideQuantityPicker();
+        _status.text = DragHint();
+    }
+
+    private void HideQuantityPicker()
+    {
+        _quantityOpen = false;
+        _quantityDestinationId = 0;
+        _quantityItem = default;
+        if (_quantityOverlay != null)
+            _quantityOverlay.style.display = DisplayStyle.None;
+    }
+
+    private void ExecuteTransfer(int destinationId, DragItem item, int count)
+    {
+        _drag = item;
+        if (destinationId == item.OwnerId || _runner == null) return;
+
+        var direction = item.OwnerId == _otherId && destinationId == _looterId
+            ? InventoryTransferDirection.Take
+            : InventoryTransferDirection.Give;
+
         // §128.5: справа вещь — другой приказ. Сторону жест уже определил выше:
         // из мешка к себе — Take, из своих карманов в мешок — Give.
         if (_otherObjectId >= 0)
@@ -1045,9 +1224,9 @@ public sealed class LootTransferPanel : MonoBehaviour
             _runner.EnqueueCommand(new TransferContainerCommand(
                 new HexLive.Simulation.Common.EntityId(_looterId),
                 new HexLive.Simulation.Common.ObjectId(_otherObjectId),
-                _drag.Index,
-                _drag.DefinitionId,
-                _drag.Count,
+                item.Index,
+                item.DefinitionId,
+                count,
                 direction));
             MarkPending();
             return;
@@ -1057,8 +1236,8 @@ public sealed class LootTransferPanel : MonoBehaviour
             new HexLive.Simulation.Common.EntityId(_looterId),
             new HexLive.Simulation.Common.EntityId(_otherId),
             new InventoryItemRef(
-                _drag.Source, _drag.Index, _drag.DefinitionId),
-            _drag.Count,
+                item.Source, item.Index, item.DefinitionId),
+            count,
             direction));
         MarkPending();
     }
@@ -1397,6 +1576,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _gift = false;
         IsOpen = false;
         _rebuildDeferred = false;
+        HideQuantityPicker();
         ClearAutoWear();
         _doubleClick.Reset();
         ClearDrag();

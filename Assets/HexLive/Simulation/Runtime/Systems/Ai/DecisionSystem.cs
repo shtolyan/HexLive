@@ -1888,7 +1888,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // него свободна совсем — и это ровно та дыра, через которую роща
             // ушла в ноль: дрова горят каждую ночь, а пальма не отрастает.
             // Дрова есть и без пальмы: валежник, брёвна, палки на земле.
+            // §54.2 r3 (bug #340): и под общеостровным бэклогом урожая — так
+            // спека §54.2a r2 обещала с самого начала, а в коде порог стоял
+            // только на листовой ветке.
             ((fuelLow && !HasReachableWithTag(npc, world, "Wood") &&
+              looseHarvestBacklog < SimBalance.LooseHarvestBacklog &&
               PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HarvestTree)) ||
              // §64.9: a build's LOG bill deliberately does NOT fell a palm.
              // It was tried (bed.basic's four side rails were otherwise
@@ -1910,8 +1914,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
              // «Сначала подбери с земли» обязательно: срубленная пальма роняет
              // брёвна НА ЗЕМЛЮ, и без этого условия предикат кормил бы сам
              // себя (§80) — рубила бы, пока лес не упрётся в ценз.
+             // §54.2 r3 (bug #340): и общеостровной бэклог урожая обязателен
+             // ЗДЕСЬ тоже. Порог «сначала собери, что лежит» стоял только на
+             // листовой ветке выше, а строительная валка роняет крону и листья
+             // как мусор — на прод-сейве шесть лагерей выкосили 283 пальмы под
+             // брёвна/доски при ~10 000 лежащих листьев, и порог 8 их не
+             // остановил ни разу. Кроны съедает ChopCrown (крыши/кровати),
+             // листья вянут (§54.2c, баг #338), так что затор рассасывается и
+             // валка под стройку возвращается — но только на чистый остров.
              (SimBalance.FellForBuildPalmFloor > 0 &&
               (siteWantsLogs || siteNeedsBoards) &&
+              looseHarvestBacklog < SimBalance.LooseHarvestBacklog &&
               ColonyQueries.WorldCountWithTag(world, "Palm") >
                   SimBalance.FellForBuildPalmFloor &&
               !HasReachableWithTag(npc, world, "Log") &&

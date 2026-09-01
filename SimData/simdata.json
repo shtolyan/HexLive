@@ -690,7 +690,7 @@
     "WildlifeBalance.RaidLingerTicks": 2400,
     "WildlifeBalance.WolfSlots": 2,
     "ChunkBalance.ChunkSizeTiles": 8,
-    "ChunkBalance.ChunkSleepEnabled": false,
+    "ChunkBalance.ChunkSleepEnabled": true,
     "ChunkBalance.MinWakeRadiusTiles": 10,
     "ChunkBalance.WakeRadiusMarginTiles": 2,
     "HexHopTuning.DivePlungeDepth": 0.699999988,

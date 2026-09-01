@@ -145,9 +145,9 @@ namespace HexLive.UnityPresentation.Config
         [Range(0f, 1f)] public float mobPreviewPauseChance = 0.45f;
 
         [Header("Спящие чанки (§156)")]
-        [Tooltip("§156.6: включить сон дальних чанков. Выключено = мир ведёт себя ровно как до §156.")]
+        [Tooltip("§156.6: сон дальних чанков. Выключено = мир ведёт себя ровно как до §156.")]
         [MirrorField(typeof(ChunkBalance), "ChunkSleepEnabled")]
-        public bool chunkSleepEnabled = false;
+        public bool chunkSleepEnabled = true;
         [Tooltip("§156.1: сторона чанка в тайлах.")]
         [MirrorField(typeof(ChunkBalance), "ChunkSizeTiles")]
         [Range(2, 32)] public int chunkSizeTiles = 8;

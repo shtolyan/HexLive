@@ -174,6 +174,8 @@ public sealed class ChunkCatchUpArenaTests
     {
         world.Caches.ActiveChunks.Clear();
         world.Caches.ActiveChunksOrdered.Clear();
+        // Набор посчитан — иначе «спящий чанк» означал бы «фильтра нет».
+        world.Caches.ActiveChunksComputed = true;
         if (awake)
         {
             world.Caches.ActiveChunks.Add(chunk);

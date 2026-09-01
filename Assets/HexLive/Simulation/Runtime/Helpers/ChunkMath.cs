@@ -36,6 +36,7 @@ internal static class ChunkMath
     /// </summary>
     internal static bool IsAwake(WorldState world, TileCoord tile) =>
         !ChunkBalance.ChunkSleepEnabled ||
+        !world.Caches.ActiveChunksComputed ||
         world.Caches.ActiveChunks.Contains(ChunkOf(tile));
 
     /// <summary>
@@ -51,6 +52,7 @@ internal static class ChunkMath
     internal static int SleepWindowStart(WorldState world, TileCoord tile)
     {
         if (ChunkBalance.ChunkSleepEnabled &&
+            world.Caches.ActiveChunksComputed &&
             world.Chunks.Items.TryGetValue(ChunkOf(tile), out var chunk))
         {
             return chunk.LastSimulatedTick;
@@ -118,6 +120,7 @@ internal static class ChunkMath
         var ordered = world.Caches.ActiveChunksOrdered;
         active.Clear();
         ordered.Clear();
+        world.Caches.ActiveChunksComputed = ChunkBalance.ChunkSleepEnabled;
         if (!ChunkBalance.ChunkSleepEnabled)
         {
             return;
@@ -270,7 +273,8 @@ internal static class ChunkMath
         WorldState world, System.Collections.Generic.List<WorldObjectState> into)
     {
         into.Clear();
-        if (!ChunkBalance.ChunkSleepEnabled)
+        var caches = world.Caches;
+        if (!ChunkBalance.ChunkSleepEnabled || !caches.ActiveChunksComputed)
         {
             foreach (var obj in world.Entities.Objects.Values)
             {
@@ -280,7 +284,6 @@ internal static class ChunkMath
             return;
         }
 
-        var caches = world.Caches;
         foreach (var chunk in caches.ActiveChunksOrdered)
         {
             if (!caches.ObjectsByChunk.TryGetValue(chunk, out var ids))
@@ -305,7 +308,7 @@ internal static class ChunkMath
     /// </summary>
     internal static void StampSimulated(WorldState world)
     {
-        if (!ChunkBalance.ChunkSleepEnabled)
+        if (!ChunkBalance.ChunkSleepEnabled || !world.Caches.ActiveChunksComputed)
         {
             return;
         }

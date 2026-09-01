@@ -160,6 +160,7 @@ public sealed class RainCatchUpTests
             var awake = world.Tick == 0 || world.Tick >= sleepUntil;
             world.Caches.ActiveChunks.Clear();
             world.Caches.ActiveChunksOrdered.Clear();
+            world.Caches.ActiveChunksComputed = true;
             if (awake)
             {
                 world.Caches.ActiveChunks.Add(chunkOfCollector);

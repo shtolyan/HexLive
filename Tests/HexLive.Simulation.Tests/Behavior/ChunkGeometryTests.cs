@@ -113,16 +113,34 @@ public sealed class ChunkGeometryTests
     [Test]
     public void SleepWindowIsOneSlowTickWhileChunkSleepIsOff()
     {
-        Assert.That(ChunkBalance.ChunkSleepEnabled, Is.False,
-            "тумблер §156 включается отдельным коммитом с пересъёмом эталонов");
+        var previous = ChunkBalance.ChunkSleepEnabled;
+        ChunkBalance.ChunkSleepEnabled = false;
+        try
+        {
+            var engine = TestWorld.CreateEngine();
+            var world = engine.World;
+            world.Tick = 4096;
 
-        var engine = TestWorld.CreateEngine();
-        var world = engine.World;
-        world.Tick = 4096;
+            var start = ChunkMath.SleepWindowStart(world, new TileCoord(999, -999));
+            Assert.That(world.SlowIntervalTicks, Is.EqualTo(engine.Settings.SlowInterval));
+            Assert.That(world.Tick - start, Is.EqualTo(world.SlowIntervalTicks));
+        }
+        finally
+        {
+            ChunkBalance.ChunkSleepEnabled = previous;
+        }
+    }
 
-        var start = ChunkMath.SleepWindowStart(world, new TileCoord(999, -999));
-        Assert.That(world.SlowIntervalTicks, Is.EqualTo(engine.Settings.SlowInterval));
-        Assert.That(world.Tick - start, Is.EqualTo(world.SlowIntervalTicks));
+    /// <summary>
+    /// §156.11: механика включена по умолчанию. Тест не про вкус, а про то,
+    /// что выключенная ветка остаётся ЖИВЫМ A/B-ключом соака: обе стороны
+    /// сравнения обязаны существовать, иначе «выключить и проверить» перестанет
+    /// работать ровно тогда, когда понадобится.
+    /// </summary>
+    [Test]
+    public void ChunkSleepShipsEnabled()
+    {
+        Assert.That(ChunkBalance.ChunkSleepEnabled, Is.True);
     }
 
     /// <summary>Штамп ставится только на активные чанки и только при включённой механике.</summary>

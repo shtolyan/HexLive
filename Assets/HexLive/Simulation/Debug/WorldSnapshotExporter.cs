@@ -116,6 +116,7 @@ public static class WorldSnapshotExporter
 
         ExportTiles(world, snapshot);
         ExportJunctions(world, snapshot);
+        ExportCampHomes(world, snapshot);
 
         // Entity lists come out in ASCENDING ID order, always — see SortById.
 
@@ -177,14 +178,22 @@ public static class WorldSnapshotExporter
             var isSite = !string.IsNullOrEmpty(obj.BuildProduct);
             foreach (var item in obj.Contents)
             {
+                // §151.2 / bug #275: a live campfire keeps construction
+                // materials and queued fuel in the same persisted list.  The
+                // renderer's Delivered* fields drive staged construction art,
+                // so counting a marked fuel stick here visually built the
+                // spit even though the authoritative bill still needed that
+                // stick.  The next real delivery then looked one stage late.
+                var isDeliveredBuildMaterial = isSite &&
+                    !ContainerLootMath.IsQueuedCampfireFuel(obj, item);
                 switch (item.DefinitionId)
                 {
-                    case "resource.log": if (isSite) exported.DeliveredLogs++; break;
-                    case "resource.stone": if (isSite) exported.DeliveredStones++; break;
-                    case "resource.palm_leaf": if (isSite) exported.DeliveredLeaves++; break;
-                    case "resource.stick": if (isSite) exported.DeliveredSticks++; break;
-                    case "resource.rope": if (isSite) exported.DeliveredRope++; break;
-                    case ContentIds.Board: if (isSite) exported.DeliveredBoards++; break;
+                    case "resource.log": if (isDeliveredBuildMaterial) exported.DeliveredLogs++; break;
+                    case "resource.stone": if (isDeliveredBuildMaterial) exported.DeliveredStones++; break;
+                    case "resource.palm_leaf": if (isDeliveredBuildMaterial) exported.DeliveredLeaves++; break;
+                    case "resource.stick": if (isDeliveredBuildMaterial) exported.DeliveredSticks++; break;
+                    case "resource.rope": if (isDeliveredBuildMaterial) exported.DeliveredRope++; break;
+                    case ContentIds.Board: if (isDeliveredBuildMaterial) exported.DeliveredBoards++; break;
                     // §54.14 (r2): spit meat renders whether or not the
                     // upgrade bill is still open.
                     case "food.meat_raw": exported.RoastingRaw++; break;
@@ -395,6 +404,24 @@ public static class WorldSnapshotExporter
     // Tiles: coords and elevation are fixed at bootstrap; only flags mutate
     // (building floors/shelter). Reuse the snapshot objects and rewrite the
     // fields — a full rebuild happens only if the world's tile set changed.
+    // §146.14 (bug #291): порядок — ординал фракции, чтобы кадр был
+    // детерминирован и дельта заголовка не дёргалась от порядка словаря.
+    private static void ExportCampHomes(WorldState world, WorldSnapshot snapshot)
+    {
+        snapshot.CampHomes.Clear();
+        foreach (Faction faction in System.Enum.GetValues(typeof(Faction)))
+        {
+            if (world.FactionHomes.TryGetValue(faction, out var tile))
+            {
+                snapshot.CampHomes.Add(new CampHomeSnapshot
+                {
+                    Faction = faction,
+                    Tile = tile
+                });
+            }
+        }
+    }
+
     private static void ExportTiles(WorldState world, WorldSnapshot snapshot)
     {
         var tiles = snapshot.Tiles;
@@ -634,6 +661,11 @@ public static class WorldSnapshotExporter
             case InteractionType.FillBottle:
                 return InventoryContains(npc, "tool.bottle") ? "tool.bottle" : string.Empty;
 
+            // §55.4 (bug #317): перелив — бутылка в рабочей руке, кокос-источник
+            // едет отдельным полем OffhandItemId (ResolveOffhandItem).
+            case InteractionType.FillVessel:
+                return InventoryContains(npc, "tool.bottle") ? "tool.bottle" : string.Empty;
+
             case InteractionType.Harvest:
                 ObjectDefinition harvestTarget = null;
                 if (npc.Execution.TargetObject is { } harvestObjectId &&
@@ -726,10 +758,29 @@ public static class WorldSnapshotExporter
                 // Axe stays preferred (plays the Chop clip); knife is the
                 // fallback. ChopCrown still needs ChopWood, so it always shows
                 // the axe first and never falls through to the knife here.
-                return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.saw", "tool.knife");
+                //
+                // Bug #309: пила из этого списка убрана — после #300 она бревно
+                // НЕ рубит (только пилит на доски), а список показывал её выше
+                // ножа: девушка резала ножом, в руке рисовалась пила. Распилка
+                // (saw.log) узнаётся по id действия текущего шага плана и
+                // честно показывает пилу.
+                if (CurrentInteractionId(npc) == "saw.log" &&
+                    InventoryContains(npc, GearCatalog.Saw))
+                {
+                    return GearCatalog.Saw;
+                }
+
+                return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.knife");
 
             case InteractionType.Butcher:
                 return FirstCarried(npc, "tool.machete", "tool.knife");
+
+            // Bug #333: наложение шины показывает шину в руке (поза — контур
+            // лечения, NpcActorView.treating/kneelingCraft).
+            case InteractionType.Splint:
+                return InventoryContains(npc, ContentIds.Splint)
+                    ? ContentIds.Splint
+                    : string.Empty;
 
             case InteractionType.Fuel:
                 return InventoryContains(npc, "resource.stick") ? "resource.stick" : string.Empty;
@@ -808,6 +859,19 @@ public static class WorldSnapshotExporter
         }
     }
 
+    // §55.4 (bug #317): предмет ВТОРОЙ руки. Сегодня один случай — перелив
+    // FillVessel: бутылка в рабочей руке (ResolveHeldItem), кокос-источник во
+    // второй, чтобы вид сыграл крафт-позу с двумя ёмкостями.
+    private static string ResolveOffhandItem(NPCState npc)
+    {
+        if (npc.Execution.CurrentInteraction == InteractionType.FillVessel)
+        {
+            return Runtime.VesselTransferMath.PourSourceId(npc);
+        }
+
+        return string.Empty;
+    }
+
     private static string ResolveGroundCoconutInteractionItem(
         WorldState world,
         NPCState npc,
@@ -883,6 +947,20 @@ public static class WorldSnapshotExporter
         }
 
         return false;
+    }
+
+    // Bug #309: id каталожного действия текущего шага плана — авторитетный
+    // ответ «распилка это или рубка», когда тип взаимодействия один (Process).
+    private static string CurrentInteractionId(NPCState npc)
+    {
+        var plan = npc.Plan;
+        if (plan == null || plan.Steps == null ||
+            plan.CurrentStepIndex < 0 || plan.CurrentStepIndex >= plan.Steps.Count)
+        {
+            return string.Empty;
+        }
+
+        return plan.Steps[plan.CurrentStepIndex].InteractionId ?? string.Empty;
     }
 
     // Preference list, best tool first (§79 added a fourth candidate to two of
@@ -1039,6 +1117,7 @@ public static class WorldSnapshotExporter
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
             IsManualControl = npc.Mind.ManualControl, // §121
+            RunByDefault = npc.Mind.RunByDefault, // §121.11
             OutfitLocked = npc.Mind.OutfitLocked, // §133.9
             CurrentDream = npc.Mind.CurrentDream.ToString(),
             PlanStatus = npc.Plan.Status.ToString(),
@@ -1055,6 +1134,7 @@ public static class WorldSnapshotExporter
             RomanceAnchorY = npc.Mind.RomanceAnchorY,
             RomanceFacingDegrees = npc.Mind.RomanceFacingDegrees,
             HeldItemId = ResolveHeldItem(world, npc),
+            OffhandItemId = ResolveOffhandItem(npc), // §55.4 (bug #317)
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
             TalkTopicPeerId = npc.Execution.CurrentTalkTopicPeerId?.Value,
@@ -1419,8 +1499,16 @@ public static class WorldSnapshotExporter
 
         // Iter 28: sitting at a junction whose tiles step exactly one
         // level = a ledge seat; the view plants the butt on the upper step.
+        // Bug #332: (1) поза считается БЕЗ требования каноничности джанкшена —
+        // каноничность выбирает, КУДА сесть, а уже сидящую на любом джанкшене
+        // шва надо поднять на уступ, иначе тело тонет в верхнем гексе;
+        // (2) §137-отдых («Rest», всегда без объекта) — тоже edge-поза, но
+        // только когда она сидит СНИЗУ у ступени (stepsUp>0): его клип авторен
+        // на плоской земле, и rim-dangle со stepsUp=0 ему не нужен.
+        var restPose = npcSnapshot.CurrentInteraction == "Rest";
         var usesEdgePose = npcSnapshot.CurrentInteraction == "WashClothes" ||
-            npcSnapshot.CurrentInteraction == "Sit" && npc.Execution.TargetObject is null;
+            npcSnapshot.CurrentInteraction == "Sit" && npc.Execution.TargetObject is null ||
+            restPose;
         if (usesEdgePose &&
             npc.CurrentJunction is { } sitJunctionId &&
             world.Junctions.Items.TryGetValue(sitJunctionId, out var sitJunction) &&
@@ -1428,7 +1516,8 @@ public static class WorldSnapshotExporter
         {
             var waterOnly = npcSnapshot.CurrentInteraction == "WashClothes";
             npcSnapshot.IsLedgeSit = Runtime.PlanningSystem.TryGetEdgeSeatGeometry(
-                world, sitJunction, waterOnly, out var seatStandTile, out _);
+                world, sitJunction, waterOnly, requireCanonical: false,
+                out var seatStandTile, out _);
 
             // How far below the seat (higher tile) her own tile sits: 0 if
             // she stands on the higher tile (a land/water rim — sit right on
@@ -1438,6 +1527,10 @@ public static class WorldSnapshotExporter
             var seatElevation = world.Tiles.Items.TryGetValue(seatStandTile, out var seatStand)
                 ? seatStand.Elevation : standElevation;
             npcSnapshot.LedgeSeatStepsUp = System.Math.Max(0, seatElevation - standElevation);
+            if (restPose && npcSnapshot.LedgeSeatStepsUp == 0)
+            {
+                npcSnapshot.IsLedgeSit = false;
+            }
         }
 
         foreach (var relation in npc.Social.Relationships)

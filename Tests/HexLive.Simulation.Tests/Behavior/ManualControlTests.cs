@@ -1407,6 +1407,47 @@ public sealed class ManualControlTests
             "Сложить приказ — не то же самое, что вернуть персонажа ИИ.");
     }
 
+    // Bug #310 (вердикт игрока): выдохшаяся не берётся за рабочий приказ —
+    // отклоняет его (Exhausted) и садится отдыхать. Питьё при этом доступно.
+    [Test]
+    public void ExhaustedGirlRefusesWorkOrderAndRests()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonist(world);
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Add(new ItemInstance("tool.axe_stone"));
+        npc.Needs.Stamina = 0.05f;
+
+        var here = npc.CurrentJunction!.Value;
+        var neighbor = SpatialQueries.GetPassableNeighbors(world, here).First();
+        var tile = world.Junctions.Items[neighbor].Tiles[0];
+        var log = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Log, new FragmentId(1), tile, neighbor);
+
+        var admission = ManualCommandExecutor.Apply(
+            world,
+            new InteractCommand(npc.Id, log.Id, InteractionType.Process, "split.log"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+            Assert.That(admission.Reason, Is.EqualTo("Exhausted"));
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Sit).Or.EqualTo(GoalType.None),
+                "Отказ от работы пересаживает её отдыхать, а не оставляет в рабочей цели.");
+        });
+
+        // Отдохнувшая берётся за тот же приказ.
+        npc.Needs.Stamina = 0.6f;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Status = PlanStatus.None;
+        npc.Mind.CurrentGoal = GoalType.None;
+        var rested = ManualCommandExecutor.Apply(
+            world,
+            new InteractCommand(npc.Id, log.Id, InteractionType.Process, "split.log"));
+        Assert.That(rested.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
+    }
+
     // ── 6. Нейтральность ─────────────────────────────────────────────────
 
     [Test]

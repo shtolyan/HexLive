@@ -79,50 +79,84 @@ public sealed class PathfindingSystem : ISimulationSystem
                 continue;
             }
 
-            dangerQueue.Clear();
-            if (dangerScratch.Add(mob.Junction))
+            GrowDangerRing(world, dangerScratch, dangerQueue, mob.Junction, mob.Tile);
+        }
+
+        // §147/§62.3 parity: before virtual mobs every wolf was a live entity
+        // and bent routes island-wide; a slot wolf beyond the materialize
+        // radius must repel a route exactly the same, at its preview position
+        // (the very spot the client renders it at). Live and cooldown slots
+        // are covered above / are wolfless.
+        foreach (var slot in world.MobSpawnSlots)
+        {
+            if (slot.State != Wildlife.MobSlotState.Virtual ||
+                slot.MobId != Content.MobIds.Dog ||
+                slot.Ring.Count == 0)
             {
-                dangerQueue.Enqueue(mob.Junction);
+                continue;
             }
 
-            while (dangerQueue.Count > 0)
+            Wildlife.MobPreview.PreviewPose(
+                world.Seed, slot, world.Tick,
+                WildlifeBalance.MobPreviewSegmentTicks,
+                WildlifeBalance.MobPreviewPauseChance,
+                out _, out _, out var nearestIndex);
+            var waypoint = slot.Ring[nearestIndex];
+            GrowDangerRing(world, dangerScratch, dangerQueue, waypoint.Junction, waypoint.Tile);
+        }
+
+        return dangerScratch;
+    }
+
+    // §62.3: BFS from the mob's junction, gated by tile distance to the mob —
+    // one shared grower for live mobs and §147 virtual slot previews.
+    private static void GrowDangerRing(
+        WorldState world,
+        System.Collections.Generic.HashSet<JunctionId> ring,
+        System.Collections.Generic.Queue<JunctionId> queue,
+        JunctionId mobJunction, TileCoord mobTile)
+    {
+        queue.Clear();
+        if (ring.Add(mobJunction))
+        {
+            queue.Enqueue(mobJunction);
+        }
+
+        while (queue.Count > 0)
+        {
+            var currentId = queue.Dequeue();
+            if (!world.Junctions.Items.TryGetValue(currentId, out var junction))
             {
-                var currentId = dangerQueue.Dequeue();
-                if (!world.Junctions.Items.TryGetValue(currentId, out var junction))
+                continue;
+            }
+
+            foreach (var neighborId in junction.Neighbors)
+            {
+                if (ring.Contains(neighborId) ||
+                    !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
                 {
                     continue;
                 }
 
-                foreach (var neighborId in junction.Neighbors)
+                var within = false;
+                foreach (var tile in neighbor.Tiles)
                 {
-                    if (dangerScratch.Contains(neighborId) ||
-                        !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
+                    if (HexSpatialMath.HexDistance(tile, mobTile) <= Spec62.DangerRingTiles)
                     {
-                        continue;
+                        within = true;
+                        break;
                     }
-
-                    var within = false;
-                    foreach (var tile in neighbor.Tiles)
-                    {
-                        if (HexSpatialMath.HexDistance(tile, mob.Tile) <= Spec62.DangerRingTiles)
-                        {
-                            within = true;
-                            break;
-                        }
-                    }
-
-                    if (!within)
-                    {
-                        continue;
-                    }
-
-                    dangerScratch.Add(neighborId);
-                    dangerQueue.Enqueue(neighborId);
                 }
+
+                if (!within)
+                {
+                    continue;
+                }
+
+                ring.Add(neighborId);
+                queue.Enqueue(neighborId);
             }
         }
-
-        return dangerScratch;
     }
 
     // §72: the same soft ring, grown around hostile PEOPLE instead of mobs —
@@ -295,10 +329,16 @@ public sealed class PathfindingSystem : ISimulationSystem
             !AI.GoalCatalog.IgnoresHostileRings(npc.Mind.CurrentGoal);
     }
 
-    // Spec §62: who pays the danger-ring cost. Fit fighters walk wherever they
-    // like (they would attack anyway); a girl already fleeing or defending
-    // must not have her escape/approach route bent around the very mob she is
-    // running from or charging at.
+    // Spec §62: who pays the danger-ring cost. A girl already fleeing or
+    // defending must not have her escape/approach route bent around the very
+    // mob she is running from or charging at.
+    //
+    // §62.3 r2: the fit-fighter exemption is tied to first strike being ON.
+    // Its justification was "she would attack the wolf anyway"; the 2026-07-20
+    // balance audit set AttackMaxPack=0 (nobody attacks first) and the
+    // exemption silently became "healthy armed girls route straight through
+    // wolves" — the exact fearless-death regress the player reported once
+    // §139/§140 made healthy-and-armed the normal state.
     internal static bool AvoidsThreatRings(NPCState npc)
     {
         if (!Spec62.ThreatAlertEnabled ||
@@ -309,7 +349,7 @@ public sealed class PathfindingSystem : ISimulationSystem
             return false;
         }
 
-        return !ThreatAlertSystem.IsFitToFight(npc);
+        return !Spec62.FirstStrikeEnabled || !ThreatAlertSystem.IsFitToFight(npc);
     }
 
     public TickLayer Layer => TickLayer.Fast;

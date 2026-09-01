@@ -767,7 +767,11 @@ namespace HexLive.Simulation.Content
                     CooldownSeconds = 1.14f,
                     AttackSpeed = 0.9f,
                     MeleePriority = 7,            // оружие-инструмент: a desperate but real swing
-                    Capabilities = GearCapability.ChopWood | GearCapability.Saw,
+                    // Bug #300 (вердикт игрока): пила ТОЛЬКО пилит — валит пальму
+                    // (chop.palm принимает ChopWood ИЛИ Saw) и пилит бревно на
+                    // доски. ChopWood у пилы делал её годной для «разрубить»
+                    // (split.log) и прочей рубки — убран.
+                    Capabilities = GearCapability.Saw,
                     HarvestSpeedMult = 2f,        // spec 35.2: the saw fells twice as fast
                 },
                 // §gear-personal: the former "personal effects" live on the SAME

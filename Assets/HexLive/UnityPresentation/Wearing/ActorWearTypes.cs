@@ -122,6 +122,31 @@ public struct HeelPose
     public Vector3 Axis => axis.sqrMagnitude < 0.0001f ? Vector3.right : axis.normalized;
 }
 
+// §31B.4F: посадка головного убора. Шлемы (bug-329) запечены одной константой
+// HeadCenterOffset на все тринадцать штук, и половина сидит криво. Это ручная
+// поправка: локальный сдвиг/поворот/масштаб кости head САМОЙ ВЕЩИ уже после
+// сшивания на тело. Как HeelPose — default читается как «как отшито», поэтому
+// поле добавляется в сериализацию Wear аддитивно и старые префабы не трогает.
+// Правится из WardrobeTest (гизмо + числовые поля), никогда из кода.
+[Serializable]
+public struct HeadwearFit
+{
+    // Метры вдоль локальных осей кости head тела (она — родитель после сшивки).
+    public Vector3 position;
+
+    // Эйлеры в градусах, локально там же.
+    public Vector3 rotation;
+
+    // Покомпонентный масштаб. НОЛЬ означает «авторский (1,1,1)» — так вектор,
+    // которого в старом префабе не было, не схлопывает шлем в точку.
+    public Vector3 scale;
+
+    public bool Any => position.sqrMagnitude > 1e-10f || rotation.sqrMagnitude > 1e-8f ||
+        (scale.sqrMagnitude > 1e-10f && (scale - Vector3.one).sqrMagnitude > 1e-10f);
+
+    public Vector3 Scale => scale.sqrMagnitude < 1e-10f ? Vector3.one : scale;
+}
+
 // Spec 31B.2: one wear prefab fits every girl — the mesh swaps per actor.
 [Serializable]
 public class WearConfig

@@ -16,6 +16,7 @@ namespace HexLive.Simulation.Runtime
 public sealed class FruitProductionSystem : ISimulationSystem
 {
     private readonly System.Collections.Generic.List<ObjectId> _rotted = new();
+    private readonly System.Collections.Generic.List<WorldObjectState> _regrown = new();
 
     public string Name => nameof(FruitProductionSystem);
 
@@ -47,6 +48,45 @@ public sealed class FruitProductionSystem : ISimulationSystem
             {
                 Trace.DebugSystem(world, "ProduceRotted", $"Obj={rottedId.Value}");
 
+            }
+        }
+
+        // Bug #315 (вердикт игрока): из пня через WorldBalance.StumpRegrowTicks
+        // (20 игровых дней) вырастает новая пальма — сразу ОБЫЧНАЯ tree.palm.
+        // Промежуточная «молодая» модель (tree.palm_small) выпилена из игры:
+        // она была единственным её потребителем, а мир от неё необратимо мельчал
+        // (два бревна вместо трёх навсегда). Пень с сидящей на нём не трогаем —
+        // вырастет тиком позже.
+        _regrown.Clear();
+        foreach (var candidate in world.Entities.Objects.Values)
+        {
+            if (candidate.DefinitionId == ContentIds.PalmStump &&
+                candidate.SpawnTick > 0 && !candidate.IsOccupied &&
+                world.Tick - candidate.SpawnTick > WorldBalance.StumpRegrowTicks)
+            {
+                _regrown.Add(candidate);
+            }
+        }
+
+        foreach (var stump in _regrown)
+        {
+            var anchor = stump.Junctions.Count > 0
+                ? stump.Junctions[0]
+                : default;
+            if (!world.Junctions.Items.ContainsKey(anchor))
+            {
+                continue;
+            }
+
+            var tile = stump.Tile;
+            var fragment = stump.Fragment;
+            WorldObjectMutations.DespawnObject(world, stump.Id);
+            var palm = WorldObjectMutations.SpawnObject(
+                world, ContentIds.Palm, fragment, tile, anchor);
+            if (SimTrace.Enabled)
+            {
+                Trace.DebugSystem(world, "PalmRegrown",
+                    $"Obj={palm.Id.Value} Tile={tile.Q},{tile.R} from stump");
             }
         }
 

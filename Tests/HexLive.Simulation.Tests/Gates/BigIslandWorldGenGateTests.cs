@@ -132,6 +132,44 @@ public sealed class BigIslandWorldGenGateTests
                 // досок; молоток поднимает постройку.
                 AssertToolNear(world, anchor, "tool.saw", seed, pair.Key);
                 AssertToolNear(world, anchor, "tool.hammer", seed, pair.Key);
+
+                // §55.4 (bug #317): запасная бутылка лежит у каждого лагеря.
+                AssertToolNear(world, anchor, "tool.bottle", seed, pair.Key);
+            }
+        }
+    }
+
+    [Test]
+    public void SpareBottlesAreSeededAcrossTheIsland()
+    {
+        // §55.4 (bug #317): свою бутылку каждая девушка носит со старта, а на
+        // острове ждут запасные — по одной у лагеря плюс пара в глуши.
+        foreach (var seed in Seeds)
+        {
+            var world = Build(seed);
+            var bottles = world.Entities.Objects.Values
+                .Count(o => o.DefinitionId == "tool.bottle");
+            Assert.That(bottles, Is.InRange(3, 8),
+                $"seed {seed}: бутылок на земле {bottles} — посев §55.4 разъехался");
+        }
+    }
+
+    [Test]
+    public void EveryStarterCarriesAnEmptyBottle()
+    {
+        // §55.4 (bug #317): стартовый комплект выровнен с прибывающей новенькой
+        // (ColonyArrivalSystem): личная ПУСТАЯ бутылка есть у каждой, и в
+        // «голом» старте HugeIsland тоже — остальной запас остаётся лутом.
+        foreach (var mode in new[] { GameMode.BigIsland, GameMode.HugeIsland })
+        {
+            var world = new WorldStateFactory().Create(
+                PrototypeWorldDefinitionFactory.Create(12345, mode));
+            foreach (var npc in world.Entities.Npcs.Values)
+            {
+                Assert.That(npc.Inventory.Items.Contains(new ItemInstance("tool.bottle")),
+                    $"{mode}: NPC{npc.Id.Value} без личной бутылки (§55.4)");
+                Assert.That(npc.BottleCharges, Is.EqualTo(0),
+                    $"{mode}: NPC{npc.Id.Value} стартует с непустой бутылкой");
             }
         }
     }

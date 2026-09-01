@@ -27,6 +27,13 @@ namespace HexLive.Simulation.Runtime
 internal static class ContainerLootMath
 {
     public const int CampfireFuelCapacity = 3;
+
+    // §151.3 (bug #293): к трём топливным ячейкам добавляются ЖАРОЧНЫЕ. Их
+    // ровно две, а не шесть: мясо стопкуется, поэтому шесть крюков вертела
+    // (SimBalance.CampfireSpitCapacity) показываются двумя стопками — сырой и
+    // готовой. Настоящий предел крюков стережёт CanAccept, а не число ячеек.
+    public const int CampfireSpitCells = 2;
+
     public const float FuelTicksPerStick = 1200f;
 
     // ItemInstance has no free enum field. Wood does not otherwise use its
@@ -84,7 +91,15 @@ internal static class ContainerLootMath
 
     public static int Capacity(WorldState world, WorldObjectState obj)
     {
-        if (IsCampfire(world, obj)) return CampfireFuelCapacity;
+        // §151.3: жарочные ячейки появляются только вместе с ВЕРТЕЛОМ — на
+        // голом костре вешать мясо не на что, и рисовать пустые крюки значило
+        // бы обещать игроку действие, которое симуляция отклонит.
+        if (IsCampfire(world, obj))
+        {
+            return CampfireFuelCapacity +
+                (BuildSiteMath.CampfireSpitComplete(obj) ? CampfireSpitCells : 0);
+        }
+
         if (obj.DefinitionId == ContentIds.WaterCollector) return 1;
         if (IsWardrobe(world, obj)) return Spec133.WardrobeCapacity;
         if (IsRack(world, obj)) return SimBalance.RackCapacity;
@@ -130,7 +145,16 @@ internal static class ContainerLootMath
 
     private static bool IsStoredItem(
         WorldState world, WorldObjectState obj, ItemInstance item) =>
-        !IsCampfire(world, obj) || IsQueuedCampfireFuel(obj, item);
+        !IsCampfire(world, obj) || IsQueuedCampfireFuel(obj, item) || IsSpitMeat(item);
+
+    /// <summary>§151.3 (bug #293): мясо на вертеле — тоже содержимое станции.
+    /// Оно лежит в том же persisted-списке, что топливо и доставленный
+    /// материал, но принадлежит вертелу: окно обыска показывает его ячейкой,
+    /// откуда готовый кусок можно снять, а сырой — повесить.</summary>
+    public static bool IsSpitMeat(ItemInstance item) =>
+        item is not null &&
+        (item.DefinitionId == ContentIds.MeatRaw ||
+         item.DefinitionId == ContentIds.MeatCooked);
 
     public static bool IsQueuedCampfireFuel(
         WorldObjectState container, ItemInstance item) =>
@@ -145,6 +169,55 @@ internal static class ContainerLootMath
         item.DefinitionId == ContentIds.Log
             ? FuelTicksPerStick * 4f
             : FuelTicksPerStick;
+
+    private static readonly string[] CampfireFuelPreference =
+    {
+        ContentIds.Stick, ContentIds.Board, ContentIds.Log
+    };
+
+    /// <summary>§151.2: the action and the container accept the same Wood set.
+    /// Prefer cheap fuel before a four-stick log, but keep content-tagged wood
+    /// extensible without another hard-coded interaction branch.</summary>
+    public static ItemInstance FindCarriedCampfireFuel(WorldState world, NPCState npc)
+    {
+        foreach (var preferred in CampfireFuelPreference)
+        {
+            foreach (var item in npc.Inventory.Items)
+            {
+                if (item.DefinitionId == preferred && IsWood(world, item))
+                {
+                    return item;
+                }
+            }
+        }
+
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (IsWood(world, item)) return item;
+        }
+
+        return null;
+    }
+
+    public static bool HasCampfireFuelAvailable(
+        WorldState world, NPCState npc, WorldObjectState fire) =>
+        FindCarriedCampfireFuel(world, npc) is not null ||
+        HasQueuedCampfireFuel(world, fire);
+
+    public static bool TryConsumeCarriedCampfireFuel(
+        WorldState world, NPCState npc, out float fuelTicks)
+    {
+        var item = FindCarriedCampfireFuel(world, npc);
+        if (item is null)
+        {
+            fuelTicks = 0f;
+            return false;
+        }
+
+        npc.Inventory.Items.Remove(item);
+        fuelTicks = FuelTicks(item);
+        return true;
+    }
 
     /// <summary>§151: consume the oldest queued stack member into active fuel.</summary>
     public static bool TryConsumeCampfireFuel(
@@ -325,16 +398,16 @@ internal static class ContainerLootMath
     public static bool CanAccept(
         WorldState world, WorldObjectState obj, IReadOnlyList<ItemInstance> moving)
     {
+        if (IsCampfire(world, obj)) return CampfireAccepts(world, obj, moving);
+
         var isRack = IsRack(world, obj);
         var isCollector = obj.DefinitionId == ContentIds.WaterCollector;
-        var isCampfire = IsCampfire(world, obj);
         foreach (var item in moving)
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(
                     item.DefinitionId, out var definition) ||
                 (isRack && definition.Layer is null) ||
-                (isCollector && item.DefinitionId != ContentIds.Bottle) ||
-                (isCampfire && !definition.HasTag(ObjectTags.Wood)))
+                (isCollector && item.DefinitionId != ContentIds.Bottle))
             {
                 return false;
             }
@@ -348,6 +421,57 @@ internal static class ContainerLootMath
         return projected.Count <= capacity;
     }
 
+    /// <summary>
+    /// §151.3 (bug #293): у костра ДВА независимых предела — очередь топлива и
+    /// крюки вертела. Считать их одной вместимостью нельзя: три полена не имеют
+    /// права занять место мяса, а мясо — место дров. Правило про вертел здесь
+    /// то же, что у автономной готовки (§54.14): без готового вертела вешать
+    /// не на что, а крюков ровно <c>CampfireSpitCapacity</c>.
+    /// </summary>
+    private static bool CampfireAccepts(
+        WorldState world, WorldObjectState fire, IReadOnlyList<ItemInstance> moving)
+    {
+        var fuelCells = new List<(string ItemId, int Count, int SourceIndex)>();
+        foreach (var item in fire.Contents)
+        {
+            if (IsQueuedCampfireFuel(fire, item))
+            {
+                AddCell(fuelCells, item.DefinitionId, fuelCells.Count);
+            }
+        }
+
+        var hooksUsed = BuildSiteMath.HangingMeat(fire, ContentIds.MeatRaw) +
+                        BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked);
+        var spitReady = BuildSiteMath.CampfireSpitComplete(fire);
+        foreach (var item in moving)
+        {
+            // Готовое мясо обратно на вертел не вешают: оно уже пожарено, и
+            // второй круг над огнём для него ничего не значит.
+            if (item.DefinitionId == ContentIds.MeatRaw)
+            {
+                hooksUsed++;
+                if (!spitReady || hooksUsed > SimBalance.CampfireSpitCapacity)
+                {
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (!world.Content.ObjectDefinitions.TryGetValue(
+                    item.DefinitionId, out var definition) ||
+                !definition.HasTag(ObjectTags.Wood))
+            {
+                return false;
+            }
+
+            AddCell(fuelCells, item.DefinitionId, fuelCells.Count);
+            if (fuelCells.Count > CampfireFuelCapacity) return false;
+        }
+
+        return true;
+    }
+
     public static void TakeFromContainer(
         WorldState world, WorldObjectState obj, NPCState looter,
         IReadOnlyList<ItemInstance> moving, IReadOnlyList<ObjectId> groundSources)
@@ -355,7 +479,14 @@ internal static class ContainerLootMath
         foreach (var item in moving)
         {
             obj.Contents.Remove(item);
-            if (IsQueuedCampfireFuel(obj, item)) item.ResourceAmount = 0f;
+            // Служебное число снимается вместе с вещью: у топлива это метка
+            // очереди, у мяса — прогресс прожарки (§151.3). В кармане ни то,
+            // ни другое смысла не имеет.
+            if (IsQueuedCampfireFuel(obj, item) || IsSpitMeat(item))
+            {
+                item.ResourceAmount = 0f;
+            }
+
             looter.Inventory.Items.Add(item);
         }
 
@@ -392,7 +523,12 @@ internal static class ContainerLootMath
             }
             else if (IsCampfire(world, obj))
             {
-                item.ResourceAmount = QueuedFuelMarker;
+                // §151.3: дерево встаёт в очередь топлива (метка), сырой кусок
+                // — на вертел с нулевым прогрессом прожарки; дальше его крутит
+                // FireSystem ровно так же, как повешенный самой колонисткой.
+                item.ResourceAmount = item.DefinitionId == ContentIds.MeatRaw
+                    ? 0f
+                    : QueuedFuelMarker;
                 obj.Contents.Add(item);
             }
             else

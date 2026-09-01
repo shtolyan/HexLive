@@ -1102,10 +1102,16 @@ public sealed class MovementSystem : ISimulationSystem
 
             // §76.13: wind is built by running out of it. Only while actually
             // sprinting — a walk costs her nothing and teaches her nothing.
+            // §76.14 (bug #304): Атлетика ускоряет раскрытие Выносливости и
+            // сама растёт от бега.
             if (running)
             {
+                var athleticsBoost = 1f + (Spec76.SkillsEnabled
+                    ? MathUtil.Clamp01(npc.Skills.Athletics) * Spec76.AthleticsEnduranceTrainGain
+                    : 0f);
                 AttributeMath.Train(npc, AttributeKind.Endurance,
-                    Spec76.AttributeTrainPerRunTick);
+                    Spec76.AttributeTrainPerRunTick * athleticsBoost);
+                SkillMath.GrantRunTick(npc);
             }
 
             movementPerTick *= urgency;

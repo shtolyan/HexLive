@@ -226,7 +226,11 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // §54.17 r2: a roast on a perceived spit outranks the pack —
                 // otherwise "coconut in hand" wins forever and the cooked
                 // meat hangs untouched until it burns through colony turnover.
-                if (!inventoryOnly && TryBuildSpitTakePlan(world, npc, foodDefinitionId))
+                // Bug #323: и РУЧНАЯ тоже — но только у близкого костра
+                // (шаг к огню рядом — не «ушла сама»); дальний вертел для неё
+                // по-прежнему закрыт §121.6.
+                if (TryBuildSpitTakePlan(world, npc, foodDefinitionId,
+                        inventoryOnly ? ManualSpitTakeRadiusTiles : int.MaxValue))
                 {
                     continue;
                 }
@@ -354,6 +358,32 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // Водосборник, кокос в мире и поход за помощью — это добыча,
                 // и без приказа она за ней не идёт.
                 var inventoryOnly = NpcControlPolicy.RequiresInventoryOnlySelfCare(npc);
+
+                // §55.4 (bug #317): неполная бутылка + вскрытые кокосы в
+                // карманах — сначала перелить их воду в бутылку (небыстро,
+                // FillVesselDurationTicks), потом пить из бутылки штатно.
+                // План целиком инвентарный, поэтому ручной policy его пускает.
+                if (VesselTransferMath.CanFillBottle(npc))
+                {
+                    npc.Plan.Steps.Add(new PlanStep
+                    {
+                        Type = PlanStepType.FillVessel
+                    });
+                    npc.Plan.Steps.Add(new PlanStep
+                    {
+                        Type = PlanStepType.DrinkBottle
+                    });
+                    npc.Plan.CurrentStepIndex = 0;
+                    npc.Plan.Status = PlanStatus.Active;
+                    if (SimTrace.Enabled)
+                    {
+                        Trace.Debug(world, npc.Id, "PlanBuilt",
+                            $"Goal=Drink Steps=[FillVessel,DrinkBottle] " +
+                            $"Charges={npc.BottleCharges} " +
+                            $"CoconutSips={VesselTransferMath.CoconutSips(npc)}");
+                    }
+                    continue;
+                }
 
                 if (DecisionSystem.HasBottleWater(npc))
                 {
@@ -1684,6 +1714,16 @@ public sealed partial class PlanningSystem : ISimulationSystem
     internal static bool TryGetEdgeSeatGeometry(
         WorldState world, Junction junction, bool waterOnly,
         out TileCoord standTile, out Float2 facing)
+        => TryGetEdgeSeatGeometry(
+            world, junction, waterOnly, requireCanonical: true, out standTile, out facing);
+
+    // Bug #332: каноничность — правило ПЛАНИРОВЩИКА («куда сесть»), а не позы.
+    // Уже сидящая на НЕканоническом джанкшене шва (ручное «присесть», §137
+    // Idle-отдых, снос прибытия) без этой оговорки теряла весь подъём на
+    // уступ и проваливалась телом в верхний гекс.
+    internal static bool TryGetEdgeSeatGeometry(
+        WorldState world, Junction junction, bool waterOnly, bool requireCanonical,
+        out TileCoord standTile, out Float2 facing)
     {
         standTile = default;
         facing = Float2.Zero;
@@ -1781,7 +1821,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             }
         }
 
-        if (canonical != junction.Id)
+        if (requireCanonical && canonical != junction.Id)
         {
             return false;
         }

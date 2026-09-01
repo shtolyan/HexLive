@@ -676,6 +676,14 @@ MonoBehaviour:
       - "\u041E\u0431\u0449\u0435\u043D\u0438\u0435"
       Flags: 0101
       Languages_Touch: []
+    - Term: skill.athletics
+      TermType: 0
+      Description: 
+      Languages:
+      - Athletics
+      - "\u0410\u0442\u043B\u0435\u0442\u0438\u043A\u0430"
+      Flags: 0101
+      Languages_Touch: []
     - Term: perk.strength.high
       TermType: 0
       Description: 
@@ -985,6 +993,15 @@ MonoBehaviour:
         \u0441\u043B\u0443\u0448\u0430\u0442\u0435\u043B\u044C\u043D\u0438\u0446\u0430
         \u0443\u0441\u043F\u043E\u043A\u0430\u0438\u0432\u0430\u0435\u0442 \u0441\u043E\u0441\u0435\u0434\u043A\u0443
         \u0441\u0438\u043B\u044C\u043D\u0435\u0435."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: skill.athletics.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - Grows from running and physical work. Breath drains slower on a run,
+        endurance builds faster.
+      - "\u0420\u0430\u0441\u0442\u0451\u0442 \u043E\u0442 \u0431\u0435\u0433\u0430 \u0438 \u0444\u0438\u0437\u0438\u0447\u0435\u0441\u043A\u043E\u0439 \u0440\u0430\u0431\u043E\u0442\u044B. \u0414\u044B\u0445\u0430\u043D\u0438\u0435 \u043F\u0440\u0438 \u0431\u0435\u0433\u0435 \u0442\u0440\u0430\u0442\u0438\u0442\u0441\u044F \u043C\u0435\u0434\u043B\u0435\u043D\u043D\u0435\u0435, \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C \u0440\u0430\u0441\u043A\u0440\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0431\u044B\u0441\u0442\u0440\u0435\u0435."
       Flags: 0101
       Languages_Touch: []
     - Term: panel.relations
@@ -1312,11 +1329,18 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - "Raw red skin from the sun. Cosmetic \u2014 it fades and tans over."
-      - "\u041A\u043E\u0436\u0430 \u043E\u0431\u0433\u043E\u0440\u0435\u043B\u0430
-        \u043D\u0430 \u0441\u043E\u043B\u043D\u0446\u0435. \u041A\u043E\u0441\u043C\u0435\u0442\u0438\u043A\u0430
-        \u2014 \u0441\u0445\u043E\u0434\u0438\u0442 \u0438 \u043F\u0440\u0435\u0432\u0440\u0430\u0449\u0430\u0435\u0442\u0441\u044F
-        \u0432 \u0437\u0430\u0433\u0430\u0440."
+      - "Raw red skin from the sun. It stings \u2014 Comfort drains until the red
+        fades into tan."
+      - "\u041A\u043E\u0436\u0430
+        \u043E\u0431\u0433\u043E\u0440\u0435\u043B\u0430 \u043D\u0430
+        \u0441\u043E\u043B\u043D\u0446\u0435.
+        \u0421\u0430\u0434\u043D\u0438\u0442 \u0438
+        \u0441\u043D\u0438\u0436\u0430\u0435\u0442
+        \u043A\u043E\u043C\u0444\u043E\u0440\u0442,
+        \u043F\u043E\u043A\u0430
+        \u043A\u0440\u0430\u0441\u043D\u043E\u0442\u0430 \u043D\u0435
+        \u0441\u043E\u0439\u0434\u0451\u0442 \u0432
+        \u0437\u0430\u0433\u0430\u0440."
       Flags: 0101
       Languages_Touch: []
     - Term: effect.hot.title
@@ -3950,6 +3974,22 @@ MonoBehaviour:
       - "\u041F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u0432 \u043A\u0440\u043E\u0432\u0430\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: menu.make_home
+      TermType: 0
+      Description: 
+      Languages:
+      - Make this our home
+      - "\u0421\u0434\u0435\u043B\u0430\u0442\u044C \u0434\u043E\u043C\u043E\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: menu.make_home.already
+      TermType: 0
+      Description: 
+      Languages:
+      - Already our home
+      - "\u0423\u0436\u0435 \u043D\u0430\u0448 \u0434\u043E\u043C"
+      Flags: 0101
+      Languages_Touch: []
     - Term: menu.carried_by_other
       TermType: 0
       Description: 
@@ -4226,6 +4266,14 @@ MonoBehaviour:
       - "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: interaction.take.from.spit.verb
+      TermType: 0
+      Description: 
+      Languages:
+      - Take a piece
+      - "\u0412\u0437\u044F\u0442\u044C \u043A\u0443\u0441\u043E\u0447\u0435\u043A"
+      Flags: 0101
+      Languages_Touch: []
     - Term: interaction.PickUp.verb
       TermType: 0
       Description: 
@@ -4296,6 +4344,38 @@ MonoBehaviour:
       Languages:
       - No room to drop it here
       - "\u0417\u0434\u0435\u0441\u044C \u043D\u0435\u043A\u0443\u0434\u0430 \u043F\u043E\u043B\u043E\u0436\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.ForeignCamp
+      TermType: 0
+      Description: 
+      Languages:
+      - This hearth belongs to another camp
+      - "\u042D\u0442\u043E \u043E\u0447\u0430\u0433 \u0447\u0443\u0436\u043E\u0433\u043E \u043B\u0430\u0433\u0435\u0440\u044F"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.NotAHearth
+      TermType: 0
+      Description: 
+      Languages:
+      - This is not a finished hearth
+      - "\u042D\u0442\u043E \u0435\u0449\u0451 \u043D\u0435 \u0433\u043E\u0442\u043E\u0432\u044B\u0439 \u043E\u0447\u0430\u0433"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.AlreadyHome
+      TermType: 0
+      Description: 
+      Languages:
+      - This hearth is already our home
+      - "\u042D\u0442\u043E\u0442 \u043E\u0447\u0430\u0433 \u0443\u0436\u0435 \u043D\u0430\u0448 \u0434\u043E\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.NotGirlCamp
+      TermType: 0
+      Description: 
+      Languages:
+      - Only a camp of our own can move home
+      - "\u0414\u043E\u043C \u043F\u0435\u0440\u0435\u043D\u043E\u0441\u044F\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u0441\u0432\u043E\u0438 \u043B\u0430\u0433\u0435\u0440\u044F"
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.SleepDanger
@@ -4436,12 +4516,52 @@ MonoBehaviour:
       - "\u0422\u0443\u0434\u0430 \u043D\u0435 \u0434\u043E\u0431\u0440\u0430\u0442\u044C\u0441\u044F"
       Flags: 010100
       Languages_Touch: []
+    - Term: toast.order_rejected.Exhausted
+      TermType: 0
+      Description: 
+      Languages:
+      - Too exhausted to work — resting
+      - "\u0412\u044B\u0434\u043E\u0445\u043B\u0430\u0441\u044C \u2014 \u0441\u044F\u0434\u0443 \u043E\u0442\u0434\u043E\u0445\u043D\u0443\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
     - Term: toast.order_rejected.MissingTool
       TermType: 0
       Description: 
       Languages:
       - No tool for that
       - "\u041D\u0435\u0442 \u043D\u0443\u0436\u043D\u043E\u0433\u043E \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u0430"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.NoFuel
+      TermType: 0
+      Description:
+      Languages:
+      - No firewood in inventory
+      - "\u041D\u0435\u0442 \u0434\u0440\u043E\u0432 \u0432 \u0438\u043D\u0432\u0435\u043D\u0442\u0430\u0440\u0435"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.FuelBufferFull
+      TermType: 0
+      Description:
+      Languages:
+      - The firewood buffer is full
+      - "\u0417\u0430\u043F\u0430\u0441 \u0434\u0440\u043E\u0432 \u0443 \u043A\u043E\u0441\u0442\u0440\u0430 \u043F\u043E\u043B\u043E\u043D"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.FireHasNoFuel
+      TermType: 0
+      Description:
+      Languages:
+      - Put firewood in the fire first
+      - "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u043F\u043E\u0434\u043B\u043E\u0436\u0438\u0442\u0435 \u0434\u0440\u043E\u0432\u0430"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.FireAlreadyLit
+      TermType: 0
+      Description:
+      Languages:
+      - The fire is already burning
+      - "\u041A\u043E\u0441\u0442\u0451\u0440 \u0443\u0436\u0435 \u0433\u043E\u0440\u0438\u0442"
       Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.Occupied
@@ -4457,28 +4577,25 @@ MonoBehaviour:
       TermType: 0
       Description: 
       Languages:
-      - It
-      - s gone'
+      - "It's gone"
       - "\u0426\u0435\u043B\u0438 \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435\u0442"
-      Flags: 010100
+      Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NoSuchAction
       TermType: 0
       Description: 
       Languages:
-      - She can
-      - t do that with it'
+      - "She can't do that with it"
       - "\u0421 \u044D\u0442\u0438\u043C \u0442\u0430\u043A \u043D\u0435\u043B\u044C\u0437\u044F"
-      Flags: 010100
+      Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.Incapacitated
       TermType: 0
       Description: 
       Languages:
-      - She can
-      - t right now'
+      - "She can't right now"
       - "\u0421\u0435\u0439\u0447\u0430\u0441 \u043E\u043D\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442"
-      Flags: 010100
+      Flags: 0101
       Languages_Touch: []
     - Term: toast.order_rejected.NotManual
       TermType: 0
@@ -17777,6 +17894,214 @@ MonoBehaviour:
         \u0441\u0440\u0430\u0437\u0443."
       Flags: 0101
       Languages_Touch: []
+    - Term: item.clothing_helmet_space.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Space Helmet
+      - "\u041A\u043E\u0441\u043C\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0448\u043B\u0435\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_space.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - Headphones in, red visor down. Space not included.
+      - "\u041D\u0430\u0443\u0448\u043D\u0438\u043A\u0438 \u0432\u043D\u0443\u0442\u0440\u0438, \u043A\u0440\u0430\u0441\u043D\u044B\u0439 \u0432\u0438\u0437\u043E\u0440. \u041A\u043E\u0441\u043C\u043E\u0441 \u0432 \u043A\u043E\u043C\u043F\u043B\u0435\u043A\u0442 \u043D\u0435 \u0432\u0445\u043E\u0434\u0438\u0442."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_moto.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Motorcycle Helmet
+      - "\u041C\u043E\u0442\u043E\u0448\u043B\u0435\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_moto.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - A solid shell with air vents. Takes a branch to the head for you.
+      - "\u041A\u0440\u0435\u043F\u043A\u0430\u044F \u0441\u043A\u043E\u0440\u043B\u0443\u043F\u0430 \u0441 \u0432\u0435\u043D\u0442\u0438\u043B\u044F\u0446\u0438\u0435\u0439. \u041F\u0440\u0438\u043C\u0435\u0442 \u0432\u0435\u0442\u043A\u0443 \u0432 \u0433\u043E\u043B\u043E\u0432\u0443 \u0432\u043C\u0435\u0441\u0442\u043E \u0442\u0435\u0431\u044F."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_carbon.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Baseball Helmet
+      - "\u0411\u0435\u0439\u0441\u0431\u043E\u043B\u044C\u043D\u044B\u0439 \u0448\u043B\u0435\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_carbon.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - An ear flap and a hard dome. Built for fastballs, works on teeth.
+      - "\u0429\u0438\u0442\u043E\u043A \u043D\u0430 \u0443\u0445\u043E \u0438 \u0442\u0432\u0451\u0440\u0434\u044B\u0439 \u043A\u0443\u043F\u043E\u043B. \u0414\u0435\u043B\u0430\u043B\u0441\u044F \u043F\u043E\u0434 \u043C\u044F\u0447\u0438, \u0433\u043E\u0434\u0438\u0442\u0441\u044F \u0438 \u043F\u0440\u043E\u0442\u0438\u0432 \u0437\u0443\u0431\u043E\u0432."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_knight.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Sci-Fi Helmet
+      - "\u0424\u0430\u043D\u0442\u0430\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0448\u043B\u0435\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_knight.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - A scarred visor from someone else's war.
+      - "\u041F\u043E\u0431\u0438\u0442\u044B\u0439 \u0432\u0438\u0437\u043E\u0440 \u0441 \u0447\u044C\u0435\u0439-\u0442\u043E \u0447\u0443\u0436\u043E\u0439 \u0432\u043E\u0439\u043D\u044B."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_m1.name
+      TermType: 0
+      Description: 
+      Languages:
+      - M1 Steel Helmet
+      - "\u041A\u0430\u0441\u043A\u0430 M1"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_m1.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - Steel pot with a chin strap. Old, dented, still honest.
+      - "\u0421\u0442\u0430\u043B\u044C\u043D\u043E\u0439 \u043A\u043E\u0442\u0435\u043B\u043E\u043A \u0441 \u0440\u0435\u043C\u0435\u0448\u043A\u043E\u043C. \u0421\u0442\u0430\u0440\u044B\u0439, \u043C\u044F\u0442\u044B\u0439, \u043D\u043E \u0447\u0435\u0441\u0442\u043D\u044B\u0439."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_racing.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Racing Helmet
+      - "\u0413\u043E\u043D\u043E\u0447\u043D\u044B\u0439 \u0448\u043B\u0435\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_racing.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - Full-face shell with sponsor scars.
+      - "\u0417\u0430\u043A\u0440\u044B\u0442\u044B\u0439 \u0448\u043B\u0435\u043C \u0441\u043E \u0441\u043B\u0435\u0434\u0430\u043C\u0438 \u0441\u043F\u043E\u043D\u0441\u043E\u0440\u0441\u043A\u0438\u0445 \u043D\u0430\u043A\u043B\u0435\u0435\u043A."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_retro.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Retro Moto Helmet
+      - "\u0420\u0435\u0442\u0440\u043E-\u043C\u043E\u0442\u043E\u0448\u043B\u0435\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_retro.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - Round shell, dark visor, badge on the cheek.
+      - "\u041A\u0440\u0443\u0433\u043B\u0430\u044F \u0441\u043A\u043E\u0440\u043B\u0443\u043F\u0430, \u0442\u0451\u043C\u043D\u044B\u0439 \u0432\u0438\u0437\u043E\u0440, \u0437\u043D\u0430\u0447\u043E\u043A \u043D\u0430 \u0441\u043A\u0443\u043B\u0435."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_t1.name
+      TermType: 0
+      Description: 
+      Languages:
+      - T1 Racing Helmet
+      - "\u0428\u043B\u0435\u043C T1"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_t1.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - White dome with a wide grey visor.
+      - "\u0411\u0435\u043B\u044B\u0439 \u043A\u0443\u043F\u043E\u043B \u0441 \u0448\u0438\u0440\u043E\u043A\u0438\u043C \u0441\u0435\u0440\u044B\u043C \u0432\u0438\u0437\u043E\u0440\u043E\u043C."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_tactical_headset.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Tactical Helmet with Headset
+      - "\u0422\u0430\u043A\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0448\u043B\u0435\u043C \u0441 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u043E\u0439"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_tactical_headset.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - Rails, camo and a headset. Nobody is on the channel.
+      - "\u0420\u0435\u0439\u043A\u0438, \u043A\u0430\u043C\u0443\u0444\u043B\u044F\u0436 \u0438 \u0433\u0430\u0440\u043D\u0438\u0442\u0443\u0440\u0430. \u041D\u0430 \u043A\u0430\u043D\u0430\u043B\u0435 \u043D\u0438\u043A\u043E\u0433\u043E."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_bull.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Bull Riding Helmet
+      - "\u0428\u043B\u0435\u043C \u0440\u043E\u0434\u0435\u043E"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_bull.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - A red dome with a face cage. The bull is optional.
+      - "\u041A\u0440\u0430\u0441\u043D\u044B\u0439 \u043A\u0443\u043F\u043E\u043B \u0441 \u0440\u0435\u0448\u0451\u0442\u043A\u043E\u0439 \u043D\u0430 \u043B\u0438\u0446\u043E. \u0411\u044B\u043A \u043D\u0435 \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u0435\u043D."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_tactical.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Tactical Helmet
+      - "\u0422\u0430\u043A\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0448\u043B\u0435\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_tactical.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - A low-cut ballistic shell with goggles.
+      - "\u041D\u0438\u0437\u043A\u0430\u044F \u0431\u0430\u043B\u043B\u0438\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0441\u043A\u043E\u0440\u043B\u0443\u043F\u0430 \u0441 \u043E\u0447\u043A\u0430\u043C\u0438."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_vietnam.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Pilot Helmet
+      - "\u0428\u043B\u0435\u043C \u043F\u0438\u043B\u043E\u0442\u0430"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_vietnam.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - Olive shell with ear muffs and a boom mic.
+      - "\u041E\u043B\u0438\u0432\u043A\u043E\u0432\u0430\u044F \u0441\u043A\u043E\u0440\u043B\u0443\u043F\u0430 \u0441 \u043D\u0430\u0443\u0448\u043D\u0438\u043A\u0430\u043C\u0438 \u0438 \u043C\u0438\u043A\u0440\u043E\u0444\u043E\u043D\u043E\u043C."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_vintage.name
+      TermType: 0
+      Description: 
+      Languages:
+      - Vintage Helmet
+      - "\u0412\u0438\u043D\u0442\u0430\u0436\u043D\u044B\u0439 \u0448\u043B\u0435\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: item.clothing_helmet_vintage.desc
+      TermType: 0
+      Description: 
+      Languages:
+      - An old steel helmet with goggles on the brim.
+      - "\u0421\u0442\u0430\u0440\u044B\u0439 \u0441\u0442\u0430\u043B\u044C\u043D\u043E\u0439 \u0448\u043B\u0435\u043C \u0441 \u043E\u0447\u043A\u0430\u043C\u0438 \u043D\u0430 \u0442\u0443\u043B\u044C\u0435."
+      Flags: 0101
+      Languages_Touch: []
     - Term: item.clothing_cap_anarchy.name
       TermType: 0
       Description: 
@@ -19160,6 +19485,86 @@ MonoBehaviour:
       - "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u043F\u043E\u0441\u0430\u0434\u043A\u0443"
       Flags: 0000
       Languages_Touch: []
+    - Term: wardrobe.fit_title
+      TermType: 0
+      Description: 
+      Languages:
+      - Headwear fit
+      - "\u041F\u043E\u0441\u0430\u0434\u043A\u0430 \u043D\u0430 \u0433\u043E\u043B\u043E\u0432\u0435"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: wardrobe.fit_hint
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Gizmo: W move, E rotate, R scale, Q hide. Drag the axes; exact numbers go in the fields.'
+      - "\u0413\u0438\u0437\u043C\u043E: W \u2014 \u0434\u0432\u0438\u0433\u0430\u0442\u044C, E \u2014 \u0432\u0440\u0430\u0449\u0430\u0442\u044C, R \u2014 \u043C\u0430\u0441\u0448\u0442\u0430\u0431, Q \u2014 \u0441\u043F\u0440\u044F\u0442\u0430\u0442\u044C. \u0422\u044F\u043D\u0438 \u0437\u0430 \u043E\u0441\u0438; \u0442\u043E\u0447\u043D\u044B\u0435 \u0447\u0438\u0441\u043B\u0430 \u2014 \u0432 \u043F\u043E\u043B\u044F\u0445."
+      Flags: 0000
+      Languages_Touch: []
+    - Term: wardrobe.fit_mode_move
+      TermType: 0
+      Description: 
+      Languages:
+      - Move (W)
+      - "\u0414\u0432\u0438\u0433\u0430\u0442\u044C (W)"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: wardrobe.fit_mode_rotate
+      TermType: 0
+      Description: 
+      Languages:
+      - Rotate (E)
+      - "\u0412\u0440\u0430\u0449\u0430\u0442\u044C (E)"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: wardrobe.fit_mode_scale
+      TermType: 0
+      Description: 
+      Languages:
+      - Scale (R)
+      - "\u041C\u0430\u0441\u0448\u0442\u0430\u0431 (R)"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: wardrobe.fit_mode_off
+      TermType: 0
+      Description: 
+      Languages:
+      - Off (Q)
+      - "\u0412\u044B\u043A\u043B (Q)"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: wardrobe.fit_pos
+      TermType: 0
+      Description: 
+      Languages:
+      - Position, m
+      - "\u041F\u043E\u0437\u0438\u0446\u0438\u044F, \u043C"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: wardrobe.fit_rot
+      TermType: 0
+      Description: 
+      Languages:
+      - "Rotation, \u00B0"
+      - "\u041F\u043E\u0432\u043E\u0440\u043E\u0442, \u00B0"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: wardrobe.fit_scale3
+      TermType: 0
+      Description: 
+      Languages:
+      - Scale
+      - "\u041C\u0430\u0441\u0448\u0442\u0430\u0431"
+      Flags: 0000
+      Languages_Touch: []
+    - Term: wardrobe.fit_reset
+      TermType: 0
+      Description: 
+      Languages:
+      - Reset fit
+      - "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043F\u043E\u0441\u0430\u0434\u043A\u0443"
+      Flags: 0000
+      Languages_Touch: []
     - Term: wardrobe.dirt_btn
       TermType: 0
       Description: 
@@ -19559,6 +19964,22 @@ MonoBehaviour:
       - '{0} started a conversation with {1}.'
       - "{0} \u043D\u0430\u0447\u0430\u043B\u0430 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440
         \u0441 {1}."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: history.ItemStolen
+      TermType: 0
+      Description: 
+      Languages:
+      - "{0} stole {1}."
+      - "{0} \u0443\u043A\u0440\u0430\u043B\u0430 {1}."
+      Flags: 0101
+      Languages_Touch: []
+    - Term: journal.ItemStolen.did
+      TermType: 0
+      Description: 
+      Languages:
+      - "I stole {1} from someone else's camp."
+      - "\u042F \u0443\u043A\u0440\u0430\u043B\u0430 {1} \u0441 \u0447\u0443\u0436\u043E\u0439 \u0437\u0435\u043C\u043B\u0438."
       Flags: 0101
       Languages_Touch: []
     - Term: history.GiftGiven
@@ -21499,6 +21920,30 @@ MonoBehaviour:
       - "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440"
       Flags: 0101
       Languages_Touch: []
+    - Term: panel.pace.walk
+      TermType: 0
+      Description:
+      Languages:
+      - "Walk"
+      - "\u0428\u0430\u0433\u043E\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: panel.pace.run
+      TermType: 0
+      Description:
+      Languages:
+      - "Run"
+      - "\u0411\u0435\u0433\u043E\u043C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: panel.pace.tooltip
+      TermType: 0
+      Description:
+      Languages:
+      - "Default pace of your orders: walk or run"
+      - "\u0422\u0435\u043C\u043F \u0435\u0451 \u043F\u0440\u0438\u043A\u0430\u0437\u043E\u0432 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E: \u0448\u0430\u0433\u043E\u043C \u0438\u043B\u0438 \u0431\u0435\u0433\u043E\u043C"
+      Flags: 0101
+      Languages_Touch: []
     - Term: group.selected
       TermType: 0
       Description: 
@@ -21695,6 +22140,14 @@ MonoBehaviour:
       Languages:
       - Drop
       - "\u0412\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.action.fill
+      TermType: 0
+      Description: 
+      Languages:
+      - Fill
+      - "\u041D\u0430\u043F\u043E\u043B\u043D\u0438\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
     - Term: inv.readonly
@@ -25121,6 +25574,54 @@ MonoBehaviour:
       Languages:
       - 'Start new game'
       - 'Начать новую игру'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.steal'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Steal'
+      - "\u0423\u043A\u0440\u0430\u0441\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.steal_all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Steal all'
+      - "\u0423\u043A\u0440\u0430\u0441\u0442\u044C \u0432\u0441\u0451"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.gather_all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gather all'
+      - 'Собрать все'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.cook_meat'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Roast a piece'
+      - 'Пожарить кусочек'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.cook_meat.no_meat'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No raw meat at hand'
+      - 'Нет сырого мяса при себе'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'toast.order_rejected.NothingToBuild'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Nothing left to build here'
+      - 'Здесь уже всё построено'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

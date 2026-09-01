@@ -66,6 +66,53 @@ public sealed class EffectImpactContractTests
         });
     }
 
+    // Bug #283 / §48.6: держащийся ожог — настоящий вклад в Комфорт со своей
+    // строкой Sunburnt, и в тени тоже (SunExposure = 0 — Sunstroke молчит).
+    [Test]
+    public void HeldSunburnRecordsNegativeComfort_Bug283()
+    {
+        var world = TestWorld.CreateWorld(4829);
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Needs.Sunburn = 0.5f;
+        npc.SunExposure = 0f;
+        npc.Needs.Comfort = 0.5f;
+
+        new NeedsDecaySystem().Run(world);
+        var comfortAfterDecay = npc.Needs.Comfort;
+        new TemperatureSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Needs.Comfort, Is.LessThan(comfortAfterDecay));
+            Assert.That(npc.EffectImpacts.Items.Any(impact =>
+                    impact.Need == NeedKind.Comfort &&
+                    impact.Kind == EffectKind.Sunburnt &&
+                    impact.Direction == EffectImpactDirection.Negative &&
+                    impact.Cadence == EffectImpactCadence.Slow),
+                Is.True,
+                "Чип «Солнечный ожог» обязан объясняться строкой в Комфорте.");
+        });
+    }
+
+    // Ниже порога чипа (SunburnShow = 0.3) — ни строки, ни штрафа: чип и
+    // вклад включаются синхронно.
+    [Test]
+    public void FaintRednessBelowChipThresholdLeavesComfortAlone_Bug283()
+    {
+        var world = TestWorld.CreateWorld(4830);
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Needs.Sunburn = 0.2f;
+        npc.SunExposure = 0f;
+        npc.Needs.Comfort = 0.5f;
+
+        new NeedsDecaySystem().Run(world);
+        new TemperatureSystem().Run(world);
+
+        Assert.That(npc.EffectImpacts.Items.Any(impact =>
+                impact.Kind == EffectKind.Sunburnt),
+            Is.False);
+    }
+
     [Test]
     public void DirtyClothesRecordNegativeComfortAtTheRealDecayBranch()
     {

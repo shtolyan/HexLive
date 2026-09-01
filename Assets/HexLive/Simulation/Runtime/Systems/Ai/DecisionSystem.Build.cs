@@ -229,8 +229,15 @@ public sealed partial class DecisionSystem
                 collectorSite ??= site;
             }
             else if (site.DefinitionId == ContentIds.BuildSite &&
-                site.BuildProduct is ContentIds.DryingRack or ContentIds.Workbench)
+                BuildCatalogDefinition.TryGet(site.BuildProduct, out var catalogEntry) &&
+                catalogEntry.Mode == BuildCatalogMode.Furniture)
             {
+                // §120: любой мебельный продукт каталога — очередь мебели.
+                // Перечисление id (сушилка, верстак) оставляло шкаф из плана
+                // дома в безранговом firstSite: пока рядом жива хоть одна
+                // другая стройка, его не выбирал никто — два сайта
+                // furniture.wardrobe простояли ~400k тиков с полной верёвкой
+                // и палками, ожидая досок, которые никто не вёз.
                 furnitureSite ??= site;
             }
 

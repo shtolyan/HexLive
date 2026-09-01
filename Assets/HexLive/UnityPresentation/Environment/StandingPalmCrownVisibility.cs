@@ -48,23 +48,68 @@ namespace HexLive.UnityPresentation.Environment
             public int References;
         }
 
+        // Bug #339-adjacent: AtomicResources.Load асинхронный — на холодном
+        // серверном входе бандл шейдера ещё качается, первый Load отдаёт null,
+        // и все пальмы стартовой сцены навсегда оставались без скрытия кроны
+        // («shadow-only shader was not found» в Player.log). Не готов — палъма
+        // встаёт в очередь и дожимается, когда шейдер приедет (RetryPending
+        // зовёт камера-сторона каждый кадр, пока очередь не пуста).
+        private static readonly List<GameObject> PendingPalms = new();
+
         public static bool Apply(GameObject palm)
         {
             var shader = HexLive.UnityPresentation.Content.AtomicResources.Load<Shader>(ShaderResource) ?? Shader.Find(ShaderName);
             if (shader == null)
             {
+                if (!PendingPalms.Contains(palm))
+                {
+                    PendingPalms.Add(palm);
+                }
+
                 if (!_missingShaderWarned)
                 {
                     _missingShaderWarned = true;
                     Debug.LogWarning(
-                        "[PalmCrownVisibility] Standing-palm shadow-only shader was not found; " +
-                        "camera-near crown hiding is disabled.",
+                        "[PalmCrownVisibility] Standing-palm shadow-only shader is not loaded yet; " +
+                        "crown hiding for this palm is queued until the bundle arrives.",
                         palm);
                 }
 
                 return false;
             }
 
+            return ApplyWithShader(palm, shader);
+        }
+
+        /// <summary>Дожать пальмы, построенные до приезда бандла шейдера.
+        /// Дёшево: при пустой очереди — одна проверка счётчика.</summary>
+        internal static void RetryPending()
+        {
+            if (PendingPalms.Count == 0)
+            {
+                return;
+            }
+
+            var shader = HexLive.UnityPresentation.Content.AtomicResources.Load<Shader>(ShaderResource) ?? Shader.Find(ShaderName);
+            if (shader == null)
+            {
+                return;
+            }
+
+            for (var i = PendingPalms.Count - 1; i >= 0; i--)
+            {
+                var palm = PendingPalms[i];
+                if (palm != null)
+                {
+                    ApplyWithShader(palm, shader);
+                }
+            }
+
+            PendingPalms.Clear();
+        }
+
+        private static bool ApplyWithShader(GameObject palm, Shader shader)
+        {
             var owner = palm.GetComponent<StandingPalmCrownVisibility>() ??
                 palm.AddComponent<StandingPalmCrownVisibility>();
             if (owner._configured)
@@ -374,6 +419,7 @@ namespace HexLive.UnityPresentation.Environment
         {
             Active.Clear();
             SharedBySource.Clear();
+            PendingPalms.Clear();
             _registryVersion = 0;
             _missingShaderWarned = false;
             _missingSurfaceWarned = false;

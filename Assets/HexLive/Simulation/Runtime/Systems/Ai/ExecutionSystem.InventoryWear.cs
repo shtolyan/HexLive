@@ -935,6 +935,79 @@ public sealed partial class ExecutionSystem
     private static bool IsPortableCoconutDrink(ObjectDefinition definition, InteractionType verb) =>
         verb == InteractionType.Drink && definition.HasTag("CoconutWater");
 
+    // §55.4 (bug #317): перелить воду вскрытых кокосов инвентаря в личную
+    // бутылку — на месте, небыстро (FillVesselDurationTicks, прогресс в
+    // Execution). Кокосы теряют ResourceAmount, бутылка получает глотки 1:1;
+    // пустая бутылка становится Raw, непустая сохраняет свой вид воды.
+    // Шаг снимает себя из плана: автономный план [FillVessel, DrinkBottle]
+    // продолжается штатным питьём, ручной одношаговый — завершается.
+    private static void RunFillVessel(WorldState world, NPCState npc)
+    {
+        if (npc.Execution.Status == ExecutionStatus.None)
+        {
+            if (!VesselTransferMath.CanFillBottle(npc))
+            {
+                npc.Plan.Status = PlanStatus.Failed;
+                if (SimTrace.Enabled)
+                {
+                    Trace.Debug(world, npc.Id, "ExecFailed",
+                        "FillVessel: nothing to pour, or the bottle is full/lost");
+                }
+                return;
+            }
+
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = InteractionType.FillVessel;
+            npc.Execution.TargetObject = null;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + SimBalance.FillVesselDurationTicks;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"FillVessel Duration={SimBalance.FillVesselDurationTicks}ticks " +
+                    $"Charges={npc.BottleCharges} " +
+                    $"CoconutSips={VesselTransferMath.CoconutSips(npc)}");
+            }
+            return;
+        }
+
+        if (npc.Execution.Status != ExecutionStatus.InProgress)
+        {
+            return;
+        }
+
+        if (npc.Execution.EndTick - world.Tick > 0)
+        {
+            return;
+        }
+
+        var moved = VesselTransferMath.FillBottleFromCoconuts(npc);
+        if (moved > 0 && SimTrace.Enabled)
+        {
+            // Диагностика, не хроника: рядовой быт (как VesselPlaced/Taken).
+            Trace.Debug(world, npc.Id, "VesselFilled",
+                $"Poured {moved} sips into tool.bottle " +
+                $"{npc.BottleWater} x{npc.BottleCharges}");
+        }
+
+        npc.Plan.Steps.RemoveAt(0);
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        npc.Execution.StartTick = 0;
+        npc.Execution.EndTick = 0;
+
+        if (npc.Plan.Steps.Count == 0)
+        {
+            npc.Plan.Status = moved > 0 ? PlanStatus.Completed : PlanStatus.Failed;
+            npc.Mind.CurrentGoal = GoalType.None;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "CycleReset",
+                    "Goal->None Plan->Done Execution->Cleared (vessel fill)");
+            }
+        }
+    }
+
     // Spec 29H: drink in place from the carried bottle — thirst quenched,
     // raw water carries the 30 % sickness roll, then the bottle empties.
     private static int DrinkBottleDurationTicks => SimBalance.DrinkBottleDurationTicks;
@@ -972,9 +1045,9 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        // A bottleful is a real drink: relief raw 0.7 / boiled 0.85 (so the
-        // two-step chain matches the old single drink, 29H). Spec 29C.9: the
-        // thirst drops gulp by gulp across the duration, not in one jump.
+        // Bug #305: один глоток — 100 мл (литровая бутылка = 10 глотков), и
+        // его облегчение (DrinkThirstRaw/Boiled) задано ЗА ГЛОТОК. Spec 29C.9:
+        // the thirst drops gulp by gulp across the duration, not in one jump.
         // §54.15: RAIN water (the collector's leaf funnel, no ground contact)
         // is clean — boiled-grade thirst relief and NO sickness roll; only
         // the warm-drink comfort bonus stays boiled-only.
@@ -1069,6 +1142,23 @@ public sealed partial class ExecutionSystem
         {
             npc.BottleWater = WaterKind.None;
             npc.BottleCharges = 0;
+        }
+
+        // Bug #305: глоток теперь 100 мл, и одной жаждущей его мало — пьёт
+        // следующий сразу, тем же правилом, что кокосовые глотки (без полного
+        // пере-аукциона целей между глотками, но никогда мимо голодающего
+        // желудка — урок iter-8).
+        if (!driedOut && npc.Needs.Thirst >= 0.4f && npc.Needs.Hunger < 0.85f)
+        {
+            npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.StartTick = world.Tick;
+            npc.Execution.EndTick = world.Tick + DrinkBottleDurationTicks;
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "InteractionStarted",
+                    $"Drink (bottle, next sip) Left={npc.BottleCharges} Thirst={npc.Needs.Thirst:F2}");
+            }
+            return;
         }
 
         npc.Plan.Status = PlanStatus.Completed;

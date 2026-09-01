@@ -17,7 +17,7 @@ namespace HexLive.Simulation.Agents.Effects
         // ── Environment: sun & temperature ────────────────────────────────
         StrongSun,    // standing under a high effective UV index right now
         Sunstroke,    // too long in the sun on bare skin — burning, HP at risk
-        Sunburnt,     // raw red skin from the sun (cosmetic)
+        Sunburnt,     // raw red skin from the sun; stings — drains Comfort while it lasts (bug #283)
         Hot,          // uncomfortably warm — mild tier, before heatstroke
         Heatstroke,   // effective temperature far too hot — HP draining
         Cold,         // uncomfortably chilly — mild tier, before freezing

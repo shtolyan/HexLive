@@ -305,6 +305,11 @@ public static class PrototypeContentCatalog
                         Id = "chop.palm",
                         Type = InteractionType.Harvest,
 
+                        // Bug #300: пила больше не несёт ChopWood (она только
+                        // пилит), поэтому валка явно принимает оба инструмента:
+                        // рубящий (топор/мачете) ИЛИ пилящий.
+                        RequiredCapabilities = { GearCapability.ChopWood, GearCapability.Saw },
+
                         // Spec 35.2 (iter 29): a palm is 60 by axe, 30 by saw.
                         DurationTicks = 60,
                         // Spec §54.2: a BIG palm (3 trunk segments) fells into 3
@@ -341,46 +346,11 @@ public static class PrototypeContentCatalog
                     MaxDistanceTiles = 1
                 }
             },
-            // Spec §54.2: a SMALLER palm — 2 trunk segments → 2 logs + the crown.
-            // Same "Palm" tag so the harvest/coconut behaviour is identical; only
-            // the log count (and the assembled height) differ.
-            ["tree.palm_small"] = new ObjectDefinition
-            {
-                Id = "tree.palm_small",
-                DisplayName = "Palm",
-                Tags = { "Flora", "Shade", "Palm", "Obstacle" },
-                // §29A r2: same trunk footprint as the big palm and the stump.
-                ObstacleRadius = 0.3f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
-                // Spec 43: two trunk segments instead of three (~2.7 wu tall).
-                ShadeSteps = 5f,
-                Interactions =
-                {
-                    new InteractionDefinition
-                    {
-                        Id = "chop.palm_small",
-                        Type = InteractionType.Harvest,
-                        DurationTicks = 45,
-                        Yields =
-                        {
-                            new HarvestDrop { DefinitionId = "resource.log", Count = 2, Scatter = true },
-                            new HarvestDrop { DefinitionId = "resource.palm_crown_small", Count = 1, Scatter = true }
-                        }
-                    }
-                },
-                Produce = new ProduceDefinition
-                {
-                    ProducedDefinitionId = "food.coconut",
-                    // §54.15: halved with the big palm (see its comment).
-                    IntervalTicks = 600,
-                    MaxConcurrent = 1,
-                    MaxDistanceTiles = 1
-                }
-            },
             // Spec §54.2: the palm CROWN (верхушка) — the leafy top that lands when
             // a palm is felled. Chop it (Process, with an axe) to release the loose
-            // palm leaves. Two sizes: the BIG palm's crown is fuller and yields
-            // more leaves than the SMALL palm's — the frond count on the tree and
-            // the drop match per size.
+            // palm leaves. Two sizes were authored; since §54.2 retired the young
+            // palm, only the BIG palm's crown still drops from a tree — the small
+            // one is kept as a definition so older saves still resolve it.
             ["resource.palm_crown"] = new ObjectDefinition
             {
                 Id = "resource.palm_crown",
@@ -1066,7 +1036,8 @@ public static class PrototypeContentCatalog
             {
                 Id = "stump.palm",
                 DisplayName = "Stump",
-                ObstacleRadius = 0.3f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
+                // Bug #315: пень на 15% уже (вердикт игрока; высота прежняя).
+                ObstacleRadius = 0.255f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 Interactions =
                 {
                     new InteractionDefinition

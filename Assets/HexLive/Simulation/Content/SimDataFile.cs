@@ -686,6 +686,13 @@ namespace HexLive.Simulation.Content
                     sb.Append($"\"prototypeId\": {Q(g.PrototypeId)}, ");
                 }
 
+                // §154.2 / bug #335: retired пишется только когда взведён —
+                // подавляющее большинство вещей живые, шум в файле не нужен.
+                if (g.Retired)
+                {
+                    sb.Append("\"retired\": true, ");
+                }
+
                 sb.Append($"\"covers\": [{covers}]}}");
             }
 

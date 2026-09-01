@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -231,21 +233,169 @@ public sealed class PlayerBlueprintTests
             "JSON редактора едет один раз на owner, а не в каждом LEGO-модуле.");
     }
 
-    [Test]
-    public void ExistingArchitectureEditorCannotSilentlyDuplicateFurniture()
+    private static List<WorldObjectState> FurnitureSites(WorldState world) =>
+        world.Entities.Objects.Values
+            .Where(obj => obj.DefinitionId == ContentIds.BuildSite &&
+                !string.IsNullOrEmpty(obj.BuildProduct) &&
+                obj.BuildProduct != ContentIds.HutPlan)
+            .ToList();
+
+    // §120.9 r2 / bug #277: правка мебели существующего дома реконсайлится,
+    // а не отклоняется глухо. У стартового дома вся мебель уже ПОСТРОЕНА и
+    // потому не правится; пустую площадку тесты добывают, снося построенный
+    // шкаф и переразмечая его штатным StakePlanFurnitureSites.
+    private static (SimulationEngine Engine, WorldObjectState Hut, WorldObjectState Site)
+        HutWithEmptyWardrobeSite()
     {
         var engine = TestWorld.CreateEngine(12345);
         var world = engine.World;
         var hut = world.Entities.Objects.Values.Single(obj =>
             obj.DefinitionId == ContentIds.HutPlan && string.IsNullOrEmpty(obj.BuildProduct));
+        var built = world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == ContentIds.Wardrobe);
+        WorldObjectMutations.DespawnObject(world, built.Id);
+        Bootstrap.BuildingBootstrap.StakePlanFurnitureSites(world, hut);
+        var site = world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == ContentIds.BuildSite &&
+            obj.BuildProduct == ContentIds.Wardrobe);
+        Assert.That(site.Contents, Is.Empty, "Прекондиция: площадка не пуста.");
+        return (engine, hut, site);
+    }
+
+    private static int WardrobeIndex(BuildingBlueprintDraft draft) =>
+        draft.Furniture.FindIndex(item => item.DefinitionId == ContentIds.Wardrobe);
+
+    [Test]
+    public void ExistingEditorTurnsUntouchedFurnitureInPlace_Bug277()
+    {
+        var (engine, hut, site) = HutWithEmptyWardrobeSite();
+        var world = engine.World;
         var before = world.PlayerBlueprints[hut.BlueprintId];
-        var tampered = before.Clone();
-        tampered.Furniture[0].YawStep++;
+        var wasYaw = site.RotationDegrees;
 
+        var accepted = false;
+        for (var delta = 1; delta < 6 && !accepted; delta++)
+        {
+            Assert.That(BuildingBlueprintJson.TryDeserialize(
+                BuildingRules.EditablePlanJsonFor(world, hut),
+                out var candidate, out var jsonError), Is.True, jsonError);
+            var i = WardrobeIndex(candidate);
+            Assert.That(i, Is.GreaterThanOrEqualTo(0));
+            candidate.Furniture[i].YawStep = BlueprintGeometry.NormalizeSector(
+                candidate.Furniture[i].YawStep + delta);
+            var json = BuildingBlueprintJson.Serialize(candidate, pretty: false);
+            if (!BuildingBlueprintJson.TryDeserialize(json, out _, out _)) continue;
+            accepted = engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(
+                hut.Id, json)).Accepted;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(accepted, Is.True,
+                "Bug #277: поворот пустой мебельной площадки обязан приниматься.");
+            Assert.That(world.PlayerBlueprints[hut.BlueprintId], Is.Not.SameAs(before),
+                "Принятая правка обязана заменить план мира.");
+            Assert.That(world.Entities.Objects.ContainsKey(site.Id), Is.True,
+                "Поворот на месте не пересоздаёт площадку.");
+            Assert.That(System.MathF.Abs(site.RotationDegrees - wasYaw), Is.GreaterThan(0.5f),
+                "Пустая площадка обязана повернуться вслед за чертежом.");
+        });
+    }
+
+    [Test]
+    public void ExistingEditorRemovesUntouchedFurnitureSite_Bug277()
+    {
+        var (engine, hut, site) = HutWithEmptyWardrobeSite();
+        var world = engine.World;
+
+        Assert.That(BuildingBlueprintJson.TryDeserialize(
+            BuildingRules.EditablePlanJsonFor(world, hut),
+            out var revised, out var jsonError), Is.True, jsonError);
+        revised.Furniture.RemoveAt(WardrobeIndex(revised));
         var admission = engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(
-            hut.Id, BuildingBlueprintJson.Serialize(tampered, pretty: false)));
+            hut.Id, BuildingBlueprintJson.Serialize(revised, pretty: false)));
 
-        Assert.That(admission.Accepted, Is.False);
+        Assert.Multiple(() =>
+        {
+            Assert.That(admission.Accepted, Is.True,
+                "Bug #277: удаление НЕ начатой мебели обязано приниматься.");
+            Assert.That(world.Entities.Objects.ContainsKey(site.Id), Is.False,
+                "Осиротевшая пустая площадка обязана уйти из мира.");
+            Assert.That(world.PlayerBlueprints[hut.BlueprintId].Furniture
+                    .Any(item => item.DefinitionId == ContentIds.Wardrobe), Is.False,
+                "Шкаф обязан уйти и из плана мира.");
+        });
+    }
+
+    // Случай игрока из #277: дом ещё СТРОИТСЯ, мебель мира не существует —
+    // любая мебельная правка чертежа принимается и просто заменяет план.
+    [Test]
+    public void UnfinishedHouseAcceptsFurnitureEdits_Bug277()
+    {
+        var engine = TestWorld.CreateEngine(12345);
+        var world = engine.World;
+        var json = BuildingBlueprintJson.Serialize(
+            BuiltInBuildingBlueprints.Hut1Hex(), pretty: false);
+        WorldObjectState site = null;
+        foreach (var tile in world.Tiles.Items.Keys.OrderBy(t => t.Q).ThenBy(t => t.R))
+        {
+            if (!engine.ApplyManualCommand(new PlaceBuildingBlueprintCommand(
+                    json, tile, rotationDegrees: 0f)).Accepted)
+            {
+                continue;
+            }
+
+            site = world.Entities.Objects.Values.Single(candidate =>
+                candidate.BuildProduct == ContentIds.HutPlan && candidate.BlueprintId != 0);
+            break;
+        }
+
+        Assert.That(site, Is.Not.Null,
+            "Прототипный остров не дал места под чертёж.");
+
+        Assert.That(BuildingBlueprintJson.TryDeserialize(
+            BuildingRules.EditablePlanJsonFor(world, site),
+            out var revised, out var jsonError), Is.True, jsonError);
+        Assert.That(revised.Furniture, Is.Not.Empty,
+            "Прекондиция: у committed-плана нет мебели.");
+        revised.Furniture.RemoveAt(0);
+        var admission = engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(
+            site.Id, BuildingBlueprintJson.Serialize(revised, pretty: false)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(admission.Accepted, Is.True,
+                "Bug #277: мебельная правка недостроенного дома обязана приниматься.");
+            Assert.That(world.PlayerBlueprints[site.BlueprintId].Furniture,
+                Has.Count.EqualTo(revised.Furniture.Count));
+        });
+    }
+
+    [Test]
+    public void ExistingEditorRefusesToTouchStartedFurniture_Bug277()
+    {
+        var engine = TestWorld.CreateEngine(12345);
+        var world = engine.World;
+        var hut = world.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == ContentIds.HutPlan && string.IsNullOrEmpty(obj.BuildProduct));
+
+        var before = world.PlayerBlueprints[hut.BlueprintId];
+        // Вся мебель стартового дома уже ПОСТРОЕНА — каждое удаление обязано
+        // отклоняться: готовый предмет ревизия не сносит и не двигает.
+        for (var i = 0; i < before.Furniture.Count; i++)
+        {
+            Assert.That(BuildingBlueprintJson.TryDeserialize(
+                BuildingRules.EditablePlanJsonFor(world, hut),
+                out var candidate, out var jsonError), Is.True, jsonError);
+            candidate.Furniture.RemoveAt(i);
+            var json = BuildingBlueprintJson.Serialize(candidate, pretty: false);
+            if (!BuildingBlueprintJson.TryDeserialize(json, out _, out _)) continue;
+            var admission = engine.ApplyManualCommand(new UpdateBuildingBlueprintCommand(
+                hut.Id, json));
+            Assert.That(admission.Accepted, Is.False,
+                $"Построенная мебель не двигается и не убирается (placement {i}).");
+        }
+
         Assert.That(world.PlayerBlueprints[hut.BlueprintId], Is.SameAs(before),
             "Отклонённая мебельная правка не должна частично заменить план мира.");
     }

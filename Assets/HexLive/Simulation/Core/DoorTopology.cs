@@ -32,11 +32,18 @@ public static class DoorTopology
     // жительницы Colony2…Colony6 — и ни одна не имела права открыть СВОЮ
     // дверь, поэтому роутер запирал их в собственном доме.
     //
-    // Владелец ВЫВОДИТСЯ, а не хранится: §146.5 StakeCampHutPlans ставит сайт
-    // хижины в 2-4 гексах от очага своего лагеря, так что «ближайший девичий
-    // очаг» — точная обратная функция к тому, кто этот дом застолбил. Вывод
-    // работает и на уже сохранённых мирах (миграции нет) и остаётся тем самым
-    // ЕДИНСТВЕННЫМ местом, куда позже встанет сохраняемое поле.
+    // ⭐ #237 r2: владелец — ХРАНИМОЕ свойство здания
+    // (WorldObjectState.OwnerFaction), а не ответ на вопрос «чей очаг сейчас
+    // ближе». Вывод по ближайшему FactionHome был верен ровно в момент
+    // застолбления: §146.13 слияние лагерей удаляет ОБА очага и ставит один
+    // общий, а вымерший лагерь свой очаг просто теряет — и тогда ближайшим к
+    // дому оказывается ТРЕТИЙ, посторонний лагерь. Дверь молча меняла хозяина
+    // и запирала своих жительниц ровно так же, как в исходном #237, только
+    // позже по времени. Слияние переписывает штамп само (CampDiplomacyMath).
+    //
+    // Вывод по расстоянию остаётся ТОЛЬКО фолбэком для непроштампованных
+    // зданий: миры без лагерей (тестовые сборки) и сейвы ≤59, которым штамп
+    // проставляет разовая миграция загрузчика (v62).
     //
     // Аутсайдеры и Castaway домов не строят и владельцами не становятся
     // никогда. Все решения о вражде ниже идут через FactionRelations, а не
@@ -48,7 +55,43 @@ public static class DoorTopology
             return Faction.Colony;
         }
 
-        var anchor = OwnerAnchorTile(world, door);
+        var building = OwnerBuilding(world, door);
+        // Штамп здания — истина; на самой створке он стоит лишь у осиротевшей
+        // двери без ArchitectureOwnerId.
+        if ((StampedOwner(building) ?? StampedOwner(door)) is { } stamped)
+        {
+            return stamped;
+        }
+
+        return DeriveOwnerFromHomes(world, building?.Tile ?? door.Tile);
+    }
+
+    /// <summary>
+    /// #237: проставить лагерю его дом. Идемпотентно; чужой ординал (аутсайдер,
+    /// Castaway) владельцем не становится. Смена штампа — смена прав, поэтому
+    /// она обязана инвалидировать кэш запретов (DoorStateVersion).
+    /// </summary>
+    public static void StampOwner(
+        WorldState world, WorldObjectState building, Faction faction)
+    {
+        if (world is null || building is null ||
+            !FactionRelations.IsGirlCamp(faction) ||
+            building.OwnerFaction == faction)
+        {
+            return;
+        }
+
+        building.OwnerFaction = faction;
+        world.DoorStateVersion++;
+    }
+
+    /// <summary>
+    /// Прежний (до #237 r2) вывод владельца: ближайший девичий очаг. Остался
+    /// один вызывающий сверх фолбэка — разовая миграция сейвов ≤59, которой
+    /// нужно ровно то значение, по которому мир жил до загрузки.
+    /// </summary>
+    public static Faction DeriveOwnerFromHomes(WorldState world, TileCoord anchor)
+    {
         var owner = Faction.Colony;
         var best = int.MaxValue;
         // AllFactions идёт по ординалу — порядок словаря FactionHomes не смеет
@@ -73,13 +116,19 @@ public static class DoorTopology
         return owner;
     }
 
+    private static Faction? StampedOwner(WorldObjectState obj) =>
+        obj?.OwnerFaction is { } faction && FactionRelations.IsGirlCamp(faction)
+            ? faction
+            : null;
+
     // Дверь — LEGO-элемент §120: её собственный Tile стоит на периметре, между
-    // двумя гексами. Меряем от здания, которому она принадлежит.
-    private static TileCoord OwnerAnchorTile(WorldState world, WorldObjectState door) =>
+    // двумя гексами. Владелец (и штамп, и якорь замера) — у здания.
+    private static WorldObjectState OwnerBuilding(
+        WorldState world, WorldObjectState door) =>
         door.ArchitectureOwnerId is { } ownerId &&
         world.Entities.Objects.TryGetValue(ownerId, out var building)
-            ? building.Tile
-            : door.Tile;
+            ? building
+            : null;
 
     /// <summary>Портал закрытой двери? (пустой кэш ⇒ всегда false)</summary>
     public static bool IsClosedDoorPortal(WorldState world, JunctionId junctionId)

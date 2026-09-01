@@ -164,8 +164,14 @@ public sealed class HugeIslandWorldGenGateTests
                 .Where(npc => npc.Faction != Faction.Outsiders).ToArray();
             foreach (var girl in girls)
             {
-                Assert.That(girl.Inventory.Items, Is.Empty,
+                // §55.4 (bug #317): единственный стартовый предмет — личная
+                // ПУСТАЯ бутылка (как у прибывающей новенькой); остальной
+                // комплект остаётся мировым лутом §146.9.
+                Assert.That(girl.Inventory.Items.Select(i => i.DefinitionId),
+                    Is.EqualTo(new[] { "tool.bottle" }),
                     $"seed {seed}: NPC{girl.Id.Value} получила скрытый стартовый груз");
+                Assert.That(girl.BottleCharges, Is.EqualTo(0),
+                    $"seed {seed}: NPC{girl.Id.Value} стартует с непустой бутылкой");
                 Assert.That(girl.WornItems, Has.Count.EqualTo(3),
                     $"seed {seed}: NPC{girl.Id.Value} — нужны трусы, лифчик и рюкзак");
                 Assert.That(girl.WornItems.Count(item => Garment(item.DefinitionId).Layer ==

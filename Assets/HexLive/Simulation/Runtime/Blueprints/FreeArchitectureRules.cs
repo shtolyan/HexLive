@@ -440,7 +440,48 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     state.DeliveredRope >= state.RequiredRope &&
                     state.DeliveredLeaves >= state.RequiredLeaves)
                     state.WorkDone = state.WorkRequired;
+
+                // Bug #302: деталь якорится у СВОЕЙ геометрии (узел балки,
+                // середина сегмента стены, центроид сектора), а не в центре
+                // тайла. Центр гекса — законное место мебели, и кровать в
+                // будущей спальне делала недостижимой КАЖДУЮ деталь этого
+                // гекса: и подход (TryReserveBesideJunction), и гейт старта
+                // §26.6A меряются до якорного джанкшена. Двери давно живут по
+                // этому правилу (портал в RepairTopology, он выставится ниже
+                // и перекроет этот выбор); вид свободной детали якоря не
+                // читает вовсе — GetObjectAnchorPosition рисует её от центра
+                // тайла, так что перенос чисто симуляционный.
+                var geometryAnchor = NearestTileJunction(
+                    world, piece.Tile, module.LocalX, module.LocalZ);
+                if (geometryAnchor is { } geometryId &&
+                    (piece.Junctions.Count != 1 || !piece.Junctions[0].Equals(geometryId)))
+                {
+                    piece.Junctions.Clear();
+                    piece.Junctions.Add(geometryId);
+                }
             }
+        }
+
+        private static JunctionId? NearestTileJunction(
+            WorldState world, TileCoord tileCoord, float x, float z)
+        {
+            if (!world.Tiles.Items.TryGetValue(tileCoord, out var tile)) return null;
+            JunctionId best = default;
+            var bestSq = float.MaxValue;
+            var found = false;
+            foreach (var id in tile.Junctions)
+            {
+                if (!world.Junctions.Items.TryGetValue(id, out var junction)) continue;
+                var dx = junction.WorldPosition.X - x;
+                var dy = junction.WorldPosition.Y - z;
+                var sq = dx * dx + dy * dy;
+                if (sq >= bestSq) continue;
+                bestSq = sq;
+                best = id;
+                found = true;
+            }
+
+            return found ? best : null;
         }
 
         private static void RefreshBuildability(WorldState world)

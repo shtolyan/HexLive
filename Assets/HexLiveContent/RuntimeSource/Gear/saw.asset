@@ -24,7 +24,6 @@ MonoBehaviour:
   meleePriority: 7
   twoHanded: 0
   capabilities:
-  - 4
   - 128
   craftable: 0
   craftStation: 0

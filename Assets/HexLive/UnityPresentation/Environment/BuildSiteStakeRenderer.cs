@@ -163,7 +163,11 @@ namespace HexLive.UnityPresentation.Environment
             var root = new GameObject($"Build stakes (site {site.Id.Value} {site.BuildProduct})");
             root.transform.SetParent(_root, false);
 
-            var groundY = _worldRenderer!.GroundTopY(site.Tile);
+            // Bug #336: в доме площадка стоит на ПОЛУ — колышки на высоте
+            // террейна прятались под досками и их нельзя было ни увидеть,
+            // ни выбрать. Опорная высота считается так же, как у самих
+            // объектов (floor-aware), а не по голому тайлу.
+            var groundY = _worldRenderer!.ObjectGroundTopY(site);
             var anchor = _worldRenderer.ObjectAnchorPosition(site);
             var demolition = FreeArchitectureRules.IsDemolitionSite(site);
             foreach (var point in StakePoints(site, anchor, modules))

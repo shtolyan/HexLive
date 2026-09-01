@@ -48,6 +48,35 @@ public sealed class BuildSiteSelectionUiContractTests
         });
     }
 
+    [Test]
+    public void StreamedPartialFurnitureRefreshesItsPickingGeometry()
+    {
+        var pile = Read("Environment", "BuildSitePile.cs");
+        var view = Read("Views", "WorldObjectView.cs");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(pile, Does.Contain(".RefreshGeometry()"),
+                "Когда prefab кровати догрузился, build-site обязан обновить hit surface.");
+            Assert.That(view, Does.Contain("public void RefreshGeometry()"));
+            Assert.That(view, Does.Contain("GetComponentsInChildren<Renderer>(true)"));
+            Assert.That(view, Does.Contain("GetComponentsInChildren<WorldObjectPickBounds>(true)"));
+        });
+    }
+
+    [Test]
+    public void StreamedPlanModuleRefreshesItsPickingGeometry()
+    {
+        var module = Read("Environment", "ArchitectureModuleView.cs");
+
+        // Bug #282: площадка plan-дома не имеет своей геометрии (BuildSitePile
+        // пропускает HutPlan), кликабельное тело дома — модули, чьи префабы
+        // приходят из асинхронного бандла ПОСЛЕ Init вида. Модуль обязан
+        // обновлять hit surface, когда модель наконец построена.
+        Assert.That(module, Does.Contain(".RefreshGeometry()"),
+            "Когда prefab модуля догрузился, дом обязан обновить hit surface.");
+    }
+
     private static string Read(string folder, string file) => File.ReadAllText(
         Path.Combine(RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
             folder, file));

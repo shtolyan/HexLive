@@ -60,7 +60,12 @@ public sealed partial class PlanningSystem
     // pack (BestFoodInInventory then picks the cooked chunk). Every obstacle
     // returns false, never PlanFailed: the pack coconut stays the fallback,
     // and a vanished/contested fire must not cost the meal she already holds.
-    private static bool TryBuildSpitTakePlan(WorldState world, NPCState npc, string? bestInPack)
+    // Bug #323: ручная (§121.6) берёт готовое мясо с вертела только у БЛИЗКОГО
+    // костра — шаг к огню рядом не «ушла сама», а поход через карту — ушла.
+    private const int ManualSpitTakeRadiusTiles = 2;
+
+    private static bool TryBuildSpitTakePlan(
+        WorldState world, NPCState npc, string? bestInPack, int maxTiles = int.MaxValue)
     {
         var packNutrition = bestInPack is null ? 0f : FoodMath.NutritionOf(world, bestInPack);
         if (packNutrition + 0.01f >= SimBalance.CookedMeatHunger)
@@ -76,6 +81,7 @@ public sealed partial class PlanningSystem
         foreach (var perceived in npc.Perception.Objects)
         {
             if (!perceived.IsReachable ||
+                Spatial.HexSpatialMath.HexDistance(npc.Tile, perceived.Tile) > maxTiles ||
                 !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
                 !world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) ||
                 !definition.HasTag("Campfire") ||

@@ -137,6 +137,7 @@ namespace HexLive.UnityPresentation.Wearing.Garments
             def.armor = p.Armor;
             def.thermalDelta = p.ThermalDelta;
             def.dressDurationTicks = p.DressDurationTicks;
+            def.retired = p.Retired; // §154.2 / bug #335
         }
 
         // Create every missing folder along an "Assets/..." path.

@@ -168,6 +168,9 @@ public sealed class KenshiCoreTests
         });
     }
 
+    // Bug #306: рана здесь лежит на ПОБИТОЙ ноге (HP 0.6) — на почти целой
+    // части свернувшаяся царапина зарубцуется сама и бинта не заслуживает
+    // (см. ClottedScratchOnHealthyPart_SpendsNoBandage ниже).
     [Test]
     public void ClottedIntactCut_RemainsAftercareAndExportsAsDryNotHealed()
     {
@@ -177,6 +180,7 @@ public sealed class KenshiCoreTests
         patient.Needs.Blood = 1f;
         patient.Needs.Hunger = 0f;
         patient.Needs.Thirst = 0f;
+        patient.Body.Parts[BodyPart.LegL] = 0.6f;
         patient.Wounds.Add(new WoundState
         {
             Id = 1181,
@@ -207,6 +211,41 @@ public sealed class KenshiCoreTests
                 "Dry presentation must not fake authoritative medical healing.");
             Assert.That(visualHeal, Is.EqualTo(WoundMath.ClottedVisualHealFloor)
                 .Within(0.001f));
+        });
+    }
+
+    // Bug #306 (вердикт игрока): «HP больше 90%, нет кровотечения, раны не
+    // деградируют — бинты не тратим». Свернувшаяся царапина на почти целой
+    // части зарубцуется сама (§118.7) и не считается ни афтеркером, ни
+    // бременем самолечения.
+    [Test]
+    public void ClottedScratchOnHealthyPart_SpendsNoBandage()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Needs.Blood = 1f;
+        patient.Body.Parts[BodyPart.LegL] = 0.98f;
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1183,
+            Zone = BodyPart.LegL,
+            Severity = 0.08f,
+            Heal01 = 0f,
+            Clot01 = 1f,
+            Stabilized = false,
+            BleedFactor = 1.2f,
+            Seed = 1183
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(MortalityHelpers.IsBleeding(patient), Is.False);
+            Assert.That(WoundMath.NeedsAftercare(patient), Is.False,
+                "Свернувшаяся царапина на здоровой части рубцуется сама.");
+            Assert.That(DecisionSystem.SelfTreatBurden(patient), Is.Zero);
+            Assert.That(DecisionSystem.SelfTreatmentIndicated(patient, 5), Is.False,
+                "Бинт не тратится на часть с HP выше 0.9 без кровотечения.");
         });
     }
 
@@ -272,8 +311,10 @@ public sealed class KenshiCoreTests
         });
     }
 
+    // Bug #284: кровотечение усиливает опасность (до ×2), но не отменяет
+    // глубину — разбитая (сухая) нога важнее свежей царапины на руке.
     [Test]
-    public void Bandage_PrefersActiveBleedBeforeDeeperClottedCut()
+    public void Bandage_PrefersDeepWoundOverShallowActiveBleed_Bug284()
     {
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
@@ -291,7 +332,57 @@ public sealed class KenshiCoreTests
 
         Assert.That(WoundMath.StabilizeMostDangerous(
             patient, herbal: false, out var stabilized), Is.True);
-        Assert.That(stabilized.Id, Is.EqualTo(2));
+        Assert.That(stabilized.Id, Is.EqualTo(1));
+        Assert.That(stabilized.Zone, Is.EqualTo(BodyPart.LegL));
+    }
+
+    // Обе кровоточат: глубокая почти свернувшаяся всё равно важнее мелкой
+    // свежей — множитель (2 - Clot01) не смеет переворачивать глубину.
+    [Test]
+    public void Bandage_DeepAlmostClottedBeatsShallowFreshBleed_Bug284()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1, Zone = BodyPart.LegL, Severity = 0.8f,
+            Heal01 = 0f, Clot01 = 0.9f, Stabilized = false, BleedFactor = 1.2f
+        });
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 2, Zone = BodyPart.ArmL, Severity = 0.08f,
+            Heal01 = 0f, Clot01 = 0f, Stabilized = false, BleedFactor = 1.2f
+        });
+
+        Assert.That(WoundMath.StabilizeMostDangerous(
+            patient, herbal: false, out var stabilized), Is.True);
+        Assert.That(stabilized.Id, Is.EqualTo(1));
+    }
+
+    // Деградация живёт в CriticalTrauma зоны, не в Severity раны: добитая
+    // деградацией нога перевешивает даже при мелкой исходной ране.
+    [Test]
+    public void Bandage_DegeneratedZoneOutranksItsOriginalSeverity_Bug284()
+    {
+        var world = TestWorld.CreateWorld();
+        var patient = world.Entities.Npcs.Values.First();
+        patient.Wounds.Clear();
+        patient.Body.Condition(BodyPart.LegL).CriticalTrauma = 0.5f;
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 1, Zone = BodyPart.LegL, Severity = 0.06f,
+            Heal01 = 0f, Clot01 = 1f, Stabilized = false, BleedFactor = 1.2f
+        });
+        patient.Wounds.Add(new WoundState
+        {
+            Id = 2, Zone = BodyPart.ArmL, Severity = 0.08f,
+            Heal01 = 0f, Clot01 = 0.5f, Stabilized = false, BleedFactor = 1.2f
+        });
+
+        Assert.That(WoundMath.StabilizeMostDangerous(
+            patient, herbal: false, out var stabilized), Is.True);
+        Assert.That(stabilized.Zone, Is.EqualTo(BodyPart.LegL));
     }
 
     [Test]

@@ -69,6 +69,120 @@ public static class CraftingOptions
         public List<CraftIngredientOption> Ingredients;
     }
 
+    /// <summary>
+    /// Bug #339: один проход по объектам на весь запрос вместо квадрата.
+    /// «Свободный ингредиент на земле» раньше пересчитывался полным сканом
+    /// мира на КАЖДОГО кандидата-кучку (<see cref="FindGroundInputPile"/> →
+    /// <see cref="CountGroundInputs"/>) — на прод-мире в 6000 объектов один
+    /// TryFill стоил ~500 мс, а сервер зовёт его каждый тик под замком тика:
+    /// мир проседал с 4 до ~1.8 тик/с ровно пока управляющий игрок подключён.
+    /// Кэш живёт один вызов: мир под замком не мутирует, ответы совпадают с
+    /// прежними скановыми побайтно.
+    /// </summary>
+    private sealed class GroundScan
+    {
+        private readonly WorldState _world;
+        private readonly NPCState _npc;
+        private Dictionary<string, List<WorldObjectState>> _looseByDefinition;
+        private Dictionary<string, Dictionary<TileCoord, int>> _looseTileCounts;
+        private HashSet<int> _stationsWithProjects;
+
+        public GroundScan(WorldState world, NPCState npc)
+        {
+            _world = world;
+            _npc = npc;
+        }
+
+        /// <summary>Свободные (тот же предикат, что в старом
+        /// <see cref="CountGroundInputs"/>) объекты фрагмента NPC по id
+        /// определения. Пустой список, если таких нет.</summary>
+        public List<WorldObjectState> Loose(string definitionId)
+        {
+            if (_looseByDefinition == null)
+            {
+                _looseByDefinition = new Dictionary<string, List<WorldObjectState>>();
+                foreach (var obj in _world.Entities.Objects.Values)
+                {
+                    if (obj.IsOccupied || obj.IsCraftProject || obj.Contents.Count > 0 ||
+                        !string.IsNullOrEmpty(obj.BuildProduct) ||
+                        !obj.Fragment.Equals(_npc.Fragment))
+                    {
+                        continue;
+                    }
+
+                    if (!_looseByDefinition.TryGetValue(obj.DefinitionId, out var list))
+                    {
+                        list = new List<WorldObjectState>();
+                        _looseByDefinition[obj.DefinitionId] = list;
+                    }
+
+                    list.Add(obj);
+                }
+            }
+
+            return _looseByDefinition.TryGetValue(definitionId, out var found)
+                ? found
+                : Empty;
+        }
+
+        private static readonly List<WorldObjectState> Empty = new();
+
+        /// <summary>Сколько свободных <paramref name="definitionId"/> лежит в
+        /// гексе <paramref name="tile"/> и шести соседних (HexDistance ≤ 1) —
+        /// тот же ответ, что давал полный скан.</summary>
+        public int CountAround(TileCoord tile, string definitionId)
+        {
+            _looseTileCounts ??= new Dictionary<string, Dictionary<TileCoord, int>>();
+            if (!_looseTileCounts.TryGetValue(definitionId, out var byTile))
+            {
+                byTile = new Dictionary<TileCoord, int>();
+                foreach (var obj in Loose(definitionId))
+                {
+                    byTile.TryGetValue(obj.Tile, out var n);
+                    byTile[obj.Tile] = n + 1;
+                }
+
+                _looseTileCounts[definitionId] = byTile;
+            }
+
+            var count = 0;
+            for (var i = 0; i < NeighborhoodQ.Length; i++)
+            {
+                if (byTile.TryGetValue(
+                        new TileCoord(tile.Q + NeighborhoodQ[i], tile.R + NeighborhoodR[i]),
+                        out var n))
+                {
+                    count += n;
+                }
+            }
+
+            return count;
+        }
+
+        // Гекс с осевыми координатами: сам тайл и шесть соседей.
+        private static readonly int[] NeighborhoodQ = { 0, 1, -1, 0, 0, 1, -1 };
+        private static readonly int[] NeighborhoodR = { 0, 0, 0, 1, -1, -1, 1 };
+
+        /// <summary>Есть ли крафт-проект, привязанный к этой станции — прежний
+        /// полный скан на каждую станцию, теперь один на запрос.</summary>
+        public bool HasProjectAtStation(ObjectId stationId)
+        {
+            if (_stationsWithProjects == null)
+            {
+                _stationsWithProjects = new HashSet<int>();
+                foreach (var obj in _world.Entities.Objects.Values)
+                {
+                    if (obj.IsCraftProject && obj.CraftStationObjectId is { } station)
+                    {
+                        _stationsWithProjects.Add(station.Value);
+                    }
+                }
+            }
+
+            return _stationsWithProjects.Contains(stationId.Value);
+        }
+    }
+
     public static bool TryFill(
         WorldState world, EntityId npcId, List<CraftRecipeOption> into)
     {
@@ -87,15 +201,22 @@ public static class CraftingOptions
                 : string.CompareOrdinal(a.Key, b.Key);
         });
 
+        // Один кэш на все рецепты: stick/stone/leaf повторяются из рецепта в
+        // рецепт, и без общего кэша каждый платил бы за индекс заново.
+        var scan = new GroundScan(world, npc);
         foreach (var pair in recipes)
         {
-            into.Add(Resolve(world, npc, pair.Value.Goal));
+            into.Add(Resolve(world, npc, pair.Value.Goal, scan));
         }
         return true;
     }
 
     internal static CraftRecipeOption Resolve(
-        WorldState world, NPCState npc, GoalType goal)
+        WorldState world, NPCState npc, GoalType goal) =>
+        Resolve(world, npc, goal, new GroundScan(world, npc));
+
+    private static CraftRecipeOption Resolve(
+        WorldState world, NPCState npc, GoalType goal, GroundScan scan)
     {
         var option = new CraftRecipeOption
         {
@@ -121,15 +242,15 @@ public static class CraftingOptions
         var project = CraftProjectMath.FindReachableProject(world, npc, goal);
         if (project != null)
         {
-            ResolveProject(world, npc, recipe, project, option);
+            ResolveProject(world, npc, recipe, project, option, scan);
         }
         else if (string.IsNullOrEmpty(recipe.Station))
         {
-            ResolveInPlace(world, npc, recipe, option);
+            ResolveInPlace(world, npc, recipe, option, scan);
         }
         else
         {
-            ResolveAtStation(world, npc, recipe, option);
+            ResolveAtStation(world, npc, recipe, option, scan);
         }
 
         var actorBlock = ActorBlock(world, npc, goal);
@@ -152,7 +273,8 @@ public static class CraftingOptions
         NPCState npc,
         Recipe recipe,
         WorldObjectState project,
-        CraftRecipeOption option)
+        CraftRecipeOption option,
+        GroundScan scan)
     {
         option.ProjectObjectId = project.Id;
         option.IsResume = true;
@@ -170,7 +292,7 @@ public static class CraftingOptions
             (project.Junctions.Count > 0 ? project.Junctions[0] : (JunctionId?)null);
 
         FillIngredientCounts(world, npc, recipe, project.Tile,
-            includeGround: false, paidProject: project, option.Ingredients);
+            includeGround: false, paidProject: project, option.Ingredients, scan);
 
         if (!string.IsNullOrEmpty(recipe.Station) && station == null)
         {
@@ -199,12 +321,13 @@ public static class CraftingOptions
         WorldState world,
         NPCState npc,
         Recipe recipe,
-        CraftRecipeOption option)
+        CraftRecipeOption option,
+        GroundScan scan)
     {
         var anchorTile = npc.Tile;
         JunctionId? anchorJunction = null;
         FillIngredientCounts(world, npc, recipe, anchorTile,
-            includeGround: true, paidProject: null, option.Ingredients);
+            includeGround: true, paidProject: null, option.Ingredients, scan);
 
         if (!BillCovered(option.Ingredients))
         {
@@ -215,13 +338,13 @@ public static class CraftingOptions
                 if (missing <= 0) continue;
 
                 var pileObject = FindGroundInputPile(
-                    world, npc, ingredient.Id, missing);
+                    world, npc, ingredient.Id, missing, scan);
                 if (pileObject != null)
                 {
                     anchorTile = pileObject.Tile;
                     anchorJunction = pileObject.Junctions[0];
                     FillIngredientCounts(world, npc, recipe, anchorTile,
-                        includeGround: true, paidProject: null, option.Ingredients);
+                        includeGround: true, paidProject: null, option.Ingredients, scan);
                 }
                 break;
             }
@@ -236,19 +359,17 @@ public static class CraftingOptions
     }
 
     private static WorldObjectState FindGroundInputPile(
-        WorldState world, NPCState npc, string definitionId, int need)
+        WorldState world, NPCState npc, string definitionId, int need, GroundScan scan)
     {
         if (need <= 0 || npc.CurrentJunction is not { } from) return null;
         WorldObjectState best = null;
         var bestDistance = int.MaxValue;
-        foreach (var candidate in world.Entities.Objects.Values)
+        // Свободность и фрагмент уже отфильтрованы индексом; счёт вокруг
+        // кандидата — O(1) по каталогу тайлов вместо полного скана мира.
+        foreach (var candidate in scan.Loose(definitionId))
         {
-            if (candidate.DefinitionId != definitionId || candidate.IsOccupied ||
-                candidate.IsCraftProject || candidate.Contents.Count > 0 ||
-                !string.IsNullOrEmpty(candidate.BuildProduct) ||
-                !candidate.Fragment.Equals(npc.Fragment) ||
-                candidate.Junctions.Count == 0 ||
-                CountGroundInputs(world, npc, candidate.Tile, definitionId) < need ||
+            if (candidate.Junctions.Count == 0 ||
+                scan.CountAround(candidate.Tile, definitionId) < need ||
                 !Connectivity.Reachable(
                     world, from, candidate.Junctions[0], npc.Body.CanJump))
             {
@@ -271,7 +392,8 @@ public static class CraftingOptions
         WorldState world,
         NPCState npc,
         Recipe recipe,
-        CraftRecipeOption option)
+        CraftRecipeOption option,
+        GroundScan scan)
     {
         StationCandidate bestReady = null;
         StationCandidate bestFallback = null;
@@ -290,13 +412,13 @@ public static class CraftingOptions
             var ingredients = new List<CraftIngredientOption>();
             FillIngredientCounts(world, npc, recipe, station.Tile,
                 includeGround: option.Goal != GoalType.CookMeat,
-                paidProject: null, ingredients);
+                paidProject: null, ingredients, scan);
             var candidate = new StationCandidate
             {
                 Station = station,
                 Distance = HexSpatialMath.HexDistance(npc.Tile, station.Tile),
                 GateOk = StationGateOk(world, recipe, option.Goal, station),
-                Busy = StationBusy(world, npc, station),
+                Busy = StationBusy(npc, station, scan),
                 BillCovered = BillCovered(ingredients),
                 Ingredients = ingredients
             };
@@ -313,7 +435,7 @@ public static class CraftingOptions
         if (selected == null)
         {
             FillIngredientCounts(world, npc, recipe, npc.Tile,
-                includeGround: false, paidProject: null, option.Ingredients);
+                includeGround: false, paidProject: null, option.Ingredients, scan);
             option.BlockReason = CraftBlockReason.NoStation;
             return;
         }
@@ -379,7 +501,8 @@ public static class CraftingOptions
         TileCoord tile,
         bool includeGround,
         WorldObjectState paidProject,
-        List<CraftIngredientOption> into)
+        List<CraftIngredientOption> into,
+        GroundScan scan)
     {
         into.Clear();
         foreach (var ingredient in recipe.Inputs)
@@ -387,7 +510,7 @@ public static class CraftingOptions
             var available = DecisionSystem.CountInventory(npc, ingredient.Id);
             if (includeGround)
             {
-                available += CountGroundInputs(world, npc, tile, ingredient.Id);
+                available += scan.CountAround(tile, ingredient.Id);
             }
             if (paidProject != null)
             {
@@ -405,6 +528,9 @@ public static class CraftingOptions
         }
     }
 
+    // Прямой скан оставлен как эталон предиката «свободный ингредиент на
+    // земле» (его зеркалит индекс GroundScan) и для точечных вызовов тестов;
+    // горячие пути ходят через GroundScan.CountAround.
     internal static int CountGroundInputs(
         WorldState world, NPCState npc, TileCoord tile, string definitionId)
     {
@@ -446,17 +572,10 @@ public static class CraftingOptions
     }
 
     private static bool StationBusy(
-        WorldState world, NPCState npc, WorldObjectState station)
+        NPCState npc, WorldObjectState station, GroundScan scan)
     {
         if (station.IsOccupied && station.CurrentUser != npc.Id) return true;
-        foreach (var obj in world.Entities.Objects.Values)
-        {
-            if (obj.IsCraftProject && obj.CraftStationObjectId == station.Id)
-            {
-                return true;
-            }
-        }
-        return false;
+        return scan.HasProjectAtStation(station.Id);
     }
 
     private static bool StationReachable(

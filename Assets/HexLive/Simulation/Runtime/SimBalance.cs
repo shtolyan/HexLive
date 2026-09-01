@@ -101,15 +101,23 @@ namespace HexLive.Simulation.Runtime
         public static float SickComfortPerSlowTick = 0.006f; // feeling lousy while sick
 
         // ─────────────────────────────────────────────────────────────
-        // Drink restore (per full bottle, dripped over the drink duration).
+        // Drink restore. Bug #305 (вердикт игрока): глоток — это МИЛЛИЛИТРЫ,
+        // не проценты. Литровая бутылка = 10 глотков по ~100 мл; жажда с
+        // глотка снимается пропорционально (суммарно на бутылку — как прежние
+        // 3 «больших» глотка: 10×0.21 ≈ 3×0.7). Жаждущая пьёт несколько
+        // глотков подряд тем же next-sip циклом, что и кокос.
         // ─────────────────────────────────────────────────────────────
         public static int DrinkBottleDurationTicks = 16;   // gulp-by-gulp duration
-        public static float DrinkThirstRaw = 0.7f;         // thirst removed by a raw bottle
-        public static float DrinkThirstBoiled = 0.85f;     // thirst removed by a boiled bottle
-        public static float DrinkComfortBoiled = 0.05f;    // boiled water is a small comfort too
-        // Spec §52: a filled bottle holds several gulps — refill only when dry.
-        public static int BottleCapacity = 3;              // drinks per fill
+        public static float DrinkThirstRaw = 0.21f;        // thirst removed by one 100 ml raw sip
+        public static float DrinkThirstBoiled = 0.26f;     // thirst removed by one 100 ml boiled sip
+        public static float DrinkComfortBoiled = 0.015f;   // boiled water is a small comfort too
+        // Spec §52 + bug #305: a filled 1 L bottle holds ten 100 ml sips —
+        // refill only when dry.
+        public static int BottleCapacity = 10;             // sips per fill
         public static int CoconutWaterCapacity = 4;        // pierced coconut gulps
+        // §55.4 (bug #317): перелить воду кокосов в бутылку — небыстрый
+        // процесс с прогрессом, длительностью как у выкладки крафта (§61).
+        public static int FillVesselDurationTicks = 24;
 
         // ─────────────────────────────────────────────────────────────
         // Spec §52: slot inventory. The pack has no base cap — the body
@@ -284,6 +292,11 @@ namespace HexLive.Simulation.Runtime
         // ─────────────────────────────────────────────────────────────
         // Stamina / stress (soft — colour the UI, nudge rest, feed collapse).
         // ─────────────────────────────────────────────────────────────
+        // Bug #316 (вердикт игрока): дрова не носят по одной палке — партия
+        // на один подход к костру. Пока в карманах меньше и палки ещё видны,
+        // сбор продолжается; замёрзшая или потухший костёр топят сразу.
+        public static int FuelHaulBatchSticks = 3;
+
         public static float StaminaRestGain = 0.06f;   // stamina/tick while resting
         public static float StaminaWorkDrain = 0.05f;  // stamina/tick while working
         public static float StaminaIdleGain = 0.015f;  // stamina/tick while idle
@@ -748,6 +761,13 @@ namespace HexLive.Simulation.Runtime
         // roast is a real larder — cook today, the colony eats for days.
         public static int MeatRawSpoilTicks = 12000;
         public static int MeatCookedSpoilTicks = 20000;
+
+        // Bug #338 (лаги сервера): срубленные листья, которые никто не подобрал,
+        // вянут и исчезают — иначе они копятся вечно (замер на сервере:
+        // 10 653 листа из 15 577 объектов мира, тик подорожал 7→43 мс).
+        // 40000 тиков ≈ 4 event-цикла лёжки — стройкам хватает с запасом.
+        // 0 = выключено.
+        public static int PalmLeafWitherTicks = 40000;
 
         // Cannibalism: butchering a housemate's corpse is allowed but costs
         // comfort, and NPCs won't do it unless genuinely starving.

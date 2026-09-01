@@ -69,6 +69,11 @@ public sealed class WorldSnapshot
 
     public List<TileSnapshot> Tiles { get; } = new();
 
+    // §146.14 (bug #291): домашние якоря лагерей — для пункта «Сделать домом»
+    // в меню костра UI обязан знать, чей дом где, не владея WorldState.
+    // ≤7 записей, порядок — ординал фракции (детерминизм провода).
+    public List<CampHomeSnapshot> CampHomes { get; } = new();
+
     public List<JunctionSnapshot> Junctions { get; } = new();
 
     public List<ObjectSnapshot> Objects { get; } = new();
@@ -248,6 +253,14 @@ public sealed class MobSlotWaypoint
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
     public Float2 Position { get; set; } = Float2.Zero;
+}
+
+/// <summary>§146.14: один домашний якорь лагеря (см. WorldState.FactionHomes).</summary>
+public sealed class CampHomeSnapshot
+{
+    public Agents.Faction Faction { get; set; } = Agents.Faction.Colony;
+
+    public TileCoord Tile { get; set; }
 }
 
 public sealed class TileSnapshot
@@ -731,6 +744,12 @@ public sealed class NpcSnapshot
     /// иначе кнопка показывала бы одно, а персонаж делал другое.</summary>
     public bool IsManualControl { get; set; }
 
+    /// <summary>§121.11 (bug #294): постоянный темп её ручных приказов —
+    /// бегом или шагом. Тумблер в карточке читает ЭТО, а не своё поле: темп
+    /// живёт в симуляции ровно на тех же правах, что и сам ручной режим.
+    /// По умолчанию бегом.</summary>
+    public bool RunByDefault { get; set; } = true;
+
     /// <summary>§133.9: player froze this NPC's current outfit.</summary>
     public bool OutfitLocked { get; set; }
 
@@ -759,6 +778,10 @@ public sealed class NpcSnapshot
     // The concrete inventory object that should be visible in the acting hand
     // for the current interaction. Empty means empty hands.
     public string HeldItemId { get; set; } = string.Empty;
+
+    // §55.4 (bug #317): вторая ёмкость во ВТОРОЙ руке — источник перелива
+    // (пробитый кокос), пока идёт FillVessel. Пусто = вторая рука свободна.
+    public string OffhandItemId { get; set; } = string.Empty;
 
     // Spec 28.15E: the subject of the current Talk (TalkTopic name), or "" when
     // not talking. The presentation shows the matching emoji in an overhead

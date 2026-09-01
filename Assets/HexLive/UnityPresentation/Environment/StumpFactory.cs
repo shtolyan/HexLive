@@ -25,6 +25,9 @@ namespace HexLive.UnityPresentation.Environment
 
             var stump = Object.Instantiate(prefab);
             stump.name = "Stump";
+            // Bug #315: на 15% уже по диаметру, высота авторская.
+            var scale = stump.transform.localScale;
+            stump.transform.localScale = new Vector3(scale.x * 0.85f, scale.y, scale.z * 0.85f);
             if (!ObjectFit.HasRenderableGeometry(stump))
             {
                 Object.Destroy(stump);

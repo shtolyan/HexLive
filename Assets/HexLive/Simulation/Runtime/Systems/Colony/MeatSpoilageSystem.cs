@@ -42,6 +42,12 @@ public sealed class MeatSpoilageSystem : ISimulationSystem
             {
                 spoilTicks = SimBalance.MeatCookedSpoilTicks;
             }
+            else if (obj.DefinitionId == ContentIds.PalmLeaf &&
+                     SimBalance.PalmLeafWitherTicks > 0)
+            {
+                // Bug #338: лист — та же схема SpawnTick-на-земле, что и мясо.
+                spoilTicks = SimBalance.PalmLeafWitherTicks;
+            }
             else
             {
                 continue;

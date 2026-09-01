@@ -451,8 +451,39 @@ namespace HexLive.UnityPresentation.UI
                 definitionId.StartsWith("armor.", StringComparison.Ordinal);
         }
 
+        private bool _selectiveControl;
+        private bool _anyControlled;
+
         private void RefreshPeople(WorldSnapshot snapshot, SimulationRunnerBehaviour runner)
         {
+            // Bug #337: звезда «наш персонаж» — только при выборочном
+            // управлении (сервер); локально управляема вся колония.
+            // Bug #338 r3: и фолбэк — если управляемых в кадре нет вовсе
+            // (гость или мигнул 120-с лиз), видимость на карте считается по
+            // лагерю, иначе карта пустела на границах лиза.
+            _selectiveControl = false;
+            _anyControlled = false;
+            for (var i = 0; i < snapshot.Npcs.Count; i++)
+            {
+                var npc = snapshot.Npcs[i];
+                if (npc.Health <= 0f)
+                {
+                    continue;
+                }
+
+                var mine = PlayerCampView.IsMine(runner, snapshot, npc);
+                var control = runner != null && runner.CanControlNpc(npc.Id);
+                if (control)
+                {
+                    _anyControlled = true;
+                }
+
+                if (mine && !control)
+                {
+                    _selectiveControl = true;
+                }
+            }
+
             for (var i = 0; i < snapshot.Npcs.Count; i++)
             {
                 AddPerson(snapshot.Npcs[i], snapshot, runner, dead: false);
@@ -471,11 +502,17 @@ namespace HexLive.UnityPresentation.UI
             // а не только она сама; иначе соседки рисовались нейтралами, а в
             // BigIsland — врагами (IsHostileToColony посчитан против лагеря №1).
             var owned = PlayerCampView.IsMine(runner, snapshot, npc);
+            // Bug #337: но ВИДИМОСТЬ на карте дарит только управление, не
+            // лагерь — соседка вне восприятия управляемой показывается «?» на
+            // последнем известном месте, как чужая. Цвета остаются лагерными.
+            var controlled = _anyControlled
+                ? runner != null && runner.CanControlNpc(npc.Id)
+                : owned; // bug #338 r3: без управляемых — лагерное правило
             var visible = _worldRenderer != null &&
-                _worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, owned);
+                _worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, controlled);
             if (!visible)
             {
-                if (!dead && !owned && _worldRenderer != null &&
+                if (!dead && !controlled && _worldRenderer != null &&
                     _worldRenderer.TryGetLastSeenNpcTile(npc.Id.Value, out var lastSeen))
                 {
                     _frame.UnknownPeople.Add(new TacticalMapUnknownPerson(
@@ -498,7 +535,8 @@ namespace HexLive.UnityPresentation.UI
                 PlayerCampView.HostileToPlayer(runner, snapshot, npc),
                 NpcSelection.Contains(npc.Id.Value),
                 portrait,
-                dead));
+                dead,
+                controlled && _selectiveControl));
         }
 
         private void RefreshMobs(WorldSnapshot snapshot)

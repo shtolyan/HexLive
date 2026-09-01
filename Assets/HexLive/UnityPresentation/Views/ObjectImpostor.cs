@@ -256,6 +256,9 @@ public sealed class ObjectImpostor : MonoBehaviour
             {
                 var previous = baked.Material.GetTexture(BaseMapId) as Texture2D;
                 baked.Material.SetTexture(BaseMapId, texture);
+                // #244 r3: материал мог родиться заглушкой с цветным тинтом —
+                // без сброса тинт умножался на испечённую картинку навсегда.
+                baked.Material.SetColor(BaseColorId, Color.white);
                 if (previous != null)
                 {
                     Destroy(previous);
@@ -328,17 +331,22 @@ public sealed class ObjectImpostor : MonoBehaviour
             bounds.center - direction * (size * 2f + 1f),
             Quaternion.LookRotation(direction));
 
-        // Изоляция как у портретов: на кадр пекарни вид живёт на слое
-        // Portrait, который главная камера не рисует; слои возвращаются в том
-        // же вызове, до следующего игрового кадра.
-        var portraitLayer = LayerMask.NameToLayer("Portrait");
+        // Изоляция на ВЫДЕЛЕННОМ слое PhotoBake, не на Portrait (bug #244):
+        // Portrait — жилой слой живой identity-карты, на нём ПОСТОЯННО висит
+        // неоновый задник PortraitStage — квад в 20 wu перед лицом выделенной
+        // девушки в мировых координатах. Пекарня, снимавшая маской Portrait
+        // рядом с объектом, ловила его в кадр, и оба matte-прохода видели
+        // одинаковый непрозрачный фон — альфа 255, задник запекался в
+        // текстуру импостора. PhotoBake пуст всегда: сюда объект переезжает
+        // только внутри этого же синхронного вызова и возвращается в finally.
+        var bakeLayer = PhotoBakeLayer();
         LayerScratch.Clear();
         SavedLayerScratch.Clear();
         GetComponentsInChildren(true, LayerScratch);
         foreach (var child in LayerScratch)
         {
             SavedLayerScratch.Add(child.gameObject.layer);
-            child.gameObject.layer = portraitLayer;
+            child.gameObject.layer = bakeLayer;
         }
 
         try
@@ -362,27 +370,14 @@ public sealed class ObjectImpostor : MonoBehaviour
                 return false;
             }
 
+            // #244 r3: RGB чёрного прохода — ПРЕМУЛЬТИПЛИЦИРОВАННЫЙ цвет, и
+            // он остаётся таким НАМЕРЕННО (распремультипликация чинила кайму
+            // на мипе 0, но ломала минификацию: на мипах 4-6 box-фильтр
+            // усреднял альфу с фоном выше катофа — квад рисовался тёмным
+            // квадратом целиком). Альфа — в линейном свете. Математика общая
+            // с фотографом портретов — ComposeMattePixels.
             var pixels = new Color32[black.Length];
-            for (var i = 0; i < pixels.Length; i++)
-            {
-                var matteDelta = Mathf.Max(
-                    white[i].r - black[i].r,
-                    Mathf.Max(white[i].g - black[i].g, white[i].b - black[i].b));
-                var alpha = (byte)Mathf.Clamp(255 - matteDelta, 0, 255);
-                if (alpha == 0)
-                {
-                    pixels[i] = new Color32(0, 0, 0, 0);
-                    continue;
-                }
-
-                // The black-matte pass is premultiplied by coverage. Undo it
-                // before mip generation to avoid a dark fringe around cutouts.
-                pixels[i] = new Color32(
-                    (byte)Mathf.Clamp(Mathf.RoundToInt(black[i].r * 255f / alpha), 0, 255),
-                    (byte)Mathf.Clamp(Mathf.RoundToInt(black[i].g * 255f / alpha), 0, 255),
-                    (byte)Mathf.Clamp(Mathf.RoundToInt(black[i].b * 255f / alpha), 0, 255),
-                    alpha);
-            }
+            ComposeMattePixels(black, white, pixels);
 
             texture = new Texture2D(BakeTextureSize, BakeTextureSize,
                 TextureFormat.RGBA32, mipChain: true)
@@ -414,7 +409,15 @@ public sealed class ObjectImpostor : MonoBehaviour
     }
 
     private static Color32[]? CaptureMatte(
-        Camera camera, RenderPipeline.StandardRequest request, Color background)
+        Camera camera, RenderPipeline.StandardRequest request, Color background) =>
+        CaptureMatte(camera, request, background, _bakeTarget!, BakeTextureSize);
+
+    /// <summary>Один matte-проход (#244): рендер с заданным фоном и чтение
+    /// пикселей. Общий с фотографом портретов (§150.4) — у того своя камера,
+    /// свой RT и свой размер кадра.</summary>
+    internal static Color32[]? CaptureMatte(
+        Camera camera, RenderPipeline.StandardRequest request, Color background,
+        RenderTexture target, int size)
     {
         camera.backgroundColor = background;
         RenderPipeline.SubmitRenderRequest(camera, request);
@@ -423,10 +426,10 @@ public sealed class ObjectImpostor : MonoBehaviour
         Texture2D? readback = null;
         try
         {
-            RenderTexture.active = _bakeTarget;
-            readback = new Texture2D(BakeTextureSize, BakeTextureSize,
+            RenderTexture.active = target;
+            readback = new Texture2D(size, size,
                 TextureFormat.RGBA32, mipChain: false);
-            readback.ReadPixels(new Rect(0, 0, BakeTextureSize, BakeTextureSize), 0, 0);
+            readback.ReadPixels(new Rect(0, 0, size, size), 0, 0);
             readback.Apply(updateMipmaps: false, makeNoLongerReadable: false);
             return readback.GetPixels32();
         }
@@ -441,6 +444,36 @@ public sealed class ObjectImpostor : MonoBehaviour
         }
     }
 
+    /// <summary>#244 r3 matte-математика, общая с фотографом портретов:
+    /// премультиплированный RGB прямо из чёрного прохода + альфа в ЛИНЕЙНОМ
+    /// свете (дельта по sRGB-байтам занижала мягкие края вдвое).</summary>
+    internal static void ComposeMattePixels(Color32[] black, Color32[] white, Color32[] into)
+    {
+        for (var i = 0; i < into.Length; i++)
+        {
+            var deltaLinear = Mathf.Max(
+                Mathf.GammaToLinearSpace(white[i].r / 255f) -
+                Mathf.GammaToLinearSpace(black[i].r / 255f),
+                Mathf.Max(
+                    Mathf.GammaToLinearSpace(white[i].g / 255f) -
+                    Mathf.GammaToLinearSpace(black[i].g / 255f),
+                    Mathf.GammaToLinearSpace(white[i].b / 255f) -
+                    Mathf.GammaToLinearSpace(black[i].b / 255f)));
+            var alpha = (byte)Mathf.Clamp(
+                Mathf.RoundToInt((1f - deltaLinear) * 255f), 0, 255);
+            into[i] = new Color32(black[i].r, black[i].g, black[i].b, alpha);
+        }
+    }
+
+    /// <summary>Слой офф-скрин съёмки (bug #244): всегда пустой, объекты
+    /// живут на нём только внутри синхронного прохода пекарни. Fallback 30 —
+    /// безымянный незанятый индекс на случай устаревшего TagManager.</summary>
+    internal static int PhotoBakeLayer()
+    {
+        var layer = LayerMask.NameToLayer("PhotoBake");
+        return layer >= 0 ? layer : 30;
+    }
+
     private static Camera? EnsureBakeCamera(Transform owner)
     {
         if (_bakeCamera != null)
@@ -448,20 +481,29 @@ public sealed class ObjectImpostor : MonoBehaviour
             return _bakeCamera;
         }
 
+        // #244 r3: камера живёт В КОРНЕ СЦЕНЫ, не под первым испёкшимся
+        // видом — иначе разгрузка того объекта убивала её, и каждый цикл
+        // пересоздания тёк непере-Release()нным RT по 256 КБ.
         var go = new GameObject("ImpostorBakeCamera");
-        go.transform.SetParent(owner, false);
         var camera = go.AddComponent<Camera>();
         camera.enabled = false;
         camera.orthographic = true;
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = new Color(0f, 0f, 0f, 0f);
-        camera.cullingMask = 1 << LayerMask.NameToLayer("Portrait");
+        camera.cullingMask = 1 << PhotoBakeLayer();
         camera.allowMSAA = false;
+        if (_bakeTarget != null)
+        {
+            _bakeTarget.Release();
+            Destroy(_bakeTarget);
+        }
+
         _bakeTarget = new RenderTexture(BakeTextureSize, BakeTextureSize, 16,
             RenderTextureFormat.ARGB32)
         {
             name = "ImpostorBakeRT"
         };
+        _bakeTarget.Create();
         camera.targetTexture = _bakeTarget;
         _bakeCamera = camera;
         return camera;
@@ -475,19 +517,22 @@ public sealed class ObjectImpostor : MonoBehaviour
             material.SetTexture(BaseMapId, texture);
         }
 
-        // Cutout: пишет глубину, не сортируется как transparent, дружит с
-        // инстансингом — сотни пальм остаются считанными батчами.
-        material.SetOverrideTag("RenderType", "TransparentCutout");
-        material.SetFloat("_Surface", 0f);
+        // #244 r3: премультиплированная прозрачность вместо cutout. Cutout
+        // резал по альфе, а на мипах 4-6 (дистанции импостора у мелких вещей)
+        // усреднённая с фоном альфа везде превышала катоф — квад рисовался
+        // тёмным квадратом целиком; текстура хранит премультиплированный RGB,
+        // блендинг One/OneMinusSrcAlpha корректен под box-фильтром мипов и
+        // заодно убирает тёмную кайму.
+        material.SetOverrideTag("RenderType", "Transparent");
+        material.SetFloat("_Surface", 1f);
         material.SetFloat("_SrcBlend", (float)BlendMode.One);
-        material.SetFloat("_DstBlend", (float)BlendMode.Zero);
-        material.SetFloat("_ZWrite", 1f);
-        material.SetFloat("_AlphaClip", 1f);
-        material.EnableKeyword("_ALPHATEST_ON");
-        material.SetFloat("_Cutoff", AlphaCutoff);
+        material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+        material.SetFloat("_ZWrite", 0f);
+        material.SetFloat("_AlphaClip", 0f);
+        material.DisableKeyword("_ALPHATEST_ON");
         material.SetFloat("_Cull", 0f); // двусторонний квад — ориентация не важна
         material.enableInstancing = true;
-        material.renderQueue = (int)RenderQueue.AlphaTest;
+        material.renderQueue = (int)RenderQueue.Transparent;
         return material;
     }
 

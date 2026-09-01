@@ -115,7 +115,7 @@ public sealed class ContentHandleLifetimeContractTests
     public void VerifiedCacheRejectsWorktreeLinksAndPromoteReplacesThem()
     {
         var source = Presentation(Path.Combine("Content", "ContentAssetService.cs"));
-        var promote = Between(source, "private void PromotePartial(",
+        var promote = Between(source, "private bool PromotePartial(",
             "private bool HasVerifiedBlob(");
         var standalone = Between(source, "private static bool IsStandaloneFile(",
             "private static void Touch(");

@@ -38,6 +38,27 @@ public sealed class BandageHandPropContractTests
             Assert.That(source, Does.Not.Contain(
                 "AtomicResources.Load<Texture2D>($\"HexLive/Decals/bandage_wrap_"),
                 "Arm wraps must be available synchronously with the Player.");
+
+            // #246/#256 r3: круглый фолбэк запрещён и НА LEGACY-ПУТИ. Гард
+            // стоит ДО развилки _map != null и покрывает недоехавшую карту
+            // покраски: без него самый ранний актёр (карта грузится async и
+            // первый вызов даёт null) получал круглую марлю навсегда — штамп
+            // кладётся один раз, подмена арта перерисовку не дёргает.
+            var placeAt = source.IndexOf(
+                "private void TryPlace(", StringComparison.Ordinal);
+            var guardAt = source.IndexOf(
+                "if (isBandage && !isPlaster && WrapRects.ContainsKey(zoneName) &&",
+                placeAt, StringComparison.Ordinal);
+            var forkAt = source.IndexOf(
+                "if (_map != null)", placeAt, StringComparison.Ordinal);
+            Assert.That(guardAt, Is.GreaterThan(placeAt),
+                "Ранний гард обмотки обязан существовать в TryPlace.");
+            Assert.That(guardAt, Is.LessThan(forkAt),
+                "Гард обязан стоять ДО развилки на legacy-путь.");
+            Assert.That(source, Does.Contain("_map == null ||"),
+                "Гард обязан покрывать недоехавшую карту покраски.");
+            Assert.That(source, Does.Contain("_nextMapRetryAt"),
+                "Без ретрая карты застрявший актёр остался бы без бинта совсем.");
         });
     }
 
@@ -56,6 +77,26 @@ public sealed class BandageHandPropContractTests
         {
             Assert.That(File.Exists(Path.Combine(root, $"bandage_wrap_{zone}.png")), Is.True);
             Assert.That(File.Exists(Path.Combine(root, $"bandage_wrap_{zone}_n.png")), Is.True);
+        });
+    }
+
+    [Test]
+    public void ActorBloodSoakReadsHealFieldFromExtendedWoundWire_Bug288()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
+            "Wearing", "NpcActorView.cs"));
+        var start = source.IndexOf("var bloodSoak = 0f;", StringComparison.Ordinal);
+        var end = source.IndexOf("if (wornDirtiness != null)", start, StringComparison.Ordinal);
+        var block = source[start..end];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(block, Does.Contain("entry.Split('|')"));
+            Assert.That(block, Does.Contain("parts[2]"),
+                "Wounds export as Zone|Seed|Heal01|Clot01|Severity|Plastered; clothing blood must fade from Heal01.");
+            Assert.That(block, Does.Not.Contain("LastIndexOf('|')"),
+                "The tail field is Plastered now, not Heal01.");
         });
     }
 

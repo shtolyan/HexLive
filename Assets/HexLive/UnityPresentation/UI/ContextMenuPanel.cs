@@ -30,6 +30,10 @@ public sealed class ContextMenuEntry
     public bool Enabled { get; }
 
     public string? DisabledHint { get; }
+
+    /// <summary>Bug #312: «опасный» пункт (кража) красится красным.
+    /// set, а не init: Unity-профиль netstandard2.1 не несёт IsExternalInit.</summary>
+    public bool Danger { get; set; }
 }
 
 /// <summary>
@@ -279,7 +283,11 @@ public sealed class ContextMenuPanel : MonoBehaviour
         {
             style =
             {
-                color = entry.Enabled ? Text : TextMute,
+                // Bug #312: кража горит красным — игрок должен видеть, что
+                // это не просто «подобрать».
+                color = !entry.Enabled ? TextMute
+                    : entry.Danger ? new Color(0.910f, 0.365f, 0.365f)
+                    : Text,
                 fontSize = 13,
             }
         };

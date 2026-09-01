@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_jane
   prototypeId: 
   displayName: Tiered Skirt
+  retired: 1
   category: 3
   variantMaterials: []
   layer: 1

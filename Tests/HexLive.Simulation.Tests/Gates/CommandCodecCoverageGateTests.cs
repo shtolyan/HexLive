@@ -33,9 +33,17 @@ public sealed class CommandCodecCoverageGateTests
     {
         new SetManualControlCommand(new EntityId(11), true),
         new SetOutfitLockCommand(new EntityId(111), true),
+        new SetRunByDefaultCommand(new EntityId(114), true),
         new MoveToCommand(new EntityId(12), new Float2(3.5f, -7.25f), run: true),
+        // §121.11: «темп не задан» — полноправное значение на проводе, а не
+        // false. Свой штамп, иначе забытый бит HasValue проехал бы молча.
+        new MoveToCommand(new EntityId(121), new Float2(-4.25f, 6.5f)),
         new InteractCommand(
             new EntityId(13), new ObjectId(77), InteractionType.Process, "saw.log"),
+        new GatherAllOnHexCommand(
+            new EntityId(131), new ObjectId(771), InteractionType.PickUp,
+            "palm.leaf.pick"),
+        new SetCampHomeCommand(new EntityId(291), new ObjectId(2911)),
         new AttackNpcCommand(new EntityId(14), new EntityId(41)),
         new CarryPersonCommand(new EntityId(15), new EntityId(51)),
         new PutDownPersonCommand(new EntityId(16)),
@@ -64,6 +72,10 @@ public sealed class CommandCodecCoverageGateTests
             new EntityId(35),
             new InventoryItemRef(InventoryItemSource.Worn, 3, "underwear.bra"),
             InventoryAction.Drop),
+        // §55.4 (bug #317): «Наполнить» — перелив в выбранную ёмкость.
+        new FillVesselCommand(
+            new EntityId(38),
+            new InventoryItemRef(InventoryItemSource.Carried, 6, "tool.bottle")),
         new TransferInventoryCommand(
             new EntityId(36), new EntityId(63),
             new InventoryItemRef(InventoryItemSource.Carried, 2, "tool.knife"),

@@ -182,6 +182,40 @@ public sealed class ManualSelfActionTests
     }
 
     [Test]
+    public void TreatSelfWithBleedingWoundBelowAutoThresholdIsAccepted_Bug289()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonists(world)[0];
+        TakeControl(engine, npc);
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bandage));
+        npc.Wounds.Add(new WoundState
+        {
+            Id = 289,
+            Zone = BodyPart.LegR,
+            Severity = 0.08f,
+            Heal01 = 0f,
+            Clot01 = 0f,
+            Stabilized = false,
+            BleedFactor = 1f,
+            Seed = 289
+        });
+
+        Assert.That(AidAssessment.NeedsDressing(npc), Is.True,
+            "Manual self-treatment must use the same wound eligibility as aid to another colonist.");
+        Assert.That(DecisionSystem.SelfTreatmentIndicated(npc, 1), Is.False,
+            "This reproduces the old last-bandage/autonomy threshold: the explicit order must override it.");
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new SelfActionCommand(npc.Id, SelfActionKind.TreatSelf));
+
+        Assert.That(admission.Status,
+            Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            $"TreatSelf отклонён: {admission.Reason}");
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.TreatWounds));
+    }
+
+    [Test]
     public void GroundSleepOrderStaysInsideTheCurrentHex_Bug196()
     {
         var engine = TestWorld.CreateEngine();

@@ -191,19 +191,25 @@ namespace HexLive.UnityPresentation.Wearing
         // multi-drop patches, so this is ~0.3x of a single drop's span.
         private const float RefractStrength = 0.05f;
         private const float RimBoost = 0.8f;     // additive meniscus highlight
-        // The gloss mask is soft — the same reasoning as the normal target above
-        // (1024 already cost ~5 MB per slot for a smoothness ramp; 512 is still
-        // finer than the ramp itself).
-        private const int GlossRtSize = 512;
+        // Стендовый замер 2026-08-30 (rt_slot3_gloss.png): при базе-нуле маска
+        // 512² на 2048²-альбедо в 4 раза грубее арта — глянец вылезал за края
+        // раны блестящим ореолом на чистой коже, а мипы на отдалении раздували
+        // его в «виниловый блин» больше самой крови. 1024 (~5 МБ на слот, и
+        // только на раненых слотах) держит блеск в границах арта; «мягкую
+        // рампу» больше не печём — база нулевая, маска несёт только рану.
+        private const int GlossRtSize = 1024;
 
         // ---- wound volume knobs (spec 40.8-D v5) ----
         // Fresh cuts glisten: absolute smoothness stamped into the wet core
-        // (base skin stays at the caller's dry/wet value, 0.32 dry).
+        // (base skin stays at the caller's dry/wet value — 0 dry с 2026-08-30).
         // Do NOT use 1.0: zero roughness collapses URP's GGX highlight to a
         // sub-pixel point, so some wounds look matte unless sun/view alignment
-        // is exact. 0.92 is still far above wet skin (0.72), but spreads a
-        // readable highlight across every wound at gameplay distance.
-        private const float WoundWetGloss = 0.92f;
+        // exact. Прожектор «блина» делала не эта ручка, а линейная альфа
+        // глянц-штампа: полупрозрачный ореол брызг блестел на визуально
+        // чистой коже (стендовый замер 2026-08-30); теперь куб альфы в
+        // шейдерах глушит ореол. Ядро лужи: 0.93^3 x 0.85 ~ 0.68 гладкости —
+        // явный мокрый блеск на фоне матовой (0) сухой кожи.
+        private const float WoundWetGloss = 0.85f;
 
         // A LITTLE surface relief on the wound (v5 cut wound relief for UV-seam
         // ridge artifacts — but a flat smooth-1 surface only mirrors a
@@ -498,11 +504,14 @@ namespace HexLive.UnityPresentation.Wearing
         // Spec 40.8-D v5: the wound over-art VARIANT table. Seed picks one so
         // repeated hits don't all look identical. Index-aligned: _woundGloss[i]
         // is the wet-core gloss for _woundOver[i]. All are BLOOD-ONLY art (no
-        // baked skin/flesh) so any tan tint reads right. Extra gash shapes
-        // (wound_gash_*) join the two originals (scratch claw + blood splat).
+        // baked skin/flesh) so any tan tint reads right.
+        // «blood_splat» ИСКЛЮЧЁН из пула ран вердиктом игрока 2026-08-30:
+        // его лужа с толстыми потёками и ровным срезом читалась на теле как
+        // уродливое пятно с жёсткой границей. Файл остаётся (fallback-арт и
+        // база синяков), просто раны его больше не выбирают.
         private static readonly string[] WoundVariantNames =
         {
-            "wound_scratch", "blood_splat",
+            "wound_scratch",
             "wound_gash_slash", "wound_gash_streak", "wound_gash_smear",
             "wound_gash_fork", "wound_gash_torn",
         };
@@ -547,6 +556,9 @@ namespace HexLive.UnityPresentation.Wearing
         // Spec 40.8-G: editor-baked placement points — when present, wound/
         // droplet placement is a table lookup and BakeMesh never runs.
         private PaintPointMap? _map;
+        private string _mapName = string.Empty;
+        private int _mapVertexCount;
+        private float _nextMapRetryAt;
         // Spec 40.8-J: per-texel body positions — when present (and the point
         // map is v2), wounds and wraps paint through the seam-free projected
         // path instead of a per-slot rectangle.
@@ -593,6 +605,8 @@ namespace HexLive.UnityPresentation.Wearing
         private readonly Dictionary<string, float> _alpha = new(); // key -> current fade
         private readonly HashSet<string> _desired = new();
         private readonly List<string> _stale = new();
+        // Ключи-надгробия (Slot<0), снимаемые при позднем прилёте карты.
+        private readonly List<string> _tombstoneScratch = new();
         private int _lastStateHash;
 
         // ---- Spec 40.8-K: a flat cycle, spread out, plus a fresh lane ----
@@ -715,7 +729,13 @@ namespace HexLive.UnityPresentation.Wearing
             if (!string.IsNullOrEmpty(actorMesh))
             {
                 var vertexCount = body.sharedMesh != null ? body.sharedMesh.vertexCount : 0;
-                _map = PaintPointMap.Load($"skin_{actorMesh}", vertexCount);
+                // #246/#256 r3: личность карты запоминается для ретрая —
+                // AtomicResources на первый синхронный вызов отдаёт null, и
+                // самый ранний актёр строился без карты НАВСЕГДА (повторить
+                // загрузку было нечем — actorMesh не сохранялся).
+                _mapName = $"skin_{actorMesh}";
+                _mapVertexCount = vertexCount;
+                _map = PaintPointMap.Load(_mapName, vertexCount);
                 // Spec 40.8-J: both halves must be present and current — the
                 // frames live in the point map, the texels in the position
                 // maps. Either one stale and decals stay per-slot (clipped at
@@ -727,6 +747,45 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             _materials = body.materials; // instantiate once, per NPC
+            // ⭐ Пересадка на ГЛОБАЛЬНЫЙ URP/Lit (замер 2026-08-30,
+            // probe_global_shader): атомарный бандл актрисы несёт СВОЮ копию
+            // шейдера «Universal Render Pipeline/Lit», из которой при сборке
+            // контента вырезан вариант _METALLICSPECGLOSSMAP — рантайм-кейворд
+            // падал в несуществующий вариант, карта глянца молча игнорировалась,
+            // и от канала блеска ран оставался только виниловый пин. Именно на
+            // переезде актрис в бандлы «красивая эра» блеска и кончилась.
+            // Глобальному шейдеру варианты держат SkinGlossKeepAlive.mat
+            // (Resources/HexLive/Decals — попадают в Player всегда). Свойства и
+            // кейворды пересадка сохраняет; renderQueue возвращаем руками.
+            // Bug #307: пересаживаются ТОЛЬКО крашеные слоты кожи. Ресницы/
+            // волосы — прозрачные материалы того же рендерера, и их
+            // transparent/alphatest-вариант живёт только в бандловой копии
+            // шейдера: пересадка на глобальный Lit (чей прозрачный вариант в
+            // Player вырезан) делала ресницы сплошным куском. Коже нужен
+            // глобальный шейдер ради карты глянца; ресницам он не нужен вовсе.
+            var globalLit = Shader.Find("Universal Render Pipeline/Lit");
+            if (globalLit != null)
+            {
+                foreach (var slot in _paintSlots)
+                {
+                    if (slot < 0 || slot >= _materials.Length)
+                    {
+                        continue;
+                    }
+
+                    var material = _materials[slot];
+                    if (material == null || material.shader == globalLit ||
+                        material.shader == null || material.shader.name != globalLit.name)
+                    {
+                        continue;
+                    }
+
+                    var queue = material.renderQueue;
+                    material.shader = globalLit;
+                    material.renderQueue = queue;
+                }
+            }
+
             _originalAlbedo = new Texture?[_materials.Length];
             _originalNormal = new Texture?[_materials.Length];
             _slotRt = new RenderTexture?[_materials.Length];
@@ -850,6 +909,47 @@ namespace HexLive.UnityPresentation.Wearing
             if (_body == null || _materials == null)
             {
                 return;
+            }
+
+            // Ретрай карты живёт ЗДЕСЬ, а не в PlaceNewStamps: тот зовётся
+            // только при needsPlacement, и у актрисы без свежих меток карта
+            // не переспрашивалась никогда — спеклы, синяки и кровь сквозь
+            // бинт (все гейтятся _map != null) молчали до перезапуска. Поздний
+            // прилёт карты будит полную перепечатку и снимает надгробия —
+            // они ставились по невозможности разместить, которая только что
+            // кончилась.
+            if (_map == null && _mapName.Length != 0 && Time.unscaledTime >= _nextMapRetryAt)
+            {
+                _nextMapRetryAt = Time.unscaledTime + 3f;
+                _map = PaintPointMap.Load(_mapName, _mapVertexCount);
+                if (_map != null)
+                {
+                    if (_map.HasProjectedFrames)
+                    {
+                        _posMaps = SkinPositionMapSet.Load(
+                            $"skinpos_{_mapName.Substring(5)}", _mapVertexCount);
+                    }
+
+                    _tombstoneScratch.Clear();
+                    foreach (var pair in _stamps)
+                    {
+                        if (pair.Value.Slot < 0)
+                        {
+                            _tombstoneScratch.Add(pair.Key);
+                        }
+                    }
+
+                    foreach (var key in _tombstoneScratch)
+                    {
+                        _stamps.Remove(key);
+                        _alpha.Remove(key);
+                    }
+
+                    _specklesDirty = true;
+                    _bruisesDirty = true;
+                    _lastStateHash = 0;
+                    _freshPending = true;
+                }
             }
 
             _wetSmoothness = Mathf.Clamp01(wetSmoothness);
@@ -1196,10 +1296,35 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             // A brand-new mark (or a lost target) must not wait for this
-            // painter's turn in the cycle — the fresh lane draws it next frame.
-            if (needsPlacement || targetsLost)
+            // painter's turn in the cycle — the fresh lane draws it next
+            // frame. Исчезнувшая метка (высохшая капля, зажившая рана,
+            // снятый бинт) — ТОЖЕ: раньше она ждала полного оборота кольца,
+            // и на раздутом кольце «высохшая, но блестящая» кожа жила
+            // минутами — слот с глянцем держал скаляр _Smoothness
+            // пришпиленным к 1 всё это время.
+            if (needsPlacement || targetsLost || _stale.Count > 0)
             {
                 _freshPending = true;
+            }
+
+            // Сторожок мокрой базы: у живого глянцевого слота база RT пеклась
+            // при другой мокроте, чем нынешняя, — перепечь, не дожидаясь
+            // оборота кольца. Подпись слота обнуляется, чтобы пробить и
+            // per-slot гейт RepaintAll (иначе слот, чья подпись записана с
+            // той же замершей мокротой, пропускался бы вечно). Это и есть
+            // «сушка доезжает до глаз»: без него замершая перепечатка
+            // оставляла винил при сухом теле.
+            if (_paintedWet != null)
+            {
+                for (var slot = 0; slot < _glossLive.Length; slot++)
+                {
+                    if (_glossLive[slot] &&
+                        Mathf.Abs(_paintedWet[slot] - _wetSmoothness) > 0.05f)
+                    {
+                        _paintedSig[slot] = 0;
+                        _freshPending = true;
+                    }
+                }
             }
         }
 
@@ -1208,6 +1333,10 @@ namespace HexLive.UnityPresentation.Wearing
         private void PlaceNewStamps(List<(string zone, int seed, float heal)> wounds, HashSet<string> bandaged,
             float sweat01, HashSet<string>? uncovered, HashSet<string>? gauzed = null)
         {
+            // #246/#256 r3→r4: ретрай карты переехал в начало Sync — здесь он
+            // случался только при needsPlacement, и актриса без свежих меток
+            // не переспрашивала карту никогда.
+
             // Spec 40.8-G: with a baked point map every placement is a table
             // lookup — no pose bake, no triangle scans (the legacy path bakes
             // the skinned mesh, which was the top combat-frame CPU cost).
@@ -1918,6 +2047,21 @@ namespace HexLive.UnityPresentation.Wearing
             if (!Zones.TryGetValue(zoneName, out var zone))
             {
                 PlaceTombstone(key, seed, isBandage, isGauze);
+                return;
+            }
+
+            // ⭐ #246/#256 r3 («сразу круглый бинт → после перезапуска
+            // нормальный»): зона с обязательной authored-обмоткой НИКОГДА не
+            // рисует круглый фолбэк — ни при недоехавших текстурах обмотки,
+            // ни при недоехавшей карте покраски (_map == null: самый ранний
+            // актёр строится до прилёта skin_<актриса>, падал в legacy-путь
+            // ниже и получал круглую марлю НАВСЕГДА — штамп кладётся один
+            // раз, а подмена арта не входит в сигнатуру перерисовки). БЕЗ
+            // tombstone: Sync повторит размещение, когда карта доедет.
+            if (isBandage && !isPlaster && WrapRects.ContainsKey(zoneName) &&
+                (_map == null ||
+                 WrapOverlayFor(zoneName) == null || WrapNormalFor(zoneName) == null))
+            {
                 return;
             }
 
@@ -2734,6 +2878,15 @@ namespace HexLive.UnityPresentation.Wearing
         public static bool LogRepaintCost;
         private static int _rtCreations;
 
+        // ⭐ Карта блеска СНОВА ЖИВА (стендовые замеры 2026-08-30): убийцей
+        // был не вариант шейдера, а per-index MaterialPropertyBlock на
+        // SkinnedMeshRenderer — с MPB на слоте URP перестаёт сэмплировать
+        // _MetallicGlossMap, и от канала оставался только вредный пин
+        // «весь слот — винил». Гладкость и тинт теперь пишутся в сами
+        // per-NPC инстансы материалов (NpcActorView._skinTintMaterials),
+        // MPB с кожи снят — и заливка карты видна в кадре (probe_no_mpb).
+        private const bool WoundGlossEnabled = true;
+
         // How many paint targets one repaint may CREATE. A 2048² target with
         // mips is ~22 MB and its allocation is a synchronous driver call — the
         // stall you feel as a freeze. A fresh wound can want three at once
@@ -2990,8 +3143,9 @@ namespace HexLive.UnityPresentation.Wearing
                                      "droplet albedo/gloss muted (normal relief only)");
                 }
 
-                if ((hasDroplet && _dropletStamp != null) ||
-                    (hasGloss && (_glossStamp != null || _projectedStamp != null)))
+                if (WoundGlossEnabled &&
+                    ((hasDroplet && _dropletStamp != null) ||
+                     (hasGloss && (_glossStamp != null || _projectedStamp != null))))
                 {
                     RepaintSlotGloss(slot, additive);
                 }
@@ -3462,6 +3616,11 @@ namespace HexLive.UnityPresentation.Wearing
             {
                 RenderTexture.active = previous;
                 _materials[slot].SetTexture("_BaseMap", source);
+                // Провал не должен записаться как успех: с целой подписью
+                // слот пропускался гейтом до перезапуска. _slotDeferred
+                // заставляет RepaintAll записать подпись нулём и вернуться.
+                _slotDeferred = true;
+                _freshPending = true;
                 Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: repaint failed, original restored — {e.Message}");
             }
         }
@@ -3577,6 +3736,10 @@ namespace HexLive.UnityPresentation.Wearing
             {
                 RenderTexture.active = previous;
                 RestoreSlotGloss(slot);
+                // Провал — не успех: пусть подпись обнулится и ретрай придёт,
+                // а до него слот честно матовый (пин скаляра уже снят).
+                _slotDeferred = true;
+                _freshPending = true;
                 Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: gloss repaint failed — {e.Message}");
             }
         }
@@ -3712,6 +3875,8 @@ namespace HexLive.UnityPresentation.Wearing
             {
                 RenderTexture.active = previous;
                 RestoreSlotNormal(slot);
+                _slotDeferred = true;
+                _freshPending = true;
                 Debug.LogWarning($"[SkinPaint] npc{_npcId} slot={slot}: normal repaint failed — {e.Message}");
             }
         }

@@ -128,6 +128,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §55.4 (bug #317): перелив воды кокосов в бутылку — шаг на месте
+            // ПЕРЕД питьём; по завершении снимает себя из плана, и Steps[0]
+            // становится DrinkBottle.
+            if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.FillVessel)
+            {
+                RunFillVessel(world, npc);
+                continue;
+            }
+
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[0].Type == PlanStepType.DrinkBottle)
             {
                 RunDrinkBottle(world, npc);
@@ -315,7 +324,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
-            if (BuildSiteMath.IsSite(worldObject) &&
+            if (BuildSiteMath.UsesGenericSiteInteractions(worldObject) &&
                 world.Content.ObjectDefinitions.TryGetValue(ContentIds.BuildSite, out var siteDefinition))
             {
                 definition = siteDefinition;
@@ -661,9 +670,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     var manualColdStocking = npc.Plan.Goal == GoalType.PlayerOrder &&
                         worldObject.ResourceAmount <= 0f;
-                    var carriedStick = npc.Inventory.Items.Find(
-                        item => item.DefinitionId == ContentIds.Stick);
-                    var hasWoodNow = carriedStick is not null ||
+                    var carriedFuel = ContainerLootMath.FindCarriedCampfireFuel(world, npc);
+                    var hasWoodNow = carriedFuel is not null ||
                         (!manualColdStocking &&
                          ContainerLootMath.HasQueuedCampfireFuel(world, worldObject));
                     // §45 r5 parity: the DECISION layer already lets a genuinely
@@ -689,9 +697,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         !Content.GearCatalog.HasCapability(
                             npc.Inventory.Items, Content.GearCapability.Ignite) &&
                         !canFrictionLight;
-                    var fuelBufferFull = manualColdStocking && carriedStick is not null &&
+                    var fuelBufferFull = manualColdStocking && carriedFuel is not null &&
                         !ContainerLootMath.CanAccept(
-                            world, worldObject, new[] { carriedStick });
+                            world, worldObject, new[] { carriedFuel });
                     if (!hasWoodNow || missingLighter || fuelBufferFull)
                     {
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
@@ -1334,28 +1342,37 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             // visible buffer. Ignition is a separate Ignite order. Autonomous
             // TendFire intentionally keeps its single-step lighter/friction
             // chain, so separating the menu does not break the NPC brain.
+            //
+            // §151.2 r2 (bug #293): приказ игрока кладёт дрова в ВИДИМУЮ
+            // очередь и у ГОРЯЩЕГО костра. Раньше они растворялись в счётчике
+            // огня, и вещь для игрока просто исчезала. Суммарное время горения
+            // от этого не меняется: FireSystem сам берёт следующую вещь из
+            // очереди, как только активное топливо выходит. Автономный
+            // TendFire по-прежнему жжёт немедленно.
             var wasLit = worldObject.ResourceAmount > 0f;
-            if (!wasLit && npc.Plan.Goal == GoalType.PlayerOrder)
+            var playerFuelOrder = npc.Plan.Goal == GoalType.PlayerOrder;
+            var carriedFuel = playerFuelOrder
+                ? ContainerLootMath.FindCarriedCampfireFuel(world, npc)
+                : null;
+            var queueFuel = carriedFuel is not null &&
+                ContainerLootMath.CanAccept(world, worldObject, new[] { carriedFuel });
+            if (!queueFuel && !wasLit && playerFuelOrder)
             {
-                var carriedStick = npc.Inventory.Items.Find(
-                    item => item.DefinitionId == ContentIds.Stick);
-                if (carriedStick is null ||
-                    !ContainerLootMath.CanAccept(
-                        world, worldObject, new[] { carriedStick }))
-                {
-                    // Bug #235: отказ — тоже конец сцены, и закрыть его надо
-                    // целиком: заявку с очага, узел подхода и саму сцену.
-                    return FailHearthScene(world, npc, worldObject,
-                        $"Cannot stock {worldObject.DefinitionId} " +
-                        $"(stick={carriedStick is not null} buffer full)");
-                }
+                // Bug #235: отказ — тоже конец сцены, и закрыть его надо
+                // целиком: заявку с очага, узел подхода и саму сцену.
+                return FailHearthScene(world, npc, worldObject,
+                    $"Cannot stock {worldObject.DefinitionId} " +
+                    $"(wood={carriedFuel is not null} buffer full)");
+            }
 
+            if (queueFuel)
+            {
                 ContainerLootMath.GiveToContainer(
-                    world, worldObject, npc, new[] { carriedStick });
+                    world, worldObject, npc, new[] { carriedFuel });
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "FireFuelQueued",
-                        $"{worldObject.DefinitionId} queued={carriedStick.DefinitionId}");
+                        $"{worldObject.DefinitionId} queued={carriedFuel.DefinitionId}");
                 }
                 worldObject.IsOccupied = false;
                 worldObject.CurrentUser = null;
@@ -1368,15 +1385,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             }
             else
             {
-                // Spec 29E.3 / §54 / §151: a burning fire and autonomous TendFire
-                // consume fuel immediately; buffered logs preserve their 4x value.
-                var fuel = ContainerLootMath.FuelTicksPerStick;
-                if (npc.Inventory.Items.Contains(ContentIds.Stick))
-                {
-                    npc.Inventory.Items.Remove(ContentIds.Stick);
-                }
-                else if (!ContainerLootMath.TryConsumeCampfireFuel(
-                             world, worldObject, out fuel))
+                // Spec 29E.3 / §54 / §151: autonomous TendFire — and a player's
+                // order whose visible queue is already full — consume fuel
+                // immediately; buffered logs preserve their 4x value.
+                if (!ContainerLootMath.TryConsumeCarriedCampfireFuel(
+                        world, npc, out var fuel) &&
+                    !ContainerLootMath.TryConsumeCampfireFuel(
+                        world, worldObject, out fuel))
                 {
                     // Bug #235: палку успели потратить между планом и завершением —
                     // подкинуть нечего. Отпускаем очаг, иначе он остаётся занят
@@ -1711,6 +1726,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else
         {
+            // Bug #312: взять чужое на приватной земле чужого лагеря — кража:
+            // событие + удар по отношению свидетельниц. Считается ДО деспавна,
+            // пока вещь ещё несёт тайл и владельца.
+            var theft = TheftMath.IsTheft(world, npc, worldObject);
+
             // Item moves from world to inventory; the world object is gone,
             // so occupancy flags die with it (spec 29B.2).
             npc.Inventory.Items.Add(new ItemInstance(worldObject.DefinitionId)
@@ -1726,6 +1746,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     ? ClothingOwnership.ResolveOnTake(world, npc, worldObject)
                     : 0
             });
+            if (theft)
+            {
+                TheftMath.OnStolen(world, npc, worldObject);
+            }
+
             WorldObjectMutations.DespawnObject(world, worldObject.Id);
             if (SimTrace.Enabled)
             {

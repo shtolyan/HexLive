@@ -33,7 +33,15 @@ public static class Spec62
 
     // Attack-first only against a lone threat — the melee assessment already
     // bails at 2 adjacent attackers, so charging a pack would be a suicide run.
+    // `pack` counts the threat itself, so 1 = "charge a loner", 0 = first
+    // strike DISABLED entirely (the 2026-07-20 balance audit turned it off).
     public static int AttackMaxPack = 0;
+
+    // §62.2: does anybody ever attack first? While this is off, the §62.3
+    // fit-fighter exemption from the danger ring must be off too — "she walks
+    // wherever she likes because she would attack anyway" is a lie when
+    // nobody attacks.
+    public static bool FirstStrikeEnabled => AttackMaxPack >= 1;
 
     // Defend goal-lock length for the pre-emptive attack (help cry uses 240).
     public static int AttackLockTicks = 240;
@@ -45,6 +53,12 @@ public static class Spec62
     // Extra per-step cost inside the ring (flat step = 10, swim = 40): pay up
     // to 9x to walk around the wolf rather than past its teeth.
     public static long DangerStepCost = 80L;
+
+    // §62.7: the errand's DESTINATION sits inside a wolf's danger ring — the
+    // trip is dropped and its goal cooled for this long, so she genuinely
+    // changes her mind instead of detouring INTO the teeth. Matches
+    // CueCooldownTicks: by the next possible sighting the defer has expired.
+    public static int TargetDangerCooldownTicks = 600;
 }
 
 }

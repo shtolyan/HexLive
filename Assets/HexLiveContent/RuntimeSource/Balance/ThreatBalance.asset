@@ -35,6 +35,7 @@ MonoBehaviour:
   threatAlertEnabled: 1
   spotRadiusTiles: 6
   cueCooldownTicks: 600
+  targetDangerCooldownTicks: 600
   fitBoneHealth: 0.8
   attackMaxPack: 0
   attackLockTicks: 240

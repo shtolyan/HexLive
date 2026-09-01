@@ -46,6 +46,9 @@ namespace HexLive.UnityPresentation.Rendering
 
         private void LateUpdate()
         {
+            // Пальмы, построенные до приезда бандла шейдера (холодный серверный
+            // вход), дожимаются здесь; при пустой очереди это одна проверка.
+            StandingPalmCrownVisibility.RetryPending();
             // Runs after RtsCameraController moved the lens.
             Evaluate(force: false);
         }

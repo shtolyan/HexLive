@@ -88,7 +88,9 @@ public static class WorldSnapshotCodec
     /// v33: §133/#205 physical carried/worn item owner ids for inventory cards.
     /// v34: #218 per-pair last interaction tick for relationship ordering.
     /// v35: §120.10 architecture demolition and queued slot replacement.
-    public const int WireVersion = 35;
+    /// v36: §146.14 camp home anchors for the campfire «make home» menu.
+    /// v37: §121.11/#294 per-NPC default pace for the walk/run card toggle.
+    public const int WireVersion = 37;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -223,6 +225,14 @@ public static class WorldSnapshotCodec
         WireIo.WriteFloat2(w, snapshot.SunDirection);
         w.Write(snapshot.SunElevationDegrees);
         w.Write(snapshot.JunctionsBlockedStamp);
+        // §146.14: домашние якоря лагерей (≤7, порядок — ординал фракции).
+        // Живут в заголовке: меняются редко, дельта резендит блок целиком.
+        w.Write((byte)snapshot.CampHomes.Count);
+        foreach (var home in snapshot.CampHomes)
+        {
+            w.Write((byte)home.Faction);
+            WireIo.WriteTile(w, home.Tile);
+        }
     }
 
     internal static void ReadHeaderRecord(BinaryReader r, WorldSnapshot into)
@@ -241,6 +251,16 @@ public static class WorldSnapshotCodec
         into.SunDirection = WireIo.ReadFloat2(r);
         into.SunElevationDegrees = r.ReadSingle();
         into.JunctionsBlockedStamp = r.ReadInt32();
+        var campHomes = r.ReadByte();
+        into.CampHomes.Clear();
+        for (var i = 0; i < campHomes; i++)
+        {
+            into.CampHomes.Add(new Debug.CampHomeSnapshot
+            {
+                Faction = (Agents.Faction)r.ReadByte(),
+                Tile = WireIo.ReadTile(r)
+            });
+        }
     }
 
     // ── tiles ─────────────────────────────────────────────────────────────
@@ -971,6 +991,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteString(w, n.ExecutionStatus);
         WireIo.WriteString(w, n.CurrentInteraction);
         WireIo.WriteString(w, n.HeldItemId);
+        WireIo.WriteString(w, n.OffhandItemId); // §55.4 (bug #317)
         WireIo.WriteNullableInt(w, n.RomancePartnerNpcId);
         WireIo.WriteString(w, n.RomanceClipKey);
         w.Write(n.RomanceForced);
@@ -1003,6 +1024,7 @@ public static class WorldSnapshotCodec
         w.Write(n.KnownObjectCount);
         WireIo.WriteNullableInt(w, n.GoalLockEndTick);
         w.Write(n.IsManualControl); // §121
+        w.Write(n.RunByDefault); // §121.11
         w.Write(n.OutfitLocked); // §133.9
     }
 
@@ -1325,6 +1347,7 @@ public static class WorldSnapshotCodec
         n.ExecutionStatus = r.ReadString();
         n.CurrentInteraction = r.ReadString();
         n.HeldItemId = r.ReadString();
+        n.OffhandItemId = r.ReadString(); // §55.4 (bug #317)
         n.RomancePartnerNpcId = WireIo.ReadNullableInt(r);
         n.RomanceClipKey = r.ReadString();
         n.RomanceForced = r.ReadBoolean();
@@ -1355,6 +1378,7 @@ public static class WorldSnapshotCodec
         n.KnownObjectCount = r.ReadInt32();
         n.GoalLockEndTick = WireIo.ReadNullableInt(r);
         n.IsManualControl = r.ReadBoolean(); // §121
+        n.RunByDefault = r.ReadBoolean(); // §121.11
         n.OutfitLocked = r.ReadBoolean(); // §133.9
     }
 

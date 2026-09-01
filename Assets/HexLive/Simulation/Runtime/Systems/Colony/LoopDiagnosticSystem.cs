@@ -55,6 +55,7 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
     public TickLayer Layer => TickLayer.Fast;
 
     public const string ReasonSisyphus = "Sisyphus";
+    public const string ReasonStalled = "Stalled"; // #326: тихое зависание
     public const string ReasonOscillation = "Oscillation";
     public const string ReasonNeedStarved = "NeedStarved";
 
@@ -89,6 +90,13 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         /// <summary>Тик последнего ДЕЙСТВИЯ лестницы. Обрезает окно счёта, чтобы
         /// попытки «до лечения» не толкали следующую ступень.</summary>
         public int LastActionTick;
+
+        /// <summary>Bug #326: с какого тика план Active, исполнитель пуст, тело
+        /// не движется и позиция стоит. 0 — не застряла. Ловит «тихое»
+        /// зависание, которое не рождает ни провалов, ни осцилляции: цель
+        /// висит в статусе («Ищет инструменты»), а не происходит ничего.</summary>
+        public int StalledSince;
+        public Common.Float2 StalledAnchor;
     }
 
     private readonly Dictionary<int, Watch> _watch = new Dictionary<int, Watch>();
@@ -199,6 +207,19 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         watch.Agent = agent;
         watch.Status = status;
 
+        // Bug #326: часы «тихого» застоя — план есть, движения и исполнения
+        // нет, тело стоит на месте. Любой признак жизни сбрасывает часы.
+        var stalled = status == PlanStatus.Active && counts &&
+            npc.Execution.Status == ExecutionStatus.None &&
+            !npc.Movement.IsMoving;
+        if (!stalled ||
+            HexLive.Simulation.Spatial.HexSpatialMath.Distance(
+                npc.Position, watch.StalledAnchor) > 0.05f)
+        {
+            watch.StalledSince = stalled ? world.Tick : 0;
+            watch.StalledAnchor = npc.Position;
+        }
+
         UpdateCrisisClocks(world, npc, ref watch);
         _watch[id] = watch;
     }
@@ -230,6 +251,32 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         PlanStatus.Invalid => IntentOutcome.Failed,
         _ => IntentOutcome.Abandoned,
     };
+
+    // Bug #326 (Надя, «Ищет инструменты», стоит): план Active, исполнитель
+    // пуст, тело не движется дольше LoopStalledTicks — это зависание, которое
+    // не рождает НИ провалов, НИ осцилляции, и все прежние диагнозы его не
+    // видели. Лечение первой необходимости — снести замерший план (дальше
+    // лестница отворачивает цель, если петля повторится); часы застоя
+    // сбросит следующий Sample сменой статуса плана.
+    private static string DiagnoseStalled(
+        WorldState world, NPCState npc, Watch watch,
+        out string detail, ref GoalType offender)
+    {
+        detail = null;
+        if (watch.StalledSince == 0 ||
+            world.Tick - watch.StalledSince < AiBalance.LoopStalledTicks)
+        {
+            return null;
+        }
+
+        offender = npc.Plan.Goal;
+        detail = $"Goal={npc.Plan.Goal} stood {world.Tick - watch.StalledSince} ticks " +
+            $"at {npc.Position.X:F1},{npc.Position.Y:F1} (plan Active, executor idle)";
+        PlanInterruption.TryAbort(
+            world, npc, InterruptionCause.ExecutionFailure, "LoopWatchdog: stalled plan");
+        npc.Mind.CurrentGoal = GoalType.None;
+        return ReasonStalled;
+    }
 
     private static void UpdateCrisisClocks(WorldState world, NPCState npc, ref Watch watch)
     {
@@ -287,7 +334,8 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
         var records = world.IntentLedger.Tail(id);
 
         var offender = GoalType.None;
-        var reason = DiagnoseSisyphus(world, npc, since, out var detail, ref offender) ??
+        var reason = DiagnoseStalled(world, npc, seen, out var detail, ref offender) ??
+                     DiagnoseSisyphus(world, npc, since, out detail, ref offender) ??
                      DiagnoseOscillation(records, since, out detail, ref offender) ??
                      DiagnoseNeedStarved(world, npc, since, out detail, ref offender);
 

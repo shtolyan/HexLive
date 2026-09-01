@@ -242,6 +242,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private Transform _gazeTarget;
     private float _gazeWeight;
     private float _gazeWeightTarget;
+    // Bug #311: взгляд в объектив входит и выходит ВДВОЕ плавнее обычного
+    // разгона; скорость возвращается к штатной, как только вес доехал.
+    private const float GazeBlendSpeedDefault = 2.5f;
+    private const float GazeBlendSpeedCamera = 1.25f;
+    private float _gazeBlendSpeed = GazeBlendSpeedDefault;
     private Transform _gazeProxy;
     private bool _portraitGaze; // §80: взгляд отдан камере портрета
     private bool _cameraGaze;   // §130: на пару секунд смотрит в объектив игрока
@@ -442,17 +447,22 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // tint rides the base-skin renderers only (captured before clothing, so
     // garments are untouched; covered skin is occluded, so only bare skin
     // shows). Applied via a property block — no material instancing.
-    private MaterialPropertyBlock _skinMpb;
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
 
     // Wet-skin sheen: sweat is sold by GLOSS, not色 — the decals are
     // albedo-only, so the actual shine comes from raising the skin's
-    // smoothness while hot. 0.32 is the authored dry value on all actors.
-    private const float DrySkinSmoothness = 0.32f;
+    // smoothness while hot.
+    // ⭐ Вердикт игрока (2026-08-30, фото-пруф): сухая кожа обязана быть
+    // ПОЛНОСТЬЮ матовой — ноль. Прежняя «авторская» база 0.32 под тропическим
+    // солнцем давала френелевские блики на бёдрах/плечах, читавшиеся как
+    // «она вся блестит». Блеск теперь исключительно признак мокроты.
+    // internal: стенд WardrobeTest применяет ТЕ ЖЕ константы — иначе «в
+    // стенде матовая, в игре блестит» стало бы следующим витком регресса.
+    internal const float DrySkinSmoothness = 0f;
     // 0.85 read as plastic — pulled ~15% down: still a clear wet sheen,
     // but skin, not vinyl.
-    private const float WetSkinSmoothness = 0.72f;
+    internal const float WetSkinSmoothness = 0.72f;
 
     // Spec 35.5: unified inertial skin wetness. Rain soaks fast (fully wet in
     // ~4 s), sweat builds slower (~12 s to its level), and skin dries in
@@ -461,7 +471,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private const float RainSoakPerSecond = 0.25f;
     private const float SweatSoakPerSecond = 0.08f;
     private const float SkinDryPerSecond = 0.022f;
+    // Bug #286: кожа начинает блестеть, только когда сим САМ считает её
+    // горячей (EffectEvaluator.ThermalMild = 0.4). Ниже — комфортная полоса:
+    // +4° «санктуария» лагеря (SimBalance.IndoorWarmthBonus) держат спящую на
+    // ThermalComfort ≈ +0.1..0.2, и без этой мёртвой зоны она блестела всю
+    // ночь при «нормальной» температуре в панели.
+    private const float SweatThermalGate = 0.4f;
     private float _skinWetness;
+    // Bug #290: пот — отдельный слой; он не имеет права держать дождевую воду.
+    private float _skinSweat;
     private float _clothRainWetness;
     private float _wetnessLastTime;
 
@@ -472,6 +490,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // (renderer, materialIndex) pairs that are skin; everything eye/hair/mouth
     // related is excluded.
     private readonly List<(SkinnedMeshRenderer renderer, int index)> _skinTintTargets = new();
+    // Инстансы материалов тех же слотов (позиции совпадают с _skinTintTargets).
+    // Гладкость и тинт пишутся В МАТЕРИАЛ, не в MaterialPropertyBlock:
+    // per-index MPB на SkinnedMeshRenderer в этом URP ОТКЛЮЧАЕТ сэмплинг
+    // _MetallicGlossMap (стендовый замер 2026-08-30: карта оживает ровно в
+    // момент снятия MPB) — именно так когда-то «умер» блеск ран.
+    private readonly List<Material> _skinTintMaterials = new();
 
     // §74: donor actor → its body materials by slot name. Static: the actor
     // prefabs are shared assets, so four maps serve the whole colony.
@@ -2228,14 +2252,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var dt = _wetnessLastTime > 0f ? Mathf.Max(0f, now - _wetnessLastTime) : 0f;
         _wetnessLastTime = now;
 
-        // Unified skin-wetness pool (clothes-like drying, a touch faster):
-        // rain fills it toward 1 fast; sweat fills it toward the current
-        // sweat level slower; it always DRAINS gradually — rain stopping
-        // leaves her glistening for ~a minute, cooling down doesn't
-        // instantly dry the sweat, and while she stays hot the wetness
-        // never drains below her sweat level.
-        var sweatLevel = Mathf.Clamp01(thermal / 0.6f);
-        var wetTarget = Mathf.Max(rainWet > 0.5f ? 1f : 0f, sweatLevel);
+        // Bug #290: дождь/вода и ПОТ — два РАЗНЫХ слоя мокроты кожи. Раньше
+        // пул был единым, и его дно при осушении равнялось sweatLevel: тёплым
+        // днём (ThermalComfort > SweatThermalGate) дождевая вода «застревала»
+        // на теле навсегда — одежда честно высыхала до нуля, а кожа блестела,
+        // как после купания, и по мере ВЫСЫХАНИЯ одежды (warmth возвращался)
+        // блестела только сильнее. Теперь дождевой пул кожи — точное зеркало
+        // ткани (дно 0, ~45 с до сухости), пот живёт отдельным слоем со своей
+        // прежней инерцией, а видимая мокрота — max двух слоёв.
+        var sweatLevel = Mathf.Clamp01(
+            (thermal - SweatThermalGate) / (1f - SweatThermalGate));
+        var wetTarget = rainWet > 0.5f ? 1f : 0f;
         if (waterWet > 0.5f)
         {
             // A water tile dunks the body: the sim snaps BodyWetness to 1
@@ -2245,13 +2272,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
         else if (wetTarget > _skinWetness)
         {
-            var rise = rainWet > 0.5f ? RainSoakPerSecond : SweatSoakPerSecond;
-            _skinWetness = Mathf.Min(wetTarget, _skinWetness + dt * rise);
+            _skinWetness = Mathf.Min(wetTarget, _skinWetness + dt * RainSoakPerSecond);
         }
         else
         {
-            _skinWetness = Mathf.Max(wetTarget, _skinWetness - dt * SkinDryPerSecond);
+            _skinWetness = Mathf.Max(0f, _skinWetness - dt * SkinDryPerSecond);
         }
+
+        // Пот: прежние ~12 с набора до своего уровня и мягкий спад — «жарко →
+        // блестит» не меняется, но пот больше не держит дождевую воду на теле.
+        _skinSweat = _skinSweat < sweatLevel
+            ? Mathf.Min(sweatLevel, _skinSweat + dt * SweatSoakPerSecond)
+            : Mathf.Max(sweatLevel, _skinSweat - dt * SkinDryPerSecond);
+        var skinWet01 = Mathf.Max(_skinWetness, _skinSweat);
 
         // Cloth rain sheen is inertial too (rain-only — sweat doesn't soak the
         // shirt): fabric visibly darkens within seconds of standing in rain.
@@ -2437,9 +2470,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // The painter needs the current wet-skin gloss: it is the BASE of
             // the painted gloss map, so droplet pixels (0.95) sit on top of
             // the same sheen the rest of the body shows.
-            var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, _skinWetness);
+            var wetSmoothnessForPaint = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, skinWet01);
             _skinPainter.Sync(_woundScratch, _bandagedScratch,
-                PaintSweatDroplets ? _skinWetness : 0f, _uncoveredScratch, wetSmoothnessForPaint,
+                PaintSweatDroplets ? skinWet01 : 0f, _uncoveredScratch, wetSmoothnessForPaint,
                 _gauzeScratch, _zoneDamageScratch, _zoneBruiseScratch, _bleedScratch,
                 _plasterScratch);
             // v4.3: the projector RAIN droplets serve rain AND sweat — the
@@ -2449,12 +2482,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // retired (SweatDropletProjectors).
             _skinDecals.Sync(null, _uncoveredScratch, hygiene,
                 SweatDropletProjectors ? thermal : 0f,
-                Mathf.Max(_clothRainWetness, _skinWetness), null, null,
+                Mathf.Max(_clothRainWetness, skinWet01), null, null,
                 intimacySoil);
         }
         else
         {
-            _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, _skinWetness, _bandagedScratch,
+            _skinDecals.Sync(wounds, _uncoveredScratch, hygiene, thermal, skinWet01, _bandagedScratch,
                 _gauzeScratch, intimacySoil);
         }
 
@@ -2464,27 +2497,28 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // climbing toward a wet gloss — sunlight then pings off the body.
         // The gloss reads straight from the unified wetness pool — rain and
         // sweat both feed it, so whichever is stronger wins naturally.
-        _skinMpb ??= new MaterialPropertyBlock();
-        var sweat01 = _skinWetness;
+        var sweat01 = skinWet01;
         var smoothness = Mathf.Lerp(DrySkinSmoothness, WetSkinSmoothness, sweat01);
-        foreach (var (renderer, index) in _skinTintTargets)
+        for (var t = 0; t < _skinTintTargets.Count; t++)
         {
-            if (renderer == null)
+            var (renderer, index) = _skinTintTargets[t];
+            var material = _skinTintMaterials[t];
+            if (renderer == null || material == null)
             {
                 continue;
             }
 
-            // Spec 40.8 v4: slots carrying the painted gloss map hold their
-            // per-pixel ABSOLUTE smoothness in the map alpha — URP Lit
-            // multiplies it by this scalar, so the scalar must be 1 there.
-            // Missing one slot here is the "whole body vinyl" failure mode
-            // (the 0.85-plastic scar): everywhere else keeps the wetness lerp.
+            // Пишем В МАТЕРИАЛ (per-NPC инстанс), не в MPB: per-index MPB
+            // глушит сэмплинг _MetallicGlossMap (стендовый замер 2026-08-30,
+            // карта ожила ровно в момент снятия MPB) — на этом когда-то и
+            // умер блеск ран. Слайдер URP — МНОЖИТЕЛЬ поверх альфы карты
+            // (ROUGHNESS_MAP_RESEARCH.md), поэтому слот с живой картой
+            // пинится к 1: per-pixel правду несёт карта (base = мокрота,
+            // ядро крови = глянец), остальные слоты — честный скаляр.
             var glossMapped = _skinPainter != null &&
                               ReferenceEquals(renderer, _skinPainter.Body) &&
                               _skinPainter.SlotHasGlossMap(index);
-            renderer.GetPropertyBlock(_skinMpb, index);
-            _skinMpb.SetFloat(SmoothnessId, glossMapped ? 1f : smoothness);
-            renderer.SetPropertyBlock(_skinMpb, index);
+            material.SetFloat(SmoothnessId, glossMapped ? 1f : smoothness);
         }
 
         // Spec 40.10-C: cloth soaks blood over hurt zones and soils as hygiene
@@ -2514,8 +2548,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             {
                 foreach (var entry in wounds)
                 {
-                    var sep = entry.LastIndexOf('|');
-                    if (sep > 0 && float.TryParse(entry.Substring(sep + 1),
+                    // §118.2 appends Clot01/Severity/Plastered after Heal01.
+                    // Keep reading the wire field by contract index, not tail.
+                    var parts = entry.Split('|');
+                    if (parts.Length >= 3 && float.TryParse(parts[2],
                             System.Globalization.NumberStyles.Float,
                             System.Globalization.CultureInfo.InvariantCulture, out var heal))
                     {
@@ -2997,6 +3033,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _clashedSimItems.Clear();
         }
 
+        // §155.5: вне шторки НОВЫЕ вещи надеваются по ОДНОЙ за пасс —
+        // экипировка это инстанциация префаба и пришивка ~57 костей, и
+        // одевание появившейся девушки целиком в один кадр было частью
+        // секундного фриза появления. За 3–5 пассов (меньше полутора секунд
+        // на 4 Гц) она одета полностью; под шторкой — как раньше, всё сразу.
+        var equipBudget = HexLive.UnityPresentation.UI.LoadingScreen.IsActive
+            ? int.MaxValue
+            : 1;
+
         foreach (var simId in wornDefinitionIds)
         {
             // Trust BodyBones (the real render state), NOT just the cache. A
@@ -3035,6 +3080,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             if (!ActorWardrobe.TryGetVisuals(simId, out var prefabs))
             {
                 continue;
+            }
+
+            // §155.5: реальная пришивка — только в рамках бюджета пасса.
+            // Пропущенная вещь не попадает в _equippedSimItems и честно
+            // приходит на следующий SyncWorn.
+            if (prefabs.Count > 0 && equipBudget <= 0)
+            {
+                continue;
+            }
+
+            if (prefabs.Count > 0)
+            {
+                equipBudget--;
             }
 
             var isNewItem = !_equippedSimItems.ContainsKey(simId);
@@ -3566,7 +3624,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _deadWasAlreadyLying;
     private bool _corpseCarried;
     private float _deathFreezeAt = -1f; // Time.time, когда клип докрутится
+    // Bug #325: у восстановленного трупа Play(FallenIdle) мог тихо не
+    // связаться (актриса ещё собирается, аниматор не активен) — заморозка
+    // фиксировала СТОЯЧУЮ позу навсегда. Поза смерти теперь добивается
+    // повторами, пока аниматор реально не окажется в FallenIdle.
+    private bool _deathPosePending;
+    private float _deathPoseDeadline;
     private float _deathSurfaceY;
+    // Каким клипом падать — для повторов на актрисе, что ещё собирается.
+    private int _deathVariant;
+    private const float DeathPoseRetrySeconds = 3f;
     private static readonly int DeathStateHash = Animator.StringToHash("Death");
     private static readonly int FallenIdleStateHash = Animator.StringToHash("FallenIdle");
 
@@ -3608,22 +3675,43 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             if (!_laying)
             {
                 SetFallen(true, sleepAfter: false, surfaceY: surfaceY);
-                if (_animator != null)
-                {
-                    _animator.Play(FallenIdleStateHash, 0, 0f);
-                    _animator.Update(0f);
-                }
             }
 
-            FreezeDeathPose();
+            // Bug #325: заморозка ТОЛЬКО после того, как аниматор доказал, что
+            // стоит в FallenIdle. На свежесобранной актрисе (труп вошёл в
+            // восприятие, §155.5 тёплая сборка) Play тихо не связывался, и
+            // FreezeDeathPose фиксировал стоячую позу навсегда.
+            if (TryApplyLyingDeathPose())
+            {
+                FreezeDeathPose();
+            }
+            else
+            {
+                _deathPosePending = true;
+                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
+            }
+
             return;
         }
 
+        _deathVariant = variant;
         var clips = _animSet != null ? _animSet.death : null;
         if (_animator == null || clips == null || clips.Length == 0)
         {
-            // Клипов не назначили — старое поведение: замереть лёжа. Заметно
-            // хуже, но это поза, а не дыра в кадре.
+            // Труп стоял: на актрисе, что ещё собирается (§155.5), клипов и
+            // аниматора пока НЕТ — прежний фолбэк «замереть лёжа» на ней тоже
+            // не связывался, и тело оставалось стоять в айдле. Поза смерти
+            // добивается повторами, как в bug #325.
+            if (!AnimatorReadyForDeathPose() || _animSet == null)
+            {
+                _deathPosePending = true;
+                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
+                return;
+            }
+
+            // Актриса собрана, но клипов смерти в наборе честно нет —
+            // старое поведение: замереть лёжа. Заметно хуже, но это поза,
+            // а не дыра в кадре.
             SetLaying(true, null, surfaceY);
             return;
         }
@@ -3642,20 +3730,105 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         // Загруженное тело: без перехода, сразу конец клипа, и заморозить в
-        // этом же кадре — падения никто не увидит.
+        // этом же кадре — падения никто не увидит. Заморозка ТОЛЬКО после
+        // проверки, что Play реально связался: на недособранной актрисе он
+        // тихо проваливается, и прежний безусловный FreezeDeathPose фиксировал
+        // СТОЯЧУЮ позу навсегда (родня bug #325, но для анимированной смерти).
         _animator.Play(DeathStateHash, 0, 1f);
         _animator.Update(0f);
-        FreezeDeathPose();
+        if (_animator.GetCurrentAnimatorStateInfo(0).shortNameHash == DeathStateHash)
+        {
+            FreezeDeathPose();
+        }
+        else
+        {
+            _deathPosePending = true;
+            _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
+        }
+    }
+
+    private bool AnimatorReadyForDeathPose() =>
+        _animator != null && _animator.isActiveAndEnabled &&
+        _animator.runtimeAnimatorController != null;
+
+    // «Поза уже смертная»: лежит своей цепочкой, либо аниматор реально стоит
+    // в Death/FallenIdle. Всё остальное (айдл, недоигранный переход) морозить
+    // нельзя — это и был стоячий труп.
+    private bool AnimatorHoldsDeathPose()
+    {
+        if (_laying)
+        {
+            return true;
+        }
+
+        if (!AnimatorReadyForDeathPose())
+        {
+            return false;
+        }
+
+        var hash = _animator.GetCurrentAnimatorStateInfo(0).shortNameHash;
+        return hash == DeathStateHash || hash == FallenIdleStateHash;
+    }
+
+    // Одна попытка привести тело к смертной позе, для повторов из LateUpdate.
+    // Лежачий вариант — как в bug #325; анимированный — конец клипа падения.
+    private bool TryApplyDeathPose()
+    {
+        if (_deadWasAlreadyLying)
+        {
+            return TryApplyLyingDeathPose();
+        }
+
+        if (!AnimatorReadyForDeathPose())
+        {
+            return false;
+        }
+
+        var clips = _animSet != null ? _animSet.death : null;
+        if (clips == null || clips.Length == 0)
+        {
+            return TryApplyLyingDeathPose();
+        }
+
+        var clip = clips[((_deathVariant % clips.Length) + clips.Length) % clips.Length];
+        OverrideClip(DeathBaseClip, clip);
+        _animator.SetBool(DeadParam, true);
+        _animator.Play(DeathStateHash, 0, 1f);
+        _animator.Update(0f);
+        return _animator.GetCurrentAnimatorStateInfo(0).shortNameHash == DeathStateHash;
     }
 
     // Выключить аниматор насовсем. Поза остаётся той, что в костях сейчас.
     private void FreezeDeathPose()
     {
         _deathFreezeAt = -1f;
+        _deathPosePending = false;
         if (_animator != null)
         {
             _animator.enabled = false;
         }
+    }
+
+    // Bug #325: попытка уложить труп в FallenIdle с ПРОВЕРКОЙ, что состояние
+    // реально связалось. Ложь = аниматор ещё не готов (актриса собирается) —
+    // вызывающий обязан повторить, а не замораживать стоячую позу.
+    private bool TryApplyLyingDeathPose()
+    {
+        if (_laying)
+        {
+            return true; // уже лежит своей цепочкой — фиксируем как есть
+        }
+
+        if (_animator == null || !_animator.isActiveAndEnabled ||
+            _animator.runtimeAnimatorController == null)
+        {
+            return false;
+        }
+
+        _animator.Play(FallenIdleStateHash, 0, 0f);
+        _animator.Update(0f);
+        return _animator.GetCurrentAnimatorStateInfo(0).shortNameHash ==
+            FallenIdleStateHash;
     }
 
     /// <summary>§124: PlayableGraph переносимой позы требует включённый
@@ -4039,9 +4212,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // planting-style CraftWork clip ONLY when the ward is LYING DOWN
         // (coma/faint/asleep/prone); over a STANDING ward she just stands and
         // shows the item, exactly as before.
+        // Bug #333: шина и протез — та же помощь руками; без этих глаголов
+        // вид не играл ВООБЩЕ ничего (ни приседа над лежачей, ни намотки над
+        // стоячей — она «просто стояла»).
         var aidingOther = !_legless &&
             interaction is "FeedOther" or "HydrateOther" or
-                           "TreatOther" or "MedicateOther" or "ConsoleOther";
+                           "TreatOther" or "MedicateOther" or "ConsoleOther" or
+                           "Splint" or "FitProsthetic";
         var aidPropId = interaction switch
         {
             "FeedOther" => "food.coconut",
@@ -4051,6 +4228,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // ActingHandPropAnchor prefers the right hand and falls back to a
             // functional left hand only when the right one is unusable.
             "TreatOther" => heldItemId,
+            // #333: шина/протез — предмет из руки симуляции, как у перевязки.
+            "Splint" or "FitProsthetic" => heldItemId,
             _ => string.Empty
         };
         // §110: утешение над ЛЕЖАЩЕЙ — не крафтовый присед, а МОЛИТВА: она
@@ -4072,7 +4251,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // подопечной перевязка тоже не сюда — там свой присед (kneelingCraft).
         var treating = !_legless && !_laying && _posture != "Crawl" &&
             !kneelingCraft && !praying &&
-            interaction is "TreatSelf" or "TreatOther";
+            interaction is "TreatSelf" or "TreatOther" or "Splint" or "FitProsthetic";
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
         _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
         SyncHeelPoseTarget();
@@ -6298,11 +6477,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        _skinMpb ??= new MaterialPropertyBlock();
         // Per-submesh: only the skin material slots, never the eyes/lashes/etc.
-        foreach (var (renderer, index) in _skinTintTargets)
+        // В МАТЕРИАЛ, не в MPB — см. _skinTintMaterials.
+        for (var t = 0; t < _skinTintTargets.Count; t++)
         {
-            if (renderer == null)
+            var (renderer, index) = _skinTintTargets[t];
+            var material = _skinTintMaterials[t];
+            if (renderer == null || material == null)
             {
                 continue;
             }
@@ -6310,11 +6491,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // Slots the painter is currently drawing marks into already carry
             // the tan baked into their texture — tint them white so it isn't
             // multiplied in a second time; elsewhere the _BaseColor multiply IS
-            // the tan (mirrors the gloss-map pin in SetBodyCondition).
+            // the tan.
             var painted = _skinPainter != null &&
                           ReferenceEquals(renderer, _skinPainter.Body) &&
                           _skinPainter.SlotHasAlbedoPaint(index);
-            renderer.GetPropertyBlock(_skinMpb, index);
             // A scheduled painter rebuild updates material slots over several
             // frames. Until this particular slot has the new tone baked into
             // its texture, compensate with _BaseColor so painted limbs never
@@ -6322,8 +6502,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var baseColor = painted
                 ? CompensatePaintedSkinTone(SkinTint, _skinPainter.PaintedSkinTone(index))
                 : tint;
-            _skinMpb.SetColor(BaseColorId, baseColor);
-            renderer.SetPropertyBlock(_skinMpb, index);
+            material.SetColor(BaseColorId, baseColor);
         }
     }
 
@@ -6584,6 +6763,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void BuildSkinTintTargets()
     {
         _skinTintTargets.Clear();
+        _skinTintMaterials.Clear();
         _corpseSupportSkins.Clear();
         if (_bodySkins == null)
         {
@@ -6606,6 +6786,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
 
             var mats = skin.sharedMaterials;
+            Material[] instanced = null;
             for (var i = 0; i < mats.Length; i++)
             {
                 if (mats[i] == null)
@@ -6615,7 +6796,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
                 if (IsSkinMaterialName(mats[i].name))
                 {
+                    instanced ??= skin.materials; // per-NPC инстансы
                     _skinTintTargets.Add((skin, i));
+                    _skinTintMaterials.Add(instanced[i]);
+                    // Залежавшийся MPB слота глушил бы карту гладкости.
+                    skin.SetPropertyBlock(null, i);
                     if (!_corpseSupportSkins.Contains(skin))
                     {
                         _corpseSupportSkins.Add(skin);
@@ -7108,6 +7293,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _cameraGaze = true;
+        _gazeBlendSpeed = GazeBlendSpeedCamera; // #311: вдвое плавнее вход
         _cameraGazeUntil = Time.time + seconds;
         _gazeProxy.position = lensWorldPos;
         _gazeTarget = _gazeProxy;
@@ -7137,6 +7323,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _cameraGaze = false;
         _gazeWeightTarget = 0f;
+        _gazeBlendSpeed = GazeBlendSpeedCamera; // #311: и выход вдвое плавнее
         _face?.SetCameraAttention(false);
     }
 
@@ -7576,10 +7763,43 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void LateUpdate()
     {
         // §28.15C v3: клип падения докрутился — выключить аниматор. Первым
-        // делом в кадре: всё, что ниже, тело уже не касается.
+        // делом в кадре: всё, что ниже, тело уже не касается. Морозить можно
+        // ТОЛЬКО смертную позу: если переход в Death так и не случился
+        // (аниматор был не готов в момент SetDead), безусловная заморозка
+        // фиксировала стоячий айдл навсегда — переходим на повторы.
         if (_deathFreezeAt >= 0f && Time.time >= _deathFreezeAt)
         {
-            FreezeDeathPose();
+            if (AnimatorHoldsDeathPose())
+            {
+                FreezeDeathPose();
+            }
+            else
+            {
+                _deathFreezeAt = -1f;
+                _deathPosePending = true;
+                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
+            }
+        }
+
+        // Bug #325: поза смерти добивается повторами, пока актриса не
+        // собралась. Дедлайн отсчитывается только от ГОТОВОГО аниматора,
+        // который отказался связывать состояние: несобранную актрису ждём
+        // сколько нужно — её лежачий фолбэк точно так же не связался бы.
+        if (_deathPosePending && _dead)
+        {
+            if (TryApplyDeathPose())
+            {
+                FreezeDeathPose();
+            }
+            else if (!AnimatorReadyForDeathPose())
+            {
+                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
+            }
+            else if (Time.time >= _deathPoseDeadline)
+            {
+                SetLaying(true, null, _deathSurfaceY);
+                FreezeDeathPose();
+            }
         }
 
         SampleMotion();
@@ -7742,7 +7962,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             EndCameraGaze();
         }
 
-        _gazeWeight = Mathf.MoveTowards(_gazeWeight, _gazeWeightTarget, Time.deltaTime * 2.5f);
+        _gazeWeight = Mathf.MoveTowards(
+            _gazeWeight, _gazeWeightTarget, Time.deltaTime * _gazeBlendSpeed);
+        if (Mathf.Approximately(_gazeWeight, _gazeWeightTarget))
+        {
+            _gazeBlendSpeed = GazeBlendSpeedDefault;
+        }
         _lookAtIK.solver.IKPositionWeight = _gazeWeight;
         if (_gazeTarget != null)
         {
@@ -7776,7 +8001,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 // §114 баг #116: ползущей корпус не крутим — см. ниже.
                 _lookAtIK.solver.bodyWeight = _posture == "Crawl" ? 0f : 0.15f;
                 _lookAtIK.solver.clampWeight = 0.5f;
-                _lookAtIK.solver.clampWeightEyes = 0.3f;
+                // #311: амплитуда глаз −20% — на широком развороте зрачки
+                // закатывались белками; остальное доворачивает голова.
+                _lookAtIK.solver.clampWeightEyes = 0.45f;
                 return;
             }
 

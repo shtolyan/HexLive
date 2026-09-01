@@ -127,6 +127,16 @@ namespace HexLive.UnityPresentation.UI
         private Label _controlPlayerGlyph;
         private VisualElement _controlAiIcon;
         private VisualElement _controlPlayerIcon;
+        // §121.11 (bug #294): тумблер «Шагом / Бегом» — постоянный темп ручных
+        // приказов этой девушки, снятый из снапшота, а не запомненный кнопкой.
+        private VisualElement _paceButton;
+        private VisualElement _paceWalkSegment;
+        private VisualElement _paceRunSegment;
+        private Label _paceWalkGlyph;
+        private Label _paceRunGlyph;
+        private VisualElement _paceWalkIcon;
+        private VisualElement _paceRunIcon;
+        private bool _runByDefaultNow = true;
         private Label _orderToast;
         // §123.5: дубль тоста отказа ВНУТРИ окна инвентаря — карточка
         // персонажа с основным тостом закрыта этим окном (940×620), и отказ
@@ -193,8 +203,10 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _invDetailStats;
         private VisualElement _invPrimaryAction;
         private VisualElement _invDropAction;
+        private VisualElement _invFillAction; // §55.4 (bug #317)
         private Label _invPrimaryActionLabel;
         private Label _invDropActionLabel;
+        private Label _invFillActionLabel;
         private Label _invReadOnlyLabel;
         private int _inventoryActorId = -1;
         private bool _inventoryMutable;
@@ -481,6 +493,8 @@ namespace HexLive.UnityPresentation.UI
             new() { Id = "Medicine", Key = "skill.medicine", Color = Good },
             new() { Id = "Survival", Key = "skill.survival", Color = Comfort },
             new() { Id = "Social", Key = "skill.social", Color = Social },
+            // §76.14 (bug #304): бег и физическая работа.
+            new() { Id = "Athletics", Key = "skill.athletics", Color = Energy },
         };
 
         // §76: which page of the middle column is showing. Needs is the default
@@ -648,7 +662,19 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var overBar = _shown && PointerOverElement(_stage, mousePos, scale);
+            // Bug #295: НЕ мерить _stage целиком. Stage — колонка на всю
+            // ширину, и её habarит включает ряды мысли/мечты/эффектов над
+            // карточкой: маленькие чипы слева, а блокировала кликов ВСЯ
+            // полоса их высоты во всю ширину экрана — правые две трети над
+            // панелью глотали приказ «идти». Меряем только реально видимые
+            // поверхности (скрытые display:none дают нулевой прямоугольник и
+            // отсеиваются внутри PointerOverElement).
+            var overBar = _shown &&
+                (PointerOverElement(_card, mousePos, scale) ||
+                 PointerOverElement(_groupCard, mousePos, scale) ||
+                 PointerOverElement(_thought, mousePos, scale) ||
+                 PointerOverElement(_dream, mousePos, scale) ||
+                 PointerOverElement(_effectsRow, mousePos, scale));
             var overRoster = PointerOverElement(_roster, mousePos, scale);
 
             // The floating windows (inventory / limb health) sit ABOVE the bar —
@@ -823,6 +849,7 @@ namespace HexLive.UnityPresentation.UI
                     ? Loc.Goal("WashClothes")
                     : Loc.Goal(npc.CurrentGoal);
             RefreshControlToggle(npc); // §121
+            RefreshPaceToggle(npc); // §121.11 — после: читает _controlAvailable
 
             // Spec §64: the dream pill — show her aspiration, hide it when she has
             // nothing left to dream of ("None"/empty).
@@ -844,6 +871,9 @@ namespace HexLive.UnityPresentation.UI
                 _relationSig.Clear();
                 _relationSigSelected = int.MinValue;
                 _relationsBuiltEmpty = false;
+                // Bug #218: окно из трёх открывается у новой колонистки с
+                // самых свежих, а не с якоря предыдущей.
+                _relationWindowAnchorId = -1;
             }
 
             // §105 r3: ХП — витальное здоровье, придавленное конечностями
@@ -2780,6 +2810,18 @@ namespace HexLive.UnityPresentation.UI
             _invDropActionLabel.pickingMode = PickingMode.Ignore;
             _invDropAction.Add(_invDropActionLabel);
             actions.Add(_invDropAction);
+
+            // §55.4 (bug #317): «Наполнить» — перелить воду вскрытых кокосов
+            // в выбранную бутылку небыстрым процессом (FillVesselCommand).
+            _invFillAction = InventoryActionButton(EnqueueFillVessel);
+            _invFillAction.style.marginLeft = 8f;
+            _invFillActionLabel = new Label(Loc.Get("inv.action.fill"));
+            _invFillActionLabel.style.color = Text;
+            _invFillActionLabel.style.fontSize = 13f;
+            _invFillActionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _invFillActionLabel.pickingMode = PickingMode.Ignore;
+            _invFillAction.Add(_invFillActionLabel);
+            actions.Add(_invFillAction);
             parent.Add(actions);
 
             _invReadOnlyLabel = new Label(Loc.Get("inv.readonly"));
@@ -4143,6 +4185,11 @@ namespace HexLive.UnityPresentation.UI
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invDropAction.style.display = _inventoryMutable && !(_outfitLockedNow && worn)
                 ? DisplayStyle.Flex : DisplayStyle.None;
+            // §55.4 (bug #317): «Наполнить» — только у неполной бутылки, когда
+            // в карманах есть кокосовая вода для перелива.
+            _invFillAction.style.display = _inventoryMutable && CanFillVessel(id, worn, water)
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            _invFillActionLabel.text = Loc.Get("inv.action.fill");
             _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPrimaryActionLabel.text = Loc.Get(worn
@@ -4154,6 +4201,42 @@ namespace HexLive.UnityPresentation.UI
             _invDetailView.style.display = DisplayStyle.Flex;
             _invDetailView.BringToFront();
             _invDetailView.schedule.Execute(PositionInventoryDetail);
+        }
+
+        // §55.4 (bug #317): «Наполнить» доступна у неполной бутылки при
+        // кокосовой воде в карманах — зеркало симового VesselTransferMath
+        // по данным снапшота (InventoryWater: id -> amount/capacity).
+        private static bool CanFillVessel(
+            string id, bool worn, Dictionary<string, WaterContainerState> water)
+        {
+            if (worn || id != GearCatalog.Bottle)
+            {
+                return false;
+            }
+
+            var hasRoom = !water.TryGetValue(GearCatalog.Bottle, out var bottle) ||
+                bottle.Amount < bottle.Capacity;
+            return hasRoom &&
+                water.TryGetValue("food.coconut_pierced", out var coconut) &&
+                coconut.Amount > 0f;
+        }
+
+        private void EnqueueFillVessel()
+        {
+            if (!_inventoryMutable || _runner == null || _invSelectedId == null ||
+                _inventoryActorId < 0 || _invSelectedWorn) return;
+            var snapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
+            var npc = snapshot != null ? FindNpc(snapshot, _inventoryActorId) : null;
+            if (npc == null) return;
+            var index = _invSelectedSourceIndex >= 0
+                ? _invSelectedSourceIndex
+                : FindCarriedSourceIndex(npc, _invSelectedId);
+            if (index < 0) return;
+            _runner.EnqueueCommand(new FillVesselCommand(
+                new HexLive.Simulation.Common.EntityId(_inventoryActorId),
+                new InventoryItemRef(InventoryItemSource.Carried, index, _invSelectedId)));
+            HideItemDetail();
+            _invSig = null;
         }
 
         private void EnqueueInventoryAction(InventoryAction action)
@@ -5109,7 +5192,10 @@ namespace HexLive.UnityPresentation.UI
             {
                 selected = relations[0];
                 _selectedRelationId = selected.OtherId;
+                _relationWindowAnchorId = -1;
             }
+
+            var windowStart = ResolveRelationWindowStart(relations);
 
             // PERF: this subtree — a tab per relation, each with a portrait, plus
             // the focus card — was torn down and rebuilt EVERY tick, which is
@@ -5118,16 +5204,21 @@ namespace HexLive.UnityPresentation.UI
             // a relationship moves or the player picks another tab, so rebuild on
             // exactly that, the way the effect chips and the inventory list
             // already do.
-            if (!_relationsBuiltEmpty && RelationsUnchanged(relations))
+            if (!_relationsBuiltEmpty && RelationsUnchanged(relations, windowStart))
             {
                 return;
             }
 
-            RememberRelations(relations);
+            RememberRelations(relations, windowStart);
             _relationsBuiltEmpty = false;
+            // Нормализация якоря после Clamp (иначе на хвосте списка стрелка
+            // «залипает»); окно на левом краю снова следует за свежими.
+            _relationWindowAnchorId = windowStart == 0
+                ? -1
+                : relations[windowStart].OtherId;
 
             _relationsContainer.Clear();
-            _relationsContainer.Add(BuildRelationTabs(relations, selected.OtherId, npc));
+            _relationsContainer.Add(BuildRelationTabs(relations, windowStart, selected.OtherId, npc));
             _relationsContainer.Add(BuildRelationFocusCard(selected));
         }
 
@@ -5166,9 +5257,39 @@ namespace HexLive.UnityPresentation.UI
         private int _relationSigSelected = int.MinValue;
         private bool _relationsBuiltEmpty;
 
-        private bool RelationsUnchanged(List<RelationshipSnapshot> relations)
+        // Bug #218: окно из трёх карточек со стрелками вместо скролла.
+        // Якорь — OtherId ЛЕВОЙ видимой карточки: список живой (пересортировка
+        // по LastInteractionTick каждым взаимодействием), голый индекс тихо
+        // показывал бы других людей. -1 = «следовать за самыми свежими».
+        private const int RelationWindow = 3;
+        private int _relationWindowAnchorId = -1;
+        private int _relationSigWindowStart = int.MinValue;
+
+        private int ResolveRelationWindowStart(List<RelationshipSnapshot> relations)
         {
+            var max = Mathf.Max(0, relations.Count - RelationWindow);
+            if (_relationWindowAnchorId < 0)
+            {
+                return 0;
+            }
+
+            for (var i = 0; i < relations.Count; i++)
+            {
+                if (relations[i].OtherId == _relationWindowAnchorId)
+                {
+                    return Mathf.Min(i, max);
+                }
+            }
+
+            return 0; // якорь умер/выпал из списка — вернуться к свежим
+        }
+
+        private bool RelationsUnchanged(List<RelationshipSnapshot> relations, int windowStart)
+        {
+            // Bug #218: индекс окна — часть сигнатуры, иначе клик по стрелке
+            // не перерисует панель (список и выбранная не изменились).
             if (_relationSigSelected != _selectedRelationId ||
+                _relationSigWindowStart != windowStart ||
                 _relationSig.Count != relations.Count)
             {
                 return false;
@@ -5185,7 +5306,7 @@ namespace HexLive.UnityPresentation.UI
             return true;
         }
 
-        private void RememberRelations(List<RelationshipSnapshot> relations)
+        private void RememberRelations(List<RelationshipSnapshot> relations, int windowStart)
         {
             _relationSig.Clear();
             for (var i = 0; i < relations.Count; i++)
@@ -5194,32 +5315,75 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _relationSigSelected = _selectedRelationId;
+            _relationSigWindowStart = windowStart;
         }
 
-        private VisualElement BuildRelationTabs(List<RelationshipSnapshot> relations, int selectedId, NpcSnapshot npc)
+        // Bug #218: не скролл, а ОКНО из трёх карточек со стрелками по краям.
+        // Стрелка смещает окно ровно на одного человека; крайняя стрелка
+        // гаснет (opacity + PickingMode.Ignore — идиома этого же файла).
+        // Скроллер в 58px полосы съедал низ карточек и указатель выбранной.
+        private VisualElement BuildRelationTabs(
+            List<RelationshipSnapshot> relations, int windowStart, int selectedId, NpcSnapshot npc)
         {
-            var scroll = new ScrollView(ScrollViewMode.Horizontal);
-            scroll.name = "relationship-scroll";
-            scroll.style.height = 58f;
-            scroll.style.flexShrink = 0f;
-            scroll.style.marginBottom = 8f;
-            scroll.style.backgroundColor = new Color(0.054f, 0.069f, 0.080f, 0.72f);
-            scroll.horizontalScrollerVisibility = ScrollerVisibility.Auto;
-            scroll.verticalScrollerVisibility = ScrollerVisibility.Hidden;
-            SetBorder(scroll, Stroke, 1f);
-            SetRadius(scroll, 10f);
+            var bar = new VisualElement();
+            bar.name = "relationship-window";
+            bar.style.flexDirection = FlexDirection.Row;
+            bar.style.alignItems = Align.Center;
+            bar.style.height = 58f;
+            bar.style.flexShrink = 0f;
+            bar.style.marginBottom = 8f;
+            bar.style.backgroundColor = new Color(0.054f, 0.069f, 0.080f, 0.72f);
+            SetBorder(bar, Stroke, 1f);
+            SetRadius(bar, 10f);
 
-            var tabs = scroll.contentContainer;
-            tabs.style.flexDirection = FlexDirection.Row;
-            tabs.style.alignItems = Align.Center;
-            tabs.style.height = 48f;
-
-            for (var i = 0; i < relations.Count; i++)
+            var maxStart = Mathf.Max(0, relations.Count - RelationWindow);
+            bar.Add(BuildRelationArrow("‹", windowStart > 0, () =>
             {
-                tabs.Add(BuildRelationTab(relations[i], relations[i].OtherId == selectedId, npc));
+                _relationWindowAnchorId = relations[windowStart - 1].OtherId;
+                _refreshedTick = -1;
+                UpdateRelations(npc);
+            }));
+
+            var end = Mathf.Min(relations.Count, windowStart + RelationWindow);
+            for (var i = windowStart; i < end; i++)
+            {
+                bar.Add(BuildRelationTab(relations[i], relations[i].OtherId == selectedId, npc));
             }
 
-            return scroll;
+            bar.Add(BuildRelationArrow("›", windowStart < maxStart, () =>
+            {
+                _relationWindowAnchorId = relations[windowStart + 1].OtherId;
+                _refreshedTick = -1;
+                UpdateRelations(npc);
+            }));
+
+            return bar;
+        }
+
+        private VisualElement BuildRelationArrow(
+            string glyph, bool enabled, System.Action onClick)
+        {
+            var arrow = new Label(glyph);
+            arrow.style.width = 22f;
+            arrow.style.height = Length.Percent(100);
+            arrow.style.flexShrink = 0f;
+            arrow.style.fontSize = 20;
+            arrow.style.unityTextAlign = TextAnchor.MiddleCenter;
+            arrow.style.color = Text;
+            arrow.style.opacity = enabled ? 1f : 0.45f;
+            arrow.pickingMode = enabled ? PickingMode.Position : PickingMode.Ignore;
+            if (enabled)
+            {
+                arrow.RegisterCallback<MouseEnterEvent>(_ => arrow.style.color = GoldDim);
+                arrow.RegisterCallback<MouseLeaveEvent>(_ => arrow.style.color = Text);
+                arrow.RegisterCallback<MouseDownEvent>(evt =>
+                {
+                    onClick();
+                    evt.StopPropagation();
+                });
+            }
+
+            return arrow;
         }
 
         private VisualElement BuildRelationTab(RelationshipSnapshot rel, bool selected, NpcSnapshot npc)
@@ -5228,9 +5392,12 @@ namespace HexLive.UnityPresentation.UI
             tab.style.flexDirection = FlexDirection.Row;
             tab.style.alignItems = Align.Center;
             tab.style.height = Length.Percent(100);
-            tab.style.flexGrow = 0f;
-            tab.style.flexShrink = 0f;
-            tab.style.width = selected ? 150f : 128f;
+            // Bug #218: три карточки делят полосу окна поровну — фиксированные
+            // ширины были нужны только скроллу.
+            tab.style.flexGrow = 1f;
+            tab.style.flexShrink = 1f;
+            tab.style.flexBasis = 0f;
+            tab.style.minWidth = 0f;
             tab.style.paddingLeft = 9f;
             tab.style.paddingRight = 9f;
             tab.style.backgroundColor = selected
@@ -6037,6 +6204,21 @@ namespace HexLive.UnityPresentation.UI
 
             var visibleOutsiders = 0;
 
+            // Bug #337: звезда «наш персонаж» имеет смысл только при
+            // ВЫБОРОЧНОМ управлении (сервер: выдана одна девушка из лагеря).
+            // Локально управляема вся колония — звёзды у всех были бы шумом.
+            _selectiveControl = false;
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Health > 0f &&
+                    PlayerCampView.IsMine(_runner, snapshot, npc) &&
+                    !(_runner != null && _runner.CanControlNpc(npc.Id)))
+                {
+                    _selectiveControl = true;
+                    break;
+                }
+            }
+
             var ordered = new List<NpcSnapshot>(snapshot.Npcs);
             ordered.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
             foreach (var npc in ordered)
@@ -6072,6 +6254,8 @@ namespace HexLive.UnityPresentation.UI
                     : DisplayStyle.None;
             }
         }
+
+        private bool _selectiveControl;
 
         private VisualElement BuildRosterCard(NpcSnapshot npc)
         {
@@ -6129,9 +6313,15 @@ namespace HexLive.UnityPresentation.UI
 
             var text = new VisualElement();
             text.style.flexGrow = 1f;
-            var name = new Label(Loc.NpcName(npc.DisplayName));
+            // Bug #337: «наш персонаж» (под непосредственным управлением
+            // игрока) помечен звездой — на сервере это выданная девушка.
+            var mineControlled = _selectiveControl &&
+                _runner != null && _runner.CanControlNpc(npc.Id);
+            var name = new Label(mineControlled
+                ? "★ " + Loc.NpcName(npc.DisplayName)
+                : Loc.NpcName(npc.DisplayName));
             name.style.fontSize = 12f;
-            name.style.color = Text;
+            name.style.color = mineControlled ? Gold : Text;
             name.style.unityFontStyleAndWeight = FontStyle.Bold;
             name.pickingMode = PickingMode.Ignore;
             text.Add(name);
@@ -6637,6 +6827,7 @@ namespace HexLive.UnityPresentation.UI
             col.Add(vitalsCluster);
 
             col.Add(BuildControlToggle());
+            col.Add(BuildPaceToggle()); // §121.11: тот же тумблер, нижний угол
             col.Add(BuildStopButton());
             col.Add(BuildInventoryButton());
             col.Add(BuildJournalButton()); // §136: под рюкзаком у правого края
@@ -6692,70 +6883,17 @@ namespace HexLive.UnityPresentation.UI
             button.style.overflow = Overflow.Hidden;
             button.tooltip = Loc.Get("panel.control.tooltip");
 
-            VisualElement BuildSegment(
-                string iconResource,
-                string fallbackGlyph,
-                string tooltip,
-                out Label glyphLabel,
-                out VisualElement iconView)
-            {
-                var segment = new VisualElement();
-                segment.style.width = Length.Percent(50f);
-                segment.style.height = Length.Percent(100f);
-                segment.style.alignItems = Align.Center;
-                segment.style.justifyContent = Justify.Center;
-                segment.tooltip = tooltip;
-
-                iconView = new VisualElement();
-                iconView.style.width = 27f;
-                iconView.style.height = 27f;
-                iconView.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
-                iconView.pickingMode = PickingMode.Ignore;
-                var iconTexture = Resources.Load<Texture2D>(iconResource);
-                if (iconTexture != null)
-                {
-                    iconView.style.backgroundImage = new StyleBackground(iconTexture);
-                }
-                else
-                {
-                    iconView.style.display = DisplayStyle.None;
-                }
-                segment.Add(iconView);
-
-                // Text is deliberately only a missing-resource fallback: a
-                // bad or delayed content import must not remove the control.
-                glyphLabel = new Label(fallbackGlyph);
-                glyphLabel.style.fontSize = 17f;
-                glyphLabel.style.color = Text;
-                glyphLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                glyphLabel.style.display = iconTexture == null
-                    ? DisplayStyle.Flex
-                    : DisplayStyle.None;
-                glyphLabel.pickingMode = PickingMode.Ignore;
-                segment.Add(glyphLabel);
-                return segment;
-            }
-
-            _controlAiSegment = BuildSegment(
+            _controlAiSegment = BuildToggleSegment(
                 "HexLive/UI/IdentityAiIcon", "🧠", Loc.Get("panel.control.ai"),
                 out _controlAiGlyph, out _controlAiIcon);
-            _controlPlayerSegment = BuildSegment(
+            _controlPlayerSegment = BuildToggleSegment(
                 "HexLive/UI/IdentityManualIcon", "🎮", Loc.Get("panel.control.manual"),
                 out _controlPlayerGlyph, out _controlPlayerIcon);
             SetRadius(_controlAiSegment, 9f);
             SetRadius(_controlPlayerSegment, 9f);
             button.Add(_controlAiSegment);
             button.Add(_controlPlayerSegment);
-
-            var divider = new VisualElement();
-            divider.style.position = Position.Absolute;
-            divider.style.left = 43f;
-            divider.style.top = 7f;
-            divider.style.bottom = 7f;
-            divider.style.width = 1f;
-            divider.style.backgroundColor = StrokeStrong;
-            divider.pickingMode = PickingMode.Ignore;
-            button.Add(divider);
+            button.Add(BuildToggleDivider());
 
             button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
             button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
@@ -6769,6 +6907,170 @@ namespace HexLive.UnityPresentation.UI
 
             _controlButton = button;
             return button;
+        }
+
+        // §121.11 (bug #294): половинка двухсегментного тумблера карточки.
+        // Общая для 🧠/🎮 и для «шагом/бегом» намеренно: игрок просил «ровно
+        // такой же тумблер, те же элементы, те же отступы», а вторая копия
+        // этой вёрстки разошлась бы с первой на первой же правке стиля.
+        private VisualElement BuildToggleSegment(
+            string iconResource,
+            string fallbackGlyph,
+            string tooltip,
+            out Label glyphLabel,
+            out VisualElement iconView)
+        {
+            var segment = new VisualElement();
+            segment.style.width = Length.Percent(50f);
+            segment.style.height = Length.Percent(100f);
+            segment.style.alignItems = Align.Center;
+            segment.style.justifyContent = Justify.Center;
+            segment.tooltip = tooltip;
+
+            iconView = new VisualElement();
+            iconView.style.width = 27f;
+            iconView.style.height = 27f;
+            iconView.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
+            iconView.pickingMode = PickingMode.Ignore;
+            var iconTexture = Resources.Load<Texture2D>(iconResource);
+            if (iconTexture != null)
+            {
+                iconView.style.backgroundImage = new StyleBackground(iconTexture);
+            }
+            else
+            {
+                iconView.style.display = DisplayStyle.None;
+            }
+            segment.Add(iconView);
+
+            // Text is deliberately only a missing-resource fallback: a
+            // bad or delayed content import must not remove the control.
+            glyphLabel = new Label(fallbackGlyph);
+            glyphLabel.style.fontSize = 17f;
+            glyphLabel.style.color = Text;
+            glyphLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            glyphLabel.style.display = iconTexture == null
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+            glyphLabel.pickingMode = PickingMode.Ignore;
+            segment.Add(glyphLabel);
+            return segment;
+        }
+
+        private VisualElement BuildToggleDivider()
+        {
+            var divider = new VisualElement();
+            divider.style.position = Position.Absolute;
+            divider.style.left = 43f;
+            divider.style.top = 7f;
+            divider.style.bottom = 7f;
+            divider.style.width = 1f;
+            divider.style.backgroundColor = StrokeStrong;
+            divider.pickingMode = PickingMode.Ignore;
+            return divider;
+        }
+
+        // §121.11 (bug #294): «Шагом / Бегом» — второй тумблер той же породы,
+        // в НИЖНЕМ левом углу карточки, с тем же отступом 12 px, что и 🧠/🎮
+        // сверху. Двойного клика на бег больше нет: одиночный клик всегда
+        // отдаёт приказ идти, а темп берётся отсюда. Состояние читается из
+        // снапшота по той же причине, что и у тумблера управления: авторитет —
+        // симуляция, а кнопка, помнящая своё, показывала бы одно, пока
+        // колонистка бежит другое.
+        private VisualElement BuildPaceToggle()
+        {
+            var button = new VisualElement();
+            button.style.position = Position.Absolute;
+            button.style.left = 12f;
+            button.style.bottom = 12f;
+            button.style.width = 88f;
+            button.style.height = 34f;
+            button.style.flexDirection = FlexDirection.Row;
+            button.style.alignItems = Align.Center;
+            button.style.backgroundColor = IdentityGlass;
+            SetBorder(button, StrokeStrong, 1f);
+            SetRadius(button, 10f);
+            button.style.overflow = Overflow.Hidden;
+            button.tooltip = Loc.Get("panel.pace.tooltip");
+
+            _paceWalkSegment = BuildToggleSegment(
+                "HexLive/UI/IdentityWalkIcon", "🚶", Loc.Get("panel.pace.walk"),
+                out _paceWalkGlyph, out _paceWalkIcon);
+            _paceRunSegment = BuildToggleSegment(
+                "HexLive/UI/IdentityRunIcon", "🏃", Loc.Get("panel.pace.run"),
+                out _paceRunGlyph, out _paceRunIcon);
+            SetRadius(_paceWalkSegment, 9f);
+            SetRadius(_paceRunSegment, 9f);
+            button.Add(_paceWalkSegment);
+            button.Add(_paceRunSegment);
+            button.Add(BuildToggleDivider());
+
+            button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
+            button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
+                button,
+                !_controlAvailable ? Stroke : _runByDefaultNow ? GoldDim : NeonCyanDim));
+            button.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                TogglePace();
+                evt.StopPropagation();
+            });
+
+            _paceButton = button;
+            return button;
+        }
+
+        private void TogglePace()
+        {
+            if (_runner == null || !_runner.SupportsNpcCommands ||
+                !_controlAvailable || !NpcSelection.HasSelection)
+            {
+                return;
+            }
+
+            _runner.EnqueueCommand(new HexLive.Simulation.Runtime.SetRunByDefaultCommand(
+                new HexLive.Simulation.Common.EntityId(NpcSelection.SelectedId),
+                !_runByDefaultNow));
+        }
+
+        // §121.11: тумблер темпа прячется и гаснет ровно по тем же правилам,
+        // что и тумблер управления — на чужой колонистке приказывать нечем, а
+        // значит и темпом её приказов распоряжаться не нам.
+        private void RefreshPaceToggle(NpcSnapshot npc)
+        {
+            if (_paceButton == null)
+            {
+                return;
+            }
+
+            _paceButton.style.display = _runner != null
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+            _runByDefaultNow = npc.RunByDefault;
+            if (!_controlAvailable)
+            {
+                _paceButton.tooltip = Loc.Get("panel.control.readonly");
+                _paceWalkSegment.style.backgroundColor = Color.clear;
+                _paceRunSegment.style.backgroundColor = Color.clear;
+                _paceWalkGlyph.style.color = TextMute;
+                _paceRunGlyph.style.color = TextMute;
+                _paceWalkIcon.style.opacity = 0.35f;
+                _paceRunIcon.style.opacity = 0.35f;
+                SetBorderColor(_paceButton, Stroke);
+                return;
+            }
+
+            _paceButton.tooltip = Loc.Get("panel.pace.tooltip");
+            _paceWalkSegment.style.backgroundColor = _runByDefaultNow
+                ? Color.clear
+                : new Color(NeonCyan.r, NeonCyan.g, NeonCyan.b, 0.22f);
+            _paceRunSegment.style.backgroundColor = _runByDefaultNow
+                ? new Color(Gold.r, Gold.g, Gold.b, 0.24f)
+                : Color.clear;
+            _paceWalkGlyph.style.color = _runByDefaultNow ? TextMute : NeonCyan;
+            _paceRunGlyph.style.color = _runByDefaultNow ? Gold : TextMute;
+            _paceWalkIcon.style.opacity = _runByDefaultNow ? 0.42f : 1f;
+            _paceRunIcon.style.opacity = _runByDefaultNow ? 1f : 0.42f;
+            SetBorderColor(_paceButton, _runByDefaultNow ? GoldDim : NeonCyanDim);
         }
 
         private void ToggleManualControl()
@@ -7452,6 +7754,7 @@ namespace HexLive.UnityPresentation.UI
             if (_outsiderRosterHeader != null)
                 _outsiderRosterHeader.text = Loc.Get("roster.outsiders");
             if (_invDropActionLabel != null) _invDropActionLabel.text = Loc.Get("inv.action.drop");
+            if (_invFillActionLabel != null) _invFillActionLabel.text = Loc.Get("inv.action.fill");
             if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
             if (_invPrimaryActionLabel != null && _invSelectedId != null)
                 _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn
@@ -7499,6 +7802,13 @@ namespace HexLive.UnityPresentation.UI
                 _controlButton.tooltip = Loc.Get("panel.control.tooltip");
                 _controlAiSegment.tooltip = Loc.Get("panel.control.ai");
                 _controlPlayerSegment.tooltip = Loc.Get("panel.control.manual");
+            }
+
+            if (_paceButton != null)
+            {
+                _paceButton.tooltip = Loc.Get("panel.pace.tooltip");
+                _paceWalkSegment.tooltip = Loc.Get("panel.pace.walk");
+                _paceRunSegment.tooltip = Loc.Get("panel.pace.run");
             }
 
             if (_inventoryButton != null)

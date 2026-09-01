@@ -116,6 +116,24 @@ public sealed class SetManualControlCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+/// <summary>§121.11 (bug #294): постоянный темп ручных приказов персонажа —
+/// бегом (истина) или шагом. Состояние, а не приказ: текущий поход не
+/// трогается, тумблер управления не переключается.</summary>
+public sealed class SetRunByDefaultCommand : ISimulationCommand
+{
+    public SetRunByDefaultCommand(EntityId npc, bool run)
+    {
+        Npc = npc;
+        Run = run;
+    }
+
+    public EntityId Npc { get; }
+
+    public bool Run { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§133.9: freeze or release one NPC's current outfit.</summary>
 public sealed class SetOutfitLockCommand : ISimulationCommand
 {
@@ -134,10 +152,13 @@ public sealed class SetOutfitLockCommand : ISimulationCommand
 
 /// <summary>§121: идти в точку. Точка, а не узел: клик игрока приходит по
 /// поверхности мира, а ближайший узел — уже дело симуляции.
-/// Run=false — одиночный клик, Run=true — двойной.</summary>
+/// <para>§121.11 (bug #294): <c>Run = null</c> — «темп не задан», то есть взять
+/// постоянную настройку персонажа (<c>Mind.RunByDefault</c>). Именно это шлёт
+/// клик игрока: жеста-темпа больше нет. Явное значение остаётся для тех, кто
+/// действительно знает темп — MCP-инструмент и сценарии.</para></summary>
 public sealed class MoveToCommand : ISimulationCommand
 {
-    public MoveToCommand(EntityId npc, Float2 worldPosition, bool run = false)
+    public MoveToCommand(EntityId npc, Float2 worldPosition, bool? run = null)
     {
         Npc = npc;
         WorldPosition = worldPosition;
@@ -148,7 +169,7 @@ public sealed class MoveToCommand : ISimulationCommand
 
     public Float2 WorldPosition { get; }
 
-    public bool Run { get; }
+    public bool? Run { get; }
 
     public EntityId? TargetEntity => Npc;
 }
@@ -176,6 +197,43 @@ public sealed class InteractCommand : ISimulationCommand
 
     /// <summary>Exact catalog action selected by the player. Empty keeps the
     /// legacy type-only behaviour used by autonomous and LLM orders.</summary>
+    public string InteractionId { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>
+/// §121.10 (баг #270): «собрать всё на гексе». Приказ НЕ мгновенный сбор пачкой
+/// и не отдельная механика — это ОЧЕРЕДЬ обычных ручных задач: одна и та же
+/// <see cref="InteractCommand"/>-логика повторяется по одному подходящему
+/// предмету за раз, пока на гексе есть однотипные.
+/// <para>
+/// Цель — тот самый предмет, по которому кликнул игрок: из него симуляция
+/// берёт и гекс, и <c>DefinitionId</c> «однотипности». Считать количество
+/// намеренно никто не просил (и UI его не показывает): игрок говорит «все»,
+/// а сколько их — знает мир, а не меню.
+/// </para>
+/// </summary>
+public sealed class GatherAllOnHexCommand : ISimulationCommand
+{
+    public GatherAllOnHexCommand(
+        EntityId npc, ObjectId target, InteractionType interaction,
+        string interactionId = "")
+    {
+        Npc = npc;
+        Target = target;
+        Interaction = interaction;
+        InteractionId = interactionId ?? string.Empty;
+    }
+
+    public EntityId Npc { get; }
+
+    /// <summary>Кликнутый предмет: якорь гекса и образец однотипности.</summary>
+    public ObjectId Target { get; }
+
+    public InteractionType Interaction { get; }
+
+    /// <summary>Точное действие каталога, выбранное игроком.</summary>
     public string InteractionId { get; }
 
     public EntityId? TargetEntity => Npc;
@@ -330,6 +388,25 @@ public sealed class RomancePersonCommand : ISimulationCommand
 /// sides have more than 50% affinity. <c>UseTargetCamp</c> chooses whether the
 /// neighbour's camp is occupied as the shared home; false invites her home.
 /// </summary>
+/// <summary>§146.14 (bug #291): сделать СВОЙ очаг домом лагеря. Меняет только
+/// якорь FactionHomes своей фракции (+DoorStateVersion); чужой очаг
+/// отклоняется — присоединение к чужому лагерю остаётся дипломатией §146.12.
+/// Актор — NPC: фракция дома берётся из неё, отказ приходит тостом.</summary>
+public sealed class SetCampHomeCommand : ISimulationCommand
+{
+    public SetCampHomeCommand(EntityId npc, ObjectId hearth)
+    {
+        Npc = npc;
+        Hearth = hearth;
+    }
+
+    public EntityId Npc { get; }
+
+    public ObjectId Hearth { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 public sealed class MergeCampsCommand : ISimulationCommand
 {
     public MergeCampsCommand(EntityId npc, EntityId target, bool useTargetCamp)
@@ -480,7 +557,7 @@ public sealed class SelfActionCommand : ISimulationCommand
 public sealed class GroupMoveCommand : GroupSimulationCommand
 {
     public GroupMoveCommand(
-        IEnumerable<EntityId> actors, Float2 worldPosition, bool run = false)
+        IEnumerable<EntityId> actors, Float2 worldPosition, bool? run = null)
         : base(actors)
     {
         WorldPosition = worldPosition;
@@ -489,7 +566,10 @@ public sealed class GroupMoveCommand : GroupSimulationCommand
 
     public Float2 WorldPosition { get; }
 
-    public bool Run { get; }
+    /// <summary>§121.11: <c>null</c> — у каждой участницы свой постоянный темп.
+    /// Один общий флаг на группу был бы ровно тем враньём, от которого настройка
+    /// и заводится: у девушек она разная.</summary>
+    public bool? Run { get; }
 }
 
 public sealed class GroupStopCommand : GroupSimulationCommand
@@ -767,6 +847,29 @@ public sealed class ManageInventoryCommand : ISimulationCommand
     public EntityId Npc { get; }
     public InventoryItemRef Item { get; }
     public InventoryAction Action { get; }
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>
+/// §55.4 (bug #317): «Наполнить» — перелить воду прочих ёмкостей инвентаря в
+/// выбранную (сегодня приёмник — только личная бутылка; кокос — источник,
+/// у его инстанса нет вида воды). Ячейка называется как в
+/// <see cref="ManageInventoryCommand"/> — индекс + ожидаемый id: панель
+/// рисует прошлый тик, устаревший приказ честно отклоняется. Сам перелив —
+/// небыстрый процесс на месте (FillVesselDurationTicks) через штатный план.
+/// </summary>
+public sealed class FillVesselCommand : ISimulationCommand
+{
+    public FillVesselCommand(EntityId npc, InventoryItemRef item)
+    {
+        Npc = npc;
+        Item = item;
+    }
+
+    public EntityId Npc { get; }
+
+    public InventoryItemRef Item { get; }
+
     public EntityId? TargetEntity => Npc;
 }
 

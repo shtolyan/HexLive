@@ -147,6 +147,11 @@ namespace HexLive.UnityPresentation.Input
         private bool _rightPressActive;
         private bool _rightDragging;
         private Vector2 _rightPressPosition;
+
+        // Bug #279: был ли мир закрыт для указателя на ПРОШЛОМ кадре. Press,
+        // начавшийся в кадр закрытия окна (окна закрываются на DOWN в
+        // Update-фазе, раньше этого LateUpdate), миру не принадлежит.
+        private bool _worldPointerBlockedLastFrame;
         private readonly HashSet<UnityEngine.Object> _selectionInputSuppressors = new();
         private readonly List<int> _visibleSelectionScratch = new();
 
@@ -393,6 +398,15 @@ namespace HexLive.UnityPresentation.Input
             }
 
             RefreshOverviewProfile();
+
+            // Bug #279: окна закрываются на pointer-DOWN внутри Update-фазы
+            // UI Toolkit, а гейт мира читается в LateUpdate — на кадре
+            // закрытия PointerBlockedForWorld уже false, и тот же клик
+            // становился приказом идти. Семпл В КОНЦЕ LateUpdate (после
+            // гейтов этого кадра, безусловно — кадры с открытым GameMenu
+            // тоже попадают в историю) даёт press-защёлкам знать, что мир
+            // был закрыт кадр назад, — окно съедает свой клик целиком.
+            _worldPointerBlockedLastFrame = PointerBlockedForWorld();
         }
 
         private void RefreshOverviewProfile()
@@ -716,7 +730,8 @@ namespace HexLive.UnityPresentation.Input
                     return;
                 }
 
-                _leftPressActive = !PointerBlockedForWorld();
+                _leftPressActive = !PointerBlockedForWorld() &&
+                    !_worldPointerBlockedLastFrame;
                 _selectionDragging = false;
                 _leftPressPosition = pointer;
                 _selectionDragPosition = pointer;
@@ -762,7 +777,8 @@ namespace HexLive.UnityPresentation.Input
                     UI.ContextMenuPanel.Close();
                 }
 
-                _rightPressActive = !PointerBlockedForWorld();
+                _rightPressActive = !PointerBlockedForWorld() &&
+                    !_worldPointerBlockedLastFrame;
                 _rightDragging = false;
                 _rightPressPosition = pointer;
             }
@@ -803,7 +819,11 @@ namespace HexLive.UnityPresentation.Input
             UI.HexInspectorPanel.PointerOverPanel ||
             UI.ContextMenuPanel.BlocksWorldPointer || UI.LootTransferPanel.IsOpen ||
             UI.GameMenu.IsOpen ||
-            UI.EndSummaryPanel.IsOpen;
+            UI.EndSummaryPanel.IsOpen ||
+            // Bug #279: окно отчёта об ошибке держит мир закрытым само — его
+            // запись в NpcSelection.PointerOverUi каждый кадр затирает
+            // CharacterPanel.UpdatePointerOverUi.
+            UI.BugReportPanel.IsOpen;
 
         private void ApplyMarqueeSelection(WorldSnapshot snapshot, Vector2 from, Vector2 to)
         {

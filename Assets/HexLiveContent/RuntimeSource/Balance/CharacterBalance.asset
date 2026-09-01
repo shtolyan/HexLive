@@ -71,10 +71,10 @@ MonoBehaviour:
   sickTorsoFloor: 0.15
   sickComfortPerSlowTick: 0.006
   drinkBottleDurationTicks: 16
-  drinkThirstRaw: 0.7
-  drinkThirstBoiled: 0.85
-  drinkComfortBoiled: 0.05
-  bottleCapacity: 3
+  drinkThirstRaw: 0.21
+  drinkThirstBoiled: 0.26
+  drinkComfortBoiled: 0.015
+  bottleCapacity: 10
   coconutWaterCapacity: 4
   handSlots: 2
   baseCarrySlots: 2

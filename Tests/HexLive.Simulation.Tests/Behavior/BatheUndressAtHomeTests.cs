@@ -573,7 +573,11 @@ public sealed class BatheUndressAtHomeTests
             // the pending replacement definition of that exact slot; also §53.9
             // (#240, ordered player aid kind and target). 60 → 61 in #266:
             // exact catalog interaction id for same-type manual actions.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(61));
+            // 61 → 62 in §129/#237: persisted building owner faction
+            // (door camp ownership survives camp merge/removal).
+            // 62 → 63 in §121.11/#294: persistent per-NPC manual run tempo.
+            // 63 → 64 in §76.14/#304: девятый навык — Атлетика.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(64));
         });
     }
 

@@ -105,6 +105,30 @@ namespace HexLive.UnityPresentation.Wearing
 
             var now = Time.unscaledTime;
 
+            // Дыра «вечного трупа»: painter, добавленный на НЕАКТИВНЫЙ объект
+            // (тёплое появление собирает вью выключенным), у которого объект
+            // умер до первой активации, не получает OnDestroy — Unregister
+            // не зовётся, а интерфейсная ссылка проходит `!= null` по ссылке,
+            // не по Unity-жизни. Каждый такой труп съедал односекундный ход
+            // кольца, и за длинную сессию обход раздувался до минут — сушка
+            // глянца «не доезжала» до перепечатки часами. Чистим по месту.
+            for (var i = Targets.Count - 1; i >= 0; i--)
+            {
+                if (Targets[i] is Object unityTarget && unityTarget == null)
+                {
+                    Targets.RemoveAt(i);
+                    if (i < _cursor)
+                    {
+                        _cursor--;
+                    }
+                }
+            }
+
+            if (Targets.Count == 0)
+            {
+                return;
+            }
+
             // The scheduled turn goes FIRST. It comes round about once a
             // second, so it costs the fresh lane almost nothing — but checking
             // fresh marks first would let a steady stream of bites starve the

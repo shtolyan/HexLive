@@ -1550,6 +1550,9 @@ namespace HexLive.UnityPresentation.UI
             // спереди-сбоку и низко (константы OpeningShot* контроллера).
             FindFirstObjectByType<RtsCameraController>()?.SnapToSelectedTarget(openingShot: true);
 
+            // #339: прогрев шейдерных вариантов за занавесом — см. хелпер.
+            yield return WarmShaderVariantsSweep();
+
             SetProgress(1f, Loc.Get("loading.done"));
             yield return null;
 
@@ -1690,6 +1693,12 @@ namespace HexLive.UnityPresentation.UI
             // спереди-сбоку и низко (константы OpeningShot* контроллера).
             FindFirstObjectByType<RtsCameraController>()?.SnapToSelectedTarget(openingShot: true);
 
+            // #339: холодный серверный вход дёргался, пока URP компилировал
+            // варианты шейдеров на первом показе каждого материала. Пять
+            // скрытых кадров с разных ракурсов оплачивают эту цену за
+            // занавесом, а не первыми секундами игры.
+            yield return WarmShaderVariantsSweep();
+
             SetProgress(1f, Loc.Get("loading.done"));
             yield return null;
 
@@ -1752,6 +1761,53 @@ namespace HexLive.UnityPresentation.UI
             StartCoroutine(Run());
         }
 
+        // #339: прогрев шейдерных вариантов. URP компилирует вариант при
+        // ПЕРВОМ попадании материала в кадр; на холодном кэше (свежий билд,
+        // первый вход) каждая новая порция мира стоила видимого рывка. Пока
+        // занавес ещё непрозрачен, камера скрыто смотрит на стартовую сцену с
+        // четырёх сторон и одним общим планом сверху (общий план дополнительно
+        // прогревает дальний профиль: туман, импосторы, LOD-панораму) — рывки
+        // компиляции случаются за занавесом. Контроллер камеры на время свипа
+        // выключен (он пишет transform каждый кадр), исходная поза — та, что
+        // выставил SnapToSelectedTarget, и она же возвращается в конце.
+        private IEnumerator WarmShaderVariantsSweep()
+        {
+            var cam = Camera.main;
+            if (cam == null)
+            {
+                yield break;
+            }
+
+            var controller = FindFirstObjectByType<RtsCameraController>();
+            var cameraTransform = cam.transform;
+            var savedPosition = cameraTransform.position;
+            var savedRotation = cameraTransform.rotation;
+            var focus = savedPosition + savedRotation * Vector3.forward * 8f;
+            if (controller != null)
+            {
+                controller.enabled = false;
+            }
+
+            for (var side = 0; side < 4; side++)
+            {
+                var around = Quaternion.Euler(0f, side * 90f, 0f);
+                cameraTransform.position = focus + around * new Vector3(0f, 3f, -8f);
+                cameraTransform.rotation =
+                    Quaternion.LookRotation(focus + Vector3.up - cameraTransform.position);
+                yield return null;
+            }
+
+            cameraTransform.position = focus + new Vector3(0f, 70f, -40f);
+            cameraTransform.rotation = Quaternion.LookRotation(focus - cameraTransform.position);
+            yield return null;
+
+            cameraTransform.SetPositionAndRotation(savedPosition, savedRotation);
+            if (controller != null)
+            {
+                controller.enabled = true;
+            }
+        }
+
         // Ждём, пока мир будет ГОТОВ ПОКАЗАТЬСЯ: тела построены и очередь
         // контента пуста. Без таймаута — и это не смелость, а следствие
         // устройства: каждая начатая задача обязана завершиться, потому что
@@ -1784,6 +1840,7 @@ namespace HexLive.UnityPresentation.UI
 
             var waited = 0f;
             var nextReport = StallReportSeconds;
+            var nextBuildPass = 1f;
 
             // Queue first is load-bearing short-circuiting. ActorsReady applies
             // the now-cached wardrobe to a paused actor; calling it while an
@@ -1792,6 +1849,17 @@ namespace HexLive.UnityPresentation.UI
             // exact WaitForCompletion deadlock fixed in 105199ce.
             while (!Wearing.Garments.ContentQueue.IsIdle || !renderer.ActorsReady(ids))
             {
+                // ⭐ Под шторкой сим на паузе (тик 0), а синк рендерера идёт
+                // только на НОВЫЙ тик: первый проход заказал тела асинхронно,
+                // и без пинка второго прохода не наступало никогда — все
+                // девушки «вида нет» до перезапуска. Раз в секунду просим
+                // рендерер пройтись ещё раз по тому же тику.
+                if (waited >= nextBuildPass)
+                {
+                    nextBuildPass = waited + 1f;
+                    renderer.RequestActorBuildPass();
+                }
+
                 // Прогресс НАСТОЯЩИЙ: сделано из всего, что заказано. Полоска
                 // на этом участке живёт в верхней четверти — терраген и прогрев
                 // панелей уже позади.

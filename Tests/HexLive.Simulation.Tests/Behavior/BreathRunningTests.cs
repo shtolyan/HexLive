@@ -85,7 +85,7 @@ public sealed class BreathRunningTests
     }
 
     [Test]
-    public void ManualRunOrder_SpendsBreathWhileSingleClickOrderWalks()
+    public void ManualRunOrder_SpendsBreathWhileWalkPacedOrderDoesNot()
     {
         var (world, npc, start, neighbor, far) = RoutineWalker();
         npc.Mind.ManualControl = true;
@@ -100,7 +100,7 @@ public sealed class BreathRunningTests
         Assert.Multiple(() =>
         {
             Assert.That(npc.Mind.IsRunning, Is.True,
-                "A double-click move order must select the running gait.");
+                "A run-paced move order must select the running gait.");
             Assert.That(npc.Needs.Breath, Is.LessThan(0.5f),
                 "Manual running must use the same finite breath reserve as AI running.");
         });
@@ -113,13 +113,15 @@ public sealed class BreathRunningTests
         Assert.Multiple(() =>
         {
             Assert.That(npc.Mind.IsRunning, Is.False,
-                "A later single click must replace Run with Walk.");
+                "Switching the pace toggle to walk must replace Run with Walk.");
             Assert.That(npc.Needs.Breath, Is.GreaterThan(0.5f));
         });
     }
 
+    /// <summary>§121.11 (bug #294): темп приходит не из жеста, а из настройки
+    /// самой девушки, и переживает сохранение вместе с ней.</summary>
     [Test]
-    public void ManualRunPace_IsStoredOnTheQueuedPlanAndSurvivesSave()
+    public void ManualRunPace_ComesFromTheCharacterSettingAndSurvivesSave()
     {
         var engine = TestWorld.CreateEngine();
         var world = engine.World;
@@ -134,12 +136,15 @@ public sealed class BreathRunningTests
             HexSpatialMath.HexDistance(npc.Tile, candidate.Tiles[0]) <= 4 &&
             Connectivity.Reachable(world, start, candidate.Id, npc.Body.CanJump));
 
-        engine.Commands.Enqueue(new MoveToCommand(
-            npc.Id, destination.WorldPosition, run: true));
+        Assert.That(npc.Mind.RunByDefault, Is.True,
+            "§121.11: a fresh colonist runs unless the player asks her to walk.");
+
+        // Клик темпа не несёт: его берут у неё самой.
+        engine.Commands.Enqueue(new MoveToCommand(npc.Id, destination.WorldPosition));
         engine.Step();
 
         Assert.That(npc.Plan.RunRequested, Is.True,
-            "The command queue lost the double-click pace before movement.");
+            "A pace-less click must inherit the character's own default pace.");
 
         using var buffer = new MemoryStream();
         using (var writer = new BinaryWriter(
@@ -156,18 +161,53 @@ public sealed class BreathRunningTests
             WorldSaveSerializer.Read(loaded, reader);
         }
 
-        Assert.That(loaded.Entities.Npcs[npc.Id].Plan.RunRequested, Is.True,
-            "An unfinished double-click run must resume as a run after loading.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(loaded.Entities.Npcs[npc.Id].Plan.RunRequested, Is.True,
+                "An unfinished run must resume as a run after loading.");
+            Assert.That(loaded.Entities.Npcs[npc.Id].Mind.RunByDefault, Is.True,
+                "The pace setting itself must survive the save, not just the plan.");
+        });
 
-        engine.Commands.Enqueue(new MoveToCommand(
-            npc.Id, destination.WorldPosition, run: false));
+        // Тумблер «шагом» — состояние, а не приказ: он переписывает темп уже
+        // идущего похода и следующего клика, не роняя сам поход.
+        engine.Commands.Enqueue(new SetRunByDefaultCommand(npc.Id, run: false));
+        engine.Step();
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Mind.RunByDefault, Is.False);
+            Assert.That(npc.Plan.RunRequested, Is.False,
+                "Switching to walk must slow the order already under way.");
+        });
+
+        engine.Commands.Enqueue(new MoveToCommand(npc.Id, destination.WorldPosition));
         engine.Step();
         Assert.That(npc.Plan.RunRequested, Is.False,
-            "A later single click must clear the previous run request.");
+            "A later click must keep inheriting the character's walk setting.");
+
+        using var walkBuffer = new MemoryStream();
+        using (var writer = new BinaryWriter(
+                   walkBuffer, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        walkBuffer.Position = 0;
+        var walker = TestWorld.CreateWorld();
+        using (var reader = new BinaryReader(
+                   walkBuffer, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Read(walker, reader);
+        }
+
+        Assert.That(walker.Entities.Npcs[npc.Id].Mind.RunByDefault, Is.False,
+            "A saved walk setting must not come back as the run default.");
     }
 
+    /// <summary>§121.11: один групповой клик — у каждой свой темп. Общий флаг
+    /// на группу был бы враньём: настройка принадлежит девушке.</summary>
     [Test]
-    public void GroupRunCommand_AppliesTheSamePaceToEveryAssignedManualActor()
+    public void GroupMove_GivesEveryActorHerOwnDefaultPace()
     {
         var engine = TestWorld.CreateEngine();
         engine.Step();
@@ -181,6 +221,9 @@ public sealed class BreathRunningTests
             actor.Mind.ManualControl = true;
         }
 
+        actors[0].Mind.RunByDefault = true;
+        actors[1].Mind.RunByDefault = false;
+
         var click = engine.World.Junctions.Items.Values.First(candidate =>
             !candidate.Blocked && candidate.Tiles.Count > 0 &&
             actors[0].CurrentJunction is { } start &&
@@ -188,13 +231,19 @@ public sealed class BreathRunningTests
             Connectivity.Reachable(engine.World, start, candidate.Id));
 
         engine.Commands.Enqueue(new GroupMoveCommand(
-            actors.Select(actor => actor.Id), click.WorldPosition, run: true));
+            actors.Select(actor => actor.Id), click.WorldPosition));
         engine.Step();
 
-        Assert.That(actors.All(actor =>
-            actor.Mind.CurrentGoal == GoalType.PlayerOrder &&
-            actor.Plan.RunRequested), Is.True,
-            "A double-click group order must not lose its pace during formation assignment.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(actors.All(actor =>
+                actor.Mind.CurrentGoal == GoalType.PlayerOrder), Is.True,
+                "Both actors must have taken the group order.");
+            Assert.That(actors[0].Plan.RunRequested, Is.True,
+                "The runner must keep her pace through formation assignment.");
+            Assert.That(actors[1].Plan.RunRequested, Is.False,
+                "The walker must not be dragged into a run by her partner.");
+        });
     }
 
     [Test]

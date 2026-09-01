@@ -55,6 +55,8 @@ namespace HexLive.UnityPresentation.Config
         public bool loopEscapeEnabled = true;
         [Tooltip("Окно подсчёта попыток. 1200 = полдня игрового цикла событий (EventCycleTicks 2400).")]
         [Range(200, 9600)] public int loopWindowTicks = 1200;
+        [Tooltip("#326: «тихое» зависание — план есть, исполнения и движения нет столько тиков; дальше план сносится лестницей петель.")]
+        [Range(100, 4800)] public int loopStalledTicks = 400;
         [Tooltip("Sisyphus: столько раз взялась за ОДИН прицел (цель+объект) внутри окна, не доведя ни разу. Четыре — бюджет ретраев маршрута; пятая = «сюда ходить бессмысленно».")]
         [Range(2, 20)] public int loopRepeatAttempts = 5;
         [Tooltip("Oscillation: столько смен содержательной цели туда-обратно (A→B→A = два) без единого завершения. Шесть — три полных качания.")]
@@ -194,15 +196,17 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Длительность питья бутылки в тиках (глоток за глотком).")]
         [Range(1, 60)] public int drinkBottleDurationTicks = 16;
         [Tooltip("Сколько жажды снимает СЫРАЯ бутылка (но риск болезни).")]
-        [Range(0f, 1f)] public float drinkThirstRaw = 0.7f;
+        [Range(0f, 1f)] public float drinkThirstRaw = 0.21f;
         [Tooltip("Сколько жажды снимает КИПЯЧЁНАЯ бутылка (безопасно).")]
-        [Range(0f, 1f)] public float drinkThirstBoiled = 0.85f;
+        [Range(0f, 1f)] public float drinkThirstBoiled = 0.26f;
         [Tooltip("Небольшой комфорт от кипячёной воды.")]
-        [Range(0f, 0.3f)] public float drinkComfortBoiled = 0.05f;
+        [Range(0f, 0.3f)] public float drinkComfortBoiled = 0.015f;
         [Tooltip("§52: сколько глотков в одной полной бутылке (наполняют, когда пустая).")]
-        [Range(1, 8)] public int bottleCapacity = 3;
+        [Range(1, 20)] public int bottleCapacity = 10;
         [Tooltip("Сколько маленьких глотков воды в дырявом кокосе.")]
         [Range(1, 8)] public int coconutWaterCapacity = 4;
+        [Tooltip("§55.4: сколько тиков занимает перелив воды кокосов в бутылку.")]
+        [Range(1, 120)] public int fillVesselDurationTicks = 24;
 
         [Header("Инвентарь (§52)")]
         [Tooltip("§52: сколько предметов держат голые руки. Общий инвентарь = руки + карманы всей надетой одежды.")]

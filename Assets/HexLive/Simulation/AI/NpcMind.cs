@@ -474,6 +474,14 @@ public sealed class NPCMind
     // из игры так же, как то, во что она одета.
     public bool ManualControl { get; set; }
 
+    // §121.11 (bug #294): ПОСТОЯННЫЙ темп ручных приказов этой девушки. Раньше
+    // темп задавался жестом — двойной клик значил «бегом», — и одиночный клик
+    // не имел способа сказать «бегом» вовсе. Теперь клик один, а темп — это
+    // настройка персонажа, живущая в симуляции (как и сам тумблер управления)
+    // и переживающая выход из игры. По умолчанию бежит: игрок просил, чтобы
+    // приказ исполнялся быстро, пока он явно не попросил шаг.
+    public bool RunByDefault { get; set; } = true;
+
     // §133.9 / bug #193: player-owned outfit latch. While enabled, ordinary
     // Dress/Undress and player wear/stow/drop commands cannot change clothing.
     // §133.10 upgrades the latch into a persistent selected outfit: enabling it
@@ -514,6 +522,31 @@ public sealed class NPCMind
     // §121: то же для зверя. Идентификатор моба — int, а не EntityId: мобы
     // живут в отдельном списке со своей нумерацией (см. MobState.Id).
     public int? ManualAttackMobId { get; set; }
+
+    // §121.10 (баг #270): живой приказ «собрать всё на гексе». Хранится ровно
+    // то, чем описывается СЛЕДУЮЩАЯ задача очереди: какой гекс, какие предметы
+    // считать однотипными, каким действием их брать и сколько подходов ещё
+    // разрешено. Самих целей тут нет намеренно — список предметов гекса
+    // перечитывается из мира перед каждым подходом, как того требует правило 2
+    // ManualCommandExecutor: за время похода гекс мог измениться.
+    //
+    // В сейв НЕ пишется, как и остальная сцена ручного режима: цель
+    // PlayerOrder при сохранении складывается в None, и недоигранной очереди
+    // после загрузки взяться неоткуда.
+    public string GatherAllDefinitionId { get; set; } = string.Empty;
+
+    public HexLive.Simulation.Common.TileCoord? GatherAllTile { get; set; }
+
+    public InteractionType? GatherAllInteraction { get; set; }
+
+    public string GatherAllInteractionId { get; set; } = string.Empty;
+
+    /// <summary>Сколько подходов очереди ещё разрешено. Бюджет ставится по
+    /// числу однотипных предметов на гексе в момент приказа: он доказывает
+    /// завершимость очереди даже если предмет почему-то перестал исчезать
+    /// после «успешного» подбора (полный рюкзак и прочая ложь исполнителя).
+    /// </summary>
+    public int GatherAllRemaining { get; set; }
 
     // §40.6: garments doffed at the shore for a bathe. After washing her body
     // she walks back to RedressShore and puts these EXACT ground pieces back

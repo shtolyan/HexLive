@@ -136,7 +136,19 @@ public static class WorldSaveSerializer
     // сейв и был записан.
     // v61 (#266): точный id выбранного взаимодействия в каждом PlanStep.
     // Одного InteractionType недостаточно: split.log и saw.log оба Process.
-    public const int BlobVersion = 61;
+    // v62 (§129/#237): у здания появился ХРАНИМЫЙ лагерь-хозяин
+    // (WorldObjectState.OwnerFaction) — право открыть дверь больше не
+    // вычисляется по ближайшему живому очагу. Блоб ≤61 штампуется на загрузке
+    // ровно тем владельцем, по которому мир и жил (MigrateBuildingOwnership),
+    // так что старый сейв продолжается без единого изменения поведения, а
+    // следующее слияние лагерей уже не переназначает дверь третьему лагерю.
+    // (Ветка #237 занимала под это v60 — на мастере номер был уже занят
+    // §120.10/#240, при портировании штамп переехал на v62.)
+    // v63 (§121.11, #294): постоянный темп ручных приказов per NPC. Двойного
+    // клика больше нет, темп — настройка персонажа, и она обязана переживать
+    // выход из игры. Блоб ≤62 читается новым умолчанием «бегом».
+    // v64 (§76.14, bug #304): девятый навык — Атлетика.
+    public const int BlobVersion = 64;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -818,7 +830,38 @@ public static class WorldSaveSerializer
         }
 
         MigrateRetiredContent(world, version);
+        MigrateBuildingOwnership(world, version);
     }
+
+    // v62 (§129/#237): дом, у которого лагерь-хозяин не записан, получает его
+    // РОВНО по прежнему правилу — ближайший девичий очаг. Это не догадка: до
+    // v62 право открыть дверь так и вычислялось, поэтому сейв продолжается с
+    // тем же владельцем, что был у него секунду назад. Штамп ставится один раз
+    // и здесь, где очаги уже прочитаны: дальше слияние лагерей перепишет его
+    // сознательно, а исчезновение соседнего очага больше ничего не меняет.
+    private static void MigrateBuildingOwnership(WorldState world, int loadedVersion)
+    {
+        if (loadedVersion >= 62 || world.FactionHomes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.OwnerFaction.HasValue ||
+                (!BuildingRules.IsCompletedBuilding(obj) &&
+                 !Runtime.BuildSiteMath.IsArchitecturalBuilding(obj.BuildProduct)))
+            {
+                continue;
+            }
+
+            obj.OwnerFaction = Core.DoorTopology.DeriveOwnerFromHomes(world, obj.Tile);
+        }
+    }
+
+    // §54.2/#315 r2: retired id, still present in saves written before the young
+    // palm was removed. Not a ContentIds constant — nothing live may spawn it.
+    private const string LegacyPalmSmall = "tree.palm_small";
 
     // Save migration: content retired from the bootstrap still lives inside
     // older saves' entity lists — despawn it on load or the girls keep using
@@ -841,6 +884,15 @@ public static class WorldSaveSerializer
             {
                 obj.DefinitionId = ContentIds.BedBasic;
             }
+            else if (obj.DefinitionId == LegacyPalmSmall)
+            {
+                // §54.2/#315 r2: молодая пальма выпилена — из пня теперь растёт
+                // обычная. Уже выросшие в сейве превращаются в неё же, а не
+                // деспавнятся: ObstacleRadius у обеих одинаковый (0.3 R), так
+                // что блокировка джанкшена не меняется, и дерево не пропадает
+                // из мира на глазах у колонии.
+                obj.DefinitionId = ContentIds.Palm;
+            }
 
             if (obj.BuildProduct is ContentIds.BedLeaf or ContentIds.HutBed)
             {
@@ -860,6 +912,23 @@ public static class WorldSaveSerializer
         foreach (var id in retired)
         {
             WorldObjectMutations.DespawnObject(world, id);
+        }
+
+        // §120 r2 (1 Sep 2026): уличная кровать блокирует авторским
+        // футпринтом (14 узлов), а не радиальным диском 1.25 wu (37 узлов) —
+        // диск достроенной кровати у двери накрывал весь дверной фартук и
+        // запирал дом. Кровати старых сейвов несут радиальный список в
+        // BlockedJunctions — перештамповать на загрузке (идемпотентно:
+        // футпринт пересчитывается в тот же футпринт).
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.DefinitionId == ContentIds.BedBasic &&
+                string.IsNullOrEmpty(obj.BuildProduct) &&
+                world.Tiles.Items.TryGetValue(obj.Tile, out var bedTile) &&
+                !bedTile.Flags.HasFlag(TileFlags.Indoor))
+            {
+                WorldObjectMutations.SetAuthoredFurnitureBlocking(world, obj, blocked: true);
+            }
         }
 
         // Migration is spatial too: both legacy hut cots could retain one
@@ -1054,6 +1123,9 @@ public static class WorldSaveSerializer
 
         // v50 (§120.8): чей чертёж строит этот plan-объект (0 = committed).
         w.Write(obj.BlueprintId);
+
+        // v62 (§129/#237): лагерь-хозяин здания.
+        WriteNullableFaction(w, obj.OwnerFaction);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1164,6 +1236,10 @@ public static class WorldSaveSerializer
         obj.ArchitectureOwnerId = version >= 34 ? ReadNullableObject(r) : null;
         obj.IsDoorOpen = version >= 37 ? r.ReadBoolean() : true;
         obj.BlueprintId = version >= 50 ? r.ReadInt32() : 0;
+        // v62 (#237). У блоба ≤61 штампа нет — его проставляет разовая
+        // миграция MigrateBuildingOwnership, когда прочитаны и объекты, и
+        // очаги: здесь FactionHomes ещё может быть не тем, чем станет.
+        obj.OwnerFaction = version >= 62 ? ReadNullableFaction(r) : null;
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including
@@ -1242,6 +1318,7 @@ public static class WorldSaveSerializer
         w.Write(npc.Skills.Medicine);
         w.Write(npc.Skills.Survival);
         w.Write(npc.Skills.Social);
+        w.Write(npc.Skills.Athletics); // v64, §76.14
 
         // §28.15C v3 (v20): каким клипом она упала. Пишется для КАЖДОГО тела,
         // живого и мёртвого, одним и тем же куском — тело мёртвой это тот же
@@ -1710,6 +1787,11 @@ public static class WorldSaveSerializer
         // чужой поход, а одна подопечная без вида вернула бы переоценку §53.3.
         w.Write((int)npc.Mind.OrderedAidKind);
         WriteNullableEntity(w, npc.Mind.OrderedAidFor);
+
+        // §121.11 / v63 (#294): постоянный темп ручных приказов. Настройка
+        // игрока про КОНКРЕТНУЮ девушку — переживает выход из игры так же, как
+        // сам тумблер управления и запрет смены одежды.
+        w.Write(npc.Mind.RunByDefault);
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -1780,6 +1862,8 @@ public static class WorldSaveSerializer
             npc.Skills.Medicine = r.ReadSingle();
             npc.Skills.Survival = r.ReadSingle();
             npc.Skills.Social = r.ReadSingle();
+            // §76.14 (v64): Атлетика; старые сейвы поднимаются с нулём.
+            npc.Skills.Athletics = version >= 64 ? r.ReadSingle() : 0f;
         }
 
         // §28.15C v3: до v20 мёртвых не существовало как сущностей — тело
@@ -2358,6 +2442,14 @@ public static class WorldSaveSerializer
             npc.Mind.OrderedAidFor = ReadNullableEntity(r);
         }
 
+        // §121.11 (#294): блоб ≤62 писался в мире, где темп задавал жест, а не
+        // настройка. Такой сейв просыпается на новом умолчании (бегом) — то
+        // же, что увидит новый мир, и ровно то, чего просил игрок.
+        if (version >= 63)
+        {
+            npc.Mind.RunByDefault = r.ReadBoolean();
+        }
+
         return npc;
     }
 
@@ -2638,6 +2730,18 @@ public static class WorldSaveSerializer
 
     private static ObjectId? ReadNullableObject(BinaryReader r) =>
         r.ReadBoolean() ? new ObjectId(r.ReadInt32()) : null;
+
+    private static void WriteNullableFaction(BinaryWriter w, Faction? faction)
+    {
+        w.Write(faction.HasValue);
+        if (faction is { } value)
+        {
+            w.Write((int)value);
+        }
+    }
+
+    private static Faction? ReadNullableFaction(BinaryReader r) =>
+        r.ReadBoolean() ? (Faction)r.ReadInt32() : null;
 
     private static void WriteNullableJunction(BinaryWriter w, JunctionId? id)
     {

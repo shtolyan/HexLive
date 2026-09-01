@@ -47,7 +47,11 @@ public sealed class ViewerConnection
     private const double CommandBurst = 30.0;
 
     // §83.4: ниже этого размера кадр не жмётся даже согласившемуся клиенту.
-    private const int CompressThresholdBytes = 4 * 1024;
+    // Bug #339: порог опущен 4К→1К по замеру живых дельт прод-мира (медиана
+    // 1.5 КБ, p90 8 КБ, gzip режет их в ~1.5–3 раза): у игрока канал от
+    // сервера ~16 КБ/с, и несжатые средние кадры съедали его целиком.
+    // Совсем мелочь (пинги, часы, пустые дельты) по-прежнему не трогаем.
+    private const int CompressThresholdBytes = 1024;
 
     private readonly WorldHost _host;
     private readonly WebSocket _socket;

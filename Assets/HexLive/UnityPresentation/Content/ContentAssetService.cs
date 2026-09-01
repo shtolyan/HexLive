@@ -1010,33 +1010,62 @@ public sealed class ContentAssetService
     private IEnumerator DownloadBlobWithRetries(
         BlobDownloadJob job, Action<bool> completed)
     {
-        string transientError = null;
-        for (var attempt = 1; attempt <= BlobDownloadAttempts; attempt++)
+        // ⭐ Смерть корутины ≠ зависание загрузки. Исключение внутри итератора
+        // (файловый IO на занятом/исчезнувшем файле — Windows этим славится)
+        // тихо убивало корутину: слот _activeBlobDownloads и запись
+        // _blobRequests висли навечно, помпа глохла, и шторка «Проверяем …»
+        // стояла до перезапуска. Скачанное успевало персистнуться, поэтому
+        // каждый перезапуск проходил ровно НА ОДИН предмет дальше — сигнатура
+        // «завис на Baby Doll, перезапустил, завис на следующем». finally
+        // гарантирует ответ completed при любом исходе.
+        var answered = false;
+        Action<bool> answer = success =>
         {
-            var succeeded = false;
-            yield return DownloadBlob(
-                job.Record, job.Sha256, job.Size, job.Label,
-                success => succeeded = success);
-            if (succeeded)
+            if (!answered)
             {
-                if (!string.IsNullOrEmpty(transientError) && LastError == transientError)
+                answered = true;
+                completed(success);
+            }
+        };
+
+        try
+        {
+            string transientError = null;
+            for (var attempt = 1; attempt <= BlobDownloadAttempts; attempt++)
+            {
+                var succeeded = false;
+                yield return DownloadBlob(
+                    job.Record, job.Sha256, job.Size, job.Label,
+                    success => succeeded = success);
+                if (succeeded)
                 {
-                    LastError = string.Empty;
+                    if (!string.IsNullOrEmpty(transientError) && LastError == transientError)
+                    {
+                        LastError = string.Empty;
+                    }
+                    answer(true);
+                    yield break;
                 }
-                completed(true);
-                yield break;
+
+                transientError = LastError;
+                if (attempt < BlobDownloadAttempts)
+                {
+                    Status = $"Повторяем {job.Record.type}/{job.Record.id} " +
+                             $"({job.Label}, {attempt + 1}/{BlobDownloadAttempts})";
+                    yield return new WaitForSecondsRealtime(0.5f * attempt);
+                }
             }
 
-            transientError = LastError;
-            if (attempt < BlobDownloadAttempts)
+            answer(false);
+        }
+        finally
+        {
+            if (!answered)
             {
-                Status = $"Повторяем {job.Record.type}/{job.Record.id} " +
-                         $"({job.Label}, {attempt + 1}/{BlobDownloadAttempts})";
-                yield return new WaitForSecondsRealtime(0.5f * attempt);
+                LastError = $"{job.Record.type}/{job.Record.id}: загрузка оборвалась исключением";
+                answer(false);
             }
         }
-
-        completed(false);
     }
 
     private IEnumerator DownloadBlob(
@@ -1047,7 +1076,7 @@ public sealed class ContentAssetService
         // стреляет в completed (открытие бандла, LoadAssetAsync, FMOD).
         var pacedBlob = BlobPath(sha256);
         if ((_verifiedHashes.Contains(sha256) || TryTrustPersistedStamp(sha256, size)) &&
-            IsStandaloneFile(pacedBlob) && new FileInfo(pacedBlob).Length == size)
+            IsStandaloneFile(pacedBlob) && TryFileLength(pacedBlob) == size)
         {
             yield return null;
             _settledBlobs.Add(sha256);
@@ -1061,7 +1090,7 @@ public sealed class ContentAssetService
         // EnsureBlob: главный поток не хеширует), успех — без сети.
         var cachedBlob = BlobPath(sha256);
         if (!_verifiedHashes.Contains(sha256) &&
-            IsStandaloneFile(cachedBlob) && new FileInfo(cachedBlob).Length == size)
+            IsStandaloneFile(cachedBlob) && TryFileLength(cachedBlob) == size)
         {
             var cachedVerification = Task.Run(() => VerifyFile(cachedBlob, sha256, size));
             while (!cachedVerification.IsCompleted)
@@ -1079,16 +1108,16 @@ public sealed class ContentAssetService
             }
 
             // Кэш повреждён — честная перекачка ниже.
-            File.Delete(cachedBlob);
+            TryDelete(cachedBlob);
         }
 
         var partial = Path.Combine(_partial, sha256 + ".part");
-        if (File.Exists(partial) && new FileInfo(partial).Length > size)
+        if (TryFileLength(partial) > size)
         {
-            File.Delete(partial);
+            TryDelete(partial);
         }
 
-        var existing = File.Exists(partial) ? new FileInfo(partial).Length : 0;
+        var existing = Math.Max(0L, TryFileLength(partial));
         if (existing == size && existing > 0)
         {
             var completeVerification = Task.Run(
@@ -1098,14 +1127,14 @@ public sealed class ContentAssetService
                 Status = $"Проверяем {record.type}/{record.id} ({label})";
                 yield return null;
             }
-            if (!completeVerification.IsFaulted && completeVerification.Result)
+            if (!completeVerification.IsFaulted && completeVerification.Result &&
+                PromotePartial(partial, sha256))
             {
-                PromotePartial(partial, sha256);
                 completed(true);
                 yield break;
             }
 
-            File.Delete(partial);
+            TryDelete(partial);
             existing = 0;
         }
 
@@ -1128,7 +1157,7 @@ public sealed class ContentAssetService
             LastError = $"{record.type}/{record.id}: {result.Error}";
             if (existing > 0 && result.StatusCode == HttpStatusCode.OK && File.Exists(partial))
             {
-                File.Delete(partial);
+                TryDelete(partial);
             }
             completed(false);
             yield break;
@@ -1146,14 +1175,13 @@ public sealed class ContentAssetService
             LastError = $"{record.type}/{record.id}: размер или SHA-256 не совпадает";
             if (File.Exists(partial))
             {
-                File.Delete(partial);
+                TryDelete(partial);
             }
             completed(false);
             yield break;
         }
 
-        PromotePartial(partial, sha256);
-        completed(true);
+        completed(PromotePartial(partial, sha256));
     }
 
     private static HttpClient CreateHttpClient()
@@ -1338,29 +1366,43 @@ public sealed class ContentAssetService
         return task.Result;
     }
 
-    private void PromotePartial(string partial, string sha256)
+    private bool PromotePartial(string partial, string sha256)
     {
-        var destination = BlobPath(sha256);
-        var expectedSize = new FileInfo(partial).Length;
-        if (IsStandaloneFile(destination) &&
-            VerifyFile(destination, sha256, expectedSize))
+        // Не кидает: Windows отказывает Delete/Move на файле, который держит
+        // открытый AssetBundle или антивирус, — раньше исключение убивало
+        // корутину помпы и подвешивало загрузку до перезапуска (скачанный
+        // .part оставался, поэтому следующий запуск проходил на предмет
+        // дальше). Теперь неудача — обычный проваленный download с ретраем.
+        try
         {
-            File.Delete(partial);
+            var destination = BlobPath(sha256);
+            var expectedSize = new FileInfo(partial).Length;
+            if (IsStandaloneFile(destination) &&
+                VerifyFile(destination, sha256, expectedSize))
+            {
+                TryDelete(partial);
+            }
+            else
+            {
+                // Early atomic-content dev builds populated this cache with
+                // symlinks into a worktree. Once that tree is removed Mono still
+                // reports File.Exists=true and Length=the link-text length; the old
+                // code consequently threw away the freshly verified .part and
+                // preserved a dead link. Cache blobs are standalone files only.
+                File.Delete(destination); // also unlinks a broken ReparsePoint
+                File.Move(partial, destination);
+            }
+            _verifiedHashes.Add(sha256);
+            RememberVerifiedBlob(sha256, destination);
+            Touch(destination);
+            TrimCache();
+            return true;
         }
-        else
+        catch (Exception exception)
         {
-            // Early atomic-content dev builds populated this cache with
-            // symlinks into a worktree. Once that tree is removed Mono still
-            // reports File.Exists=true and Length=the link-text length; the old
-            // code consequently threw away the freshly verified .part and
-            // preserved a dead link. Cache blobs are standalone files only.
-            File.Delete(destination); // also unlinks a broken ReparsePoint
-            File.Move(partial, destination);
+            LastError = $"кэш занят: {exception.Message}";
+            return false;
         }
-        _verifiedHashes.Add(sha256);
-        RememberVerifiedBlob(sha256, destination);
-        Touch(destination);
-        TrimCache();
     }
 
     private bool HasVerifiedBlob(ContentRecord record)
@@ -1722,16 +1764,55 @@ public sealed class ContentAssetService
 
     private static bool VerifyFile(string path, string sha256, long expectedSize)
     {
-        if (!IsStandaloneFile(path) || new FileInfo(path).Length != expectedSize)
+        // Никогда не кидает: вызывается и синхронно из итераторов, где
+        // исключение убивает корутину помпы. Открытие — с широким share:
+        // на Windows блоб может держать открытый AssetBundle, и OpenRead
+        // с FileShare.Read падал sharing violation.
+        try
+        {
+            if (!IsStandaloneFile(path) || new FileInfo(path).Length != expectedSize)
+            {
+                return false;
+            }
+
+            using var stream = new FileStream(
+                path, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+            using var hash = SHA256.Create();
+            var actual = BitConverter.ToString(hash.ComputeHash(stream)).Replace("-", string.Empty)
+                .ToLowerInvariant();
+            return string.Equals(actual, sha256, StringComparison.Ordinal);
+        }
+        catch (Exception)
         {
             return false;
         }
+    }
 
-        using var stream = File.OpenRead(path);
-        using var hash = SHA256.Create();
-        var actual = BitConverter.ToString(hash.ComputeHash(stream)).Replace("-", string.Empty)
-            .ToLowerInvariant();
-        return string.Equals(actual, sha256, StringComparison.Ordinal);
+    /// <summary>Файловая длина без исключений: файл мог исчезнуть/быть занят
+    /// между проверкой и чтением — гонка, а не повод убивать корутину.</summary>
+    private static long TryFileLength(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? new FileInfo(path).Length : -1L;
+        }
+        catch (Exception)
+        {
+            return -1L;
+        }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception)
+        {
+            // Занятый файл дочистит следующий запуск или TrimCache.
+        }
     }
 
     private static bool IsStandaloneFile(string path)

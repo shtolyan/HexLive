@@ -296,6 +296,14 @@ public sealed class BodyBones : MonoBehaviour
         return _wears.ContainsKey(key);
     }
 
+    // Живой экземпляр надетой вещи по её equip-ключу (null, если не надета).
+    // Нужен WardrobeTest: гизмо посадки головного убора (§31B.4F) правит кость
+    // именно живого экземпляра, а числа персистятся в префаб-ассет.
+    public Wear GetWorn(string key)
+    {
+        return _wears.TryGetValue(key, out var wear) ? wear : null;
+    }
+
     // Spec 40.10-D guard: which garments currently own this prefab's (layer, slot)
     // claims — i.e. whoever would evict it on Equip. Empty when its slots are free.
     public string DescribeSlotOwners(Wear wearPrefab)

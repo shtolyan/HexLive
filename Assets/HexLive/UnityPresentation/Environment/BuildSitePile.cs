@@ -29,6 +29,11 @@ namespace HexLive.UnityPresentation.Environment
             if (Signature(site) != _signature || _contentPending)
             {
                 Rebuild(site);
+                // Bug #276: the site root and WorldObjectView are created even
+                // while an atomic content prefab is still travelling. Once
+                // the bed arrives Rebuild adds its renderers, but the picking
+                // view used to retain the initial empty array forever.
+                GetComponent<HexLive.UnityPresentation.Views.WorldObjectView>()?.RefreshGeometry();
             }
         }
 

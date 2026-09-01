@@ -29,7 +29,10 @@ namespace HexLive.Simulation.Wire
 /// </summary>
 public static class SimulationCommandCodec
 {
-    public const int WireVersion = 2;
+    // 3: §121.11 — темп MoveTo/GroupMove стал необязательным (nullable), и
+    //    добавилась SetRunByDefault. Совместимость сторон стережёт
+    //    Handshake.ProtocolVersion; этот номер описывает сам формат.
+    public const int WireVersion = 3;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -72,6 +75,10 @@ public static class SimulationCommandCodec
         RomancePerson = 33,
         ApplyFreeArchitecture = 34,
         MedicalAid = 35,
+        GatherAllOnHex = 36,
+        SetCampHome = 37,
+        SetRunByDefault = 38,
+        FillVessel = 39, // §55.4 (bug #317)
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -82,6 +89,11 @@ public static class SimulationCommandCodec
                 w.Write((ushort)CommandType.SetManualControl);
                 WriteEntity(w, c.Npc);
                 w.Write(c.Enabled);
+                break;
+            case SetRunByDefaultCommand c:
+                w.Write((ushort)CommandType.SetRunByDefault);
+                WriteEntity(w, c.Npc);
+                w.Write(c.Run);
                 break;
             case SetOutfitLockCommand c:
                 w.Write((ushort)CommandType.SetOutfitLock);
@@ -98,7 +110,7 @@ public static class SimulationCommandCodec
                 w.Write((ushort)CommandType.MoveTo);
                 WriteEntity(w, c.Npc);
                 WireIo.WriteFloat2(w, c.WorldPosition);
-                w.Write(c.Run);
+                WireIo.WriteNullableBool(w, c.Run);
                 break;
             case InteractCommand c:
                 w.Write((ushort)CommandType.Interact);
@@ -106,6 +118,18 @@ public static class SimulationCommandCodec
                 w.Write(c.Target.Value);
                 w.Write((int)c.Interaction);
                 w.Write(c.InteractionId);
+                break;
+            case GatherAllOnHexCommand c:
+                w.Write((ushort)CommandType.GatherAllOnHex);
+                WriteEntity(w, c.Npc);
+                w.Write(c.Target.Value);
+                w.Write((int)c.Interaction);
+                w.Write(c.InteractionId);
+                break;
+            case SetCampHomeCommand c:
+                w.Write((ushort)CommandType.SetCampHome);
+                WriteEntity(w, c.Npc);
+                w.Write(c.Hearth.Value);
                 break;
             case AttackNpcCommand c:
                 w.Write((ushort)CommandType.AttackNpc);
@@ -176,7 +200,7 @@ public static class SimulationCommandCodec
                 w.Write((ushort)CommandType.GroupMove);
                 WriteActors(w, c.Actors);
                 WireIo.WriteFloat2(w, c.WorldPosition);
-                w.Write(c.Run);
+                WireIo.WriteNullableBool(w, c.Run);
                 break;
             case GroupStopCommand c:
                 w.Write((ushort)CommandType.GroupStop);
@@ -202,6 +226,11 @@ public static class SimulationCommandCodec
                 WriteEntity(w, c.Npc);
                 WriteItemRef(w, c.Item);
                 w.Write((int)c.Action);
+                break;
+            case FillVesselCommand c:
+                w.Write((ushort)CommandType.FillVessel);
+                WriteEntity(w, c.Npc);
+                WriteItemRef(w, c.Item);
                 break;
             case TransferInventoryCommand c:
                 w.Write((ushort)CommandType.TransferInventory);
@@ -301,6 +330,8 @@ public static class SimulationCommandCodec
         {
             case CommandType.SetManualControl:
                 return new SetManualControlCommand(ReadEntity(r), r.ReadBoolean());
+            case CommandType.SetRunByDefault:
+                return new SetRunByDefaultCommand(ReadEntity(r), r.ReadBoolean());
             case CommandType.SetOutfitLock:
                 return new SetOutfitLockCommand(ReadEntity(r), r.ReadBoolean());
             case CommandType.MergeCamps:
@@ -308,11 +339,18 @@ public static class SimulationCommandCodec
                     ReadEntity(r), ReadEntity(r), r.ReadBoolean());
             case CommandType.MoveTo:
                 return new MoveToCommand(
-                    ReadEntity(r), WireIo.ReadFloat2(r), r.ReadBoolean());
+                    ReadEntity(r), WireIo.ReadFloat2(r), WireIo.ReadNullableBool(r));
             case CommandType.Interact:
                 return new InteractCommand(
                     ReadEntity(r), new ObjectId(r.ReadInt32()),
                     (InteractionType)r.ReadInt32(), r.ReadString());
+            case CommandType.GatherAllOnHex:
+                return new GatherAllOnHexCommand(
+                    ReadEntity(r), new ObjectId(r.ReadInt32()),
+                    (InteractionType)r.ReadInt32(), r.ReadString());
+            case CommandType.SetCampHome:
+                return new SetCampHomeCommand(
+                    ReadEntity(r), new ObjectId(r.ReadInt32()));
             case CommandType.AttackNpc:
                 return new AttackNpcCommand(ReadEntity(r), ReadEntity(r));
             case CommandType.CarryPerson:
@@ -345,7 +383,7 @@ public static class SimulationCommandCodec
                     ReadEntity(r), (SelfActionKind)r.ReadInt32());
             case CommandType.GroupMove:
                 return new GroupMoveCommand(
-                    ReadActors(r), WireIo.ReadFloat2(r), r.ReadBoolean());
+                    ReadActors(r), WireIo.ReadFloat2(r), WireIo.ReadNullableBool(r));
             case CommandType.GroupStop:
                 return new GroupStopCommand(ReadActors(r));
             case CommandType.GroupAttackNpc:
@@ -357,6 +395,8 @@ public static class SimulationCommandCodec
             case CommandType.ManageInventory:
                 return new ManageInventoryCommand(
                     ReadEntity(r), ReadItemRef(r), (InventoryAction)r.ReadInt32());
+            case CommandType.FillVessel:
+                return new FillVesselCommand(ReadEntity(r), ReadItemRef(r));
             case CommandType.TransferInventory:
                 return new TransferInventoryCommand(
                     ReadEntity(r), ReadEntity(r), ReadItemRef(r), r.ReadInt32(),

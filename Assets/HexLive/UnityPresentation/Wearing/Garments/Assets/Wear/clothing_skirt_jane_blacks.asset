@@ -15,6 +15,7 @@ MonoBehaviour:
   id: clothing.skirt_jane_blacks
   prototypeId: clothing.skirt_jane
   displayName: Tiered Skirt (Blacks)
+  retired: 1
   category: 3
   variantMaterials:
   - {fileID: 2100000, guid: d8da327cad981834a8dd6bad711e82df, type: 2}

@@ -22,6 +22,11 @@ public sealed class Wear : MonoBehaviour
     // layout and every existing prefab keeps binding unchanged.
     [SerializeField] private HeelPose heel;
 
+    // §31B.4F: посадка головного убора — не ноль только у вещей со слотом Head,
+    // которым запечённая в вершины позиция не подошла. Default = «как отшито»,
+    // так что поле аддитивно к сериализации и старые префабы читаются как прежде.
+    [SerializeField] private HeadwearFit headwearFit;
+
     // Прячет ли эта вещь причёску. Шапка сидит на черепе, а причёска —
     // отдельный меш поверх него, и без этого волосы прорастают сквозь тулью.
     // Значение по умолчанию — «не прячет», так что старые префабы читаются
@@ -156,6 +161,11 @@ public sealed class Wear : MonoBehaviour
         }
 
         ApplyHairFit(actorMesh, garmentBones);
+        CacheHeadwearFitBone(garmentBones);
+        if (headwearFit.Any)
+        {
+            ApplyHeadwearFitNow();
+        }
 
         // A garment that swings (skirts) builds its cloth LAST: the per-actor
         // mesh is in place by now and the bones already ride the body, which is
@@ -216,6 +226,58 @@ public sealed class Wear : MonoBehaviour
             }
 
             return;
+        }
+    }
+
+    // --- §31B.4F: headwear fit (посадка головного убора) ---
+
+    // Кость head самой вещи после сшивания: ParentConnection обнулил её позу,
+    // и всё, что пишется сюда, едет НА теле как локальная поправка. Null у
+    // причёсок (их head принадлежит ApplyHairFit), у вещей без такой кости и
+    // до Construct. WardrobeTest двигает эту кость гизмо на живом экземпляре.
+    public Transform HeadwearFitBone => _headwearFitBone;
+    private Transform _headwearFitBone;
+
+    public HeadwearFit GetHeadwearFit() => headwearFit;
+
+    // Тот же контракт правки ПРЕФАБ-АССЕТА из тестовой сцены, что у
+    // SetConfigScale ниже; персистится кнопкой «Сохранить» (SaveAssets).
+    public void SetHeadwearFit(HeadwearFit value)
+    {
+        headwearFit = value;
+    }
+
+    // Применить текущую посадку к уже сшитой кости. Безопасно звать повторно —
+    // панель делает это на каждое изменение поля/кадр драга гизмо.
+    public void ApplyHeadwearFitNow()
+    {
+        if (_headwearFitBone == null)
+        {
+            return;
+        }
+
+        _headwearFitBone.localPosition = headwearFit.position;
+        _headwearFitBone.localRotation = Quaternion.Euler(headwearFit.rotation);
+        _headwearFitBone.localScale = headwearFit.Scale;
+    }
+
+    // Как ApplyHairFit: массив костей снят ДО сшивания, потому что head вещи
+    // уже переподчинена телу и вниз от hip её больше не найти.
+    private void CacheHeadwearFitBone(Transform[] garmentBones)
+    {
+        _headwearFitBone = null;
+        if (slots.Count == 0)
+        {
+            return; // причёска: её head костью владеет ApplyHairFit
+        }
+
+        foreach (var bone in garmentBones)
+        {
+            if (bone != null && bone.name == "head")
+            {
+                _headwearFitBone = bone;
+                return;
+            }
         }
     }
 

@@ -416,11 +416,14 @@ public static class ContentResidency
             return false;
         }
 
-        // Карты покраски кожи этой актрисы — данные её тела; уходят вместе.
-        AtomicResources.EvictPath("HexLive/PaintMaps/skin_" + actorMesh);
-        AtomicResources.EvictPath("HexLive/PaintMaps/skinpos_" + actorMesh);
-        Wearing.PaintPointMap.Evict("skin_" + actorMesh);
-        Wearing.SkinPositionMapSet.Evict("skinpos_" + actorMesh);
+        // Карты покраски кожи НЕ выдёргиваются вместе с телом — сознательно
+        // (прецедент — иконки, живущие после вытеснения владельца). Возврат
+        // девушки в восприятие собирал вью, не дожидаясь карты: синхронный
+        // PaintPointMap.Load ловил первый async-промах («skin_Molly not
+        // found»), painter падал в legacy-путь и до перезапуска рисовал
+        // круглую марлю вместо обмотки, глотал кровь/спеклы/синяки и
+        // замораживал мокрый глянец. Точечные карты — мегабайты на актрису,
+        // цена постоянной резидентности несравнима с этой болезнью.
         return true;
     }
 

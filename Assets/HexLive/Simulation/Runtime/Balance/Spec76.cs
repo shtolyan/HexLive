@@ -122,6 +122,19 @@ public static class Spec76
     // the display carries no denominator.
     public static float AttributeTrainCeiling = 1.3f;
 
+    // ---- §76.14 (bug #304): Атлетика ----------------------------------------
+    // Дыхание при беге тратится медленнее: множитель 1 − Athletics × gain.
+    // На 10-м уровне — вдвое медленнее. Восстановление не трогаем.
+    public static float AthleticsBreathGain = 0.5f;
+
+    // Тренировка Выносливости от бега (§76.13) ускоряется атлетикой:
+    // множитель 1 + Athletics × gain, т.е. до 2× на максимуме.
+    public static float AthleticsEnduranceTrainGain = 1f;
+
+    // XP Атлетики за тик НАСТОЯЩЕГО бега — полставки рабочего тика: бегает
+    // колония много, и полный темп раскачал бы навык за день.
+    public static float SkillXpPerRunTick = 0.0002f;
+
     // Per tick of completed work (Strength / Wits, whichever the verb taxes).
     // ~40× slower than the matching skill: a trade is learned in days, a body
     // is built over a colony's lifetime.

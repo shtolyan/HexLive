@@ -382,10 +382,9 @@ public sealed class DoorPassageTests
         var portalId = door.Junctions[0];
         var hut = Hut(world);
 
-        // Второй девичий лагерь ставит свой дом там же, где стоит хижина —
-        // ровно случай §146.5 (StakeCampHutPlans разметил его в 2-4 гексах).
-        world.FactionHomes[Faction.Colony2] = hut.Tile;
-        world.DoorStateVersion++;
+        // Дом второго девичьего лагеря — ровно случай §146.5: StakeCampHutPlans
+        // штампует площадку своим лагерем, подъём уносит штамп на здание.
+        DoorTopology.StampOwner(world, hut, Faction.Colony2);
 
         Assert.That(BuildingDoorRules.TryClose(world, door.Id), Is.True);
 
@@ -396,7 +395,7 @@ public sealed class DoorPassageTests
         Assert.Multiple(() =>
         {
             Assert.That(DoorTopology.OwnerFaction(world, door), Is.EqualTo(Faction.Colony2),
-                "Дверь принадлежит ближайшему девичьему лагерю, а не константе Colony.");
+                "Дверь принадлежит своему лагерю, а не константе Colony.");
             Assert.That(FactionRelations.AreAllies(
                 Faction.Colony2, DoorTopology.OwnerFaction(world, door)), Is.True,
                 "Жительница обязана иметь право открыть свою же дверь.");
@@ -406,10 +405,170 @@ public sealed class DoorPassageTests
                     world, inside, outside, null, hardAvoid: forbidden), Is.Not.Empty,
                 "Изнутри собственного дома обязан существовать маршрут наружу (#237).");
 
-            // Аутсайдер дверей не строит и владельцем не становится никогда.
+            // Аутсайдер дверей не строит и владельцем не становится никогда —
+            // ни очагом по соседству, ни штампом.
             world.FactionHomes[Faction.Outsiders] = hut.Tile;
+            DoorTopology.StampOwner(world, hut, Faction.Outsiders);
             world.DoorStateVersion++;
             Assert.That(DoorTopology.OwnerFaction(world, door), Is.EqualTo(Faction.Colony2));
+        });
+    }
+
+    /// <summary>
+    /// #237 r2 (блокер ревью): владелец непроштампованного дома по-прежнему
+    /// выводится по ближайшему девичьему очагу — этим путём продолжают жить
+    /// сейвы ≤59 и миры без лагерной разметки.
+    /// </summary>
+    [Test]
+    public void UnstampedBuildingStillFallsBackToTheNearestCamp()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var door = Door(world);
+        var hut = Hut(world);
+
+        hut.OwnerFaction = null; // как у здания из старого блоба
+        world.FactionHomes[Faction.Colony2] = hut.Tile;
+        world.DoorStateVersion++;
+
+        Assert.That(DoorTopology.OwnerFaction(world, door), Is.EqualTo(Faction.Colony2),
+            "Без штампа действует прежнее правило «чей очаг ближе».");
+    }
+
+    /// <summary>
+    /// ⭐ #237 r2: дом остаётся домом СВОЕГО лагеря, когда очаг этого лагеря
+    /// исчезает — слиянием (§146.13) или гибелью. Вывод «чей очаг сейчас
+    /// ближе» отдавал такой дом ТРЕТЬЕМУ, постороннему лагерю, и запирал
+    /// жительниц ровно так же, как исходный #237, только позже по времени.
+    /// </summary>
+    [Test]
+    public void DoorKeepsItsCampWhenTheOwnerCampHomeIsRemoved()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var door = Door(world);
+        var portalId = door.Junctions[0];
+        var hut = Hut(world);
+
+        // Дом — Colony2; её очаг рядом, очаг постороннего Colony3 — дальше.
+        DoorTopology.StampOwner(world, hut, Faction.Colony2);
+        world.FactionHomes[Faction.Colony2] = hut.Tile;
+        world.FactionHomes[Faction.Colony3] = hut.Tile;
+        world.DoorStateVersion++;
+        Assert.That(BuildingDoorRules.TryClose(world, door.Id), Is.True);
+
+        // Лагерь Colony2 теряет очаг: слились, вымерли, перенесли стоянку.
+        world.FactionHomes.Remove(Faction.Colony2);
+        world.DoorStateVersion++;
+
+        var inside = InteriorJunction(world);
+        var outside = OutsideNeighborOfPortal(world, portalId);
+        var mine = DoorTopology.ForbiddenFor(world, Faction.Colony2);
+        var theirs = DoorTopology.ForbiddenFor(world, Faction.Colony3);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(DoorTopology.OwnerFaction(world, door), Is.EqualTo(Faction.Colony2),
+                "Исчезновение очага не передаёт дом соседнему лагерю (#237 r2).");
+            Assert.That(mine is null || !mine.Contains(portalId), Is.True,
+                "Жительнице её собственный портал не запрещают.");
+            Assert.That(HexPathfinder.FindPath(
+                    world, inside, outside, null, hardAvoid: mine), Is.Not.Empty,
+                "Из собственного дома обязан существовать выход наружу.");
+            Assert.That(HexPathfinder.FindPath(
+                    world, outside, inside, null, hardAvoid: mine), Is.Not.Empty,
+                "И вход внутрь — заперли бы снаружи так же надёжно.");
+            Assert.That(theirs, Is.Not.Null);
+            Assert.That(theirs, Does.Contain(portalId),
+                "А посторонний лагерь чужую дверь по-прежнему не открывает.");
+        });
+    }
+
+    /// <summary>
+    /// ⭐ #237 r2: слияние лагерей (§146.13) переписывает хозяина дома на
+    /// канонический лагерь. Очаги ОБОИХ исходных лагерей при этом удаляются,
+    /// так что дом без переписанного штампа достался бы соседу по расстоянию.
+    /// </summary>
+    [Test]
+    public void CampMergeCarriesTheHutToTheMergedCamp()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        world.Mode = Bootstrap.GameMode.HugeIsland; // слияние живёт только здесь
+        var door = Door(world);
+        var portalId = door.Junctions[0];
+        var hut = Hut(world);
+
+        DoorTopology.StampOwner(world, hut, Faction.Colony2);
+        world.FactionHomes[Faction.Colony2] = hut.Tile;
+        // Третий лагерь стоит ровно на хижине — прежний вывод по расстоянию
+        // отдал бы ему дверь сразу же после слияния.
+        world.FactionHomes[Faction.Colony3] = hut.Tile;
+        Assert.That(BuildingDoorRules.TryClose(world, door.Id), Is.True);
+
+        var resident = world.Entities.Npcs.Values.First();
+        var partner = world.Entities.Npcs.Values.First(n => !n.Id.Equals(resident.Id));
+        resident.Faction = Faction.Colony2;
+        partner.Faction = Faction.Colony;
+        resident.Social.GetOrCreate(partner.Id).Affinity = 0.9f;
+        partner.Social.GetOrCreate(resident.Id).Affinity = 0.9f;
+
+        Assert.That(CampDiplomacyMath.TryMerge(
+                world, resident, partner, CampHomeChoice.SecondCamp, out var reason),
+            Is.True, $"Слияние не состоялось: {reason}");
+        Assert.That(resident.Faction, Is.EqualTo(Faction.Colony));
+
+        var inside = InteriorJunction(world);
+        var outside = OutsideNeighborOfPortal(world, portalId);
+        var forbidden = DoorTopology.ForbiddenFor(world, resident.Faction);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(hut.OwnerFaction, Is.EqualTo(Faction.Colony),
+                "Дом переезжает в объединённый лагерь вместе с жительницами.");
+            Assert.That(DoorTopology.OwnerFaction(world, door),
+                Is.EqualTo(resident.Faction),
+                "После слияния дверь принадлежит объединённому лагерю, не третьему.");
+            Assert.That(forbidden is null || !forbidden.Contains(portalId), Is.True,
+                "Жительницу объединённого лагеря её дверь не запирает.");
+            Assert.That(HexPathfinder.FindPath(
+                    world, inside, outside, null, hardAvoid: forbidden), Is.Not.Empty,
+                "Выход из собственного дома переживает слияние лагерей (#237 r2).");
+            var stranger = DoorTopology.ForbiddenFor(world, Faction.Colony3);
+            Assert.That(stranger, Does.Contain(portalId),
+                "Посторонний лагерь дом слиянием не приобретает.");
+        });
+    }
+
+    /// <summary>#237 r2: штамп хозяина — состояние мира, значит он в сейве.</summary>
+    [Test]
+    public void BuildingOwnerCampSurvivesSaveLoad()
+    {
+        var world = TestWorld.CreateWorld(12345);
+        var hut = Hut(world);
+        DoorTopology.StampOwner(world, hut, Faction.Colony4);
+
+        using var stream = new System.IO.MemoryStream();
+        using (var writer = new System.IO.BinaryWriter(
+                   stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            Persistence.WorldSaveSerializer.Write(world, writer);
+        }
+
+        stream.Position = 0;
+        var loaded = TestWorld.CreateWorld(12345);
+        using (var reader = new System.IO.BinaryReader(
+                   stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            Persistence.WorldSaveSerializer.Read(loaded, reader);
+        }
+
+        var restoredHut = loaded.Entities.Objects[hut.Id];
+        var restoredDoor = loaded.Entities.Objects.Values.Single(obj =>
+            obj.DefinitionId == DoorTopology.DoorDefinitionId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(restoredHut.OwnerFaction, Is.EqualTo(Faction.Colony4),
+                "Без записи в сейв каждая загрузка заново гадала бы владельца.");
+            Assert.That(DoorTopology.OwnerFaction(loaded, restoredDoor),
+                Is.EqualTo(Faction.Colony4));
         });
     }
 

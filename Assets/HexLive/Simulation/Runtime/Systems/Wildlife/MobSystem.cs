@@ -886,15 +886,72 @@ public sealed class MobSystem : ISimulationSystem
 
     internal static void ReadySpearHands(WorldState world, NPCState npc)
     {
-        var dropped = 0;
-        foreach (var mat in _bulkyHandItems)
+        // Bug #278 (r2): «освободить руки под копьё» — уронить ношу КИСТЕЙ,
+        // не больше. Отдельного хранилища рук в симуляции нет — кисти в
+        // раскладке заполняются ПОСЛЕДНИМИ (InventoryLayoutBuilder.AddHands),
+        // поэтому: (а) считаем в ЯЧЕЙКАХ, не в предметах — UsedSlots падает
+        // лишь когда стак опустевает до границы, и поштучный while первой
+        // версии вываливал каждый материал ЦЕЛИКОМ, каскадом по всем четырём;
+        // (б) снимаем громоздкое С КОНЦА списка — раскладка льёт ячейки в
+        // порядке появления в Items, и последний громоздкий лежит в кисти, а
+        // Find-первый ронял брёвна из рюкзака вместо листьев из рук;
+        // (в) освобождаем не больше handSlots ячеек — это и ЕСТЬ ноша кистей,
+        // перелив сверх ёмкости — забота SpillOverflow, не боя.
+        // Ёмкость пересчитываем живьём: кэш Capacity не обновляется, когда
+        // рука падает ниже порога 0.20 или заживает обратно, и устаревший keep
+        // снова ронял бы из карманов.
+        EquipmentMath.RecalculateCapacity(world, npc);
+        var handSlots = System.Math.Min(npc.Body.IntactHands, SimBalance.HandSlots);
+        var keep = npc.Inventory.Capacity - handSlots;
+        var cellsToFree = System.Math.Min(npc.Inventory.UsedSlots - keep, handSlots);
+        if (cellsToFree <= 0)
         {
-            while (npc.Inventory.Items.Find(i => i.DefinitionId == mat) is { } item)
+            return;
+        }
+
+        var dropped = 0;
+        var ground = true;
+        while (ground && cellsToFree > 0)
+        {
+            var last = LastBulkyIndex(npc);
+            if (last < 0)
             {
-                npc.Inventory.Items.Remove(item);
-                ExecutionSystem.DropItemAtFeet(world, npc, item);
-                dropped++;
+                break;
             }
+
+            // Ронять инстансы ЭТОГО материала с конца, пока не освободится
+            // ровно одна ячейка (неполный стак = одна ячейка = вся охапка).
+            var definitionId = npc.Inventory.Items[last].DefinitionId;
+            var used = npc.Inventory.UsedSlots;
+            var progressed = false;
+            while (npc.Inventory.UsedSlots == used)
+            {
+                var index = LastIndexOf(npc, definitionId);
+                if (index < 0)
+                {
+                    break;
+                }
+
+                var item = npc.Inventory.Items[index];
+                npc.Inventory.Items.RemoveAt(index);
+                if (ExecutionSystem.DropItemAtFeet(world, npc, item) is null)
+                {
+                    // Некуда положить — вернуть в пакет, не уничтожать.
+                    npc.Inventory.Items.Add(item);
+                    ground = false;
+                    break;
+                }
+
+                dropped++;
+                progressed = true;
+            }
+
+            if (!progressed)
+            {
+                break;
+            }
+
+            cellsToFree--;
         }
 
         if (dropped > 0)
@@ -905,6 +962,32 @@ public sealed class MobSystem : ISimulationSystem
                     $"Dropped {dropped} to grab the spear");
             }
         }
+    }
+
+    private static int LastBulkyIndex(NPCState npc)
+    {
+        for (var i = npc.Inventory.Items.Count - 1; i >= 0; i--)
+        {
+            if (System.Array.IndexOf(_bulkyHandItems, npc.Inventory.Items[i].DefinitionId) >= 0)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int LastIndexOf(NPCState npc, string definitionId)
+    {
+        for (var i = npc.Inventory.Items.Count - 1; i >= 0; i--)
+        {
+            if (npc.Inventory.Items[i].DefinitionId == definitionId)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     // §54.16: is a LIVE beast standing within `radius` of this tile? The

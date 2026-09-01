@@ -51,8 +51,7 @@ public sealed class WorldObjectView : MonoBehaviour
         ObjectId = objectId;
         DefinitionId = definitionId ?? string.Empty;
         ClearContextProxy();
-        _renderers = GetComponentsInChildren<Renderer>(true);
-        _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
+        RefreshGeometry();
     }
 
     public void Init(int objectId, string definitionId, Renderer[] renderers)
@@ -62,6 +61,28 @@ public sealed class WorldObjectView : MonoBehaviour
         ClearContextProxy();
         _renderers = renderers ?? Array.Empty<Renderer>();
         _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
+    }
+
+    /// <summary>
+    /// Слой ВИДИМОЙ геометрии вида — для дистанционной отсечки клика (§121.1
+    /// «невидимое не кликается»). Корень вида остаётся на Default: SmallProps
+    /// назначается детям с renderers (SuppressSmallPropShadows), и камера
+    /// режет именно их, поэтому слой корня для отсечки — ложь. Квад импостора
+    /// (§150.4) живёт на обычном слое, но выключен через forceRenderingOff,
+    /// пока не активен, — фильтр пропускает его сам собой.
+    /// </summary>
+    public int VisibleGeometryLayer()
+    {
+        for (var i = 0; i < _renderers.Length; i++)
+        {
+            var renderer = _renderers[i];
+            if (renderer != null && !renderer.forceRenderingOff)
+            {
+                return renderer.gameObject.layer;
+            }
+        }
+
+        return gameObject.layer;
     }
 
     public void SetContextProxy(int objectId, string definitionId)
@@ -74,6 +95,28 @@ public sealed class WorldObjectView : MonoBehaviour
     {
         ContextObjectId = ObjectId;
         ContextDefinitionId = DefinitionId;
+    }
+
+    /// <summary>
+    /// Refresh the analytical picking surface after a streaming/dynamic view
+    /// replaces its child geometry. Build sites can exist before their content
+    /// prefab arrives, so the renderer list captured by Init may be empty even
+    /// though the bed appears a few frames later.
+    /// </summary>
+    public void RefreshGeometry()
+    {
+        if (_highlighted)
+        {
+            Rendering.HoverHighlight.Active.Clear(_renderers);
+        }
+
+        _renderers = GetComponentsInChildren<Renderer>(true);
+        _pickBounds = GetComponentsInChildren<WorldObjectPickBounds>(true);
+
+        if (_highlighted)
+        {
+            Rendering.HoverHighlight.Active.Apply(_renderers);
+        }
     }
 
     /// <summary>

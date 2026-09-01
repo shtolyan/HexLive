@@ -77,8 +77,21 @@ internal static class SkillMath
             return null;
         }
 
+        // §76.14 (bug #304): физическая работа (рубка, распилка, стройка)
+        // заодно тренирует Атлетику — вполсилы, поверх своего навыка.
+        if (type is InteractionType.Harvest or InteractionType.Process
+            or InteractionType.Build or InteractionType.BuildRaft)
+        {
+            Grant(npc, SkillKind.Athletics,
+                Spec76.SkillXpPerWorkTick * durationTicks * 0.5f);
+        }
+
         return Grant(npc, kind.Value, Spec76.SkillXpPerWorkTick * durationTicks);
     }
+
+    // §76.14 (bug #304): тик настоящего бега учит Атлетике. Ходьба — нет.
+    public static void GrantRunTick(NPCState npc) =>
+        Grant(npc, SkillKind.Athletics, Spec76.SkillXpPerRunTick);
 
     // A landed melee blow. Worth roughly ten ticks of ordinary labour: fights
     // are rare and short, and at the work rate Combat would never move at all.

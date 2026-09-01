@@ -122,6 +122,10 @@ public static class ContentIds
     public const string CarcassAnimal = "carcass.animal";
     public const string GraveNpc = "grave.npc";
     public const string PalmStump = "stump.palm";
+
+    // §54.2/#315: из пня вырастает ОБЫЧНАЯ пальма — промежуточной «молодой»
+    // модели больше нет.
+    public const string Palm = "tree.palm";
 }
 
 }

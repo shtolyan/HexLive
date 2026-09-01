@@ -24,6 +24,36 @@ public static class StrayGarmentMath
     /// оставить человека голым у воды.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Bug #314 (вердикт игрока): одежда в КАРМАНАХ — тоже беспорядок. В лагере
+    /// лишняя (не надетая и не входящая в выбранный комплект §133.10) вещь из
+    /// инвентаря сдаётся в гардероб/на сушилку тем же StowClothes-планом,
+    /// только без ноги «дойти и поднять».
+    /// </summary>
+    public static Agents.ItemInstance FindPocketGarment(WorldState world, NPCState npc)
+    {
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (!world.Content.ObjectDefinitions.TryGetValue(
+                    item.DefinitionId, out var definition) ||
+                definition.Layer is null)
+            {
+                continue;
+            }
+
+            // §133.10: кусок выбранного комплекта не сдаём — его ещё наденут.
+            if (npc.Mind.DesiredOutfit.Exists(piece =>
+                    piece.DefinitionId == item.DefinitionId))
+            {
+                continue;
+            }
+
+            return item;
+        }
+
+        return null;
+    }
+
     public static WorldObjectState FindStray(WorldState world, NPCState npc)
     {
         if (ColonyQueries.Home(world, npc.Faction) is not { } home)

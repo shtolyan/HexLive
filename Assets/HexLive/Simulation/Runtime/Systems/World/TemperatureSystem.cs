@@ -19,6 +19,13 @@ public sealed class TemperatureSystem : ISimulationSystem
     internal const float BodyDriftPerSlowTick = 0.04f;
     internal const float ActiveReliefPerSlowTick = 0.10f;
 
+    // Bug #283 / §48.6: держащийся ожог — настоящее влияние на Комфорт, а не
+    // косметика. Порог — EffectEvaluator.SunburnShow, чтобы чип «Солнечный
+    // ожог» и строка вклада зажигались вместе. Локальный литерал, как
+    // соседние солнечные штрафы 0.02f/0.15f, — не ручка SimBalance. Шкала:
+    // ComfortRate 0.01, Sick 0.006, Wet 0.004, DirtyClothes 0.002.
+    internal const float SunburnComfortPerSlowTick = 0.003f;
+
     public string Name => nameof(TemperatureSystem);
 
     public TickLayer Layer => TickLayer.Slow;
@@ -340,6 +347,22 @@ public sealed class TemperatureSystem : ISimulationSystem
                 var heal = System.Math.Min(npc.Needs.Sunburn, 0.0025f);
                 npc.Needs.Sunburn -= heal;
                 npc.Needs.TanLevel = MathUtil.Clamp01(npc.Needs.TanLevel + heal * 0.4f);
+            }
+
+            // Bug #283 / §48.6: обожжённая кожа саднит, пока краснота держится,
+            // — и в тени тоже, иначе чип «Солнечный ожог» висит без единой
+            // строки в разложении Комфорта (Sunstroke подписывает только само
+            // нахождение под солнцем и гаснет с SunExposure). Ветка стоит
+            // ПОСЛЕ заживления: Sunburn здесь финален за этот slow tick.
+            if (npc.Needs.Sunburn > EffectEvaluator.SunburnShow)
+            {
+                npc.Needs.Comfort = MathUtil.Clamp01(
+                    npc.Needs.Comfort - SunburnComfortPerSlowTick);
+                npc.EffectImpacts.Record(
+                    NeedKind.Comfort,
+                    EffectKind.Sunburnt,
+                    EffectImpactDirection.Negative,
+                    EffectImpactCadence.Slow);
             }
 
             // §40.7 r2: tan is no longer permanent. The same predicate that

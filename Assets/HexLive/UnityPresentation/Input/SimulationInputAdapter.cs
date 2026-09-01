@@ -31,6 +31,10 @@ namespace HexLive.UnityPresentation.Input
 /// действий (объект — его взаимодействия из каталога; человек или зверь —
 /// «атаковать/выбрать»); по клику в пустую землю отдаёт приказ идти.
 ///
+/// §121.11 (bug #294): ОДИН клик — всегда приказ идти. Жеста-темпа (двойного
+/// клика на бег) здесь больше нет: темп — постоянная настройка персонажа,
+/// тумблер «шагом/бегом» в карточке, и решает её симуляция.
+///
 /// ⭐ Ручной режим читается ИЗ СНАПШОТА, а не из своего поля. Тумблер живёт в
 /// симуляции, и она же авторитет: кнопка, помнящая своё, рано или поздно
 /// показывает одно, пока персонаж делает другое.
@@ -44,8 +48,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     // только к зверям и к людям БЕЗ готового вида (первые кадры после спавна,
     // примитивы прототипных сцен) — у остальных был честный точный луч.
     private const float PickRadiusPixels = 70f;
-    private const float DoubleClickSeconds = 0.30f;
-    private const float DoubleClickRadiusPixels = 18f;
     // Server lease may be configured as low as five seconds. A selected manual
     // actor proves the viewer is still actively presenting that control, so a
     // cheap idempotent heartbeat every two seconds keeps ownership alive while
@@ -57,8 +59,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     private WorldObjectView? _hovered;
     private int _hoveredNpcId = -1;
     private int _hoveredMobId = -1;
-    private float _lastGroundClickTime = float.NegativeInfinity;
-    private Vector2 _lastGroundClickPosition;
     private float _nextRemoteLeaseHeartbeatAt;
 
     private readonly List<ContextMenuEntry> _entries = new();
@@ -112,11 +112,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         UpdateHover();
     }
 
-    private void OnDisable()
-    {
-        ClearHover();
-        ResetGroundClickCadence();
-    }
+    private void OnDisable() => ClearHover();
 
     private void RefreshControlSelection()
     {
@@ -162,7 +158,10 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         ContextMenuPanel.BlocksWorldPointer ||
         LootTransferPanel.IsOpen ||
         GameMenu.IsOpen ||
-        EndSummaryPanel.IsOpen;
+        EndSummaryPanel.IsOpen ||
+        // Bug #279: окно отчёта об ошибке блокирует мир своим флагом — общий
+        // NpcSelection.PointerOverUi затирается CharacterPanel каждый кадр.
+        BugReportPanel.IsOpen;
 
     private void RenewRemoteLeaseForSelection()
     {
@@ -365,7 +364,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return false;
         }
 
-        var layer = view.gameObject.layer;
+        // Слой берётся с ВИДИМОЙ геометрии, не с корня вида: SmallProps
+        // назначается дочернему FBX-инстансу (SuppressSmallPropShadows), а
+        // корень остаётся на Default с cull 0 — проверка по корню была
+        // мёртвой, и задистанс-куленные пропы оставались кликабельными.
+        var layer = view.VisibleGeometryLayer();
         var cull = _camera.layerCullDistances[layer];
         if (cull <= 0f)
         {
@@ -557,7 +560,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         if (ContextMenuPanel.IsOpen)
         {
             ContextMenuPanel.Close();
-            ResetGroundClickCadence();
             return true;
         }
 
@@ -568,7 +570,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         if (_hoveredNpcId >= 0)
         {
-            ResetGroundClickCadence();
             // §121.9: клик по себе — меню самодействий, не приказ и не выбор.
             if (_hoveredNpcId == OrderNpcId)
             {
@@ -584,29 +585,29 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         if (_hoveredMobId >= 0)
         {
-            ResetGroundClickCadence();
             OpenMobMenu(mousePos, _hoveredMobId);
             return true;
         }
 
         if (_hovered != null)
         {
-            ResetGroundClickCadence();
             OpenObjectMenu(mousePos, _hovered);
             return true;
         }
 
         if (TryPickGroundPoint(mousePos, out var point))
         {
-            var run = ConsumeGroundDoubleClick(mousePos, Time.unscaledTime);
+            // §121.11 (bug #294): ОДИН клик — всегда идти. Темпа жест больше не
+            // несёт (run: null): им владеет постоянная настройка персонажа в
+            // симуляции, и у каждой выделенной девушки она своя.
             if (_selectedColonyIds.Count == 1 && ManualNpcId >= 0)
             {
                 _runner.EnqueueCommand(
-                    new MoveToCommand(new EntityId(ManualNpcId), point, run));
+                    new MoveToCommand(new EntityId(ManualNpcId), point));
             }
             else
             {
-                _runner.EnqueueCommand(new GroupMoveCommand(SelectedActors(), point, run));
+                _runner.EnqueueCommand(new GroupMoveCommand(SelectedActors(), point));
             }
             DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(point, GroundMarkerY(point)));
             return true;
@@ -711,7 +712,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         PickTarget(snapshot, mousePos, out var npcId, out var mobId, out var objectHit);
         if (npcId >= 0)
         {
-            ResetGroundClickCadence();
             if (npcId == OrderNpcId)
             {
                 OpenSelfMenu(mousePos, npcId);
@@ -726,14 +726,12 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         if (mobId >= 0)
         {
-            ResetGroundClickCadence();
             OpenMobMenu(mousePos, mobId);
             return true;
         }
 
         if (objectHit != null)
         {
-            ResetGroundClickCadence();
             OpenObjectMenu(mousePos, objectHit);
             return true;
         }
@@ -765,32 +763,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         EnsureManual(actorId);
         _runner.EnqueueCommand(command);
-    }
-
-    // The first click is dispatched immediately as Walk. If a second release
-    // lands close enough and soon enough, its Run order atomically replaces
-    // the first one through the normal command queue. Unscaled time keeps the
-    // gesture usable while the simulation itself is paused.
-    private bool ConsumeGroundDoubleClick(Vector2 position, float now)
-    {
-        var elapsed = now - _lastGroundClickTime;
-        var isDouble = elapsed >= 0f && elapsed <= DoubleClickSeconds &&
-            Vector2.Distance(position, _lastGroundClickPosition) <= DoubleClickRadiusPixels;
-        if (isDouble)
-        {
-            ResetGroundClickCadence();
-            return true;
-        }
-
-        _lastGroundClickTime = now;
-        _lastGroundClickPosition = position;
-        return false;
-    }
-
-    private void ResetGroundClickCadence()
-    {
-        _lastGroundClickTime = float.NegativeInfinity;
-        _lastGroundClickPosition = default;
     }
 
     private void OpenObjectMenu(Vector2 mousePos, WorldObjectView view)
@@ -827,9 +799,16 @@ public sealed class SimulationInputAdapter : MonoBehaviour
              definition.HasTag(ObjectTags.Wardrobe) ||
              definition.InventoryCapacity > 0);
 
+        // Приказ уходит по КОНТЕКСТНОЙ цели (секция дома проксирует меню на
+        // своего footprint-owner), поэтому и состояние стройки спрашиваем у неё.
+        var contextObject = view.ContextObjectId == view.ObjectId
+            ? clicked
+            : FindObject(snapshot, view.ContextObjectId);
+
         var carried = CarriedItems();
         var actorId = OrderNpcId;
         var actor = new EntityId(actorId);
+        var buildOffered = false;
         _entries.Clear();
         foreach (var interaction in definition.Interactions)
         {
@@ -837,17 +816,57 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             // inventory panel; the old one-item interaction must not create a
             // duplicate identically named menu entry beside it.
             if (isContainer && interaction.Type == InteractionType.Loot) continue;
+
+            // §54.14 (bug #292): готовая постройка не предлагает строить себя.
+            // У костра глагол Build стоит в каталоге ДВАЖДЫ (build.upgrade и
+            // build.furniture — §54.14 отдаёт оба одному обработчику), поэтому
+            // достроенный костёр показывал игроку две одинаковые строки
+            // «Строить», ведущие в никуда. Пункт остаётся ровно один и только
+            // пока у цели открыт строительный счёт; тот же предикат
+            // авторитетно повторяет ManualCommandExecutor.
+            if (interaction.Type == InteractionType.Build)
+            {
+                if (buildOffered || !BuildSiteView.AcceptsBuildOrder(contextObject)) continue;
+                buildOffered = true;
+            }
+
             var ok = HasEveryTool(carried, interaction);
             var objectId = view.ContextObjectId;
             var type = interaction.Type;
             var interactionId = interaction.Id;
+            // Bug #312: взять чужое на приватной земле чужого лагеря — это
+            // «Украсть», красным. Предикат тот же, что применит симуляция
+            // (TheftMath), посчитан по снапшоту: якоря лагерей + владелец.
+            var theft = type == InteractionType.PickUp &&
+                IsTheftTarget(snapshot, clicked);
             _entries.Add(new ContextMenuEntry(
-                InteractionVerb(interaction),
+                theft ? Loc.Get("menu.steal") : InteractionVerb(interaction),
                 () => EnqueueOrder(actorId,
                     new InteractCommand(
                         actor, new ObjectId(objectId), type, interactionId)),
                 ok,
-                ok ? null : Loc.Get("menu.missing_tool")));
+                ok ? null : Loc.Get("menu.missing_tool"))
+            { Danger = theft });
+
+            // §121.10 (баг #270): рядом с «Подобрать» — «Собрать все». Собрать
+            // все — это собрать все однотипное на ГЕКСЕ кликнутого предмета.
+            // Количество намеренно НЕ считаем и не показываем: игрок просил
+            // упростить («давай даже не будем считать»), а сколько там листьев
+            // — знает мир, а не меню прошлого кадра. Приказ сам разберёт гекс
+            // по одному предмету за раз.
+            // Bug #331: у вертела «собрать все» лишено смысла — мясо и так
+            // берётся по кусочку (сам пункт называется «Взять кусочек»).
+            if (type == InteractionType.PickUp && interactionId != "take.from.spit")
+            {
+                _entries.Add(new ContextMenuEntry(
+                    theft ? Loc.Get("menu.steal_all") : Loc.Get("menu.gather_all"),
+                    () => EnqueueOrder(actorId,
+                        new GatherAllOnHexCommand(
+                            actor, new ObjectId(objectId), type, interactionId)),
+                    ok,
+                    ok ? null : Loc.Get("menu.missing_tool"))
+                { Danger = theft });
+            }
         }
 
         // §124.1: у несущей человека клик по кровати добавляет «Положить» —
@@ -875,6 +894,57 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     () => EnqueueOrder(actorId,
                         new PutPersonInBedCommand(actor, new ObjectId(bedId)))));
             }
+        }
+
+        // §146.14 (bug #291): «Сделать домом» — только на СВОЁМ очаге (наш
+        // лагерь или ничья земля; предикат общий с исполнителем —
+        // CampHomeMath, правило §149 r3). На чужом очаге пункта нет вовсе:
+        // присоединение к чужому лагерю — только дипломатией §146.12. Именно
+        // EnqueueCommand, не EnqueueOrder: перенос якоря — состояние лагеря,
+        // переводить девушку в ручной режим ради него нельзя.
+        if (definition.HasTag("Campfire") && snapshot != null && clicked != null)
+        {
+            NpcSnapshot? orderer = null;
+            foreach (var candidate in snapshot.Npcs)
+            {
+                if (candidate.Id.Value == actorId)
+                {
+                    orderer = candidate;
+                    break;
+                }
+            }
+
+            if (orderer != null && !CampHomeMath.IsForeignCampTile(
+                    snapshot.CampHomes, orderer.Faction, clicked.Tile))
+            {
+                var already = CampHomeMath.IsHomeTile(
+                    snapshot.CampHomes, orderer.Faction, clicked.Tile);
+                var hearthId = view.ContextObjectId;
+                _entries.Add(new ContextMenuEntry(
+                    Loc.Get("menu.make_home"),
+                    () => runner.EnqueueCommand(
+                        new SetCampHomeCommand(actor, new ObjectId(hearthId))),
+                    !already,
+                    already ? Loc.Get("menu.make_home.already") : null));
+            }
+        }
+
+        // §54.14 (bug #293): «Пожарить мясо» — прямо в меню костра. Раньше
+        // повесить кусок на вертел можно было только через вкладку крафта в
+        // рюкзаке, и игрок этого пути не находил вовсе. Приказ тот же самый,
+        // которым мясо вешает сама колонистка (рецепт CookMeat): огонь,
+        // готовый вертел и свободные крюки проверяет симуляция, а не меню
+        // прошлого кадра. Пункт показан, только когда сырое мясо при себе —
+        // иначе он был бы обещанием без содержания.
+        if (definition.HasTag(ObjectTags.Campfire))
+        {
+            var hasRawMeat = carried.Contains(ContentIds.MeatRaw);
+            _entries.Add(new ContextMenuEntry(
+                Loc.Get("menu.cook_meat"),
+                () => EnqueueOrder(actorId,
+                    new CraftItemCommand(actor, GoalType.CookMeat)),
+                hasRawMeat,
+                hasRawMeat ? null : Loc.Get("menu.cook_meat.no_meat")));
         }
 
         // §128.5: ОБЫСКАТЬ ВЕЩЬ — истлевшее тело, снятый рюкзак, аптечку.
@@ -1375,6 +1445,46 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 {
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    // Bug #312: тот же предикат кражи, что применит симуляция (TheftMath),
+    // посчитанный по снапшоту: вещь на приватной земле НЕсоюзного лагеря
+    // (5 гексов от его якоря), и владелец вещи — не союзник.
+    private bool IsTheftTarget(WorldSnapshot? snapshot, ObjectSnapshot? target)
+    {
+        if (snapshot == null || target == null)
+        {
+            return false;
+        }
+
+        var myFaction = PlayerCampView.Of(_runner, snapshot);
+        if (target.OwnerNpcId is { } ownerId)
+        {
+            foreach (var npc in snapshot.Npcs)
+            {
+                if (npc.Id.Value == ownerId)
+                {
+                    if (FactionRelations.AreAllies(myFaction, npc.Faction))
+                    {
+                        return false;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        foreach (var home in snapshot.CampHomes)
+        {
+            if (!FactionRelations.AreAllies(myFaction, home.Faction) &&
+                HexSpatialMath.HexDistance(target.Tile, home.Tile) <=
+                    TheftMath.PrivateGroundRadiusTiles)
+            {
+                return true;
             }
         }
 

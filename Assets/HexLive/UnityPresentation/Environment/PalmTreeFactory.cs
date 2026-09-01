@@ -14,7 +14,7 @@ namespace HexLive.UnityPresentation.Environment
     public static class PalmTreeFactory
     {
         public static bool IsPalm(string definitionId) =>
-            definitionId is "tree.palm" or "tree.palm_small";
+            definitionId is "tree.palm";
 
         public static GameObject? Build(string definitionId)
         {

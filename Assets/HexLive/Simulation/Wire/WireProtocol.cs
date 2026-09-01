@@ -135,7 +135,10 @@ public sealed class Handshake
     // 9: §149.3 — AssignedNpcIds: постоянный ростер именно этого игрока.
     // 10: §138.2 — per-viewer FrameKind.CraftingOptions.
     // 11: snapshot v33 — owner ids of physical inventory/clothing items.
-    public const int ProtocolVersion = 11;
+    // 12: §121.11/#294 — темп ручного приказа стал настройкой персонажа:
+    //     MoveTo/GroupMove несут необязательный темп, появилась
+    //     SetRunByDefault, а RunByDefault едет в записи NPC (snapshot v37).
+    public const int ProtocolVersion = 12;
 
     public int Seed { get; set; }
 

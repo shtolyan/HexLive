@@ -49,6 +49,16 @@ namespace HexLive.UnityPresentation.UI
         public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
         public bool Visible => _quickVisible || _managerVisible;
 
+        // Bug #279: собственный флаг для гейтов мира (RtsCameraController /
+        // SimulationInputAdapter). Запись в общий NpcSelection.PointerOverUi
+        // недостаточна — её безусловно затирает CharacterPanel каждый кадр.
+        public static bool IsOpen { get; private set; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => IsOpen = false;
+
+        private void OnDestroy() => IsOpen = false;
+
         private void Awake()
         {
             var document = GetComponent<UIDocument>();
@@ -143,6 +153,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void ApplyVisible()
         {
+            IsOpen = Visible;
             if (_quickWindow != null)
             {
                 _quickWindow.style.display = _quickVisible ? DisplayStyle.Flex : DisplayStyle.None;

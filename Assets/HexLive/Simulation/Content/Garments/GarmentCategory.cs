@@ -29,7 +29,7 @@ namespace HexLive.Simulation.Content
             if (HasToken(text, "glove", "gloves", "mitten", "mittens")) return GarmentCategory.Gloves;
             if (HasToken(text, "necklace", "pendant", "bracelet", "earring")) return GarmentCategory.Jewellery;
             if (HasToken(text, "scarf", "bowtie", "choker", "collar", "necktie")) return GarmentCategory.Neckwear;
-            if (HasToken(text, "cap", "hat", "headband", "glasses", "sunglasses", "goggles")) return GarmentCategory.Headwear;
+            if (HasToken(text, "cap", "hat", "headband", "glasses", "sunglasses", "goggles", "helmet")) return GarmentCategory.Headwear;
             if (HasToken(text, "backpack", "bag", "purse", "pouch", "holster")) return GarmentCategory.Bag;
             if (HasToken(text, "belt")) return GarmentCategory.Belt;
             if (HasToken(text, "dress", "babydoll")) return GarmentCategory.Dress;

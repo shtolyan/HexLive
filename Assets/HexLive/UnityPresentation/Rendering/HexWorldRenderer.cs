@@ -273,6 +273,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // §125.5: кого прячет туман среди ЛЮДЕЙ. Пусто, когда режим «выбранная»
     // выключен: без выбранной прятать людей не от чьего лица.
     private readonly HashSet<int> _fogHiddenNpcs = new();
+
+    // Bug #338 r3: есть ли в текущем снапшоте хоть одна управляемая (флаг
+    // пересчитывается в RebuildPerceptionCulling раз в тик).
+    private bool _anyControlledInSnapshot;
     private bool _fogHidesNpcs;
     // Bug #146: relation-card selection may point at a hidden outsider. The
     // selection still opens her card, but only a living colonist may become
@@ -484,6 +488,18 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private Transform? _objectsRoot;
     private Transform? _npcsRoot;
     private int _lastRenderedTick = -1;
+
+    /// <summary>
+    /// §155.5/§41.4: принудительный повторный проход синка на ТОМ ЖЕ тике.
+    /// Под шторкой сим стоит на паузе (тик 0), а RenderSnapshot выполняется
+    /// только на новый тик: первый проход заказывал тела асинхронно, второго
+    /// прохода не наступало никогда — «NPC#1: вида нет» до перезапуска.
+    /// WaitForActors дёргает это, пока актрисы не собраны.
+    /// </summary>
+    public void RequestActorBuildPass() => _lastRenderedTick = -1;
+    // Bug #287: личность мира, а не только его часы — реконнект к НОВОМУ миру
+    // с тем же адресом сервера различим лишь по seed (тик мог и не прыгнуть).
+    private int _lastWorldSeed;
 
     private WorldSnapshot? _lastSnapshot;
 
@@ -812,7 +828,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // every colonist in a straight line over the island. Drop the previous
             // poses so this frame SNAPS instead.
             if (_lastRenderedTick >= 0 &&
-                (snapshot.Tick < _lastRenderedTick || snapshot.Tick - _lastRenderedTick > PoseSnapTicks))
+                (snapshot.Seed != _lastWorldSeed ||
+                 snapshot.Tick < _lastRenderedTick ||
+                 snapshot.Tick - _lastRenderedTick > PoseSnapTicks))
             {
                 _prevNpcPoses.Clear();
                 _currNpcPoses.Clear();
@@ -835,12 +853,28 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // view once before the memory fog may freeze anything.
                 _cullInitialBuildDone = false;
                 _objectViewTiles.Clear();
+
+                // §148 / bug #287: карта памяти тумана — ЗЕРКАЛО снапшота, а
+                // не биография вида. Мир сменился (другой seed или часы пошли
+                // назад) — забыть всё; иначе новая колония наследует
+                // разведанность предыдущего мира: провод честно присылает
+                // пустой Explored, но _everSeenTiles только копил Add и
+                // никогда не чистился. RebuildPerceptionCulling в этом же
+                // кадре наполнит множество заново из снапшота.
+                _everSeenTiles.Clear();
+                _cullVisibleTiles.Clear();
+                _cullFrozenTiles.Clear();
+                // §148.3: «?» на местах чужаков прошлого мира тоже забыть.
+                _lastSeenNpcTiles.Clear();
+                // Перекрасить memory-shade с нуля (оригиналы в _tileShadeSaved).
+                _tileShadeApplied.Clear();
             }
 
             UnityEngine.Profiling.Profiler.BeginSample("Hex.RenderSnapshot");
             RenderSnapshot(snapshot);
             UnityEngine.Profiling.Profiler.EndSample();
             _lastRenderedTick = snapshot.Tick;
+            _lastWorldSeed = snapshot.Seed;
             _lastSnapshot = snapshot;
         }
 
@@ -1041,6 +1075,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
         "architecture.support.wood"
     };
 
+    // Bug #321: сколько видов памяти тумана строится за один снапшот-пасс —
+    // большая разведка после загрузки раскатывается за несколько секунд, а не
+    // одним фризом кадра.
+    private const int FrozenViewBudget = 64;
+
     // Spec 40.2-B: ground blood stains manager (lazy — lives under the
     // renderer, cleared with it on scene teardown).
     private const int CorpseBleedTicks = 120; // 30 sim seconds after death
@@ -1113,13 +1152,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             var main = _rain.main;
             main.startSpeed = 22f;
-            // Thin, dainty streaks — width comes from startSize in stretch mode.
+            // Streak width comes from startSize in stretch mode. Bug #298:
+            // укрупнение штриха до 8-14 см читалось игроком как «огромный
+            // дождь» — размер возвращён к исходным тонким каплям, а
+            // различимость с игровой камеры (30-50 wu) несёт только альфа
+            // (0.55 -> 0.8): при ней тонкий штрих уже не суб-пиксельно бледный.
             main.startSize = new ParticleSystem.MinMaxCurve(0.035f, 0.06f);
             main.startLifetime = 2.2f;
-            main.startColor = new Color(0.65f, 0.78f, 0.95f, 0.55f);
+            main.startColor = new Color(0.65f, 0.78f, 0.95f, 0.8f);
             main.maxParticles = 9000;
             main.gravityModifier = 1.2f;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
+            // Bug #301: эмиттер висит в 30 wu над землёй, и при близкой камере
+            // его баунды вне кадра — Automatic culling СТАВИТ систему на паузу,
+            // капли не симулируются вовсе («дождь появился только когда
+            // открутил камеру»). Дождь обязан идти независимо от фрустума.
+            main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
 
             var emission = _rain.emission;
             emission.rateOverTime = 2600f; // lots of small drops
@@ -1164,10 +1212,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (raining && !_rain.isPlaying)
         {
             _rain.Play();
+            // Диагностика «дождь идёт, а капель не видно»: строка в Player.log
+            // отделяет «система не играет» от «играет, но не различима».
+            Debug.Log($"[Rain] particles playing (emitter y={_rain.transform.position.y:F1}, " +
+                      $"cam={(_cutawayCamera != null ? _cutawayCamera.transform.position.ToString() : "none")})");
         }
         else if (!raining && _rain.isPlaying)
         {
             _rain.Stop();
+            Debug.Log("[Rain] particles stopped");
         }
 
         if (_rain.isPlaying)
@@ -1250,12 +1303,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         var main = splash.main;
         main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f, 1.7f);
+        // Bug #298: брызги вернулись к прежним 2-5 см вместе с каплями.
         main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.05f);
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.38f);
-        main.startColor = new Color(0.75f, 0.86f, 1f, 0.75f);
+        main.startColor = new Color(0.75f, 0.86f, 1f, 0.85f);
         main.maxParticles = 6000;
         main.gravityModifier = 1.4f;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
+        // Bug #301: брызги живут тем же правилом, что и капли — симулировать
+        // всегда, иначе пауза за кадром съедает первые всплески.
+        main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
 
         var emission = splash.emission;
         emission.rateOverTime = 0f;
@@ -1739,6 +1796,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         UnityEngine.Profiling.Profiler.EndSample();
         UnityEngine.Profiling.Profiler.BeginSample("Hex.RS.Objects");
+        var frozenViewsBuilt = 0; // #321: бюджет памяти тумана на один пасс
         foreach (var worldObject in snapshot.Objects)
         {
             var key = worldObject.Id.Value;
@@ -1760,11 +1818,22 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             // Виденная, но не видимая сейчас земля ЗАМОРОЖЕНА как память:
-            // существующий вид не трогаем (он и есть «как в последний раз»),
-            // новый — не создаём.
-            if (_cullActive && _cullFrozenTiles.Contains(worldObject.Tile))
+            // существующий вид не трогаем (он и есть «как в последний раз»).
+            // Bug #321 (вердикт игрока): ПАМЯТЬ ОБЯЗАНА БЫТЬ НАРИСОВАНА — на
+            // разведанном гексе камни/пальмы видны и под туманом. Поэтому вид
+            // без вида СОЗДАЁТСЯ и здесь (не больше FrozenViewBudget за пасс,
+            // чтобы не дёрнуть кадр при загрузке большой разведки), а вот
+            // потикового синка у замороженных по-прежнему нет — это и есть
+            // экономия §148.
+            var frozenMemory = _cullActive && _cullFrozenTiles.Contains(worldObject.Tile);
+            if (frozenMemory && (hasView || frozenViewsBuilt >= FrozenViewBudget))
             {
                 continue;
+            }
+
+            if (frozenMemory)
+            {
+                frozenViewsBuilt++;
             }
 
             _objectViewTiles[key] = worldObject.Tile;
@@ -1778,9 +1847,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 objectView = CreateObjectView(worldObject, _junctionPositions, snapshot.Tick);
                 if (objectView == null)
                 {
-                    // The object's independent bundle is still travelling.
-                    // Do not enter it into _objectViews until the authored view
-                    // exists: the next snapshot retries this exact object.
+                    // The object's independent bundle is still travelling — or
+                    // its last attempt ended Missing/Failed and waits for a
+                    // healthy registry refresh to be forgiven
+                    // (ContentPrefabCache). Do not enter it into _objectViews
+                    // until the authored view exists: the next snapshot
+                    // retries this exact object.
                     _objectViewTiles.Remove(key);
                     continue;
                 }
@@ -1840,6 +1912,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var cachedParts = _objectViewParts[key];
                 cachedParts.ObjectView = contextView;
                 _objectViewParts[key] = cachedParts;
+            }
+
+            // Bug #321: замороженная память построена — потикового синка нет.
+            if (frozenMemory)
+            {
+                continue;
             }
 
             _objectViewParts.TryGetValue(key, out var parts);
@@ -2086,6 +2164,14 @@ public sealed class HexWorldRenderer : MonoBehaviour
         BindArchitectureElementViews(snapshot);
         UnityEngine.Profiling.Profiler.EndSample();
 
+        // §155.5: вне шторки за один снапшот-пасс собирается не больше ОДНОЙ
+        // новой девушки — сборка вью (тело + пришивка одежды + ткань) стоит
+        // сотни миллисекунд, и караван из нескольких появившихся разом клал
+        // кадр на секунды (капча 2026-08-28: кадр 829 = 1.7 с).
+        var appearanceBudget = UI.LoadingScreen.IsActive || !_cullInitialBuildDone
+            ? int.MaxValue
+            : 1;
+
         foreach (var npc in snapshot.Npcs)
         {
             var key = npc.Id.Value;
@@ -2096,21 +2182,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // последнем известном месте (SyncUnknownNpcMarkers), а не
             // застывшее тело: тело ушло бы оттуда, и картинка врала бы.
             var isOurs = IsPlayerOwned(npc);
-            var strangerVisible = isOurs || TileVisibleNow(npc.Tile);
-            if (!isOurs && strangerVisible)
+            var hiddenByFog = NpcViewLegitimatelyHidden(
+                npc, isOurs, out var controlled, out var strangerVisible);
+            if (!controlled && strangerVisible)
             {
                 _lastSeenNpcTiles[key] = npc.Tile;
             }
-
-            var hiddenByFog = (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(key))
-                // Гейт на ВСЁ ВРЕМЯ ЗАГРУЗКИ, а не на первую сборку: экран
-                // ждёт, пока каждое тело ростера дошьётся, а выключенный
-                // актёр дошиться не может (зависание #146). Одной первой
-                // сборки не хватило (баг #182): причёска приезжает много
-                // кадров спустя, и девушки соседних лагерей (§146) успевали
-                // погаснуть прямо посреди своей загрузки — занавес ждал их
-                // вечно. Под занавесом их всё равно никто не видит.
-                || (_cullInitialBuildDone && !UI.LoadingScreen.IsActive && !strangerVisible);
 
             if (!_npcViews.TryGetValue(key, out var npcView) || npcView == null)
             {
@@ -2126,6 +2203,21 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 {
                     ContentResidency.ForgetNpc(key);
                     continue;
+                }
+
+                // §155.5: тёплое появление. Вне шторки вью не собирается, пока
+                // тяжёлые двери (тело, причёска, надетое) не отдадут из кэша:
+                // сборка на холодных дверях читала ассеты с диска прямо в
+                // кадре (Loading.ReadObject 463 мс в кадре-фризе). Пассы до
+                // готовности греют двери асинхронно и выходят.
+                if (_cullInitialBuildDone && !UI.LoadingScreen.IsActive)
+                {
+                    if (appearanceBudget <= 0 || !NpcAppearanceWarm(npc))
+                    {
+                        continue;
+                    }
+
+                    appearanceBudget--;
                 }
 
                 npcView = CreateNpcView(npc);
@@ -2550,6 +2642,37 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// ЕДИНСТВЕННОЕ правило «этот вид законно погашен» — его считают и
+    /// снапшот-пасс, и сторожок #146: два независимых экземпляра этого
+    /// предиката уже разошлись однажды (сторожок кричал «вид НЕАКТИВЕН» про
+    /// соседок, законно скрытых вырезом восприятия #337/#338 r3, и шумом
+    /// хоронил настоящие поломки — баг 339).
+    /// <para>
+    /// Bug #337: от скрытия освобождает только УПРАВЛЯЕМАЯ, не весь лагерь —
+    /// соседка, ушедшая из восприятия, прячется как чужая. Bug #338 r3: с
+    /// фолбэком — без управляемых в кадре (гость или мигнул 120-с лиз) льгота
+    /// возвращается всему своему лагерю, иначе на границе лиза замирал весь
+    /// мир. Гейт загрузки — на ВСЁ её время, а не на первую сборку: экран
+    /// ждёт, пока каждое тело ростера дошьётся, а выключенный актёр дошиться
+    /// не может (зависание #146); одной первой сборки не хватило (баг #182) —
+    /// причёска приезжает много кадров спустя, и девушки соседних лагерей
+    /// (§146) успевали погаснуть посреди своей загрузки. Под занавесом их всё
+    /// равно никто не видит.
+    /// </para>
+    /// </summary>
+    private bool NpcViewLegitimatelyHidden(
+        NpcSnapshot npc, bool isOurs,
+        out bool controlled, out bool strangerVisible)
+    {
+        controlled = _anyControlledInSnapshot
+            ? _runner != null && _runner.CanControlNpc(npc.Id)
+            : isOurs;
+        strangerVisible = controlled || TileVisibleNow(npc.Tile);
+        return (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(npc.Id.Value))
+            || (_cullInitialBuildDone && !UI.LoadingScreen.IsActive && !strangerVisible);
+    }
+
     // ⭐ Bug #146 watchdog: «девушки не рендерятся, пока не кликнешь». Три
     // правдоподобных диагноза подряд (туман §125.5, вырез §120, GRD occlusion)
     // не подтвердились у игрока — дальше только замер по живой сессии, §109.16.
@@ -2589,6 +2712,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (!view.activeInHierarchy)
             {
+                // Bug 339: соседка своего лагеря вне восприятия управляемой
+                // погашена ЗАКОННО (#337/#338 r3) — это не поломка, и сторожок
+                // молчит. Проверяется ТЕМ ЖЕ предикатом, каким её погасил
+                // снапшот-пасс; сломанный вид (погашен при видимом тайле,
+                // при живой управляемой и т.д.) по-прежнему кричит.
+                if (NpcViewLegitimatelyHidden(npc, isOurs: true, out _, out _))
+                {
+                    continue;
+                }
+
                 WatchdogReport($"inactive:{id}",
                     $"[NpcRenderWatchdog] npc={id} {npc.DisplayName}: вид НЕАКТИВЕН " +
                     $"(activeSelf={view.activeSelf} fogActive={_fogActive} fogHidesNpcs={_fogHidesNpcs} " +
@@ -3490,11 +3623,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return HexRadius * TreeHeightFactor * 0.65f;
         }
 
-        if (definitionId == "tree.palm_small")
-        {
-            return HexRadius * TreeHeightFactor * 0.45f;
-        }
-
         if (definitionId == "rock.boulder")
         {
             return HexRadius * 0.28f;
@@ -3941,6 +4069,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         GetObjectAnchorFromJunctions(worldObject, _junctionPositions);
 
     public float GroundTopY(TileCoord coord) => GroundY(coord);
+
+    /// <summary>Bug #336: опорная высота ПОВЕРХНОСТИ под объектом — на полу
+    /// дома это доски (+FloorSurfaceLift), не спрятанный под ними террейн.
+    /// Колышки стройплощадки в доме обязаны торчать из пола, иначе их не
+    /// видно и не выбрать.</summary>
+    public float ObjectGroundTopY(ObjectSnapshot worldObject) =>
+        ObjectGroundY(worldObject);
 
     private float ObjectGroundY(ObjectSnapshot worldObject)
     {
@@ -4669,8 +4804,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     scatter: !parkedBottle && worldObject.RotationDegrees == 0f);
                 if (parkedBottle)
                 {
+                    // Не сбрасывать поворот в identity: префаб бутылки несёт
+                    // Z-up→Y-up обёртку FBX-импортёра (X=-90), без неё бутылка
+                    // ложится на бок (баги #106/#280). FitObjectPrefab со
+                    // scatter:false поворот не трогает — авторская вертикальная
+                    // поза уже стоит.
                     instance.transform.localPosition += Vector3.up * 0.12f;
-                    instance.transform.localRotation = Quaternion.identity;
                     prefabRoot.name = $"Object {worldObject.DefinitionId} (parked)";
                 }
                 var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
@@ -4953,12 +5092,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var npc in snapshot.Npcs)
         {
-            // #146 rework: own colonists are player-owned bodies, not fog
-            // contacts. Hiding housemates made a talk target disappear while
-            // her selected partner spoke to empty space; clicking the missing
-            // roster entry then exempted that id and looked like a spawn.
-            if (!IsPlayerOwnedNpc(npc) &&
-                npc.Id.Value != selectedId && !FogSeesTile(npc.Tile))
+            // Bug #322 (вердикт игрока, отменяет широкую льготу #146): СВОИ
+            // тоже прячутся, выйдя из восприятия, — «ждём её и не знаем, что с
+            // ней», как с чужими. Видимыми остаются только выбранная и та, кем
+            // игрок непосредственно управляет; собеседница выбранной стоит в её
+            // радиусе восприятия и потому не исчезает (страх #146 не
+            // воспроизводится). Выбор скрытой из ростера её честно откроет —
+            // это взгляд игрока, а не спавн.
+            var exempt = npc.Id.Value == selectedId ||
+                (_runner != null && _runner.CanControlNpc(npc.Id));
+            if (!exempt && !FogSeesTile(npc.Tile))
             {
                 _fogHiddenNpcs.Add(npc.Id.Value);
             }
@@ -5167,13 +5310,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         _cullActive = true;
         _cullEyes.Clear();
+        // Bug #338 r3: у #337 не было фолбэка — на границе 120-секундного
+        // player-лиза CanControlNpc мигал в false, глаза исчезали, и ВЕСЬ мир
+        // замирал/прятался до продления (сторожок: «вид НЕАКТИВЕН», включая
+        // управляемую). Если управляемых в кадре нет (гость или мигнул лиз) —
+        // прежнее правило «весь свой лагерь».
+        _anyControlledInSnapshot = false;
         foreach (var npc in snapshot.Npcs)
         {
-            // Eyes are OUR girls only (player request): the world exists for
-            // the player exactly as far as her own camp perceives it. The
-            // §146 rival camps (Colony2/Colony3) reveal nothing and are
-            // themselves hidden below until one of ours actually sees them.
-            if (IsPlayerOwned(npc) && npc.Health > 0f)
+            if (npc.Health > 0f && _runner != null && _runner.CanControlNpc(npc.Id))
+            {
+                _anyControlledInSnapshot = true;
+                break;
+            }
+        }
+
+        foreach (var npc in snapshot.Npcs)
+        {
+            // Bug #337: глаза — те, КЕМ ИГРОК УПРАВЛЯЕТ (на сервере — выданная
+            // девушка; локально CanControlNpc покрывает колонию). Мёртвые глаз
+            // не дают.
+            var eye = _anyControlledInSnapshot
+                ? _runner != null && _runner.CanControlNpc(npc.Id)
+                : IsPlayerOwned(npc);
+            if (eye && npc.Health > 0f)
             {
                 _cullEyes.Add((npc.Tile, npc.PerceptionRadiusTiles));
             }
@@ -6035,6 +6195,40 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         Destroy(root);
         return null;
+    }
+
+    /// <summary>§155.5: греет тяжёлые двери появляющейся девушки и отвечает,
+    /// можно ли собирать вью БЕЗ дисковых чтений в кадре. Каждый вызов на
+    /// непрогретой двери стартует её асинхронную загрузку; готовность
+    /// наступает через пассы, когда всё в кэшах. Карты покраски появление не
+    /// гейтят — их промах дорог, но одноразов, поэтому они только греются.</summary>
+    private bool NpcAppearanceWarm(NpcSnapshot npc)
+    {
+        var ready = !string.IsNullOrEmpty(npc.ActorMesh) &&
+            ContentPrefabCache.Request("actor", npc.ActorMesh, out _) ==
+            ContentPrefabCache.Availability.Ready;
+
+        if (!Wearing.HairContent.IsCached(npc.Hairstyle))
+        {
+            Wearing.HairContent.Prewarm(npc.Hairstyle);
+            ready = false;
+        }
+
+        foreach (var worn in npc.WornItems)
+        {
+            // TryGetVisuals сам стартует PrewarmAsync на промахе.
+            if (!string.IsNullOrEmpty(worn) &&
+                !Wearing.ActorWardrobe.TryGetVisuals(worn, out _))
+            {
+                ready = false;
+            }
+        }
+
+        HexLive.UnityPresentation.Content.AtomicResources.Prewarm(
+            "HexLive/PaintMaps/skin_" + npc.ActorMesh);
+        HexLive.UnityPresentation.Content.AtomicResources.Prewarm(
+            "HexLive/PaintMaps/skinpos_" + npc.ActorMesh);
+        return ready;
     }
 
     private GameObject CreateNpcView(NpcSnapshot npc)

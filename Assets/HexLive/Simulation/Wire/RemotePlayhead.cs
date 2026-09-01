@@ -77,12 +77,35 @@ public sealed class RemotePlayhead
     private const double StarveEaseTicks = 0.25;
 
     /// <summary>
-    /// §83: adaptive interpolation delay (1 tick + jitter margin) — OFF until
-    /// the event-driven server send path is deployed everywhere. Against the
-    /// old poll-loop server the measured jitter is dominated by its 62.5 ms
-    /// send quantization and the estimate would under-buffer.
+    /// §83: adaptive interpolation delay (1 tick + jitter margin). The old
+    /// fear — "against the poll-loop server the 62.5 ms send quantization
+    /// would make it under-buffer" — did not survive measurement: on a
+    /// synthetic 62.5 ms-quantized schedule the adaptive buffer settles at
+    /// its floor and stays perfectly smooth. What DID show up on the player's
+    /// measured 16 KB/s link (bug #339) was the opposite failure: rare large
+    /// frames repeat every 10–30 s while the jitter window remembers only
+    /// 5 s, so the buffer kept shrinking between spikes and starved on the
+    /// next one. Hence the slow shrink and the 1.5-tick floor below.
     /// </summary>
     public bool AdaptiveDelay { get; set; }
+
+    /// <summary>
+    /// Adaptive shrink, ticks per second. Deliberately far slower than the
+    /// instant growth: the spikes worth buffering against recur on tens of
+    /// seconds, so forgetting one must take minutes, not the 5-second jitter
+    /// window. At 0.01 t/s the buffer sheds a full tick in 100 s — on the
+    /// measured link, spikes 30 s apart cost only 0.3 tick of learned margin
+    /// between them, so the buffer stays ahead of the next one.
+    /// </summary>
+    private const double AdaptiveShrinkPerSecond = 0.01;
+
+    /// <summary>
+    /// Floor of the adaptive jitter margin, in ticks over the base 1.0. On a
+    /// clean link the delay settles at 1.0 + this = 1.5 ticks (375 ms at 1x)
+    /// — half the fixed default, still enough that one late frame never
+    /// starves the playhead outright.
+    /// </summary>
+    private const double AdaptiveMinMarginTicks = 0.5;
 
     private const int WindowCapacity = 64;
     private readonly double[] _offsetValues = new double[WindowCapacity];
@@ -299,16 +322,6 @@ public sealed class RemotePlayhead
             return;
         }
 
-        if (AdaptiveDelay)
-        {
-            // Grow immediately on evidence of lateness, shrink slowly —
-            // standard jitter-buffer practice, prevents oscillation.
-            var desired = 1.0 + Clamp(JitterP95Milliseconds / 1000.0 / period, 0.25, 3.0);
-            _delayTicks = desired > _delayTicks
-                ? desired
-                : Math.Max(desired, _delayTicks - 0.05 * unscaledDeltaTime);
-        }
-
         // Target: where the server's timeline is NOW (per the fastest observed
         // path), minus the interpolation delay. With an empty window (right
         // after a speed change or a long stall) fall back to trailing the
@@ -316,6 +329,32 @@ public sealed class RemotePlayhead
         var target = _offsetCount > 0
             ? (nowSeconds - MinOffset()) / period - _delayTicks
             : _newestArrivedTick - _delayTicks;
+
+        if (AdaptiveDelay)
+        {
+            // Grow immediately on evidence of lateness, shrink slowly —
+            // standard jitter-buffer practice, prevents oscillation.
+            var desired = 1.0 + Clamp(
+                JitterP95Milliseconds / 1000.0 / period, AdaptiveMinMarginTicks, 3.0);
+
+            // Ground truth beats estimation: the target passing the newest
+            // arrived data means the buffer HAS just proven too small by
+            // exactly this many ticks — the P95-over-5s window systematically
+            // misses rare spikes that recur on tens of seconds (measured on
+            // the 16 KB/s link, bug #339). Grow by the observed deficit, so
+            // the NEXT spike of this size is absorbed; the slow shrink below
+            // remembers it for minutes, not seconds.
+            var deficit = target - _newestArrivedTick;
+            if (deficit > 0.0)
+            {
+                desired = Math.Max(desired, Math.Min(_delayTicks + deficit, 4.0));
+            }
+
+            _delayTicks = desired > _delayTicks
+                ? desired
+                : Math.Max(desired, _delayTicks - AdaptiveShrinkPerSecond * unscaledDeltaTime);
+        }
+
         if (target > _newestArrivedTick)
         {
             target = _newestArrivedTick;

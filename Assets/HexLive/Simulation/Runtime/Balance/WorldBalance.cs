@@ -82,6 +82,10 @@ public static class WorldBalance
     // Ground fruit (coconuts) rots away after this many ticks unpicked.
     public static int FruitRotTicks = 2400;
 
+    // Bug #315 (вердикт игрока): из пня через 20 игровых дней вырастает новая
+    // пальма. Сутки = 24000 тиков.
+    public static int StumpRegrowTicks = 480000;
+
     // §29A r2: produce lands no closer than this many trunk radii
     // (ObstacleRadius) from its producer. The blocked ring is one radius; the
     // drop keeps one more, so a nut always has walkable ground on every side.

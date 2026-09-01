@@ -353,6 +353,19 @@ public static class CampDiplomacyMath
             }
         }
 
+        // #237: дома обоих лагерей переходят объединённому лагерю. Штамп —
+        // единственное, что связывает дверь с её жительницами: очаги обоих
+        // исходных лагерей исчезают строкой ниже, и вывод «чей очаг ближе»
+        // отдал бы дом ТРЕТЬЕМУ, постороннему лагерю, снова заперев своих.
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            if (obj.OwnerFaction is { } objOwner &&
+                (objOwner == firstFaction || objOwner == secondFaction))
+            {
+                obj.OwnerFaction = canonical;
+            }
+        }
+
         world.FactionHomes.Remove(firstFaction);
         world.FactionHomes.Remove(secondFaction);
         world.FactionHomes[canonical] = selectedHome;

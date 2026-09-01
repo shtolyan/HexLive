@@ -189,6 +189,8 @@ public static class GameEventTypes
 
         // Social
         "RelationshipChanged",
+        // #312: кража на приватной территории чужого лагеря.
+        "ItemStolen",
         // §153: игрок подарил вещь — и получательница на неё ответила.
         "GiftGiven",
         "RomanceCompleted",

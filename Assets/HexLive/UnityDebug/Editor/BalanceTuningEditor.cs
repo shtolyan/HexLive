@@ -49,7 +49,21 @@ namespace HexLive.UnityDebug.Editor
             // HexTuningConfig asset (hop block).
             var covered = new Dictionary<string, string>(); // static key -> config type
             var configs = BalanceTuning.LoadAll();
+            // §152: HexTuningConfig переехал из Resources в атомарный контент
+            // (RuntimeSource) — прямой Resources.Load отдаёт null, и гейт
+            // покрытия ложно валил экспорт simdata на всех hop/swim ручках.
+            // В редакторе ассет ищется как у BalanceTuning.LoadAll — через
+            // AssetDatabase.
             var hexConfig = Resources.Load<HexTuningConfig>(HexTuning.ResourcePath);
+            if (hexConfig == null)
+            {
+                foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:HexTuningConfig"))
+                {
+                    hexConfig = UnityEditor.AssetDatabase.LoadAssetAtPath<HexTuningConfig>(
+                        UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
+                    if (hexConfig != null) break;
+                }
+            }
             if (hexConfig != null)
             {
                 configs.Add(hexConfig);

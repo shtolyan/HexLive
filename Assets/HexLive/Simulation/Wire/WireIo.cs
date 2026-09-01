@@ -43,6 +43,15 @@ internal static class WireIo
         w.Write(value ?? 0);
     }
 
+    /// <summary>§121.11: «не задано» — полноправное значение, а не false.
+    /// Пишется той же парой «есть значение + значение», что int и tile, чтобы
+    /// третьего формата необязательного поля в протоколе не заводилось.</summary>
+    public static void WriteNullableBool(BinaryWriter w, bool? value)
+    {
+        w.Write(value.HasValue);
+        w.Write(value ?? false);
+    }
+
     public static void WriteNullableTile(BinaryWriter w, TileCoord? value)
     {
         w.Write(value.HasValue);
@@ -107,6 +116,13 @@ internal static class WireIo
         var has = r.ReadBoolean();
         var value = r.ReadInt32();
         return has ? value : (int?)null;
+    }
+
+    public static bool? ReadNullableBool(BinaryReader r)
+    {
+        var has = r.ReadBoolean();
+        var value = r.ReadBoolean();
+        return has ? value : (bool?)null;
     }
 
     public static TileCoord? ReadNullableTile(BinaryReader r)

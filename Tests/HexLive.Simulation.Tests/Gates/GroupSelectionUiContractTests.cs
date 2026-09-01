@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.IO;
+using HexLive.UnityPresentation.Input;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Gates
@@ -72,6 +74,48 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(camera, Does.Contain("TryGetNpcViewPosition"));
                 Assert.That(camera, Does.Not.Contain("TryGetNpcBodyCenter(npcId"),
                     "An animated hip/head pivot makes follow recenter on every pose change.");
+            });
+        }
+
+        [Test]
+        public void CharacterActivationSelectsFirstAndFocusesExactRepeat()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(NpcActivationPolicy.ShouldFocus(new[] { 1 }, 2), Is.False);
+                Assert.That(NpcActivationPolicy.ShouldFocus(new[] { 1 }, 1), Is.True);
+                Assert.That(NpcActivationPolicy.ShouldFocus(new[] { 1, 2 }, 2), Is.False,
+                    "A member of a group must first become the exclusive selection.");
+                Assert.That(NpcActivationPolicy.ShouldFocus(
+                    new[] { 1, 2 }, new[] { 1, 2 }), Is.True);
+                Assert.That(NpcActivationPolicy.ShouldFocus(
+                    new[] { 1, 2 }, new[] { 2, 1 }), Is.False,
+                    "The ordered selection is part of the exact-repeat contract.");
+                Assert.That(NpcActivationPolicy.ShouldFocus(
+                    new List<int>(), new List<int>()), Is.False);
+            });
+        }
+
+        [Test]
+        public void EveryCharacterClickUsesSharedActivationAndSelectionDetachesFollow()
+        {
+            var selection = File.ReadAllText(Presentation("Input", "NpcSelection.cs"));
+            var camera = File.ReadAllText(Presentation("Input", "RtsCameraController.cs"));
+            var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+            var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(selection, Does.Contain("NpcActivationPolicy.ShouldFocus"));
+                Assert.That(selection, Does.Contain("public static void Select(int npcId) => Replace(npcId);"));
+                Assert.That(camera, Does.Contain("_pendingFrameSelection = false;"));
+                Assert.That(camera, Does.Contain("if (_mode == Mode.Orbit)"));
+                Assert.That(camera, Does.Contain(
+                    "HandlePointerGesture(snapshot);\n            // A world click is handled inside UpdateOrbit itself."));
+                Assert.That(panel, Does.Not.Contain("Replace(actorId, requestFrame: true)"));
+                Assert.That(panel, Does.Contain("NpcSelection.Activate(otherId)"));
+                Assert.That(panel, Does.Contain("Toggle(actorId, requestFrame: false)"));
+                Assert.That(camera, Does.Contain("Toggle(npcId, requestFrame: false)"));
+                Assert.That(adapter, Does.Contain("() => NpcSelection.Activate(npcId)"));
             });
         }
     }

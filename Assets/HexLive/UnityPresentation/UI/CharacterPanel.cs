@@ -5800,7 +5800,7 @@ namespace HexLive.UnityPresentation.UI
             var otherId = rel.OtherId;
             chip.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(chip, GoldDim));
             chip.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(chip, Stroke));
-            chip.RegisterCallback<MouseDownEvent>(_ => NpcSelection.Select(otherId));
+            chip.RegisterCallback<MouseDownEvent>(_ => NpcSelection.Activate(otherId));
 
             return chip;
         }
@@ -6081,7 +6081,7 @@ namespace HexLive.UnityPresentation.UI
                 }
                 portrait.RegisterCallback<MouseDownEvent>(evt =>
                 {
-                    NpcSelection.Replace(actorId, requestFrame: true);
+                    NpcSelection.Activate(actorId);
                     evt.StopPropagation();
                 });
                 _groupPortraits.Add(portrait);
@@ -6377,7 +6377,8 @@ namespace HexLive.UnityPresentation.UI
             {
                 var shift = Keyboard.current != null &&
                     (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
-                if (controllable && shift) NpcSelection.Toggle(actorId);
+                if (controllable && shift)
+                    NpcSelection.Toggle(actorId, requestFrame: false);
                 else NpcSelection.Activate(actorId);
                 evt.StopPropagation();
             });

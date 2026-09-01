@@ -1179,7 +1179,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // открывает меню, а не переключает выбор: атака по неосторожному
         // клику — ровно то, от чего Kenshi защищается отдельным пунктом.
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.select"),
-            () => NpcSelection.Select(npcId)));
+            () => NpcSelection.Activate(npcId)));
 
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
     }

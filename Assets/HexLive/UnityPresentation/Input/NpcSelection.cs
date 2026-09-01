@@ -5,10 +5,9 @@ namespace HexLive.UnityPresentation.Input
 {
     /// <summary>
     /// §123: shared ordered NPC selection. Selection and camera attachment are
-    /// deliberately separate: programmatic set changes request one frame, while
-    /// user activation (a click on a character) requests follow immediately.
-    /// Follow is released by Escape or by panning (WASD/стрелки), not by a
-    /// second click.
+    /// deliberately separate. A user click on a changed subject only selects;
+    /// an exact repeat of the same singleton/set requests follow. Programmatic
+    /// selection never moves the camera unless it explicitly requests a frame.
     /// </summary>
     public static class NpcSelection
     {
@@ -58,18 +57,18 @@ namespace HexLive.UnityPresentation.Input
         public static bool Contains(int npcId) => Selected.Contains(npcId);
 
         /// <summary>
-        /// User activation of one portrait/actor: the camera focuses on the
-        /// subject and follows it at once. Re-activating the same singleton
-        /// re-frames and keeps following; Escape/панорама release the camera.
+        /// User activation of one portrait/actor. A changed singleton only
+        /// selects it; activating that exact singleton again focuses/follows.
         /// </summary>
         public static void Activate(int npcId)
         {
+            var focus = NpcActivationPolicy.ShouldFocus(Selected, npcId);
             Replace(npcId);
-            CameraRequested?.Invoke(CameraRequest.Follow);
+            if (focus) CameraRequested?.Invoke(CameraRequest.Follow);
         }
 
-        /// <summary>Legacy/programmatic exclusive selection with frame.</summary>
-        public static void Select(int npcId) => Activate(npcId);
+        /// <summary>Programmatic exclusive selection without camera movement.</summary>
+        public static void Select(int npcId) => Replace(npcId);
 
         public static void Replace(int npcId, bool requestFrame = false)
         {
@@ -88,12 +87,13 @@ namespace HexLive.UnityPresentation.Input
         public static void ActivateMany(IEnumerable<int> npcIds)
         {
             var replacement = UniqueOrdered(npcIds);
+            var focus = NpcActivationPolicy.ShouldFocus(Selected, replacement);
             if (!SameSelection(replacement))
             {
                 SetSelection(replacement);
             }
 
-            if (replacement.Count > 0)
+            if (focus)
             {
                 CameraRequested?.Invoke(CameraRequest.Follow);
             }

@@ -227,6 +227,7 @@ public static class HexPathfinder
         // Routes cost the same as before; among EQUAL-cost routes a different
         // one can now win, and that shows up as a golden-trace diff.
         const long priorityScale = 100_000_000L;
+        var startSlide = IsStrandedSeam(world, start); // bug #338 r2
         var scratch = SearchScratch.Rent();
         try
         {
@@ -298,7 +299,10 @@ public static class HexPathfinder
                 // Traversing seam->seam lets an NPC walk along the vertical lip
                 // and then wedge into the wall; legal routes must approach the
                 // seam from one side and leave on the other.
-                if (IsClimbSeamWalk(world, current, neighborId))
+                // Bug #338 r2: исключение из запрета кромки — только вызов,
+                // стартовавший НА замурованном шве (скольжение к выходу).
+                if (IsClimbSeamWalk(world, current, neighborId) &&
+                    !(startSlide && world.StrandedSeams.Contains(current)))
                 {
                     continue;
                 }
@@ -599,6 +603,7 @@ public static class HexPathfinder
         if (goals is null || goals.Count == 0) return result;
         var goalSet = goals as HashSet<JunctionId> ?? new HashSet<JunctionId>(goals);
 
+        var startSlide = IsStrandedSeam(world, start); // bug #338 r2
         const long priorityScale = 100_000_000L;
         var frontier = new SortedDictionary<long, JunctionId>();
         var frontierKey = new Dictionary<JunctionId, long>();
@@ -628,7 +633,8 @@ public static class HexPathfinder
 
                 var isGoal = goalSet.Contains(neighborId);
                 if (neighbor.Blocked && !isGoal) continue;
-                if (IsClimbSeamWalk(world, current, neighborId)) continue;
+                if (IsClimbSeamWalk(world, current, neighborId) &&
+                    !(startSlide && world.StrandedSeams.Contains(current))) continue;
                 if (avoid is not null && avoid.Contains(neighborId) && !isGoal) continue;
                 if (hardAvoid is not null && hardAvoid.Contains(neighborId) && !isGoal) continue;
 
@@ -731,23 +737,31 @@ public static class HexPathfinder
     // «замурованный» шов; у здоровых швов запрет прежний, так что срезать
     // маршрут ходьбой по кромке по-прежнему нельзя. Публичный — Connectivity
     // обязана быть проекцией этого же правила (§40.6 r5).
+    // Bug #338 r2: правило СТРОГОЕ для всех — ходить вдоль кромки нельзя.
+    // Исключение больше не глобальное: скольжение с «замурованного» шва
+    // разрешается только вызову, ЧЕЙ СТАРТ на нём стоит (startSlide в
+    // FindPath) — побег §40.6 r7 работает, а графы мира не получают
+    // коридоров по кромке.
     public static bool IsClimbSeamWalk(WorldState world, JunctionId from, JunctionId to)
     {
-        if (!world.ClimbSeams.Contains(from) || !world.ClimbSeams.Contains(to))
+        return world.ClimbSeams.Contains(from) && world.ClimbSeams.Contains(to);
+    }
+
+    /// <summary>Замурован ли шов (все не-шовные соседи Blocked) — кэш по
+    /// TopologyVersion.</summary>
+    public static bool IsStrandedSeam(WorldState world, JunctionId id)
+    {
+        if (!world.ClimbSeams.Contains(id))
         {
             return false;
         }
 
-        // Bug #338: «замурованность» — производный кэш по TopologyVersion
-        // (стены меняют его, как и у компонент). Живой пересчёт на каждом
-        // ребре шов→шов давал всплески тика на сервере (12 NPC, HugeIsland).
         if (world.StrandedSeamsBuiltVersion != world.TopologyVersion)
         {
             RebuildStrandedSeams(world);
         }
 
-        return !world.StrandedSeams.Contains(from) &&
-               !world.StrandedSeams.Contains(to);
+        return world.StrandedSeams.Contains(id);
     }
 
     private static void RebuildStrandedSeams(WorldState world)

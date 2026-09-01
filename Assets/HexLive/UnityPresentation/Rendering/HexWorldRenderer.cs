@@ -2279,10 +2279,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 : TryGetFurnitureSeatPose(snapshot, npc, targetRot, out var furnitureSeatPose)
                     ? furnitureSeatPose
                     : new Pose(
-                        // §141: земля берётся из-под ТЕЛА, а не из отстающего
-                        // поля тайла — см. GroundTileUnder.
+                        // §141: свободное тело берёт землю под Position;
+                        // §29G/#346: граничная поза сохраняет авторский seat tile.
                         SimulationUnityMapper.ToUnityPosition(
-                            npc.Position, ActorGroundY(GroundTileUnder(npc))),
+                            npc.Position, ActorGroundY(ActorSupportTile(npc))),
                         targetRot);
             var targetPos = targetPose.Position;
 
@@ -2732,7 +2732,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var expected = _currNpcPoses.TryGetValue(id, out var pose)
                 ? pose.Position
                 : SimulationUnityMapper.ToUnityPosition(
-                    npc.Position, ActorGroundY(GroundTileUnder(npc)));
+                    npc.Position, ActorGroundY(ActorSupportTile(npc)));
             var actual = view.transform.position;
             var drift = Vector3.Distance(actual, expected);
             if (drift > 3f)
@@ -4106,6 +4106,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static bool OwnsRaisedFloorGeometry(ObjectSnapshot worldObject) =>
         worldObject.DefinitionId == ContentIds.Hut1Hex ||
         worldObject.ArchitectureOwnerObjectId.HasValue;
+
+    private TileCoord ActorSupportTile(NpcSnapshot npc) =>
+        NpcGroundSupport.Select(npc, GroundTileUnder(npc));
 
     // §40.18-B: where an ACTOR's root sits on a tile. On land that is the
     // ground; in deep water she hangs SinkDepth below the water surface; in

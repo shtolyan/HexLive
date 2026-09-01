@@ -91,9 +91,11 @@ public sealed class RemotePlayheadTests
         }
     }
 
-    private static Harness Steady(int firstTick, double seconds, double transit = 0.03)
+    private static Harness Steady(
+        int firstTick, double seconds, double transit = 0.03, bool adaptive = false)
     {
         var h = new Harness();
+        h.Clock.AdaptiveDelay = adaptive;
         h.Clock.Configure(TickDelta, firstTick, declaredSpeed: 1f, paused: false);
         var ticks = (int)(seconds / TickDelta);
         for (var i = 0; i < ticks; i++)
@@ -104,14 +106,18 @@ public sealed class RemotePlayheadTests
         return h;
     }
 
-    [Test]
-    public void SteadyStream_DisplayedVelocityLocksToNominal()
+    // Полосные тесты гоняются в обоих режимах: адаптивная задержка теперь
+    // ВКЛЮЧЕНА в RemoteSocketBackend, а фиксированная остаётся эталоном
+    // конструкции (и путём для чужих клиентов плейхеда).
+    [TestCase(false)]
+    [TestCase(true)]
+    public void SteadyStream_DisplayedVelocityLocksToNominal(bool adaptive)
     {
         // Долгий прогон сознательно: после коннекта часы строят буфер лёгким
         // замедлением с постоянной времени ~8 с — это невидимо игроку и
         // проверяется отдельными полосами ±10%; здесь же меряется УСТАНОВИВШИЙСЯ
         // режим, и он обязан держать ±1%.
-        var h = Steady(1000, seconds: 42);
+        var h = Steady(1000, seconds: 42, adaptive: adaptive);
         h.RunSeconds(40);
 
         var velocities = h.VelocitiesAfter(30);
@@ -146,11 +152,13 @@ public sealed class RemotePlayheadTests
         }
     }
 
-    [Test]
-    public void JitteredArrivals_NoVisibleSpeedBursts()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void JitteredArrivals_NoVisibleSpeedBursts(bool adaptive)
     {
         // ±80 мс равномерного джиттера — хуже реального Сингапура.
         var h = new Harness();
+        h.Clock.AdaptiveDelay = adaptive;
         h.Clock.Configure(TickDelta, 1000, 1f, paused: false);
         var rng = new Random(7);
         for (var i = 0; i < 48; i++)
@@ -167,13 +175,17 @@ public sealed class RemotePlayheadTests
             "джиттер доставки пролез на экран ускорением");
     }
 
-    [Test]
-    public void PollQuantizedSends_TodaysServer_StaySmooth()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void PollQuantizedSends_TodaysServer_StaySmooth(bool adaptive)
     {
         // Старый серверный цикл отправки замечает тик раз в 62.5 мс — кадры
         // уходят квантованными. Фаза 1 обязана чинить ЭТОТ паттерн одна, без
-        // серверных правок: клиент против неизменённого продакшна.
+        // серверных правок: клиент против неизменённого продакшна. Адаптив
+        // здесь — прямое опровержение старого страха «квантование заставит
+        // недобуферить»: буфер садится к полу и остаётся гладким.
         var h = new Harness();
+        h.Clock.AdaptiveDelay = adaptive;
         h.Clock.Configure(TickDelta, 1000, 1f, paused: false);
         for (var i = 0; i < 48; i++)
         {
@@ -189,13 +201,15 @@ public sealed class RemotePlayheadTests
         Assert.That(velocities.Max(), Is.LessThan(NominalTicksPerSecond * 1.1));
     }
 
-    [Test]
-    public void BurstDelivery_NeverShowsTwoTicksOfMotionInOneFrame()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void BurstDelivery_NeverShowsTwoTicksOfMotionInOneFrame(bool adaptive)
     {
         // Прямой регресс-тест всплеска двойной скорости: три кадра приезжают
         // разом каждые 750 мс. Старые часы выдавали по два тика на Update, и
         // рендерер лерпил двухтиковую дистанцию за один тик альфы.
         var h = new Harness();
+        h.Clock.AdaptiveDelay = adaptive;
         h.Clock.Configure(TickDelta, 1000, 1f, paused: false);
         for (var group = 0; group < 16; group++)
         {
@@ -218,10 +232,12 @@ public sealed class RemotePlayheadTests
         }
     }
 
-    [Test]
-    public void Starvation_EasesToAStop_AndRecoveryIsRateCapped()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Starvation_EasesToAStop_AndRecoveryIsRateCapped(bool adaptive)
     {
         var h = new Harness();
+        h.Clock.AdaptiveDelay = adaptive;
         h.Clock.Configure(TickDelta, 1000, 1f, paused: false);
         // 5 секунд ровно, дыра в 1.25 с (5 тиков молчания), затем поток
         // продолжается по прежнему расписанию.
@@ -301,11 +317,73 @@ public sealed class RemotePlayheadTests
     }
 
     [Test]
+    public void AdaptiveDelay_CleanLink_SettlesBelowFixedDefault()
+    {
+        // Смысл включения адаптива: на чистом канале буфер (и с ним лаг
+        // показа) опускается ниже фиксированных трёх тиков — к полу
+        // 1 + AdaptiveMinMarginTicks, со скоростью усадки 0.01 тика/с.
+        var h = Steady(1000, seconds: 122, adaptive: true);
+        h.RunSeconds(120);
+
+        Assert.That(h.Clock.DelayTicks, Is.LessThan(2.0f),
+            "чистый канал две минуты, а буфер не усел — лаг не выигран");
+
+        var velocities = h.VelocitiesAfter(30);
+        Assert.That(velocities.Min(), Is.GreaterThan(NominalTicksPerSecond * 0.99),
+            "усадка буфера видна на экране замедлением");
+        Assert.That(velocities.Max(), Is.LessThan(NominalTicksPerSecond * 1.03),
+            "усадка буфера видна на экране ускорением");
+    }
+
+    [Test]
+    public void AdaptiveDelay_RecurringStalls_LearnsFromDeficit()
+    {
+        // Канал игрока бага 339 (16 КБ/с): редкие затыки повторяются раз в
+        // десятки секунд, а окно джиттера помнит 5 — оценка по P95 их
+        // систематически забывала. Учит ФАКТИЧЕСКИЙ дефицит: цель, упёршаяся
+        // в новейший пришедший тик, поднимает задержку ровно на промах, и
+        // медленная усадка (0.01 тика/с) держит выученное между затыками.
+        Harness Run(bool adaptive)
+        {
+            var h = new Harness();
+            h.Clock.AdaptiveDelay = adaptive;
+            h.Clock.Configure(TickDelta, 1000, 1f, paused: false);
+            var hold = 0.0;
+            for (var i = 0; i < 480; i++)
+            {
+                var at = i * TickDelta + 0.03;
+                if (i > 0 && i % 80 == 0)
+                {
+                    hold = at + 0.6; // затык 600 мс каждые 20 с
+                }
+
+                h.Schedule(1000 + i, Math.Max(at, hold));
+            }
+
+            h.RunSeconds(118);
+            return h;
+        }
+
+        var fixedRun = Run(adaptive: false);
+        var adaptiveRun = Run(adaptive: true);
+
+        Assert.That(adaptiveRun.Clock.DelayTicks, Is.GreaterThan(2.4f),
+            "повторные затыки в 2.4 тика, а буфер их не выучил");
+
+        static int StarveFrames(Harness h) =>
+            h.VelocitiesAfter(30).Count(v => v < NominalTicksPerSecond * 0.5);
+
+        Assert.That(StarveFrames(adaptiveRun),
+            Is.LessThanOrEqualTo(StarveFrames(fixedRun)),
+            "адаптив голодает чаще фиксированного буфера — включение стало регрессом");
+    }
+
+    [Test]
     public void AdaptiveDelay_GrowsFastAndShrinksSlow()
     {
-        // Фаза 3 (включается после деплоя событийной отправки): задержка
-        // интерполяции следует за измеренным джиттером — вверх сразу, вниз
-        // не быстрее 0.05 тика в секунду.
+        // Фаза 3 (ВКЛЮЧЕНА в RemoteSocketBackend): задержка интерполяции
+        // следует за измеренным джиттером — вверх сразу, вниз не быстрее
+        // сотых тика в секунду.
         var h = new Harness();
         h.Clock.AdaptiveDelay = true;
         h.Clock.Configure(TickDelta, 1000, 1f, paused: false);

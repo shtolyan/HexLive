@@ -133,7 +133,13 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     private readonly Stopwatch _sinceLastFrame = Stopwatch.StartNew();
 
-    private readonly RemotePlayhead _clock = new();
+    // §83 фаза 3: адаптивная задержка интерполяции ВКЛЮЧЕНА — событийная
+    // отправка по тику давно на проде, а старый страх «poll-сервер заставит
+    // недобуферить» опровергнут синтетикой (см. RemotePlayheadTests). На
+    // чистом канале лаг падает ~600→~400 мс; на замеренном канале игрока
+    // 16 КБ/с (баг 339) выученный по фактическому дефициту буфер даёт втрое
+    // меньше эпизодов голодания, чем фиксированные 3 тика.
+    private readonly RemotePlayhead _clock = new() { AdaptiveDelay = true };
     private readonly NetworkConditionSimulator? _netsim = NetworkConditionSimulator.FromSessionConfig();
     private readonly WorldSnapshot _snapshot = new();
     private readonly List<SimulationEvent> _pendingEvents = new();

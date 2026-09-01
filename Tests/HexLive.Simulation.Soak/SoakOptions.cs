@@ -62,6 +62,9 @@ public sealed class SoakOptions
     /// <summary>Все удары по таймлайну замаха (§104 r8), поверх simdata.</summary>
     public bool TimedMelee;
 
+    /// <summary>§156: спящие чанки поверх simdata (A/B-ключ).</summary>
+    public bool? ChunkSleep;
+
     /// <summary>
     /// §122 фаза 2: автовыход из петель, поверх simdata. null — как в экспорте.
     /// Существует ради A/B: §35.6 помнит, как вариант abort-on-Blocked выглядел
@@ -203,6 +206,9 @@ public sealed class SoakOptions
                     case "--explain-stuck":
                         options.ExplainStuck = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--chunk-sleep":
+                        options.ChunkSleep = Next(arg) == "on";
+                        break;
                     case "--loop-escape":
                         options.LoopEscape = Next(arg) == "on";
                         break;
@@ -288,6 +294,7 @@ public sealed class SoakOptions
                           (по умолчанию 3, 0 — выключить)
   --explain-deaths N      §30: разобрать первые N смертей вместе с последними
                           решениями погибшей (по умолчанию 0)
+  --chunk-sleep on|off    §156: спящие чанки поверх simdata (A/B-ключ)
   --loop-escape on|off    §122: автовыход из петель поверх simdata (A/B-ключ)
   --loop-max-rung N       §122: докуда поднимать лестницу (0 доклад .. 3 глушение)
   --quiet                 без человекочитаемого вывода

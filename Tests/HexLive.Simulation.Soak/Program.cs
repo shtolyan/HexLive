@@ -48,6 +48,13 @@ public static class Program
                 SimBalance.TimedMeleeEverywhere = true;
             }
 
+            // §156: тот же приём — сравнить мир со спящими чанками и без них
+            // одним бинарём и одним экспортом.
+            if (options.ChunkSleep is { } chunkSleep)
+            {
+                ChunkBalance.ChunkSleepEnabled = chunkSleep;
+            }
+
             // §122 фаза 2: тот же приём — ПОСЛЕ Require, чтобы одним бинарём и
             // одним simdata сравнить колонию с лестницей выхода и без неё.
             if (options.LoopEscape is { } loopEscape)

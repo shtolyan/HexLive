@@ -65,11 +65,6 @@ public sealed class SimulationEngine
             ApplyManualCommand(command);
         }
 
-        // §156: активный набор чанков — вывод из позиций живых NPC, поэтому его
-        // считает движок, а не сороковая система: у этой работы нет своего места
-        // в слоях, а реестр §30 и его прибитый порядок трогать незачем.
-        ChunkMath.RebuildActiveChunks(World);
-
         var isMedium = World.Tick % Settings.MediumInterval == 0;
         var isSlow = World.Tick % Settings.SlowInterval == 0;
 
@@ -94,6 +89,16 @@ public sealed class SimulationEngine
 
         if (!World.Completed && isSlow)
         {
+            // §156: активный набор — вывод из позиций живых NPC, и считает его
+            // движок, а не сороковая система: у этой работы нет своего места в
+            // слоях, а реестр §30 и его прибитый порядок трогать незачем.
+            //
+            // Считается ЗДЕСЬ, а не в начале тика: спрашивают о нём только
+            // системы слоя Slow, а пересчёт на каждом тике был чистой растратой
+            // — замер на большом острове показал, что он съедал больше, чем
+            // экономил весь сон.
+            ChunkMath.RebuildActiveChunks(World);
+
             RunLayer(TickLayer.Slow);
 
             // §156: штамп ставится ПОСЛЕ слоя — системы этого такта обязаны были

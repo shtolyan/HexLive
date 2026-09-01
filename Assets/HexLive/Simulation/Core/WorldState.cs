@@ -144,6 +144,13 @@ public sealed class WorldState
     // one so routes prefer the flat detour but still climb when it's shorter.
     public System.Collections.Generic.HashSet<Common.JunctionId> ClimbSeams { get; } = new();
 
+    // Bug #338 (§40.6 r7 перф): «замурованные» швы (все не-шовные соседи
+    // Blocked) — производный кэш от топологии, как JunctionComponents.
+    // Пересчёт в горячем цикле патфайндера стоил всплесков тика на сервере.
+    public System.Collections.Generic.HashSet<Common.JunctionId> StrandedSeams { get; } = new();
+
+    public int StrandedSeamsBuiltVersion { get; set; } = -1;
+
     // Spec 40.18: sea junctions opened for swimming — a shallow ring the
     // pathfinder may cross at ~4x cost (a slow last resort).
     public System.Collections.Generic.HashSet<Common.JunctionId> SwimJunctions { get; } = new();

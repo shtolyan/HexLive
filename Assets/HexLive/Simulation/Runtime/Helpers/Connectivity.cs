@@ -53,6 +53,20 @@ internal static class Connectivity
 
     public static bool Reachable(WorldState world, JunctionId a, JunctionId b, bool canJump = true)
     {
+        // Bug #338 r2: старт на «замурованном» шве — скольжение вдоль цепочки:
+        // цель в той же цепочке достижима сразу, иначе старт считается от
+        // выхода цепочки. Графы при этом остаются строгими.
+        if (Navigation.HexPathfinder.IsStrandedSeam(world, a))
+        {
+            var resolved = ResolveStrandedStartOrTarget(world, a, b, out var hitTarget);
+            if (hitTarget)
+            {
+                return true;
+            }
+
+            a = resolved;
+        }
+
         // Spec §50 + §57.11: a survivor who can't jump reads the graph without
         // CLIMB edges, but descents count (directed): a lower shelf is
         // reachable, the way back is not. Water stays its own world.
@@ -82,8 +96,75 @@ internal static class Connectivity
     // Reachable(a,b) — это ровно сравнение этих идентификаторов, поэтому кэш,
     // ключёванный компонентой «откуда», меняет ответы только вместе с ними.
     // Лениво перестраивает словарь так же, как Reachable.
+    /// <summary>Bug #338 r2: для «замурованного» шва — первый узел его шовной
+    /// цепочки, имеющий свободный не-шовный выход; иначе сам узел. Кэш
+    /// замурованных швов держит патфайндер (по TopologyVersion).</summary>
+    public static JunctionId ResolveStrandedStart(WorldState world, JunctionId start)
+        => ResolveStrandedStartOrTarget(world, start, null, out _);
+
+    private static JunctionId ResolveStrandedStartOrTarget(
+        WorldState world, JunctionId start, JunctionId? target, out bool hitTarget)
+    {
+        hitTarget = false;
+        if (!Navigation.HexPathfinder.IsStrandedSeam(world, start))
+        {
+            return start;
+        }
+
+        _strandedScratch.Clear();
+        _strandedQueue.Clear();
+        _strandedScratch.Add(start);
+        _strandedQueue.Enqueue(start);
+        while (_strandedQueue.Count > 0 && _strandedScratch.Count <= 64)
+        {
+            var current = _strandedQueue.Dequeue();
+            if (!world.Junctions.Items.TryGetValue(current, out var junction))
+            {
+                continue;
+            }
+
+            foreach (var neighborId in junction.Neighbors)
+            {
+                if (target.HasValue && neighborId.Equals(target.Value))
+                {
+                    hitTarget = true; // цель в самой шовной цепочке
+                    return start;
+                }
+
+                if (!world.ClimbSeams.Contains(neighborId) ||
+                    !_strandedScratch.Add(neighborId))
+                {
+                    continue;
+                }
+
+                if (!Navigation.HexPathfinder.IsStrandedSeam(world, neighborId))
+                {
+                    return neighborId; // здоровый шов с боковым выходом
+                }
+
+                _strandedQueue.Enqueue(neighborId);
+            }
+        }
+
+        return start;
+    }
+
+    private static readonly System.Collections.Generic.HashSet<JunctionId> _strandedScratch = new();
+    private static readonly System.Collections.Generic.Queue<JunctionId> _strandedQueue = new();
+
     public static int ComponentOf(WorldState world, JunctionId junction, bool canJump)
     {
+        // Bug #334/#338 r2: «замурованный» шов — синглтон в графах, но живой
+        // роутер даёт стоящей НА нём скользить вдоль кромки до выхода. Чтобы
+        // планирование не считало её мир пустым, компонент такого узла — это
+        // компонент первого выхода его шовной цепочки. Старт-относительно и
+        // без новых рёбер в графах.
+        var resolved = ResolveStrandedStart(world, junction);
+        if (!resolved.Equals(junction))
+        {
+            junction = resolved;
+        }
+
         if (!canJump)
         {
             if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
@@ -156,7 +237,11 @@ internal static class Connectivity
                         // lip, not crossing one). The optimistic component
                         // graph used to include that edge for jump-capable
                         // actors, so planning could approve two laundry legs
-                        // that FindPath could never connect.
+                        // that FindPath could never connect. Bug #338 r2:
+                        // stranded-seam слайд теперь СТАРТ-ОТНОСИТЕЛЬНЫЙ
+                        // (только для стоящей на шве) и в общий граф НЕ входит
+                        // — «коридоры по кромке» на весь остров раздували
+                        // достижимость и штормили поиск путей.
                         !(world.ClimbSeams.Contains(currentId) &&
                           world.ClimbSeams.Contains(neighborId)))
                     {

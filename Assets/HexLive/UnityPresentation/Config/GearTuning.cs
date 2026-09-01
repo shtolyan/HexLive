@@ -77,13 +77,18 @@ namespace HexLive.UnityPresentation.Config
 
         public static GearConfig ConfigFor(string gearId)
         {
-            if (string.IsNullOrEmpty(gearId))
-            {
-                return null;
-            }
+            // Empty id is not "no config": it is GearCatalog.Fist, the
+            // canonical bare-hand sheet registered by LoadAndApply. Look in
+            // the cache before deciding that an atomic lazy-load is
+            // impossible (there is no object/ path for the empty sentinel).
+            gearId ??= string.Empty;
             if (Configs.TryGetValue(gearId, out var cached))
             {
                 return cached;
+            }
+            if (gearId.Length == 0)
+            {
+                return null;
             }
 
             // Atomic content owns GearConfig as the `gear-config` entry of the

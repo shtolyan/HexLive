@@ -1,0 +1,34 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 920 600' font-family='sans-serif'>
+<style>text{fill:#252525;font-size:14px}.small{fill:#555;font-size:12px}.title{font-size:19px;font-weight:600}.rail{stroke:#8b7355;stroke-width:8;stroke-linecap:round}.footprint{stroke:#4fad74;stroke-width:15;stroke-linecap:round;opacity:.34}.axis{stroke:#23683e;stroke-width:2;marker-end:url(#arrow)}.hanger{fill:#d19a52;stroke:#70461e;stroke-width:2}.slot{fill:#e9b96e;stroke:#70461e;stroke-width:1.5}.measure{stroke:#6d6d6d;stroke-width:1.2;stroke-dasharray:4 3}</style>
+<defs><marker id='arrow' markerWidth='8' markerHeight='8' refX='6' refY='3' orient='auto'><path d='M0,0 L0,6 L6,3 z' fill='#23683e'/></marker></defs>
+<rect width='920' height='600' fill='#fbfaf7'/>
+<text class='title' x='24' y='34'>#349 — нормализованный базис плечика гардероба</text>
+<text class='small' x='24' y='57'>Вид сверху, Blender XY → Unity XZ; все числа измерены из source .blend и shipped FBX.</text>
+<line x1='260.0' y1='457.5' x2='260.0' y2='82.5' class='footprint'/>
+<line x1='260.0' y1='458.3' x2='260.0' y2='73.6' class='rail'/>
+<circle cx='268.9' cy='418.3' r='3.5' class='slot'/><circle cx='268.9' cy='390.6' r='3.5' class='slot'/><circle cx='268.9' cy='362.9' r='3.5' class='slot'/><circle cx='268.9' cy='335.2' r='3.5' class='slot'/><circle cx='268.9' cy='307.5' r='3.5' class='slot'/><circle cx='268.9' cy='279.8' r='3.5' class='slot'/><circle cx='268.9' cy='252.1' r='3.5' class='slot'/><circle cx='268.9' cy='224.4' r='3.5' class='slot'/><circle cx='268.9' cy='196.7' r='3.5' class='slot'/><circle cx='268.9' cy='169.0' r='3.5' class='slot'/><circle cx='268.9' cy='141.3' r='3.5' class='slot'/><circle cx='268.9' cy='113.6' r='3.5' class='slot'/>
+<rect x='196.9' y='265.8' width='126.3' height='8.3' rx='2' class='hanger'/>
+<line x1='260.0' y1='270.0' x2='400.0' y2='270.0' class='axis'/>
+<text x='410.0' y='275.0'>+X / Unity +X — ширина плечика</text>
+<line x1='260.0' y1='270.0' x2='260.0' y2='130.0' class='axis'/>
+<text x='275.0' y='120.0'>+Y / Unity +Z — рейл и footprint</text>
+<line x1='196.9' y1='297.5' x2='323.1' y2='297.5' class='measure'/>
+<text x='260.0' y='312.5' text-anchor='middle'>hanger X = 0.252523 wu</text>
+<g transform='translate(570,105)'>
+  <text font-weight='600'>Проверенный контракт</text>
+  <text class='small' y='30'>HexRadius = 1.500000 wu</text>
+  <text class='small' y='52'>InteriorRadius = 3; BoundaryRadius = 4</text>
+  <text class='small' y='74'>junction step = 0.375000 wu</text>
+  <text class='small' y='96'>wardrobe footprint span = 0.750000 wu</text>
+  <text class='small' y='118'>hanger bounds = 0.252523 × 0.016620 × 0.238766 wu</text>
+  <text class='small' y='140'>12 slots span = 0.609369 wu; pitch = 0.055397 wu</text>
+  <text class='small' y='162'>HangerTemplate root = identity</text>
+  <text class='small' y='184'>ClothingSlot rotation/scale = identity</text>
+  <text class='small' y='218'>legacy BuildingRules placement:</text>
+  <text class='small' y='240'>X = -0.324759; Z = -0.937500; yaw = 240°</text>
+  <text class='small' y='274'>runtime: shared footprint yaw only</text>
+  <text class='small' y='296'>private 30°/90° compensation: forbidden</text>
+</g>
+<text class='small' x='24' y='560'>Source: Assets/ArtSource/Building/hexlive_building_kit.blend + furniture.wardrobe.fbx.</text>
+<text class='small' x='24' y='580'>Generator validates source↔FBX bounds, 12 socket positions and identity exported transforms before writing this file.</text>
+</svg>

@@ -273,6 +273,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // §125.5: кого прячет туман среди ЛЮДЕЙ. Пусто, когда режим «выбранная»
     // выключен: без выбранной прятать людей не от чьего лица.
     private readonly HashSet<int> _fogHiddenNpcs = new();
+
+    // Bug #338 r3: есть ли в текущем снапшоте хоть одна управляемая (флаг
+    // пересчитывается в RebuildPerceptionCulling раз в тик).
+    private bool _anyControlledInSnapshot;
     private bool _fogHidesNpcs;
     // Bug #146: relation-card selection may point at a hidden outsider. The
     // selection still opens her card, but only a living colonist may become
@@ -2179,10 +2183,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // застывшее тело: тело ушло бы оттуда, и картинка врала бы.
             var isOurs = IsPlayerOwned(npc);
             // Bug #337: от скрытия освобождает только УПРАВЛЯЕМАЯ, не весь
-            // лагерь — соседка, ушедшая из восприятия, прячется как чужая
-            // («мы ждём её и не знаем, что с ней», тот же вердикт, что #322).
-            // Локально CanControlNpc покрывает колонию — там ничего не меняется.
-            var controlled = _runner != null && _runner.CanControlNpc(npc.Id);
+            // лагерь — соседка, ушедшая из восприятия, прячется как чужая.
+            // Bug #338 r3: с фолбэком — без управляемых в кадре (гость или
+            // мигнул 120-с лиз) льгота возвращается всему своему лагерю,
+            // иначе на границе лиза замирал весь мир.
+            var controlled = _anyControlledInSnapshot
+                ? _runner != null && _runner.CanControlNpc(npc.Id)
+                : isOurs;
             var strangerVisible = controlled || TileVisibleNow(npc.Tile);
             if (!controlled && strangerVisible)
             {
@@ -5284,14 +5291,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         _cullActive = true;
         _cullEyes.Clear();
+        // Bug #338 r3: у #337 не было фолбэка — на границе 120-секундного
+        // player-лиза CanControlNpc мигал в false, глаза исчезали, и ВЕСЬ мир
+        // замирал/прятался до продления (сторожок: «вид НЕАКТИВЕН», включая
+        // управляемую). Если управляемых в кадре нет (гость или мигнул лиз) —
+        // прежнее правило «весь свой лагерь».
+        _anyControlledInSnapshot = false;
         foreach (var npc in snapshot.Npcs)
         {
-            // Bug #337 (сужение прежнего «Eyes are OUR girls only»): глаза —
-            // только те, КЕМ ИГРОК УПРАВЛЯЕТ. На сервере это выданная девушка
-            // (AssignedNpcIds рукопожатия), и соседки её лагеря карту больше
-            // не светят; локально CanControlNpc покрывает всю колонию, так
-            // что одиночная игра не меняется. Мёртвые глаз не дают.
-            if (_runner != null && _runner.CanControlNpc(npc.Id) && npc.Health > 0f)
+            if (npc.Health > 0f && _runner != null && _runner.CanControlNpc(npc.Id))
+            {
+                _anyControlledInSnapshot = true;
+                break;
+            }
+        }
+
+        foreach (var npc in snapshot.Npcs)
+        {
+            // Bug #337: глаза — те, КЕМ ИГРОК УПРАВЛЯЕТ (на сервере — выданная
+            // девушка; локально CanControlNpc покрывает колонию). Мёртвые глаз
+            // не дают.
+            var eye = _anyControlledInSnapshot
+                ? _runner != null && _runner.CanControlNpc(npc.Id)
+                : IsPlayerOwned(npc);
+            if (eye && npc.Health > 0f)
             {
                 _cullEyes.Add((npc.Tile, npc.PerceptionRadiusTiles));
             }

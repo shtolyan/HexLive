@@ -452,21 +452,35 @@ namespace HexLive.UnityPresentation.UI
         }
 
         private bool _selectiveControl;
+        private bool _anyControlled;
 
         private void RefreshPeople(WorldSnapshot snapshot, SimulationRunnerBehaviour runner)
         {
             // Bug #337: звезда «наш персонаж» — только при выборочном
             // управлении (сервер); локально управляема вся колония.
+            // Bug #338 r3: и фолбэк — если управляемых в кадре нет вовсе
+            // (гость или мигнул 120-с лиз), видимость на карте считается по
+            // лагерю, иначе карта пустела на границах лиза.
             _selectiveControl = false;
+            _anyControlled = false;
             for (var i = 0; i < snapshot.Npcs.Count; i++)
             {
                 var npc = snapshot.Npcs[i];
-                if (npc.Health > 0f &&
-                    PlayerCampView.IsMine(runner, snapshot, npc) &&
-                    !(runner != null && runner.CanControlNpc(npc.Id)))
+                if (npc.Health <= 0f)
+                {
+                    continue;
+                }
+
+                var mine = PlayerCampView.IsMine(runner, snapshot, npc);
+                var control = runner != null && runner.CanControlNpc(npc.Id);
+                if (control)
+                {
+                    _anyControlled = true;
+                }
+
+                if (mine && !control)
                 {
                     _selectiveControl = true;
-                    break;
                 }
             }
 
@@ -491,7 +505,9 @@ namespace HexLive.UnityPresentation.UI
             // Bug #337: но ВИДИМОСТЬ на карте дарит только управление, не
             // лагерь — соседка вне восприятия управляемой показывается «?» на
             // последнем известном месте, как чужая. Цвета остаются лагерными.
-            var controlled = runner != null && runner.CanControlNpc(npc.Id);
+            var controlled = _anyControlled
+                ? runner != null && runner.CanControlNpc(npc.Id)
+                : owned; // bug #338 r3: без управляемых — лагерное правило
             var visible = _worldRenderer != null &&
                 _worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, controlled);
             if (!visible)

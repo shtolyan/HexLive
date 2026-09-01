@@ -60,6 +60,8 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _outsiderRosterSection;
         private Label _clanRosterHeader;
         private Label _outsiderRosterHeader;
+        private int _visibleClanRosterCount;
+        private int _totalClanRosterCount;
         private int _rosterTick = int.MinValue;
         private bool _rosterVisibilityReady;
         private readonly List<RosterBinding> _rosterBindings = new();
@@ -6203,6 +6205,8 @@ namespace HexLive.UnityPresentation.UI
             _outsiderRosterList.Clear();
 
             var visibleOutsiders = 0;
+            var visibleClan = 0;
+            var totalClan = 0;
 
             // Bug #337: звезда «наш персонаж» имеет смысл только при
             // ВЫБОРОЧНОМ управлении (сервер: выдана одна девушка из лагеря).
@@ -6225,6 +6229,8 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (npc.Health <= 0f) continue;
                 var owned = _runner != null && _runner.CanControlNpc(npc.Id);
+                var clan = PlayerCampView.IsMine(_runner, snapshot, npc);
+                if (clan) totalClan++;
                 if (!owned && (_worldRenderer == null ||
                     !_worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, false)))
                 {
@@ -6238,8 +6244,11 @@ namespace HexLive.UnityPresentation.UI
                 // Colony2..Colony6 все соседи падали в «Чужаки». Лагерь
                 // выводится из фракции выданной девушки (PlayerCampView);
                 // фолбэк Colony сохраняет анонимного зрителя и локальную игру.
-                if (owned || npc.Faction == PlayerCampView.Of(_runner, snapshot))
+                if (clan)
+                {
                     _clanRosterList.Add(card);
+                    visibleClan++;
+                }
                 else
                 {
                     _outsiderRosterList.Add(card);
@@ -6247,12 +6256,25 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
+            _visibleClanRosterCount = visibleClan;
+            _totalClanRosterCount = totalClan;
+            RefreshClanRosterHeader();
+
             if (_outsiderRosterSection != null)
             {
                 _outsiderRosterSection.style.display = visibleOutsiders > 0
                     ? DisplayStyle.Flex
                     : DisplayStyle.None;
             }
+        }
+
+        private void RefreshClanRosterHeader()
+        {
+            if (_clanRosterHeader == null) return;
+            _clanRosterHeader.text = string.Format(
+                Loc.Get("roster.clan_count"),
+                _visibleClanRosterCount,
+                _totalClanRosterCount);
         }
 
         private bool _selectiveControl;
@@ -7750,7 +7772,7 @@ namespace HexLive.UnityPresentation.UI
             _characterTitle.text = Loc.Get("panel.character");
             _relationsTitle.text = Loc.Get("panel.relations");
             if (_groupStopLabel != null) _groupStopLabel.text = Loc.Get("group.stop");
-            if (_clanRosterHeader != null) _clanRosterHeader.text = Loc.Get("roster.clan");
+            RefreshClanRosterHeader();
             if (_outsiderRosterHeader != null)
                 _outsiderRosterHeader.text = Loc.Get("roster.outsiders");
             if (_invDropActionLabel != null) _invDropActionLabel.text = Loc.Get("inv.action.drop");

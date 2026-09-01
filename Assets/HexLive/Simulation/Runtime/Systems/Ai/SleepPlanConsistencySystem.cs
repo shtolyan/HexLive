@@ -15,6 +15,8 @@ public sealed class SleepPlanConsistencySystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Fast;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)

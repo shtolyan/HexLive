@@ -24,6 +24,8 @@ public sealed class CampExpulsionSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         if (!Spec82.TerritorialEnabled || !Spec72.Enabled)

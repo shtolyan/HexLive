@@ -14,6 +14,8 @@ public sealed class WaterCollectorSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     public void Run(WorldState world)
     {
         foreach (var obj in world.Entities.Objects.Values)

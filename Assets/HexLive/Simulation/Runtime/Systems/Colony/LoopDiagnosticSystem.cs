@@ -54,6 +54,8 @@ public sealed class LoopDiagnosticSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Fast;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public const string ReasonSisyphus = "Sisyphus";
     public const string ReasonStalled = "Stalled"; // #326: тихое зависание
     public const string ReasonOscillation = "Oscillation";

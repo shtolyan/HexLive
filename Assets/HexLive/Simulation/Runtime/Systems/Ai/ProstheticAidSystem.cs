@@ -19,6 +19,8 @@ public sealed class ProstheticAidSystem : ISimulationSystem
     public string Name => nameof(ProstheticAidSystem);
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         if (!Spec119.Enabled || !Spec118.Enabled || !Spec118.ProstheticsEnabled) return;

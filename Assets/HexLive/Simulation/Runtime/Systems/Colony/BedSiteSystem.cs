@@ -26,6 +26,8 @@ public sealed class BedSiteSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     public void Run(WorldState world)
     {
         CraftProjectMath.CancelOrphanedProjects(world);
@@ -40,6 +42,14 @@ public sealed class BedSiteSystem : ISimulationSystem
         System.Collections.Generic.List<ObjectId> orphanSites = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
+            // §156: подметание сирот — уборка, а не часы. Оставленное в спящем
+            // чанке дождётся первого, кто туда придёт; лагеря же бодры всегда,
+            // поэтому RunForCamp ниже фильтра не требует.
+            if (!ChunkMath.IsAwake(world, obj.Tile))
+            {
+                continue;
+            }
+
             if (obj.DefinitionId == ContentIds.BuildSite && string.IsNullOrEmpty(obj.BuildProduct))
             {
                 (orphanSites ??= new System.Collections.Generic.List<ObjectId>()).Add(obj.Id);

@@ -20,6 +20,8 @@ public sealed class MoistureSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     private static readonly System.Collections.Generic.List<ItemInstance> _wornOutScratch = new();
 
     private static float DryBase => WorldBalance.MoistureDryBase;

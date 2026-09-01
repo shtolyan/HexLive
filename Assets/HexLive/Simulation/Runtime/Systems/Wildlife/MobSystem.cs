@@ -22,6 +22,8 @@ public sealed class MobSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     private static int MaxDogs => WildlifeBalance.MaxDogs; // §46 difficulty pass: 2 -> 3 (12/12 wins at 2 — armed girls out-fought the pair)
     private static int RespawnCheckTicks => WildlifeBalance.DogRespawnCheckTicks; // §46: every 7200 ticks / 30 real minutes — sustained pack pressure, not one skirmish per arc
 

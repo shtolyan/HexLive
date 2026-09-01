@@ -26,6 +26,8 @@ public sealed class RaidSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     private readonly System.Collections.Generic.List<EntityId> _dead = new();
 
     public void Run(WorldState world)

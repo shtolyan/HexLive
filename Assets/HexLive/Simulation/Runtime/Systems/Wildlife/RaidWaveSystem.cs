@@ -45,6 +45,8 @@ public sealed class RaidWaveSystem : ISimulationSystem
     public string Name => nameof(RaidWaveSystem);
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
+
     public void Run(WorldState world)
     {
         if (!Spec72.Enabled || Spec72.OutsiderCount <= 0 ||

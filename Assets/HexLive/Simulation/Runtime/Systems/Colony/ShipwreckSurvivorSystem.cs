@@ -25,6 +25,8 @@ public sealed class ShipwreckSurvivorSystem : ISimulationSystem
     public string Name => nameof(ShipwreckSurvivorSystem);
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
+
     public void Run(WorldState world)
     {
         if (world.Mode is not (GameMode.HugeIsland or GameMode.Maniac))

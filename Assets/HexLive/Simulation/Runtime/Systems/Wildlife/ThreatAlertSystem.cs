@@ -30,6 +30,8 @@ public sealed class ThreatAlertSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     // Re-warn gate per (girl, mob). Deliberately transient system state, NOT
     // NPCState — the save format stays untouched; a loaded save at worst
     // re-pops one ⚠️ per pair.

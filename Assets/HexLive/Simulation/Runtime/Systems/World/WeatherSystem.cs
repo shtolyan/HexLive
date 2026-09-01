@@ -21,6 +21,8 @@ public sealed class WeatherSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
+
     public void Run(WorldState world)
     {
         // The schedule is a pure function of (seed, cycle) — a per-tick

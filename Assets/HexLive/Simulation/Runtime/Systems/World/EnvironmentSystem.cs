@@ -19,6 +19,8 @@ public sealed class EnvironmentSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     public static int DayLengthTicks => WorldBalance.DayLengthTicks;
     // The gameplay cadence for the seeded per-cycle rolls (rain, storms, surf
     // gifts, raids) — deliberately NOT the visual day, see WorldBalance.
@@ -156,7 +158,14 @@ public sealed class EnvironmentSystem : ISimulationSystem
 
         foreach (var pair in world.Tiles.Items)
         {
-            if (world.ShadedTiles.Contains(pair.Key))
+            // §156: САМОЕ дорогое место всей симуляции — луч на каждый тайл
+            // мира, и именно оно росло с площадью острова. Спящему тайлу тень
+            // не считаем: спрашивают о ней только TemperatureSystem и сушка, и
+            // обе — про тайлы NPC и бодрых предметов. Список отбрасывающих тень
+            // выше НЕ фильтруется: бодрый тайл обязан лежать в тени спящей
+            // пальмы, если она рядом.
+            if (world.ShadedTiles.Contains(pair.Key) ||
+                !ChunkMath.IsAwake(world, pair.Key))
             {
                 continue;
             }

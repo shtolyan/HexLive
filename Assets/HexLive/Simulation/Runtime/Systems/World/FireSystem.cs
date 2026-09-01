@@ -18,6 +18,8 @@ public sealed class FireSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     private static float BurnPerSlowTick => WorldBalance.FireBurnPerSlowTick;
 
     public void Run(WorldState world)

@@ -22,6 +22,8 @@ public sealed class FruitProductionSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     private readonly System.Collections.Generic.List<WorldObjectState> _producers = new();
 
     public void Run(WorldState world)

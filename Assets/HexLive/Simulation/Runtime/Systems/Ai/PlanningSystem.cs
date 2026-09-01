@@ -17,6 +17,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)

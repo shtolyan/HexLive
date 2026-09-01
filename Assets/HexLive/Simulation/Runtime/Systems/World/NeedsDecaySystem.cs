@@ -18,6 +18,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     private static void RecordImpact(
         NPCState npc,
         NeedKind need,

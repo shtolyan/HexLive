@@ -21,6 +21,8 @@ public sealed class MeatSpoilageSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     private readonly System.Collections.Generic.List<ObjectId> _spoiled = new();
 
     public void Run(WorldState world)
@@ -28,7 +30,11 @@ public sealed class MeatSpoilageSystem : ISimulationSystem
         _spoiled.Clear();
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.SpawnTick <= 0 || obj.IsOccupied)
+            // §156: порог якорный (Tick - SpawnTick), поэтому проспавшее мясо
+            // испортится обычным кодом на первом бодром такте — фильтр это вся
+            // правка.
+            if (obj.SpawnTick <= 0 || obj.IsOccupied ||
+                !ChunkMath.IsAwake(world, obj.Tile))
             {
                 continue;
             }

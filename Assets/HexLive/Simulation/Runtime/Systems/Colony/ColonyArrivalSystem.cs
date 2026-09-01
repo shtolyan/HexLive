@@ -18,6 +18,8 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
     public string Name => nameof(ColonyArrivalSystem);
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
+
     // §146.6: порядок обхода лагерей — ординал фракции (правило BedSiteSystem):
     // порядок словаря не смеет попадать в реплей.
     private static readonly System.Collections.Generic.List<Faction> _campScratch = new();

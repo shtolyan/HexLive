@@ -18,6 +18,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Fast;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)

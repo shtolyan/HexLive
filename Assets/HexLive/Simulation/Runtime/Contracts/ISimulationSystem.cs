@@ -17,6 +17,13 @@ public interface ISimulationSystem
 
     TickLayer Layer { get; }
 
+    /// <summary>
+    /// §156: как система относится к спящим чанкам. Член интерфейса, а не
+    /// атрибут, нарочно: пропуск обязан ловить компилятор, а не ревью — новая
+    /// система выбирает политику так же обязательно, как выбирает слой.
+    /// </summary>
+    ChunkPolicy ChunkPolicy { get; }
+
     void Run(WorldState world);
 }
 

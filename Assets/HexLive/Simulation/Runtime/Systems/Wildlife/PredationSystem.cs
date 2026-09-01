@@ -25,6 +25,8 @@ public sealed class PredationSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     private readonly System.Collections.Generic.List<EntityId> _deadVictims = new();
     private readonly System.Collections.Generic.List<EntityId> _deadAttackers = new();
 

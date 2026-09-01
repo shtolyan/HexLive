@@ -109,6 +109,8 @@ public sealed class LlmControlSystem : ISimulationSystem, IDisposable
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         if (_disposed || !_enabled || _provider is null)

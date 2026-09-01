@@ -32,6 +32,8 @@ public sealed class CorpseSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     private readonly System.Collections.Generic.List<ObjectId> _decayed = new();
     private readonly System.Collections.Generic.List<ObjectId> _skeletonized = new();
 

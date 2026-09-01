@@ -148,7 +148,10 @@ public static class WorldSaveSerializer
     // клика больше нет, темп — настройка персонажа, и она обязана переживать
     // выход из игры. Блоб ≤62 читается новым умолчанием «бегом».
     // v64 (§76.14, bug #304): девятый навык — Атлетика.
-    public const int BlobVersion = 64;
+    // v65 (§55.4, bug #347): число глотков личной бутылки. До v65 сохранялся
+    // только вид воды; восстановить количество нельзя, поэтому такой хвост
+    // мигрирует в честную пустую бутылку, а не создаёт фантомную воду.
+    public const int BlobVersion = 65;
     private const int OldestReadableBlobVersion = 3;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -161,7 +164,20 @@ public static class WorldSaveSerializer
 
     public static void Write(WorldState world, BinaryWriter w)
     {
-        w.Write(BlobVersion);
+        WriteAtVersion(world, w, BlobVersion);
+    }
+
+    // Internal for migration coverage: the only writable legacy layout is the
+    // immediately preceding v64, whose sole difference is the absent NPC tail.
+    internal static void WriteAtVersion(WorldState world, BinaryWriter w, int version)
+    {
+        if (version < 64 || version > BlobVersion)
+        {
+            throw new InvalidDataException(
+                $"Cannot write save blob version {version}; supported writer range is 64..{BlobVersion}.");
+        }
+
+        w.Write(version);
         w.Write(world.Seed);
         // §146.2 (v51): режим и ревизия worldgen'а — вторая половина ключа
         // «на какой геометрии написан этот блоб» (первая — сид).
@@ -258,7 +274,7 @@ public static class WorldSaveSerializer
         w.Write(world.Entities.Npcs.Count);
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            WriteNpc(w, npc);
+            WriteNpc(w, npc, version);
         }
 
         // §28.15C v3 (v20): тела — тем же куском записи, что и живые. Читатель
@@ -267,7 +283,7 @@ public static class WorldSaveSerializer
         w.Write(world.Entities.Corpses.Count);
         foreach (var body in world.Entities.Corpses.Values)
         {
-            WriteNpc(w, body);
+            WriteNpc(w, body, version);
         }
 
         w.Write(world.Mobs.Count);
@@ -1269,7 +1285,7 @@ public static class WorldSaveSerializer
         definitionId == ContentIds.BedLeaf ||
         definitionId == ContentIds.HutBed;
 
-    private static void WriteNpc(BinaryWriter w, NPCState npc)
+    private static void WriteNpc(BinaryWriter w, NPCState npc, int version)
     {
         w.Write(npc.Id.Value);
         w.Write(npc.DisplayName);
@@ -1792,6 +1808,14 @@ public static class WorldSaveSerializer
         // игрока про КОНКРЕТНУЮ девушку — переживает выход из игры так же, как
         // сам тумблер управления и запрет смены одежды.
         w.Write(npc.Mind.RunByDefault);
+
+        // §55.4 / v65 (#347): append-only NPC tail. BottleWater has existed
+        // near the record head since v3; charges were added later but were
+        // never persisted, so their first compatible position is here.
+        if (version >= 65)
+        {
+            w.Write(npc.BottleCharges);
+        }
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -2448,6 +2472,20 @@ public static class WorldSaveSerializer
         if (version >= 63)
         {
             npc.Mind.RunByDefault = r.ReadBoolean();
+        }
+
+        // §55.4 / v65 (#347): ≤64 has no recoverable amount. Keeping its saved
+        // kind would create a ghost drink (and, for Raw, a sickness roll), so
+        // the pair migrates atomically to the only truthful state: empty.
+        if (version >= 65)
+        {
+            npc.BottleCharges = r.ReadInt32();
+        }
+
+        if (npc.BottleWater == WaterKind.None || npc.BottleCharges <= 0)
+        {
+            npc.BottleWater = WaterKind.None;
+            npc.BottleCharges = 0;
         }
 
         return npc;

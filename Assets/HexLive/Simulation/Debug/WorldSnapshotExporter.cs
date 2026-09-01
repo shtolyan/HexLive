@@ -1147,6 +1147,7 @@ public static class WorldSnapshotExporter
             TargetTile = npc.Plan.TargetTile,
             IsStarving = npc.Mind.IsStarving,
             InventoryCapacity = npc.Inventory.Capacity,
+            BottleWaterKind = npc.BottleWater, // §55.4 / bug #347
             DeathAnimVariant = npc.DeathAnimVariant, // §28.15C v3
             InventoryUsedSlots = npc.Inventory.UsedSlots,
             GoalLockEndTick = npc.Mind.GoalLock is { } goalLock &&

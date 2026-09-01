@@ -938,7 +938,7 @@ public sealed partial class ExecutionSystem
     // §55.4 (bug #317): перелить воду вскрытых кокосов инвентаря в личную
     // бутылку — на месте, небыстро (FillVesselDurationTicks, прогресс в
     // Execution). Кокосы теряют ResourceAmount, бутылка получает глотки 1:1;
-    // пустая бутылка становится Raw, непустая сохраняет свой вид воды.
+    // пустая бутылка становится Coconut, непустая сохраняет свой вид воды.
     // Шаг снимает себя из плана: автономный план [FillVessel, DrinkBottle]
     // продолжается штатным питьём, ручной одношаговый — завершается.
     private static void RunFillVessel(WorldState world, NPCState npc)
@@ -1014,8 +1014,13 @@ public sealed partial class ExecutionSystem
 
     private static void RunDrinkBottle(WorldState world, NPCState npc)
     {
-        if (npc.BottleWater == WaterKind.None)
+        // §52 / bug #347: BottleWater and BottleCharges form one invariant.
+        // Old saves knew the kind but dropped the amount; a ghost Raw kind
+        // must not run a zero-charge sickness roll after load.
+        if (npc.BottleWater == WaterKind.None || npc.BottleCharges <= 0)
         {
+            npc.BottleWater = WaterKind.None;
+            npc.BottleCharges = 0;
             npc.Plan.Status = PlanStatus.Failed;
             if (SimTrace.Enabled)
             {
@@ -1051,10 +1056,21 @@ public sealed partial class ExecutionSystem
         // §54.15: RAIN water (the collector's leaf funnel, no ground contact)
         // is clean — boiled-grade thirst relief and NO sickness roll; only
         // the warm-drink comfort bonus stays boiled-only.
+        // §55.4 / bug #347: COCONUT keeps the same data-driven effects as a
+        // direct sip from food.coconut_pierced and never enters the Raw roll.
         var raw = npc.BottleWater == WaterKind.Raw;
         var boiled = npc.BottleWater == WaterKind.Boiled;
         var thirstTotal = raw ? SimBalance.DrinkThirstRaw : SimBalance.DrinkThirstBoiled;
         var comfortTotal = boiled ? SimBalance.DrinkComfortBoiled : 0f;
+        if (npc.BottleWater == WaterKind.Coconut &&
+            world.Content.ObjectDefinitions.TryGetValue(
+                ContentIds.CoconutPierced, out var coconutDefinition) &&
+            ResolveInteraction(
+                world, npc, coconutDefinition, InteractionType.Drink) is { } coconutDrink)
+        {
+            thirstTotal = System.MathF.Max(0f, -coconutDrink.Effects.ThirstDelta);
+            comfortTotal = System.MathF.Max(0f, coconutDrink.Effects.ComfortDelta);
+        }
         var share = 1f / DrinkBottleDurationTicks;
         npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst - thirstTotal * share);
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfortTotal * share);

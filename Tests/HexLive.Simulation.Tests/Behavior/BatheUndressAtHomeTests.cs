@@ -577,7 +577,9 @@ public sealed class BatheUndressAtHomeTests
             // (door camp ownership survives camp merge/removal).
             // 62 → 63 in §121.11/#294: persistent per-NPC manual run tempo.
             // 63 → 64 in §76.14/#304: девятый навык — Атлетика.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(64));
+            // 64 → 65 in §55.4/#347: число глотков и provenance бутылки
+            // теперь переживают сейв; v64 без количества мигрирует в пустую.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(65));
         });
     }
 

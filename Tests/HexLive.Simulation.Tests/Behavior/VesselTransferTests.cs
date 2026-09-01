@@ -1,9 +1,12 @@
+using System.IO;
 using System.Linq;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
+using HexLive.Simulation.Persistence;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -42,6 +45,59 @@ public sealed class VesselTransferTests
             "У колонистки прототипа должна быть ровно одна личная бутылка.");
     }
 
+    private static void DrinkOneBottleSip(
+        WorldState world, NPCState npc, WaterKind kind, int completionTick)
+    {
+        npc.BottleWater = kind;
+        npc.BottleCharges = 1;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.DrinkBottle });
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Execution.Status = ExecutionStatus.None;
+        npc.Execution.CurrentInteraction = null;
+        world.Tick = completionTick - SimBalance.DrinkBottleDurationTicks;
+
+        var execution = new ExecutionSystem();
+        execution.Run(world);
+        while (world.Tick < completionTick)
+        {
+            world.Tick++;
+            execution.Run(world);
+        }
+    }
+
+    private static int RawSicknessCompletionTick(WorldState world, NPCState npc)
+    {
+        for (var tick = SimBalance.DrinkBottleDurationTicks; tick < 100_000; tick++)
+        {
+            if (MathUtil.Hash01(world.Seed, tick, npc.Id.Value, 833) <
+                SimBalance.RawWaterSickChance)
+            {
+                return tick;
+            }
+        }
+
+        Assert.Fail("Не найден детерминированный Raw sickness roll для теста.");
+        return -1;
+    }
+
+    private static WorldState RoundTripSave(WorldState source, int version)
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(
+                   stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.WriteAtVersion(source, writer, version);
+        }
+
+        stream.Position = 0;
+        var loaded = TestWorld.CreateWorld(source.Seed);
+        using var reader = new BinaryReader(
+            stream, System.Text.Encoding.UTF8, leaveOpen: true);
+        WorldSaveSerializer.Read(loaded, reader);
+        return loaded;
+    }
+
     [Test]
     public void ThirstyGirlPoursCoconutsIntoEmptyBottleThenDrinks()
     {
@@ -68,11 +124,11 @@ public sealed class VesselTransferTests
             if (!filled && npc.BottleCharges > 0)
             {
                 filled = true;
-                // 2 кокоса × 4 глотка = 8 Raw-глотков, 1:1 (§55.4).
+                // 2 кокоса × 4 глотка = 8 Coconut-глотков, 1:1 (§55.4).
                 Assert.That(npc.BottleCharges, Is.EqualTo(8),
                     "Перелив обязан быть 1:1: два кокоса по 4 глотка = 8.");
-                Assert.That(npc.BottleWater, Is.EqualTo(WaterKind.Raw),
-                    "Пустая бутылка после перелива несёт Raw-воду (§55.4).");
+                Assert.That(npc.BottleWater, Is.EqualTo(WaterKind.Coconut),
+                    "Пустая бутылка обязана сохранить кокосовый provenance (§55.4).");
                 Assert.That(first.ResourceAmount, Is.EqualTo(0f),
                     "Кокос-источник обязан потерять свой ResourceAmount.");
                 Assert.That(second.ResourceAmount, Is.EqualTo(0f));
@@ -139,7 +195,7 @@ public sealed class VesselTransferTests
 
         Assert.That(npc.BottleCharges, Is.EqualTo(4),
             "Ручной перелив обязан перелить все 4 глотка кокоса.");
-        Assert.That(npc.BottleWater, Is.EqualTo(WaterKind.Raw));
+        Assert.That(npc.BottleWater, Is.EqualTo(WaterKind.Coconut));
         Assert.That(npc.Plan.Steps, Is.Empty,
             "Одношаговый ручной план завершается после перелива.");
     }
@@ -206,6 +262,112 @@ public sealed class VesselTransferTests
         Assert.That(coconut.ResourceAmount, Is.EqualTo(1f));
         Assert.That(npc.BottleWater, Is.EqualTo(WaterKind.Rain),
             "Непустая бутылка сохраняет свой вид воды (§55.4).");
+    }
+
+    [Test]
+    public void CoconutBottleUsesDirectCoconutEffectsAndNeverRollsRawSickness()
+    {
+        const int seed = 347;
+        var coconutWorld = TestWorld.CreateWorld(seed);
+        var coconutNpc = Girl(coconutWorld);
+        KeepOnlyVessels(coconutNpc);
+        coconutNpc.Needs.Thirst = 0.9f;
+        coconutNpc.Needs.Comfort = 0.2f;
+        coconutNpc.Needs.Hunger = 0f;
+        var drink = coconutWorld.Content.ObjectDefinitions[ContentIds.CoconutPierced]
+            .Interactions.Single(interaction => interaction.Type == InteractionType.Drink);
+        var completionTick = RawSicknessCompletionTick(coconutWorld, coconutNpc);
+        var thirstBefore = coconutNpc.Needs.Thirst;
+        var comfortBefore = coconutNpc.Needs.Comfort;
+        var torsoBefore = coconutNpc.Body.Parts[BodyPart.Torso];
+
+        DrinkOneBottleSip(
+            coconutWorld, coconutNpc, WaterKind.Coconut, completionTick);
+
+        var rawWorld = TestWorld.CreateWorld(seed);
+        var rawNpc = Girl(rawWorld);
+        KeepOnlyVessels(rawNpc);
+        rawNpc.Needs.Thirst = 0.9f;
+        rawNpc.Needs.Comfort = 0.2f;
+        rawNpc.Needs.Hunger = 0f;
+        var rawTorsoBefore = rawNpc.Body.Parts[BodyPart.Torso];
+        DrinkOneBottleSip(rawWorld, rawNpc, WaterKind.Raw, completionTick);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(coconutNpc.Needs.Thirst,
+                Is.EqualTo(thirstBefore + drink.Effects.ThirstDelta).Within(0.00001f),
+                "бутылка должна дать ровно эффект прямого глотка кокоса");
+            Assert.That(coconutNpc.Needs.Comfort,
+                Is.EqualTo(comfortBefore + drink.Effects.ComfortDelta).Within(0.00001f));
+            Assert.That(coconutNpc.Mind.SicknessDamageRemaining, Is.Zero,
+                "Coconut не входит в Raw sickness branch");
+            Assert.That(coconutNpc.Body.Parts[BodyPart.Torso], Is.EqualTo(torsoBefore));
+            Assert.That(
+                rawNpc.Mind.SicknessDamageRemaining > 0f ||
+                rawNpc.Body.Parts[BodyPart.Torso] < rawTorsoBefore,
+                Is.True,
+                "контрольный Raw-глоток на том же детерминированном roll обязан заболеть");
+        });
+    }
+
+    [Test]
+    public void ZeroChargeBottleCannotDrinkOrRollSickness()
+    {
+        var world = TestWorld.CreateWorld(348);
+        var npc = Girl(world);
+        npc.BottleWater = WaterKind.Raw;
+        npc.BottleCharges = 0;
+        npc.Plan.Steps.Clear();
+        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.DrinkBottle });
+        npc.Plan.Status = PlanStatus.Active;
+
+        new ExecutionSystem().Run(world);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Failed));
+            Assert.That(npc.BottleWater, Is.EqualTo(WaterKind.None));
+            Assert.That(npc.BottleCharges, Is.Zero);
+            Assert.That(npc.Mind.SicknessDamageRemaining, Is.Zero);
+        });
+    }
+
+    [Test]
+    public void CoconutBottleKindAndChargesSurviveCurrentSaveRoundTrip()
+    {
+        var world = TestWorld.CreateWorld(349);
+        var npc = Girl(world);
+        npc.BottleWater = WaterKind.Coconut;
+        npc.BottleCharges = 4;
+
+        var loaded = RoundTripSave(world, WorldSaveSerializer.BlobVersion);
+        var reloaded = loaded.Entities.Npcs[npc.Id];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reloaded.BottleWater, Is.EqualTo(WaterKind.Coconut));
+            Assert.That(reloaded.BottleCharges, Is.EqualTo(4));
+        });
+    }
+
+    [Test]
+    public void V64BottleWithoutRecoverableChargesMigratesToEmpty()
+    {
+        var world = TestWorld.CreateWorld(350);
+        var npc = Girl(world);
+        npc.BottleWater = WaterKind.Raw;
+        npc.BottleCharges = 4;
+
+        var loaded = RoundTripSave(world, version: 64);
+        var reloaded = loaded.Entities.Npcs[npc.Id];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reloaded.BottleWater, Is.EqualTo(WaterKind.None),
+                "v64 carried only kind; guessing quantity would fabricate water");
+            Assert.That(reloaded.BottleCharges, Is.Zero);
+        });
     }
 }
 

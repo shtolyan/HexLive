@@ -90,7 +90,8 @@ public static class WorldSnapshotCodec
     /// v35: §120.10 architecture demolition and queued slot replacement.
     /// v36: §146.14 camp home anchors for the campfire «make home» menu.
     /// v37: §121.11/#294 per-NPC default pace for the walk/run card toggle.
-    public const int WireVersion = 37;
+    /// v38: §55.4/#347 typed bottle-water provenance in the inventory group.
+    public const int WireVersion = 38;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -1039,6 +1040,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteStrings(w, n.InventoryDirtiness);
         WireIo.WriteStrings(w, n.InventoryBloodiness);
         WireIo.WriteStrings(w, n.InventoryWater);
+        w.Write((byte)n.BottleWaterKind);
         w.Write(n.InventoryCapacity);
         WireIo.WriteString(w, n.FavoriteWeaponId);
         w.Write(n.InventoryContainers.Count);
@@ -1393,6 +1395,7 @@ public static class WorldSnapshotCodec
         WireIo.ReadStrings(r, n.InventoryDirtiness);
         WireIo.ReadStrings(r, n.InventoryBloodiness);
         WireIo.ReadStrings(r, n.InventoryWater);
+        n.BottleWaterKind = (Agents.WaterKind)r.ReadByte();
         n.InventoryCapacity = r.ReadInt32();
         n.FavoriteWeaponId = r.ReadString();
         var inventoryContainerCount = r.ReadInt32();

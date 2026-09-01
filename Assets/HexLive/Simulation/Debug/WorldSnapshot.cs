@@ -903,6 +903,11 @@ public sealed class NpcSnapshot
     // The UI treats bottle and pierced coconut as one water-container category.
     public List<string> InventoryWater { get; } = new();
 
+    // §55.4 / bug #347: authoritative provenance of the personal bottle.
+    // InventoryWater intentionally remains the presentation-friendly amount
+    // row; this typed field keeps remote snapshots from erasing water safety.
+    public Agents.WaterKind BottleWaterKind { get; set; } = Agents.WaterKind.None;
+
     public List<string> WornItems { get; } = new();
 
     // Physical index is identical to WornItems. Kept separate from the display

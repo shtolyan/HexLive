@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Wire;
@@ -23,7 +24,12 @@ public sealed class RemoteGameplayPayloadGateTests
     public void RelationshipsSurviveWithDebugDetailsOff()
     {
         var sent = new WorldSnapshot { Tick = 7 };
-        var npc = new NpcSnapshot { Id = new EntityId(1), DisplayName = "npc.mira.name" };
+        var npc = new NpcSnapshot
+        {
+            Id = new EntityId(1),
+            DisplayName = "npc.mira.name",
+            BottleWaterKind = WaterKind.Coconut
+        };
         npc.RelationshipDetails.Add(new RelationshipSnapshot
         {
             OtherId = 2,
@@ -53,6 +59,8 @@ public sealed class RemoteGameplayPayloadGateTests
             Assert.That(got.RelationshipDetails[0].Trust, Is.EqualTo(0.25f));
             Assert.That(got.RelationshipDetails[0].Affinity, Is.EqualTo(-0.75f));
             Assert.That(got.RelationshipDetails[0].LastInteractionTick, Is.EqualTo(654));
+            Assert.That(got.BottleWaterKind, Is.EqualTo(WaterKind.Coconut),
+                "provenance бутылки — игровой inventory state и обязан ехать без debug-details (§55.4)");
 
             Assert.That(got.GoalScores, Is.Empty, "дампы панели поехали без спроса — это мегабайты в тик");
             Assert.That(got.KnownObjects, Is.Empty);

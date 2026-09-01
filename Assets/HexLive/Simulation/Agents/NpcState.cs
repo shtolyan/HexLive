@@ -704,7 +704,10 @@ public enum WaterKind
     None,
     Raw,    // filled at a pond/river bank — 30 % sickness on drink
     Boiled, // filled at a lit campfire with a pot — safe, quenches more
-    Rain    // §54.15: collected by the water collector's leaf funnel — clean, no sickness roll
+    Rain,   // §54.15: collected by the water collector's leaf funnel — clean, no sickness roll
+    // §55.4 / bug #347: pierced-coconut water keeps its clean provenance
+    // after transfer. Append-only: save blobs and snapshots carry this ordinal.
+    Coconut
 }
 
 }

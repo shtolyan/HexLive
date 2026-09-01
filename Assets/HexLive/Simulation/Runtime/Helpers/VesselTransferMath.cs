@@ -12,8 +12,9 @@ namespace HexLive.Simulation.Runtime
 // Приёмник — ТОЛЬКО бутылка, и это осознанно: у инстанса кокоса нет поля
 // вида воды, так что перелив «в кокос» отмывал бы сырую воду от риска
 // болезни (кокосовый глоток пьётся без броска). Кокос — источник.
-// Вид воды в бутылке: Raw, если бутылка была пуста; непустая сохраняет
-// свой вид (правило §55.4).
+// Вид воды в бутылке: Coconut, если бутылка была пуста; непустая сохраняет
+// свой вид (правило §55.4, bug #347). Так перелив сохраняет provenance:
+// кокосовая вода остаётся безопасной, а непустая Raw-бутылка не «отмывается».
 public static class VesselTransferMath
 {
     /// <summary>Сколько глотков ждут в пробитых кокосах инвентаря.</summary>
@@ -49,7 +50,7 @@ public static class VesselTransferMath
 
     /// <summary>Сам перелив: глоток за глоток, 1:1, до полной бутылки.
     /// Возвращает число перелитых глотков; кокосы теряют ResourceAmount,
-    /// пустая бутылка получает вид Raw.</summary>
+    /// пустая бутылка получает вид Coconut.</summary>
     public static int FillBottleFromCoconuts(NPCState npc)
     {
         var room = BottleRoom(npc);
@@ -82,7 +83,7 @@ public static class VesselTransferMath
         {
             if (npc.BottleCharges <= 0 || npc.BottleWater == WaterKind.None)
             {
-                npc.BottleWater = WaterKind.Raw;
+                npc.BottleWater = WaterKind.Coconut;
                 npc.BottleCharges = 0;
             }
 

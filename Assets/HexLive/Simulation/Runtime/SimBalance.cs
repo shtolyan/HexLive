@@ -762,6 +762,13 @@ namespace HexLive.Simulation.Runtime
         public static int MeatRawSpoilTicks = 12000;
         public static int MeatCookedSpoilTicks = 20000;
 
+        // Bug #338 (лаги сервера): срубленные листья, которые никто не подобрал,
+        // вянут и исчезают — иначе они копятся вечно (замер на сервере:
+        // 10 653 листа из 15 577 объектов мира, тик подорожал 7→43 мс).
+        // 40000 тиков ≈ 4 event-цикла лёжки — стройкам хватает с запасом.
+        // 0 = выключено.
+        public static int PalmLeafWitherTicks = 40000;
+
         // Cannibalism: butchering a housemate's corpse is allowed but costs
         // comfort, and NPCs won't do it unless genuinely starving.
         public static bool CannibalismEnabled = true;

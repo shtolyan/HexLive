@@ -733,11 +733,38 @@ public static class HexPathfinder
     // обязана быть проекцией этого же правила (§40.6 r5).
     public static bool IsClimbSeamWalk(WorldState world, JunctionId from, JunctionId to)
     {
-        return world.ClimbSeams.Contains(from) && world.ClimbSeams.Contains(to) &&
-            !IsStrandedSeam(world, from) && !IsStrandedSeam(world, to);
+        if (!world.ClimbSeams.Contains(from) || !world.ClimbSeams.Contains(to))
+        {
+            return false;
+        }
+
+        // Bug #338: «замурованность» — производный кэш по TopologyVersion
+        // (стены меняют его, как и у компонент). Живой пересчёт на каждом
+        // ребре шов→шов давал всплески тика на сервере (12 NPC, HugeIsland).
+        if (world.StrandedSeamsBuiltVersion != world.TopologyVersion)
+        {
+            RebuildStrandedSeams(world);
+        }
+
+        return !world.StrandedSeams.Contains(from) &&
+               !world.StrandedSeams.Contains(to);
     }
 
-    private static bool IsStrandedSeam(WorldState world, JunctionId id)
+    private static void RebuildStrandedSeams(WorldState world)
+    {
+        world.StrandedSeams.Clear();
+        foreach (var id in world.ClimbSeams)
+        {
+            if (IsStrandedSeamLive(world, id))
+            {
+                world.StrandedSeams.Add(id);
+            }
+        }
+
+        world.StrandedSeamsBuiltVersion = world.TopologyVersion;
+    }
+
+    private static bool IsStrandedSeamLive(WorldState world, JunctionId id)
     {
         if (!world.Junctions.Items.TryGetValue(id, out var junction))
         {

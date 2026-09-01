@@ -145,6 +145,51 @@ namespace HexLive.Simulation.Bootstrap
             return CreateLargeIsland(seed, ManiacSettings);
         }
 
+        /// <summary>
+        /// §156.9: тот же рецепт «Огромного острова», растянутый по ПЛОЩАДИ в
+        /// <paramref name="areaScale"/> раз. Мир для ЗАМЕРА, а не режим игры: у
+        /// него нет ни идентичности в сейве, ни пункта меню, ни своей ревизии
+        /// worldgen — он живёт ровно столько, сколько идёт прогон.
+        /// <para>
+        /// Ради этого §156 и существует: шесть лагерей по одной девушке остаются
+        /// прежними, а карта растёт, — то есть колония занимает всё меньшую её
+        /// долю. Содержимое (пальмы, юкка, камни, валежник) масштабируется вместе
+        /// с площадью, иначе большой остров оказался бы просто пустым и мерил бы
+        /// не ту игру. Расстояние между лагерями тоже растёт: разъехавшиеся
+        /// лагеря будят БОЛЬШЕ карты, чем сгрудившиеся, и это честный, а не
+        /// удобный, случай для механики.
+        /// </para>
+        /// </summary>
+        public static WorldBootstrapDefinition CreateScaledHugeIsland(int seed, int areaScale)
+        {
+            if (areaScale < 1)
+            {
+                areaScale = 1;
+            }
+
+            var side = System.MathF.Sqrt(areaScale);
+            int Grow(int min, int max, out int grownMin)
+            {
+                var span = (int)System.MathF.Round((max - min + 1) * side);
+                grownMin = min - (span - (max - min + 1)) / 2;
+                return grownMin + span - 1;
+            }
+
+            var maxQ = Grow(HugeMinQ, HugeMaxQ, out var minQ);
+            var maxR = Grow(HugeMinR, HugeMaxR, out var minR);
+            int Scale(int count) => (int)System.MathF.Round(count * (float)areaScale);
+
+            var settings = new LargeIslandSettings(
+                GameMode.HugeIsland, minQ, maxQ, minR, maxR,
+                HugeCampCount,
+                (int)System.MathF.Round(HugeCampMinSeparationTiles * side),
+                girlsPerCamp: 1,
+                Scale(HugePalmTarget), Scale(48), Scale(720), Scale(190),
+                Scale(440), Scale(48), Scale(36),
+                hasCentralOutsiderCamp: true);
+            return CreateLargeIsland(seed, settings);
+        }
+
         private static WorldBootstrapDefinition CreateLargeIsland(
             int seed, LargeIslandSettings settings)
         {

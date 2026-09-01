@@ -14,22 +14,35 @@ public sealed class WaterCollectorSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
-    // Elapsed-ticks bookkeeping instead of assuming the slow-layer cadence —
-    // robust to SlowInterval tuning and to save/load (one zero-delta run).
-    private long _lastRunTick = -1;
-
     public void Run(WorldState world)
     {
-        var elapsed = _lastRunTick < 0 ? 0 : world.Tick - _lastRunTick;
-        _lastRunTick = world.Tick;
-        if (elapsed <= 0 || !world.Environment.IsRaining)
-        {
-            return;
-        }
-
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (obj.DefinitionId != WaterCollectorMath.CollectorId)
+            {
+                continue;
+            }
+
+            if (!ChunkMath.IsAwake(world, obj.Tile))
+            {
+                continue;
+            }
+
+            // §156: такты считаются двумя источниками, и это не дублирование.
+            // ТЕКУЩИЙ такт берётся у мира: Environment.IsRaining — единственная
+            // правда про «сейчас», её выставляет WeatherSystem раньше в реестре,
+            // и её же подменяют стенды и тесты, которым нужен дождь по заказу.
+            // ПРОСПАННЫЕ такты у мира спросить не у кого — там работает
+            // расписание (§156.5). Формула отвечает ровно за ту дыру, которую
+            // без неё пришлось бы выдумывать.
+            var slow = world.SlowIntervalTicks;
+            var slept = RainMath.RainSlowTicksInWindow(
+                world.Seed,
+                ChunkMath.SleepWindowStart(world, obj.Tile),
+                world.Tick - slow,
+                slow);
+            var rainSlowTicks = slept + (world.Environment.IsRaining ? 1L : 0L);
+            if (rainSlowTicks <= 0)
             {
                 continue;
             }
@@ -41,7 +54,9 @@ public sealed class WaterCollectorSystem : ISimulationSystem
             }
 
             vessel.ResourceAmount = System.Math.Min(
-                1f, vessel.ResourceAmount + (float)elapsed / SimBalance.WaterCollectorFillTicks);
+                1f,
+                vessel.ResourceAmount +
+                rainSlowTicks * slow / (float)SimBalance.WaterCollectorFillTicks);
             if (vessel.ResourceAmount >= 1f)
             {
                 if (SimTrace.Enabled)

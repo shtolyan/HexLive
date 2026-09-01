@@ -123,8 +123,9 @@ public static class ContentIds
     public const string GraveNpc = "grave.npc";
     public const string PalmStump = "stump.palm";
 
-    // §54.2/#315: молодая пальма — то, что вырастает из пня.
-    public const string PalmSmall = "tree.palm_small";
+    // §54.2/#315: из пня вырастает ОБЫЧНАЯ пальма — промежуточной «молодой»
+    // модели больше нет.
+    public const string Palm = "tree.palm";
 }
 
 }

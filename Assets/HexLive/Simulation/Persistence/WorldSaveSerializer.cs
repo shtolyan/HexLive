@@ -859,6 +859,10 @@ public static class WorldSaveSerializer
         }
     }
 
+    // §54.2/#315 r2: retired id, still present in saves written before the young
+    // palm was removed. Not a ContentIds constant — nothing live may spawn it.
+    private const string LegacyPalmSmall = "tree.palm_small";
+
     // Save migration: content retired from the bootstrap still lives inside
     // older saves' entity lists — despawn it on load or the girls keep using
     // ghosts (e.g. the water.pond anchors: removed from the world, invisible
@@ -879,6 +883,15 @@ public static class WorldSaveSerializer
             else if (obj.DefinitionId == ContentIds.BedLeaf)
             {
                 obj.DefinitionId = ContentIds.BedBasic;
+            }
+            else if (obj.DefinitionId == LegacyPalmSmall)
+            {
+                // §54.2/#315 r2: молодая пальма выпилена — из пня теперь растёт
+                // обычная. Уже выросшие в сейве превращаются в неё же, а не
+                // деспавнятся: ObstacleRadius у обеих одинаковый (0.3 R), так
+                // что блокировка джанкшена не меняется, и дерево не пропадает
+                // из мира на глазах у колонии.
+                obj.DefinitionId = ContentIds.Palm;
             }
 
             if (obj.BuildProduct is ContentIds.BedLeaf or ContentIds.HutBed)

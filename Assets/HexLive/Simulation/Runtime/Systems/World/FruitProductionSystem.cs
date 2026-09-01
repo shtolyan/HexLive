@@ -52,9 +52,11 @@ public sealed class FruitProductionSystem : ISimulationSystem
         }
 
         // Bug #315 (вердикт игрока): из пня через WorldBalance.StumpRegrowTicks
-        // (20 игровых дней) вырастает новая пальма. Молодая — tree.palm_small:
-        // и по смыслу (выросла заново), и кокосы она производит так же. Пень
-        // с сидящей на нём не трогаем — вырастет тиком позже.
+        // (20 игровых дней) вырастает новая пальма — сразу ОБЫЧНАЯ tree.palm.
+        // Промежуточная «молодая» модель (tree.palm_small) выпилена из игры:
+        // она была единственным её потребителем, а мир от неё необратимо мельчал
+        // (два бревна вместо трёх навсегда). Пень с сидящей на нём не трогаем —
+        // вырастет тиком позже.
         _regrown.Clear();
         foreach (var candidate in world.Entities.Objects.Values)
         {
@@ -80,7 +82,7 @@ public sealed class FruitProductionSystem : ISimulationSystem
             var fragment = stump.Fragment;
             WorldObjectMutations.DespawnObject(world, stump.Id);
             var palm = WorldObjectMutations.SpawnObject(
-                world, ContentIds.PalmSmall, fragment, tile, anchor);
+                world, ContentIds.Palm, fragment, tile, anchor);
             if (SimTrace.Enabled)
             {
                 Trace.DebugSystem(world, "PalmRegrown",

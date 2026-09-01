@@ -3599,11 +3599,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return HexRadius * TreeHeightFactor * 0.65f;
         }
 
-        if (definitionId == "tree.palm_small")
-        {
-            return HexRadius * TreeHeightFactor * 0.45f;
-        }
-
         if (definitionId == "rock.boulder")
         {
             return HexRadius * 0.28f;

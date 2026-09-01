@@ -450,32 +450,6 @@ def crown(owner_name: str, fronds: int, length: float) -> None:
     bake_source_instances(owner, source, transforms)
 
 
-def small_palm() -> None:
-    owner = collection("tree.palm_small")
-    bark = material("SmallPalm.Bark", (0.35, 0.18, 0.07, 1.0), 0.98)
-    ring = material("SmallPalm.Rings", (0.22, 0.09, 0.035, 1.0), 0.96)
-    green = material("SmallPalm.Leaf", (0.12, 0.43, 0.15, 1.0), 0.9)
-    stem = material("SmallPalm.Stem", (0.30, 0.27, 0.08, 1.0), 0.92)
-    cone(owner, "young trunk", (0, 0, 1.15), 0.25, 0.16, 2.3, bark, 12)
-    for z in (0.30, 0.68, 1.06, 1.44, 1.82):
-        torus(owner, f"trunk ring {z}", (0, 0, z), 0.21 - z * 0.022, 0.018, ring)
-    top = Vector((0, 0, 2.32))
-    for index in range(8):
-        angle = index * math.tau / 8.0
-        radial = Vector((math.cos(angle), math.sin(angle), 0.0))
-        end = top + radial * 0.92 + Vector((0, 0, -0.18))
-        beam(owner, f"palm frond {index}", top, end, 0.018, stem, 6)
-        side_axis = Vector((-radial.y, radial.x, 0))
-        for leaflet in range(1, 7):
-            centre = top.lerp(end, leaflet / 7.5)
-            leaf_len = 0.21 - abs(leaflet - 3.5) * 0.018
-            for side in (-1, 1):
-                tip = centre + side_axis * side * leaf_len + radial * 0.04
-                tip.z -= 0.04
-                leaf_mesh(owner, f"small leaf {index}-{leaflet}-{side}", centre, tip,
-                          leaf_len * 0.17, green)
-
-
 def crab() -> None:
     owner = collection("crab")
     shell = material("Crab.Shell", (0.68, 0.09, 0.045, 1.0), 0.82)
@@ -573,14 +547,13 @@ def main() -> None:
     stump()
     crown("resource.palm_crown", fronds=42, length=1.275)
     crown("resource.palm_crown_small", fronds=8, length=1.275)
-    small_palm()
     crab()
     for asset_id in (
         "item.pill", "item.plaster", "resource.cloth", "resource.fiber",
         "resource.mechanical_part", "palm.coconut_branch", "shelter.tent",
         "tool.bow", "resource.arrow",
         "stump.palm", "resource.palm_crown", "resource.palm_crown_small",
-        "tree.palm_small", "crab",
+        "crab",
     ):
         merge_by_material(asset_id)
     SOURCE.parent.mkdir(parents=True, exist_ok=True)
@@ -591,11 +564,10 @@ def main() -> None:
         "station.drying_rack",
         "tool.bow", "resource.arrow",
         "stump.palm", "resource.palm_crown", "resource.palm_crown_small",
-        "tree.palm_small",
     ):
         export_collection(asset_id, OBJECTS / f"{asset_id}.fbx")
     export_collection("crab", ANIMALS / "crab.fbx")
-    print("Authored 15 independent atomic world props.")
+    print("Authored 14 independent atomic world props.")
 
 
 if __name__ == "__main__":

@@ -3631,6 +3631,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _deathPosePending;
     private float _deathPoseDeadline;
     private float _deathSurfaceY;
+    // Каким клипом падать — для повторов на актрисе, что ещё собирается.
+    private int _deathVariant;
+    private const float DeathPoseRetrySeconds = 3f;
     private static readonly int DeathStateHash = Animator.StringToHash("Death");
     private static readonly int FallenIdleStateHash = Animator.StringToHash("FallenIdle");
 
@@ -3685,17 +3688,30 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             else
             {
                 _deathPosePending = true;
-                _deathPoseDeadline = Time.time + 3f;
+                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
             }
 
             return;
         }
 
+        _deathVariant = variant;
         var clips = _animSet != null ? _animSet.death : null;
         if (_animator == null || clips == null || clips.Length == 0)
         {
-            // Клипов не назначили — старое поведение: замереть лёжа. Заметно
-            // хуже, но это поза, а не дыра в кадре.
+            // Труп стоял: на актрисе, что ещё собирается (§155.5), клипов и
+            // аниматора пока НЕТ — прежний фолбэк «замереть лёжа» на ней тоже
+            // не связывался, и тело оставалось стоять в айдле. Поза смерти
+            // добивается повторами, как в bug #325.
+            if (!AnimatorReadyForDeathPose() || _animSet == null)
+            {
+                _deathPosePending = true;
+                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
+                return;
+            }
+
+            // Актриса собрана, но клипов смерти в наборе честно нет —
+            // старое поведение: замереть лёжа. Заметно хуже, но это поза,
+            // а не дыра в кадре.
             SetLaying(true, null, surfaceY);
             return;
         }
@@ -3714,10 +3730,72 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         // Загруженное тело: без перехода, сразу конец клипа, и заморозить в
-        // этом же кадре — падения никто не увидит.
+        // этом же кадре — падения никто не увидит. Заморозка ТОЛЬКО после
+        // проверки, что Play реально связался: на недособранной актрисе он
+        // тихо проваливается, и прежний безусловный FreezeDeathPose фиксировал
+        // СТОЯЧУЮ позу навсегда (родня bug #325, но для анимированной смерти).
         _animator.Play(DeathStateHash, 0, 1f);
         _animator.Update(0f);
-        FreezeDeathPose();
+        if (_animator.GetCurrentAnimatorStateInfo(0).shortNameHash == DeathStateHash)
+        {
+            FreezeDeathPose();
+        }
+        else
+        {
+            _deathPosePending = true;
+            _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
+        }
+    }
+
+    private bool AnimatorReadyForDeathPose() =>
+        _animator != null && _animator.isActiveAndEnabled &&
+        _animator.runtimeAnimatorController != null;
+
+    // «Поза уже смертная»: лежит своей цепочкой, либо аниматор реально стоит
+    // в Death/FallenIdle. Всё остальное (айдл, недоигранный переход) морозить
+    // нельзя — это и был стоячий труп.
+    private bool AnimatorHoldsDeathPose()
+    {
+        if (_laying)
+        {
+            return true;
+        }
+
+        if (!AnimatorReadyForDeathPose())
+        {
+            return false;
+        }
+
+        var hash = _animator.GetCurrentAnimatorStateInfo(0).shortNameHash;
+        return hash == DeathStateHash || hash == FallenIdleStateHash;
+    }
+
+    // Одна попытка привести тело к смертной позе, для повторов из LateUpdate.
+    // Лежачий вариант — как в bug #325; анимированный — конец клипа падения.
+    private bool TryApplyDeathPose()
+    {
+        if (_deadWasAlreadyLying)
+        {
+            return TryApplyLyingDeathPose();
+        }
+
+        if (!AnimatorReadyForDeathPose())
+        {
+            return false;
+        }
+
+        var clips = _animSet != null ? _animSet.death : null;
+        if (clips == null || clips.Length == 0)
+        {
+            return TryApplyLyingDeathPose();
+        }
+
+        var clip = clips[((_deathVariant % clips.Length) + clips.Length) % clips.Length];
+        OverrideClip(DeathBaseClip, clip);
+        _animator.SetBool(DeadParam, true);
+        _animator.Play(DeathStateHash, 0, 1f);
+        _animator.Update(0f);
+        return _animator.GetCurrentAnimatorStateInfo(0).shortNameHash == DeathStateHash;
     }
 
     // Выключить аниматор насовсем. Поза остаётся той, что в костях сейчас.
@@ -7685,19 +7763,37 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private void LateUpdate()
     {
         // §28.15C v3: клип падения докрутился — выключить аниматор. Первым
-        // делом в кадре: всё, что ниже, тело уже не касается.
+        // делом в кадре: всё, что ниже, тело уже не касается. Морозить можно
+        // ТОЛЬКО смертную позу: если переход в Death так и не случился
+        // (аниматор был не готов в момент SetDead), безусловная заморозка
+        // фиксировала стоячий айдл навсегда — переходим на повторы.
         if (_deathFreezeAt >= 0f && Time.time >= _deathFreezeAt)
         {
-            FreezeDeathPose();
-        }
-
-        // Bug #325: лежачая поза смерти добивается повторами, пока актриса
-        // не собралась; по дедлайну — честный лежачий фолбэк вместо стоячего.
-        if (_deathPosePending && _dead)
-        {
-            if (TryApplyLyingDeathPose())
+            if (AnimatorHoldsDeathPose())
             {
                 FreezeDeathPose();
+            }
+            else
+            {
+                _deathFreezeAt = -1f;
+                _deathPosePending = true;
+                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
+            }
+        }
+
+        // Bug #325: поза смерти добивается повторами, пока актриса не
+        // собралась. Дедлайн отсчитывается только от ГОТОВОГО аниматора,
+        // который отказался связывать состояние: несобранную актрису ждём
+        // сколько нужно — её лежачий фолбэк точно так же не связался бы.
+        if (_deathPosePending && _dead)
+        {
+            if (TryApplyDeathPose())
+            {
+                FreezeDeathPose();
+            }
+            else if (!AnimatorReadyForDeathPose())
+            {
+                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
             }
             else if (Time.time >= _deathPoseDeadline)
             {

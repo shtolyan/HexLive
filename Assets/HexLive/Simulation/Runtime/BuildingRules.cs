@@ -571,29 +571,10 @@ public static class BuildingRules
         {
             if (piece.ArchitectureOwnerId != oldOwner) continue;
             piece.ArchitectureOwnerId = newOwner.Id;
-            // Смена тайла обязана пройти и через ObjectsByTile: индекс — общий
-            // (hazard/fruit/placement/perception), запись на старом тайле — это
-            // объект-призрак для каждого его читателя.
-            if (!piece.Tile.Equals(newOwner.Tile))
-            {
-                if (world.Caches.ObjectsByTile.TryGetValue(piece.Tile, out var fromList))
-                {
-                    fromList.Remove(piece.Id);
-                }
-
-                if (!world.Caches.ObjectsByTile.TryGetValue(newOwner.Tile, out var toList))
-                {
-                    toList = new System.Collections.Generic.List<ObjectId>();
-                    world.Caches.ObjectsByTile[newOwner.Tile] = toList;
-                }
-
-                if (!toList.Contains(piece.Id))
-                {
-                    toList.Add(piece.Id);
-                }
-            }
-
-            piece.Tile = newOwner.Tile;
+            // Смена тайла обязана пройти и через индексы: они общие
+            // (hazard/fruit/placement/perception/§156), запись на старом тайле —
+            // это объект-призрак для каждого их читателя.
+            WorldObjectMutations.MoveObjectTile(world, piece, newOwner.Tile);
             piece.Fragment = newOwner.Fragment;
             piece.RotationDegrees = newOwner.RotationDegrees;
         }
@@ -813,7 +794,7 @@ public static class BuildingRules
         {
             var element = piece.ArchitectureElements[0];
             ApplyDefinition(element, desired[element.SlotKey], completed: rebase);
-            piece.Tile = owner.Tile;
+            WorldObjectMutations.MoveObjectTile(world, piece, owner.Tile);
             piece.Fragment = owner.Fragment;
             piece.RotationDegrees = owner.RotationDegrees;
         }

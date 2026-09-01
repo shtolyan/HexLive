@@ -1,5 +1,6 @@
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 
 namespace HexLive.Simulation.Runtime
@@ -114,7 +115,9 @@ internal static class ChunkMath
     internal static void RebuildActiveChunks(WorldState world)
     {
         var active = world.Caches.ActiveChunks;
+        var ordered = world.Caches.ActiveChunksOrdered;
         active.Clear();
+        ordered.Clear();
         if (!ChunkBalance.ChunkSleepEnabled)
         {
             return;
@@ -139,7 +142,157 @@ internal static class ChunkMath
             {
                 for (var cr = r0; cr <= r1; cr++)
                 {
-                    active.Add(new ChunkCoord(cq, cr));
+                    var chunk = new ChunkCoord(cq, cr);
+                    if (active.Add(chunk))
+                    {
+                        ordered.Add(chunk);
+                    }
+                }
+            }
+        }
+
+        // Порядок обхода не может браться у HashSet: у него его нет. Сортировка
+        // по (Cq, Cr) делает его свойством решётки, а не порядка, в котором
+        // словарь NPC выдал своих колонисток.
+        ordered.Sort((a, b) => a.Cq != b.Cq ? a.Cq.CompareTo(b.Cq) : a.Cr.CompareTo(b.Cr));
+    }
+
+    /// <summary>
+    /// Индекс «объекты по чанкам» существует и построен на текущей стороне
+    /// чанка. Зовётся движком перед слоем Slow — то есть перед единственными
+    /// читателями индекса.
+    /// <para>
+    /// Полная перестройка нужна ровно в трёх случаях: механику включили,
+    /// сторону чанка покрутили ручкой, мир пришёл из сейва (индекс выводится из
+    /// <c>Tile</c> целиком, поэтому своего формата в блобе у него нет). Во всех
+    /// прочих тактах он поддерживается по месту — в тех же трёх точках, что и
+    /// <c>ObjectsByTile</c>.
+    /// </para>
+    /// </summary>
+    internal static void EnsureObjectIndex(WorldState world)
+    {
+        var caches = world.Caches;
+        if (!ChunkBalance.ChunkSleepEnabled)
+        {
+            // Выключили — индекс не просто перестаёт быть нужным, он обязан
+            // ИСЧЕЗНУТЬ: иначе включение обратно нашло бы совпавшую сторону,
+            // решило, что строить нечего, и поехало на записях, протухших за
+            // время работы без поддержки.
+            if (caches.ObjectsByChunkSize != 0)
+            {
+                caches.ObjectsByChunk.Clear();
+                caches.ObjectsByChunkSize = 0;
+            }
+
+            return;
+        }
+
+        if (caches.ObjectsByChunkSize == ChunkBalance.ChunkSizeTiles)
+        {
+            return;
+        }
+
+        caches.ObjectsByChunk.Clear();
+        caches.ObjectsByChunkSize = ChunkBalance.ChunkSizeTiles;
+        foreach (var obj in world.Entities.Objects.Values)
+        {
+            AddToObjectIndex(world, obj);
+        }
+    }
+
+    /// <summary>Объект появился в мире (или переехал на новый тайл).</summary>
+    internal static void AddToObjectIndex(WorldState world, WorldObjectState obj)
+    {
+        var caches = world.Caches;
+        if (caches.ObjectsByChunkSize == 0)
+        {
+            return; // индекс не построен — его соберёт EnsureObjectIndex целиком
+        }
+
+        var chunk = ChunkOf(obj.Tile);
+        if (!caches.ObjectsByChunk.TryGetValue(chunk, out var ids))
+        {
+            caches.ObjectsByChunk[chunk] = ids = new System.Collections.Generic.List<ObjectId>();
+        }
+
+        // ⭐ Вставка ПО ВОЗРАСТАНИЮ id, а не в хвост. Порядок этого списка — это
+        // порядок, в котором мир получает свои плоды и хоронит свои трупы, и он
+        // обязан быть одинаковым у мира, прожившего тысячу тиков, и у того же
+        // мира, поднятого из сейва: перестройка после загрузки идёт по словарю,
+        // чей порядок не наш. Списки короткие (десятки на чанк), так что цена —
+        // сдвиг нескольких ссылок.
+        var at = 0;
+        while (at < ids.Count && ids[at].Value < obj.Id.Value)
+        {
+            at++;
+        }
+
+        if (at < ids.Count && ids[at].Value == obj.Id.Value)
+        {
+            return;
+        }
+
+        ids.Insert(at, obj.Id);
+    }
+
+    /// <summary>Объект исчез из мира (или уезжает со старого тайла).</summary>
+    internal static void RemoveFromObjectIndex(WorldState world, ObjectId id, TileCoord tile)
+    {
+        var caches = world.Caches;
+        if (caches.ObjectsByChunkSize == 0)
+        {
+            return;
+        }
+
+        if (caches.ObjectsByChunk.TryGetValue(ChunkOf(tile), out var ids))
+        {
+            ids.Remove(id);
+        }
+    }
+
+    /// <summary>
+    /// Объекты, которые система обязана обойти на этом такте, в
+    /// ДЕТЕРМИНИРОВАННОМ порядке.
+    /// <para>
+    /// ⭐ Здесь и только здесь живёт разница между двумя мирами. При выключенной
+    /// механике это весь ростер в его собственном порядке — то есть ровно то,
+    /// что системы обходили до §156, откуда и берётся построчное совпадение
+    /// golden_trace. При включённой обход идёт по бодрым чанкам, и спящий объект
+    /// не стоит ничего: ни работы, ни обращения к хешу.
+    /// </para>
+    /// <para>
+    /// Список берётся у вызывающего и им же переиспользуется — свежий на каждый
+    /// вызов, потому что системы слоя порождают и убивают объекты друг у друга
+    /// под ногами.
+    /// </para>
+    /// </summary>
+    internal static void CollectTickable(
+        WorldState world, System.Collections.Generic.List<WorldObjectState> into)
+    {
+        into.Clear();
+        if (!ChunkBalance.ChunkSleepEnabled)
+        {
+            foreach (var obj in world.Entities.Objects.Values)
+            {
+                into.Add(obj);
+            }
+
+            return;
+        }
+
+        var caches = world.Caches;
+        foreach (var chunk in caches.ActiveChunksOrdered)
+        {
+            if (!caches.ObjectsByChunk.TryGetValue(chunk, out var ids))
+            {
+                continue;
+            }
+
+            for (var i = 0; i < ids.Count; i++)
+            {
+                if (world.Entities.Objects.TryGetValue(ids[i], out var obj))
+                {
+                    into.Add(obj);
                 }
             }
         }

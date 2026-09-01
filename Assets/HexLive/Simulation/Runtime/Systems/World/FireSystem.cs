@@ -22,19 +22,18 @@ public sealed class FireSystem : ISimulationSystem
 
     private static float BurnPerSlowTick => WorldBalance.FireBurnPerSlowTick;
 
+    private readonly System.Collections.Generic.List<WorldObjectState> _tickable = new();
+
     public void Run(WorldState world)
     {
-        foreach (var obj in world.Entities.Objects.Values)
+        // §156: обход по бодрым чанкам. При выключенной механике это весь
+        // ростер в его собственном порядке — то есть прежняя игра.
+        ChunkMath.CollectTickable(world, _tickable);
+        foreach (var obj in _tickable)
         {
             if (obj.ResourceAmount <= 0f ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 !definition.HasTag("Campfire"))
-            {
-                continue;
-            }
-
-            // §156: спящий костёр не горит и не жарит — но и не ждёт вечно.
-            if (!ChunkMath.IsAwake(world, obj.Tile))
             {
                 continue;
             }

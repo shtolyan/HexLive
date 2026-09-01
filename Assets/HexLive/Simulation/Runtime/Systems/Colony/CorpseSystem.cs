@@ -36,21 +36,18 @@ public sealed class CorpseSystem : ISimulationSystem
 
     private readonly System.Collections.Generic.List<ObjectId> _decayed = new();
     private readonly System.Collections.Generic.List<ObjectId> _skeletonized = new();
+    private readonly System.Collections.Generic.List<WorldObjectState> _tickable = new();
 
     public void Run(WorldState world)
     {
         _decayed.Clear();
         _skeletonized.Clear();
-        foreach (var obj in world.Entities.Objects.Values)
+        // §156: в спящем чанке падаль ждёт. Пороги ниже якорные
+        // (Tick - SpawnTick), поэтому проспавшее тело догонит стадию обычным
+        // кодом на первом же бодром такте.
+        ChunkMath.CollectTickable(world, _tickable);
+        foreach (var obj in _tickable)
         {
-            // §156: в спящем чанке падаль ждёт. Пороги ниже якорные
-            // (Tick - SpawnTick), поэтому проспавшее тело догонит стадию
-            // обычным кодом на первом же бодром такте.
-            if (!ChunkMath.IsAwake(world, obj.Tile))
-            {
-                continue;
-            }
-
             if (obj.DefinitionId == ContentIds.CorpseNpc)
             {
                 var body = CorpseMath.BodyOf(world, obj);

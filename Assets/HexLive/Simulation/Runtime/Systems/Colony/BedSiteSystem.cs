@@ -28,6 +28,8 @@ public sealed class BedSiteSystem : ISimulationSystem
 
     public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
 
+    private readonly System.Collections.Generic.List<WorldObjectState> _tickable = new();
+
     public void Run(WorldState world)
     {
         CraftProjectMath.CancelOrphanedProjects(world);
@@ -40,16 +42,12 @@ public sealed class BedSiteSystem : ISimulationSystem
         // ever). Clearing them frees FindFiresideHex to stake on a good ring-1
         // tile. Runs each slow tick; self-heals and stays a no-op once clean.
         System.Collections.Generic.List<ObjectId> orphanSites = null;
-        foreach (var obj in world.Entities.Objects.Values)
+        // §156: подметание сирот — уборка, а не часы. Оставленное в спящем
+        // чанке дождётся первого, кто туда придёт; лагеря же бодры всегда,
+        // поэтому RunForCamp ниже обхода по чанкам не требует.
+        ChunkMath.CollectTickable(world, _tickable);
+        foreach (var obj in _tickable)
         {
-            // §156: подметание сирот — уборка, а не часы. Оставленное в спящем
-            // чанке дождётся первого, кто туда придёт; лагеря же бодры всегда,
-            // поэтому RunForCamp ниже фильтра не требует.
-            if (!ChunkMath.IsAwake(world, obj.Tile))
-            {
-                continue;
-            }
-
             if (obj.DefinitionId == ContentIds.BuildSite && string.IsNullOrEmpty(obj.BuildProduct))
             {
                 (orphanSites ??= new System.Collections.Generic.List<ObjectId>()).Add(obj.Id);

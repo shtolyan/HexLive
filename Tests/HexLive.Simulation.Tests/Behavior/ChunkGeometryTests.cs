@@ -161,6 +161,122 @@ public sealed class ChunkGeometryTests
         }
     }
 
+    /// <summary>
+    /// ⭐ Индекс «объекты по чанкам» обязан совпадать с ростером — всегда. Он
+    /// поддерживается по месту в трёх точках (spawn, despawn, перенос), и
+    /// забытая точка означает объект-призрак: система его либо не увидит вовсе,
+    /// либо увидит дважды. Прогон гоняет живой мир, где всё это и случается.
+    /// </summary>
+    [Test]
+    public void ObjectIndexStaysInSyncWithTheRosterAcrossALiveRun()
+    {
+        var previous = ChunkBalance.ChunkSleepEnabled;
+        ChunkBalance.ChunkSleepEnabled = true;
+        try
+        {
+            var engine = TestWorld.CreateEngine();
+            var world = engine.World;
+            for (var i = 0; i < 1200; i++)
+            {
+                engine.Step();
+                if (world.Tick % world.SlowIntervalTicks != 0)
+                {
+                    continue;
+                }
+
+                AssertIndexMatchesRoster(world);
+            }
+        }
+        finally
+        {
+            ChunkBalance.ChunkSleepEnabled = previous;
+        }
+    }
+
+    /// <summary>
+    /// Индекс после загрузки совпадает с индексом мира, который жил без сейва:
+    /// перестройка идёт по словарю, чей порядок не наш, поэтому списки чанков
+    /// сортируются по id — иначе сохранение меняло бы порядок, в котором мир
+    /// получает плоды и хоронит трупы.
+    /// </summary>
+    [Test]
+    public void ObjectIndexIsOrderedByIdSoSaveLoadCannotReshuffleIt()
+    {
+        var previous = ChunkBalance.ChunkSleepEnabled;
+        ChunkBalance.ChunkSleepEnabled = true;
+        try
+        {
+            var engine = TestWorld.CreateEngine();
+            var world = engine.World;
+            for (var i = 0; i < 400; i++)
+            {
+                engine.Step();
+            }
+
+            var live = Snapshot(world);
+
+            // Перестройка «как после загрузки».
+            world.Caches.ObjectsByChunkSize = 0;
+            world.Caches.ObjectsByChunk.Clear();
+            ChunkMath.EnsureObjectIndex(world);
+
+            Assert.That(Snapshot(world), Is.EqualTo(live),
+                "перестроенный индекс разошёлся с накопленным по месту");
+            foreach (var pair in world.Caches.ObjectsByChunk)
+            {
+                for (var i = 1; i < pair.Value.Count; i++)
+                {
+                    Assert.That(pair.Value[i].Value, Is.GreaterThan(pair.Value[i - 1].Value),
+                        $"чанк {pair.Key}: список не по возрастанию id");
+                }
+            }
+        }
+        finally
+        {
+            ChunkBalance.ChunkSleepEnabled = previous;
+        }
+    }
+
+    private static void AssertIndexMatchesRoster(WorldState world)
+    {
+        var indexed = new List<ObjectId>();
+        foreach (var pair in world.Caches.ObjectsByChunk)
+        {
+            foreach (var id in pair.Value)
+            {
+                Assert.That(world.Entities.Objects.ContainsKey(id), Is.True,
+                    $"тик {world.Tick}: в индексе объект {id.Value}, которого нет в мире");
+                Assert.That(ChunkMath.ChunkOf(world.Entities.Objects[id].Tile),
+                    Is.EqualTo(pair.Key),
+                    $"тик {world.Tick}: объект {id.Value} лежит в чужом чанке");
+                indexed.Add(id);
+            }
+        }
+
+        Assert.That(indexed.Count, Is.EqualTo(world.Entities.Objects.Count),
+            $"тик {world.Tick}: в индексе {indexed.Count} объектов, в мире " +
+            $"{world.Entities.Objects.Count}");
+    }
+
+    private static string Snapshot(WorldState world)
+    {
+        var chunks = new List<ChunkCoord>(world.Caches.ObjectsByChunk.Keys);
+        chunks.Sort((a, b) => a.Cq != b.Cq ? a.Cq.CompareTo(b.Cq) : a.Cr.CompareTo(b.Cr));
+        var text = new System.Text.StringBuilder();
+        foreach (var chunk in chunks)
+        {
+            text.Append(chunk).Append(':');
+            foreach (var id in world.Caches.ObjectsByChunk[chunk])
+            {
+                text.Append(id.Value).Append(',');
+            }
+
+            text.Append(';');
+        }
+
+        return text.ToString();
+    }
+
     /// <summary>Карта чанков переживает сейв — иначе весь остров «спал с нуля».</summary>
     [Test]
     public void ChunkMapSurvivesSaveRoundTrip()

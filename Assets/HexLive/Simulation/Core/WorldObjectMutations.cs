@@ -43,6 +43,7 @@ public static class WorldObjectMutations
         }
 
         objects.Add(worldObject.Id);
+        ChunkMath.AddToObjectIndex(world, worldObject); // §156
 
         SetObstacleBlocking(world, worldObject, blocked: true);
 
@@ -58,6 +59,45 @@ public static class WorldObjectMutations
         return worldObject;
     }
 
+    /// <summary>
+    /// Переносит объект на другой тайл ВМЕСТЕ с пространственными индексами.
+    /// <para>
+    /// ⭐ Единственный законный способ поменять <c>WorldObjectState.Tile</c> у
+    /// объекта, уже живущего в мире. Индекс общий (hazard, плоды, размещение,
+    /// восприятие, §156), и запись, оставшаяся на старом тайле, — это
+    /// объект-призрак для КАЖДОГО читателя. До появления хелпера три места
+    /// писали <c>.Tile</c> напрямую (гардероб и аптечка в бутстрапе зданий,
+    /// перестройка дома по чертежу), и все три оставляли такой призрак.
+    /// </para>
+    /// </summary>
+    public static void MoveObjectTile(WorldState world, WorldObjectState worldObject, TileCoord tile)
+    {
+        if (worldObject.Tile.Equals(tile))
+        {
+            return;
+        }
+
+        if (world.Caches.ObjectsByTile.TryGetValue(worldObject.Tile, out var from))
+        {
+            from.Remove(worldObject.Id);
+        }
+
+        if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var to))
+        {
+            to = new List<ObjectId>();
+            world.Caches.ObjectsByTile[tile] = to;
+        }
+
+        if (!to.Contains(worldObject.Id))
+        {
+            to.Add(worldObject.Id);
+        }
+
+        ChunkMath.RemoveFromObjectIndex(world, worldObject.Id, worldObject.Tile); // §156
+        worldObject.Tile = tile;
+        ChunkMath.AddToObjectIndex(world, worldObject);
+    }
+
     public static bool DespawnObject(WorldState world, ObjectId objectId)
     {
         if (!world.Entities.Objects.TryGetValue(objectId, out var worldObject))
@@ -71,6 +111,8 @@ public static class WorldObjectMutations
         {
             objects.Remove(objectId);
         }
+
+        ChunkMath.RemoveFromObjectIndex(world, objectId, worldObject.Tile); // §156
 
         SetObstacleBlocking(world, worldObject, blocked: false);
 

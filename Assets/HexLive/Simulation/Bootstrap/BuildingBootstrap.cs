@@ -1909,7 +1909,7 @@ public static class BuildingBootstrap
             garment.Junctions.Clear();
             garment.Junctions.Add(junctionId);
             garment.Fragment = wardrobe.Fragment;
-            garment.Tile = wardrobe.Tile;
+            WorldObjectMutations.MoveObjectTile(world, garment, wardrobe.Tile);
             garment.RotationDegrees = wardrobe.RotationDegrees;
         }
         RepairMedkitAnchor(world, hut, wardrobe);
@@ -1937,7 +1937,7 @@ public static class BuildingBootstrap
         medkit.Junctions.Clear();
         medkit.Junctions.Add(junctionId);
         medkit.Fragment = hut.Fragment;
-        medkit.Tile = hut.Tile;
+        WorldObjectMutations.MoveObjectTile(world, medkit, hut.Tile);
         medkit.RotationDegrees = wardrobe.RotationDegrees;
         WorldObjectMutations.SetObstacleBlocking(world, medkit, blocked: false);
     }

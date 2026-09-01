@@ -23,6 +23,7 @@ public sealed class MoistureSystem : ISimulationSystem
     public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
 
     private static readonly System.Collections.Generic.List<ItemInstance> _wornOutScratch = new();
+    private readonly System.Collections.Generic.List<WorldObjectState> _tickable = new();
 
     private static float DryBase => WorldBalance.MoistureDryBase;
 
@@ -85,15 +86,12 @@ public sealed class MoistureSystem : ISimulationSystem
         // tools and clothing all obey the same roof. Structures themselves do
         // not acquire item wetness. The drying-rack boost still applies only
         // when a wearable is actually hung there.
-        foreach (var obj in world.Entities.Objects.Values)
+        // §156: обход по бодрым чанкам; при выключенной механике — весь ростер.
+        ChunkMath.CollectTickable(world, _tickable);
+        foreach (var obj in _tickable)
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 !IsLoosePickup(definition))
-            {
-                continue;
-            }
-
-            if (!ChunkMath.IsAwake(world, obj.Tile))
             {
                 continue;
             }

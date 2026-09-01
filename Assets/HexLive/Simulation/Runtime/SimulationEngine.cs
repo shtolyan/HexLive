@@ -98,6 +98,7 @@ public sealed class SimulationEngine
             // — замер на большом острове показал, что он съедал больше, чем
             // экономил весь сон.
             ChunkMath.RebuildActiveChunks(World);
+            ChunkMath.EnsureObjectIndex(World);
 
             RunLayer(TickLayer.Slow);
 

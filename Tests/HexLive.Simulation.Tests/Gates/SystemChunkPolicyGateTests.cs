@@ -129,18 +129,26 @@ public sealed class SystemChunkPolicyGateTests
                 continue;
             }
 
-            var asks = files.Any(f => File.ReadAllText(f).Contains(
-                "ChunkMath.IsAwake", StringComparison.Ordinal));
+            // Два законных свидетельства §156: обход по бодрым чанкам
+            // (CollectTickable — так дешевле всего) или вопрос про конкретный
+            // тайл (IsAwake — когда обходят не объекты, а тайлы, как тени).
+            var asks = files.Any(f =>
+            {
+                var text = File.ReadAllText(f);
+                return text.Contains("ChunkMath.IsAwake", StringComparison.Ordinal) ||
+                       text.Contains("ChunkMath.CollectTickable", StringComparison.Ordinal);
+            });
 
             if (pair.Value == ChunkPolicy.PerChunk && !asks)
             {
-                drift.Add($"{pair.Key}: объявлена PerChunk, но ChunkMath.IsAwake " +
-                          "не спрашивает — фильтра нет, цена осталась площадью острова");
+                drift.Add($"{pair.Key}: объявлена PerChunk, но §156 не спрашивает " +
+                          "(ни CollectTickable, ни IsAwake) — фильтра нет, цена " +
+                          "осталась площадью острова");
             }
             else if (pair.Value != ChunkPolicy.PerChunk && asks)
             {
-                drift.Add($"{pair.Key}: объявлена {pair.Value}, но фильтрует по " +
-                          "IsAwake — либо политика неверна, либо профильтровано лишнее");
+                drift.Add($"{pair.Key}: объявлена {pair.Value}, но спрашивает §156 — " +
+                          "либо политика неверна, либо профильтровано лишнее");
             }
         }
 

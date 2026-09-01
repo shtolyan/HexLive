@@ -96,7 +96,7 @@ public sealed class ChunkCatchUpArenaTests
 
             // Палку кто-то положил — значит чанк был бодр и получил штамп.
             world.Tick = 0;
-            world.Caches.ActiveChunks.Add(chunk);
+            SetAwake(world, chunk, awake: true);
             ChunkMath.StampSimulated(world);
 
             // Тысяча тиков сна: базовой ставки (0.02 за такт) хватает с запасом.
@@ -147,16 +147,12 @@ public sealed class ChunkCatchUpArenaTests
         var weather = new WeatherSystem();
         for (world.Tick = 0; world.Tick <= wakeTick; world.Tick += world.SlowIntervalTicks)
         {
-            world.Caches.ActiveChunks.Clear();
             // Нулевой такт бодрствует всегда: объект кто-то поставил, значит
             // человек там был. Так стенд повторяет настоящую последовательность
             // «пришли — ушли — вернулись», а не мир, где чанка не касались
             // никогда (у такого нет штампа и догонять в нём нечего, §156.1).
             var awake = world.Tick == 0 || world.Tick >= sleepUntil;
-            if (awake)
-            {
-                world.Caches.ActiveChunks.Add(chunk);
-            }
+            SetAwake(world, chunk, awake);
 
             weather.Run(world);
             system.Run(world);
@@ -166,6 +162,25 @@ public sealed class ChunkCatchUpArenaTests
                 ChunkMath.StampSimulated(world);
             }
         }
+    }
+
+    /// <summary>
+    /// Держит один чанк бодрым (или спящим) в обход движка: тот будит по живым
+    /// NPC, а стенду нужен ровно один подконтрольный чанк. Оба представления
+    /// набора — множество для вопроса «спит ли» и список для ПОРЯДКА обхода —
+    /// обязаны идти вместе, иначе обход по чанкам не найдёт ничего.
+    /// </summary>
+    private static void SetAwake(WorldState world, ChunkCoord chunk, bool awake)
+    {
+        world.Caches.ActiveChunks.Clear();
+        world.Caches.ActiveChunksOrdered.Clear();
+        if (awake)
+        {
+            world.Caches.ActiveChunks.Add(chunk);
+            world.Caches.ActiveChunksOrdered.Add(chunk);
+        }
+
+        ChunkMath.EnsureObjectIndex(world);
     }
 
     private static void WithChunkSleep(Action body)

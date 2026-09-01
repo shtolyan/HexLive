@@ -153,16 +153,20 @@ public sealed class RainCatchUpTests
         {
             // Активный набор ставим руками: движок будит по живым NPC, а нам
             // нужен ровно один спящий чанк без оглядки на то, где стоят девушки.
-            world.Caches.ActiveChunks.Clear();
             // Нулевой такт бодрствует всегда: водосбор кто-то поставил, значит
             // человек там был и чанк получил штамп. Чанк, которого не касались
             // НИКОГДА, штампа не имеет и считается свежим (§156.1) — это другой
             // случай, и мерить надо не его.
             var awake = world.Tick == 0 || world.Tick >= sleepUntil;
+            world.Caches.ActiveChunks.Clear();
+            world.Caches.ActiveChunksOrdered.Clear();
             if (awake)
             {
                 world.Caches.ActiveChunks.Add(chunkOfCollector);
+                world.Caches.ActiveChunksOrdered.Add(chunkOfCollector);
             }
+
+            ChunkMath.EnsureObjectIndex(world);
 
             weather.Run(world);
             system.Run(world);

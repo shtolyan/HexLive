@@ -1,3 +1,4 @@
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 
 namespace HexLive.Simulation.Runtime
@@ -16,16 +17,15 @@ public sealed class WaterCollectorSystem : ISimulationSystem
 
     public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
 
+    private readonly System.Collections.Generic.List<WorldObjectState> _tickable = new();
+
     public void Run(WorldState world)
     {
-        foreach (var obj in world.Entities.Objects.Values)
+        // §156: обход по бодрым чанкам; при выключенной механике — весь ростер.
+        ChunkMath.CollectTickable(world, _tickable);
+        foreach (var obj in _tickable)
         {
             if (obj.DefinitionId != WaterCollectorMath.CollectorId)
-            {
-                continue;
-            }
-
-            if (!ChunkMath.IsAwake(world, obj.Tile))
             {
                 continue;
             }

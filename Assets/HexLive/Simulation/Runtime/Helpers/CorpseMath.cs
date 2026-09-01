@@ -120,25 +120,10 @@ public static class CorpseMath
         WorldState world, WorldObjectState anchor, TileCoord tile,
         FragmentId fragment, JunctionId junction)
     {
-        if (world.Caches.ObjectsByTile.TryGetValue(anchor.Tile, out var oldTile))
-        {
-            oldTile.Remove(anchor.Id);
-        }
-
-        anchor.Tile = tile;
+        WorldObjectMutations.MoveObjectTile(world, anchor, tile);
         anchor.Fragment = fragment;
         anchor.Junctions.Clear();
         anchor.Junctions.Add(junction);
-        if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var newTile))
-        {
-            newTile = new System.Collections.Generic.List<ObjectId>();
-            world.Caches.ObjectsByTile[tile] = newTile;
-        }
-
-        if (!newTile.Contains(anchor.Id))
-        {
-            newTile.Add(anchor.Id);
-        }
     }
 
     /// <summary>Осталось ли на теле хоть что-нибудь.</summary>

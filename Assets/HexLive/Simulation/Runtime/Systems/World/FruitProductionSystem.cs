@@ -25,21 +25,19 @@ public sealed class FruitProductionSystem : ISimulationSystem
     public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
 
     private readonly System.Collections.Generic.List<WorldObjectState> _producers = new();
+    private readonly System.Collections.Generic.List<WorldObjectState> _tickable = new();
 
     public void Run(WorldState world)
     {
         // Spec 31C.1: unclaimed fruit rots after 2400 ticks — drops on
         // unreachable junctions no longer litter the world forever.
         _rotted.Clear();
-        foreach (var candidate in world.Entities.Objects.Values)
+        // §156: порог якорный (Tick - SpawnTick), поэтому проспавший плод
+        // сгниёт обычным кодом на первом бодром такте — обход по бодрым чанкам
+        // это вся правка.
+        ChunkMath.CollectTickable(world, _tickable);
+        foreach (var candidate in _tickable)
         {
-            // §156: порог якорный (Tick - SpawnTick), поэтому проспавший плод
-            // сгниёт обычным кодом на первом бодром такте — фильтр это вся правка.
-            if (!ChunkMath.IsAwake(world, candidate.Tile))
-            {
-                continue;
-            }
-
             if ((candidate.DefinitionId == ContentIds.Coconut ||
                  candidate.DefinitionId == ContentIds.CoconutPierced ||
                  candidate.DefinitionId == ContentIds.CoconutOpen) &&
@@ -67,10 +65,9 @@ public sealed class FruitProductionSystem : ISimulationSystem
         // (два бревна вместо трёх навсегда). Пень с сидящей на нём не трогаем —
         // вырастет тиком позже.
         _regrown.Clear();
-        foreach (var candidate in world.Entities.Objects.Values)
+        foreach (var candidate in _tickable)
         {
-            if (ChunkMath.IsAwake(world, candidate.Tile) &&
-                candidate.DefinitionId == ContentIds.PalmStump &&
+            if (candidate.DefinitionId == ContentIds.PalmStump &&
                 candidate.SpawnTick > 0 && !candidate.IsOccupied &&
                 world.Tick - candidate.SpawnTick > WorldBalance.StumpRegrowTicks)
             {
@@ -117,15 +114,17 @@ public sealed class FruitProductionSystem : ISimulationSystem
         }
 
         // Snapshot producers first: spawning mutates Entities.Objects mid-iteration.
+        // §156.4: проспавшая пальма выложит ОДИН плод и заведёт интервал
+        // заново — так уже устроен код ниже, и это честнее, чем выдумывать
+        // историю урожая: лишние плоды всё равно упёрлись бы в MaxConcurrent
+        // и сгнили бы по своему якорю раньше, чем кто-то пришёл.
+        //
+        // Пересобираем список: выше могли исчезнуть сгнившие плоды и пни.
+        ChunkMath.CollectTickable(world, _tickable);
         _producers.Clear();
-        foreach (var obj in world.Entities.Objects.Values)
+        foreach (var obj in _tickable)
         {
-            // §156.4: проспавшая пальма выложит ОДИН плод и заведёт интервал
-            // заново — так уже устроен код ниже, и это честнее, чем выдумывать
-            // историю урожая: лишние плоды всё равно упёрлись бы в MaxConcurrent
-            // и сгнили бы по своему якорю раньше, чем кто-то пришёл.
-            if (ChunkMath.IsAwake(world, obj.Tile) &&
-                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Produce != null)
             {
                 _producers.Add(obj);

@@ -89,6 +89,45 @@ internal static class RainMath
     }
 
     /// <summary>
+    /// Отрезок ПОСТОЯННОЙ погоды, начинающийся на тике <paramref name="tick"/>:
+    /// идёт ли на нём дождь и каким тиком он кончается (включительно, не дальше
+    /// <paramref name="limit"/>).
+    /// <para>
+    /// Нужен догону костра: ставка горения меняется только на границах дождя,
+    /// поэтому между границами топливо списывается одним умножением. Отрезков в
+    /// цикле не больше трёх, так что обход окна остаётся O(циклов) — та же
+    /// поблажка §156.2, что и у счётчика тактов.
+    /// </para>
+    /// </summary>
+    internal static bool RainSegmentAt(int seed, int tick, int limit, out int segmentEnd)
+    {
+        var cycleTicks = EnvironmentSystem.EventCycleTicks;
+        var raining = RainingAt(seed, tick);
+        if (raining)
+        {
+            TryFront(seed, tick / cycleTicks, out _, out var end);
+            segmentEnd = System.Math.Min(end - 1, limit);
+            return true;
+        }
+
+        // Сухо: отрезок тянется до начала ближайшего фронта. Ищем вперёд по
+        // циклам, не по тикам, и не дальше конца окна.
+        for (var cycle = tick / cycleTicks; cycle <= limit / cycleTicks; cycle++)
+        {
+            if (!TryFront(seed, cycle, out var start, out _) || start <= tick)
+            {
+                continue;
+            }
+
+            segmentEnd = System.Math.Min(start - 1, limit);
+            return false;
+        }
+
+        segmentEnd = limit;
+        return false;
+    }
+
+    /// <summary>
     /// Фронт этого цикла: <c>[start, end)</c>, уже обрезанный границей цикла.
     /// ⭐ Обрезка не косметика: на тике следующего цикла индекс уже другой, и
     /// WeatherSystem перекатывает роллы заново — хвост длинного фронта в мире

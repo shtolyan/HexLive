@@ -31,6 +31,13 @@ public sealed class FruitProductionSystem : ISimulationSystem
         _rotted.Clear();
         foreach (var candidate in world.Entities.Objects.Values)
         {
+            // §156: порог якорный (Tick - SpawnTick), поэтому проспавший плод
+            // сгниёт обычным кодом на первом бодром такте — фильтр это вся правка.
+            if (!ChunkMath.IsAwake(world, candidate.Tile))
+            {
+                continue;
+            }
+
             if ((candidate.DefinitionId == ContentIds.Coconut ||
                  candidate.DefinitionId == ContentIds.CoconutPierced ||
                  candidate.DefinitionId == ContentIds.CoconutOpen) &&
@@ -60,7 +67,8 @@ public sealed class FruitProductionSystem : ISimulationSystem
         _regrown.Clear();
         foreach (var candidate in world.Entities.Objects.Values)
         {
-            if (candidate.DefinitionId == ContentIds.PalmStump &&
+            if (ChunkMath.IsAwake(world, candidate.Tile) &&
+                candidate.DefinitionId == ContentIds.PalmStump &&
                 candidate.SpawnTick > 0 && !candidate.IsOccupied &&
                 world.Tick - candidate.SpawnTick > WorldBalance.StumpRegrowTicks)
             {
@@ -110,7 +118,12 @@ public sealed class FruitProductionSystem : ISimulationSystem
         _producers.Clear();
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
+            // §156.4: проспавшая пальма выложит ОДИН плод и заведёт интервал
+            // заново — так уже устроен код ниже, и это честнее, чем выдумывать
+            // историю урожая: лишние плоды всё равно упёрлись бы в MaxConcurrent
+            // и сгнили бы по своему якорю раньше, чем кто-то пришёл.
+            if (ChunkMath.IsAwake(world, obj.Tile) &&
+                world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.Produce != null)
             {
                 _producers.Add(obj);

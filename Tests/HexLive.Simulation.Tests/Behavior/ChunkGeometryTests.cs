@@ -146,10 +146,14 @@ public sealed class ChunkGeometryTests
                 Assert.That(pair.Value.LastSimulatedTick, Is.EqualTo(640));
             }
 
-            // Далёкий чанк не получил записи — окно там начинается с нуля мира.
+            // Далёкий чанк записи не получил. §156.1: такой считается СВЕЖИМ,
+            // а не проспавшим с сотворения мира — иначе первый визит в
+            // нетронутый край выдал бы всему, что там лежит, возраст мира.
             var far = new TileCoord(4096, 4096);
             Assert.That(ChunkMath.IsAwake(world, far), Is.False);
-            Assert.That(ChunkMath.SleepWindowStart(world, far), Is.Zero);
+            Assert.That(ChunkMath.SleepWindowStart(world, far),
+                Is.EqualTo(world.Tick - world.SlowIntervalTicks));
+            Assert.That(ChunkMath.SleptSlowTicks(world, far), Is.Zero);
         }
         finally
         {

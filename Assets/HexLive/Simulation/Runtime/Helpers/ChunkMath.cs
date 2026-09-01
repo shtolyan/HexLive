@@ -49,15 +49,41 @@ internal static class ChunkMath
     /// </summary>
     internal static int SleepWindowStart(WorldState world, TileCoord tile)
     {
-        if (!ChunkBalance.ChunkSleepEnabled)
+        if (ChunkBalance.ChunkSleepEnabled &&
+            world.Chunks.Items.TryGetValue(ChunkOf(tile), out var chunk))
         {
-            return world.Tick - world.SlowIntervalTicks;
+            return chunk.LastSimulatedTick;
         }
 
-        return world.Chunks.Items.TryGetValue(ChunkOf(tile), out var chunk)
-            ? chunk.LastSimulatedTick
-            : 0;
+        // Ни разу не штампованный чанк считается СВЕЖИМ, а не проспавшим с
+        // сотворения мира. Догонять там нечего: счётчики (топливо, влага)
+        // заводит только чья-то работа, а работать в чанке, где никогда никого
+        // не было, некому; всё остальное там якорное через SpawnTick и
+        // догоняется само. Обратное соглашение выдало бы нетронутому краю
+        // острова возраст мира на первом же визите.
+        return world.Tick - world.SlowIntervalTicks;
     }
+
+    /// <summary>
+    /// Сколько slow-тактов чанк проспал СТРОГО до текущего: такты
+    /// <c>(SleepWindowStart, world.Tick)</c>. Текущий такт не входит — его
+    /// отрабатывает живой код системы своим прежним способом.
+    /// </summary>
+    internal static int SleptSlowTicks(WorldState world, TileCoord tile)
+    {
+        var slow = world.SlowIntervalTicks;
+        if (slow <= 0)
+        {
+            return 0;
+        }
+
+        var from = SleepWindowStart(world, tile);
+        return MultiplesBelow(world.Tick, slow) - MultiplesBelow(from + 1, slow);
+    }
+
+    /// <summary>Сколько кратных <paramref name="step"/> лежит в <c>[0, limit)</c>.</summary>
+    private static int MultiplesBelow(int limit, int step) =>
+        limit <= 0 ? 0 : (limit + step - 1) / step;
 
     /// <summary>
     /// §156.1: радиус пробуждения ОДНОЙ колонистки. Персональный, потому что

@@ -91,9 +91,31 @@ public sealed class MoistureSystem : ISimulationSystem
                 continue;
             }
 
+            if (!ChunkMath.IsAwake(world, obj.Tile))
+            {
+                continue;
+            }
+
             var indoor = ShelterMath.IsIndoor(world, obj.Tile);
             world.Tiles.Items.TryGetValue(obj.Tile, out var tile);
             var onWater = tile is not null && tile.Flags.HasFlag(TileFlags.Water);
+            var naturalMultiplier = definition.Layer is not null
+                ? WorldBalance.ClothingNaturalDryMultiplier
+                : 1f;
+
+            // §156.4: за проспанное вещь ТОЛЬКО сохнет, и только базовой
+            // ставкой — сушилка, костёр и солнце это взаимодействие с соседями,
+            // от которого в спящем чанке мы отказались осознанно. Промежуточные
+            // дожди следа не оставляют: актуальный вернёт единицу строкой ниже.
+            // Ошибка невидима — базовой ставки хватает высушить всё за ~800
+            // тиков, а любой содержательный сон длиннее.
+            var sleptSlowTicks = ChunkMath.SleptSlowTicks(world, obj.Tile);
+            if (sleptSlowTicks > 0)
+            {
+                obj.Wetness = System.MathF.Max(
+                    0f, obj.Wetness - DryBase * naturalMultiplier * sleptSlowTicks);
+            }
+
             if (onWater || ShelterMath.RainReaches(world, obj.Tile))
             {
                 obj.Wetness = 1f;
@@ -101,9 +123,6 @@ public sealed class MoistureSystem : ISimulationSystem
             }
 
             var stationBoost = StationDryMultiplier(world, obj);
-            var naturalMultiplier = definition.Layer is not null
-                ? WorldBalance.ClothingNaturalDryMultiplier
-                : 1f;
             obj.Wetness = System.MathF.Max(0f,
                 obj.Wetness - DryBase * DryMultiplier(
                     world, obj.Tile, indoor, stationBoost, naturalMultiplier));

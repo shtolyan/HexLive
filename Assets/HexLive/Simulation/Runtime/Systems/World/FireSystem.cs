@@ -31,6 +31,27 @@ public sealed class FireSystem : ISimulationSystem
                 continue;
             }
 
+            // §156: спящий костёр не горит и не жарит — но и не ждёт вечно.
+            if (!ChunkMath.IsAwake(world, obj.Tile))
+            {
+                continue;
+            }
+
+            // §156: догнать проспанное МОЛЧА, до живого такта. У бодрого чанка
+            // окно пусто и вызов не делает ничего, поэтому строка ниже — та же
+            // игра, что была.
+            FireMath.CatchUp(
+                world, obj,
+                ChunkMath.SleepWindowStart(world, obj.Tile),
+                world.Tick,
+                world.SlowIntervalTicks);
+            if (obj.ResourceAmount <= 0f)
+            {
+                // Прогорел во сне. Событие сегодняшним тиком было бы враньём о
+                // времени (§156.3), а смотреть на это было некому.
+                continue;
+            }
+
             // Spec 42 / §120: exposed rain eats fuel 4x faster. A completed
             // roof blocks that channel completely; an indoor hearth keeps its
             // coals through a storm.

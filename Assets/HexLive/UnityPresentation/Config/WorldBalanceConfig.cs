@@ -12,6 +12,7 @@ namespace HexLive.UnityPresentation.Config
     [CreateAssetMenu(menuName = "HexLive/Balance/World", fileName = "WorldBalance")]
     [MirrorTarget(typeof(WorldBalance))]
     [MirrorTarget(typeof(WildlifeBalance))]
+    [MirrorTarget(typeof(ChunkBalance))]
     public sealed class WorldBalanceConfig : ScriptableObject
     {
         [Header("Стартовый состав")]
@@ -142,5 +143,19 @@ namespace HexLive.UnityPresentation.Config
         [Range(2, 60)] public int mobPreviewSegmentTicks = 12;
         [Tooltip("§147.2: шанс паузы (стоит, нюхает) вместо шага на сегменте превью.")]
         [Range(0f, 1f)] public float mobPreviewPauseChance = 0.45f;
+
+        [Header("Спящие чанки (§156)")]
+        [Tooltip("§156.6: включить сон дальних чанков. Выключено = мир ведёт себя ровно как до §156.")]
+        [MirrorField(typeof(ChunkBalance), "ChunkSleepEnabled")]
+        public bool chunkSleepEnabled = false;
+        [Tooltip("§156.1: сторона чанка в тайлах.")]
+        [MirrorField(typeof(ChunkBalance), "ChunkSizeTiles")]
+        [Range(2, 32)] public int chunkSizeTiles = 8;
+        [Tooltip("§156.1: пол радиуса пробуждения, тайлы. Не меньше смертного крика §57 (10) и материализации зверя §147.3 (8).")]
+        [MirrorField(typeof(ChunkBalance), "MinWakeRadiusTiles")]
+        [Range(1, 40)] public int minWakeRadiusTiles = 10;
+        [Tooltip("§156.1: запас поверх радиуса пробуждения, тайлы — NPC пересекает границу чанка не мгновенно.")]
+        [MirrorField(typeof(ChunkBalance), "WakeRadiusMarginTiles")]
+        [Range(0, 10)] public int wakeRadiusMarginTiles = 2;
     }
 }

@@ -35,6 +35,21 @@ public sealed class WorldState
 
     public RuntimeCaches Caches { get; } = new();
 
+    /// <summary>§156: карта чанков — где мир спал и с какого тика.</summary>
+    public ChunkMap Chunks { get; } = new();
+
+    /// <summary>
+    /// §156: такт slow-слоя, зеркало <c>SimulationSettings.SlowInterval</c>.
+    /// Ставит движок в конструкторе; сейв и снапшот его не несут — это
+    /// настройка прогона, а не состояние мира (как <see cref="RuntimeClock"/>).
+    /// <para>
+    /// Нужен там, где формула догона спрашивает «когда был предыдущий
+    /// slow-такт», а движка под рукой нет: интервал приходит из определения
+    /// мира и константой быть не может.
+    /// </para>
+    /// </summary>
+    public int SlowIntervalTicks { get; set; } = 16;
+
     public SimulationEventBuffer Events { get; } = new();
 
     /// <summary>

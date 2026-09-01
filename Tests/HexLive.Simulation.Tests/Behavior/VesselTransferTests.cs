@@ -351,24 +351,10 @@ public sealed class VesselTransferTests
         });
     }
 
-    [Test]
-    public void V64BottleWithoutRecoverableChargesMigratesToEmpty()
-    {
-        var world = TestWorld.CreateWorld(350);
-        var npc = Girl(world);
-        npc.BottleWater = WaterKind.Raw;
-        npc.BottleCharges = 4;
-
-        var loaded = RoundTripSave(world, version: 64);
-        var reloaded = loaded.Entities.Npcs[npc.Id];
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(reloaded.BottleWater, Is.EqualTo(WaterKind.None),
-                "v64 carried only kind; guessing quantity would fabricate water");
-            Assert.That(reloaded.BottleCharges, Is.Zero);
-        });
-    }
+    // Тест «v64 без количества мигрирует в пустую бутылку» снят в §156: блоб
+    // v66 оборвал совместимость (OldestReadable = BlobVersion), читать v64
+    // больше нельзя и писать его тоже, так что проверять стало нечего. Сама
+    // ветка миграции в WorldSaveSerializer осталась гаситься гейтом версии.
 }
 
 }

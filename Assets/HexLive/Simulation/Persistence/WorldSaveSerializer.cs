@@ -151,8 +151,14 @@ public static class WorldSaveSerializer
     // v65 (§55.4, bug #347): число глотков личной бутылки. До v65 сохранялся
     // только вид воды; восстановить количество нельзя, поэтому такой хвост
     // мигрирует в честную пустую бутылку, а не создаёт фантомную воду.
-    public const int BlobVersion = 65;
-    private const int OldestReadableBlobVersion = 3;
+    // v66 (§156): карта чанков — с какого тика каждый чанк спит. ⭐ ЗДЕСЬ
+    // ОБРЫВАЕТСЯ СОВМЕСТИМОСТЬ: решение игрока — старые сейвы не поддерживаем,
+    // миграции нет. Мир до §156 не различал спящее и бодрое, и достроить эту
+    // границу задним числом нельзя: пришлось бы объявить весь остров либо
+    // вечно бодрым (то есть соврать про экономию), либо спавшим с нуля (то
+    // есть выдать всем костру и мясу возраст мира).
+    public const int BlobVersion = 66;
+    private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
 
@@ -167,14 +173,15 @@ public static class WorldSaveSerializer
         WriteAtVersion(world, w, BlobVersion);
     }
 
-    // Internal for migration coverage: the only writable legacy layout is the
-    // immediately preceding v64, whose sole difference is the absent NPC tail.
+    // Internal for round-trip coverage. Писать легаси-раскладки больше нельзя:
+    // v66 (§156) оборвал совместимость, и читатель их всё равно не примет.
     internal static void WriteAtVersion(WorldState world, BinaryWriter w, int version)
     {
-        if (version < 64 || version > BlobVersion)
+        if (version < OldestReadableBlobVersion || version > BlobVersion)
         {
             throw new InvalidDataException(
-                $"Cannot write save blob version {version}; supported writer range is 64..{BlobVersion}.");
+                $"Cannot write save blob version {version}; supported writer range is " +
+                $"{OldestReadableBlobVersion}..{BlobVersion}.");
         }
 
         w.Write(version);
@@ -431,6 +438,18 @@ public static class WorldSaveSerializer
                 w.Write(waypoint.Position.X);
                 w.Write(waypoint.Position.Y);
             }
+        }
+
+        // §156 (v66): карта чанков. Отсортирована, чтобы байты сейва не зависели
+        // от порядка словаря (то же правило, что у прибытий выше).
+        var chunks = new List<ChunkCoord>(world.Chunks.Items.Keys);
+        chunks.Sort((a, b) => a.Cq != b.Cq ? a.Cq.CompareTo(b.Cq) : a.Cr.CompareTo(b.Cr));
+        w.Write(chunks.Count);
+        foreach (var chunk in chunks)
+        {
+            w.Write(chunk.Cq);
+            w.Write(chunk.Cr);
+            w.Write(world.Chunks.Items[chunk].LastSimulatedTick);
         }
 
         w.Write(EndMarker);
@@ -838,6 +857,15 @@ public static class WorldSaveSerializer
 
                 world.MobSpawnSlots.Add(slot);
             }
+        }
+
+        // §156 (v66): карта чанков.
+        world.Chunks.Items.Clear();
+        var chunkCount = r.ReadInt32();
+        for (var i = 0; i < chunkCount; i++)
+        {
+            var chunk = new ChunkCoord(r.ReadInt32(), r.ReadInt32());
+            world.Chunks.Items[chunk] = new ChunkState { LastSimulatedTick = r.ReadInt32() };
         }
 
         if (r.ReadInt32() != EndMarker)

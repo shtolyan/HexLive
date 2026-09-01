@@ -13,6 +13,12 @@ public sealed class RuntimeCaches
 
     public Dictionary<TileCoord, List<ObjectId>> ObjectsByTile { get; } = new();
 
+    // §156: чанки, которые симулируются на этом тике — объединение дисков
+    // пробуждения всех живых NPC. Пересобирается движком в начале каждого Step,
+    // поэтому НЕ сериализуется и не едет в снапшоте: это вывод из позиций
+    // колонисток, а не состояние мира. Пуст, пока механика выключена.
+    public HashSet<ChunkCoord> ActiveChunks { get; } = new();
+
     // Spec 29C.3 (chase-path fix): junctions a ground mob may never STEP on —
     // indoor (sanctuary), doors, all-water. Chase pathfinding feeds these into
     // FindPath's avoid set so a dog plans routes it can actually walk; without

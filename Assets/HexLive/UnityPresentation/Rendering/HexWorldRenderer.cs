@@ -2182,29 +2182,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // последнем известном месте (SyncUnknownNpcMarkers), а не
             // застывшее тело: тело ушло бы оттуда, и картинка врала бы.
             var isOurs = IsPlayerOwned(npc);
-            // Bug #337: от скрытия освобождает только УПРАВЛЯЕМАЯ, не весь
-            // лагерь — соседка, ушедшая из восприятия, прячется как чужая.
-            // Bug #338 r3: с фолбэком — без управляемых в кадре (гость или
-            // мигнул 120-с лиз) льгота возвращается всему своему лагерю,
-            // иначе на границе лиза замирал весь мир.
-            var controlled = _anyControlledInSnapshot
-                ? _runner != null && _runner.CanControlNpc(npc.Id)
-                : isOurs;
-            var strangerVisible = controlled || TileVisibleNow(npc.Tile);
+            var hiddenByFog = NpcViewLegitimatelyHidden(
+                npc, isOurs, out var controlled, out var strangerVisible);
             if (!controlled && strangerVisible)
             {
                 _lastSeenNpcTiles[key] = npc.Tile;
             }
-
-            var hiddenByFog = (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(key))
-                // Гейт на ВСЁ ВРЕМЯ ЗАГРУЗКИ, а не на первую сборку: экран
-                // ждёт, пока каждое тело ростера дошьётся, а выключенный
-                // актёр дошиться не может (зависание #146). Одной первой
-                // сборки не хватило (баг #182): причёска приезжает много
-                // кадров спустя, и девушки соседних лагерей (§146) успевали
-                // погаснуть прямо посреди своей загрузки — занавес ждал их
-                // вечно. Под занавесом их всё равно никто не видит.
-                || (_cullInitialBuildDone && !UI.LoadingScreen.IsActive && !strangerVisible);
 
             if (!_npcViews.TryGetValue(key, out var npcView) || npcView == null)
             {
@@ -2659,6 +2642,37 @@ public sealed class HexWorldRenderer : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// ЕДИНСТВЕННОЕ правило «этот вид законно погашен» — его считают и
+    /// снапшот-пасс, и сторожок #146: два независимых экземпляра этого
+    /// предиката уже разошлись однажды (сторожок кричал «вид НЕАКТИВЕН» про
+    /// соседок, законно скрытых вырезом восприятия #337/#338 r3, и шумом
+    /// хоронил настоящие поломки — баг 339).
+    /// <para>
+    /// Bug #337: от скрытия освобождает только УПРАВЛЯЕМАЯ, не весь лагерь —
+    /// соседка, ушедшая из восприятия, прячется как чужая. Bug #338 r3: с
+    /// фолбэком — без управляемых в кадре (гость или мигнул 120-с лиз) льгота
+    /// возвращается всему своему лагерю, иначе на границе лиза замирал весь
+    /// мир. Гейт загрузки — на ВСЁ её время, а не на первую сборку: экран
+    /// ждёт, пока каждое тело ростера дошьётся, а выключенный актёр дошиться
+    /// не может (зависание #146); одной первой сборки не хватило (баг #182) —
+    /// причёска приезжает много кадров спустя, и девушки соседних лагерей
+    /// (§146) успевали погаснуть посреди своей загрузки. Под занавесом их всё
+    /// равно никто не видит.
+    /// </para>
+    /// </summary>
+    private bool NpcViewLegitimatelyHidden(
+        NpcSnapshot npc, bool isOurs,
+        out bool controlled, out bool strangerVisible)
+    {
+        controlled = _anyControlledInSnapshot
+            ? _runner != null && _runner.CanControlNpc(npc.Id)
+            : isOurs;
+        strangerVisible = controlled || TileVisibleNow(npc.Tile);
+        return (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(npc.Id.Value))
+            || (_cullInitialBuildDone && !UI.LoadingScreen.IsActive && !strangerVisible);
+    }
+
     // ⭐ Bug #146 watchdog: «девушки не рендерятся, пока не кликнешь». Три
     // правдоподобных диагноза подряд (туман §125.5, вырез §120, GRD occlusion)
     // не подтвердились у игрока — дальше только замер по живой сессии, §109.16.
@@ -2698,6 +2712,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (!view.activeInHierarchy)
             {
+                // Bug 339: соседка своего лагеря вне восприятия управляемой
+                // погашена ЗАКОННО (#337/#338 r3) — это не поломка, и сторожок
+                // молчит. Проверяется ТЕМ ЖЕ предикатом, каким её погасил
+                // снапшот-пасс; сломанный вид (погашен при видимом тайле,
+                // при живой управляемой и т.д.) по-прежнему кричит.
+                if (NpcViewLegitimatelyHidden(npc, isOurs: true, out _, out _))
+                {
+                    continue;
+                }
+
                 WatchdogReport($"inactive:{id}",
                     $"[NpcRenderWatchdog] npc={id} {npc.DisplayName}: вид НЕАКТИВЕН " +
                     $"(activeSelf={view.activeSelf} fogActive={_fogActive} fogHidesNpcs={_fogHidesNpcs} " +

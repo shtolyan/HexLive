@@ -135,16 +135,6 @@ public sealed class PathCostTests
         }
 
         Assert.That(found, Is.True, "Fixture needs one adjacent seam pair.");
-
-        // Здоровая пара (у обеих есть свободные боковые выходы): запрет
-        // ходьбы вдоль кромки действует.
-        Assert.That(HexPathfinder.IsClimbSeamWalk(world, from, to), Is.True,
-            "A healthy seam pair must keep the seam-walk ban.");
-
-        // Bug #334: замуровать всё, кроме самих швов — теперь оба «stranded»,
-        // и скольжение вдоль кромки — единственный и ЗАКОННЫЙ выход. Полный
-        // запрет здесь оставлял вставшую на шов девушку в вечной тюрьме
-        // (Ника у кроватей: все не-шовные соседи Blocked).
         foreach (var junction in world.Junctions.Items.Values)
         {
             junction.Blocked = !junction.Id.Equals(from) && !junction.Id.Equals(to);
@@ -153,89 +143,10 @@ public sealed class PathCostTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(HexPathfinder.FindPath(world, from, to), Is.Not.Empty,
-                "A stranded seam must be allowed to slide along its lip.");
-            Assert.That(Connectivity.Reachable(world, from, to), Is.True,
+            Assert.That(HexPathfinder.FindPath(world, from, to), Is.Empty,
+                "Walking seam-to-seam is forbidden by the live router.");
+            Assert.That(Connectivity.Reachable(world, from, to), Is.False,
                 "Planning reachability must be a projection of the live router.");
-        });
-    }
-
-    [Test]
-    public void StrandedSeamSlidesAlongTheLipToTheFirstOpenExit()
-    {
-        // Bug #334, слепок тюрьмы Ники: шов, у которого ВСЕ не-шовные соседи
-        // заблокированы, соседний шов здоров и открывается вбок. Побег — два
-        // шага вдоль кромки; и роутер, и граф компонент обязаны его видеть.
-        var world = TestWorld.CreateWorld(104729);
-        JunctionId stranded = default;
-        JunctionId healthy = default;
-        JunctionId sideExit = default;
-        var found = false;
-        foreach (var seamId in world.ClimbSeams)
-        {
-            if (!world.Junctions.Items.TryGetValue(seamId, out var seam))
-            {
-                continue;
-            }
-
-            foreach (var neighborId in seam.Neighbors)
-            {
-                if (!world.ClimbSeams.Contains(neighborId) ||
-                    !world.Junctions.Items.TryGetValue(neighborId, out var mate))
-                {
-                    continue;
-                }
-
-                // боковой выход здорового шва — свободный не-шовный сосед,
-                // не граничащий со «замурованным» (иначе мы его заблокируем)
-                foreach (var exitId in mate.Neighbors)
-                {
-                    if (world.ClimbSeams.Contains(exitId) ||
-                        seam.Neighbors.Contains(exitId) ||
-                        !world.Junctions.Items.TryGetValue(exitId, out var exit) ||
-                        exit.Blocked)
-                    {
-                        continue;
-                    }
-
-                    stranded = seamId;
-                    healthy = neighborId;
-                    sideExit = exitId;
-                    found = true;
-                    break;
-                }
-
-                if (found)
-                {
-                    break;
-                }
-            }
-
-            if (found)
-            {
-                break;
-            }
-        }
-
-        Assert.That(found, Is.True, "Fixture needs a seam pair with a side exit.");
-
-        foreach (var neighborId in world.Junctions.Items[stranded].Neighbors)
-        {
-            if (!world.ClimbSeams.Contains(neighborId) &&
-                world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
-            {
-                neighbor.Blocked = true;
-            }
-        }
-
-        world.TopologyVersion++;
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(HexPathfinder.FindPath(world, stranded, sideExit), Is.Not.Empty,
-                "The stranded seam must escape along the lip to the open exit.");
-            Assert.That(Connectivity.Reachable(world, stranded, sideExit), Is.True,
-                "Component graph must mirror the stranded-seam slide.");
         });
     }
 

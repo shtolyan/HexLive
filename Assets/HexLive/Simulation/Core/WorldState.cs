@@ -126,6 +126,12 @@ public sealed class WorldState
     public System.Collections.Generic.Dictionary<Agents.Faction, int>
         ColonyArrivalsProcessedByFaction { get; } = new();
 
+    // §157.7: сколько трёхдневных границ чужаков уже обработано у КАЖДОГО
+    // острова. Живой чужак острова съедает свою границу; глобальный
+    // RaidWavesSpawned в «Островах» не читается.
+    public System.Collections.Generic.Dictionary<Agents.Faction, int>
+        IslandOutsiderWavesByFaction { get; } = new();
+
     // Legacy shim over the Colony entry: the pre-§146 save layout (blob v40)
     // and the mode-0 call sites keep reading the single-camp cursor.
     public int ColonyArrivalsProcessed

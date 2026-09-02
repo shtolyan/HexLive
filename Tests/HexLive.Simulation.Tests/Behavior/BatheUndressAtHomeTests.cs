@@ -584,7 +584,9 @@ public sealed class BatheUndressAtHomeTests
             // миграции нет. Достроить границу «спало/бодрствовало» задним
             // числом нельзя — пришлось бы либо соврать про экономию, либо
             // выдать всему острову возраст мира.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(66));
+            // 66 → 67 в §157: флаг Festering у раны и курсоры островных чужаков
+            // по лагерям — хвостовые поля, блоб 66 читается.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(67));
         });
     }
 

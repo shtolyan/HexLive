@@ -53,6 +53,87 @@ namespace HexLive.Simulation.Bootstrap
         public const int HugeCampMinSeparationTiles = 22;
         internal const int HugePalmTarget = 480;
 
+        // §157.1: «Острова» — шесть ячеек рецепта HugeIsland сеткой 3×2 встык,
+        // в морской рамке. Каждая ячейка — тот же остров, что и Huge: тот же
+        // размер, тот же шум в мировых координатах, тот же спад. Спад берётся
+        // МАКСИМУМОМ по шести эллипсам: вне своей ячейки чужой спад равен
+        // нулю, поэтому острова не сливаются в один и не тонут друг под
+        // другом. 314×168 = 52 752 тайла.
+        public const int IslandsWorldGenRevision = 1;
+        public const int IslandColumns = 3;
+        public const int IslandRows = 2;
+        public const int IslandCount = IslandColumns * IslandRows;
+        public const int IslandCellQ = HugeMaxQ - HugeMinQ + 1;   // 102
+        public const int IslandCellR = HugeMaxR - HugeMinR + 1;   // 80
+        public const int IslandsSeaMargin = 4;
+        public const int IslandsMinQ = -(IslandColumns * IslandCellQ) / 2 - IslandsSeaMargin;
+        public const int IslandsMaxQ = IslandsMinQ + IslandColumns * IslandCellQ + 2 * IslandsSeaMargin - 1;
+        public const int IslandsMinR = -(IslandRows * IslandCellR) / 2 - IslandsSeaMargin;
+        public const int IslandsMaxR = IslandsMinR + IslandRows * IslandCellR + 2 * IslandsSeaMargin - 1;
+
+        // §157.3: полуширина брода в тайлах (1 → брод шириной 3).
+        public const int IslandFordHalfWidth = 1;
+
+        // §157.2: якорь лагеря не ближе стольких тайлов к воде — лагерь не на
+        // пляже, и плато радиуса 3 не поднимает море в сушу.
+        public const int IslandCampCoastClearance = 4;
+
+        /// <summary>§157.1: ячейка сетки, в которой живёт один остров.</summary>
+        internal readonly struct IslandCell
+        {
+            public readonly int Index;
+            public readonly int MinQ;
+            public readonly int MaxQ;
+            public readonly int MinR;
+            public readonly int MaxR;
+
+            public IslandCell(int index, int minQ, int maxQ, int minR, int maxR)
+            {
+                Index = index;
+                MinQ = minQ;
+                MaxQ = maxQ;
+                MinR = minR;
+                MaxR = maxR;
+            }
+
+            public TileCoord Center => new TileCoord((MinQ + MaxQ) / 2, (MinR + MaxR) / 2);
+
+            public bool Contains(int q, int r) => q >= MinQ && q <= MaxQ && r >= MinR && r <= MaxR;
+        }
+
+        internal static readonly IslandCell[] IslandCells = BuildIslandCells();
+
+        private static IslandCell[] BuildIslandCells()
+        {
+            var cells = new IslandCell[IslandCount];
+            for (var j = 0; j < IslandRows; j++)
+            {
+                for (var i = 0; i < IslandColumns; i++)
+                {
+                    var minQ = IslandsMinQ + IslandsSeaMargin + i * IslandCellQ;
+                    var minR = IslandsMinR + IslandsSeaMargin + j * IslandCellR;
+                    cells[j * IslandColumns + i] = new IslandCell(
+                        j * IslandColumns + i, minQ, minQ + IslandCellQ - 1, minR, minR + IslandCellR - 1);
+                }
+            }
+
+            return cells;
+        }
+
+        /// <summary>§157: индекс ячейки-острова по тайлу; −1 вне ячеек (морская рамка).</summary>
+        public static int IslandCellIndex(TileCoord tile)
+        {
+            foreach (var cell in IslandCells)
+            {
+                if (cell.Contains(tile.Q, tile.R))
+                {
+                    return cell.Index;
+                }
+            }
+
+            return -1;
+        }
+
         private readonly struct LargeIslandSettings
         {
             public readonly GameMode Mode;
@@ -72,12 +153,15 @@ namespace HexLive.Simulation.Bootstrap
             public readonly int HerbCount;
             public readonly bool HasCentralOutsiderCamp;
 
+            // §157: ячейки островов; null = один массив суши (Big/Huge/Maniac).
+            public readonly IslandCell[] Cells;
+
             public LargeIslandSettings(
                 GameMode mode, int minQ, int maxQ, int minR, int maxR,
                 int campCount, int campMinSeparationTiles, int girlsPerCamp,
                 int palmTarget, int groveCount, int yuccaCount, int boulderCount,
                 int looseStoneCount, int deadfallCount, int herbCount,
-                bool hasCentralOutsiderCamp)
+                bool hasCentralOutsiderCamp, IslandCell[] cells = null)
             {
                 Mode = mode;
                 MinQ = minQ;
@@ -95,6 +179,7 @@ namespace HexLive.Simulation.Bootstrap
                 DeadfallCount = deadfallCount;
                 HerbCount = herbCount;
                 HasCentralOutsiderCamp = hasCentralOutsiderCamp;
+                Cells = cells;
             }
         }
 
@@ -143,6 +228,20 @@ namespace HexLive.Simulation.Bootstrap
         internal static WorldBootstrapDefinition CreateManiac(int seed)
         {
             return CreateLargeIsland(seed, ManiacSettings);
+        }
+
+        // §157: посев ×6 от Huge — шесть островов того же рецепта; стоянки
+        // чужаков нет (§157.7 — они приходят с моря).
+        private static readonly LargeIslandSettings IslandsSettings = new(
+            GameMode.Islands, IslandsMinQ, IslandsMaxQ, IslandsMinR, IslandsMaxR,
+            IslandCount, HugeCampMinSeparationTiles, 1,
+            HugePalmTarget * IslandCount, 48 * IslandCount, 720 * IslandCount, 190 * IslandCount,
+            440 * IslandCount, 48 * IslandCount, 36 * IslandCount,
+            hasCentralOutsiderCamp: false, cells: IslandCells);
+
+        internal static WorldBootstrapDefinition CreateIslands(int seed)
+        {
+            return CreateLargeIsland(seed, IslandsSettings);
         }
 
         /// <summary>
@@ -220,9 +319,23 @@ namespace HexLive.Simulation.Bootstrap
                 }
             }
 
-            AddBigElevation(fragment, seed, settings);
-            var anchors = PickCampAnchors(fragment, seed, settings);
-            FinalizeWater(fragment);
+            List<TileCoord> anchors;
+            if (settings.Cells is null)
+            {
+                AddBigElevation(fragment, seed, settings);
+                anchors = PickCampAnchors(fragment, seed, settings);
+                FinalizeWater(fragment);
+            }
+            else
+            {
+                // §157: шесть островов. Броды режутся ПОСЛЕ воды и ДО лесов и
+                // россыпи — Plantable и пулы россыпи исключают Water, и брод не
+                // должен зарасти пальмами.
+                AddIslandsElevation(fragment, seed, settings);
+                anchors = PickIslandCampAnchors(fragment, seed, settings);
+                FinalizeWater(fragment);
+                CarveIslandFords(fragment, settings);
+            }
 
             var resourceAnchors = new List<TileCoord>(anchors);
             TileCoord? outsiderCamp = null;
@@ -433,6 +546,359 @@ namespace HexLive.Simulation.Bootstrap
                 }
 
                 tile.Elevation = elevation;
+            }
+        }
+
+        // §157.1: рельеф шести островов. Тело — AddBigElevation с одной
+        // заменой: спад считается максимумом по эллипсам всех ячеек. Внутри
+        // своей ячейки это ровно спад Huge, а чужие ячейки дают ноль, так что
+        // ни один остров не тонет под соседом и не сливается с ним.
+        private static void AddIslandsElevation(
+            FragmentBootstrap fragment, int seed, LargeIslandSettings settings)
+        {
+            var cells = settings.Cells;
+            var centers = new Float2[cells.Length];
+            var halfX = new float[cells.Length];
+            var halfY = new float[cells.Length];
+            for (var k = 0; k < cells.Length; k++)
+            {
+                var cell = cells[k];
+                var midQ = (cell.MinQ + cell.MaxQ) / 2;
+                var midR = (cell.MinR + cell.MaxR) / 2;
+                centers[k] = HexSpatialMath.TileToWorld(new TileCoord(midQ, midR));
+                var eastEdge = HexSpatialMath.TileToWorld(new TileCoord(cell.MaxQ, midR));
+                var southEdge = HexSpatialMath.TileToWorld(new TileCoord(midQ, cell.MaxR));
+                halfX[k] = System.Math.Abs(eastEdge.X - centers[k].X);
+                halfY[k] = System.Math.Abs(southEdge.Y - centers[k].Y);
+            }
+
+            foreach (var tile in fragment.Tiles)
+            {
+                var world = HexSpatialMath.TileToWorld(new TileCoord(tile.Q, tile.R));
+                var falloff = 0f;
+                for (var k = 0; k < cells.Length; k++)
+                {
+                    var nx = (world.X - centers[k].X) / halfX[k];
+                    var ny = (world.Y - centers[k].Y) / halfY[k];
+                    var dist = System.MathF.Sqrt(nx * nx + ny * ny);
+                    falloff = System.MathF.Max(falloff, MathUtil.Clamp01(1f - dist * dist * 1.15f));
+                }
+
+                var noise = ValueNoise(seed + 31, world.X * 0.05f, world.Y * 0.05f) * 0.30f +
+                            ValueNoise(seed, world.X * 0.13f, world.Y * 0.13f) * 0.40f +
+                            ValueNoise(seed + 17, world.X * 0.34f, world.Y * 0.34f) * 0.30f;
+                var height = (noise * noise * 1.4f + 0.3f) * falloff;
+
+                var elevation = (int)System.MathF.Round(height * 6f);
+                elevation = System.Math.Min(5, elevation);
+
+                if (tile.Q <= settings.MinQ || tile.Q >= settings.MaxQ ||
+                    tile.R <= settings.MinR || tile.R >= settings.MaxR)
+                {
+                    elevation = 0;
+                }
+
+                tile.Elevation = elevation;
+            }
+        }
+
+        // Компонента по шести соседям от стартового тайла. Если старт не
+        // проходит предикат (аналитически невозможно для центра ячейки, но
+        // защитно), стартуем с ближайшего подходящего по (дистанция, Q, R).
+        private static HashSet<(int, int)> FloodFrom(
+            Dictionary<(int, int), TileBootstrap> byCoord, TileCoord start,
+            System.Func<TileBootstrap, bool> inside)
+        {
+            var origin = (start.Q, start.R);
+            if (!byCoord.TryGetValue(origin, out var startTile) || !inside(startTile))
+            {
+                var best = int.MaxValue;
+                TileCoord? nearest = null;
+                foreach (var pair in byCoord)
+                {
+                    if (!inside(pair.Value)) continue;
+                    var coord = new TileCoord(pair.Key.Item1, pair.Key.Item2);
+                    var d = HexSpatialMath.HexDistance(coord, start);
+                    if (d < best ||
+                        (d == best && nearest is { } n &&
+                         (coord.Q < n.Q || (coord.Q == n.Q && coord.R < n.R))))
+                    {
+                        best = d;
+                        nearest = coord;
+                    }
+                }
+
+                if (nearest is not { } found)
+                {
+                    return new HashSet<(int, int)>();
+                }
+
+                origin = (found.Q, found.R);
+            }
+
+            var component = new HashSet<(int, int)> { origin };
+            var queue = new Queue<(int, int)>();
+            queue.Enqueue(origin);
+            while (queue.Count > 0)
+            {
+                var (cq, cr) = queue.Dequeue();
+                foreach (var dir in HexDirection.All)
+                {
+                    var next = (cq + dir.DQ, cr + dir.DR);
+                    if (component.Contains(next) ||
+                        !byCoord.TryGetValue(next, out var neighbor) ||
+                        !inside(neighbor))
+                    {
+                        continue;
+                    }
+
+                    component.Add(next);
+                    queue.Enqueue(next);
+                }
+            }
+
+            return component;
+        }
+
+        // Весь диск радиуса radius вокруг (q, r) лежит в множестве.
+        private static bool DiskInside(HashSet<(int, int)> set, int q, int r, int radius)
+        {
+            for (var dq = -radius; dq <= radius; dq++)
+            {
+                var lo = System.Math.Max(-radius, -dq - radius);
+                var hi = System.Math.Min(radius, -dq + radius);
+                for (var dr = lo; dr <= hi; dr++)
+                {
+                    if (!set.Contains((q + dq, r + dr)))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        // §157.2: по одному якорю на остров. Компонента острова — та, что
+        // содержит центр его ячейки (в центре спад равен единице, суша там
+        // всегда). Кандидат — тайл этой компоненты высотой 1..2, у которого весь
+        // диск радиуса IslandCampCoastClearance тоже на суше этой компоненты:
+        // лагерь не на пляже, и плато не поднимает море. Порядок обхода HashSet
+        // недетерминирован, поэтому кандидаты сначала собираются, потом
+        // сортируются.
+        private static List<TileCoord> PickIslandCampAnchors(
+            FragmentBootstrap fragment, int seed, LargeIslandSettings settings)
+        {
+            var byCoord = new Dictionary<(int, int), TileBootstrap>();
+            foreach (var tile in fragment.Tiles)
+            {
+                byCoord[(tile.Q, tile.R)] = tile;
+            }
+
+            static bool IsLand(TileBootstrap t) => t.Elevation >= 1;
+
+            var anchors = new List<TileCoord>(settings.Cells.Length);
+            foreach (var cell in settings.Cells)
+            {
+                var island = FloodFrom(byCoord, cell.Center, IsLand);
+                var eligible = new List<TileCoord>();
+                foreach (var (q, r) in island)
+                {
+                    var tile = byCoord[(q, r)];
+                    if (tile.Elevation < 1 || tile.Elevation > 2 ||
+                        !DiskInside(island, q, r, IslandCampCoastClearance))
+                    {
+                        continue;
+                    }
+
+                    eligible.Add(new TileCoord(q, r));
+                }
+
+                eligible.Sort((a, b) => a.Q != b.Q ? a.Q.CompareTo(b.Q) : a.R.CompareTo(b.R));
+                if (eligible.Count == 0)
+                {
+                    anchors.Add(cell.Center); // патологический сид: центр ячейки
+                    continue;
+                }
+
+                anchors.Add(eligible[(int)(MathUtil.Hash01(seed, eligible.Count, cell.Index, 15701) *
+                    eligible.Count) % eligible.Count]);
+            }
+
+            // Плато лагеря — то же правило, что у PickCampAnchors: радиус 3,
+            // высота 1..2, внешняя кромка карты остаётся морем.
+            foreach (var tile in fragment.Tiles)
+            {
+                if (tile.Q <= settings.MinQ || tile.Q >= settings.MaxQ ||
+                    tile.R <= settings.MinR || tile.R >= settings.MaxR)
+                {
+                    continue;
+                }
+
+                foreach (var anchor in anchors)
+                {
+                    if (HexSpatialMath.HexDistance(new TileCoord(tile.Q, tile.R), anchor) <= 3)
+                    {
+                        tile.Elevation = System.Math.Max(1, System.Math.Min(2, tile.Elevation));
+                        break;
+                    }
+                }
+            }
+
+            return anchors;
+        }
+
+        // Прямая по гексам: линейная интерполяция в кубических координатах с
+        // кубическим округлением. Детерминирована.
+        private static List<TileCoord> HexLine(TileCoord a, TileCoord b)
+        {
+            var n = HexSpatialMath.HexDistance(a, b);
+            var line = new List<TileCoord>(n + 1);
+            for (var s = 0; s <= n; s++)
+            {
+                var t = n == 0 ? 0f : s / (float)n;
+                var x = a.Q + (b.Q - a.Q) * t;
+                var z = a.R + (b.R - a.R) * t;
+                var y = -x - z;
+                var rx = System.MathF.Round(x);
+                var ry = System.MathF.Round(y);
+                var rz = System.MathF.Round(z);
+                var dx = System.MathF.Abs(rx - x);
+                var dy = System.MathF.Abs(ry - y);
+                var dz = System.MathF.Abs(rz - z);
+                if (dx > dy && dx > dz)
+                {
+                    rx = -ry - rz;
+                }
+                else if (dy > dz)
+                {
+                    ry = -rx - rz;
+                }
+                else
+                {
+                    rz = -rx - ry;
+                }
+
+                line.Add(new TileCoord((int)rx, (int)rz));
+            }
+
+            return line;
+        }
+
+        // §157.3: броды между соседними по сетке островами. Между ближайшей
+        // парой пляжных тайлов двух островов режется прямая шириной
+        // 2·IslandFordHalfWidth+1: вода остаётся водой, но становится ходибельной
+        // (Water && Walkable, Elevation 0 — отмель, по правилу 20.16 вся вода на
+        // одном уровне). Суша, касающаяся брода, клампится к высоте 1: сход в
+        // брод — шов, а не утёс. Зовётся ПОСЛЕ FinalizeWater.
+        private static void CarveIslandFords(FragmentBootstrap fragment, LargeIslandSettings settings)
+        {
+            var byCoord = new Dictionary<(int, int), TileBootstrap>();
+            foreach (var tile in fragment.Tiles)
+            {
+                byCoord[(tile.Q, tile.R)] = tile;
+            }
+
+            static bool IsDry(TileBootstrap t) => !t.Water;
+
+            var cells = settings.Cells;
+            var coasts = new List<TileCoord>[cells.Length];
+            for (var k = 0; k < cells.Length; k++)
+            {
+                var island = FloodFrom(byCoord, cells[k].Center, IsDry);
+                var coast = new List<TileCoord>();
+                foreach (var (q, r) in island)
+                {
+                    if (byCoord[(q, r)].Elevation != 1)
+                    {
+                        continue;
+                    }
+
+                    var touchesWater = false;
+                    foreach (var dir in HexDirection.All)
+                    {
+                        if (byCoord.TryGetValue((q + dir.DQ, r + dir.DR), out var n) && n.Water)
+                        {
+                            touchesWater = true;
+                            break;
+                        }
+                    }
+
+                    if (touchesWater)
+                    {
+                        coast.Add(new TileCoord(q, r));
+                    }
+                }
+
+                coast.Sort((a, b) => a.Q != b.Q ? a.Q.CompareTo(b.Q) : a.R.CompareTo(b.R));
+                coasts[k] = coast;
+            }
+
+            var edges = new List<(int a, int b)>();
+            for (var j = 0; j < IslandRows; j++)
+            {
+                for (var i = 0; i < IslandColumns; i++)
+                {
+                    var k = j * IslandColumns + i;
+                    if (i + 1 < IslandColumns) edges.Add((k, k + 1));
+                    if (j + 1 < IslandRows) edges.Add((k, k + IslandColumns));
+                }
+            }
+
+            var fordTiles = new List<TileBootstrap>();
+            foreach (var (a, b) in edges)
+            {
+                TileCoord? from = null;
+                TileCoord? to = null;
+                var best = int.MaxValue;
+                foreach (var pa in coasts[a])
+                {
+                    foreach (var pb in coasts[b])
+                    {
+                        var d = HexSpatialMath.HexDistance(pa, pb);
+                        if (d < best) // строгое «<» + сортированный обход = детерминизм
+                        {
+                            best = d;
+                            from = pa;
+                            to = pb;
+                        }
+                    }
+                }
+
+                if (from is not { } start || to is not { } end)
+                {
+                    continue; // защитно: у острова нет пляжа высоты 1
+                }
+
+                foreach (var step in HexLine(start, end))
+                {
+                    for (var dq = -IslandFordHalfWidth; dq <= IslandFordHalfWidth; dq++)
+                    {
+                        var lo = System.Math.Max(-IslandFordHalfWidth, -dq - IslandFordHalfWidth);
+                        var hi = System.Math.Min(IslandFordHalfWidth, -dq + IslandFordHalfWidth);
+                        for (var dr = lo; dr <= hi; dr++)
+                        {
+                            if (byCoord.TryGetValue((step.Q + dq, step.R + dr), out var tile) && tile.Water)
+                            {
+                                tile.Walkable = true;
+                                tile.Elevation = 0;
+                                fordTiles.Add(tile);
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (var ford in fordTiles)
+            {
+                foreach (var dir in HexDirection.All)
+                {
+                    if (byCoord.TryGetValue((ford.Q + dir.DQ, ford.R + dir.DR), out var n) &&
+                        !n.Water && n.Elevation > 1)
+                    {
+                        n.Elevation = 1;
+                    }
+                }
             }
         }
 

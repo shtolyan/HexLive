@@ -1,4 +1,5 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -42,6 +43,13 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
         }
 
         _campScratch.Sort((a, b) => ((int)a).CompareTo((int)b));
+
+        // §157.6: SOS лежащей на берегу повторяется по кулдауну — до недельного
+        // расписания, чтобы лагерь не забыл о ней между прибытиями.
+        if (world.Mode == GameMode.Islands)
+        {
+            IslandsCastawayMath.RunSos(world);
+        }
 
         var opportunitiesDue = EnvironmentSystem.CalendarDay(world.Tick) / interval;
         foreach (var faction in _campScratch)
@@ -102,6 +110,12 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
             // Save counter lagged behind a completed arrival. The stable id is
             // authoritative; advancing the schedule must not clone or revive her.
             return true;
+        }
+
+        // §157.5: в «Островах» недельная лодка — это прибой с потерпевшей.
+        if (world.Mode == GameMode.Islands)
+        {
+            return IslandsCastawayMath.TrySpawn(world, faction, home, arrival, id);
         }
 
         if (!PopulationArrivalMath.TryPickLanding(

@@ -206,7 +206,7 @@ public sealed class WeatherSystem : ISimulationSystem
     private static int SurfGiftIntervalDaysFor(GameMode mode)
     {
         var regularInterval = System.Math.Max(1, WorldBalance.SurfGiftIntervalDays);
-        if (mode is not (GameMode.HugeIsland or GameMode.Maniac))
+        if (mode is not (GameMode.HugeIsland or GameMode.Maniac or GameMode.Islands))
         {
             return regularInterval;
         }

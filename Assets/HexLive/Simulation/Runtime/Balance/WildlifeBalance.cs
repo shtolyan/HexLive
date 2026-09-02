@@ -76,6 +76,11 @@ public static class WildlifeBalance
     public static int HugeIslandWolfSlots = 24;
     public static int HugeIslandCrabSlots = 48;
 
+    // §157: шесть островов рецепта Huge — ×6. Слоты раскладываются по всей
+    // суше без учёта островов (известное ограничение §157.11).
+    public static int IslandsWolfSlots = 144;
+    public static int IslandsCrabSlots = 288;
+
     // §147.3: радиус материализации — это радиус СУЩЕСТВОВАНИЯ, не агра.
     // 8 ≥ любого реалистичного радиуса восприятия (§125): волк становится
     // реальным до того, как девушка его «заметила бы», и §62-тревога

@@ -157,7 +157,10 @@ public static class WorldSaveSerializer
     // границу задним числом нельзя: пришлось бы объявить весь остров либо
     // вечно бодрым (то есть соврать про экономию), либо спавшим с нуля (то
     // есть выдать всем костру и мясу возраст мира).
-    public const int BlobVersion = 66;
+    // v67 (§157): флаг Festering у раны (гноится — не рубцуется без бинта) и
+    // курсоры островных чужаков по лагерям (§157.7). Оба — хвостовые/
+    // опциональные поля; блоб 66 читается: флаг false, словарь пуст.
+    public const int BlobVersion = 67;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -197,6 +200,8 @@ public static class WorldSaveSerializer
                 Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
             Bootstrap.GameMode.Maniac =>
                 Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
+            Bootstrap.GameMode.Islands =>
+                Bootstrap.PrototypeWorldDefinitionFactory.IslandsWorldGenRevision,
             _ => 0
         });
         w.Write(world.Tick);
@@ -452,6 +457,16 @@ public static class WorldSaveSerializer
             w.Write(world.Chunks.Items[chunk].LastSimulatedTick);
         }
 
+        // §157.7 (v67): курсоры островных чужаков по лагерям — как прибытия.
+        var outsiderCamps = new List<Agents.Faction>(world.IslandOutsiderWavesByFaction.Keys);
+        outsiderCamps.Sort((a, b) => ((int)a).CompareTo((int)b));
+        w.Write(outsiderCamps.Count);
+        foreach (var faction in outsiderCamps)
+        {
+            w.Write((int)faction);
+            w.Write(world.IslandOutsiderWavesByFaction[faction]);
+        }
+
         w.Write(EndMarker);
     }
 
@@ -492,6 +507,8 @@ public static class WorldSaveSerializer
                     Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
                 Bootstrap.GameMode.Maniac =>
                     Bootstrap.PrototypeWorldDefinitionFactory.HugeIslandWorldGenRevision,
+                Bootstrap.GameMode.Islands =>
+                    Bootstrap.PrototypeWorldDefinitionFactory.IslandsWorldGenRevision,
                 _ => 0
             };
             if (revision != expected)
@@ -866,6 +883,18 @@ public static class WorldSaveSerializer
         {
             var chunk = new ChunkCoord(r.ReadInt32(), r.ReadInt32());
             world.Chunks.Items[chunk] = new ChunkState { LastSimulatedTick = r.ReadInt32() };
+        }
+
+        // §157.7 (v67): курсоры островных чужаков.
+        world.IslandOutsiderWavesByFaction.Clear();
+        if (version >= 67)
+        {
+            var outsiderCampCount = r.ReadInt32();
+            for (var i = 0; i < outsiderCampCount; i++)
+            {
+                var faction = (Agents.Faction)r.ReadInt32();
+                world.IslandOutsiderWavesByFaction[faction] = r.ReadInt32();
+            }
         }
 
         if (r.ReadInt32() != EndMarker)
@@ -1708,6 +1737,7 @@ public static class WorldSaveSerializer
             w.Write(wound.Stabilized);
             w.Write(wound.BleedFactor);
             w.Write(wound.Plastered); // blob 47
+            w.Write(wound.Festering); // blob 67
         }
 
         WriteNullableEntity(w, npc.CarriedNpcId);
@@ -2307,6 +2337,7 @@ public static class WorldSaveSerializer
                 var stabilized = r.ReadBoolean();
                 var bleedFactor = r.ReadSingle();
                 var plastered = version >= 47 && r.ReadBoolean();
+                var festering = version >= 67 && r.ReadBoolean();
                 var wound = npc.Wounds.Find(candidate => candidate.Id == id);
                 if (wound != null)
                 {
@@ -2314,6 +2345,7 @@ public static class WorldSaveSerializer
                     wound.Stabilized = stabilized;
                     wound.BleedFactor = bleedFactor;
                     wound.Plastered = plastered;
+                    wound.Festering = festering;
                 }
             }
 

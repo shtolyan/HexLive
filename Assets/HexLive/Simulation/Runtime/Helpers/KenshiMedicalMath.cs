@@ -254,6 +254,7 @@ internal static class KenshiMedicalMath
             float rate;
             if (wound.Stabilized) rate = 1f;
             else if (severed && wound.Clot01 >= 1f) rate = 1f;
+            else if (wound.Festering) continue; // §157.5: сама не рубцуется
             else if (wound.Clot01 >= 1f) rate = Spec118.NaturalScarringFactor;
             else continue;
 

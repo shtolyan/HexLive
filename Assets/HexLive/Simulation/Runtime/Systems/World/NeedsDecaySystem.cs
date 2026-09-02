@@ -1228,7 +1228,9 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     var heldDamage = WoundMath.OpenWoundDamage(npc, part) +
                         (Spec118.Enabled ? condition.BluntDamage : 0f);
                     var ceiling = MathUtil.Clamp01(1f - heldDamage);
+                    // §157.5: гноящаяся зона еды не слышит — только бинт.
                     if ((!Spec118.Enabled || condition.CriticalTrauma <= 0f) &&
+                        !WoundMath.IsFestering(npc, part) &&
                         npc.Body.Parts[part] < ceiling)
                     {
                         // §76: a tough body knits faster. The CEILING is

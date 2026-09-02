@@ -56,6 +56,7 @@ public sealed class SurfGiftTests
 
     [TestCase(GameMode.HugeIsland)]
     [TestCase(GameMode.Maniac)]
+    [TestCase(GameMode.Islands)]
     public void SixCampModesReceiveSurfClothingEveryFifteenDays(GameMode mode)
     {
         var priorInterval = WorldBalance.SurfGiftIntervalDays;

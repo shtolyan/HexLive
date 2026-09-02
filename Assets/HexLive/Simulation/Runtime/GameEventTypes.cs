@@ -167,6 +167,8 @@ public static class GameEventTypes
         "Rescued",
         "ShipwreckSurvivorAppeared",
         "ShipwreckSurvivorJoined",
+        // §157.5: прибой вынес потерпевшую на берег острова.
+        "CastawayWashedAshore",
 
         // Distress
         "DireStraits",

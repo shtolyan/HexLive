@@ -40,6 +40,13 @@ public static class WorldBalance
     public static int HugeIslandMaxLivingNpcs = 42;
     public static int HugeIslandMaxCampNpcs = 6;
 
+    // §157: шесть лагерей по три девушки (решение игрока: потолок 3 на остров)
+    // плюс по одному чужаку на остров и запас на прибытие: 6×3 + 6 + 6 = 30.
+    // Квота MaxOutsiderNpcs в этом режиме не читается — чужаков ограничивает
+    // «не больше одного живого на остров» (§157.7).
+    public static int IslandsMaxLivingNpcs = 30;
+    public static int IslandsMaxCampNpcs = 3;
+
     // Начало календарных дней 7, 14, 21…: одна новая девушка, если оба
     // потолка оставляют ей место. 0 выключает пополнение.
     public static int ColonyArrivalIntervalDays = 7;

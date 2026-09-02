@@ -25656,6 +25656,22 @@ MonoBehaviour:
       - 'Здесь уже всё построено'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.newgame.mode.islands'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Islands'
+      - 'Острова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.islands.description'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Six separate islands, each with one castaway and her own camp. Wade the shallows between them; nobody waits at the centre — outsiders come from the sea, and every week the surf washes up a wounded woman who needs bandaging.'
+      - 'Шесть отдельных островов, на каждом — одна потерпевшая и её лагерь. Между островами — мелководье вброд; в центре никто не ждёт: чужаки приходят с моря, а раз в неделю прибой выносит раненую, которую надо забинтовать.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

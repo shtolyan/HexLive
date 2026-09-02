@@ -97,6 +97,25 @@ public sealed class ServerStartupSaveHeaderTests
     }
 
     [Test]
+    public void Islands_IsAcceptedByCliAndPersistedByV2Header()
+    {
+        var fresh = ServerOptions.Parse(new[] { "--mode", "islands" });
+        Assert.That(fresh!.Mode, Is.EqualTo(GameMode.Islands));
+
+        var save = Path.Combine(_directory, "islands.sav");
+        WriteSaveHeader(save, version: 2, seed: 40404,
+            mode: GameMode.Islands, tick: 4321);
+        var resumed = ServerOptions.Parse(new[] { "--save", save });
+        resumed!.ContinueExistingSaveIfPresent();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Seed, Is.EqualTo(40404));
+            Assert.That(resumed.Mode, Is.EqualTo(GameMode.Islands));
+        });
+    }
+
+    [Test]
     public void ExistingUnknownSave_IsRejectedInsteadOfBeingOverwritten()
     {
         var save = Path.Combine(_directory, "corrupt.sav");

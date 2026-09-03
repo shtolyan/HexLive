@@ -207,6 +207,112 @@ UPDATE bug_reports SET revision=revision+1 WHERE id=$id;";
         }
     }
 
+    /// <summary>§114.4c: store (or replace) the patch of one fix commit. Keyed by full SHA.</summary>
+    public BugCommitPatch PutCommitPatch(BugCommitPatch patch)
+    {
+        var sha = NormalizeSha(patch.Sha);
+        if (sha.Length < 40) throw new InvalidDataException("A full 40-character commit SHA is required.");
+        var text = patch.Patch ?? string.Empty;
+        var truncated = patch.Truncated;
+        if (text.Length > BugCommitPatch.MaxPatchChars)
+        {
+            text = text.Substring(0, BugCommitPatch.MaxPatchChars);
+            truncated = true;
+        }
+        lock (_gate)
+        {
+            using var connection = Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+INSERT INTO bug_commit_patches(sha,subject,message,author,when_utc,files,patch,truncated,stored_utc)
+VALUES($sha,$subject,$message,$author,$when,$files,$patch,$truncated,$stored)
+ON CONFLICT(sha) DO UPDATE SET subject=excluded.subject,message=excluded.message,author=excluded.author,
+ when_utc=excluded.when_utc,files=excluded.files,patch=excluded.patch,truncated=excluded.truncated,stored_utc=excluded.stored_utc";
+            command.Parameters.AddWithValue("$sha", sha);
+            command.Parameters.AddWithValue("$subject", (patch.Subject ?? string.Empty).Trim());
+            command.Parameters.AddWithValue("$message", (patch.Message ?? string.Empty).Trim());
+            command.Parameters.AddWithValue("$author", (patch.Author ?? string.Empty).Trim());
+            command.Parameters.AddWithValue("$when", (patch.WhenUtc ?? string.Empty).Trim());
+            command.Parameters.AddWithValue("$files", JsonSerializer.Serialize(patch.Files ?? new List<BugCommitFile>()));
+            command.Parameters.AddWithValue("$patch", text);
+            command.Parameters.AddWithValue("$truncated", truncated ? 1 : 0);
+            command.Parameters.AddWithValue("$stored", Now());
+            command.ExecuteNonQuery();
+            return GetCommitPatch(connection, sha)!;
+        }
+    }
+
+    /// <summary>Full SHA or an unambiguous prefix — old reports carry short SHAs.</summary>
+    public BugCommitPatch? GetCommitPatch(string shaOrPrefix)
+    {
+        lock (_gate)
+        {
+            using var connection = Open();
+            return GetCommitPatch(connection, NormalizeSha(shaOrPrefix));
+        }
+    }
+
+    /// <summary>Patches for a report's fix commits, keyed by the SHA as written on the report.</summary>
+    public IReadOnlyDictionary<string, BugCommitPatch> GetCommitPatches(IEnumerable<string> shas)
+    {
+        var result = new Dictionary<string, BugCommitPatch>(StringComparer.Ordinal);
+        lock (_gate)
+        {
+            using var connection = Open();
+            foreach (var sha in shas)
+            {
+                if (result.ContainsKey(sha)) continue;
+                var patch = GetCommitPatch(connection, NormalizeSha(sha));
+                if (patch != null) result[sha] = patch;
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Every stored SHA — lets a backfill skip what is already there.</summary>
+    public IReadOnlyList<string> ListCommitPatchShas()
+    {
+        lock (_gate)
+        {
+            using var connection = Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT sha FROM bug_commit_patches ORDER BY sha";
+            using var reader = command.ExecuteReader();
+            var shas = new List<string>();
+            while (reader.Read()) shas.Add(reader.GetString(0));
+            return shas;
+        }
+    }
+
+    private static BugCommitPatch? GetCommitPatch(SqliteConnection connection, string shaOrPrefix)
+    {
+        if (shaOrPrefix.Length < 7) return null;
+        using var command = connection.CreateCommand();
+        command.CommandText = @"SELECT sha,subject,message,author,when_utc,files,patch,truncated,stored_utc
+FROM bug_commit_patches WHERE sha=$sha OR sha LIKE $prefix ORDER BY sha LIMIT 2";
+        command.Parameters.AddWithValue("$sha", shaOrPrefix);
+        command.Parameters.AddWithValue("$prefix", shaOrPrefix + "%");
+        using var reader = command.ExecuteReader();
+        if (!reader.Read()) return null;
+        var patch = new BugCommitPatch
+        {
+            Sha = reader.GetString(0), Subject = reader.GetString(1), Message = reader.GetString(2),
+            Author = reader.GetString(3), WhenUtc = reader.GetString(4),
+            Files = JsonSerializer.Deserialize<List<BugCommitFile>>(reader.GetString(5)) ?? new List<BugCommitFile>(),
+            Patch = reader.GetString(6), Truncated = reader.GetInt32(7) != 0, StoredUtc = reader.GetString(8),
+        };
+        // An ambiguous prefix must not show somebody else's diff as this fix.
+        return reader.Read() && patch.Sha != shaOrPrefix ? null : patch;
+    }
+
+    private static string NormalizeSha(string? value)
+    {
+        var sha = (value ?? string.Empty).Trim().ToLowerInvariant();
+        foreach (var c in sha)
+            if (!Uri.IsHexDigit(c)) throw new InvalidDataException("Commit SHA must be hexadecimal.");
+        return sha;
+    }
+
     public void ImportJsonOnce(string path)
     {
         if (!File.Exists(path)) return;
@@ -271,6 +377,17 @@ CREATE TABLE IF NOT EXISTS bug_fix_commits(
  PRIMARY KEY(report_id,ordinal), UNIQUE(report_id,sha)
 );
 CREATE TABLE IF NOT EXISTS bug_meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS bug_commit_patches(
+ sha TEXT PRIMARY KEY,
+ subject TEXT NOT NULL DEFAULT '',
+ message TEXT NOT NULL DEFAULT '',
+ author TEXT NOT NULL DEFAULT '',
+ when_utc TEXT NOT NULL DEFAULT '',
+ files TEXT NOT NULL DEFAULT '[]',
+ patch TEXT NOT NULL DEFAULT '',
+ truncated INTEGER NOT NULL DEFAULT 0,
+ stored_utc TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS ix_bug_reports_status ON bug_reports(status,archived,id);";
             command.ExecuteNonQuery();
         }

@@ -34,6 +34,11 @@ comments authored by an agent, and deletion are authenticated.
    updating a report read earlier; HTTP 409 means reload before retrying.
 4. Make the required atomic commit `fix(bug-<id>): ...` with trailer
    `Bug: #<id>`. Append, never replace, its full SHA in `fixCommits`.
+   `bugs.py update --fix-commits <sha…>` also uploads `git show` of each SHA
+   from the current checkout (§114.4c), so the card shows files and the diff;
+   pass `--repo <checkout>` when not running from the repository root, or
+   `bugs.py push-commit <sha…>` later. The server has no repository: a
+   commit whose patch was never uploaded shows only a GitHub link.
 5. Only after the commit exists, set `ready_for_test`, update the Russian
    handoff, and append a Russian ready-for-player-test comment.
 
@@ -48,5 +53,8 @@ python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py queue
 python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py get 123
 python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py update 123 --status in_progress --assigned-agent /root --handoff "Взят в работу"
 python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py comment 123 --author codex --text "Взял в работу."
+python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py update 123 --status ready_for_test --fix-commits <full-sha>
+python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py push-commit <full-sha>
+python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py backfill
 python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py delete 123
 ```

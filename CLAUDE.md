@@ -68,6 +68,9 @@ array in `BUGS.json`.
   report becomes `ready_for_test`, create an atomic commit
   `fix(bug-<id>): <summary>` with trailer `Bug: #<id>` and append its full SHA
   to `fixCommits`. Never replace earlier SHAs; `fixCommit` is legacy-only.
+  Append it with `bugs.py update <id> --fix-commits <sha>` from the checkout
+  that holds the commit: the same call uploads the commit's patch (§114.4c),
+  which is what the player expands in the card — the server has no git.
   Never include unrelated dirty paths in that commit.
 - The lifecycle is `created → in_progress → ready_for_test → fixed`, with
   `ready_for_test → rework → in_progress` on a failed test. Archive is a

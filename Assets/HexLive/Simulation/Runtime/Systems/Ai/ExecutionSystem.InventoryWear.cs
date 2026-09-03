@@ -213,7 +213,12 @@ public sealed partial class ExecutionSystem
 
         // Pass 2: any junction 2 tiles out that's clear of other furniture.
         JunctionId? ring = null;
-        foreach (var junction in world.Junctions.Items.Values)
+        // §158.4: «два тайла от костра» — это кольцо тайлов, а не весь граф.
+        var ringSeen = world.Caches.LocalSearchSeenScratch;
+        ringSeen.Clear();
+        var ringJunctions = world.Caches.LocalSearchRingScratch;
+        LocalSearch.CollectRing(world, campfire.Tile, 2, ringJunctions, ringSeen);
+        foreach (var junction in ringJunctions)
         {
             if (junction.Blocked || junction.Tiles.Count == 0 ||
                 !SpatialQueries.IsJunctionFree(world, junction.Id) ||

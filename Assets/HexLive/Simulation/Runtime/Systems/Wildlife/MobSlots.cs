@@ -56,25 +56,30 @@ internal static class MobSlots
             return;
         }
 
-        var candidates = LandCandidates(world, mobId);
-        if (candidates.Count == 0)
+        var baseList = SlotHomeBase(world, mobId);
+        var excluded = _excludedScratch;
+        CollectExcluded(world, baseList, mobId, excluded);
+        var available = baseList.Count - excluded.Count;
+        if (available <= 0)
         {
             return;
         }
 
-        // Крабы жмутся к берегу — полоса узкая, разводить их волчьей меркой
-        // значит не рассадить и половины.
         var pairwise = mobId == Content.MobIds.Crab ? 3 : SlotPairwiseMinTiles;
-
         var attempt = 0;
-        while (existing < target && attempt < target * 12 && candidates.Count > 0)
+        while (existing < target && attempt < target * 12 && available > 0)
         {
-            var pick = (int)(MathUtil.Hash01(world.Seed, existing, attempt++, 1117) *
-                candidates.Count);
-            pick = System.Math.Min(pick, candidates.Count - 1);
-            var junctionId = candidates[pick];
-            candidates.RemoveAt(pick);
-
+            // §158.5: индекс считается по ОТФИЛЬТРОВАННОМУ списку, как и раньше,
+            // но сам список не строится: исключённые позиции известны по дискам
+            // вокруг людей и лагерей, и i-й допустимый элемент находится
+            // пропуском исключённых. Выбранный узел «вынимается» так же —
+            // добавлением его позиции к исключённым.
+            var pick = (int)(MathUtil.Hash01(world.Seed, existing, attempt++, 1117) * available);
+            pick = System.Math.Min(pick, available - 1);
+            var position = SkipExcluded(pick, excluded);
+            var junctionId = baseList[position];
+            InsertSorted(excluded, position);
+            available--;
             var tile = world.Junctions.Items[junctionId].Tiles[0];
             var tooClose = false;
             foreach (var slot in world.MobSpawnSlots)
@@ -128,7 +133,20 @@ internal static class MobSlots
 
     // §147.1: фильтр кандидатов — те же правила, что у TrySpawnDog/-Rabbit:
     // не blocked/indoor/all-water, вдали от NPC и стоянок; крабы — у воды.
-    private static List<JunctionId> LandCandidates(WorldState world, string mobId)
+    private static bool IsSlotHomeBase(WorldState world, Junction junction, bool crab) =>
+        !junction.Blocked && junction.Tiles.Count > 0 &&
+        !IsIndoorTile(world, junction.Tiles[0]) &&
+        !SpatialQueries.IsAllWaterJunction(world, junction.Id) &&
+        (!crab || NearWater(world, junction.Tiles[0], 2));
+
+    private sealed class JunctionIdOrder : IComparer<JunctionId>
+    {
+        public static readonly JunctionIdOrder Instance = new();
+
+        public int Compare(JunctionId a, JunctionId b) => a.Value.CompareTo(b.Value);
+    }
+
+    internal static List<JunctionId> SlotHomeBase(WorldState world, string mobId)
     {
         var crab = mobId == Content.MobIds.Crab;
 
@@ -143,79 +161,195 @@ internal static class MobSlots
             : world.Caches.LandSlotHomeBaseBuiltVersion;
         if (builtVersion != world.TopologyVersion)
         {
-            baseList.Clear();
-            foreach (var junction in world.Junctions.Items.Values)
+            // §158.5: догон по журналу топологии — пересматриваются только
+            // изменившиеся узлы; список остаётся отсортированным по id, так
+            // что итог байт-в-байт равен полной перестройке.
+            var cursor = crab
+                ? world.Caches.CrabSlotHomeBaseJournalCursor
+                : world.Caches.LandSlotHomeBaseJournalCursor;
+            var changed = world.Caches.TopologyChangedScratch;
+            var full = WorldTopology.CatchUp(world, ref builtVersion, ref cursor, changed);
+            if (full)
             {
-                if (junction.Blocked || junction.Tiles.Count == 0 ||
-                    IsIndoorTile(world, junction.Tiles[0]) ||
-                    SpatialQueries.IsAllWaterJunction(world, junction.Id))
+                baseList.Clear();
+                foreach (var junction in world.Junctions.Items.Values)
                 {
-                    continue;
+                    if (IsSlotHomeBase(world, junction, crab))
+                    {
+                        baseList.Add(junction.Id);
+                    }
                 }
 
-                if (crab && !NearWater(world, junction.Tiles[0], 2))
-                {
-                    continue;
-                }
-
-                baseList.Add(junction.Id);
-            }
-
-            baseList.Sort((a, b) => a.Value.CompareTo(b.Value));
-            if (crab)
-            {
-                world.Caches.CrabSlotHomeBaseBuiltVersion = world.TopologyVersion;
+                baseList.Sort((a, b) => a.Value.CompareTo(b.Value));
             }
             else
             {
-                world.Caches.LandSlotHomeBaseBuiltVersion = world.TopologyVersion;
-            }
-        }
-
-        var candidates = world.Caches.SlotCandidatesScratch;
-        candidates.Clear();
-        foreach (var junctionId in baseList)
-        {
-            var tile = world.Junctions.Items[junctionId].Tiles[0];
-
-            // §147.3: дом слота дальше радиуса материализации + запас —
-            // свежий слот обязан родиться ПРЕВЬЮ, а не сразу живым зверем
-            // под ногами у девушки.
-            var minFromNpc = crab
-                ? System.Math.Max(WildlifeBalance.RabbitSpawnMinDistanceFromNpc,
-                    WildlifeBalance.CrabMaterializeRadiusTiles + 2)
-                : System.Math.Max(WildlifeBalance.DogSpawnMinDistanceFromNpc,
-                    WildlifeBalance.MobMaterializeRadiusTiles + 2);
-            var farEnough = true;
-            foreach (var npc in world.Entities.Npcs.Values)
-            {
-                if (HexSpatialMath.HexDistance(tile, npc.Tile) < minFromNpc)
+                foreach (var id in changed)
                 {
-                    farEnough = false;
-                    break;
-                }
-            }
-
-            if (farEnough && Spec72.Enabled)
-            {
-                foreach (var home in world.FactionHomes)
-                {
-                    if (HexSpatialMath.HexDistance(tile, home.Value) <
-                        Spec72.DogSpawnMinDistanceFromCamp)
+                    var keep = world.Junctions.Items.TryGetValue(id, out var junction) &&
+                               IsSlotHomeBase(world, junction, crab);
+                    var at = baseList.BinarySearch(id, JunctionIdOrder.Instance);
+                    if (keep && at < 0)
                     {
-                        farEnough = false;
-                        break;
+                        baseList.Insert(~at, id);
+                    }
+                    else if (!keep && at >= 0)
+                    {
+                        baseList.RemoveAt(at);
                     }
                 }
             }
 
-            if (farEnough)
+            if (crab)
             {
-                candidates.Add(junctionId);
+                world.Caches.CrabSlotHomeBaseBuiltVersion = builtVersion;
+                world.Caches.CrabSlotHomeBaseJournalCursor = cursor;
+            }
+            else
+            {
+                world.Caches.LandSlotHomeBaseBuiltVersion = builtVersion;
+                world.Caches.LandSlotHomeBaseJournalCursor = cursor;
             }
         }
 
-        return candidates;
+        return baseList;
+    }
+
+    private static readonly List<int> _excludedScratch = new();
+    private static readonly HashSet<JunctionId> _excludedSeen = new();
+
+    /// <summary>§158.5: позиции в базовом списке узлов, которые НЕ подходят
+    /// домом слота (ближе радиуса к девушке или лагерю), отсортированные.
+    /// Собираются по дискам вокруг людей и лагерей: узел с Tiles[0] внутри
+    /// диска числится в списке узлов этого тайла, так что диски накрывают все
+    /// исключённые, а предикат FarFromPeople сверяет каждого точно. Цена —
+    /// площадь дисков, не размер мира (раньше: два миллиона узлов × двенадцать
+    /// расстояний на каждый переезд слота).</summary>
+    internal static void CollectExcluded(
+        WorldState world, List<JunctionId> baseList, string mobId, List<int> excluded)
+    {
+        excluded.Clear();
+        _excludedSeen.Clear();
+        var crab = mobId == Content.MobIds.Crab;
+        var minFromNpc = crab
+            ? System.Math.Max(WildlifeBalance.RabbitSpawnMinDistanceFromNpc,
+                WildlifeBalance.CrabMaterializeRadiusTiles + 2)
+            : System.Math.Max(WildlifeBalance.DogSpawnMinDistanceFromNpc,
+                WildlifeBalance.MobMaterializeRadiusTiles + 2);
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            AddExcludedDisc(world, baseList, mobId, npc.Tile, minFromNpc, excluded);
+        }
+
+        if (Spec72.Enabled)
+        {
+            foreach (var home in world.FactionHomes)
+            {
+                AddExcludedDisc(world, baseList, mobId, home.Value,
+                    Spec72.DogSpawnMinDistanceFromCamp, excluded);
+            }
+        }
+
+        excluded.Sort();
+    }
+
+    private static void AddExcludedDisc(
+        WorldState world, List<JunctionId> baseList, string mobId, TileCoord center,
+        int radius, List<int> excluded)
+    {
+        for (var dq = -radius + 1; dq <= radius - 1; dq++)
+        {
+            for (var dr = -radius + 1; dr <= radius - 1; dr++)
+            {
+                var coord = new TileCoord(center.Q + dq, center.R + dr);
+                if (HexSpatialMath.HexDistance(coord, center) >= radius ||
+                    !world.Tiles.Items.TryGetValue(coord, out var tile))
+                {
+                    continue;
+                }
+
+                foreach (var junctionId in tile.Junctions)
+                {
+                    if (!_excludedSeen.Add(junctionId) || FarFromPeople(world, junctionId, mobId))
+                    {
+                        continue;
+                    }
+
+                    var at = baseList.BinarySearch(junctionId, JunctionIdOrder.Instance);
+                    if (at >= 0)
+                    {
+                        excluded.Add(at);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>Позиция i-го НЕисключённого элемента базового списка.</summary>
+    internal static int SkipExcluded(int index, List<int> excludedSorted)
+    {
+        var position = index;
+        for (var i = 0; i < excludedSorted.Count; i++)
+        {
+            if (excludedSorted[i] <= position)
+            {
+                position++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return position;
+    }
+
+    private static void InsertSorted(List<int> sorted, int value)
+    {
+        var at = sorted.BinarySearch(value);
+        if (at < 0)
+        {
+            sorted.Insert(~at, value);
+        }
+    }
+
+    /// <summary>§147.3: дом слота дальше радиуса материализации + запас — свежий
+    /// слот обязан родиться ПРЕВЬЮ, а не сразу живым зверем под ногами у
+    /// девушки; и не ближе DogSpawnMinDistanceFromCamp к лагерю (§72).</summary>
+    internal static bool FarFromPeople(WorldState world, JunctionId junctionId, string mobId)
+    {
+        var crab = mobId == Content.MobIds.Crab;
+        if (!world.Junctions.Items.TryGetValue(junctionId, out var junction) || junction.Tiles.Count == 0)
+        {
+            return false;
+        }
+
+        var tile = junction.Tiles[0];
+        var minFromNpc = crab
+            ? System.Math.Max(WildlifeBalance.RabbitSpawnMinDistanceFromNpc,
+                WildlifeBalance.CrabMaterializeRadiusTiles + 2)
+            : System.Math.Max(WildlifeBalance.DogSpawnMinDistanceFromNpc,
+                WildlifeBalance.MobMaterializeRadiusTiles + 2);
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            if (HexSpatialMath.HexDistance(tile, npc.Tile) < minFromNpc)
+            {
+                return false;
+            }
+        }
+
+        if (Spec72.Enabled)
+        {
+            foreach (var home in world.FactionHomes)
+            {
+                if (HexSpatialMath.HexDistance(tile, home.Value) < Spec72.DogSpawnMinDistanceFromCamp)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private static bool NearWater(WorldState world, TileCoord tile, int radius)
@@ -439,8 +573,11 @@ internal static class MobSlots
     // кольцо по ТЕКУЩЕЙ топологии, полное здоровье, снова превью.
     internal static void Rehome(WorldState world, MobSpawnSlot slot)
     {
-        var candidates = LandCandidates(world, slot.MobId);
-        if (candidates.Count == 0)
+        var baseList = SlotHomeBase(world, slot.MobId);
+        var excluded = _excludedScratch;
+        CollectExcluded(world, baseList, slot.MobId, excluded);
+        var available = baseList.Count - excluded.Count;
+        if (available <= 0)
         {
             // Некуда: остаёмся в кулдауне до следующего medium-прохода.
             slot.State = MobSlotState.Cooldown;
@@ -448,10 +585,10 @@ internal static class MobSlots
             return;
         }
 
-        var pick = (int)(MathUtil.Hash01(world.Seed, slot.SlotId, slot.CycleIndex, 1131) *
-            candidates.Count);
-        pick = System.Math.Min(pick, candidates.Count - 1);
-        slot.HomeJunction = candidates[pick];
+        var pick = (int)(MathUtil.Hash01(world.Seed, slot.SlotId, slot.CycleIndex, 1131) * available);
+        pick = System.Math.Min(pick, available - 1);
+        var home = baseList[SkipExcluded(pick, excluded)];
+        slot.HomeJunction = home;
         BakeRing(world, slot);
         if (slot.Ring.Count == 0)
         {

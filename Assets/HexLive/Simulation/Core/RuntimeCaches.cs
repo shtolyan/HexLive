@@ -104,19 +104,40 @@ public sealed class RuntimeCaches
     // вырожденный, эвристика выключена.
     public float LongestJunctionEdge { get; set; }
 
-    // §54.12 / §30.16: ledges belong to ONE world. The first implementation
-    // cached Junction object references in a static DecisionSystem list keyed
-    // only by the numeric TopologyVersion. Fresh worlds normally all start at
-    // version 1, so a multi-seed soak silently queried the previous island's
-    // junctions. Keep ids in the existing per-world derived-cache container;
-    // no cross-world reference can survive, even when versions are equal.
-    public List<JunctionId> LedgeJunctions { get; } = new();
+    // §158.3: сколько раз связность пришлось перестроить целиком (первое
+    // построение, загрузка, InvalidateAll, неразрешимый раскол). Метрика
+    // прогона: на бодром мире это единицы, а не «по разу на бревно».
+    public int ConnectivityFullRebuilds { get; set; }
 
-    public int LedgeJunctionsBuiltVersion { get; set; } = -1;
+    // §158.4: скретчи локального перечисления узлов (LocalSearch).
+    public HashSet<JunctionId> LocalSearchSeenScratch { get; } = new();
 
-    // §30.16 r2: path-derived scratch and tick caches are world-owned for the
-    // same reason as ledges. A static tick key can make a second world reuse
-    // another island's danger/hostile ring at an equal simulation tick.
+    public List<HexLive.Simulation.Spatial.Junction> LocalSearchScratch { get; } = new();
+
+    public List<HexLive.Simulation.Spatial.Junction> LocalSearchRingScratch { get; } = new();
+
+    // §158.5: узлы, все тайлы которых — глубокая вода. Геометрия worldgen,
+    // строится один раз на мир (раньше — на КАЖДЫЙ критический маршрут).
+    public HashSet<JunctionId> DeepWaterJunctions { get; } = new();
+
+    public bool DeepWaterJunctionsBuilt { get; set; }
+
+    // §158.5: курсоры журнала топологии для кэшей, что раньше перестраивались
+    // полным обходом на каждую смену TopologyVersion.
+    public int MobForbiddenJournalCursor { get; set; }
+
+    public int LandSlotHomeBaseJournalCursor { get; set; }
+
+    public int CrabSlotHomeBaseJournalCursor { get; set; }
+
+    public List<JunctionId> TopologyChangedScratch { get; } = new();
+
+    // §30.16 r2: path-derived scratch and tick caches are world-owned. The
+    // first ledge cache (§54.12, since replaced by the §158.4 local search)
+    // lived in a static DecisionSystem list keyed only by the numeric
+    // TopologyVersion, and a multi-seed soak silently queried the previous
+    // island's junctions; a static tick key can likewise make a second world
+    // reuse another island's danger/hostile ring at an equal simulation tick.
     public HashSet<JunctionId> OtherActorJunctionsScratch { get; } = new();
 
     public HashSet<JunctionId> DangerRingJunctions { get; } = new();
@@ -178,7 +199,6 @@ public sealed class RuntimeCaches
 
     // The per-call candidate list EnsureSlots mutates (RemoveAt): reused, not
     // reallocated on every medium tick.
-    public List<JunctionId> SlotCandidatesScratch { get; } = new();
 
     // PERF (Aug-2026): позиции джанкшенов — вывод worldgen и не меняются;
     // сетка ячеек для FindNearestJunction строится один раз на мир. Старый

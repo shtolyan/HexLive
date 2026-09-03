@@ -470,12 +470,14 @@ public static class BuildingBootstrap
                 state.Flags &= ~(TileFlags.Indoor | TileFlags.Roofed);
             if (!newFootprint.Contains(tile) || removedFloorSlot)
                 state.Flags &= ~TileFlags.HasFloor;
+            WorldTopology.NoteTile(world, tile); // §158.2: Indoor читают кэши зверей
         }
         foreach (var tile in newFootprint)
         {
             if (oldFootprint.Contains(tile) || !world.Tiles.Items.TryGetValue(tile, out var state))
                 continue;
             state.Flags &= ~(TileFlags.HasFloor | TileFlags.Indoor | TileFlags.Roofed);
+            WorldTopology.NoteTile(world, tile);
         }
 
         RepairPlanTopology(world, owner);
@@ -640,7 +642,10 @@ public static class BuildingBootstrap
         foreach (var footprintTile in FootprintTiles(world, hut))
         {
             if (world.Tiles.Items.TryGetValue(footprintTile, out var footprint))
+            {
                 footprint.Flags |= TileFlags.HasFloor | TileFlags.Indoor | TileFlags.Roofed;
+                WorldTopology.NoteTile(world, footprintTile); // §158.2
+            }
         }
 
         // A committed player plan owns its own geometry, so it gets its own
@@ -846,7 +851,7 @@ public static class BuildingBootstrap
             {
                 if (world.Junctions.Items.TryGetValue(junctionId, out var previous) && previous.Door)
                 {
-                    previous.Door = false;
+                    WorldTopology.SetDoor(world, previous, false);
                     changed = true;
                 }
             }
@@ -887,7 +892,7 @@ public static class BuildingBootstrap
             portals.Add(portalId);
             var portal = world.Junctions.Items[portalId];
             WorldObjectMutations.ClearBlockingOwnershipAt(world, portalId);
-            portal.Door = element.DeliveredTotal > 0;
+            WorldTopology.SetDoor(world, portal, element.DeliveredTotal > 0);
             changed = true;
         }
 
@@ -910,7 +915,7 @@ public static class BuildingBootstrap
                 }
 
                 var newlyBlocked = !junction.Blocked;
-                junction.Blocked = true;
+                WorldTopology.SetBlocked(world, junction, true);
                 if (!piece.BlockedJunctions.Contains(junctionId))
                     piece.BlockedJunctions.Add(junctionId);
                 changed |= newlyBlocked;
@@ -931,7 +936,10 @@ public static class BuildingBootstrap
             }
         }
 
-        if (changed) world.TopologyVersion++;
+        // §158.2: каждая запись выше уже в журнале (SetBlocked/SetDoor/
+        // ClearBlockingOwnershipAt); ремонт зовётся и в игре на каждую
+        // доставленную секцию, поэтому полной перестройки здесь нет.
+        _ = changed;
     }
 
     private static bool ReleaseBlocked(WorldState world, WorldObjectState holder)
@@ -1241,7 +1249,7 @@ public static class BuildingBootstrap
         foreach (var junctionId in tile.Junctions)
         {
             if (world.Junctions.Items.TryGetValue(junctionId, out var junction))
-                junction.Door = false;
+                WorldTopology.SetDoor(world, junction, false);
         }
 
         var local = BuildingRules.DoorLocalCenter(world, hut);
@@ -1304,7 +1312,7 @@ public static class BuildingBootstrap
                     portals.Add(portalId);
                     var portal = world.Junctions.Items[portalId];
                     WorldObjectMutations.ClearBlockingOwnershipAt(world, portalId);
-                    portal.Door = true;
+                    WorldTopology.SetDoor(world, portal, true);
                 }
                 var doorPiece = architecture.FirstOrDefault(piece =>
                     piece.DefinitionId == "architecture.door.wood");
@@ -1325,7 +1333,7 @@ public static class BuildingBootstrap
                 }
 
                 var newlyBlocked = !junction.Blocked;
-                junction.Blocked = true;
+                WorldTopology.SetBlocked(world, junction, true);
                 var blocker = NearestBlockingPiece(world, hut, architecture, junction.WorldPosition);
                 if (blocker != null && !blocker.BlockedJunctions.Contains(junctionId))
                     blocker.BlockedJunctions.Add(junctionId);
@@ -1339,8 +1347,6 @@ public static class BuildingBootstrap
                 }
             }
         }
-
-        world.TopologyVersion++;
     }
 
     private static void AnchorArchitecturePiece(
@@ -1913,7 +1919,9 @@ public static class BuildingBootstrap
             garment.RotationDegrees = wardrobe.RotationDegrees;
         }
         RepairMedkitAnchor(world, hut, wardrobe);
-        world.TopologyVersion++;
+        // Ремонт при загрузке: гардероб и аптечка переставлены целиком —
+        // честнее перестроить производные карты, чем гадать, что уцелело.
+        WorldTopology.InvalidateAll(world);
     }
 
     private static void RepairMedkitAnchor(
@@ -1931,7 +1939,8 @@ public static class BuildingBootstrap
 
         foreach (var blockedId in medkit.BlockedJunctions)
         {
-            if (world.Junctions.Items.TryGetValue(blockedId, out var blocked)) blocked.Blocked = false;
+            if (world.Junctions.Items.TryGetValue(blockedId, out var blocked))
+                WorldTopology.SetBlocked(world, blocked, false);
         }
         medkit.BlockedJunctions.Clear();
         medkit.Junctions.Clear();

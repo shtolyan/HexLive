@@ -232,7 +232,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 foreach (var junctionId in piece.Junctions)
                 {
                     if (world.Junctions.Items.TryGetValue(junctionId, out var junction))
-                        junction.Door = false;
+                        WorldTopology.SetDoor(world, junction, false);
                 }
             }
 
@@ -534,7 +534,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 foreach (var id in piece.Junctions)
                 {
                     if (!world.Junctions.Items.TryGetValue(id, out var junction) || !junction.Door) continue;
-                    junction.Door = false;
+                    WorldTopology.SetDoor(world, junction, false);
                     changed = true;
                 }
             }
@@ -551,7 +551,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 portals.Add(portalId);
                 var portal = world.Junctions.Items[portalId];
                 WorldObjectMutations.ClearBlockingOwnershipAt(world, portalId);
-                portal.Door = state.DeliveredTotal > 0;
+                WorldTopology.SetDoor(world, portal, state.DeliveredTotal > 0);
                 changed = true;
             }
 
@@ -568,12 +568,14 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     if (!piece.BlockedJunctions.Contains(id)) piece.BlockedJunctions.Add(id);
                     if (!junction.Blocked)
                     {
-                        junction.Blocked = true;
+                        WorldTopology.SetBlocked(world, junction, true);
                         changed = true;
                     }
                 }
             }
-            if (changed) world.TopologyVersion++;
+            // §158.2: каждая запись выше уже в журнале; ремонт зовётся на
+            // каждую доставленную/снятую деталь, полной перестройки здесь нет.
+            _ = changed;
         }
 
         private static void RefreshTileFlags(

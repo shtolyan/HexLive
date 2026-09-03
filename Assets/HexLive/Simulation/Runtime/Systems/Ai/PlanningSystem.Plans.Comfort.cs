@@ -46,7 +46,10 @@ public sealed partial class PlanningSystem
         candidates.Clear();
         var siteJunctions = CollectBuildSiteJunctions(world);
         var maxDistance = HexSpatialMath.HexRadius * 12f;
-        foreach (var junction in world.Junctions.Items.Values)
+        // §158.4: окрестность вместо всего графа — фильтры и порядок те же.
+        var nearby = world.Caches.LocalSearchScratch;
+        LocalSearch.CollectWithinTiles(world, npc.Tile, LocalSearch.TileRadiusCovering(maxDistance), nearby);
+        foreach (var junction in nearby)
         {
             var isCurrent = junction.Id.Equals(from);
             if (junction.Blocked || junction.Tiles.Count == 0 ||
@@ -404,14 +407,14 @@ public sealed partial class PlanningSystem
 
         // Laundry needs the dry side of a real water edge (the same geometry
         // execution validates), not merely a bath entry junction.
-        var laundryShore = world.Junctions.Items.Values
-            .Where(junction =>
+        // §158.4: ближайший берег ищется кольцами вокруг неё, не по всему
+        // графу; дальше NearestSearchMaxRadiusTiles берег не считается своим.
+        var laundryShore = LocalSearch.FindNearest(
+            world, npc.Tile, npc.Position, LocalSearch.NearestSearchMaxRadiusTiles,
+            junction =>
                 TryGetEdgeSeatGeometry(world, junction, waterOnly: true, out _, out _) &&
                 JunctionAvailableFor(world, junction.Id, npc.Id) &&
-                Connectivity.Reachable(world, from, junction.Id, CanUseRoutineTraversal(npc)))
-            .OrderBy(junction =>
-                HexSpatialMath.Distance(npc.Position, junction.WorldPosition))
-            .FirstOrDefault();
+                Connectivity.Reachable(world, from, junction.Id, CanUseRoutineTraversal(npc)));
         if (laundry is null || laundryShore is null ||
             !SpatialMutations.TryReserveJunction(world, laundryShore.Id, npc.Id,
                 world.Tick, SimBalance.WashClothesDurationTicks * 8 + 192))
@@ -587,7 +590,7 @@ public sealed partial class PlanningSystem
     // ON the growing mat she just stocked.
     private static readonly System.Collections.Generic.HashSet<JunctionId> _siteJunctionsScratch = new();
 
-    private static System.Collections.Generic.HashSet<JunctionId> CollectBuildSiteJunctions(WorldState world)
+    internal static System.Collections.Generic.HashSet<JunctionId> CollectBuildSiteJunctions(WorldState world)
     {
         _siteJunctionsScratch.Clear();
         foreach (var obj in world.Entities.Objects.Values)
@@ -633,7 +636,11 @@ public sealed partial class PlanningSystem
         if (npc.CurrentJunction is { } from)
         {
             var bestDist = float.MaxValue;
-            foreach (var junction in world.Junctions.Items.Values)
+            // §158.4: «уступ рядом» — это два гекса от неё; окрестность, не граф.
+            var nearby = world.Caches.LocalSearchScratch;
+            LocalSearch.CollectWithinTiles(world, npc.Tile,
+                LocalSearch.TileRadiusCovering(HexSpatialMath.HexRadius * 2f), nearby);
+            foreach (var junction in nearby)
             {
                 if (junction.Blocked || junction.Tiles.Count < 2 ||
                     !TryGetEdgeSeatGeometry(world, junction, waterOnly: false, out _, out _) ||

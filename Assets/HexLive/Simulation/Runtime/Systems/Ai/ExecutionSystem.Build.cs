@@ -399,7 +399,7 @@ public sealed partial class ExecutionSystem
                             candidate.Tiles.Contains(neighbor) && candidate.Tiles.Count == 2 &&
                             !candidate.Blocked)
                         {
-                            candidate.Door = true;
+                            WorldTopology.SetDoor(world, candidate, true);
                             doorKept = true;
                             break;
                         }
@@ -425,7 +425,7 @@ public sealed partial class ExecutionSystem
                             }
                         }
 
-                        junction.Blocked = true;
+                        WorldTopology.SetBlocked(world, junction, true);
                     }
                 }
             }
@@ -440,7 +440,6 @@ public sealed partial class ExecutionSystem
             }
 
             project.EdgeDone[bill.Edge] = true;
-            world.TopologyVersion++;
         }
 
         Trace.Emit(world, npc.Id, "BuildProgress",
@@ -471,7 +470,10 @@ public sealed partial class ExecutionSystem
                 }
             }
 
-            world.TopologyVersion++;
+            // §158.2: тайл стал Indoor — узлы тайла идут в журнал, и кэши
+            // «в помещении ли узел» (запреты для зверей, дома слотов)
+            // пересматривают только их.
+            WorldTopology.NoteTile(world, project.Tile);
             Trace.EmitSystem(world, "HutCompleted",
                 $"Hut at Tile={project.Tile.Q},{project.Tile.R} — indoor sanctuary with a bed");
         }

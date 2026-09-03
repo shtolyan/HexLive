@@ -80,6 +80,40 @@ public sealed class SoakMetrics
     public int MobsPeak;
     public bool Completed;
     public double Seconds;
+
+    /// <summary>§158.6: самый дорогой шаг прогона и сколько шагов вышли за
+    /// бюджет 4 Гц (250 мс). Средний тик прячет секундные всплески (§157.10
+    /// отчитался 10 мс/тик на мире, где отдельные тики стоили 2.8 с), а
+    /// именно всплеск рвёт связь у игрока.</summary>
+    public double MaxStepMs;
+    public int MaxStepTick = -1;
+    public int StepsOverBudget;
+    public int StepsOverSecond;
+    public const double StepBudgetMs = 250.0;
+
+    /// <summary>§158.3/§158.2: полные перестройки связности и полные сбросы
+    /// журнала топологии — на бодром мире единицы, не «по разу на бревно».</summary>
+    public int ConnectivityFullRebuilds;
+    public int TopologyFullInvalidations;
+
+    public void SampleStep(int tick, double milliseconds)
+    {
+        if (milliseconds > MaxStepMs)
+        {
+            MaxStepMs = milliseconds;
+            MaxStepTick = tick;
+        }
+
+        if (milliseconds > StepBudgetMs)
+        {
+            StepsOverBudget++;
+        }
+
+        if (milliseconds > 1000.0)
+        {
+            StepsOverSecond++;
+        }
+    }
     public int MovingNpcTicks;
     public int RunningNpcTicks;
     public int RunOnsets;
@@ -240,6 +274,8 @@ public sealed class SoakMetrics
 
     public void Finish(WorldState world)
     {
+        ConnectivityFullRebuilds = world.Caches.ConnectivityFullRebuilds;
+        TopologyFullInvalidations = world.Topology.FullInvalidations;
         Completed = world.Completed;
         _deathCauses.Clear();
         foreach (var death in world.DeathRecords)
@@ -334,6 +370,11 @@ public sealed class SoakMetrics
 
         text.AppendLine("сид " + Seed + ", тиков " + TicksRun +
                         " (" + (TicksRun / Math.Max(Seconds, 0.001)).ToString("F0", invariant) + " тик/с)");
+        text.AppendLine("  худший шаг          " + MaxStepMs.ToString("F0", invariant) + " мс (тик " +
+                        MaxStepTick + "), за бюджетом " + StepBudgetMs.ToString("F0", invariant) +
+                        " мс: " + StepsOverBudget + ", дольше секунды: " + StepsOverSecond);
+        text.AppendLine("  связность целиком   " + ConnectivityFullRebuilds +
+                        " перестроек, журнал сброшен " + TopologyFullInvalidations + " раз");
         text.AppendLine("  NPC                 " + NpcsAtStart + " → " + NpcsAtEnd);
         text.AppendLine("  КОЛОНИЯ             " + ColonistsAtStart + " → " + ColonistsAtEnd);
         text.AppendLine("  мобы (пик/конец)    " + MobsPeak + " / " + MobsAtEnd);
@@ -394,6 +435,9 @@ public sealed class SoakMetrics
         return "{" +
                "\"seed\":" + Seed +
                ",\"ticks\":" + TicksRun +
+               ",\"maxStepMs\":" + MaxStepMs.ToString("F1", invariant) +
+               ",\"stepsOverBudget\":" + StepsOverBudget +
+               ",\"connectivityFullRebuilds\":" + ConnectivityFullRebuilds +
                ",\"npcsAtStart\":" + NpcsAtStart +
                ",\"npcsAtEnd\":" + NpcsAtEnd +
                ",\"colonistsAtStart\":" + ColonistsAtStart +

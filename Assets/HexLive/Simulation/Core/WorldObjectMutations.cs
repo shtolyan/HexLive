@@ -3,6 +3,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Runtime.Blueprints;
+using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Core
 {
@@ -149,11 +150,9 @@ public static class WorldObjectMutations
                     foreach (var junctionId in worldObject.Junctions)
                     {
                         if (!world.Junctions.Items.TryGetValue(junctionId, out var junction)) continue;
-                        junction.Door = false;
-                        architectureChanged = true;
+                        WorldTopology.SetDoor(world, junction, false);
                     }
                 }
-                if (architectureChanged) world.TopologyVersion++;
             }
             return;
         }
@@ -192,7 +191,6 @@ public static class WorldObjectMutations
             return;
         }
 
-        var changed = false;
         if (blocked)
         {
             worldObject.BlockedJunctions.Clear();
@@ -202,11 +200,7 @@ public static class WorldObjectMutations
                 {
                     if (!worldObject.BlockedJunctions.Contains(junctionId))
                         worldObject.BlockedJunctions.Add(junctionId);
-                    if (!junction.Blocked)
-                    {
-                        junction.Blocked = true;
-                        changed = true;
-                    }
+                    WorldTopology.SetBlocked(world, junction, true);
 
                     // §45 r5: nudge anyone standing where the obstacle lands —
                     // same as the hut-wall builder. An NPC left standing ON a
@@ -229,12 +223,7 @@ public static class WorldObjectMutations
         {
             // Spec 31C.7: unblock exactly what this object blocked —
             // overlapping obstacles and walls stay intact.
-            changed = ReleaseOwnedBlocking(world, worldObject);
-        }
-
-        if (changed)
-        {
-            world.TopologyVersion++;
+            ReleaseOwnedBlocking(world, worldObject);
         }
     }
 
@@ -262,17 +251,15 @@ public static class WorldObjectMutations
             return;
         }
 
-        var changed = ReleaseOwnedBlocking(world, worldObject);
+        ReleaseOwnedBlocking(world, worldObject);
         if (!blocked)
         {
-            if (changed) world.TopologyVersion++;
             return;
         }
 
         if (worldObject.Junctions.Count == 0 ||
             !world.Junctions.Items.TryGetValue(worldObject.Junctions[0], out var anchor))
         {
-            if (changed) world.TopologyVersion++;
             return;
         }
 
@@ -299,11 +286,7 @@ public static class WorldObjectMutations
             // piece must not open a point still occupied by the other.
             if (!worldObject.BlockedJunctions.Contains(junctionId))
                 worldObject.BlockedJunctions.Add(junctionId);
-            if (!junction.Blocked)
-            {
-                junction.Blocked = true;
-                changed = true;
-            }
+            WorldTopology.SetBlocked(world, junction, true);
 
             foreach (var bystander in world.Entities.Npcs.Values)
             {
@@ -311,22 +294,57 @@ public static class WorldObjectMutations
                     bystander.CurrentJunction = null;
             }
         }
-
-        if (worldObject.BlockedJunctions.Count > 0) changed = true;
-        if (changed) world.TopologyVersion++;
     }
 
     private static JunctionId? FindExactJunction(
         WorldState world, Float2 point, float toleranceSq)
     {
-        foreach (var pair in world.Junctions.Items)
+        // §158.4: узел ищется по своему тайлу и его соседям (узел на ребре
+        // числится в обоих тайлах), а не обходом всего графа на каждую
+        // точку следа мебели.
+        var center = HexSpatialMath.WorldToTile(point);
+        if (TryExactJunctionInTile(world, center, point, toleranceSq) is { } own)
         {
-            var delta = pair.Value.WorldPosition - point;
-            if (delta.X * delta.X + delta.Y * delta.Y <= toleranceSq)
-                return pair.Key;
+            return own;
+        }
+
+        foreach (var direction in HexDirection.All)
+        {
+            var coord = new TileCoord(center.Q + direction.DQ, center.R + direction.DR);
+            if (TryExactJunctionInTile(world, coord, point, toleranceSq) is { } found)
+            {
+                return found;
+            }
         }
 
         return null;
+    }
+
+    private static JunctionId? TryExactJunctionInTile(
+        WorldState world, TileCoord coord, Float2 point, float toleranceSq)
+    {
+        if (!world.Tiles.Items.TryGetValue(coord, out var tile))
+        {
+            return null;
+        }
+
+        JunctionId? best = null;
+        foreach (var junctionId in tile.Junctions)
+        {
+            if (!world.Junctions.Items.TryGetValue(junctionId, out var junction))
+            {
+                continue;
+            }
+
+            var delta = junction.WorldPosition - point;
+            if (delta.X * delta.X + delta.Y * delta.Y <= toleranceSq &&
+                (best is null || junctionId.Value < best.Value.Value))
+            {
+                best = junctionId; // как в прежнем обходе: наименьший id
+            }
+        }
+
+        return best;
     }
 
     /// <summary>
@@ -355,7 +373,7 @@ public static class WorldObjectMutations
                 world.Junctions.Items.TryGetValue(junctionId, out var junction) &&
                 junction.Blocked)
             {
-                junction.Blocked = false;
+                WorldTopology.SetBlocked(world, junction, false);
                 changed = true;
             }
         }
@@ -374,7 +392,7 @@ public static class WorldObjectMutations
         foreach (var worldObject in world.Entities.Objects.Values)
             worldObject.BlockedJunctions.Remove(junctionId);
         if (world.Junctions.Items.TryGetValue(junctionId, out var junction))
-            junction.Blocked = false;
+            WorldTopology.SetBlocked(world, junction, false);
     }
 
     // Anchor junctions plus, for solid furniture, every junction of the

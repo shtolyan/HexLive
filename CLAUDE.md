@@ -565,6 +565,15 @@ prints the flight-recorder tail beside each one, i.e. what that colonist was doi
 BEFORE she froze. Watch the `Reason=`; the per-NPC ring (spec §30.14) is what makes
 the tail survive, since the colony-wide ring only holds ~11 ticks.
 
+⭐ **Смотри на ХУДШИЙ шаг, не на тик/с** (spec §158.1): отчёт печатает
+«худший шаг N мс (тик T), за бюджетом 250 мс: k, дольше секунды: m» и
+«связность целиком: n перестроек». Средний тик 10 мс на «Островах» прятал
+тики по 2.8 с — именно они рвали связь у игрока. На пути тика нет права на
+обход `world.Junctions.Items.Values`/`Tiles.Items.Values`: проходимость
+пишется только через `WorldTopology` (гейт `TopologyWriteLint`), кэши на
+`TopologyVersion` догоняют журнал через `WorldTopology.CatchUp`, кандидаты
+ищутся через `LocalSearch` кольцами тайлов.
+
 `-h` lists the rest. It reports the spec §30.16 metrics: goal churn per NPC-day
 (both raw field changes and "dropped one job for another", which is the number
 §35.4a means), median/mean goal dwell, plan-failure rate, and **stuck NPC-ticks** —

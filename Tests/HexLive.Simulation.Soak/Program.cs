@@ -168,9 +168,13 @@ public static class Program
         var explainedLoops = 0;
         var explainedDeaths = 0;
 
+        var stepWatch = new Stopwatch();
         for (var i = 0; i < options.Ticks && !world.Completed; i++)
         {
+            stepWatch.Restart();
             engine.Step();
+            stepWatch.Stop();
+            metrics.SampleStep(world.Tick - 1, stepWatch.Elapsed.TotalMilliseconds);
             watermark = Drain(world, watermark, metrics, trace, options.TraceTypes,
                 options, ref explained, ref explainedLoops, ref explainedDeaths);
             metrics.SampleTick(world);

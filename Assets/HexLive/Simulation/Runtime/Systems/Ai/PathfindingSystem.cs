@@ -572,27 +572,41 @@ public sealed class PathfindingSystem : ISimulationSystem
             }
         }
 
-        foreach (var junction in world.Junctions.Items.Values)
+        // §158.5: «вся глубокая вода» — свойство worldgen (флаги тайлов не
+        // меняются), считается один раз на мир, а не на каждый маршрут.
+        var caches = world.Caches;
+        if (!caches.DeepWaterJunctionsBuilt)
         {
-            if (junction.Tiles.Count == 0)
+            caches.DeepWaterJunctions.Clear();
+            foreach (var junction in world.Junctions.Items.Values)
             {
-                continue;
-            }
-
-            var allDeepWater = true;
-            foreach (var tile in junction.Tiles)
-            {
-                if (!SpatialQueries.IsSwimTile(world, tile))
+                if (junction.Tiles.Count == 0)
                 {
-                    allDeepWater = false;
-                    break;
+                    continue;
+                }
+
+                var allDeepWater = true;
+                foreach (var tile in junction.Tiles)
+                {
+                    if (!SpatialQueries.IsSwimTile(world, tile))
+                    {
+                        allDeepWater = false;
+                        break;
+                    }
+                }
+
+                if (allDeepWater)
+                {
+                    caches.DeepWaterJunctions.Add(junction.Id);
                 }
             }
 
-            if (allDeepWater)
-            {
-                _hardAvoidScratch.Add(junction.Id);
-            }
+            caches.DeepWaterJunctionsBuilt = true;
+        }
+
+        foreach (var junctionId in caches.DeepWaterJunctions)
+        {
+            _hardAvoidScratch.Add(junctionId);
         }
 
         return _hardAvoidScratch;

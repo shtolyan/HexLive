@@ -172,6 +172,8 @@ public sealed class WorldState
 
     public int StrandedSeamsBuiltVersion { get; set; } = -1;
 
+    public int StrandedSeamsJournalCursor { get; set; }
+
     // Spec 40.18: sea junctions opened for swimming — a shallow ring the
     // pathfinder may cross at ~4x cost (a slow last resort).
     public System.Collections.Generic.HashSet<Common.JunctionId> SwimJunctions { get; } = new();
@@ -233,6 +235,11 @@ public sealed class WorldState
     // TopologyVersion increments whenever junction blocking changes (walls).
     public int TopologyVersion { get; set; } = 1;
 
+    // §158.2: журнал изменений топологии — что именно менялось с прошлой
+    // версии. Потребители (связность, замурованные швы, кандидаты слотов)
+    // догоняют по нему точечно вместо полного обхода 2.5 млн узлов.
+    public TopologyJournal Topology { get; } = new();
+
     // §129: increments whenever a door opens or closes. Deliberately SEPARATE
     // from TopologyVersion: a closed door is behaviour, not topology (the
     // portal junction is never Blocked), so swinging a door must not force a
@@ -242,6 +249,24 @@ public sealed class WorldState
     public int DoorStateVersion { get; set; } = 1;
 
     public int ComponentsBuiltVersion { get; set; }
+
+    // §158.3: курсоры журнала для двух графов связности и размеры компонент
+    // прыжкового графа (нужны, чтобы при слиянии перекрашивать МЕНЬШУЮ).
+    public int ComponentsJournalCursor { get; set; }
+
+    public int ComponentsFlatJournalCursor { get; set; }
+
+    public System.Collections.Generic.Dictionary<int, int> JunctionComponentSizes { get; } = new();
+
+    public int NextJumpComponentId { get; set; } = 1;
+
+    public int NextFlatComponentId { get; set; } = 1;
+
+    // §158.3: спуски между плоскими компонентами со СЧЁТОМ рёбер в обе
+    // стороны — точечное удаление/добавление узла вычитает и прибавляет свои
+    // рёбра, а ребро компонент живёт, пока счёт больше нуля.
+    public System.Collections.Generic.Dictionary<int,
+        System.Collections.Generic.Dictionary<int, int>> FlatDescendEdgesIn { get; } = new();
 
     public System.Collections.Generic.Dictionary<JunctionId, int> JunctionComponents { get; } = new();
 
@@ -278,7 +303,7 @@ public sealed class WorldState
     // Строятся в RebuildFlat, замыкание над ними считает Connectivity по
     // требованию. Кэш, не сейв.
     public System.Collections.Generic.Dictionary<int,
-        System.Collections.Generic.HashSet<int>> FlatDescendEdges { get; } = new();
+        System.Collections.Generic.Dictionary<int, int>> FlatDescendEdges { get; } = new();
 
     // Spec §26.6A r4: the junctions closed by an OBJECT FOOTPRINT (a palm trunk,
     // the fire's ember ring, a bed) — as opposed to TERRAIN (a cliff face, a hut

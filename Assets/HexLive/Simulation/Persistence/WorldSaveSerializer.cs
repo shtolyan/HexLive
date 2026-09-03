@@ -647,9 +647,12 @@ public static class WorldSaveSerializer
             }
         }
 
-        // Derived reachability cache: rebuilt on first pathfind.
+        // Derived reachability cache: rebuilt on first pathfind. §158.2: журнал
+        // топологии сбрасывается тем же движением — флаги узлов только что
+        // переписаны пачкой, догонять точечно нечего и нельзя.
         world.JunctionComponents.Clear();
         world.ComponentsBuiltVersion = 0;
+        WorldTopology.InvalidateAll(world);
 
         world.Entities.Objects.Clear();
         var objectCount = r.ReadInt32();

@@ -712,11 +712,13 @@ public static class WorldSnapshotExporter
                     world.Entities.Objects.TryGetValue(processObjectId, out processObject);
                 }
 
-                var processingLog = processObject?.DefinitionId == ContentIds.Log;
-                if (processingLog &&
-                    HexLive.Simulation.Runtime.DecisionSystem
-                        .WoodenProstheticBoardShortfall(world, npc) > 0 &&
-                    InventoryContains(npc, GearCatalog.Saw))
+                // §54: расщепление бревна на палки (split.log) и распил на доски
+                // (saw.log) — ОДИН тип Process, поэтому «пила или топор» решает
+                // конкретное действие, а не тип. Ответ обязан совпадать с тем,
+                // что выбрал исполнитель (ExecutionSystem.ResolveInteraction),
+                // — см. SawingLog.
+                if (InventoryContains(npc, GearCatalog.Saw) &&
+                    SawingLog(world, npc, processObject))
                 {
                     return GearCatalog.Saw;
                 }
@@ -761,15 +763,8 @@ public static class WorldSnapshotExporter
                 //
                 // Bug #309: пила из этого списка убрана — после #300 она бревно
                 // НЕ рубит (только пилит на доски), а список показывал её выше
-                // ножа: девушка резала ножом, в руке рисовалась пила. Распилка
-                // (saw.log) узнаётся по id действия текущего шага плана и
-                // честно показывает пилу.
-                if (CurrentInteractionId(npc) == "saw.log" &&
-                    InventoryContains(npc, GearCatalog.Saw))
-                {
-                    return GearCatalog.Saw;
-                }
-
+                // ножа: девушка резала ножом, в руке рисовалась пила. Распил
+                // отвечает раньше, в SawingLog.
                 return FirstCarried(npc, "tool.machete", "tool.axe_stone", "tool.knife");
 
             case InteractionType.Butcher:
@@ -947,6 +942,36 @@ public static class WorldSnapshotExporter
         }
 
         return false;
+    }
+
+    // §54: id каталожного действия «распилить бревно на доски». Рубка на палки
+    // (split.log) — другое действие того же типа Process.
+    private const string SawLogInteractionId = "saw.log";
+
+    /// <summary>Распил ли это бревно (доски) — в отличие от рубки на палки.
+    /// Порядок ответа ТОТ ЖЕ, что у исполнителя (ExecutionSystem.ResolveInteraction):
+    /// названный планом id действия авторитетен и возвращается раньше всякой
+    /// эвристики, и только безымянный шаг (обычный план ИИ) уходит в распил по
+    /// нехватке досок.
+    ///
+    /// Bug #352: прежде этот выбор смотрел ТОЛЬКО на нехватку досок, а она в
+    /// лагере почти всегда больше нуля (один билл дома — 71 доска). Поэтому
+    /// приказ «расщепить бревно» показывал пилу: из бревна сыпались ПАЛКИ,
+    /// в руке была пила, и Process-поза махала ею как топором — при том что
+    /// после #300 пила бревно не рубит вовсе (у неё нет ни ChopWood, ни
+    /// Cut, которых требует split.log).</summary>
+    private static bool SawingLog(
+        WorldState world, NPCState npc, WorldObjectState processObject)
+    {
+        var plannedInteractionId = CurrentInteractionId(npc);
+        if (plannedInteractionId.Length > 0)
+        {
+            return plannedInteractionId == SawLogInteractionId;
+        }
+
+        return processObject?.DefinitionId == ContentIds.Log &&
+            HexLive.Simulation.Runtime.DecisionSystem
+                .WoodenProstheticBoardShortfall(world, npc) > 0;
     }
 
     // Bug #309: id каталожного действия текущего шага плана — авторитетный

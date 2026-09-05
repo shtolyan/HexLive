@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <BaseOutputPath>../../Build/dotnet/bin/HexLive.AgentHost.Tests/</BaseOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Server/HexLive.AgentHost/HexLive.AgentHost.csproj" />
+    <ProjectReference Include="../../Server/HexLive.Server/HexLive.Server.csproj" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/Audio/VoiceVisemeBaker.cs" Link="RuntimeAudio/VoiceVisemeBaker.cs" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/Audio/RuntimeVoiceAlignment.cs" Link="RuntimeAudio/RuntimeVoiceAlignment.cs" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/Audio/RuntimeVoiceCalibration.cs" Link="RuntimeAudio/RuntimeVoiceCalibration.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Fixtures/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

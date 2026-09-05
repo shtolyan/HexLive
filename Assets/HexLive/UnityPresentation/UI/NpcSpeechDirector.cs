@@ -14,8 +14,12 @@ public interface ISpeechStage
     // bubble is shown either way, so the visual half works before the audio.
     float PlayVoiceLine(string speechId);
 
+    float PlayExternalVoiceLine(string wavPath, string visemePath, string emotion,
+        bool listenerRelative);
+
     // Cut the line that is sounding (an alarm interrupting chatter).
     void StopVoiceLine();
+    bool CanSpeakExternal(bool playerReply);
 
     // seconds <= 0 = hold indefinitely (a running conversation).
     // alarm = пометить пузырь маленьким значком тревоги в углу (§107.5).
@@ -320,6 +324,44 @@ public sealed class NpcSpeechDirector
             _lastAmbient = now;
         }
 
+        return true;
+    }
+
+    /// <summary>§160: external agent speech uses the same one-mouth arbiter.</summary>
+    public bool SayExternal(
+        string wavPath, string visemePath, string emotion, SpeechCatalog.Rank rank)
+    {
+        if (string.IsNullOrEmpty(wavPath)) return false;
+        var alarm = rank == SpeechCatalog.Rank.Alarm;
+        if (!_stage.CanSpeakExternal(rank == SpeechCatalog.Rank.Talk)) return false;
+
+        var now = Time.time;
+        var busy = now < _activeUntil;
+        if (busy && rank <= _activeRank) return false;
+        if (rank != SpeechCatalog.Rank.Talk && !alarm && now - _lastAny < GlobalGap) return false;
+        if (rank == SpeechCatalog.Rank.Ambient &&
+            (IsConversing || now - _lastAmbient < AmbientGap)) return false;
+        if (busy) _stage.StopVoiceLine();
+
+        var visualId = emotion?.ToLowerInvariant() switch
+        {
+            "sad" or "tired" => "sad_topic_weather",
+            "angry" or "tense" => "angry_topic_grumble",
+            "afraid" => "sad_topic_escape",
+            _ => "happy_agree"
+        };
+        var line = SpeechCatalog.Get(visualId);
+        var length = _stage.PlayExternalVoiceLine(
+            wavPath, visemePath, emotion ?? "neutral", rank == SpeechCatalog.Rank.Talk);
+        if (length <= 0f) return false;
+        var hold = Mathf.Max(SpeechCatalog.MinBubbleSeconds, length) + SpeechCatalog.BubbleTailSeconds;
+        _stage.ShowSpeechIcon(line.Icon, hold, alarm);
+        _heldIcon = line.Icon;
+        _heldFace = null;
+        _activeUntil = now + hold;
+        _activeRank = rank;
+        _lastAny = now;
+        if (rank == SpeechCatalog.Rank.Ambient) _lastAmbient = now;
         return true;
     }
 

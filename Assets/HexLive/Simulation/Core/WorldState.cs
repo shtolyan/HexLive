@@ -103,6 +103,17 @@ public sealed class WorldState
     // The authored opening outsider is not a wave; this counts 1, 2, ... only.
     public int RaidWavesSpawned { get; set; }
 
+    /// <summary>
+    /// §159: durable one-shot marker. It remains true after Masha's corpse is
+    /// buried or otherwise leaves the entity repository, so re-enabling the
+    /// companion on this save can never create a second incarnation.
+    /// </summary>
+    public bool MashaCompanionHasSpawned { get; set; }
+
+    /// <summary>§160 generic durable spawn markers; profile id is the key.</summary>
+    public System.Collections.Generic.HashSet<string> SpawnedCharacterPresets { get; } =
+        new(System.StringComparer.Ordinal);
+
     // §146: the scenario this world was created as. Stamped by WorldStateFactory
     // from the bootstrap, written into the save blob (v51) and compared on load
     // like the seed — a blob applied onto the wrong mode's worldgen would put

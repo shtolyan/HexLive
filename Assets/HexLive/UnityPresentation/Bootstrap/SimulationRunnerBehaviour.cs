@@ -5,6 +5,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Wire;
 using HexLive.UnityPresentation.History;
 using UnityEngine;
 using EntityId = HexLive.Simulation.Common.EntityId;
@@ -112,6 +113,44 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public bool SupportsNpcCommands => _backend?.SupportsNpcCommands ?? false;
 
     public bool CanControlNpc(EntityId npc) => _backend?.CanControlNpc(npc) ?? false;
+
+    public bool SupportsAgentIntegration => _backend?.SupportsAgentIntegration ?? false;
+
+    public bool SttAvailable => _backend?.SttAvailable ?? false;
+
+    public bool TryGetAgentState(EntityId npc, out AgentStateFrame state)
+    {
+        if (_backend != null) return _backend.TryGetAgentState(npc, out state);
+        state = new AgentStateFrame { NpcId = npc.Value };
+        return false;
+    }
+
+    public void RequestSttToken(int correlationId) => _backend?.RequestSttToken(correlationId);
+
+    public bool TryTakeSttTokenResult(out SttTokenResultFrame result)
+    {
+        if (_backend != null) return _backend.TryTakeSttTokenResult(out result);
+        result = new SttTokenResultFrame();
+        return false;
+    }
+
+    public void SendAgentText(int correlationId, EntityId npc, string messageId,
+        string language, string text) =>
+        _backend?.SendAgentText(correlationId, npc, messageId, language, text);
+
+    public bool TryTakeAgentTextResult(out AgentTextResultFrame result)
+    {
+        if (_backend != null) return _backend.TryTakeAgentTextResult(out result);
+        result = new AgentTextResultFrame();
+        return false;
+    }
+
+    public bool TryTakeAgentSpeech(out AgentSpeechMessage speech)
+    {
+        if (_backend != null) return _backend.TryTakeAgentSpeech(out speech);
+        speech = null!;
+        return false;
+    }
 
     public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
     {

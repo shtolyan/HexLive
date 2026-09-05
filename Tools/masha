@@ -1,0 +1,211 @@
+#!/bin/zsh
+
+# Lifecycle wrapper for the local §160 MCP AgentHost. No local HTTP bridge.
+set -u
+
+readonly SCRIPT_DIR="${0:A:h}"
+readonly PROJECT_ROOT="${SCRIPT_DIR:h}"
+readonly HOST_PROJECT="$PROJECT_ROOT/Server/HexLive.AgentHost/HexLive.AgentHost.csproj"
+readonly HOST_OUTPUT="$PROJECT_ROOT/Build/agent-host"
+readonly CONFIG_DIR="$HOME/.config/hexlive"
+readonly CONFIG_FILE="$CONFIG_DIR/agent-masha.env"
+readonly LEGACY_CONFIG_FILE="$CONFIG_DIR/masha.env"
+readonly MCP_TOKEN_FILE="$CONFIG_DIR/servers/62.146.235.120/mcp-token"
+readonly STATE_DIR="$HOME/.local/state/hexlive/agent-masha"
+readonly STATUS_FILE="$STATE_DIR/agent-host-status.json"
+readonly PID_FILE="$STATE_DIR/agent-host.pid"
+readonly LOG_DIR="$HOME/Library/Logs/HexLive"
+readonly LOG_FILE="$LOG_DIR/AgentHost-Masha.log"
+readonly LAUNCH_LABEL="com.hexlive.agent-masha"
+readonly LAUNCH_TARGET="gui/$(/usr/bin/id -u)/$LAUNCH_LABEL"
+readonly DEFAULT_MEMORY_DIR="$HOME/Library/Application Support/Masha"
+readonly PROD_MCP_URL="https://vmi3529459.contaboserver.net/mcp"
+readonly OLD_MOLLY_CONFIG="/Volumes/ORICO/molly_copy/Assets/Resources/AIConfig.asset"
+
+usage() { /bin/echo 'Usage: masha <on|off|status|doctor|logs|setup|build>'; }
+die() { print -u2 -- "masha: $*"; exit 1; }
+
+launch_service_loaded() { /bin/launchctl print "$LAUNCH_TARGET" >/dev/null 2>&1; }
+launch_service_pid() {
+  /bin/launchctl print "$LAUNCH_TARGET" 2>/dev/null | /usr/bin/awk '
+    /^[[:space:]]*pid = / { print $3; exit }
+  '
+}
+
+protect_config_dir() {
+  /bin/mkdir -p "$CONFIG_DIR" || die "cannot create $CONFIG_DIR"
+  /bin/chmod 700 "$CONFIG_DIR" || die "cannot protect $CONFIG_DIR"
+}
+
+migrate_legacy_config() {
+  [[ -s "$CONFIG_FILE" || ! -r "$LEGACY_CONFIG_FILE" ]] && return 0
+  protect_config_dir
+  set -a; source "$LEGACY_CONFIG_FILE"; set +a
+  [[ -n "${XAI_API_KEY:-}" && -n "${ELEVENLABS_API_KEY:-}" ]] || return 0
+  local temporary
+  umask 077
+  temporary="$(/usr/bin/mktemp "$CONFIG_DIR/agent-masha.env.XXXXXX")" ||
+    die "cannot create protected agent config"
+  {
+    print -r -- '# Local-only secrets for HexLive.AgentHost. Never commit this file.'
+    print -r -- "XAI_API_KEY=$XAI_API_KEY"
+    print -r -- "ELEVENLABS_API_KEY=$ELEVENLABS_API_KEY"
+    [[ -z "${MASHA_HOME:-}" ]] || print -r -- "MASHA_HOME=${(q)MASHA_HOME}"
+    local model="${HEXLIVE_AGENT_MODEL:-${HEXLIVE_MOLLY_MODEL:-}}"
+    [[ -z "$model" ]] || print -r -- "HEXLIVE_AGENT_MODEL=${(q)model}"
+    [[ -z "${HEXLIVE_MASHA_VOICE_ID:-}" ]] || print -r -- "HEXLIVE_MASHA_VOICE_ID=${(q)HEXLIVE_MASHA_VOICE_ID}"
+  } > "$temporary"
+  /bin/chmod 600 "$temporary"
+  /bin/mv -f "$temporary" "$CONFIG_FILE"
+}
+
+load_config() {
+  migrate_legacy_config
+  [[ -r "$CONFIG_FILE" ]] || die "configuration is missing; run: masha setup"
+  [[ -r "$MCP_TOKEN_FILE" ]] || die "production MCP token is missing: $MCP_TOKEN_FILE"
+  local mode
+  mode="$(/usr/bin/stat -f '%Lp' "$CONFIG_FILE" 2>/dev/null || print unknown)"
+  [[ "$mode" == 600 ]] || die "$CONFIG_FILE must have mode 0600 (current: $mode)"
+  set -a; source "$CONFIG_FILE"; set +a
+  [[ -n "${XAI_API_KEY:-}" ]] || die "XAI_API_KEY is missing in $CONFIG_FILE"
+  [[ -n "${ELEVENLABS_API_KEY:-}" ]] || die "ELEVENLABS_API_KEY is missing in $CONFIG_FILE"
+  export HEXLIVE_MCP_URL="$PROD_MCP_URL"
+  export HEXLIVE_MCP_TOKEN="$(<"$MCP_TOKEN_FILE")"
+  export HEXLIVE_AGENT_PROFILE=masha
+  export HEXLIVE_AGENT_NAME=Маша
+  export HEXLIVE_AGENT_STATE="$STATE_DIR"
+  export MASHA_HOME="${MASHA_HOME:-$DEFAULT_MEMORY_DIR}"
+  unset OPENAI_API_KEY HEXLIVE_MOLLY_TOKEN HEXLIVE_MOLLY_LISTEN HEXLIVE_MOLLY_URL
+}
+
+yaml_scalar() {
+  local key="$1"
+  /usr/bin/awk -v key="$key" '
+    index($0, "  " key ": ") == 1 { print substr($0, length(key) + 5); exit }
+  ' "$OLD_MOLLY_CONFIG"
+}
+
+setup_config() {
+  [[ -r "$OLD_MOLLY_CONFIG" ]] || die "old Molly configuration was not found"
+  protect_config_dir
+  local xai_key elevenlabs_key temporary
+  xai_key="$(yaml_scalar grokApiKey)"
+  elevenlabs_key="$(yaml_scalar elevenLabsApiKey)"
+  [[ "$xai_key" == xai-* ]] || die "Molly xAI key has an unexpected format"
+  [[ ${#elevenlabs_key} -ge 32 ]] || die "Molly ElevenLabs key has an unexpected format"
+  umask 077
+  temporary="$(/usr/bin/mktemp "$CONFIG_DIR/agent-masha.env.XXXXXX")" ||
+    die "cannot create protected agent config"
+  {
+    print -r -- '# Local-only secrets for HexLive.AgentHost. Never commit this file.'
+    print -r -- "XAI_API_KEY=$xai_key"
+    print -r -- "ELEVENLABS_API_KEY=$elevenlabs_key"
+  } > "$temporary"
+  /bin/chmod 600 "$temporary"
+  /bin/mv -f "$temporary" "$CONFIG_FILE"
+  print -- "Masha AgentHost configuration installed (secrets were not printed)."
+}
+
+status_host() {
+  local pid phase npc present
+  pid="$(launch_service_pid || true)"
+  if ! launch_service_loaded || [[ -z "$pid" ]]; then
+    print -- "Masha: OFF; her body remains under standard NPC AI."
+    return 1
+  fi
+  phase="$(/usr/bin/sed -n 's/.*"phase": "\([^"]*\)".*/\1/p' "$STATUS_FILE" 2>/dev/null | /usr/bin/head -1)"
+  npc="$(/usr/bin/sed -n 's/.*"npcId": \([0-9]*\).*/\1/p' "$STATUS_FILE" 2>/dev/null | /usr/bin/head -1)"
+  present="$(/usr/bin/sed -n 's/.*"playerPresent": \([^,]*\).*/\1/p' "$STATUS_FILE" 2>/dev/null | /usr/bin/head -1)"
+  [[ -n "$phase" ]] || phase=Starting
+  [[ -n "$npc" ]] || npc=unknown
+  print -- "Masha: ON (pid $pid, npc $npc, phase $phase, playerPresent ${present:-unknown})."
+  [[ "$phase" == Sleeping ]] && print -- "No paid model or TTS calls are made while Sleeping."
+}
+
+start_host() {
+  load_config
+  /bin/mkdir -p "$STATE_DIR" "$LOG_DIR" "$MASHA_HOME" || die "cannot create runtime directories"
+  /bin/chmod 700 "$STATE_DIR" "$MASHA_HOME"
+  if launch_service_loaded; then
+    print -- "Masha is already running."; status_host || true; return 0
+  fi
+  [[ -r "$HOST_OUTPUT/HexLive.AgentHost.dll" ]] ||
+    die "AgentHost is not built. Close Unity Editor, then run: masha build"
+  /bin/rm -f "$STATUS_FILE" "$PID_FILE"
+  print -- "Starting Masha AgentHost and attaching profileId=masha..."
+  /bin/launchctl submit -l "$LAUNCH_LABEL" -o "$LOG_FILE" -e "$LOG_FILE" -- \
+    "$SCRIPT_DIR/masha" _run || die "could not submit $LAUNCH_LABEL"
+  local attempt
+  for attempt in {1..45}; do
+    launch_service_loaded || break
+    if [[ -s "$STATUS_FILE" ]] && /usr/bin/grep -q '"attached": true' "$STATUS_FILE"; then
+      status_host || true
+      print -- "To stop all paid agent calls: masha off"
+      return 0
+    fi
+    /bin/sleep 1
+  done
+  print -u2 -- "AgentHost did not attach. Last safe log lines:"
+  /usr/bin/tail -n 20 "$LOG_FILE" >&2
+  return 2
+}
+
+stop_host() {
+  local pid attempt
+  if ! launch_service_loaded; then
+    /bin/rm -f "$PID_FILE"
+    print -- "Masha is already OFF; her body remains a standard NPC."
+    return 0
+  fi
+  pid="$(launch_service_pid || true)"
+  if [[ "$pid" == <-> ]]; then
+    /bin/kill -INT "$pid" 2>/dev/null || true
+    for attempt in {1..12}; do
+      /bin/kill -0 "$pid" 2>/dev/null || break
+      /bin/sleep 1
+    done
+  fi
+  /bin/launchctl bootout "$LAUNCH_TARGET" >/dev/null 2>&1 ||
+    /bin/launchctl remove "$LAUNCH_LABEL" >/dev/null 2>&1 || true
+  /bin/rm -f "$PID_FILE"
+  print -- "Masha: OFF. Paid model and TTS calls have stopped."
+  print -- "Her physical character continues under standard NPC AI."
+}
+
+run_foreground() {
+  load_config
+  /bin/mkdir -p "$STATE_DIR" "$LOG_DIR" "$MASHA_HOME"
+  /bin/chmod 700 "$STATE_DIR" "$MASHA_HOME"
+  umask 077
+  print -r -- "$$" > "$PID_FILE"; /bin/chmod 600 "$PID_FILE"
+  exec /usr/local/share/dotnet/dotnet "$HOST_OUTPUT/HexLive.AgentHost.dll"
+}
+
+doctor() {
+  load_config
+  [[ -r "$HOST_OUTPUT/HexLive.AgentHost.dll" ]] ||
+    die "AgentHost is not built. Close Unity Editor, then run: masha build"
+  /usr/local/share/dotnet/dotnet "$HOST_OUTPUT/HexLive.AgentHost.dll" --doctor
+}
+
+build_host() {
+  if /usr/bin/pgrep -x Unity >/dev/null; then
+    die "Close Unity Editor before building AgentHost. on/doctor never compile."
+  fi
+  /usr/local/share/dotnet/dotnet publish "$HOST_PROJECT" -f net9.0 -c Release \
+    -o "$HOST_OUTPUT" --nologo -v:q || die "AgentHost build failed"
+}
+
+command="${1:-status}"
+case "$command" in
+  on|start) start_host ;;
+  off|stop) stop_host ;;
+  status) status_host ;;
+  logs) /bin/mkdir -p "$LOG_DIR"; /usr/bin/touch "$LOG_FILE"; /usr/bin/tail -n 80 -f "$LOG_FILE" ;;
+  doctor) doctor ;;
+  build) build_host ;;
+  setup) setup_config ;;
+  _run) run_foreground ;;
+  help|-h|--help) usage ;;
+  *) usage; die "unknown command: $command" ;;
+esac

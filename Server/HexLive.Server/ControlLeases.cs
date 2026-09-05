@@ -49,6 +49,7 @@ public sealed class ControlLeases
         public string Owner = string.Empty;
         public string Id = string.Empty;
         public DateTimeOffset LastSeen;
+        public int TimeoutSeconds;
     }
 
     /// <summary>
@@ -57,7 +58,17 @@ public sealed class ControlLeases
     /// вызов без разбора, чем он кончился (идемпотентность важнее строгости).
     /// </summary>
     public bool TryAcquire(int npcId, string owner, out string leaseId, out string heldBy)
+        => TryAcquire(npcId, owner, _timeoutSeconds, out leaseId, out heldBy);
+
+    /// <summary>§159: one controller may request a shorter 15..120 second TTL.</summary>
+    public bool TryAcquire(
+        int npcId,
+        string owner,
+        int timeoutSeconds,
+        out string leaseId,
+        out string heldBy)
     {
+        timeoutSeconds = Math.Clamp(timeoutSeconds, 15, 120);
         lock (_gate)
         {
             Expire();
@@ -71,6 +82,7 @@ public sealed class ControlLeases
                 }
 
                 existing.LastSeen = _now();
+                existing.TimeoutSeconds = timeoutSeconds;
                 leaseId = existing.Id;
                 heldBy = owner;
                 return true;
@@ -81,6 +93,7 @@ public sealed class ControlLeases
                 Owner = owner,
                 Id = Guid.NewGuid().ToString("N"),
                 LastSeen = _now(),
+                TimeoutSeconds = timeoutSeconds,
             };
 
             _byNpc[npcId] = lease;
@@ -227,7 +240,7 @@ public sealed class ControlLeases
         List<int>? dead = null;
         foreach (var pair in _byNpc)
         {
-            if ((now - pair.Value.LastSeen).TotalSeconds >= _timeoutSeconds)
+            if ((now - pair.Value.LastSeen).TotalSeconds >= pair.Value.TimeoutSeconds)
             {
                 (dead ??= new List<int>()).Add(pair.Key);
             }

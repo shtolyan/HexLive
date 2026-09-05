@@ -70,7 +70,8 @@ public sealed class WorldHost : IDisposable
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public WorldHost(int seed, GameMode mode, string savePath, string simDataPath, bool verboseTrace,
-        bool includeDebugDetails = false, LlmHostOptions? llmOptions = null)
+        bool includeDebugDetails = false, LlmHostOptions? llmOptions = null,
+        string? companionProfile = null)
     {
         // The codec flag alone is not enough: the EXPORTER only fills the per-NPC
         // debug lists (relationships, goal scores, known objects) behind this
@@ -156,6 +157,15 @@ public sealed class WorldHost : IDisposable
         // rebuilt from the SAME seed (static topology is regenerated, never
         // stored). So restore has to happen after Create, not instead of it.
         TryRestore();
+
+        if (!string.IsNullOrWhiteSpace(companionProfile))
+        {
+            var spawned = CharacterPresetRegistry.EnsureSpawned(
+                _engine.World, companionProfile, out var presetNpcId);
+            Console.WriteLine(spawned
+                ? $"[preset] {companionProfile} spawned as NPC{presetNpcId}"
+                : $"[preset] {companionProfile} restored as NPC{presetNpcId}");
+        }
     }
 
     public string? DrainLlmProviderFailureSummary() =>

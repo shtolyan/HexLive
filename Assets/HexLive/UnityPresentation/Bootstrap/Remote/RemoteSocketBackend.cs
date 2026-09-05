@@ -3,7 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -125,6 +127,11 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     private readonly List<byte[]> _eventFrames = new();
     private Handshake? _handshake;
     private readonly Dictionary<int, List<CraftRecipeOption>> _craftingOptions = new();
+    private readonly Dictionary<int, AgentStateFrame> _agentStates = new();
+    private readonly Queue<SttTokenResultFrame> _sttTokenResults = new();
+    private readonly Queue<AgentTextResultFrame> _agentTextResults = new();
+    private readonly Queue<AgentSpeechMessage> _agentSpeech = new();
+    private readonly Dictionary<string, PendingSpeech> _pendingSpeech = new();
     private bool _handshakeIsNew;
     private LinkState _state = LinkState.Connecting;
     private string? _message;
@@ -146,6 +153,14 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     private WorldState? _localWorld;
     private bool _ready;
+
+    private sealed class PendingSpeech
+    {
+        public AgentSpeechBeginFrame Begin = null!;
+        public MemoryStream Bytes = new();
+        public int NextChunkIndex;
+        public DateTime CreatedUtc = DateTime.UtcNow;
+    }
 
     private sealed class InitialWorldBuild
     {
@@ -200,6 +215,16 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     public bool SupportsClientSave => false;
 
+    public bool SupportsAgentIntegration
+    {
+        get { lock (_inbox) return _handshake?.AgentIntegrationEnabled == true; }
+    }
+
+    public bool SttAvailable
+    {
+        get { lock (_inbox) return _handshake?.SttAvailable == true; }
+    }
+
     // §121.9: приказы ЕЗДЯТ — если сервер принял токен игрока
     // (Handshake.ControlEnabled). Кадр появился здесь, и ни одна кнопка
     // интерфейса об этом не узнала — ровно как обещал §121.4.
@@ -219,7 +244,77 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         lock (_inbox)
         {
             return _handshake?.ControlEnabled == true &&
-                   _handshake.AssignedNpcIds.Contains(npc.Value);
+                   _handshake.AssignedNpcIds.Contains(npc.Value) &&
+                   (!_agentStates.TryGetValue(npc.Value, out var agent) || !agent.Attached);
+        }
+    }
+
+    public bool TryGetAgentState(EntityId npc, out AgentStateFrame state)
+    {
+        lock (_inbox)
+        {
+            if (_agentStates.TryGetValue(npc.Value, out var found))
+            {
+                state = found;
+                return true;
+            }
+            state = new AgentStateFrame { NpcId = npc.Value };
+            return false;
+        }
+    }
+
+    public void RequestSttToken(int correlationId)
+    {
+        if (SupportsAgentIntegration && SttAvailable)
+            Send(AgentWire.SttTokenRequest(correlationId));
+    }
+
+    public bool TryTakeSttTokenResult(out SttTokenResultFrame result)
+    {
+        lock (_inbox)
+        {
+            if (_sttTokenResults.Count > 0)
+            {
+                result = _sttTokenResults.Dequeue();
+                return true;
+            }
+            result = default;
+            return false;
+        }
+    }
+
+    public void SendAgentText(int correlationId, EntityId npc, string messageId,
+        string language, string text)
+    {
+        if (SupportsAgentIntegration)
+            Send(AgentWire.AgentTextInput(correlationId, npc.Value, messageId, language, text));
+    }
+
+    public bool TryTakeAgentTextResult(out AgentTextResultFrame result)
+    {
+        lock (_inbox)
+        {
+            if (_agentTextResults.Count > 0)
+            {
+                result = _agentTextResults.Dequeue();
+                return true;
+            }
+            result = default;
+            return false;
+        }
+    }
+
+    public bool TryTakeAgentSpeech(out AgentSpeechMessage speech)
+    {
+        lock (_inbox)
+        {
+            if (_agentSpeech.Count > 0)
+            {
+                speech = _agentSpeech.Dequeue();
+                return true;
+            }
+            speech = null!;
+            return false;
         }
     }
 
@@ -549,6 +644,12 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                         _arrivedTicks.Clear();
                         _eventFrames.Clear();
                         _craftingOptions.Clear();
+                        _agentStates.Clear();
+                        _sttTokenResults.Clear();
+                        _agentTextResults.Clear();
+                        _agentSpeech.Clear();
+                        foreach (var pending in _pendingSpeech.Values) pending.Bytes.Dispose();
+                        _pendingSpeech.Clear();
                     }
                 }
 
@@ -670,7 +771,132 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
                 break;
             }
+
+            case FrameKind.AgentState:
+                TryDispatchAgentFrame(() =>
+                {
+                    var state = AgentWire.ReadAgentState(payload);
+                    lock (_inbox)
+                    {
+                        _agentStates[state.NpcId] = state;
+                        if (!state.Attached)
+                            foreach (var id in _pendingSpeech.Where(item => item.Value.Begin.NpcId == state.NpcId)
+                                         .Select(item => item.Key).ToArray()) DropPendingSpeech(id);
+                    }
+                });
+                break;
+
+            case FrameKind.SttTokenResult:
+                TryDispatchAgentFrame(() =>
+                {
+                    var result = AgentWire.ReadSttTokenResult(payload);
+                    lock (_inbox) _sttTokenResults.Enqueue(result);
+                });
+                break;
+
+            case FrameKind.AgentTextResult:
+                TryDispatchAgentFrame(() =>
+                {
+                    var result = AgentWire.ReadAgentTextResult(payload);
+                    lock (_inbox) _agentTextResults.Enqueue(result);
+                });
+                break;
+
+            case FrameKind.AgentSpeechBegin:
+                TryDispatchAgentFrame(() =>
+                {
+                    var begin = AgentWire.ReadAgentSpeechBegin(payload);
+                    lock (_inbox)
+                    {
+                        if (_handshake?.AssignedNpcIds.Contains(begin.NpcId) != true) return;
+                        if (_pendingSpeech.Count >= 20 && !_pendingSpeech.ContainsKey(begin.UtteranceId)) return;
+                        if (_pendingSpeech.TryGetValue(begin.UtteranceId, out var old))
+                            old.Bytes.Dispose();
+                        _pendingSpeech[begin.UtteranceId] = new PendingSpeech
+                        {
+                            Begin = begin,
+                            Bytes = new MemoryStream(Math.Max(0, begin.TotalBytes)),
+                        };
+                    }
+                });
+                break;
+
+            case FrameKind.AgentSpeechChunk:
+                TryDispatchAgentFrame(() =>
+                {
+                    var chunk = AgentWire.ReadAgentSpeechChunk(payload);
+                    lock (_inbox)
+                    {
+                        if (!_pendingSpeech.TryGetValue(chunk.UtteranceId, out var pending) ||
+                            chunk.Index != pending.NextChunkIndex ||
+                            pending.Bytes.Length + chunk.Bytes.Length > pending.Begin.TotalBytes)
+                        {
+                            DropPendingSpeech(chunk.UtteranceId);
+                            return;
+                        }
+                        pending.Bytes.Write(chunk.Bytes, 0, chunk.Bytes.Length);
+                        pending.NextChunkIndex++;
+                    }
+                });
+                break;
+
+            case FrameKind.AgentSpeechEnd:
+                TryDispatchAgentFrame(() =>
+                {
+                    var end = AgentWire.ReadAgentSpeechEnd(payload);
+                    lock (_inbox)
+                    {
+                        if (!_pendingSpeech.TryGetValue(end.UtteranceId, out var pending)) return;
+                        var bytes = pending.Bytes.ToArray();
+                        string actual;
+                        using (var hash = SHA256.Create())
+                            actual = ToHex(hash.ComputeHash(bytes));
+                        var validWave = bytes.Length == 0 &&
+                                        pending.Begin.DurationMilliseconds == 0 ||
+                                        Audio.VoiceVisemeBaker.TryValidateWave(bytes,
+                                            out var durationMs, out _) &&
+                                        Math.Abs(durationMs - pending.Begin.DurationMilliseconds) <= 100;
+                        if (bytes.Length == pending.Begin.TotalBytes && validWave &&
+                            string.Equals(actual, pending.Begin.Sha256, StringComparison.OrdinalIgnoreCase) &&
+                            string.Equals(actual, end.Sha256, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _agentSpeech.Enqueue(new AgentSpeechMessage
+                            {
+                                Metadata = pending.Begin,
+                                Wav = bytes,
+                            });
+                            while (_agentSpeech.Count > 8) _agentSpeech.Dequeue();
+                        }
+                        DropPendingSpeech(end.UtteranceId);
+                    }
+                });
+                break;
         }
+    }
+
+    private static void TryDispatchAgentFrame(Action decode)
+    {
+        try { decode(); }
+        catch (Exception ex) when (ex is InvalidDataException or EndOfStreamException or IOException)
+        {
+            Debug.LogWarning($"[HexLive] Agent frame refused ({ex.GetType().Name}).");
+        }
+    }
+
+    private void DropPendingSpeech(string utteranceId)
+    {
+        if (_pendingSpeech.TryGetValue(utteranceId, out var pending))
+        {
+            pending.Bytes.Dispose();
+            _pendingSpeech.Remove(utteranceId);
+        }
+    }
+
+    private static string ToHex(byte[] bytes)
+    {
+        var builder = new StringBuilder(bytes.Length * 2);
+        for (var i = 0; i < bytes.Length; i++) builder.Append(bytes[i].ToString("x2"));
+        return builder.ToString();
     }
 
     private volatile bool _needKeyframe;
@@ -808,6 +1034,12 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
     public void Tick(float unscaledDeltaTime)
     {
+        lock (_inbox)
+        {
+            var expiry = DateTime.UtcNow.AddSeconds(-30);
+            foreach (var id in _pendingSpeech.Where(item => item.Value.CreatedUtc < expiry)
+                         .Select(item => item.Key).ToArray()) DropPendingSpeech(id);
+        }
         ConsumeHandshake();
         if (!_ready)
         {

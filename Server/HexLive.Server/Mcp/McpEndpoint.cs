@@ -37,12 +37,17 @@ public static class McpEndpoint
     private const string SessionHeader = "Mcp-Session-Id";
 
     public static void Map(WebApplication app, WorldSupervisor worlds, McpAccessToken token,
-        ControlLeases leases, SpecLibrary? spec = null)
+        ControlLeases leases, AgentSessionRegistry agentSessions, SpecLibrary? spec = null)
     {
         // The endpoint has process lifetime; a WorldHost only has colony
         // lifetime. Resolve through the supervisor for every tools/call so an
         // admin world swap cannot leave MCP reading or commanding a dead host.
-        var tools = new McpTools(() => worlds.Host, leases, spec);
+        var tools = new McpTools(
+            () => worlds.Host,
+            () => worlds.CaptureViewerSession().WorldGeneration,
+            leases,
+            agentSessions,
+            spec);
 
         app.MapPost("/mcp", async (HttpContext context) =>
         {
@@ -57,7 +62,21 @@ public static class McpEndpoint
             string body;
             using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8))
             {
-                body = await reader.ReadToEndAsync();
+                // 192 KiB PCM becomes 256 KiB base64; bound chunked HTTP too.
+                const int maxCharacters = 512 * 1024;
+                var buffer = new char[8192];
+                var bounded = new StringBuilder();
+                int read;
+                while ((read = await reader.ReadAsync(buffer.AsMemory(), context.RequestAborted)) > 0)
+                {
+                    if (bounded.Length + read > maxCharacters)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                        return;
+                    }
+                    bounded.Append(buffer, 0, read);
+                }
+                body = bounded.ToString();
             }
 
             JsonDocument document;
@@ -152,6 +171,7 @@ public static class McpEndpoint
             if (!string.IsNullOrWhiteSpace(session))
             {
                 var owner = "mcp:" + session;
+                agentSessions.DetachOwnedBy(owner);
                 var host = worlds.Host;
                 foreach (var npcId in leases.OwnedBy(owner))
                 {

@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
@@ -163,7 +165,11 @@ public static class WorldSaveSerializer
     // v68 (§52 / bug #355): WaterKind joins ResourceAmount on each physical
     // ItemInstance and loose WorldObjectState bottle. v66/v67's NPC-global
     // pair migrates into the first carried bottle after its item list is read.
-    public const int BlobVersion = 68;
+    // v69 (§159): permanent Masha spawn latch plus the append-only companion
+    // profile, authored appearance flag, bond, memory, journal and turn ids.
+    // v70 (§159.1): one-time authored starter-outfit migration latch.
+    // v71 (§160): generic authored-preset markers and generic agent Social ids.
+    public const int BlobVersion = 71;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -235,6 +241,17 @@ public static class WorldSaveSerializer
         w.Write(world.TopologyVersion);
         w.Write(world.RaidWavesSpawned); // §72.14, v27
         w.Write(world.ColonyArrivalsProcessed); // §132, v40
+        if (version >= 69)
+        {
+            w.Write(world.MashaCompanionHasSpawned); // §159: permanent spawn latch
+        }
+        if (version >= 71)
+        {
+            w.Write(world.SpawnedCharacterPresets.Count);
+            foreach (var profileId in world.SpawnedCharacterPresets
+                         .OrderBy(value => value, StringComparer.Ordinal))
+                w.Write(profileId ?? string.Empty);
+        }
 
         var env = world.Environment;
         w.Write(env.GlobalTemperature);
@@ -578,6 +595,19 @@ public static class WorldSaveSerializer
                 ? HexLive.Simulation.Runtime.EnvironmentSystem.CalendarDay(world.Tick) /
                   HexLive.Simulation.Runtime.WorldBalance.ColonyArrivalIntervalDays
                 : 0;
+        world.MashaCompanionHasSpawned = version >= 69 && r.ReadBoolean();
+        if (world.MashaCompanionHasSpawned)
+            world.SpawnedCharacterPresets.Add(Runtime.MashaCompanionProfile.ProfileId);
+        if (version >= 71)
+        {
+            var presetCount = ReadBoundedCount(r, 64, "character preset markers");
+            for (var i = 0; i < presetCount; i++)
+            {
+                var profileId = r.ReadString();
+                if (!string.IsNullOrWhiteSpace(profileId))
+                    world.SpawnedCharacterPresets.Add(profileId);
+            }
+        }
 
         var env = world.Environment;
         env.GlobalTemperature = r.ReadSingle();
@@ -1884,6 +1914,56 @@ public static class WorldSaveSerializer
         {
             w.Write(npc.BottleCharges);
         }
+
+        // §159 / v69: append-only companion profile, authored appearance and
+        // bounded long-term state. Ordinary NPCs carry empty/zero values.
+        if (version >= 69)
+        {
+            w.Write(npc.ProfileId ?? string.Empty);
+            w.Write(npc.UseAuthoredAppearance);
+            w.Write(npc.Companion.HexkufaExposure);
+            w.Write(npc.Companion.PlayerVoiceBond.Familiarity);
+            w.Write(npc.Companion.PlayerVoiceBond.Trust);
+            w.Write(npc.Companion.PlayerVoiceBond.Affinity);
+            w.Write(npc.Companion.PlayerVoiceBond.LastInteractionTick);
+            w.Write(npc.Companion.LastIntentSummary ?? string.Empty);
+            w.Write(npc.Companion.LastJournalHour);
+
+            w.Write(npc.Companion.Memories.Count);
+            foreach (var memory in npc.Companion.Memories)
+            {
+                w.Write(memory.Key ?? string.Empty);
+                w.Write(memory.Value ?? string.Empty);
+                w.Write(memory.Importance);
+                w.Write(memory.LastUpdatedTick);
+            }
+
+            w.Write(npc.Companion.NarrativeJournal.Count);
+            foreach (var entry in npc.Companion.NarrativeJournal)
+            {
+                w.Write(entry.Tick);
+                w.Write(entry.Text ?? string.Empty);
+            }
+
+            w.Write(npc.Companion.AppliedTurnIds.Count);
+            foreach (var turnId in npc.Companion.AppliedTurnIds)
+            {
+                w.Write(turnId ?? string.Empty);
+            }
+
+            if (version >= 70)
+            {
+                w.Write(npc.Companion.AuthoredOutfitVersion);
+            }
+            if (version >= 71)
+            {
+                w.Write(npc.AppliedAgentTurnIds.Count);
+                foreach (var turnId in npc.AppliedAgentTurnIds)
+                    w.Write(turnId ?? string.Empty);
+                w.Write(npc.HexkufaExposure);
+                w.Write(npc.CharacterPresetVersion);
+            }
+        }
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -2548,12 +2628,90 @@ public static class WorldSaveSerializer
         // kind would create a ghost drink (and, for Raw, a sickness roll), so
         // the pair migrates atomically to the only truthful state: empty.
         var legacyBottleCharges = version >= 65 ? r.ReadInt32() : 0;
+
+        if (version >= 69)
+        {
+            npc.ProfileId = r.ReadString();
+            npc.UseAuthoredAppearance = r.ReadBoolean();
+            npc.Companion.HexkufaExposure = r.ReadInt32();
+            npc.Companion.PlayerVoiceBond.Familiarity = MathUtil.Clamp01(r.ReadSingle());
+            npc.Companion.PlayerVoiceBond.Trust = MathUtil.Clamp01(r.ReadSingle());
+            npc.Companion.PlayerVoiceBond.Affinity = MathUtil.Clamp01(r.ReadSingle());
+            npc.Companion.PlayerVoiceBond.LastInteractionTick = r.ReadInt32();
+            npc.Companion.LastIntentSummary = r.ReadString();
+            npc.Companion.LastJournalHour = r.ReadInt32();
+
+            var memoryCount = ReadBoundedCount(r, Agents.CompanionState.MaxMemories, "companion memories");
+            for (var i = 0; i < memoryCount; i++)
+            {
+                npc.Companion.Memories.Add(new Agents.CompanionMemoryCard
+                {
+                    Key = r.ReadString(),
+                    Value = r.ReadString(),
+                    Importance = MathUtil.Clamp01(r.ReadSingle()),
+                    LastUpdatedTick = r.ReadInt32()
+                });
+            }
+
+            var narrativeCount = ReadBoundedCount(
+                r, Agents.CompanionState.MaxJournalEntries, "companion journal");
+            for (var i = 0; i < narrativeCount; i++)
+            {
+                npc.Companion.NarrativeJournal.Add(new Agents.CompanionNarrativeEntry
+                {
+                    Tick = r.ReadInt32(),
+                    Text = r.ReadString()
+                });
+            }
+
+            var turnCount = ReadBoundedCount(
+                r, Agents.CompanionState.MaxAppliedTurnIds, "companion turn ids");
+            for (var i = 0; i < turnCount; i++)
+            {
+                npc.Companion.AppliedTurnIds.Add(r.ReadString());
+            }
+
+            if (version >= 70)
+            {
+                npc.Companion.AuthoredOutfitVersion = r.ReadInt32();
+            }
+            if (version >= 71)
+            {
+                var agentTurnCount = ReadBoundedCount(
+                    r, Agents.CompanionState.MaxAppliedTurnIds, "agent turn ids");
+                for (var i = 0; i < agentTurnCount; i++)
+                    npc.AppliedAgentTurnIds.Add(r.ReadString());
+                npc.HexkufaExposure = Math.Max(0, r.ReadInt32());
+                npc.CharacterPresetVersion = Math.Max(0, r.ReadInt32());
+            }
+            else
+            {
+                // One-time compatibility import from §159's mixed state.
+                npc.AppliedAgentTurnIds.AddRange(npc.Companion.AppliedTurnIds);
+                npc.HexkufaExposure = Math.Max(0, npc.Companion.HexkufaExposure);
+                npc.CharacterPresetVersion = Math.Max(0, npc.Companion.AuthoredOutfitVersion);
+            }
+        }
+
+        // v66/v67 kept one global pair; v68's item state is authoritative.
+        // Legacy values stay local to this reader and never become runtime state.
         BottleInventoryMath.MigrateLegacy(
             npc,
             version < 68 ? legacyBottleWater : WaterKind.None,
             version < 68 ? legacyBottleCharges : 0);
 
         return npc;
+    }
+
+    private static int ReadBoundedCount(BinaryReader r, int maximum, string label)
+    {
+        var count = r.ReadInt32();
+        if (count < 0 || count > maximum)
+        {
+            throw new InvalidDataException($"Invalid {label} count {count}.");
+        }
+
+        return count;
     }
 
     private static void MigrateKenshiState(NPCState npc)

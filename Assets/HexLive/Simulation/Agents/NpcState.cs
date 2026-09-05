@@ -403,6 +403,23 @@ public sealed class NPCState
 {
     public EntityId Id { get; set; }
 
+    // §159: stable machine-readable identity of an exceptional companion.
+    // Empty keeps every ordinary colonist on the established path.
+    public string ProfileId { get; set; } = string.Empty;
+
+    // §159: a filled authored profile may deliberately keep empty eye/hair
+    // overrides, meaning the source prefab's Jana eyes and Jana hairstyle.
+    public bool UseAuthoredAppearance { get; set; }
+
+    public CompanionState Companion { get; } = new();
+
+    /// <summary>§160 bounded generic Social commit ids; contains no personal memory.</summary>
+    public System.Collections.Generic.List<string> AppliedAgentTurnIds { get; } = new();
+
+    /// <summary>§160 physical language exposure of an authored outsider body.</summary>
+    public int HexkufaExposure { get; set; }
+    public int CharacterPresetVersion { get; set; }
+
     // Spec 19.3 / iteration 23: presentation identity — the girls have
     // names and bodies; the simulation itself never branches on them.
     // §74: DisplayName is now a NAME ID from ColonistAppearance.NameIds — the

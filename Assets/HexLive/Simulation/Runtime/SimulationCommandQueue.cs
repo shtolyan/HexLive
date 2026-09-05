@@ -43,6 +43,60 @@ public interface ISimulationCommand
 }
 
 /// <summary>
+/// §160: generic, idempotent physical Social effect of one completed agent
+/// conversation. Personal relationship axes remain outside the world.
+/// </summary>
+public sealed class RecordAgentSocialCommand : ISimulationCommand
+{
+    public RecordAgentSocialCommand(EntityId npc, string turnId,
+        Agents.CompanionReaction reaction)
+    {
+        Npc = npc;
+        TurnId = turnId ?? string.Empty;
+        Reaction = reaction;
+    }
+
+    public EntityId Npc { get; }
+    public string TurnId { get; }
+    public Agents.CompanionReaction Reaction { get; }
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>
+/// §159/§145: one validated LLM result enters authoritative state through the
+/// same typed command boundary as every other external mutation.
+/// </summary>
+public sealed class RecordCompanionTurnCommand : ISimulationCommand
+{
+    public RecordCompanionTurnCommand(
+        EntityId npc,
+        string turnId,
+        string trigger,
+        Agents.CompanionReaction reaction,
+        string intentSummary,
+        IReadOnlyList<Agents.CompanionMemoryUpsert>? memoryUpserts = null,
+        string journalText = "")
+    {
+        Npc = npc;
+        TurnId = turnId ?? string.Empty;
+        Trigger = trigger ?? string.Empty;
+        Reaction = reaction;
+        IntentSummary = intentSummary ?? string.Empty;
+        MemoryUpserts = memoryUpserts ?? new List<Agents.CompanionMemoryUpsert>();
+        JournalText = journalText ?? string.Empty;
+    }
+
+    public EntityId Npc { get; }
+    public string TurnId { get; }
+    public string Trigger { get; }
+    public Agents.CompanionReaction Reaction { get; }
+    public string IntentSummary { get; }
+    public IReadOnlyList<Agents.CompanionMemoryUpsert> MemoryUpserts { get; }
+    public string JournalText { get; }
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>
 /// §121.1: immediate outcome of submitting one command to the manual-control
 /// boundary. This says whether the command was admitted; later path failure,
 /// self-defence or completion are order lifecycle outcomes, not rejections.

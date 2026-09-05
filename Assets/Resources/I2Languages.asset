@@ -25672,6 +25672,182 @@ MonoBehaviour:
       - 'Шесть отдельных островов, на каждом — одна потерпевшая и её лагерь. Между островами — мелководье вброд; в центре никто не ждёт: чужаки приходят с моря, а раз в неделю прибой выносит раненую, которую надо забинтовать.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'npc.masha.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Masha'
+      - 'Маша'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'npc.voice.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Familiar voice'
+      - 'Знакомый голос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.button'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Talk to Masha'
+      - 'Поговорить с Машей'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Microphone'
+      - 'Микрофон'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.listening'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Listening'
+      - 'Слушаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.recognizing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recognizing'
+      - 'Распознаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.thinking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Thinking'
+      - 'Думает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.speaking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speaking'
+      - 'Говорит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.offline'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bridge offline'
+      - 'Мост недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.button'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Talk to attached agent'
+      - 'Поговорить с MCP-агентом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ready'
+      - 'Готов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.listening'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Listening'
+      - 'Слушаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.recognizing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recognizing'
+      - 'Распознаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.thinking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Thinking'
+      - 'Думает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.speaking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speaking'
+      - 'Говорит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.offline'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Agent offline'
+      - 'Агент отключён'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.no_stt'
+      TermType: 0
+      Description:
+      Languages:
+      - 'STT unavailable'
+      - 'STT недоступно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.no_microphone'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No microphone'
+      - 'Нет микрофона'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.connected'
+      TermType: 0
+      Description:
+      Languages:
+      - 'MCP agent connected: {0}'
+      - 'MCP-агент подключён: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.thinking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Agent is thinking…'
+      - 'Агент думает…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.default_name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Agent'
+      - 'Агент'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.control.agent'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Controlled by the connected MCP agent'
+      - 'Управляется подключённым MCP-агентом'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

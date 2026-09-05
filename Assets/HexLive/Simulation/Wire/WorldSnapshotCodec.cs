@@ -92,7 +92,8 @@ public static class WorldSnapshotCodec
     /// v37: §121.11/#294 per-NPC default pace for the walk/run card toggle.
     /// v38: §55.4/#347 typed bottle-water provenance in the inventory group.
     /// v39: §52/#355 per-instance vessel amount/provenance in object and slot rows.
-    public const int WireVersion = 39;
+    /// v40: §159 companion profile, authored appearance, Hexkufa and voice bond.
+    public const int WireVersion = 40;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -900,6 +901,8 @@ public static class WorldSnapshotCodec
     private static void WriteNpcIdentity(BinaryWriter w, NpcSnapshot n)
     {
         w.Write(n.Id.Value);
+        WireIo.WriteString(w, n.ProfileId);
+        w.Write(n.UseAuthoredAppearance);
         WireIo.WriteString(w, n.DisplayName);
         WireIo.WriteString(w, n.ActorMesh);
         // §74 composition + §72 faction. Faction travels as a byte: the enum is
@@ -910,6 +913,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteString(w, n.VoiceBank);
         w.Write((byte)n.Faction);
         w.Write(n.IsHostileToColony);
+        w.Write(n.HexkufaExposure);
     }
 
     private static void WriteNpcTransform(BinaryWriter w, NpcSnapshot n)
@@ -1167,6 +1171,10 @@ public static class WorldSnapshotCodec
     /// </summary>
     private static void WriteNpcRelations(BinaryWriter w, NpcSnapshot n)
     {
+        w.Write(n.PlayerVoiceFamiliarity);
+        w.Write(n.PlayerVoiceTrust);
+        w.Write(n.PlayerVoiceAffinity);
+        w.Write(n.PlayerVoiceLastInteractionTick);
         w.Write(n.RelationshipDetails.Count);
         for (var j = 0; j < n.RelationshipDetails.Count; j++)
         {
@@ -1261,6 +1269,8 @@ public static class WorldSnapshotCodec
     private static void ReadNpcIdentity(BinaryReader r, NpcSnapshot n)
     {
         n.Id = new EntityId(r.ReadInt32());
+        n.ProfileId = r.ReadString();
+        n.UseAuthoredAppearance = r.ReadBoolean();
         n.DisplayName = r.ReadString();
         n.ActorMesh = r.ReadString();
         n.SkinSet = r.ReadString();
@@ -1269,6 +1279,7 @@ public static class WorldSnapshotCodec
         n.VoiceBank = r.ReadString();
         n.Faction = (Agents.Faction)r.ReadByte();
         n.IsHostileToColony = r.ReadBoolean();
+        n.HexkufaExposure = r.ReadInt32();
     }
 
     private static void ReadNpcTransform(BinaryReader r, NpcSnapshot n)
@@ -1522,6 +1533,10 @@ public static class WorldSnapshotCodec
 
     private static void ReadNpcRelations(BinaryReader r, NpcSnapshot n)
     {
+        n.PlayerVoiceFamiliarity = r.ReadSingle();
+        n.PlayerVoiceTrust = r.ReadSingle();
+        n.PlayerVoiceAffinity = r.ReadSingle();
+        n.PlayerVoiceLastInteractionTick = r.ReadInt32();
         var relCount = r.ReadInt32();
         WireIo.Resize(n.RelationshipDetails, relCount);
         for (var j = 0; j < relCount; j++)

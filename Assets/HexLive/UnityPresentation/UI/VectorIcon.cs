@@ -31,7 +31,8 @@ namespace HexLive.UnityPresentation.UI
             Underwear,
             Shirt,
             Coat,
-            Bag
+            Bag,
+            Microphone
         }
 
         private readonly Kind _kind;
@@ -94,7 +95,30 @@ namespace HexLive.UnityPresentation.UI
                 case Kind.Shirt: DrawShirt(p, P); break;
                 case Kind.Coat: DrawCoat(p, P); break;
                 case Kind.Bag: DrawBag(p, P); break;
+                case Kind.Microphone: DrawMicrophone(p, P); break;
             }
+        }
+
+        private static void DrawMicrophone(Painter2D p, Pt P)
+        {
+            p.BeginPath();
+            p.MoveTo(P(9f, 6.4f));
+            p.BezierCurveTo(P(9f, 3.2f), P(15f, 3.2f), P(15f, 6.4f));
+            p.LineTo(P(15f, 11.4f));
+            p.BezierCurveTo(P(15f, 14.6f), P(9f, 14.6f), P(9f, 11.4f));
+            p.ClosePath();
+            p.Stroke();
+
+            p.BeginPath();
+            p.MoveTo(P(6.5f, 10.5f));
+            p.BezierCurveTo(P(6.5f, 18f), P(17.5f, 18f), P(17.5f, 10.5f));
+            p.Stroke();
+            p.BeginPath();
+            p.MoveTo(P(12f, 17f));
+            p.LineTo(P(12f, 21f));
+            p.MoveTo(P(8.5f, 21f));
+            p.LineTo(P(15.5f, 21f));
+            p.Stroke();
         }
 
         // Inventory layer tabs deliberately use simple filled silhouettes. At

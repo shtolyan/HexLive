@@ -21,6 +21,15 @@ public static class PlayerCommandAuthorization
     {
         refusal = string.Empty;
 
+        // §159: only the authenticated local MCP bridge may write companion
+        // memory. It calls WorldHost directly; a viewer must never smuggle this
+        // metadata command through the ordinary player-command wire.
+        if (command is RecordCompanionTurnCommand or RecordAgentSocialCommand)
+        {
+            refusal = "ServerOnlyCommand";
+            return false;
+        }
+
         // §149.3: лиз не может сам выдать игроку чужого персонажа.
         if (!PlayerCommandAssignment.Allows(command, assignedNpcIds))
         {

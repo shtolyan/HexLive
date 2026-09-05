@@ -41,6 +41,12 @@ internal static class ManualCommandExecutor
 
         switch (command)
         {
+            case RecordAgentSocialCommand agentSocial:
+                ApplyRecordAgentSocial(world, agentSocial, admission);
+                break;
+            case RecordCompanionTurnCommand companionTurn:
+                ApplyRecordCompanionTurn(world, companionTurn, admission);
+                break;
             case SetManualControlCommand setManual:
                 ApplySetManual(world, setManual, admission);
                 break;
@@ -193,6 +199,8 @@ internal static class ManualCommandExecutor
 
     private static string OrderName(ISimulationCommand command) => command switch
     {
+        RecordAgentSocialCommand => "RecordAgentSocial",
+        RecordCompanionTurnCommand => "RecordCompanionTurn",
         SetManualControlCommand => "SetManual",
         SetRunByDefaultCommand => "SetRunByDefault",
         SetOutfitLockCommand => "SetOutfitLock",
@@ -234,6 +242,129 @@ internal static class ManualCommandExecutor
         CancelBuildSiteCommand => "CancelBuildSite",
         _ => command.GetType().Name
     };
+
+    private static void ApplyRecordAgentSocial(
+        WorldState world,
+        RecordAgentSocialCommand command,
+        AdmissionTracker admission)
+    {
+        if (!world.Entities.Npcs.TryGetValue(command.Npc, out var npc))
+        {
+            admission.Reject("NpcMissing");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(command.TurnId) || command.TurnId.Length > 80 ||
+            command.Reaction == Agents.CompanionReaction.None ||
+            !System.Enum.IsDefined(typeof(Agents.CompanionReaction), command.Reaction))
+        {
+            admission.Reject("InvalidAgentTurn");
+            return;
+        }
+
+        if (npc.AppliedAgentTurnIds.Contains(command.TurnId)) return;
+        var delta = command.Reaction switch
+        {
+            Agents.CompanionReaction.Warm => 0.18f,
+            Agents.CompanionReaction.Neutral => 0.08f,
+            Agents.CompanionReaction.Tense => -0.06f,
+            Agents.CompanionReaction.Hostile => -0.12f,
+            _ => 0f,
+        };
+        npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social + delta);
+        npc.AppliedAgentTurnIds.Add(command.TurnId);
+        while (npc.AppliedAgentTurnIds.Count > Agents.CompanionState.MaxAppliedTurnIds)
+            npc.AppliedAgentTurnIds.RemoveAt(0);
+    }
+
+    private static void ApplyRecordCompanionTurn(
+        WorldState world,
+        RecordCompanionTurnCommand command,
+        AdmissionTracker admission)
+    {
+        if (!world.Entities.Npcs.TryGetValue(command.Npc, out var npc))
+        {
+            admission.Reject("NpcMissing");
+            return;
+        }
+
+        if (!string.Equals(npc.ProfileId, "masha", System.StringComparison.Ordinal))
+        {
+            admission.Reject("NotCompanion");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(command.TurnId) || command.TurnId.Length > 80 ||
+            !(string.Equals(command.Trigger, "voice", System.StringComparison.Ordinal) ||
+              string.Equals(command.Trigger, "heartbeat", System.StringComparison.Ordinal) ||
+              string.Equals(command.Trigger, "critical", System.StringComparison.Ordinal) ||
+              string.Equals(command.Trigger, "voice_body", System.StringComparison.Ordinal)) ||
+            command.IntentSummary.Length > Agents.CompanionState.MaxIntentCharacters ||
+            command.JournalText.Length > Agents.CompanionState.MaxJournalCharacters ||
+            command.MemoryUpserts.Count > 3 ||
+            !System.Enum.IsDefined(typeof(Agents.CompanionReaction), command.Reaction))
+        {
+            admission.Reject("InvalidCompanionTurn");
+            return;
+        }
+
+        for (var i = 0; i < command.MemoryUpserts.Count; i++)
+        {
+            var memory = command.MemoryUpserts[i];
+            if (memory == null ||
+                string.IsNullOrWhiteSpace(memory.Key) ||
+                memory.Key.Length > Agents.CompanionState.MaxMemoryKeyCharacters ||
+                string.IsNullOrWhiteSpace(memory.Value) ||
+                memory.Value.Length > Agents.CompanionState.MaxMemoryValueCharacters ||
+                float.IsNaN(memory.Importance) || float.IsInfinity(memory.Importance) ||
+                memory.Importance < 0f || memory.Importance > 1f)
+            {
+                admission.Reject("InvalidCompanionMemory");
+                return;
+            }
+        }
+
+        if (string.Equals(command.Trigger, "voice_body", System.StringComparison.Ordinal))
+        {
+            if (command.IntentSummary.Length != 0 || command.JournalText.Length != 0 ||
+                command.MemoryUpserts.Count != 0 || command.Reaction == Agents.CompanionReaction.None)
+            {
+                admission.Reject("InvalidCompanionBodyEffect");
+                return;
+            }
+
+            var physicalSocial = npc.Needs.Social;
+            npc.Companion.ApplyVoiceSocialEffect(command.TurnId, command.Reaction, ref physicalSocial);
+            npc.Needs.Social = physicalSocial;
+            return;
+        }
+
+        var social = npc.Needs.Social;
+        var reaction = string.Equals(command.Trigger, "voice",
+            System.StringComparison.OrdinalIgnoreCase)
+            ? command.Reaction
+            : Agents.CompanionReaction.None;
+        if (!npc.Companion.ApplyTurn(
+                command.TurnId,
+                reaction,
+                command.IntentSummary,
+                command.MemoryUpserts,
+                command.JournalText,
+                world.Tick,
+                Spec136.HourTicks,
+                ref social))
+        {
+            // Idempotent replay is a successful no-op: a bridge may retry after
+            // losing the HTTP response and must never double-apply the bond.
+            return;
+        }
+
+        npc.Needs.Social = social;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CompanionTurnRecorded",
+                $"Turn={command.TurnId} Trigger={command.Trigger} Reaction={command.Reaction}");
+        }
+    }
 
     private static ManualCommandAdmission FinishAdmission(
         WorldState world, AdmissionTracker admission)

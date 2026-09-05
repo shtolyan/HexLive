@@ -122,6 +122,10 @@ public sealed class NpcBootstrap
 {
     public int Id { get; set; }
 
+    public string ProfileId { get; set; } = string.Empty;
+
+    public bool UseAuthoredAppearance { get; set; }
+
     // §74: leave DisplayName/ActorMesh EMPTY to have the world roll them from
     // the seed (ColonistAppearance). A filled value is authorial intent and is
     // never overwritten — which is how the outsider and every test scene keep

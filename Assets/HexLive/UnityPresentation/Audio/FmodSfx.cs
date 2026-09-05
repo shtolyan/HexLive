@@ -113,6 +113,8 @@ namespace HexLive.UnityPresentation.Audio
         public struct Loop
         {
             internal FMOD.Channel Channel;
+            internal FMOD.Sound OwnedSound;
+            internal bool OwnsSound;
             // §67.12: когда звук идёт СОБЫТИЕМ Studio, ручка — это инстанс
             // события, а не канал. Голоса остаются на канале: липсинку нужен
             // конкретный файл и позиция воспроизведения (§67.7).
@@ -442,6 +444,52 @@ namespace HexLive.UnityPresentation.Audio
             };
         }
 
+        /// <summary>§159: positional dynamic PCM/WAV reply, still owned by FMOD Core.</summary>
+        public static Loop PlayFileTracked(
+            string wavPath, string visemePath, Vector3 position, float volumeGain = 1f,
+            bool listenerRelative = false)
+        {
+            if (!_ready || string.IsNullOrEmpty(wavPath) || !File.Exists(wavPath))
+            {
+                return default;
+            }
+
+            var core = FMODUnity.RuntimeManager.CoreSystem;
+            var mode = FMOD.MODE.CREATESAMPLE | FMOD.MODE.LOOP_OFF |
+                       (listenerRelative
+                           ? FMOD.MODE._2D
+                           : FMOD.MODE._3D | FMOD.MODE._3D_LINEARSQUAREROLLOFF);
+            if (core.createSound(wavPath, mode, out var sound) != FMOD.RESULT.OK)
+            {
+                return default;
+            }
+            if (!listenerRelative)
+                sound.set3DMinMaxDistance(VoiceDef.MinDist, VoiceDef.MaxDist);
+            if (core.playSound(sound, _master, true, out var channel) != FMOD.RESULT.OK)
+            {
+                sound.release();
+                return default;
+            }
+
+            if (!listenerRelative)
+            {
+                var pos = ToFmod(position);
+                var vel = default(FMOD.VECTOR);
+                channel.set3DAttributes(ref pos, ref vel);
+            }
+            channel.setVolume(VoiceDef.Volume * Mathf.Clamp(volumeGain, 0f, 4f));
+            channel.setPaused(false);
+            return new Loop
+            {
+                Channel = channel,
+                OwnedSound = sound,
+                OwnsSound = true,
+                Valid = true,
+                File = wavPath,
+                VisemeFile = visemePath
+            };
+        }
+
         /// <summary>Позиция воспроизведения хэндла в мс (-1 = не играет) —
         /// §67.7: часы липсинка (по ним сэмплируется .vis-таймлайн).</summary>
         public static int GetPlaybackMs(ref Loop handle)
@@ -485,6 +533,7 @@ namespace HexLive.UnityPresentation.Audio
             var res = handle.Channel.isPlaying(out var playing);
             if (res != FMOD.RESULT.OK || !playing)
             {
+                if (handle.OwnsSound) handle.OwnedSound.release();
                 handle = default;
                 return false;
             }
@@ -594,6 +643,7 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             loop.Channel.stop();
+            if (loop.OwnsSound) loop.OwnedSound.release();
             loop = default;
         }
 

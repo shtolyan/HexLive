@@ -7,6 +7,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Wire;
 using UnityEngine;
 using EntityId = HexLive.Simulation.Common.EntityId;
 
@@ -250,6 +251,32 @@ public sealed class LocalEngineBackend : ISimulationBackend
         }
 
         return buffer.HighestSeq;
+    }
+
+    public bool SupportsAgentIntegration => false;
+    public bool SttAvailable => false;
+    public bool TryGetAgentState(EntityId npc, out AgentStateFrame state)
+    {
+        state = new AgentStateFrame { NpcId = npc.Value };
+        return false;
+    }
+    public void RequestSttToken(int correlationId) { }
+    public bool TryTakeSttTokenResult(out SttTokenResultFrame result)
+    {
+        result = default;
+        return false;
+    }
+    public void SendAgentText(int correlationId, EntityId npc, string messageId,
+        string language, string text) { }
+    public bool TryTakeAgentTextResult(out AgentTextResultFrame result)
+    {
+        result = default;
+        return false;
+    }
+    public bool TryTakeAgentSpeech(out AgentSpeechMessage speech)
+    {
+        speech = null;
+        return false;
     }
 
     public void WriteSaveNow() => SaveGame.Write(_engine.World, SpeedMultiplier);

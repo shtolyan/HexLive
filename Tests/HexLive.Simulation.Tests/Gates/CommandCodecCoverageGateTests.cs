@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
@@ -31,6 +32,13 @@ public sealed class CommandCodecCoverageGateTests
     // значениями полей (чтобы reader, перепутавший Npc и Target, не прошёл).
     private static readonly ISimulationCommand[] Stamped =
     {
+        new RecordCompanionTurnCommand(
+            new EntityId(901), "turn-159", "voice", CompanionReaction.Warm,
+            "Пойду к костру.",
+            new[] { new CompanionMemoryUpsert("player.name", "Анатолий", 0.73f) },
+            "Сегодня знакомый голос снова помог мне."),
+        new RecordAgentSocialCommand(
+            new EntityId(902), "agent-turn-160", CompanionReaction.Tense),
         new SetManualControlCommand(new EntityId(11), true),
         new SetOutfitLockCommand(new EntityId(111), true),
         new SetRunByDefaultCommand(new EntityId(114), true),

@@ -98,6 +98,23 @@ public enum FrameKind : byte
     /// канал так, что понг не успевал к дедлайну живости клиента.
     /// </summary>
     Compressed = 13,
+
+    /// <summary>§160 server → client: generic MCP attachment state.</summary>
+    AgentState = 14,
+    /// <summary>§160 client → server: request a short-lived Deepgram JWT.</summary>
+    SttTokenRequest = 15,
+    /// <summary>§160 server → client: Deepgram JWT or a bounded refusal.</summary>
+    SttTokenResult = 16,
+    /// <summary>§160 client → server: final recognized player text only.</summary>
+    AgentTextInput = 17,
+    /// <summary>§160 server → client: inbox admission verdict.</summary>
+    AgentTextResult = 18,
+    /// <summary>§160 server → client: metadata for chunked agent speech.</summary>
+    AgentSpeechBegin = 19,
+    /// <summary>§160 server → client: one raw WAV chunk.</summary>
+    AgentSpeechChunk = 20,
+    /// <summary>§160 server → client: utterance completion/checksum.</summary>
+    AgentSpeechEnd = 21,
 }
 
 public enum CommandKind : byte
@@ -138,7 +155,8 @@ public sealed class Handshake
     // 12: §121.11/#294 — темп ручного приказа стал настройкой персонажа:
     //     MoveTo/GroupMove несут необязательный темп, появилась
     //     SetRunByDefault, а RunByDefault едет в записи NPC (snapshot v37).
-    public const int ProtocolVersion = 12;
+    // 13: §160 generic MCP attachment, direct Deepgram STT and agent speech.
+    public const int ProtocolVersion = 13;
 
     public int Seed { get; set; }
 
@@ -185,6 +203,10 @@ public sealed class Handshake
     /// различаются.</summary>
     public List<int> AssignedNpcIds { get; } = new();
 
+    public bool AgentIntegrationEnabled { get; set; }
+
+    public bool SttAvailable { get; set; }
+
     public void Write(BinaryWriter w)
     {
         w.Write(ProtocolVersion);
@@ -204,6 +226,8 @@ public sealed class Handshake
         {
             w.Write(AssignedNpcIds[i]);
         }
+        w.Write(AgentIntegrationEnabled);
+        w.Write(SttAvailable);
     }
 
     public static Handshake Read(BinaryReader r)
@@ -241,6 +265,9 @@ public sealed class Handshake
         {
             handshake.AssignedNpcIds.Add(r.ReadInt32());
         }
+
+        handshake.AgentIntegrationEnabled = r.ReadBoolean();
+        handshake.SttAvailable = r.ReadBoolean();
 
         return handshake;
     }

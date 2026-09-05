@@ -1,0 +1,604 @@
+#nullable enable
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using HexLive.Simulation.Debug;
+using HexLive.Simulation.Wire;
+using HexLive.UnityPresentation.Audio;
+using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Input;
+using HexLive.UnityPresentation.Localization;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace HexLive.UnityPresentation.UI
+{
+    /// <summary>§160 generic MCP attachment UI with no authored-profile dependency.</summary>
+    public sealed partial class CharacterPanel
+    {
+        private enum AgentVoiceUiState
+        {
+            Offline, NoStt, NoMicrophone, Ready, Listening, Recognizing, Thinking, Speaking
+        }
+
+        [Serializable]
+        private sealed class AgentRelationPayload
+        {
+            public float familiarity;
+            public float trust;
+            public float affinity;
+        }
+
+        private VisualElement? _agentVoiceButton;
+        private VectorIcon? _agentVoiceGlyph;
+        private Label? _agentVoiceStateLabel;
+        private Label? _agentSubtitle;
+        private float _agentSubtitleUntil;
+        private NpcSnapshot? _agentVoiceNpc;
+        private AgentStateFrame? _selectedAgentState;
+        private FmodMicrophoneCapture? _agentMicrophone;
+        private IPlayerSpeechTranscriber? _agentTranscriber;
+        private CancellationTokenSource? _agentCts;
+        private AgentVoiceUiState _agentVoiceUiState = AgentVoiceUiState.Offline;
+        private readonly ConcurrentQueue<Action> _agentMainThread = new();
+        private readonly HashSet<string> _announcedAttachments = new(StringComparer.Ordinal);
+        private int _agentCorrelation;
+        private int _pendingTokenCorrelation;
+        private int _pendingNpcId;
+        private byte[]? _pendingPlayerWav;
+        private string _agentCachePath = string.Empty;
+        private FMOD.Studio.EventInstance _agentReplyFocus;
+        private float _agentReplyFocusUntil;
+        private Wearing.NpcActorView? _agentReplyActor;
+        private string _agentReplyWav = string.Empty;
+        private int _agentSelectionGeneration;
+        private bool _awaitingAgentTurn;
+        private long _voiceSubmittedRevision;
+        private float _voiceDeadline;
+        private readonly SemaphoreSlim _agentBakeGate = new(1, 1);
+        private sealed class PreparedAgentSpeech
+        {
+            public AgentSpeechBeginFrame Metadata = null!;
+            public string WavPath = string.Empty;
+            public string VisPath = string.Empty;
+            public float Deadline;
+        }
+        private readonly Queue<PreparedAgentSpeech> _preparedAgentSpeech = new();
+
+        // Public local view supplied by the attached agent. Existing relation
+        // and journal panels consume these generic values without reading a
+        // profile, local workspace or world-save companion object.
+        private int _agentAttachedNpcId = -1;
+        private bool _agentRelationReady;
+        private float _agentFamiliarity;
+        private float _agentTrust;
+        private float _agentAffinity;
+        private int _agentRelationTick = -1;
+        private bool _agentJournalReady;
+        private readonly List<JournalEntrySnapshot> _agentJournal = new();
+        private readonly List<JournalEntrySnapshot> _agentMergedJournal = new();
+        private string _agentJournalText = string.Empty;
+
+        private void EnableAgentVoice()
+        {
+            if (_agentCts != null) return;
+            _agentCts = new CancellationTokenSource();
+            _agentTranscriber = new DeepgramSpeechTranscriber();
+            _agentCachePath = Path.Combine(Application.temporaryCachePath, "HexLiveAgentVoice");
+        }
+
+        private void DisableAgentVoice()
+        {
+            _agentMicrophone?.Cancel();
+            _agentMicrophone?.Dispose();
+            _agentMicrophone = null;
+            _agentCts?.Cancel();
+            _agentCts?.Dispose();
+            _agentCts = null;
+            _agentTranscriber?.Dispose();
+            _agentTranscriber = null;
+            StopAgentReplyFocus();
+            _pendingPlayerWav = null;
+            while (_agentMainThread.TryDequeue(out _)) { }
+            _preparedAgentSpeech.Clear();
+            ClearAgentSelection();
+        }
+
+        private void ResetAgentVoiceSelection()
+        {
+            _agentSelectionGeneration++;
+            _awaitingAgentTurn = false;
+            _agentMicrophone?.Cancel();
+            _pendingPlayerWav = null;
+            _pendingTokenCorrelation = 0;
+            _agentVoiceNpc = null;
+            _selectedAgentState = null;
+            _agentVoiceUiState = AgentVoiceUiState.Offline;
+        }
+
+        private void ClearAgentSelection()
+        {
+            ResetAgentVoiceSelection();
+            _agentAttachedNpcId = -1;
+            _agentRelationReady = false;
+            _agentJournalReady = false;
+            _agentJournal.Clear();
+            _agentMergedJournal.Clear();
+            _agentJournalText = string.Empty;
+        }
+
+        private void RefreshAgentVoice(NpcSnapshot npc)
+        {
+            _agentVoiceNpc = npc;
+            if (_runner == null || !_runner.TryGetAgentState(npc.Id, out var state) || !state.Attached)
+            {
+                _selectedAgentState = null;
+                if (_agentAttachedNpcId == npc.Id.Value)
+                {
+                    _agentAttachedNpcId = -1;
+                    _agentRelationReady = false;
+                    _agentJournalReady = false;
+                    _journalSig = int.MinValue;
+                    _relationSig.Clear();
+                }
+                return;
+            }
+
+            _selectedAgentState = state;
+            _agentAttachedNpcId = npc.Id.Value;
+            if (_announcedAttachments.Add(state.AttachmentId))
+            {
+                ShowAgentSubtitle(string.Format(Loc.Get("agent.connected"), state.DisplayName), 4f);
+            }
+            if (_thoughtValue != null)
+            {
+                _thoughtValue.text = state.Phase == AgentPhase.Thinking
+                    ? Loc.Get("agent.thinking")
+                    : string.IsNullOrWhiteSpace(state.IntentSummary)
+                        ? _thoughtValue.text
+                        : state.IntentSummary;
+            }
+            ParseAgentRelation(state.RelationView);
+            RefreshAgentJournal(state.JournalEntry, npc.Id.Value);
+
+            if (_awaitingAgentTurn && state.Revision > _voiceSubmittedRevision &&
+                state.Phase is AgentPhase.Ready or AgentPhase.Speaking or AgentPhase.Error)
+                _awaitingAgentTurn = false;
+
+            if (_agentVoiceUiState is not (AgentVoiceUiState.Listening or
+                AgentVoiceUiState.Recognizing) && _pendingTokenCorrelation == 0 && !_awaitingAgentTurn)
+            {
+                _agentVoiceUiState = state.Phase switch
+                {
+                    AgentPhase.Thinking or AgentPhase.Acting => AgentVoiceUiState.Thinking,
+                    AgentPhase.Speaking => AgentVoiceUiState.Speaking,
+                    _ => AgentVoiceUiState.Ready,
+                };
+            }
+        }
+
+        private void TickAgentVoice()
+        {
+            while (_agentMainThread.TryDequeue(out var action)) action();
+            if (_agentSubtitle != null && _agentSubtitleUntil > 0f &&
+                Time.unscaledTime >= _agentSubtitleUntil)
+            {
+                _agentSubtitle.style.display = DisplayStyle.None;
+                _agentSubtitleUntil = 0f;
+            }
+            if (_agentReplyFocusUntil > 0f && (Time.unscaledTime >= _agentReplyFocusUntil ||
+                _agentReplyActor == null || !_agentReplyActor.IsExternalVoicePlaying(_agentReplyWav)))
+                StopAgentReplyFocus();
+            if (_voiceDeadline > 0 && Time.unscaledTime >= _voiceDeadline &&
+                (_pendingTokenCorrelation != 0 || _awaitingAgentTurn))
+            {
+                _pendingTokenCorrelation = 0;
+                _pendingPlayerWav = null;
+                _awaitingAgentTurn = false;
+                _agentVoiceUiState = AgentVoiceUiState.Ready;
+            }
+
+            DrainAgentWireResponses();
+            PresentPreparedAgentSpeech();
+            if (_agentMicrophone?.IsRecording == true)
+            {
+                if (!CaptureStillEligible())
+                {
+                    _agentMicrophone.Cancel();
+                    _agentVoiceUiState = AgentVoiceUiState.Ready;
+                }
+                else if (_agentMicrophone.Tick(Time.unscaledDeltaTime))
+                {
+                    FinishAgentCapture();
+                }
+            }
+            RefreshAgentVoiceButton();
+        }
+
+        private VisualElement BuildAgentVoiceButton()
+        {
+            var button = new VisualElement();
+            button.style.position = Position.Absolute;
+            button.style.right = 12f;
+            button.style.top = 144f;
+            button.style.width = 58f;
+            button.style.height = 58f;
+            button.style.alignItems = Align.Center;
+            button.style.justifyContent = Justify.Center;
+            button.style.backgroundColor = new Color(0.014f, 0.058f, 0.074f, 0.94f);
+            SetBorder(button, NeonCyanDim, 1.5f);
+            SetRadius(button, 18f);
+            button.style.display = DisplayStyle.None;
+
+            _agentVoiceGlyph = new VectorIcon(VectorIcon.Kind.Microphone, Text);
+            _agentVoiceGlyph.style.width = 27f;
+            _agentVoiceGlyph.style.height = 27f;
+            _agentVoiceGlyph.pickingMode = PickingMode.Ignore;
+            button.Add(_agentVoiceGlyph);
+
+            _agentVoiceStateLabel = new Label();
+            _agentVoiceStateLabel.style.position = Position.Absolute;
+            _agentVoiceStateLabel.style.left = -65f;
+            _agentVoiceStateLabel.style.right = -65f;
+            _agentVoiceStateLabel.style.top = 39f;
+            _agentVoiceStateLabel.style.height = 15f;
+            _agentVoiceStateLabel.style.fontSize = 8.5f;
+            _agentVoiceStateLabel.style.color = TextMute;
+            _agentVoiceStateLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _agentVoiceStateLabel.pickingMode = PickingMode.Ignore;
+            button.Add(_agentVoiceStateLabel);
+            button.RegisterCallback<MouseDownEvent>(evt =>
+            {
+                ToggleAgentCapture();
+                evt.StopPropagation();
+            });
+            button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
+            button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(button,
+                _agentVoiceUiState == AgentVoiceUiState.Listening ? Warn : NeonCyanDim));
+            _agentVoiceButton = button;
+            return button;
+        }
+
+        private void BuildAgentSubtitleOverlay()
+        {
+            _agentSubtitle = new Label();
+            _agentSubtitle.style.position = Position.Absolute;
+            _agentSubtitle.style.left = Length.Percent(25);
+            _agentSubtitle.style.right = Length.Percent(25);
+            _agentSubtitle.style.bottom = 330f;
+            _agentSubtitle.style.paddingLeft = 18f;
+            _agentSubtitle.style.paddingRight = 18f;
+            _agentSubtitle.style.paddingTop = 10f;
+            _agentSubtitle.style.paddingBottom = 10f;
+            _agentSubtitle.style.color = Text;
+            _agentSubtitle.style.backgroundColor = new Color(0.01f, 0.03f, 0.04f, 0.88f);
+            _agentSubtitle.style.fontSize = 18f;
+            _agentSubtitle.style.whiteSpace = WhiteSpace.Normal;
+            _agentSubtitle.style.unityTextAlign = TextAnchor.MiddleCenter;
+            SetBorder(_agentSubtitle, NeonCyanDim, 1f);
+            SetRadius(_agentSubtitle, 10f);
+            _agentSubtitle.style.display = DisplayStyle.None;
+            _agentSubtitle.pickingMode = PickingMode.Ignore;
+            _root.Add(_agentSubtitle);
+        }
+
+        private void ToggleAgentCapture()
+        {
+            if (_agentMicrophone?.IsRecording == true)
+            {
+                FinishAgentCapture();
+                return;
+            }
+            if (!VoiceEligible()) return;
+            _agentMicrophone ??= new FmodMicrophoneCapture();
+            if (_agentMicrophone.Start(out _))
+                _agentVoiceUiState = AgentVoiceUiState.Listening;
+            else
+                _agentVoiceUiState = AgentVoiceUiState.NoMicrophone;
+        }
+
+        private void FinishAgentCapture()
+        {
+            if (_agentMicrophone == null) return;
+            var wav = _agentMicrophone.Stop(out _);
+            if (wav == null)
+            {
+                _agentVoiceUiState = AgentVoiceUiState.Ready;
+                return;
+            }
+            if (_runner == null || _agentVoiceNpc == null) return;
+            _pendingPlayerWav = wav;
+            _pendingNpcId = _agentVoiceNpc.Id.Value;
+            _pendingTokenCorrelation = ++_agentCorrelation;
+            _agentVoiceUiState = AgentVoiceUiState.Recognizing;
+            _voiceDeadline = Time.unscaledTime + 15f;
+            _runner.RequestSttToken(_pendingTokenCorrelation);
+        }
+
+        private void DrainAgentWireResponses()
+        {
+            if (_runner == null) return;
+            while (_runner.TryTakeSttTokenResult(out var token))
+            {
+                if (token.CorrelationId != _pendingTokenCorrelation) continue;
+                var wav = _pendingPlayerWav;
+                _pendingPlayerWav = null;
+                _pendingTokenCorrelation = 0;
+                if (!token.Accepted || wav == null || _agentTranscriber == null)
+                {
+                    _agentVoiceUiState = AgentVoiceUiState.NoStt;
+                    continue;
+                }
+                _ = TranscribeAndSendAsync(wav, token.Token, _pendingNpcId, _agentSelectionGeneration,
+                    _agentCts?.Token ?? CancellationToken.None);
+            }
+            while (_runner.TryTakeAgentTextResult(out var result))
+            {
+                if (result.CorrelationId != _agentCorrelation) continue;
+                _agentVoiceUiState = result.Accepted
+                    ? AgentVoiceUiState.Thinking
+                    : AgentVoiceUiState.Ready;
+                if (!result.Accepted) _awaitingAgentTurn = false;
+            }
+            while (_runner.TryTakeAgentSpeech(out var speech))
+                _ = BakeAndPresentAgentSpeechAsync(speech, _agentCts?.Token ?? CancellationToken.None);
+        }
+
+        private async Task TranscribeAndSendAsync(byte[] wav, string token, int npcId, int generation,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var text = await _agentTranscriber!.TranscribeAsync(wav, token, cancellationToken)
+                    .ConfigureAwait(false);
+                _agentMainThread.Enqueue(() =>
+                {
+                    if (generation != _agentSelectionGeneration || cancellationToken.IsCancellationRequested) return;
+                    if (text.Length == 0 || _runner == null)
+                    {
+                        _agentVoiceUiState = AgentVoiceUiState.Ready;
+                        return;
+                    }
+                    var correlation = ++_agentCorrelation;
+                    _voiceSubmittedRevision = _selectedAgentState?.Revision ?? 0;
+                    _awaitingAgentTurn = true;
+                    _voiceDeadline = Time.unscaledTime + 90f;
+                    _runner.SendAgentText(correlation,
+                        new HexLive.Simulation.Common.EntityId(npcId),
+                        Guid.NewGuid().ToString("N"), "ru", text);
+                    _agentVoiceUiState = AgentVoiceUiState.Thinking;
+                });
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+            catch
+            {
+                _agentMainThread.Enqueue(() =>
+                {
+                    if (generation == _agentSelectionGeneration)
+                        _agentVoiceUiState = AgentVoiceUiState.NoStt;
+                });
+            }
+        }
+
+        private async Task BakeAndPresentAgentSpeechAsync(AgentSpeechMessage speech,
+            CancellationToken cancellationToken)
+        {
+            var metadata = speech.Metadata;
+            try
+            {
+                await _agentBakeGate.WaitAsync(cancellationToken);
+                try
+                {
+                var basename = "agent_" + SafeFileName(metadata.UtteranceId);
+                var wavPath = Path.Combine(_agentCachePath, basename + ".wav");
+                var visPath = Path.Combine(_agentCachePath, basename + ".vis");
+                var hasAudio = false;
+                try { hasAudio = speech.Wav.Length > 0 && await Task.Run(() =>
+                {
+                    Directory.CreateDirectory(_agentCachePath);
+                    if (!VoiceVisemeBaker.TryBake(speech.Wav, metadata.Text, visPath, out _, cancellationToken)) return false;
+                    File.WriteAllBytes(wavPath, speech.Wav);
+                    TrimAgentVoiceCache(_agentCachePath);
+                    return true;
+                }, cancellationToken); }
+                catch (IOException) { /* still deliver the exact subtitle */ }
+                catch (UnauthorizedAccessException) { }
+                _agentMainThread.Enqueue(() =>
+                {
+                    if (cancellationToken.IsCancellationRequested) return;
+                    if (_preparedAgentSpeech.Count >= 20) _preparedAgentSpeech.Dequeue();
+                    _preparedAgentSpeech.Enqueue(new PreparedAgentSpeech
+                    { Metadata = metadata, WavPath = hasAudio ? wavPath : string.Empty,
+                      VisPath = visPath, Deadline = Time.unscaledTime + 35f });
+                });
+                }
+                finally { _agentBakeGate.Release(); }
+            }
+            catch (OperationCanceledException) { }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        private void PresentPreparedAgentSpeech()
+        {
+            if (_preparedAgentSpeech.Count == 0 || _agentReplyFocusUntil > 0f) return;
+            var pending = _preparedAgentSpeech.Peek();
+            var metadata = pending.Metadata;
+            if (_runner == null || !_runner.TryGetAgentState(
+                    new HexLive.Simulation.Common.EntityId(metadata.NpcId), out var state) || !state.Attached)
+            {
+                _preparedAgentSpeech.Dequeue();
+                return;
+            }
+            var direct = metadata.Delivery == AgentSpeechDelivery.PlayerReply;
+            var played = false;
+            _worldRenderer ??= FindAnyObjectByType<Rendering.HexWorldRenderer>();
+            if (pending.WavPath.Length > 0 && _worldRenderer != null &&
+                _worldRenderer.TryGetActorView(metadata.NpcId, out var actor))
+            {
+                played = actor.SayExternalVoice(pending.WavPath, pending.VisPath, metadata.Emotion, direct);
+                if (played && direct)
+                {
+                    StartAgentReplyFocus(metadata.DurationMilliseconds);
+                    _agentReplyActor = actor;
+                    _agentReplyWav = pending.WavPath;
+                }
+            }
+            // A direct reply waits for an existing Talk/Alarm and lazy-loaded
+            // actor. It is never discarded merely because the mouth was busy.
+            if (!played && direct && pending.WavPath.Length > 0 &&
+                Time.unscaledTime < pending.Deadline) return;
+            _preparedAgentSpeech.Dequeue();
+            var name = _runner?.CreateSnapshot()?.Npcs.Find(n => n.Id.Value == metadata.NpcId)?.DisplayName;
+            ShowAgentSubtitle((string.IsNullOrEmpty(name) ? Loc.Get("agent.default_name") :
+                Loc.Get("npc." + name.ToLowerInvariant() + ".name")) + ": " + metadata.Text,
+                Mathf.Clamp(Mathf.Max(metadata.Text.Length / 12f, metadata.DurationMilliseconds / 1000f), 2.5f, 31f));
+        }
+
+        private bool VoiceEligible()
+        {
+            var state = _selectedAgentState;
+            return _agentVoiceNpc != null && _agentVoiceNpc.Health > 0f &&
+                   state is { Attached: true } &&
+                   (state.Capabilities & AgentCapabilities.PlayerText) != 0 &&
+                   _runner != null && _runner.IsReady && _runner.SupportsAgentIntegration &&
+                   _runner.SttAvailable && !LoadingScreen.IsReplaying &&
+                   _pendingTokenCorrelation == 0 && _pendingPlayerWav == null &&
+                   !_awaitingAgentTurn && _preparedAgentSpeech.Count == 0 && _agentReplyFocusUntil <= 0f &&
+                   _agentVoiceUiState is AgentVoiceUiState.Ready or AgentVoiceUiState.NoMicrophone;
+        }
+
+        private bool CaptureStillEligible() => _selectedAgentState is { Attached: true } &&
+            _agentVoiceNpc != null && _agentVoiceNpc.Id.Value == _selectedAgentState.NpcId &&
+            _runner != null && _runner.IsReady && _runner.Link.State == LinkState.Live &&
+            _agentVoiceNpc.Health > 0f && !LoadingScreen.IsReplaying;
+
+        private void RefreshAgentVoiceButton()
+        {
+            if (_agentVoiceButton == null) return;
+            var visible = _selectedAgentState is { Attached: true } && NpcSelection.Count == 1;
+            _agentVoiceButton.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!visible) return;
+            if (_runner == null || !_runner.SupportsAgentIntegration)
+                _agentVoiceUiState = AgentVoiceUiState.Offline;
+            else if (!_runner.SttAvailable)
+                _agentVoiceUiState = AgentVoiceUiState.NoStt;
+            var recording = _agentMicrophone?.IsRecording == true;
+            _agentVoiceButton.SetEnabled(recording || VoiceEligible());
+            _agentVoiceGlyph!.SetColor(recording ? Warn : Text);
+            SetBorderColor(_agentVoiceButton, recording ? Warn : NeonCyanDim);
+            _agentVoiceStateLabel!.text = AgentVoiceStateText(_agentVoiceUiState);
+            _agentVoiceButton.tooltip = Loc.Get("agent.voice.button");
+        }
+
+        private static string AgentVoiceStateText(AgentVoiceUiState state) => state switch
+        {
+            AgentVoiceUiState.Listening => Loc.Get("agent.voice.listening"),
+            AgentVoiceUiState.Recognizing => Loc.Get("agent.voice.recognizing"),
+            AgentVoiceUiState.Thinking => Loc.Get("agent.voice.thinking"),
+            AgentVoiceUiState.Speaking => Loc.Get("agent.voice.speaking"),
+            AgentVoiceUiState.NoStt => Loc.Get("agent.voice.no_stt"),
+            AgentVoiceUiState.NoMicrophone => Loc.Get("agent.voice.no_microphone"),
+            AgentVoiceUiState.Offline => Loc.Get("agent.voice.offline"),
+            _ => Loc.Get("agent.voice.ready"),
+        };
+
+        private void ParseAgentRelation(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return;
+            try
+            {
+                var value = JsonUtility.FromJson<AgentRelationPayload>(json);
+                if (value == null) return;
+                _agentFamiliarity = Mathf.Clamp01(value.familiarity);
+                _agentTrust = Mathf.Clamp01(value.trust);
+                _agentAffinity = Mathf.Clamp01(value.affinity);
+                _agentRelationTick = _runner?.CurrentTick ?? 0;
+                _agentRelationReady = true;
+                _relationSig.Clear();
+            }
+            catch (ArgumentException) { }
+        }
+
+        private void RefreshAgentJournal(string text, int npcId)
+        {
+            text = text?.Trim() ?? string.Empty;
+            if (text.Length == 0 || text == _agentJournalText) return;
+            _agentJournalText = text;
+            _agentJournal.Clear();
+            _agentJournal.Add(new JournalEntrySnapshot
+            {
+                Tick = _runner?.CurrentTick ?? 0,
+                Type = "AgentNarrative",
+                Extra = text,
+            });
+            _agentJournalReady = true;
+            _journalSig = int.MinValue;
+        }
+
+        private void ShowAgentSubtitle(string text, float seconds)
+        {
+            if (_agentSubtitle == null || string.IsNullOrWhiteSpace(text)) return;
+            _agentSubtitle.text = text;
+            _agentSubtitle.style.display = DisplayStyle.Flex;
+            _agentSubtitleUntil = Time.unscaledTime + seconds;
+        }
+
+        private void StartAgentReplyFocus(int durationMilliseconds)
+        {
+            StopAgentReplyFocus();
+            try
+            {
+                _agentReplyFocus = FMODUnity.RuntimeManager.CreateInstance("snapshot:/AgentReplyFocus");
+                if (_agentReplyFocus.isValid()) _agentReplyFocus.start();
+                _agentReplyFocusUntil = Time.unscaledTime +
+                    Mathf.Clamp(durationMilliseconds / 1000f + 0.4f, 0.5f, 31f);
+            }
+            catch (Exception)
+            {
+                _agentReplyFocus = default;
+                _agentReplyFocusUntil = 0f;
+            }
+        }
+
+        private void StopAgentReplyFocus()
+        {
+            if (_agentReplyFocus.isValid())
+            {
+                _agentReplyFocus.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+                _agentReplyFocus.release();
+            }
+            _agentReplyFocus = default;
+            _agentReplyFocusUntil = 0f;
+            _agentReplyActor = null;
+            _agentReplyWav = string.Empty;
+        }
+
+        private static string SafeFileName(string value)
+        {
+            foreach (var invalid in Path.GetInvalidFileNameChars()) value = value.Replace(invalid, '_');
+            return value.Length <= 80 ? value : value.Substring(0, 80);
+        }
+
+        private static void TrimAgentVoiceCache(string directory)
+        {
+            var files = new DirectoryInfo(directory).GetFiles("*.wav");
+            Array.Sort(files, (a, b) => b.LastWriteTimeUtc.CompareTo(a.LastWriteTimeUtc));
+            for (var i = 20; i < files.Length; i++)
+            {
+                try
+                {
+                    var vis = Path.ChangeExtension(files[i].FullName, ".vis");
+                    files[i].Delete();
+                    if (File.Exists(vis)) File.Delete(vis);
+                }
+                catch (IOException) { }
+            }
+        }
+
+        private void LocalizeAgentVoice() => RefreshAgentVoiceButton();
+    }
+}

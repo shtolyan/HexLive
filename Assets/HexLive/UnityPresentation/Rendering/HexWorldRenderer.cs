@@ -6259,7 +6259,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // seed and saved them, so a reload rebuilds the same woman.
                 // §85: and her eyes, on an axis of their own.
                 view.Construct(npc.ActorMesh, npc.Id.Value,
-                    npc.SkinSet, npc.EyeColor, npc.Hairstyle, npc.VoiceBank);
+                    npc.SkinSet, npc.EyeColor, npc.Hairstyle, npc.VoiceBank,
+                    npc.UseAuthoredAppearance);
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 _lastSocialCueKey[npc.Id.Value] =

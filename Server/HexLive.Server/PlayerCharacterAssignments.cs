@@ -92,7 +92,8 @@ public sealed class PlayerCharacterAssignments
         string playerId,
         IEnumerable<int> retainableNpcIds,
         IEnumerable<int> assignableNpcIds,
-        int characterLimit = DefaultCharacterLimit)
+        int characterLimit = DefaultCharacterLimit,
+        ISet<int>? priorityNpcIds = null)
     {
         if (!TryNormalizePlayerId(playerId, out var canonicalPlayerId))
         {
@@ -109,7 +110,8 @@ public sealed class PlayerCharacterAssignments
         var assignable = assignableNpcIds
             .Where(id => id > 0 && retainable.Contains(id))
             .Distinct()
-            .OrderBy(id => id)
+            .OrderByDescending(id => priorityNpcIds?.Contains(id) == true)
+            .ThenBy(id => id)
             .ToArray();
 
         lock (_gate)
@@ -129,12 +131,19 @@ public sealed class PlayerCharacterAssignments
                 }
             }
 
-            var next = record.NpcIds
-                .Where(id => retainable.Contains(id) && !usedByOthers.Contains(id))
-                .Distinct()
-                .OrderBy(id => id)
+            var next = assignable
+                .Where(id => priorityNpcIds?.Contains(id) == true && !usedByOthers.Contains(id))
                 .Take(characterLimit)
                 .ToList();
+            if (next.Count == 0)
+            {
+                next = record.NpcIds
+                    .Where(id => retainable.Contains(id) && !usedByOthers.Contains(id))
+                    .Distinct()
+                    .OrderBy(id => id)
+                    .Take(characterLimit)
+                    .ToList();
+            }
 
             var occupied = new HashSet<int>(usedByOthers);
             occupied.UnionWith(next);
@@ -170,6 +179,7 @@ public sealed class PlayerCharacterAssignments
         {
             var retainable = new List<int>();
             var assignable = new List<int>();
+            var authoredPriority = new HashSet<int>();
             foreach (var npc in world.Entities.Npcs.Values)
             {
                 // §149.2: девушка ЛЮБОГО лагеря, не только Faction.Colony.
@@ -187,12 +197,21 @@ public sealed class PlayerCharacterAssignments
                 if (npc.Health > 0f && !npc.IsDying)
                 {
                     assignable.Add(npc.Id.Value);
+                    if (string.Equals(npc.ProfileId,
+                            HexLive.Simulation.Runtime.MashaCompanionProfile.ProfileId,
+                            StringComparison.Ordinal))
+                        authoredPriority.Add(npc.Id.Value);
                 }
             }
 
             retainable.Sort();
-            assignable.Sort();
-            return (retainable, assignable);
+            assignable.Sort((left, right) =>
+            {
+                var authored = authoredPriority.Contains(right).CompareTo(
+                    authoredPriority.Contains(left));
+                return authored != 0 ? authored : left.CompareTo(right);
+            });
+            return (retainable, assignable, authoredPriority);
         });
 
         if (worldLifetime.IsCancellationRequested)
@@ -224,7 +243,8 @@ public sealed class PlayerCharacterAssignments
             }
 
             var assigned = Reconcile(
-                playerId, roster.retainable, roster.assignable, characterLimit);
+                playerId, roster.retainable, roster.assignable, characterLimit,
+                roster.authoredPriority);
             union = AllAssignedIdsLocked();
             result = assigned;
         }

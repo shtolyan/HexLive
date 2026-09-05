@@ -25,6 +25,7 @@ public sealed class WorldSupervisor : IDisposable
     private readonly bool _verboseTrace;
     private readonly bool _includeDebugDetails;
     private readonly LlmHostOptions _llmOptions;
+    private readonly string? _companionProfile;
     private readonly CancellationToken _appShutdown;
 
     private readonly object _swap = new();
@@ -47,18 +48,20 @@ public sealed class WorldSupervisor : IDisposable
 
     public WorldSupervisor(int seed, HexLive.Simulation.Bootstrap.GameMode mode,
         string savePath, AssetGarmentCatalog catalog, bool verboseTrace,
-        bool includeDebugDetails, LlmHostOptions llmOptions, CancellationToken appShutdown)
+        bool includeDebugDetails, LlmHostOptions llmOptions, string? companionProfile,
+        CancellationToken appShutdown)
     {
         _savePath = savePath;
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _verboseTrace = verboseTrace;
         _includeDebugDetails = includeDebugDetails;
         _llmOptions = llmOptions;
+        _companionProfile = companionProfile;
         _appShutdown = appShutdown;
 
         _catalogSnapshot = _catalog.Materialize();
         _host = new WorldHost(seed, mode, savePath, _catalogSnapshot.Path,
-            verboseTrace, includeDebugDetails, llmOptions);
+            verboseTrace, includeDebugDetails, llmOptions, companionProfile);
         _hostLifetime = CancellationTokenSource.CreateLinkedTokenSource(appShutdown);
         _viewerLifetime = CancellationTokenSource.CreateLinkedTokenSource(appShutdown);
         _thread = StartThread(_host, _hostLifetime.Token);
@@ -179,7 +182,7 @@ public sealed class WorldSupervisor : IDisposable
             ArchiveSave();
 
             _host = new WorldHost(seed, mode, _savePath, snapshot.Path,
-                _verboseTrace, _includeDebugDetails, _llmOptions);
+                _verboseTrace, _includeDebugDetails, _llmOptions, _companionProfile);
             _hostLifetime = CancellationTokenSource.CreateLinkedTokenSource(_appShutdown);
             _thread = StartThread(_host, _hostLifetime.Token);
             _catalogSnapshot = snapshot;
@@ -290,7 +293,7 @@ public sealed class WorldSupervisor : IDisposable
         AssetGarmentCatalogSnapshot snapshot, float speed, bool paused)
     {
         var host = new WorldHost(seed, mode, _savePath, snapshot.Path,
-            _verboseTrace, _includeDebugDetails, _llmOptions);
+            _verboseTrace, _includeDebugDetails, _llmOptions, _companionProfile);
         var lifetime = CancellationTokenSource.CreateLinkedTokenSource(_appShutdown);
         try
         {

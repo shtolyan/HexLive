@@ -599,17 +599,20 @@ namespace HexLive.UnityPresentation.UI
         {
             NpcSelection.SelectionChanged += OnSelectionChanged;
             Loc.LanguageChanged += ApplyLanguage;
+            EnableAgentVoice();
         }
 
         private void OnDisable()
         {
             NpcSelection.SelectionChanged -= OnSelectionChanged;
             Loc.LanguageChanged -= ApplyLanguage;
+            DisableAgentVoice();
         }
 
         private void Update()
         {
             UpdateDiagnostics();
+            TickAgentVoice();
 
             if (_runner == null)
             {
@@ -750,6 +753,7 @@ namespace HexLive.UnityPresentation.UI
             CloseInventory(); // a new/cleared selection resets the backpack
             CloseHealth();    // …and the limb-health window
             CloseJournal();   // …and the journal (§136)
+            ResetAgentVoiceSelection();
             if (_shown)
             {
                 _stage.style.display = DisplayStyle.Flex;
@@ -911,6 +915,7 @@ namespace HexLive.UnityPresentation.UI
             // сказать «у неё что-то случилось» до того, как окно откроют.
             UpdateJournalBadge(snapshot, npc);
             RefreshJournal(snapshot, npc);
+            RefreshAgentVoice(npc);
         }
 
         private void BindPortrait(int npcId)
@@ -5043,34 +5048,51 @@ namespace HexLive.UnityPresentation.UI
             return map;
         }
 
-        // Parse "definitionId\tamountLiters\tcapacityLiters" entries for
-        // portable water containers (bottle and pierced coconut).
-        private static Dictionary<string, WaterContainerState> ParseWaterKv(List<string> pairs)
+        // Parse "sourceIndex\tdefinitionId\tamount\tcapacity\twaterKind".
+        // The source index distinguishes physical bottles with different water.
+        private static Dictionary<int, WaterContainerState> ParseWaterKv(List<string> pairs)
         {
-            var map = new Dictionary<string, WaterContainerState>();
+            var map = new Dictionary<int, WaterContainerState>();
             foreach (var raw in pairs)
             {
                 var parts = raw.Split('\t');
-                if (parts.Length < 3)
+                if (parts.Length < 4 ||
+                    !int.TryParse(
+                        parts[0],
+                        System.Globalization.NumberStyles.Integer,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var sourceIndex))
                 {
                     continue;
                 }
 
                 if (float.TryParse(
-                        parts[1],
+                        parts[2],
                         System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture,
                         out var amount) &&
                     float.TryParse(
-                        parts[2],
+                        parts[3],
                         System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture,
                         out var capacity))
                 {
-                    map[parts[0]] = new WaterContainerState
+                    var kind = WaterKind.None;
+                    if (parts.Length >= 5 && int.TryParse(
+                            parts[4],
+                            System.Globalization.NumberStyles.Integer,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out var kindOrdinal))
                     {
+                        kind = (WaterKind)kindOrdinal;
+                    }
+
+                    map[sourceIndex] = new WaterContainerState
+                    {
+                        ItemId = parts[1],
                         Amount = amount,
-                        Capacity = capacity
+                        Capacity = capacity,
+                        Kind = kind
                     };
                 }
             }
@@ -5172,7 +5194,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void UpdateRelations(NpcSnapshot npc)
         {
-            if (npc.RelationshipDetails.Count == 0)
+            var hasPlayerVoiceBond = _agentRelationReady && _agentAttachedNpcId == npc.Id.Value;
+            if (npc.RelationshipDetails.Count == 0 && !hasPlayerVoiceBond)
             {
                 if (_relationsBuiltEmpty)
                 {
@@ -5192,6 +5215,18 @@ namespace HexLive.UnityPresentation.UI
             var relations = _relationScratch;
             relations.Clear();
             relations.AddRange(npc.RelationshipDetails);
+            if (hasPlayerVoiceBond)
+            {
+                relations.Add(new RelationshipSnapshot
+                {
+                    OtherId = -159,
+                    OtherName = "voice",
+                    Familiarity = _agentFamiliarity,
+                    Trust = _agentTrust,
+                    Affinity = _agentAffinity,
+                    LastInteractionTick = _agentRelationTick
+                });
+            }
             relations.Sort((a, b) =>
             {
                 var byRecent = b.LastInteractionTick.CompareTo(a.LastInteractionTick);
@@ -5919,6 +5954,7 @@ namespace HexLive.UnityPresentation.UI
             BuildInventoryWindow();
             BuildHealthWindow();
             BuildJournalWindow(); // §136
+            BuildAgentSubtitleOverlay(); // §160
             BuildRoster();
         }
 
@@ -6883,6 +6919,7 @@ namespace HexLive.UnityPresentation.UI
             col.Add(BuildStopButton());
             col.Add(BuildInventoryButton());
             col.Add(BuildJournalButton()); // §136: под рюкзаком у правого края
+            col.Add(BuildAgentVoiceButton()); // §160: visible for any attached MCP agent
 
             // Why a manual order failed: a transient note above the combined
             // vitals module, never over the actor's face or the readouts.
@@ -7100,7 +7137,10 @@ namespace HexLive.UnityPresentation.UI
             _runByDefaultNow = npc.RunByDefault;
             if (!_controlAvailable)
             {
-                _paceButton.tooltip = Loc.Get("panel.control.readonly");
+                var agentControlled = _runner != null &&
+                    _runner.TryGetAgentState(npc.Id, out var agent) && agent.Attached;
+                _paceButton.tooltip = Loc.Get(agentControlled
+                    ? "panel.control.agent" : "panel.control.readonly");
                 _paceWalkSegment.style.backgroundColor = Color.clear;
                 _paceRunSegment.style.backgroundColor = Color.clear;
                 _paceWalkGlyph.style.color = TextMute;
@@ -7189,8 +7229,10 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            var agentControlled = _runner != null &&
+                _runner.TryGetAgentState(npc.Id, out var attachedAgent) && attachedAgent.Attached;
             var available = _runner != null && _runner.SupportsNpcCommands &&
-                _runner.CanControlNpc(npc.Id) && npc.Health > 0f;
+                _runner.CanControlNpc(npc.Id) && npc.Health > 0f && !agentControlled;
             _controlAvailable = available;
             var readable = _runner != null;
             _controlButton.style.display = readable ? DisplayStyle.Flex : DisplayStyle.None;
@@ -7200,7 +7242,8 @@ namespace HexLive.UnityPresentation.UI
             }
             if (!available)
             {
-                _controlButton.tooltip = Loc.Get("panel.control.readonly");
+                _controlButton.tooltip = Loc.Get(agentControlled
+                    ? "panel.control.agent" : "panel.control.readonly");
                 _controlAiSegment.style.backgroundColor = Color.clear;
                 _controlPlayerSegment.style.backgroundColor = Color.clear;
                 _controlAiGlyph.style.color = TextMute;
@@ -7874,6 +7917,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             LocalizeJournal(); // §136
+            LocalizeAgentVoice(); // §160
 
             // Inventory window (spec §51) — static chrome + force a rebuild so
             // the item rows / open detail re-localize on the next refresh.

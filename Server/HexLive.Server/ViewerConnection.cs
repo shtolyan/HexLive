@@ -61,6 +61,12 @@ public sealed class ViewerConnection
     private readonly string? _controlOwner;
     private readonly ControlLeases? _leases;
     private readonly HashSet<int>? _assignedNpcIds;
+    private readonly AgentSessionRegistry? _agentSessions;
+    private readonly int _worldGeneration;
+    private readonly DeepgramTokenBroker? _deepgram;
+    private readonly string _viewerId;
+    private readonly Dictionary<int, long> _agentStateRevisions = new();
+    private long _lastSpeechSequence;
     private byte[]? _lastCraftingOptionsFrame;
 
     private double _rateTokens = CommandBurst;
@@ -76,7 +82,9 @@ public sealed class ViewerConnection
     public ViewerConnection(
         WorldHost host, WebSocket socket, string simData, bool includeDebugDetails,
         string? controlOwner = null, ControlLeases? leases = null,
-        IReadOnlyList<int>? assignedNpcIds = null, bool compress = false)
+        IReadOnlyList<int>? assignedNpcIds = null, bool compress = false,
+        AgentSessionRegistry? agentSessions = null, int worldGeneration = 0,
+        DeepgramTokenBroker? deepgram = null, string? viewerId = null)
     {
         _host = host;
         _socket = socket;
@@ -88,14 +96,25 @@ public sealed class ViewerConnection
         _assignedNpcIds = assignedNpcIds is null
             ? null
             : new HashSet<int>(assignedNpcIds);
+        _agentSessions = agentSessions;
+        _worldGeneration = worldGeneration;
+        _deepgram = deepgram;
+        _viewerId = string.IsNullOrWhiteSpace(viewerId)
+            ? Guid.NewGuid().ToString("N")
+            : viewerId!;
     }
 
     private bool ControlEnabled =>
-        _controlOwner is not null && _leases is not null && _assignedNpcIds is not null;
+        !string.IsNullOrWhiteSpace(_controlOwner) && _leases is not null && _assignedNpcIds is not null;
 
     public async Task RunAsync(CancellationToken cancel)
     {
         _eventSeq = _host.HighestEventSeq;
+        if (ControlEnabled && _agentSessions != null)
+        {
+            _lastSpeechSequence = _agentSessions.LatestSpeechSequence;
+            _agentSessions.SetViewerPresence(_viewerId, _assignedNpcIds!, true);
+        }
 
         var handshake = new Handshake
         {
@@ -110,6 +129,8 @@ public sealed class ViewerConnection
             SimData = _simData,
             ControlEnabled = ControlEnabled,
             ControlOwner = _controlOwner ?? string.Empty,
+            AgentIntegrationEnabled = _agentSessions != null,
+            SttAvailable = ControlEnabled && _deepgram?.Available == true,
         };
         if (_assignedNpcIds is not null)
         {
@@ -118,6 +139,7 @@ public sealed class ViewerConnection
         }
 
         await SendAsync(Frame.Handshake(handshake), cancel).ConfigureAwait(false);
+        await SendAgentUpdatesIfChangedAsync(cancel).ConfigureAwait(false);
 
         // Commands arrive on their own loop so a silent client never blocks the
         // frames going out.
@@ -170,11 +192,13 @@ public sealed class ViewerConnection
                     }
 
                     await SendCraftingOptionsIfChangedAsync(cancel).ConfigureAwait(false);
+                    await SendAgentUpdatesIfChangedAsync(cancel).ConfigureAwait(false);
 
                     continue;
                 }
 
                 await _host.WaitForNextTickAsync(lastTick, poll, cancel).ConfigureAwait(false);
+                await SendAgentUpdatesIfChangedAsync(cancel).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -187,6 +211,63 @@ public sealed class ViewerConnection
         }
 
         await reader.ConfigureAwait(false);
+    }
+
+    /// <summary>Called by the endpoint finally-block even if handshake/send failed.</summary>
+    public void Disconnect()
+    {
+        if (_agentSessions != null)
+            _agentSessions.SetViewerPresence(_viewerId, Array.Empty<int>(), false);
+    }
+
+    private async Task SendAgentUpdatesIfChangedAsync(CancellationToken cancel)
+    {
+        if (!ControlEnabled || _agentSessions == null) return;
+
+        var states = _agentSessions.StatesFor(_assignedNpcIds!);
+        for (var i = 0; i < states.Length; i++)
+        {
+            var state = states[i];
+            if (_agentStateRevisions.TryGetValue(state.NpcId, out var sent) &&
+                sent == state.Revision) continue;
+            _agentStateRevisions[state.NpcId] = state.Revision;
+            await SendAsync(AgentWire.AgentState(state), cancel).ConfigureAwait(false);
+        }
+
+        var speech = _agentSessions.UtterancesAfter(_lastSpeechSequence, _assignedNpcIds!);
+        for (var i = 0; i < speech.Length; i++)
+        {
+            var item = speech[i];
+            var metadata = item.Metadata;
+            await SendAsync(AgentWire.AgentSpeechBegin(new AgentSpeechBeginFrame
+            {
+                Sequence = item.Sequence,
+                NpcId = item.NpcId,
+                UtteranceId = metadata.UtteranceId,
+                TurnId = metadata.TurnId,
+                Language = metadata.Language,
+                Text = metadata.Text,
+                Emotion = metadata.Emotion,
+                Delivery = metadata.Delivery,
+                Priority = metadata.Priority,
+                TotalBytes = metadata.TotalBytes,
+                DurationMilliseconds = metadata.DurationMilliseconds,
+                Sha256 = metadata.Sha256,
+            }), cancel).ConfigureAwait(false);
+
+            var chunkIndex = 0;
+            for (var offset = 0; offset < item.Bytes.Length; offset += AgentWire.MaxChunkBytes)
+            {
+                var count = Math.Min(AgentWire.MaxChunkBytes, item.Bytes.Length - offset);
+                var chunk = new byte[count];
+                Buffer.BlockCopy(item.Bytes, offset, chunk, 0, count);
+                await SendAsync(AgentWire.AgentSpeechChunk(
+                    metadata.UtteranceId, chunkIndex++, chunk), cancel).ConfigureAwait(false);
+            }
+            await SendAsync(AgentWire.AgentSpeechEnd(metadata.UtteranceId, metadata.Sha256), cancel)
+                .ConfigureAwait(false);
+            _lastSpeechSequence = item.Sequence;
+        }
     }
 
     /// <summary>
@@ -260,6 +341,20 @@ public sealed class ViewerConnection
                     continue;
                 }
 
+                if (buffer[0] == (byte)FrameKind.SttTokenRequest)
+                {
+                    await HandleSttTokenRequestAsync(buffer, result, cancel).ConfigureAwait(false);
+                    if (!result.EndOfMessage) await DrainOversizedMessageAsync(buffer, cancel).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (buffer[0] == (byte)FrameKind.AgentTextInput)
+                {
+                    await HandleAgentTextInputAsync(buffer, result, cancel).ConfigureAwait(false);
+                    if (!result.EndOfMessage) await DrainOversizedMessageAsync(buffer, cancel).ConfigureAwait(false);
+                    continue;
+                }
+
                 // The viewer's chain broke (a gap, a decode failure, a fresh
                 // mirror). Answer with a full frame — the one recovery path.
                 //
@@ -328,6 +423,81 @@ public sealed class ViewerConnection
         }
     }
 
+    private async Task HandleSttTokenRequestAsync(
+        byte[] buffer, WebSocketReceiveResult result, CancellationToken cancel)
+    {
+        var correlationId = result.Count >= 5 ? BitConverter.ToInt32(buffer, 1) : 0;
+        if (!result.EndOfMessage || !ControlEnabled || _deepgram == null || !_deepgram.Available)
+        {
+            await SendAsync(AgentWire.SttTokenResult(correlationId, false, string.Empty, 0,
+                !result.EndOfMessage ? "BadFrame" : "SttUnavailable"), cancel).ConfigureAwait(false);
+            return;
+        }
+
+        try
+        {
+            var payload = new byte[result.Count - 1];
+            Buffer.BlockCopy(buffer, 1, payload, 0, payload.Length);
+            correlationId = AgentWire.ReadSttTokenRequest(payload);
+        }
+        catch (Exception ex) when (ex is InvalidDataException or EndOfStreamException)
+        {
+            await SendAsync(AgentWire.SttTokenResult(correlationId, false, string.Empty, 0,
+                "BadFrame"), cancel).ConfigureAwait(false);
+            return;
+        }
+
+        var grant = await _deepgram.GrantAsync(_controlOwner!, cancel).ConfigureAwait(false);
+        await SendAsync(AgentWire.SttTokenResult(correlationId, grant.Accepted, grant.Token,
+            grant.Accepted ? grant.ExpiresUtc.ToUnixTimeMilliseconds() : 0, grant.Reason), cancel)
+            .ConfigureAwait(false);
+    }
+
+    private async Task HandleAgentTextInputAsync(
+        byte[] buffer, WebSocketReceiveResult result, CancellationToken cancel)
+    {
+        AgentTextInputFrame input;
+        var correlationId = result.Count >= 5 ? BitConverter.ToInt32(buffer, 1) : 0;
+        if (!result.EndOfMessage || !ControlEnabled || _agentSessions == null)
+        {
+            await SendAsync(AgentWire.AgentTextResult(correlationId, false, string.Empty,
+                !result.EndOfMessage ? "BadFrame" : "ControlNotGranted"), cancel)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        try
+        {
+            var payload = new byte[result.Count - 1];
+            Buffer.BlockCopy(buffer, 1, payload, 0, payload.Length);
+            input = AgentWire.ReadAgentTextInput(payload);
+        }
+        catch (Exception ex) when (ex is InvalidDataException or EndOfStreamException)
+        {
+            await SendAsync(AgentWire.AgentTextResult(correlationId, false, string.Empty,
+                "BadFrame"), cancel).ConfigureAwait(false);
+            return;
+        }
+
+        if (!_assignedNpcIds!.Contains(input.NpcId))
+        {
+            await SendAsync(AgentWire.AgentTextResult(input.CorrelationId, false, input.MessageId,
+                "NotAssigned"), cancel).ConfigureAwait(false);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(input.MessageId) || string.IsNullOrWhiteSpace(input.Text))
+        {
+            await SendAsync(AgentWire.AgentTextResult(input.CorrelationId, false, input.MessageId,
+                "EmptyText"), cancel).ConfigureAwait(false);
+            return;
+        }
+
+        var accepted = _agentSessions.TryEnqueuePlayerText(input.NpcId, input.MessageId,
+            input.Language, input.Text, out var reason);
+        await SendAsync(AgentWire.AgentTextResult(input.CorrelationId, accepted, input.MessageId,
+            reason), cancel).ConfigureAwait(false);
+    }
+
     // §121.9: один кадр NpcCommand — один синхронный вердикт CommandResult.
     // Порядок обороны: полный ли кадр → авторизован ли → rate-limit → разбор →
     // лизы → симуляция. До SubmitManualCommand доходит только то, что прошло
@@ -384,8 +554,31 @@ public sealed class ViewerConnection
     }
 
     private bool TryMapLease(ISimulationCommand command, out string refusal)
-        => PlayerCommandAuthorization.TryAuthorize(
+    {
+        if (_agentSessions != null)
+        {
+            if (command is IGroupSimulationCommand group)
+            {
+                for (var i = 0; i < group.Actors.Count; i++)
+                {
+                    if (_agentSessions.HasAttachment(group.Actors[i].Value))
+                    {
+                        refusal = "ControlledByAgent";
+                        return false;
+                    }
+                }
+            }
+            else if (command.TargetEntity is { } target &&
+                     _agentSessions.HasAttachment(target.Value))
+            {
+                refusal = "ControlledByAgent";
+                return false;
+            }
+        }
+
+        return PlayerCommandAuthorization.TryAuthorize(
             command, _assignedNpcIds!, _leases!, _controlOwner!, out refusal);
+    }
 
     private bool TakeRateToken()
     {

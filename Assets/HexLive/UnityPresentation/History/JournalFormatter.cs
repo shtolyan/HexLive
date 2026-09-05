@@ -71,6 +71,11 @@ public static class JournalFormatter
     public static JournalText Format(JournalEntrySnapshot entry)
     {
         var time = GameHistoryFormatter.FormatTime(entry.Tick);
+        if (entry.Type == "CompanionNarrative")
+        {
+            return new JournalText(time, entry.Extra ?? string.Empty, GameHistoryTone.Social);
+        }
+
         var body = entry.QuietHours > 0 ? Quiet(entry) : Event(entry);
         return new JournalText(time, body, ToneOf(entry));
     }

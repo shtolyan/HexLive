@@ -1818,7 +1818,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // which cast a fixed girl on purpose.
     public void Construct(string actorMeshName, int npcId = 0)
     {
-        Construct(actorMeshName, npcId, null, null, null, null);
+        Construct(actorMeshName, npcId, null, null, null, null, false);
     }
 
     // §74: a girl is a COMPOSITION. The mesh still decides the body — and with
@@ -1834,7 +1834,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // i.e. exactly the pre-§74 body, which is what a test scene and a pre-§74
     // save both get.
     public void Construct(string actorMeshName, int npcId,
-        string skinSet, string eyeColor, string hairstyle, string voiceBank)
+        string skinSet, string eyeColor, string hairstyle, string voiceBank,
+        bool useAuthoredAppearance = false)
     {
         _npcId = npcId;
         LiveByNpcId[npcId] = this;
@@ -1993,7 +1994,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // plus their albedo/normal maps once and never looks again. Swap
             // after either of them and the girl wears her donor's skin with the
             // previous body's paint targets, which reads as a shader bug.
-            ApplySkinSet(skinSet);
+            ApplySkinSet(skinSet, preserveAuthoredEyes: useAuthoredAppearance);
             // §85: and her eyes after it, because the skin set carries an eye
             // map of its own — applying the eye set first would let the donor's
             // irises overwrite the rolled ones. Both still land BEFORE
@@ -4599,6 +4600,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void EnsureSpeechBubble()
     {
+        _speech ??= new UI.NpcSpeechDirector(this);
         // Anchor to the head bone (calibrated in Construct); until it exists the
         // NPC can't have started talking yet, so deferring is harmless.
         if (_speechBubble != null || _headBone == null)
@@ -4610,7 +4612,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         go.transform.SetParent(transform, false);
         _speechBubble = go.AddComponent<NpcSpeechBubble>();
         _speechBubble.Initialize(_headBone, 5000 + _npcId * 4);
-        _speech = new UI.NpcSpeechDirector(this);
     }
 
     // ---- §67.10 ISpeechStage: the mouth the director drives ----------------
@@ -4619,6 +4620,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         => PlayVoiceLine(speechId, null, speechId == "hurt_wound" || speechId == "hurt_bitten"
             ? Audio.FmodSfx.Sfx.HurtF
             : speechId == "hurt_death" ? Audio.FmodSfx.Sfx.DeathF : null);
+
+    float UI.ISpeechStage.PlayExternalVoiceLine(
+        string wavPath, string visemePath, string emotion, bool listenerRelative)
+    {
+        if (Audio.FmodSfx.IsPlaying(ref _voiceChannel)) return 0f;
+        var pos = TryGetBodyCenter(out var center) ? center : transform.position;
+        // Core voices bypass the Studio bus duck. Keep their authored gain.
+        _voiceChannel = Audio.FmodSfx.PlayFileTracked(
+            wavPath, visemePath, pos, 1f,
+            listenerRelative);
+        if (_voiceLipSync != null) _voiceLipSync.Speak(ref _voiceChannel);
+        var lengthMs = Audio.FmodSfx.GetLengthMs(ref _voiceChannel);
+        if (_face != null) _face.FlashTalkEmotion(emotion, lengthMs > 0 ? lengthMs / 1000f : 2.5f);
+        return lengthMs > 0 ? lengthMs / 1000f : 0f;
+    }
 
     void UI.ISpeechStage.StopVoiceLine() => Audio.FmodSfx.StopLoop(ref _voiceChannel);
 
@@ -4634,6 +4650,23 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // fast-forward stays mute so a 8× catch-up doesn't shout.
     bool UI.ISpeechStage.CanSpeak(bool alarm)
         => (alarm || !_dead) && _simSpeed <= 4.01f;
+
+    bool UI.ISpeechStage.CanSpeakExternal(bool playerReply)
+        => !_dead && (playerReply || _simSpeed <= 4.01f);
+
+    public bool IsExternalVoicePlaying(string wavPath) =>
+        string.Equals(_voiceChannel.File, wavPath, System.StringComparison.Ordinal) &&
+        Audio.FmodSfx.IsPlaying(ref _voiceChannel);
+
+    /// <summary>§160: external reply routed through the existing mouth director.</summary>
+    public bool SayExternalVoice(
+        string wavPath, string visemePath, string emotion, bool playerReply)
+    {
+        EnsureSpeechBubble();
+        return _speech != null && _speech.SayExternal(
+            wavPath, visemePath, emotion,
+            playerReply ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient);
+    }
 
     // §armed-stance: while ANY tool/weapon (tool.*) is in the hand, the base Idle
     // and Walk clips are swapped for weapon-ready versions (NpcAnimSet.armedIdle /
@@ -6603,7 +6636,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // the SAME 17 material slot names (Torso/Face/Arms/Legs/Cornea/… — §31B.1a
     // regenerated Jolly's from Molly's precisely so the sets stay parallel), so
     // the swap is a lookup BY NAME and never depends on submesh order.
-    private void ApplySkinSet(string skinSet)
+    private void ApplySkinSet(string skinSet, bool preserveAuthoredEyes = false)
     {
         if (string.IsNullOrEmpty(skinSet) || _bodySkins == null ||
             string.Equals(skinSet, _actorMesh.ToString(), System.StringComparison.OrdinalIgnoreCase))
@@ -6611,7 +6644,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        ReplaceBodyMaterials(LoadSkinSet(skinSet));
+        ReplaceBodyMaterials(LoadSkinSet(skinSet), preserveAuthoredEyes);
     }
 
     // §85: the iris, split out of the skin set above.
@@ -6645,7 +6678,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // own copies from whatever it finds (`body.materials`), and the tan on
     // un-painted slots rides a MaterialPropertyBlock — so nothing here leaks
     // one girl's wounds onto another's shared asset.
-    private void ReplaceBodyMaterials(Dictionary<string, Material> donor)
+    private void ReplaceBodyMaterials(Dictionary<string, Material> donor,
+        bool preserveAuthoredEyes = false)
     {
         if (donor == null || donor.Count == 0)
         {
@@ -6665,7 +6699,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var changed = false;
             for (var i = 0; i < mats.Length; i++)
             {
-                if (mats[i] == null || !donor.TryGetValue(mats[i].name, out var replacement) ||
+                if (mats[i] == null ||
+                    (preserveAuthoredEyes && IsEyeMaterial(mats[i].name)) ||
+                    !donor.TryGetValue(mats[i].name, out var replacement) ||
                     replacement == null || ReferenceEquals(replacement, mats[i]))
                 {
                     continue;
@@ -6680,6 +6716,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 skin.sharedMaterials = mats;
             }
         }
+    }
+
+    // §159: the authored Masha combination is Jana geometry + Marta skin.
+    // The five optical slots remain Jana's even though they also happen to be
+    // present in every donor actor prefab. EyeSocket intentionally is not here:
+    // it is face texture and therefore belongs to the selected skin set (§85).
+    private static bool IsEyeMaterial(string materialName)
+    {
+        return string.Equals(materialName, "Irises", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(materialName, "Sclera", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(materialName, "Pupils", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(materialName, "Cornea", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(materialName, "EyeMoisture", System.StringComparison.OrdinalIgnoreCase);
     }
 
     // Eye colour id → the five eye materials by name, merged from the shared

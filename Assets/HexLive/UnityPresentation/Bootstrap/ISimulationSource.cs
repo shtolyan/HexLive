@@ -4,6 +4,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Wire;
 
 namespace HexLive.UnityPresentation.Bootstrap
 {
@@ -194,6 +195,31 @@ public interface ISimulationSource
     /// </para>
     /// </summary>
     void EnqueueCommand(ISimulationCommand command);
+
+    /// <summary>§160 generic MCP agent bridge. Local backends return false.</summary>
+    bool SupportsAgentIntegration { get; }
+
+    bool SttAvailable { get; }
+
+    bool TryGetAgentState(EntityId npc, out AgentStateFrame state);
+
+    void RequestSttToken(int correlationId);
+
+    bool TryTakeSttTokenResult(out SttTokenResultFrame result);
+
+    void SendAgentText(int correlationId, EntityId npc, string messageId,
+        string language, string text);
+
+    bool TryTakeAgentTextResult(out AgentTextResultFrame result);
+
+    bool TryTakeAgentSpeech(out AgentSpeechMessage speech);
+}
+
+/// <summary>Validated, complete §160 utterance handed from the backend to FMOD.</summary>
+public sealed class AgentSpeechMessage
+{
+    public AgentSpeechBeginFrame Metadata { get; set; } = new();
+    public byte[] Wav { get; set; } = System.Array.Empty<byte>();
 }
 
 /// <summary>

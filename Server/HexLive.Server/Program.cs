@@ -141,7 +141,8 @@ public static class Program
             // The supervisor owns the world AND its tick thread, so the admin
             // panel can start a fresh colony without restarting the process.
             worlds = new WorldSupervisor(options.Seed, options.Mode, options.SavePath, assetCatalog,
-                options.VerboseTrace, options.IncludeDebugDetails, options.Llm, lifetime.Token);
+                options.VerboseTrace, options.IncludeDebugDetails, options.Llm,
+                options.CompanionProfile, lifetime.Token);
         }
         catch (Exception ex)
         {
@@ -184,6 +185,8 @@ public static class Program
         ControlLeases? controlLeases = null;
         AccessTokenFile? playerToken = null;
         PlayerCharacterAssignments? playerAssignments = null;
+        var agentSessions = new AgentSessionRegistry();
+        using var deepgram = new DeepgramTokenBroker();
         if (options.ControlEnabled || options.McpEnabled)
         {
             controlLeases = new ControlLeases(options.McpLeaseSeconds);
@@ -293,7 +296,11 @@ public static class Program
             var viewer = new ViewerConnection(viewerSession.Host, socket, viewerSession.SimData,
                 options.IncludeDebugDetails, controlOwner,
                 controlOwner is null ? null : controlLeases,
-                assignedNpcIds, acceptsGzip);
+                assignedNpcIds, acceptsGzip,
+                options.McpEnabled ? agentSessions : null,
+                viewerSession.WorldGeneration,
+                controlOwner is null ? null : deepgram,
+                Guid.NewGuid().ToString("N"));
             try
             {
                 await viewer.RunAsync(viewerSession.Lifetime);
@@ -304,6 +311,7 @@ public static class Program
             }
             finally
             {
+                viewer.Disconnect();
                 Console.WriteLine("[viewer] disconnected");
             }
         });
@@ -328,7 +336,7 @@ public static class Program
             // спека едет к нему тем же швом, что и всё остальное.
             var spec = Mcp.SpecLibrary.Discover(options.SpecDir);
 
-            Mcp.McpEndpoint.Map(app, worlds, mcpToken, leases, spec);
+            Mcp.McpEndpoint.Map(app, worlds, mcpToken, leases, agentSessions, spec);
             Console.WriteLine(
                 $"[server] mcp control    http://localhost:{options.Port}/mcp " +
                 $"(токен в {options.McpTokenPath}, лиз {leases.TimeoutSeconds} с)");
@@ -353,6 +361,7 @@ public static class Program
         worlds.WorldSwapped += () =>
         {
             controlLeases?.Clear();
+            agentSessions.Clear();
             var viewerSession = worlds.CaptureViewerSession();
             playerAssignments?.SwitchWorld(viewerSession.WorldGeneration);
             if (options.McpEnabled)
@@ -367,6 +376,9 @@ public static class Program
         var leaseSweep = controlLeases is null
             ? Task.CompletedTask
             : Task.Run(() => LeaseSweepAsync(worlds, controlLeases, lifetime.Token));
+        var agentSweep = options.McpEnabled
+            ? Task.Run(() => AgentSweepAsync(worlds, agentSessions, lifetime.Token))
+            : Task.CompletedTask;
 
         // A plain GET for eyeballing that the thing is alive.
         AssetEndpoints.Map(app, assetRegistry);
@@ -394,7 +406,7 @@ public static class Program
         }
 
         lifetime.Cancel();
-        await Task.WhenAll(autosave, status, leaseSweep).ConfigureAwait(false);
+        await Task.WhenAll(autosave, status, leaseSweep, agentSweep).ConfigureAwait(false);
 
         // Last write wins: whatever happens, the colony that was alive a second
         // ago is on disk when this process ends.
@@ -452,7 +464,7 @@ public static class Program
         {
             while (!cancel.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(5), cancel).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(1), cancel).ConfigureAwait(false);
                 expired.Clear();
                 leases.CollectExpired(expired);
                 foreach (var (npcId, owner) in expired)
@@ -464,6 +476,23 @@ public static class Program
                         $"[control] lease of NPC{npcId} by {owner} expired — " +
                         $"returned to AI ({admission.Status})");
                 }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private static async Task AgentSweepAsync(
+        WorldSupervisor worlds, AgentSessionRegistry sessions, CancellationToken cancel)
+    {
+        try
+        {
+            while (!cancel.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), cancel).ConfigureAwait(false);
+                var viewer = worlds.CaptureViewerSession();
+                sessions.Sweep(viewer.Host, viewer.WorldGeneration);
             }
         }
         catch (OperationCanceledException)
@@ -676,6 +705,9 @@ public sealed class ServerOptions
     /// </summary>
     public bool McpEnabled { get; private set; }
 
+    /// <summary>§160: explicitly enabled authored character preset.</summary>
+    public string? CompanionProfile { get; private set; }
+
     /// <summary>
     /// §145.3: сетевое управление ИГРОКА выключено по умолчанию по той же
     /// логике, что MCP: дверь, которой не просили, должна быть закрыта.
@@ -784,6 +816,12 @@ public sealed class ServerOptions
                 case "--mcp":
                     options.McpEnabled = true;
                     break;
+                case "--companion" when i + 1 < args.Length:
+                    options.CompanionProfile = args[++i].Trim().ToLowerInvariant();
+                    break;
+                case "--character-preset" when i + 1 < args.Length:
+                    options.CompanionProfile = args[++i].Trim().ToLowerInvariant();
+                    break;
                 case "--control":
                     options.ControlEnabled = true;
                     break;
@@ -832,6 +870,8 @@ public sealed class ServerOptions
                         "  --debug-details  include per-NPC debug dumps in every frame\n" +
                         "  --verbose-trace  match the editor's trace verbosity (only ~2% more events)\n" +
                         "  --mcp            expose MCP control at /mcp (off by default)\n" +
+                        "  --character-preset masha  ensure the authored Masha body preset exists\n" +
+                        "  --companion masha  deprecated alias for --character-preset masha\n" +
                         "  --control        allow player NPC control over /watch (token in hexlive-player.txt)\n" +
                         "  --mcp-lease N    seconds a control lease survives without commands (default 120)\n" +
                         "  --spec-dir PATH  spec served to MCP agents (default: Spec/ beside the binary)\n" +
@@ -849,6 +889,12 @@ public sealed class ServerOptions
                     Console.Error.WriteLine($"Unknown option '{args[i]}' — try --help.");
                     return null;
             }
+        }
+
+        if (options.CompanionProfile is { Length: > 0 } profile)
+        {
+            if (!string.Equals(profile, "masha", StringComparison.Ordinal))
+                throw new ArgumentException($"unknown companion profile '{profile}'");
         }
 
         options.Llm.Validate();

@@ -474,6 +474,11 @@ public sealed class NpcSnapshot
 {
     public EntityId Id { get; set; }
 
+    // §159: stable companion identity; never infer it from name or body.
+    public string ProfileId { get; set; } = string.Empty;
+
+    public bool UseAuthoredAppearance { get; set; }
+
     // §74: a name ID (resolved through I2 as `npc.<id>.name`), not a label.
     public string DisplayName { get; set; } = string.Empty;
 
@@ -490,6 +495,12 @@ public sealed class NpcSnapshot
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
+
+    public int HexkufaExposure { get; set; }
+    public float PlayerVoiceFamiliarity { get; set; }
+    public float PlayerVoiceTrust { get; set; }
+    public float PlayerVoiceAffinity { get; set; }
+    public int PlayerVoiceLastInteractionTick { get; set; } = -1;
 
     // §72: which side this survivor is on, and the one question the UI actually
     // asks — precomputed sim-side so no view file needs the Runtime namespace.

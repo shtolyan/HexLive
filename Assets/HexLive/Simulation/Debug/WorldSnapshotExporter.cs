@@ -307,12 +307,12 @@ public static class WorldSnapshotExporter
         snapshot.Journals.Clear();
         foreach (var pair in world.Entities.Npcs)
         {
-            AddJournal(snapshot, pair.Key.Value, pair.Value.Journal);
+            AddJournal(snapshot, pair.Value);
         }
 
         foreach (var pair in world.Entities.Corpses)
         {
-            AddJournal(snapshot, pair.Key.Value, pair.Value.Journal);
+            AddJournal(snapshot, pair.Value);
         }
 
         snapshot.Journals.Sort(ByJournalNpcId);
@@ -1077,12 +1077,21 @@ public static class WorldSnapshotExporter
             HeldGarmentDurability = npc.Execution.HeldGarment?.Durability ?? 1f,
             TargetObjectId = (npc.Execution.TargetObject ?? npc.Plan.TargetObjectId)?.Value,
             Id = npc.Id,
+            ProfileId = npc.ProfileId,
+            UseAuthoredAppearance = npc.UseAuthoredAppearance,
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,
             SkinSet = npc.SkinSet,
             EyeColor = npc.EyeColor,
             Hairstyle = npc.Hairstyle,
             VoiceBank = npc.VoiceBank,
+            HexkufaExposure = npc.HexkufaExposure,
+            // Append-only wire placeholders for old clients. Personal relation
+            // axes are supplied only by the active §160 AgentState.
+            PlayerVoiceFamiliarity = 0f,
+            PlayerVoiceTrust = 0f,
+            PlayerVoiceAffinity = 0f,
+            PlayerVoiceLastInteractionTick = -1,
             Faction = npc.Faction,
             IsHostileToColony = Runtime.FactionRelations.AreHostile(
                 world, npc.Faction, Faction.Colony),
@@ -1641,15 +1650,15 @@ public static class WorldSnapshotExporter
     /// <summary>§136: перелить кольцо дневника в секцию снапшота.</summary>
     private static void AddJournal(
         WorldSnapshot snapshot,
-        int npcId,
-        Runtime.Journal.NpcJournal journal)
+        Agents.NPCState npc)
     {
+        var journal = npc.Journal;
         if (journal == null || journal.Entries.Count == 0)
         {
             return;
         }
 
-        var record = new NpcJournalSnapshot { NpcId = npcId };
+        var record = new NpcJournalSnapshot { NpcId = npc.Id.Value };
         var entries = journal.Entries;
         for (var i = 0; i < entries.Count; i++)
         {
@@ -1670,6 +1679,8 @@ public static class WorldSnapshotExporter
                 Chore2 = entry.Chore2 ?? string.Empty
             });
         }
+
+        record.Entries.Sort((a, b) => a.Tick.CompareTo(b.Tick));
 
         snapshot.Journals.Add(record);
     }

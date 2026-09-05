@@ -262,6 +262,11 @@ public sealed partial class ExecutionSystem
                     $"Social={npc.Needs.Social:F2} TargetSocial={target.Needs.Social:F2}");
             }
 
+            // §160: authored outsiders learn Hexkufa only through completed
+            // ordinary Talk. This physical progress is generic and costs no LLM/TTS.
+            if (!string.IsNullOrWhiteSpace(npc.ProfileId)) npc.HexkufaExposure++;
+            if (!string.IsNullOrWhiteSpace(target.ProfileId)) target.HexkufaExposure++;
+
             // Spec 28.15E: stamp the outcome on BOTH so a Sims-style "+/-"
             // relationship pop can float over each head (both relationships
             // moved). Sign = direction, magnitude = single vs double glyph.

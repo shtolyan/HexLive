@@ -588,7 +588,9 @@ public sealed class BatheUndressAtHomeTests
             // по лагерям — хвостовые поля, блоб 66 читается.
             // 67 → 68 в §52/#355: содержимое хранится на каждом физическом
             // экземпляре бутылки и на лежащей в мире бутылке.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(68));
+            // 68 → 69 в §159: профиль, память и отношения Маши.
+            // 69 → 70 в §159.1: версия одноразовой миграции её образа.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(71));
         });
     }
 

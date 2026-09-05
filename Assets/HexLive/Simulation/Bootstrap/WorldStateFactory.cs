@@ -1404,6 +1404,13 @@ public sealed class WorldStateFactory
                 continue;
             }
 
+            // §159: empty eye/hair fields are meaningful for an authored
+            // companion — keep the Jana prefab defaults instead of rolling §74.
+            if (npc.UseAuthoredAppearance)
+            {
+                continue;
+            }
+
             var look = ColonistAppearance.Roll(world.Seed, id, takenNames, takenLooks, takenHairstyles);
 
             if (string.IsNullOrEmpty(npc.ActorMesh))
@@ -1452,6 +1459,8 @@ public sealed class WorldStateFactory
         var npc = new NPCState
         {
             Id = new EntityId(bootstrap.Id),
+            ProfileId = bootstrap.ProfileId,
+            UseAuthoredAppearance = bootstrap.UseAuthoredAppearance,
             DisplayName = bootstrap.DisplayName,
             ActorMesh = bootstrap.ActorMesh,
             SkinSet = bootstrap.SkinSet,

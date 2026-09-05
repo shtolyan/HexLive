@@ -74,6 +74,22 @@ public sealed class ControlLeasesTests
     }
 
     [Test]
+    public void RequestedCompanionTtlOverridesDefaultAndStillExpiresExactlyOnce()
+    {
+        var leases = Create(timeoutSeconds: 120);
+        Assert.That(leases.TryAcquire(901, "mcp:masha", 45, out _, out _), Is.True);
+
+        _now = _now.AddSeconds(44);
+        Assert.That(leases.HolderOf(901), Is.EqualTo("mcp:masha"));
+        _now = _now.AddSeconds(1);
+
+        var expired = new List<(int NpcId, string Owner)>();
+        leases.CollectExpired(expired);
+        Assert.That(expired, Is.EqualTo(new[] { (901, "mcp:masha") }));
+        Assert.That(leases.HolderOf(901), Is.Empty);
+    }
+
+    [Test]
     public void ForceReleaseReportsThePreviousOwner()
     {
         var leases = Create();

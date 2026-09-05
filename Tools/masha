@@ -12,6 +12,8 @@ readonly CONFIG_FILE="$CONFIG_DIR/agent-masha.env"
 readonly LEGACY_CONFIG_FILE="$CONFIG_DIR/masha.env"
 readonly MCP_TOKEN_FILE="$CONFIG_DIR/servers/62.146.235.120/mcp-token"
 readonly STATE_DIR="$HOME/.local/state/hexlive/agent-masha"
+readonly RUNTIME_OUTPUT="$STATE_DIR/runtime"
+readonly INSTALLED_LAUNCHER="$STATE_DIR/masha"
 readonly STATUS_FILE="$STATE_DIR/agent-host-status.json"
 readonly PID_FILE="$STATE_DIR/agent-host.pid"
 readonly LOG_DIR="$HOME/Library/Logs/HexLive"
@@ -131,10 +133,16 @@ start_host() {
   fi
   [[ -r "$HOST_OUTPUT/HexLive.AgentHost.dll" ]] ||
     die "AgentHost is not built. Close Unity Editor, then run: masha build"
+  # launchd jobs cannot rely on removable-volume access granted to Terminal.
+  # Stage the ready binary and wrapper on the internal disk; no compilation,
+  # provider credentials or personal memory are included in this copy.
+  /usr/bin/ditto "$HOST_OUTPUT" "$RUNTIME_OUTPUT" || die "cannot install AgentHost runtime"
+  /usr/bin/install -m 700 "$SCRIPT_DIR/masha" "$INSTALLED_LAUNCHER" ||
+    die "cannot install AgentHost launcher"
   /bin/rm -f "$STATUS_FILE" "$PID_FILE"
   print -- "Starting Masha AgentHost and attaching profileId=masha..."
   /bin/launchctl submit -l "$LAUNCH_LABEL" -o "$LOG_FILE" -e "$LOG_FILE" -- \
-    "$SCRIPT_DIR/masha" _run || die "could not submit $LAUNCH_LABEL"
+    "$INSTALLED_LAUNCHER" _run || die "could not submit $LAUNCH_LABEL"
   local attempt
   for attempt in {1..45}; do
     launch_service_loaded || break
@@ -178,7 +186,8 @@ run_foreground() {
   /bin/chmod 700 "$STATE_DIR" "$MASHA_HOME"
   umask 077
   print -r -- "$$" > "$PID_FILE"; /bin/chmod 600 "$PID_FILE"
-  exec /usr/local/share/dotnet/dotnet "$HOST_OUTPUT/HexLive.AgentHost.dll"
+  builtin cd "$STATE_DIR" || die "cannot enter runtime directory"
+  exec /usr/local/share/dotnet/dotnet "$RUNTIME_OUTPUT/HexLive.AgentHost.dll"
 }
 
 doctor() {

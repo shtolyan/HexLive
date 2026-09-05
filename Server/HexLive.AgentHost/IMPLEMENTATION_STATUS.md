@@ -1,4 +1,7 @@
-# Состояние реализации §160 — 2026-09-05
+# Состояние реализации §160 — до production rollout
+
+**Архивный отчёт до деплоя. Актуальный результат, deployed SHA, проверки,
+recovery и оставшийся блокер Deepgram: [PRODUCTION_ROLLOUT.md](PRODUCTION_ROLLOUT.md).**
 
 ## Реализовано локально
 

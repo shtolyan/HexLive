@@ -287,7 +287,7 @@ public sealed class LootHelplessTests
     }
 
     [Test]
-    public void LooterSkipsTheVictimsBottleWhenAlreadyCarryingOne()
+    public void LooterMayTakeTheVictimsBottleWhenAlreadyCarryingOne()
     {
         var world = TestWorld.CreateWorld();
         var actors = world.Entities.Npcs.Values.Take(2).ToArray();
@@ -304,16 +304,21 @@ public sealed class LootHelplessTests
         Assert.That(LootHelplessMath.TryTake(
             world, looter, victim, out var taken), Is.True);
         Assert.That(taken, Is.EqualTo(GearCatalog.Hammer),
-            "The redundant bottle must not hide useful loot behind it.");
-        Assert.That(LootHelplessMath.HasLootFor(world, looter, victim), Is.False,
-            "A body holding only a redundant bottle must not start another loot scene.");
+            "Tool priority still comes before a physical bottle.");
+        Assert.That(LootHelplessMath.HasLootFor(world, looter, victim), Is.True,
+            "The victim's independent bottle remains valid loot.");
+        Assert.That(LootHelplessMath.TryTake(
+            world, looter, victim, out taken), Is.True);
+        Assert.That(taken, Is.EqualTo(ContentIds.Bottle));
         Assert.Multiple(() =>
         {
             Assert.That(looter.Inventory.Items.Count(
-                i => i.DefinitionId == ContentIds.Bottle), Is.EqualTo(1));
+                i => i.DefinitionId == ContentIds.Bottle), Is.EqualTo(2));
             Assert.That(victim.Inventory.Items.Any(
-                i => ReferenceEquals(i, victimsBottle)), Is.True,
-                "The bottle remains property on the victim; it is not destroyed.");
+                i => ReferenceEquals(i, victimsBottle)), Is.False,
+                "The exact victim bottle must move rather than be recreated.");
+            Assert.That(looter.Inventory.Items.Any(
+                i => ReferenceEquals(i, victimsBottle)), Is.True);
         });
     }
 

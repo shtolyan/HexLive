@@ -140,6 +140,7 @@ public static class WorldSnapshotExporter
             exported.Tile = obj.Tile;
             exported.RotationDegrees = obj.RotationDegrees; // §66: built pieces carry a yaw
             exported.ResourceAmount = obj.ResourceAmount;
+            exported.WaterKind = obj.WaterKind;
             exported.Wetness = obj.Wetness;
             exported.Durability = obj.Durability;
             exported.Dirtiness = obj.Dirtiness;
@@ -219,12 +220,18 @@ public static class WorldSnapshotExporter
                 for (var cell = 0; cell < _containerCellsScratch.Count; cell++)
                 {
                     var (itemId, count, sourceIndex) = _containerCellsScratch[cell];
+                    Runtime.ContainerLootMath.TryResolve(
+                        world, obj, cell, itemId, 1,
+                        out var physicalItems, out _);
+                    var physical = physicalItems.Count > 0 ? physicalItems[0] : null;
                     exported.Contents.Add(new InventorySlotSnapshot
                     {
                         Index = cell,
                         SourceIndex = sourceIndex,
                         ItemDefinitionId = itemId,
-                        StackCount = count
+                        StackCount = count,
+                        ResourceAmount = physical?.ResourceAmount ?? 0f,
+                        WaterKind = physical?.WaterKind ?? WaterKind.None
                     });
                 }
             }
@@ -1172,7 +1179,7 @@ public static class WorldSnapshotExporter
             TargetTile = npc.Plan.TargetTile,
             IsStarving = npc.Mind.IsStarving,
             InventoryCapacity = npc.Inventory.Capacity,
-            BottleWaterKind = npc.BottleWater, // §55.4 / bug #347
+            BottleWaterKind = BottleInventoryMath.FirstDrinkable(npc)?.WaterKind ?? WaterKind.None,
             DeathAnimVariant = npc.DeathAnimVariant, // §28.15C v3
             InventoryUsedSlots = npc.Inventory.UsedSlots,
             GoalLockEndTick = npc.Mind.GoalLock is { } goalLock &&
@@ -1205,6 +1212,8 @@ public static class WorldSnapshotExporter
                     SourceIndex = sourceSlot.SourceIndex,
                     ItemDefinitionId = sourceSlot.ItemDefinitionId,
                     StackCount = sourceSlot.StackCount,
+                    ResourceAmount = sourceSlot.ResourceAmount,
+                    WaterKind = sourceSlot.WaterKind,
                     AcceptedItemDefinitionId = sourceSlot.AcceptedItemDefinitionId
                 });
             }
@@ -1238,8 +1247,9 @@ public static class WorldSnapshotExporter
             stackCounts[item.DefinitionId]++;
         }
 
-        foreach (var item in npc.Inventory.Items)
+        for (var sourceIndex = 0; sourceIndex < npc.Inventory.Items.Count; sourceIndex++)
         {
+            var item = npc.Inventory.Items[sourceIndex];
             if (InventoryState.IsStackable(item.DefinitionId))
             {
                 continue;
@@ -1253,12 +1263,12 @@ public static class WorldSnapshotExporter
             if (item.DefinitionId == "tool.bottle")
             {
                 npcSnapshot.InventoryWater.Add(
-                    $"{item.DefinitionId}\t{npc.BottleCharges.ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{Runtime.SimBalance.BottleCapacity.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    $"{sourceIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{item.DefinitionId}\t{BottleInventoryMath.Charges(item).ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{Runtime.SimBalance.BottleCapacity.ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{((int)item.WaterKind).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
             }
             else if (item.DefinitionId == "food.coconut_pierced")
             {
                 npcSnapshot.InventoryWater.Add(
-                    $"{item.DefinitionId}\t{item.ResourceAmount.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}\t{Runtime.SimBalance.CoconutWaterCapacity.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    $"{sourceIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{item.DefinitionId}\t{item.ResourceAmount.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}\t{Runtime.SimBalance.CoconutWaterCapacity.ToString(System.Globalization.CultureInfo.InvariantCulture)}\t{((int)WaterKind.Coconut).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
             }
         }
 

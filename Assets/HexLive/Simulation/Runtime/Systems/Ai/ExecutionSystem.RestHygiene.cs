@@ -714,7 +714,7 @@ public sealed partial class ExecutionSystem
             // props. Keep the authoritative item worn until the doff beat is
             // complete; a save/interrupt before that point therefore resumes
             // with the item still owned, never in a non-serialized limbo.
-            npc.WornItems.Remove(garment);
+            InventoryMath.RemoveReference(npc.WornItems, garment);
             // §133: если раздевается у гардероба/сушилки — вещь вешается на неё,
             // а не падает под ноги. Станция переполнилась (вторая купальщица
             // успела раньше) — тогда честная куча на полу, это всё равно дома.
@@ -1055,6 +1055,7 @@ public sealed partial class ExecutionSystem
                 Durability = garment.Durability,
                 Dirtiness = garment.Dirtiness,
                 Bloodiness = garment.Bloodiness,
+                WaterKind = garment.WaterKind,
                 // §133: она одевается обратно В СВОЮ одежду — владелец её же.
                 OwnerId = ClothingOwnership.ResolveOnTake(world, npc, garment)
             });
@@ -1326,7 +1327,7 @@ public sealed partial class ExecutionSystem
         {
             npc.Inventory.Items.Add(held);
         }
-        else if (!npc.WornItems.Contains(held))
+        else if (!InventoryMath.ContainsReference(npc.WornItems, held))
         {
             npc.WornItems.Add(held);
             EquipmentMath.Recalculate(world, npc);
@@ -1480,6 +1481,7 @@ public sealed partial class ExecutionSystem
             Dirtiness = garment.Dirtiness,
             Bloodiness = garment.Bloodiness,
             ResourceAmount = garment.ResourceAmount,
+            WaterKind = garment.WaterKind,
             // §133: вещь в руках не теряет хозяйку — иначе постирать чужое
             // значило бы его присвоить.
             OwnerId = ClothingOwnership.OwnerIdOf(garment)

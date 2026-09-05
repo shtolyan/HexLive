@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
@@ -214,6 +215,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _inventoryMutable;
         private string _invDraggedId;
         private bool _invDraggedWorn;
+        private int _invDraggedSourceIndex = -1;
         private bool _inventoryOpen;
         private string _invSig;               // rebuild the list only on change
         private string _invSelectedId;        // item shown in the detail view
@@ -232,6 +234,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _invPreviewRotated;
         private string _invPointerItemId;
         private bool _invPointerItemWorn;
+        private int _invPointerSourceIndex = -1;
         private int _invPointerId = -1;
         private Vector2 _invPointerDownPosition;
         private bool _invPointerMoved;
@@ -263,7 +266,7 @@ namespace HexLive.UnityPresentation.UI
         private const float InventoryLayerBarGap = 8f;
         private const float InventoryDragThreshold = 6f;
         private Dictionary<string, float> _invWornDurability = new();
-        private Dictionary<string, WaterContainerState> _invCarriedWater = new();
+        private Dictionary<int, WaterContainerState> _invCarriedWater = new();
         private Dictionary<string, int> _invCarriedStacks = new();
         private Dictionary<string, float> _invWornWetness = new();
         private Dictionary<string, float> _invWornDirtiness = new();
@@ -295,8 +298,10 @@ namespace HexLive.UnityPresentation.UI
 
         private struct WaterContainerState
         {
+            public string ItemId;
             public float Amount;
             public float Capacity;
+            public WaterKind Kind;
         }
 
         // Static (re-labeled on language change)
@@ -3815,7 +3820,11 @@ namespace HexLive.UnityPresentation.UI
                         var stillValid = refreshedIndex >= 0 &&
                             refreshedIndex < npc.WornItems.Count &&
                             npc.WornItems[refreshedIndex] == _invSelectedId;
-                        if (!stillValid) refreshedIndex = -1;
+                        if (refreshedIndex >= 0 && !stillValid)
+                        {
+                            HideItemDetail();
+                            return;
+                        }
                     }
                     else
                     {
@@ -3823,9 +3832,10 @@ namespace HexLive.UnityPresentation.UI
                             npc.InventoryContainers.Exists(c => c.Slots.Exists(s =>
                                 s.SourceIndex == refreshedIndex &&
                                 s.ItemDefinitionId == _invSelectedId));
-                        if (!stillValid)
+                        if (refreshedIndex >= 0 && !stillValid)
                         {
-                            refreshedIndex = FindCarriedSourceIndex(npc, _invSelectedId);
+                            HideItemDetail();
+                            return;
                         }
                     }
 
@@ -3844,7 +3854,7 @@ namespace HexLive.UnityPresentation.UI
             NpcSnapshot npc,
             Dictionary<string, float> wornDurability,
             Dictionary<string, float> carriedDurability,
-            Dictionary<string, WaterContainerState> carriedWater,
+            Dictionary<int, WaterContainerState> carriedWater,
             Dictionary<string, int> carriedStacks,
             Dictionary<string, float> wornWetness,
             Dictionary<string, float> carriedWetness,
@@ -3910,7 +3920,8 @@ namespace HexLive.UnityPresentation.UI
                     result.Append('[').Append(slot.Index).Append(':').Append(slot.SourceIndex)
                         .Append(':').Append(slot.ItemDefinitionId)
                         .Append(':').Append(slot.StackCount).Append(':')
-                        .Append(slot.AcceptedItemDefinitionId).Append(']');
+                        .Append(slot.ResourceAmount).Append(':').Append((int)slot.WaterKind)
+                        .Append(':').Append(slot.AcceptedItemDefinitionId).Append(']');
                 }
                 result.Append('|');
             }
@@ -3921,7 +3932,7 @@ namespace HexLive.UnityPresentation.UI
             NpcSnapshot npc,
             InventorySlotSnapshot slot,
             Dictionary<string, float> carriedDurability,
-            Dictionary<string, WaterContainerState> carriedWater,
+            Dictionary<int, WaterContainerState> carriedWater,
             Dictionary<string, int> carriedStacks,
             Dictionary<string, float> carriedWetness,
             Dictionary<string, float> carriedDirtiness)
@@ -4041,7 +4052,7 @@ namespace HexLive.UnityPresentation.UI
             string itemId,
             int sourceIndex,
             Dictionary<string, float> durability,
-            Dictionary<string, WaterContainerState> water,
+            Dictionary<int, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness)
@@ -4132,7 +4143,7 @@ namespace HexLive.UnityPresentation.UI
             string id,
             bool worn,
             Dictionary<string, float> durability,
-            Dictionary<string, WaterContainerState> water,
+            Dictionary<int, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
@@ -4178,7 +4189,7 @@ namespace HexLive.UnityPresentation.UI
 
             BuildItemStats(
                 def, info, worn, durability, water, stacks, wetness, dirtiness,
-                ResolveInventoryOwnerId(id, worn, sourceIndex));
+                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex));
 
             var wearable = def != null && def.Layer.HasValue;
             var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
@@ -4189,7 +4200,8 @@ namespace HexLive.UnityPresentation.UI
                 ? DisplayStyle.Flex : DisplayStyle.None;
             // §55.4 (bug #317): «Наполнить» — только у неполной бутылки, когда
             // в карманах есть кокосовая вода для перелива.
-            _invFillAction.style.display = _inventoryMutable && CanFillVessel(id, worn, water)
+            _invFillAction.style.display = _inventoryMutable &&
+                CanFillVessel(id, worn, water, sourceIndex)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invFillActionLabel.text = Loc.Get("inv.action.fill");
             _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
@@ -4207,20 +4219,29 @@ namespace HexLive.UnityPresentation.UI
 
         // §55.4 (bug #317): «Наполнить» доступна у неполной бутылки при
         // кокосовой воде в карманах — зеркало симового VesselTransferMath
-        // по данным снапшота (InventoryWater: id -> amount/capacity).
+        // по данным снапшота (InventoryWater: physical source index -> state).
         private static bool CanFillVessel(
-            string id, bool worn, Dictionary<string, WaterContainerState> water)
+            string id, bool worn, Dictionary<int, WaterContainerState> water,
+            int sourceIndex)
         {
             if (worn || id != GearCatalog.Bottle)
             {
                 return false;
             }
 
-            var hasRoom = !water.TryGetValue(GearCatalog.Bottle, out var bottle) ||
-                bottle.Amount < bottle.Capacity;
-            return hasRoom &&
-                water.TryGetValue("food.coconut_pierced", out var coconut) &&
-                coconut.Amount > 0f;
+            var hasRoom = !water.TryGetValue(sourceIndex, out var bottle) ||
+                (bottle.Amount < bottle.Capacity &&
+                 (bottle.Amount <= 0f || bottle.Kind == WaterKind.Coconut));
+            if (!hasRoom) return false;
+            foreach (var state in water.Values)
+            {
+                if (state.ItemId == "food.coconut_pierced" && state.Amount > 0f)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void EnqueueFillVessel()
@@ -4292,7 +4313,7 @@ namespace HexLive.UnityPresentation.UI
             string itemId,
             bool worn,
             Dictionary<string, float> durability,
-            Dictionary<string, WaterContainerState> water,
+            Dictionary<int, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
@@ -4348,6 +4369,7 @@ namespace HexLive.UnityPresentation.UI
             ClearInventoryDrag();
             _invPointerItemId = itemId;
             _invPointerItemWorn = worn;
+            _invPointerSourceIndex = sourceIndex;
             _invPointerId = evt.pointerId;
             _invPointerDownPosition = new Vector2(evt.position.x, evt.position.y);
             _invPointerMoved = false;
@@ -4398,7 +4420,8 @@ namespace HexLive.UnityPresentation.UI
             _invPointerMoved = true;
             if (_inventoryMutable)
             {
-                BeginInventoryDrag(_invPointerItemId, _invPointerItemWorn);
+                BeginInventoryDrag(
+                    _invPointerItemId, _invPointerItemWorn, _invPointerSourceIndex);
             }
         }
 
@@ -4415,10 +4438,11 @@ namespace HexLive.UnityPresentation.UI
             return true;
         }
 
-        private void BeginInventoryDrag(string itemId, bool worn)
+        private void BeginInventoryDrag(string itemId, bool worn, int sourceIndex)
         {
             _invDraggedId = itemId;
             _invDraggedWorn = worn;
+            _invDraggedSourceIndex = sourceIndex;
         }
 
         private void CompleteInventoryDrag(InventoryAction action)
@@ -4426,6 +4450,7 @@ namespace HexLive.UnityPresentation.UI
             if (_invDraggedId == null) return;
             _invSelectedId = _invDraggedId;
             _invSelectedWorn = _invDraggedWorn;
+            _invSelectedSourceIndex = _invDraggedSourceIndex;
             EnqueueInventoryAction(action);
             ClearInventoryDrag();
         }
@@ -4434,8 +4459,10 @@ namespace HexLive.UnityPresentation.UI
         {
             _invDraggedId = null;
             _invDraggedWorn = false;
+            _invDraggedSourceIndex = -1;
             _invPointerItemId = null;
             _invPointerItemWorn = false;
+            _invPointerSourceIndex = -1;
             _invPointerDoubleClick = false;
             _invPointerId = -1;
             _invPointerMoved = false;
@@ -4448,10 +4475,11 @@ namespace HexLive.UnityPresentation.UI
             ItemInfo info,
             bool worn,
             Dictionary<string, float> durability,
-            Dictionary<string, WaterContainerState> water,
+            Dictionary<int, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
+            int sourceIndex,
             int ownerId)
         {
             _invDetailStats.Clear();
@@ -4470,7 +4498,8 @@ namespace HexLive.UnityPresentation.UI
                     Loc.Get("inv.stack"), $"x{stackCount}", CategoryColor(ItemCategory.Resource)));
             }
 
-            if (!worn && water.TryGetValue(info.DefinitionId, out var waterState))
+            if (!worn && water.TryGetValue(sourceIndex, out var waterState) &&
+                waterState.ItemId == info.DefinitionId)
             {
                 _invDetailStats.Add(MakeWaterContainerBlock(info.DefinitionId, waterState));
             }

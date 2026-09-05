@@ -25,9 +25,15 @@ public sealed class ItemInstance : System.IEquatable<ItemInstance>
 
     public float Bloodiness { get; set; }
 
-    // Portable container contents, in drink charges. Pierced coconuts use this
-    // like the NPC bottle: pickup/drop preserves the remaining water.
+    // Portable container contents, in drink charges. Every physical vessel
+    // owns its amount: pickup/drop/loot can therefore preserve two bottles
+    // with different contents instead of consulting an NPC-global sidecar.
     public float ResourceAmount { get; set; }
+
+    // §52 / bug #355: provenance belongs to the same physical vessel as the
+    // amount. None + 0 is the canonical empty state. Coconuts use Coconut;
+    // bottles may carry Raw, Boiled, Rain or Coconut water.
+    public WaterKind WaterKind { get; set; } = WaterKind.None;
 
     // §133: who this garment belongs to (NPC id; 0 = nobody's). Mirrors
     // WorldObjectState.Owner across the worn/ground boundary. Deliberately NOT

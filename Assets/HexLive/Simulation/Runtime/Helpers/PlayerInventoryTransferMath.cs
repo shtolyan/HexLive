@@ -9,8 +9,6 @@ namespace HexLive.Simulation.Runtime
 /// <summary>§128 non-mutating validation for one player drag-transfer.</summary>
 internal static class PlayerInventoryTransferMath
 {
-    private const string BottleDefinitionId = "tool.bottle";
-
     internal static int PackCursor(int index, int count) =>
         ((System.Math.Min(System.Math.Max(count, 1), 0x7fff) << 16) |
          (index & 0xffff));
@@ -89,17 +87,6 @@ internal static class PlayerInventoryTransferMath
             return false;
         }
 
-        // Bottle contents still live on NPCState rather than ItemInstance. Until that
-        // legacy representation is migrated, keep its one-bottle invariant explicit:
-        // otherwise a transfer could duplicate or silently replace the stored water.
-        if ((ContainsDefinition(moving, BottleDefinitionId) ||
-             ContainsDefinition(contents, BottleDefinitionId)) &&
-            (CountDefinition(source.Inventory.Items, BottleDefinitionId) != 1 ||
-             CountDefinition(destination.Inventory.Items, BottleDefinitionId) != 0))
-        {
-            return false;
-        }
-
         var sourceCarried = new List<ItemInstance>(source.Inventory.Items);
         var sourceWorn = new List<ItemInstance>(source.WornItems);
         var sourceList = itemRef.Source == InventoryItemSource.Carried
@@ -107,11 +94,11 @@ internal static class PlayerInventoryTransferMath
             : sourceWorn;
         foreach (var item in moving)
         {
-            RemoveReference(sourceList, item);
+            InventoryMath.RemoveReference(sourceList, item);
         }
         foreach (var item in contents)
         {
-            RemoveReference(sourceCarried, item);
+            InventoryMath.RemoveReference(sourceCarried, item);
         }
 
         var destinationCarried = new List<ItemInstance>(destination.Inventory.Items);
@@ -151,13 +138,9 @@ internal static class PlayerInventoryTransferMath
         IReadOnlyList<ItemInstance> moving,
         IReadOnlyList<ItemInstance> contents)
     {
-        var movesBottle = ContainsDefinition(moving, BottleDefinitionId) ||
-                          ContainsDefinition(contents, BottleDefinitionId);
-        var bottleWater = source.BottleWater;
-        var bottleCharges = source.BottleCharges;
         if (itemRef.Source == InventoryItemSource.Worn)
         {
-            RemoveReference(source.WornItems, moving[0]);
+            InventoryMath.RemoveReference(source.WornItems, moving[0]);
             if (HasWearConflict(world, destination, moving[0]))
             {
                 destination.Inventory.Items.Add(moving[0]);
@@ -168,7 +151,7 @@ internal static class PlayerInventoryTransferMath
             }
             foreach (var item in contents)
             {
-                RemoveReference(source.Inventory.Items, item);
+                InventoryMath.RemoveReference(source.Inventory.Items, item);
                 destination.Inventory.Items.Add(item);
             }
 
@@ -179,18 +162,11 @@ internal static class PlayerInventoryTransferMath
         {
             foreach (var item in moving)
             {
-                RemoveReference(source.Inventory.Items, item);
+                InventoryMath.RemoveReference(source.Inventory.Items, item);
                 destination.Inventory.Items.Add(item);
             }
         }
 
-        if (movesBottle)
-        {
-            destination.BottleWater = bottleWater;
-            destination.BottleCharges = bottleCharges;
-            source.BottleWater = WaterKind.None;
-            source.BottleCharges = 0;
-        }
     }
 
     private static bool HasWearConflict(
@@ -215,38 +191,6 @@ internal static class PlayerInventoryTransferMath
         return false;
     }
 
-    private static bool ContainsDefinition(
-        IReadOnlyList<ItemInstance> items, string definitionId)
-    {
-        for (var i = 0; i < items.Count; i++)
-        {
-            if (items[i].DefinitionId == definitionId) return true;
-        }
-
-        return false;
-    }
-
-    private static int CountDefinition(
-        IReadOnlyList<ItemInstance> items, string definitionId)
-    {
-        var count = 0;
-        for (var i = 0; i < items.Count; i++)
-        {
-            if (items[i].DefinitionId == definitionId) count++;
-        }
-
-        return count;
-    }
-
-    private static void RemoveReference(List<ItemInstance> items, ItemInstance sought)
-    {
-        for (var i = 0; i < items.Count; i++)
-        {
-            if (!ReferenceEquals(items[i], sought)) continue;
-            items.RemoveAt(i);
-            return;
-        }
-    }
 }
 
 }

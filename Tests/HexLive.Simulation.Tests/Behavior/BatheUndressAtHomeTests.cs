@@ -586,7 +586,9 @@ public sealed class BatheUndressAtHomeTests
             // выдать всему острову возраст мира.
             // 66 → 67 в §157: флаг Festering у раны и курсоры островных чужаков
             // по лагерям — хвостовые поля, блоб 66 читается.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(67));
+            // 67 → 68 в §52/#355: содержимое хранится на каждом физическом
+            // экземпляре бутылки и на лежащей в мире бутылке.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(68));
         });
     }
 

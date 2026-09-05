@@ -160,7 +160,10 @@ public static class WorldSaveSerializer
     // v67 (§157): флаг Festering у раны (гноится — не рубцуется без бинта) и
     // курсоры островных чужаков по лагерям (§157.7). Оба — хвостовые/
     // опциональные поля; блоб 66 читается: флаг false, словарь пуст.
-    public const int BlobVersion = 67;
+    // v68 (§52 / bug #355): WaterKind joins ResourceAmount on each physical
+    // ItemInstance and loose WorldObjectState bottle. v66/v67's NPC-global
+    // pair migrates into the first carried bottle after its item list is read.
+    public const int BlobVersion = 68;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -280,7 +283,7 @@ public static class WorldSaveSerializer
         w.Write(world.Entities.Objects.Count);
         foreach (var obj in world.Entities.Objects.Values)
         {
-            WriteObject(w, obj);
+            WriteObject(w, obj, version);
         }
 
         w.Write(world.Entities.Npcs.Count);
@@ -1119,7 +1122,7 @@ public static class WorldSaveSerializer
         };
     }
 
-    private static void WriteObject(BinaryWriter w, WorldObjectState obj)
+    private static void WriteObject(BinaryWriter w, WorldObjectState obj, int version)
     {
         w.Write(obj.Id.Value);
         w.Write(obj.DefinitionId);
@@ -1155,7 +1158,7 @@ public static class WorldSaveSerializer
         w.Write(obj.BillLeaves);
         w.Write(obj.BillSticks);
         w.Write(obj.BillRope);
-        WriteItemList(w, obj.Contents);
+        WriteItemList(w, obj.Contents, version);
 
         // v13 (§66): the yaw a built piece stands at. Pre-v13 saves read 0 —
         // an old world's furniture keeps facing exactly where it always did.
@@ -1202,6 +1205,9 @@ public static class WorldSaveSerializer
 
         // v62 (§129/#237): лагерь-хозяин здания.
         WriteNullableFaction(w, obj.OwnerFaction);
+
+        // v68 (§52 / bug #355): provenance of a loose physical vessel.
+        if (version >= 68) w.Write((int)obj.WaterKind);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1316,6 +1322,7 @@ public static class WorldSaveSerializer
         // миграция MigrateBuildingOwnership, когда прочитаны и объекты, и
         // очаги: здесь FactionHomes ещё может быть не тем, чем станет.
         obj.OwnerFaction = version >= 62 ? ReadNullableFaction(r) : null;
+        obj.WaterKind = version >= 68 ? (WaterKind)r.ReadInt32() : WaterKind.None;
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including
@@ -1407,7 +1414,7 @@ public static class WorldSaveSerializer
         // раскладку, которую уже читают сейвы v18-v23.
         w.Write(npc.EyeColor);
 
-        WriteItemList(w, npc.WornItems);
+        WriteItemList(w, npc.WornItems, version);
         WriteJunctionList(w, npc.ClaimedJunctions);
 
         w.Write(npc.Body.Parts.Count);
@@ -1706,7 +1713,7 @@ public static class WorldSaveSerializer
         }
 
         w.Write(npc.Inventory.Capacity);
-        WriteItemList(w, npc.Inventory.Items);
+        WriteItemList(w, npc.Inventory.Items, version);
 
         // §116 / v28 append-only extension.
         w.Write(npc.Body.BloodDeficit);
@@ -1899,9 +1906,9 @@ public static class WorldSaveSerializer
             Health = r.ReadSingle(),
             IsFighting = r.ReadBoolean(),
             SunExposure = r.ReadSingle(),
-            NextWoundId = r.ReadInt32(),
-            BottleWater = (WaterKind)r.ReadInt32()
+            NextWoundId = r.ReadInt32()
         };
+        var legacyBottleWater = (WaterKind)r.ReadInt32();
 
         if (version >= 14)
         {
@@ -2540,16 +2547,11 @@ public static class WorldSaveSerializer
         // §55.4 / v65 (#347): ≤64 has no recoverable amount. Keeping its saved
         // kind would create a ghost drink (and, for Raw, a sickness roll), so
         // the pair migrates atomically to the only truthful state: empty.
-        if (version >= 65)
-        {
-            npc.BottleCharges = r.ReadInt32();
-        }
-
-        if (npc.BottleWater == WaterKind.None || npc.BottleCharges <= 0)
-        {
-            npc.BottleWater = WaterKind.None;
-            npc.BottleCharges = 0;
-        }
+        var legacyBottleCharges = version >= 65 ? r.ReadInt32() : 0;
+        BottleInventoryMath.MigrateLegacy(
+            npc,
+            version < 68 ? legacyBottleWater : WaterKind.None,
+            version < 68 ? legacyBottleCharges : 0);
 
         return npc;
     }
@@ -2704,7 +2706,7 @@ public static class WorldSaveSerializer
         }
     }
 
-    private static void WriteItemList(BinaryWriter w, List<ItemInstance> items)
+    private static void WriteItemList(BinaryWriter w, List<ItemInstance> items, int version)
     {
         w.Write(items.Count);
         foreach (var item in items)
@@ -2716,6 +2718,7 @@ public static class WorldSaveSerializer
             w.Write(item.Dirtiness);
             w.Write(item.Bloodiness);
             w.Write(item.OwnerId);
+            if (version >= 68) w.Write((int)item.WaterKind);
         }
     }
 
@@ -2733,6 +2736,13 @@ public static class WorldSaveSerializer
                 Bloodiness = version >= 7 ? r.ReadSingle() : 0f,
                 OwnerId = version >= 42 ? r.ReadInt32() : 0
             };
+            item.WaterKind = version >= 68 ? (WaterKind)r.ReadInt32() : WaterKind.None;
+            if (item.WaterKind == WaterKind.None && item.DefinitionId == ContentIds.Bottle)
+            {
+                // Before v68 ResourceAmount on a bottle was not water; fresh
+                // bootstrap objects commonly carried the generic value 1.
+                item.ResourceAmount = 0f;
+            }
             if (version == 7)
             {
                 item.Dirtiness = MathUtil.Clamp01(item.Dirtiness + item.Bloodiness);

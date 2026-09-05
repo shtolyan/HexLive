@@ -258,7 +258,7 @@ public sealed class InventoryLayoutTests
     }
 
     [Test]
-    public void BottleCarryLimitRejectsASecondInstanceAndRepairsLegacyPacks()
+    public void MultiplePhysicalBottlesRemainValidCarriedProperty()
     {
         var (world, npc) = CleanNpc();
         npc.Inventory.Items.Add(ContentIds.Bottle);
@@ -271,15 +271,13 @@ public sealed class InventoryLayoutTests
         Assert.Multiple(() =>
         {
             Assert.That(world.Content.ObjectDefinitions[ContentIds.Bottle]
-                .MaxCarriedInstances, Is.EqualTo(1));
-            Assert.That(SimDataFile.ExportJson(),
-                Does.Contain("\"maxCarriedInstances\": 1"),
-                "A future SimData export must preserve the content-authored limit.");
+                .MaxCarriedInstances, Is.Zero,
+                "Each bottle now owns its own contents, so no NPC-global singleton remains.");
             Assert.That(InventoryMath.CanAcquireAdditional(
-                world, npc, ContentIds.Bottle), Is.False);
+                world, npc, ContentIds.Bottle), Is.True);
             Assert.That(InventoryMath.CanMakeRoomFor(
-                world, npc, ContentIds.Bottle), Is.False,
-                "Free pockets must not make a second NPC-backed bottle valid.");
+                world, npc, ContentIds.Bottle), Is.True,
+                "Free pockets must accept another independent physical bottle.");
         });
 
         new NeedsDecaySystem().Run(world);
@@ -287,11 +285,11 @@ public sealed class InventoryLayoutTests
         Assert.Multiple(() =>
         {
             Assert.That(npc.Inventory.Items.Count(
-                i => i.DefinitionId == ContentIds.Bottle), Is.EqualTo(1),
-                "An old save with duplicate bottles must heal on its first slow pass.");
+                i => i.DefinitionId == ContentIds.Bottle), Is.EqualTo(3),
+                "Valid separate bottles must not be discarded by slow inventory repair.");
             Assert.That(world.Entities.Objects.Values.Count(
-                o => o.DefinitionId == ContentIds.Bottle) - groundBefore, Is.EqualTo(2),
-                "Excess property must be dropped, not silently deleted.");
+                o => o.DefinitionId == ContentIds.Bottle) - groundBefore, Is.Zero,
+                "Valid carried bottles must not be dropped as legacy duplicates.");
         });
     }
 

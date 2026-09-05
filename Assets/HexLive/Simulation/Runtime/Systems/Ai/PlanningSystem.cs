@@ -381,7 +381,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     {
                         Trace.Debug(world, npc.Id, "PlanBuilt",
                             $"Goal=Drink Steps=[FillVessel,DrinkBottle] " +
-                            $"Charges={npc.BottleCharges} " +
+                            $"Charges={BottleInventoryMath.Charges(BottleInventoryMath.FirstDrinkable(npc))} " +
                             $"CoconutSips={VesselTransferMath.CoconutSips(npc)}");
                     }
                     continue;
@@ -398,7 +398,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     if (SimTrace.Enabled)
                     {
                         Trace.Debug(world, npc.Id, "PlanBuilt",
-                            $"Goal=Drink Item=tool.bottle Steps=[DrinkBottle] Charges={npc.BottleCharges}");
+                            $"Goal=Drink Item=tool.bottle Steps=[DrinkBottle] " +
+                            $"Charges={BottleInventoryMath.Charges(BottleInventoryMath.FirstDrinkable(npc))}");
                     }
                     continue;
                 }

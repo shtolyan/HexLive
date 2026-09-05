@@ -1,8 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using NUnit.Framework;
@@ -12,6 +15,107 @@ namespace HexLive.Simulation.Tests.Behavior;
 /// <summary>§128.5 r2 / bug #199: remains and wardrobe share container transfer.</summary>
 public sealed class ContainerLootTests
 {
+    [Test]
+    public void DuplicateBottleTransferUsesPhysicalIdentityAndKeepsWater()
+    {
+        var world = TestWorld.CreateWorld(35511);
+        var npc = Colonist(world);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Capacity = 8;
+        var anchor = Junction(world, npc);
+        var remains = WorldObjectMutations.SpawnObject(
+            world, ContentIds.HumanRemains, npc.Fragment, npc.Tile, anchor);
+        var empty = new ItemInstance(ContentIds.Bottle);
+        var filled = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(filled, WaterKind.Rain, 4);
+        npc.Inventory.Items.Add(empty);
+        npc.Inventory.Items.Add(filled);
+
+        ContainerLootMath.GiveToContainer(world, remains, npc, new[] { filled });
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Single(), Is.SameAs(empty));
+            Assert.That(remains.Contents.Single(), Is.SameAs(filled));
+            Assert.That(BottleInventoryMath.Charges(filled), Is.EqualTo(4));
+            Assert.That(filled.WaterKind, Is.EqualTo(WaterKind.Rain));
+        });
+
+        var otherEmpty = new ItemInstance(ContentIds.Bottle);
+        remains.Contents.Insert(0, otherEmpty);
+        var cells = new List<(string ItemId, int Count, int SourceIndex)>();
+        ContainerLootMath.BuildCells(world, remains, cells);
+        Assert.That(cells, Has.Count.EqualTo(2));
+        Assert.That(ContainerLootMath.TryResolve(
+            world, remains, 1, ContentIds.Bottle, 1,
+            out var selected, out var groundSources), Is.True);
+        Assert.That(selected.Single(), Is.SameAs(filled),
+            "The second non-stackable bottle row must resolve to that physical bottle.");
+        ContainerLootMath.TakeFromContainer(
+            world, remains, npc, selected, groundSources);
+        Assert.Multiple(() =>
+        {
+            Assert.That(remains.Contents.Single(), Is.SameAs(otherEmpty));
+            Assert.That(npc.Inventory.Items.Last(), Is.SameAs(filled));
+            Assert.That(BottleInventoryMath.Charges(filled), Is.EqualTo(4));
+            Assert.That(filled.WaterKind, Is.EqualTo(WaterKind.Rain));
+        });
+    }
+
+    [Test]
+    public void DelayedContainerLootKeepsSelectedBottleWhenRowsShift()
+    {
+        var engine = TestWorld.CreateEngine(35512);
+        var world = engine.World;
+        var npc = Colonist(world);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Capacity = 8;
+        npc.Mind.ManualControl = true;
+        npc.Needs.Hunger = 0f;
+        npc.Needs.Thirst = 0f;
+        var anchor = Junction(world, npc);
+        var remains = WorldObjectMutations.SpawnObject(
+            world, ContentIds.HumanRemains, npc.Fragment, npc.Tile, anchor);
+        var emptyFirst = new ItemInstance(ContentIds.Bottle);
+        var selectedFilled = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(selectedFilled, WaterKind.Boiled, 7);
+        remains.Contents.Add(emptyFirst);
+        remains.Contents.Add(selectedFilled);
+
+        var admission = ManualCommandExecutor.Apply(
+            world, new TransferContainerCommand(
+                npc.Id, remains.Id, 1, ContentIds.Bottle, 1,
+                InventoryTransferDirection.Take));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            admission.Reason);
+
+        // The selected bottle shifts to row/index zero; an equal replacement
+        // occupies its former index before the delayed interaction executes.
+        remains.Contents.RemoveAt(0);
+        var replacement = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(replacement, WaterKind.Raw, 2);
+        remains.Contents.Add(replacement);
+        for (var i = 0; i < 200 &&
+             !npc.Inventory.Items.Any(item => ReferenceEquals(item, selectedFilled)) &&
+             npc.Plan.Status == PlanStatus.Active; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Any(item =>
+                ReferenceEquals(item, selectedFilled)), Is.True,
+                $"Plan={npc.Plan.Status} Move={npc.Movement.Status} " +
+                $"Events={string.Join(" | ", world.Events.Items.Select(e => e.Type + ":" + e.Message))}");
+            Assert.That(remains.Contents.Any(item =>
+                ReferenceEquals(item, replacement)), Is.True);
+            Assert.That(remains.Contents.Any(item =>
+                ReferenceEquals(item, selectedFilled)), Is.False);
+            Assert.That(selectedFilled.WaterKind, Is.EqualTo(WaterKind.Boiled));
+            Assert.That(BottleInventoryMath.Charges(selectedFilled), Is.EqualTo(7));
+        });
+    }
+
     [Test]
     public void EmptyHumanRemainsStayAValidTwoWayContainer()
     {
@@ -110,7 +214,8 @@ public sealed class ContainerLootTests
         var collector = WorldObjectMutations.SpawnObject(
             world, ContentIds.WaterCollector, npc.Fragment, npc.Tile, anchor);
         var garment = new ItemInstance(ContentIds.LeatherPants) { Wetness = 0.6f };
-        var bottle = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 0.75f };
+        var bottle = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 7f };
+        bottle.WaterKind = WaterKind.Rain;
         var stone = new ItemInstance(ContentIds.Stone);
 
         Assert.Multiple(() =>
@@ -134,6 +239,8 @@ public sealed class ContainerLootTests
         var collectorCells = new List<(string ItemId, int Count, int SourceIndex)>();
         ContainerLootMath.BuildCells(world, rack, rackCells);
         ContainerLootMath.BuildCells(world, collector, collectorCells);
+        var collectorSnapshot = WorldSnapshotExporter.Export(world).Objects.Single(obj =>
+            obj.Id.Equals(collector.Id));
         Assert.Multiple(() =>
         {
             Assert.That(rackCells.Select(cell => cell.ItemId),
@@ -142,7 +249,81 @@ public sealed class ContainerLootTests
                 Is.EquivalentTo(new[] { ContentIds.Bottle }));
             var parked = WaterCollectorMath.FindVessel(world, collector);
             Assert.That(parked, Is.Not.Null);
-            Assert.That(parked!.ResourceAmount, Is.EqualTo(0.75f));
+            Assert.That(parked!.ResourceAmount, Is.EqualTo(0.7f).Within(1e-5f));
+            Assert.That(collectorSnapshot.Contents.Single().WaterKind,
+                Is.EqualTo(WaterKind.Rain));
+            Assert.That(collectorSnapshot.Contents.Single().ResourceAmount,
+                Is.EqualTo(7f));
+        });
+
+        Assert.That(ContainerLootMath.TryResolve(
+            world, collector, 0, ContentIds.Bottle, 1,
+            out var collectedBottle, out var bottleSource), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(collectedBottle[0].WaterKind, Is.EqualTo(WaterKind.Rain));
+            Assert.That(BottleInventoryMath.Charges(collectedBottle[0]), Is.EqualTo(7));
+        });
+        ContainerLootMath.TakeFromContainer(
+            world, collector, npc, collectedBottle, bottleSource);
+        Assert.That(npc.Inventory.Items.Last(), Is.SameAs(collectedBottle[0]));
+    }
+
+    [Test]
+    public void CollectorLootRoundTripPreservesPartialNonRainBottle()
+    {
+        var world = TestWorld.CreateWorld(35516);
+        var npc = Colonist(world);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Capacity = 8;
+        var anchor = Junction(world, npc);
+        var collector = WorldObjectMutations.SpawnObject(
+            world, ContentIds.WaterCollector, npc.Fragment, npc.Tile, anchor);
+        var raw = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(raw, WaterKind.Raw, 4);
+        npc.Inventory.Items.Add(raw);
+
+        ContainerLootMath.GiveToContainer(world, collector, npc, new[] { raw });
+        var parked = WaterCollectorMath.FindVessel(world, collector);
+        Assert.That(parked, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(parked!.ResourceAmount, Is.EqualTo(0.4f).Within(1e-5f));
+            Assert.That(parked.WaterKind, Is.EqualTo(WaterKind.Raw));
+        });
+
+        world.Environment.IsRaining = true;
+        new WaterCollectorSystem().Run(world);
+        Assert.Multiple(() =>
+        {
+            Assert.That(parked.ResourceAmount, Is.EqualTo(0.4f).Within(1e-5f),
+                "Rain must not silently mix into a non-rain bottle.");
+            Assert.That(parked.WaterKind, Is.EqualTo(WaterKind.Raw));
+        });
+
+        Assert.That(ContainerLootMath.TryResolve(
+            world, collector, 0, ContentIds.Bottle, 1,
+            out var moving, out var groundSources), Is.True);
+        ContainerLootMath.TakeFromContainer(
+            world, collector, npc, moving, groundSources);
+        Assert.Multiple(() =>
+        {
+            Assert.That(moving[0].WaterKind, Is.EqualTo(WaterKind.Raw));
+            Assert.That(BottleInventoryMath.Charges(moving[0]), Is.EqualTo(4));
+        });
+
+        var full = WorldObjectMutations.SpawnObject(
+            world, ContentIds.Bottle, collector.Fragment, collector.Tile, anchor);
+        full.ResourceAmount = 1f;
+        full.WaterKind = WaterKind.Rain;
+        Assert.That(ContainerLootMath.TryResolve(
+            world, collector, 0, ContentIds.Bottle, 1,
+            out var fullBottle, out _), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(fullBottle[0].WaterKind, Is.EqualTo(WaterKind.Rain));
+            Assert.That(BottleInventoryMath.Charges(fullBottle[0]),
+                Is.EqualTo(SimBalance.BottleCapacity));
         });
     }
 

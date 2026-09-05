@@ -1,5 +1,6 @@
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Agents;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -50,7 +51,8 @@ public sealed class WaterCollectorSystem : ISimulationSystem
             }
 
             var vessel = WaterCollectorMath.FindVessel(world, obj);
-            if (vessel is null || vessel.ResourceAmount >= 1f)
+            if (vessel is null || vessel.ResourceAmount >= 1f ||
+                vessel.WaterKind is not (WaterKind.None or WaterKind.Rain))
             {
                 continue;
             }
@@ -59,6 +61,10 @@ public sealed class WaterCollectorSystem : ISimulationSystem
                 1f,
                 vessel.ResourceAmount +
                 rainSlowTicks * slow / (float)SimBalance.WaterCollectorFillTicks);
+            if (vessel.ResourceAmount > 0f)
+            {
+                vessel.WaterKind = WaterKind.Rain;
+            }
             if (vessel.ResourceAmount >= 1f)
             {
                 if (SimTrace.Enabled)

@@ -53,6 +53,10 @@ public sealed class InventorySlotLayout
 
     public int StackCount { get; set; }
 
+    public float ResourceAmount { get; set; }
+
+    public WaterKind WaterKind { get; set; } = WaterKind.None;
+
     /// <summary>Non-empty only for a typed holster slot.</summary>
     public string AcceptedItemDefinitionId { get; set; } = string.Empty;
 }
@@ -107,6 +111,8 @@ public static class InventoryLayoutBuilder
         public string ItemId = string.Empty;
         public int Count;
         public int SourceIndex = -1;
+        public float ResourceAmount;
+        public WaterKind WaterKind;
     }
 
     public static InventoryLayout Build(WorldState world, NPCState npc)
@@ -286,6 +292,8 @@ public static class InventoryLayoutBuilder
                     SourceIndex = item is null ? -1 : IndexOfReference(npc.Inventory.Items, item),
                     ItemDefinitionId = item?.DefinitionId ?? string.Empty,
                     StackCount = item is null ? 0 : 1,
+                    ResourceAmount = item?.ResourceAmount ?? 0f,
+                    WaterKind = item?.WaterKind ?? WaterKind.None,
                     AcceptedItemDefinitionId = acceptedId
                 });
             }
@@ -421,7 +429,9 @@ public static class InventoryLayoutBuilder
                 {
                     ItemId = item.DefinitionId,
                     Count = 1,
-                    SourceIndex = i
+                    SourceIndex = i,
+                    ResourceAmount = item.ResourceAmount,
+                    WaterKind = item.WaterKind
                 });
                 continue;
             }
@@ -475,7 +485,9 @@ public static class InventoryLayoutBuilder
                     Index = i,
                     SourceIndex = cell?.SourceIndex ?? -1,
                     ItemDefinitionId = cell?.ItemId ?? string.Empty,
-                    StackCount = cell?.Count ?? 0
+                    StackCount = cell?.Count ?? 0,
+                    ResourceAmount = cell?.ResourceAmount ?? 0f,
+                    WaterKind = cell?.WaterKind ?? WaterKind.None
                 });
             }
         }
@@ -496,7 +508,9 @@ public static class InventoryLayoutBuilder
                 Index = overflow.Slots.Count,
                 SourceIndex = cell.SourceIndex,
                 ItemDefinitionId = cell.ItemId,
-                StackCount = cell.Count
+                StackCount = cell.Count,
+                ResourceAmount = cell.ResourceAmount,
+                WaterKind = cell.WaterKind
             });
             cellIndex++;
         }

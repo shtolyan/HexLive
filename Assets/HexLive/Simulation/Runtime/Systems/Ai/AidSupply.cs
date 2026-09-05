@@ -144,14 +144,10 @@ internal static class AidSupply
         spend = new Spend(string.Empty, Spec53.HydrateRelief, false);
 
         // One gulp out of the bottle (spec §52: the bottle empties on the last).
-        if (npc.BottleWater != WaterKind.None && npc.BottleCharges > 0)
+        var bottle = BottleInventoryMath.FirstDrinkable(npc);
+        if (bottle is not null)
         {
-            npc.BottleCharges--;
-            if (npc.BottleCharges <= 0)
-            {
-                npc.BottleCharges = 0;
-                npc.BottleWater = WaterKind.None;
-            }
+            BottleInventoryMath.ConsumeOne(bottle, out _);
 
             spend = new Spend(ContentIds.Bottle, Spec53.HydrateRelief, false);
             return true;

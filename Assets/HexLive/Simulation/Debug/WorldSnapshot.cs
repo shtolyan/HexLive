@@ -326,6 +326,8 @@ public sealed class ObjectSnapshot
     // Spec 29E.3: fuel ticks. For a campfire, > 0 means lit/burning.
     public float ResourceAmount { get; set; }
 
+    public Agents.WaterKind WaterKind { get; set; } = Agents.WaterKind.None;
+
     public float Wetness { get; set; }
 
     public float Durability { get; set; } = 1f;
@@ -433,6 +435,11 @@ public sealed class InventorySlotSnapshot
     public string ItemDefinitionId { get; set; } = string.Empty;
 
     public int StackCount { get; set; }
+
+    // §52 / bug #355: state of the exact physical vessel at SourceIndex.
+    public float ResourceAmount { get; set; }
+
+    public Agents.WaterKind WaterKind { get; set; } = Agents.WaterKind.None;
 
     // Empty for ordinary cells; a typed holster cell carries the one exact id
     // it accepts even while the cell itself is empty.
@@ -899,13 +906,13 @@ public sealed class NpcSnapshot
 
     public List<string> InventoryBloodiness { get; } = new();
 
-    // "definitionId\tamountLiters\tcapacityLiters" for carried water containers.
-    // The UI treats bottle and pierced coconut as one water-container category.
+    // "sourceIndex\tdefinitionId\tamount\tcapacity\twaterKind" for carried
+    // water containers. SourceIndex keeps duplicate physical bottles distinct.
     public List<string> InventoryWater { get; } = new();
 
-    // §55.4 / bug #347: authoritative provenance of the personal bottle.
-    // InventoryWater intentionally remains the presentation-friendly amount
-    // row; this typed field keeps remote snapshots from erasing water safety.
+    // §55.4 / bug #347: compatibility summary for older presentation paths.
+    // The authoritative provenance is per InventoryContainer slot/InventoryWater
+    // row; this field mirrors the first drinkable physical bottle only.
     public Agents.WaterKind BottleWaterKind { get; set; } = Agents.WaterKind.None;
 
     public List<string> WornItems { get; } = new();

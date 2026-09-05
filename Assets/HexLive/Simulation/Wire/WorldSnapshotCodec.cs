@@ -91,7 +91,8 @@ public static class WorldSnapshotCodec
     /// v36: §146.14 camp home anchors for the campfire «make home» menu.
     /// v37: §121.11/#294 per-NPC default pace for the walk/run card toggle.
     /// v38: §55.4/#347 typed bottle-water provenance in the inventory group.
-    public const int WireVersion = 38;
+    /// v39: §52/#355 per-instance vessel amount/provenance in object and slot rows.
+    public const int WireVersion = 39;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -510,6 +511,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteTile(w, o.Tile);
         w.Write(o.RotationDegrees);
         w.Write(o.ResourceAmount);
+        w.Write((byte)o.WaterKind);
         w.Write(o.Wetness);
         w.Write(o.Durability);
         w.Write(o.Dirtiness);
@@ -535,6 +537,8 @@ public static class WorldSnapshotCodec
             w.Write(slot.SourceIndex);
             WriteDefinitionId(w, slot.ItemDefinitionId);
             w.Write(slot.StackCount);
+            w.Write(slot.ResourceAmount);
+            w.Write((byte)slot.WaterKind);
             // У мешка типизированных ячеек не бывает, и соблазн «не писать
             // заведомо пустое» здесь неверный: тип ячейки один на человека и на
             // вещь, а через провод тип едет ЦЕЛИКОМ или не едет никак. Пустая
@@ -645,6 +649,7 @@ public static class WorldSnapshotCodec
             o.Tile = WireIo.ReadTile(r);
             o.RotationDegrees = r.ReadSingle();
             o.ResourceAmount = r.ReadSingle();
+            o.WaterKind = (Agents.WaterKind)r.ReadByte();
             o.Wetness = r.ReadSingle();
             o.Durability = r.ReadSingle();
             o.Dirtiness = r.ReadSingle();
@@ -664,6 +669,8 @@ public static class WorldSnapshotCodec
                     SourceIndex = r.ReadInt32(),
                     ItemDefinitionId = ReadDefinitionId(r),
                     StackCount = r.ReadInt32(),
+                    ResourceAmount = r.ReadSingle(),
+                    WaterKind = (Agents.WaterKind)r.ReadByte(),
                     AcceptedItemDefinitionId = r.ReadString()
                 });
             }
@@ -1062,6 +1069,8 @@ public static class WorldSnapshotCodec
                 w.Write(slot.SourceIndex);
                 WireIo.WriteString(w, slot.ItemDefinitionId);
                 w.Write(slot.StackCount);
+                w.Write(slot.ResourceAmount);
+                w.Write((byte)slot.WaterKind);
                 WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
             }
         }
@@ -1421,6 +1430,8 @@ public static class WorldSnapshotCodec
                 slot.SourceIndex = r.ReadInt32();
                 slot.ItemDefinitionId = r.ReadString();
                 slot.StackCount = r.ReadInt32();
+                slot.ResourceAmount = r.ReadSingle();
+                slot.WaterKind = (Agents.WaterKind)r.ReadByte();
                 slot.AcceptedItemDefinitionId = r.ReadString();
             }
         }

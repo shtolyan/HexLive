@@ -222,7 +222,7 @@ internal static class EquipmentMath
 
         foreach (var item in items)
         {
-            npc.WornItems.Remove(item);
+            InventoryMath.RemoveReference(npc.WornItems, item);
             npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort - 0.1f);
             if (SimTrace.Enabled)
             {

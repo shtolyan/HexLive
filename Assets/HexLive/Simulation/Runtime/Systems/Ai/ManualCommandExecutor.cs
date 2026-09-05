@@ -2006,7 +2006,8 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        if (!VesselTransferMath.CanFillBottle(npc))
+        var selectedBottle = items[command.Item.Index];
+        if (!VesselTransferMath.CanFillBottle(npc, selectedBottle))
         {
             Reject(world, npc.Id, "FillVessel", "NothingToPour", admission);
             return;
@@ -2017,7 +2018,14 @@ internal static class ManualCommandExecutor
 
         npc.Plan.Goal = GoalType.PlayerOrder;
         npc.Plan.TargetItemDefinitionId = Content.ContentIds.Bottle;
-        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.FillVessel });
+        npc.Execution.TargetInventoryItem = selectedBottle;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.FillVessel,
+            // The selected physical bottle must survive the delayed action;
+            // the definition alone is ambiguous once several are carried.
+            TimeoutEndTick = command.Item.Index
+        });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
         npc.Mind.CurrentGoal = GoalType.PlayerOrder;
@@ -2025,7 +2033,7 @@ internal static class ManualCommandExecutor
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
-                $"Order=FillVessel Charges={npc.BottleCharges} " +
+                $"Order=FillVessel Charges={BottleInventoryMath.Charges(selectedBottle)} " +
                 $"CoconutSips={VesselTransferMath.CoconutSips(npc)}");
         }
     }
@@ -2079,7 +2087,10 @@ internal static class ManualCommandExecutor
 
         var source = command.Direction == InventoryTransferDirection.Take ? other : looter;
         var destination = command.Direction == InventoryTransferDirection.Take ? looter : other;
-        if (!PlayerInventoryTransferMath.FitsAfter(
+        if (!PlayerInventoryTransferMath.TryResolveTransfer(
+                world, source, command.Item, command.Count,
+                out var selectedItems, out _) ||
+            !PlayerInventoryTransferMath.FitsAfter(
                 world, source, destination, command.Item, command.Count))
         {
             Reject(world, looter.Id, "TransferInventory", "StaleOrNoSpace", admission);
@@ -2157,6 +2168,10 @@ internal static class ManualCommandExecutor
                 PlanStepType.PlayerGiveCarried,
             _ => PlanStepType.PlayerGiveWorn
         };
+        // Bug #355: the trip to a body can span many ticks while the player
+        // keeps managing inventories. Keep the selected physical item, not
+        // merely its mutable index + definition (two bottles share the latter).
+        looter.Execution.TargetInventoryItem = selectedItems[0];
         looter.Plan.Steps.Add(new PlanStep
         {
             Type = stepType,
@@ -2212,6 +2227,41 @@ internal static class ManualCommandExecutor
         {
             Reject(world, looter.Id, "TransferContainer", "ContainerNotAvailable", admission);
             return;
+        }
+
+        ItemInstance selectedItem;
+        ObjectId? selectedWorldObject = null;
+        if (command.Direction == InventoryTransferDirection.Take)
+        {
+            if (!ContainerLootMath.TryResolve(
+                    world, container, command.SlotIndex,
+                    command.ExpectedDefinitionId, command.Count,
+                    out var selected, out var groundSources) || selected.Count == 0)
+            {
+                Reject(world, looter.Id, "TransferContainer", "StaleItem", admission);
+                return;
+            }
+
+            selectedItem = selected[0];
+            if (groundSources.Count > 0)
+            {
+                selectedWorldObject = groundSources[0];
+            }
+        }
+        else
+        {
+            var itemRef = new InventoryItemRef(
+                InventoryItemSource.Carried, command.SlotIndex,
+                command.ExpectedDefinitionId);
+            if (!PlayerInventoryTransferMath.TryResolveTransfer(
+                    world, looter, itemRef, command.Count,
+                    out var selected, out _) || selected.Count == 0)
+            {
+                Reject(world, looter.Id, "TransferContainer", "StaleItem", admission);
+                return;
+            }
+
+            selectedItem = selected[0];
         }
 
         ClearForNewOrder(world, looter, "Ручной обмен с вещью");
@@ -2276,6 +2326,8 @@ internal static class ManualCommandExecutor
             });
         }
 
+        looter.Execution.TargetInventoryItem = selectedItem;
+        looter.Execution.TargetInventoryWorldObject = selectedWorldObject;
         looter.Plan.Steps.Add(new PlanStep
         {
             Type = command.Direction == InventoryTransferDirection.Take

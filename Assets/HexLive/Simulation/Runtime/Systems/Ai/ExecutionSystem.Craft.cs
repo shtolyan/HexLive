@@ -474,6 +474,7 @@ public sealed partial class ExecutionSystem
                 Wetness = crafted.Wetness,
                 Durability = crafted.Durability,
                 ResourceAmount = crafted.ResourceAmount,
+                WaterKind = crafted.WaterKind,
                 Dirtiness = crafted.Dirtiness,
                 Bloodiness = crafted.Bloodiness
             });
@@ -495,6 +496,7 @@ public sealed partial class ExecutionSystem
             Wetness = crafted.Wetness,
             Durability = crafted.Durability,
             ResourceAmount = crafted.ResourceAmount,
+            WaterKind = crafted.WaterKind,
             Dirtiness = crafted.Dirtiness,
             Bloodiness = crafted.Bloodiness
         });

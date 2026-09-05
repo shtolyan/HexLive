@@ -192,7 +192,7 @@ public sealed partial class DecisionSystem
     }
 
     internal static bool HasBottleWater(NPCState npc) =>
-        npc.BottleWater != WaterKind.None && npc.BottleCharges > 0;
+        BottleInventoryMath.HasWater(npc);
 
     internal static bool HasInventoryCoconutMeal(NPCState npc)
     {
@@ -1182,8 +1182,7 @@ public sealed partial class DecisionSystem
     // StowBottle chore's target (park the bottle, let the rain do the rest).
     internal static PerceivedObject? FindStowableCollector(NPCState npc, WorldState world)
     {
-        if (npc.BottleWater != WaterKind.None ||
-            CountInventory(npc, WaterCollectorMath.VesselId) == 0)
+        if (BottleInventoryMath.FirstEmpty(npc) is null)
         {
             return null;
         }

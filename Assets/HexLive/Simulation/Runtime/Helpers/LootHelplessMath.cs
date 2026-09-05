@@ -240,7 +240,7 @@ public static class LootHelplessMath
             return false;
         }
 
-        victim.WornItems.Remove(garment);
+        InventoryMath.RemoveReference(victim.WornItems, garment);
         // Одежда задаёт защиту и ёмкость карманов жертвы. Потеря куртки может
         // вытолкнуть лишние вещи на землю, поэтому порядок обязателен: сперва
         // снять, затем пересчитать и штатно пролить переполнение.

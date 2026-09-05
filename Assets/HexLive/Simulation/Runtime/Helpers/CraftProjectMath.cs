@@ -448,6 +448,7 @@ internal static class CraftProjectMath
                     Wetness = source.Wetness,
                     Durability = source.Durability,
                     ResourceAmount = source.ResourceAmount,
+                    WaterKind = source.WaterKind,
                     Dirtiness = source.Dirtiness,
                     Bloodiness = source.Bloodiness
                 });
@@ -557,6 +558,7 @@ internal static class CraftProjectMath
         target.Wetness = item.Wetness;
         target.Durability = item.Durability;
         target.ResourceAmount = item.ResourceAmount;
+        target.WaterKind = item.WaterKind;
         target.Dirtiness = item.Dirtiness;
         target.Bloodiness = item.Bloodiness;
     }

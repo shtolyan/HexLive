@@ -356,13 +356,12 @@ public sealed class PlayerInventoryTransferTests
     }
 
     [Test]
-    public void BottleCarriesItsNpcBackedWaterStateAndCannotMergeWithAnotherBottle()
+    public void BottleCarriesItsPhysicalWaterStateAndCanJoinAnotherBottle()
     {
         var (engine, looter, other) = Scene(allied: false);
         var bottle = new ItemInstance(ContentIds.Bottle);
         other.Inventory.Items.Add(bottle);
-        other.BottleWater = WaterKind.Boiled;
-        other.BottleCharges = 3;
+        BottleInventoryMath.SetContents(bottle, WaterKind.Boiled, 3);
 
         Transfer(engine, looter, other, InventoryTransferDirection.Take,
             InventoryItemSource.Carried, 0, ContentIds.Bottle, 1);
@@ -370,10 +369,8 @@ public sealed class PlayerInventoryTransferTests
         Assert.Multiple(() =>
         {
             Assert.That(looter.Inventory.Items.Any(i => ReferenceEquals(i, bottle)), Is.True);
-            Assert.That(looter.BottleWater, Is.EqualTo(WaterKind.Boiled));
-            Assert.That(looter.BottleCharges, Is.EqualTo(3));
-            Assert.That(other.BottleWater, Is.EqualTo(WaterKind.None));
-            Assert.That(other.BottleCharges, Is.Zero);
+            Assert.That(bottle.WaterKind, Is.EqualTo(WaterKind.Boiled));
+            Assert.That(BottleInventoryMath.Charges(bottle), Is.EqualTo(3));
         });
 
         other.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
@@ -382,9 +379,127 @@ public sealed class PlayerInventoryTransferTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(looter.Inventory.Items.Any(i => ReferenceEquals(i, bottle)), Is.True,
-                "The legacy per-NPC water store cannot safely represent two bottles.");
-            Assert.That(looter.BottleCharges, Is.EqualTo(3));
+            Assert.That(looter.Inventory.Items.Any(i => ReferenceEquals(i, bottle)), Is.False);
+            Assert.That(other.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Bottle),
+                Is.EqualTo(2));
+            Assert.That(other.Inventory.Items.Any(i => ReferenceEquals(i, bottle)), Is.True);
+            Assert.That(BottleInventoryMath.Charges(bottle), Is.EqualTo(3));
+        });
+    }
+
+    [Test]
+    public void DelayedPersonLootKeepsSelectedBottleWhenItsIndexChanges()
+    {
+        var (engine, looter, other) = Scene(allied: false);
+        var emptyFirst = new ItemInstance(ContentIds.Bottle);
+        var selectedFilled = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(selectedFilled, WaterKind.Rain, 5);
+        other.Inventory.Items.Add(emptyFirst);
+        other.Inventory.Items.Add(selectedFilled);
+
+        var admission = ManualCommandExecutor.Apply(
+            engine.World, new TransferInventoryCommand(
+                looter.Id, other.Id,
+                new InventoryItemRef(
+                    InventoryItemSource.Carried, 1, ContentIds.Bottle),
+                1, InventoryTransferDirection.Take));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted),
+            admission.Reason);
+
+        other.Inventory.Items.RemoveAt(0);
+        var equalReplacement = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(equalReplacement, WaterKind.Raw, 2);
+        other.Inventory.Items.Add(equalReplacement);
+        engine.Step();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(looter.Inventory.Items.Any(item =>
+                ReferenceEquals(item, selectedFilled)), Is.True);
+            Assert.That(other.Inventory.Items.Any(item =>
+                ReferenceEquals(item, equalReplacement)), Is.True);
+            Assert.That(other.Inventory.Items.Any(item =>
+                ReferenceEquals(item, selectedFilled)), Is.False);
+            Assert.That(selectedFilled.WaterKind, Is.EqualTo(WaterKind.Rain));
+            Assert.That(BottleInventoryMath.Charges(selectedFilled), Is.EqualTo(5));
+        });
+    }
+
+    [Test]
+    public void WearingDuplicateDefinitionMovesOnlySelectedPhysicalGarment()
+    {
+        var world = TestWorld.CreateWorld(35513);
+        var npc = world.Entities.Npcs.Values.First();
+        npc.Inventory.Items.Clear();
+        npc.WornItems.Clear();
+        const string garmentId = "test.bug355.duplicate_shirt";
+        AddGarment(world, garmentId, 0, BodyPart.Torso);
+        var untouchedFirst = new ItemInstance(garmentId) { Dirtiness = 0.1f };
+        var selectedSecond = new ItemInstance(garmentId) { Dirtiness = 0.8f };
+        npc.Inventory.Items.Add(untouchedFirst);
+        npc.Inventory.Items.Add(selectedSecond);
+
+        Assert.That(PlayerInventoryCommandExecutor.TryApply(
+            world, npc,
+            new InventoryItemRef(InventoryItemSource.Carried, 1, garmentId),
+            InventoryAction.Wear, out var reason), Is.True, reason);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.WornItems.Single(), Is.SameAs(selectedSecond));
+            Assert.That(npc.Inventory.Items.Single(), Is.SameAs(untouchedFirst));
+            Assert.That(npc.Inventory.Items.Any(item =>
+                ReferenceEquals(item, selectedSecond)), Is.False,
+                "Definition equality must not leave the selected garment duplicated.");
+        });
+    }
+
+    [Test]
+    public void CorpseBackpackBundleCanMoveWhenBothSidesContainBottles()
+    {
+        var (engine, looter, corpse) = Scene(allied: false);
+        var world = engine.World;
+        const string sourcePackId = "test.loot.corpse_backpack";
+        const string destinationPackId = "test.loot.looter_backpack";
+        AddBag(world, sourcePackId, 4);
+        AddBag(world, destinationPackId, 20);
+        corpse.WornItems.Add(new ItemInstance(sourcePackId));
+        looter.WornItems.Add(new ItemInstance(destinationPackId));
+        EquipmentMath.RecalculateCapacity(world, corpse);
+        EquipmentMath.RecalculateCapacity(world, looter);
+
+        var carry = InventoryLayoutBuilder.Build(world, corpse).Containers.Single(c =>
+            c.Kind == InventoryContainerKind.Carry &&
+            c.OwnerItemDefinitionId == sourcePackId);
+        var bodyPrefix = carry.BaseCapacity + carry.StrengthBonus;
+        for (var i = 0; i < bodyPrefix; i++)
+        {
+            var id = "test.loot.body_item." + i;
+            corpse.Inventory.Items.Add(AddPlainItem(world, id));
+        }
+        var corpseBottle = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(corpseBottle, WaterKind.Rain, 6);
+        corpse.Inventory.Items.Add(corpseBottle);
+
+        var ownBottle = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(ownBottle, WaterKind.Coconut, 2);
+        looter.Inventory.Items.Add(ownBottle);
+
+        corpse.Health = 0f;
+        world.Entities.Npcs.Remove(corpse.Id);
+        world.Entities.Corpses[corpse.Id] = corpse;
+
+        Transfer(engine, looter, corpse, InventoryTransferDirection.Take,
+            InventoryItemSource.Worn, 0, sourcePackId, 1);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(looter.Inventory.Items.Any(i => ReferenceEquals(i, ownBottle)), Is.True);
+            Assert.That(looter.Inventory.Items.Any(i => ReferenceEquals(i, corpseBottle)), Is.True,
+                "The bottle in the backpack-owned tail must move with the bundle.");
+            Assert.That(corpse.Inventory.Items.Any(i => ReferenceEquals(i, corpseBottle)), Is.False);
+            Assert.That(corpseBottle.WaterKind, Is.EqualTo(WaterKind.Rain));
+            Assert.That(BottleInventoryMath.Charges(corpseBottle), Is.EqualTo(6));
         });
     }
 
@@ -449,6 +564,19 @@ public sealed class PlayerInventoryTransferTests
             InventoryCapacity = capacity
         };
         definition.Covers.Add(bodyPart);
+        world.Content.ObjectDefinitions[id] = definition;
+    }
+
+    private static void AddBag(WorldState world, string id, int capacity)
+    {
+        var definition = new ObjectDefinition
+        {
+            Id = id,
+            DisplayName = id,
+            Layer = WearLayer.Bags,
+            InventoryCapacity = capacity
+        };
+        definition.Covers.Add(BodyPart.Torso);
         world.Content.ObjectDefinitions[id] = definition;
     }
 

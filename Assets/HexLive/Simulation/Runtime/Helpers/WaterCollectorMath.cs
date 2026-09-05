@@ -76,12 +76,12 @@ internal static class WaterCollectorMath
     /// the placer bottleless.
     public static bool CanTake(WorldState world, NPCState npc, WorldObjectState vessel)
     {
-        if (npc.BottleWater != WaterKind.None || ChargesIn(vessel) < 1)
+        if (ChargesIn(vessel) < 1)
         {
             return false;
         }
 
-        if (npc.Inventory.Items.Exists(i => i.DefinitionId == VesselId))
+        if (BottleInventoryMath.FirstEmpty(npc) is not null)
         {
             return true; // pours over — the parked bottle is untouched
         }

@@ -442,54 +442,100 @@ public static class AbuseMath
         WorldState world, NPCState abuser, NPCState mark, AidKind want, out string taken)
     {
         taken = null;
-        if (want == AidKind.None || !abuser.Inventory.HasSpace)
+        if (want == AidKind.None)
         {
             return false;
         }
 
-        var id = want == AidKind.Hydrate
-            ? mark.Inventory.FindFirstDrink(world.Content)
-            : mark.Inventory.FindFirstFood(world.Content);
-
-        if (id is not null)
+        // A solid supply needs a free cell. Bottle-to-bottle hydration does
+        // not: it may still move one sip into an already carried vessel.
+        if (abuser.Inventory.HasSpace)
         {
-            var index = mark.Inventory.Items.FindIndex(i => i.DefinitionId == id);
-            if (index >= 0)
+            var instance = FindFirstSupplyInstance(world, mark, want);
+            if (instance is not null &&
+                InventoryMath.RemoveReference(mark.Inventory.Items, instance))
             {
-                var instance = mark.Inventory.Items[index];
-                mark.Inventory.Items.RemoveAt(index);
                 abuser.Inventory.Items.Add(instance);
-                taken = id;
+                taken = instance.DefinitionId;
                 return true;
             }
         }
 
-        // Воды может не быть предметом вовсе: содержимое фляги живёт на самой
-        // девушке, а не на вещи, поэтому «отобрать флягу» отдало бы ему пустую
-        // посуду. Забираем глоток.
-        if (want == AidKind.Hydrate && mark.BottleCharges > 0)
+        // §52 / bug #355: exact physical source and destination bottles.
+        // A compatible/empty bottle receives one sip; without one, the whole
+        // source bottle moves if there is room. No NPC-global water is copied.
+        if (want == AidKind.Hydrate &&
+            BottleInventoryMath.FirstDrinkable(mark) is { } sourceBottle)
         {
-            mark.BottleCharges--;
-            if (abuser.BottleWater == WaterKind.None || abuser.BottleCharges <= 0)
+            var destinationBottle = BottleInventoryMath.FirstWithRoomFor(
+                abuser, sourceBottle.WaterKind);
+            if (destinationBottle is not null)
             {
-                abuser.BottleWater = mark.BottleWater;
-                abuser.BottleCharges = 1;
-            }
-            else
-            {
-                abuser.BottleCharges++;
-            }
-
-            if (mark.BottleCharges <= 0)
-            {
-                mark.BottleWater = WaterKind.None;
+                if (BottleInventoryMath.Add(destinationBottle, sourceBottle.WaterKind, 1) <= 0)
+                {
+                    return false;
+                }
+                BottleInventoryMath.ConsumeOne(sourceBottle, out _);
+                taken = "bottle.water";
+                return true;
             }
 
-            taken = "bottle.water";
-            return true;
+            if (abuser.Inventory.HasSpace)
+            {
+                if (!InventoryMath.RemoveReference(mark.Inventory.Items, sourceBottle))
+                {
+                    return false;
+                }
+                abuser.Inventory.Items.Add(sourceBottle);
+                taken = ContentIds.Bottle;
+                return true;
+            }
         }
 
         return false;
+    }
+
+    private static ItemInstance FindFirstSupplyInstance(
+        WorldState world, NPCState mark, AidKind want)
+    {
+        var interaction = want == AidKind.Hydrate
+            ? InteractionType.Drink
+            : InteractionType.Eat;
+        foreach (var item in mark.Inventory.Items)
+        {
+            // Bottles have their own physical-state branch above: it can pour
+            // into a compatible destination or move the exact filled vessel.
+            // Never let a future data-authored Drink interaction make an empty
+            // equal bottle win this generic consumable scan.
+            if (interaction == InteractionType.Drink &&
+                item.DefinitionId == ContentIds.Bottle)
+            {
+                continue;
+            }
+
+            if (interaction == InteractionType.Drink &&
+                item.DefinitionId == ContentIds.CoconutPierced &&
+                item.ResourceAmount <= 0f)
+            {
+                continue;
+            }
+
+            if (!world.Content.ObjectDefinitions.TryGetValue(
+                    item.DefinitionId, out var definition))
+            {
+                continue;
+            }
+
+            foreach (var candidate in definition.Interactions)
+            {
+                if (candidate.Type == interaction)
+                {
+                    return item;
+                }
+            }
+        }
+
+        return null;
     }
 }
 

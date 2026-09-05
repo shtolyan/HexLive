@@ -59,8 +59,10 @@ public sealed partial class ExecutionSystem
 
         if (take)
         {
-            if (!ContainerLootMath.TryResolve(
-                    world, container, slotIndex, expected, count,
+            if (!ContainerLootMath.TryResolveReserved(
+                    world, container, expected, count,
+                    looter.Execution.TargetInventoryItem,
+                    looter.Execution.TargetInventoryWorldObject,
                     out var moving, out var groundSources))
             {
                 FailContainerTransfer(world, looter, "StaleItem");
@@ -86,10 +88,16 @@ public sealed partial class ExecutionSystem
         {
             // Отдаём из карманов: ячейка называется индексом в ЕЁ раскладке,
             // поэтому разрешаем ровно тем же кодом, что и человеческий обмен.
+            var selected = looter.Execution.TargetInventoryItem;
+            var selectedIndex = selected is null
+                ? -1
+                : InventoryMath.IndexOfReference(looter.Inventory.Items, selected);
             var itemRef = new InventoryItemRef(
-                InventoryItemSource.Carried, slotIndex, expected);
-            if (!PlayerInventoryTransferMath.TryResolveTransfer(
-                    world, looter, itemRef, count, out var moving, out _))
+                InventoryItemSource.Carried, selectedIndex, expected);
+            if (selectedIndex < 0 || selected.DefinitionId != expected ||
+                !PlayerInventoryTransferMath.TryResolveTransfer(
+                    world, looter, itemRef, count, out var moving, out _) ||
+                moving.Count == 0 || !ReferenceEquals(moving[0], selected))
             {
                 FailContainerTransfer(world, looter, "StaleItem");
                 return;
@@ -141,6 +149,8 @@ public sealed partial class ExecutionSystem
         looter.Mind.CurrentGoal = GoalType.None;
         looter.Execution.Status = ExecutionStatus.None;
         looter.Execution.CurrentInteraction = null;
+        looter.Execution.TargetInventoryItem = null;
+        looter.Execution.TargetInventoryWorldObject = null;
         looter.Movement.JunctionPath.Clear();
         looter.Movement.IsMoving = false;
         looter.Movement.SetStatus(MovementStatus.Idle);

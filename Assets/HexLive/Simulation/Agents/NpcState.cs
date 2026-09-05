@@ -699,14 +699,62 @@ public sealed class NPCState
     // Spec 29G: junctions covered by a lying body — housemates path around.
     public System.Collections.Generic.List<HexLive.Simulation.Common.JunctionId> ClaimedJunctions { get; } = new();
 
-    // Spec 29H: what the carried bottle currently holds (one bottle per NPC).
-    public WaterKind BottleWater { get; set; } = WaterKind.None;
+    // §52 / bug #355: compatibility facade for old single-bottle callers.
+    // It never owns state: the v66/v67 reader keeps legacy fields in locals
+    // until inventory items exist, then migrates them into a physical bottle.
 
-    // Spec §52: a filled bottle holds several gulps. Filling charges it to
-    // SimBalance.BottleCapacity; each drink spends one; at 0 the bottle empties
-    // (BottleWater → None) and only then is a refill trip worthwhile. This is
-    // what lets a colony stop obsessing over water — one fill, several drinks.
-    public int BottleCharges { get; set; }
+    public WaterKind BottleWater
+    {
+        get
+        {
+            var bottle = FirstBottle();
+            return bottle is not null && bottle.ResourceAmount > 0f
+                ? bottle.WaterKind
+                : WaterKind.None;
+        }
+        set
+        {
+            var bottle = FirstBottle();
+            if (bottle is null) return;
+            bottle.WaterKind = value;
+            if (value == WaterKind.None) bottle.ResourceAmount = 0f;
+        }
+    }
+
+    public int BottleCharges
+    {
+        get
+        {
+            var bottle = FirstBottle();
+            return bottle is not null && bottle.WaterKind != WaterKind.None
+                ? System.Math.Max(0, (int)System.MathF.Floor(bottle.ResourceAmount + 1e-4f))
+                : 0;
+        }
+        set
+        {
+            var clamped = System.Math.Max(0, value);
+            var bottle = FirstBottle();
+            if (bottle is null) return;
+            bottle.ResourceAmount = clamped;
+            if (clamped <= 0)
+            {
+                bottle.WaterKind = WaterKind.None;
+            }
+            // Callers that set amount without a kind still get an empty vessel;
+            // fabricating provenance would turn unknown water into a safe drink.
+            else if (bottle.WaterKind == WaterKind.None) bottle.ResourceAmount = 0f;
+        }
+    }
+
+    private ItemInstance? FirstBottle()
+    {
+        foreach (var item in Inventory.Items)
+        {
+            if (item.DefinitionId == "tool.bottle") return item;
+        }
+
+        return null;
+    }
 }
 
 // Spec 29H: the contents of an NPC's water bottle.

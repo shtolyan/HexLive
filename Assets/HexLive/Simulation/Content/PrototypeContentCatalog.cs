@@ -924,13 +924,12 @@ public static class PrototypeContentCatalog
                     }
                 }
             },
-            // Spec 29H: the personal water bottle — a definition so it renders
-            // and shows in the panel; the fill state lives on the NPC.
+            // Spec 29H / §52: every bottle is a physical vessel. Its fill and
+            // provenance live on ItemInstance, so carrying several is valid.
             ["tool.bottle"] = new ObjectDefinition
             {
                 Id = "tool.bottle",
                 DisplayName = "Bottle",
-                MaxCarriedInstances = 1,
                 Tags = { "Tool" },
                 Interactions =
                 {

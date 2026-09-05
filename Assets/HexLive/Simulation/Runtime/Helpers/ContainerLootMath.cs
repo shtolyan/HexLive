@@ -214,7 +214,7 @@ internal static class ContainerLootMath
             return false;
         }
 
-        npc.Inventory.Items.Remove(item);
+        InventoryMath.RemoveReference(npc.Inventory.Items, item);
         fuelTicks = FuelTicks(item);
         return true;
     }
@@ -341,47 +341,167 @@ internal static class ContainerLootMath
         }
 
         var take = requestedCount <= 0 ? 1 : System.Math.Min(requestedCount, cell.Count);
-        foreach (var item in obj.Contents)
+        // Build the persisted-content prefix separately. Non-stackable rows
+        // (notably bottles with different water) each retain their own exact
+        // SourceIndex; resolving merely by definition would always take the
+        // first bottle no matter which row the player clicked.
+        var contentCells = new List<(string ItemId, int Count, int SourceIndex)>();
+        for (var index = 0; index < obj.Contents.Count; index++)
         {
-            if (item.DefinitionId != cell.ItemId || !IsStoredItem(world, obj, item))
-            {
-                continue;
-            }
-
-            items.Add(item);
-            if (items.Count == take)
-            {
-                break;
-            }
+            var item = obj.Contents[index];
+            if (!IsStoredItem(world, obj, item)) continue;
+            AddCell(contentCells, item.DefinitionId, index);
         }
 
-        var topLevelCount = items.Count;
-        if (topLevelCount < take)
+        if (slotIndex < contentCells.Count)
         {
-            foreach (var garment in WardrobeGarments(world, obj))
+            var contentCell = contentCells[slotIndex];
+            if (contentCell.ItemId != cell.ItemId ||
+                contentCell.SourceIndex < 0 ||
+                contentCell.SourceIndex >= obj.Contents.Count)
             {
-                if (garment.DefinitionId != cell.ItemId) continue;
-                items.Add(ToItem(garment));
-                topLevelCount++;
-                items.AddRange(garment.Contents);
-                groundSources.Add(garment.Id);
-                if (topLevelCount == take)
+                return false;
+            }
+
+            if (!InventoryState.IsStackable(cell.ItemId))
+            {
+                var selected = obj.Contents[contentCell.SourceIndex];
+                if (!IsStoredItem(world, obj, selected) ||
+                    selected.DefinitionId != cell.ItemId)
                 {
+                    return false;
+                }
+
+                items.Add(selected);
+            }
+            else
+            {
+                for (var index = contentCell.SourceIndex;
+                     index < obj.Contents.Count && items.Count < take;
+                     index++)
+                {
+                    var item = obj.Contents[index];
+                    if (item.DefinitionId == cell.ItemId &&
+                        IsStoredItem(world, obj, item))
+                    {
+                        items.Add(item);
+                    }
+                }
+            }
+
+            return items.Count == take;
+        }
+
+        // Rack/collector storage is represented by physical world objects at
+        // the shared anchor. Their accepted types (garments and bottle) are
+        // non-stackable, so every remaining UI row maps 1:1 to this sorted
+        // list. Materialize that exact object and its owned bundle.
+        var externalIndex = slotIndex - contentCells.Count;
+        var external = WardrobeGarments(world, obj);
+        if (externalIndex < 0 || externalIndex >= external.Count)
+        {
+            return false;
+        }
+
+        var storedObject = external[externalIndex];
+        if (storedObject.DefinitionId != cell.ItemId || take != 1)
+        {
+            return false;
+        }
+
+        items.Add(ToItem(obj, storedObject));
+        items.AddRange(storedObject.Contents);
+        groundSources.Add(storedObject.Id);
+        return true;
+    }
+
+    /// <summary>
+    /// Resolve a delayed container action from the physical source reserved at
+    /// command admission. This deliberately ignores the old row number: rows
+    /// can shift while the actor walks, but an equal bottle must never stand in
+    /// for the one the player selected.
+    /// </summary>
+    public static bool TryResolveReserved(
+        WorldState world, WorldObjectState obj, string expectedDefinitionId,
+        int requestedCount, ItemInstance selectedItem, ObjectId? selectedWorldObject,
+        out List<ItemInstance> items, out List<ObjectId> groundSources)
+    {
+        items = new List<ItemInstance>();
+        groundSources = new List<ObjectId>();
+
+        if (selectedWorldObject is { } groundId)
+        {
+            WorldObjectState storedObject = null;
+            foreach (var candidate in WardrobeGarments(world, obj))
+            {
+                if (candidate.Id.Equals(groundId))
+                {
+                    storedObject = candidate;
                     break;
                 }
             }
+
+            if (storedObject is null ||
+                storedObject.DefinitionId != expectedDefinitionId ||
+                requestedCount > 1)
+            {
+                return false;
+            }
+
+            items.Add(ToItem(obj, storedObject));
+            items.AddRange(storedObject.Contents);
+            groundSources.Add(storedObject.Id);
+            return true;
         }
 
-        return topLevelCount == take && items.Count > 0;
+        if (selectedItem is null || selectedItem.DefinitionId != expectedDefinitionId)
+        {
+            return false;
+        }
+
+        var selectedIndex = InventoryMath.IndexOfReference(obj.Contents, selectedItem);
+        if (selectedIndex < 0 || !IsStoredItem(world, obj, selectedItem))
+        {
+            return false;
+        }
+
+        var take = InventoryState.IsStackable(expectedDefinitionId)
+            ? System.Math.Max(1, requestedCount)
+            : 1;
+        for (var index = selectedIndex;
+             index < obj.Contents.Count && items.Count < take;
+             index++)
+        {
+            var item = obj.Contents[index];
+            if (item.DefinitionId == expectedDefinitionId &&
+                IsStoredItem(world, obj, item))
+            {
+                items.Add(item);
+            }
+        }
+
+        return items.Count == take && ReferenceEquals(items[0], selectedItem);
     }
 
-    private static ItemInstance ToItem(WorldObjectState source) => new(source.DefinitionId)
+    private static ItemInstance ToItem(
+        WorldObjectState container, WorldObjectState source) => new(source.DefinitionId)
     {
         Wetness = source.Wetness,
         Durability = source.Durability,
         Dirtiness = source.Dirtiness,
         Bloodiness = source.Bloodiness,
-        ResourceAmount = source.ResourceAmount,
+        // A parked collector bottle predates physical bottle instances and
+        // stores a 0..1 fill fraction in the world object. Inventory bottles
+        // store real drink charges (0..BottleCapacity), so the loot boundary
+        // must use the same conversion as TakeVessel.
+        ResourceAmount = container.DefinitionId == ContentIds.WaterCollector
+            ? WaterCollectorMath.ChargesIn(source)
+            : source.ResourceAmount,
+        WaterKind = container.DefinitionId == ContentIds.WaterCollector &&
+                    source.WaterKind == WaterKind.None &&
+                    WaterCollectorMath.ChargesIn(source) > 0
+            ? WaterKind.Rain
+            : source.WaterKind,
         OwnerId = source.Owner?.Value ?? 0
     };
 
@@ -478,7 +598,11 @@ internal static class ContainerLootMath
     {
         foreach (var item in moving)
         {
-            obj.Contents.Remove(item);
+            // A row can be a reference from Contents or a materialized copy of
+            // an external rack object (removed below through groundSources).
+            // Remove by identity when it is the former; never definition-equal
+            // remove a different bottle when it is the latter.
+            InventoryMath.RemoveReference(obj.Contents, item);
             // Служебное число снимается вместе с вещью: у топлива это метка
             // очереди, у мяса — прогресс прожарки (§151.3). В кармане ни то,
             // ни другое смысла не имеет.
@@ -502,7 +626,7 @@ internal static class ContainerLootMath
     {
         foreach (var item in moving)
         {
-            looter.Inventory.Items.Remove(item);
+            if (!InventoryMath.RemoveReference(looter.Inventory.Items, item)) continue;
             var externalStorage =
                 (IsRack(world, obj) || obj.DefinitionId == ContentIds.WaterCollector) &&
                 obj.Junctions.Count > 0;
@@ -518,7 +642,11 @@ internal static class ContainerLootMath
                 stored.Durability = item.Durability;
                 stored.Dirtiness = item.Dirtiness;
                 stored.Bloodiness = item.Bloodiness;
-                stored.ResourceAmount = item.ResourceAmount;
+                stored.ResourceAmount = obj.DefinitionId == ContentIds.WaterCollector
+                    ? System.Math.Clamp(
+                        item.ResourceAmount / SimBalance.BottleCapacity, 0f, 1f)
+                    : item.ResourceAmount;
+                stored.WaterKind = item.WaterKind;
                 stored.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : looter.Id;
             }
             else if (IsCampfire(world, obj))

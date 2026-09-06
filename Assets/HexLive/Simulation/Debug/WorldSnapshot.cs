@@ -486,6 +486,8 @@ public sealed class NpcSnapshot
 
     // §74: the composition the view assembles the body from — material donor,
     // hair prefab, voice folder. Empty = the mesh's own, i.e. pre-§74 look.
+    public string HairColour { get; set; } = string.Empty;
+
     public string SkinSet { get; set; } = string.Empty;
 
     // §85: iris colour, its own axis (Resources/HexLive/Eyes/<id>/). Empty =

@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="ServerWorldLobby.uss" />
+    <ui:VisualElement name="lobby" class="lobby">
+        <ui:VisualElement class="lobby-toolbar">
+            <ui:Label name="title" class="lobby-title" />
+            <ui:Button name="close" />
+        </ui:VisualElement>
+        <ui:VisualElement name="content" class="lobby-content" />
+        <ui:Label name="status" class="lobby-status" />
+    </ui:VisualElement>
+</ui:UXML>

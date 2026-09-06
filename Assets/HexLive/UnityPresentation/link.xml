@@ -1,0 +1,9 @@
+<linker>
+  <!-- §161: reflection-based XML/JSON save and handshake DTOs must survive player stripping. -->
+  <assembly fullname="HexLive.Simulation">
+    <type fullname="HexLive.Simulation.Bootstrap.WorldCreationConfig" preserve="all" />
+    <type fullname="HexLive.Simulation.Bootstrap.CampCreationConfig" preserve="all" />
+    <type fullname="HexLive.Simulation.Bootstrap.CharacterCreationConfig" preserve="all" />
+    <type fullname="HexLive.Simulation.Bootstrap.CreationValue" preserve="all" />
+  </assembly>
+</linker>

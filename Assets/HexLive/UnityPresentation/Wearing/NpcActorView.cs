@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using RootMotion.FinalIK;
 using UnityEngine;
@@ -1857,8 +1858,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // save both get.
     public void Construct(string actorMeshName, int npcId,
         string skinSet, string eyeColor, string hairstyle, string voiceBank,
-        bool useAuthoredAppearance = false)
+        bool useAuthoredAppearance = false, string hairColour = null)
     {
+        _explicitHairColour = hairColour;
         _npcId = npcId;
         LiveByNpcId[npcId] = this;
         _renderGate = GetComponent<ActorRenderGate>() ??
@@ -6575,6 +6577,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     //
     // Цвет ставится ПОСЛЕ SetHair и по живому экземпляру: материал в Unity
     // общий, и запись в ассет перекрасила бы эту причёску у всех сразу.
+    private string _explicitHairColour;
+
     private System.Collections.IEnumerator SpawnHair(string hairstyle)
     {
         Wear prefab = null;
@@ -6588,7 +6592,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         _bodyBones.SetHair(prefab);
 
-        var colour = HairColourApplier.Choose(hairstyle, _npcId);
+        var colour = string.IsNullOrEmpty(_explicitHairColour)
+            ? HairColourApplier.Choose(hairstyle, _npcId)
+            : ActorAppearanceCatalog.Instance?.ColoursFor(hairstyle).FirstOrDefault(c => c.colour == _explicitHairColour);
         if (colour == null)
         {
             _pendingHairLoads--;

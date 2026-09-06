@@ -57,10 +57,15 @@ public sealed class RaidWaveSystem : ISimulationSystem
 
     public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
 
+    private static int Interval(WorldState world) => world.CreationConfig == null
+        ? Spec72.RaidWaveIntervalDays
+        : world.Mode == Bootstrap.GameMode.Islands ? world.CreationConfig.SeaRaidIntervalDays
+        : world.CreationConfig.Camp(Faction.Outsiders)?.ArrivalIntervalDays ?? 0;
+
     public void Run(WorldState world)
     {
-        if (!Spec72.Enabled || Spec72.OutsiderCount <= 0 ||
-            Spec72.RaidWaveIntervalDays <= 0)
+        var interval = Interval(world);
+        if ((world.CreationConfig == null && (!Spec72.Enabled || Spec72.OutsiderCount <= 0)) || interval <= 0)
         {
             return;
         }
@@ -84,7 +89,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
         // (the calendar is 1-based and rolls at midnight, tick-days at 06:00),
         // which reads as "day three came and nobody arrived".
         var wavesDue = EnvironmentSystem.CalendarDay(world.Tick) /
-            Spec72.RaidWaveIntervalDays;
+            Interval(world);
         while (world.RaidWavesSpawned < wavesDue)
         {
             var wave = world.RaidWavesSpawned + 1;
@@ -131,7 +136,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
         }
         _islandScratch.Sort((a, b) => ((int)a).CompareTo((int)b));
 
-        var wavesDue = EnvironmentSystem.CalendarDay(world.Tick) / Spec72.RaidWaveIntervalDays;
+        var wavesDue = EnvironmentSystem.CalendarDay(world.Tick) / Interval(world);
         foreach (var faction in _islandScratch)
         {
             var home = world.FactionHomes[faction];
@@ -140,7 +145,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
             {
                 var wave = processed + 1;
                 if (HasLivingIslandOutsider(world, faction) ||
-                    world.Entities.Npcs.Count >= PopulationArrivalMath.MaxLivingNpcsFor(world.Mode))
+                    world.Entities.Npcs.Count >= (world.CreationConfig?.PopulationLimit ?? PopulationArrivalMath.MaxLivingNpcsFor(world.Mode)))
                 {
                     processed = wave;
                     world.IslandOutsiderWavesByFaction[faction] = processed;

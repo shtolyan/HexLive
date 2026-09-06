@@ -72,6 +72,7 @@ public sealed class ShipwreckSurvivorSystem : ISimulationSystem
         }
 
         survivor.Faction = Faction.Colony;
+        if (world.CreationConfig?.Owns(survivor) == true) world.PlayerControlledNpcs.Add(survivor.Id.Value);
         survivor.Mind.PendingAidFrom = null;
         survivor.Mind.PendingAidSinceTick = 0;
         Trace.Emit(world, survivor.Id, "ShipwreckSurvivorJoined",

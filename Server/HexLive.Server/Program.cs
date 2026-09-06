@@ -105,10 +105,8 @@ public static class Program
             }
         }
 
-        bool continueExistingWorld;
         try
         {
-            continueExistingWorld = File.Exists(Path.GetFullPath(options.SavePath));
             options.ContinueExistingSaveIfPresent(Console.WriteLine);
         }
         catch (Exception ex) when (
@@ -142,7 +140,7 @@ public static class Program
             // panel can start a fresh colony without restarting the process.
             worlds = new WorldSupervisor(options.Seed, options.Mode, options.SavePath, assetCatalog,
                 options.VerboseTrace, options.IncludeDebugDetails, options.Llm,
-                options.CompanionProfile, lifetime.Token);
+                options.CompanionProfile, lifetime.Token, options.PlayerAssignmentsPath);
         }
         catch (Exception ex)
         {
@@ -184,7 +182,6 @@ public static class Program
         // только открыта хоть одна дверь управления.
         ControlLeases? controlLeases = null;
         AccessTokenFile? playerToken = null;
-        PlayerCharacterAssignments? playerAssignments = null;
         var agentSessions = new AgentSessionRegistry();
         using var deepgram = new DeepgramTokenBroker();
         if (options.ControlEnabled || options.McpEnabled)
@@ -196,17 +193,7 @@ public static class Program
         {
             playerToken = AccessTokenFile.LoadOrCreate(
                 options.PlayerTokenPath, "PLAYER CONTROL — first run", "hexplay_");
-            try
-            {
-                playerAssignments = PlayerCharacterAssignments.Load(
-                    options.PlayerAssignmentsPath, continueExistingWorld);
-            }
-            catch (Exception ex) when (
-                ex is IOException or InvalidDataException or UnauthorizedAccessException)
-            {
-                Console.Error.WriteLine($"[fatal] {ex.Message}");
-                return 1;
-            }
+
         }
 
         Console.CancelKeyPress += (_, e) =>
@@ -269,7 +256,7 @@ public static class Program
                             clientId, out var playerId))
                     {
                         controlOwner = "ws:" + playerId;
-                        assignedNpcIds = playerAssignments!.Reconcile(
+                        assignedNpcIds = viewerSession.Assignments!.Reconcile(
                             viewerSession.Host, playerId,
                             PlayerCharacterAssignments.DefaultCharacterLimit,
                             viewerSession.Lifetime,
@@ -319,6 +306,7 @@ public static class Program
         Admin.AdminEndpoints.Map(
             app, worlds, account, sessions, mailer, lifetime, assetRegistry, assetCatalog,
             options.AdminIconRoot, bugs);
+        WorldCreationEndpoints.Map(app, worlds, account, sessions, assetRegistry, options.CompanionProfile, playerToken);
         Bugs.BugApiEndpoints.Map(app, bugs, bugToken, playerToken, sessions);
 
         if (options.McpEnabled)
@@ -363,7 +351,7 @@ public static class Program
             controlLeases?.Clear();
             agentSessions.Clear();
             var viewerSession = worlds.CaptureViewerSession();
-            playerAssignments?.SwitchWorld(viewerSession.WorldGeneration);
+            // Assignments are owned by the active world library entry.
             if (options.McpEnabled)
             {
                 worlds.Host.EnableMcpEventLog();
@@ -465,6 +453,7 @@ public static class Program
             while (!cancel.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1), cancel).ConfigureAwait(false);
+                worlds.RefreshCustomRoster();
                 expired.Clear();
                 leases.CollectExpired(expired);
                 foreach (var (npcId, owner) in expired)
@@ -590,7 +579,7 @@ public sealed class ServerOptions
 
     public void ContinueExistingSaveIfPresent(Action<string>? log = null)
     {
-        var header = ServerSaveHeader.ReadIfPresent(SavePath);
+        var header = ServerSaveHeader.ReadIfPresent(WorldLibrary.StartupSavePath(SavePath));
         if (header is null)
         {
             return;

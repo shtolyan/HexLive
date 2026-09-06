@@ -175,6 +175,21 @@ public sealed class PlayerCharacterAssignments
         WorldHost host, string playerId, int characterLimit = DefaultCharacterLimit,
         CancellationToken worldLifetime = default, int worldGeneration = 0)
     {
+        var custom = host.Read(world => world.CreationConfig == null ? null :
+            (world.CreationConfig.CreatorPlayerId == playerId
+                ? world.Entities.Npcs.Values.Where(n => world.PlayerControlledNpcs.Contains(n.Id.Value) && FactionRelations.IsGirlCamp(n.Faction)).Select(n => n.Id.Value).OrderBy(id => id).ToArray()
+                : Array.Empty<int>()));
+        if (custom != null)
+        {
+            if (worldLifetime.IsCancellationRequested) return Array.Empty<int>();
+            lock (_gate)
+            {
+                if (worldLifetime.IsCancellationRequested) return Array.Empty<int>();
+                var record = FindOrAdd(playerId);
+                if (!record.NpcIds.SequenceEqual(custom)) { record.NpcIds = custom.ToList(); Save(); }
+            }
+            return custom;
+        }
         var roster = host.Read(world =>
         {
             var retainable = new List<int>();
@@ -279,6 +294,11 @@ public sealed class PlayerCharacterAssignments
     /// сохраняет назначения, которые новый viewer успел сделать до позднего
     /// уведомления <c>WorldSwapped</c>.
     /// </summary>
+    public void BindWorldGeneration(int worldGeneration)
+    {
+        lock (_gate) _worldGeneration = worldGeneration;
+    }
+
     public void SwitchWorld(int worldGeneration)
     {
         lock (_gate)

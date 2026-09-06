@@ -156,7 +156,10 @@ public sealed class Handshake
     //     MoveTo/GroupMove несут необязательный темп, появилась
     //     SetRunByDefault, а RunByDefault едет в записи NPC (snapshot v37).
     // 13: §160 generic MCP attachment, direct Deepgram STT and agent speech.
-    public const int ProtocolVersion = 13;
+    public const int ProtocolVersion = 14;
+
+    public string WorldId { get; set; } = string.Empty;
+    public string CreationConfig { get; set; } = string.Empty;
 
     public int Seed { get; set; }
 
@@ -228,6 +231,8 @@ public sealed class Handshake
         }
         w.Write(AgentIntegrationEnabled);
         w.Write(SttAvailable);
+        w.Write(WorldId ?? string.Empty);
+        WriteSimData(w, CreationConfig ?? string.Empty);
     }
 
     public static Handshake Read(BinaryReader r)
@@ -268,6 +273,8 @@ public sealed class Handshake
 
         handshake.AgentIntegrationEnabled = r.ReadBoolean();
         handshake.SttAvailable = r.ReadBoolean();
+        handshake.WorldId = r.ReadString();
+        handshake.CreationConfig = ReadSimData(r);
 
         return handshake;
     }

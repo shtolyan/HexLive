@@ -58,7 +58,7 @@ internal static class PopulationArrivalMath
     public static bool HasRoom(WorldState world, Faction faction)
     {
         // §146.6: потолки выбираются селектором по режиму мира.
-        var worldCap = world == null ? 0 : MaxLivingNpcsFor(world.Mode);
+        var worldCap = world == null ? 0 : world.CreationConfig?.PopulationLimit ?? MaxLivingNpcsFor(world.Mode);
         if (world == null || worldCap <= 0 ||
             world.Entities.Npcs.Count >= worldCap)
         {
@@ -70,6 +70,13 @@ internal static class PopulationArrivalMath
         var factionCap = FactionRelations.IsColonyKind(faction)
             ? MaxCampNpcsFor(world.Mode)
             : WorldBalance.MaxOutsiderNpcs;
+        if (world.CreationConfig != null)
+        {
+            var camp = world.CreationConfig.Camp(faction);
+            factionCap = camp?.Enabled == true ? camp.PopulationLimit : 0;
+            if (faction == Faction.Outsiders && world.Mode == Bootstrap.GameMode.Islands)
+                factionCap = world.CreationConfig.PopulationLimit;
+        }
         if (factionCap <= 0)
         {
             return false;
@@ -269,6 +276,7 @@ internal static class PopulationArrivalMath
     public static void AddToWorld(WorldState world, NPCState npc, JunctionId junction)
     {
         world.Entities.Npcs[npc.Id] = npc;
+        if (world.CreationConfig?.Owns(npc) == true) world.PlayerControlledNpcs.Add(npc.Id.Value);
 
         if (!world.Occupancy.EntitiesInTile.TryGetValue(npc.Tile, out var occupied))
         {

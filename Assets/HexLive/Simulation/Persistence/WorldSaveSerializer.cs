@@ -169,7 +169,7 @@ public static class WorldSaveSerializer
     // profile, authored appearance flag, bond, memory, journal and turn ids.
     // v70 (§159.1): one-time authored starter-outfit migration latch.
     // v71 (§160): generic authored-preset markers and generic agent Social ids.
-    public const int BlobVersion = 71;
+    public const int BlobVersion = 72;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -477,16 +477,26 @@ public static class WorldSaveSerializer
             w.Write(world.Chunks.Items[chunk].LastSimulatedTick);
         }
 
-        // §157.7 (v67): курсоры островных чужаков по лагерям — как прибытия.
-        var outsiderCamps = new List<Agents.Faction>(world.IslandOutsiderWavesByFaction.Keys);
-        outsiderCamps.Sort((a, b) => ((int)a).CompareTo((int)b));
-        w.Write(outsiderCamps.Count);
-        foreach (var faction in outsiderCamps)
+        if (version >= 67)
         {
-            w.Write((int)faction);
-            w.Write(world.IslandOutsiderWavesByFaction[faction]);
+            // §157.7 (v67): курсоры островных чужаков по лагерям — как прибытия.
+            var outsiderCamps = new List<Agents.Faction>(world.IslandOutsiderWavesByFaction.Keys);
+            outsiderCamps.Sort((a, b) => ((int)a).CompareTo((int)b));
+            w.Write(outsiderCamps.Count);
+            foreach (var faction in outsiderCamps)
+            {
+                w.Write((int)faction);
+                w.Write(world.IslandOutsiderWavesByFaction[faction]);
+            }
         }
 
+        if (version >= 72)
+        {
+            w.Write(Bootstrap.WorldCreationCodec.Encode(world.CreationConfig));
+            var owned = world.CreationConfig == null ? new List<int>() : new List<int>(world.PlayerControlledNpcs);
+            owned.Sort(); w.Write(owned.Count);
+            foreach (var id in owned) w.Write(id);
+        }
         w.Write(EndMarker);
     }
 
@@ -933,6 +943,17 @@ public static class WorldSaveSerializer
             }
         }
 
+        world.CreationConfig = version >= 72 ? Bootstrap.WorldCreationCodec.Decode(r.ReadString()) : null;
+        if (version >= 72)
+        {
+            var lobbyOwnedCount = ReadBoundedCount(r, 100000, "world player ownership");
+            if (world.CreationConfig != null) world.PlayerControlledNpcs.Clear();
+            for (var i = 0; i < lobbyOwnedCount; i++)
+            {
+                var id = r.ReadInt32();
+                if (world.CreationConfig != null) world.PlayerControlledNpcs.Add(id);
+            }
+        }
         if (r.ReadInt32() != EndMarker)
         {
             throw new InvalidDataException("Save blob end marker missing — truncated or corrupt save.");
@@ -1962,6 +1983,7 @@ public static class WorldSaveSerializer
                     w.Write(turnId ?? string.Empty);
                 w.Write(npc.HexkufaExposure);
                 w.Write(npc.CharacterPresetVersion);
+                if (version >= 72) w.Write(npc.HairColour ?? string.Empty);
             }
         }
     }
@@ -2683,6 +2705,7 @@ public static class WorldSaveSerializer
                     npc.AppliedAgentTurnIds.Add(r.ReadString());
                 npc.HexkufaExposure = Math.Max(0, r.ReadInt32());
                 npc.CharacterPresetVersion = Math.Max(0, r.ReadInt32());
+                if (version >= 72) npc.HairColour = r.ReadString();
             }
             else
             {

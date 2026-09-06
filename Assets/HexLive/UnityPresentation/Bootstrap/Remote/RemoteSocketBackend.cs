@@ -198,6 +198,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     // §146.2: the (seed, mode) the ACCEPTED world was built from. Snapshotted
     // when the first handshake passes the checksum — `_handshake` itself is
     // replaced by every reconnect, so comparing against it would always agree.
+    private string _acceptedWorldId;
     private int _acceptedSeed;
     private GameMode _acceptedMode;
 
@@ -1228,7 +1229,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
             // Reconnected. A different seed or mode means the operator
             // restarted the server on another world — nothing we are showing
             // is valid any more.
-            if (handshake.Seed != _acceptedSeed || (GameMode)handshake.Mode != _acceptedMode)
+            if (handshake.WorldId != _acceptedWorldId || handshake.Seed != _acceptedSeed || (GameMode)handshake.Mode != _acceptedMode)
             {
                 Fail($"The server is now running seed {handshake.Seed} ({(GameMode)handshake.Mode})," +
                      $" not {_acceptedSeed} ({_acceptedMode}) — this is a different world.");
@@ -1270,8 +1271,9 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         // the server's mode or the checksum below would refuse every BigIsland
         // world with a misleading "different builds".
         var clock = Stopwatch.StartNew();
-        var definition = PrototypeWorldDefinitionFactory.Create(
-            handshake.Seed, (GameMode)handshake.Mode);
+        var creation = WorldCreationCodec.Decode(handshake.CreationConfig);
+        var definition = creation == null ? PrototypeWorldDefinitionFactory.Create(
+            handshake.Seed, (GameMode)handshake.Mode) : WorldCreation.Definition(creation);
         var definitionMs = clock.ElapsedMilliseconds;
 
         // Topology ONLY. The full Create also spawns every object and NPC,
@@ -1374,6 +1376,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         // from this same catalog. Must be built BEFORE the first frame decodes.
         DefinitionIdTable.Build(_localWorld.Content);
 
+        _acceptedWorldId = handshake.WorldId;
         _acceptedSeed = handshake.Seed;
         _acceptedMode = (GameMode)handshake.Mode;
 

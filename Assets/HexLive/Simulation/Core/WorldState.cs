@@ -9,6 +9,7 @@ namespace HexLive.Simulation.Core
 
 public sealed class WorldState
 {
+    public Bootstrap.WorldCreationConfig CreationConfig { get; set; }
     /// <summary>
     /// Runtime-only monotonic clock. The engine replaces the default instance
     /// with its clock; saves and snapshots deliberately do not carry it.

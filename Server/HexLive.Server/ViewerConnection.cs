@@ -118,6 +118,8 @@ public sealed class ViewerConnection
 
         var handshake = new Handshake
         {
+            WorldId = _host.WorldId,
+            CreationConfig = _host.CreationConfigText,
             Seed = _host.Seed,
             Mode = (int)_host.Mode,
             Tick = _host.Tick,

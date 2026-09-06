@@ -1081,6 +1081,7 @@ public static class WorldSnapshotExporter
             UseAuthoredAppearance = npc.UseAuthoredAppearance,
             DisplayName = npc.DisplayName,
             ActorMesh = npc.ActorMesh,
+            HairColour = npc.HairColour,
             SkinSet = npc.SkinSet,
             EyeColor = npc.EyeColor,
             Hairstyle = npc.Hairstyle,

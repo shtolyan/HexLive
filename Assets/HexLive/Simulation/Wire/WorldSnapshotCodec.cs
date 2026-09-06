@@ -93,7 +93,7 @@ public static class WorldSnapshotCodec
     /// v38: §55.4/#347 typed bottle-water provenance in the inventory group.
     /// v39: §52/#355 per-instance vessel amount/provenance in object and slot rows.
     /// v40: §159 companion profile, authored appearance, Hexkufa and voice bond.
-    public const int WireVersion = 40;
+    public const int WireVersion = 41;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -907,6 +907,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteString(w, n.ActorMesh);
         // §74 composition + §72 faction. Faction travels as a byte: the enum is
         // tiny and both ends link the same definition.
+        WireIo.WriteString(w, n.HairColour);
         WireIo.WriteString(w, n.SkinSet);
         WireIo.WriteString(w, n.EyeColor);
         WireIo.WriteString(w, n.Hairstyle);
@@ -1273,6 +1274,7 @@ public static class WorldSnapshotCodec
         n.UseAuthoredAppearance = r.ReadBoolean();
         n.DisplayName = r.ReadString();
         n.ActorMesh = r.ReadString();
+        n.HairColour = r.ReadString();
         n.SkinSet = r.ReadString();
         n.EyeColor = r.ReadString();
         n.Hairstyle = r.ReadString();

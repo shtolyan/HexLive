@@ -15,9 +15,10 @@ public sealed class WorldStateFactory
     private int _nextJunctionValue = 1;
     private readonly Dictionary<(int, int), JunctionId> _junctionsByKey = new();
 
-    public WorldState Create(WorldBootstrapDefinition bootstrap)
+    public WorldState Create(WorldBootstrapDefinition bootstrap, Action<WorldState> topologyReady = null)
     {
         var world = CreateTopology(bootstrap);
+        topologyReady?.Invoke(world);
         BuildStepDeltas(world);
 
         foreach (var objectBootstrap in bootstrap.Objects)
@@ -45,7 +46,7 @@ public sealed class WorldStateFactory
 
         // §54 cold start: the hearth is built, not given. One per camp: the
         // outsider raises and lights his through the very same chain.
-        if (bootstrap.FactionHomes.Count == 0)
+        if (bootstrap.FactionHomes.Count == 0 && bootstrap.CreationConfig == null)
         {
             CreateCampfireSite(world, new TileCoord(0, 4));
         }
@@ -246,6 +247,7 @@ public sealed class WorldStateFactory
         // достижимость по дороге (якоря лагерей). Готовый мир — единственная
         // правда, и производные карты обязаны собраться с него, а не с того
         // промежуточного состояния, на котором их спросили впервые.
+        WorldCreation.Apply(world, bootstrap.CreationConfig);
         WorldTopology.InvalidateAll(world);
         return world;
     }

@@ -28,7 +28,7 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
     public void Run(WorldState world)
     {
         var interval = WorldBalance.ColonyArrivalIntervalDays;
-        if (interval <= 0)
+        if (interval <= 0 && world.CreationConfig == null)
         {
             return;
         }
@@ -51,10 +51,11 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
             IslandsCastawayMath.RunSos(world);
         }
 
-        var opportunitiesDue = EnvironmentSystem.CalendarDay(world.Tick) / interval;
+        var day = EnvironmentSystem.CalendarDay(world.Tick);
         foreach (var faction in _campScratch)
         {
-            RunForCamp(world, faction, opportunitiesDue);
+            var campInterval = world.CreationConfig?.Camp(faction)?.ArrivalIntervalDays ?? interval;
+            if (campInterval > 0) RunForCamp(world, faction, day / campInterval);
         }
     }
 

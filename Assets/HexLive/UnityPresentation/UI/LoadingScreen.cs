@@ -335,6 +335,17 @@ namespace HexLive.UnityPresentation.UI
             card.Add(MakeMenuRow("plus", Loc.Get("menu.newgame"),
                 primary: false, enabled: true, () => ToggleNewGameBox()));
             _newGameBox = BuildNewGameBox();
+            card.Add(MakeMenuRow("plus", Loc.Get("lobby.title"),
+                primary: false, enabled: true, () => new ServerWorldLobby(_root, this, (url, token) =>
+                {
+                    ServerBook.RememberToken(token);
+                    SessionConfig.UseServer(url, token);
+                    ServerBook.Remember(url);
+                    _connectChosen = true;
+                    _continueChosen = false;
+                    _menuChosen = true;
+                })));
+
 
             // Watch a world running on a server instead of building one here.
             // The row expands into an address field rather than opening another

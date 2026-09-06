@@ -101,20 +101,13 @@ public static class MashaCompanionProfile
             CurrentJunction = landing.Junction,
         };
 
-        spawnedNpc.Needs.Hunger = 0.35f;
-        spawnedNpc.Needs.Thirst = 0.30f;
-        spawnedNpc.Needs.Energy = 0.82f;
-        spawnedNpc.Needs.Comfort = 0.42f;
-        spawnedNpc.Needs.Social = 0.35f;
-        spawnedNpc.Needs.ThermalDiscomfort = 0.15f;
+        InitializeStartingNeedsAndSupplies(spawnedNpc);
         spawnedNpc.CompassionTrait = Spec53.TraitMin +
             MathUtil.Hash01(world.Seed, ReservedNpcId, 53, 5301) *
             (Spec53.TraitMax - Spec53.TraitMin);
         AttributeMath.Roll(spawnedNpc, world.Seed, ReservedNpcId);
         TraitMath.Roll(spawnedNpc, world.Seed, ReservedNpcId);
 
-        spawnedNpc.Inventory.Items.Add(new ItemInstance(Content.GearCatalog.Bottle));
-        spawnedNpc.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: false));
         EquipAuthoredStarterOutfit(world, spawnedNpc);
         spawnedNpc.CharacterPresetVersion = AuthoredStarterOutfitVersion;
         EquipmentMath.Recalculate(world, spawnedNpc);
@@ -127,6 +120,20 @@ public static class MashaCompanionProfile
                 $"Profile={ProfileId} Tile={landing.Tile.Q},{landing.Tile.R}");
         }
         return true;
+    }
+
+    // §161: shared non-clothing starter rules; lobby clothing stays explicit.
+    public static void InitializeStartingNeedsAndSupplies(NPCState npc)
+    {
+        npc.Needs.Hunger = 0.35f;
+        npc.Needs.Thirst = 0.30f;
+        npc.Needs.Energy = 0.82f;
+        npc.Needs.Comfort = 0.42f;
+        npc.Needs.Social = 0.35f;
+        npc.Needs.ThermalDiscomfort = 0.15f;
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(Content.GearCatalog.Bottle));
+        npc.Inventory.Items.Add(MedicalSupplyMath.CreateBandage(herbal: false));
     }
 
     private static void UpgradeAuthoredStarterOutfit(WorldState world, NPCState npc)

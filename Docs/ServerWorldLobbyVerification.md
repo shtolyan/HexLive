@@ -1,0 +1,68 @@
+# Лобби сервера — реализация и проверка
+
+Worktree: `/Volumes/ORICO/work3`. Ветка: `codex/server-world-lobby`.
+База: `c836a71f82aca88071bd475e7cffd26b1bc21894` (`master` при создании worktree).
+Спецификация: [§161](../Spec/161.md). Изменения основного checkout не переносились.
+
+## Реализовано
+
+- Версионированная конфигурация мира, лагерей и персонажей; общая генерация
+  предпросмотра и сервера, явный состав, права создателя и персональные правила населения.
+- Административный `/api/worlds/v1`: вход, каталог, preview, validate, создание,
+  операции, библиотека и активация. Игровой токен не заменяет административную сессию.
+- Отдельные save/config/players/simdata для каждого мира, импорт старого сейва копией,
+  сохранение на границе тика, атомарный active.json, повтор операций без дубликатов.
+- Сохранение выбранных волос и постоянного владения, spectator для других игроков;
+  blob v72, snapshot v41, handshake v14 с worldId и конфигурацией топологии.
+- UI Toolkit-меню до загрузки игры, карта с перемещением и масштабом, лагеря/ростер,
+  3D-предпросмотр через NpcActorView, внешность, одежда по слоям и слотам, характеристики,
+  навыки и черты. Локальный черновик сохраняет конфигурацию и ключ операции.
+- 118 новых RU/EN-терминов в I2. Семь характеристик и все девять существующих навыков,
+  включая Athletics. Файл link.xml сохраняет отражаемые DTO для Unity Player.
+
+## Автоматическая проверка
+
+**41 серверный тест — успешно.**
+
+```sh
+dotnet test Tests/HexLive.Server.Tests --no-restore --nologo --filter 'FullyQualifiedName~WorldCreation|FullyQualifiedName~ServerStartupSaveHeaderTests|FullyQualifiedName~PlayerCharacterAssignments'
+```
+
+Проверены пять сценариев, общая топология до размещения стартовых построек,
+смешанное владение, пустой/выключенный лагерь, отсутствие точки старта, лимиты,
+обе настройки владения прибывающими, перенос и сохранение права управления,
+Маша с явным комплектом и сценарными припасами, восстановление и переключение,
+отказ записи указателя, повтор операции и ошибочный повтор с другим содержимым.
+HTTP-тест запускает локальный Kestrel: вход, отказ без административных прав,
+полный запуск, два одновременных одинаковых запроса, polling и активация старого мира.
+
+**33 симуляционных теста — успешно.**
+
+```sh
+dotnet test Tests/HexLive.Simulation.Tests --no-restore --nologo --filter 'FullyQualifiedName~WireCoverageGate|FullyQualifiedName~SpecStructureGate|FullyQualifiedName~LocalizationCoverageContract|FullyQualifiedName~PopulationArrival|FullyQualifiedName~SnapshotContractGate|FullyQualifiedName~WorldLobbyLegacySave|FullyQualifiedName~MashaCompanion'
+```
+
+Включены round-trip wire, контракты snapshot/spec/localization, прежние прибытия,
+профиль Маши и чтение сейвов v66, v67, v68, v69, v70, v71.
+После последних RU/EN-строк повторно прошли **8** spec/localization-тестов
+(это часть указанного набора, не дополнительные уникальные тесты).
+
+TRX: `Tests/HexLive.Server.Tests/TestResults/lobby-final.trx`,
+`Tests/HexLive.Simulation.Tests/TestResults/lobby-gates.trx`,
+`Tests/HexLive.Simulation.Tests/TestResults/lobby-spec-localization.trx`.
+
+## Оставшаяся проверка
+
+Unity Editor не был открыт. Проверка компиляции UnityPresentation, внешний вид меню,
+рендер всех тел/материалов/причёсок, волосы под головными уборами, реальные иконки
+и освобождение ресурсов в профайлере **не выполнены**. Headless-тесты не заменяют её.
+Сборка Player, IL2CPP и подключение Unity-клиента к удалённому хосту не проверялись.
+
+Для продолжения открыть единственный Unity Editor на `/Volumes/ORICO/work3`.
+Перед любым Unity MCP вызовом получить аренду через `Tools/unity_mcp_lease.py`;
+по окончании отпустить её. Не запускать второй Editor. Начать с компиляции,
+затем пройти главное меню → вход → карта → каждый тип тела/материалов → одежда →
+проверка → запуск на тестовом сервере → реконнект → смена сохранённого мира.
+
+Рабочий хост не обновлялся. Коммит, слияние и развёртывание не выполнялись;
+изменения находятся в рабочем дереве отдельной ветки.

@@ -5,6 +5,7 @@ namespace HexLive.Simulation.Bootstrap
 
 public sealed class WorldBootstrapDefinition
 {
+    public WorldCreationConfig CreationConfig { get; set; }
     public SimulationBootstrapSettings Simulation { get; set; } = new();
 
     public EnvironmentBootstrap Environment { get; set; } = new();

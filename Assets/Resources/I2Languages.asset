@@ -25928,6 +25928,950 @@ MonoBehaviour:
       - 'Реплика не доставлена. Попробуй ещё раз.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'lobby.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'New game on server'
+      - 'Новая игра на сервере'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.back'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Back'
+      - 'Назад'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.working'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Please wait…'
+      - 'Подождите…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not complete the operation'
+      - 'Не удалось выполнить операцию'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.http'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server response'
+      - 'Ответ сервера'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.server'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server address'
+      - 'Адрес сервера'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.password'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator password'
+      - 'Пароль администратора'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.playerToken'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Player control token'
+      - 'Токен управления игрока'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.login'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sign in'
+      - 'Войти'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.seed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Seed'
+      - 'Сид'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.scenario'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Scenario'
+      - 'Сценарий'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.generate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Generate map'
+      - 'Создать карту'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.library'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server worlds'
+      - 'Миры сервера'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.defaultName'
+      TermType: 0
+      Description:
+      Languages:
+      - 'New world'
+      - 'Новый мир'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.activate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Save current world and switch'
+      - 'Сохранить текущий мир и переключиться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'World name'
+      - 'Название мира'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.population'
+      TermType: 0
+      Description:
+      Languages:
+      - 'World population limit'
+      - 'Лимит населения мира'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.seaRaids'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sea raid interval, days (0 = off)'
+      - 'Морские волны, дней (0 = выкл.)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.regenerate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Change scenario / seed'
+      - 'Изменить сценарий / сид'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.camp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Camp'
+      - 'Лагерь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.enabled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Camp enabled'
+      - 'Лагерь включён'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.myCamp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose as my camp'
+      - 'Выбрать своим лагерем'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.campPopulation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Camp population limit'
+      - 'Лимит жителей лагеря'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.arrivals'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Arrival interval, days (0 = off)'
+      - 'Прибытия, дней (0 = выкл.)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.controlArrivals'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Control new arrivals'
+      - 'Управлять прибывающими'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.spawn'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Spawn at start'
+      - 'Появиться при старте'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.controlled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Controlled by me'
+      - 'Управляется мной'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.edit'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Edit character'
+      - 'Редактировать персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.duplicate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Duplicate'
+      - 'Дублировать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.remove'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Remove'
+      - 'Удалить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.add'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Add character'
+      - 'Добавить персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.newCharacter'
+      TermType: 0
+      Description:
+      Languages:
+      - 'New character'
+      - 'Новый персонаж'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.characterName'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Character name'
+      - 'Имя персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Body'
+      - 'Тело'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.molly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Slim'
+      - 'Худая'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.marta'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Athletic'
+      - 'Спортивная'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.jana'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Curvy'
+      - 'Пухленькая'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.jolly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Jolly'
+      - 'Джолли'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.kshishtof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Male'
+      - 'Мужское'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.tonny'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Male (Tonny)'
+      - 'Мужское (Тонни)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.skin'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Materials'
+      - 'Материалы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eyes'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Eye colour'
+      - 'Цвет глаз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.hair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hairstyle'
+      - 'Причёска'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.hairColour'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hair colour'
+      - 'Цвет волос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.voice'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Voice'
+      - 'Голос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.clothing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Starting clothing'
+      - 'Стартовая одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.search'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Search clothing'
+      - 'Поиск одежды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.random'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Randomize appearance'
+      - 'Случайный образ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.done'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Done'
+      - 'Готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.start'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Save current world and start new'
+      - 'Сохранить текущий мир и начать новый'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.rotate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rotate'
+      - 'Поворот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.zoom'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Distance'
+      - 'Расстояние'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.loadingAppearance'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Loading appearance…'
+      - 'Загружаем образ…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.appearanceUnavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Appearance unavailable. Reopen the editor to retry.'
+      - 'Образ недоступен. Откройте редактор повторно для загрузки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.required'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Required value'
+      - 'Обязательное значение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.unsupported'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unsupported version'
+      - 'Неподдерживаемая версия'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.unknown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown option'
+      - 'Неизвестный вариант'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.length'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid text length'
+      - 'Недопустимая длина текста'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.invalid'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid value'
+      - 'Недопустимое значение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.range'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Value outside allowed range'
+      - 'Значение вне допустимого диапазона'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.capacity'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Population or item limit exceeded'
+      - 'Превышен лимит населения или предметов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.unknownOrDuplicate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown or duplicate identifier'
+      - 'Неизвестный или повторяющийся идентификатор'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.incomplete'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Incomplete camp list'
+      - 'Неполный список лагерей'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.otherCamp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Only your camp can contain controlled characters'
+      - 'Управляемые персонажи должны быть в своём лагере'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.incompatible'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Content is incompatible with this body'
+      - 'Контент несовместим с телом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.slotConflict'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Another garment occupies these slots on the same layer'
+      - 'Эти слоты на том же слое уже заняты другой одеждой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.noControlledCharacter'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Select at least one controlled starting character'
+      - 'Выберите хотя бы одного управляемого стартового персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.mapLegend'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gold: your camp · Blue: neighbours · Red: outsiders · Grey: disabled'
+      - 'Золотой — свой лагерь · Синий — соседи · Красный — чужаки · Серый — выключен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.outsiders'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outsiders'
+      - 'Чужаки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clothing layer'
+      - 'Слой одежды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'All layers'
+      - 'Все слои'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.underwear'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Underwear'
+      - 'Бельё'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.wear'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clothing'
+      - 'Одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.outerwear'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outer clothing'
+      - 'Верхняя одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.outer'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outer clothing'
+      - 'Верхняя одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.bags'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bags'
+      - 'Сумки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.previous'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Previous page'
+      - 'Предыдущая страница'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.next'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Next page'
+      - 'Следующая страница'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.controlDisabled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Player control is disabled on this server. Enable it in server settings.'
+      - 'На этом сервере выключено управление игрока. Включите его в настройках сервера.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.catalogChanged'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The server content catalog changed. Generate the map again before starting.'
+      - 'Каталог контента сервера изменился. Перед запуском создайте карту повторно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.noFreeSpawn'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No free starting point in this camp'
+      - 'В этом лагере нет свободной точки появления'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.summary'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Characters: {0} · Controlled: {1} · Enabled camps: {2}'
+      - 'Персонажей: {0} · Управляемых: {1} · Лагерей включено: {2}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Validate configuration'
+      - 'Проверить настройки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.valid'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Configuration is ready to start'
+      - 'Настройки готовы к запуску'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clothing slot'
+      - 'Слот одежды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'All slots'
+      - 'Все слоты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.head'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Head'
+      - 'Голова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.earr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right ear'
+      - 'Правое ухо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.earl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left ear'
+      - 'Левое ухо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.neck'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Neck'
+      - 'Шея'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.chest'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Chest'
+      - 'Грудь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.belly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Belly'
+      - 'Живот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.pelvis'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Pelvis'
+      - 'Таз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.shoulderr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right shoulder'
+      - 'Правое плечо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.shoulderl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left shoulder'
+      - 'Левое плечо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.forearmr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right forearm'
+      - 'Правое предплечье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.forearml'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left forearm'
+      - 'Левое предплечье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.wristr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right wrist'
+      - 'Правое запястье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.wristl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left wrist'
+      - 'Левое запястье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.handr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right hand'
+      - 'Правая кисть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.handl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left hand'
+      - 'Левая кисть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.thighr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right thigh'
+      - 'Правое бедро'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.thighl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left thigh'
+      - 'Левое бедро'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.shinr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right shin'
+      - 'Правая голень'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.shinl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left shin'
+      - 'Левая голень'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.footr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right foot'
+      - 'Правая стопа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.footl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left foot'
+      - 'Левая стопа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.authored'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Authored appearance'
+      - 'Авторский вариант'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.none'
+      TermType: 0
+      Description:
+      Languages:
+      - 'None'
+      - 'Нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.prototype'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Original materials'
+      - 'Исходные материалы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.blue'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Blue'
+      - 'Голубые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.blue_green'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Blue-green'
+      - 'Голубо-зелёные'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.green'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Green'
+      - 'Зелёные'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.grey'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Grey'
+      - 'Серые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.hazel'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hazel'
+      - 'Ореховые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.amber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Amber'
+      - 'Янтарные'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.brown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Brown'
+      - 'Карие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.dark_brown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dark brown'
+      - 'Тёмно-карие'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

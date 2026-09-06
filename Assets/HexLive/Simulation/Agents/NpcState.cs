@@ -441,6 +441,8 @@ public sealed class NPCState
     // the hairstyle authored on the actor prefab, and the voice folder named
     // after the mesh. That default is what lets a pre-§74 save, a test-scene
     // bootstrap and the outsider all keep working untouched.
+    public string HairColour { get; set; } = string.Empty;
+
     public string SkinSet { get; set; } = string.Empty;
 
     // §85: iris colour, split out of SkinSet so a face and a pair of eyes are

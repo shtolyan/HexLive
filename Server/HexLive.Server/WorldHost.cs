@@ -71,7 +71,7 @@ public sealed class WorldHost : IDisposable
 
     public WorldHost(int seed, GameMode mode, string savePath, string simDataPath, bool verboseTrace,
         bool includeDebugDetails = false, LlmHostOptions? llmOptions = null,
-        string? companionProfile = null)
+        string? companionProfile = null, WorldCreationConfig? creationConfig = null, string worldId = "")
     {
         // The codec flag alone is not enough: the EXPORTER only fills the per-NPC
         // debug lists (relationships, goal scores, known objects) behind this
@@ -101,8 +101,18 @@ public sealed class WorldHost : IDisposable
 
         _savePath = savePath;
 
-        var definition = PrototypeWorldDefinitionFactory.Create(seed, mode);
-        var world = new WorldStateFactory().Create(definition);
+        WorldId = worldId;
+        if (!string.IsNullOrEmpty(worldId))
+        {
+            var header = ServerSaveHeader.ReadIfPresent(savePath);
+            if (header is { } saved && (saved.Seed != seed || saved.Mode != mode))
+                throw new InvalidDataException("World metadata and save header disagree; refusing to overwrite the save.");
+        }
+        var definition = creationConfig == null ? PrototypeWorldDefinitionFactory.Create(seed, mode) : WorldCreation.Definition(creationConfig);
+        uint topologyChecksum = 0;
+        var world = new WorldStateFactory().Create(definition, topology =>
+            topologyChecksum = HexLive.Simulation.Wire.TopologyChecksum.Compute(topology));
+        TopologyChecksum = topologyChecksum;
 
         _settings = new SimulationSettings
         {
@@ -145,20 +155,16 @@ public sealed class WorldHost : IDisposable
         // frame is encoded.
         DefinitionIdTable.Build(world.Content);
 
-        // BEFORE the save is applied, and that ordering is load-bearing: what a
-        // connecting client compares this against is its own FRESH worldgen, so
-        // the fingerprint has to be of worldgen too. Tile flags are the trap —
-        // HasFloor/Roofed arrive when the colony lays a floor and are restored
-        // with the blob, so a long-lived world that had built anything would
-        // start turning every new viewer away, blaming "different builds".
-        TopologyChecksum = HexLive.Simulation.Wire.TopologyChecksum.Compute(world);
+        // §161: fingerprint captured by Create's topology callback before scenario buildings
+        // change tile flags, and before restoring a save. Matches the viewer's CreateTopology.
 
         // The blob is a delta from worldgen: it is applied onto a world already
         // rebuilt from the SAME seed (static topology is regenerated, never
         // stored). So restore has to happen after Create, not instead of it.
         TryRestore();
 
-        if (!string.IsNullOrWhiteSpace(companionProfile))
+
+        if (creationConfig == null && !string.IsNullOrWhiteSpace(companionProfile))
         {
             var spawned = CharacterPresetRegistry.EnsureSpawned(
                 _engine.World, companionProfile, out var presetNpcId);
@@ -167,6 +173,9 @@ public sealed class WorldHost : IDisposable
                 : $"[preset] {companionProfile} restored as NPC{presetNpcId}");
         }
     }
+
+    public string WorldId { get; }
+    public string CreationConfigText => Read(w => WorldCreationCodec.Encode(w.CreationConfig));
 
     public string? DrainLlmProviderFailureSummary() =>
         _llmProviderDiagnostics?.DrainSummary();

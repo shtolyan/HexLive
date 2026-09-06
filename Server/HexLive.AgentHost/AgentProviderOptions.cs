@@ -11,4 +11,6 @@ public sealed class AgentProviderOptions
     public required string ElevenLabsModel { get; init; }
     public required string ElevenLabsVoiceId { get; init; }
     public bool FakeProviders { get; init; }
+    public string LlmBackend { get; init; } = "xai";
+    public string CodexExecutable { get; init; } = "/Applications/ChatGPT.app/Contents/Resources/codex";
 }

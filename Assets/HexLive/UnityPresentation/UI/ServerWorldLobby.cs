@@ -16,7 +16,7 @@ using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.UI
 {
-// §161: a pre-game editor; no local simulation and no world mutations until Start.
+// §162: a pre-game editor; no local simulation and no world mutations until Start.
 public sealed class ServerWorldLobby : IDisposable
 {
     private readonly VisualElement _root;

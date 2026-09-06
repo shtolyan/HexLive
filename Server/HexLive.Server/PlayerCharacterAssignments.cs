@@ -212,9 +212,7 @@ public sealed class PlayerCharacterAssignments
                 if (npc.Health > 0f && !npc.IsDying)
                 {
                     assignable.Add(npc.Id.Value);
-                    if (string.Equals(npc.ProfileId,
-                            HexLive.Simulation.Runtime.MashaCompanionProfile.ProfileId,
-                            StringComparison.Ordinal))
+                    if (CharacterPresetRegistry.ProfileIds.Contains(npc.ProfileId))
                         authoredPriority.Add(npc.Id.Value);
                 }
             }
@@ -271,7 +269,8 @@ public sealed class PlayerCharacterAssignments
         // отбивалась симуляцией с «NotOwned». Публикуем ВЕСЬ союз назначений,
         // а не одного игрока: набор в мире — это состояние, а не дельта.
         host.SetPlayerControlledNpcs(union);
-        return result;
+        // The player's authored body is the initial selection, not the attached agent.
+        return result.OrderByDescending(id => id == NikaCharacterProfile.ReservedNpcId).ToArray();
     }
 
     /// <summary>Союз назначений всех игроков. Вызывать под <c>_gate</c>.</summary>
@@ -298,6 +297,25 @@ public sealed class PlayerCharacterAssignments
     {
         lock (_gate) _worldGeneration = worldGeneration;
     }
+
+    internal void AdminAssign(string playerId, int npcId)
+    {
+        if (!TryNormalizePlayerId(playerId, out var canonical)) throw new ArgumentException("Invalid player id");
+        lock (_gate)
+        {
+            foreach (var player in _players) player.NpcIds.Remove(npcId);
+            var record = _players.FirstOrDefault(p => p.PlayerId == canonical);
+            if (record == null) { record = new PlayerRecord { PlayerId = canonical }; _players.Add(record); }
+            record.NpcIds = new List<int> { npcId };
+            Save();
+        }
+    }
+    internal void AdminRemoveNpc(int npcId)
+    {
+        lock (_gate) { foreach (var p in _players) p.NpcIds.Remove(npcId); Save(); }
+    }
+    internal bool StillAssigned(string playerId, int npcId)
+    { lock (_gate) return _players.Any(p => p.PlayerId == playerId && p.NpcIds.Contains(npcId)); }
 
     public void SwitchWorld(int worldGeneration)
     {

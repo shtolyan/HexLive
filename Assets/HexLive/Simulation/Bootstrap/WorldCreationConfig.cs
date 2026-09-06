@@ -173,7 +173,7 @@ public static class WorldCreation
             // Keep authored ids out of the runtime arrival bands (1000+).
             if (npc.Id < 1 || npc.Id >= 1000 || !ids.Add(npc.Id)) Error(path + ".id", "unknownOrDuplicate");
             if (!available.Contains(npc.Camp)) Error(path + ".camp", "unknown");
-            if (!string.IsNullOrEmpty(npc.ProfileId) && (!CharacterPresetRegistry.ProfileIds.Contains(npc.ProfileId) || npc.Id != MashaCompanionProfile.ReservedNpcId)) Error(path + ".profileId", "invalid");
+            if (!string.IsNullOrEmpty(npc.ProfileId) && (!CharacterPresetRegistry.ProfileIds.Contains(npc.ProfileId) || npc.Id != (npc.ProfileId == NikaCharacterProfile.ProfileId ? NikaCharacterProfile.ReservedNpcId : MashaCompanionProfile.ReservedNpcId))) Error(path + ".profileId", "invalid");
             if (npc.Controlled && npc.Camp != config.PlayerCamp) Error(path + ".controlled", "otherCamp");
             if (string.IsNullOrWhiteSpace(npc.Name) || npc.Name.Length > 64 || npc.Name.Any(char.IsControl)) Error(path + ".name", "length");
             if (!ColonistAppearance.Meshes.Contains(npc.Body) && npc.Body != "Kshishtof" && npc.Body != "Tonny") Error(path + ".body", "unknown");
@@ -262,6 +262,13 @@ public static class WorldCreation
                 MashaCompanionProfile.InitializeStartingNeedsAndSupplies(npc);
                 npc.CharacterPresetVersion = MashaCompanionProfile.AuthoredStarterOutfitVersion;
                 world.MashaCompanionHasSpawned = true;
+                world.SpawnedCharacterPresets.Add(entry.ProfileId);
+            }
+            if (entry.ProfileId == NikaCharacterProfile.ProfileId)
+            {
+                npc.Needs.Hunger = .35f; npc.Needs.Thirst = .30f; npc.Needs.Energy = .82f;
+                npc.Inventory.Items.Clear();
+                npc.CharacterPresetVersion = 1;
                 world.SpawnedCharacterPresets.Add(entry.ProfileId);
             }
             npc.HairColour = entry.HairColour;

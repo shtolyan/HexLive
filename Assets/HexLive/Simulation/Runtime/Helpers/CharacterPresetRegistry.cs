@@ -9,12 +9,15 @@ namespace HexLive.Simulation.Runtime
 public static class CharacterPresetRegistry
 {
     public static IReadOnlyList<string> ProfileIds { get; } =
-        Array.AsReadOnly(new[] { MashaCompanionProfile.ProfileId });
+        Array.AsReadOnly(new[] { MashaCompanionProfile.ProfileId, NikaCharacterProfile.ProfileId });
 
     public static bool EnsureSpawned(WorldState world, string profileId, out int npcId)
     {
         switch (profileId)
         {
+            case NikaCharacterProfile.ProfileId:
+                npcId = NikaCharacterProfile.ReservedNpcId;
+                return NikaCharacterProfile.EnsureSpawned(world);
             case MashaCompanionProfile.ProfileId:
                 npcId = MashaCompanionProfile.ReservedNpcId;
                 return MashaCompanionProfile.EnsureSpawned(world);

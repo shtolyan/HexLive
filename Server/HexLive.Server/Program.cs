@@ -225,6 +225,28 @@ public static class Program
         app.UseResponseCompression();
         app.UseWebSockets();
 
+        var adminAccess = new GodMode.AdminAccess(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "hexlive-admin-clients.json"));
+        var adminBus = new GodMode.AdminCommandBus(worlds, adminAccess,
+            Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "admin-receipts")) { Leases = controlLeases, Agents = agentSessions };
+        var adminHub = new GodMode.AdminAgentHub(adminAccess, adminBus, worlds);
+        var adminViewer = new GodMode.AdminViewerProtocol(adminAccess, adminBus, adminHub, deepgram);
+        var adminAgentToken = Environment.GetEnvironmentVariable("HEXLIVE_ADMIN_AGENT_TOKEN") ?? "";
+        if (adminAgentToken.Length >= 32)
+        {
+            worlds.Host.EnableMcpEventLog();
+            worlds.WorldSwapped += () => worlds.Host.EnableMcpEventLog();
+            app.Use(async (context, next) =>
+            {
+                var supplied = context.Request.Headers.Authorization.ToString();
+                if (context.Request.Path == "/mcp" && supplied.StartsWith("Bearer ", StringComparison.Ordinal) &&
+                    System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                        System.Text.Encoding.UTF8.GetBytes(supplied.Substring(7)), System.Text.Encoding.UTF8.GetBytes(adminAgentToken)))
+                    await GodMode.AdminMcpEndpoint.Handle(context, adminHub);
+                else await next(context);
+            });
+        }
+        GodMode.AdminAccessEndpoints.Map(app, adminAccess, sessions, adminBus);
+
         app.Map("/watch", async context =>
         {
             if (!context.WebSockets.IsWebSocketRequest)
@@ -258,7 +280,7 @@ public static class Program
                         controlOwner = "ws:" + playerId;
                         assignedNpcIds = viewerSession.Assignments!.Reconcile(
                             viewerSession.Host, playerId,
-                            PlayerCharacterAssignments.DefaultCharacterLimit,
+                            options.PlayerCharacterLimit,
                             viewerSession.Lifetime,
                             viewerSession.WorldGeneration);
                     }
@@ -287,7 +309,7 @@ public static class Program
                 options.McpEnabled ? agentSessions : null,
                 viewerSession.WorldGeneration,
                 controlOwner is null ? null : deepgram,
-                Guid.NewGuid().ToString("N"));
+                Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments);
             try
             {
                 await viewer.RunAsync(viewerSession.Lifetime);
@@ -696,6 +718,7 @@ public sealed class ServerOptions
 
     /// <summary>§160: explicitly enabled authored character preset.</summary>
     public string? CompanionProfile { get; private set; }
+    public int PlayerCharacterLimit { get; private set; } = PlayerCharacterAssignments.DefaultCharacterLimit;
 
     /// <summary>
     /// §145.3: сетевое управление ИГРОКА выключено по умолчанию по той же
@@ -811,6 +834,11 @@ public sealed class ServerOptions
                 case "--character-preset" when i + 1 < args.Length:
                     options.CompanionProfile = args[++i].Trim().ToLowerInvariant();
                     break;
+                case "--player-characters" when i + 1 < args.Length:
+                    options.PlayerCharacterLimit = int.Parse(args[++i]);
+                    if (options.PlayerCharacterLimit is < 1 or > 8)
+                        throw new ArgumentException("--player-characters must be 1..8");
+                    break;
                 case "--control":
                     options.ControlEnabled = true;
                     break;
@@ -882,8 +910,9 @@ public sealed class ServerOptions
 
         if (options.CompanionProfile is { Length: > 0 } profile)
         {
-            if (!string.Equals(profile, "masha", StringComparison.Ordinal))
-                throw new ArgumentException($"unknown companion profile '{profile}'");
+            foreach (var entry in profile.Split(','))
+                if (!HexLive.Simulation.Runtime.CharacterPresetRegistry.ProfileIds.Contains(entry))
+                    throw new ArgumentException($"unknown character preset '{entry}'");
         }
 
         options.Llm.Validate();

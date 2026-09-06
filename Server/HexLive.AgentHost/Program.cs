@@ -7,6 +7,17 @@ try
     // Doctor validates that provider keys are configured, but never calls the
     // paid provider endpoints.
     var options = AgentHostOptions.Load(requireProviders: true);
+    if (args.Contains("--check-model"))
+    {
+        using var probe = new AgentProviders(options.ProviderOptions);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(130));
+        var result = await probe.DecideAsync("heartbeat", "{\"diagnostic\":true}",
+            "Проверка соединения, не игровой ход. Не выбирай действие и не обновляй память. Молчи.",
+            "", Array.Empty<string>(), deadline.Token);
+        if (result.Action != null) throw new InvalidDataException("Diagnostic must not propose an action.");
+        Console.WriteLine($"Model check passed: backend={options.LlmBackend}; validated decision; no MCP actions, memory writes or TTS.");
+        return;
+    }
     if (doctor)
     {
         await AgentHostRuntime.DoctorAsync(options, CancellationToken.None);

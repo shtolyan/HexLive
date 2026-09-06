@@ -149,6 +149,16 @@ public sealed class WorldSupervisor : IDisposable
     /// Reading the three properties separately allowed an admin world-swap to
     /// splice an old roster into a new host between reads.
     /// </summary>
+    internal void ReconnectViewers()
+    {
+        lock (_swap)
+        {
+            var old = _viewerLifetime;
+            _viewerLifetime = CancellationTokenSource.CreateLinkedTokenSource(_appShutdown);
+            old.Cancel(); old.Dispose();
+        }
+    }
+
     public ViewerSession CaptureViewerSession()
     {
         lock (_swap)

@@ -39,7 +39,7 @@ namespace HexLive.UnityPresentation.Bootstrap
 /// </para>
 /// </summary>
 [DefaultExecutionOrder(-100)]
-public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
+public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource, IAdminSimulationSource
 {
     [SerializeField] private WorldBootstrapAsset? _bootstrapAsset;
     [SerializeField] private bool _startPaused = true;
@@ -113,6 +113,9 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public bool SupportsNpcCommands => _backend?.SupportsNpcCommands ?? false;
 
     public bool CanControlNpc(EntityId npc) => _backend?.CanControlNpc(npc) ?? false;
+    // Ownership grants perception even while an MCP attachment blocks manual commands.
+    public bool IsAssignedNpc(EntityId npc) => _backend is Remote.RemoteSocketBackend remote
+        ? remote.IsAssignedNpc(npc) : CanControlNpc(npc);
 
     public bool SupportsAgentIntegration => _backend?.SupportsAgentIntegration ?? false;
 
@@ -210,9 +213,19 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         return false;
     }
 
+    public string AdminClientId => (_backend as IAdminSimulationSource)?.AdminClientId ?? string.Empty;
+    public string AdminServer => (_backend as IAdminSimulationSource)?.AdminServer ?? string.Empty;
+    public void SendAdmin(string json) => (_backend as IAdminSimulationSource)?.SendAdmin(json);
+    public bool TryTakeAdminResult(out string json)
+    {
+        if (_backend is IAdminSimulationSource admin) return admin.TryTakeAdminResult(out json);
+        json = string.Empty; return false;
+    }
+
     private void Awake()
     {
         SimulationSource.Current = this;
+        if (GetComponent<UI.AdminVoicePanel>() == null) gameObject.AddComponent<UI.AdminVoicePanel>();
         if (_backend is null)
         {
             Bootstrap();

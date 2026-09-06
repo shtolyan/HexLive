@@ -125,6 +125,18 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
             return false;
         }
 
+        var npc = CreateArrival(world, id, faction, landing);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ColonyArrivalSpawned",
+                $"Arrival={arrival} Name={npc.DisplayName} " +
+                $"Tile={npc.Tile.Q},{npc.Tile.R} Junction={landing.Junction.Value}");
+        }
+
+        return true;
+    }
+    internal static NPCState CreateArrival(WorldState world, EntityId id, Faction faction, PopulationArrivalMath.Landing landing)
+    {
         var look = PopulationArrivalMath.RollFemaleLook(world, id.Value);
         var npc = new NPCState
         {
@@ -165,15 +177,9 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
         EquipmentMath.Recalculate(world, npc);
 
         PopulationArrivalMath.AddToWorld(world, npc, landing.Junction);
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, npc.Id, "ColonyArrivalSpawned",
-                $"Arrival={arrival} Name={npc.DisplayName} " +
-                $"Tile={npc.Tile.Q},{npc.Tile.R} Junction={landing.Junction.Value}");
-        }
-
-        return true;
+        return npc;
     }
+
 }
 
 }

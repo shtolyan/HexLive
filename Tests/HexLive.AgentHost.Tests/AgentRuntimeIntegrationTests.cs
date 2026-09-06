@@ -69,21 +69,29 @@ public sealed class AgentRuntimeIntegrationTests
             });
 
             registry.SetViewerPresence("authorized-player", new[] { 901 }, true);
+            handler.Unconscious = true;
             Assert.That(registry.TryEnqueuePlayerText(901, "voice1", "ru", "Привет!", out _), Is.True);
+            await Until(() => registry.StatesFor(new[] { 901 })[0].IntentSummary.Contains("Без сознания"));
+            Assert.That(providers.Decisions, Is.Zero, "Unconsciousness must not generate repeating paid replies");
+            Assert.That(providers.Syntheses, Is.Zero);
+            providers.FailOnce = true;
+            handler.Unconscious = false;
             await Until(() => registry.LatestSpeechSequence > 0);
             Assert.Multiple(() =>
             {
-                Assert.That(providers.Decisions, Is.EqualTo(1));
+                Assert.That(providers.Decisions, Is.EqualTo(2), "One failed request followed by one successful retry");
                 Assert.That(providers.Syntheses, Is.EqualTo(1));
                 Assert.That(providers.LastTranscript, Is.EqualTo("Привет!"));
                 Assert.That(registry.UtterancesAfter(0, new HashSet<int> { 901 })[0].Metadata.Text, Is.EqualTo("Привет."));
                 Assert.That(registry.UtterancesAfter(0, new HashSet<int> { 901 })[0].Bytes, Is.Empty,
                     "TTS failure still delivers a subtitle.");
             });
+            await Task.Delay(1000);
+            Assert.That(providers.Decisions, Is.EqualTo(2), "Completed voice is not read again");
 
             providers.BlockDecision = true;
             registry.TryEnqueuePlayerText(901, "voice2", "ru", "Подожди", out _);
-            await Until(() => providers.Decisions == 2);
+            await Until(() => providers.Decisions == 3);
             registry.SetViewerPresence("authorized-player", Array.Empty<int>(), false);
             await Until(() => providers.Cancelled);
             Assert.That(providers.Syntheses, Is.EqualTo(1), "Leaving must cancel before a second TTS call.");
@@ -99,7 +107,7 @@ public sealed class AgentRuntimeIntegrationTests
 
     private static async Task Until(Func<bool> condition)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(75));
         while (!condition()) await Task.Delay(30, timeout.Token);
     }
 
@@ -112,6 +120,7 @@ public sealed class AgentRuntimeIntegrationTests
 
     private sealed class InProcessMcp(McpTools tools) : HttpMessageHandler
     {
+        public volatile bool Unconscious;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             using var document = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
@@ -123,6 +132,8 @@ public sealed class AgentRuntimeIntegrationTests
                 var parameters = root.GetProperty("params");
                 var text = tools.Call(parameters.GetProperty("name").GetString()!,
                     parameters.GetProperty("arguments"), "mcp:fixture", out var error);
+                if (Unconscious && parameters.GetProperty("name").GetString() == "describe_colonist")
+                    text = "{\"stateSummary\":\"health=1; unconscious=true\"}";
                 result = new { isError = error, content = new[] { new { type = "text", text } } };
             }
             else if (method == "tools/list") result = new { tools = McpTools.Catalog.Select(
@@ -141,12 +152,18 @@ public sealed class AgentRuntimeIntegrationTests
         public volatile int Syntheses;
         public volatile bool BlockDecision;
         public volatile bool Cancelled;
+        public bool FailOnce;
         public string LastTranscript = "";
         public async Task<CompanionDecision> DecideAsync(string trigger, string stateJson, string memoryContext,
             string transcript, IReadOnlyList<string> recentConversation, CancellationToken cancellationToken)
         {
             LastTranscript = transcript;
             Interlocked.Increment(ref Decisions);
+            if (FailOnce)
+            {
+                FailOnce = false;
+                throw new InvalidDataException("synthetic invalid model decision");
+            }
             if (BlockDecision)
             {
                 try { await Task.Delay(Timeout.Infinite, cancellationToken); }

@@ -112,9 +112,8 @@ public sealed partial class MashaMemoryWorkspace
             .Append("Мир: ").Append(Clean(current.Label, 100))
             .Append("; статус: ").Append(current.Status)
             .Append("; контакты Hexkufa: ").Append(current.LanguageExposure).AppendLine(".");
-        if (!string.IsNullOrWhiteSpace(current.LastIntentSummary))
-            currentText.Append("Последнее намерение: ")
-                .AppendLine(Clean(current.LastIntentSummary, 240));
+        // Transient intentions are not current body facts. Re-injecting them here
+        // reinforces stale states (e.g. unconsciousness) after the body recovers.
 
         foreach (var memory in RankMemories(current.Memories, recallQuery).Take(5))
         {
@@ -187,7 +186,7 @@ public sealed partial class MashaMemoryWorkspace
         string query,
         HashSet<string> included)
     {
-        var terms = Terms(query + " " + current.LastIntentSummary);
+        var terms = Terms(query);
         if (terms.Count == 0) return Array.Empty<RecallCandidate>();
         var candidates = new List<RecallCandidate>();
 

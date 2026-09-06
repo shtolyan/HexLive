@@ -115,6 +115,8 @@ public enum FrameKind : byte
     AgentSpeechChunk = 20,
     /// <summary>§160 server → client: utterance completion/checksum.</summary>
     AgentSpeechEnd = 21,
+    AdminInput = 22,
+    AdminResult = 23,
 }
 
 public enum CommandKind : byte

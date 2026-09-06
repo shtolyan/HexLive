@@ -11,6 +11,8 @@ namespace HexLive.UnityPresentation.Audio
     /// <summary>§159: PCM16 mono microphone capture through FMOD Core only.</summary>
     public sealed class FmodMicrophoneCapture : IDisposable
     {
+        // Both voice entry points share the FMOD device and master-mute owner.
+        private static FmodMicrophoneCapture? _owner;
         private const float MaxSeconds = 30f;
         private const float SilenceToFinishSeconds = 3f;
         private const float VoiceRms = 0.008f;
@@ -37,6 +39,7 @@ namespace HexLive.UnityPresentation.Audio
         {
             error = string.Empty;
             if (_recording) return true;
+            if (_owner != null && _owner != this) { error = "MicrophoneBusy"; return false; }
             var core = FMODUnity.RuntimeManager.CoreSystem;
             if (core.getRecordNumDrivers(out var drivers, out var connected) != FMOD.RESULT.OK ||
                 drivers == 0 || connected == 0)
@@ -87,6 +90,7 @@ namespace HexLive.UnityPresentation.Audio
             _silence = 0f;
             _heardVoice = false;
             _recording = true;
+            _owner = this;
             Level = 0f;
             try
             {
@@ -182,6 +186,7 @@ namespace HexLive.UnityPresentation.Audio
             }
             finally
             {
+                if (_owner == this) _owner = null;
                 // Master mute is independent of the user's per-category volumes.
                 RestoreCaptureMix();
                 Level = 0f;

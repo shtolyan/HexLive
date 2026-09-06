@@ -155,7 +155,7 @@ public sealed class WorldHost : IDisposable
         // frame is encoded.
         DefinitionIdTable.Build(world.Content);
 
-        // §161: fingerprint captured by Create's topology callback before scenario buildings
+        // §162: fingerprint captured by Create's topology callback before scenario buildings
         // change tile flags, and before restoring a save. Matches the viewer's CreateTopology.
 
         // The blob is a delta from worldgen: it is applied onto a world already
@@ -166,11 +166,14 @@ public sealed class WorldHost : IDisposable
 
         if (creationConfig == null && !string.IsNullOrWhiteSpace(companionProfile))
         {
-            var spawned = CharacterPresetRegistry.EnsureSpawned(
-                _engine.World, companionProfile, out var presetNpcId);
-            Console.WriteLine(spawned
-                ? $"[preset] {companionProfile} spawned as NPC{presetNpcId}"
-                : $"[preset] {companionProfile} restored as NPC{presetNpcId}");
+            foreach (var profile in companionProfile.Split(','))
+            {
+                var spawned = CharacterPresetRegistry.EnsureSpawned(
+                    _engine.World, profile, out var presetNpcId);
+                Console.WriteLine(spawned
+                    ? $"[preset] {profile} spawned as NPC{presetNpcId}"
+                    : $"[preset] {profile} restored as NPC{presetNpcId}");
+            }
         }
     }
 
@@ -279,6 +282,18 @@ public sealed class WorldHost : IDisposable
     /// Turns on the §144.6 chronicle mirror. Called from the composition root
     /// when <c>--mcp</c> is present.
     /// </summary>
+    // §161: callers must authenticate through AdminCommandBus before entering here.
+    internal AdminCommandResult SubmitAdminCommand(AdminCommand command)
+    {
+        lock (_gate)
+        {
+            var result = AdminWorldCommands.Execute(_engine.World, command);
+            _snapshotTick = -1;
+            DrainMcpEvents();
+            return result;
+        }
+    }
+
     public void EnableMcpEventLog()
     {
         lock (_gate)
@@ -734,28 +749,30 @@ public sealed class WorldHost : IDisposable
             WorldSaveSerializer.Write(_engine.World, writer);
             writer.Flush();
             blob = stream.ToArray();
-        }
+            // §161: serialize writes with world mutations; an older autosave must
+            // never replace a just-acknowledged admin save or share its temp file.
 
-        var directory = Path.GetDirectoryName(_savePath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+            var directory = Path.GetDirectoryName(_savePath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
 
-        var temp = _savePath + ".tmp";
-        using (var file = File.Create(temp))
-        using (var writer = new BinaryWriter(file))
-        {
-            writer.Write(SaveMagic);
-            writer.Write(SaveVersion);
-            writer.Write(Seed);
-            writer.Write((int)Mode); // §146.2 (v2) — beside the seed, same rule
-            writer.Write(tick);
-            writer.Write(blob.Length);
-            writer.Write(blob);
-        }
+            var temp = _savePath + ".tmp";
+            using (var file = File.Create(temp))
+            using (var saveWriter = new BinaryWriter(file))
+            {
+                saveWriter.Write(SaveMagic);
+                saveWriter.Write(SaveVersion);
+                saveWriter.Write(Seed);
+                saveWriter.Write((int)Mode); // §146.2 (v2) — beside the seed, same rule
+                saveWriter.Write(tick);
+                saveWriter.Write(blob.Length);
+                saveWriter.Write(blob);
+            }
 
-        File.Move(temp, _savePath, overwrite: true);
+            File.Move(temp, _savePath, overwrite: true);
+        }
     }
 
     private const int SaveMagic = unchecked((int)0x48584C53); // "HXLS" — server save

@@ -45,6 +45,18 @@ public sealed class WorldHostCommandIngressTests
     }
 
     [Test]
+    public void AdminMutation_RefreshesSnapshotAtSameTick()
+    {
+        using var host = CreateHost();
+        var before = DecodeSnapshot(host); var id = before.Npcs[0].Id;
+        var result = host.SubmitAdminCommand(new AdminCommand { NpcId = id.Value, Kind = "rename_npc", Text = "Admin rename" });
+        var after = DecodeSnapshot(host);
+        Assert.That(result.Accepted, Is.True);
+        Assert.That(after.Tick, Is.EqualTo(before.Tick));
+        Assert.That(after.Npcs.Find(n => n.Id.Equals(id))!.DisplayName, Is.EqualTo("Admin rename"));
+    }
+
+    [Test]
     public void SubmitManualCommand_HoldsWorldGateForWholeAdmission()
     {
         using var host = CreateHost();

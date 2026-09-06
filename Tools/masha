@@ -24,7 +24,7 @@ readonly DEFAULT_MEMORY_DIR="$HOME/Library/Application Support/Masha"
 readonly PROD_MCP_URL="https://vmi3529459.contaboserver.net/mcp"
 readonly OLD_MOLLY_CONFIG="/Volumes/ORICO/molly_copy/Assets/Resources/AIConfig.asset"
 
-usage() { /bin/echo 'Usage: masha <on|off|status|doctor|logs|setup|build>'; }
+usage() { /bin/echo 'Usage: masha <on|off|astra|status|doctor|logs|setup|build>'; }
 die() { print -u2 -- "masha: $*"; exit 1; }
 
 launch_service_loaded() { /bin/launchctl print "$LAUNCH_TARGET" >/dev/null 2>&1; }
@@ -69,7 +69,10 @@ load_config() {
   mode="$(/usr/bin/stat -f '%Lp' "$CONFIG_FILE" 2>/dev/null || print unknown)"
   [[ "$mode" == 600 ]] || die "$CONFIG_FILE must have mode 0600 (current: $mode)"
   set -a; source "$CONFIG_FILE"; set +a
-  [[ -n "${XAI_API_KEY:-}" ]] || die "XAI_API_KEY is missing in $CONFIG_FILE"
+  if [[ -r "$STATE_DIR/llm-backend" && "$(<"$STATE_DIR/llm-backend")" == codex ]]; then
+    export HEXLIVE_AGENT_LLM=codex
+  fi
+  [[ "${HEXLIVE_AGENT_LLM:-xai}" == codex || -n "${XAI_API_KEY:-}" ]] || die "XAI_API_KEY is missing in $CONFIG_FILE"
   [[ -n "${ELEVENLABS_API_KEY:-}" ]] || die "ELEVENLABS_API_KEY is missing in $CONFIG_FILE"
   export HEXLIVE_MCP_URL="$PROD_MCP_URL"
   export HEXLIVE_MCP_TOKEN="$(<"$MCP_TOKEN_FILE")"
@@ -121,6 +124,9 @@ status_host() {
   [[ -n "$phase" ]] || phase=Starting
   [[ -n "$npc" ]] || npc=unknown
   print -- "Masha: ON (pid $pid, npc $npc, phase $phase, playerPresent ${present:-unknown})."
+  if [[ -r "$STATE_DIR/llm-backend" && "$(<"$STATE_DIR/llm-backend")" == codex ]]; then
+    print -- 'LLM: GPT-6 Astra / ChatGPT subscription; ElevenLabs TTS billed separately.'
+  fi
   [[ "$phase" == Sleeping ]] && print -- "No paid model or TTS calls are made while Sleeping."
 }
 
@@ -207,6 +213,13 @@ build_host() {
 
 command="${1:-status}"
 case "$command" in
+  astra)
+    stop_host
+    /bin/mkdir -p "$STATE_DIR"
+    umask 077
+    print -r -- codex > "$STATE_DIR/llm-backend"
+    print -- 'LLM: GPT-6 Astra through ChatGPT subscription. ElevenLabs remains separately billed.'
+    start_host ;;
   on|start) start_host ;;
   off|stop) stop_host ;;
   status) status_host ;;

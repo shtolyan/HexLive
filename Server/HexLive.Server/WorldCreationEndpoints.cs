@@ -66,7 +66,7 @@ public static class WorldCreationEndpoints
                 modes = Enum.GetValues<GameMode>(),
                 bodies = ColonistAppearance.Meshes.Concat(new[] { "Kshishtof", "Tonny" }).Where(id => records.Any(r => r.Type == "actor" && r.Id == id)),
                 skins = ColonistAppearance.SkinSets.Where(id => records.Any(r => r.Type == "actor" && r.Id == id)), eyes = ColonistAppearance.EyeColors,
-                voices = ColonistAppearance.VoiceBanks.Concat(new[] { "kshishtof" }).Concat(CharacterPresetRegistry.ProfileIds),
+                voices = ColonistAppearance.VoiceBanks.Concat(new[] { "kshishtof", "masha" }),
                 attributes = AttributeSet.All.Select(v => v.ToString()), skills = SkillSet.All.Select(v => v.ToString()),
                 traits = TraitSet.All.Select(v => v.ToString()),
                 hair = records.Where(r => r.Type == "hair"),
@@ -84,7 +84,8 @@ public static class WorldCreationEndpoints
                 {
                     var definition = PrototypeWorldDefinitionFactory.Create(request.Seed, request.Mode);
                     var world = new WorldStateFactory().Create(definition);
-                    if (!string.IsNullOrWhiteSpace(companionProfile)) CharacterPresetRegistry.EnsureSpawned(world, companionProfile, out _);
+                    if (!string.IsNullOrWhiteSpace(companionProfile))
+                        foreach (var profile in companionProfile.Split(',')) CharacterPresetRegistry.EnsureSpawned(world, profile.Trim(), out _);
                     var config = WorldCreation.Defaults(world);
                     config.CreatorPlayerId = request.PlayerId;
                     config.CatalogRevision = worlds.CatalogRegistryRevision;
@@ -124,7 +125,7 @@ public static class WorldCreationEndpoints
                     errors.Add(new() { Path = p + ".body", Code = "incompatible" });
                 if (!string.IsNullOrEmpty(n.Skin) && !(male ? n.Skin == n.Body : ColonistAppearance.SkinSets.Contains(n.Skin))) errors.Add(new() { Path = p + ".skin", Code = "incompatible" });
                 if (!string.IsNullOrEmpty(n.Eyes) && !ColonistAppearance.EyeColors.Contains(n.Eyes)) errors.Add(new() { Path = p + ".eyes", Code = "unknown" });
-                if (!string.IsNullOrEmpty(n.Voice) && !ColonistAppearance.VoiceBanks.Contains(n.Voice) && n.Voice != "kshishtof" && !CharacterPresetRegistry.ProfileIds.Contains(n.Voice)) errors.Add(new() { Path = p + ".voice", Code = "unknown" });
+                if (!string.IsNullOrEmpty(n.Voice) && !ColonistAppearance.VoiceBanks.Contains(n.Voice) && n.Voice != "kshishtof" && n.Voice != "masha") errors.Add(new() { Path = p + ".voice", Code = "unknown" });
                 if (!string.IsNullOrEmpty(n.Hair) && n.Hair != "none" && !hairs.ContainsKey(n.Hair)) errors.Add(new() { Path = p + ".hair", Code = "unknown" });
                 if (!string.IsNullOrEmpty(n.HairColour) && n.HairColour != "prototype")
                 {

@@ -33,11 +33,7 @@ namespace HexLive.UnityPresentation.UI
         }
 
         private VisualElement? _agentVoiceButton;
-        private VisualElement? _agentCaptureOverlay;
-        private Label? _agentCaptureTitle;
-        private Button? _agentCaptureDone;
-        private Button? _agentCaptureCancel;
-        private readonly List<VisualElement> _agentCaptureBars = new();
+        private PlayerVoiceCaptureOverlay? _agentCaptureOverlay;
         private VectorIcon? _agentVoiceGlyph;
         private Label? _agentVoiceStateLabel;
         private Label? _agentSubtitle;
@@ -137,7 +133,7 @@ namespace HexLive.UnityPresentation.UI
             _agentVoiceNpc = null;
             _selectedAgentState = null;
             _agentVoiceUiState = AgentVoiceUiState.Offline;
-            _agentCaptureOverlay?.RemoveFromClassList("agent-capture-visible");
+            _agentCaptureOverlay?.Hide();
         }
 
         private void ClearAgentSelection()
@@ -245,61 +241,13 @@ namespace HexLive.UnityPresentation.UI
 
         private void RefreshCaptureOverlay()
         {
-            var recording = _agentMicrophone?.IsRecording == true;
-            if (!recording)
+            if (_agentMicrophone?.IsRecording != true) { _agentCaptureOverlay?.Hide(); return; }
+            _agentCaptureOverlay ??= new PlayerVoiceCaptureOverlay(_root, FinishAgentCapture, () =>
             {
-                _agentCaptureOverlay?.RemoveFromClassList("agent-capture-visible");
-                return;
-            }
-            if (_agentCaptureOverlay == null)
-            {
-                var sheet = Resources.Load<StyleSheet>("HexLive/UI/AgentCapture");
-                if (sheet != null) _root.styleSheets.Add(sheet);
-                _agentCaptureOverlay = new VisualElement { name = "agent-capture" };
-                _agentCaptureOverlay.AddToClassList("agent-capture");
-                var card = new VisualElement();
-                card.AddToClassList("agent-capture-card");
-                var icon = new VectorIcon(VectorIcon.Kind.Microphone, NeonCyan);
-                icon.AddToClassList("agent-capture-icon");
-                card.Add(icon);
-                _agentCaptureTitle = new Label();
-                _agentCaptureTitle.AddToClassList("agent-capture-title");
-                card.Add(_agentCaptureTitle);
-                var meter = new VisualElement();
-                meter.AddToClassList("agent-capture-meter");
-                for (var i = 0; i < 18; i++)
-                {
-                    var bar = new VisualElement();
-                    bar.AddToClassList("agent-capture-bar");
-                    meter.Add(bar);
-                    _agentCaptureBars.Add(bar);
-                }
-                card.Add(meter);
-                _agentCaptureDone = new Button(FinishAgentCapture);
-                _agentCaptureDone.AddToClassList("agent-capture-done");
-                card.Add(_agentCaptureDone);
-                _agentCaptureCancel = new Button(() =>
-                {
-                    _agentMicrophone?.Cancel();
-                    _agentVoiceUiState = AgentVoiceUiState.Ready;
-                    RefreshCaptureOverlay();
-                });
-                _agentCaptureCancel.AddToClassList("agent-capture-cancel");
-                card.Add(_agentCaptureCancel);
-                _agentCaptureOverlay.Add(card);
-                _agentCaptureOverlay.RegisterCallback<PointerDownEvent>(evt => evt.StopPropagation());
-                _agentCaptureOverlay.RegisterCallback<PointerUpEvent>(evt => evt.StopPropagation());
-                _root.Add(_agentCaptureOverlay);
-            }
-            _agentCaptureOverlay.BringToFront();
-            _agentCaptureOverlay.AddToClassList("agent-capture-visible");
-            _agentCaptureTitle!.text = Loc.Get("agent.voice.listening");
-            _agentCaptureDone!.text = "✓ " + Loc.Get("agent.voice.capture_done");
-            _agentCaptureCancel!.text = Loc.Get("loot.quantity_cancel");
-            var level = _agentMicrophone?.Level ?? 0f;
-            for (var i = 0; i < _agentCaptureBars.Count; i++)
-                _agentCaptureBars[i].EnableInClassList("agent-capture-lit",
-                    level > i / (float)_agentCaptureBars.Count);
+                _agentMicrophone?.Cancel();
+                _agentVoiceUiState = AgentVoiceUiState.Ready;
+            });
+            _agentCaptureOverlay.Refresh(_agentMicrophone);
         }
 
         private VisualElement BuildAgentVoiceButton()

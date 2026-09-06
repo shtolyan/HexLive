@@ -126,7 +126,12 @@ public sealed class WorldCreationTests
     {
         var config = Config();
         config.Characters.Add(new CharacterCreationConfig { Id = 901, ProfileId = "masha", Name = "Masha", Voice = "masha" });
+        config.Characters.Add(new CharacterCreationConfig { Id = 902, ProfileId = "nika", Name = "Nika", Voice = "marta" });
+        Assert.That(WorldCreation.Validate(config, Tiny(7)), Is.Empty);
         var world = new WorldStateFactory().Create(WorldCreation.Definition(config));
+        Assert.That(world.SpawnedCharacterPresets.Contains("nika"), Is.True);
+        Assert.That(NikaCharacterProfile.EnsureSpawned(world), Is.False);
+        Assert.That(world.Entities.Npcs[new EntityId(902)].WornItems, Is.Empty);
         var masha = world.Entities.Npcs[new EntityId(901)];
         Assert.That(masha.WornItems, Is.Empty);
         Assert.That(masha.Inventory.Items.Count, Is.EqualTo(2));

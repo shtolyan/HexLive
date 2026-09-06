@@ -38,6 +38,21 @@ public sealed class PlayerCharacterAssignmentsTests
     }
 
     [Test]
+    public void TwoAuthoredCharactersStayAssignedTogetherAcrossReload()
+    {
+        var assignments = PlayerCharacterAssignments.Load(_path, false);
+        var roster = new[] { 1, 11, 901, 902 };
+        var priority = new HashSet<int> { 901, 902 };
+        Assert.That(assignments.Reconcile(Id(1), roster, roster, 2, priority),
+            Is.EqualTo(new[] { 901, 902 }));
+        assignments = PlayerCharacterAssignments.Load(_path, true);
+        Assert.That(assignments.Reconcile(Id(1), roster, roster, 2, priority),
+            Is.EqualTo(new[] { 901, 902 }));
+        Assert.That(assignments.Reconcile(Id(2), roster, roster, 2, priority),
+            Is.EqualTo(new[] { 1, 11 }), "Another player cannot take either authored body.");
+    }
+
+    [Test]
     public void FirstFreeIsStableAcrossReconnectAndDistinctForAnotherPlayer()
     {
         var assignments = PlayerCharacterAssignments.Load(_path, continueExistingWorld: false);

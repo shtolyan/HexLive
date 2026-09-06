@@ -122,7 +122,7 @@ public static class MashaCompanionProfile
         return true;
     }
 
-    // §161: shared non-clothing starter rules; lobby clothing stays explicit.
+    // §162: shared non-clothing starter rules; lobby clothing stays explicit.
     public static void InitializeStartingNeedsAndSupplies(NPCState npc)
     {
         npc.Needs.Hunger = 0.35f;

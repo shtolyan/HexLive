@@ -20,14 +20,15 @@ namespace HexLive.Simulation.Tests.Gates
             {
                 Assert.That(renderer, Does.Contain("private int _fogObserverNpcId = -1;"));
                 Assert.That(renderer, Does.Contain("ResolveFogObserverId(snapshot, requestedId, _fogObserverNpcId)"));
-                // §149: наблюдателем может стать управляемая игроком девушка
+                // §149: наблюдателем может стать принадлежащая игроку девушка,
+                // даже когда её ручное управление временно занято MCP-агентом,
                 // (Feud-режим) или колонистка; мёртвые и посторонние — нет.
                 Assert.That(renderer, Does.Contain(
-                    "var controllable = _runner != null && _runner.CanControlNpc(npc.Id);"));
+                    "var controllable = _runner != null && _runner.IsAssignedNpc(npc.Id);"));
                 Assert.That(renderer, Does.Contain("if (!controllable && !colony)"));
                 Assert.That(renderer, Does.Contain("previousIsValid |= npc.Id.Value == previousId;"));
                 Assert.That(renderer, Does.Contain("firstColonyId == int.MaxValue ? -1 : firstColonyId"));
-                Assert.That(renderer, Does.Contain("_fogHidesNpcs = selectedOnly;"));
+                Assert.That(renderer, Does.Contain("_fogHidesNpcs = selectedOnly || sharedSquad;"));
                 // Bug #322: свои вне восприятия наблюдательницы тоже прячутся;
                 // исключение — сама наблюдательница и управляемая (Feud).
                 Assert.That(renderer, Does.Contain(

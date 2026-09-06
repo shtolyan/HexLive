@@ -24,6 +24,7 @@ public sealed class AgentHostRuntime
     private readonly AgentTurnOutbox _outbox;
     private readonly AgentHostStatusStore _status;
     private readonly Queue<string> _recent = new();
+    private string _lastSpeech = string.Empty;
     private CancellationTokenSource? _actionStop;
     private Task _actionTask = Task.CompletedTask;
     private string _actionContract = string.Empty;
@@ -122,6 +123,7 @@ public sealed class AgentHostRuntime
             long? eventWatermark = null;
             var nextModelHeartbeat = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
             var nextEventRead = DateTimeOffset.UtcNow;
+            var retryAfter = DateTimeOffset.MinValue;
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -136,14 +138,23 @@ public sealed class AgentHostRuntime
                     continue;
                 }
 
+                if (DateTimeOffset.UtcNow < retryAfter)
+                {
+                    await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+                // Finish durable commits before considering another model request.
+                if (_outbox.Items.Count > 0)
+                    await FlushOutboxAsync(mcp, attachmentId, npcId, cancellationToken);
+
                 var inbox = await mcp.CallToolAsync("read_agent_inbox", new
                 {
                     attachmentId,
                     sinceSeq = inboxWatermark,
                     limit = 16,
                 }, cancellationToken).ConfigureAwait(false);
-                if (inbox.TryGetProperty("watermark", out var watermark))
-                    inboxWatermark = watermark.GetInt64();
+                var readWatermark = inbox.TryGetProperty("watermark", out var watermark)
+                    ? watermark.GetInt64() : inboxWatermark;
                 var playerText = MergePlayerMessages(inbox);
 
                 var critical = false;
@@ -170,8 +181,11 @@ public sealed class AgentHostRuntime
                     presence.BeginTurn(turnStop);
                     try
                     {
-                        await ProcessSafelyAsync(mcp, attachmentId, npcId, trigger, playerText,
-                            turnStop.Token, cancellationToken).ConfigureAwait(false);
+                        var consumed = await ProcessSafelyAsync(mcp, attachmentId, npcId, trigger, playerText,
+                            turnStop.Token, cancellationToken,
+                            playerText.Length > 0 ? VoiceTurnId(attachmentId, inbox) : null).ConfigureAwait(false);
+                        if (consumed) inboxWatermark = readWatermark;
+                        else retryAfter = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && !presence.Value)
                     { /* player left: do not start another paid operation */ }
@@ -230,19 +244,40 @@ public sealed class AgentHostRuntime
         }
     }
 
-    private async Task ProcessSafelyAsync(McpClient mcp, string attachmentId, int npcId,
+    private async Task<bool> ProcessSafelyAsync(McpClient mcp, string attachmentId, int npcId,
         string trigger, string playerText, CancellationToken cancellationToken,
-        CancellationToken attachmentCancellation)
+        CancellationToken attachmentCancellation, string? messageTurnId = null)
     {
-        var turnId = Guid.NewGuid().ToString("N");
+        var turnId = messageTurnId ?? Guid.NewGuid().ToString("N");
+        var consumed = false;
+        var stage = "state";
         try
         {
             await PublishPhaseAsync(mcp, attachmentId, turnId, "Thinking", cancellationToken);
             _status.Write(true, "Thinking", npcId, true, true);
             var worldStatus = await mcp.CallToolAsync("world_status", new { }, cancellationToken);
             var state = await mcp.CallToolAsync("describe_colonist", new { npcId }, cancellationToken);
+            if (IsUnconscious(state))
+            {
+                await StopActionAsync().ConfigureAwait(false);
+                await mcp.CallToolAsync("commit_agent_turn", new
+                {
+                    attachmentId, turnId = "body-" + Guid.NewGuid().ToString("N"), reaction = "None",
+                    intentSummary = "Без сознания. Реплики ожидают пробуждения.",
+                }, cancellationToken);
+                await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
+                _status.Write(true, "Ready", npcId, true, true);
+                // No LLM/TTS, no social effect, no consumption of the waiting voice.
+                return false;
+            }
             var world = await _memory.BindHexLiveWorldAsync(
                 worldStatus, npcId, _options.WorldId, cancellationToken).ConfigureAwait(false);
+            if (messageTurnId != null &&
+                (await _memory.SnapshotAsync(cancellationToken)).AppliedTurnIds.Contains(turnId))
+            {
+                Console.Error.WriteLine($"[turn] id={turnId} trigger={trigger} result=duplicate-skipped");
+                return true;
+            }
             await ImportLegacyStateAsync(world, state, cancellationToken).ConfigureAwait(false);
             await _memory.ObserveHexLiveStateAsync(world, state, cancellationToken)
                 .ConfigureAwait(false);
@@ -254,6 +289,7 @@ public sealed class AgentHostRuntime
             var physicalState = JsonSerializer.Serialize(state.EnumerateObject()
                 .Where(property => property.Name != "legacyAgentState")
                 .ToDictionary(property => property.Name, property => property.Value));
+            stage = "model";
             var decision = await _providers.DecideAsync(trigger, physicalState,
                 memoryContext.Text + "\nДопустимые arguments (npcId подставляется автоматически):\n" + _actionContract +
                 "\nРезультат последнего физического приказа (не новая просьба):\n" +
@@ -263,6 +299,9 @@ public sealed class AgentHostRuntime
                 playerText, _recent.ToArray(), cancellationToken)
                 .ConfigureAwait(false);
 
+            if (trigger != "voice" && string.Equals(decision.Speech.Trim(), _lastSpeech,
+                    StringComparison.OrdinalIgnoreCase)) decision.Speech = string.Empty;
+
             var pending = new PendingAgentTurn
             {
                 TurnId = turnId,
@@ -270,7 +309,9 @@ public sealed class AgentHostRuntime
                 World = world,
                 Decision = decision,
             };
+            stage = "commit";
             _outbox.Add(pending);
+            consumed = true; // durable result: never regenerate it because delivery failed
             await _memory.CommitTurnAsync(world, turnId, trigger, decision, cancellationToken)
                 .ConfigureAwait(false);
             _outbox.MarkLocalCommitted(turnId);
@@ -281,10 +322,12 @@ public sealed class AgentHostRuntime
             if (playerText.Length > 0) Remember("Игрок: " + playerText);
             if (decision.Speech.Length > 0)
             {
+                stage = "speech";
                 Remember(_options.DisplayName + ": " + decision.Speech);
                 await PublishPhaseAsync(mcp, attachmentId, turnId, "Speaking", cancellationToken);
                 await PublishSpeechAsync(mcp, attachmentId, turnId, trigger, decision,
                     cancellationToken).ConfigureAwait(false);
+                _lastSpeech = decision.Speech.Trim();
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (decision.Action != null)
@@ -295,17 +338,28 @@ public sealed class AgentHostRuntime
             }
             await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
             _status.Write(true, "Ready", npcId, true, true);
+            Console.Error.WriteLine($"[turn] id={turnId} trigger={trigger} result=committed");
+            return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            if (consumed) return true;
             throw;
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[turn] {turnId} failed: {ex.GetType().Name}");
+            Console.Error.WriteLine($"[turn] id={turnId} trigger={trigger} stage={stage} consumed={consumed} error={ex.GetType().Name}");
             _status.Write(true, "Error", npcId, true, true, ex.GetType().Name);
-            try { await PublishPhaseAsync(mcp, attachmentId, turnId, "Error", cancellationToken); }
+            try
+            {
+                await mcp.CallToolAsync("commit_agent_turn", new
+                {
+                    attachmentId, turnId = "error-" + turnId, reaction = "None", intentSummary = "",
+                }, cancellationToken);
+                await PublishPhaseAsync(mcp, attachmentId, turnId, "Error", cancellationToken);
+            }
             catch { }
+            return consumed;
         }
     }
 
@@ -365,7 +419,7 @@ public sealed class AgentHostRuntime
             attachmentId,
             turnId = "attach-" + Guid.NewGuid().ToString("N"),
             reaction = "None",
-            intentSummary = episode?.LastIntentSummary ?? string.Empty,
+            intentSummary = string.Empty, // reconnect must not present an old intention as current
             relationView = RelationView(archive.PlayerBond),
             journalEntry = episode?.Journal.LastOrDefault()?.Text ?? string.Empty,
         }, cancellationToken).ConfigureAwait(false);
@@ -529,6 +583,24 @@ public sealed class AgentHostRuntime
             throw new InvalidOperationException(
                 $"Expected exactly one live profileId={profileId}; found {matches.Length}.");
         return matches[0].GetProperty("npcId").GetInt32();
+    }
+
+    public static bool IsUnconscious(JsonElement state) =>
+        state.TryGetProperty("stateSummary", out var summary) &&
+        (summary.GetString() ?? string.Empty).Split(';', StringSplitOptions.TrimEntries)
+            .Contains("unconscious=true", StringComparer.OrdinalIgnoreCase);
+
+    public static string VoiceTurnId(string attachmentId, JsonElement inbox)
+    {
+        // Hash identities only: never persist/log player text to diagnose delivery.
+        var identity = new StringBuilder(attachmentId);
+        foreach (var message in inbox.GetProperty("messages").EnumerateArray())
+        {
+            identity.Append('|').Append(message.GetProperty("seq").GetInt64())
+                .Append(':').Append(message.GetProperty("messageId").GetString());
+        }
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity.ToString())))
+            .ToLowerInvariant();
     }
 
     private static string MergePlayerMessages(JsonElement inbox)

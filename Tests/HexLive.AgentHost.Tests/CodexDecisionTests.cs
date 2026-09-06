@@ -4,6 +4,31 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class CodexDecisionTests
 {
+    [TestCase("health=1; unconscious=false; moving=true", false)]
+    [TestCase("health=1; unconscious=true; moving=false", true)]
+    [TestCase("health=1; unconscious=false; memory=unconscious=true", false)]
+    public void BodyGateUsesCurrentFlagNotHistoricalMention(string summary, bool expected)
+    {
+        using var state = System.Text.Json.JsonDocument.Parse(
+            System.Text.Json.JsonSerializer.Serialize(new { stateSummary = summary }));
+        Assert.That(AgentHostRuntime.IsUnconscious(state.RootElement), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void VoiceIdentityIsStableAndDoesNotDependOnTranscript()
+    {
+        using var a = System.Text.Json.JsonDocument.Parse("""
+            {"messages":[{"seq":12,"messageId":"voice-1","text":"hello"}]}
+            """);
+        using var b = System.Text.Json.JsonDocument.Parse("""
+            {"messages":[{"seq":12,"messageId":"voice-1","text":"different"}]}
+            """);
+        Assert.That(AgentHostRuntime.VoiceTurnId("attachment", a.RootElement),
+            Is.EqualTo(AgentHostRuntime.VoiceTurnId("attachment", b.RootElement)));
+        Assert.That(AgentHostRuntime.VoiceTurnId("other", a.RootElement),
+            Is.Not.EqualTo(AgentHostRuntime.VoiceTurnId("attachment", a.RootElement)));
+    }
+
     [Test]
     public void SubscriptionProcessDoesNotInheritSecretsOrApiBilling()
     {

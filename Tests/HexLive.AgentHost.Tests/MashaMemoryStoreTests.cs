@@ -22,6 +22,22 @@ public sealed class MashaMemoryStoreTests
     }
 
     [Test]
+    public async Task OldIntentIsNotReinjectedAsCurrentBodyState()
+    {
+        var store = new MashaMemoryStore(_directory);
+        var world = await store.BindHexLiveWorldAsync(Json("{\"tick\":1200,\"seed\":7}"),
+            901, "", CancellationToken.None);
+        const string stale = "Я без сознания; не могу ответить на приветствие.";
+        await store.CommitTurnAsync(world, "old", "voice",
+            new CompanionDecision { IntentSummary = stale }, CancellationToken.None);
+        var prompt = await store.BuildPromptContextAsync(world, "unconscious=false", CancellationToken.None);
+        Assert.That(prompt.Text, Does.Not.Contain(stale));
+        var archive = await store.SnapshotAsync(CancellationToken.None);
+        Assert.That(archive.Worlds.Single().LastIntentSummary, Is.EqualTo(stale),
+            "Historical memory is preserved, not rewritten to fix the live context");
+    }
+
+    [Test]
     public async Task ReturnVoiceSurvivesReloadAndHeartbeatButIsConsumedOnceByVoice()
     {
         var store = new MashaMemoryStore(_directory);

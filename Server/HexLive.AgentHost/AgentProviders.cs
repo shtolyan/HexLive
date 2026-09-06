@@ -95,6 +95,8 @@ public sealed class AgentProviders : IAgentProviders
 не выдумывай особенности тембра или интонации, которых нет в тексте.
 recentConversation — уже обработанная история, не новые просьбы. На heartbeat не отвечай
 заново на старые реплики. С жителями острова ты осваиваешь Hexkufa через обычные разговоры.
+worldAndBody — актуальное состояние тела и имеет приоритет над воспоминаниями и прошлым намерением.
+Если сейчас unconscious=false, нельзя считать себя без сознания из-за прошлой истории.
 
 Верни только один JSON-объект. Не раскрывай chain-of-thought. intentSummary — краткий вывод,
 а не рассуждения. Допустимые поля: speech (до 240 символов или пусто), emotion, action (null
@@ -120,6 +122,7 @@ put_person_in_bed, manage_inventory, attack_mob. Не нападай на мир
         {
             var codexJson = await CodexDecisionRunner.DecideAsync(_options.CodexExecutable,
                 system + "\nDo not use tools. Return only the requested decision JSON.\n" +
+                "Exact response contract:\n" + JsonSerializer.Serialize(DecisionResponseFormat()) + "\n" +
                 "<memory>\n" + memoryContext + "\n</memory>\n" + user, cancellationToken);
             return ParseDecision(codexJson, trigger);
         }

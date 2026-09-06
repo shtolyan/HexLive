@@ -579,6 +579,8 @@ public sealed class McpTools
                     ["goal"] = npc.Mind.CurrentGoal.ToString(),
                     ["planStatus"] = npc.Plan.Status.ToString(),
                     ["manualControl"] = npc.Mind.ManualControl,
+                    ["carriedNpcId"] = npc.CarriedNpcId?.Value,
+                    ["carriedByNpcId"] = npc.CarriedByNpcId?.Value,
                     ["unconscious"] = npc.IsUnconscious(world.Tick),
                     ["leaseHolder"] = Holder(npc.Id.Value),
                 });
@@ -639,6 +641,8 @@ public sealed class McpTools
                 },
                 ["tile"] = $"{npc.Tile.Q},{npc.Tile.R}",
                 ["manualControl"] = npc.Mind.ManualControl,
+                ["carriedNpcId"] = npc.CarriedNpcId?.Value,
+                ["carriedByNpcId"] = npc.CarriedByNpcId?.Value,
                 ["leaseHolder"] = Holder(npc.Id.Value),
                 // Gameplay-language progress is part of the body/world adapter;
                 // §159's personal memories remain in the local Masha archive.

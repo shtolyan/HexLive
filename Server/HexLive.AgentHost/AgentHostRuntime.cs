@@ -27,6 +27,7 @@ public sealed class AgentHostRuntime
     private string _lastSpeech = string.Empty;
     private CancellationTokenSource? _actionStop;
     private Task _actionTask = Task.CompletedTask;
+    private volatile bool _handoffActionLease;
     private string _actionContract = string.Empty;
     private string _actionFeedback = "Физических приказов в этой сессии ещё не было.";
 
@@ -332,7 +333,9 @@ public sealed class AgentHostRuntime
             cancellationToken.ThrowIfCancellationRequested();
             if (decision.Action != null)
             {
-                await StopActionAsync().ConfigureAwait(false);
+                // Transfer the same owner's lease directly to the next command.
+                // Releasing it here returns to AI and drops a carried patient.
+                await StopActionAsync(handoffLease: true).ConfigureAwait(false);
                 _actionStop = CancellationTokenSource.CreateLinkedTokenSource(attachmentCancellation);
                 _actionTask = PerformActionSafelyAsync(mcp, npcId, decision.Action, _actionStop.Token);
             }
@@ -495,10 +498,10 @@ public sealed class AgentHostRuntime
     private async Task PerformActionAsync(McpClient mcp, int npcId,
         CompanionAction action, CancellationToken cancellationToken)
     {
-        await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 },
-            cancellationToken).ConfigureAwait(false);
         try
         {
+            await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 },
+                cancellationToken).ConfigureAwait(false);
             var arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
                                 action.Arguments.GetRawText()) ?? new();
             using var npcDocument = JsonDocument.Parse(
@@ -508,6 +511,7 @@ public sealed class AgentHostRuntime
             Volatile.Write(ref _actionFeedback, action.Tool + ": Accepted — приказ принят, выполнение ещё не подтверждено.");
 
             var renew = DateTimeOffset.UtcNow.AddSeconds(9);
+            DateTimeOffset? holdingSince = null;
             while (!cancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
@@ -515,9 +519,23 @@ public sealed class AgentHostRuntime
                     .ConfigureAwait(false);
                 if (!HasActivePlan(list, npcId))
                 {
-                    Volatile.Write(ref _actionFeedback, action.Tool + ": PlanEnded — план закончился; успех проверь по состоянию, это не подтверждение результата.");
-                    break;
+                    if (!HasCarriedPerson(list, npcId))
+                    {
+                        Volatile.Write(ref _actionFeedback, action.Tool + ": PlanEnded — план закончился; успех проверь по состоянию, это не подтверждение результата.");
+                        break;
+                    }
+                    // Pickup/movement completion is not the end of transport.
+                    // Keep renewing while the next model turn chooses a destination
+                    // or explicit put-down; never hold an idle patient indefinitely.
+                    holdingSince ??= DateTimeOffset.UtcNow;
+                    if (DateTimeOffset.UtcNow - holdingSince.Value >= TimeSpan.FromSeconds(120))
+                    {
+                        Volatile.Write(ref _actionFeedback, "CarryContinuationTimeout — 120 секунд без продолжения переноски; безопасно возвращаю управление AI.");
+                        break;
+                    }
+                    Volatile.Write(ref _actionFeedback, "HoldingPerson — человек на руках. Выбери move_to к нужному лагерю, put_person_in_bed или put_down_person; не поднимай повторно.");
                 }
+                else holdingSince = null;
                 if (DateTimeOffset.UtcNow >= renew)
                 {
                     await mcp.CallToolAsync("acquire_npc_control", new
@@ -531,7 +549,7 @@ public sealed class AgentHostRuntime
         }
         finally
         {
-            try
+            if (!_handoffActionLease) try
             {
                 await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None)
                     .ConfigureAwait(false);
@@ -554,13 +572,21 @@ public sealed class AgentHostRuntime
         }
     }
 
-    private async Task StopActionAsync()
+    private async Task StopActionAsync(bool handoffLease = false)
     {
-        _actionStop?.Cancel();
-        await _actionTask.ConfigureAwait(false);
-        _actionStop?.Dispose();
-        _actionStop = null;
-        _actionTask = Task.CompletedTask;
+        _handoffActionLease = handoffLease;
+        try
+        {
+            _actionStop?.Cancel();
+            await _actionTask.ConfigureAwait(false);
+        }
+        finally
+        {
+            _handoffActionLease = false;
+            _actionStop?.Dispose();
+            _actionStop = null;
+            _actionTask = Task.CompletedTask;
+        }
     }
 
     private static async Task PublishPhaseAsync(McpClient mcp, string attachmentId,
@@ -630,6 +656,16 @@ public sealed class AgentHostRuntime
             if (CriticalFragments.Any(fragment => type.Contains(fragment,
                     StringComparison.OrdinalIgnoreCase))) return true;
         }
+        return false;
+    }
+
+    internal static bool HasCarriedPerson(JsonElement response, int npcId)
+    {
+        if (!response.TryGetProperty("colonists", out var rows)) return false;
+        foreach (var item in rows.EnumerateArray())
+            if (item.GetProperty("npcId").GetInt32() == npcId)
+                return item.TryGetProperty("carriedNpcId", out var carried) &&
+                       carried.ValueKind == JsonValueKind.Number && carried.GetInt32() > 0;
         return false;
     }
 

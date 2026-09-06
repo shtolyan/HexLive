@@ -158,17 +158,10 @@ namespace HexLive.Simulation.Runtime
             if (!world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var newDefinition))
                 return;
             InventoryMath.RemoveReference(npc.Inventory.Items, item);
-            for (var i = npc.WornItems.Count - 1; i >= 0; i--)
-            {
-                var worn = npc.WornItems[i];
-                if (!world.Content.ObjectDefinitions.TryGetValue(
-                        worn.DefinitionId, out var wornDefinition) ||
-                    !WearSlotCatalog.Occupies(newDefinition, wornDefinition)) continue;
-                npc.WornItems.RemoveAt(i);
-                npc.Inventory.Items.Add(worn);
-            }
+            ResolveWearConflicts(world, npc, item.DefinitionId);
             npc.WornItems.Add(item);
             EquipmentMath.Recalculate(world, npc);
+            StowDisplacedGarments(world, npc);
         }
 
         private static void FailPlayerInventory(WorldState world, NPCState npc, string reason)

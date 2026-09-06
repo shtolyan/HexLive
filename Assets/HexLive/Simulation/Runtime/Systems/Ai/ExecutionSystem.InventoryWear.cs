@@ -91,7 +91,8 @@ public sealed partial class ExecutionSystem
             }
             else
             {
-                DropGarmentWithContents(world, npc, garment);
+                if (DropGarmentWithContents(world, npc, garment) is null)
+                    npc.Inventory.Items.Add(garment);
             }
         }
 

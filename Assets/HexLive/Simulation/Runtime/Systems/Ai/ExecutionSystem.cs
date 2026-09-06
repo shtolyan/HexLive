@@ -1811,7 +1811,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // §133: чужое надевают только с разрешения, и разрешение ОДНОРАЗОВОЕ —
         // сгорает здесь же. Планировщик до сюда чужое без «да» не пропускает;
         // это последний рубеж на случай, если вещь сменила хозяйку по дороге.
-        if (!restoringSelectedOutfit &&
+        var explicitPlayerDress = npc.Mind.ManualControl &&
+            npc.Plan.Goal == GoalType.PlayerOrder;
+        if (!restoringSelectedOutfit && !explicitPlayerDress &&
             ClothingOwnership.FellowOwner(world, npc, worldObject) is { } fellowOwner)
         {
             if (!PlanningSystem.HasWearGrant(npc, worldObject.Id, world.Tick))
@@ -2577,7 +2579,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return null;
     }
 
-    private static bool TryFindDropSpotAtFeet(
+    internal static bool TryFindDropSpotAtFeet(
         WorldState world,
         NPCState npc,
         bool underFoot,

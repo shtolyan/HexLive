@@ -590,7 +590,9 @@ public sealed class BatheUndressAtHomeTests
             // экземпляре бутылки и на лежащей в мире бутылке.
             // 68 → 69 в §159: профиль, память и отношения Маши.
             // 69 → 70 в §159.1: версия одноразовой миграции её образа.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(71));
+            // 71 → 72 в §162: цвет волос и владение героями мира лобби;
+            // старые v66..71 по-прежнему читаются отдельными migration fixtures.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(72));
         });
     }
 

@@ -40,7 +40,7 @@ public sealed class AdminVoicePanel : MonoBehaviour
         if (baseSettings == null) { enabled = false; return; }
         _settings = Instantiate(baseSettings); _settings.sortingOrder = 180; doc.panelSettings = _settings;
         _root = new VisualElement(); _root.AddToClassList("admin-root"); doc.rootVisualElement.Add(_root);
-        var style = Resources.Load<StyleSheet>("HexLive/AdminVoice"); if (style != null) _root.styleSheets.Add(style);
+        var style = Resources.Load<StyleSheet>("HexLive/UI/AdminVoice"); if (style != null) _root.styleSheets.Add(style);
         _body = new VisualElement(); _body.AddToClassList("admin-body"); _body.AddToClassList("admin-hidden");
         var toggle = new Button(() => { _body.ToggleInClassList("admin-hidden"); if (_body.ClassListContains("admin-hidden")) CancelCapture(); }) { text = L("title") };
         _root.Add(toggle); _root.Add(_body);

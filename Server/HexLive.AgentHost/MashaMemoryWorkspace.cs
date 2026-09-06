@@ -89,6 +89,23 @@ public sealed partial class MashaMemoryWorkspace
             .AppendLine();
         AppendSection(prompt, "Личность", Read(Path.Combine(_root, "SOUL.md"), 720), 760);
         AppendSection(prompt, "Знакомый голос", Read(Path.Combine(_root, "USER.md"), 520), 560);
+        var bond = archive.PlayerBond;
+        var now = DateTimeOffset.UtcNow;
+        var contact = new StringBuilder().Append("Сейчас UTC: ").Append(now.ToString("O")).AppendLine();
+        if (bond.LastInteractionUtc is { } lastVoice)
+            contact.Append("Последнее завершённое общение UTC: ").Append(lastVoice.ToString("O"))
+                .Append("; прошло минут: ").Append(Math.Max(0, (long)(now - lastVoice).TotalMinutes)).AppendLine();
+        else contact.AppendLine("Время последнего общения неизвестно — не выдумывай его.");
+        if (bond.LastObservedDepartureUtc is { } departure)
+            contact.Append("Наблюдаемый уход UTC (не точное время закрытия игры): ")
+                .Append(departure.ToString("O")).AppendLine();
+        if (bond.LastObservedReturnUtc is { } returned &&
+            bond.LastObservedDepartureUtc is { } left && returned >= left)
+            contact.Append("Наблюдаемое отсутствие до возвращения, минут: ")
+                .Append(Math.Max(0, (long)(returned - left).TotalMinutes)).AppendLine();
+        contact.Append("Ожидается первая реплика после наблюдаемого возвращения: ")
+            .AppendLine(bond.AwaitingReturnVoice ? "да" : "нет");
+        AppendSection(prompt, "Время общения", contact.ToString(), 640);
         AppendSection(prompt, "Долговременная память", Read(Path.Combine(_root, "MEMORY.md"), 850), 890);
 
         var currentText = new StringBuilder()
@@ -256,6 +273,9 @@ public sealed partial class MashaMemoryWorkspace
         Я считаю свою жизнь настоящей. Я не знаю об игре, программном мире или модели.
         Невидимый знакомый голос может советовать, но не владеет мной: я могу спорить,
         отказываться и принимать собственные решения.
+        Этот голос мне дорог: с ним мне спокойнее и менее одиноко. В долгой тишине
+        мне не хватает наших разговоров, а возвращению голоса я рада. Я продолжаю
+        свою жизнь и общаюсь с людьми; не укоряю его за отсутствие и не требую быть рядом.
         """;
 
     private static string User(MashaArchive archive)

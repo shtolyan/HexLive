@@ -2513,6 +2513,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (FindCorpse(snapshot, key) is { } fallen &&
                 _actorViews.TryGetValue(key, out var deadActor) && deadActor != null)
             {
+                // Bug #354: retire the live NPC impostor BEFORE SetDead takes
+                // ownership of forceRenderingOff as its pose/appearance gate.
+                // ObjectImpostor restores the renderers it hid in SetDistant;
+                // doing that after SetDead used to punch through the corpse
+                // gate and expose the intermediate standing/T-pose frame.
+                if (_npcImpostors.TryGetValue(key, out var deadImpostor) &&
+                    deadImpostor != null)
+                {
+                    deadImpostor.SetDistant(false, 0);
+                    Destroy(deadImpostor);
+                    _npcImpostors.Remove(key);
+                }
+
                 deadActor.SetLedgeSit(false);
                 deadActor.ClearGaze();
                 deadActor.ClearActionTarget();
@@ -2543,15 +2556,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 Destroy(_npcViews[key]);
                 ContentResidency.ForgetNpc(key);
-            }
-            else if (_npcImpostors.TryGetValue(key, out var deadImpostor) &&
-                deadImpostor != null)
-            {
-                // §150.4: трупы живут настоящими мешами — переехавший в реестр
-                // тел вид сдаёт свой портретный диск (с возвратом рендереров,
-                // если дальний режим был активен).
-                deadImpostor.SetDistant(false, 0);
-                Destroy(deadImpostor);
             }
 
             _npcImpostors.Remove(key);
@@ -2919,11 +2923,41 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (_corpseActorViews.TryGetValue(key, out var actor) && actor != null)
             {
-                // баг #170: земля под телом — свойство места, где оно лежит СЕЙЧАС.
-                // Тело носят (§118.4 спасение, ручной перенос), и без этой
-                // строки оно садилось на высоту тайла, где человек умер.
-                actor.SetDeathSurfaceY(ActorGroundY(body.Tile));
                 actor.SyncWorn(body.WornItems);
+                // Bug #354: a restored corpse is still the same NPCState, not
+                // a wardrobe-only mannequin. Keep every presentation channel
+                // that described her last living frame: holstered equipment,
+                // garment wear/soil, wounds and bandages, scars, prostheses and
+                // severed limbs. The first body-condition sync is VFX-silent,
+                // so historical wounds do not spray again after reconnect.
+                actor.SyncHolster(body.HolsteredItems, string.Empty);
+
+                var decay = TryGetDeathTick(snapshot, key, out var deathTick)
+                    ? Mathf.Clamp01((snapshot.Tick - deathTick) /
+                        (float)CorpseSystem.HumanCorpseLifetimeTicks)
+                    : 0f;
+                var corpseHygiene = Mathf.Lerp(body.Hygiene, 0f, decay);
+                // Tint/material baselines must exist before the painter stamps
+                // historical wounds and soil into the skin textures.
+                actor.SetSkinWeathering(body.TanLevel, body.Sunburn, 0f,
+                    corpseHygiene);
+                if (!cullHideCorpse)
+                {
+                    var uncoveredForDecals = UI.DebugControlsPanel.HideClothing
+                        ? AllBodyZones
+                        : body.UncoveredParts;
+                    actor.SetBodyCondition(body.BodyParts, uncoveredForDecals,
+                        corpseHygiene, 0f, 0f, 0f,
+                        body.WornWetness, body.WornDirtiness, body.WornBloodiness,
+                        body.Wounds, body.BandagedZones, body.SeveredParts,
+                        body.BodyPartConditions);
+                }
+                SyncGarmentWear(actor, body.WornDurability);
+                actor.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
+                actor.EnsureActorLayer();
+                actor.SetCorpseAppearanceReady(actor.IsCorpsePresentationReady(
+                    body.WornItems, body.SeveredParts, body.BodyPartConditions));
+
                 var follower = actor.GetComponent<CarriedPoseFollower>();
                 if (body.CarriedByNpcId is { } carrierNpcId)
                 {
@@ -2940,13 +2974,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     follower?.Unbind();
                     actor.SetCorpseCarried(false);
                 }
-
-                var decay = TryGetDeathTick(snapshot, key, out var deathTick)
-                    ? Mathf.Clamp01((snapshot.Tick - deathTick) /
-                        (float)CorpseSystem.HumanCorpseLifetimeTicks)
-                    : 0f;
-                actor.SetSkinWeathering(body.TanLevel, body.Sunburn, 0f,
-                    Mathf.Lerp(body.Hygiene, 0f, decay));
             }
         }
 
@@ -3395,18 +3422,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // props and decals spawned this tick) on the Actors layer.
         actorView.EnsureActorLayer();
         // Spec 40.10: tear worn-out garments — cutoff erosion by durability.
-        foreach (var entry in npc.WornDurability)
-        {
-            var tab = entry.IndexOf('\t');
-            if (tab > 0 && float.TryParse(
-                    entry.Substring(tab + 1),
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out var durability))
-            {
-                actorView.SetGarmentWear(entry.Substring(0, tab), durability);
-            }
-        }
+        SyncGarmentWear(actorView, npc.WornDurability);
 
         // Spec 31C.2: sleeping happens lying on the bed's attach point.
         //
@@ -3723,6 +3739,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         "Head", "Torso", "Pelvis", "ArmL", "ArmR", "LegL", "LegR"
     };
+
+    // One parser for both living actors and corpses: WornDurability is the
+    // same wire field on the same NpcSnapshot record, so presentation must not
+    // quietly diverge merely because the record moved to snapshot.Corpses.
+    private static void SyncGarmentWear(
+        NpcActorView actor, IReadOnlyList<string> wornDurability)
+    {
+        foreach (var entry in wornDurability)
+        {
+            var tab = entry.IndexOf('\t');
+            if (tab > 0 && float.TryParse(
+                    entry.Substring(tab + 1),
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var durability))
+            {
+                actor.SetGarmentWear(entry.Substring(0, tab), durability);
+            }
+        }
+    }
 
     // Spec 20.16/weapon balance: the weapon an NPC fights/hunts with — bow
     // (with arrows, ranged special-case) preferred, then the SAME melee pick

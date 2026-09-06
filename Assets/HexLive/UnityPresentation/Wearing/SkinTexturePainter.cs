@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using HexLive.UnityPresentation.Content;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Wearing
@@ -28,7 +29,7 @@ namespace HexLive.UnityPresentation.Wearing
     /// on painted slots (un-painted skin still gets the cheap _BaseColor tint).
     /// Clothing occludes it all naturally.
     /// </summary>
-    public sealed class SkinTexturePainter : MonoBehaviour, IPaintTarget
+    public sealed class SkinTexturePainter : MonoBehaviour, IPresentationPaintTarget
     {
         private sealed class Zone
         {
@@ -419,6 +420,10 @@ namespace HexLive.UnityPresentation.Wearing
         // Что положить на следующем PlaceNewStamps: ключ -> (зона, сид, ступень).
         private readonly Dictionary<string, (string zone, int seed, int step)> _bleedPending = new();
         private readonly Dictionary<string, (string zone, int seed)> _plasterPending = new();
+        // Mandatory authored wraps cannot use the legacy circular fallback.
+        // Keep their unresolved placement across the snapshot-to-painter seam
+        // so a corpse stays hidden through an asynchronous point-map miss.
+        private readonly Dictionary<string, (string zone, bool gauze)> _mandatoryWrapPending = new();
         private readonly HashSet<int> _soakSweep = new();
         private readonly List<int> _soakDrop = new();
 
@@ -559,6 +564,8 @@ namespace HexLive.UnityPresentation.Wearing
         private string _mapName = string.Empty;
         private int _mapVertexCount;
         private float _nextMapRetryAt;
+        private AtomicResources.Availability _mapAvailability =
+            AtomicResources.Availability.Missing;
         // Spec 40.8-J: per-texel body positions — when present (and the point
         // map is v2), wounds and wraps paint through the seam-free projected
         // path instead of a per-slot rectangle.
@@ -632,6 +639,66 @@ namespace HexLive.UnityPresentation.Wearing
 
         public bool WantsFreshPass =>
             _materials != null && (_freshPending || HasPendingSeamUpgrade());
+
+        /// <summary>Initial corpse presentation must not expose the authored
+        /// clean body before historical wounds, blood soil and bruises have
+        /// reached the current composite. A missing optional point map remains
+        /// a conclusive art-less fallback rather than an infinite gate.</summary>
+        private bool MapDependentPaintPending =>
+            (_specklesDirty || _bruisesDirty || HasUnresolvedMandatoryWraps()) &&
+            (_map != null || _mapAvailability == AtomicResources.Availability.Loading);
+
+        public bool PresentationReady => _materials == null ||
+            (System.Threading.Volatile.Read(ref _pendingPlacements) == 0 &&
+             !_freshPending &&
+             !MapDependentPaintPending &&
+             !HasPendingSeamUpgrade() &&
+             !AnyPaintRtLost());
+
+        public bool TryPaintPresentation()
+        {
+            // Do not wait for the ordinary three-second ambient retry. A
+            // corpse with historical BloodSoil/BluntDamage stays hidden while
+            // the first atomic request is genuinely in flight, and this
+            // bounded priority pass promptly observes its completion.
+            var wrapsPending = HasUnresolvedMandatoryWraps();
+            if (_map == null && (_specklesDirty || _bruisesDirty || wrapsPending) &&
+                _mapName.Length != 0)
+            {
+                var availability = RefreshPointMap(bypassRetryDelay: true);
+                if (availability == AtomicResources.Availability.Loading)
+                {
+                    return false;
+                }
+            }
+
+            if (wrapsPending)
+            {
+                if (_map != null)
+                {
+                    TryPlaceMandatoryWraps();
+                }
+
+                // A local Resources wrap is synchronous: after a Ready map,
+                // a still-unresolved authored wrap is terminal missing art.
+                // The same tombstone fallback applies to a terminal map miss,
+                // avoiding an infinite gate while remaining retryable if a
+                // later registry refresh finally supplies the point map.
+                if (_map == null || HasUnresolvedMandatoryWraps())
+                {
+                    AcknowledgeMandatoryWrapFallback();
+                }
+            }
+
+            if (System.Threading.Volatile.Read(ref _pendingPlacements) != 0)
+            {
+                return false;
+            }
+
+            _geometryArrived = false;
+            PaintCycle();
+            return PresentationReady;
+        }
 
         // A decal confined to one submesh looks near enough the same drawn
         // either way, so it can ride to the scheduled turn. One that actually
@@ -735,7 +802,8 @@ namespace HexLive.UnityPresentation.Wearing
                 // загрузку было нечем — actorMesh не сохранялся).
                 _mapName = $"skin_{actorMesh}";
                 _mapVertexCount = vertexCount;
-                _map = PaintPointMap.Load(_mapName, vertexCount);
+                _mapAvailability = PaintPointMap.Request(
+                    _mapName, vertexCount, out _map);
                 // Spec 40.8-J: both halves must be present and current — the
                 // frames live in the point map, the texels in the position
                 // maps. Either one stale and decals stay per-slot (clipped at
@@ -920,40 +988,12 @@ namespace HexLive.UnityPresentation.Wearing
             // кончилась.
             if (_map == null && _mapName.Length != 0 && Time.unscaledTime >= _nextMapRetryAt)
             {
-                _nextMapRetryAt = Time.unscaledTime + 3f;
-                _map = PaintPointMap.Load(_mapName, _mapVertexCount);
-                if (_map != null)
-                {
-                    if (_map.HasProjectedFrames)
-                    {
-                        _posMaps = SkinPositionMapSet.Load(
-                            $"skinpos_{_mapName.Substring(5)}", _mapVertexCount);
-                    }
-
-                    _tombstoneScratch.Clear();
-                    foreach (var pair in _stamps)
-                    {
-                        if (pair.Value.Slot < 0)
-                        {
-                            _tombstoneScratch.Add(pair.Key);
-                        }
-                    }
-
-                    foreach (var key in _tombstoneScratch)
-                    {
-                        _stamps.Remove(key);
-                        _alpha.Remove(key);
-                    }
-
-                    _specklesDirty = true;
-                    _bruisesDirty = true;
-                    _lastStateHash = 0;
-                    _freshPending = true;
-                }
+                RefreshPointMap(bypassRetryDelay: false);
             }
 
             _wetSmoothness = Mathf.Clamp01(wetSmoothness);
             _desired.Clear();
+            _mandatoryWrapPending.Clear();
             var stateHash = 17;
             var needsPlacement = false;
 
@@ -1025,6 +1065,10 @@ namespace HexLive.UnityPresentation.Wearing
                 if (!_stamps.ContainsKey(key))
                 {
                     needsPlacement = true;
+                    if (WrapRects.ContainsKey(zone))
+                    {
+                        _mandatoryWrapPending[key] = (zone, false);
+                    }
                 }
             }
 
@@ -1042,6 +1086,10 @@ namespace HexLive.UnityPresentation.Wearing
                     if (!_stamps.ContainsKey(key))
                     {
                         needsPlacement = true;
+                        if (WrapRects.ContainsKey(zone))
+                        {
+                            _mandatoryWrapPending[key] = (zone, true);
+                        }
                     }
                 }
             }
@@ -1143,7 +1191,9 @@ namespace HexLive.UnityPresentation.Wearing
             // wound records now flips its slots to the painted RT — in
             // practice zone damage always coexists with wounds, so this
             // rarely creates RTs that would not exist anyway.)
-            if (zoneDamage != null && zoneDamage.Count > 0 && _map != null)
+            if (zoneDamage != null && zoneDamage.Count > 0 &&
+                (_map != null ||
+                 _mapAvailability == AtomicResources.Availability.Loading))
             {
                 // Spec 40.8-K: the speckle field is the SLOW half of the
                 // picture — the gradual reddening of a battered limb, not the
@@ -1210,7 +1260,9 @@ namespace HexLive.UnityPresentation.Wearing
             // §40.8-H r11: поле СИНЯКОВ — та же машинерия, свой источник
             // (BluntDamage зоны) и свой хэш. Без neighbour-bleed: синяк не
             // растекается на соседнюю зону, он ровно там, куда пришёлся удар.
-            if (zoneBruise != null && zoneBruise.Count > 0 && _map != null)
+            if (zoneBruise != null && zoneBruise.Count > 0 &&
+                (_map != null ||
+                 _mapAvailability == AtomicResources.Availability.Loading))
             {
                 ComputeZoneBruise(zoneBruise);
                 var bruiseHash = 19;
@@ -1521,6 +1573,107 @@ namespace HexLive.UnityPresentation.Wearing
                 _stamps.Remove(key);
                 _alpha.Remove(key);
             }
+        }
+
+        private bool HasUnresolvedMandatoryWraps()
+        {
+            foreach (var pending in _mandatoryWrapPending)
+            {
+                if (!_stamps.ContainsKey(pending.Key))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void TryPlaceMandatoryWraps()
+        {
+            foreach (var pending in _mandatoryWrapPending)
+            {
+                if (!_stamps.ContainsKey(pending.Key))
+                {
+                    TryPlace(pending.Key, pending.Value.zone,
+                        pending.Value.zone.GetHashCode(), isBandage: true,
+                        isGauze: pending.Value.gauze);
+                }
+            }
+        }
+
+        private void AcknowledgeMandatoryWrapFallback()
+        {
+            foreach (var pending in _mandatoryWrapPending)
+            {
+                if (!_stamps.ContainsKey(pending.Key))
+                {
+                    PlaceTombstone(pending.Key, pending.Value.zone.GetHashCode(),
+                        isBandage: true, isGauze: pending.Value.gauze);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Observe the asynchronous point-map request without turning its
+        /// first null into a permanent art-less result. Ambient actors retain
+        /// the old three-second cadence; corpse presentation bypasses that
+        /// delay while still consuming only its one bounded painter pass.
+        /// </summary>
+        private AtomicResources.Availability RefreshPointMap(bool bypassRetryDelay)
+        {
+            if (_map != null)
+            {
+                _mapAvailability = AtomicResources.Availability.Ready;
+                return _mapAvailability;
+            }
+
+            if (_mapName.Length == 0)
+            {
+                _mapAvailability = AtomicResources.Availability.Missing;
+                return _mapAvailability;
+            }
+
+            if (!bypassRetryDelay)
+            {
+                _nextMapRetryAt = Time.unscaledTime + 3f;
+            }
+
+            _mapAvailability = PaintPointMap.Request(
+                _mapName, _mapVertexCount, out _map);
+            if (_mapAvailability != AtomicResources.Availability.Ready || _map == null)
+            {
+                return _mapAvailability;
+            }
+
+            if (_map.HasProjectedFrames)
+            {
+                _posMaps = SkinPositionMapSet.Load(
+                    $"skinpos_{_mapName.Substring(5)}", _mapVertexCount);
+            }
+
+            // Placements that fell back while the map was loading are not a
+            // terminal decision. Recreate them from the now-authoritative map
+            // and repaint map-dependent historical layers before reveal.
+            _tombstoneScratch.Clear();
+            foreach (var pair in _stamps)
+            {
+                if (pair.Value.Slot < 0)
+                {
+                    _tombstoneScratch.Add(pair.Key);
+                }
+            }
+
+            foreach (var key in _tombstoneScratch)
+            {
+                _stamps.Remove(key);
+                _alpha.Remove(key);
+            }
+
+            _specklesDirty = true;
+            _bruisesDirty = true;
+            _lastStateHash = 0;
+            _freshPending = true;
+            return _mapAvailability;
         }
 
         // ---- Spec 40.8-H zone-damage speckle helpers ----

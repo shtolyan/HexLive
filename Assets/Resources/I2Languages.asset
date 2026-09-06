@@ -17,6 +17,46 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: audio.settings
+      TermType: 0
+      Description:
+      Languages:
+      - "Sound settings"
+      - "Настройки звука"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.voices
+      TermType: 0
+      Description:
+      Languages:
+      - "Character voices"
+      - "Голоса персонажей"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.music
+      TermType: 0
+      Description:
+      Languages:
+      - "Music"
+      - "Музыка"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.environment
+      TermType: 0
+      Description:
+      Languages:
+      - "Environment"
+      - "Окружение"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.settings.hint
+      TermType: 0
+      Description:
+      Languages:
+      - "Voices include connected AI. Changes apply immediately and are saved automatically."
+      - "Голоса включают подключённый AI. Изменения применяются сразу и сохраняются автоматически."
+      Flags: 0101
+      Languages_Touch: []
     - Term: loading.content.wear
       TermType: 0
       Description: 
@@ -25846,6 +25886,46 @@ MonoBehaviour:
       Languages:
       - 'Controlled by the connected MCP agent'
       - 'Управляется подключённым MCP-агентом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.microphone_usage'
+      TermType: 0
+      Description:
+      Languages:
+      - 'HexLive uses the microphone to recognize your speech and let you talk to connected agents.'
+      - 'HexLive использует микрофон для распознавания вашей речи и общения с подключёнными агентами.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.capture_done'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Done'
+      - 'Готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.queued'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Queued: {0}'
+      - 'В очереди: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.queue_full'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recording queue is full. Wait for recognition.'
+      - 'Очередь записей заполнена. Дождись распознавания.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.input_failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Message was not delivered. Please try again.'
+      - 'Реплика не доставлена. Попробуй ещё раз.'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

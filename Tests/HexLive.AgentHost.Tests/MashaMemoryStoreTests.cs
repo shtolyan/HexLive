@@ -22,6 +22,43 @@ public sealed class MashaMemoryStoreTests
     }
 
     [Test]
+    public async Task ReturnVoiceSurvivesReloadAndHeartbeatButIsConsumedOnceByVoice()
+    {
+        var store = new MashaMemoryStore(_directory);
+        var world = await store.BindHexLiveWorldAsync(Json("{\"tick\":1200,\"seed\":7}"),
+            901, "", CancellationToken.None);
+        await store.ObservePlayerPresenceAsync(true, CancellationToken.None);
+        await store.CommitTurnAsync(world, "first", "voice", new CompanionDecision(), CancellationToken.None);
+        var before = await store.SnapshotAsync(CancellationToken.None);
+        Assert.That(before.PlayerBond.LastInteractionUtc, Is.Not.Null, "None reaction still heard the player");
+        await store.ObservePlayerPresenceAsync(false, CancellationToken.None);
+        store = new MashaMemoryStore(_directory);
+        await store.ObservePlayerPresenceAsync(true, CancellationToken.None);
+        await store.CommitTurnAsync(world, "heartbeat", "heartbeat", new CompanionDecision(), CancellationToken.None);
+        var returning = await store.SnapshotAsync(CancellationToken.None);
+        var prompt = await store.BuildPromptContextAsync(world, "", CancellationToken.None);
+        Assert.Multiple(() =>
+        {
+            Assert.That(returning.PlayerBond.AwaitingReturnVoice, Is.True);
+            Assert.That(returning.PlayerBond.LastInteractionUtc, Is.EqualTo(before.PlayerBond.LastInteractionUtc));
+            Assert.That(prompt.Text, Does.Contain("Последнее завершённое общение UTC"));
+            Assert.That(prompt.Text, Does.Contain("возвращения: да"));
+            Assert.That(prompt.CharacterCount, Is.LessThanOrEqualTo(MashaMemoryWorkspace.MaxPromptCharacters));
+        });
+        await store.CommitTurnAsync(world, "return-voice", "voice", new CompanionDecision(), CancellationToken.None);
+        var heard = await store.SnapshotAsync(CancellationToken.None);
+        await store.CommitTurnAsync(world, "return-voice", "voice", new CompanionDecision(), CancellationToken.None);
+        await store.ObservePlayerPresenceAsync(true, CancellationToken.None);
+        var repeat = await new MashaMemoryStore(_directory).SnapshotAsync(CancellationToken.None);
+        Assert.Multiple(() =>
+        {
+            Assert.That(repeat.PlayerBond.AwaitingReturnVoice, Is.False);
+            Assert.That(repeat.PlayerBond.LastInteractionUtc, Is.EqualTo(heard.PlayerBond.LastInteractionUtc));
+            Assert.That(repeat.PlayerBond.Familiarity, Is.Zero, "No artificial relationship boost");
+        });
+    }
+
+    [Test]
     public async Task NewArchiveHasPortableOriginAndSurvivesReload()
     {
         var store = new MashaMemoryStore(_directory);

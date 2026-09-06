@@ -17,11 +17,22 @@ namespace HexLive.UnityPresentation.Content
 /// </summary>
 public static class AtomicResources
 {
+    public enum Availability
+    {
+        Loading,
+        Ready,
+        Missing,
+        Failed,
+    }
+
     private static readonly Dictionary<string, ContentAssetHandle<UnityEngine.Object>> Handles =
         new(StringComparer.Ordinal);
     private static readonly Dictionary<string, List<ContentAssetHandle<UnityEngine.Object>>> AllHandles =
         new(StringComparer.Ordinal);
     private static readonly HashSet<string> Loading = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, Availability> Terminal =
+        new(StringComparer.Ordinal);
+    private static ContentAssetService _registrySource;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Reset()
@@ -41,13 +52,32 @@ public static class AtomicResources
         Handles.Clear();
         AllHandles.Clear();
         Loading.Clear();
+        Terminal.Clear();
+        if (_registrySource != null)
+        {
+            _registrySource.RegistryRefreshed -= ForgiveTerminalOnHealthyRegistry;
+        }
+        _registrySource = null;
     }
 
     public static T Load<T>(string formerResourcePath) where T : UnityEngine.Object
     {
+        _ = Request(formerResourcePath, out T asset);
+        return asset;
+    }
+
+    /// <summary>
+    /// Starts or observes one typed atomic request without conflating its
+    /// asynchronous first miss with a terminal absent/failed asset. This is
+    /// needed by first-frame presentation gates: null alone is ambiguous.
+    /// </summary>
+    public static Availability Request<T>(string formerResourcePath, out T asset)
+        where T : UnityEngine.Object
+    {
+        asset = null;
         if (!TryIdentity(formerResourcePath, out var type, out var id))
         {
-            return null;
+            return Availability.Missing;
         }
 
         if (ContentAssetService.Instance.TryResolveLegacyPath(
@@ -57,17 +87,32 @@ public static class AtomicResources
             id = resolved.id;
         }
 
-        return LoadIdentity<T>(type, id, EntryFor<T>());
+        return RequestIdentity(type, id, EntryFor<T>(), out asset);
     }
 
     private static T LoadIdentity<T>(string type, string id, string entry = null)
         where T : UnityEngine.Object
     {
+        _ = RequestIdentity(type, id, entry, out T asset);
+        return asset;
+    }
 
+    private static Availability RequestIdentity<T>(
+        string type, string id, string entry, out T asset)
+        where T : UnityEngine.Object
+    {
+        asset = null;
+        EnsureRegistrySubscription();
         var key = type + "/" + id + "#" + (entry ?? "main");
         if (Handles.TryGetValue(key, out var ready))
         {
-            return ready.Asset as T;
+            asset = ready.Asset as T;
+            return asset != null ? Availability.Ready : Availability.Failed;
+        }
+
+        if (Terminal.TryGetValue(key, out var terminal))
+        {
+            return terminal;
         }
 
         if (Loading.Add(key))
@@ -78,6 +123,9 @@ public static class AtomicResources
                 if (loaded?.Asset == null)
                 {
                     loaded?.Dispose();
+                    Terminal[key] = ContentAssetService.Instance.TryGetRecord(type, id, out _)
+                        ? Availability.Failed
+                        : Availability.Missing;
                     return;
                 }
 
@@ -85,7 +133,32 @@ public static class AtomicResources
             });
         }
 
-        return null;
+        return Availability.Loading;
+    }
+
+    private static void EnsureRegistrySubscription()
+    {
+        var service = ContentAssetService.Instance;
+        if (ReferenceEquals(_registrySource, service))
+        {
+            return;
+        }
+
+        if (_registrySource != null)
+        {
+            _registrySource.RegistryRefreshed -= ForgiveTerminalOnHealthyRegistry;
+        }
+
+        _registrySource = service;
+        service.RegistryRefreshed += ForgiveTerminalOnHealthyRegistry;
+    }
+
+    private static void ForgiveTerminalOnHealthyRegistry()
+    {
+        if (_registrySource != null && _registrySource.LastError.Length == 0)
+        {
+            Terminal.Clear();
+        }
     }
 
     /// <summary>
@@ -210,6 +283,19 @@ public static class AtomicResources
         foreach (var key in stale)
         {
             AllHandles.Remove(key);
+        }
+
+        stale.Clear();
+        foreach (var key in Terminal.Keys)
+        {
+            if (key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                stale.Add(key);
+            }
+        }
+        foreach (var key in stale)
+        {
+            Terminal.Remove(key);
         }
         return true;
     }

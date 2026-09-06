@@ -12,20 +12,12 @@ namespace HexLive.UnityPresentation.Audio
     public sealed class FmodMicrophoneCapture : IDisposable
     {
         private const float MaxSeconds = 30f;
-        private const float SilenceToFinishSeconds = 0.8f;
+        private const float SilenceToFinishSeconds = 3f;
         private const float VoiceRms = 0.008f;
         private const float MinimumSeconds = 0.25f;
-        private const float DuckLinear = 0.12589254f; // -18 dB
-        private const float DuckFadeSeconds = 0.15f;
 
         private readonly List<byte> _pcm = new(44100 * 2 * 8);
         private FMOD.Sound _sound;
-        private FMOD.Studio.EventInstance _duck;
-        private FMOD.Studio.Bus _fallbackDuckBus;
-        private FMOD.ChannelGroup _fallbackDuckGroup;
-        private float _fallbackRestoreVolume = 1f;
-        private int _fallbackSampleRate = 44100;
-        private bool _fallbackDucking;
         private int _driver = -1;
         private int _sampleRate = 44100;
         private uint _lastPosition;
@@ -34,8 +26,12 @@ namespace HexLive.UnityPresentation.Audio
         private float _silence;
         private bool _heardVoice;
         private bool _recording;
+        private FMOD.ChannelGroup _captureMaster;
+        private bool _restoreMasterMute;
+        private bool _ownsMasterMute;
 
         public bool IsRecording => _recording;
+        public float Level { get; private set; }
 
         public bool Start(out string error)
         {
@@ -49,6 +45,7 @@ namespace HexLive.UnityPresentation.Audio
                 return false;
             }
 
+            _driver = -1;
             for (var i = 0; i < drivers; i++)
             {
                 if (core.getRecordDriverInfo(i, out _, out var rate, out _, out _, out var state) ==
@@ -90,8 +87,15 @@ namespace HexLive.UnityPresentation.Audio
             _silence = 0f;
             _heardVoice = false;
             _recording = true;
-            StartDuck();
-            return true;
+            Level = 0f;
+            try
+            {
+                if (MuteForCapture()) return true;
+            }
+            catch (Exception) { /* Never leave a take running after mute setup fails. */ }
+            EndRecording();
+            error = "MicrophoneMuteFailed";
+            return false;
         }
 
         /// <summary>Returns true when VAD/max duration has completed the take.</summary>
@@ -101,7 +105,10 @@ namespace HexLive.UnityPresentation.Audio
             _elapsed += Mathf.Max(0f, unscaledDeltaTime);
             var core = FMODUnity.RuntimeManager.CoreSystem;
             if (core.getRecordPosition(_driver, out var position) != FMOD.RESULT.OK)
+            {
+                Cancel();
                 return true;
+            }
 
             var from = _lastPosition * 2;
             var to = position * 2;
@@ -111,6 +118,7 @@ namespace HexLive.UnityPresentation.Audio
                 var chunk = ReadRing(from, length);
                 _pcm.AddRange(chunk);
                 var rms = Rms(chunk);
+                Level = Mathf.Clamp01((20f * Mathf.Log10(Mathf.Max(rms, 0.0001f)) + 60f) / 45f);
                 if (rms >= VoiceRms)
                 {
                     _heardVoice = true;
@@ -118,7 +126,7 @@ namespace HexLive.UnityPresentation.Audio
                 }
                 else if (_heardVoice)
                 {
-                    _silence += unscaledDeltaTime;
+                    _silence += chunk.Length / (_sampleRate * 2f);
                 }
             }
             _lastPosition = position;
@@ -143,7 +151,7 @@ namespace HexLive.UnityPresentation.Audio
                 error = "TooShort";
                 return null;
             }
-            if (!_heardVoice || Rms(_pcm) < 0.004f)
+            if (!_heardVoice)
             {
                 error = "TooQuiet";
                 return null;
@@ -163,17 +171,38 @@ namespace HexLive.UnityPresentation.Audio
             {
                 if (_recording)
                 {
-                    FMODUnity.RuntimeManager.CoreSystem.recordStop(_driver);
-                    _sound.release();
-                    _sound = default;
                     _recording = false;
+                    try { FMODUnity.RuntimeManager.CoreSystem.recordStop(_driver); }
+                    finally
+                    {
+                        _sound.release();
+                        _sound = default;
+                    }
                 }
             }
             finally
             {
-                // The mix is restored even if Core reports a device failure.
-                StopDuck();
+                // Master mute is independent of the user's per-category volumes.
+                RestoreCaptureMix();
+                Level = 0f;
             }
+        }
+
+        private bool MuteForCapture()
+        {
+            var core = FMODUnity.RuntimeManager.CoreSystem;
+            if (core.getMasterChannelGroup(out _captureMaster) != FMOD.RESULT.OK ||
+                _captureMaster.getMute(out _restoreMasterMute) != FMOD.RESULT.OK)
+                return false;
+            _ownsMasterMute = true;
+            return _captureMaster.setMute(true) == FMOD.RESULT.OK;
+        }
+
+        private void RestoreCaptureMix()
+        {
+            if (!_ownsMasterMute) return;
+            try { _captureMaster.setMute(_restoreMasterMute); }
+            finally { _ownsMasterMute = false; _captureMaster = default; }
         }
 
         private void CaptureTail()
@@ -231,89 +260,6 @@ namespace HexLive.UnityPresentation.Audio
             return stream.ToArray();
         }
 
-        private void StartDuck()
-        {
-            try
-            {
-                _duck = FMODUnity.RuntimeManager.CreateInstance("snapshot:/VoiceCaptureDuck");
-                if (_duck.isValid() && _duck.start() == FMOD.RESULT.OK) return;
-            }
-            catch (Exception)
-            {
-                _duck = default;
-            }
-
-            // The committed authoring script creates the snapshot. Keep capture usable when an
-            // older local bank is loaded: this still ducks through FMOD, with the same gain and
-            // DSP-clock ramp, and is always restored by StopDuck.
-            if (TryStartFallbackDuck())
-                Debug.LogWarning("[AgentVoice] VoiceCaptureDuck bank entry is unavailable; using FMOD master-bus fallback");
-            else
-                Debug.LogWarning("[AgentVoice] FMOD snapshot VoiceCaptureDuck is unavailable");
-        }
-
-        private void StopDuck()
-        {
-            if (_duck.isValid())
-            {
-                _duck.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-                _duck.release();
-                _duck = default;
-            }
-            StopFallbackDuck();
-        }
-
-        private bool TryStartFallbackDuck()
-        {
-            var studio = FMODUnity.RuntimeManager.StudioSystem;
-            if (studio.getBus("bus:/", out _fallbackDuckBus) != FMOD.RESULT.OK ||
-                _fallbackDuckBus.lockChannelGroup() != FMOD.RESULT.OK)
-                return false;
-            if (_fallbackDuckBus.getChannelGroup(out _fallbackDuckGroup) != FMOD.RESULT.OK ||
-                _fallbackDuckGroup.getVolume(out _fallbackRestoreVolume) != FMOD.RESULT.OK ||
-                FMODUnity.RuntimeManager.CoreSystem.getSoftwareFormat(
-                    out _fallbackSampleRate, out _, out _) != FMOD.RESULT.OK ||
-                !ScheduleFallbackRamp(_fallbackRestoreVolume, _fallbackRestoreVolume * DuckLinear))
-            {
-                _fallbackDuckBus.unlockChannelGroup();
-                _fallbackDuckBus = default;
-                _fallbackDuckGroup = default;
-                return false;
-            }
-            _fallbackDucking = true;
-            return true;
-        }
-
-        private void StopFallbackDuck()
-        {
-            if (!_fallbackDucking) return;
-            try
-            {
-                var current = _fallbackRestoreVolume * DuckLinear;
-                _fallbackDuckGroup.getVolume(out current);
-                ScheduleFallbackRamp(current, _fallbackRestoreVolume);
-            }
-            finally
-            {
-                _fallbackDuckBus.unlockChannelGroup();
-                _fallbackDuckBus = default;
-                _fallbackDuckGroup = default;
-                _fallbackDucking = false;
-            }
-        }
-
-        private bool ScheduleFallbackRamp(float from, float to)
-        {
-            if (_fallbackDuckGroup.getDSPClock(out var dspClock, out var parentClock) !=
-                FMOD.RESULT.OK) return false;
-            var now = parentClock != 0 ? parentClock : dspClock;
-            var end = now + (ulong)Math.Max(1,
-                Math.Round(_fallbackSampleRate * DuckFadeSeconds));
-            // Replace only the short interval owned by this capture; unrelated later fades stay.
-            _fallbackDuckGroup.removeFadePoints(now, end);
-            return _fallbackDuckGroup.addFadePoint(now, Mathf.Clamp01(from)) == FMOD.RESULT.OK &&
-                   _fallbackDuckGroup.setFadePointRamp(end, Mathf.Clamp01(to)) == FMOD.RESULT.OK;
-        }
 
         public void Dispose() => Cancel();
     }

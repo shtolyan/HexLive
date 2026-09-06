@@ -1,4 +1,5 @@
 using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Audio;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
 using UnityEngine;
@@ -31,6 +32,8 @@ namespace HexLive.UnityPresentation.UI
         private Label _continueLabel;
         private Label _mainMenuLabel;
         private Label _quitLabel;
+        private Foldout _soundSettings;
+        private readonly Label[] _soundLabels = new Label[3];
 
         private static readonly Color Dim = new(0f, 0f, 0f, 0.55f);
         private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.98f);
@@ -70,6 +73,7 @@ namespace HexLive.UnityPresentation.UI
         private void OnDisable()
         {
             Loc.LanguageChanged -= ApplyLanguage;
+            PlayerPrefs.Save();
             if (IsOpen)
             {
                 Time.timeScale = _timeScaleBefore > 0f ? _timeScaleBefore : 1f;
@@ -119,6 +123,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            if (!open) PlayerPrefs.Save();
             IsOpen = open;
             if (_overlay != null)
             {
@@ -160,6 +165,8 @@ namespace HexLive.UnityPresentation.UI
         {
             var root = _document.rootVisualElement;
             root.Clear();
+            var soundStyles = Resources.Load<StyleSheet>("HexLive/AudioSettings");
+            if (soundStyles != null) root.styleSheets.Add(soundStyles);
             root.style.flexGrow = 1f;
             root.pickingMode = PickingMode.Ignore;
 
@@ -204,6 +211,13 @@ namespace HexLive.UnityPresentation.UI
             continueButton.RegisterCallback<MouseDownEvent>(_ => SetOpen(false));
             card.Add(continueButton);
 
+            _soundSettings = new Foldout { name = "sound-settings", value = false };
+            _soundSettings.AddToClassList("audio-settings");
+            card.Add(_soundSettings);
+            AddSoundSlider(FmodSfx.VolumeCategory.Voices);
+            AddSoundSlider(FmodSfx.VolumeCategory.Music);
+            AddSoundSlider(FmodSfx.VolumeCategory.Environment);
+
             // Save the current game, tear the world down, and return to the
             // boot menu (see ReturnToMainMenu).
             var mainMenuButton = MakeButton(out _mainMenuLabel);
@@ -221,6 +235,32 @@ namespace HexLive.UnityPresentation.UI
             quitButton.RegisterCallback<MouseLeaveEvent>(_ => quitButton.style.backgroundColor = Raised);
             quitButton.RegisterCallback<MouseDownEvent>(_ => Quit());
             card.Add(quitButton);
+        }
+
+        private void AddSoundSlider(FmodSfx.VolumeCategory category)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("audio-settings-row");
+            var heading = new VisualElement();
+            heading.AddToClassList("audio-settings-heading");
+            var label = new Label();
+            _soundLabels[(int)category] = label;
+            heading.Add(label);
+            var percent = new Label();
+            percent.AddToClassList("audio-settings-percent");
+            heading.Add(percent);
+            row.Add(heading);
+            var slider = new Slider(0f, 100f) { name = "volume-" + category.ToString().ToLowerInvariant() };
+            slider.AddToClassList("audio-settings-slider");
+            slider.SetValueWithoutNotify(FmodSfx.GetUserVolume(category) * 100f);
+            percent.text = $"{Mathf.RoundToInt(slider.value)}%";
+            slider.RegisterValueChangedCallback(evt =>
+            {
+                FmodSfx.SetUserVolume(category, evt.newValue / 100f);
+                percent.text = $"{Mathf.RoundToInt(evt.newValue)}%";
+            });
+            row.Add(slider);
+            _soundSettings.Add(row);
         }
 
         private static VisualElement MakeButton(out Label label)
@@ -251,6 +291,11 @@ namespace HexLive.UnityPresentation.UI
             _continueLabel.text = Loc.Get("menu.continue");
             _mainMenuLabel.text = Loc.Get("menu.mainmenu");
             _quitLabel.text = Loc.Get("menu.quit");
+            _soundSettings.text = Loc.Get("audio.settings");
+            _soundLabels[0].text = Loc.Get("audio.voices");
+            _soundLabels[1].text = Loc.Get("audio.music");
+            _soundLabels[2].text = Loc.Get("audio.environment");
+            _soundSettings.tooltip = Loc.Get("audio.settings.hint");
         }
 
         // Save the current game, then reload the active scene. The world,

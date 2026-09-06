@@ -75,24 +75,41 @@ public sealed class MashaPresentationContractTests
     }
 
     [Test]
-    public void VoiceCaptureDuckHasReproducibleFmodAuthoringAndRuntimeFallback()
+    public void VoiceCaptureMutesCoreMasterWithoutChangingUserVolumes()
     {
         var microphone = Read("Assets", "HexLive", "UnityPresentation", "Audio",
             "FmodMicrophoneCapture.cs");
-        var authoring = Read("FMODStudio", "Scripts", "configure_voice_capture_duck.js");
 
         Assert.Multiple(() =>
         {
-            Assert.That(authoring, Does.Contain("snapshot:/VoiceCaptureDuck"));
-            Assert.That(authoring, Does.Contain("SnapshotProperty"));
-            Assert.That(authoring, Does.Contain("propertyName = \"volume\""));
-            Assert.That(authoring, Does.Contain("scopedVolume.value = -18"));
-            Assert.That(authoring, Does.Contain("ADSRModulator"));
-            Assert.That(authoring, Does.Contain("attackTime = 0.15"));
-            Assert.That(authoring, Does.Contain("releaseTime = 0.15"));
-            Assert.That(microphone, Does.Contain("DuckLinear = 0.12589254f"));
-            Assert.That(microphone, Does.Contain("setFadePointRamp"));
-            Assert.That(microphone, Does.Contain("StopFallbackDuck();"));
+            Assert.That(microphone, Does.Contain("getMasterChannelGroup(out _captureMaster)"));
+            Assert.That(microphone, Does.Contain("getMute(out _restoreMasterMute)"));
+            Assert.That(microphone, Does.Contain("setMute(true)"));
+            Assert.That(microphone, Does.Contain("setMute(_restoreMasterMute)"));
+            Assert.That(microphone, Does.Contain("RestoreCaptureMix();"));
+            Assert.That(microphone, Does.Not.Contain("SetUserVolume"));
+            Assert.That(microphone, Does.Not.Contain("PlayerPrefs"));
+            Assert.That(microphone, Does.Contain("SilenceToFinishSeconds = 3f"));
+        });
+    }
+
+    [Test]
+    public void RecordingOverlayAndQueueDoNotDependOnModelOrSpeechPhase()
+    {
+        var panel = Read("Assets", "HexLive", "UnityPresentation", "UI", "CharacterPanel.AgentVoice.cs");
+        var eligible = panel.Split("private bool VoiceEligible()")[1].Split("private bool CaptureStillEligible()")[0];
+        Assert.Multiple(() =>
+        {
+            Assert.That(eligible, Does.Not.Contain("_awaitingAgentTurn"));
+            Assert.That(eligible, Does.Not.Contain("_sttInFlight"));
+            Assert.That(eligible, Does.Not.Contain("_preparedAgentSpeech"));
+            Assert.That(eligible, Does.Not.Contain("_agentVoiceUiState"));
+            Assert.That(panel, Does.Contain("new Button(FinishAgentCapture)"));
+            Assert.That(panel, Does.Contain("_activePlayerInput.AttachmentId"));
+            Assert.That(panel, Does.Contain("token.ExpiresUtcMilliseconds"));
+            Assert.That(panel, Does.Contain("_capturedPlayerInputs.Clear()"));
+            Assert.That(File.Exists(Path.Combine(RepoPaths.Root,
+                "Assets/Resources/HexLive/UI/AgentCapture.uss")), Is.True);
         });
     }
 

@@ -1573,26 +1573,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         iconBox.pickingMode = PickingMode.Ignore;
         tile.Add(iconBox);
 
-        var sprite = LoadItemIcon(entry.Group);
-        if (sprite != null)
-        {
-            var image = new Image();
-            image.sprite = sprite;
-            image.scaleMode = ScaleMode.ScaleToFit;
-            image.style.width = 56f;
-            image.style.height = 56f;
-            image.pickingMode = PickingMode.Ignore;
-            iconBox.Add(image);
-        }
-        else
-        {
-            var placeholder = new Label(ItemIcons.FallbackGlyph(entry.Group));
-            placeholder.style.color = Muted;
-            placeholder.style.fontSize = 24;
-            placeholder.style.unityFontStyleAndWeight = FontStyle.Bold;
-            placeholder.pickingMode = PickingMode.Ignore;
-            iconBox.Add(placeholder);
-        }
+        PopulateItemIcon(iconBox, entry.Group, 56f, 24f, true);
 
         var name = new Label(entry.DisplayName);
         name.style.color = Text;
@@ -2375,25 +2356,7 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
         iconBox.pickingMode = PickingMode.Ignore;
         tile.Add(iconBox);
 
-        var sprite = LoadItemIcon(def.id);
-        if (sprite != null)
-        {
-            var image = new Image();
-            image.sprite = sprite;
-            image.scaleMode = ScaleMode.ScaleToFit;
-            image.style.width = 46f;
-            image.style.height = 46f;
-            image.pickingMode = PickingMode.Ignore;
-            iconBox.Add(image);
-        }
-        else
-        {
-            var placeholder = new Label(ItemIcons.FallbackGlyph(def.id));
-            placeholder.style.color = Muted;
-            placeholder.style.fontSize = 20;
-            placeholder.pickingMode = PickingMode.Ignore;
-            iconBox.Add(placeholder);
-        }
+        PopulateItemIcon(iconBox, def.id, 46f, 20f, false);
 
         var name = new Label(VariantName(def));
         name.style.color = Text;
@@ -2533,7 +2496,70 @@ public sealed class WardrobeTestBootstrap : MonoBehaviour
             return null;
         }
 
+#if UNITY_EDITOR
+        // WardrobeTest is an authoring scene. Its source icons are already in
+        // the project and must be visible immediately, even when no runtime
+        // content registry/server has been opened yet.
+        var local = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(
+            $"Assets/HexLiveContent/Icons/{id}.png");
+        if (local != null)
+        {
+            return local;
+        }
+#endif
         return Wearing.Garments.ItemIcons.Load(id);
+    }
+
+    private static void PopulateItemIcon(
+        VisualElement host, string id, float size, float fallbackSize, bool boldFallback)
+    {
+        var image = new Image { scaleMode = ScaleMode.ScaleToFit };
+        image.style.width = size;
+        image.style.height = size;
+        image.style.display = DisplayStyle.None;
+        image.pickingMode = PickingMode.Ignore;
+        host.Add(image);
+
+        var placeholder = new Label(ItemIcons.FallbackGlyph(id));
+        placeholder.style.color = Muted;
+        placeholder.style.fontSize = fallbackSize;
+        placeholder.style.unityFontStyleAndWeight = boldFallback
+            ? FontStyle.Bold
+            : FontStyle.Normal;
+        placeholder.pickingMode = PickingMode.Ignore;
+        host.Add(placeholder);
+
+        void Apply(Sprite sprite)
+        {
+            image.sprite = sprite;
+            image.style.display = DisplayStyle.Flex;
+            placeholder.style.display = DisplayStyle.None;
+        }
+
+        var ready = LoadItemIcon(id);
+        if (ready != null)
+        {
+            Apply(ready);
+            return;
+        }
+
+        // Runtime content loads asynchronously. The previous one-shot lookup
+        // permanently left the emoji visible even after the Sprite reached
+        // ItemIcons' cache. Poll briefly and replace the fallback in place.
+        var attempts = 0;
+        IVisualElementScheduledItem poll = null;
+        poll = image.schedule.Execute(() =>
+        {
+            var sprite = LoadItemIcon(id);
+            if (sprite != null)
+            {
+                Apply(sprite);
+            }
+            if (sprite != null || ++attempts > 120)
+            {
+                poll?.Pause();
+            }
+        }).Every(250);
     }
 
     // ---- ui refresh ----

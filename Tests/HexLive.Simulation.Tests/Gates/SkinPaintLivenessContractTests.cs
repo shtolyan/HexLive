@@ -52,18 +52,20 @@ public sealed class SkinPaintLivenessContractTests
         var painter = Wearing("SkinTexturePainter.cs");
 
         var syncStart = painter.IndexOf("public void Sync(", System.StringComparison.Ordinal);
-        var retryAt = painter.IndexOf(
-            "_map = PaintPointMap.Load(_mapName, _mapVertexCount);",
-            System.StringComparison.Ordinal);
         var placeAt = painter.IndexOf(
             "private void PlaceNewStamps(", System.StringComparison.Ordinal);
+        var sync = painter.Substring(syncStart, placeAt - syncStart);
 
         Assert.Multiple(() =>
         {
             Assert.That(syncStart, Is.GreaterThan(0));
-            Assert.That(retryAt, Is.GreaterThan(syncStart),
-                "Ретрай карты — внутри Sync.");
-            Assert.That(retryAt, Is.LessThan(placeAt),
+            Assert.That(sync, Does.Contain(
+                "RefreshPointMap(bypassRetryDelay: false)"),
+                "Ретрай карты вызывается внутри Sync.");
+            Assert.That(painter, Does.Contain("PaintPointMap.Request("),
+                "Асинхронный первый miss нельзя считать terminal отсутствием карты.");
+            Assert.That(painter, Does.Not.Contain("PaintPointMap.Load("));
+            Assert.That(syncStart, Is.LessThan(placeAt),
                 "Ретрай стоит ДО PlaceNewStamps: спрятанный за needsPlacement, " +
                 "он не случался у актрисы без свежих меток.");
             Assert.That(painter, Does.Contain("_tombstoneScratch"),

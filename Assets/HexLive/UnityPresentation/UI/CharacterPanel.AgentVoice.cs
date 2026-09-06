@@ -33,6 +33,11 @@ namespace HexLive.UnityPresentation.UI
         }
 
         private VisualElement? _agentVoiceButton;
+        private VisualElement? _agentCaptureOverlay;
+        private Label? _agentCaptureTitle;
+        private Button? _agentCaptureDone;
+        private Button? _agentCaptureCancel;
+        private readonly List<VisualElement> _agentCaptureBars = new();
         private VectorIcon? _agentVoiceGlyph;
         private Label? _agentVoiceStateLabel;
         private Label? _agentSubtitle;
@@ -47,14 +52,25 @@ namespace HexLive.UnityPresentation.UI
         private readonly HashSet<string> _announcedAttachments = new(StringComparer.Ordinal);
         private int _agentCorrelation;
         private int _pendingTokenCorrelation;
-        private int _pendingNpcId;
         private byte[]? _pendingPlayerWav;
+        private const int MaxPendingCaptures = 16;
+        private sealed class CapturedPlayerInput
+        {
+            public int NpcId;
+            public string AttachmentId = string.Empty;
+            public byte[] Wav = Array.Empty<byte>();
+        }
+        private readonly Queue<CapturedPlayerInput> _capturedPlayerInputs = new();
+        private CapturedPlayerInput? _activePlayerInput;
+        private bool _sttInFlight;
+        private string _cachedSttToken = string.Empty;
+        private long _cachedSttExpiry;
+        private readonly HashSet<int> _pendingTextResults = new();
         private string _agentCachePath = string.Empty;
         private FMOD.Studio.EventInstance _agentReplyFocus;
         private float _agentReplyFocusUntil;
         private Wearing.NpcActorView? _agentReplyActor;
         private string _agentReplyWav = string.Empty;
-        private int _agentSelectionGeneration;
         private bool _awaitingAgentTurn;
         private long _voiceSubmittedRevision;
         private float _voiceDeadline;
@@ -102,6 +118,13 @@ namespace HexLive.UnityPresentation.UI
             _agentTranscriber = null;
             StopAgentReplyFocus();
             _pendingPlayerWav = null;
+            _capturedPlayerInputs.Clear();
+            _activePlayerInput = null;
+            _sttInFlight = false;
+            _cachedSttToken = string.Empty;
+            _cachedSttExpiry = 0;
+            _pendingTextResults.Clear();
+            _pendingTokenCorrelation = 0;
             while (_agentMainThread.TryDequeue(out _)) { }
             _preparedAgentSpeech.Clear();
             ClearAgentSelection();
@@ -109,14 +132,12 @@ namespace HexLive.UnityPresentation.UI
 
         private void ResetAgentVoiceSelection()
         {
-            _agentSelectionGeneration++;
             _awaitingAgentTurn = false;
             _agentMicrophone?.Cancel();
-            _pendingPlayerWav = null;
-            _pendingTokenCorrelation = 0;
             _agentVoiceNpc = null;
             _selectedAgentState = null;
             _agentVoiceUiState = AgentVoiceUiState.Offline;
+            _agentCaptureOverlay?.RemoveFromClassList("agent-capture-visible");
         }
 
         private void ClearAgentSelection()
@@ -193,15 +214,18 @@ namespace HexLive.UnityPresentation.UI
                 _agentReplyActor == null || !_agentReplyActor.IsExternalVoicePlaying(_agentReplyWav)))
                 StopAgentReplyFocus();
             if (_voiceDeadline > 0 && Time.unscaledTime >= _voiceDeadline &&
-                (_pendingTokenCorrelation != 0 || _awaitingAgentTurn))
+                _pendingTokenCorrelation != 0)
             {
                 _pendingTokenCorrelation = 0;
                 _pendingPlayerWav = null;
+                _activePlayerInput = null;
                 _awaitingAgentTurn = false;
                 _agentVoiceUiState = AgentVoiceUiState.Ready;
+                ShowAgentSubtitle(Loc.Get("agent.voice.input_failed"), 5f);
             }
 
             DrainAgentWireResponses();
+            StartNextPlayerTranscription();
             PresentPreparedAgentSpeech();
             if (_agentMicrophone?.IsRecording == true)
             {
@@ -216,6 +240,66 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
             RefreshAgentVoiceButton();
+            RefreshCaptureOverlay();
+        }
+
+        private void RefreshCaptureOverlay()
+        {
+            var recording = _agentMicrophone?.IsRecording == true;
+            if (!recording)
+            {
+                _agentCaptureOverlay?.RemoveFromClassList("agent-capture-visible");
+                return;
+            }
+            if (_agentCaptureOverlay == null)
+            {
+                var sheet = Resources.Load<StyleSheet>("HexLive/UI/AgentCapture");
+                if (sheet != null) _root.styleSheets.Add(sheet);
+                _agentCaptureOverlay = new VisualElement { name = "agent-capture" };
+                _agentCaptureOverlay.AddToClassList("agent-capture");
+                var card = new VisualElement();
+                card.AddToClassList("agent-capture-card");
+                var icon = new VectorIcon(VectorIcon.Kind.Microphone, NeonCyan);
+                icon.AddToClassList("agent-capture-icon");
+                card.Add(icon);
+                _agentCaptureTitle = new Label();
+                _agentCaptureTitle.AddToClassList("agent-capture-title");
+                card.Add(_agentCaptureTitle);
+                var meter = new VisualElement();
+                meter.AddToClassList("agent-capture-meter");
+                for (var i = 0; i < 18; i++)
+                {
+                    var bar = new VisualElement();
+                    bar.AddToClassList("agent-capture-bar");
+                    meter.Add(bar);
+                    _agentCaptureBars.Add(bar);
+                }
+                card.Add(meter);
+                _agentCaptureDone = new Button(FinishAgentCapture);
+                _agentCaptureDone.AddToClassList("agent-capture-done");
+                card.Add(_agentCaptureDone);
+                _agentCaptureCancel = new Button(() =>
+                {
+                    _agentMicrophone?.Cancel();
+                    _agentVoiceUiState = AgentVoiceUiState.Ready;
+                    RefreshCaptureOverlay();
+                });
+                _agentCaptureCancel.AddToClassList("agent-capture-cancel");
+                card.Add(_agentCaptureCancel);
+                _agentCaptureOverlay.Add(card);
+                _agentCaptureOverlay.RegisterCallback<PointerDownEvent>(evt => evt.StopPropagation());
+                _agentCaptureOverlay.RegisterCallback<PointerUpEvent>(evt => evt.StopPropagation());
+                _root.Add(_agentCaptureOverlay);
+            }
+            _agentCaptureOverlay.BringToFront();
+            _agentCaptureOverlay.AddToClassList("agent-capture-visible");
+            _agentCaptureTitle!.text = Loc.Get("agent.voice.listening");
+            _agentCaptureDone!.text = "✓ " + Loc.Get("agent.voice.capture_done");
+            _agentCaptureCancel!.text = Loc.Get("loot.quantity_cancel");
+            var level = _agentMicrophone?.Level ?? 0f;
+            for (var i = 0; i < _agentCaptureBars.Count; i++)
+                _agentCaptureBars[i].EnableInClassList("agent-capture-lit",
+                    level > i / (float)_agentCaptureBars.Count);
         }
 
         private VisualElement BuildAgentVoiceButton()
@@ -298,24 +382,63 @@ namespace HexLive.UnityPresentation.UI
                 _agentVoiceUiState = AgentVoiceUiState.Listening;
             else
                 _agentVoiceUiState = AgentVoiceUiState.NoMicrophone;
+            RefreshCaptureOverlay();
         }
 
         private void FinishAgentCapture()
         {
             if (_agentMicrophone == null) return;
             var wav = _agentMicrophone.Stop(out _);
+            RefreshCaptureOverlay();
             if (wav == null)
             {
                 _agentVoiceUiState = AgentVoiceUiState.Ready;
                 return;
             }
             if (_runner == null || _agentVoiceNpc == null) return;
-            _pendingPlayerWav = wav;
-            _pendingNpcId = _agentVoiceNpc.Id.Value;
-            _pendingTokenCorrelation = ++_agentCorrelation;
+            _capturedPlayerInputs.Enqueue(new CapturedPlayerInput
+            {
+                NpcId = _agentVoiceNpc.Id.Value,
+                AttachmentId = _selectedAgentState?.AttachmentId ?? string.Empty,
+                Wav = wav,
+            });
             _agentVoiceUiState = AgentVoiceUiState.Recognizing;
+            StartNextPlayerTranscription();
+        }
+
+        private void StartNextPlayerTranscription()
+        {
+            if (_runner == null || _sttInFlight || _pendingTokenCorrelation != 0 ||
+                _capturedPlayerInputs.Count == 0) return;
+            _activePlayerInput = _capturedPlayerInputs.Dequeue();
+            if (!_runner.IsReady || !_runner.TryGetAgentState(
+                    new HexLive.Simulation.Common.EntityId(_activePlayerInput.NpcId), out var state) ||
+                !state.Attached || state.AttachmentId != _activePlayerInput.AttachmentId)
+            {
+                _activePlayerInput = null;
+                ShowAgentSubtitle(Loc.Get("agent.voice.input_failed"), 5f);
+                return;
+            }
+            _pendingPlayerWav = _activePlayerInput.Wav;
+            if (_cachedSttExpiry > DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 10000)
+            {
+                BeginPlayerTranscription(_cachedSttToken);
+                return;
+            }
+            _pendingTokenCorrelation = ++_agentCorrelation;
             _voiceDeadline = Time.unscaledTime + 15f;
             _runner.RequestSttToken(_pendingTokenCorrelation);
+        }
+
+        private void BeginPlayerTranscription(string token)
+        {
+            var wav = _pendingPlayerWav;
+            var input = _activePlayerInput;
+            _pendingPlayerWav = null;
+            if (wav == null || input == null || _agentTranscriber == null) return;
+            _sttInFlight = true;
+            _ = TranscribeAndSendAsync(wav, token, input.NpcId, input.AttachmentId,
+                _agentCts?.Token ?? CancellationToken.None);
         }
 
         private void DrainAgentWireResponses()
@@ -324,30 +447,33 @@ namespace HexLive.UnityPresentation.UI
             while (_runner.TryTakeSttTokenResult(out var token))
             {
                 if (token.CorrelationId != _pendingTokenCorrelation) continue;
-                var wav = _pendingPlayerWav;
-                _pendingPlayerWav = null;
                 _pendingTokenCorrelation = 0;
-                if (!token.Accepted || wav == null || _agentTranscriber == null)
+                if (!token.Accepted || _pendingPlayerWav == null || _agentTranscriber == null)
                 {
+                    _pendingPlayerWav = null;
+                    _activePlayerInput = null;
                     _agentVoiceUiState = AgentVoiceUiState.NoStt;
+                    ShowAgentSubtitle(Loc.Get("agent.voice.input_failed"), 5f);
                     continue;
                 }
-                _ = TranscribeAndSendAsync(wav, token.Token, _pendingNpcId, _agentSelectionGeneration,
-                    _agentCts?.Token ?? CancellationToken.None);
+                _cachedSttToken = token.Token;
+                _cachedSttExpiry = token.ExpiresUtcMilliseconds;
+                BeginPlayerTranscription(token.Token);
             }
             while (_runner.TryTakeAgentTextResult(out var result))
             {
-                if (result.CorrelationId != _agentCorrelation) continue;
-                _agentVoiceUiState = result.Accepted
-                    ? AgentVoiceUiState.Thinking
-                    : AgentVoiceUiState.Ready;
-                if (!result.Accepted) _awaitingAgentTurn = false;
+                if (!_pendingTextResults.Remove(result.CorrelationId)) continue;
+                if (!result.Accepted)
+                {
+                    _awaitingAgentTurn = false;
+                    ShowAgentSubtitle(Loc.Get("agent.voice.input_failed"), 5f);
+                }
             }
             while (_runner.TryTakeAgentSpeech(out var speech))
                 _ = BakeAndPresentAgentSpeechAsync(speech, _agentCts?.Token ?? CancellationToken.None);
         }
 
-        private async Task TranscribeAndSendAsync(byte[] wav, string token, int npcId, int generation,
+        private async Task TranscribeAndSendAsync(byte[] wav, string token, int npcId, string attachmentId,
             CancellationToken cancellationToken)
         {
             try
@@ -356,20 +482,27 @@ namespace HexLive.UnityPresentation.UI
                     .ConfigureAwait(false);
                 _agentMainThread.Enqueue(() =>
                 {
-                    if (generation != _agentSelectionGeneration || cancellationToken.IsCancellationRequested) return;
-                    if (text.Length == 0 || _runner == null)
+                    if (cancellationToken.IsCancellationRequested) return;
+                    _sttInFlight = false;
+                    _activePlayerInput = null;
+                    if (text.Length == 0 || _runner == null || !_runner.IsReady ||
+                        !_runner.TryGetAgentState(new HexLive.Simulation.Common.EntityId(npcId), out var state) ||
+                        !state.Attached || state.AttachmentId != attachmentId)
                     {
                         _agentVoiceUiState = AgentVoiceUiState.Ready;
+                        ShowAgentSubtitle(Loc.Get("agent.voice.input_failed"), 5f);
                         return;
                     }
                     var correlation = ++_agentCorrelation;
+                    _pendingTextResults.Add(correlation);
                     _voiceSubmittedRevision = _selectedAgentState?.Revision ?? 0;
                     _awaitingAgentTurn = true;
                     _voiceDeadline = Time.unscaledTime + 90f;
                     _runner.SendAgentText(correlation,
                         new HexLive.Simulation.Common.EntityId(npcId),
                         Guid.NewGuid().ToString("N"), "ru", text);
-                    _agentVoiceUiState = AgentVoiceUiState.Thinking;
+                    if (_agentMicrophone?.IsRecording != true)
+                        _agentVoiceUiState = AgentVoiceUiState.Thinking;
                 });
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
@@ -377,8 +510,12 @@ namespace HexLive.UnityPresentation.UI
             {
                 _agentMainThread.Enqueue(() =>
                 {
-                    if (generation == _agentSelectionGeneration)
-                        _agentVoiceUiState = AgentVoiceUiState.NoStt;
+                    if (cancellationToken.IsCancellationRequested) return;
+                    _sttInFlight = false;
+                    _activePlayerInput = null;
+                    _cachedSttToken = string.Empty;
+                    _cachedSttExpiry = 0;
+                    ShowAgentSubtitle(Loc.Get("agent.voice.input_failed"), 5f);
                 });
             }
         }
@@ -424,7 +561,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void PresentPreparedAgentSpeech()
         {
-            if (_preparedAgentSpeech.Count == 0 || _agentReplyFocusUntil > 0f) return;
+            if (_preparedAgentSpeech.Count == 0 || _agentReplyFocusUntil > 0f ||
+                _agentMicrophone?.IsRecording == true) return;
             var pending = _preparedAgentSpeech.Peek();
             var metadata = pending.Metadata;
             if (_runner == null || !_runner.TryGetAgentState(
@@ -466,9 +604,7 @@ namespace HexLive.UnityPresentation.UI
                    (state.Capabilities & AgentCapabilities.PlayerText) != 0 &&
                    _runner != null && _runner.IsReady && _runner.SupportsAgentIntegration &&
                    _runner.SttAvailable && !LoadingScreen.IsReplaying &&
-                   _pendingTokenCorrelation == 0 && _pendingPlayerWav == null &&
-                   !_awaitingAgentTurn && _preparedAgentSpeech.Count == 0 && _agentReplyFocusUntil <= 0f &&
-                   _agentVoiceUiState is AgentVoiceUiState.Ready or AgentVoiceUiState.NoMicrophone;
+                   _capturedPlayerInputs.Count + (_activePlayerInput != null ? 1 : 0) < MaxPendingCaptures;
         }
 
         private bool CaptureStillEligible() => _selectedAgentState is { Attached: true } &&
@@ -490,8 +626,12 @@ namespace HexLive.UnityPresentation.UI
             _agentVoiceButton.SetEnabled(recording || VoiceEligible());
             _agentVoiceGlyph!.SetColor(recording ? Warn : Text);
             SetBorderColor(_agentVoiceButton, recording ? Warn : NeonCyanDim);
-            _agentVoiceStateLabel!.text = AgentVoiceStateText(_agentVoiceUiState);
-            _agentVoiceButton.tooltip = Loc.Get("agent.voice.button");
+            var pending = _capturedPlayerInputs.Count + (_activePlayerInput != null ? 1 : 0);
+            _agentVoiceStateLabel!.text = recording ? Loc.Get("agent.voice.listening") : pending > 0
+                ? string.Format(Loc.Get("agent.voice.queued"), pending)
+                : AgentVoiceStateText(_agentVoiceUiState);
+            _agentVoiceButton.tooltip = Loc.Get(pending >= MaxPendingCaptures
+                ? "agent.voice.queue_full" : "agent.voice.button");
         }
 
         private static string AgentVoiceStateText(AgentVoiceUiState state) => state switch

@@ -45,6 +45,10 @@ public sealed class MashaCompanionTests
                 "Маша должна получить ровно утверждённый в WardrobeTest образ, без §76-ролла.");
             Assert.That(masha.WornItems.All(x => x.OwnerId == masha.Id.Value), Is.True,
                 "Каждая вещь стартового образа принадлежит Маше.");
+            Assert.That(masha.WornItems.Count(x => x.DefinitionId == "gear.backpack_riot"),
+                Is.EqualTo(1), "Стартовый рюкзак надет ровно один раз.");
+            Assert.That(masha.Inventory.Items.Any(x => x.DefinitionId == "gear.backpack_riot"),
+                Is.False, "Дубликат рюкзака в карманах не создаётся.");
             Assert.That(world.Entities.Npcs.Values.Count(x => x.ProfileId == "masha"), Is.EqualTo(1));
         });
     }

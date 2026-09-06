@@ -37,6 +37,21 @@ namespace HexLive.UnityPresentation.Wearing
 
         /// <summary>The scheduled full rebuild — this painter's turn.</summary>
         void PaintCycle();
+
+    }
+
+    /// <summary>Optional initial-appearance acknowledgement. Ordinary ambient
+    /// painters (for example mob pelts) keep implementing only IPaintTarget;
+    /// corpse skin and garments opt into this stronger contract.</summary>
+    public interface IPresentationPaintTarget : IPaintTarget
+    {
+        /// <summary>True only when the current requested state is already
+        /// materialized in the target textures.</summary>
+        bool PresentationReady { get; }
+
+        /// <summary>One bounded attempt at materializing initial presentation.
+        /// False may mean asynchronous geometry or RT budget is still pending.</summary>
+        bool TryPaintPresentation();
     }
 
     [DefaultExecutionOrder(1000)] // after the renderer pushed this tick's state
@@ -54,6 +69,7 @@ namespace HexLive.UnityPresentation.Wearing
 
         private static SkinPaintScheduler? _instance;
         private static readonly List<IPaintTarget> Targets = new();
+        private static readonly List<IPresentationPaintTarget> PresentationQueue = new();
         private static int _cursor;
         private static float _nextAdvance;
 
@@ -69,6 +85,10 @@ namespace HexLive.UnityPresentation.Wearing
 
         public static void Unregister(IPaintTarget target)
         {
+            if (target is IPresentationPaintTarget presentationTarget)
+            {
+                PresentationQueue.Remove(presentationTarget);
+            }
             var index = Targets.IndexOf(target);
             if (index < 0)
             {
@@ -82,6 +102,22 @@ namespace HexLive.UnityPresentation.Wearing
             {
                 _cursor--;
             }
+        }
+
+        /// <summary>
+        /// Bug #354: a restored corpse stays render-gated until its historical
+        /// wounds and garment wear have reached the GPU. This queue is a
+        /// priority lane, but remains bounded to one painter per frame.
+        /// </summary>
+        public static void RequestPresentationPass(IPresentationPaintTarget target)
+        {
+            if (target != null && !target.PresentationReady &&
+                !PresentationQueue.Contains(target))
+            {
+                PresentationQueue.Add(target);
+            }
+
+            EnsureInstance();
         }
 
         private static void EnsureInstance()
@@ -104,6 +140,26 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             var now = Time.unscaledTime;
+
+            // Initial restored appearance is correctness, not slow ambience:
+            // process one requested painter before the ordinary cycle/fresh
+            // lanes. An async geometry target moves to the back so it cannot
+            // block ready garments behind it.
+            while (PresentationQueue.Count > 0)
+            {
+                var target = PresentationQueue[0];
+                PresentationQueue.RemoveAt(0);
+                if (target is Object unityTarget && unityTarget == null)
+                {
+                    continue;
+                }
+
+                if (!target.PresentationReady && !target.TryPaintPresentation())
+                {
+                    PresentationQueue.Add(target);
+                }
+                return; // never more than one presentation repaint per frame
+            }
 
             // Дыра «вечного трупа»: painter, добавленный на НЕАКТИВНЫЙ объект
             // (тёплое появление собирает вью выключенным), у которого объект
@@ -168,6 +224,7 @@ namespace HexLive.UnityPresentation.Wearing
         private static void ResetStatics()
         {
             Targets.Clear();
+            PresentationQueue.Clear();
             _cursor = 0;
             _nextAdvance = 0f;
             _instance = null;

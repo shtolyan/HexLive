@@ -21,6 +21,10 @@ public sealed class PortablePlayerBond
     public string LastInteractionEpisodeId { get; set; } = string.Empty;
     public long LastInteractionTick { get; set; } = -1;
     public DateTimeOffset? LastInteractionUtc { get; set; }
+    public bool? LastObservedPlayerPresent { get; set; }
+    public DateTimeOffset? LastObservedDepartureUtc { get; set; }
+    public DateTimeOffset? LastObservedReturnUtc { get; set; }
+    public bool AwaitingReturnVoice { get; set; }
 }
 
 public sealed class PortableMemory
@@ -408,6 +412,29 @@ public sealed class MashaMemoryStore
         }
     }
 
+    public async Task ObservePlayerPresenceAsync(bool present, CancellationToken cancellationToken)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var bond = _archive.PlayerBond;
+            if (bond.LastObservedPlayerPresent == present) return;
+            if (present)
+            {
+                bond.LastObservedReturnUtc = DateTimeOffset.UtcNow;
+                if (bond.LastObservedPlayerPresent == false && bond.LastInteractionUtc.HasValue)
+                    bond.AwaitingReturnVoice = true;
+            }
+            else
+            {
+                bond.LastObservedDepartureUtc = DateTimeOffset.UtcNow;
+            }
+            bond.LastObservedPlayerPresent = present;
+            await SaveAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally { _gate.Release(); }
+    }
+
     public async Task<MashaPromptContext> BuildPromptContextAsync(
         MashaWorldHandle world,
         string recallQuery,
@@ -494,7 +521,14 @@ public sealed class MashaMemoryStore
             }
 
             if (string.Equals(trigger, "voice", StringComparison.Ordinal))
+            {
                 ApplyReaction(world, decision.Reaction);
+                _archive.PlayerBond.LastInteractionEpisodeId = world.EpisodeId;
+                _archive.PlayerBond.LastInteractionTick = world.Tick;
+                _archive.PlayerBond.LastInteractionUtc = DateTimeOffset.UtcNow;
+                // A neutral/silent response still heard the new voice; heartbeat never consumes it.
+                _archive.PlayerBond.AwaitingReturnVoice = false;
+            }
 
             _archive.AppliedTurnIds.Add(Limit(turnId, 80));
             TrimOldest(_archive.AppliedTurnIds, MaxAppliedTurnIds);
@@ -652,9 +686,6 @@ public sealed class MashaMemoryStore
         _archive.PlayerBond.Familiarity = Math.Clamp(_archive.PlayerBond.Familiarity + familiarity, 0f, 1f);
         _archive.PlayerBond.Trust = Math.Clamp(_archive.PlayerBond.Trust + trust, 0f, 1f);
         _archive.PlayerBond.Affinity = Math.Clamp(_archive.PlayerBond.Affinity + affinity, 0f, 1f);
-        _archive.PlayerBond.LastInteractionEpisodeId = world.EpisodeId;
-        _archive.PlayerBond.LastInteractionTick = world.Tick;
-        _archive.PlayerBond.LastInteractionUtc = DateTimeOffset.UtcNow;
     }
 
     private static IEnumerable<PortableMemory> Important(IEnumerable<PortableMemory> memories, int count) =>

@@ -31,6 +31,7 @@ public static class MashaCompanionProfile
             "underwear.briefs_cindy",
             "underwear.tights_deadly",
             "underwear.top_cindy",
+            "gear.backpack_riot",
         });
 
     public static bool EnsureSpawned(WorldState world)

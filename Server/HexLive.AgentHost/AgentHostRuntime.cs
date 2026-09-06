@@ -104,6 +104,7 @@ public sealed class AgentHostRuntime
         var attachmentId = RequiredString(attached, "attachmentId");
         var presence = new PresenceState(attached.TryGetProperty("playerPresent", out var present) &&
                                          present.GetBoolean());
+        await _memory.ObservePlayerPresenceAsync(presence.Value, cancellationToken);
         _status.Write(true, presence.Value ? "Ready" : "Sleeping", npcId, true, presence.Value);
         Console.WriteLine($"[agent] attached profile={_options.ProfileId} npc={npcId}");
 
@@ -215,6 +216,7 @@ public sealed class AgentHostRuntime
             var changed = current != lastPublishedPresence;
             if (changed)
             {
+                await _memory.ObservePlayerPresenceAsync(current, cancellationToken);
                 await mcp.CallToolAsync("publish_agent_phase", new
                 {
                     attachmentId,
@@ -541,9 +543,8 @@ public sealed class AgentHostRuntime
             if (text.Length == 0) continue;
             if (result.Length > 0) result.AppendLine();
             result.Append(text);
-            if (result.Length >= 1000) break;
         }
-        return result.Length <= 1000 ? result.ToString() : result.ToString(0, 1000);
+        return result.ToString();
     }
 
     private static bool ContainsCriticalEvent(JsonElement response)

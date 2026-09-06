@@ -13,6 +13,20 @@ namespace HexLive.AgentHost.Tests;
 public sealed class AgentRuntimeIntegrationTests
 {
     [Test]
+    public void InboxBatchDoesNotDiscardMessagesBeyondOneThousandCharacters()
+    {
+        var texts = Enumerable.Range(0, 16).Select(i => $"{i}:" + new string('я', 220)).ToArray();
+        using var inbox = JsonDocument.Parse(JsonSerializer.Serialize(new
+        {
+            messages = texts.Select(text => new { text }).ToArray(),
+        }));
+        var method = typeof(AgentHostRuntime).GetMethod("MergePlayerMessages",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        Assert.That(method.Invoke(null, new object[] { inbox.RootElement }),
+            Is.EqualTo(string.Join(Environment.NewLine, texts)));
+    }
+
+    [Test]
     public async Task SleepWakeVoiceCancellationAndDetachUseRealMcpToolsWithoutPaidProviders()
     {
         var root = FindRoot();

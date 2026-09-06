@@ -27,6 +27,7 @@ public sealed class AgentHostRuntime
     private CancellationTokenSource? _actionStop;
     private Task _actionTask = Task.CompletedTask;
     private string _actionContract = string.Empty;
+    private string _actionFeedback = "Физических приказов в этой сессии ещё не было.";
 
     public AgentHostRuntime(AgentHostOptions options, IAgentProviders? providers = null,
         HttpMessageHandler? mcpHandler = null)
@@ -92,6 +93,7 @@ public sealed class AgentHostRuntime
         var npcId = SelectNpc(colonists, _options.ProfileId);
         var catalog = await mcp.ReadToolCatalogAsync(cancellationToken);
         _actionContract = BuildActionContract(catalog);
+        _actionFeedback = "Новая MCP-сессия: результаты прежних приказов неизвестны.";
         var attached = await mcp.CallToolAsync("attach_agent", new
         {
             npcId,
@@ -251,7 +253,11 @@ public sealed class AgentHostRuntime
                 .Where(property => property.Name != "legacyAgentState")
                 .ToDictionary(property => property.Name, property => property.Value));
             var decision = await _providers.DecideAsync(trigger, physicalState,
-                memoryContext.Text + "\nДопустимые arguments (npcId подставляется автоматически):\n" + _actionContract,
+                memoryContext.Text + "\nДопустимые arguments (npcId подставляется автоматически):\n" + _actionContract +
+                "\nРезультат последнего физического приказа (не новая просьба):\n" +
+                Volatile.Read(ref _actionFeedback) +
+                "\nПри отказе исправь причину; не обещай выполненное лечение до подтверждения состоянием. " +
+                "TreatSelf — перевязка готовым бинтом; treat_limbs — шина/протез, не замена бинта.",
                 playerText, _recent.ToArray(), cancellationToken)
                 .ConfigureAwait(false);
 
@@ -430,7 +436,7 @@ public sealed class AgentHostRuntime
         }, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task PerformActionAsync(McpClient mcp, int npcId,
+    private async Task PerformActionAsync(McpClient mcp, int npcId,
         CompanionAction action, CancellationToken cancellationToken)
     {
         await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 },
@@ -443,6 +449,7 @@ public sealed class AgentHostRuntime
                 npcId.ToString(System.Globalization.CultureInfo.InvariantCulture));
             arguments["npcId"] = npcDocument.RootElement.Clone();
             await mcp.CallToolAsync(action.Tool, arguments, cancellationToken).ConfigureAwait(false);
+            Volatile.Write(ref _actionFeedback, action.Tool + ": Accepted — приказ принят, выполнение ещё не подтверждено.");
 
             var renew = DateTimeOffset.UtcNow.AddSeconds(9);
             while (!cancellationToken.IsCancellationRequested)
@@ -450,7 +457,11 @@ public sealed class AgentHostRuntime
                 await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
                 var list = await mcp.CallToolAsync("list_colonists", new { }, cancellationToken)
                     .ConfigureAwait(false);
-                if (!HasActivePlan(list, npcId)) break;
+                if (!HasActivePlan(list, npcId))
+                {
+                    Volatile.Write(ref _actionFeedback, action.Tool + ": PlanEnded — план закончился; успех проверь по состоянию, это не подтверждение результата.");
+                    break;
+                }
                 if (DateTimeOffset.UtcNow >= renew)
                 {
                     await mcp.CallToolAsync("acquire_npc_control", new
@@ -473,12 +484,18 @@ public sealed class AgentHostRuntime
         }
     }
 
-    private static async Task PerformActionSafelyAsync(McpClient mcp, int npcId,
+    private async Task PerformActionSafelyAsync(McpClient mcp, int npcId,
         CompanionAction action, CancellationToken cancellationToken)
     {
         try { await PerformActionAsync(mcp, npcId, action, cancellationToken); }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
-        catch (Exception ex) { Console.Error.WriteLine($"[action] failed: {ex.GetType().Name}"); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { Volatile.Write(ref _actionFeedback, action.Tool + ": Cancelled — приказ прерван, не считай его выполненным."); }
+        catch (Exception ex)
+        {
+            var code = ex is McpToolRejectedException rejection ? rejection.ReasonCode : ex.GetType().Name;
+            Volatile.Write(ref _actionFeedback, action.Tool + ": " + code + " — действие не подтверждено. Проверь аргументы и необходимые припасы.");
+            Console.Error.WriteLine($"[action] tool={action.Tool} result={code}");
+        }
     }
 
     private async Task StopActionAsync()
@@ -580,13 +597,8 @@ public sealed class AgentHostRuntime
         {
             var name = tool.GetProperty("name").GetString() ?? "";
             if (!AgentProviders.IsAllowedTool(name)) continue;
-            text.Append(name).Append('(');
-            foreach (var argument in tool.GetProperty("inputSchema").GetProperty("properties").EnumerateObject())
-            {
-                if (argument.Name == "npcId") continue;
-                text.Append(argument.Name).Append(':').Append(argument.Value.GetProperty("type").GetString()).Append(';');
-            }
-            text.AppendLine(")");
+            text.Append(name).Append(": ").AppendLine(tool.GetProperty("description").GetString());
+            text.AppendLine(tool.GetProperty("inputSchema").GetRawText());
         }
         return text.ToString();
     }

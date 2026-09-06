@@ -5,6 +5,40 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentWorldKnowledgeTests
 {
+    [Test]
+    public async Task WoundedHeartbeatSelectsTreatmentNotAlwaysPresentEnergyFields()
+    {
+        var calls = new List<string>();
+        var knowledge = new AgentWorldKnowledge((section, _, _) =>
+        {
+            calls.Add(section);
+            return Task.FromResult(section == "" ? Json(new { index =
+                "| [§54](Spec/54.md) | Sleep |\n| [§137](Spec/137.md) | Rest |\n| [§68](Spec/68.md) | Лечение |\n| [§44](Spec/44.md) | Bandages |" }) : Page("Treatment"));
+        });
+        await knowledge.BuildAsync("", "health=0.831; needs[energy=0.451, stamina=0.623, blood=1]", default);
+        Assert.That(calls, Is.EqualTo(new[] { "", "68", "44" }));
+    }
+
+    [Test]
+    public void ToolFailureKeepsOnlyMachineReasonNotRawResponse()
+    {
+        var failure = new McpToolRejectedException("{\"reason\":\"NoSupplies\",\"detail\":\"private text\"}");
+        Assert.That(failure.ReasonCode, Is.EqualTo("NoSupplies"));
+        Assert.That(failure.ToString(), Does.Not.Contain("private text"));
+        Assert.That(new McpToolRejectedException("private text").ReasonCode, Is.EqualTo("InvalidToolArgumentsOrRejected"));
+    }
+
+    [Test]
+    public void ActionContractPreservesTreatmentDescriptionsAndRequiredArguments()
+    {
+        var method = typeof(AgentHostRuntime).GetMethod("BuildActionContract",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        var catalog = Json(new { tools = new[] { new { name = "self_action", description = "TreatSelf means bandage",
+            inputSchema = new { type = "object", properties = new { kind = new { type = "string", description = "TreatSelf/GroundSleep" } }, required = new[] { "kind" } } } } });
+        var result = (string)method.Invoke(null, new object[] { catalog })!;
+        Assert.That(result, Does.Contain("TreatSelf means bandage").And.Contain("TreatSelf/GroundSleep").And.Contain("required"));
+    }
+
     private static JsonElement Json(object value) => JsonSerializer.SerializeToElement(value);
     private static JsonElement Index() => Json(new { index = "| [§54](Spec/54.md) | Sleep |\n| [§137](Spec/137.md) | Rest |\n| [§121](Spec/121.md) | Manual |" });
     private static JsonElement Page(string text, int offset = 0, bool truncated = false)

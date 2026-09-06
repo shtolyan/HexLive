@@ -44,7 +44,7 @@ public sealed class McpClient : IDisposable
 
             var result = response.GetProperty("result");
             if (result.TryGetProperty("isError", out var errorFlag) && errorFlag.GetBoolean())
-                throw new InvalidOperationException(ReadToolText(result));
+                throw new McpToolRejectedException(ReadToolText(result));
 
             var text = ReadToolText(result);
             using var payload = JsonDocument.Parse(text);
@@ -148,5 +148,23 @@ public sealed class McpClient : IDisposable
     {
         _http.Dispose();
         _gate.Dispose();
+    }
+}
+
+public sealed class McpToolRejectedException : InvalidOperationException
+{
+    public string ReasonCode { get; }
+    public McpToolRejectedException(string payload) : base("MCP tool rejected the request.")
+    {
+        ReasonCode = "InvalidToolArgumentsOrRejected";
+        try
+        {
+            using var json = JsonDocument.Parse(payload);
+            if (json.RootElement.TryGetProperty("reason", out var reason) &&
+                reason.ValueKind == JsonValueKind.String &&
+                System.Text.RegularExpressions.Regex.IsMatch(reason.GetString() ?? "", @"^[A-Za-z][A-Za-z0-9_]{0,63}$"))
+                ReasonCode = reason.GetString()!;
+        }
+        catch (JsonException) { }
     }
 }

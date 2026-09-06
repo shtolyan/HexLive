@@ -49,7 +49,7 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
                 _expires = DateTime.UtcNow.AddMinutes(10);
             }
 
-            var search = ExpandQuery(query.Length > 0 ? query : state);
+            var search = ExpandQuery(query.Length > 0 ? query : StateQuery(state));
             var sections = SelectSections(query, search);
             foreach (var section in sections)
             {
@@ -87,6 +87,11 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
         var selected = new List<string>();
         foreach (Match reference in Regex.Matches(query, @"§([0-9]{1,4}[A-Z]?)"))
             if (_titles.ContainsKey(reference.Groups[1].Value)) selected.Add(reference.Groups[1].Value);
+        if (search.Contains("medical-treatment", StringComparison.Ordinal))
+        {
+            selected.Add("68");
+            selected.Add("44");
+        }
         if (search.Contains("sleep", StringComparison.Ordinal)) selected.Add("54");
         if (search.Contains("stamina", StringComparison.Ordinal)) selected.Add("137");
         selected.AddRange(_titles.OrderByDescending(p => Score(p.Value, search))
@@ -129,8 +134,26 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
         if (Regex.IsMatch(text, "кост[её]р|огонь|дров|зажиг")) text += " fire fuel";
         if (Regex.IsMatch(text, "жажд|пить|вод|кокос")) text += " water thirst coconut";
         if (Regex.IsMatch(text, "голод|поесть|еды|еда")) text += " food hunger";
-        if (Regex.IsMatch(text, "ран|леч|бинт|кров")) text += " wound blood bandage aid";
+        if (Regex.IsMatch(text, "ран[ауы]|леч|бинт|кров|целеб|перевяз|трав[ауы]|wound|bandage"))
+            text += " medical-treatment wound blood bandage herb TreatSelf CraftBandage";
         return text;
+    }
+
+    private static string StateQuery(string state)
+    {
+        // Field names are not needs: every snapshot contains energy and stamina.
+        // Never let their mere presence pin the sleep chapters on every heartbeat.
+        var query = new StringBuilder();
+        foreach (var (name, limit, topic) in new[]
+                 { ("health", 0.9, "лечение"), ("blood", 0.8, "лечение"),
+                   ("energy", 0.3, "сон"), ("stamina", 0.25, "отдых") })
+        {
+            var value = Regex.Match(state, name + @"=([0-9]+(?:\.[0-9]+)?)");
+            if (value.Success && double.TryParse(value.Groups[1].Value,
+                    System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture,
+                    out var number) && number < limit) query.Append(' ').Append(topic);
+        }
+        return query.ToString();
     }
 
     private static int Score(string text, string query)

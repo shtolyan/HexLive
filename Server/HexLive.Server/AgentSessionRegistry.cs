@@ -489,6 +489,12 @@ public sealed class AgentSessionRegistry
         }
     }
 
+    internal void AdminDetachNpc(int npcId)
+    {
+        lock (_gate)
+            if (_attachmentByNpc.TryGetValue(npcId, out var id) && _byId.TryGetValue(id, out var attachment)) RemoveLocked(attachment);
+    }
+
     public void Clear()
     {
         lock (_gate)

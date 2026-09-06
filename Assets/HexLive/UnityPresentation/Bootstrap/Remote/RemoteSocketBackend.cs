@@ -52,7 +52,7 @@ namespace HexLive.UnityPresentation.Bootstrap.Remote
 /// flap forever, so it stops and says why.
 /// </para>
 /// </summary>
-public sealed class RemoteSocketBackend : ISimulationBackend
+public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSource
 {
     // Retry schedule. Starts fast (most drops are a blip) and backs off so a
     // server that is genuinely down is not hammered.
@@ -94,6 +94,19 @@ public sealed class RemoteSocketBackend : ISimulationBackend
     /// queues behind a large keyframe still transferring.
     /// </summary>
     private const double DeadAfterSeconds = 10.0;
+
+    private readonly Queue<string> _adminResults = new();
+    public string AdminClientId => _clientId;
+    public string AdminServer => _url;
+    public void SendAdmin(string json) => Send(AdminWire.Encode(json));
+    public bool TryTakeAdminResult(out string json)
+    {
+        lock (_inbox)
+        {
+            if (_adminResults.Count > 0) { json = _adminResults.Dequeue(); return true; }
+            json = string.Empty; return false;
+        }
+    }
 
     private readonly string _url;
     private readonly string? _controlToken;
@@ -645,6 +658,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend
                         _eventFrames.Clear();
                         _craftingOptions.Clear();
                         _agentStates.Clear();
+                        _adminResults.Clear();
                         _sttTokenResults.Clear();
                         _agentTextResults.Clear();
                         _agentSpeech.Clear();
@@ -771,6 +785,18 @@ public sealed class RemoteSocketBackend : ISimulationBackend
 
                 break;
             }
+
+            case FrameKind.AdminResult:
+                TryDispatchAgentFrame(() =>
+                {
+                    var json = AdminWire.Decode(payload);
+                    lock (_inbox)
+                    {
+                        if (_adminResults.Count >= 64) _adminResults.Dequeue();
+                        _adminResults.Enqueue(json);
+                    }
+                });
+                break;
 
             case FrameKind.AgentState:
                 TryDispatchAgentFrame(() =>

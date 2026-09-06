@@ -25928,6 +25928,214 @@ MonoBehaviour:
       - 'Реплика не доставлена. Попробуй ещё раз.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'admin.voice.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Admin'
+      - 'Админ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.client'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Client ID:'
+      - 'ID клиента:'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.code'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Binding code'
+      - 'Код привязки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.bind'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bind this client'
+      - 'Привязать клиент'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.command'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Command'
+      - 'Команда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.send'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Send'
+      - 'Отправить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.microphone'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Microphone / stop'
+      - 'Микрофон / стоп'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.yes'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Confirm'
+      - 'Подтверждаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.no'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cancel'
+      - 'Отмена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ready'
+      - 'Готово к команде'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.done'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Completed'
+      - 'Выполнено'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.thinking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Thinking…'
+      - 'Думаю…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.listening'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Listening…'
+      - 'Слушаю…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.recognizing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recognizing…'
+      - 'Распознаю…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.confirm_required'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Confirm the exact action or cancel.'
+      - 'Подтверди указанное действие или скажи «отмена».'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.credential_error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'OS credential store unavailable. Rebind next session.'
+      - 'Хранилище ключей ОС недоступно. В следующем сеансе потребуется привязка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.microphone_error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Microphone unavailable or recording too quiet.'
+      - 'Микрофон недоступен или запись слишком тихая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.stt_error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speech recognition unavailable. Use text input.'
+      - 'Распознавание недоступно. Используй текстовый ввод.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.empty'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No speech recognized.'
+      - 'Речь не распознана.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.timeout'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Response delayed. Check the operation result before repeating.'
+      - 'Ответ задерживается. Проверь результат операции перед повтором.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Command not completed:'
+      - 'Команда не выполнена:'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.remove_item'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Remove items'
+      - 'Удалить предметы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.clear_inventory'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clear inventory'
+      - 'Очистить инвентарь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.delete_npc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Delete character and their inventory'
+      - 'Удалить персонажа и его вещи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.demolish_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Demolish building'
+      - 'Снести постройку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.items'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Inventory instances:'
+      - 'Предметов в инвентаре:'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

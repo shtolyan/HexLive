@@ -279,6 +279,25 @@ public sealed class PlayerCharacterAssignments
     /// сохраняет назначения, которые новый viewer успел сделать до позднего
     /// уведомления <c>WorldSwapped</c>.
     /// </summary>
+    internal void AdminAssign(string playerId, int npcId)
+    {
+        if (!TryNormalizePlayerId(playerId, out var canonical)) throw new ArgumentException("Invalid player id");
+        lock (_gate)
+        {
+            foreach (var player in _players) player.NpcIds.Remove(npcId);
+            var record = _players.FirstOrDefault(p => p.PlayerId == canonical);
+            if (record == null) { record = new PlayerRecord { PlayerId = canonical }; _players.Add(record); }
+            record.NpcIds = new List<int> { npcId };
+            Save();
+        }
+    }
+    internal void AdminRemoveNpc(int npcId)
+    {
+        lock (_gate) { foreach (var p in _players) p.NpcIds.Remove(npcId); Save(); }
+    }
+    internal bool StillAssigned(string playerId, int npcId)
+    { lock (_gate) return _players.Any(p => p.PlayerId == playerId && p.NpcIds.Contains(npcId)); }
+
     public void SwitchWorld(int worldGeneration)
     {
         lock (_gate)

@@ -196,22 +196,7 @@ internal static class KenshiProstheticMath
             return false;
         }
 
-        var arm = part is BodyPart.ArmL or BodyPart.ArmR;
-        var function = mechanical
-            ? (arm ? Spec118.MechanicalArmFunction : Spec118.MechanicalLegFunction)
-            : (arm ? Spec118.WoodenArmFunction : Spec118.WoodenLegFunction);
-        var durability = mechanical
-            ? Spec118.MechanicalProstheticDurability
-            : Spec118.WoodenProstheticDurability;
-        condition.Prosthetic = new ProstheticState
-        {
-            DefinitionId = itemId,
-            Part = part,
-            Condition = durability,
-            MaxCondition = durability,
-            Function = function,
-            Mechanical = mechanical
-        };
+        condition.Prosthetic = AdminProsthetics.CreateDevice(part, itemId);
         EquipmentMath.RecalculateCapacity(world, patient);
         MortalityHelpers.GrantStandUpGrace(world, patient, wasProne);
         return true;

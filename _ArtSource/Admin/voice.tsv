@@ -1,0 +1,26 @@
+admin.voice.title	Admin	Админ
+admin.voice.client	Client ID:	ID клиента:
+admin.voice.code	Binding code	Код привязки
+admin.voice.bind	Bind this client	Привязать клиент
+admin.voice.command	Command	Команда
+admin.voice.send	Send	Отправить
+admin.voice.microphone	Microphone / stop	Микрофон / стоп
+admin.voice.yes	Confirm	Подтверждаю
+admin.voice.no	Cancel	Отмена
+admin.voice.ready	Ready	Готово к команде
+admin.voice.done	Completed	Выполнено
+admin.voice.thinking	Thinking…	Думаю…
+admin.voice.listening	Listening…	Слушаю…
+admin.voice.recognizing	Recognizing…	Распознаю…
+admin.voice.confirm_required	Confirm the exact action or cancel.	Подтверди указанное действие или скажи «отмена».
+admin.voice.credential_error	OS credential store unavailable. Rebind next session.	Хранилище ключей ОС недоступно. В следующем сеансе потребуется привязка.
+admin.voice.microphone_error	Microphone unavailable or recording too quiet.	Микрофон недоступен или запись слишком тихая.
+admin.voice.stt_error	Speech recognition unavailable. Use text input.	Распознавание недоступно. Используй текстовый ввод.
+admin.voice.empty	No speech recognized.	Речь не распознана.
+admin.voice.timeout	Response delayed. Check the operation result before repeating.	Ответ задерживается. Проверь результат операции перед повтором.
+admin.voice.error	Command not completed:	Команда не выполнена:
+admin.voice.action.remove_item	Remove items	Удалить предметы
+admin.voice.action.clear_inventory	Clear inventory	Очистить инвентарь
+admin.voice.action.delete_npc	Delete character and their inventory	Удалить персонажа и его вещи
+admin.voice.action.demolish_building	Demolish building	Снести постройку
+admin.voice.items	Inventory instances:	Предметов в инвентаре:

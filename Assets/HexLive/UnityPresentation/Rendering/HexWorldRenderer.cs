@@ -2670,7 +2670,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         out bool controlled, out bool strangerVisible)
     {
         controlled = _anyControlledInSnapshot
-            ? _runner != null && _runner.CanControlNpc(npc.Id)
+            ? _runner != null && _runner.IsAssignedNpc(npc.Id)
             : isOurs;
         strangerVisible = controlled || TileVisibleNow(npc.Tile);
         return (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(npc.Id.Value))
@@ -5085,6 +5085,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // matching the debug panel's "target: everyone" convention.
         var selectedOnly = UI.DebugControlsPanel.FogOfWarSelectedOnly &&
             Input.NpcSelection.HasSelection;
+        // §149: an assigned squad shares eyes even when a single card is selected.
+        var assignedEyes = 0;
+        foreach (var member in snapshot.Npcs)
+            if (member.Health > 0f && _runner != null && _runner.IsAssignedNpc(member.Id))
+                assignedEyes++;
+        var sharedSquad = assignedEyes > 1;
         var requestedId = selectedOnly ? Input.NpcSelection.SelectedId : -1;
         var selectedId = selectedOnly
             ? ResolveFogObserverId(snapshot, requestedId, _fogObserverNpcId)
@@ -5093,7 +5099,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var npc in engine.World.Entities.Npcs.Values)
         {
-            var include = selectedOnly
+            var include = sharedSquad
+                ? _runner != null && _runner.IsAssignedNpc(npc.Id)
+                : selectedOnly
                 ? npc.Id.Value == selectedId
                 : npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
             if (!include)
@@ -5112,7 +5120,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // (§125.5: вид не выводит формулу повторно).
         foreach (var npc in snapshot.Npcs)
         {
-            var include = selectedOnly
+            var include = sharedSquad
+                ? npc.Health > 0f && _runner != null && _runner.IsAssignedNpc(npc.Id)
+                : selectedOnly
                 ? npc.Id.Value == selectedId
                 : !npc.IsHostileToColony;
             if (include)
@@ -5123,7 +5133,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         // §125.5: людей прячем только от лица ВЫБРАННОЙ — «чего не видит вся
         // колония сразу» смысла не имеет, там всегда видно всех.
-        _fogHidesNpcs = selectedOnly;
+        _fogHidesNpcs = selectedOnly || sharedSquad;
         if (!_fogHidesNpcs)
         {
             return;
@@ -5139,7 +5149,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // воспроизводится). Выбор скрытой из ростера её честно откроет —
             // это взгляд игрока, а не спавн.
             var exempt = npc.Id.Value == selectedId ||
-                (_runner != null && _runner.CanControlNpc(npc.Id));
+                (_runner != null && _runner.IsAssignedNpc(npc.Id));
             if (!exempt && !FogSeesTile(npc.Tile))
             {
                 _fogHiddenNpcs.Add(npc.Id.Value);
@@ -5170,7 +5180,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 continue;
             }
 
-            var controllable = _runner != null && _runner.CanControlNpc(npc.Id);
+            var controllable = _runner != null && _runner.IsAssignedNpc(npc.Id);
             var colony = npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
             if (!controllable && !colony)
             {
@@ -5357,7 +5367,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _anyControlledInSnapshot = false;
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.Health > 0f && _runner != null && _runner.CanControlNpc(npc.Id))
+            if (npc.Health > 0f && _runner != null && _runner.IsAssignedNpc(npc.Id))
             {
                 _anyControlledInSnapshot = true;
                 break;
@@ -5370,7 +5380,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // девушка; локально CanControlNpc покрывает колонию). Мёртвые глаз
             // не дают.
             var eye = _anyControlledInSnapshot
-                ? _runner != null && _runner.CanControlNpc(npc.Id)
+                ? _runner != null && _runner.IsAssignedNpc(npc.Id)
                 : IsPlayerOwned(npc);
             if (eye && npc.Health > 0f)
             {
@@ -5950,7 +5960,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // буквальная Colony (фолбэк PlayerCampView для локальной игры и
         // анонимного зрителя — та же Colony).
         npc.Faction == PlayerCampView.Of(_runner, _lastSnapshot) ||
-        (_runner != null && _runner.CanControlNpc(npc.Id));
+        (_runner != null && _runner.IsAssignedNpc(npc.Id));
 
     private bool FogSeesTile(TileCoord tile)
     {

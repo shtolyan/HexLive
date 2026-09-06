@@ -37,6 +37,11 @@ public sealed class AgentProviders : IAgentProviders
     public async Task DoctorAsync(CancellationToken cancellationToken)
     {
         if (_options.FakeProviders) return;
+        if (_options.LlmBackend == "codex")
+        {
+            await CodexDecisionRunner.CheckLoginAsync(_options.CodexExecutable, cancellationToken);
+            Console.WriteLine("Codex: ChatGPT subscription login; model gpt-6-astra (no generation requested)");
+        }
         using var xai = new HttpRequestMessage(HttpMethod.Get, "https://api.x.ai/v1/api-key");
         xai.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.XaiKey);
         using var voice = new HttpRequestMessage(HttpMethod.Get,
@@ -44,6 +49,7 @@ public sealed class AgentProviders : IAgentProviders
         voice.Headers.TryAddWithoutValidation("xi-api-key", _options.ElevenLabsKey);
         foreach (var (provider, request) in new[] { ("XAI", xai), ("ElevenLabs voice", voice) })
         {
+            if (provider == "XAI" && _options.LlmBackend == "codex") continue;
             using var response = await _http.SendAsync(request,
                 HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             Console.WriteLine($"{provider}: HTTP {(int)response.StatusCode}");
@@ -110,6 +116,13 @@ put_person_in_bed, manage_inventory, attack_mob. Не нападай на мир
             playerSpeech = transcript,
             recentConversation
         });
+        if (_options.LlmBackend == "codex")
+        {
+            var codexJson = await CodexDecisionRunner.DecideAsync(_options.CodexExecutable,
+                system + "\nDo not use tools. Return only the requested decision JSON.\n" +
+                "<memory>\n" + memoryContext + "\n</memory>\n" + user, cancellationToken);
+            return ParseDecision(codexJson, trigger);
+        }
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.x.ai/v1/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.XaiKey);
         request.Content = JsonContent.Create(new
@@ -131,6 +144,11 @@ put_person_in_bed, manage_inventory, attack_mob. Не нападай на мир
         using var envelope = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var json = envelope.RootElement.GetProperty("choices")[0]
             .GetProperty("message").GetProperty("content").GetString() ?? "{}";
+        return ParseDecision(json, trigger);
+    }
+
+    public static CompanionDecision ParseDecision(string json, string trigger)
+    {
         json = StripFence(json);
         ValidateDecisionSchema(json);
         var decision = JsonSerializer.Deserialize<CompanionDecision>(json,

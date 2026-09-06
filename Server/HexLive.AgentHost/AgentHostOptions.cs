@@ -15,6 +15,8 @@ public sealed class AgentHostOptions
     public required string ElevenLabsModel { get; init; }
     public required string ElevenLabsVoiceId { get; init; }
     public bool FakeProviders { get; init; }
+    public string LlmBackend { get; init; } = "xai";
+    public string CodexExecutable { get; init; } = "/Applications/ChatGPT.app/Contents/Resources/codex";
 
     public string StatusPath => Path.Combine(StateDirectory, "agent-host-status.json");
     public string OutboxPath => Path.Combine(StateDirectory, "agent-outbox.json");
@@ -29,6 +31,8 @@ public sealed class AgentHostOptions
         ElevenLabsModel = ElevenLabsModel,
         ElevenLabsVoiceId = ElevenLabsVoiceId,
         FakeProviders = FakeProviders,
+        LlmBackend = LlmBackend,
+        CodexExecutable = CodexExecutable,
     };
 
     public static AgentHostOptions Load(bool requireProviders = true)
@@ -60,13 +64,17 @@ public sealed class AgentHostOptions
             ElevenLabsModel = Env("HEXLIVE_TTS_MODEL", "eleven_multilingual_v2"),
             ElevenLabsVoiceId = Env("HEXLIVE_MASHA_VOICE_ID", "NsFK0aDGLbVusA7tQfOB"),
             FakeProviders = fake,
+            LlmBackend = Env("HEXLIVE_AGENT_LLM", "xai"),
+            CodexExecutable = Env("HEXLIVE_CODEX_BIN", "/Applications/ChatGPT.app/Contents/Resources/codex"),
         };
         if (result.McpToken.Length == 0)
             throw new InvalidOperationException("HEXLIVE_MCP_TOKEN is required.");
         if (result.ProfileId.Length is < 1 or > 48 || result.DisplayName.Length is < 1 or > 48)
             throw new InvalidOperationException("Agent profile and display name must contain 1..48 characters.");
+        if (result.LlmBackend is not ("xai" or "codex"))
+            throw new InvalidOperationException("Unknown agent LLM backend.");
         if (requireProviders && !fake &&
-            (result.XaiKey.Length == 0 || result.ElevenLabsKey.Length == 0))
+            ((result.LlmBackend == "xai" && result.XaiKey.Length == 0) || result.ElevenLabsKey.Length == 0))
             throw new InvalidOperationException(
                 "XAI_API_KEY and ELEVENLABS_API_KEY are required unless HEXLIVE_AGENT_FAKE=1.");
         Directory.CreateDirectory(result.MemoryDirectory);

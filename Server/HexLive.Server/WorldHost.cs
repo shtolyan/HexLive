@@ -160,11 +160,14 @@ public sealed class WorldHost : IDisposable
 
         if (!string.IsNullOrWhiteSpace(companionProfile))
         {
-            var spawned = CharacterPresetRegistry.EnsureSpawned(
-                _engine.World, companionProfile, out var presetNpcId);
-            Console.WriteLine(spawned
-                ? $"[preset] {companionProfile} spawned as NPC{presetNpcId}"
-                : $"[preset] {companionProfile} restored as NPC{presetNpcId}");
+            foreach (var profile in companionProfile.Split(','))
+            {
+                var spawned = CharacterPresetRegistry.EnsureSpawned(
+                    _engine.World, profile, out var presetNpcId);
+                Console.WriteLine(spawned
+                    ? $"[preset] {profile} spawned as NPC{presetNpcId}"
+                    : $"[preset] {profile} restored as NPC{presetNpcId}");
+            }
         }
     }
 

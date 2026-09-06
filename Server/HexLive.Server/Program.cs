@@ -271,7 +271,7 @@ public static class Program
                         controlOwner = "ws:" + playerId;
                         assignedNpcIds = playerAssignments!.Reconcile(
                             viewerSession.Host, playerId,
-                            PlayerCharacterAssignments.DefaultCharacterLimit,
+                            options.PlayerCharacterLimit,
                             viewerSession.Lifetime,
                             viewerSession.WorldGeneration);
                     }
@@ -707,6 +707,7 @@ public sealed class ServerOptions
 
     /// <summary>§160: explicitly enabled authored character preset.</summary>
     public string? CompanionProfile { get; private set; }
+    public int PlayerCharacterLimit { get; private set; } = PlayerCharacterAssignments.DefaultCharacterLimit;
 
     /// <summary>
     /// §145.3: сетевое управление ИГРОКА выключено по умолчанию по той же
@@ -822,6 +823,11 @@ public sealed class ServerOptions
                 case "--character-preset" when i + 1 < args.Length:
                     options.CompanionProfile = args[++i].Trim().ToLowerInvariant();
                     break;
+                case "--player-characters" when i + 1 < args.Length:
+                    options.PlayerCharacterLimit = int.Parse(args[++i]);
+                    if (options.PlayerCharacterLimit is < 1 or > 8)
+                        throw new ArgumentException("--player-characters must be 1..8");
+                    break;
                 case "--control":
                     options.ControlEnabled = true;
                     break;
@@ -893,8 +899,9 @@ public sealed class ServerOptions
 
         if (options.CompanionProfile is { Length: > 0 } profile)
         {
-            if (!string.Equals(profile, "masha", StringComparison.Ordinal))
-                throw new ArgumentException($"unknown companion profile '{profile}'");
+            foreach (var entry in profile.Split(','))
+                if (!HexLive.Simulation.Runtime.CharacterPresetRegistry.ProfileIds.Contains(entry))
+                    throw new ArgumentException($"unknown character preset '{entry}'");
         }
 
         options.Llm.Validate();

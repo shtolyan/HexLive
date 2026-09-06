@@ -197,9 +197,7 @@ public sealed class PlayerCharacterAssignments
                 if (npc.Health > 0f && !npc.IsDying)
                 {
                     assignable.Add(npc.Id.Value);
-                    if (string.Equals(npc.ProfileId,
-                            HexLive.Simulation.Runtime.MashaCompanionProfile.ProfileId,
-                            StringComparison.Ordinal))
+                    if (CharacterPresetRegistry.ProfileIds.Contains(npc.ProfileId))
                         authoredPriority.Add(npc.Id.Value);
                 }
             }
@@ -256,7 +254,8 @@ public sealed class PlayerCharacterAssignments
         // отбивалась симуляцией с «NotOwned». Публикуем ВЕСЬ союз назначений,
         // а не одного игрока: набор в мире — это состояние, а не дельта.
         host.SetPlayerControlledNpcs(union);
-        return result;
+        // The player's authored body is the initial selection, not the attached agent.
+        return result.OrderByDescending(id => id == NikaCharacterProfile.ReservedNpcId).ToArray();
     }
 
     /// <summary>Союз назначений всех игроков. Вызывать под <c>_gate</c>.</summary>

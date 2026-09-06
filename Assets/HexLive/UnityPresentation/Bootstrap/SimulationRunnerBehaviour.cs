@@ -113,6 +113,9 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public bool SupportsNpcCommands => _backend?.SupportsNpcCommands ?? false;
 
     public bool CanControlNpc(EntityId npc) => _backend?.CanControlNpc(npc) ?? false;
+    // Ownership grants perception even while an MCP attachment blocks manual commands.
+    public bool IsAssignedNpc(EntityId npc) => _backend is Remote.RemoteSocketBackend remote
+        ? remote.IsAssignedNpc(npc) : CanControlNpc(npc);
 
     public bool SupportsAgentIntegration => _backend?.SupportsAgentIntegration ?? false;
 

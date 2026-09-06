@@ -239,6 +239,13 @@ public sealed class RemoteSocketBackend : ISimulationBackend
         }
     }
 
+    public bool IsAssignedNpc(EntityId npc)
+    {
+        lock (_inbox)
+            return _handshake?.ControlEnabled == true &&
+                   _handshake.AssignedNpcIds.Contains(npc.Value);
+    }
+
     public bool CanControlNpc(EntityId npc)
     {
         lock (_inbox)

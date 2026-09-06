@@ -1,0 +1,27 @@
+{
+  "profileId": "nika",
+  "displayName": "Ника",
+  "sourceScene": "Assets/Scenes/WardrobeTest.unity",
+  "capturedUtc": "2026-09-06T13:23:00Z",
+  "status": "captured_pending_runtime_integration",
+  "actorMesh": "Marta",
+  "skinSet": "",
+  "eyeColor": "",
+  "hairstyle": "JenniferHair",
+  "hairAsset": "Assets/ImportedActors/Hair/JenniferHair/JenniferHair.prefab",
+  "hairMaterialsFolder": "Assets/ImportedActors/Hair/JenniferHair/Materials",
+  "useAuthoredAppearance": true,
+  "garments": [
+    "clothing.boots_riot",
+    "clothing.croptop_idol",
+    "clothing.cuffs_anarchy",
+    "clothing.helmet_racing",
+    "clothing.jeans_skinny",
+    "clothing.necklace_beads",
+    "clothing.vest_stars",
+    "underwear.briefs_luxury",
+    "underwear.top_luxury"
+  ],
+  "garmentPrefabIndex": 0,
+  "notes": "Captured from live _equipped entries and VariantId. Hair uses original JenniferHair materials without colour variant. Empty skin/eyes retain authored Marta prefab. No runtime preset or production world has been changed yet."
+}

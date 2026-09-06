@@ -6789,6 +6789,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             Debug.LogWarning($"[§74] skin set '{actor}' is not ready in atomic content — " +
                 "the body keeps its own materials.");
+            return map; // Loading is not a successfully resolved skin set.
         }
         else
         {

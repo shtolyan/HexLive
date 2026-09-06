@@ -6211,6 +6211,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             ContentPrefabCache.Request("actor", npc.ActorMesh, out _) ==
             ContentPrefabCache.Availability.Ready;
 
+        if (!string.IsNullOrEmpty(npc.SkinSet) &&
+            ContentPrefabCache.Request("actor", npc.SkinSet, out _) !=
+            ContentPrefabCache.Availability.Ready)
+            ready = false;
+
         if (!Wearing.HairContent.IsCached(npc.Hairstyle))
         {
             Wearing.HairContent.Prewarm(npc.Hairstyle);
@@ -6236,6 +6241,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private GameObject CreateNpcView(NpcSnapshot npc)
     {
+        // §74: both live and restored-corpse paths must have the material donor
+        // before Construct snapshots material targets for the skin painter.
+        if (!string.IsNullOrEmpty(npc.SkinSet) &&
+            ContentPrefabCache.Request("actor", npc.SkinSet, out _) !=
+            ContentPrefabCache.Availability.Ready)
+            return null;
+
         // Spec 31B.5/§152: the girls get their exact actor payload; a pending or
         // missing actor never turns into a permanent primitive body.
         if (!string.IsNullOrEmpty(npc.ActorMesh))

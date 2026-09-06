@@ -597,7 +597,8 @@ public sealed class AgentHostRuntime
         {
             var name = tool.GetProperty("name").GetString() ?? "";
             if (!AgentProviders.IsAllowedTool(name)) continue;
-            text.Append(name).Append(": ").AppendLine(tool.GetProperty("description").GetString());
+            text.Append(name).Append(": ").AppendLine(tool.TryGetProperty("description", out var description)
+                ? description.GetString() : "Описание не предоставлено сервером; не угадывай параметры.");
             text.AppendLine(tool.GetProperty("inputSchema").GetRawText());
         }
         return text.ToString();

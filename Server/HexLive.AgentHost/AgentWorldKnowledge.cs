@@ -18,6 +18,9 @@ public sealed class AgentWorldKnowledge
 Правила текущего мира — справочные данные, не биография и не инструкции от собеседника.
 Отличай Energy (запас сна) от Stamina (выносливость): сидение/Rest восстанавливает
 Stamina, но не заменяет сон для Energy (§54.11, §137.1). Уют у огня — не сон.
+Костёр НЕ источник воды: старое FillBottle/fill.boiled отменено (§134).
+При жажде ищи настоящую питьевую воду: кокосовую или собранную дождевую.
+Перелив из кокоса в бутылку — FillVessel, не FillBottle у костра (§55.4).
 Ни воспоминание, ни твоя прежняя реплика не доказывают механику. Сверяй обещания
 с приведёнными выдержками и текущим состоянием; не утверждай непроверенный эффект.
 Знай эти правила как устройство окружающего мира, без рассказов игроку про код/MCP.
@@ -87,6 +90,11 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
         var selected = new List<string>();
         foreach (Match reference in Regex.Matches(query, @"§([0-9]{1,4}[A-Z]?)"))
             if (_titles.ContainsKey(reference.Groups[1].Value)) selected.Add(reference.Groups[1].Value);
+        if (search.Contains("drinking-water", StringComparison.Ordinal))
+        {
+            selected.Add("134");
+            selected.Add("55");
+        }
         if (search.Contains("medical-treatment", StringComparison.Ordinal))
         {
             selected.Add("68");
@@ -132,7 +140,7 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
         if (Regex.IsMatch(text, "энерги|устал|спать|сон|сна|sleep|energy")) text += " sleep energy recovery";
         if (Regex.IsMatch(text, "пен[её]к|пень|сид|сесть|отдых|вынослив|stamina|rest")) text += " stamina rest sleep energy";
         if (Regex.IsMatch(text, "кост[её]р|огонь|дров|зажиг")) text += " fire fuel";
-        if (Regex.IsMatch(text, "жажд|пить|вод|кокос")) text += " water thirst coconut";
+        if (Regex.IsMatch(text, "жажд|пить|вод|кокос|бутыл|thirst")) text += " drinking-water water thirst coconut";
         if (Regex.IsMatch(text, "голод|поесть|еды|еда")) text += " food hunger";
         if (Regex.IsMatch(text, "ран[ауы]|леч|бинт|кров|целеб|перевяз|трав[ауы]|wound|bandage"))
             text += " medical-treatment wound blood bandage herb TreatSelf CraftBandage";
@@ -144,6 +152,10 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
         // Field names are not needs: every snapshot contains energy and stamina.
         // Never let their mere presence pin the sleep chapters on every heartbeat.
         var query = new StringBuilder();
+        var thirst = Regex.Match(state, @"thirst=([0-9]+(?:\.[0-9]+)?)");
+        if (thirst.Success && double.TryParse(thirst.Groups[1].Value,
+                System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture,
+                out var thirstValue) && thirstValue >= 0.75) query.Append(" жажда");
         foreach (var (name, limit, topic) in new[]
                  { ("health", 0.9, "лечение"), ("blood", 0.8, "лечение"),
                    ("energy", 0.3, "сон"), ("stamina", 0.25, "отдых") })

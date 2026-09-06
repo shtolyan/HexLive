@@ -131,19 +131,14 @@ public sealed class PlayerCharacterAssignments
                 }
             }
 
-            var next = assignable
-                .Where(id => priorityNpcIds?.Contains(id) == true && !usedByOthers.Contains(id))
+            // §149.2: priority only fills vacant slots; it must never evict a
+            // living owner-bound NPC who is temporarily unassignable (dying).
+            var next = record.NpcIds
+                .Where(id => retainable.Contains(id) && !usedByOthers.Contains(id))
+                .Distinct()
+                .OrderBy(id => id)
                 .Take(characterLimit)
                 .ToList();
-            if (next.Count == 0)
-            {
-                next = record.NpcIds
-                    .Where(id => retainable.Contains(id) && !usedByOthers.Contains(id))
-                    .Distinct()
-                    .OrderBy(id => id)
-                    .Take(characterLimit)
-                    .ToList();
-            }
 
             var occupied = new HashSet<int>(usedByOthers);
             occupied.UnionWith(next);

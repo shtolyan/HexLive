@@ -53,6 +53,33 @@ public sealed class PlayerCharacterAssignmentsTests
     }
 
     [Test]
+    public void AuthoredPriorityDoesNotEvictRetainedDyingSquadMemberAfterReload()
+    {
+        var assignments = PlayerCharacterAssignments.Load(_path, false);
+        var roster = new[] { 21, 901, 902 };
+        assignments.Reconcile(Id(1), roster, roster, 2, new HashSet<int> { 901, 902 });
+        assignments = PlayerCharacterAssignments.Load(_path, true);
+        for (var reconnect = 0; reconnect < 3; reconnect++)
+            Assert.That(assignments.Reconcile(Id(1), roster, new[] { 21, 901 }, 2,
+                new HashSet<int> { 901 }), Is.EqualTo(new[] { 901, 902 }));
+        Assert.That(assignments.Reconcile(Id(2), roster, roster, 2,
+            new HashSet<int> { 901, 902 }), Is.EqualTo(new[] { 21 }));
+    }
+
+    [Test]
+    public void NewlyAvailablePresetOnlyFillsVacantSlots()
+    {
+        var assignments = PlayerCharacterAssignments.Load(_path, false);
+        assignments.Reconcile(Id(1), new[] { 21 }, new[] { 21 }, 2);
+        Assert.That(assignments.Reconcile(Id(1), new[] { 21, 901, 902 },
+            new[] { 21, 901, 902 }, 2, new HashSet<int> { 901, 902 }),
+            Is.EqualTo(new[] { 21, 901 }));
+        Assert.That(assignments.Reconcile(Id(1), new[] { 901, 902 },
+            new[] { 901, 902 }, 2, new HashSet<int> { 901, 902 }),
+            Is.EqualTo(new[] { 901, 902 }), "Only actual removal frees a slot.");
+    }
+
+    [Test]
     public void FirstFreeIsStableAcrossReconnectAndDistinctForAnotherPlayer()
     {
         var assignments = PlayerCharacterAssignments.Load(_path, continueExistingWorld: false);

@@ -1107,6 +1107,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     {
         if (completedInteraction.Type == InteractionType.FillBottle)
         {
+            // §134: an already-running order loaded from an old save cannot
+            // conjure boiled water after the interaction was removed.
+            if (definition.HasTag("Campfire"))
+            {
+                npc.Plan.Status = PlanStatus.Failed;
+                return false;
+            }
             var bottle = BottleInventoryMath.FirstEmpty(npc);
             if (bottle is null)
             {

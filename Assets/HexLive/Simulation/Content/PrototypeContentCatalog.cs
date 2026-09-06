@@ -162,15 +162,6 @@ public static class PrototypeContentCatalog
                         // §77: ONE gather cycle (see build.site below).
                         DurationTicks = 24
                     },
-                    // Spec 29H: fill the bottle with boiled (safe) water; the
-                    // thirst/comfort payoff lands when she drinks it later.
-                    new InteractionDefinition
-                    {
-                        Id = "fill.boiled",
-                        Type = InteractionType.FillBottle,
-
-                        DurationTicks = 8
-                    },
                     new InteractionDefinition
                     {
                         Id = "fuel.fire",

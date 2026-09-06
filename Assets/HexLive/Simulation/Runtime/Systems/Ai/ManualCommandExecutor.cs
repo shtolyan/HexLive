@@ -2514,6 +2514,14 @@ internal static class ManualCommandExecutor
         InteractionType interactionType, string requestedInteractionId,
         string verb, AdmissionTracker admission)
     {
+        if (interactionType == InteractionType.FillBottle &&
+            world.Entities.Objects.TryGetValue(targetId, out var legacyTarget) &&
+            world.Content.ObjectDefinitions.TryGetValue(legacyTarget.DefinitionId, out var legacyDefinition) &&
+            legacyDefinition.HasTag("Campfire"))
+        {
+            Reject(world, npc.Id, verb, "RetiredInteraction", admission);
+            return false;
+        }
         // Правило 2: объект берётся из МИРА, а не из npc.Perception.
         if (!world.Entities.Objects.TryGetValue(targetId, out var worldObject))
         {

@@ -259,6 +259,17 @@ public sealed class McpTools
                     "вид: CallForHelp/TreatSelf/GroundSit/GroundSleep/Bathe/WashClothes/" +
                     "EatFromPack/DrinkFromPack", true))),
 
+        new("merge_camps",
+            "Добровольно объединить два женских лагеря (§146.12), включая всех их жителей. " +
+            "useTargetCamp=false оставляет общий дом в лагере npcId, true — в лагере targetNpcId. " +
+            "Нужно подойти для разговора; обе направленные Affinity строго выше 0.50. " +
+            "Нельзя пригласить бессознательную, лежащую, переносимую или сражающуюся NPC. " +
+            "Это не принудительный перевод одной девушки: отказы TargetUnavailable, " +
+            "RelationshipTooLow, TooFarToTalk сохраняют мир без изменений.",
+            Schema(("npcId", "integer", "кто предлагает объединение", true),
+                   ("targetNpcId", "integer", "кому предлагает", true),
+                   ("useTargetCamp", "boolean", "true — её дом; false — наш дом (по умолчанию)", false))),
+
         new("carry_person",
             "Взять на руки лежащую (или свою — и стоящую) колонистку (§124). Руки должны " +
             "быть свободны.",
@@ -382,6 +393,13 @@ public sealed class McpTools
                 }
 
                 case "self_action": return SelfAction(host, arguments, owner, out isError);
+                case "merge_camps":
+                {
+                    var target = new EntityId(Int(arguments, "targetNpcId"));
+                    var useTargetCamp = Bool(arguments, "useTargetCamp", false);
+                    return Simple(host, arguments, owner,
+                        npc => new MergeCampsCommand(npc, target, useTargetCamp), out isError);
+                }
                 case "carry_person":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));

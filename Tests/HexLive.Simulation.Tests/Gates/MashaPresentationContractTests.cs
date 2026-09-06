@@ -97,6 +97,8 @@ public sealed class MashaPresentationContractTests
     public void RecordingOverlayAndQueueDoNotDependOnModelOrSpeechPhase()
     {
         var panel = Read("Assets", "HexLive", "UnityPresentation", "UI", "CharacterPanel.AgentVoice.cs");
+        var overlay = Read("Assets", "HexLive", "UnityPresentation", "UI", "PlayerVoiceCaptureOverlay.cs");
+        var admin = Read("Assets", "HexLive", "UnityPresentation", "UI", "AdminVoicePanel.cs");
         var eligible = panel.Split("private bool VoiceEligible()")[1].Split("private bool CaptureStillEligible()")[0];
         Assert.Multiple(() =>
         {
@@ -104,7 +106,10 @@ public sealed class MashaPresentationContractTests
             Assert.That(eligible, Does.Not.Contain("_sttInFlight"));
             Assert.That(eligible, Does.Not.Contain("_preparedAgentSpeech"));
             Assert.That(eligible, Does.Not.Contain("_agentVoiceUiState"));
-            Assert.That(panel, Does.Contain("new Button(FinishAgentCapture)"));
+            Assert.That(panel, Does.Contain("new PlayerVoiceCaptureOverlay(_root, FinishAgentCapture"));
+            Assert.That(admin, Does.Contain("new PlayerVoiceCaptureOverlay(doc.rootVisualElement, FinishCapture"));
+            Assert.That(overlay, Does.Contain("new Button(finish)"));
+            Assert.That(overlay, Does.Contain("capture.Level"));
             Assert.That(panel, Does.Contain("_activePlayerInput.AttachmentId"));
             Assert.That(panel, Does.Contain("token.ExpiresUtcMilliseconds"));
             Assert.That(panel, Does.Contain("_capturedPlayerInputs.Clear()"));

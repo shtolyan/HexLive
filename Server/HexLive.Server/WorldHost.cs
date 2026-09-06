@@ -273,6 +273,18 @@ public sealed class WorldHost : IDisposable
     /// Turns on the §144.6 chronicle mirror. Called from the composition root
     /// when <c>--mcp</c> is present.
     /// </summary>
+    // §161: callers must authenticate through AdminCommandBus before entering here.
+    internal AdminCommandResult SubmitAdminCommand(AdminCommand command)
+    {
+        lock (_gate)
+        {
+            var result = AdminWorldCommands.Execute(_engine.World, command);
+            _snapshotTick = -1;
+            DrainMcpEvents();
+            return result;
+        }
+    }
+
     public void EnableMcpEventLog()
     {
         lock (_gate)
@@ -728,28 +740,30 @@ public sealed class WorldHost : IDisposable
             WorldSaveSerializer.Write(_engine.World, writer);
             writer.Flush();
             blob = stream.ToArray();
-        }
+            // §161: serialize writes with world mutations; an older autosave must
+            // never replace a just-acknowledged admin save or share its temp file.
 
-        var directory = Path.GetDirectoryName(_savePath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+            var directory = Path.GetDirectoryName(_savePath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
 
-        var temp = _savePath + ".tmp";
-        using (var file = File.Create(temp))
-        using (var writer = new BinaryWriter(file))
-        {
-            writer.Write(SaveMagic);
-            writer.Write(SaveVersion);
-            writer.Write(Seed);
-            writer.Write((int)Mode); // §146.2 (v2) — beside the seed, same rule
-            writer.Write(tick);
-            writer.Write(blob.Length);
-            writer.Write(blob);
-        }
+            var temp = _savePath + ".tmp";
+            using (var file = File.Create(temp))
+            using (var writer = new BinaryWriter(file))
+            {
+                writer.Write(SaveMagic);
+                writer.Write(SaveVersion);
+                writer.Write(Seed);
+                writer.Write((int)Mode); // §146.2 (v2) — beside the seed, same rule
+                writer.Write(tick);
+                writer.Write(blob.Length);
+                writer.Write(blob);
+            }
 
-        File.Move(temp, _savePath, overwrite: true);
+            File.Move(temp, _savePath, overwrite: true);
+        }
     }
 
     private const int SaveMagic = unchecked((int)0x48584C53); // "HXLS" — server save

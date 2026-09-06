@@ -53,6 +53,8 @@ public sealed class ViewerConnection
     // Совсем мелочь (пинги, часы, пустые дельты) по-прежнему не трогаем.
     private const int CompressThresholdBytes = 1024;
 
+    private readonly GodMode.AdminViewerProtocol? _admin;
+    private readonly PlayerCharacterAssignments? _currentAssignments;
     private readonly WorldHost _host;
     private readonly WebSocket _socket;
     private readonly string _simData;
@@ -84,9 +86,11 @@ public sealed class ViewerConnection
         string? controlOwner = null, ControlLeases? leases = null,
         IReadOnlyList<int>? assignedNpcIds = null, bool compress = false,
         AgentSessionRegistry? agentSessions = null, int worldGeneration = 0,
-        DeepgramTokenBroker? deepgram = null, string? viewerId = null)
+        DeepgramTokenBroker? deepgram = null, string? viewerId = null, GodMode.AdminViewerProtocol? admin = null, PlayerCharacterAssignments? currentAssignments = null)
     {
         _host = host;
+        _admin = admin;
+        _currentAssignments = currentAssignments;
         _socket = socket;
         _simData = simData;
         _includeDebugDetails = includeDebugDetails;
@@ -341,6 +345,25 @@ public sealed class ViewerConnection
                     continue;
                 }
 
+                if (buffer[0] == (byte)FrameKind.AdminInput)
+                {
+                    if (!result.EndOfMessage)
+                    { await DrainOversizedMessageAsync(buffer, cancel).ConfigureAwait(false); continue; }
+                    if (_admin != null && ControlEnabled && result.EndOfMessage &&
+                        result.Count <= AdminWire.MaxBytes + 1 && TakeRateToken())
+                    {
+                        var payload = new byte[result.Count - 1];
+                        Buffer.BlockCopy(buffer, 1, payload, 0, payload.Length);
+                        try
+                        {
+                            var reply = await _admin.Handle(_controlOwner!.Substring(3), AdminWire.Decode(payload), cancel);
+                            await SendAsync(AdminWire.Encode(reply, true), cancel).ConfigureAwait(false);
+                        }
+                        catch (InvalidDataException) { }
+                    }
+                    continue;
+                }
+
                 if (buffer[0] == (byte)FrameKind.SttTokenRequest)
                 {
                     await HandleSttTokenRequestAsync(buffer, result, cancel).ConfigureAwait(false);
@@ -555,6 +578,9 @@ public sealed class ViewerConnection
 
     private bool TryMapLease(ISimulationCommand command, out string refusal)
     {
+        if (_currentAssignments != null && _assignedNpcIds != null && _controlOwner != null)
+            _assignedNpcIds.RemoveWhere(id => !_currentAssignments.StillAssigned(_controlOwner.Substring(3), id));
+
         if (_agentSessions != null)
         {
             if (command is IGroupSimulationCommand group)

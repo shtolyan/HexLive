@@ -238,6 +238,28 @@ public static class Program
         app.UseResponseCompression();
         app.UseWebSockets();
 
+        var adminAccess = new GodMode.AdminAccess(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "hexlive-admin-clients.json"));
+        var adminBus = new GodMode.AdminCommandBus(worlds, adminAccess,
+            Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "admin-receipts")) { Assignments = playerAssignments, Leases = controlLeases, Agents = agentSessions };
+        var adminHub = new GodMode.AdminAgentHub(adminAccess, adminBus, worlds);
+        var adminViewer = new GodMode.AdminViewerProtocol(adminAccess, adminBus, adminHub, deepgram);
+        var adminAgentToken = Environment.GetEnvironmentVariable("HEXLIVE_ADMIN_AGENT_TOKEN") ?? "";
+        if (adminAgentToken.Length >= 32)
+        {
+            worlds.Host.EnableMcpEventLog();
+            worlds.WorldSwapped += () => worlds.Host.EnableMcpEventLog();
+            app.Use(async (context, next) =>
+            {
+                var supplied = context.Request.Headers.Authorization.ToString();
+                if (context.Request.Path == "/mcp" && supplied.StartsWith("Bearer ", StringComparison.Ordinal) &&
+                    System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                        System.Text.Encoding.UTF8.GetBytes(supplied.Substring(7)), System.Text.Encoding.UTF8.GetBytes(adminAgentToken)))
+                    await GodMode.AdminMcpEndpoint.Handle(context, adminHub);
+                else await next(context);
+            });
+        }
+        GodMode.AdminAccessEndpoints.Map(app, adminAccess, sessions, adminBus);
+
         app.Map("/watch", async context =>
         {
             if (!context.WebSockets.IsWebSocketRequest)
@@ -300,7 +322,7 @@ public static class Program
                 options.McpEnabled ? agentSessions : null,
                 viewerSession.WorldGeneration,
                 controlOwner is null ? null : deepgram,
-                Guid.NewGuid().ToString("N"));
+                Guid.NewGuid().ToString("N"), adminViewer, playerAssignments);
             try
             {
                 await viewer.RunAsync(viewerSession.Lifetime);

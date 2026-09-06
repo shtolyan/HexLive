@@ -1,0 +1,10 @@
+.admin-root { position: absolute; right: 12px; top: 84px; width: 380px; color: rgb(233, 239, 242); }
+.admin-body { background-color: rgba(20, 27, 32, 0.97); border-color: rgb(75, 96, 105); border-width: 1px; padding: 12px; border-radius: 8px; }
+.admin-body Label { white-space: normal; margin-bottom: 8px; }
+.admin-body TextField { margin-bottom: 8px; }
+.admin-body Button { min-height: 30px; margin-bottom: 6px; }
+.admin-hidden { display: none; }
+.admin-reply { max-height: 320px; }
+
+.admin-microphone { flex-direction: row; align-items: center; justify-content: center; }
+.admin-microphone-icon { width: 22px; height: 22px; margin-right: 8px; }

@@ -223,6 +223,7 @@ through colony days for <em>everyone</em> watching and multiplies the stream eve
 Connected clients cannot do it — only this panel can.</p></div>");
 
         body.Append("<h2>Account</h2><div class='card'>");
+        body.Append("<p><a href='/admin/voice'>Voice administrator access and history</a></p>");
         body.Append("<form method='post' action='/admin/password'>")
             .Append("<label>Change password</label>")
             .Append("<input type='password' name='password' autocomplete='new-password' placeholder='at least 10 characters'>")

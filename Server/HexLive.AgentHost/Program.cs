@@ -26,7 +26,9 @@ try
         shutdown.Cancel();
     };
     AppDomain.CurrentDomain.ProcessExit += (_, _) => shutdown.Cancel();
-    var runtime = new AgentHostRuntime(options);
+    var providers = new KnowledgeAwareAgentProviders(new AgentProviders(options.ProviderOptions),
+        new McpClient(options.ProviderOptions));
+    var runtime = new AgentHostRuntime(options, providers);
     await runtime.RunAsync(shutdown.Token);
 }
 catch (OperationCanceledException) { }

@@ -103,7 +103,10 @@ public enum PlanStepType
     PlayerGiveToContainer,
     // §55.4 (bug #317) append-only: перелить воду вскрытых кокосов инвентаря
     // в личную бутылку — на месте, небыстро (FillVesselDurationTicks).
-    FillVessel
+    FillVessel,
+    PlayerTakeAndWearCarried,
+    PlayerTakeAndWearWorn,
+    PlayerTakeAndWearFromContainer
 }
 
 public enum PlanStatus

@@ -79,7 +79,8 @@ internal static class PlayerInventoryTransferMath
         NPCState source,
         NPCState destination,
         InventoryItemRef itemRef,
-        int count)
+        int count,
+        bool wear = false)
     {
         if (!TryResolveTransfer(
                 world, source, itemRef, count, out var moving, out var contents))
@@ -126,8 +127,35 @@ internal static class PlayerInventoryTransferMath
 
         return PlayerInventoryMath.FitsProjected(
                    world, source, sourceCarried, sourceWorn) &&
-               PlayerInventoryMath.FitsProjected(
-                   world, destination, destinationCarried, destinationWorn);
+               (wear
+                   ? moving.Count == 1 && CanWearIncoming(world, destination, moving[0], contents)
+                   : PlayerInventoryMath.FitsProjected(
+                       world, destination, destinationCarried, destinationWorn));
+    }
+
+    internal static bool CanWearIncoming(WorldState world, NPCState npc, ItemInstance item,
+        IReadOnlyList<ItemInstance> contents = null)
+    {
+        if (npc.Mind.OutfitLocked ||
+            !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) ||
+            definition.Layer is null) return false;
+        var carried = new List<ItemInstance>(npc.Inventory.Items);
+        if (contents is not null)
+            foreach (var content in contents)
+                if (!ReferenceEquals(content, item)) carried.Add(content);
+        var worn = new List<ItemInstance>(npc.WornItems);
+        for (var i = worn.Count - 1; i >= 0; i--)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(worn[i].DefinitionId, out var existing) &&
+                WearSlotCatalog.Occupies(definition, existing))
+            {
+                carried.Add(worn[i]);
+                worn.RemoveAt(i);
+            }
+        }
+        worn.Add(item);
+        return PlayerInventoryMath.FitsProjected(world, npc, carried, worn) ||
+            ExecutionSystem.TryFindDropSpotAtFeet(world, npc, underFoot: true, out _, out _);
     }
 
     internal static void MoveResolved(
@@ -136,8 +164,25 @@ internal static class PlayerInventoryTransferMath
         NPCState destination,
         InventoryItemRef itemRef,
         IReadOnlyList<ItemInstance> moving,
-        IReadOnlyList<ItemInstance> contents)
+        IReadOnlyList<ItemInstance> contents,
+        bool wear = false)
     {
+        if (wear)
+        {
+            var sourceItems = itemRef.Source == InventoryItemSource.Worn
+                ? source.WornItems : source.Inventory.Items;
+            InventoryMath.RemoveReference(sourceItems, moving[0]);
+            destination.Inventory.Items.Add(moving[0]);
+            foreach (var item in contents)
+            {
+                InventoryMath.RemoveReference(source.Inventory.Items, item);
+                destination.Inventory.Items.Add(item);
+            }
+            EquipmentMath.Recalculate(world, source);
+            ExecutionSystem.WearCarriedItem(world, destination, moving[0]);
+            return;
+        }
+
         if (itemRef.Source == InventoryItemSource.Worn)
         {
             InventoryMath.RemoveReference(source.WornItems, moving[0]);

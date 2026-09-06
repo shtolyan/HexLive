@@ -124,8 +124,11 @@ public sealed class LootTransferUiContractTests
             Assert.That(panel, Does.Contain("DoubleClickWatch _doubleClick"));
             Assert.That(panel, Does.Contain("ManageInventoryCommand("),
                 "Надеть/снять в окне обмена идёт штатным приказом §123.");
-            Assert.That(panel, Does.Contain("_autoWearDefinitionId"),
-                "Забранная носимая вещь доводится до надетой отложенным Wear.");
+            Assert.That(panel, Does.Contain("InventoryTransferDirection.TakeAndWear"),
+                "Носимая вещь забирается и надевается одной авторитетной командой.");
+            Assert.That(panel, Does.Contain("ExecuteTransfer(_looterId, item, 1, wear: true)"));
+            Assert.That(panel, Does.Not.Contain("_autoWearDefinitionId"),
+                "Нет ожидания свободной ячейки и выбора экземпляра только по definition id.");
 
             Assert.That(character, Does.Contain("InventoryQuickActions.Resolve("));
             Assert.That(character, Does.Contain("TryInventoryQuickAction("));

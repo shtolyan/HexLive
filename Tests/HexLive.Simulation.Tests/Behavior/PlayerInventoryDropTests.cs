@@ -3,6 +3,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -81,8 +82,9 @@ public sealed class PlayerInventoryDropTests
         var definition = new ObjectDefinition { Id = id, DisplayName = id, Layer = WearLayer.Wear };
         definition.Covers.Add(BodyPart.Torso);
         world.Content.ObjectDefinitions[id] = definition;
-        var garment = WorldObjectMutations.SpawnObject(world, id, npc.Fragment, npc.Tile,
-            npc.CurrentJunction!.Value);
+        var anchor = world.Junctions.Items.Values.First(j => !j.Blocked && j.Fragment == npc.Fragment);
+        var garment = WorldObjectMutations.SpawnObject(world, id, anchor.Fragment, anchor.Tiles[0],
+            anchor.Id);
         garment.Owner = colony[1].Id;
         var dressed = ExecutionSystem.CompleteDress(world, npc, garment, definition,
             new InteractionDefinition { Type = InteractionType.Dress }, "");

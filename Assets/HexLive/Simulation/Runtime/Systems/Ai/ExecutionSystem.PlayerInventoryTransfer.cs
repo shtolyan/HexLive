@@ -25,9 +25,12 @@ public sealed partial class ExecutionSystem
         var step = looter.Plan.Steps[^1];
         PlayerInventoryTransferMath.UnpackCursor(
             step.TimeoutEndTick ?? 0, out var index, out var count);
-        var take = step.Type is PlanStepType.PlayerTakeCarried or
+        var wear = step.Type is PlanStepType.PlayerTakeAndWearCarried or
+            PlanStepType.PlayerTakeAndWearWorn;
+        var take = wear || step.Type is PlanStepType.PlayerTakeCarried or
             PlanStepType.PlayerTakeWorn;
         var itemSource = step.Type is PlanStepType.PlayerTakeWorn or
+            PlanStepType.PlayerTakeAndWearWorn or
             PlanStepType.PlayerGiveWorn
                 ? InventoryItemSource.Worn
                 : InventoryItemSource.Carried;
@@ -110,14 +113,14 @@ public sealed partial class ExecutionSystem
         }
 
         if (!PlayerInventoryTransferMath.FitsAfter(
-                world, source, destination, itemRef, count))
+                world, source, destination, itemRef, count, wear))
         {
             FailPlayerInventoryTransfer(world, looter, "InsufficientSpace");
             return;
         }
 
         PlayerInventoryTransferMath.MoveResolved(
-            world, source, destination, itemRef, moving, contents);
+            world, source, destination, itemRef, moving, contents, wear);
 
         if (take && world.Entities.Npcs.ContainsKey(other.Id) &&
             looter.Faction != other.Faction)

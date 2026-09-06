@@ -930,7 +930,8 @@ public sealed class FillVesselCommand : ISimulationCommand
 public enum InventoryTransferDirection
 {
     Take,
-    Give
+    Give,
+    TakeAndWear
 }
 
 /// <summary>

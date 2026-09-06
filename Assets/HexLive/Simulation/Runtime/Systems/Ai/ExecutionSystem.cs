@@ -113,6 +113,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[^1].Type is
                 PlanStepType.PlayerTakeCarried or
                 PlanStepType.PlayerTakeWorn or
+                PlanStepType.PlayerTakeAndWearCarried or
+                PlanStepType.PlayerTakeAndWearWorn or
                 PlanStepType.PlayerGiveCarried or
                 PlanStepType.PlayerGiveWorn)
             {
@@ -124,6 +126,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             // тут не человек, а объект мира.
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[^1].Type is
                 PlanStepType.PlayerTakeFromContainer or
+                PlanStepType.PlayerTakeAndWearFromContainer or
                 PlanStepType.PlayerGiveToContainer)
             {
                 RunPlayerContainerTransfer(world, npc);

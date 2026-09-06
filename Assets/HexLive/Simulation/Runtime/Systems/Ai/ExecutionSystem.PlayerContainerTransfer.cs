@@ -54,7 +54,8 @@ public sealed partial class ExecutionSystem
         var step = looter.Plan.Steps[^1];
         PlayerInventoryTransferMath.UnpackCursor(
             step.TimeoutEndTick ?? 0, out var slotIndex, out var count);
-        var take = step.Type == PlanStepType.PlayerTakeFromContainer;
+        var wear = step.Type == PlanStepType.PlayerTakeAndWearFromContainer;
+        var take = wear || step.Type == PlanStepType.PlayerTakeFromContainer;
         var expected = looter.Plan.TargetItemDefinitionId ?? string.Empty;
 
         if (take)
@@ -69,7 +70,9 @@ public sealed partial class ExecutionSystem
                 return;
             }
 
-            if (!ContainerLootMath.FitsInLooter(world, looter, moving))
+            if (wear
+                ? moving.Count == 0 || !PlayerInventoryTransferMath.CanWearIncoming(world, looter, moving[0], moving)
+                : !ContainerLootMath.FitsInLooter(world, looter, moving))
             {
                 FailContainerTransfer(world, looter, "InsufficientSpace");
                 return;
@@ -77,6 +80,7 @@ public sealed partial class ExecutionSystem
 
             ContainerLootMath.TakeFromContainer(
                 world, container, looter, moving, groundSources);
+            if (wear) WearCarriedItem(world, looter, moving[0]);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, looter.Id, "ContainerTransferred",

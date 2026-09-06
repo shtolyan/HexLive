@@ -2186,7 +2186,7 @@ internal static class ManualCommandExecutor
         }
 
         if (command.Direction is not InventoryTransferDirection.Take and
-            not InventoryTransferDirection.Give)
+            not InventoryTransferDirection.Give and not InventoryTransferDirection.TakeAndWear)
         {
             Reject(world, looter.Id, "TransferInventory", "InvalidDirection", admission);
             return;
@@ -2207,7 +2207,9 @@ internal static class ManualCommandExecutor
         // §146.12: an explicit player order uses the same moral boundary as
         // autonomous looting. Own camp/corpses keep §128 semantics; a living
         // neutral neighbour needs hate or desperate hunger.
-        if (command.Direction == InventoryTransferDirection.Take &&
+        var wear = command.Direction == InventoryTransferDirection.TakeAndWear;
+        var take = command.Direction != InventoryTransferDirection.Give;
+        if (take &&
             world.Entities.Npcs.ContainsKey(other.Id) &&
             looter.Faction != other.Faction &&
             !CampDiplomacyMath.CanLoot(world, looter, other))
@@ -2216,13 +2218,13 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        var source = command.Direction == InventoryTransferDirection.Take ? other : looter;
-        var destination = command.Direction == InventoryTransferDirection.Take ? looter : other;
+        var source = take ? other : looter;
+        var destination = take ? looter : other;
         if (!PlayerInventoryTransferMath.TryResolveTransfer(
                 world, source, command.Item, command.Count,
                 out var selectedItems, out _) ||
             !PlayerInventoryTransferMath.FitsAfter(
-                world, source, destination, command.Item, command.Count))
+                world, source, destination, command.Item, command.Count, wear))
         {
             Reject(world, looter.Id, "TransferInventory", "StaleOrNoSpace", admission);
             return;
@@ -2291,6 +2293,10 @@ internal static class ManualCommandExecutor
 
         var stepType = (command.Direction, command.Item.Source) switch
         {
+            (InventoryTransferDirection.TakeAndWear, InventoryItemSource.Carried) =>
+                PlanStepType.PlayerTakeAndWearCarried,
+            (InventoryTransferDirection.TakeAndWear, InventoryItemSource.Worn) =>
+                PlanStepType.PlayerTakeAndWearWorn,
             (InventoryTransferDirection.Take, InventoryItemSource.Carried) =>
                 PlanStepType.PlayerTakeCarried,
             (InventoryTransferDirection.Take, InventoryItemSource.Worn) =>
@@ -2345,7 +2351,7 @@ internal static class ManualCommandExecutor
         }
 
         if (command.Direction is not InventoryTransferDirection.Take and
-            not InventoryTransferDirection.Give)
+            not InventoryTransferDirection.Give and not InventoryTransferDirection.TakeAndWear)
         {
             Reject(world, looter.Id, "TransferContainer", "InvalidDirection", admission);
             return;
@@ -2362,7 +2368,9 @@ internal static class ManualCommandExecutor
 
         ItemInstance selectedItem;
         ObjectId? selectedWorldObject = null;
-        if (command.Direction == InventoryTransferDirection.Take)
+        var wear = command.Direction == InventoryTransferDirection.TakeAndWear;
+        var take = command.Direction != InventoryTransferDirection.Give;
+        if (take)
         {
             if (!ContainerLootMath.TryResolve(
                     world, container, command.SlotIndex,
@@ -2374,6 +2382,13 @@ internal static class ManualCommandExecutor
             }
 
             selectedItem = selected[0];
+            if (wear && (command.Count != 1 ||
+                !PlayerInventoryTransferMath.CanWearIncoming(world, looter, selectedItem, selected)))
+            {
+                Reject(world, looter.Id, "TransferContainer",
+                    looter.Mind.OutfitLocked ? "OutfitLocked" : "StaleOrNoSpace", admission);
+                return;
+            }
             if (groundSources.Count > 0)
             {
                 selectedWorldObject = groundSources[0];
@@ -2461,8 +2476,8 @@ internal static class ManualCommandExecutor
         looter.Execution.TargetInventoryWorldObject = selectedWorldObject;
         looter.Plan.Steps.Add(new PlanStep
         {
-            Type = command.Direction == InventoryTransferDirection.Take
-                ? PlanStepType.PlayerTakeFromContainer
+            Type = wear ? PlanStepType.PlayerTakeAndWearFromContainer
+                : take ? PlanStepType.PlayerTakeFromContainer
                 : PlanStepType.PlayerGiveToContainer,
             TargetObject = container.Id,
             TimeoutEndTick = PlayerInventoryTransferMath.PackCursor(

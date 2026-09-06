@@ -92,6 +92,13 @@ public sealed class CommandCodecCoverageGateTests
             new EntityId(37), new ObjectId(73), slotIndex: 5,
             expectedDefinitionId: "item.bandage", count: 2,
             InventoryTransferDirection.Take),
+        new TransferInventoryCommand(
+            new EntityId(36), new EntityId(63),
+            new InventoryItemRef(InventoryItemSource.Worn, 2, "underwear.bra"),
+            1, InventoryTransferDirection.TakeAndWear),
+        new TransferContainerCommand(
+            new EntityId(37), new ObjectId(73), 5, "underwear.bra", 1,
+            InventoryTransferDirection.TakeAndWear),
         new PreyPersonCommand(new EntityId(38), new EntityId(83)),
         new AbusePersonCommand(new EntityId(39), new EntityId(84)),
         new PlaceBuildingPlanCommand(new TileCoord(4, -6), rotationDegrees: 120f),

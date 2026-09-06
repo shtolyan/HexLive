@@ -96,12 +96,6 @@ public sealed class LootTransferPanel : MonoBehaviour
     // прямо посреди жеста. Читать его продолжаем, дерево — не трогаем.
     private bool _rebuildDeferred;
 
-    // §128.4: единственное отложенное действие панели — довести забранную
-    // носимую вещь до надетой, когда она доедет в переноску получателя.
-    private string _autoWearDefinitionId = string.Empty;
-    private int _autoWearDeadlineTick = -1;
-    private int _autoWearBaseline;
-
     private readonly List<VisualElement> _slotCells = new();
     private readonly List<VisualElement> _slotIcons = new();
     private readonly List<Label> _slotBadges = new();
@@ -123,10 +117,6 @@ public sealed class LootTransferPanel : MonoBehaviour
     // след прежнего поведения и намеренно не используется.
     private const int MaxDensityTier = 1;
     private const float GhostSize = 40f;
-
-    // §128.4: окно, в течение которого «забрал носимое» доводится до «надел».
-    // 40 тиков ≈ 10 секунд — этого хватает на подход и передачу.
-    private const int AutoWearWindowTicks = 40;
 
     private static readonly Color Text = new(0.906f, 0.925f, 0.937f);
     private static readonly Color TextDim = new(0.655f, 0.702f, 0.733f);
@@ -260,7 +250,6 @@ public sealed class LootTransferPanel : MonoBehaviour
         _pending = false;
         _statusHeld = false;
         _rebuildDeferred = false;
-        ClearAutoWear();
         _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
@@ -297,7 +286,6 @@ public sealed class LootTransferPanel : MonoBehaviour
         _pending = false;
         _statusHeld = false;
         _rebuildDeferred = false;
-        ClearAutoWear();
         _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
@@ -601,7 +589,6 @@ public sealed class LootTransferPanel : MonoBehaviour
             var containerSignature =
                 PersonSignature(looter) + "<>" + ContainerSignature(container);
             UpdatePendingStatus(snapshot, looter, containerSignature);
-            TryFinishAutoWear(looter, containerSignature);
             if (!force && containerSignature == _signature) return;
             if (_dragPrepared)
             {
@@ -629,7 +616,6 @@ public sealed class LootTransferPanel : MonoBehaviour
 
         var signature = PersonSignature(looter) + "<>" + PersonSignature(other);
         UpdatePendingStatus(snapshot, looter, signature);
-        TryFinishAutoWear(looter, signature);
 
         if (!force && signature == _signature) return;
         // §128.1a: раскладку во время жеста не трогаем — иначе нажатая ячейка
@@ -1208,13 +1194,13 @@ public sealed class LootTransferPanel : MonoBehaviour
             _quantityOverlay.style.display = DisplayStyle.None;
     }
 
-    private void ExecuteTransfer(int destinationId, DragItem item, int count)
+    private void ExecuteTransfer(int destinationId, DragItem item, int count, bool wear = false)
     {
         _drag = item;
         if (destinationId == item.OwnerId || _runner == null) return;
 
         var direction = item.OwnerId == _otherId && destinationId == _looterId
-            ? InventoryTransferDirection.Take
+            ? (wear ? InventoryTransferDirection.TakeAndWear : InventoryTransferDirection.Take)
             : InventoryTransferDirection.Give;
 
         // §128.5: справа вещь — другой приказ. Сторону жест уже определил выше:
@@ -1265,8 +1251,10 @@ public sealed class LootTransferPanel : MonoBehaviour
                     break;
                 }
 
-                DropOn(_looterId, item);
-                ArmAutoWear(item);
+                if (InventoryQuickActions.IsWearable(_runner, item.DefinitionId))
+                    ExecuteTransfer(_looterId, item, 1, wear: true);
+                else
+                    DropOn(_looterId, item);
                 break;
             case InventoryQuickAction.Wear:
                 EnqueueManage(item, InventoryAction.Wear, "loot.equipping");
@@ -1286,7 +1274,6 @@ public sealed class LootTransferPanel : MonoBehaviour
             new HexLive.Simulation.Common.EntityId(_looterId),
             new InventoryItemRef(item.Source, item.Index, item.DefinitionId),
             action));
-        ClearAutoWear();
         MarkPending();
         _status.text = Loc.Get(statusTerm);
     }
@@ -1297,74 +1284,6 @@ public sealed class LootTransferPanel : MonoBehaviour
         _pendingTick = _lastTick;
         _pendingSignature = _signature;
         _status.text = Loc.Get("loot.transferring");
-    }
-
-    /// <summary>§128.4: надетая вещь приезжает уже надетой (§128.2), доводить
-    /// нечего. Носимая из чужих карманов приезжает в переноску — её и надеваем,
-    /// как только она там появится.</summary>
-    private void ArmAutoWear(DragItem item)
-    {
-        ClearAutoWear();
-        if (item.Source != InventoryItemSource.Carried || _runner == null ||
-            !InventoryQuickActions.IsWearable(_runner, item.DefinitionId))
-        {
-            return;
-        }
-
-        var snapshot = _runner.CreateSnapshot();
-        var looter = snapshot == null ? null : FindNpc(snapshot, _looterId);
-        if (looter == null) return;
-        _autoWearDefinitionId = item.DefinitionId;
-        _autoWearBaseline = CountCarried(looter, item.DefinitionId, out _);
-        _autoWearDeadlineTick = _lastTick + AutoWearWindowTicks;
-    }
-
-    private void TryFinishAutoWear(NpcSnapshot looter, string signature)
-    {
-        if (_autoWearDefinitionId.Length == 0 || _runner == null) return;
-        if (_lastTick > _autoWearDeadlineTick)
-        {
-            ClearAutoWear();
-            return;
-        }
-
-        var count = CountCarried(looter, _autoWearDefinitionId, out var index);
-        if (count <= _autoWearBaseline || index < 0) return;
-
-        _runner.EnqueueCommand(new ManageInventoryCommand(
-            new HexLive.Simulation.Common.EntityId(_looterId),
-            new InventoryItemRef(InventoryItemSource.Carried, index, _autoWearDefinitionId),
-            InventoryAction.Wear));
-        ClearAutoWear();
-        _pending = true;
-        _pendingTick = _lastTick;
-        _pendingSignature = signature;
-        _status.text = Loc.Get("loot.equipping");
-    }
-
-    private static int CountCarried(
-        NpcSnapshot npc, string definitionId, out int firstSourceIndex)
-    {
-        firstSourceIndex = -1;
-        var count = 0;
-        foreach (var container in npc.InventoryContainers)
-        {
-            foreach (var slot in container.Slots)
-            {
-                if (slot.ItemDefinitionId != definitionId || slot.SourceIndex < 0) continue;
-                count++;
-                if (firstSourceIndex < 0) firstSourceIndex = slot.SourceIndex;
-            }
-        }
-
-        return count;
-    }
-
-    private void ClearAutoWear()
-    {
-        _autoWearDefinitionId = string.Empty;
-        _autoWearDeadlineTick = -1;
-        _autoWearBaseline = 0;
     }
 
     private void ShowGhost(string definitionId)
@@ -1577,7 +1496,6 @@ public sealed class LootTransferPanel : MonoBehaviour
         IsOpen = false;
         _rebuildDeferred = false;
         HideQuantityPicker();
-        ClearAutoWear();
         _doubleClick.Reset();
         ClearDrag();
         PointerOverPanel = false;

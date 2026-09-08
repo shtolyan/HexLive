@@ -11,7 +11,7 @@ Windows Player она не собирает.
 - Unity: `6000.4.5f1`.
 - Платформа: `StandaloneWindows64`.
 - Runtime profile: `unity6000-content1`.
-- Production API: `http://62.146.235.120:5123/api/assets/v1`.
+- Production API: `https://163-245-204-96.sslip.io/api/assets/v1`.
 - Production service: `hexlive.service`.
 - Production asset root: `/var/lib/hexlive/assets`.
 - Production publisher: `/opt/hexlive/current/HexLive.Server`.
@@ -26,8 +26,21 @@ Baseline — commit из `master`, из которого собран текущ
 Текущий baseline включает reference-only repair native prefab `tool.bottle` для
 Unity 6000.4.5f1: геометрия и metadata существующего macOS-варианта не менялись.
 
-Эта инструкция работает только с production `hexlive.service` на порту `5123`.
-Не подменять приведённые service, port, API или filesystem paths другими.
+Эта инструкция работает только с production `hexlive.service` за TLS-хостом
+`163-245-204-96.sslip.io`. Прямой порт `5123` закрыт файрволом.
+
+Windows SSH config должен содержать отдельный ограниченный алиас:
+
+```sshconfig
+Host hexlive-content-nyc
+    HostName 163.245.204.96
+    User hexlive-content
+    IdentityFile ~/.ssh/hexlive_windows_content_ed25519
+    IdentitiesOnly yes
+```
+
+Приватный ключ не хранится в репозитории. Сервер принимает его публичную часть
+и разрешает только штатные команды staging/publish из `Tools/content.py`.
 
 ## Что нельзя делать
 
@@ -110,10 +123,7 @@ Get-Content ProjectSettings\ProjectVersion.txt
 ## 2. Проверить production до сборки
 
 ```powershell
-ssh -o BatchMode=yes hexlive-server `
-  "systemctl is-active hexlive.service; readlink -f /opt/hexlive/current; df -h /var/lib/hexlive /tmp"
-
-$ProdApi = 'http://62.146.235.120:5123/api/assets/v1'
+$ProdApi = 'https://163-245-204-96.sslip.io/api/assets/v1'
 $MacBefore = Invoke-RestMethod `
   "$ProdApi/index/StandaloneOSX/unity6000-content1"
 $WinBefore = Invoke-RestMethod `
@@ -249,7 +259,7 @@ profiles: {'unity6000-content1': 2725}
 ```powershell
 py -3 Tools\content.py publish-all `
   --input $AtomicOutput `
-  --host hexlive-server `
+  --host hexlive-content-nyc `
   --required-platform StandaloneWindows64 `
   --remote-root /var/lib/hexlive/assets `
   --remote-user hexlive `
@@ -336,8 +346,7 @@ foreach ($Id in @(
 Проверить, что world server продолжает работать:
 
 ```powershell
-ssh hexlive-server "systemctl is-active hexlive.service"
-Invoke-WebRequest 'http://62.146.235.120:5123/' -UseBasicParsing
+Invoke-WebRequest 'https://163-245-204-96.sslip.io/' -UseBasicParsing
 ```
 
 Итоговый отчёт должен содержать:

@@ -214,6 +214,13 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     }
 
     public string AdminClientId => (_backend as IAdminSimulationSource)?.AdminClientId ?? string.Empty;
+    public void SendAgentPairing(string id, string code, bool approve) =>
+        (_backend as Remote.RemoteSocketBackend)?.SendAgentPairing(id, code, approve);
+    public bool TryTakeAgentPairing(out (string Id, string Text, bool Approved) result)
+    {
+        if (_backend is Remote.RemoteSocketBackend remote) return remote.TryTakeAgentPairing(out result);
+        result = default; return false;
+    }
     public string AdminServer => (_backend as IAdminSimulationSource)?.AdminServer ?? string.Empty;
     public void SendAdmin(string json) => (_backend as IAdminSimulationSource)?.SendAdmin(json);
     public bool TryTakeAdminResult(out string json)

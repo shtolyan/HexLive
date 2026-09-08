@@ -309,6 +309,9 @@ public sealed class PlayerCharacterAssignments
     {
         lock (_gate) { foreach (var p in _players) p.NpcIds.Remove(npcId); Save(); }
     }
+    internal int[] AdminAssignedIds(string client)
+    { lock (_gate) return _players.Where(p => p.PlayerId == client).SelectMany(p => p.NpcIds).Distinct().ToArray(); }
+
     internal bool StillAssigned(string playerId, int npcId)
     { lock (_gate) return _players.Any(p => p.PlayerId == playerId && p.NpcIds.Contains(npcId)); }
 

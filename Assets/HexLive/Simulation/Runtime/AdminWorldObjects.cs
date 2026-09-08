@@ -26,9 +26,13 @@ internal static class AdminWorldObjects
                 return AdminCommandResult.Reject(c, "InvalidFaction");
             var tile = new TileCoord(c.TileQ.Value, c.TileR.Value);
             if (!world.Tiles.Items.ContainsKey(tile)) return AdminCommandResult.Reject(c, "UnknownTile");
+            if (c.GroundX.HasValue != c.GroundZ.HasValue || (c.GroundX.HasValue &&
+                (!AdminWorldCommands.Finite(c.GroundX.Value) || !AdminWorldCommands.Finite(c.GroundZ.Value))))
+                return AdminCommandResult.Reject(c, "InvalidContext");
+            Float2? nearPoint = c.GroundX.HasValue ? new Float2(c.GroundX.Value, c.GroundZ.Value) : (Float2?)null;
             var next = Math.Max(1000000, world.NextRuntimeObjectId);
             while (world.Entities.Npcs.ContainsKey(new EntityId(next)) || world.Entities.Corpses.ContainsKey(new EntityId(next))) next++;
-            if (!PopulationArrivalMath.TryPickLanding(world, tile, next, 161, out var landing)) return AdminCommandResult.Reject(c, "NoSpawnLocation");
+            if (!PopulationArrivalMath.TryPickLanding(world, tile, next, 161, out var landing, nearestToHome: c.Location == "camera", nearPoint: nearPoint)) return AdminCommandResult.Reject(c, "NoSpawnLocation");
             var npc = ColonyArrivalSystem.CreateArrival(world, new EntityId(next), faction, landing);
             world.NextRuntimeObjectId = next + 1;
             if (!string.IsNullOrWhiteSpace(c.Text) && c.Text.Length <= 48 && !c.Text.Any(char.IsControl)) npc.DisplayName = c.Text;

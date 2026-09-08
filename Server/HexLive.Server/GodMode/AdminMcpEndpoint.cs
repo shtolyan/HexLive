@@ -16,9 +16,9 @@ public static class AdminMcpEndpoint
         Tool("admin_inspect", "Read an NPC's needs, inventory and missing limbs.", new { turnId = Str(), npcId = new { type = "integer" } }),
         Tool("admin_execute", "Execute one typed command. A destructive action returns a confirmation that only the player can approve. Stop on any refusal.",
             new { turnId = Str(), operationId = Str(), kind = Str(), npcId = new { type = "integer" }, objectId = new { type = "integer" },
-                target = Str(), definitionId = Str(), text = Str(), count = new { type = "integer" }, value = new { type = "number" },
+                target = Str(), definitionId = Str(), category = Str(), location = Str(), text = Str(), count = new { type = "integer" }, value = new { type = "number" },
                 add = new { type = "boolean" }, tileQ = new { type = "integer" }, tileR = new { type = "integer" } }),
-        Tool("admin_reply", "Complete the turn with a concise Russian factual answer or clarifying question.", new { turnId = Str(), text = Str() })
+        Tool("admin_reply", "Complete the turn with a concise Russian factual answer or clarifying question.", new { turnId = Str(), text = Str(), failed = new { type = "boolean" } })
     };
     private static object Str() => new { type = "string" };
     private static object Tool(string name, string description, object properties) => new { name, description,
@@ -60,7 +60,7 @@ public static class AdminMcpEndpoint
                 else
                 {
                     var turnId = args.GetProperty("turnId").GetString()!;
-                    result = name == "admin_reply" ? hub.Reply(session, turnId, args.GetProperty("text").GetString()!)
+                    result = name == "admin_reply" ? hub.Reply(session, turnId, args.GetProperty("text").GetString()!, args.TryGetProperty("failed", out var failed) && failed.ValueKind == JsonValueKind.True)
                         : hub.Tool(session, turnId, name, args);
                 }
                 payload = new { content = new[] { new { type = "text", text = JsonSerializer.Serialize(result, AdminCommandBus.Json) } }, isError = false };

@@ -31,7 +31,7 @@ public sealed class ServerWorldLobby : IDisposable
     private JObject _capabilities, _preview;
     private WorldCreationConfig _config;
     private bool _closed, _busy, _connecting;
-    private LobbyCharacterPreview _characterPreview;
+    private LobbyCharacterEditor _characterEditor;
     private static string T(string key) => Loc.Get("lobby." + key);
 
     public ServerWorldLobby(VisualElement parent, MonoBehaviour runner, Action<string, string> connect)
@@ -178,7 +178,7 @@ public sealed class ServerWorldLobby : IDisposable
     }
     private void World()
     {
-        _characterPreview?.Dispose(); _characterPreview = null; _content.Clear();
+        _characterEditor?.Dispose(); _characterEditor = null; _content.Clear();
         var settings = new VisualElement(); settings.AddToClassList("lobby-toolbar"); _content.Add(settings);
         settings.Add(new Label(Loc.Get("menu.newgame.mode." + _config.Mode.ToString().ToLowerInvariant()) + " · " + T("seed") + ": " + _config.Seed));
         Text(settings, "name", _config.Name, v => _config.Name = v);
@@ -282,92 +282,10 @@ public sealed class ServerWorldLobby : IDisposable
     private IEnumerable<string> Values(string key) => _capabilities[key].Values<string>();
     private void Character(CharacterCreationConfig n)
     {
-        _characterPreview?.Dispose(); _content.Clear();
-        var columns = new VisualElement(); columns.AddToClassList("lobby-columns"); _content.Add(columns);
-        var previewPanel = new VisualElement(); previewPanel.AddToClassList("lobby-preview"); columns.Add(previewPanel);
-        _characterPreview = new LobbyCharacterPreview(previewPanel, _runner, n);
-        var fields = new ScrollView(); fields.AddToClassList("lobby-details"); columns.Add(fields);
-        Text(fields, "characterName", Loc.NpcName(n.Name), v => n.Name = v);
-        Choice(fields, T("camp"), _config.Camps.Select(c => c.Faction.ToString()), n.Camp.ToString(), v => { n.Camp = Enum.Parse<Faction>(v); n.Controlled &= n.Camp == _config.PlayerCamp; }, v => CampName(Enum.Parse<Faction>(v)));
-        Choice(fields, T("body"), Values("bodies"), n.Body, v => { n.Body = v; n.Skin = v; n.Eyes = v is "Kshishtof" or "Tonny" ? "" : "blue"; n.Hair = "none"; n.HairColour = "prototype"; n.Clothing.Clear(); Character(n); }, v => T("body." + v.ToLowerInvariant()));
-        var male = n.Body is "Kshishtof" or "Tonny";
-        Choice(fields, T("skin"), male ? new[] { n.Body } : Values("skins"), n.Skin, v => { n.Skin = v; RefreshPreview(n); });
-        Choice(fields, T("eyes"), male ? new[] { "" } : Values("eyes"), n.Eyes, v => { n.Eyes = v; RefreshPreview(n); }, v => string.IsNullOrEmpty(v) ? T("authored") : T("eye." + v));
-        Choice(fields, T("hair"), male ? new[] { "", "none" } : new[] { "none" }.Concat(_capabilities["hair"].Select(h => h.Value<string>("id"))), n.Hair, v => { n.Hair = v; n.HairColour = "prototype"; Character(n); });
-        var record = _capabilities["hair"].FirstOrDefault(h => h.Value<string>("id") == n.Hair);
-        var colours = record?["metadata"]?["colours"]?.Select(c => c.Value<string>("id")) ?? Enumerable.Empty<string>();
-        Choice(fields, T("hairColour"), new[] { "prototype" }.Concat(colours), n.HairColour, v => { n.HairColour = v; RefreshPreview(n); });
-        Choice(fields, T("voice"), Values("voices"), n.Voice, v => n.Voice = v);
-        foreach (var kind in Values("attributes")) Value(fields, n.Attributes, kind, "attr.");
-        foreach (var kind in Values("skills")) Value(fields, n.Skills, kind, "skill.");
-        foreach (var kind in Values("traits"))
-        {
-            var toggle = new Toggle(Loc.Get("trait." + kind.ToLowerInvariant() + ".title")) { value = n.Traits.Contains(kind) }; fields.Add(toggle);
-            toggle.RegisterValueChangedCallback(e => { n.Traits.Remove(kind); if (e.newValue) n.Traits.Add(kind); SaveDraft(); });
-        }
-        var clothing = new Foldout { text = T("clothing"), value = true }; fields.Add(clothing);
-        var search = Text(clothing, "search", "");
-        var list = new ScrollView(); list.AddToClassList("lobby-clothing"); clothing.Add(list);
-        string ClothingName(JToken item)
-        {
-            var id = item.Value<string>("id");
-            var key = HexLive.Simulation.Content.ItemCatalog.Resolve(id).NameKey;
-            return Loc.Has(key) ? Loc.Get(key) : item.Value<string>("name") ?? id;
-        }
-        var layer = "all";
-        var slot = "all";
-        var page = 0;
-        Choice(clothing, T("layer"), new[] { "all" }.Concat(_capabilities["clothing"].Select(g => g.Value<string>("layer"))), layer,
-            v => { layer = v; page = 0; Clothes(); }, v => T("layer." + v.ToLowerInvariant()));
-        Choice(clothing, T("slot"), new[] { "all" }.Concat(_capabilities["clothing"].SelectMany(g => g["slots"].Values<string>())), slot,
-            v => { slot = v; page = 0; Clothes(); }, v => T("slot." + v.ToLowerInvariant()));
-        Button(clothing, "previous", () => { page = Math.Max(0, page - 1); Clothes(); });
-        Button(clothing, "next", () => { page++; Clothes(); });
-        void Clothes()
-        {
-            list.Clear();
-            var available = _capabilities["clothing"].Where(g =>
-                (g.Value<string>("sex") == "Any" || g.Value<string>("sex") == (male ? "Male" : "Female")) &&
-                (layer == "all" || g.Value<string>("layer") == layer) &&
-                (slot == "all" || g["slots"].Values<string>().Contains(slot)) &&
-                (string.IsNullOrEmpty(search.value) || ClothingName(g).IndexOf(search.value, StringComparison.OrdinalIgnoreCase) >= 0)).ToArray();
-            page = Math.Min(page, Math.Max(0, (available.Length - 1) / 40));
-            foreach (var item in available.Skip(page * 40).Take(40))
-            {
-                var id = item.Value<string>("id"); var name = ClothingName(item);
-                if (!string.IsNullOrEmpty(search.value) && (name ?? id).IndexOf(search.value, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                var row = new VisualElement(); row.AddToClassList("lobby-clothing-row"); list.Add(row);
-                var icon = new Image(); icon.AddToClassList("lobby-item-icon"); row.Add(icon);
-                icon.schedule.Execute(() => icon.sprite = Wearing.Garments.ItemIcons.Load(id)).Every(300);
-                var choice = new Toggle(name ?? id) { value = n.Clothing.Contains(id) }; row.Add(choice);
-                choice.RegisterValueChangedCallback(e =>
-                {
-                    n.Clothing.Remove(id);
-                    if (e.newValue)
-                    {
-                        var covers = item["covers"].Values<string>().ToHashSet();
-                        var conflict = _capabilities["clothing"].Any(g => n.Clothing.Contains(g.Value<string>("id")) && g.Value<string>("layer") == item.Value<string>("layer") && (g.Value<bool>("authoredSlots") && item.Value<bool>("authoredSlots")
-                            ? g["slots"].Values<string>().Intersect(item["slots"].Values<string>()).Any()
-                            : g["covers"].Values<string>().Any(covers.Contains)));
-                        if (conflict) { choice.SetValueWithoutNotify(false); _status.text = T("validation.slotConflict"); return; }
-                        n.Clothing.Add(id);
-                    }
-                    SaveDraft(); RefreshPreview(n);
-                });
-            }
-        }
-        search.RegisterValueChangedCallback(_ => { page = 0; Clothes(); }); Clothes();
-        Button(fields, "random", () => { Randomize(n); SaveDraft(); Character(n); });
-        Button(_content, "done", () => { SaveDraft(); World(); });
+        _characterEditor?.Dispose(); _content.Clear();
+        _characterEditor = new LobbyCharacterEditor(_content, _runner, n, _config, _capabilities,
+            SaveDraft, () => Randomize(n), () => { SaveDraft(); World(); }, text => _status.text = text, CampName);
     }
-    private void Value(VisualElement fields, List<CreationValue> values, string id, string prefix)
-    {
-        var value = values.FirstOrDefault(v => v.Id == id);
-        if (value == null) { value = new CreationValue { Id = id }; values.Add(value); }
-        var field = new Slider(Loc.Get(prefix + id.ToLowerInvariant()), 0, 10) { value = value.Value * 10, showInputField = true }; fields.Add(field);
-        field.RegisterValueChangedCallback(e => { value.Value = e.newValue / 10; SaveDraft(); });
-    }
-    private void RefreshPreview(CharacterCreationConfig n) => _characterPreview?.Refresh(n);
     private void Connect()
     {
         _connecting = true; Dispose(); _connect(_server, _playToken);
@@ -375,7 +293,7 @@ public sealed class ServerWorldLobby : IDisposable
     public void Dispose()
     {
         if (_closed) return;
-        _closed = true; SaveDraft(); _characterPreview?.Dispose(); _http.Dispose(); _root.RemoveFromHierarchy();
+        _closed = true; SaveDraft(); _characterEditor?.Dispose(); _http.Dispose(); _root.RemoveFromHierarchy();
         if (!_connecting) SessionConfig.UseServer(_previousServer, _previousToken);
     }
 }

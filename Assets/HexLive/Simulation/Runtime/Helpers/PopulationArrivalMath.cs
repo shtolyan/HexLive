@@ -98,7 +98,7 @@ internal static class PopulationArrivalMath
     }
 
     public static bool TryPickLanding(
-        WorldState world, TileCoord home, int sequence, int salt, out Landing landing)
+        WorldState world, TileCoord home, int sequence, int salt, out Landing landing, bool nearestToHome = false, Float2? nearPoint = null)
     {
         var candidates = new List<Landing>();
         var seen = new HashSet<JunctionId>();
@@ -147,6 +147,18 @@ internal static class PopulationArrivalMath
             var ar = a.Tile.R.CompareTo(b.Tile.R);
             return ar != 0 ? ar : a.Junction.Value.CompareTo(b.Junction.Value);
         });
+        if (nearestToHome)
+        {
+            var center = nearPoint ?? HexSpatialMath.TileToWorld(home);
+            candidates.Sort((a, b) =>
+            {
+                var ax = a.Position.X - center.X; var ay = a.Position.Y - center.Y;
+                var bx = b.Position.X - center.X; var by = b.Position.Y - center.Y;
+                var distance = (ax * ax + ay * ay).CompareTo(bx * bx + by * by);
+                return distance != 0 ? distance : a.Junction.Value.CompareTo(b.Junction.Value);
+            });
+            landing = candidates[0]; return true;
+        }
         var index = (int)(MathUtil.Hash01(world.Seed, sequence, 132, salt) * candidates.Count);
         landing = candidates[System.Math.Min(candidates.Count - 1, index)];
         return true;

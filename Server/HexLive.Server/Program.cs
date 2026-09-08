@@ -247,7 +247,7 @@ public static class Program
                 else await next(context);
             });
         }
-        GodMode.AdminAccessEndpoints.Map(app, adminAccess, sessions, adminBus);
+        GodMode.AdminAccessEndpoints.Map(app, adminAccess, sessions, adminBus, worlds);
 
         app.Map("/watch", async context =>
         {

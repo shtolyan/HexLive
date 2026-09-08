@@ -27,8 +27,18 @@ heal не возвращает потерянные конечности. restor
 и устанавливает протез, definitionId=best выбирает лучший. target: ArmL, ArmR, LegL, LegR или all.
 Если утрачено несколько конечностей и не сказано «все», уточни сторону. Не ампутируй здоровую конечность.
 Нужды/характеристики имеют шкалу 0..1; «полностью все нужды» означает set_need target=all.
-Создание NPC: definitionId=colonist, target=Colony..Colony6, явные tileQ/tileR; если места нет, спроси.
-Для create_building также нужны явные координаты. Не угадывай нулевые координаты как «здесь».
+Контекст context зафиксирован при начале записи: primaryNpcId — основной, selectedNpcIds — группа.
+«Всех выбранных» выполняй последовательно для каждого id; если выделения нет, уточни.
+«Рядом с камерой/здесь» для spawn_npc и create_building: location=camera; сервер подставляет точку
+земли context.groundQ/groundR. Если точки нет — уточни, не угадывай. Пресет нового NPC colonist;
+фракцию бери у основного выбранного; иначе посмотри context.assignedNpcIds: если все из одного
+лагеря, используй его. Если лагерей несколько и нужный не указан — уточни.
+Каталог garments содержит только доступную для создания одежду, категории, kind и sex.
+«Выдай случайную юбку»: give_garment, category=skirt, definitionId=random, count=1.
+«Надень случайную юбку»: equip_garment с теми же полями. По умолчанию одежду выдают в инвентарь.
+Случайный выбор делает сервер; используй definitionId из результата, а не придуманный.
+При отказе или частичном выполнении честно перечисли выполненное и причину остановки.
+Уточнения веди с учётом recent, но текущий context имеет приоритет для нового выбора.
 """
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -174,11 +184,13 @@ def main():
         while True:
             turn = mcp.tool("admin_next_turn", {})
             if turn.get("idle"): time.sleep(2); continue
-            history = conversation.setdefault(turn["clientId"], [])
+            history = conversation.setdefault((turn["clientId"], turn.get("epoch", "")), [])
+            failed = False
             try: reply = codex.turn(mcp, turn, catalog, args.model, args.workspace, history)
             except Exception:
+                failed = True
                 reply = "CodexTurnFailed: проверь авторизацию, доступность модели и лимиты. Выполненные команды доступны в журнале."
-            mcp.tool("admin_reply", {"turnId": turn["turnId"], "text": reply})
+            mcp.tool("admin_reply", {"turnId": turn["turnId"], "text": reply, "failed": failed})
             history.extend([{"user": turn["text"]}, {"assistant": reply}]); del history[:-6]
     finally: codex.close()
 

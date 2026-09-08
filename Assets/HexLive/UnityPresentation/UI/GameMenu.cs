@@ -96,6 +96,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            if (AdminVoicePanel.BlocksGameInput) return;
             var keyboard = Keyboard.current;
             if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
             {
@@ -210,6 +211,7 @@ namespace HexLive.UnityPresentation.UI
             _continueLabel.style.color = Ink;
             continueButton.RegisterCallback<MouseDownEvent>(_ => SetOpen(false));
             card.Add(continueButton);
+            card.Add(new AgentPairingPanel());
 
             _soundSettings = new Foldout { name = "sound-settings", value = false };
             _soundSettings.AddToClassList("audio-settings");

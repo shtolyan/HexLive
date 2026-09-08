@@ -190,6 +190,11 @@ namespace HexLive.UnityPresentation.UI
             _hexInspectorLabel = (Label)_hexInspectorButton[0];
             box.Add(_hexInspectorButton);
 
+            box.Add(MakeButton(Loc.Get("admin.voice.debug"), Raised, () =>
+            {
+                if (_runner == null) _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
+                _runner?.GetComponent<AdminVoicePanel>()?.OpenDebug();
+            }));
             box.Add(MakeButton("+ Random wound", Wound, AddRandomWound));
             box.Add(MakeButton("+ Random bruise", Raised, AddRandomBruise));
             box.Add(MakeButton("Clear wounds", Raised, ClearWounds));

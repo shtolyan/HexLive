@@ -1,0 +1,3 @@
+.agent-pairing { margin-top: 12px; margin-bottom: 12px; }
+.agent-pairing Label { white-space: normal; }
+.agent-pairing Button { margin-top: 8px; min-height: 28px; }

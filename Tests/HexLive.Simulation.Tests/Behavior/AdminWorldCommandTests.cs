@@ -88,6 +88,73 @@ public sealed class AdminWorldCommandTests
         Assert.That(npc.Attributes.Strength, Is.EqualTo(strength));
     }
     [Test]
+    public void RandomGarment_GiveAndEquipUseSameCatalogAndPreserveDisplacedItems()
+    {
+        var world = TestWorld.CreateWorld(); var npc = world.Entities.Npcs.Values.First(n => n.Sex == GarmentSex.Female);
+        npc.Inventory.Items.Clear(); npc.Inventory.Capacity = 100;
+        var command = new AdminCommand { NpcId = npc.Id.Value, Kind = "give_garment", Category = "skirt", DefinitionId = "random", OperationId = Guid.NewGuid().ToString("N") };
+        var result = AdminWorldCommands.Execute(world, command);
+        Assert.That(result.Accepted, Is.True);
+        Assert.That(result.DefinitionId, Is.Not.Empty);
+        Assert.That(npc.Inventory.Items.Any(i => i.DefinitionId == result.DefinitionId), Is.True);
+        npc.Inventory.Items.Clear(); npc.WornItems.Clear();
+        command.Kind = "equip_garment";
+        result = AdminWorldCommands.Execute(world, command);
+        Assert.That(result.Accepted, Is.True);
+        Assert.That(npc.WornItems.Single().DefinitionId, Is.EqualTo(result.DefinitionId));
+        var worn = npc.WornItems.Single();
+        result = AdminWorldCommands.Execute(world, command);
+        Assert.That(result.Accepted, Is.True);
+        Assert.That(npc.Inventory.Items.Any(i => ReferenceEquals(i, worn)), Is.True);
+    }
+    [Test]
+    public void GarmentRefusalDoesNotChangeWardrobeOrInventory()
+    {
+        var world = TestWorld.CreateWorld(); var npc = world.Entities.Npcs.Values.First();
+        var before = npc.WornItems.ToArray(); var inventory = npc.Inventory.Items.ToArray();
+        var result = AdminWorldCommands.Execute(world, new AdminCommand { NpcId = npc.Id.Value, Kind = "equip_garment", DefinitionId = "does.not.exist" });
+        Assert.That(result.Accepted, Is.False);
+        Assert.That(npc.WornItems, Is.EqualTo(before)); Assert.That(npc.Inventory.Items, Is.EqualTo(inventory));
+        npc.Inventory.Items.Clear(); npc.Inventory.Capacity = 0;
+        result = AdminWorldCommands.Execute(world, new AdminCommand { NpcId = npc.Id.Value, Kind = "give_garment", Category = "skirt", DefinitionId = "random" });
+        Assert.That(result.Accepted, Is.False); Assert.That(npc.Inventory.Items, Is.Empty);
+    }
+
+    [Test]
+    public void EquippingIntoAnOverfullInventoryIsAtomic()
+    {
+        var world = TestWorld.CreateWorld(); var npc = world.Entities.Npcs.Values.First(n => n.Sex == GarmentSex.Female);
+        var before = npc.WornItems.ToArray(); npc.Inventory.Capacity = 0;
+        for (var i = 0; i < 1000; i++) npc.Inventory.Items.Add(new ItemInstance(ContentIds.MechanicalLeg));
+        var inventory = npc.Inventory.Items.ToArray();
+        var result = AdminWorldCommands.Execute(world, new AdminCommand { NpcId = npc.Id.Value, Kind = "equip_garment", Category = "skirt", DefinitionId = "random" });
+        Assert.That(result.Reason, Is.EqualTo("InventoryFull"));
+        Assert.That(npc.WornItems.Count, Is.EqualTo(before.Length));
+        for (var i = 0; i < before.Length; i++) Assert.That(npc.WornItems[i], Is.SameAs(before[i]));
+        Assert.That(npc.Inventory.Items, Is.EqualTo(inventory));
+    }
+
+    [Test]
+    public void CameraSpawnUsesTheExactFreeGroundPoint_AndBlockedAreaDoesNotSpawn()
+    {
+        var world = TestWorld.CreateWorld(); var source = world.Entities.Npcs.Values.First(n => n.Sex == GarmentSex.Female);
+        var tile = world.Tiles.Items[source.Tile];
+        var point = tile.Junctions.Select(id => world.Junctions.Items[id]).First(j => !j.Blocked &&
+            HexLive.Simulation.Spatial.SpatialQueries.IsJunctionFree(world, j.Id) &&
+            !HexLive.Simulation.Spatial.SpatialQueries.IsAllWaterJunction(world, j.Id));
+        var command = new AdminCommand { Kind = "spawn_npc", DefinitionId = "colonist", Target = source.Faction.ToString(),
+            Location = "camera", TileQ = source.Tile.Q, TileR = source.Tile.R, GroundX = point.WorldPosition.X, GroundZ = point.WorldPosition.Y };
+        var result = AdminWorldCommands.Execute(world, command);
+        Assert.That(result.Accepted, Is.True);
+        Assert.That(world.Entities.Npcs[new HexLive.Simulation.Common.EntityId(result.EntityId)].Position, Is.EqualTo(point.WorldPosition));
+        foreach (var junction in world.Junctions.Items.Values) junction.Blocked = true;
+        var count = world.Entities.Npcs.Count;
+        result = AdminWorldCommands.Execute(world, command);
+        Assert.That(result.Reason, Is.EqualTo("NoSpawnLocation"));
+        Assert.That(world.Entities.Npcs.Count, Is.EqualTo(count));
+    }
+
+    [Test]
     public void AdminWire_StrictUtf8AndBoundedRoundTrip()
     {
         var frame = AdminWire.Encode("{\"text\":\"Верни ей руку\"}");

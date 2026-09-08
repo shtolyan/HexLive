@@ -1,8 +1,5 @@
 admin.voice.title	Admin	Админ
-admin.voice.client	Client ID:	ID клиента:
-admin.voice.code	Binding code	Код привязки
-admin.voice.bind	Bind this client	Привязать клиент
-admin.voice.command	Command	Команда
+admin.voice.command	Request in your own words	Просьба своими словами
 admin.voice.send	Send	Отправить
 admin.voice.microphone	Microphone / stop	Микрофон / стоп
 admin.voice.yes	Confirm	Подтверждаю
@@ -13,14 +10,94 @@ admin.voice.thinking	Thinking…	Думаю…
 admin.voice.listening	Listening…	Слушаю…
 admin.voice.recognizing	Recognizing…	Распознаю…
 admin.voice.confirm_required	Confirm the exact action or cancel.	Подтверди указанное действие или скажи «отмена».
-admin.voice.credential_error	OS credential store unavailable. Rebind next session.	Хранилище ключей ОС недоступно. В следующем сеансе потребуется привязка.
+admin.voice.credential_error	OS secure storage is unavailable. Access has not been reset; try again when storage is available.	Защищённое хранилище ОС недоступно. Доступ не сброшен; повтори, когда хранилище станет доступно.
 admin.voice.microphone_error	Microphone unavailable or recording too quiet.	Микрофон недоступен или запись слишком тихая.
 admin.voice.stt_error	Speech recognition unavailable. Use text input.	Распознавание недоступно. Используй текстовый ввод.
 admin.voice.empty	No speech recognized.	Речь не распознана.
 admin.voice.timeout	Response delayed. Check the operation result before repeating.	Ответ задерживается. Проверь результат операции перед повтором.
-admin.voice.error	Command not completed:	Команда не выполнена:
+admin.voice.error	The server could not complete the request.	Сервер не смог выполнить просьбу.
 admin.voice.action.remove_item	Remove items	Удалить предметы
 admin.voice.action.clear_inventory	Clear inventory	Очистить инвентарь
 admin.voice.action.delete_npc	Delete character and their inventory	Удалить персонажа и его вещи
 admin.voice.action.demolish_building	Demolish building	Снести постройку
 admin.voice.items	Inventory instances:	Предметов в инвентаре:
+admin.voice.request_access	Request administrator rights	Запросить права администратора
+admin.voice.access.unrequested	Administrator permission is required. Send a request; the server owner approves it.	Нужны права администратора. Отправь запрос — владелец сервера одобрит его.
+admin.voice.access.pending	Request sent. Waiting for approval.	Запрос отправлен. Ожидаем одобрения.
+admin.voice.access.approved	Administrator access granted. Press the microphone to speak.	Права администратора получены. Нажми микрофон и говори.
+admin.voice.access.rejected	Request rejected. You may request access again.	Запрос отклонён. Можно запросить права снова.
+admin.voice.access.expired	Administrator access has expired. Request access again.	Срок прав администратора истёк. Отправь новый запрос.
+admin.voice.access.revoked	Administrator access revoked. Request access again if needed.	Права администратора отозваны. При необходимости отправь новый запрос.
+admin.voice.access.invalid	Could not identify this device.	Не удалось определить это устройство.
+admin.voice.access.queue_full	The request queue is full. Try again later.	Очередь запросов заполнена. Попробуй позже.
+admin.voice.debug	Voice admin / debug	Голосовая админка / дебаг
+admin.voice.typed_command	Typed command (JSON)	Типизированная команда (JSON)
+admin.voice.send_typed	Execute typed command	Выполнить типизированную команду
+admin.voice.examples	Say: Heal the selected character; Restore her left leg; Give her a random skirt; Put a random skirt on her; Spawn a colonist near the camera.	Примеры: «Вылечи выбранного»; «Верни ей левую ногу»; «Выдай случайную юбку»; «Надень случайную юбку»; «Создай персонажа рядом с камерой».
+admin.voice.typed_help	Example: {"kind":"heal","npcId":901,"target":"all"}. operationId is generated automatically.\nNPC commands use npcId. heal/restore_limb/fit_prosthetic/repair_prosthetic: target=ArmL, ArmR, LegL, LegR or all; prosthetic definitionId=best.\nset_need: target=all, or a need name and value 0..1. set_attribute: target=attribute, value 0..1, add=true to increase.\ngive_item/remove_item: definitionId and count 1..1000. clear_inventory: npcId. give_garment/equip_garment: definitionId=random, category=skirt, count=1.\nrename_npc: text. set_faction: target=faction. assign_npc: target=clientId. delete_npc: npcId.\nspawn_npc: definitionId=colonist, target=faction, tileQ/tileR; optional text=name. create_building: definitionId, tileQ/tileR. complete_building/stock_building/repair_building/demolish_building: objectId.\nDeletion asks for a separate voice confirmation. For catalog names and ambiguous targets, use the request field above.	Пример: {"kind":"heal","npcId":901,"target":"all"}. operationId создаётся автоматически.\nКоманды персонажа используют npcId. heal/restore_limb/fit_prosthetic/repair_prosthetic: target=ArmL, ArmR, LegL, LegR или all; для лучшего протеза definitionId=best.\nset_need: target=all либо имя нужды и value от 0 до 1. set_attribute: target=имя характеристики, value от 0 до 1, add=true для прибавки.\ngive_item/remove_item: definitionId и count от 1 до 1000. clear_inventory: npcId. give_garment/equip_garment: definitionId=random, category=skirt, count=1.\nrename_npc: text. set_faction: target=фракция. assign_npc: target=clientId. delete_npc: npcId.\nspawn_npc: definitionId=colonist, target=фракция, tileQ/tileR; text — необязательное имя. create_building: definitionId, tileQ/tileR. complete_building/stock_building/repair_building/demolish_building: objectId.\nУдаление требует отдельного голосового подтверждения. Если не знаешь название из каталога или точную цель, используй поле просьбы выше.
+admin.voice.reason.AdminUnauthorized	Administrator access is required.	Нужны действующие права администратора.
+admin.voice.reason.AgentOffline	Server AI is unavailable. Try later.	Серверная нейросеть недоступна. Попробуй позже.
+admin.voice.reason.SttUnavailable	Speech recognition is unavailable.	Распознавание речи недоступно.
+admin.voice.reason.Disconnected	No connection to the server.	Нет соединения с сервером.
+admin.voice.reason.WorldChanged	The world changed. Repeat your request in the current world.	Мир изменился. Скажи просьбу заново в текущем мире.
+admin.voice.reason.InvalidInput	Could not understand this command. Check the example.	Не удалось разобрать команду. Проверь пример.
+admin.voice.reason.TargetChanged	The target changed. Request the action again.	Цель изменилась. Запроси действие заново.
+admin.voice.reason.ConfirmationExpired	Confirmation expired. Request the action again.	Подтверждение истекло. Запроси действие заново.
+admin.voice.reason.Cancelled	Action cancelled.	Действие отменено.
+admin.voice.reason.InventoryFull	There is not enough inventory space.	Недостаточно места в инвентаре.
+admin.voice.reason.OutcomeUnknownInspectState	The result is uncertain. Inspect the character before repeating.	Результат не подтверждён. Проверь персонажа перед повтором.
+admin.voice.reason.Busy	The previous request is still running.	Предыдущий запрос ещё выполняется.
+admin.voice.reason.TurnExpired	The request has expired. Inspect the world before repeating.	Запрос истёк. Проверь мир перед повтором.
+admin.voice.reason.QueueFull	Server request queue is full.	Очередь запросов сервера заполнена.
+admin.voice.reason.NoCompatibleGarment	No compatible clothing found.	Подходящая одежда не найдена.
+admin.voice.partial	Already completed:	Уже выполнено:
+admin.voice.action.heal	Heal	Залечить раны
+admin.voice.action.restore_limb	Restore limb	Восстановить конечность
+admin.voice.action.fit_prosthetic	Fit prosthetic	Установить протез
+admin.voice.action.repair_prosthetic	Repair prosthetic	Починить протез
+admin.voice.action.set_need	Restore need	Изменить нужду
+admin.voice.action.set_attribute	Change attribute	Изменить характеристику
+admin.voice.action.give_item	Give items	Выдать предметы
+admin.voice.action.give_garment	Give clothing	Выдать одежду
+admin.voice.action.equip_garment	Equip clothing	Надеть одежду
+admin.voice.action.rename_npc	Rename character	Переименовать персонажа
+admin.voice.action.set_faction	Change faction	Изменить фракцию
+admin.voice.action.assign_npc	Assign character	Назначить персонажа
+admin.voice.action.spawn_npc	Spawn character	Создать персонажа
+admin.voice.action.create_building	Create building	Создать постройку
+admin.voice.action.complete_building	Complete building	Завершить постройку
+admin.voice.action.stock_building	Stock building	Выдать материалы стройке
+admin.voice.action.repair_building	Repair building	Починить постройку
+admin.voice.reason.InvalidContext	View context is invalid. Start a new recording.	Контекст вида некорректен. Начни новую запись.
+admin.voice.reason.CameraGroundUnavailable	No ground at the center of the view. Aim at the ground.	В центре вида нет земли. Направь камеру на землю.
+admin.voice.reason.NoSpawnLocation	No free valid spawn location near the center of the view.	Около центра вида нет допустимого свободного места.
+admin.voice.reason.InvalidCount	Item count must be valid; clothing commands create one item.	Некорректное количество. Одежда создаётся по одной вещи.
+admin.voice.reason.NpcNotFound	Character not found. Select a current character.	Персонаж не найден. Выбери существующего персонажа.
+admin.voice.reason.NpcNotAlive	A living character is required.	Нужен живой персонаж.
+admin.voice.reason.UnknownBodyPart	Specify ArmL, ArmR, LegL, LegR or all.	Укажи ArmL, ArmR, LegL, LegR или all.
+admin.voice.reason.AmbiguousLimb	Several limbs are missing. Specify which limb to restore.	Утрачено несколько конечностей. Уточни, какую восстановить.
+admin.voice.reason.NoMissingLimb	No matching missing limb.	Подходящая утраченная конечность не найдена.
+admin.voice.reason.NoProsthetic	No prosthetic to repair.	Нет протеза для ремонта.
+admin.voice.reason.IncompatibleProsthetic	This prosthetic is unavailable or incompatible.	Этот протез недоступен или несовместим.
+admin.voice.reason.InvalidAttribute	Unknown attribute.	Неизвестная характеристика.
+admin.voice.reason.ValueOutOfRange	The result must be between 0 and 1.	Итоговое значение должно быть от 0 до 1.
+admin.voice.reason.InvalidNeed	Unknown need or value outside 0..1.	Неизвестная нужда или значение вне диапазона от 0 до 1.
+admin.voice.reason.NotCarryable	This item cannot be carried or does not exist.	Такого переносимого предмета нет в каталоге.
+admin.voice.reason.NotEnoughItems	Not enough matching items in inventory.	В инвентаре недостаточно таких предметов.
+admin.voice.reason.InvalidName	Name must contain 1 to 48 printable characters.	Имя должно содержать от 1 до 48 печатных символов.
+admin.voice.reason.InvalidFaction	Specify a supported faction.	Укажи поддерживаемую фракцию.
+admin.voice.reason.InvalidAssignment	Invalid client or incompatible character faction.	Некорректный клиент или неподходящая фракция персонажа.
+admin.voice.reason.AssignmentUnavailable	Character assignment service is unavailable.	Сервис назначения персонажей недоступен.
+admin.voice.reason.MissingCoordinates	Specify tileQ and tileR.	Укажи tileQ и tileR.
+admin.voice.reason.UnknownPreset	Only the colonist spawn preset is supported.	Поддерживается пресет создания colonist.
+admin.voice.reason.UnknownTile	The tile does not exist in this world.	Такого гекса нет в текущем мире.
+admin.voice.reason.UnknownBuilding	Building is not in the supported catalog.	Постройки нет в поддерживаемом каталоге.
+admin.voice.reason.InvalidBuildingLocation	This location cannot accommodate the building.	В этом месте нельзя разместить постройку.
+admin.voice.reason.BuildFailed	The building could not be completed. Inspect the site.	Не удалось завершить постройку. Проверь стройплощадку.
+admin.voice.reason.ObjectNotFound	Object not found.	Объект не найден.
+admin.voice.reason.NotBuilding	The target is not a supported building.	Цель не является поддерживаемой постройкой.
+admin.voice.reason.NotBuildSite	An unfinished building site is required.	Нужна незавершённая стройплощадка.
+admin.voice.reason.InvalidOperationId	Invalid operation identifier. Send a new request.	Некорректный идентификатор операции. Отправь новую просьбу.
+admin.voice.reason.OperationIdConflict	This operation identifier already belongs to another command.	Этот идентификатор операции уже занят другой командой.
+admin.voice.reason.UnknownCommand	Unknown command. See the debug examples.	Неизвестная команда. Посмотри примеры в дебаг-окне.
+admin.voice.reason.BadFrame	Invalid request format.	Некорректный формат запроса.

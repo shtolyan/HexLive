@@ -18,10 +18,15 @@ public sealed class AdminCommand
     public int ObjectId { get; set; }
     public string Target { get; set; } = string.Empty;
     public string DefinitionId { get; set; } = string.Empty;
+    [NonSerialized] public string ResolvedDefinitionId = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
     public string Text { get; set; } = string.Empty;
     public int Count { get; set; } = 1;
     public float Value { get; set; }
     public bool Add { get; set; }
+    public float? GroundX { get; set; }
+    public float? GroundZ { get; set; }
     public int? TileQ { get; set; }
     public int? TileR { get; set; }
 }
@@ -32,8 +37,9 @@ public sealed class AdminCommandResult
     public string Reason { get; set; } = string.Empty;
     public string OperationId { get; set; } = string.Empty;
     public int EntityId { get; set; }
+    public string DefinitionId { get; set; } = string.Empty;
     public static AdminCommandResult Ok(AdminCommand c, int id = 0) =>
-        new() { Accepted = true, OperationId = c.OperationId, EntityId = id };
+        new() { Accepted = true, OperationId = c.OperationId, EntityId = id, DefinitionId = c.ResolvedDefinitionId };
     public static AdminCommandResult Reject(AdminCommand c, string reason) =>
         new() { OperationId = c.OperationId, Reason = reason };
 }
@@ -42,7 +48,7 @@ public static class AdminWorldCommands
 {
     public static readonly string[] Kinds = { "heal", "restore_limb", "fit_prosthetic",
         "repair_prosthetic", "set_need", "set_attribute", "give_item", "remove_item",
-        "clear_inventory", "rename_npc", "set_faction", "assign_npc", "spawn_npc", "delete_npc",
+        "clear_inventory", "give_garment", "equip_garment", "rename_npc", "set_faction", "assign_npc", "spawn_npc", "delete_npc",
         "create_building", "complete_building", "stock_building", "repair_building", "demolish_building" };
     public static readonly string[] Needs = { "Hunger", "Thirst", "Energy", "Comfort", "Social",
         "Compassion", "ThermalDiscomfort", "Stamina", "Breath", "Hygiene", "Blood", "Stress" };
@@ -81,6 +87,7 @@ public static class AdminWorldCommands
                 var v = c.Value + (c.Add ? npc.Attributes.Get(attribute) : 0);
                 if (v < 0 || v > 1) return AdminCommandResult.Reject(c, "ValueOutOfRange");
                 npc.Attributes.Set(attribute, v); problem = string.Empty; break;
+            case "give_garment": case "equip_garment": problem = AdminGarments.Execute(world, npc, c); break;
             case "set_need": problem = SetNeed(npc, c); break;
             case "give_item": case "remove_item": case "clear_inventory": problem = Inventory(world, npc, c); break;
             case "rename_npc":

@@ -17,6 +17,46 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: agent.pairing.title
+      TermType: 0
+      Languages: ["Agent Studio connection", "Подключение Agent Studio"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.code
+      TermType: 0
+      Languages: ["Code from Agent Studio", "Код из Agent Studio"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.check
+      TermType: 0
+      Languages: ["Check request", "Проверить запрос"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.approve
+      TermType: 0
+      Languages: ["Allow access to my characters", "Разрешить доступ к моим персонажам"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.invalid
+      TermType: 0
+      Languages: ["Invalid or expired request", "Неверный или истёкший запрос"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.waiting
+      TermType: 0
+      Languages: ["Waiting for server…", "Ожидаю сервер…"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.done
+      TermType: 0
+      Languages: ["Access approved", "Доступ подтверждён"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.confirm
+      TermType: 0
+      Languages: ["Application: {0}. Only approve a request you initiated.", "Приложение: {0}. Подтверждай только свой запрос."]
+      Flags: 0101
+      Languages_Touch: []
     - Term: audio.settings
       TermType: 0
       Description:
@@ -26226,10 +26266,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'lobby.body.jolly'
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - 'Jolly'
-      - 'Джолли'
+      - 'Graceful'
+      - 'Изящное'
       Flags: 0101
       Languages_Touch: []
     - Term: 'lobby.body.kshishtof'
@@ -26250,10 +26290,10 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'lobby.skin'
       TermType: 0
-      Description:
+      Description: 
       Languages:
-      - 'Materials'
-      - 'Материалы'
+      - 'Skin'
+      - 'Кожа'
       Flags: 0101
       Languages_Touch: []
     - Term: 'lobby.eyes'
@@ -26530,7 +26570,7 @@ MonoBehaviour:
       Languages_Touch: []
     - Term: 'lobby.layer.bags'
       TermType: 0
-      Description:
+      Description: 
       Languages:
       - 'Bags'
       - 'Сумки'
@@ -26879,36 +26919,12 @@ MonoBehaviour:
       - 'Админ'
       Flags: 0101
       Languages_Touch: []
-    - Term: 'admin.voice.client'
-      TermType: 0
-      Description:
-      Languages:
-      - 'Client ID:'
-      - 'ID клиента:'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'admin.voice.code'
-      TermType: 0
-      Description:
-      Languages:
-      - 'Binding code'
-      - 'Код привязки'
-      Flags: 0101
-      Languages_Touch: []
-    - Term: 'admin.voice.bind'
-      TermType: 0
-      Description:
-      Languages:
-      - 'Bind this client'
-      - 'Привязать клиент'
-      Flags: 0101
-      Languages_Touch: []
     - Term: 'admin.voice.command'
       TermType: 0
       Description:
       Languages:
-      - 'Command'
-      - 'Команда'
+      - 'Request in your own words'
+      - 'Просьба своими словами'
       Flags: 0101
       Languages_Touch: []
     - Term: 'admin.voice.send'
@@ -26995,8 +27011,8 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - 'OS credential store unavailable. Rebind next session.'
-      - 'Хранилище ключей ОС недоступно. В следующем сеансе потребуется привязка.'
+      - 'OS secure storage is unavailable. Access has not been reset; try again when storage is available.'
+      - 'Защищённое хранилище ОС недоступно. Доступ не сброшен; повтори, когда хранилище станет доступно.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'admin.voice.microphone_error'
@@ -27035,8 +27051,8 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - 'Command not completed:'
-      - 'Команда не выполнена:'
+      - 'The server could not complete the request.'
+      - 'Сервер не смог выполнить просьбу.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'admin.voice.action.remove_item'
@@ -27077,6 +27093,758 @@ MonoBehaviour:
       Languages:
       - 'Inventory instances:'
       - 'Предметов в инвентаре:'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.male'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Male'
+      - 'Мужское'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.skinNumber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Skin {0}'
+      - 'Кожа {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.hairNumber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hairstyle {0}'
+      - 'Причёска {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.colourNumber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Colour {0}'
+      - 'Цвет {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.appearance'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Appearance'
+      - 'Внешность'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.parameters'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Attributes & skills'
+      - 'Параметры'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.resetCamera'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Reset view'
+      - 'Восстановить ракурс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.orbitHelp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right drag: rotate · Wheel: zoom · Middle drag: pan'
+      - 'ПКМ: вращение · Колесо: приближение · СКМ: смещение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.incompatibleRemoved'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Incompatible elements removed: {0}'
+      - 'Убраны несовместимые элементы: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.chooseVariant'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Select an item to see its colours here'
+      - 'Выберите вещь — здесь появятся её расцветки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.unequip'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Take off'
+      - 'Снять вещь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.request_access'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Request administrator rights'
+      - 'Запросить права администратора'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.unrequested'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator permission is required. Send a request; the server owner approves it.'
+      - 'Нужны права администратора. Отправь запрос — владелец сервера одобрит его.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.pending'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Request sent. Waiting for approval.'
+      - 'Запрос отправлен. Ожидаем одобрения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.approved'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator access granted. Press the microphone to speak.'
+      - 'Права администратора получены. Нажми микрофон и говори.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.rejected'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Request rejected. You may request access again.'
+      - 'Запрос отклонён. Можно запросить права снова.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.expired'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator access has expired. Request access again.'
+      - 'Срок прав администратора истёк. Отправь новый запрос.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.revoked'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator access revoked. Request access again if needed.'
+      - 'Права администратора отозваны. При необходимости отправь новый запрос.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.invalid'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not identify this device.'
+      - 'Не удалось определить это устройство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.queue_full'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The request queue is full. Try again later.'
+      - 'Очередь запросов заполнена. Попробуй позже.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.debug'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Voice admin / debug'
+      - 'Голосовая админка / дебаг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.typed_command'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Typed command (JSON)'
+      - 'Типизированная команда (JSON)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.send_typed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Execute typed command'
+      - 'Выполнить типизированную команду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.examples'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Say: Heal the selected character; Restore her left leg; Give her a random skirt; Put a random skirt on her; Spawn a colonist near the camera.'
+      - 'Примеры: «Вылечи выбранного»; «Верни ей левую ногу»; «Выдай случайную юбку»; «Надень случайную юбку»; «Создай персонажа рядом с камерой».'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.typed_help'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Example: {"kind":"heal","npcId":901,"target":"all"}. operationId is generated automatically.
+
+      NPC commands use npcId. heal/restore_limb/fit_prosthetic/repair_prosthetic: target=ArmL, ArmR, LegL, LegR or all; prosthetic definitionId=best.
+
+      set_need: target=all, or a need name and value 0..1. set_attribute: target=attribute, value 0..1, add=true to increase.
+
+      give_item/remove_item: definitionId and count 1..1000. clear_inventory: npcId. give_garment/equip_garment: definitionId=random, category=skirt, count=1.
+
+      rename_npc: text. set_faction: target=faction. assign_npc: target=clientId. delete_npc: npcId.
+
+      spawn_npc: definitionId=colonist, target=faction, tileQ/tileR; optional text=name. create_building: definitionId, tileQ/tileR. complete_building/stock_building/repair_building/demolish_building: objectId.
+
+      Deletion asks for a separate voice confirmation. For catalog names and ambiguous targets, use the request field above.'
+      - 'Пример: {"kind":"heal","npcId":901,"target":"all"}. operationId создаётся автоматически.
+
+      Команды персонажа используют npcId. heal/restore_limb/fit_prosthetic/repair_prosthetic: target=ArmL, ArmR, LegL, LegR или all; для лучшего протеза definitionId=best.
+
+      set_need: target=all либо имя нужды и value от 0 до 1. set_attribute: target=имя характеристики, value от 0 до 1, add=true для прибавки.
+
+      give_item/remove_item: definitionId и count от 1 до 1000. clear_inventory: npcId. give_garment/equip_garment: definitionId=random, category=skirt, count=1.
+
+      rename_npc: text. set_faction: target=фракция. assign_npc: target=clientId. delete_npc: npcId.
+
+      spawn_npc: definitionId=colonist, target=фракция, tileQ/tileR; text — необязательное имя. create_building: definitionId, tileQ/tileR. complete_building/stock_building/repair_building/demolish_building: objectId.
+
+      Удаление требует отдельного голосового подтверждения. Если не знаешь название из каталога или точную цель, используй поле просьбы выше.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.AdminUnauthorized'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator access is required.'
+      - 'Нужны действующие права администратора.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.AgentOffline'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server AI is unavailable. Try later.'
+      - 'Серверная нейросеть недоступна. Попробуй позже.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.SttUnavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speech recognition is unavailable.'
+      - 'Распознавание речи недоступно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.Disconnected'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No connection to the server.'
+      - 'Нет соединения с сервером.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.WorldChanged'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The world changed. Repeat your request in the current world.'
+      - 'Мир изменился. Скажи просьбу заново в текущем мире.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidInput'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not understand this command. Check the example.'
+      - 'Не удалось разобрать команду. Проверь пример.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.TargetChanged'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The target changed. Request the action again.'
+      - 'Цель изменилась. Запроси действие заново.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.ConfirmationExpired'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Confirmation expired. Request the action again.'
+      - 'Подтверждение истекло. Запроси действие заново.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.Cancelled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Action cancelled.'
+      - 'Действие отменено.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InventoryFull'
+      TermType: 0
+      Description:
+      Languages:
+      - 'There is not enough inventory space.'
+      - 'Недостаточно места в инвентаре.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.OutcomeUnknownInspectState'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The result is uncertain. Inspect the character before repeating.'
+      - 'Результат не подтверждён. Проверь персонажа перед повтором.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.Busy'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The previous request is still running.'
+      - 'Предыдущий запрос ещё выполняется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.TurnExpired'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The request has expired. Inspect the world before repeating.'
+      - 'Запрос истёк. Проверь мир перед повтором.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.QueueFull'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server request queue is full.'
+      - 'Очередь запросов сервера заполнена.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NoCompatibleGarment'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No compatible clothing found.'
+      - 'Подходящая одежда не найдена.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.partial'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Already completed:'
+      - 'Уже выполнено:'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.heal'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Heal'
+      - 'Залечить раны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.restore_limb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Restore limb'
+      - 'Восстановить конечность'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.fit_prosthetic'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Fit prosthetic'
+      - 'Установить протез'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.repair_prosthetic'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Repair prosthetic'
+      - 'Починить протез'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.set_need'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Restore need'
+      - 'Изменить нужду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.set_attribute'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Change attribute'
+      - 'Изменить характеристику'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.give_item'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Give items'
+      - 'Выдать предметы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.give_garment'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Give clothing'
+      - 'Выдать одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.equip_garment'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Equip clothing'
+      - 'Надеть одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.rename_npc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rename character'
+      - 'Переименовать персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.set_faction'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Change faction'
+      - 'Изменить фракцию'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.assign_npc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Assign character'
+      - 'Назначить персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.spawn_npc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Spawn character'
+      - 'Создать персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.create_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Create building'
+      - 'Создать постройку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.complete_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Complete building'
+      - 'Завершить постройку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.stock_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Stock building'
+      - 'Выдать материалы стройке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.repair_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Repair building'
+      - 'Починить постройку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidContext'
+      TermType: 0
+      Description:
+      Languages:
+      - 'View context is invalid. Start a new recording.'
+      - 'Контекст вида некорректен. Начни новую запись.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.CameraGroundUnavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No ground at the center of the view. Aim at the ground.'
+      - 'В центре вида нет земли. Направь камеру на землю.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NoSpawnLocation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No free valid spawn location near the center of the view.'
+      - 'Около центра вида нет допустимого свободного места.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidCount'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Item count must be valid; clothing commands create one item.'
+      - 'Некорректное количество. Одежда создаётся по одной вещи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NpcNotFound'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Character not found. Select a current character.'
+      - 'Персонаж не найден. Выбери существующего персонажа.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NpcNotAlive'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A living character is required.'
+      - 'Нужен живой персонаж.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownBodyPart'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Specify ArmL, ArmR, LegL, LegR or all.'
+      - 'Укажи ArmL, ArmR, LegL, LegR или all.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.AmbiguousLimb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Several limbs are missing. Specify which limb to restore.'
+      - 'Утрачено несколько конечностей. Уточни, какую восстановить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NoMissingLimb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No matching missing limb.'
+      - 'Подходящая утраченная конечность не найдена.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NoProsthetic'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No prosthetic to repair.'
+      - 'Нет протеза для ремонта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.IncompatibleProsthetic'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This prosthetic is unavailable or incompatible.'
+      - 'Этот протез недоступен или несовместим.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidAttribute'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown attribute.'
+      - 'Неизвестная характеристика.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.ValueOutOfRange'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The result must be between 0 and 1.'
+      - 'Итоговое значение должно быть от 0 до 1.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidNeed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown need or value outside 0..1.'
+      - 'Неизвестная нужда или значение вне диапазона от 0 до 1.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NotCarryable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This item cannot be carried or does not exist.'
+      - 'Такого переносимого предмета нет в каталоге.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NotEnoughItems'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Not enough matching items in inventory.'
+      - 'В инвентаре недостаточно таких предметов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidName'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Name must contain 1 to 48 printable characters.'
+      - 'Имя должно содержать от 1 до 48 печатных символов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidFaction'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Specify a supported faction.'
+      - 'Укажи поддерживаемую фракцию.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidAssignment'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid client or incompatible character faction.'
+      - 'Некорректный клиент или неподходящая фракция персонажа.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.AssignmentUnavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Character assignment service is unavailable.'
+      - 'Сервис назначения персонажей недоступен.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.MissingCoordinates'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Specify tileQ and tileR.'
+      - 'Укажи tileQ и tileR.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownPreset'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Only the colonist spawn preset is supported.'
+      - 'Поддерживается пресет создания colonist.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownTile'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The tile does not exist in this world.'
+      - 'Такого гекса нет в текущем мире.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownBuilding'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Building is not in the supported catalog.'
+      - 'Постройки нет в поддерживаемом каталоге.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidBuildingLocation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This location cannot accommodate the building.'
+      - 'В этом месте нельзя разместить постройку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.BuildFailed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The building could not be completed. Inspect the site.'
+      - 'Не удалось завершить постройку. Проверь стройплощадку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.ObjectNotFound'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Object not found.'
+      - 'Объект не найден.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NotBuilding'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The target is not a supported building.'
+      - 'Цель не является поддерживаемой постройкой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NotBuildSite'
+      TermType: 0
+      Description:
+      Languages:
+      - 'An unfinished building site is required.'
+      - 'Нужна незавершённая стройплощадка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidOperationId'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid operation identifier. Send a new request.'
+      - 'Некорректный идентификатор операции. Отправь новую просьбу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.OperationIdConflict'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This operation identifier already belongs to another command.'
+      - 'Этот идентификатор операции уже занят другой командой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownCommand'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown command. See the debug examples.'
+      - 'Неизвестная команда. Посмотри примеры в дебаг-окне.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.BadFrame'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid request format.'
+      - 'Некорректный формат запроса.'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

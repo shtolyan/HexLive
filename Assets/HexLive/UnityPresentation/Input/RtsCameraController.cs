@@ -363,8 +363,9 @@ namespace HexLive.UnityPresentation.Input
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
             }
 
+            if (UI.AdminVoicePanel.BlocksGameInput) return;
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            if (!UI.AdminVoicePanel.BlocksGameInput && keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
                 if (UI.ContextMenuPanel.IsOpen)
                 {
@@ -453,7 +454,7 @@ namespace HexLive.UnityPresentation.Input
                 FrameSelection(snapshot);
             }
 
-            if (!UI.GameMenu.IsOpen && !UI.EndSummaryPanel.IsOpen)
+            if (!UI.GameMenu.IsOpen && !UI.AdminVoicePanel.BlocksGameInput && !UI.EndSummaryPanel.IsOpen)
             {
                 HandleFreePan();
                 HandleZoom();
@@ -816,7 +817,7 @@ namespace HexLive.UnityPresentation.Input
             NpcSelection.PointerOverUi || UI.TacticalMapPanel.PointerOverMap ||
             UI.HexInspectorPanel.PointerOverPanel ||
             UI.ContextMenuPanel.BlocksWorldPointer || UI.LootTransferPanel.IsOpen ||
-            UI.GameMenu.IsOpen ||
+            UI.GameMenu.IsOpen || UI.AdminVoicePanel.BlocksGameInput ||
             UI.EndSummaryPanel.IsOpen ||
             // Bug #279: окно отчёта об ошибке держит мир закрытым само — его
             // запись в NpcSelection.PointerOverUi каждый кадр затирает
@@ -1121,12 +1122,25 @@ namespace HexLive.UnityPresentation.Input
             }
         }
 
+        public bool TryGetAdminCameraContext(out HexLive.Simulation.Common.TileCoord ground, out Vector3 position, out Vector3 forward, out Vector3 groundPoint)
+        {
+            _camera ??= GetComponent<Camera>();
+            position = _camera != null ? _camera.transform.position : Vector3.zero;
+            forward = _camera != null ? _camera.transform.forward : Vector3.forward;
+            return TryPickHex(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f), out ground, out groundPoint, null);
+        }
+
         private bool TryPickHex(
             Vector2 mousePos,
             out HexLive.Simulation.Common.TileCoord coord,
             WorldSnapshot currentSnapshot = null)
+            => TryPickHex(mousePos, out coord, out _, currentSnapshot);
+
+        private bool TryPickHex(Vector2 mousePos, out HexLive.Simulation.Common.TileCoord coord,
+            out Vector3 groundPoint, WorldSnapshot currentSnapshot)
         {
             coord = default;
+            groundPoint = default;
 
             if (_camera == null)
             {
@@ -1167,6 +1181,7 @@ namespace HexLive.UnityPresentation.Input
 
                 bestT = t;
                 coord = tile.Coord;
+                groundPoint = hit;
                 found = true;
             }
 

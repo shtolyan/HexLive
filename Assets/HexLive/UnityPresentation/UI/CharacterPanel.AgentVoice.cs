@@ -36,8 +36,7 @@ namespace HexLive.UnityPresentation.UI
         private PlayerVoiceCaptureOverlay? _agentCaptureOverlay;
         private VectorIcon? _agentVoiceGlyph;
         private Label? _agentVoiceStateLabel;
-        private Label? _agentSubtitle;
-        private float _agentSubtitleUntil;
+        private VoiceResponsePanel? _voiceResponses;
         private NpcSnapshot? _agentVoiceNpc;
         private AgentStateFrame? _selectedAgentState;
         private FmodMicrophoneCapture? _agentMicrophone;
@@ -200,12 +199,7 @@ namespace HexLive.UnityPresentation.UI
         private void TickAgentVoice()
         {
             while (_agentMainThread.TryDequeue(out var action)) action();
-            if (_agentSubtitle != null && _agentSubtitleUntil > 0f &&
-                Time.unscaledTime >= _agentSubtitleUntil)
-            {
-                _agentSubtitle.style.display = DisplayStyle.None;
-                _agentSubtitleUntil = 0f;
-            }
+            _voiceResponses?.Tick();
             if (_agentReplyFocusUntil > 0f && (Time.unscaledTime >= _agentReplyFocusUntil ||
                 _agentReplyActor == null || !_agentReplyActor.IsExternalVoicePlaying(_agentReplyWav)))
                 StopAgentReplyFocus();
@@ -294,28 +288,7 @@ namespace HexLive.UnityPresentation.UI
             return button;
         }
 
-        private void BuildAgentSubtitleOverlay()
-        {
-            _agentSubtitle = new Label();
-            _agentSubtitle.style.position = Position.Absolute;
-            _agentSubtitle.style.left = Length.Percent(25);
-            _agentSubtitle.style.right = Length.Percent(25);
-            _agentSubtitle.style.bottom = 330f;
-            _agentSubtitle.style.paddingLeft = 18f;
-            _agentSubtitle.style.paddingRight = 18f;
-            _agentSubtitle.style.paddingTop = 10f;
-            _agentSubtitle.style.paddingBottom = 10f;
-            _agentSubtitle.style.color = Text;
-            _agentSubtitle.style.backgroundColor = new Color(0.01f, 0.03f, 0.04f, 0.88f);
-            _agentSubtitle.style.fontSize = 18f;
-            _agentSubtitle.style.whiteSpace = WhiteSpace.Normal;
-            _agentSubtitle.style.unityTextAlign = TextAnchor.MiddleCenter;
-            SetBorder(_agentSubtitle, NeonCyanDim, 1f);
-            SetRadius(_agentSubtitle, 10f);
-            _agentSubtitle.style.display = DisplayStyle.None;
-            _agentSubtitle.pickingMode = PickingMode.Ignore;
-            _root.Add(_agentSubtitle);
-        }
+        private void BuildAgentSubtitleOverlay() => _voiceResponses = new VoiceResponsePanel(_root);
 
         private void ToggleAgentCapture()
         {
@@ -627,13 +600,7 @@ namespace HexLive.UnityPresentation.UI
             _journalSig = int.MinValue;
         }
 
-        private void ShowAgentSubtitle(string text, float seconds)
-        {
-            if (_agentSubtitle == null || string.IsNullOrWhiteSpace(text)) return;
-            _agentSubtitle.text = text;
-            _agentSubtitle.style.display = DisplayStyle.Flex;
-            _agentSubtitleUntil = Time.unscaledTime + seconds;
-        }
+        private void ShowAgentSubtitle(string text, float seconds) => VoiceResponsePanel.PublishNpc(text, seconds);
 
         private void StartAgentReplyFocus(int durationMilliseconds)
         {

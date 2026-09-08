@@ -1861,6 +1861,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         bool useAuthoredAppearance = false, string hairColour = null)
     {
         _explicitHairColour = hairColour;
+        _previewSkin = skinSet; _previewEyes = eyeColor; _previewHair = hairstyle; _previewColour = hairColour;
         _npcId = npcId;
         LiveByNpcId[npcId] = this;
         _renderGate = GetComponent<ActorRenderGate>() ??
@@ -2026,7 +2027,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // irises overwrite the rolled ones. Both still land BEFORE
             // BuildSkinTintTargets for the reason above.
             ApplyEyeSet(eyeColor);
-            BuildSkinTintTargets();
+            if (!IsCreationPreview) BuildSkinTintTargets();
             // NOTE: an experiment swapping the SKIN to the GarmentTear paint
             // shader was reverted — Cull Off + the AlphaTest queue flickered on
             // the skinned body and the Daz skin lost its depth (looked flat
@@ -2034,7 +2035,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // droplets (40.8 v4) paint INTO the skin textures
             // (SkinTexturePainter) — droplet water shading is baked at stamp
             // time precisely so no custom skin shader is needed.
-            if (PaintWoundsIntoTexture && _bodyBones != null)
+            if (PaintWoundsIntoTexture && !IsCreationPreview && _bodyBones != null)
             {
                 SkinnedMeshRenderer bodyRenderer = null;
                 var slotScratch = new List<int>();
@@ -4677,7 +4678,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // снапшоте за то, что ничего не меняет, незачем.
     private void UpdateIdleFidget(bool busy)
     {
-        if (_animSet == null || _animSet.idleFidgets == null || _animSet.idleFidgets.Length == 0 ||
+        if (IsCreationPreview || _animSet == null || _animSet.idleFidgets == null || _animSet.idleFidgets.Length == 0 ||
             _animator == null || _legless || busy)
         {
             _idleSince = 0f;
@@ -6535,10 +6536,41 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // ColonistAppearance.NoHair ("none") is the explicit bald case; an id the
     // catalog doesn't know is a content bug, so it warns and keeps the prefab
     // hair rather than silently shaving her.
+    public bool IsCreationPreview { get; set; }
+    public int CreationAppearanceSeed { get; set; }
+    public bool CreationHairReady => _pendingHairLoads == 0;
+    public bool CreationAppearanceFailed { get; private set; }
+    public bool CreationClothesReady(IReadOnlyList<string> worn) =>
+        worn.All(id => _equippedSimItems.ContainsKey(id) || _clashedSimItems.Contains(id));
+    public static void ForgetCreationSkin(string id) => _skinSets.Remove(id);
+    private int _hairRequest;
+    private string _previewSkin, _previewEyes, _previewHair, _previewColour;
+
+    public void ApplyCreationAppearance(string skin, string eyes, string hair, string colour)
+    {
+        if (!IsCreationPreview) throw new System.InvalidOperationException("Appearance editing requires a creation preview.");
+        if (_previewSkin != skin || _previewEyes != eyes)
+        {
+            ReplaceBodyMaterials(LoadSkinSet(_actorMesh.ToString()));
+            if (!string.IsNullOrEmpty(skin)) ReplaceBodyMaterials(LoadSkinSet(skin), preserveAuthoredEyes: true);
+            ApplyEyeSet(eyes);
+            _previewSkin = skin; _previewEyes = eyes;
+        }
+        if (_previewHair != hair || _previewColour != colour)
+        {
+            CreationAppearanceFailed = false;
+            _explicitHairColour = colour;
+            ApplyHairstyle(hair);
+            _previewHair = hair; _previewColour = colour;
+        }
+    }
+
     private void ApplyHairstyle(string hairstyle)
     {
+        var request = ++_hairRequest;
         if (_bodyBones == null || string.IsNullOrEmpty(hairstyle))
         {
+            if (IsCreationPreview && _bodyBones != null) _bodyBones.SetHair(_bodyBones.DefaultHair);
             return;
         }
 
@@ -6552,6 +6584,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var catalog = ActorAppearanceCatalog.Instance;
         if (catalog == null || !catalog.Has(hairstyle))
         {
+            if (IsCreationPreview) CreationAppearanceFailed = true;
             Debug.LogWarning(
                 $"[§74] hairstyle '{hairstyle}' is not in the appearance catalog — " +
                 "run HexLive ▸ Actors ▸ Rebuild Appearance Catalog. Keeping the prefab hair.", this);
@@ -6568,7 +6601,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // навсегда оставляла очередь непустой и счётчик ненулевым, и занавес
         // ждал их вечно. Причёска же нужна одинаково и погасшей.
         _pendingHairLoads++;
-        ContentCoroutines.Run(SpawnHair(hairstyle));
+        ContentCoroutines.Run(SpawnHair(hairstyle, request, _explicitHairColour));
     }
 
     // Причёска и её цвет едут по object id, а значит приезжают не
@@ -6579,38 +6612,42 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // общий, и запись в ассет перекрасила бы эту причёску у всех сразу.
     private string _explicitHairColour;
 
-    private System.Collections.IEnumerator SpawnHair(string hairstyle)
+    private System.Collections.IEnumerator SpawnHair(string hairstyle, int request, string explicitColour)
     {
-        Wear prefab = null;
-        yield return HairContent.LoadHair(hairstyle, found => prefab = found);
-
-        if (prefab == null || _bodyBones == null)
+        try
         {
-            _pendingHairLoads--;
-            yield break;
+            Wear prefab = null;
+            yield return HairContent.LoadHair(hairstyle, found => prefab = found);
+
+            if (this == null || prefab == null || _bodyBones == null || request != _hairRequest)
+            {
+                if (this != null && request == _hairRequest && prefab == null && IsCreationPreview) CreationAppearanceFailed = true;
+                yield break;
+            }
+
+            var colour = string.IsNullOrEmpty(explicitColour)
+                ? HairColourApplier.Choose(hairstyle, IsCreationPreview ? CreationAppearanceSeed : _npcId)
+                : ActorAppearanceCatalog.Instance?.ColoursFor(hairstyle).FirstOrDefault(c => c.colour == explicitColour);
+            if (colour == null)
+            {
+                _bodyBones.SetHair(prefab);
+                yield break;
+            }
+
+            System.Collections.Generic.Dictionary<string, Material> materials = null;
+            yield return HairContent.LoadColour(hairstyle, colour, loaded => materials = loaded);
+
+            if (this == null || _bodyBones == null || request != _hairRequest) yield break;
+            if ((materials == null || colour.surfaces.Any(surface => !materials.ContainsKey(surface))) && IsCreationPreview) { CreationAppearanceFailed = true; yield break; }
+            _bodyBones.SetHair(prefab);
+            var live = _bodyBones != null ? _bodyBones.HairInstance : null;
+            if (live != null && materials != null)
+            {
+                HairColourApplier.Apply(live.gameObject, materials);
+            }
+
         }
-
-        _bodyBones.SetHair(prefab);
-
-        var colour = string.IsNullOrEmpty(_explicitHairColour)
-            ? HairColourApplier.Choose(hairstyle, _npcId)
-            : ActorAppearanceCatalog.Instance?.ColoursFor(hairstyle).FirstOrDefault(c => c.colour == _explicitHairColour);
-        if (colour == null)
-        {
-            _pendingHairLoads--;
-            yield break;
-        }
-
-        System.Collections.Generic.Dictionary<string, Material> materials = null;
-        yield return HairContent.LoadColour(hairstyle, colour, loaded => materials = loaded);
-
-        var live = _bodyBones != null ? _bodyBones.HairInstance : null;
-        if (live != null && materials != null)
-        {
-            HairColourApplier.Apply(live.gameObject, materials);
-        }
-
-        _pendingHairLoads--;
+        finally { _pendingHairLoads--; }
     }
 
     // §74: wear another actress's face. All four girls are Genesis3Female with
@@ -6751,7 +6788,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
         }
 
-        _eyeSets[eyeColor] = map;
+        if (tinted != null && tinted.Length > 0 && map.Count >= 5) _eyeSets[eyeColor] = map;
         return map;
     }
 

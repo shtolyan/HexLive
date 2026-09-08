@@ -68,28 +68,14 @@ public static class HairContent
             yield break;
         }
 
-        var finished = false;
-        ContentAssetHandle<GameObject> result = null;
-        Garments.ContentQueue.Begin(Garments.ContentQueue.Kind.Hair);
-        ContentAssetService.Instance.LoadMain<GameObject>("hair", hairId, loaded =>
-        {
-            result = loaded;
-            finished = true;
-            Garments.ContentQueue.End(Garments.ContentQueue.Kind.Hair);
-        });
-        while (!finished)
-        {
-            yield return null;
-        }
-
-        if (result == null || result.Asset == null)
+        Prewarm(hairId);
+        while (Prewarming.Contains(hairId)) yield return null;
+        if (!Hair.TryGetValue(hairId, out var result) || result.Asset == null)
         {
             Debug.LogWarning($"[HairContent] нет атомарного объекта hair/{hairId}.");
             done(null);
             yield break;
         }
-
-        Hair[hairId] = result;
         done(result.Asset.GetComponent<Wear>());
     }
 
@@ -168,9 +154,18 @@ public static class HairContent
 
             if (loaded?.Asset != null)
             {
-                Materials[key] = loaded;
-                result[surface] = loaded.Asset;
+                if (Materials.TryGetValue(key, out var existing))
+                {
+                    loaded.Dispose();
+                    result[surface] = existing.Asset;
+                }
+                else
+                {
+                    Materials[key] = loaded;
+                    result[surface] = loaded.Asset;
+                }
             }
+            else loaded?.Dispose();
         }
 
         done(result);

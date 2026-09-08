@@ -21,3 +21,22 @@
 
 .lobby-clothing-row { flex-direction: row; align-items: center; min-height: 46px; }
 .lobby-item-icon { width: 40px; height: 40px; margin-right: 8px; }
+
+.lobby-editor { flex-grow: 3; flex-basis: 0; min-width: 420px; min-height: 0; }
+.lobby-modes { flex-direction: row; }
+.lobby-modes > Button { flex-grow: 1; font-size: 22px; min-height: 52px; }
+.lobby-appearance { flex-grow: 1; min-height: 0; }
+.lobby-tabs { flex-direction: row; flex-wrap: wrap; }
+.lobby-tabs > Button { flex-grow: 1; margin-right: 4px; padding: 6px 9px; }
+.lobby-catalog { flex-grow: 1; min-height: 120px; }
+.lobby-tile-grid { flex-direction: row; flex-wrap: wrap; align-content: flex-start; }
+.lobby .lobby-tile { width: 108px; height: 142px; padding: 4px; margin: 4px; border-width: 2px; border-color: rgb(57, 72, 77); justify-content: flex-start; }
+.lobby-tile-image { height: 98px; flex-shrink: 0; }
+.lobby-tile > Label { white-space: normal; font-size: 11px; -unity-text-align: middle-center; overflow: hidden; }
+.lobby .lobby-selected { border-width: 2px; border-color: rgb(160, 206, 169); background-color: rgb(55, 94, 82); }
+.lobby-variants { height: 225px; flex-shrink: 0; background-color: rgb(24, 36, 40); padding: 8px; margin-top: 8px; }
+.lobby-variant-scroll { flex-grow: 1; min-height: 0; }
+.lobby-parameters { flex-grow: 1; min-height: 0; }
+.lobby-hidden { display: none; }
+.lobby-camera-help { white-space: normal; font-size: 11px; color: rgb(173, 190, 193); }
+.lobby .lobby-focused { border-color: rgb(236, 202, 129); }

@@ -23,14 +23,14 @@ public sealed class AdminCommandBus
     private readonly Dictionary<string, Preview> _previews = new();
     public AdminCommandBus(WorldSupervisor worlds, AdminAccess access, string directory)
     { _worlds = worlds; _access = access; _directory = directory; }
-    private sealed record Preview(string Client, string Command, string Fingerprint, string Epoch, DateTimeOffset Until);
-    public sealed record Reply(bool Accepted, string Reason, string OperationId, string ConfirmationId = "", int EntityId = 0);
+    private sealed record Preview(string Client, string CredentialHash, string Command, string Fingerprint, string Epoch, DateTimeOffset Until);
+    public sealed record Reply(bool Accepted, string Reason, string OperationId, string ConfirmationId = "", int EntityId = 0, string DefinitionId = "", string Kind = "");
 
     public object Execute(string client, string token, AdminCommand command, string epoch)
-        => _access.WithAuthorization<object>(client, token, () => ExecuteAuthorized(client, command, epoch),
+        => _access.WithAuthorization<object>(client, token, () => ExecuteAuthorized(client, token, command, epoch),
             () => new Reply(false, "AdminUnauthorized", command.OperationId));
 
-    private object ExecuteAuthorized(string client, AdminCommand command, string epoch)
+    private object ExecuteAuthorized(string client, string token, AdminCommand command, string epoch)
     {
         lock (_gate)
         {
@@ -52,7 +52,7 @@ public sealed class AdminCommandBus
                 {
                     foreach (var old in _previews.Where(p => p.Value.Until < DateTimeOffset.UtcNow || p.Value.Client == client).ToArray()) _previews.Remove(old.Key);
                     var id = Guid.NewGuid().ToString("N");
-                    _previews[id] = new Preview(client, serialized, Fingerprint(session.Host, command), epoch, DateTimeOffset.UtcNow.AddSeconds(60));
+                    _previews[id] = new Preview(client, AdminAccess.Hash(token), serialized, Fingerprint(session.Host, command), epoch, DateTimeOffset.UtcNow.AddSeconds(60));
                     return (object)new { accepted = false, reason = "ConfirmationRequired", operationId = command.OperationId,
                         confirmationId = id, command, target = DescribeTarget(session.Host, command, summary: true) };
                 }
@@ -66,7 +66,7 @@ public sealed class AdminCommandBus
         {
             lock (_gate)
             {
-                if (!_previews.TryGetValue(id, out var preview) || preview.Client != client) return new Reply(false, "ConfirmationExpired", "");
+                if (!_previews.TryGetValue(id, out var preview) || preview.Client != client || preview.CredentialHash != AdminAccess.Hash(token)) return new Reply(false, "ConfirmationExpired", "");
                 _previews.Remove(id);
                 if (!accept) return new Reply(false, "Cancelled", "");
                 if (preview.Until < DateTimeOffset.UtcNow) return new Reply(false, "ConfirmationExpired", "");
@@ -109,7 +109,7 @@ public sealed class AdminCommandBus
                 });
             }
         }
-        var reply = new Reply(result.Accepted, result.Reason, command.OperationId, EntityId: result.EntityId);
+        var reply = new Reply(result.Accepted, result.Reason, command.OperationId, EntityId: result.EntityId, DefinitionId: result.DefinitionId, Kind: command.Kind);
         AdminAccess.WritePrivate(path, JsonSerializer.Serialize(pending with { Reply = reply }, Json));
         return reply;
     }

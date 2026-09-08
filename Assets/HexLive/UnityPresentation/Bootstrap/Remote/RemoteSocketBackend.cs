@@ -96,6 +96,16 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
     private const double DeadAfterSeconds = 10.0;
 
     private readonly Queue<string> _adminResults = new();
+    private readonly Queue<(string Id, string Text, bool Approved)> _pairingResults = new();
+    public void SendAgentPairing(string id, string code, bool approve) => Send(AgentPairingWire.Encode(id, code, approve));
+    public bool TryTakeAgentPairing(out (string Id, string Text, bool Approved) result)
+    {
+        lock (_inbox)
+        {
+            if (_pairingResults.Count > 0) { result = _pairingResults.Dequeue(); return true; }
+            result = default; return false;
+        }
+    }
     public string AdminClientId => _clientId;
     public string AdminServer => _url;
     public void SendAdmin(string json) => Send(AdminWire.Encode(json));
@@ -793,6 +803,18 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
 
                 break;
             }
+
+            case FrameKind.AgentPairingResult:
+                TryDispatchAgentFrame(() =>
+                {
+                    var result = AgentPairingWire.Decode(payload);
+                    lock (_inbox)
+                    {
+                        if (_pairingResults.Count >= 8) _pairingResults.Dequeue();
+                        _pairingResults.Enqueue(result);
+                    }
+                });
+                break;
 
             case FrameKind.AdminResult:
                 TryDispatchAgentFrame(() =>

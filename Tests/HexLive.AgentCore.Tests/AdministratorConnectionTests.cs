@@ -12,6 +12,17 @@ public sealed class AdministratorConnectionTests
     private static ServerProfile Profile => new(Guid.NewGuid(), "Admin", new Uri("https://example.test/mcp"), "server.fixture");
 
     [Test]
+    public async Task AlreadyReadCredentialDoesNotPromptStoreAgain()
+    {
+        var store = new Secrets(); using var http = new Handler();
+        var roster = await new AgentServerConnection(store, http).ReadWithCredentialAsync(Profile, Credential, default);
+        Assert.That(store.Reads, Is.Zero);
+        Assert.That(store.Value, Is.EqualTo("original"));
+        Assert.That(roster.Characters.Single().NpcId, Is.EqualTo(901));
+        Assert.That(http.Tools, Is.EqualTo(new[] { "world_status", "list_colonists" }));
+    }
+
+    [Test]
     public async Task GameTokenCarriesExistingClientIdentityWithoutPairing()
     {
         var store = new Secrets(); using var http = new Handler();
@@ -60,7 +71,8 @@ public sealed class AdministratorConnectionTests
     private sealed class Secrets : ISecretStore
     {
         public string Value = "original";
-        public Task<string?> ReadAsync(string id, CancellationToken token) => Task.FromResult<string?>(Value);
+        public int Reads;
+        public Task<string?> ReadAsync(string id, CancellationToken token) { Reads++; return Task.FromResult<string?>(Value); }
         public Task WriteAsync(string id, string value, CancellationToken token) { Value = value; return Task.CompletedTask; }
         public Task DeleteAsync(string id, CancellationToken token) => Task.CompletedTask;
     }

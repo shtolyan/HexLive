@@ -61,6 +61,8 @@
   "Start": "Start controlling",
   "Connect": "Connect",
   "ConnectingNow": "Connecting…",
+  "ReadingServerCredential": "Reading the saved token. If macOS shows a Keychain prompt, allow Agent Studio access. No model requests.",
+  "CredentialAccessDenied": "Cannot read the saved token. Allow credential-store access or enter the token again in server settings.",
   "ConnectedCharacters": "Connected · available characters: {0}.",
   "ConnectionTimeout": "Connection timed out or was cancelled. Check the server address and try again.",
   "ConnectionCancelled": "Connection cancelled. No agent was started.",

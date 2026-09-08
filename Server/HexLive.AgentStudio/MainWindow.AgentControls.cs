@@ -131,13 +131,14 @@ public sealed partial class MainWindow
         if (_serverSelection.SelectedItem is not ServerProfile server) { SetConfigurationStatus(Strings["NoServer"]); return; }
         _operation = true;
         SetConnecting(true);
-        SetConfigurationStatus(Strings["CheckingServer"]);
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(35));
+        SetConfigurationStatus(Strings["ReadingServerCredential"]);
+        using var cancellation = new CancellationTokenSource();
         _connectionCancellation = cancellation;
         try
         {
             if (await IsAgentActive(profile.Id)) { SetConfigurationStatus(Strings["StopBeforeEdit"]); return; }
-            if (await _secrets.ReadAsync(server.CredentialId, cancellation.Token) == null)
+            var credential = await _secrets.ReadAsync(server.CredentialId, cancellation.Token).WaitAsync(cancellation.Token);
+            if (credential == null)
             {
                 SetConfigurationStatus(Strings["ServerNeedsAccess"]);
                 cancellation.CancelAfter(Timeout.InfiniteTimeSpan);
@@ -147,10 +148,13 @@ public sealed partial class MainWindow
                 if (approved == null) { SetConfigurationStatus(Strings["ConnectionCancelled"]); return; }
                 await SaveServer(approved);
                 server = approved;
-                cancellation.CancelAfter(TimeSpan.FromSeconds(35));
-                SetConfigurationStatus(Strings["CheckingServer"]);
+                SetConfigurationStatus(Strings["ReadingServerCredential"]);
+                credential = await _secrets.ReadAsync(server.CredentialId, cancellation.Token).WaitAsync(cancellation.Token)
+                    ?? throw new InvalidOperationException("MissingServerCredential");
             }
-            var roster = await new AgentServerConnection(_secrets).ReadAsync(server, cancellation.Token);
+            cancellation.CancelAfter(TimeSpan.FromSeconds(35));
+            SetConfigurationStatus(Strings["CheckingServer"]);
+            var roster = await new AgentServerConnection(_secrets).ReadWithCredentialAsync(server, credential, cancellation.Token);
             if (SelectedProfile?.Id != profile.Id) return;
             await SaveProfile(profile with { ServerId = server.Id, WorldId = roster.WorldId,
                 NpcId = profile.ServerId == server.Id && profile.WorldId == roster.WorldId ? profile.NpcId : 0 });
@@ -163,6 +167,8 @@ public sealed partial class MainWindow
         catch (OperationCanceledException) { SetConfigurationStatus(Strings["ConnectionTimeout"]); }
         catch (HttpRequestException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
         { SetConfigurationStatus(Strings["ConnectionDenied"]); }
+        catch (InvalidOperationException ex) when (ex.Message == "OperatingSystemCredentialOperationFailed")
+        { SetConfigurationStatus(Strings["CredentialAccessDenied"]); }
         catch { SetConfigurationStatus(Strings["ConnectionFailed"]); }
         finally { _connectionCancellation = null; _operation = false; SetConnecting(false); }
     }

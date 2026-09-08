@@ -41,8 +41,9 @@ public sealed class AgentServerConnection(ISecretStore secrets, HttpMessageHandl
         await secrets.WriteAsync(server.CredentialId, credential, token);
     }
 
-    private async Task<ServerRoster> ReadWithCredentialAsync(ServerProfile server, string credential, CancellationToken token)
+    public async Task<ServerRoster> ReadWithCredentialAsync(ServerProfile server, string credential, CancellationToken token)
     {
+        server.Validate();
         using var mcp = new McpClient(new AgentProviderOptions { McpUri = server.McpEndpoint, McpToken = credential, PlayerClientId = server.PlayerClientId,
             XaiKey = "", ElevenLabsKey = "", XaiModel = "", ElevenLabsModel = "", ElevenLabsVoiceId = "" }, handler);
         var world = await mcp.CallToolAsync("world_status", new { }, token);

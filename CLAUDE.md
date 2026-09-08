@@ -849,7 +849,21 @@ clamped (capped at 200×). A shared world wound forward burns colony days for
 everyone watching and multiplies every viewer's stream — so the Unity speed bar
 greys out >1× on a remote link, and the server enforces it regardless.
 
-## ⭐ Обновление production-сервера 163.245.204.96
+## ⭐ Серверы и обновление production
+
+У HexLive два независимых VPS:
+
+- **Сингапур** — `62.146.235.120`, SSH `hexlive-singapore` (старый алиас
+  `hexlive-server`). Это отдельный ранее развёрнутый сервер; не изменять его,
+  если игрок явно не назвал Сингапур.
+- **Нью-Йорк** — `163.245.204.96`, SSH `hexlive-nyc`. Это текущий production и
+  цель runbook ниже.
+
+Общий ключ Нью-Йорка, установка на macOS/Linux и Windows и правила выбора
+сервера описаны в `Docs/ServerAccess.md`. Не подменять один сервер другим по
+старому алиасу или IP.
+
+### Обновление production-сервера 163.245.204.96
 
 Это канонический runbook для уже развёрнутого VPS. Любой агент обновляет его
 одинаково; импровизированный `dotnet run` в `/root`, новый каталог с сейвом или

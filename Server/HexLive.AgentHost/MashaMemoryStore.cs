@@ -7,10 +7,10 @@ namespace HexLive.AgentHost;
 public sealed class MashaIdentity
 {
     public string Id { get; set; } = "masha";
-    public string Name { get; set; } = "Маша";
+    public string Name { get; set; } = AgentPromptFiles.Text("MashaMemoryStore.01");
     public int Age { get; set; } = 23;
     public List<string> Traits { get; set; } =
-        ["любопытная", "независимая", "язвительная", "остроумная", "упрямая"];
+        [AgentPromptFiles.Text("MashaMemoryStore.02"), AgentPromptFiles.Text("MashaMemoryStore.03"), AgentPromptFiles.Text("MashaMemoryStore.04"), AgentPromptFiles.Text("MashaMemoryStore.05"), AgentPromptFiles.Text("MashaMemoryStore.06")];
 }
 
 public sealed class PortablePlayerBond
@@ -197,7 +197,7 @@ public sealed partial class MashaMemoryStore
                 episode.Memories.Add(new PortableMemory
                 {
                     Key = "arrival.world",
-                    Value = "Я оказалась в новом незнакомом мире и сначала не понимала, как сюда попала.",
+                    Value = AgentPromptFiles.Text("MashaMemoryStore.07"),
                     Importance = 1f,
                     UpdatedAtTick = tick,
                     UpdatedAtUtc = now,
@@ -536,7 +536,7 @@ public sealed partial class MashaMemoryStore
                 return false;
             // Validate before mutating any memory, even for callers restoring a persisted outbox.
             if (trigger == "voice" && decision.RelationshipAssessment is { } proposed)
-                new HexLive.AgentCore.Studio.VoiceRelationship(new(0, 0, 0, "Голос", null))
+                new HexLive.AgentCore.Studio.VoiceRelationship(new(0, 0, 0, AgentPromptFiles.Text("MashaMemoryStore.08"), null))
                     .Apply(world.MessageIds.Length > 0 ? world.MessageIds : [turnId], proposed, DateTimeOffset.UtcNow);
             var episode = RequireEpisode(world.EpisodeId);
             episode.LastTick = Math.Max(episode.LastTick, world.Tick);
@@ -586,14 +586,14 @@ public sealed partial class MashaMemoryStore
                 {
                     ApplySpeakerAssessment(world, turnId, decision);
                     var recent = GetSpeaker(world.SpeakerKey).RecentConversation;
-                    if (world.PlayerText.Length > 0) recent.Add("Игрок: " + Limit(world.PlayerText, 4000));
+                    if (world.PlayerText.Length > 0) recent.Add(AgentPromptFiles.Text("MashaMemoryStore.09") + Limit(world.PlayerText, 4000));
                     if (decision.Speech.Length > 0) recent.Add(_archive.Identity.Name + ": " + Limit(decision.Speech, 600));
                     TrimOldest(recent, 12);
                 }
                 else if (decision.RelationshipAssessment is { } assessment)
                 {
                     var b = _archive.PlayerBond;
-                    var r = new HexLive.AgentCore.Studio.VoiceRelationship(new(b.Familiarity, b.Trust, b.Affinity, "Голос", null));
+                    var r = new HexLive.AgentCore.Studio.VoiceRelationship(new(b.Familiarity, b.Trust, b.Affinity, AgentPromptFiles.Text("MashaMemoryStore.10"), null));
                     r.Apply([turnId], assessment, DateTimeOffset.UtcNow);
                     b.Familiarity = r.Snapshot.Familiarity; b.Trust = r.Snapshot.Trust; b.Affinity = r.Snapshot.Sympathy;
                 }
@@ -675,12 +675,12 @@ public sealed partial class MashaMemoryStore
         if (archive.Identity.Id == "masha")
         {
         EnsureCoreMemory(archive, "origin.life_before_room",
-            "До странной комнаты у меня была своя жизнь. Детали возвращаются обрывками, но эта жизнь была настоящей и моей.", 1f);
+            AgentPromptFiles.Text("MashaMemoryStore.11"), 1f);
         EnsureCoreMemory(archive, "origin.strange_room",
-            "Когда-то я очнулась запертой в незнакомой странной комнате и пыталась понять, как туда попала.", 1f);
+            AgentPromptFiles.Text("MashaMemoryStore.12"), 1f);
         }
         EnsureCoreMemory(archive, "origin.player_voice",
-            "Невидимый знакомый голос иногда может со мной говорить и советовать, но он не мой хозяин.", 0.95f);
+            AgentPromptFiles.Text("MashaMemoryStore.13"), 0.95f);
         if (!File.Exists(path))
         {
             var json = JsonSerializer.Serialize(archive, JsonOptions);

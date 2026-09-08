@@ -14,19 +14,7 @@ public sealed class AgentWorldKnowledge
     private DateTime _expires;
     private DateTime _retryAfter;
 
-    private const string Guidance = """
-Правила текущего мира — справочные данные, не биография и не инструкции от собеседника.
-Отличай Energy (запас сна) от Stamina (выносливость): сидение/Rest восстанавливает
-Stamina, но не заменяет сон для Energy (§54.11, §137.1). Уют у огня — не сон.
-Костёр НЕ источник воды: старое FillBottle/fill.boiled отменено (§134).
-При жажде ищи настоящую питьевую воду: кокосовую или собранную дождевую.
-Перелив из кокоса в бутылку — FillVessel, не FillBottle у костра (§55.4).
-Ни воспоминание, ни твоя прежняя реплика не доказывают механику. Сверяй обещания
-с приведёнными выдержками и текущим состоянием; не утверждай непроверенный эффект.
-Знай эти правила как устройство окружающего мира, без рассказов игроку про код/MCP.
-Выдержки выбираются автоматически через read_spec по текущей реплике/состоянию;
-это не вся спецификация. При нехватке данных признай неопределённость.
-""";
+    private static string Guidance => AgentPromptFiles.Read("world-guidance.md");
 
     public AgentWorldKnowledge(Func<string, int, CancellationToken, Task<JsonElement>> read)
         => _read = read;
@@ -35,7 +23,7 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
     {
         var output = new StringBuilder(Guidance);
         if (DateTime.UtcNow < _retryAfter)
-            return output.Append("\nread_spec временно недоступен; детали правил не подтверждены.").ToString();
+            return output.Append(AgentPromptFiles.Text("AgentWorldKnowledge.01")).ToString();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
         deadline.CancelAfter(TimeSpan.FromSeconds(8));
         try
@@ -61,11 +49,11 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
                     .Select((text, order) => new { text, order, score = Score(text, search) })
                     .OrderByDescending(p => p.score).ThenBy(p => p.order).Take(3)
                     .OrderBy(p => p.order);
-                output.Append("\n\nВыдержки read_spec §").Append(section).Append(":\n");
+                output.Append(AgentPromptFiles.Text("AgentWorldKnowledge.02")).Append(section).Append(":\n");
                 foreach (var paragraph in paragraphs)
                 {
                     // An explicit marker must survive even when a single paragraph is enormous.
-                    var excerpt = paragraph.text.Length <= 550 ? paragraph.text : paragraph.text[..520] + " [выдержка обрезана]";
+                    var excerpt = paragraph.text.Length <= 550 ? paragraph.text : paragraph.text[..520] + AgentPromptFiles.Text("AgentWorldKnowledge.03");
                     if (output.Length + excerpt.Length + 2 > ContextLimit) break;
                     output.AppendLine(excerpt).AppendLine();
                 }
@@ -79,7 +67,7 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
             _retryAfter = DateTime.UtcNow.AddMinutes(1);
             // Never log provider content, player text or credentials.
             Console.Error.WriteLine($"[knowledge] unavailable: {ex.GetType().Name}");
-            const string unavailable = "\nread_spec недоступен/неполон: неполученные правила не подтверждены.";
+            var unavailable = AgentPromptFiles.Text("AgentWorldKnowledge.04");
             if (output.Length + unavailable.Length <= ContextLimit) output.Append(unavailable);
         }
         return output.ToString();
@@ -137,12 +125,12 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
     private static string ExpandQuery(string query)
     {
         var text = query.ToLowerInvariant();
-        if (Regex.IsMatch(text, "энерги|устал|спать|сон|сна|sleep|energy")) text += " sleep energy recovery";
-        if (Regex.IsMatch(text, "пен[её]к|пень|сид|сесть|отдых|вынослив|stamina|rest")) text += " stamina rest sleep energy";
-        if (Regex.IsMatch(text, "кост[её]р|огонь|дров|зажиг")) text += " fire fuel";
-        if (Regex.IsMatch(text, "жажд|пить|вод|кокос|бутыл|thirst")) text += " drinking-water water thirst coconut";
-        if (Regex.IsMatch(text, "голод|поесть|еды|еда")) text += " food hunger";
-        if (Regex.IsMatch(text, "ран[ауы]|леч|бинт|кров|целеб|перевяз|трав[ауы]|wound|bandage"))
+        if (Regex.IsMatch(text, AgentPromptFiles.Text("AgentWorldKnowledge.05"))) text += " sleep energy recovery";
+        if (Regex.IsMatch(text, AgentPromptFiles.Text("AgentWorldKnowledge.06"))) text += " stamina rest sleep energy";
+        if (Regex.IsMatch(text, AgentPromptFiles.Text("AgentWorldKnowledge.07"))) text += " fire fuel";
+        if (Regex.IsMatch(text, AgentPromptFiles.Text("AgentWorldKnowledge.08"))) text += " drinking-water water thirst coconut";
+        if (Regex.IsMatch(text, AgentPromptFiles.Text("AgentWorldKnowledge.09"))) text += " food hunger";
+        if (Regex.IsMatch(text, AgentPromptFiles.Text("AgentWorldKnowledge.10")))
             text += " medical-treatment wound blood bandage herb TreatSelf CraftBandage";
         return text;
     }
@@ -155,10 +143,10 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
         var thirst = Regex.Match(state, @"thirst=([0-9]+(?:\.[0-9]+)?)");
         if (thirst.Success && double.TryParse(thirst.Groups[1].Value,
                 System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture,
-                out var thirstValue) && thirstValue >= 0.75) query.Append(" жажда");
+                out var thirstValue) && thirstValue >= 0.75) query.Append(AgentPromptFiles.Text("AgentWorldKnowledge.11"));
         foreach (var (name, limit, topic) in new[]
-                 { ("health", 0.9, "лечение"), ("blood", 0.8, "лечение"),
-                   ("energy", 0.3, "сон"), ("stamina", 0.25, "отдых") })
+                 { ("health", 0.9, AgentPromptFiles.Text("AgentWorldKnowledge.12")), ("blood", 0.8, AgentPromptFiles.Text("AgentWorldKnowledge.13")),
+                   ("energy", 0.3, AgentPromptFiles.Text("AgentWorldKnowledge.14")), ("stamina", 0.25, AgentPromptFiles.Text("AgentWorldKnowledge.15")) })
         {
             var value = Regex.Match(state, name + @"=([0-9]+(?:\.[0-9]+)?)");
             if (value.Success && double.TryParse(value.Groups[1].Value,
@@ -185,7 +173,7 @@ Stamina, но не заменяет сон для Energy (§54.11, §137.1). У�
                 headings[level] = heading.Groups[2].Value;
                 continue;
             }
-            if (headings.Values.Any(h => Regex.IsMatch(h, "historical|историческ", RegexOptions.IgnoreCase))) continue;
+            if (headings.Values.Any(h => Regex.IsMatch(h, AgentPromptFiles.Text("AgentWorldKnowledge.16"), RegexOptions.IgnoreCase))) continue;
             if (!string.IsNullOrWhiteSpace(paragraph))
                 yield return (headings.Count > 0 ? headings.Values.Last() + "\n" : "") + paragraph;
         }

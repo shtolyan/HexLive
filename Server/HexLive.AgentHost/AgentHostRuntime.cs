@@ -44,7 +44,7 @@ public sealed partial class AgentHostRuntime
     private Task _actionTask = Task.CompletedTask;
     private volatile bool _handoffActionLease;
     private string _actionContract = string.Empty;
-    private string _actionFeedback = "Физических приказов в этой сессии ещё не было.";
+    private string _actionFeedback = AgentPromptFiles.Text("AgentHostRuntime.01");
 
     public AgentHostRuntime(AgentHostOptions options, IAgentProviders? providers = null,
         HttpMessageHandler? mcpHandler = null)
@@ -137,7 +137,7 @@ public sealed partial class AgentHostRuntime
         _pinnedNpcId = npcId;
         var catalog = await mcp.ReadToolCatalogAsync(cancellationToken);
         _actionContract = BuildActionContract(catalog);
-        _actionFeedback = "Новая MCP-сессия: результаты прежних приказов неизвестны.";
+        _actionFeedback = AgentPromptFiles.Text("AgentHostRuntime.02");
         var attached = await mcp.CallToolAsync("attach_agent", new
         {
             npcId,
@@ -340,7 +340,7 @@ public sealed partial class AgentHostRuntime
                 await mcp.CallToolAsync("commit_agent_turn", new
                 {
                     attachmentId, turnId = "body-" + Guid.NewGuid().ToString("N"), reaction = "None",
-                    intentSummary = "Без сознания. Реплики ожидают пробуждения.",
+                    intentSummary = AgentPromptFiles.Text("AgentHostRuntime.03"),
                 }, cancellationToken);
                 await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
                 _status.Write(true, "Ready", npcId, true, true);
@@ -380,11 +380,11 @@ public sealed partial class AgentHostRuntime
                 .ToDictionary(property => property.Name, property => property.Value));
             stage = "model";
             var decision = await _providers.DecideAsync(trigger, physicalState,
-                memoryContext.Text + "\nДопустимые arguments (npcId подставляется автоматически):\n" + _actionContract +
-                "\nРезультат последнего физического приказа (не новая просьба):\n" +
+                memoryContext.Text + AgentPromptFiles.Text("AgentHostRuntime.04") + _actionContract +
+                AgentPromptFiles.Text("AgentHostRuntime.05") +
                 Volatile.Read(ref _actionFeedback) +
-                "\nПри отказе исправь причину; не обещай выполненное лечение до подтверждения состоянием. " +
-                "TreatSelf — перевязка готовым бинтом; treat_limbs — шина/протез, не замена бинта.",
+                AgentPromptFiles.Text("AgentHostRuntime.06") +
+                AgentPromptFiles.Text("AgentHostRuntime.07"),
                 playerText, Recent.ToArray(), cancellationToken)
                 .ConfigureAwait(false);
 
@@ -409,7 +409,7 @@ public sealed partial class AgentHostRuntime
             _outbox.Remove(turnId);
             LastIntentSummary = decision.IntentSummary;
 
-            if (playerText.Length > 0) Remember("Игрок: " + playerText);
+            if (playerText.Length > 0) Remember(AgentPromptFiles.Text("AgentHostRuntime.08") + playerText);
             if (decision.Speech.Length > 0)
             {
                 stage = "speech";
@@ -562,7 +562,7 @@ public sealed partial class AgentHostRuntime
             attachmentId,
             utteranceId,
             turnId,
-            language = "ru",
+            language = AgentConversationLanguage.SpeechTag(decision.Speech),
             text = decision.Speech,
             emotion = decision.Emotion,
             delivery = direct ? "player_reply" : "world",
@@ -604,7 +604,7 @@ public sealed partial class AgentHostRuntime
                 npcId.ToString(System.Globalization.CultureInfo.InvariantCulture));
             arguments["npcId"] = npcDocument.RootElement.Clone();
             await mcp.CallToolAsync(action.Tool, arguments, cancellationToken).ConfigureAwait(false);
-            Volatile.Write(ref _actionFeedback, action.Tool + ": Accepted — приказ принят, выполнение ещё не подтверждено.");
+            Volatile.Write(ref _actionFeedback, action.Tool + AgentPromptFiles.Text("AgentHostRuntime.09"));
 
             var renew = DateTimeOffset.UtcNow.AddSeconds(9);
             DateTimeOffset? holdingSince = null;
@@ -617,7 +617,7 @@ public sealed partial class AgentHostRuntime
                 {
                     if (!HasCarriedPerson(list, npcId))
                     {
-                        Volatile.Write(ref _actionFeedback, action.Tool + ": PlanEnded — план закончился; успех проверь по состоянию, это не подтверждение результата.");
+                        Volatile.Write(ref _actionFeedback, action.Tool + AgentPromptFiles.Text("AgentHostRuntime.10"));
                         break;
                     }
                     // Pickup/movement completion is not the end of transport.
@@ -626,10 +626,10 @@ public sealed partial class AgentHostRuntime
                     holdingSince ??= DateTimeOffset.UtcNow;
                     if (DateTimeOffset.UtcNow - holdingSince.Value >= TimeSpan.FromSeconds(120))
                     {
-                        Volatile.Write(ref _actionFeedback, "CarryContinuationTimeout — 120 секунд без продолжения переноски; безопасно возвращаю управление AI.");
+                        Volatile.Write(ref _actionFeedback, AgentPromptFiles.Text("AgentHostRuntime.11"));
                         break;
                     }
-                    Volatile.Write(ref _actionFeedback, "HoldingPerson — человек на руках. Выбери move_to к нужному лагерю, put_person_in_bed или put_down_person; не поднимай повторно.");
+                    Volatile.Write(ref _actionFeedback, AgentPromptFiles.Text("AgentHostRuntime.12"));
                 }
                 else holdingSince = null;
                 if (DateTimeOffset.UtcNow >= renew)
@@ -659,11 +659,11 @@ public sealed partial class AgentHostRuntime
     {
         try { await PerformActionAsync(mcp, npcId, action, cancellationToken); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        { Volatile.Write(ref _actionFeedback, action.Tool + ": Cancelled — приказ прерван, не считай его выполненным."); }
+        { Volatile.Write(ref _actionFeedback, action.Tool + AgentPromptFiles.Text("AgentHostRuntime.13")); }
         catch (Exception ex)
         {
             var code = ex is McpToolRejectedException rejection ? rejection.ReasonCode : ex.GetType().Name;
-            Volatile.Write(ref _actionFeedback, action.Tool + ": " + code + " — действие не подтверждено. Проверь аргументы и необходимые припасы.");
+            Volatile.Write(ref _actionFeedback, action.Tool + ": " + code + AgentPromptFiles.Text("AgentHostRuntime.14"));
             Console.Error.WriteLine($"[action] tool={action.Tool} result={code}");
         }
     }
@@ -786,7 +786,7 @@ public sealed partial class AgentHostRuntime
             trust = Math.Clamp(bond.Trust, 0f, 1f),
             affinity = Math.Clamp(bond.Affinity, -1f, 1f),
             speakerId = key.Length > 0 ? key.Split(':').Last() : "",
-            voiceName = archive.Speakers.TryGetValue(key, out var speaker) ? speaker.VoiceName : "Голос"
+            voiceName = archive.Speakers.TryGetValue(key, out var speaker) ? speaker.VoiceName : AgentPromptFiles.Text("AgentHostRuntime.15")
         }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
     }
 
@@ -808,7 +808,7 @@ public sealed partial class AgentHostRuntime
             var name = tool.GetProperty("name").GetString() ?? "";
             if (!AgentProviders.IsAllowedTool(name)) continue;
             text.Append(name).Append(": ").AppendLine(tool.TryGetProperty("description", out var description)
-                ? description.GetString() : "Описание не предоставлено сервером; не угадывай параметры.");
+                ? description.GetString() : AgentPromptFiles.Text("AgentHostRuntime.16"));
             text.AppendLine(tool.GetProperty("inputSchema").GetRawText());
         }
         return text.ToString();

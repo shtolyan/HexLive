@@ -7,7 +7,7 @@ public sealed class SpeakerMemory
 {
     public PortablePlayerBond Bond { get; set; } = new();
     public string? RelationshipState { get; set; }
-    public string VoiceName { get; set; } = "Голос";
+    public string VoiceName { get; set; } = AgentPromptFiles.Text("SpeakerMemory.01");
     public string LastAssessmentReason { get; set; } = "";
     public List<PortableMemory> Facts { get; set; } = new();
     public List<string> AppliedMessageIds { get; set; } = new();
@@ -32,14 +32,14 @@ public static class AgentGameTime
     public static string Describe(PortablePlayerBond bond, MashaWorldHandle world)
     {
         string Elapsed(long from, long to) => world.DayLengthTicks <= 0 || from < 0 || to < from ||
-            bond.ClockWorldKey != world.EpisodeId || world.Tick < bond.LastClockTick ? "неизвестно" :
-            $"{(long)((to - from) * 1440d / world.DayLengthTicks)} игровых минут";
+            bond.ClockWorldKey != world.EpisodeId || world.Tick < bond.LastClockTick ? AgentPromptFiles.Text("SpeakerMemory.02") :
+            string.Format(AgentPromptFiles.Text("game.elapsed"), (long)((to - from) * 1440d / world.DayLengthTicks));
         return "<game_contact_time>\n" +
-            "С последнего завершённого общения: " + Elapsed(bond.LastVoiceTick, world.Tick) + ".\n" +
-            "Наблюдаемое отсутствие до возвращения: " + Elapsed(bond.LastDepartureTick, bond.LastReturnTick) + ".\n" +
-            "Ожидается первая реплика после возвращения: " + (bond.AwaitingReturnVoice ? "да" : "нет") + ".\n" +
-            "Это игровое время. Пауза не добавляет времени; молчание не доказывает отсутствие. " +
-            "Не выдумывай длительность при неизвестных отметках.\n</game_contact_time>";
+            AgentPromptFiles.Text("SpeakerMemory.03") + Elapsed(bond.LastVoiceTick, world.Tick) + ".\n" +
+            AgentPromptFiles.Text("SpeakerMemory.04") + Elapsed(bond.LastDepartureTick, bond.LastReturnTick) + ".\n" +
+            AgentPromptFiles.Text("SpeakerMemory.05") + (bond.AwaitingReturnVoice ? AgentPromptFiles.Text("SpeakerMemory.06") : AgentPromptFiles.Text("SpeakerMemory.07")) + ".\n" +
+            AgentPromptFiles.Text("SpeakerMemory.08") +
+            AgentPromptFiles.Text("SpeakerMemory.09");
     }
 }
 

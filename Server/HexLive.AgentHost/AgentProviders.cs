@@ -31,6 +31,7 @@ public sealed class AgentProviders : IAgentProviders
     public static bool IsAllowedTool(string name) => AllowedTools.Contains(name);
 
     private readonly AgentProviderOptions _options;
+    private string _lastPlayerMessage = "";
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(45) };
 
     private readonly IModelAdapter? _modelAdapter;
@@ -84,15 +85,16 @@ public sealed class AgentProviders : IAgentProviders
         {
             return new CompanionDecision
             {
-                Speech = trigger == "voice" ? "Я тебя слышу." : string.Empty,
-                RelationshipAssessment = trigger == "voice" ? new(false, RelationshipDirection.Unchanged, RelationshipDirection.Unchanged, false, "Обычное обращение") : null,
+                Speech = trigger == "voice" ? AgentPromptFiles.Text("AgentProviders.01") : string.Empty,
+                RelationshipAssessment = trigger == "voice" ? new(false, RelationshipDirection.Unchanged, RelationshipDirection.Unchanged, false, AgentPromptFiles.Text("AgentProviders.02")) : null,
                 Emotion = "curious",
                 Reaction = trigger == "voice" ? "Neutral" : "None",
-                IntentSummary = "Осматриваюсь и продолжаю жить на острове."
+                IntentSummary = AgentPromptFiles.Text("AgentProviders.03")
             };
         }
 
         var system = AgentPromptBuilder.Build(_options.DialogueStyleId, memoryContext, transcript);
+        _lastPlayerMessage = AgentConversationLanguage.LastMessage(transcript, recentConversation, _lastPlayerMessage);
 
         using var stateDocument = JsonDocument.Parse(stateJson);
         var user = JsonSerializer.Serialize(new
@@ -100,6 +102,7 @@ public sealed class AgentProviders : IAgentProviders
             trigger,
             worldAndBody = stateDocument.RootElement,
             playerSpeech = transcript,
+            lastPlayerMessageForLanguage = _lastPlayerMessage,
             recentConversation
         });
         if (_modelAdapter != null)
@@ -399,7 +402,7 @@ public sealed class AgentProviders : IAgentProviders
             throw new InvalidDataException("VoiceRelationshipAssessmentRequired");
         if (trigger != "voice") decision.RelationshipAssessment = null;
         if (decision.RelationshipAssessment is { } assessment)
-            new VoiceRelationship(new(0, 0, 0, "Голос", null)).Apply(["validate"], assessment, DateTimeOffset.UnixEpoch);
+            new VoiceRelationship(new(0, 0, 0, AgentPromptFiles.Text("AgentProviders.04"), null)).Apply(["validate"], assessment, DateTimeOffset.UnixEpoch);
         decision.Speech = (decision.Speech ?? string.Empty).Trim();
         decision.IntentSummary = (decision.IntentSummary ?? string.Empty).Trim();
         decision.JournalText = (decision.JournalText ?? string.Empty).Trim();

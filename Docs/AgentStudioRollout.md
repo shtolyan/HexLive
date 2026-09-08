@@ -21,6 +21,36 @@
 
 ## Граница выполнения
 
+### Обновление 2026-09-08 — production установлен
+
+- Развёрнут `c87d75ece59b926d8ae4bf7f2a116bca544c7d0c`, отправлен в private origin/master.
+- Сборка Linux x64 self-contained из полного чистого git archive; тестовые LFS
+  изображения восстановлены только после проверки SHA-256 из указателей коммита.
+- Сервер: 204 passed. Симуляция: 1436 passed, 6 skipped. AgentCore: 26 passed,
+  AgentHost: 38 passed в предрелизной проверке. Python admin adapter: 6 passed.
+- Свежий приватный backup: `/var/backups/hexlive/pre-release-c87d75ec-20260908`.
+- Два проверенных рестарта: прежний world ID, tick 130527, paused=true;
+  admin/player credentials не изменились. HTTPS 200, /watch 101, macOS Asset API 200.
+- Startup pause включена отдельным `zz-start-paused.conf`. Проверяется именно
+  эффективный ExecStart после daemon-reload: более поздний drop-in может
+  незаметно заменить команду и убрать флаг.
+- Первый неудачный запуск с override `90-…` успел пройти до tick 130604.
+  Этот save и назначения сохранены в `failed-start-*` внутри свежего backup;
+  активные save/players восстановлены из проверенной преддеплойной копии.
+  Повторный деплой и оба рестарта уже оставались точно на tick 130527.
+- Временный загруженный tar удалён после проверки; оба релиза и backups сохранены.
+- Новый мир пока не создавался. Текущий мир остаётся на паузе; агенты не запущены.
+- Пересобрана Agent Studio из этого SHA:
+  `Build/AgentStudio/preview-20260908-111334/Agent Studio.app` (framework-dependent macOS preview).
+- Игровой клиент `0.1.100`: `/Users/shtolyan/hex-girls/Releases/v0.1.100/HexLive.app`,
+  release, universal arm64/x86_64, 639 MiB. Последний `~/hex-girls/HexLive.app`
+  указывает на него. Контентные bundles не встроены; источник — Asset API.
+- Проверено реальное одновременное подключение MCP к NPC901/masha и NPC902/Ника,
+  heartbeat и detach обоих. Мир оставался на паузе; LLM/TTS не вызывались.
+  Полный микрофон/STT/LLM/TTS/игровой UI сценарий остаётся для пользовательского прогона.
+
+Ниже — историческая запись подготовки до установки:
+
 Снята точка отката. На этом этапе новый мир **не создан**, активный release
 не переключён, сервис не перезапускался. Текущее состояние реализации desktop
 описано в `Server/HexLive.AgentStudio/IMPLEMENTATION.md`, не выдавать preview за

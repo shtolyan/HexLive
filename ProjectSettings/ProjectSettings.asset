@@ -145,7 +145,7 @@ PlayerSettings:
   loadStoreDebugModeEnabled: 0
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
-  bundleVersion: 0.1.99
+  bundleVersion: 0.1.100
   preloadedAssets:
   - {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   metroInputSource: 0
@@ -171,12 +171,12 @@ PlayerSettings:
     Standalone: com.juilcylove.hexgirls
     iPhone: com.Unity-Technologies.com.unity.template.urp-blank
   buildNumber:
-    Standalone: 99
+    Standalone: 100
     VisionOS: 0
-    iPhone: 99
+    iPhone: 100
     tvOS: 0
   overrideDefaultApplicationIdentifier: 1
-  AndroidBundleVersionCode: 99
+  AndroidBundleVersionCode: 100
   AndroidMinSdkVersion: 25
   AndroidTargetSdkVersion: 0
   AndroidPreferredInstallLocation: 1
@@ -848,7 +848,7 @@ PlayerSettings:
     PS4: TextMeshPro
     PS5: TextMeshPro
     QNX: TextMeshPro
-    Standalone: APP_UI_EDITOR_ONLY;MAGICACLOTH2;TextMeshPro
+    Standalone: APP_UI_EDITOR_ONLY;MAGICACLOTH2;TextMeshPro;SENTIS_ANALYTICS_ENABLED
     VisionOS: TextMeshPro
     WebGL: TextMeshPro
     XboxOne: TextMeshPro

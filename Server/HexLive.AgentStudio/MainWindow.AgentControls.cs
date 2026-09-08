@@ -16,6 +16,20 @@ public sealed partial class MainWindow
     private readonly ComboBox _serverSelection = new();
     private readonly ComboBox _characterSelection = new();
     private bool _operation, _polling, _closing, _allowClose, _updatingProfile, _refreshingCharacters;
+    private bool _connecting;
+    private CancellationTokenSource? _connectionCancellation;
+    public bool IsConnecting => _connecting;
+    public bool CanConnect => !_connecting;
+    public string ConnectButtonText => Strings[_connecting ? "ConnectingNow" : "Connect"];
+    private void SetConnecting(bool value)
+    {
+        _connecting = value;
+        foreach (var property in new[] { nameof(IsConnecting), nameof(CanConnect), nameof(ConnectButtonText) })
+            PropertyChanged?.Invoke(this, new(property));
+    }
+    private string ConnectedStatus() => string.Format(Strings["ConnectedCharacters"],
+        _roster?.Characters.Count(c => c.Available) ?? 0) +
+        (_roster?.Paused == true ? " " + Strings["StateWorldPaused"] : "");
     private string _selectionSummary = "", _activityStatus = "";
     public string SelectionSummary => _selectionSummary;
     public string ModelSummary => SelectedProfile is { } p ? $"{p.Model.Provider} · {p.Model.ModelId}" : Strings["NoModel"];
@@ -112,33 +126,45 @@ public sealed partial class MainWindow
     }
     private async void ConnectServer(object? sender, RoutedEventArgs args)
     {
-        if (_operation || SelectedProfile is not { } profile || _serverSelection.SelectedItem is not ServerProfile server) return;
+        if (_operation) return;
+        if (SelectedProfile is not { } profile) { SetConfigurationStatus(Strings["SelectProfileFirst"]); return; }
+        if (_serverSelection.SelectedItem is not ServerProfile server) { SetConfigurationStatus(Strings["NoServer"]); return; }
         _operation = true;
+        SetConnecting(true);
+        SetConfigurationStatus(Strings["CheckingServer"]);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(35));
+        _connectionCancellation = cancellation;
         try
         {
             if (await IsAgentActive(profile.Id)) { SetConfigurationStatus(Strings["StopBeforeEdit"]); return; }
-            if (await _secrets.ReadAsync(server.CredentialId, CancellationToken.None) == null)
+            if (await _secrets.ReadAsync(server.CredentialId, cancellation.Token) == null)
             {
                 SetConfigurationStatus(Strings["ServerNeedsAccess"]);
+                cancellation.CancelAfter(Timeout.InfiniteTimeSpan);
                 var owner = (sender as Control) is { } control ? TopLevel.GetTopLevel(control) as Window : null;
                 var approved = await new ServerPairingWindow(Strings, _secrets, server)
                     .ShowDialog<ServerProfile?>(owner ?? this);
-                if (approved == null) return;
+                if (approved == null) { SetConfigurationStatus(Strings["ConnectionCancelled"]); return; }
                 await SaveServer(approved);
                 server = approved;
+                cancellation.CancelAfter(TimeSpan.FromSeconds(35));
+                SetConfigurationStatus(Strings["CheckingServer"]);
             }
-            var roster = await new AgentServerConnection(_secrets).ReadAsync(server, CancellationToken.None);
+            var roster = await new AgentServerConnection(_secrets).ReadAsync(server, cancellation.Token);
             if (SelectedProfile?.Id != profile.Id) return;
             await SaveProfile(profile with { ServerId = server.Id, WorldId = roster.WorldId,
                 NpcId = profile.ServerId == server.Id && profile.WorldId == roster.WorldId ? profile.NpcId : 0 });
             _roster = roster; _rosterServer = server.Id;
             RefreshCharacters();
-            SetConfigurationStatus(_characterSelection.SelectedItem is AvailableCharacter current
+            SetConfigurationStatus(ConnectedStatus() + "\n" + (_characterSelection.SelectedItem is AvailableCharacter current
                 ? string.Format(Strings["CharacterSelected"], current)
-                : Strings[roster.Characters.Any(c => c.Available) ? "SelectCharacter" : "NoAvailableCharacters"]);
+                : Strings[roster.Characters.Any(c => c.Available) ? "SelectCharacter" : "NoAvailableCharacters"]));
         }
+        catch (OperationCanceledException) { SetConfigurationStatus(Strings["ConnectionTimeout"]); }
+        catch (HttpRequestException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+        { SetConfigurationStatus(Strings["ConnectionDenied"]); }
         catch { SetConfigurationStatus(Strings["ConnectionFailed"]); }
-        finally { _operation = false; }
+        finally { _connectionCancellation = null; _operation = false; SetConnecting(false); }
     }
     private async void ChooseCharacter(object? sender, SelectionChangedEventArgs args)
     {
@@ -151,7 +177,7 @@ public sealed partial class MainWindow
             if (!await IsAgentActive(profile.Id))
             {
                 await SaveProfile(profile with { NpcId = npc.NpcId });
-                SetConfigurationStatus(string.Format(Strings["CharacterSelected"], npc));
+                SetConfigurationStatus(ConnectedStatus() + "\n" + string.Format(Strings["CharacterSelected"], npc));
             }
         }
         catch { SetConfigurationStatus(Strings["ConfigurationError"]); }

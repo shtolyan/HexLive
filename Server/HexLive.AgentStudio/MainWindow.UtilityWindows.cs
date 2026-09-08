@@ -19,6 +19,10 @@ public sealed partial class MainWindow
         _characterSelection.ItemTemplate = new FuncDataTemplate<AvailableCharacter>((c, _) => new TextBlock { Text = c?.ToString() });
         RefreshCharacters();
         var connect = new Button { Content = Strings["Connect"], Classes = { "primary" } };
+        connect.Bind(ContentControl.ContentProperty, new Avalonia.Data.Binding(nameof(ConnectButtonText)) { Source = this });
+        connect.Bind(IsEnabledProperty, new Avalonia.Data.Binding(nameof(CanConnect)) { Source = this });
+        var progress = new ProgressBar { IsIndeterminate = true, Height = 4 };
+        progress.Bind(IsVisibleProperty, new Avalonia.Data.Binding(nameof(IsConnecting)) { Source = this });
         connect.Click += ConnectServer;
         var add = new Button { Content = Strings["ManageServers"] };
         add.Click += ShowServers;
@@ -26,9 +30,10 @@ public sealed partial class MainWindow
         status.Bind(TextBlock.TextProperty, new Avalonia.Data.Binding(nameof(ConfigurationStatus)) { Source = this });
         var content = new StackPanel { Margin = new Thickness(24), Spacing = 16, Children =
         { new TextBlock { Text = Strings["Server"] }, _serverSelection, add, connect,
-          new TextBlock { Text = Strings["Character"] }, _characterSelection, status } };
+          progress, status, new TextBlock { Text = Strings["Character"] }, _characterSelection } };
         dialog.Content = new ScrollViewer { Content = content };
         await dialog.ShowDialog(this);
+        _connectionCancellation?.Cancel();
         content.Children.Remove(_serverSelection); content.Children.Remove(_characterSelection);
     }
     private async void ShowStudioSettings(object? sender, RoutedEventArgs args)

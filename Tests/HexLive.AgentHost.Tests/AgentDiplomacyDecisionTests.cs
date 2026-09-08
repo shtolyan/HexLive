@@ -10,7 +10,7 @@ public sealed class AgentDiplomacyDecisionTests
         Assert.That(AgentProviders.IsAllowedTool("merge_camps"), Is.True);
         Assert.That(AgentProviders.IsAllowedTool("set_faction"), Is.False);
         var decision = AgentProviders.ParseDecision("""
-            {"speech":"","emotion":"warm","reaction":"None",
+            {"speech":"","emotion":"warm","reaction":"None","relationshipAssessment":null,
              "intentSummary":"Предложу общий дом.","memoryUpserts":[],"journalText":"",
              "action":{"tool":"merge_camps","arguments":{"targetNpcId":31,"useTargetCamp":false}}}
             """, "heartbeat");

@@ -9,10 +9,12 @@ public sealed record ModelSelection(ModelProviderKind Provider, string Integrati
 public sealed record VoiceSelection(string IntegrationId, string VoiceId, string ModelId);
 public sealed record AgentProfile(Guid Id, string Name, string Workspace,
     Guid ServerId, string WorldId, int NpcId, ModelSelection Model,
-    VoiceSelection? Voice = null, int HeartbeatSeconds = 30)
+    VoiceSelection? Voice = null, int HeartbeatSeconds = 30, string? DialogueStyleId = null)
 {
     public void Validate()
     {
+        if (DialogueStyleId != null && DialogueStyleId != HexLive.AgentHost.DialogueStyles.Masha)
+            throw new InvalidDataException("UnknownDialogueStyle");
         if (Id == Guid.Empty || ServerId == Guid.Empty || NpcId <= 0 ||
             string.IsNullOrWhiteSpace(WorldId) || string.IsNullOrWhiteSpace(Workspace) ||
             string.IsNullOrWhiteSpace(Name) || Name.Length > 48 ||

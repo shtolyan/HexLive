@@ -25,7 +25,7 @@ public sealed class MashaMemoryStoreTests
     public async Task OldIntentIsNotReinjectedAsCurrentBodyState()
     {
         var store = new MashaMemoryStore(_directory);
-        var world = await store.BindHexLiveWorldAsync(Json("{\"tick\":1200,\"seed\":7}"),
+        var world = await store.BindHexLiveWorldAsync(Json("{\"tick\":1200,\"dayLengthTicks\":24000,\"seed\":7}"),
             901, "", CancellationToken.None);
         const string stale = "Я без сознания; не могу ответить на приветствие.";
         await store.CommitTurnAsync(world, "old", "voice",
@@ -41,7 +41,7 @@ public sealed class MashaMemoryStoreTests
     public async Task ReturnVoiceSurvivesReloadAndHeartbeatButIsConsumedOnceByVoice()
     {
         var store = new MashaMemoryStore(_directory);
-        var world = await store.BindHexLiveWorldAsync(Json("{\"tick\":1200,\"seed\":7}"),
+        var world = await store.BindHexLiveWorldAsync(Json("{\"tick\":1200,\"dayLengthTicks\":24000,\"seed\":7}"),
             901, "", CancellationToken.None);
         await store.ObservePlayerPresenceAsync(true, CancellationToken.None);
         await store.CommitTurnAsync(world, "first", "voice", new CompanionDecision(), CancellationToken.None);
@@ -57,7 +57,7 @@ public sealed class MashaMemoryStoreTests
         {
             Assert.That(returning.PlayerBond.AwaitingReturnVoice, Is.True);
             Assert.That(returning.PlayerBond.LastInteractionUtc, Is.EqualTo(before.PlayerBond.LastInteractionUtc));
-            Assert.That(prompt.Text, Does.Contain("Последнее завершённое общение UTC"));
+            Assert.That(prompt.Text, Does.Not.Contain("Последнее завершённое общение UTC"));
             Assert.That(prompt.Text, Does.Contain("возвращения: да"));
             Assert.That(prompt.CharacterCount, Is.LessThanOrEqualTo(MashaMemoryWorkspace.MaxPromptCharacters));
         });
@@ -136,10 +136,12 @@ public sealed class MashaMemoryStoreTests
     {
         var store = new MashaMemoryStore(_directory);
         var world = await store.BindHexLiveWorldAsync(Json("{" +
-            "\"tick\":1200,\"seed\":7}"), 901, "", CancellationToken.None);
+            "\"tick\":1200,\"dayLengthTicks\":24000,\"seed\":7}"), 901, "", CancellationToken.None);
         var decision = new CompanionDecision
         {
             Reaction = "Warm",
+            RelationshipAssessment = new(true, HexLive.AgentCore.Studio.RelationshipDirection.Increase,
+                HexLive.AgentCore.Studio.RelationshipDirection.Increase, false, "Помощь и новый факт"),
             IntentSummary = "Остаюсь у костра.",
             JournalText = "Голос сегодня помог.",
             MemoryUpserts = [new MemoryUpdate { Key = "voice.help", Value = "Он помог.", Importance = 0.8f }]
@@ -155,7 +157,7 @@ public sealed class MashaMemoryStoreTests
         var archive = await store.SnapshotAsync(CancellationToken.None);
         Assert.Multiple(() =>
         {
-            Assert.That(archive.PlayerBond.Familiarity, Is.EqualTo(0.03f).Within(0.0001f));
+            Assert.That(archive.PlayerBond.Familiarity, Is.EqualTo(0.02f).Within(0.0001f));
             Assert.That(archive.Worlds.Single().Journal, Has.Count.EqualTo(1));
             Assert.That(archive.Worlds.Single().Memories.Single(x => x.Key == "voice.help").Value,
                 Is.EqualTo("Он помог."));
@@ -305,7 +307,7 @@ public sealed class MashaMemoryStoreTests
             Assert.That(prompt.RecalledFragments, Is.LessThanOrEqualTo(MashaMemoryWorkspace.MaxRecallFragments));
             Assert.That(prompt.Text, Does.Contain("медный ключ"));
             Assert.That(prompt.Text, Does.Contain("ЛЛМ-модель"));
-            Assert.That(prompt.Text.TrimStart(), Does.StartWith("# Память Маши"));
+            Assert.That(prompt.Text.TrimStart(), Does.StartWith("<voice_relationship>"));
             Assert.That(prompt.Text, Does.Not.Contain("schemaVersion"));
         });
     }

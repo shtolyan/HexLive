@@ -30,6 +30,7 @@ namespace HexLive.UnityPresentation.UI
             public float familiarity;
             public float trust;
             public float affinity;
+            public string voiceName;
         }
 
         private VisualElement? _agentVoiceButton;
@@ -87,6 +88,7 @@ namespace HexLive.UnityPresentation.UI
         private float _agentFamiliarity;
         private float _agentTrust;
         private float _agentAffinity;
+        private string _agentVoiceName = "voice";
         private int _agentRelationTick = -1;
         private bool _agentJournalReady;
         private readonly List<JournalEntrySnapshot> _agentJournal = new();
@@ -569,14 +571,15 @@ namespace HexLive.UnityPresentation.UI
 
         private void ParseAgentRelation(string json)
         {
-            if (string.IsNullOrWhiteSpace(json)) return;
+            if (string.IsNullOrWhiteSpace(json)) { _agentRelationReady = false; return; }
             try
             {
                 var value = JsonUtility.FromJson<AgentRelationPayload>(json);
                 if (value == null) return;
                 _agentFamiliarity = Mathf.Clamp01(value.familiarity);
                 _agentTrust = Mathf.Clamp01(value.trust);
-                _agentAffinity = Mathf.Clamp01(value.affinity);
+                _agentAffinity = Mathf.Clamp(value.affinity, -1f, 1f);
+                _agentVoiceName = string.IsNullOrWhiteSpace(value.voiceName) ? "voice" : value.voiceName;
                 _agentRelationTick = _runner?.CurrentTick ?? 0;
                 _agentRelationReady = true;
                 _relationSig.Clear();

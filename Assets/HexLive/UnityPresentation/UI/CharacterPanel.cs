@@ -5220,7 +5220,7 @@ namespace HexLive.UnityPresentation.UI
                 relations.Add(new RelationshipSnapshot
                 {
                     OtherId = -159,
-                    OtherName = "voice",
+                    OtherName = _agentVoiceName,
                     Familiarity = _agentFamiliarity,
                     Trust = _agentTrust,
                     Affinity = _agentAffinity,

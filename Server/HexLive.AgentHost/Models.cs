@@ -21,6 +21,7 @@ public sealed class CompanionDecision
     [JsonPropertyName("speech")] public string Speech { get; set; } = string.Empty;
     [JsonPropertyName("emotion")] public string Emotion { get; set; } = "neutral";
     [JsonPropertyName("action")] public CompanionAction? Action { get; set; }
+    [JsonPropertyName("relationshipAssessment")] public HexLive.AgentCore.Studio.RelationshipAssessment? RelationshipAssessment { get; set; }
     [JsonPropertyName("reaction")] public string Reaction { get; set; } = "None";
     [JsonPropertyName("intentSummary")] public string IntentSummary { get; set; } = string.Empty;
     [JsonPropertyName("memoryUpserts")] public List<MemoryUpdate> MemoryUpserts { get; set; } = new();

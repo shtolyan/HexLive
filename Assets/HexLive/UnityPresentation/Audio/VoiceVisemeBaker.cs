@@ -45,7 +45,7 @@ public static class VoiceVisemeBaker
     {
         samples = Array.Empty<short>();
         error = "InvalidWave";
-        if (wav == null || wav.Length < 44 || wav.Length > 3 * 1024 * 1024 ||
+        if (wav == null || wav.Length < 44 || wav.Length > 6 * 1024 * 1024 ||
             Encoding.ASCII.GetString(wav, 0, 4) != "RIFF" ||
             Encoding.ASCII.GetString(wav, 8, 4) != "WAVE" ||
             BitConverter.ToUInt32(wav, 4) != wav.Length - 8) return false;

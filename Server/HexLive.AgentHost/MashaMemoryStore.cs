@@ -25,6 +25,11 @@ public sealed class PortablePlayerBond
     public DateTimeOffset? LastObservedDepartureUtc { get; set; }
     public DateTimeOffset? LastObservedReturnUtc { get; set; }
     public bool AwaitingReturnVoice { get; set; }
+    public string ClockWorldKey { get; set; } = "";
+    public long LastClockTick { get; set; } = -1;
+    public long LastVoiceTick { get; set; } = -1;
+    public long LastDepartureTick { get; set; } = -1;
+    public long LastReturnTick { get; set; } = -1;
 }
 
 public sealed class PortableMemory
@@ -35,10 +40,12 @@ public sealed class PortableMemory
     public long UpdatedAtTick { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
     public string Source { get; set; } = string.Empty;
+    public string SpeakerKey { get; set; } = "";
 }
 
 public sealed class PortableJournalEntry
 {
+    public string SpeakerKey { get; set; } = "";
     public long Tick { get; set; }
     public long GameHour { get; set; } = -1;
     public DateTimeOffset CreatedAtUtc { get; set; }
@@ -70,6 +77,8 @@ public sealed class MashaArchive
 {
     public int SchemaVersion { get; set; } = 1;
     public MashaIdentity Identity { get; set; } = new();
+    public Dictionary<string, SpeakerMemory> Speakers { get; set; } = new(StringComparer.Ordinal);
+    public string? PrimarySpeakerKey { get; set; }
     public PortablePlayerBond PlayerBond { get; set; } = new();
     public List<PortableMemory> CoreMemories { get; set; } = new();
     public List<MashaWorldEpisode> Worlds { get; set; } = new();
@@ -78,14 +87,20 @@ public sealed class MashaArchive
     public List<string> AppliedTurnIds { get; set; } = new();
 }
 
-public sealed record MashaWorldHandle(string EpisodeId, string WorldKey, long Tick, long GameHour);
+public sealed record MashaWorldHandle(string EpisodeId, string WorldKey, long Tick, long GameHour)
+{
+    public string SpeakerKey { get; init; } = "";
+    public string[] MessageIds { get; init; } = [];
+    public string PlayerText { get; init; } = "";
+    public int DayLengthTicks { get; init; }
+}
 public sealed record MashaImportResult(bool Changed, int Memories, int JournalEntries, string EpisodeId);
 
 /// <summary>
 /// Portable, game-independent identity store. It deliberately lives outside a HexLive
-/// save and never receives raw audio or full conversation transcripts.
+/// save and never receives raw audio; keeps only a bounded recent conversation per speaker.
 /// </summary>
-public sealed class MashaMemoryStore
+public sealed partial class MashaMemoryStore
 {
     public const int MaxCoreMemories = 64;
     public const int MaxWorldMemories = 64;
@@ -132,7 +147,8 @@ public sealed class MashaMemoryStore
         var tick = ReadInt64(worldStatus, "tick");
         var seed = ReadNullableInt32(worldStatus, "seed");
         var mode = ReadString(worldStatus, "mode");
-        var stable = string.IsNullOrWhiteSpace(configuredWorldId)
+        var actualWorldId = ReadString(worldStatus, "worldId");
+        var stable = actualWorldId.Length > 0 ? SafeKey(actualWorldId) : string.IsNullOrWhiteSpace(configuredWorldId)
             ? "seed-" + (seed?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "unknown")
             : SafeKey(configuredWorldId);
         var worldKey = "hexlive:" + stable;
@@ -193,7 +209,8 @@ public sealed class MashaMemoryStore
             }
 
             await SaveAsync(cancellationToken).ConfigureAwait(false);
-            return new MashaWorldHandle(episode.Id, worldKey, tick, GameHour(worldStatus, tick));
+            return new MashaWorldHandle(episode.Id, worldKey, tick, GameHour(worldStatus, tick))
+            { DayLengthTicks = ReadNullableInt32(worldStatus, "dayLengthTicks") ?? 0 };
         }
         finally
         {
@@ -443,7 +460,22 @@ public sealed class MashaMemoryStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            return _workspace.BuildPrompt(_archive, RequireEpisode(world.EpisodeId), recallQuery);
+            var projected = JsonSerializer.Deserialize<MashaArchive>(JsonSerializer.Serialize(_archive, JsonOptions), JsonOptions)!;
+            var legacy = world.SpeakerKey.Length == 0 || world.SpeakerKey == _archive.PrimarySpeakerKey;
+            if (world.SpeakerKey.Length > 0)
+            {
+                var speaker = GetSpeaker(world.SpeakerKey);
+                projected.PlayerBond = speaker.Bond;
+                projected.CoreMemories.RemoveAll(m => m.Source is "model-user" or "molly-user");
+                projected.CoreMemories.AddRange(speaker.Facts);
+                foreach (var chapter in projected.Worlds)
+                {
+                    chapter.Memories.RemoveAll(m => m.SpeakerKey.Length > 0 ? m.SpeakerKey != world.SpeakerKey :
+                        !legacy && m.Source is "model" or "hexlive-legacy" or "molly-files");
+                    chapter.Journal.RemoveAll(m => m.SpeakerKey.Length > 0 ? m.SpeakerKey != world.SpeakerKey : !legacy);
+                }
+            }
+            return _workspace.BuildPrompt(projected, projected.Worlds.Single(w => w.Id == world.EpisodeId), recallQuery, world, legacy);
         }
         finally
         {
@@ -486,6 +518,12 @@ public sealed class MashaMemoryStore
             if (string.IsNullOrWhiteSpace(turnId) || _archive.AppliedTurnIds.Contains(turnId))
                 return false;
 
+            if (world.SpeakerKey.Length > 0 && world.MessageIds.Any(GetSpeaker(world.SpeakerKey).AppliedMessageIds.Contains))
+                return false;
+            // Validate before mutating any memory, even for callers restoring a persisted outbox.
+            if (trigger == "voice" && decision.RelationshipAssessment is { } proposed)
+                new HexLive.AgentCore.Studio.VoiceRelationship(new(0, 0, 0, "Голос", null))
+                    .Apply(world.MessageIds.Length > 0 ? world.MessageIds : [turnId], proposed, DateTimeOffset.UtcNow);
             var episode = RequireEpisode(world.EpisodeId);
             episode.LastTick = Math.Max(episode.LastTick, world.Tick);
             episode.LastSeenUtc = DateTimeOffset.UtcNow;
@@ -497,7 +535,8 @@ public sealed class MashaMemoryStore
                 var scope = update.Key.StartsWith("user:", StringComparison.Ordinal) ? "model-user" :
                     update.Key.StartsWith("self:", StringComparison.Ordinal) ? "model-self" :
                     update.Key.StartsWith("core:", StringComparison.Ordinal) ? "model-core" : "model";
-                var destination = scope == "model" ? episode.Memories : _archive.CoreMemories;
+                var destination = scope == "model-user" && world.SpeakerKey.Length > 0 ? GetSpeaker(world.SpeakerKey).Facts :
+                    scope == "model" ? episode.Memories : _archive.CoreMemories;
                 Upsert(destination, new PortableMemory
                 {
                     Key = Limit(update.Key, 64),
@@ -505,7 +544,8 @@ public sealed class MashaMemoryStore
                     Importance = Math.Clamp(update.Importance, 0f, 1f),
                     UpdatedAtTick = world.Tick,
                     UpdatedAtUtc = DateTimeOffset.UtcNow,
-                    Source = scope
+                    Source = scope,
+                    SpeakerKey = scope == "model-core" || scope == "model-self" ? "" : world.SpeakerKey
                 }, scope == "model" ? MaxWorldMemories : MaxCoreMemories);
             }
 
@@ -519,19 +559,40 @@ public sealed class MashaMemoryStore
                     GameHour = world.GameHour,
                     CreatedAtUtc = DateTimeOffset.UtcNow,
                     Text = journalText,
-                    Source = "model"
+                    Source = "model",
+                    SpeakerKey = world.SpeakerKey
                 });
                 TrimOldest(episode.Journal, MaxJournalEntriesPerWorld);
             }
 
             if (string.Equals(trigger, "voice", StringComparison.Ordinal))
             {
-                ApplyReaction(world, decision.Reaction);
+                if (world.SpeakerKey.Length > 0)
+                {
+                    ApplySpeakerAssessment(world, turnId, decision);
+                    var recent = GetSpeaker(world.SpeakerKey).RecentConversation;
+                    if (world.PlayerText.Length > 0) recent.Add("Игрок: " + Limit(world.PlayerText, 4000));
+                    if (decision.Speech.Length > 0) recent.Add(_archive.Identity.Name + ": " + Limit(decision.Speech, 600));
+                    TrimOldest(recent, 12);
+                }
+                else if (decision.RelationshipAssessment is { } assessment)
+                {
+                    var b = _archive.PlayerBond;
+                    var r = new HexLive.AgentCore.Studio.VoiceRelationship(new(b.Familiarity, b.Trust, b.Affinity, "Голос", null));
+                    r.Apply([turnId], assessment, DateTimeOffset.UtcNow);
+                    b.Familiarity = r.Snapshot.Familiarity; b.Trust = r.Snapshot.Trust; b.Affinity = r.Snapshot.Sympathy;
+                }
+                // Legacy persisted outbox decisions without assessments cannot change relationships.
+                if (world.SpeakerKey.Length == 0)
+                {
                 _archive.PlayerBond.LastInteractionEpisodeId = world.EpisodeId;
                 _archive.PlayerBond.LastInteractionTick = world.Tick;
                 _archive.PlayerBond.LastInteractionUtc = DateTimeOffset.UtcNow;
                 // A neutral/silent response still heard the new voice; heartbeat never consumes it.
                 _archive.PlayerBond.AwaitingReturnVoice = false;
+                AgentGameTime.Observe(_archive.PlayerBond, world);
+                _archive.PlayerBond.LastVoiceTick = world.Tick;
+                }
             }
 
             _archive.AppliedTurnIds.Add(Limit(turnId, 80));
@@ -587,6 +648,8 @@ public sealed class MashaMemoryStore
             }
         }
 
+        if (archive.SchemaVersion is < 1 or > 2) throw new InvalidDataException("UnsupportedMemorySchema");
+        archive.Speakers ??= new(StringComparer.Ordinal);
         archive.ImportFingerprints ??= new Dictionary<string, string>(StringComparer.Ordinal);
         archive.CoreMemories ??= new List<PortableMemory>();
         archive.Worlds ??= new List<MashaWorldEpisode>();
@@ -664,7 +727,8 @@ public sealed class MashaMemoryStore
 
     private static void Upsert(List<PortableMemory> target, PortableMemory value, int maximum)
     {
-        var existing = target.FirstOrDefault(x => string.Equals(x.Key, value.Key, StringComparison.Ordinal));
+        var existing = target.FirstOrDefault(x => string.Equals(x.Key, value.Key, StringComparison.Ordinal) &&
+            x.SpeakerKey == value.SpeakerKey);
         if (existing == null)
         {
             target.Add(value);
@@ -854,9 +918,8 @@ public sealed class MashaMemoryStore
     {
         if (worldStatus.TryGetProperty("gameHour", out var value) && value.TryGetInt64(out var hour))
             return hour;
-        // §136 currently defines one game hour as 600 ticks. Keeping the derived
-        // value in the adapter avoids coupling the portable archive to simulation code.
-        return tick / 600;
+        var day = ReadNullableInt32(worldStatus, "dayLengthTicks");
+        return day is > 0 ? (long)(tick * 24d / day.Value) : -1;
     }
 
     private static string SafeKey(string value)

@@ -126,12 +126,12 @@ public sealed class McpTools
                    ("utteranceId", "string", "идемпотентный id реплики", true),
                    ("turnId", "string", "id хода", true),
                    ("language", "string", "язык текста", true),
-                   ("text", "string", "точный субтитр до 240", true),
+                   ("text", "string", "точный субтитр до 600", true),
                    ("emotion", "string", "эмоция", true),
                    ("delivery", "string", "player_reply или world", true),
                    ("priority", "string", "Talk или Ambient", true),
                    ("totalBytes", "integer", "размер WAV до 3 MiB", true),
-                   ("durationMs", "integer", "0..30000", true),
+                   ("durationMs", "integer", "0..60000", true),
                    ("sha256", "string", "SHA-256 WAV hex", true))),
 
         new("append_agent_utterance",
@@ -463,6 +463,8 @@ public sealed class McpTools
             ["seed"] = world.Seed,
             ["mode"] = world.Mode.ToString(),
             ["clock"] = world.Environment.TimeOfDayNormalized,
+            ["dayLengthTicks"] = WorldBalance.DayLengthTicks,
+            ["gameHour"] = (long)(world.Tick * 24d / WorldBalance.DayLengthTicks),
             ["phase"] = world.Environment.Phase.ToString(),
             ["temperature"] = world.Environment.GlobalTemperature,
             ["raining"] = world.Environment.IsRaining,
@@ -887,6 +889,7 @@ public sealed class McpTools
             {
                 ["seq"] = message.Sequence,
                 ["messageId"] = message.MessageId,
+                ["senderId"] = message.SenderId,
                 ["language"] = message.Language,
                 ["text"] = message.Text,
                 ["createdUtc"] = message.CreatedUtc.ToString("O", CultureInfo.InvariantCulture),
@@ -1004,10 +1007,10 @@ public sealed class McpTools
             isError = true;
             return priorityError;
         }
-        if (totalBytes is < 0 or > AgentWire.MaxAudioBytes || durationMs is < 0 or > 30000)
+        if (totalBytes is < 0 or > AgentWire.MaxAudioBytes || durationMs is < 0 or > AgentWire.MaxSpeechDurationMs)
         {
             isError = true;
-            return "WAV должен быть <=3 MiB и <=30000 ms.";
+            return "WAV должен быть <=6 MiB и <=60000 ms.";
         }
 
         var metadata = new AgentUtteranceMetadata
@@ -1015,7 +1018,7 @@ public sealed class McpTools
             UtteranceId = Bounded(utteranceId.Trim(), 80, "utteranceId"),
             TurnId = Bounded(turnId.Trim(), 80, "turnId"),
             Language = Bounded(language.Trim(), 16, "language"),
-            Text = Bounded(text.Trim(), AgentWire.MaxTextCharacters, "text"),
+            Text = Bounded(text.Trim(), AgentWire.MaxSpeechCharacters, "text"),
             Emotion = Bounded(emotion.Trim(), 32, "emotion"),
             Delivery = delivery,
             Priority = priority,
@@ -1106,6 +1109,7 @@ public sealed class McpTools
             ["capabilities"] = snapshot.Capabilities.ToString(),
             ["phase"] = snapshot.Phase.ToString(),
             ["playerPresent"] = snapshot.PlayerPresent,
+            ["presentSpeakerIds"] = snapshot.PresentSpeakerIds,
             ["intentSummary"] = snapshot.IntentSummary,
             ["relationView"] = snapshot.RelationView,
             ["journalEntry"] = snapshot.JournalEntry,

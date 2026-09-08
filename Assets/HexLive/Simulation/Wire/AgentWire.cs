@@ -155,8 +155,10 @@ public static class AgentWire
 {
     private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
     public const int MaxTextCharacters = 240;
+    public const int MaxSpeechCharacters = 600;
+    public const int MaxSpeechDurationMs = 60000;
     public const int MaxJournalCharacters = 400;
-    public const int MaxAudioBytes = 3 * 1024 * 1024;
+    public const int MaxAudioBytes = 6 * 1024 * 1024;
     public const int MaxChunkBytes = 192 * 1024;
 
     public static byte[] AgentState(AgentStateFrame value) => Encode(FrameKind.AgentState, w =>
@@ -245,7 +247,7 @@ public static class AgentWire
             WriteBounded(w, value.UtteranceId, 80);
             WriteBounded(w, value.TurnId, 80);
             WriteBounded(w, value.Language, 16);
-            WriteBounded(w, value.Text, MaxTextCharacters);
+            WriteBounded(w, value.Text, MaxSpeechCharacters);
             WriteBounded(w, value.Emotion, 32);
             w.Write((byte)value.Delivery);
             w.Write((byte)value.Priority);
@@ -262,12 +264,12 @@ public static class AgentWire
             UtteranceId = ReadBounded(r, 80),
             TurnId = ReadBounded(r, 80),
             Language = ReadBounded(r, 16),
-            Text = ReadBounded(r, MaxTextCharacters),
+            Text = ReadBounded(r, MaxSpeechCharacters),
             Emotion = ReadBounded(r, 32),
             Delivery = ReadEnum<AgentSpeechDelivery>(r.ReadByte()),
             Priority = ReadEnum<AgentSpeechPriority>(r.ReadByte()),
             TotalBytes = ReadRange(r.ReadInt32(), 0, MaxAudioBytes, "audio size"),
-            DurationMilliseconds = ReadRange(r.ReadInt32(), 0, 30000, "audio duration"),
+            DurationMilliseconds = ReadRange(r.ReadInt32(), 0, MaxSpeechDurationMs, "audio duration"),
             Sha256 = ReadBounded(r, 64),
         });
 

@@ -1,11 +1,18 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace HexLive.AgentCore.Studio;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum RelationshipDirection { Decrease, Unchanged, Increase }
-public sealed record RelationshipAssessment(bool LearnedSomethingSignificant,
-    RelationshipDirection Trust, RelationshipDirection Sympathy,
-    bool SeriousHarm, string Reason, string? VoiceName = null, string? NamingReason = null);
+public sealed record RelationshipAssessment(
+    [property: JsonPropertyName("learnedSomethingSignificant")] bool LearnedSomethingSignificant,
+    [property: JsonPropertyName("trust")] RelationshipDirection Trust,
+    [property: JsonPropertyName("sympathy")] RelationshipDirection Sympathy,
+    [property: JsonPropertyName("seriousHarm")] bool SeriousHarm,
+    [property: JsonPropertyName("reason")] string Reason,
+    [property: JsonPropertyName("voiceName")] string? VoiceName = null,
+    [property: JsonPropertyName("namingReason")] string? NamingReason = null);
 public sealed record RelationshipSnapshot(float Familiarity, float Trust, float Sympathy,
     string VoiceName, DateTimeOffset? LastContactUtc);
 
@@ -61,7 +68,8 @@ public sealed class VoiceRelationship
         return true;
     }
 
-    public string BuildPromptBlock() => "<voice_relationship>\n" + JsonSerializer.Serialize(Snapshot) +
+    public string BuildPromptBlock() => "<voice_relationship>\n" + JsonSerializer.Serialize(Snapshot,
+        new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }) +
         "\n</voice_relationship>\n" +
         "Familiarity determines recognition, trust determines reliance on advice, sympathy determines warmth. " +
         "Remain autonomous. A familiar person can be disliked. Assess only new messages in context; " +

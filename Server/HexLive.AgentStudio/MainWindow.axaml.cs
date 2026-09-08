@@ -34,11 +34,15 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             {
                 _configurationStore = new(_configurationRoot);
                 _configuration = await _configurationStore.ReadAsync();
+                var migrated = _configuration.Configuration.Agents.Select(p => p.DialogueStyleId == null
+                    ? p with { DialogueStyleId = HexLive.AgentHost.DialogueStyles.DetectAuthoredWorkspace(p.Workspace) } : p).ToArray();
+                if (!migrated.SequenceEqual(_configuration.Configuration.Agents))
+                    _configuration = await _configurationStore.SaveAsync(_configuration, _configuration.Configuration with { Agents = migrated });
                 foreach (var profile in _configuration.Configuration.Agents) Profiles.Add(profile);
                 foreach (var server in _configuration.Configuration.Servers) Servers.Add(server);
                 if (Profiles.Count > 0) this.FindControl<ListBox>("ProfilesList")!.SelectedItem = Profiles[0];
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or ArgumentException)
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Text.Json.JsonException or ArgumentException or InvalidOperationException)
             { SetConfigurationStatus(Strings["ConfigurationError"]); }
         };
     }

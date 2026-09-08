@@ -51,7 +51,7 @@ public sealed class CodexDecisionTests
     public void CodexDecisionUsesSameStrictValidatorAsGrok()
     {
         const string json = """
-        {"speech":"","emotion":"curious","action":null,"reaction":"None",
+        {"speech":"","emotion":"curious","action":null,"reaction":"None","relationshipAssessment":null,
         "intentSummary":"Отдыхаю.","memoryUpserts":[],"journalText":""}
         """;
         Assert.That(AgentProviders.ParseDecision(json, "heartbeat").IntentSummary, Is.EqualTo("Отдыхаю."));

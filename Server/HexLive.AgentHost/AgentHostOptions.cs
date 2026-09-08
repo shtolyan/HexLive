@@ -15,6 +15,7 @@ public sealed class AgentHostOptions
     public required string XaiModel { get; init; }
     public required string ElevenLabsModel { get; init; }
     public required string ElevenLabsVoiceId { get; init; }
+    public string? DialogueStyleId { get; init; }
     public bool FakeProviders { get; init; }
     public string LlmBackend { get; init; } = "xai";
     public int? NpcId { get; init; }
@@ -37,6 +38,7 @@ public sealed class AgentHostOptions
         ElevenLabsModel = ElevenLabsModel,
         ElevenLabsVoiceId = ElevenLabsVoiceId,
         FakeProviders = FakeProviders,
+        DialogueStyleId = DialogueStyleId,
         LlmBackend = LlmBackend,
         CodexExecutable = CodexExecutable,
     };
@@ -60,6 +62,7 @@ public sealed class AgentHostOptions
             McpUri = new Uri(Env("HEXLIVE_MCP_URL", "http://127.0.0.1:5123/mcp")),
             McpToken = Env("HEXLIVE_MCP_TOKEN"),
             ProfileId = profileId,
+            DialogueStyleId = Env("HEXLIVE_DIALOGUE_STYLE", profileId == "masha" ? "masha-sharp-v1" : "") is { Length: > 0 } style ? style : null,
             DisplayName = Env("HEXLIVE_AGENT_NAME", "Маша"),
             MemoryDirectory = Path.GetFullPath(memory),
             StateDirectory = Path.GetFullPath(state),

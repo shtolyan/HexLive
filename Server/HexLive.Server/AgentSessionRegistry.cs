@@ -28,6 +28,7 @@ public sealed class AgentSessionRegistry
     private readonly Dictionary<string, Attachment> _byId = new(StringComparer.Ordinal);
     private readonly Dictionary<int, string> _attachmentByNpc = new();
     private readonly Dictionary<int, long> _stateRevisionByNpc = new();
+    private readonly Dictionary<string, string> _viewerSpeakers = new(StringComparer.Ordinal);
     private readonly Dictionary<string, HashSet<int>> _viewerNpcs = new(StringComparer.Ordinal);
     private readonly List<CommittedAgentUtterance> _utterances = new();
     private long _revision;
@@ -51,6 +52,7 @@ public sealed class AgentSessionRegistry
         public string TurnId = string.Empty;
         public string IntentSummary = string.Empty;
         public string RelationView = string.Empty;
+        public readonly Dictionary<string, string> SpeakerViews = new(StringComparer.Ordinal);
         public string JournalEntry = string.Empty;
         public DateTimeOffset LastSeen;
         public int TtlSeconds;
@@ -202,6 +204,17 @@ public sealed class AgentSessionRegistry
             attachment.TurnId = turnId;
             attachment.IntentSummary = intentSummary;
             attachment.RelationView = relationView;
+            if (relationView.Length > 0)
+            {
+                try
+                {
+                    using var relation = System.Text.Json.JsonDocument.Parse(relationView);
+                    if (relation.RootElement.TryGetProperty("speakerId", out var speaker) &&
+                        speaker.ValueKind == System.Text.Json.JsonValueKind.String && speaker.GetString() is { Length: > 0 } speakerId)
+                        attachment.SpeakerViews[speakerId] = relationView;
+                }
+                catch (System.Text.Json.JsonException) { /* Legacy display-only view. */ }
+            }
             attachment.JournalEntry = journalEntry;
             attachment.Phase = AgentPhase.Ready;
             Touch(attachment.NpcId);
@@ -399,7 +412,7 @@ public sealed class AgentSessionRegistry
     }
 
     public bool TryEnqueuePlayerText(int npcId, string messageId, string language, string text,
-        out string reason)
+        out string reason, string senderId = "")
     {
         lock (_gate)
         {
@@ -414,15 +427,16 @@ public sealed class AgentSessionRegistry
                 reason = "CapabilityUnavailable";
                 return false;
             }
-            if (attachment.MessageIdSet.Contains(messageId))
+            var scopedMessageId = senderId + ":" + messageId;
+            if (attachment.MessageIdSet.Contains(scopedMessageId))
             {
                 reason = string.Empty;
                 return true;
             }
 
-            Remember(attachment.MessageIdSet, attachment.MessageIds, messageId, MaxInboxMessages);
+            Remember(attachment.MessageIdSet, attachment.MessageIds, scopedMessageId, MaxInboxMessages);
             attachment.Inbox.Add(new AgentInboxMessage(
-                ++_messageSequence, messageId, language, text, _now()));
+                ++_messageSequence, messageId, language, text, _now(), senderId));
             while (attachment.Inbox.Count > MaxInboxMessages) attachment.Inbox.RemoveAt(0);
             reason = string.Empty;
             return true;
@@ -440,10 +454,12 @@ public sealed class AgentSessionRegistry
         }
     }
 
-    public void SetViewerPresence(string viewerId, IEnumerable<int> npcIds, bool present)
+    public void SetViewerPresence(string viewerId, IEnumerable<int> npcIds, bool present, string senderId = "")
     {
         lock (_gate)
         {
+            if (present) _viewerSpeakers[viewerId] = senderId;
+            else _viewerSpeakers.Remove(viewerId);
             var before = PresenceSetLocked();
             if (present) _viewerNpcs[viewerId] = new HashSet<int>(npcIds);
             else _viewerNpcs.Remove(viewerId);
@@ -458,7 +474,7 @@ public sealed class AgentSessionRegistry
         get { lock (_gate) return _speechSequence; }
     }
 
-    public AgentStateFrame[] StatesFor(IEnumerable<int> npcIds)
+    public AgentStateFrame[] StatesFor(IEnumerable<int> npcIds, string? speakerId = null)
     {
         lock (_gate)
         {
@@ -470,7 +486,10 @@ public sealed class AgentSessionRegistry
                 if (_attachmentByNpc.TryGetValue(npcId, out var id) && _byId.TryGetValue(id, out var attachment))
                 {
                     var snapshot = Snapshot(attachment);
-                    result.Add(snapshot.ToWire(revision));
+                    var frame = snapshot.ToWire(revision);
+                    if (speakerId != null && attachment.SpeakerViews.Count > 0)
+                        frame.RelationView = attachment.SpeakerViews.GetValueOrDefault(speakerId, string.Empty);
+                    result.Add(frame);
                 }
                 else
                 {
@@ -505,6 +524,7 @@ public sealed class AgentSessionRegistry
             _attachmentByNpc.Clear();
             _utterances.Clear();
             _viewerNpcs.Clear();
+            _viewerSpeakers.Clear();
         }
     }
 
@@ -582,7 +602,9 @@ public sealed class AgentSessionRegistry
         attachment.Id, attachment.NpcId, attachment.DisplayName, attachment.Capabilities,
         attachment.Phase, attachment.IntentSummary, attachment.RelationView,
         attachment.JournalEntry, IsPlayerPresentLocked(attachment.NpcId),
-        attachment.TtlSeconds);
+        attachment.TtlSeconds, _viewerNpcs.Where(p => p.Value.Contains(attachment.NpcId))
+            .Select(p => _viewerSpeakers.GetValueOrDefault(p.Key, ""))
+            .Where(s => s.Length > 0).Distinct().OrderBy(s => s, StringComparer.Ordinal).ToArray());
 
     private bool IsPlayerPresentLocked(int npcId) => _viewerNpcs.Values.Any(set => set.Contains(npcId));
 
@@ -616,7 +638,7 @@ public readonly struct AgentAttachmentSnapshot
 {
     public AgentAttachmentSnapshot(string attachmentId, int npcId, string displayName,
         AgentCapabilities capabilities, AgentPhase phase, string intentSummary,
-        string relationView, string journalEntry, bool playerPresent, int ttlSeconds)
+        string relationView, string journalEntry, bool playerPresent, int ttlSeconds, string[]? presentSpeakerIds = null)
     {
         AttachmentId = attachmentId;
         NpcId = npcId;
@@ -628,6 +650,7 @@ public readonly struct AgentAttachmentSnapshot
         JournalEntry = journalEntry;
         PlayerPresent = playerPresent;
         TtlSeconds = ttlSeconds;
+        PresentSpeakerIds = presentSpeakerIds ?? Array.Empty<string>();
     }
 
     public string AttachmentId { get; }
@@ -640,6 +663,7 @@ public readonly struct AgentAttachmentSnapshot
     public string JournalEntry { get; }
     public bool PlayerPresent { get; }
     public int TtlSeconds { get; }
+    public string[] PresentSpeakerIds { get; }
 
     public AgentStateFrame ToWire(long revision) => new()
     {
@@ -660,19 +684,21 @@ public readonly struct AgentAttachmentSnapshot
 public readonly struct AgentInboxMessage
 {
     public AgentInboxMessage(long sequence, string messageId, string language,
-        string text, DateTimeOffset createdUtc)
+        string text, DateTimeOffset createdUtc, string senderId = "")
     {
         Sequence = sequence;
         MessageId = messageId;
         Language = language;
         Text = text;
         CreatedUtc = createdUtc;
+        SenderId = senderId;
     }
     public long Sequence { get; }
     public string MessageId { get; }
     public string Language { get; }
     public string Text { get; }
     public DateTimeOffset CreatedUtc { get; }
+    public string SenderId { get; }
 }
 
 public readonly struct AgentInboxRead
@@ -773,7 +799,7 @@ internal static class WavePcm16Mono44100
             return false;
         }
         durationMilliseconds = (int)Math.Round(dataBytes * 1000d / (44100d * 2d));
-        if (durationMilliseconds < 0 || durationMilliseconds > 30000)
+        if (durationMilliseconds < 0 || durationMilliseconds > AgentWire.MaxSpeechDurationMs)
         {
             reason = "WaveTooLong";
             return false;

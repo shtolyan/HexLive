@@ -120,7 +120,7 @@ public sealed class ViewerConnection
         if (ControlEnabled && _agentSessions != null)
         {
             _lastSpeechSequence = _agentSessions.LatestSpeechSequence;
-            _agentSessions.SetViewerPresence(_viewerId, _assignedNpcIds!, true);
+            _agentSessions.SetViewerPresence(_viewerId, _assignedNpcIds!, true, _controlOwner!.Substring(3));
         }
 
         var handshake = new Handshake
@@ -233,7 +233,7 @@ public sealed class ViewerConnection
     {
         if (!ControlEnabled || _agentSessions == null) return;
 
-        var states = _agentSessions.StatesFor(_assignedNpcIds!);
+        var states = _agentSessions.StatesFor(_assignedNpcIds!, _controlOwner?.Substring(3));
         for (var i = 0; i < states.Length; i++)
         {
             var state = states[i];
@@ -539,7 +539,7 @@ public sealed class ViewerConnection
         }
 
         var accepted = _agentSessions.TryEnqueuePlayerText(input.NpcId, input.MessageId,
-            input.Language, input.Text, out var reason);
+            input.Language, input.Text, out var reason, _controlOwner!.Substring(3));
         await SendAsync(AgentWire.AgentTextResult(input.CorrelationId, accepted, input.MessageId,
             reason), cancel).ConfigureAwait(false);
     }

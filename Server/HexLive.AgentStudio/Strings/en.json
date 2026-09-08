@@ -1,4 +1,7 @@
 {
+  "Relationships": "Voice relationships",
+  "NoRelationships": "No identified speaker records yet. Existing memories and previous relationship values are preserved; they will be linked only after the owner is confirmed.",
+  "RelationshipMetrics": "Familiarity: {0:P0} · Trust: {1:P0} · Sympathy: {2:P0}",
   "Title": "Agent Studio",
   "Control": "Control",
   "AgentSettings": "Settings",

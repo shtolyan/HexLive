@@ -25,6 +25,22 @@ public sealed class MemoryWindow : Window
         var cancel = new Button { Content = strings["Cancel"] };
         var history = new Button { Content = strings["History"] };
         var activity = new Button { Content = strings["Activity"] };
+        var relationships = new Button { Content = strings["Relationships"] };
+        relationships.Click += async (_, _) =>
+        {
+            var view = new TextBox { IsReadOnly = true, AcceptsReturn = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+            try
+            {
+                var entries = await WorkspaceRelationships.ReadAsync(root);
+                view.Text = entries.Count == 0 ? strings["NoRelationships"] : string.Join("\n\n", entries.Select(e =>
+                    e.VoiceName + "\n" + string.Format(strings["RelationshipMetrics"], e.Familiarity, e.Trust, e.Sympathy) +
+                    "\n" + e.Reason + "\n" + e.SpeakerKey));
+            }
+            catch { view.Text = strings["ActivityReadError"]; }
+            await new Window { Title = strings["Relationships"], Width = 640, Height = 460,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Content = new Grid { Margin = new Thickness(24), Children = { view } } }.ShowDialog(this);
+        };
         activity.Click += async (_, _) =>
         {
             var view = new TextBox { IsReadOnly = true, AcceptsReturn = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
@@ -67,7 +83,7 @@ public sealed class MemoryWindow : Window
         save.Classes.Add("primary");
         var layout = new Grid { Margin = new Thickness(20), RowDefinitions = new RowDefinitions("Auto,*,Auto,Auto") };
         var toolbar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10,
-            Margin = new Thickness(0, 0, 0, 12), Children = { open, history, activity } };
+            Margin = new Thickness(0, 0, 0, 12), Children = { open, history, activity, relationships } };
         layout.Children.Add(toolbar);
         Grid.SetRow(_editor, 1); layout.Children.Add(_editor);
         _status.TextWrapping = Avalonia.Media.TextWrapping.Wrap;

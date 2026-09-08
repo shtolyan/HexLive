@@ -19,6 +19,7 @@ public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecut
             MemoryDirectory = profile.Workspace, StateDirectory = Path.Combine(profile.Workspace, ".state", "runtime"),
             WorldId = profile.WorldId, ExpectedWorldId = profile.WorldId, NpcId = profile.NpcId,
             HeartbeatSeconds = profile.HeartbeatSeconds,
+            DialogueStyleId = profile.DialogueStyleId ?? DialogueStyles.DetectAuthoredWorkspace(profile.Workspace),
             InitialIdentity = new MashaIdentity { Id = profile.Id.ToString("N"), Name = profile.Name, Age = 23, Traits = [] },
             XaiKey = "", ElevenLabsKey = "", XaiModel = "", ElevenLabsModel = "", ElevenLabsVoiceId = "",
         };

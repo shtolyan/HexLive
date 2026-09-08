@@ -7,7 +7,7 @@ namespace HexLive.AgentHost;
 /// Portable agent process. It is only an MCP client: there is no local HTTP,
 /// WebSocket, audio or memory endpoint for Unity to discover.
 /// </summary>
-public sealed class AgentHostRuntime
+public sealed partial class AgentHostRuntime
 {
     public string? TerminalErrorCode { get; private set; }
     private static readonly string[] Capabilities =
@@ -28,7 +28,17 @@ public sealed class AgentHostRuntime
     private readonly AgentHostStatusStore _status;
     public string CurrentPhase => _status.Phase;
     public string LastIntentSummary { get; private set; } = string.Empty;
-    private readonly Queue<string> _recent = new();
+    private readonly Dictionary<string, Queue<string>> _conversations = new(StringComparer.Ordinal);
+    private string _activeSpeakerKey = "";
+    private Queue<string> Recent
+    {
+        get
+        {
+            if (!_conversations.TryGetValue(_activeSpeakerKey, out var queue))
+                _conversations[_activeSpeakerKey] = queue = new();
+            return queue;
+        }
+    }
     private string _lastSpeech = string.Empty;
     private CancellationTokenSource? _actionStop;
     private Task _actionTask = Task.CompletedTask;
@@ -139,7 +149,7 @@ public sealed class AgentHostRuntime
         // §163: this gate means world execution permission, NOT player presence.
         var presence = new PresenceState(!IsWorldPaused(worldStatus));
         var playerPresent = attached.TryGetProperty("playerPresent", out var present) && present.GetBoolean();
-        await _memory.ObservePlayerPresenceAsync(playerPresent, cancellationToken);
+        await ObserveSpeakersAsync(attached, worldStatus, npcId, cancellationToken);
         _status.Write(true, presence.Value ? "Ready" : "Sleeping", npcId, true, playerPresent);
         Console.WriteLine($"[agent] attached profile={_options.ProfileId} npc={npcId}");
 
@@ -187,9 +197,11 @@ public sealed class AgentHostRuntime
                     sinceSeq = inboxWatermark,
                     limit = 16,
                 }, cancellationToken).ConfigureAwait(false);
+                inbox = FirstSpeakerInbox(await RemoveProcessedMessagesAsync(inbox, cancellationToken));
                 var readWatermark = inbox.TryGetProperty("watermark", out var watermark)
                     ? watermark.GetInt64() : inboxWatermark;
                 var playerText = MergePlayerMessages(inbox);
+                if (playerText.Length == 0) inboxWatermark = readWatermark;
 
                 var critical = false;
                 if (DateTimeOffset.UtcNow >= nextEventRead)
@@ -217,7 +229,8 @@ public sealed class AgentHostRuntime
                     {
                         var consumed = await ProcessSafelyAsync(mcp, attachmentId, npcId, trigger, playerText,
                             turnStop.Token, cancellationToken,
-                            playerText.Length > 0 ? VoiceTurnId(attachmentId, inbox) : null).ConfigureAwait(false);
+                            playerText.Length > 0 ? VoiceTurnId(attachmentId, inbox) : null,
+                            SenderOf(inbox), MessageIdsOf(inbox)).ConfigureAwait(false);
                         if (consumed) inboxWatermark = readWatermark;
                         else retryAfter = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
                     }
@@ -270,8 +283,7 @@ public sealed class AgentHostRuntime
             {
                 var result = await mcp.CallToolAsync("agent_heartbeat", new { attachmentId }, cancellationToken);
                 var playerPresent = result.TryGetProperty("playerPresent", out var value) && value.GetBoolean();
-                if (playerPresent != lastPlayerPresence)
-                    await _memory.ObservePlayerPresenceAsync(playerPresent, cancellationToken);
+                await ObserveSpeakersAsync(result, world, npcId, cancellationToken);
                 lastPlayerPresence = playerPresent;
                 nextAttachmentHeartbeat = DateTimeOffset.UtcNow.Add(AttachmentHeartbeat);
             }
@@ -310,7 +322,8 @@ public sealed class AgentHostRuntime
 
     private async Task<bool> ProcessSafelyAsync(McpClient mcp, string attachmentId, int npcId,
         string trigger, string playerText, CancellationToken cancellationToken,
-        CancellationToken attachmentCancellation, string? messageTurnId = null)
+        CancellationToken attachmentCancellation, string? messageTurnId = null,
+        string senderId = "", string[]? messageIds = null)
     {
         var turnId = messageTurnId ?? Guid.NewGuid().ToString("N");
         var consumed = false;
@@ -336,6 +349,15 @@ public sealed class AgentHostRuntime
             }
             var world = await _memory.BindHexLiveWorldAsync(
                 worldStatus, npcId, _options.WorldId, cancellationToken).ConfigureAwait(false);
+            if (trigger == "voice")
+            {
+                _activeSpeakerKey = SpeakerKey(senderId);
+                await _memory.BindSpeakerAsync(_activeSpeakerKey,
+                    senderId.Length > 0 && senderId == _options.PlayerClientId, cancellationToken);
+                if (await _memory.HasProcessedMessagesAsync(_activeSpeakerKey, messageIds ?? [], cancellationToken))
+                    return true;
+            }
+            world = world with { SpeakerKey = _activeSpeakerKey, MessageIds = messageIds ?? [], PlayerText = playerText };
             if (messageTurnId != null &&
                 (await _memory.SnapshotAsync(cancellationToken)).AppliedTurnIds.Contains(turnId))
             {
@@ -345,7 +367,10 @@ public sealed class AgentHostRuntime
             await ImportLegacyStateAsync(world, state, cancellationToken).ConfigureAwait(false);
             await _memory.ObserveHexLiveStateAsync(world, state, cancellationToken)
                 .ConfigureAwait(false);
-            var recall = BuildRecallQuery(playerText, state, _recent);
+            if (!_conversations.ContainsKey(_activeSpeakerKey) &&
+                (await _memory.SnapshotAsync(cancellationToken)).Speakers.TryGetValue(_activeSpeakerKey, out var savedSpeaker))
+                _conversations[_activeSpeakerKey] = new Queue<string>(savedSpeaker.RecentConversation.TakeLast(12));
+            var recall = BuildRecallQuery(playerText, state, Recent);
             var memoryContext = await _memory.BuildPromptContextAsync(world, recall, cancellationToken)
                 .ConfigureAwait(false);
             Console.Error.WriteLine(
@@ -360,7 +385,7 @@ public sealed class AgentHostRuntime
                 Volatile.Read(ref _actionFeedback) +
                 "\nПри отказе исправь причину; не обещай выполненное лечение до подтверждения состоянием. " +
                 "TreatSelf — перевязка готовым бинтом; treat_limbs — шина/протез, не замена бинта.",
-                playerText, _recent.ToArray(), cancellationToken)
+                playerText, Recent.ToArray(), cancellationToken)
                 .ConfigureAwait(false);
 
             if (trigger != "voice" && string.Equals(decision.Speech.Trim(), _lastSpeech,
@@ -464,7 +489,7 @@ public sealed class AgentHostRuntime
             turnId = item.TurnId,
             reaction = item.Decision.Reaction,
             intentSummary = item.Decision.IntentSummary,
-            relationView = RelationView(archive.PlayerBond),
+            relationView = RelationView(archive, item.World.SpeakerKey),
             journalEntry = journal,
         }, cancellationToken).ConfigureAwait(false);
     }
@@ -481,13 +506,20 @@ public sealed class AgentHostRuntime
             .ConfigureAwait(false);
         var archive = await _memory.SnapshotAsync(cancellationToken).ConfigureAwait(false);
         var episode = archive.Worlds.FirstOrDefault(x => x.Id == world.EpisodeId);
+        if (_activeSpeakerKey.Length == 0)
+        {
+            var prefix = SpeakerKey("").Split(':')[0] + ":";
+            _activeSpeakerKey = !string.IsNullOrEmpty(_options.PlayerClientId) ? SpeakerKey(_options.PlayerClientId) :
+                archive.PrimarySpeakerKey?.StartsWith(prefix, StringComparison.Ordinal) == true
+                    ? archive.PrimarySpeakerKey : SpeakerKey("");
+        }
         await mcp.CallToolAsync("commit_agent_turn", new
         {
             attachmentId,
             turnId = "attach-" + Guid.NewGuid().ToString("N"),
             reaction = "None",
             intentSummary = string.Empty, // reconnect must not present an old intention as current
-            relationView = RelationView(archive.PlayerBond),
+            relationView = RelationView(archive, _activeSpeakerKey),
             journalEntry = episode?.Journal.LastOrDefault()?.Text ?? string.Empty,
         }, cancellationToken).ConfigureAwait(false);
     }
@@ -509,7 +541,7 @@ public sealed class AgentHostRuntime
         {
             wav = (await _providers.SynthesizeAsync(decision.Speech, cancellationToken)
                 .ConfigureAwait(false)).Wav;
-            if (wav.Length > 3 * 1024 * 1024 || WavDurationMilliseconds(wav) > 30000)
+            if (wav.Length > 6 * 1024 * 1024 || WavDurationMilliseconds(wav) > 60000)
                 throw new InvalidDataException("TTS WAV exceeds the MCP speech limits.");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -745,13 +777,18 @@ public sealed class AgentHostRuntime
         return false;
     }
 
-    private static string RelationView(PortablePlayerBond bond) =>
-        JsonSerializer.Serialize(new
+    private static string RelationView(MashaArchive archive, string key)
+    {
+        var bond = MashaMemoryStore.BondFor(archive, key);
+        return JsonSerializer.Serialize(new
         {
             familiarity = Math.Clamp(bond.Familiarity, 0f, 1f),
             trust = Math.Clamp(bond.Trust, 0f, 1f),
-            affinity = Math.Clamp(bond.Affinity, 0f, 1f),
-        });
+            affinity = Math.Clamp(bond.Affinity, -1f, 1f),
+            speakerId = key.Length > 0 ? key.Split(':').Last() : "",
+            voiceName = archive.Speakers.TryGetValue(key, out var speaker) ? speaker.VoiceName : "Голос"
+        }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+    }
 
     private static int WavDurationMilliseconds(byte[] wav) => wav.Length < 44
         ? 0
@@ -793,8 +830,8 @@ public sealed class AgentHostRuntime
 
     private void Remember(string line)
     {
-        _recent.Enqueue(line);
-        while (_recent.Count > 12) _recent.Dequeue();
+        Recent.Enqueue(line);
+        while (Recent.Count > 12) Recent.Dequeue();
     }
 
     private sealed class PresenceState

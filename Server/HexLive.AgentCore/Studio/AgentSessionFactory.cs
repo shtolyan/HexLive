@@ -14,7 +14,7 @@ public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecut
         var credential = await RequireSecret(server.CredentialId, token);
         var options = new AgentHostOptions
         {
-            McpUri = server.McpEndpoint, McpToken = credential,
+            McpUri = server.McpEndpoint, McpToken = credential, PlayerClientId = server.PlayerClientId,
             ProfileId = profile.Id.ToString("N"), DisplayName = profile.Name,
             MemoryDirectory = profile.Workspace, StateDirectory = Path.Combine(profile.Workspace, ".state", "runtime"),
             WorldId = profile.WorldId, ExpectedWorldId = profile.WorldId, NpcId = profile.NpcId,

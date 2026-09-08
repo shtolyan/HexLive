@@ -349,7 +349,8 @@ public static class Program
             var spec = Mcp.SpecLibrary.Discover(options.SpecDir);
 
             Mcp.McpEndpoint.Map(app, worlds, mcpToken, leases, agentSessions, spec, playerMcpAccess,
-                (playerId, npcId) => worlds.CaptureViewerSession().Assignments?.StillAssigned(playerId, npcId) == true);
+                (playerId, npcId) => worlds.CaptureViewerSession().Assignments?.StillAssigned(playerId, npcId) == true,
+                playerToken == null ? null : value => playerToken.Matches(value));
             Console.WriteLine(
                 $"[server] mcp control    http://localhost:{options.Port}/mcp " +
                 $"(токен в {options.McpTokenPath}, лиз {leases.TimeoutSeconds} с)");

@@ -4,6 +4,7 @@ public sealed class AgentHostOptions
 {
     public required Uri McpUri { get; init; }
     public required string McpToken { get; init; }
+    public string? PlayerClientId { get; init; }
     public required string ProfileId { get; init; }
     public required string DisplayName { get; init; }
     public required string MemoryDirectory { get; init; }
@@ -29,6 +30,7 @@ public sealed class AgentHostOptions
     {
         McpUri = McpUri,
         McpToken = McpToken,
+        PlayerClientId = PlayerClientId,
         XaiKey = XaiKey,
         ElevenLabsKey = ElevenLabsKey,
         XaiModel = XaiModel,

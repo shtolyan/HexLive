@@ -18,7 +18,7 @@ public sealed partial class MainWindow
         _characterSelection.PlaceholderText = Strings["NoCharacter"];
         var connect = new Button { Content = Strings["Connect"], Classes = { "primary" } };
         connect.Click += ConnectServer;
-        var add = new Button { Content = Strings["Servers"] };
+        var add = new Button { Content = Strings["ManageServers"] };
         add.Click += ShowServers;
         var status = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         status.Bind(TextBlock.TextProperty, new Avalonia.Data.Binding(nameof(ConfigurationStatus)) { Source = this });

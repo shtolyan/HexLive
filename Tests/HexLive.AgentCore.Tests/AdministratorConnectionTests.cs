@@ -12,6 +12,22 @@ public sealed class AdministratorConnectionTests
     private static ServerProfile Profile => new(Guid.NewGuid(), "Admin", new Uri("https://example.test/mcp"), "server.fixture");
 
     [Test]
+    public async Task GameTokenCarriesExistingClientIdentityWithoutPairing()
+    {
+        var store = new Secrets(); using var http = new Handler();
+        var id = Guid.NewGuid().ToString("N");
+        await new AgentServerConnection(store, http).ImportServerTokenAsync(Profile with { PlayerClientId = id }, "fixture-game-token", default);
+        Assert.That(http.Player, Is.EqualTo(id));
+        Assert.That(http.Tools, Is.EqualTo(new[] { "world_status", "list_colonists" }));
+        Assert.That(store.Value, Is.EqualTo("fixture-game-token"));
+    }
+
+    [TestCase("")]
+    [TestCase("invalid")]
+    public void MissingGameIdentityNeverCreatesAnotherPlayer(string value) =>
+        Assert.Throws<InvalidDataException>(() => GameClientIdentity.Normalize(value));
+
+    [Test]
     public async Task ChecksRosterBeforeSavingWithoutAttachingOrGenerating()
     {
         var store = new Secrets(); using var http = new Handler();
@@ -50,11 +66,12 @@ public sealed class AdministratorConnectionTests
     }
     private sealed class Handler : HttpMessageHandler
     {
-        public bool Reject; public int Requests; public string? Authorization;
+        public bool Reject; public int Requests; public string? Authorization; public string? Player;
         public List<string> Tools = new();
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
             Requests++; Authorization = request.Headers.Authorization?.ToString();
+            Player = request.Headers.TryGetValues("X-HexLive-Client-Id", out var ids) ? ids.Single() : null;
             if (Reject) return new(HttpStatusCode.Unauthorized);
             using var json = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
             var root = json.RootElement;

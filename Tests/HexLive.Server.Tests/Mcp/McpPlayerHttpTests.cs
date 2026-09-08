@@ -23,7 +23,9 @@ namespace HexLive.Server.Tests.Mcp;
 [NonParallelizable]
 public sealed class McpPlayerHttpTests
 {
-    [Test] public async Task PairingAndSessionHeadersCannotBypassPlayerScopeOrRevocation()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task PairingAndSessionHeadersCannotBypassPlayerScopeOrRevocation(bool gameToken)
     {
         var directory = Directory.CreateTempSubdirectory("mcp-player-http-");
         try
@@ -35,29 +37,40 @@ public sealed class McpPlayerHttpTests
             using var worlds = new WorldSupervisor(12345, GameMode.Feud, Path.Combine(directory.FullName, "world.sav"),
                 catalog, false, false, new LlmHostOptions(), null, default);
             worlds.Host.PauseAsOperator();
-            var ids = worlds.Host.Read(w => w.Entities.Npcs.Keys.Select(x => x.Value).Take(2).ToArray());
+            var ids = worlds.Host.Read(w => w.Entities.Npcs.Keys.Select(x => x.Value).Take(3).ToArray());
             var tokenPath = Path.Combine(directory.FullName, "mcp-token");
             File.WriteAllText(tokenPath, "fixture-administrator-token-only");
             var access = new McpPlayerAccess(Path.Combine(directory.FullName, "access.json"));
             var playerId = Guid.NewGuid().ToString("N");
+            var validGameToken = true;
             var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions());
             builder.Services.AddRouting(); builder.Logging.ClearProviders(); builder.WebHost.UseKestrel().UseUrls("http://127.0.0.1:0");
             await using var app = builder.Build();
             McpEndpoint.Map(app, worlds, McpAccessToken.LoadOrCreate(tokenPath), new ControlLeases(45), new AgentSessionRegistry(),
-                playerAccess: access, playerOwnsNpc: (owner, npc) => owner == playerId && npc == ids[0]);
+                playerAccess: access, playerOwnsNpc: (owner, npc) => owner == playerId && (npc == ids[0] || (gameToken && npc == ids[1])),
+                matchesGameToken: value => validGameToken && value == "fixture-shared-game-token");
             await app.StartAsync();
             try
             {
                 using var client = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
                 using var denied = await client.PostAsJsonAsync("/mcp", Rpc("tools/call", new { name = "world_status", arguments = new { } }));
                 Assert.That(denied.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+                string credential;
+                if (!gameToken)
+                {
                 var requested = await Call(client, "request_agent_pairing", new { displayName = "Studio test" });
                 var ticket = requested.Deserialize<AgentPairingTicket>()!;
                 var pending = await Call(client, "poll_agent_pairing", new { pairingId = ticket.Id, pollSecret = ticket.PollSecret });
                 Assert.That(pending.GetProperty("State").GetString(), Is.EqualTo("Pending"));
                 Assert.That(access.Approve(ticket.Id, ticket.Code, playerId), Is.True);
                 var approved = await Call(client, "poll_agent_pairing", new { pairingId = ticket.Id, pollSecret = ticket.PollSecret });
-                var credential = approved.GetProperty("Credential").GetString()!;
+                credential = approved.GetProperty("Credential").GetString()!;
+                }
+                else
+                {
+                    credential = "fixture-shared-game-token";
+                    client.DefaultRequestHeaders.Add("X-HexLive-Client-Id", playerId);
+                }
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", credential);
                 client.DefaultRequestHeaders.Add("Mcp-Session-Id", "invented-session");
                 using var forged = await client.PostAsJsonAsync("/mcp", Rpc("tools/call", new { name = "world_status", arguments = new { } }));
@@ -67,11 +80,22 @@ public sealed class McpPlayerHttpTests
                 initialize.EnsureSuccessStatusCode();
                 client.DefaultRequestHeaders.Add("Mcp-Session-Id", initialize.Headers.GetValues("Mcp-Session-Id").Single());
                 var list = await Call(client, "list_colonists", new { });
-                Assert.That(list.GetProperty("colonists").GetArrayLength(), Is.EqualTo(1));
+                Assert.That(list.GetProperty("colonists").GetArrayLength(), Is.EqualTo(gameToken ? 2 : 1));
                 Assert.That(list.GetProperty("colonists")[0].GetProperty("npcId").GetInt32(), Is.EqualTo(ids[0]));
-                var blocked = await Call(client, "describe_colonist", new { npcId = ids[1] });
+                var blocked = await Call(client, "describe_colonist", new { npcId = ids[2] });
                 Assert.That(blocked.GetProperty("error").GetString(), Is.EqualTo("NpcAccessDenied"));
-                Assert.That(access.Revoke(access.Authorize(credential)!.Id, playerId), Is.True);
+                if (gameToken)
+                {
+                    Assert.That(File.Exists(Path.Combine(directory.FullName, "access.json")), Is.False, "No pairing or approval grant is needed for game tokens.");
+                    client.DefaultRequestHeaders.Remove("X-HexLive-Client-Id");
+                    client.DefaultRequestHeaders.Add("X-HexLive-Client-Id", Guid.NewGuid().ToString("N"));
+                    using var wrongPlayer = await client.PostAsJsonAsync("/mcp", Rpc("tools/call", new { name = "world_status", arguments = new { } }));
+                    Assert.That(wrongPlayer.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+                    client.DefaultRequestHeaders.Remove("X-HexLive-Client-Id");
+                    client.DefaultRequestHeaders.Add("X-HexLive-Client-Id", playerId);
+                    validGameToken = false;
+                }
+                else Assert.That(access.Revoke(access.Authorize(credential)!.Id, playerId), Is.True);
                 using var revoked = await client.PostAsJsonAsync("/mcp", Rpc("tools/call", new { name = "world_status", arguments = new { } }));
                 Assert.That(revoked.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
             }

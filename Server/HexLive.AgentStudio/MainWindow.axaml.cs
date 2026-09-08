@@ -113,16 +113,17 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private async void ShowServers(object? sender, RoutedEventArgs args)
     {
         if (_configuration == null || _configurationStore == null) return;
-        var server = await new ServerPairingWindow(Strings, _secrets).ShowDialog<ServerProfile?>(this);
-        if (server == null) return;
-        try
-        {
+        var owner = sender is Control control ? TopLevel.GetTopLevel(control) as Window : null;
+        await new ServersWindow(Strings, _secrets, Servers, SaveServer).ShowDialog(owner?.IsVisible == true ? owner : this);
+    }
+    private async Task SaveServer(ServerProfile server)
+    {
+        if (_configuration == null || _configurationStore == null) throw new IOException("ConfigurationUnavailable");
             _configuration = await _configurationStore.SaveAsync(_configuration,
-                _configuration.Configuration with { Servers = _configuration.Configuration.Servers.Append(server).ToArray() });
-            Servers.Add(server);
+                _configuration.Configuration with { Servers = _configuration.Configuration.Servers.Where(x => x.Id != server.Id).Append(server).ToArray() });
+            var previous = Servers.FirstOrDefault(x => x.Id == server.Id);
+            if (previous == null) Servers.Add(server); else Servers[Servers.IndexOf(previous)] = server;
             _serverSelection.SelectedItem = server;
-        }
-        catch { SetConfigurationStatus(Strings["ConfigurationError"]); }
     }
     private async void ShowIntegrations(object? sender, RoutedEventArgs args)
     {

@@ -95,6 +95,16 @@ public sealed partial class MainWindow
         try
         {
             if (await IsAgentActive(profile.Id)) { SetConfigurationStatus(Strings["StopBeforeEdit"]); return; }
+            if (await _secrets.ReadAsync(server.CredentialId, CancellationToken.None) == null)
+            {
+                SetConfigurationStatus(Strings["ServerNeedsAccess"]);
+                var owner = (sender as Control) is { } control ? TopLevel.GetTopLevel(control) as Window : null;
+                var approved = await new ServerPairingWindow(Strings, _secrets, server)
+                    .ShowDialog<ServerProfile?>(owner ?? this);
+                if (approved == null) return;
+                await SaveServer(approved);
+                server = approved;
+            }
             var roster = await new AgentServerConnection(_secrets).ReadAsync(server, CancellationToken.None);
             if (SelectedProfile?.Id != profile.Id) return;
             await SaveProfile(profile with { ServerId = server.Id, WorldId = roster.WorldId,

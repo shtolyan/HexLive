@@ -7,6 +7,28 @@ namespace HexLive.AgentCore.Tests;
 public sealed class ProfileIsolationTests
 {
     [Test]
+    public async Task ServerAddressesCanBeSavedBeforeAuthorizationAndEditedWithoutDuplicates()
+    {
+        var root = Directory.CreateTempSubdirectory("studio-server-list-");
+        try
+        {
+            var store = new StudioConfigurationStore(root.FullName);
+            var initial = await store.ReadAsync();
+            var player = new ServerProfile(Guid.NewGuid(), "My characters", new Uri("https://example.test/mcp"), "server.player");
+            var admin = player with { Id = Guid.NewGuid(), Name = "Administrator", CredentialId = "server.admin" };
+            var saved = await store.SaveAsync(initial, new(1, [], [player, admin]));
+            var renamed = player with { Name = "Production" };
+            await store.SaveAsync(saved, saved.Configuration with
+            { Servers = saved.Configuration.Servers.Select(x => x.Id == renamed.Id ? renamed : x).ToArray() });
+            var loaded = await new StudioConfigurationStore(root.FullName).ReadAsync();
+            Assert.That(loaded.Configuration.Servers, Has.Length.EqualTo(2));
+            Assert.That(loaded.Configuration.Servers[0], Is.EqualTo(renamed));
+            Assert.That(loaded.Configuration.Servers[1], Is.EqualTo(admin));
+        }
+        finally { root.Delete(true); }
+    }
+
+    [Test]
     public async Task NewNikaDoesNotInheritMashasRoomOrOverwriteExistingIdentity()
     {
         var root = Directory.CreateTempSubdirectory("studio-identities-");

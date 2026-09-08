@@ -23,8 +23,11 @@ public sealed record AgentProfile(Guid Id, string Name, string Workspace,
 
 public sealed record ServerProfile(Guid Id, string Name, Uri McpEndpoint, string CredentialId)
 {
+    public string? PlayerClientId { get; init; }
     public void Validate()
     {
+        if (PlayerClientId != null && !Guid.TryParseExact(PlayerClientId, "N", out _))
+            throw new InvalidDataException("InvalidPlayerIdentity");
         if (Id == Guid.Empty || string.IsNullOrWhiteSpace(Name) || Name.Length > 48 ||
             string.IsNullOrWhiteSpace(CredentialId) || McpEndpoint == null || !McpEndpoint.IsAbsoluteUri ||
             (McpEndpoint.Scheme != "https" && !(McpEndpoint.IsLoopback && McpEndpoint.Scheme == "http")) ||

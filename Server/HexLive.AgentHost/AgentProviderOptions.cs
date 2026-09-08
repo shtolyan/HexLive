@@ -5,6 +5,7 @@ public sealed class AgentProviderOptions
 {
     public required Uri McpUri { get; init; }
     public required string McpToken { get; init; }
+    public string? PlayerClientId { get; init; }
     public required string XaiKey { get; init; }
     public required string ElevenLabsKey { get; init; }
     public required string XaiModel { get; init; }

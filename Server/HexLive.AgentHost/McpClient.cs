@@ -25,6 +25,11 @@ public sealed class McpClient : IDisposable
         _http.Timeout = TimeSpan.FromSeconds(15);
         _http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", options.McpToken);
+        if (options.PlayerClientId is { Length: > 0 } playerId)
+        {
+            if (!Guid.TryParseExact(playerId, "N", out var id)) throw new InvalidDataException("InvalidPlayerIdentity");
+            _http.DefaultRequestHeaders.Add("X-HexLive-Client-Id", id.ToString("N"));
+        }
     }
 
     public async Task<JsonElement> CallToolAsync(

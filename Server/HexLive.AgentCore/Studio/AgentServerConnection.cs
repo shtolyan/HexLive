@@ -32,9 +32,18 @@ public sealed class AgentServerConnection(ISecretStore secrets, HttpMessageHandl
         await secrets.WriteAsync(server.CredentialId, credential, token);
     }
 
+    public async Task ImportServerTokenAsync(ServerProfile server, string credential, CancellationToken token)
+    {
+        server.Validate(); credential = credential.Trim();
+        if (credential.Length is < 16 or > 256 || credential.Any(char.IsControl)) throw new InvalidDataException("InvalidServerToken");
+        await ReadWithCredentialAsync(server, credential, token);
+        token.ThrowIfCancellationRequested();
+        await secrets.WriteAsync(server.CredentialId, credential, token);
+    }
+
     private async Task<ServerRoster> ReadWithCredentialAsync(ServerProfile server, string credential, CancellationToken token)
     {
-        using var mcp = new McpClient(new AgentProviderOptions { McpUri = server.McpEndpoint, McpToken = credential,
+        using var mcp = new McpClient(new AgentProviderOptions { McpUri = server.McpEndpoint, McpToken = credential, PlayerClientId = server.PlayerClientId,
             XaiKey = "", ElevenLabsKey = "", XaiModel = "", ElevenLabsModel = "", ElevenLabsVoiceId = "" }, handler);
         var world = await mcp.CallToolAsync("world_status", new { }, token);
         var roster = await mcp.CallToolAsync("list_colonists", new { }, token);
@@ -68,6 +77,7 @@ public sealed class AgentServerConnection(ISecretStore secrets, HttpMessageHandl
         }
         throw new TimeoutException("PairingExpired");
     }
+
 
     private static async Task<JsonElement> PairingCall(Uri endpoint, string name, object arguments, CancellationToken token)
     {

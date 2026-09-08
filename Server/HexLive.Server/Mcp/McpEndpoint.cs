@@ -38,10 +38,19 @@ public static class McpEndpoint
 
     public static void Map(WebApplication app, WorldSupervisor worlds, McpAccessToken token,
         ControlLeases leases, AgentSessionRegistry agentSessions, SpecLibrary? spec = null,
-        McpPlayerAccess? playerAccess = null, Func<string, int, bool>? playerOwnsNpc = null)
+        McpPlayerAccess? playerAccess = null, Func<string, int, bool>? playerOwnsNpc = null,
+        Func<string, bool>? matchesGameToken = null)
     {
         if ((playerAccess == null) != (playerOwnsNpc == null))
             throw new ArgumentException("Player MCP authorization requires both grants and live assignments.");
+        if (matchesGameToken != null && playerOwnsNpc == null) throw new ArgumentException("Game-token access requires assignments.");
+        var gameSessions = new PlayerTokenSessions();
+        string? GamePlayer(HttpContext c)
+        {
+            return matchesGameToken?.Invoke(Bearer(c)) == true &&
+                PlayerCharacterAssignments.TryNormalizePlayerId(c.Request.Headers["X-HexLive-Client-Id"].ToString(), out var player)
+                ? player : null;
+        }
         // The endpoint has process lifetime; a WorldHost only has colony
         // lifetime. Resolve through the supervisor for every tools/call so an
         // admin world swap cannot leave MCP reading or commanding a dead host.
@@ -56,8 +65,9 @@ public static class McpEndpoint
         {
             var administrator = Authorized(context, token);
             var credential = Bearer(context);
+            var gamePlayer = administrator ? null : GamePlayer(context);
             var playerGrant = administrator ? null : playerAccess?.Authorize(credential);
-            if (!administrator && playerGrant == null && playerAccess == null)
+            if (!administrator && playerGrant == null && gamePlayer == null && playerAccess == null)
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.Headers["WWW-Authenticate"] = "Bearer";
@@ -69,7 +79,7 @@ public static class McpEndpoint
             using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8))
             {
                 // 192 KiB PCM becomes 256 KiB base64; bound chunked HTTP too.
-                var maxCharacters = !administrator && playerGrant == null ? 4096 : 512 * 1024;
+                var maxCharacters = !administrator && playerGrant == null && gamePlayer == null ? 4096 : 512 * 1024;
                 var buffer = new char[8192];
                 var bounded = new StringBuilder();
                 int read;
@@ -98,7 +108,7 @@ public static class McpEndpoint
 
             using (document)
             {
-                if (!administrator && playerGrant == null)
+                if (!administrator && playerGrant == null && gamePlayer == null)
                 {
                     var pairing = PairingRequest(document.RootElement, playerAccess!,
                         context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
@@ -134,17 +144,17 @@ public static class McpEndpoint
                     var worldId = worlds.Host.WorldId;
                     if (initialize && string.IsNullOrEmpty(session))
                     {
-                        session = playerAccess!.CreateSession(credential, worldId);
+                        session = gamePlayer != null ? gameSessions.Create(gamePlayer, worldId) : playerAccess!.CreateSession(credential, worldId);
                         context.Response.Headers[SessionHeader] = session;
                     }
-                    else if (playerAccess!.AuthorizeSession(session, credential, worldId) == null)
+                    else if (gamePlayer != null ? !gameSessions.Validate(session, gamePlayer, worldId) : playerAccess!.AuthorizeSession(session, credential, worldId) == null)
                     {
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         return;
                     }
                     owner = "mcp:" + session;
-                    var playerId = playerGrant!.PlayerId;
-                    canAccessNpc = npc => playerAccess.AuthorizeSession(session, credential, worlds.Host.WorldId) != null &&
+                    var playerId = gamePlayer ?? playerGrant!.PlayerId;
+                    canAccessNpc = npc => (gamePlayer != null ? gameSessions.Validate(session, gamePlayer, worlds.Host.WorldId) : playerAccess!.AuthorizeSession(session, credential, worlds.Host.WorldId) != null) &&
                         playerOwnsNpc!(playerId, npc);
                 }
                 if (root.ValueKind == JsonValueKind.Array)
@@ -205,8 +215,10 @@ public static class McpEndpoint
         app.MapDelete("/mcp", (HttpContext context) =>
         {
             var session = context.Request.Headers[SessionHeader].ToString();
+            var gamePlayer = GamePlayer(context);
             if (!Authorized(context, token) &&
-                playerAccess?.AuthorizeSession(session, Bearer(context), worlds.Host.WorldId) == null)
+                playerAccess?.AuthorizeSession(session, Bearer(context), worlds.Host.WorldId) == null &&
+                (gamePlayer == null || !gameSessions.Validate(session, gamePlayer, worlds.Host.WorldId)))
             {
                 return Results.Unauthorized();
             }
@@ -223,6 +235,7 @@ public static class McpEndpoint
                     leases.Release(npcId, owner);
                 }
                 playerAccess?.CloseSession(session);
+                gameSessions.Close(session);
             }
 
             return Results.StatusCode(StatusCodes.Status204NoContent);

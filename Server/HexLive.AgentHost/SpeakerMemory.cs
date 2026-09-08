@@ -84,6 +84,8 @@ public sealed partial class MashaMemoryStore
                 speaker.Facts = _archive.CoreMemories.Where(m => m.Source is "model-user" or "molly-user")
                     .Select(m => JsonSerializer.Deserialize<PortableMemory>(JsonSerializer.Serialize(m))!).ToList();
                 speaker.RelationshipState = null;
+                foreach (var value in _archive.SuppressedMemoryValues.Where(v => v.StartsWith("legacy-user\n", StringComparison.Ordinal)).ToArray())
+                    _archive.SuppressedMemoryValues.Add(key + "\n" + value["legacy-user\n".Length..]);
                 _archive.PrimarySpeakerKey = key;
             }
             _archive.SchemaVersion = 2;

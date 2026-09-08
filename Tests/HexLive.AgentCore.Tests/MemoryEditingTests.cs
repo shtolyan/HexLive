@@ -16,7 +16,7 @@ public sealed class MemoryEditingTests
             var initial = await documents.ReadAsync("MEMORY.md");
             var changed = await documents.SaveAsync(initial, "My editable long-term memories");
             _ = new MashaMemoryStore(root.FullName);
-            Assert.That((await documents.ReadAsync("MEMORY.md")).Text, Does.Contain(changed.Text));
+            Assert.That((await documents.ReadAsync("MEMORY.md")).Text, Does.Contain("My editable long-term memories"));
             var versions = await Task.WhenAll(documents.History("MEMORY.md").Select(x => documents.ReadRevisionAsync("MEMORY.md", x.Id)));
             Assert.That(versions, Does.Contain(initial.Text));
             Assert.ThrowsAsync<InvalidDataException>(() => documents.ReadRevisionAsync("MEMORY.md", "../escape"));

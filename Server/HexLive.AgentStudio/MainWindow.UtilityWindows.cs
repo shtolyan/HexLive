@@ -16,6 +16,8 @@ public sealed partial class MainWindow
         _serverSelection.PlaceholderText = Strings["NoServer"];
         _serverSelection.ItemTemplate = new FuncDataTemplate<ServerProfile>((s, _) => new TextBlock { Text = s?.Name });
         _characterSelection.PlaceholderText = Strings["NoCharacter"];
+        _characterSelection.ItemTemplate = new FuncDataTemplate<AvailableCharacter>((c, _) => new TextBlock { Text = c?.ToString() });
+        RefreshCharacters();
         var connect = new Button { Content = Strings["Connect"], Classes = { "primary" } };
         connect.Click += ConnectServer;
         var add = new Button { Content = Strings["ManageServers"] };

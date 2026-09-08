@@ -44,6 +44,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     }
     private void SelectProfile(object? sender, SelectionChangedEventArgs args)
     {
+        if (_updatingProfile) return;
         _selectedName = ((sender as ListBox)?.SelectedItem as AgentProfile)?.Name ?? "Agent Studio";
         PropertyChanged?.Invoke(this, new(nameof(SelectedName)));
         RefreshSelection();

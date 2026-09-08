@@ -15,7 +15,7 @@ public sealed partial class MainWindow
     private Guid _rosterServer;
     private readonly ComboBox _serverSelection = new();
     private readonly ComboBox _characterSelection = new();
-    private bool _operation, _polling, _closing, _allowClose;
+    private bool _operation, _polling, _closing, _allowClose, _updatingProfile, _refreshingCharacters;
     private string _selectionSummary = "", _activityStatus = "";
     public string SelectionSummary => _selectionSummary;
     public string ModelSummary => SelectedProfile is { } p ? $"{p.Model.Provider} · {p.Model.ModelId}" : Strings["NoModel"];
@@ -75,8 +75,22 @@ public sealed partial class MainWindow
         foreach (var property in new[] { nameof(ModelSummary), nameof(ReasoningSummary), nameof(VoiceSummary), nameof(IntervalSummary) })
             PropertyChanged?.Invoke(this, new(property));
         _serverSelection.SelectedItem = Servers.FirstOrDefault(x => x.Id == profile?.ServerId);
-        _characterSelection.ItemsSource = null;
-        _roster = null;
+        RefreshCharacters();
+    }
+    private void RefreshCharacters()
+    {
+        _refreshingCharacters = true;
+        try
+        {
+            var profile = SelectedProfile;
+            if (profile == null || _rosterServer != profile.ServerId || _roster?.WorldId != profile.WorldId)
+            { _roster = null; _characterSelection.ItemsSource = null; return; }
+            var characters = _roster.Characters.Where(c => c.Available).ToArray();
+            _characterSelection.ItemsSource = characters;
+            _characterSelection.SelectedItem = characters.FirstOrDefault(c => c.NpcId == profile.NpcId);
+            _characterSelection.PlaceholderText = Strings[characters.Length == 0 ? "NoAvailableCharacters" : "ChooseCharacter"];
+        }
+        finally { _refreshingCharacters = false; }
     }
     private async Task SaveProfile(AgentProfile profile)
     {
@@ -85,8 +99,16 @@ public sealed partial class MainWindow
             _configuration.Configuration with { Agents = _configuration.Configuration.Agents.Select(x => x.Id == profile.Id ? profile : x).ToArray() });
         var index = Profiles.ToList().FindIndex(x => x.Id == profile.Id);
         var selected = SelectedProfile?.Id == profile.Id;
-        Profiles[index] = profile;
-        if (selected) this.FindControl<ListBox>("ProfilesList")!.SelectedItem = profile;
+        // Replacing a selected record raises a transient null selection. It must not
+        // discard the roster while persisting the character chosen from that roster.
+        _updatingProfile = true;
+        try
+        {
+            Profiles[index] = profile;
+            if (selected) this.FindControl<ListBox>("ProfilesList")!.SelectedItem = profile;
+        }
+        finally { _updatingProfile = false; }
+        if (selected) RefreshSelection();
     }
     private async void ConnectServer(object? sender, RoutedEventArgs args)
     {
@@ -110,19 +132,28 @@ public sealed partial class MainWindow
             await SaveProfile(profile with { ServerId = server.Id, WorldId = roster.WorldId,
                 NpcId = profile.ServerId == server.Id && profile.WorldId == roster.WorldId ? profile.NpcId : 0 });
             _roster = roster; _rosterServer = server.Id;
-            _characterSelection.ItemsSource = roster.Characters.Where(c => c.Available).ToArray();
-            SetConfigurationStatus(Strings["SelectCharacter"]);
+            RefreshCharacters();
+            SetConfigurationStatus(_characterSelection.SelectedItem is AvailableCharacter current
+                ? string.Format(Strings["CharacterSelected"], current)
+                : Strings[roster.Characters.Any(c => c.Available) ? "SelectCharacter" : "NoAvailableCharacters"]);
         }
         catch { SetConfigurationStatus(Strings["ConnectionFailed"]); }
         finally { _operation = false; }
     }
     private async void ChooseCharacter(object? sender, SelectionChangedEventArgs args)
     {
-        if (_operation || _roster == null || SelectedProfile is not { } profile ||
+        if (_operation || _refreshingCharacters || _roster == null || SelectedProfile is not { } profile ||
             (sender as ComboBox)?.SelectedItem is not AvailableCharacter npc ||
             profile.ServerId != _rosterServer || profile.WorldId != _roster.WorldId) return;
         _operation = true;
-        try { if (!await IsAgentActive(profile.Id)) await SaveProfile(profile with { NpcId = npc.NpcId }); }
+        try
+        {
+            if (!await IsAgentActive(profile.Id))
+            {
+                await SaveProfile(profile with { NpcId = npc.NpcId });
+                SetConfigurationStatus(string.Format(Strings["CharacterSelected"], npc));
+            }
+        }
         catch { SetConfigurationStatus(Strings["ConfigurationError"]); }
         finally { _operation = false; }
     }

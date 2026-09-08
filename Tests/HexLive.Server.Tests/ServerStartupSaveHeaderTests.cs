@@ -8,6 +8,13 @@ namespace HexLive.Server.Tests
 
 public sealed class ServerStartupSaveHeaderTests
 {
+    [Test]
+    public void StartPausedIsExplicitAndOffByDefault()
+    {
+        Assert.That(ServerOptions.Parse(Array.Empty<string>())!.StartPaused, Is.False);
+        Assert.That(ServerOptions.Parse(new[] { "--start-paused" })!.StartPaused, Is.True);
+    }
+
     private string _directory = string.Empty;
 
     [SetUp]

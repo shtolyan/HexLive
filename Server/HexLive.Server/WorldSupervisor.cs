@@ -51,7 +51,7 @@ public sealed class WorldSupervisor : IDisposable
     public WorldSupervisor(int seed, HexLive.Simulation.Bootstrap.GameMode mode,
         string savePath, AssetGarmentCatalog catalog, bool verboseTrace,
         bool includeDebugDetails, LlmHostOptions llmOptions, string? companionProfile,
-        CancellationToken appShutdown, string? legacyAssignmentsPath = null)
+        CancellationToken appShutdown, string? legacyAssignmentsPath = null, bool startPaused = false)
     {
         _savePath = savePath;
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -73,6 +73,7 @@ public sealed class WorldSupervisor : IDisposable
         _hostLifetime = CancellationTokenSource.CreateLinkedTokenSource(appShutdown);
         _viewerLifetime = CancellationTokenSource.CreateLinkedTokenSource(appShutdown);
         _host.Save(); // initial empty hosts also establish a recoverable library save before ticking
+        if (startPaused) _host.PauseAsOperator();
         _thread = StartThread(_host, _hostLifetime.Token);
         _simData = File.ReadAllText(Library.CatalogPath(Library.ActiveId));
         _catalogSnapshot = new AssetGarmentCatalogSnapshot { Path = Library.CatalogPath(active.Id), Json = _simData, RegistryRevision = active.CatalogRevision };

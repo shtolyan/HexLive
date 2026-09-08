@@ -140,7 +140,7 @@ public static class Program
             // panel can start a fresh colony without restarting the process.
             worlds = new WorldSupervisor(options.Seed, options.Mode, options.SavePath, assetCatalog,
                 options.VerboseTrace, options.IncludeDebugDetails, options.Llm,
-                options.CompanionProfile, lifetime.Token, options.PlayerAssignmentsPath);
+                options.CompanionProfile, lifetime.Token, options.PlayerAssignmentsPath, options.StartPaused);
         }
         catch (Exception ex)
         {
@@ -702,6 +702,7 @@ public sealed class ServerOptions
     }
 
     public int AutosaveSeconds { get; private set; } = 60;
+    public bool StartPaused { get; private set; }
 
     /// <summary>
     /// Admin credentials, kept beside the save. Not in the repo, not in the
@@ -825,6 +826,9 @@ public sealed class ServerOptions
                 case "--debug-details":
                     options.IncludeDebugDetails = true;
                     break;
+                case "--start-paused":
+                    options.StartPaused = true;
+                    break;
                 case "--verbose-trace":
                     options.VerboseTrace = true;
                     break;
@@ -888,6 +892,7 @@ public sealed class ServerOptions
                         "  --retain-current-asset-variants  add a platform without dropping verified existing variants\n" +
                         "  --autosave N     seconds between saves, 0 to disable (default 60)\n" +
                         "  --debug-details  include per-NPC debug dumps in every frame\n" +
+                        "  --start-paused   pause before the first world tick; resume explicitly\n" +
                         "  --verbose-trace  match the editor's trace verbosity (only ~2% more events)\n" +
                         "  --mcp            expose MCP control at /mcp (off by default)\n" +
                         "  --character-preset masha  ensure the authored Masha body preset exists\n" +

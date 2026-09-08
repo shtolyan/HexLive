@@ -190,8 +190,10 @@ public sealed class WorldCreationTests
             string customId;
             var creator = "11111111111111111111111111111111";
             using (var supervisor = new WorldSupervisor(7, GameMode.Feud, Path.Combine(directory, "world.sav"), catalog,
-                false, false, new HexLive.Server.Llm.LlmHostOptions(), null, default))
+                false, false, new HexLive.Server.Llm.LlmHostOptions(), null, default, startPaused: true))
             {
+                Assert.That(supervisor.Host.IsPaused, Is.True);
+                Assert.That(supervisor.Host.Tick, Is.Zero, "Startup pause must precede the first tick");
                 var legacy = supervisor.Library.ActiveId;
                 var config = Config(); config.CreatorPlayerId = creator;
                 var request = Guid.NewGuid().ToString("N");

@@ -17,7 +17,12 @@ public static class AgentPromptFiles
         var file = new FileInfo(path);
         if (!file.Exists || file.Length is < 1 or > 262144 || (file.Attributes & FileAttributes.ReparsePoint) != 0)
             throw new InvalidDataException("MissingOrInvalidPromptFile: " + name);
-        return File.ReadAllText(path, new UTF8Encoding(false, true));
+        // StreamReader's BOM autodetection silently accepts malformed UTF-16 even
+        // when given a strict UTF-8 encoding. Decode the actual bytes explicitly.
+        var bytes = File.ReadAllBytes(path);
+        if (bytes.Length is < 1 or > 262144) throw new InvalidDataException("InvalidPromptSize: " + name);
+        var offset = bytes.AsSpan().StartsWith(new byte[] { 0xef, 0xbb, 0xbf }) ? 3 : 0;
+        return new UTF8Encoding(false, true).GetString(bytes, offset, bytes.Length - offset);
     }
 
     public static string Text(string key)

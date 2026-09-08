@@ -43,13 +43,13 @@ public sealed class AtomicContentTransportContractTests
                 "return FromGameServer(ServerBook.LegacyProductionUrl);"));
             Assert.That(endpoint, Does.Not.Contain("DefaultLocal"));
             Assert.That(serverBook, Does.Contain(
-                "wss://vmi3529459.contaboserver.net/watch"));
+                "wss://163-245-204-96.sslip.io/watch"));
             Assert.That(serverBook, Does.Contain("LegacyProductionUrl"));
             Assert.That(serverBook, Does.Contain("return ProductionUrl;"));
-            Assert.That(proxy, Does.Contain("vmi3529459.contaboserver.net"));
+            Assert.That(proxy, Does.Contain("163-245-204-96.sslip.io"));
             Assert.That(proxy, Does.Contain("reverse_proxy 127.0.0.1:5123"));
             Assert.That(spec, Does.Contain(
-                "https://vmi3529459.contaboserver.net/api/assets/v1"));
+                "https://163-245-204-96.sslip.io/api/assets/v1"));
             Assert.That(spec, Does.Contain(
                 "PlayerSettings.insecureHttpOption=DevelopmentOnly"));
             Assert.That(session, Does.Contain("public static event Action? ServerChanged;"));

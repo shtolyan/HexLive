@@ -117,6 +117,8 @@ public enum FrameKind : byte
     AgentSpeechEnd = 21,
     AdminInput = 22,
     AdminResult = 23,
+    AgentPairingInput = 24,
+    AgentPairingResult = 25,
 }
 
 public enum CommandKind : byte

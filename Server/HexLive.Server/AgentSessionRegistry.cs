@@ -535,6 +535,22 @@ public sealed class AgentSessionRegistry
         }
     }
 
+    /// <summary>Read-only ownership lookup for §163 authorization; never renews the TTL.</summary>
+    public bool TryGetOwnedNpcId(string id, string owner, int worldGeneration, out int npcId)
+    {
+        lock (_gate)
+        {
+            SweepLocked(null, worldGeneration);
+            if (TryOwned(id, owner, worldGeneration, out var attachment, out _))
+            {
+                npcId = attachment.NpcId;
+                return true;
+            }
+            npcId = 0;
+            return false;
+        }
+    }
+
     private bool TryOwned(string id, string owner, int worldGeneration,
         out Attachment attachment, out string reason)
     {

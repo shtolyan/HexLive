@@ -339,7 +339,8 @@ public sealed class McpTools
     /// Возвращает текст ответа. Отказ — это тоже ответ (<paramref name="isError"/>),
     /// а не исключение: агенту нужна причина, чтобы попробовать иначе.
     /// </summary>
-    public string Call(string name, JsonElement arguments, string owner, out bool isError)
+    public string Call(string name, JsonElement arguments, string owner, out bool isError,
+        Func<int, bool>? canAccessNpc = null)
     {
         // Bind exactly once per JSON-RPC tool invocation. A world swap between
         // calls must be visible; a single call must never mix two worlds.
@@ -347,14 +348,21 @@ public sealed class McpTools
         isError = false;
         try
         {
+            // §163: scope is supplied by the authenticated transport, never by tool arguments.
+            // Unknown/new tools fail closed until assigned an explicit scope below.
+            if (canAccessNpc != null && !IsWithinPlayerScope(name, arguments, owner, canAccessNpc))
+            {
+                isError = true;
+                return Json(new { error = "NpcAccessDenied" });
+            }
             switch (name)
             {
                 case "world_status": return WorldStatus(host);
-                case "list_colonists": return ListColonists(host);
-                case "list_leases": return ListLeases();
+                case "list_colonists": return ListColonists(host, canAccessNpc);
+                case "list_leases": return ListLeases(canAccessNpc);
                 case "read_events": return ReadEvents(host, arguments);
                 case "read_spec": return ReadSpec(arguments, out isError);
-                case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError);
+                case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError, canAccessNpc != null);
                 case "attach_agent": return AttachAgent(host, arguments, owner, out isError);
                 case "agent_heartbeat": return AgentHeartbeat(arguments, owner, out isError);
                 case "read_agent_inbox": return ReadAgentInbox(arguments, owner, out isError);
@@ -451,6 +459,7 @@ public sealed class McpTools
         return host.Read(world => Json(new Dictionary<string, object?>
         {
             ["tick"] = world.Tick,
+            ["worldId"] = host.WorldId,
             ["seed"] = world.Seed,
             ["mode"] = world.Mode.ToString(),
             ["clock"] = world.Environment.TimeOfDayNormalized,
@@ -574,13 +583,48 @@ public sealed class McpTools
         });
     }
 
-    private string ListColonists(WorldHost host)
+    private bool IsWithinPlayerScope(string name, JsonElement arguments, string owner, Func<int, bool> allowed)
     {
+        if (name is "world_status" or "read_spec" or "list_colonists" or "list_leases") return true;
+        if (name is "agent_heartbeat" or "read_agent_inbox" or "publish_agent_phase" or
+            "commit_agent_turn" or "begin_agent_utterance" or "append_agent_utterance" or
+            "commit_agent_utterance" or "detach_agent")
+            return arguments.ValueKind == JsonValueKind.Object &&
+                arguments.TryGetProperty("attachmentId", out var attachment) && attachment.ValueKind == JsonValueKind.String &&
+                _agents.TryGetOwnedNpcId(attachment.GetString()!, owner, _currentWorldGeneration(), out var npc) && allowed(npc);
+        // Catalog membership prevents an unreviewed future global tool from gaining access by
+        // accepting an otherwise irrelevant npcId. Every remaining current tool is NPC-scoped.
+        var npcScoped = false;
+        foreach (var tool in Catalog)
+            if (tool.Name == name && tool.InputSchema.TryGetProperty("properties", out var properties) &&
+                properties.TryGetProperty("npcId", out _)) { npcScoped = true; break; }
+        return npcScoped && arguments.ValueKind == JsonValueKind.Object &&
+            arguments.TryGetProperty("npcId", out var id) && id.ValueKind == JsonValueKind.Number &&
+            id.TryGetInt32(out var value) && allowed(value);
+    }
+
+    private string ListColonists(WorldHost host, Func<int, bool>? canAccessNpc = null)
+    {
+        // Assignment reconciliation takes assignments -> world locks. Never invert that
+        // order by calling its predicate while holding the world read lock.
+        if (canAccessNpc != null)
+        {
+            var ids = host.Read(world =>
+            {
+                var result = new List<int>();
+                foreach (var npc in world.Entities.Npcs.Values) result.Add(npc.Id.Value);
+                return result;
+            });
+            var allowed = new HashSet<int>();
+            foreach (var id in ids) if (canAccessNpc(id)) allowed.Add(id);
+            canAccessNpc = allowed.Contains;
+        }
         return host.Read(world =>
         {
             var rows = new List<object>();
             foreach (var npc in world.Entities.Npcs.Values)
             {
+                if (canAccessNpc != null && !canAccessNpc(npc.Id.Value)) continue;
                 rows.Add(new Dictionary<string, object?>
                 {
                     ["npcId"] = npc.Id.Value,
@@ -600,7 +644,7 @@ public sealed class McpTools
                     ["carriedNpcId"] = npc.CarriedNpcId?.Value,
                     ["carriedByNpcId"] = npc.CarriedByNpcId?.Value,
                     ["unconscious"] = npc.IsUnconscious(world.Tick),
-                    ["leaseHolder"] = Holder(npc.Id.Value),
+                    ["leaseHolder"] = canAccessNpc == null ? Holder(npc.Id.Value) : (Holder(npc.Id.Value).Length == 0 ? string.Empty : "occupied"),
                 });
             }
 
@@ -615,15 +659,16 @@ public sealed class McpTools
         static int Id(object row) => (int)((Dictionary<string, object?>)row)["npcId"]!;
     }
 
-    private string ListLeases()
+    private string ListLeases(Func<int, bool>? canAccessNpc = null)
     {
         var rows = new List<object>();
         foreach (var (npcId, owner, idle) in _leases.Snapshot())
         {
+            if (canAccessNpc != null && !canAccessNpc(npcId)) continue;
             rows.Add(new Dictionary<string, object?>
             {
                 ["npcId"] = npcId,
-                ["owner"] = owner,
+                ["owner"] = canAccessNpc == null ? owner : "occupied",
                 ["idleSeconds"] = idle,
             });
         }
@@ -635,7 +680,7 @@ public sealed class McpTools
         });
     }
 
-    private string Describe(WorldHost host, int npcId, out bool isError)
+    private string Describe(WorldHost host, int npcId, out bool isError, bool redactOwner = false)
     {
         var text = host.Read(world =>
         {
@@ -661,7 +706,7 @@ public sealed class McpTools
                 ["manualControl"] = npc.Mind.ManualControl,
                 ["carriedNpcId"] = npc.CarriedNpcId?.Value,
                 ["carriedByNpcId"] = npc.CarriedByNpcId?.Value,
-                ["leaseHolder"] = Holder(npc.Id.Value),
+                ["leaseHolder"] = redactOwner ? (Holder(npc.Id.Value).Length == 0 ? string.Empty : "occupied") : Holder(npc.Id.Value),
                 // Gameplay-language progress is part of the body/world adapter;
                 // §159's personal memories remain in the local Masha archive.
                 ["hexkufaExposure"] = npc.HexkufaExposure,

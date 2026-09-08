@@ -224,6 +224,8 @@ public static class Program
         var app = builder.Build();
         app.UseResponseCompression();
         app.UseWebSockets();
+        var playerMcpAccess = options.McpEnabled ? new Mcp.McpPlayerAccess(
+            Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "hexlive-agent-access.json")) : null;
 
         var adminAccess = new GodMode.AdminAccess(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "hexlive-admin-clients.json"));
         var adminBus = new GodMode.AdminCommandBus(worlds, adminAccess,
@@ -309,7 +311,7 @@ public static class Program
                 options.McpEnabled ? agentSessions : null,
                 viewerSession.WorldGeneration,
                 controlOwner is null ? null : deepgram,
-                Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments);
+                Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments, playerMcpAccess);
             try
             {
                 await viewer.RunAsync(viewerSession.Lifetime);
@@ -346,7 +348,8 @@ public static class Program
             // спека едет к нему тем же швом, что и всё остальное.
             var spec = Mcp.SpecLibrary.Discover(options.SpecDir);
 
-            Mcp.McpEndpoint.Map(app, worlds, mcpToken, leases, agentSessions, spec);
+            Mcp.McpEndpoint.Map(app, worlds, mcpToken, leases, agentSessions, spec, playerMcpAccess,
+                (playerId, npcId) => worlds.CaptureViewerSession().Assignments?.StillAssigned(playerId, npcId) == true);
             Console.WriteLine(
                 $"[server] mcp control    http://localhost:{options.Port}/mcp " +
                 $"(токен в {options.McpTokenPath}, лиз {leases.TimeoutSeconds} с)");

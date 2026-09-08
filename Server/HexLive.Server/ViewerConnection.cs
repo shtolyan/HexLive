@@ -66,6 +66,7 @@ public sealed class ViewerConnection
     private readonly AgentSessionRegistry? _agentSessions;
     private readonly int _worldGeneration;
     private readonly DeepgramTokenBroker? _deepgram;
+    private readonly Mcp.McpPlayerAccess? _playerMcpAccess;
     private readonly string _viewerId;
     private readonly Dictionary<int, long> _agentStateRevisions = new();
     private long _lastSpeechSequence;
@@ -86,9 +87,11 @@ public sealed class ViewerConnection
         string? controlOwner = null, ControlLeases? leases = null,
         IReadOnlyList<int>? assignedNpcIds = null, bool compress = false,
         AgentSessionRegistry? agentSessions = null, int worldGeneration = 0,
-        DeepgramTokenBroker? deepgram = null, string? viewerId = null, GodMode.AdminViewerProtocol? admin = null, PlayerCharacterAssignments? currentAssignments = null)
+        DeepgramTokenBroker? deepgram = null, string? viewerId = null, GodMode.AdminViewerProtocol? admin = null, PlayerCharacterAssignments? currentAssignments = null,
+        Mcp.McpPlayerAccess? playerMcpAccess = null)
     {
         _host = host;
+        _playerMcpAccess = playerMcpAccess;
         _admin = admin;
         _currentAssignments = currentAssignments;
         _socket = socket;
@@ -344,6 +347,24 @@ public sealed class ViewerConnection
                 if (buffer[0] == (byte)FrameKind.NpcCommand)
                 {
                     await HandleNpcCommandAsync(buffer, result, cancel).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (buffer[0] == (byte)FrameKind.AgentPairingInput)
+                {
+                    if (!result.EndOfMessage) { await DrainOversizedMessageAsync(buffer, cancel).ConfigureAwait(false); continue; }
+                    if (!ControlEnabled || _playerMcpAccess == null || result.Count > AgentPairingWire.MaxBytes || !TakeRateToken()) continue;
+                    try
+                    {
+                        var payload = new byte[result.Count - 1];
+                        Buffer.BlockCopy(buffer, 1, payload, 0, payload.Length);
+                        var input = AgentPairingWire.Decode(payload);
+                        var name = _playerMcpAccess.DescribePending(input.Id);
+                        var approved = input.Approved && name != null &&
+                            _playerMcpAccess.Approve(input.Id, input.Text, _controlOwner!.Substring(3));
+                        await SendAsync(AgentPairingWire.Encode(input.Id, name ?? string.Empty, approved, true), cancel).ConfigureAwait(false);
+                    }
+                    catch (InvalidDataException) { }
                     continue;
                 }
 

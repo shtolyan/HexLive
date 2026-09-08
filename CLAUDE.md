@@ -272,10 +272,13 @@ and loading path as the ordinary game.
   `if (Application.productName != "HexLive") return;` (a second project may share the bridge).
 - **Codex only:** never launch Unity, Unity batchmode, `BuildPipeline`, or a
   command-line project/assembly build while the user's Unity Editor is open.
-  Do not try to detect-and-proceed, do not start a second editor, and do not
-  build "just to compile-check". Use the already-open editor through UnityMCP
-  and let the user initiate player builds unless they explicitly say the editor
-  is closed and ask Codex to build. This restriction does not apply to Claude.
+  The user explicitly permits checking whether Unity Editor is closed before
+  an authorized build (2026-09-08). Check process presence without printing
+  process arguments or secrets; if no Editor is running, proceed without
+  repeatedly asking for confirmation. A failed process check is not proof
+  that Unity is closed. Never close their Editor or start a second Editor
+  automatically. If it is open, use the single-owner UnityMCP workflow or
+  ask the user to close it before building. This restriction does not apply to Claude.
 - **Never `EditorUtility.DisplayDialog` for a result — log it.** A modal box owns
   Unity's main thread, and the bridge runs on that thread, so an "OK" nobody is
   there to click freezes every command until a human comes back. Menu items on the

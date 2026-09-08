@@ -4,6 +4,12 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class CodexDecisionTests
 {
+    [Test]
+    public void SubscriptionDefaultsUseRequestedFastTerraProfile()
+    {
+        Assert.That(CodexDecisionRunner.Model, Is.EqualTo("gpt-5.6-terra"));
+        Assert.That(CodexDecisionRunner.ReasoningEffort, Is.EqualTo("low"));
+    }
     [TestCase("health=1; unconscious=false; moving=true", false)]
     [TestCase("health=1; unconscious=true; moving=false", true)]
     [TestCase("health=1; unconscious=false; memory=unconscious=true", false)]

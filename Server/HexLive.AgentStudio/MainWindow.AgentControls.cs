@@ -1,0 +1,130 @@
+using System.Collections.ObjectModel;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using HexLive.AgentCore.Studio;
+
+namespace HexLive.AgentStudio;
+
+public sealed partial class MainWindow
+{
+    public ObservableCollection<ServerProfile> Servers { get; } = new();
+    private AgentFleet _fleet = null!;
+    private ServerRoster? _roster;
+    private Guid _rosterServer;
+    private readonly ComboBox _serverSelection = new();
+    private readonly ComboBox _characterSelection = new();
+    private bool _operation, _polling, _closing, _allowClose;
+    private string _selectionSummary = "", _activityStatus = "";
+    public string SelectionSummary => _selectionSummary;
+    public string ModelSummary => SelectedProfile is { } p ? $"{p.Model.Provider} · {p.Model.ModelId}" : Strings["NoModel"];
+    public string ReasoningSummary => SelectedProfile?.Model.Reasoning ?? Strings["NoReasoning"];
+    public string VoiceSummary => SelectedProfile?.Voice is { } v ? $"ElevenLabs · {v.VoiceId}" : Strings["NoVoice"];
+    public string IntervalSummary => SelectedProfile?.HeartbeatSeconds.ToString() ?? "—";
+    public string ActivityStatus => _activityStatus;
+    private AgentProfile? SelectedProfile => this.FindControl<ListBox>("ProfilesList")!.SelectedItem as AgentProfile;
+
+    private void InitializeAgentControls()
+    {
+        _serverSelection.ItemsSource = Servers;
+        _characterSelection.SelectionChanged += ChooseCharacter;
+        var codex = OperatingSystem.IsMacOS() ? "/Applications/ChatGPT.app/Contents/Resources/codex" : "codex.exe";
+        var factory = new AgentSessionFactory(_secrets, codex);
+        _fleet = new((profile, server, token) => factory.ConnectAsync(profile, server, token));
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        timer.Tick += async (_, _) =>
+        {
+            if (_polling) return;
+            _polling = true;
+            try
+            {
+                var states = await _fleet.SnapshotAsync();
+                var selectedStates = states.Where(s => s.ProfileId == SelectedProfile?.Id).ToArray();
+                _activityStatus = selectedStates.Length == 0 ? Strings["StoppedNoRequests"] : string.Join(Environment.NewLine, selectedStates.Select(s =>
+                    (Profiles.FirstOrDefault(p => p.Id == s.ProfileId)?.Name ?? s.ProfileId.ToString()) + ": " +
+                    Strings["State" + s.State] + (s.ErrorCode == null ? "" : " · " + s.ErrorCode) +
+                    (string.IsNullOrEmpty(s.IntentSummary) ? "" : Environment.NewLine + s.IntentSummary)));
+                PropertyChanged?.Invoke(this, new(nameof(ActivityStatus)));
+            }
+            finally { _polling = false; }
+        };
+        timer.Start(); Closed += (_, _) => timer.Stop();
+        Closing += async (_, e) =>
+        {
+            if (_allowClose) return;
+            e.Cancel = true;
+            if (_closing) return;
+            _closing = true;
+            try
+            {
+                var dialog = new CloseConfirmationWindow(Strings);
+                if (!await dialog.ShowDialog<bool>(this)) return;
+                await _fleet.DisposeAsync(); _allowClose = true; Close();
+            }
+            finally { _closing = false; }
+        };
+    }
+    private async Task<bool> IsAgentActive(Guid id) => (await _fleet.SnapshotAsync()).Any(x => x.ProfileId == id && x.State is not (AgentRunState.Stopped or AgentRunState.Error));
+    private void RefreshSelection()
+    {
+        var profile = SelectedProfile;
+        _selectionSummary = profile == null ? "" : $"{profile.Model.Provider} · {profile.Model.ModelId} · {profile.Model.Reasoning}\n" +
+            (profile.Voice == null ? Strings["NoVoice"] : $"ElevenLabs · {profile.Voice.VoiceId}") + $"\nNPC{profile.NpcId} · {profile.WorldId}";
+        PropertyChanged?.Invoke(this, new(nameof(SelectionSummary)));
+        foreach (var property in new[] { nameof(ModelSummary), nameof(ReasoningSummary), nameof(VoiceSummary), nameof(IntervalSummary) })
+            PropertyChanged?.Invoke(this, new(property));
+        _serverSelection.SelectedItem = Servers.FirstOrDefault(x => x.Id == profile?.ServerId);
+        _characterSelection.ItemsSource = null;
+        _roster = null;
+    }
+    private async Task SaveProfile(AgentProfile profile)
+    {
+        if (_configuration == null || _configurationStore == null) throw new InvalidOperationException();
+        _configuration = await _configurationStore.SaveAsync(_configuration,
+            _configuration.Configuration with { Agents = _configuration.Configuration.Agents.Select(x => x.Id == profile.Id ? profile : x).ToArray() });
+        var index = Profiles.ToList().FindIndex(x => x.Id == profile.Id);
+        var selected = SelectedProfile?.Id == profile.Id;
+        Profiles[index] = profile;
+        if (selected) this.FindControl<ListBox>("ProfilesList")!.SelectedItem = profile;
+    }
+    private async void ConnectServer(object? sender, RoutedEventArgs args)
+    {
+        if (_operation || SelectedProfile is not { } profile || _serverSelection.SelectedItem is not ServerProfile server) return;
+        _operation = true;
+        try
+        {
+            if (await IsAgentActive(profile.Id)) { SetConfigurationStatus(Strings["StopBeforeEdit"]); return; }
+            var roster = await new AgentServerConnection(_secrets).ReadAsync(server, CancellationToken.None);
+            if (SelectedProfile?.Id != profile.Id) return;
+            await SaveProfile(profile with { ServerId = server.Id, WorldId = roster.WorldId,
+                NpcId = profile.ServerId == server.Id && profile.WorldId == roster.WorldId ? profile.NpcId : 0 });
+            _roster = roster; _rosterServer = server.Id;
+            _characterSelection.ItemsSource = roster.Characters.Where(c => c.Available).ToArray();
+            SetConfigurationStatus(Strings["SelectCharacter"]);
+        }
+        catch { SetConfigurationStatus(Strings["ConnectionFailed"]); }
+        finally { _operation = false; }
+    }
+    private async void ChooseCharacter(object? sender, SelectionChangedEventArgs args)
+    {
+        if (_operation || _roster == null || SelectedProfile is not { } profile ||
+            (sender as ComboBox)?.SelectedItem is not AvailableCharacter npc ||
+            profile.ServerId != _rosterServer || profile.WorldId != _roster.WorldId) return;
+        _operation = true;
+        try { if (!await IsAgentActive(profile.Id)) await SaveProfile(profile with { NpcId = npc.NpcId }); }
+        catch { SetConfigurationStatus(Strings["ConfigurationError"]); }
+        finally { _operation = false; }
+    }
+    private async void StartAgent(object? sender, RoutedEventArgs args)
+    {
+        if (_operation || SelectedProfile is not { } profile || Servers.FirstOrDefault(s => s.Id == profile.ServerId) is not { } server) return;
+        _operation = true;
+        try { await _fleet.StartAsync(profile, server); }
+        catch { SetConfigurationStatus(Strings["StartFailed"]); }
+        finally { _operation = false; }
+    }
+    private async void StopAgent(object? sender, RoutedEventArgs args)
+    { if (SelectedProfile is { } profile) await _fleet.StopAsync(profile.Id); }
+    private async void StopAllAgents(object? sender, RoutedEventArgs args) => await _fleet.StopAllAsync();
+}

@@ -255,6 +255,31 @@ public sealed class MashaMemoryStoreTests
     }
 
     [Test]
+    public async Task ImportPreservesEditedSoulAndUserWhileNicknameStillReachesPrompt()
+    {
+        var root = Path.Combine(_directory, "archive");
+        var store = new MashaMemoryStore(root);
+        const string soul = "# Моя душа\nМой собственный характер.\n";
+        const string user = "# Мои заметки\nПользовательская редакция.\n";
+        File.WriteAllText(Path.Combine(root, "SOUL.md"), soul);
+        File.WriteAllText(Path.Combine(root, "USER.md"), user);
+        var molly = Path.Combine(_directory, "iphone", "masha");
+        Directory.CreateDirectory(molly);
+        File.WriteAllText(Path.Combine(molly, "USER.md"), "- Player's name is ЛЛМ-модель\n");
+        await store.ImportMollyDirectoryAsync(Path.Combine(_directory, "iphone"), "Molly iPhone", CancellationToken.None);
+        var world = await store.BindHexLiveWorldAsync(Json("{\"tick\":1,\"seed\":42}"), 901, "", CancellationToken.None);
+        var prompt = await store.BuildPromptContextAsync(world, "привет", CancellationToken.None);
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.ReadAllText(Path.Combine(root, "SOUL.md")), Is.EqualTo(soul));
+            // §163 now appends an explicit managed section, preserving the exact manual prefix.
+            Assert.That(File.ReadAllText(Path.Combine(root, "USER.md")), Does.StartWith(user.TrimEnd() + "\n\n<!-- agent-studio:notes:start -->"));
+            Assert.That(prompt.Text, Does.Contain("ЛЛМ-модель"));
+            Assert.That(prompt.Text, Does.Contain("Пользовательская редакция"));
+        });
+    }
+
+    [Test]
     public async Task PromptUsesBoundedMarkdownAndRecallsOnlyRelevantImportedNotes()
     {
         var molly = Path.Combine(_directory, "iphone", "masha");

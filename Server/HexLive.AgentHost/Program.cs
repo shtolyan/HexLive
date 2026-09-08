@@ -37,6 +37,9 @@ try
         shutdown.Cancel();
     };
     AppDomain.CurrentDomain.ProcessExit += (_, _) => shutdown.Cancel();
+    // §163: CLI and Studio share a non-deleted exclusive workspace lock.
+    using var workspaceLease = new FileStream(Path.Combine(options.MemoryDirectory, ".agent-studio.lock"),
+        FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
     var providers = new KnowledgeAwareAgentProviders(new AgentProviders(options.ProviderOptions),
         new McpClient(options.ProviderOptions));
     var runtime = new AgentHostRuntime(options, providers);

@@ -6,12 +6,14 @@ public sealed class AgentHostStatusStore
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
         { WriteIndented = true };
     private readonly string _path;
+    public string Phase { get; private set; } = "Stopped";
 
     public AgentHostStatusStore(string path) => _path = path;
 
     public void Write(bool running, string phase, int npcId, bool attached,
         bool playerPresent, string error = "")
     {
+        Phase = phase;
         WriteAtomic(_path, JsonSerializer.Serialize(new
         {
             running,

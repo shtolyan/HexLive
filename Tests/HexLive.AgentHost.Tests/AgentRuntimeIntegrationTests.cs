@@ -27,7 +27,7 @@ public sealed class AgentRuntimeIntegrationTests
     }
 
     [Test]
-    public async Task SleepWakeVoiceCancellationAndDetachUseRealMcpToolsWithoutPaidProviders()
+    public async Task WorldPauseControlsPaidWorkNotPlayerPresenceAndOffDetaches()
     {
         var root = FindRoot();
         var temporary = Path.Combine(Path.GetTempPath(), "agent-runtime-" + Guid.NewGuid().ToString("N"));
@@ -36,6 +36,7 @@ public sealed class AgentRuntimeIntegrationTests
         using var host = new WorldHost(12345, GameMode.Feud, Path.Combine(temporary, "world.sav"),
             Path.Combine(root, "SimData/simdata.json"), false, companionProfile: "masha");
         host.EnableMcpEventLog();
+        host.PauseAsOperator();
         var registry = new AgentSessionRegistry();
         var leases = new ControlLeases(45);
         leases.TryAcquire(901, "ws:previous-player-control", out _, out _);
@@ -58,7 +59,7 @@ public sealed class AgentRuntimeIntegrationTests
         {
             await Until(() => registry.HasAttachment(901));
             Assert.That(leases.Snapshot(), Is.Empty, "attachment releases old player control without holding a lease itself");
-            // Cross the entire model-heartbeat interval with no authorized viewer.
+            // Cross the entire model-heartbeat interval with the world paused.
             await Task.Delay(TimeSpan.FromSeconds(31));
             Assert.Multiple(() =>
             {
@@ -68,7 +69,8 @@ public sealed class AgentRuntimeIntegrationTests
                 Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ManualControl), Is.False);
             });
 
-            registry.SetViewerPresence("authorized-player", new[] { 901 }, true);
+            host.ResumeAsOperator();
+            // No player presence is needed for an explicitly started agent.
             handler.Unconscious = true;
             Assert.That(registry.TryEnqueuePlayerText(901, "voice1", "ru", "Привет!", out _), Is.True);
             await Until(() => registry.StatesFor(new[] { 901 })[0].IntentSummary.Contains("Без сознания"));
@@ -92,9 +94,9 @@ public sealed class AgentRuntimeIntegrationTests
             providers.BlockDecision = true;
             registry.TryEnqueuePlayerText(901, "voice2", "ru", "Подожди", out _);
             await Until(() => providers.Decisions == 3);
-            registry.SetViewerPresence("authorized-player", Array.Empty<int>(), false);
+            host.PauseAsOperator();
             await Until(() => providers.Cancelled);
-            Assert.That(providers.Syntheses, Is.EqualTo(1), "Leaving must cancel before a second TTS call.");
+            Assert.That(providers.Syntheses, Is.EqualTo(1), "Pausing must cancel before a second TTS call.");
         }
         finally
         {

@@ -5,6 +5,8 @@ namespace HexLive.AgentHost;
 /// <summary>Subscription-backed inference via the supported CLI, never extracted OAuth credentials.</summary>
 public static class CodexDecisionRunner
 {
+    public const string Model = "gpt-5.6-terra";
+    public const string ReasoningEffort = "low";
     public static ProcessStartInfo CreateStartInfo(string executable, string directory)
     {
         var start = new ProcessStartInfo(executable)
@@ -14,7 +16,8 @@ public static class CodexDecisionRunner
         };
         // In particular, do not pass MCP, XAI, ElevenLabs or OpenAI API credentials.
         start.Environment.Clear();
-        foreach (var key in new[] { "HOME", "USER", "LOGNAME", "PATH", "TMPDIR" })
+        foreach (var key in new[] { "HOME", "USER", "LOGNAME", "PATH", "TMPDIR",
+                     "USERPROFILE", "APPDATA", "LOCALAPPDATA", "SYSTEMROOT", "COMSPEC", "TEMP", "TMP" })
             if (Environment.GetEnvironmentVariable(key) is { } value) start.Environment[key] = value;
         start.Environment["RUST_LOG"] = "off";
         return start;
@@ -31,7 +34,7 @@ public static class CodexDecisionRunner
     }
 
     public static async Task<string> DecideAsync(string executable, string prompt,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, string model = Model, string reasoningEffort = ReasoningEffort)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(120));
@@ -44,8 +47,8 @@ public static class CodexDecisionRunner
         {
             var start = CreateStartInfo(executable, directory);
             foreach (var arg in new[] { "exec", "--ignore-user-config", "--ephemeral",
-                "--skip-git-repo-check", "-s", "read-only", "-m", "gpt-6-astra",
-                "-c", "forced_login_method=\"chatgpt\"", "-c", "model_reasoning_effort=\"high\"",
+                "--skip-git-repo-check", "-s", "read-only", "-m", model,
+                "-c", "forced_login_method=\"chatgpt\"", "-c", $"model_reasoning_effort=\"{reasoningEffort}\"",
                 "-c", "web_search=\"disabled\"", "--disable", "shell_tool",
                 "--disable", "multi_agent", "--disable", "apps", "--disable", "plugins",
                 "--disable", "browser_use", "--disable", "computer_use",

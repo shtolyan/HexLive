@@ -16,6 +16,10 @@ public sealed class AgentHostOptions
     public required string ElevenLabsVoiceId { get; init; }
     public bool FakeProviders { get; init; }
     public string LlmBackend { get; init; } = "xai";
+    public int? NpcId { get; init; }
+    public MashaIdentity? InitialIdentity { get; init; }
+    public string? ExpectedWorldId { get; init; }
+    public int HeartbeatSeconds { get; init; } = 30;
     public string CodexExecutable { get; init; } = "/Applications/ChatGPT.app/Contents/Resources/codex";
 
     public string StatusPath => Path.Combine(StateDirectory, "agent-host-status.json");

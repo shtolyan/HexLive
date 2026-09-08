@@ -9,13 +9,16 @@ namespace HexLive.AgentHost;
 /// </summary>
 public sealed class AgentHostRuntime
 {
+    public string? TerminalErrorCode { get; private set; }
     private static readonly string[] Capabilities =
         ["playerText", "speech", "worldActions", "relationView", "journal"];
     private static readonly string[] CriticalFragments =
         ["Wound", "Hit", "Attack", "Fainted", "Dying", "Death", "Threat"];
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan AttachmentHeartbeat = TimeSpan.FromSeconds(8);
-    private static readonly TimeSpan ModelHeartbeat = TimeSpan.FromSeconds(30);
+    private TimeSpan ModelHeartbeat => TimeSpan.FromSeconds(_options.HeartbeatSeconds);
+    private string? _pinnedWorldId;
+    private int? _pinnedNpcId;
 
     private readonly AgentHostOptions _options;
     private readonly MashaMemoryStore _memory;
@@ -23,6 +26,8 @@ public sealed class AgentHostRuntime
     private readonly HttpMessageHandler? _mcpHandler;
     private readonly AgentTurnOutbox _outbox;
     private readonly AgentHostStatusStore _status;
+    public string CurrentPhase => _status.Phase;
+    public string LastIntentSummary { get; private set; } = string.Empty;
     private readonly Queue<string> _recent = new();
     private string _lastSpeech = string.Empty;
     private CancellationTokenSource? _actionStop;
@@ -35,7 +40,9 @@ public sealed class AgentHostRuntime
         HttpMessageHandler? mcpHandler = null)
     {
         _options = options;
-        _memory = new MashaMemoryStore(options.MemoryDirectory);
+        if (options.HeartbeatSeconds is < 5 or > 3600)
+            throw new ArgumentOutOfRangeException(nameof(options.HeartbeatSeconds));
+        _memory = new MashaMemoryStore(options.MemoryDirectory, options.InitialIdentity);
         _providers = providers ?? new AgentProviders(options.ProviderOptions);
         _mcpHandler = mcpHandler;
         _outbox = new AgentTurnOutbox(options.OutboxPath);
@@ -66,7 +73,11 @@ public sealed class AgentHostRuntime
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
+        TerminalErrorCode = null;
         _status.Write(true, "Starting", 0, false, false);
+        var terminalError = false;
+        try
+        {
         while (!cancellationToken.IsCancellationRequested)
         {
             try
@@ -79,20 +90,41 @@ public sealed class AgentHostRuntime
             }
             catch (Exception ex)
             {
+                if (ex is AgentTargetChangedException || ex is HttpRequestException { StatusCode:
+                    System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden })
+                {
+                    TerminalErrorCode = ex.GetType().Name;
+                    _status.Write(false, "Error", _pinnedNpcId ?? 0, false, false, ex.GetType().Name);
+                    terminalError = true;
+                    return;
+                }
                 _status.Write(true, "Reconnecting", 0, false, false, ex.GetType().Name);
                 Console.Error.WriteLine($"[agent] reconnecting after {ex.GetType().Name}");
                 await Task.Delay(RetryDelay, cancellationToken).ConfigureAwait(false);
             }
         }
-        _status.Write(false, "Stopped", 0, false, false);
-        _providers.Dispose();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        finally
+        {
+            await StopActionAsync().ConfigureAwait(false);
+            if (!terminalError) _status.Write(false, "Stopped", _pinnedNpcId ?? 0, false, false);
+            _providers.Dispose();
+        }
     }
 
     private async Task RunAttachedAsync(CancellationToken cancellationToken)
     {
         using var mcp = new McpClient(_options.ProviderOptions, _mcpHandler);
+        var worldStatus = await mcp.CallToolAsync("world_status", new { }, cancellationToken);
+        PinWorld(worldStatus);
         var colonists = await mcp.CallToolAsync("list_colonists", new { }, cancellationToken);
-        var npcId = SelectNpc(colonists, _options.ProfileId);
+        var npcId = _pinnedNpcId ?? _options.NpcId ?? SelectNpc(colonists, _options.ProfileId);
+        if (!colonists.GetProperty("colonists").EnumerateArray().Any(n =>
+                n.GetProperty("npcId").GetInt32() == npcId &&
+                (!n.TryGetProperty("health", out var health) || health.GetSingle() > 0)))
+            throw new AgentTargetChangedException();
+        _pinnedNpcId = npcId;
         var catalog = await mcp.ReadToolCatalogAsync(cancellationToken);
         _actionContract = BuildActionContract(catalog);
         _actionFeedback = "Новая MCP-сессия: результаты прежних приказов неизвестны.";
@@ -104,10 +136,11 @@ public sealed class AgentHostRuntime
             ttlSeconds = 45,
         }, cancellationToken);
         var attachmentId = RequiredString(attached, "attachmentId");
-        var presence = new PresenceState(attached.TryGetProperty("playerPresent", out var present) &&
-                                         present.GetBoolean());
-        await _memory.ObservePlayerPresenceAsync(presence.Value, cancellationToken);
-        _status.Write(true, presence.Value ? "Ready" : "Sleeping", npcId, true, presence.Value);
+        // §163: this gate means world execution permission, NOT player presence.
+        var presence = new PresenceState(!IsWorldPaused(worldStatus));
+        var playerPresent = attached.TryGetProperty("playerPresent", out var present) && present.GetBoolean();
+        await _memory.ObservePlayerPresenceAsync(playerPresent, cancellationToken);
+        _status.Write(true, presence.Value ? "Ready" : "Sleeping", npcId, true, playerPresent);
         Console.WriteLine($"[agent] attached profile={_options.ProfileId} npc={npcId}");
 
         using var heartbeatStop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -189,7 +222,7 @@ public sealed class AgentHostRuntime
                         else retryAfter = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && !presence.Value)
-                    { /* player left: do not start another paid operation */ }
+                    { /* world paused: do not start another paid operation */ }
                     finally { presence.EndTurn(); }
                     nextModelHeartbeat = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
                 }
@@ -221,17 +254,30 @@ public sealed class AgentHostRuntime
         PresenceState presence, CancellationToken cancellationToken)
     {
         var lastPublishedPresence = presence.Value;
+        var nextAttachmentHeartbeat = DateTimeOffset.UtcNow;
+        bool? lastPlayerPresence = null;
+        try
+        {
         while (!cancellationToken.IsCancellationRequested)
         {
-            await Task.Delay(AttachmentHeartbeat, cancellationToken).ConfigureAwait(false);
-            var result = await mcp.CallToolAsync("agent_heartbeat", new { attachmentId },
-                cancellationToken).ConfigureAwait(false);
-            var current = result.TryGetProperty("playerPresent", out var value) && value.GetBoolean();
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+            var world = await mcp.CallToolAsync("world_status", new { }, cancellationToken);
+            try { PinWorld(world); }
+            catch { presence.Value = false; throw; }
+            var current = !IsWorldPaused(world);
             presence.Value = current;
+            if (DateTimeOffset.UtcNow >= nextAttachmentHeartbeat)
+            {
+                var result = await mcp.CallToolAsync("agent_heartbeat", new { attachmentId }, cancellationToken);
+                var playerPresent = result.TryGetProperty("playerPresent", out var value) && value.GetBoolean();
+                if (playerPresent != lastPlayerPresence)
+                    await _memory.ObservePlayerPresenceAsync(playerPresent, cancellationToken);
+                lastPlayerPresence = playerPresent;
+                nextAttachmentHeartbeat = DateTimeOffset.UtcNow.Add(AttachmentHeartbeat);
+            }
             var changed = current != lastPublishedPresence;
             if (changed)
             {
-                await _memory.ObservePlayerPresenceAsync(current, cancellationToken);
                 await mcp.CallToolAsync("publish_agent_phase", new
                 {
                     attachmentId,
@@ -241,8 +287,25 @@ public sealed class AgentHostRuntime
                 lastPublishedPresence = current;
             }
             if (!current || changed)
-                _status.Write(true, current ? "Ready" : "Sleeping", npcId, true, current);
+                _status.Write(true, current ? "Ready" : "Sleeping", npcId, true, lastPlayerPresence ?? false);
         }
+        }
+        finally { presence.Value = false; }
+    }
+
+    private static bool IsWorldPaused(JsonElement world) =>
+        !world.TryGetProperty("paused", out var paused) || paused.ValueKind != JsonValueKind.False;
+
+    private void PinWorld(JsonElement world)
+    {
+        if (!world.TryGetProperty("worldId", out var value) || value.ValueKind != JsonValueKind.String)
+            throw new AgentTargetChangedException();
+        var id = value.GetString() ?? "";
+        if (_options.ExpectedWorldId != null && id != _options.ExpectedWorldId)
+            throw new AgentTargetChangedException();
+        // Standalone test hosts may use an empty ID. Production must supply its persistent world ID.
+        if (_pinnedWorldId != null && _pinnedWorldId != id) throw new AgentTargetChangedException();
+        _pinnedWorldId ??= id;
     }
 
     private async Task<bool> ProcessSafelyAsync(McpClient mcp, string attachmentId, int npcId,
@@ -319,6 +382,7 @@ public sealed class AgentHostRuntime
             await CommitServerViewAsync(mcp, attachmentId, pending, cancellationToken)
                 .ConfigureAwait(false);
             _outbox.Remove(turnId);
+            LastIntentSummary = decision.IntentSummary;
 
             if (playerText.Length > 0) Remember("Игрок: " + playerText);
             if (decision.Speech.Length > 0)
@@ -757,4 +821,9 @@ public sealed class AgentHostRuntime
         }
         public void EndTurn() { lock (_gate) _turn = null; }
     }
+}
+
+public sealed class AgentTargetChangedException : InvalidOperationException
+{
+    public AgentTargetChangedException() : base("Agent target changed; explicit selection required.") { }
 }

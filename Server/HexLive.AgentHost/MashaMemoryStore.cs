@@ -103,7 +103,7 @@ public sealed class MashaMemoryStore
     private readonly MashaMemoryWorkspace _workspace;
     private MashaArchive _archive;
 
-    public MashaMemoryStore(string memoryDirectory)
+    public MashaMemoryStore(string memoryDirectory, MashaIdentity? initialIdentity = null)
     {
         if (string.IsNullOrWhiteSpace(memoryDirectory))
             throw new ArgumentException("A Masha memory directory is required.", nameof(memoryDirectory));
@@ -115,7 +115,7 @@ public sealed class MashaMemoryStore
         var loadPath = File.Exists(_filePath) || !File.Exists(_workspace.LegacyStatePath)
             ? _filePath
             : _workspace.LegacyStatePath;
-        _archive = LoadOrCreate(loadPath);
+        _archive = LoadOrCreate(loadPath, initialIdentity);
         if (!string.Equals(loadPath, _filePath, StringComparison.Ordinal))
             WriteArchiveAtomically(_filePath, _archive);
         _workspace.WriteViews(_archive);
@@ -494,15 +494,19 @@ public sealed class MashaMemoryStore
             foreach (var update in decision.MemoryUpserts.Take(3))
             {
                 if (string.IsNullOrWhiteSpace(update.Key) || string.IsNullOrWhiteSpace(update.Value)) continue;
-                Upsert(episode.Memories, new PortableMemory
+                var scope = update.Key.StartsWith("user:", StringComparison.Ordinal) ? "model-user" :
+                    update.Key.StartsWith("self:", StringComparison.Ordinal) ? "model-self" :
+                    update.Key.StartsWith("core:", StringComparison.Ordinal) ? "model-core" : "model";
+                var destination = scope == "model" ? episode.Memories : _archive.CoreMemories;
+                Upsert(destination, new PortableMemory
                 {
                     Key = Limit(update.Key, 64),
                     Value = Limit(update.Value, 400),
                     Importance = Math.Clamp(update.Importance, 0f, 1f),
                     UpdatedAtTick = world.Tick,
                     UpdatedAtUtc = DateTimeOffset.UtcNow,
-                    Source = "model"
-                }, MaxWorldMemories);
+                    Source = scope
+                }, scope == "model" ? MaxWorldMemories : MaxCoreMemories);
             }
 
             var journalText = Limit(decision.JournalText, 400);
@@ -555,7 +559,7 @@ public sealed class MashaMemoryStore
         }
     }
 
-    private static MashaArchive LoadOrCreate(string path)
+    private static MashaArchive LoadOrCreate(string path, MashaIdentity? initialIdentity)
     {
         MashaArchive archive;
         if (File.Exists(path))
@@ -573,16 +577,27 @@ public sealed class MashaMemoryStore
         else
         {
             archive = new MashaArchive();
+            if (initialIdentity != null)
+            {
+                if (string.IsNullOrWhiteSpace(initialIdentity.Id) || string.IsNullOrWhiteSpace(initialIdentity.Name) ||
+                    initialIdentity.Name.Length > 48 || initialIdentity.Age is < 18 or > 120)
+                    throw new InvalidDataException("InvalidInitialIdentity");
+                archive.Identity = new MashaIdentity { Id = initialIdentity.Id, Name = initialIdentity.Name,
+                    Age = initialIdentity.Age, Traits = new List<string>(initialIdentity.Traits) };
+            }
         }
 
         archive.ImportFingerprints ??= new Dictionary<string, string>(StringComparer.Ordinal);
         archive.CoreMemories ??= new List<PortableMemory>();
         archive.Worlds ??= new List<MashaWorldEpisode>();
         archive.AppliedTurnIds ??= new List<string>();
+        if (archive.Identity.Id == "masha")
+        {
         EnsureCoreMemory(archive, "origin.life_before_room",
             "До странной комнаты у меня была своя жизнь. Детали возвращаются обрывками, но эта жизнь была настоящей и моей.", 1f);
         EnsureCoreMemory(archive, "origin.strange_room",
             "Когда-то я очнулась запертой в незнакомой странной комнате и пыталась понять, как туда попала.", 1f);
+        }
         EnsureCoreMemory(archive, "origin.player_voice",
             "Невидимый знакомый голос иногда может со мной говорить и советовать, но он не мой хозяин.", 0.95f);
         if (!File.Exists(path))

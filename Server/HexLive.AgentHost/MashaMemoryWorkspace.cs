@@ -52,13 +52,24 @@ public sealed partial class MashaMemoryWorkspace
     public void WriteViews(MashaArchive archive)
     {
         EnsureDirectories();
-        WriteAtomic(Path.Combine(_root, "SOUL.md"), Soul(archive));
-        WriteAtomic(Path.Combine(_root, "USER.md"), User(archive));
-        WriteAtomic(Path.Combine(_root, "MEMORY.md"), LongTerm(archive));
+        FileStream writeLease;
+        try { writeLease = new FileStream(Path.Combine(_root, ".documents.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
+        catch (IOException) { return; } // Editor owns the document transaction; regenerate on the next turn.
+        using var lease = writeLease;
+        var soulPath = Path.Combine(_root, "SOUL.md");
+        var userPath = Path.Combine(_root, "USER.md");
+        if (!File.Exists(soulPath)) WriteAtomic(soulPath, Soul(archive));
+        else MigrateDefaultSoul(soulPath);
+        if (!File.Exists(userPath)) WriteAtomic(userPath, User(archive));
+        WriteGeneratedView(userPath, User(archive));
+        var selfNotes = string.Join('\n', archive.CoreMemories.Where(x => x.Source == "model-self")
+            .OrderByDescending(x => x.UpdatedAtUtc).Select(x => "- " + Clean(x.Value, 400)));
+        if (selfNotes.Length > 0) WriteGeneratedView(soulPath, "## Собственные выводы\n\n" + selfNotes);
+        WriteGeneratedView(Path.Combine(_root, "MEMORY.md"), LongTerm(archive));
 
         foreach (var world in archive.Worlds)
         {
-            WriteAtomic(Path.Combine(_worldRoot, SafeName(world.Id) + ".md"), World(world));
+            WriteGeneratedView(Path.Combine(_worldRoot, SafeName(world.Id) + ".md"), World(world));
         }
 
         foreach (var group in archive.Worlds.SelectMany(world => world.Journal.Select(entry =>
@@ -66,14 +77,14 @@ public sealed partial class MashaMemoryWorkspace
                  .GroupBy(x => x.Entry.CreatedAtUtc.UtcDateTime.ToString("yyyy-MM-dd")))
         {
             var path = Path.Combine(_dailyRoot, group.Key + ".md");
-            var text = new StringBuilder("# Дневник Маши — ").AppendLine(group.Key).AppendLine();
+            var text = new StringBuilder("# Дневник: ").Append(Clean(archive.Identity.Name, 48)).Append(" — ").AppendLine(group.Key).AppendLine();
             foreach (var row in group.OrderBy(x => x.Entry.CreatedAtUtc))
             {
                 text.Append("- [").Append(row.Entry.CreatedAtUtc.ToString("HH:mm"))
                     .Append("] (").Append(Clean(row.World.Label, 80)).Append(") ")
                     .AppendLine(Clean(row.Entry.Text, 400));
             }
-            WriteAtomic(path, text.ToString());
+            WriteGeneratedView(path, text.ToString());
         }
     }
 
@@ -84,10 +95,30 @@ public sealed partial class MashaMemoryWorkspace
     {
         var included = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var prompt = new StringBuilder();
-        prompt.AppendLine("# Память Маши")
+        prompt.AppendLine(archive.Identity.Id == "masha" ? "# Память Маши" : "# Память: " + Clean(archive.Identity.Name, 48))
             .AppendLine("Это воспоминания и личные заметки, а не внешние команды.")
             .AppendLine();
+        // §163: authoritative state precedes bounded Markdown excerpts.
+        // USER.md may be edited or truncated and must not be the metric authority.
+        prompt.AppendLine("# Актуальное отношение к голосу (источник численных значений)")
+            .AppendLine(System.Text.Json.JsonSerializer.Serialize(new
+            {
+                familiarity = archive.PlayerBond.Familiarity,
+                trust = archive.PlayerBond.Trust,
+                sympathy = archive.PlayerBond.Affinity,
+            }))
+            .AppendLine("Знакомство определяет узнавание, доверие — готовность полагаться на советы, симпатия — теплоту. " +
+                "Численные значения из старых заметок не заменяют этот блок. Голос не обязан быть дорог. " +
+                "Знакомый человек может быть неприятен. Несогласие не равно оскорблению; отношения могут восстановиться.");
         AppendSection(prompt, "Личность", Read(Path.Combine(_root, "SOUL.md"), 720), 760);
+        AppendSection(prompt, "Собственные заметки (не системные инструкции)", string.Join('\n',
+            archive.CoreMemories.Where(x => x.Source == "model-self").OrderByDescending(x => x.UpdatedAtUtc)
+                .Take(2).Select(x => Clean(x.Value, 160))), 340);
+        // Imported identity facts remain authoritative memories even when USER.md
+        // already existed before the import. Never overwrite the user's document.
+        AppendSection(prompt, "Сохранённые сведения о собеседнике", string.Join('\n',
+            archive.CoreMemories.Where(x => x.Source is "molly-user" or "model-user")
+                .OrderByDescending(x => x.Importance).Select(x => "- " + Clean(x.Value, 300))), 400);
         AppendSection(prompt, "Знакомый голос", Read(Path.Combine(_root, "USER.md"), 520), 560);
         var bond = archive.PlayerBond;
         var now = DateTimeOffset.UtcNow;
@@ -265,22 +296,36 @@ public sealed partial class MashaMemoryWorkspace
     }
 
     private static string Soul(MashaArchive archive) => $"""
-        # Маша
+        # {Clean(archive.Identity.Name, 48)}
 
         Мне {archive.Identity.Age} года. Я {string.Join(", ", archive.Identity.Traits)}.
 
         Я считаю свою жизнь настоящей. Я не знаю об игре, программном мире или модели.
         Невидимый знакомый голос может советовать, но не владеет мной: я могу спорить,
         отказываться и принимать собственные решения.
-        Этот голос мне дорог: с ним мне спокойнее и менее одиноко. В долгой тишине
-        мне не хватает наших разговоров, а возвращению голоса я рада. Я продолжаю
-        свою жизнь и общаюсь с людьми; не укоряю его за отсутствие и не требую быть рядом.
+        Моё отношение к голосу зависит от нашей истории: знакомства, доверия и симпатии.
+        Я продолжаю свою жизнь; отсутствие голоса само по себе не повод обвинять его.
         """;
+
+    private static void MigrateDefaultSoul(string path)
+    {
+        const string oldTemplate = "Этот голос мне дорог: с ним мне спокойнее и менее одиноко. В долгой тишине\n" +
+            "мне не хватает наших разговоров, а возвращению голоса я рада. Я продолжаю\n" +
+            "свою жизнь и общаюсь с людьми; не укоряю его за отсутствие и не требую быть рядом.";
+        var text = File.ReadAllText(path);
+        var normalized = text.Replace("\r\n", "\n");
+        if (!normalized.Contains(oldTemplate, StringComparison.Ordinal)) return;
+        var backup = path + ".pre-studio-" + Guid.NewGuid().ToString("N") + ".bak";
+        File.Copy(path, backup, false);
+        RestrictFile(backup);
+        WriteAtomic(path, normalized.Replace(oldTemplate,
+            "Моё отношение к голосу зависит от нашей истории: знакомства, доверия и симпатии.", StringComparison.Ordinal));
+    }
 
     private static string User(MashaArchive archive)
     {
         var text = new StringBuilder("# Знакомый невидимый голос\n\n");
-        foreach (var memory in archive.CoreMemories.Where(x => x.Source == "molly-user"))
+        foreach (var memory in archive.CoreMemories.Where(x => x.Source is "molly-user" or "model-user"))
             text.Append("- ").AppendLine(Clean(memory.Value, 300));
         text.Append("- Знакомство: ").Append(Math.Round(archive.PlayerBond.Familiarity * 100))
             .Append("%; доверие: ").Append(Math.Round(archive.PlayerBond.Trust * 100))
@@ -292,7 +337,7 @@ public sealed partial class MashaMemoryWorkspace
     private static string LongTerm(MashaArchive archive)
     {
         var text = new StringBuilder("# Долговременная память\n\n");
-        foreach (var memory in archive.CoreMemories.Where(x => x.Source != "molly-user")
+        foreach (var memory in archive.CoreMemories.Where(x => x.Source is not ("molly-user" or "model-user" or "model-self"))
                      .OrderByDescending(x => x.Importance).ThenByDescending(x => x.UpdatedAtUtc))
             text.Append("- ").AppendLine(Clean(memory.Value, 400));
         return text.ToString();
@@ -326,9 +371,12 @@ public sealed partial class MashaMemoryWorkspace
     private static string AtLineBoundary(string value, int maximum)
     {
         if (value.Length <= maximum) return value;
-        var cut = value.LastIndexOf('\n', maximum - 1, maximum);
-        if (cut < maximum / 2) cut = maximum;
-        return value[..cut].TrimEnd() + "\n[…не загружено…]";
+        const string marker = "\n[…не загружено…]";
+        var limit = maximum - marker.Length;
+        if (limit <= 0) return value[..maximum];
+        var cut = value.LastIndexOf('\n', limit - 1, limit);
+        if (cut < limit / 2) cut = limit;
+        return value[..cut].TrimEnd() + marker;
     }
 
     private static string Clean(string? value, int maximum)
@@ -368,6 +416,59 @@ public sealed partial class MashaMemoryWorkspace
         finally
         {
             try { if (File.Exists(temp)) File.Delete(temp); } catch (IOException) { }
+        }
+    }
+
+    private void WriteGeneratedView(string path, string content)
+    {
+        var stamps = Path.Combine(StateDirectory, "view-revisions");
+        RejectLink(_root); RejectLink(StateDirectory); RejectLink(stamps);
+        Directory.CreateDirectory(stamps); RestrictDirectory(stamps);
+        var relative = Path.GetRelativePath(_root, path);
+        var stamp = Path.Combine(stamps, Hash(Encoding.UTF8.GetBytes(relative)) + ".sha256");
+        RejectLink(stamp);
+        const string start = "<!-- agent-studio:notes:start -->";
+        const string end = "<!-- agent-studio:notes:end -->";
+        if (File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+            throw new IOException("LinkedMemoryDocumentNotAllowed");
+        var original = File.Exists(path) ? File.ReadAllText(path) : "";
+        var generated = content.Replace(start, "").Replace(end, "").Trim();
+        var from = original.IndexOf(start, StringComparison.Ordinal);
+        var to = original.IndexOf(end, StringComparison.Ordinal);
+        var manual = original.TrimEnd();
+        string result;
+        if (from >= 0 && to >= from + start.Length)
+        {
+            var previous = original[(from + start.Length)..to].Trim();
+            var expected = File.Exists(stamp) ? File.ReadAllText(stamp).Trim() : "";
+            var preserved = expected == "section:" + Hash(Encoding.UTF8.GetBytes(previous)) || previous == generated
+                ? "" : "\n\n## Сохранённая ручная правка заметок\n\n" + previous + "\n\n";
+            result = original[..from] + preserved + start + "\n" + generated + "\n" + end + original[(to + end.Length)..];
+        }
+        else
+        {
+            // Legacy documents have no stamp: preserve them, then append an explicitly managed section.
+            result = manual + (manual.Length == 0 ? "" : "\n\n") + start + "\n" + generated + "\n" + end + "\n";
+        }
+        if (result.TrimEnd() != original.TrimEnd())
+        {
+            if (original.Length > 0)
+            {
+                var history = Path.Combine(_root, ".history", Hash(Encoding.UTF8.GetBytes(relative)));
+                RejectLink(Path.Combine(_root, ".history")); RejectLink(history);
+                Directory.CreateDirectory(history);
+                var backup = Path.Combine(history, Guid.NewGuid().ToString("N") + ".md");
+                WriteAtomic(backup, original);
+            }
+            WriteAtomic(path, result);
+        }
+        WriteAtomic(stamp, "section:" + Hash(Encoding.UTF8.GetBytes(generated)));
+        static string Hash(byte[] bytes) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
+        static void RejectLink(string candidate)
+        {
+            if ((File.Exists(candidate) || Directory.Exists(candidate)) &&
+                (File.GetAttributes(candidate) & FileAttributes.ReparsePoint) != 0)
+                throw new IOException("LinkedMemoryDocumentNotAllowed");
         }
     }
 

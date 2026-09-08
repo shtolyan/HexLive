@@ -17,6 +17,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     // Spec 23.17 / 23.8: Starving hysteresis and emergency boost.
     private static float StarvingEnterThreshold => SimBalance.StarvingEnterThreshold;
 

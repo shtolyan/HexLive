@@ -316,7 +316,7 @@ public sealed class CorpseTests
     }
 
     [Test]
-    public void CorpseBottleIsSkippedForAnNpcWhoAlreadyHasOne()
+    public void CorpseBottleCanBeLootedAlongsideAnExistingBottle()
     {
         var (engine, deadId) = Kill();
         var world = engine.World;
@@ -334,14 +334,16 @@ public sealed class CorpseTests
         var spoil = CorpseMath.NextSpoil(world, looter, anchor, out var source);
         Assert.Multiple(() =>
         {
-            Assert.That(spoil?.DefinitionId, Is.EqualTo(ContentIds.Stone),
-                "A redundant bottle must not block useful property behind it.");
+            Assert.That(spoil?.DefinitionId, Is.EqualTo(ContentIds.Bottle),
+                "A corpse bottle is independent physical property, not redundant state.");
             Assert.That(source, Is.EqualTo(CorpseMath.SpoilSource.Pockets));
         });
 
         Assert.That(CorpseMath.TakeSpoil(world, anchor, spoil, source), Is.True);
-        Assert.That(CorpseMath.HasLootableSpoils(world, looter, anchor), Is.False,
-            "A corpse with only the looter's redundant bottle must leave the auction.");
+        spoil = CorpseMath.NextSpoil(world, looter, anchor, out source);
+        Assert.That(spoil?.DefinitionId, Is.EqualTo(ContentIds.Stone));
+        Assert.That(CorpseMath.TakeSpoil(world, anchor, spoil, source), Is.True);
+        Assert.That(CorpseMath.HasLootableSpoils(world, looter, anchor), Is.False);
     }
 
     [Test]

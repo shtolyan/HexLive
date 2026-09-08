@@ -54,20 +54,25 @@ public sealed partial class ExecutionSystem
         var step = looter.Plan.Steps[^1];
         PlayerInventoryTransferMath.UnpackCursor(
             step.TimeoutEndTick ?? 0, out var slotIndex, out var count);
-        var take = step.Type == PlanStepType.PlayerTakeFromContainer;
+        var wear = step.Type == PlanStepType.PlayerTakeAndWearFromContainer;
+        var take = wear || step.Type == PlanStepType.PlayerTakeFromContainer;
         var expected = looter.Plan.TargetItemDefinitionId ?? string.Empty;
 
         if (take)
         {
-            if (!ContainerLootMath.TryResolve(
-                    world, container, slotIndex, expected, count,
+            if (!ContainerLootMath.TryResolveReserved(
+                    world, container, expected, count,
+                    looter.Execution.TargetInventoryItem,
+                    looter.Execution.TargetInventoryWorldObject,
                     out var moving, out var groundSources))
             {
                 FailContainerTransfer(world, looter, "StaleItem");
                 return;
             }
 
-            if (!ContainerLootMath.FitsInLooter(world, looter, moving))
+            if (wear
+                ? moving.Count == 0 || !PlayerInventoryTransferMath.CanWearIncoming(world, looter, moving[0], moving)
+                : !ContainerLootMath.FitsInLooter(world, looter, moving))
             {
                 FailContainerTransfer(world, looter, "InsufficientSpace");
                 return;
@@ -75,6 +80,7 @@ public sealed partial class ExecutionSystem
 
             ContainerLootMath.TakeFromContainer(
                 world, container, looter, moving, groundSources);
+            if (wear) WearCarriedItem(world, looter, moving[0]);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, looter.Id, "ContainerTransferred",
@@ -86,10 +92,16 @@ public sealed partial class ExecutionSystem
         {
             // Отдаём из карманов: ячейка называется индексом в ЕЁ раскладке,
             // поэтому разрешаем ровно тем же кодом, что и человеческий обмен.
+            var selected = looter.Execution.TargetInventoryItem;
+            var selectedIndex = selected is null
+                ? -1
+                : InventoryMath.IndexOfReference(looter.Inventory.Items, selected);
             var itemRef = new InventoryItemRef(
-                InventoryItemSource.Carried, slotIndex, expected);
-            if (!PlayerInventoryTransferMath.TryResolveTransfer(
-                    world, looter, itemRef, count, out var moving, out _))
+                InventoryItemSource.Carried, selectedIndex, expected);
+            if (selectedIndex < 0 || selected.DefinitionId != expected ||
+                !PlayerInventoryTransferMath.TryResolveTransfer(
+                    world, looter, itemRef, count, out var moving, out _) ||
+                moving.Count == 0 || !ReferenceEquals(moving[0], selected))
             {
                 FailContainerTransfer(world, looter, "StaleItem");
                 return;
@@ -141,6 +153,8 @@ public sealed partial class ExecutionSystem
         looter.Mind.CurrentGoal = GoalType.None;
         looter.Execution.Status = ExecutionStatus.None;
         looter.Execution.CurrentInteraction = null;
+        looter.Execution.TargetInventoryItem = null;
+        looter.Execution.TargetInventoryWorldObject = null;
         looter.Movement.JunctionPath.Clear();
         looter.Movement.IsMoving = false;
         looter.Movement.SetStatus(MovementStatus.Idle);

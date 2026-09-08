@@ -25,7 +25,7 @@ public static class CampDiplomacyMath
     public const float EmergencyCareFloor = 0.75f;
 
     public static bool IsSoloCampMode(GameMode mode) =>
-        mode is GameMode.HugeIsland or GameMode.Maniac;
+        mode is GameMode.HugeIsland or GameMode.Maniac or GameMode.Islands;
 
     /// <summary>
     /// §146.12: directed willingness to spend supplies and time on another

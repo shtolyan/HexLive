@@ -32,7 +32,9 @@ public static class SimulationCommandCodec
     // 3: §121.11 — темп MoveTo/GroupMove стал необязательным (nullable), и
     //    добавилась SetRunByDefault. Совместимость сторон стережёт
     //    Handshake.ProtocolVersion; этот номер описывает сам формат.
-    public const int WireVersion = 3;
+    // 4: §159 typed RecordCompanionTurnCommand.
+    // 5: §160 generic RecordAgentSocialCommand.
+    public const int WireVersion = 5;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -79,12 +81,36 @@ public static class SimulationCommandCodec
         SetCampHome = 37,
         SetRunByDefault = 38,
         FillVessel = 39, // §55.4 (bug #317)
+        RecordCompanionTurn = 40,
+        RecordAgentSocial = 41,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
     {
         switch (command)
         {
+            case RecordAgentSocialCommand c:
+                w.Write((ushort)CommandType.RecordAgentSocial);
+                WriteEntity(w, c.Npc);
+                WireIo.WriteString(w, c.TurnId);
+                w.Write((byte)c.Reaction);
+                break;
+            case RecordCompanionTurnCommand c:
+                w.Write((ushort)CommandType.RecordCompanionTurn);
+                WriteEntity(w, c.Npc);
+                WireIo.WriteString(w, c.TurnId);
+                WireIo.WriteString(w, c.Trigger);
+                w.Write((byte)c.Reaction);
+                WireIo.WriteString(w, c.IntentSummary);
+                w.Write((byte)c.MemoryUpserts.Count);
+                for (var i = 0; i < c.MemoryUpserts.Count; i++)
+                {
+                    WireIo.WriteString(w, c.MemoryUpserts[i].Key);
+                    WireIo.WriteString(w, c.MemoryUpserts[i].Value);
+                    w.Write(c.MemoryUpserts[i].Importance);
+                }
+                WireIo.WriteString(w, c.JournalText);
+                break;
             case SetManualControlCommand c:
                 w.Write((ushort)CommandType.SetManualControl);
                 WriteEntity(w, c.Npc);
@@ -328,6 +354,28 @@ public static class SimulationCommandCodec
         var type = (CommandType)r.ReadUInt16();
         switch (type)
         {
+            case CommandType.RecordAgentSocial:
+                return new RecordAgentSocialCommand(
+                    ReadEntity(r), r.ReadString(), (Agents.CompanionReaction)r.ReadByte());
+            case CommandType.RecordCompanionTurn:
+            {
+                var npc = ReadEntity(r);
+                var turnId = r.ReadString();
+                var trigger = r.ReadString();
+                var reaction = (Agents.CompanionReaction)r.ReadByte();
+                var intent = r.ReadString();
+                var count = r.ReadByte();
+                if (count > 3)
+                    throw new InvalidDataException("Invalid companion memory update count.");
+                var updates = new List<Agents.CompanionMemoryUpsert>(count);
+                for (var i = 0; i < count; i++)
+                {
+                    updates.Add(new Agents.CompanionMemoryUpsert(
+                        r.ReadString(), r.ReadString(), r.ReadSingle()));
+                }
+                return new RecordCompanionTurnCommand(
+                    npc, turnId, trigger, reaction, intent, updates, r.ReadString());
+            }
             case CommandType.SetManualControl:
                 return new SetManualControlCommand(ReadEntity(r), r.ReadBoolean());
             case CommandType.SetRunByDefault:

@@ -8,6 +8,13 @@ namespace HexLive.Server.Tests
 
 public sealed class ServerStartupSaveHeaderTests
 {
+    [Test]
+    public void StartPausedIsExplicitAndOffByDefault()
+    {
+        Assert.That(ServerOptions.Parse(Array.Empty<string>())!.StartPaused, Is.False);
+        Assert.That(ServerOptions.Parse(new[] { "--start-paused" })!.StartPaused, Is.True);
+    }
+
     private string _directory = string.Empty;
 
     [SetUp]
@@ -93,6 +100,25 @@ public sealed class ServerStartupSaveHeaderTests
         {
             Assert.That(resumed.Seed, Is.EqualTo(31337));
             Assert.That(resumed.Mode, Is.EqualTo(GameMode.Maniac));
+        });
+    }
+
+    [Test]
+    public void Islands_IsAcceptedByCliAndPersistedByV2Header()
+    {
+        var fresh = ServerOptions.Parse(new[] { "--mode", "islands" });
+        Assert.That(fresh!.Mode, Is.EqualTo(GameMode.Islands));
+
+        var save = Path.Combine(_directory, "islands.sav");
+        WriteSaveHeader(save, version: 2, seed: 40404,
+            mode: GameMode.Islands, tick: 4321);
+        var resumed = ServerOptions.Parse(new[] { "--save", save });
+        resumed!.ContinueExistingSaveIfPresent();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Seed, Is.EqualTo(40404));
+            Assert.That(resumed.Mode, Is.EqualTo(GameMode.Islands));
         });
     }
 

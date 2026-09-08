@@ -370,7 +370,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var entries = FindJournal(snapshot, npc.Id.Value);
+            var entries = FindJournal(snapshot, npc);
 
             // Дешёвая подпись вместо сравнения содержимого: дневник меняется раз
             // в игровой час, а Refresh зовётся каждый кадр. Пересобирать полсотни
@@ -468,7 +468,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            var entries = FindJournal(snapshot, npc.Id.Value);
+            var entries = FindJournal(snapshot, npc);
             var readTo = LastReadTick(npc.Id.Value);
 
             var unread = 0;
@@ -506,22 +506,48 @@ namespace HexLive.UnityPresentation.UI
 
         private static readonly List<JournalEntrySnapshot> EmptyJournal = new();
 
-        private static IReadOnlyList<JournalEntrySnapshot> FindJournal(WorldSnapshot snapshot, int npcId)
+        private IReadOnlyList<JournalEntrySnapshot> FindJournal(WorldSnapshot snapshot, NpcSnapshot npc)
         {
+            var npcId = npc.Id.Value;
+            IReadOnlyList<JournalEntrySnapshot> worldEntries = EmptyJournal;
             if (snapshot?.Journals == null)
             {
-                return EmptyJournal;
+                return PortableOrWorld();
             }
 
             for (var i = 0; i < snapshot.Journals.Count; i++)
             {
                 if (snapshot.Journals[i].NpcId == npcId)
                 {
-                    return snapshot.Journals[i].Entries;
+                    worldEntries = snapshot.Journals[i].Entries;
+                    break;
                 }
             }
 
-            return EmptyJournal;
+            return PortableOrWorld();
+
+            IReadOnlyList<JournalEntrySnapshot> PortableOrWorld()
+            {
+                if (!_agentJournalReady || _agentAttachedNpcId != npc.Id.Value)
+                {
+                    return worldEntries;
+                }
+
+                _agentMergedJournal.Clear();
+                for (var i = 0; i < worldEntries.Count; i++)
+                {
+                    // The portable archive already imported legacy personal
+                    // entries. Keep ordinary simulation diary events, but do
+                    // not show the old server copy twice.
+                    if (worldEntries[i].Type != "CompanionNarrative")
+                    {
+                        _agentMergedJournal.Add(worldEntries[i]);
+                    }
+                }
+                _agentMergedJournal.AddRange(_agentJournal);
+                _agentMergedJournal.Sort((a, b) => a.Tick.CompareTo(b.Tick));
+                return _agentMergedJournal;
+            }
         }
 
         private void LocalizeJournal()

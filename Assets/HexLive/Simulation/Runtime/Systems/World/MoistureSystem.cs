@@ -20,7 +20,10 @@ public sealed class MoistureSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     private static readonly System.Collections.Generic.List<ItemInstance> _wornOutScratch = new();
+    private readonly System.Collections.Generic.List<WorldObjectState> _tickable = new();
 
     private static float DryBase => WorldBalance.MoistureDryBase;
 
@@ -83,7 +86,9 @@ public sealed class MoistureSystem : ISimulationSystem
         // tools and clothing all obey the same roof. Structures themselves do
         // not acquire item wetness. The drying-rack boost still applies only
         // when a wearable is actually hung there.
-        foreach (var obj in world.Entities.Objects.Values)
+        // §156: обход по бодрым чанкам; при выключенной механике — весь ростер.
+        ChunkMath.CollectTickable(world, _tickable);
+        foreach (var obj in _tickable)
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 !IsLoosePickup(definition))
@@ -94,6 +99,23 @@ public sealed class MoistureSystem : ISimulationSystem
             var indoor = ShelterMath.IsIndoor(world, obj.Tile);
             world.Tiles.Items.TryGetValue(obj.Tile, out var tile);
             var onWater = tile is not null && tile.Flags.HasFlag(TileFlags.Water);
+            var naturalMultiplier = definition.Layer is not null
+                ? WorldBalance.ClothingNaturalDryMultiplier
+                : 1f;
+
+            // §156.4: за проспанное вещь ТОЛЬКО сохнет, и только базовой
+            // ставкой — сушилка, костёр и солнце это взаимодействие с соседями,
+            // от которого в спящем чанке мы отказались осознанно. Промежуточные
+            // дожди следа не оставляют: актуальный вернёт единицу строкой ниже.
+            // Ошибка невидима — базовой ставки хватает высушить всё за ~800
+            // тиков, а любой содержательный сон длиннее.
+            var sleptSlowTicks = ChunkMath.SleptSlowTicks(world, obj.Tile);
+            if (sleptSlowTicks > 0)
+            {
+                obj.Wetness = System.MathF.Max(
+                    0f, obj.Wetness - DryBase * naturalMultiplier * sleptSlowTicks);
+            }
+
             if (onWater || ShelterMath.RainReaches(world, obj.Tile))
             {
                 obj.Wetness = 1f;
@@ -101,9 +123,6 @@ public sealed class MoistureSystem : ISimulationSystem
             }
 
             var stationBoost = StationDryMultiplier(world, obj);
-            var naturalMultiplier = definition.Layer is not null
-                ? WorldBalance.ClothingNaturalDryMultiplier
-                : 1f;
             obj.Wetness = System.MathF.Max(0f,
                 obj.Wetness - DryBase * DryMultiplier(
                     world, obj.Tile, indoor, stationBoost, naturalMultiplier));

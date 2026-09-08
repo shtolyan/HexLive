@@ -192,7 +192,7 @@ public sealed partial class DecisionSystem
     }
 
     internal static bool HasBottleWater(NPCState npc) =>
-        npc.BottleWater != WaterKind.None && npc.BottleCharges > 0;
+        BottleInventoryMath.HasWater(npc);
 
     internal static bool HasInventoryCoconutMeal(NPCState npc)
     {
@@ -796,31 +796,22 @@ public sealed partial class DecisionSystem
             return false;
         }
 
-        var cache = world.Caches;
-        if (cache.LedgeJunctionsBuiltVersion != world.TopologyVersion)
+        // §158.4: уступы «рядом» — это окрестность радиуса radius, а не список
+        // всех уступов мира с фильтром по расстоянию (на «Островах» их 116 тысяч).
+        var nearby = world.Caches.LocalSearchScratch;
+        LocalSearch.CollectWithinTiles(world, npc.Tile, LocalSearch.TileRadiusCovering(radius), nearby);
+        var siteJunctions = PlanningSystem.CollectBuildSiteJunctions(world);
+        foreach (var junction in nearby)
         {
-            cache.LedgeJunctionsBuiltVersion = world.TopologyVersion;
-            cache.LedgeJunctions.Clear();
-            foreach (var junction in world.Junctions.Items.Values)
-            {
-                if (PlanningSystem.IsLedge(world, junction))
-                {
-                    cache.LedgeJunctions.Add(junction.Id);
-                }
-            }
-        }
-
-        foreach (var id in cache.LedgeJunctions)
-        {
-            if (world.Junctions.Items.TryGetValue(id, out var junction) &&
-                !junction.Blocked &&
+            if (!junction.Blocked &&
+                PlanningSystem.IsLedge(world, junction) &&
                 HexSpatialMath.Distance(junction.WorldPosition, npc.Position) < radius &&
                 PlanningSystem.TryGetEdgeSeatGeometry(
                     world, junction, waterOnly: false, out _, out _) &&
-                SpatialQueries.IsJunctionFree(world, id) &&
-                !PlanningSystem.IsBuildSiteJunction(world, id) &&
+                SpatialQueries.IsJunctionFree(world, junction.Id) &&
+                !siteJunctions.Contains(junction.Id) &&
                 Connectivity.Reachable(
-                    world, from, id, PlanningSystem.CanUseRoutineTraversal(npc)))
+                    world, from, junction.Id, PlanningSystem.CanUseRoutineTraversal(npc)))
             {
                 return true;
             }
@@ -1191,8 +1182,7 @@ public sealed partial class DecisionSystem
     // StowBottle chore's target (park the bottle, let the rain do the rest).
     internal static PerceivedObject? FindStowableCollector(NPCState npc, WorldState world)
     {
-        if (npc.BottleWater != WaterKind.None ||
-            CountInventory(npc, WaterCollectorMath.VesselId) == 0)
+        if (BottleInventoryMath.FirstEmpty(npc) is null)
         {
             return null;
         }

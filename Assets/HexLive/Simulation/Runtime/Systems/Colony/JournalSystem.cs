@@ -27,6 +27,8 @@ public sealed class JournalSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
+
     private int _lastClosedHour = int.MinValue;
 
     public void Run(WorldState world)

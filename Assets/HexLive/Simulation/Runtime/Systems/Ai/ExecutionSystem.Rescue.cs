@@ -126,7 +126,12 @@ public sealed partial class ExecutionSystem
         }
 
         var immediateEvacuation = KenshiRescueMath.NeedsImmediateEvacuation(world, patient);
-        if (!immediateEvacuation && KenshiRescueMath.HasOpenBleeding(patient) &&
+        // §157.6: в «Островах» бинт кладут ДО подъёма и на свернувшуюся рану —
+        // уложенная в лагере коматозная для §53 «занята», и её не бинтовали до
+        // умирания, а грудь потерпевшей деградирует именно без бинта.
+        var dressBeforePickup = KenshiRescueMath.HasOpenBleeding(patient) ||
+            (world.Mode == Bootstrap.GameMode.Islands && AidAssessment.NeedsDressing(patient));
+        if (!immediateEvacuation && dressBeforePickup &&
             AidSupply.Has(world, helper, AidKind.Treat))
         {
             helper.Execution.Status = ExecutionStatus.InProgress;

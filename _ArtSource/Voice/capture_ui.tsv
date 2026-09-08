@@ -1,0 +1,4 @@
+agent.voice.capture_done	Done	Готово
+agent.voice.queued	Queued: {0}	В очереди: {0}
+agent.voice.queue_full	Recording queue is full. Wait for recognition.	Очередь записей заполнена. Дождись распознавания.
+agent.voice.input_failed	Message was not delivered. Please try again.	Реплика не доставлена. Попробуй ещё раз.

@@ -14,6 +14,9 @@ public sealed class SimulationEngine
         Settings = settings;
         Clock = clock;
         World.RuntimeClock = clock;
+        // §156: формулы догона спрашивают «когда был предыдущий slow-такт», а
+        // интервал приходит из определения мира и константой быть не может.
+        World.SlowIntervalTicks = settings.SlowInterval;
     }
 
     public WorldState World { get; }
@@ -86,7 +89,22 @@ public sealed class SimulationEngine
 
         if (!World.Completed && isSlow)
         {
+            // §156: активный набор — вывод из позиций живых NPC, и считает его
+            // движок, а не сороковая система: у этой работы нет своего места в
+            // слоях, а реестр §30 и его прибитый порядок трогать незачем.
+            //
+            // Считается ЗДЕСЬ, а не в начале тика: спрашивают о нём только
+            // системы слоя Slow, а пересчёт на каждом тике был чистой растратой
+            // — замер на большом острове показал, что он съедал больше, чем
+            // экономил весь сон.
+            ChunkMath.RebuildActiveChunks(World);
+            ChunkMath.EnsureObjectIndex(World);
+
             RunLayer(TickLayer.Slow);
+
+            // §156: штамп ставится ПОСЛЕ слоя — системы этого такта обязаны были
+            // увидеть ещё старое окно, иначе догон пропустил бы сам себя.
+            ChunkMath.StampSimulated(World);
         }
 
         World.Tick += 1;

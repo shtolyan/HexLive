@@ -1,0 +1,23 @@
+.admin-root { position: absolute; left: 0; right: 0; top: 0; bottom: 0; color: rgb(220, 227, 230); font-size: 14px; }
+.admin-toggle { position: absolute; left: 14px; top: 454px; width: 30px; height: 30px; margin: 0; padding: 5px; background-color: rgba(19, 24, 28, 0.94); border-color: rgba(255, 255, 255, 0.12); border-width: 1px; border-radius: 8px; align-items: center; justify-content: center; }
+.admin-toggle:hover { background-color: rgb(34, 42, 49); border-color: rgb(219, 176, 94); }
+.admin-toggle-icon { width: 18px; height: 18px; }
+.admin-modal { position: absolute; left: 0; right: 0; top: 0; bottom: 0; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.65); }
+.admin-card { width: 480px; max-width: 90%; max-height: 85%; background-color: rgb(19, 26, 31); border-color: rgb(68, 85, 94); border-width: 1px; border-radius: 12px; padding: 18px; }
+.admin-header { flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.admin-title { font-size: 18px; -unity-font-style: bold; color: rgb(219, 176, 94); }
+.admin-close { width: 28px; height: 28px; margin: 0; padding: 0; font-size: 20px; color: rgb(220, 227, 230); background-color: rgb(34, 42, 49); border-width: 0; border-radius: 6px; }
+.admin-close:hover { background-color: rgb(61, 73, 82); }
+.admin-content { flex-shrink: 1; }
+.admin-body Label { white-space: normal; margin: 0 0 8px 0; font-size: 13px; }
+.admin-body TextField { margin: 0 0 12px 0; flex-direction: column; }
+.admin-body .unity-text-field__label { min-width: 0; margin: 0 0 5px 0; font-size: 13px; }
+.admin-body .unity-text-field__input { min-height: 32px; padding: 7px; color: rgb(233, 239, 242); background-color: rgb(10, 17, 22); border-width: 1px; border-color: rgb(62, 79, 89); border-radius: 5px; font-size: 14px; white-space: normal; }
+.admin-body .unity-text-field__input:focus { border-color: rgb(219, 176, 94); }
+.admin-body Button { height: 34px; flex-shrink: 0; margin: 0 0 8px 0; padding: 5px 10px; color: rgb(230, 236, 238); background-color: rgb(34, 48, 57); border-width: 1px; border-color: rgb(67, 87, 98); border-radius: 6px; font-size: 13px; }
+.admin-body Button:hover { background-color: rgb(47, 65, 75); }
+.admin-body Button:disabled { opacity: 0.45; }
+.admin-hidden { display: none; }
+.admin-reply { max-height: 180px; margin-top: 6px; }
+.admin-microphone { flex-direction: row; align-items: center; justify-content: center; }
+.admin-microphone-icon { width: 20px; height: 20px; margin-right: 8px; }

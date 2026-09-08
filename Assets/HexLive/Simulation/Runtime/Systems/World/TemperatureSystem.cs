@@ -30,6 +30,8 @@ public sealed class TemperatureSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)

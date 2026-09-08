@@ -70,7 +70,8 @@ public sealed class WorldHost : IDisposable
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public WorldHost(int seed, GameMode mode, string savePath, string simDataPath, bool verboseTrace,
-        bool includeDebugDetails = false, LlmHostOptions? llmOptions = null)
+        bool includeDebugDetails = false, LlmHostOptions? llmOptions = null,
+        string? companionProfile = null, WorldCreationConfig? creationConfig = null, string worldId = "")
     {
         // The codec flag alone is not enough: the EXPORTER only fills the per-NPC
         // debug lists (relationships, goal scores, known objects) behind this
@@ -100,8 +101,18 @@ public sealed class WorldHost : IDisposable
 
         _savePath = savePath;
 
-        var definition = PrototypeWorldDefinitionFactory.Create(seed, mode);
-        var world = new WorldStateFactory().Create(definition);
+        WorldId = worldId;
+        if (!string.IsNullOrEmpty(worldId))
+        {
+            var header = ServerSaveHeader.ReadIfPresent(savePath);
+            if (header is { } saved && (saved.Seed != seed || saved.Mode != mode))
+                throw new InvalidDataException("World metadata and save header disagree; refusing to overwrite the save.");
+        }
+        var definition = creationConfig == null ? PrototypeWorldDefinitionFactory.Create(seed, mode) : WorldCreation.Definition(creationConfig);
+        uint topologyChecksum = 0;
+        var world = new WorldStateFactory().Create(definition, topology =>
+            topologyChecksum = HexLive.Simulation.Wire.TopologyChecksum.Compute(topology));
+        TopologyChecksum = topologyChecksum;
 
         _settings = new SimulationSettings
         {
@@ -144,19 +155,30 @@ public sealed class WorldHost : IDisposable
         // frame is encoded.
         DefinitionIdTable.Build(world.Content);
 
-        // BEFORE the save is applied, and that ordering is load-bearing: what a
-        // connecting client compares this against is its own FRESH worldgen, so
-        // the fingerprint has to be of worldgen too. Tile flags are the trap —
-        // HasFloor/Roofed arrive when the colony lays a floor and are restored
-        // with the blob, so a long-lived world that had built anything would
-        // start turning every new viewer away, blaming "different builds".
-        TopologyChecksum = HexLive.Simulation.Wire.TopologyChecksum.Compute(world);
+        // §162: fingerprint captured by Create's topology callback before scenario buildings
+        // change tile flags, and before restoring a save. Matches the viewer's CreateTopology.
 
         // The blob is a delta from worldgen: it is applied onto a world already
         // rebuilt from the SAME seed (static topology is regenerated, never
         // stored). So restore has to happen after Create, not instead of it.
         TryRestore();
+
+
+        if (creationConfig == null && !string.IsNullOrWhiteSpace(companionProfile))
+        {
+            foreach (var profile in companionProfile.Split(','))
+            {
+                var spawned = CharacterPresetRegistry.EnsureSpawned(
+                    _engine.World, profile, out var presetNpcId);
+                Console.WriteLine(spawned
+                    ? $"[preset] {profile} spawned as NPC{presetNpcId}"
+                    : $"[preset] {profile} restored as NPC{presetNpcId}");
+            }
+        }
     }
+
+    public string WorldId { get; }
+    public string CreationConfigText => Read(w => WorldCreationCodec.Encode(w.CreationConfig));
 
     public string? DrainLlmProviderFailureSummary() =>
         _llmProviderDiagnostics?.DrainSummary();
@@ -260,6 +282,18 @@ public sealed class WorldHost : IDisposable
     /// Turns on the §144.6 chronicle mirror. Called from the composition root
     /// when <c>--mcp</c> is present.
     /// </summary>
+    // §161: callers must authenticate through AdminCommandBus before entering here.
+    internal AdminCommandResult SubmitAdminCommand(AdminCommand command)
+    {
+        lock (_gate)
+        {
+            var result = AdminWorldCommands.Execute(_engine.World, command);
+            _snapshotTick = -1;
+            DrainMcpEvents();
+            return result;
+        }
+    }
+
     public void EnableMcpEventLog()
     {
         lock (_gate)
@@ -715,28 +749,30 @@ public sealed class WorldHost : IDisposable
             WorldSaveSerializer.Write(_engine.World, writer);
             writer.Flush();
             blob = stream.ToArray();
-        }
+            // §161: serialize writes with world mutations; an older autosave must
+            // never replace a just-acknowledged admin save or share its temp file.
 
-        var directory = Path.GetDirectoryName(_savePath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+            var directory = Path.GetDirectoryName(_savePath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
 
-        var temp = _savePath + ".tmp";
-        using (var file = File.Create(temp))
-        using (var writer = new BinaryWriter(file))
-        {
-            writer.Write(SaveMagic);
-            writer.Write(SaveVersion);
-            writer.Write(Seed);
-            writer.Write((int)Mode); // §146.2 (v2) — beside the seed, same rule
-            writer.Write(tick);
-            writer.Write(blob.Length);
-            writer.Write(blob);
-        }
+            var temp = _savePath + ".tmp";
+            using (var file = File.Create(temp))
+            using (var saveWriter = new BinaryWriter(file))
+            {
+                saveWriter.Write(SaveMagic);
+                saveWriter.Write(SaveVersion);
+                saveWriter.Write(Seed);
+                saveWriter.Write((int)Mode); // §146.2 (v2) — beside the seed, same rule
+                saveWriter.Write(tick);
+                saveWriter.Write(blob.Length);
+                saveWriter.Write(blob);
+            }
 
-        File.Move(temp, _savePath, overwrite: true);
+            File.Move(temp, _savePath, overwrite: true);
+        }
     }
 
     private const int SaveMagic = unchecked((int)0x48584C53); // "HXLS" — server save
@@ -807,8 +843,22 @@ public sealed class WorldHost : IDisposable
         }
         catch (Exception ex)
         {
-            // A broken save must not stop the colony existing.
-            Console.WriteLine($"[world] save could not be read ({ex.Message}) — starting fresh");
+            // ⭐ §156: РОВНО НАОБОРОТ, чем раньше, и это не осторожность, а
+            // единственный способ не съесть чужой мир. Здесь мы уже знаем, что
+            // файл НАШ: магия, версия заголовка, сид и режим сошлись, — а
+            // разобрать содержимое не смогли. Раньше такой случай начинал
+            // колонию заново, и первый же автосейв затирал живой world.sav
+            // необратимо; блоб v66 оборвал совместимость, так что «не смогли
+            // разобрать» стало обычным делом при обновлении сервера, а не
+            // экзотикой. Контракт CLAUDE.md: неопознанный сейв обязан
+            // ОСТАНОВИТЬ старт, а не переписать мир. Оператор чинит это
+            // осознанно — откатом версии или переносом файла.
+            throw new InvalidOperationException(
+                $"Сейв {_savePath} принадлежит этому миру (сид и режим совпали), " +
+                $"но не читается: {ex.Message}. Запуск остановлен, чтобы автосейв " +
+                "не переписал его новым миром. Верните прежнюю версию сервера или " +
+                "уберите файл вручную, если мир действительно надо начать заново.",
+                ex);
         }
     }
     public void Dispose() => _llmControlSystem?.Dispose();

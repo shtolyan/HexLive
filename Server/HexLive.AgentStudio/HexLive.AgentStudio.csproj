@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <BaseOutputPath>../../Build/dotnet/bin/HexLive.AgentStudio/</BaseOutputPath>
+    <ApplicationIcon>Assets/agent-studio.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+    <ProjectReference Include="../HexLive.AgentCore/HexLive.AgentCore.csproj" />
+    <EmbeddedResource Include="Strings/*.json" />
+    <AvaloniaResource Include="Assets/agent-studio.png" />
+    <AvaloniaResource Include="Assets/agent-studio.ico" />
+  </ItemGroup>
+</Project>

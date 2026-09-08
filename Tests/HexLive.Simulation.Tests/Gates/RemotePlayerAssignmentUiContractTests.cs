@@ -42,7 +42,10 @@ public sealed class RemotePlayerAssignmentUiContractTests
             var map = Read("Assets", "HexLive", "UnityPresentation", "UI",
                 "TacticalMapPanel.cs");
             Assert.That(campView, Does.Contain("public static Faction Of("));
-            Assert.That(panel, Does.Contain("PlayerCampView.Of(_runner, snapshot)"));
+            Assert.That(campView, Does.Contain("public static bool IsMine("));
+            Assert.That(campView, Does.Contain("npc.Faction == Of(runner, snapshot)"),
+                "IsMine must derive the player's camp through PlayerCampView.Of.");
+            Assert.That(panel, Does.Contain("PlayerCampView.IsMine(_runner, snapshot, npc)"));
             Assert.That(map, Does.Contain("PlayerCampView.HostileToPlayer"));
             Assert.That(crafting, Does.Contain("PlayerAuthority.IsPlayerOwned(world, npc)"),
                 "Крафт-гейт обязан спрашивать владение, а не фракцию (#231).");

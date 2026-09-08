@@ -25,9 +25,12 @@ public sealed partial class ExecutionSystem
         var step = looter.Plan.Steps[^1];
         PlayerInventoryTransferMath.UnpackCursor(
             step.TimeoutEndTick ?? 0, out var index, out var count);
-        var take = step.Type is PlanStepType.PlayerTakeCarried or
+        var wear = step.Type is PlanStepType.PlayerTakeAndWearCarried or
+            PlanStepType.PlayerTakeAndWearWorn;
+        var take = wear || step.Type is PlanStepType.PlayerTakeCarried or
             PlanStepType.PlayerTakeWorn;
         var itemSource = step.Type is PlanStepType.PlayerTakeWorn or
+            PlanStepType.PlayerTakeAndWearWorn or
             PlanStepType.PlayerGiveWorn
                 ? InventoryItemSource.Worn
                 : InventoryItemSource.Carried;
@@ -85,25 +88,39 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var itemRef = new InventoryItemRef(
-            itemSource, index, looter.Plan.TargetItemDefinitionId ?? string.Empty);
+        var selected = looter.Execution.TargetInventoryItem;
+        var sourceItems = itemSource == InventoryItemSource.Carried
+            ? source.Inventory.Items
+            : source.WornItems;
+        var selectedIndex = selected is null
+            ? -1
+            : InventoryMath.IndexOfReference(sourceItems, selected);
+        var expected = looter.Plan.TargetItemDefinitionId ?? string.Empty;
+        if (selectedIndex < 0 || selected.DefinitionId != expected)
+        {
+            FailPlayerInventoryTransfer(world, looter, "StaleItem");
+            return;
+        }
+
+        var itemRef = new InventoryItemRef(itemSource, selectedIndex, expected);
 
         if (!PlayerInventoryTransferMath.TryResolveTransfer(
-                world, source, itemRef, count, out var moving, out var contents))
+                world, source, itemRef, count, out var moving, out var contents) ||
+            moving.Count == 0 || !ReferenceEquals(moving[0], selected))
         {
             FailPlayerInventoryTransfer(world, looter, "StaleItem");
             return;
         }
 
         if (!PlayerInventoryTransferMath.FitsAfter(
-                world, source, destination, itemRef, count))
+                world, source, destination, itemRef, count, wear))
         {
             FailPlayerInventoryTransfer(world, looter, "InsufficientSpace");
             return;
         }
 
         PlayerInventoryTransferMath.MoveResolved(
-            world, source, destination, itemRef, moving, contents);
+            world, source, destination, itemRef, moving, contents, wear);
 
         if (take && world.Entities.Npcs.ContainsKey(other.Id) &&
             looter.Faction != other.Faction)
@@ -122,7 +139,7 @@ public sealed partial class ExecutionSystem
         {
             Trace.Debug(world, looter.Id, "PlayerInventoryTransferred",
                 $"Direction={(take ? "Take" : "Give")} Other=NPC{other.Id.Value} " +
-                $"Source={itemSource} Index={index} Count={moving.Count} " +
+                $"Source={itemSource} Index={selectedIndex} Count={moving.Count} " +
                 $"Contents={contents.Count} " +
                 $"Def={itemRef.ExpectedDefinitionId}");
         }
@@ -200,6 +217,7 @@ public sealed partial class ExecutionSystem
         looter.Execution.Status = ExecutionStatus.None;
         looter.Execution.CurrentInteraction = null;
         looter.Execution.TargetObject = null;
+        looter.Execution.TargetInventoryItem = null;
         looter.Plan.Status = status;
         looter.Plan.Steps.Clear();
         looter.Plan.TargetAgentId = null;

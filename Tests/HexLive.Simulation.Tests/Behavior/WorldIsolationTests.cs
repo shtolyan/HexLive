@@ -24,39 +24,32 @@ public sealed class WorldIsolationTests
     }
 
     [Test]
-    public void LedgeCacheIsOwnedByWorldNotSharedTopologyNumber()
+    public void LedgeQueryAnswersFromItsOwnWorldOnly()
     {
+        // §158.4: списка уступов больше нет — окрестность перечисляется по
+        // тайлам самого мира, так что чужой остров подмешаться не может по
+        // построению. Проверяем ответ против полного обхода КАЖДОГО мира.
         var first = TestWorld.CreateWorld(209759);
         var second = TestWorld.CreateWorld(509687);
-        Assert.That(first.TopologyVersion, Is.EqualTo(second.TopologyVersion),
-            "Fresh islands must exercise the equal-version cache collision.");
 
-        var firstNpc = first.Entities.Npcs.Values.First();
-        firstNpc.CurrentJunction ??=
-            SpatialQueries.FindNearestJunction(first, firstNpc.Position);
-        Assert.That(firstNpc.CurrentJunction, Is.Not.Null);
-        DecisionSystem.AnyLedgeNear(first, firstNpc, float.MaxValue);
-        var expectedFirst = first.Junctions.Items.Values
-            .Where(j => PlanningSystem.IsLedge(first, j))
-            .Select(j => j.Id).ToHashSet();
-
-        var secondNpc = second.Entities.Npcs.Values.First();
-        secondNpc.CurrentJunction ??=
-            SpatialQueries.FindNearestJunction(second, secondNpc.Position);
-        Assert.That(secondNpc.CurrentJunction, Is.Not.Null);
-        DecisionSystem.AnyLedgeNear(second, secondNpc, float.MaxValue);
-        var expectedSecond = second.Junctions.Items.Values
-            .Where(j => PlanningSystem.IsLedge(second, j))
-            .Select(j => j.Id).ToHashSet();
-
-        Assert.Multiple(() =>
+        foreach (var world in new[] { first, second })
         {
-            Assert.That(first.Caches.LedgeJunctions, Is.EquivalentTo(expectedFirst));
-            Assert.That(second.Caches.LedgeJunctions, Is.EquivalentTo(expectedSecond));
-            Assert.That(ReferenceEquals(
-                first.Caches.LedgeJunctions, second.Caches.LedgeJunctions), Is.False,
-                "Equal topology versions must still own independent cache storage.");
-        });
+            var npc = world.Entities.Npcs.Values.First();
+            npc.CurrentJunction ??= SpatialQueries.FindNearestJunction(world, npc.Position);
+            Assert.That(npc.CurrentJunction, Is.Not.Null);
+            var from = npc.CurrentJunction.Value;
+            var radius = HexSpatialMath.HexRadius * 2f;
+            var expected = world.Junctions.Items.Values.Any(j =>
+                !j.Blocked &&
+                PlanningSystem.IsLedge(world, j) &&
+                HexSpatialMath.Distance(j.WorldPosition, npc.Position) < radius &&
+                PlanningSystem.TryGetEdgeSeatGeometry(world, j, waterOnly: false, out _, out _) &&
+                SpatialQueries.IsJunctionFree(world, j.Id) &&
+                !PlanningSystem.IsBuildSiteJunction(world, j.Id) &&
+                Connectivity.Reachable(world, from, j.Id, PlanningSystem.CanUseRoutineTraversal(npc)));
+            Assert.That(DecisionSystem.AnyLedgeNear(world, npc, radius), Is.EqualTo(expected),
+                $"мир {world.Seed}: локальный поиск уступа разошёлся с полным обходом");
+        }
     }
 
     [Test]

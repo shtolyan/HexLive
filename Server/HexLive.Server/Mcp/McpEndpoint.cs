@@ -37,16 +37,37 @@ public static class McpEndpoint
     private const string SessionHeader = "Mcp-Session-Id";
 
     public static void Map(WebApplication app, WorldSupervisor worlds, McpAccessToken token,
-        ControlLeases leases, SpecLibrary? spec = null)
+        ControlLeases leases, AgentSessionRegistry agentSessions, SpecLibrary? spec = null,
+        McpPlayerAccess? playerAccess = null, Func<string, int, bool>? playerOwnsNpc = null,
+        Func<string, bool>? matchesGameToken = null)
     {
+        if ((playerAccess == null) != (playerOwnsNpc == null))
+            throw new ArgumentException("Player MCP authorization requires both grants and live assignments.");
+        if (matchesGameToken != null && playerOwnsNpc == null) throw new ArgumentException("Game-token access requires assignments.");
+        var gameSessions = new PlayerTokenSessions();
+        string? GamePlayer(HttpContext c)
+        {
+            return matchesGameToken?.Invoke(Bearer(c)) == true &&
+                PlayerCharacterAssignments.TryNormalizePlayerId(c.Request.Headers["X-HexLive-Client-Id"].ToString(), out var player)
+                ? player : null;
+        }
         // The endpoint has process lifetime; a WorldHost only has colony
         // lifetime. Resolve through the supervisor for every tools/call so an
         // admin world swap cannot leave MCP reading or commanding a dead host.
-        var tools = new McpTools(() => worlds.Host, leases, spec);
+        var tools = new McpTools(
+            () => worlds.Host,
+            () => worlds.CaptureViewerSession().WorldGeneration,
+            leases,
+            agentSessions,
+            spec);
 
         app.MapPost("/mcp", async (HttpContext context) =>
         {
-            if (!Authorized(context, token))
+            var administrator = Authorized(context, token);
+            var credential = Bearer(context);
+            var gamePlayer = administrator ? null : GamePlayer(context);
+            var playerGrant = administrator ? null : playerAccess?.Authorize(credential);
+            if (!administrator && playerGrant == null && gamePlayer == null && playerAccess == null)
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.Headers["WWW-Authenticate"] = "Bearer";
@@ -57,7 +78,21 @@ public static class McpEndpoint
             string body;
             using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8))
             {
-                body = await reader.ReadToEndAsync();
+                // 192 KiB PCM becomes 256 KiB base64; bound chunked HTTP too.
+                var maxCharacters = !administrator && playerGrant == null && gamePlayer == null ? 4096 : 512 * 1024;
+                var buffer = new char[8192];
+                var bounded = new StringBuilder();
+                int read;
+                while ((read = await reader.ReadAsync(buffer.AsMemory(), context.RequestAborted)) > 0)
+                {
+                    if (bounded.Length + read > maxCharacters)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                        return;
+                    }
+                    bounded.Append(buffer, 0, read);
+                }
+                body = bounded.ToString();
             }
 
             JsonDocument document;
@@ -73,6 +108,14 @@ public static class McpEndpoint
 
             using (document)
             {
+                if (!administrator && playerGrant == null && gamePlayer == null)
+                {
+                    var pairing = PairingRequest(document.RootElement, playerAccess!,
+                        context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+                    if (pairing != null) await WriteJson(context, pairing);
+                    else context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return;
+                }
                 // Идентичность агента = сессия рукопожатия. По спецификации
                 // клиент обязан возвращать выданный Mcp-Session-Id в каждом
                 // последующем запросе — на этом и стоит владение лизом. Клиент
@@ -86,6 +129,34 @@ public static class McpEndpoint
                 var owner = "mcp:" + (string.IsNullOrWhiteSpace(session) ? "anonymous" : session);
 
                 var root = document.RootElement;
+                Func<int, bool>? canAccessNpc = null;
+                if (!administrator)
+                {
+                    // User sessions are server-issued and bound to credential + world. A client
+                    // cannot claim another agent's lease owner by inventing this header.
+                    if (root.ValueKind != JsonValueKind.Object)
+                    {
+                        await WriteJson(context, Error(null, -32600, "Player MCP requests must be individual objects."));
+                        return;
+                    }
+                    var initialize = root.TryGetProperty("method", out var method) &&
+                        method.ValueKind == JsonValueKind.String && method.GetString() == "initialize";
+                    var worldId = worlds.Host.WorldId;
+                    if (initialize && string.IsNullOrEmpty(session))
+                    {
+                        session = gamePlayer != null ? gameSessions.Create(gamePlayer, worldId) : playerAccess!.CreateSession(credential, worldId);
+                        context.Response.Headers[SessionHeader] = session;
+                    }
+                    else if (gamePlayer != null ? !gameSessions.Validate(session, gamePlayer, worldId) : playerAccess!.AuthorizeSession(session, credential, worldId) == null)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        return;
+                    }
+                    owner = "mcp:" + session;
+                    var playerId = gamePlayer ?? playerGrant!.PlayerId;
+                    canAccessNpc = npc => (gamePlayer != null ? gameSessions.Validate(session, gamePlayer, worlds.Host.WorldId) : playerAccess!.AuthorizeSession(session, credential, worlds.Host.WorldId) != null) &&
+                        playerOwnsNpc!(playerId, npc);
+                }
                 if (root.ValueKind == JsonValueKind.Array)
                 {
                     var batch = new List<object>();
@@ -105,7 +176,7 @@ public static class McpEndpoint
                     return;
                 }
 
-                var response = Handle(root, tools, owner, context);
+                var response = Handle(root, tools, owner, context, canAccessNpc);
                 if (response == null)
                 {
                     // Уведомление: по JSON-RPC ответа нет вообще.
@@ -143,15 +214,19 @@ public static class McpEndpoint
         // таймаута: агент попрощался явно, держать за ним колонисток незачем.
         app.MapDelete("/mcp", (HttpContext context) =>
         {
-            if (!Authorized(context, token))
+            var session = context.Request.Headers[SessionHeader].ToString();
+            var gamePlayer = GamePlayer(context);
+            if (!Authorized(context, token) &&
+                playerAccess?.AuthorizeSession(session, Bearer(context), worlds.Host.WorldId) == null &&
+                (gamePlayer == null || !gameSessions.Validate(session, gamePlayer, worlds.Host.WorldId)))
             {
                 return Results.Unauthorized();
             }
 
-            var session = context.Request.Headers[SessionHeader].ToString();
             if (!string.IsNullOrWhiteSpace(session))
             {
                 var owner = "mcp:" + session;
+                agentSessions.DetachOwnedBy(owner);
                 var host = worlds.Host;
                 foreach (var npcId in leases.OwnedBy(owner))
                 {
@@ -159,6 +234,8 @@ public static class McpEndpoint
                         new HexLive.Simulation.Common.EntityId(npcId), false));
                     leases.Release(npcId, owner);
                 }
+                playerAccess?.CloseSession(session);
+                gameSessions.Close(session);
             }
 
             return Results.StatusCode(StatusCodes.Status204NoContent);
@@ -166,8 +243,9 @@ public static class McpEndpoint
     }
 
     private static object? Handle(JsonElement request, McpTools tools, string owner,
-        HttpContext context)
+        HttpContext context, Func<int, bool>? canAccessNpc = null)
     {
+        if (request.ValueKind != JsonValueKind.Object) return Error(null, -32600, "Invalid request.");
         var id = request.TryGetProperty("id", out var idElement) && idElement.ValueKind != JsonValueKind.Null
             ? (object?)Id(idElement)
             : null;
@@ -187,7 +265,8 @@ public static class McpEndpoint
                     : null;
 
                 // Сессию выдаём в заголовке: она же — владелец лизов.
-                if (string.IsNullOrWhiteSpace(context.Request.Headers[SessionHeader].ToString()))
+                if (string.IsNullOrWhiteSpace(context.Request.Headers[SessionHeader].ToString()) &&
+                    string.IsNullOrWhiteSpace(context.Response.Headers[SessionHeader].ToString()))
                 {
                     context.Response.Headers[SessionHeader] = Guid.NewGuid().ToString("N");
                 }
@@ -261,7 +340,7 @@ public static class McpEndpoint
                     : default;
 
                 var text = tools.Call(nameElement.GetString() ?? string.Empty, arguments, owner,
-                    out var isError);
+                    out var isError, canAccessNpc);
 
                 // Ошибка инструмента — это НЕ ошибка протокола: агент должен
                 // прочитать причину и попробовать иначе, а не получить обрыв.
@@ -294,6 +373,35 @@ public static class McpEndpoint
         }
 
         return false;
+    }
+
+    private static string Bearer(HttpContext context)
+    {
+        var header = context.Request.Headers["Authorization"].ToString();
+        return header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? header[7..].Trim() : string.Empty;
+    }
+
+    private static object? PairingRequest(JsonElement root, McpPlayerAccess access, string source)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("id", out var id) ||
+            !root.TryGetProperty("method", out var method) || method.ValueKind != JsonValueKind.String ||
+            method.GetString() != "tools/call" || !root.TryGetProperty("params", out var parameters) ||
+            parameters.ValueKind != JsonValueKind.Object || !parameters.TryGetProperty("name", out var name) ||
+            name.ValueKind != JsonValueKind.String || !parameters.TryGetProperty("arguments", out var args) ||
+            args.ValueKind != JsonValueKind.Object) return null;
+        try
+        {
+            object result;
+            if (name.GetString() == "request_agent_pairing" && args.TryGetProperty("displayName", out var display) && display.ValueKind == JsonValueKind.String)
+                result = access.Begin(display.GetString()!, source);
+            else if (name.GetString() == "poll_agent_pairing" && args.TryGetProperty("pairingId", out var pairingId) && pairingId.ValueKind == JsonValueKind.String &&
+                args.TryGetProperty("pollSecret", out var secret) && secret.ValueKind == JsonValueKind.String)
+                result = access.Poll(pairingId.GetString()!, secret.GetString()!);
+            else return null;
+            return Result(Id(id), new { content = new[] { new { type = "text", text = JsonSerializer.Serialize(result) } }, isError = false });
+        }
+        catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
+        { return Error(Id(id), -32602, "Pairing request unavailable or rate limited."); }
     }
 
     private static object Id(JsonElement element) =>

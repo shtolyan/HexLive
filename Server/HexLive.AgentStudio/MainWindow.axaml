@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="HexLive.AgentStudio.MainWindow" Title="Agent Studio"
+        Icon="avares://HexLive.AgentStudio/Assets/agent-studio.ico"
+        Width="560" SizeToContent="Height" MinWidth="500">
+  <Grid ColumnDefinitions="150,*">
+    <Border Padding="10,16" Background="{DynamicResource StudioSidebar}" BorderBrush="{DynamicResource StudioBorder}" BorderThickness="0,0,1,0">
+      <Grid RowDefinitions="Auto,Auto,Auto" VerticalAlignment="Top">
+        <TextBlock Text="{Binding Strings[Agents]}" Classes="caption" Margin="8,0,0,12" />
+        <ListBox Grid.Row="1" MaxHeight="180" x:Name="ProfilesList" ItemsSource="{Binding Profiles}" SelectionChanged="SelectProfile">
+          <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <Button Grid.Row="2" Margin="0,12,0,0" Content="+" FontSize="24" HorizontalAlignment="Stretch" Click="NewProfile"
+                ToolTip.Tip="{Binding Strings[NewAgent]}" AutomationProperties.Name="{Binding Strings[NewAgent]}" />
+      </Grid>
+    </Border>
+    <ScrollViewer Grid.Column="1" MaxHeight="360" Padding="20,16" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="14">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding SelectedName}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Width="54" Height="48" HorizontalContentAlignment="Center" Click="ShowStudioSettings" ToolTip.Tip="{Binding Strings[Settings]}" AutomationProperties.Name="{Binding Strings[Settings]}">
+            <PathIcon Width="28" Height="28" Data="F0 M 12,0 L 20,0 L 21,5 L 24,7 L 29,5 L 33,12 L 29,16 L 29,20 L 33,24 L 29,31 L 24,29 L 21,31 L 20,36 L 12,36 L 11,31 L 8,29 L 3,31 L -1,24 L 3,20 L 3,16 L -1,12 L 3,5 L 8,7 L 11,5 Z M 23,18 A 7,7 0 1 0 9,18 A 7,7 0 1 0 23,18 Z" />
+          </Button>
+        </Grid>
+        <TextBlock Text="{Binding ModelSummary}" Classes="caption" TextTrimming="CharacterEllipsis" />
+        <Border Classes="surface" Padding="12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="{Binding ActivityStatus}" TextAlignment="Center" HorizontalAlignment="Stretch" TextWrapping="Wrap" Foreground="{DynamicResource StudioAccent}" MaxHeight="75" />
+            <TextBlock Text="{Binding ConfigurationStatus}" TextAlignment="Center" TextWrapping="Wrap" Classes="caption" />
+          </StackPanel>
+        </Border>
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Width="66" Height="54" HorizontalContentAlignment="Center" Click="ShowConnection" ToolTip.Tip="{Binding Strings[Connect]}" AutomationProperties.Name="{Binding Strings[Connect]}">
+            <PathIcon Width="26" Height="26" Data="M 3,10 L 8,5 C 11,2 16,7 13,10 L 10,13 L 8,11 L 11,8 C 12,7 10,5 9,6 L 5,10 C 4,11 6,13 7,12 L 9,14 C 5,18 0,13 3,10 Z M 11,10 L 13,12 L 10,15 C 9,16 11,18 12,17 L 16,13 C 17,12 15,10 14,11 L 12,9 C 16,5 21,10 18,13 L 13,18 C 10,21 5,16 8,13 Z" />
+          </Button>
+          <Button Width="66" Height="54" HorizontalContentAlignment="Center" Classes="primary" Click="StartAgent" ToolTip.Tip="{Binding Strings[Control]}" AutomationProperties.Name="{Binding Strings[Control]}">
+            <PathIcon Width="24" Height="28" Data="M 0,0 L 24,14 L 0,28 Z" />
+          </Button>
+          <Button Width="66" Height="54" HorizontalContentAlignment="Center" Click="StopAgent" ToolTip.Tip="{Binding Strings[Stop]}" AutomationProperties.Name="{Binding Strings[Stop]}">
+            <PathIcon Width="24" Height="24" Foreground="#F06A72" Data="M 0,0 L 24,0 L 24,24 L 0,24 Z" />
+          </Button>
+        </StackPanel>
+        <Grid ColumnDefinitions="*,10,*">
+          <Button HorizontalAlignment="Stretch" Content="{Binding Strings[AgentSettings]}" Click="EditProfileSettings" />
+          <Button Grid.Column="2" HorizontalAlignment="Stretch" Content="{Binding Strings[Consciousness]}" Click="ShowConsciousness" />
+        </Grid>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</Window>

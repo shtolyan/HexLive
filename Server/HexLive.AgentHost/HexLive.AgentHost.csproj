@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>HexLive.AgentHost</RootNamespace>
+    <AssemblyName>HexLive.AgentHost</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <BaseOutputPath>../../Build/dotnet/bin/HexLive.AgentHost/</BaseOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="*.cs" />
+    <Compile Include="Program.cs" />
+    <ProjectReference Include="../HexLive.AgentCore/HexLive.AgentCore.csproj" />
+  </ItemGroup>
+</Project>

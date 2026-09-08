@@ -145,46 +145,85 @@ namespace HexLive.UnityPresentation.Wearing
         // ---- loader (Resources, cached, misses cached too) ----
 
         private static readonly Dictionary<string, PaintPointMap?> Cache = new();
+        private static readonly HashSet<string> Rejected = new();
+        private static readonly HashSet<string> Warned = new();
 
         /// <summary>Load "Resources/HexLive/PaintMaps/&lt;key&gt;". Returns null
         /// (with a one-time warning) when the map is missing or was baked
         /// from a different mesh — callers fall back to the legacy path.</summary>
         public static PaintPointMap? Load(string key, int expectedVertexCount)
         {
+            _ = Request(key, expectedVertexCount, out var map);
+            return map;
+        }
+
+        /// <summary>Like Load, but preserves the distinction between an
+        /// asynchronous first miss and a terminal missing/stale map.</summary>
+        public static HexLive.UnityPresentation.Content.AtomicResources.Availability Request(
+            string key, int expectedVertexCount, out PaintPointMap? result)
+        {
+            result = null;
             if (Cache.TryGetValue(key, out var cached))
             {
-                return cached;
+                result = cached;
+                return HexLive.UnityPresentation.Content.AtomicResources.Availability.Ready;
             }
 
-            var map = HexLive.UnityPresentation.Content.AtomicResources.Load<PaintPointMap>($"{ResourceFolder}/{key}");
+            if (Rejected.Contains(key))
+            {
+                return HexLive.UnityPresentation.Content.AtomicResources.Availability.Failed;
+            }
+
+            var availability = HexLive.UnityPresentation.Content.AtomicResources.Request(
+                $"{ResourceFolder}/{key}", out PaintPointMap map);
+            if (availability ==
+                HexLive.UnityPresentation.Content.AtomicResources.Availability.Loading)
+            {
+                return availability;
+            }
+
             if (map == null)
             {
-                Debug.LogWarning(
-                    $"[PaintPointMap] '{key}' not found in Resources/{ResourceFolder} — " +
-                    "run  HexLive ▸ Paint Maps ▸ Regenerate  (falling back to runtime bake).");
+                if (Warned.Add(key))
+                {
+                    Debug.LogWarning(
+                        $"[PaintPointMap] '{key}' not found in Resources/{ResourceFolder} — " +
+                        "run  HexLive ▸ Paint Maps ▸ Regenerate  (falling back to runtime bake).");
+                }
+                return availability;
             }
-            else if (expectedVertexCount > 0 && map.VertexCount != expectedVertexCount)
+
+            if (expectedVertexCount > 0 && map.VertexCount != expectedVertexCount)
             {
                 Debug.LogWarning(
                     $"[PaintPointMap] '{key}' is stale (baked for {map.VertexCount} verts, " +
                     $"mesh has {expectedVertexCount}) — regenerate. Falling back to runtime bake.");
-                map = null;
+                Rejected.Add(key);
+                return HexLive.UnityPresentation.Content.AtomicResources.Availability.Failed;
             }
 
-            if (map != null)
-            {
-                Cache[key] = map;
-            }
-            return map;
+            Cache[key] = map;
+            result = map;
+            return HexLive.UnityPresentation.Content.AtomicResources.Availability.Ready;
         }
 
         /// <summary>Резидентность (ContentResidency): забыть карту актрисы,
         /// чей комплект вытеснен; хэндл ассета отпускает AtomicResources.</summary>
-        public static void Evict(string key) => Cache.Remove(key);
+        public static void Evict(string key)
+        {
+            Cache.Remove(key);
+            Rejected.Remove(key);
+            Warned.Remove(key);
+        }
 
         // No-domain-reload runs keep statics between plays — a regenerated
         // asset must not be shadowed by a stale cache entry.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => Cache.Clear();
+        private static void ResetStatics()
+        {
+            Cache.Clear();
+            Rejected.Clear();
+            Warned.Clear();
+        }
     }
 }

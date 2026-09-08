@@ -14,6 +14,18 @@ public sealed class NPCExecutionState
 
     public ObjectId? TargetObject { get; set; }
 
+    // §52 / bug #355: exact physical inventory item reserved across a delayed
+    // transfer or timed vessel interaction. SourceIndex + definition cannot
+    // distinguish two identical instances after one is moved. This transient
+    // reference is rebuilt only when the action starts; a save during the
+    // short action fails safely.
+    public ItemInstance TargetInventoryItem { get; set; }
+
+    // §128.5 / bug #355: rack and collector slots are physical world objects,
+    // not ItemInstance references. Preserve that object's stable id while the
+    // looter walks to the container; a mutable UI row index is insufficient.
+    public ObjectId? TargetInventoryWorldObject { get; set; }
+
     // §111.13: КАКУЮ станцию лежащего тела этот персонаж держит. Заявка живёт на
     // актёре, а не на пациентке: занятость выводится обходом держателей с
     // предикатом живости и потому самолечится, тогда как поле-заявка на теле

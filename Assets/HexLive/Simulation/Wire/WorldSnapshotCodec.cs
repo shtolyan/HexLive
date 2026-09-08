@@ -90,7 +90,10 @@ public static class WorldSnapshotCodec
     /// v35: §120.10 architecture demolition and queued slot replacement.
     /// v36: §146.14 camp home anchors for the campfire «make home» menu.
     /// v37: §121.11/#294 per-NPC default pace for the walk/run card toggle.
-    public const int WireVersion = 37;
+    /// v38: §55.4/#347 typed bottle-water provenance in the inventory group.
+    /// v39: §52/#355 per-instance vessel amount/provenance in object and slot rows.
+    /// v40: §159 companion profile, authored appearance, Hexkufa and voice bond.
+    public const int WireVersion = 41;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -509,6 +512,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteTile(w, o.Tile);
         w.Write(o.RotationDegrees);
         w.Write(o.ResourceAmount);
+        w.Write((byte)o.WaterKind);
         w.Write(o.Wetness);
         w.Write(o.Durability);
         w.Write(o.Dirtiness);
@@ -534,6 +538,8 @@ public static class WorldSnapshotCodec
             w.Write(slot.SourceIndex);
             WriteDefinitionId(w, slot.ItemDefinitionId);
             w.Write(slot.StackCount);
+            w.Write(slot.ResourceAmount);
+            w.Write((byte)slot.WaterKind);
             // У мешка типизированных ячеек не бывает, и соблазн «не писать
             // заведомо пустое» здесь неверный: тип ячейки один на человека и на
             // вещь, а через провод тип едет ЦЕЛИКОМ или не едет никак. Пустая
@@ -644,6 +650,7 @@ public static class WorldSnapshotCodec
             o.Tile = WireIo.ReadTile(r);
             o.RotationDegrees = r.ReadSingle();
             o.ResourceAmount = r.ReadSingle();
+            o.WaterKind = (Agents.WaterKind)r.ReadByte();
             o.Wetness = r.ReadSingle();
             o.Durability = r.ReadSingle();
             o.Dirtiness = r.ReadSingle();
@@ -663,6 +670,8 @@ public static class WorldSnapshotCodec
                     SourceIndex = r.ReadInt32(),
                     ItemDefinitionId = ReadDefinitionId(r),
                     StackCount = r.ReadInt32(),
+                    ResourceAmount = r.ReadSingle(),
+                    WaterKind = (Agents.WaterKind)r.ReadByte(),
                     AcceptedItemDefinitionId = r.ReadString()
                 });
             }
@@ -892,16 +901,20 @@ public static class WorldSnapshotCodec
     private static void WriteNpcIdentity(BinaryWriter w, NpcSnapshot n)
     {
         w.Write(n.Id.Value);
+        WireIo.WriteString(w, n.ProfileId);
+        w.Write(n.UseAuthoredAppearance);
         WireIo.WriteString(w, n.DisplayName);
         WireIo.WriteString(w, n.ActorMesh);
         // §74 composition + §72 faction. Faction travels as a byte: the enum is
         // tiny and both ends link the same definition.
+        WireIo.WriteString(w, n.HairColour);
         WireIo.WriteString(w, n.SkinSet);
         WireIo.WriteString(w, n.EyeColor);
         WireIo.WriteString(w, n.Hairstyle);
         WireIo.WriteString(w, n.VoiceBank);
         w.Write((byte)n.Faction);
         w.Write(n.IsHostileToColony);
+        w.Write(n.HexkufaExposure);
     }
 
     private static void WriteNpcTransform(BinaryWriter w, NpcSnapshot n)
@@ -1039,6 +1052,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteStrings(w, n.InventoryDirtiness);
         WireIo.WriteStrings(w, n.InventoryBloodiness);
         WireIo.WriteStrings(w, n.InventoryWater);
+        w.Write((byte)n.BottleWaterKind);
         w.Write(n.InventoryCapacity);
         WireIo.WriteString(w, n.FavoriteWeaponId);
         w.Write(n.InventoryContainers.Count);
@@ -1060,6 +1074,8 @@ public static class WorldSnapshotCodec
                 w.Write(slot.SourceIndex);
                 WireIo.WriteString(w, slot.ItemDefinitionId);
                 w.Write(slot.StackCount);
+                w.Write(slot.ResourceAmount);
+                w.Write((byte)slot.WaterKind);
                 WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
             }
         }
@@ -1156,6 +1172,10 @@ public static class WorldSnapshotCodec
     /// </summary>
     private static void WriteNpcRelations(BinaryWriter w, NpcSnapshot n)
     {
+        w.Write(n.PlayerVoiceFamiliarity);
+        w.Write(n.PlayerVoiceTrust);
+        w.Write(n.PlayerVoiceAffinity);
+        w.Write(n.PlayerVoiceLastInteractionTick);
         w.Write(n.RelationshipDetails.Count);
         for (var j = 0; j < n.RelationshipDetails.Count; j++)
         {
@@ -1250,14 +1270,18 @@ public static class WorldSnapshotCodec
     private static void ReadNpcIdentity(BinaryReader r, NpcSnapshot n)
     {
         n.Id = new EntityId(r.ReadInt32());
+        n.ProfileId = r.ReadString();
+        n.UseAuthoredAppearance = r.ReadBoolean();
         n.DisplayName = r.ReadString();
         n.ActorMesh = r.ReadString();
+        n.HairColour = r.ReadString();
         n.SkinSet = r.ReadString();
         n.EyeColor = r.ReadString();
         n.Hairstyle = r.ReadString();
         n.VoiceBank = r.ReadString();
         n.Faction = (Agents.Faction)r.ReadByte();
         n.IsHostileToColony = r.ReadBoolean();
+        n.HexkufaExposure = r.ReadInt32();
     }
 
     private static void ReadNpcTransform(BinaryReader r, NpcSnapshot n)
@@ -1393,6 +1417,7 @@ public static class WorldSnapshotCodec
         WireIo.ReadStrings(r, n.InventoryDirtiness);
         WireIo.ReadStrings(r, n.InventoryBloodiness);
         WireIo.ReadStrings(r, n.InventoryWater);
+        n.BottleWaterKind = (Agents.WaterKind)r.ReadByte();
         n.InventoryCapacity = r.ReadInt32();
         n.FavoriteWeaponId = r.ReadString();
         var inventoryContainerCount = r.ReadInt32();
@@ -1418,6 +1443,8 @@ public static class WorldSnapshotCodec
                 slot.SourceIndex = r.ReadInt32();
                 slot.ItemDefinitionId = r.ReadString();
                 slot.StackCount = r.ReadInt32();
+                slot.ResourceAmount = r.ReadSingle();
+                slot.WaterKind = (Agents.WaterKind)r.ReadByte();
                 slot.AcceptedItemDefinitionId = r.ReadString();
             }
         }
@@ -1508,6 +1535,10 @@ public static class WorldSnapshotCodec
 
     private static void ReadNpcRelations(BinaryReader r, NpcSnapshot n)
     {
+        n.PlayerVoiceFamiliarity = r.ReadSingle();
+        n.PlayerVoiceTrust = r.ReadSingle();
+        n.PlayerVoiceAffinity = r.ReadSingle();
+        n.PlayerVoiceLastInteractionTick = r.ReadInt32();
         var relCount = r.ReadInt32();
         WireIo.Resize(n.RelationshipDetails, relCount);
         for (var j = 0; j < relCount; j++)

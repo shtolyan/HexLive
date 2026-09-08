@@ -466,12 +466,49 @@ public static class AtomicContentBatchBuild
         }
 
         DiscoverObjectRecipes(Add);
+        DiscoverFistGearRecipe(Add);
         DiscoverMobRecipes(Add);
         DiscoverGenericRecipes(Add);
         return recipes.Values
             .OrderBy(value => value.Type, StringComparer.Ordinal)
             .ThenBy(value => value.Id, StringComparer.Ordinal)
             .ToList();
+    }
+
+    private static void DiscoverFistGearRecipe(
+        Action<string, string, Func<BuildInputs>> add)
+    {
+        // Fists deliberately use GearCatalog.Fist (the empty string), so they
+        // cannot join object/<gearId> below and have no renderable item prefab
+        // to serve as an object record's main entry. Publish the GearConfig
+        // itself as the main asset of one config-only record.
+        var fist = AssetDatabase.FindAssets(
+                "t:GearConfig", new[] { RuntimeSourceRoot + "/Gear" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(path => (path, config: AssetDatabase.LoadAssetAtPath<GearConfig>(path)))
+            .FirstOrDefault(pair => pair.config != null &&
+                                    string.IsNullOrEmpty(pair.config.gearId));
+        if (fist.config == null)
+        {
+            return;
+        }
+
+        add(GearConfig.FistContentType, GearConfig.FistContentId, () =>
+        {
+            var metadata = new JObject
+            {
+                ["legacyResourcePath"] = GearConfig.FistContentPath,
+                ["legacyResourceFolder"] = GearConfig.ResourceFolder,
+            };
+            return new BuildInputs
+            {
+                Main = fist.path,
+                Metadata = CreateGeneratedMetadata(
+                    GearConfig.FistContentType, GearConfig.FistContentId, metadata),
+                DisplayName = "fist",
+                ExtraMetadata = metadata,
+            };
+        });
     }
 
     private static void DiscoverObjectRecipes(Action<string, string, Func<BuildInputs>> add)

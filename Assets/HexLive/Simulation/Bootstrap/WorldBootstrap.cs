@@ -5,6 +5,7 @@ namespace HexLive.Simulation.Bootstrap
 
 public sealed class WorldBootstrapDefinition
 {
+    public WorldCreationConfig CreationConfig { get; set; }
     public SimulationBootstrapSettings Simulation { get; set; } = new();
 
     public EnvironmentBootstrap Environment { get; set; } = new();
@@ -121,6 +122,10 @@ public sealed class ObjectBootstrap
 public sealed class NpcBootstrap
 {
     public int Id { get; set; }
+
+    public string ProfileId { get; set; } = string.Empty;
+
+    public bool UseAuthoredAppearance { get; set; }
 
     // §74: leave DisplayName/ActorMesh EMPTY to have the world roll them from
     // the seed (ColonistAppearance). A filled value is authorial intent and is

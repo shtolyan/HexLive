@@ -24,7 +24,12 @@ public enum GameMode
 
     // §146.11: HugeIsland topology and population, but the player-controlled
     // woman starts maxed, armored and armed with a machete.
-    Maniac = 3
+    Maniac = 3,
+
+    // §157: six HugeIsland-sized islands on a 3×2 grid joined by wadeable
+    // fords, one solo girl camp per island, no outsider camp at tick zero —
+    // outsiders come from the sea one per island, castaways wash ashore weekly.
+    Islands = 4
 }
 
 }

@@ -35,6 +35,14 @@
       "similarity_boost": 0.75,
       "vowel_stretch": 1.15
     },
+    "masha": {
+      "voice_id": "NsFK0aDGLbVusA7tQfOB",
+      "manner": "wry, alert, independent; clipped jokes and a stubborn warm undertone",
+      "seed": 15901,
+      "stability": 0.55,
+      "similarity_boost": 0.78,
+      "vowel_stretch": 0.95
+    },
     "kshishtof": {
       "voice_id": "cCYjmrGZaI86GUJ7F2Nn",
       "manner": "hoarse and heavy, speaks through his teeth, bites off endings",

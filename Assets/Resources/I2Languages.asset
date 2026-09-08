@@ -17,6 +17,86 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: agent.pairing.title
+      TermType: 0
+      Languages: ["Agent Studio connection", "Подключение Agent Studio"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.code
+      TermType: 0
+      Languages: ["Code from Agent Studio", "Код из Agent Studio"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.check
+      TermType: 0
+      Languages: ["Check request", "Проверить запрос"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.approve
+      TermType: 0
+      Languages: ["Allow access to my characters", "Разрешить доступ к моим персонажам"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.invalid
+      TermType: 0
+      Languages: ["Invalid or expired request", "Неверный или истёкший запрос"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.waiting
+      TermType: 0
+      Languages: ["Waiting for server…", "Ожидаю сервер…"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.done
+      TermType: 0
+      Languages: ["Access approved", "Доступ подтверждён"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: agent.pairing.confirm
+      TermType: 0
+      Languages: ["Application: {0}. Only approve a request you initiated.", "Приложение: {0}. Подтверждай только свой запрос."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.settings
+      TermType: 0
+      Description:
+      Languages:
+      - "Sound settings"
+      - "Настройки звука"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.voices
+      TermType: 0
+      Description:
+      Languages:
+      - "Character voices"
+      - "Голоса персонажей"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.music
+      TermType: 0
+      Description:
+      Languages:
+      - "Music"
+      - "Музыка"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.environment
+      TermType: 0
+      Description:
+      Languages:
+      - "Environment"
+      - "Окружение"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.settings.hint
+      TermType: 0
+      Description:
+      Languages:
+      - "Voices include connected AI. Changes apply immediately and are saved automatically."
+      - "Голоса включают подключённый AI. Изменения применяются сразу и сохраняются автоматически."
+      Flags: 0101
+      Languages_Touch: []
     - Term: loading.content.wear
       TermType: 0
       Description: 
@@ -4066,6 +4146,30 @@ MonoBehaviour:
       - Drop it into the other window
       - "\u041E\u0442\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0432 \u0434\u0440\u0443\u0433\u043E\u043C
         \u043E\u043A\u043D\u0435"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: loot.quantity_title
+      TermType: 0
+      Description:
+      Languages:
+      - "How many {0} should be moved?"
+      - "\u0421\u043A\u043E\u043B\u044C\u043A\u043E {0} \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C?"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: loot.quantity_confirm
+      TermType: 0
+      Description:
+      Languages:
+      - Move
+      - "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: loot.quantity_cancel
+      TermType: 0
+      Description:
+      Languages:
+      - Cancel
+      - "\u041E\u0442\u043C\u0435\u043D\u0430"
       Flags: 0101
       Languages_Touch: []
     - Term: loot.transferring
@@ -21896,6 +22000,14 @@ MonoBehaviour:
       - "\u041D\u0430\u0448 \u043B\u0430\u0433\u0435\u0440\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: roster.clan_count
+      TermType: 0
+      Description:
+      Languages:
+      - "Your camp \u00b7 {0}/{1}"
+      - "\u041D\u0430\u0448 \u043B\u0430\u0433\u0435\u0440\u044C \u00b7 {0}/{1}"
+      Flags: 0101
+      Languages_Touch: []
     - Term: roster.outsiders
       TermType: 0
       Description: 
@@ -25622,6 +25734,2117 @@ MonoBehaviour:
       Languages:
       - 'Nothing left to build here'
       - 'Здесь уже всё построено'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.islands'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Islands'
+      - 'Острова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.newgame.mode.islands.description'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Six separate islands, each with one castaway and her own camp. Wade the shallows between them; nobody waits at the centre — outsiders come from the sea, and every week the surf washes up a wounded woman who needs bandaging.'
+      - 'Шесть отдельных островов, на каждом — одна потерпевшая и её лагерь. Между островами — мелководье вброд; в центре никто не ждёт: чужаки приходят с моря, а раз в неделю прибой выносит раненую, которую надо забинтовать.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'npc.masha.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Masha'
+      - 'Маша'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'npc.voice.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Familiar voice'
+      - 'Знакомый голос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.button'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Talk to Masha'
+      - 'Поговорить с Машей'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Microphone'
+      - 'Микрофон'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.listening'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Listening'
+      - 'Слушаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.recognizing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recognizing'
+      - 'Распознаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.thinking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Thinking'
+      - 'Думает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.speaking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speaking'
+      - 'Говорит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'companion.voice.offline'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bridge offline'
+      - 'Мост недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.button'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Talk to attached agent'
+      - 'Поговорить с MCP-агентом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ready'
+      - 'Готов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.listening'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Listening'
+      - 'Слушаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.recognizing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recognizing'
+      - 'Распознаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.thinking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Thinking'
+      - 'Думает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.speaking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speaking'
+      - 'Говорит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.offline'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Agent offline'
+      - 'Агент отключён'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.no_stt'
+      TermType: 0
+      Description:
+      Languages:
+      - 'STT unavailable'
+      - 'STT недоступно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.no_microphone'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No microphone'
+      - 'Нет микрофона'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.connected'
+      TermType: 0
+      Description:
+      Languages:
+      - 'MCP agent connected: {0}'
+      - 'MCP-агент подключён: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.thinking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Agent is thinking…'
+      - 'Агент думает…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.default_name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Agent'
+      - 'Агент'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.control.agent'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Controlled by the connected MCP agent'
+      - 'Управляется подключённым MCP-агентом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.microphone_usage'
+      TermType: 0
+      Description:
+      Languages:
+      - 'HexLive uses the microphone to recognize your speech and let you talk to connected agents.'
+      - 'HexLive использует микрофон для распознавания вашей речи и общения с подключёнными агентами.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.capture_done'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Done'
+      - 'Готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.queued'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Queued: {0}'
+      - 'В очереди: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.queue_full'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recording queue is full. Wait for recognition.'
+      - 'Очередь записей заполнена. Дождись распознавания.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.voice.input_failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Message was not delivered. Please try again.'
+      - 'Реплика не доставлена. Попробуй ещё раз.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'New game on server'
+      - 'Новая игра на сервере'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.back'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Back'
+      - 'Назад'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.working'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Please wait…'
+      - 'Подождите…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not complete the operation'
+      - 'Не удалось выполнить операцию'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.http'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server response'
+      - 'Ответ сервера'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.server'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server address'
+      - 'Адрес сервера'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.password'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator password'
+      - 'Пароль администратора'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.playerToken'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Player control token'
+      - 'Токен управления игрока'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.login'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sign in'
+      - 'Войти'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.seed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Seed'
+      - 'Сид'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.scenario'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Scenario'
+      - 'Сценарий'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.generate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Generate map'
+      - 'Создать карту'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.library'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server worlds'
+      - 'Миры сервера'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.defaultName'
+      TermType: 0
+      Description:
+      Languages:
+      - 'New world'
+      - 'Новый мир'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.activate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Save current world and switch'
+      - 'Сохранить текущий мир и переключиться'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'World name'
+      - 'Название мира'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.population'
+      TermType: 0
+      Description:
+      Languages:
+      - 'World population limit'
+      - 'Лимит населения мира'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.seaRaids'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sea raid interval, days (0 = off)'
+      - 'Морские волны, дней (0 = выкл.)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.regenerate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Change scenario / seed'
+      - 'Изменить сценарий / сид'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.camp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Camp'
+      - 'Лагерь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.enabled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Camp enabled'
+      - 'Лагерь включён'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.myCamp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose as my camp'
+      - 'Выбрать своим лагерем'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.campPopulation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Camp population limit'
+      - 'Лимит жителей лагеря'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.arrivals'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Arrival interval, days (0 = off)'
+      - 'Прибытия, дней (0 = выкл.)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.controlArrivals'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Control new arrivals'
+      - 'Управлять прибывающими'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.spawn'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Spawn at start'
+      - 'Появиться при старте'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.controlled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Controlled by me'
+      - 'Управляется мной'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.edit'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Edit character'
+      - 'Редактировать персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.duplicate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Duplicate'
+      - 'Дублировать'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.remove'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Remove'
+      - 'Удалить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.add'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Add character'
+      - 'Добавить персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.newCharacter'
+      TermType: 0
+      Description:
+      Languages:
+      - 'New character'
+      - 'Новый персонаж'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.characterName'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Character name'
+      - 'Имя персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Body'
+      - 'Тело'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.molly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Slim'
+      - 'Худая'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.marta'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Athletic'
+      - 'Спортивная'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.jana'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Curvy'
+      - 'Пухленькая'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.jolly'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Graceful'
+      - 'Изящное'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.kshishtof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Male'
+      - 'Мужское'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.tonny'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Male (Tonny)'
+      - 'Мужское (Тонни)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.skin'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Skin'
+      - 'Кожа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eyes'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Eye colour'
+      - 'Цвет глаз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.hair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hairstyle'
+      - 'Причёска'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.hairColour'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hair colour'
+      - 'Цвет волос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.voice'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Voice'
+      - 'Голос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.clothing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Starting clothing'
+      - 'Стартовая одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.search'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Search clothing'
+      - 'Поиск одежды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.random'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Randomize appearance'
+      - 'Случайный образ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.done'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Done'
+      - 'Готово'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.start'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Save current world and start new'
+      - 'Сохранить текущий мир и начать новый'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.rotate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rotate'
+      - 'Поворот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.zoom'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Distance'
+      - 'Расстояние'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.loadingAppearance'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Loading appearance…'
+      - 'Загружаем образ…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.appearanceUnavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Appearance unavailable. Reopen the editor to retry.'
+      - 'Образ недоступен. Откройте редактор повторно для загрузки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.required'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Required value'
+      - 'Обязательное значение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.unsupported'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unsupported version'
+      - 'Неподдерживаемая версия'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.unknown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown option'
+      - 'Неизвестный вариант'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.length'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid text length'
+      - 'Недопустимая длина текста'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.invalid'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid value'
+      - 'Недопустимое значение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.range'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Value outside allowed range'
+      - 'Значение вне допустимого диапазона'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.capacity'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Population or item limit exceeded'
+      - 'Превышен лимит населения или предметов'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.unknownOrDuplicate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown or duplicate identifier'
+      - 'Неизвестный или повторяющийся идентификатор'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.incomplete'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Incomplete camp list'
+      - 'Неполный список лагерей'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.otherCamp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Only your camp can contain controlled characters'
+      - 'Управляемые персонажи должны быть в своём лагере'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.incompatible'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Content is incompatible with this body'
+      - 'Контент несовместим с телом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.slotConflict'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Another garment occupies these slots on the same layer'
+      - 'Эти слоты на том же слое уже заняты другой одеждой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.noControlledCharacter'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Select at least one controlled starting character'
+      - 'Выберите хотя бы одного управляемого стартового персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.mapLegend'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gold: your camp · Blue: neighbours · Red: outsiders · Grey: disabled'
+      - 'Золотой — свой лагерь · Синий — соседи · Красный — чужаки · Серый — выключен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.outsiders'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outsiders'
+      - 'Чужаки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clothing layer'
+      - 'Слой одежды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'All layers'
+      - 'Все слои'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.underwear'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Underwear'
+      - 'Бельё'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.wear'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clothing'
+      - 'Одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.outerwear'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outer clothing'
+      - 'Верхняя одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.outer'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Outer clothing'
+      - 'Верхняя одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.layer.bags'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Bags'
+      - 'Сумки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.previous'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Previous page'
+      - 'Предыдущая страница'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.next'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Next page'
+      - 'Следующая страница'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.controlDisabled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Player control is disabled on this server. Enable it in server settings.'
+      - 'На этом сервере выключено управление игрока. Включите его в настройках сервера.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.catalogChanged'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The server content catalog changed. Generate the map again before starting.'
+      - 'Каталог контента сервера изменился. Перед запуском создайте карту повторно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validation.noFreeSpawn'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No free starting point in this camp'
+      - 'В этом лагере нет свободной точки появления'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.summary'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Characters: {0} · Controlled: {1} · Enabled camps: {2}'
+      - 'Персонажей: {0} · Управляемых: {1} · Лагерей включено: {2}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.validate'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Validate configuration'
+      - 'Проверить настройки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.valid'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Configuration is ready to start'
+      - 'Настройки готовы к запуску'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clothing slot'
+      - 'Слот одежды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'All slots'
+      - 'Все слоты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.head'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Head'
+      - 'Голова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.earr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right ear'
+      - 'Правое ухо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.earl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left ear'
+      - 'Левое ухо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.neck'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Neck'
+      - 'Шея'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.chest'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Chest'
+      - 'Грудь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.belly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Belly'
+      - 'Живот'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.pelvis'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Pelvis'
+      - 'Таз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.shoulderr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right shoulder'
+      - 'Правое плечо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.shoulderl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left shoulder'
+      - 'Левое плечо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.forearmr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right forearm'
+      - 'Правое предплечье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.forearml'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left forearm'
+      - 'Левое предплечье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.wristr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right wrist'
+      - 'Правое запястье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.wristl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left wrist'
+      - 'Левое запястье'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.handr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right hand'
+      - 'Правая кисть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.handl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left hand'
+      - 'Левая кисть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.thighr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right thigh'
+      - 'Правое бедро'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.thighl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left thigh'
+      - 'Левое бедро'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.shinr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right shin'
+      - 'Правая голень'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.shinl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left shin'
+      - 'Левая голень'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.footr'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right foot'
+      - 'Правая стопа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.slot.footl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Left foot'
+      - 'Левая стопа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.authored'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Authored appearance'
+      - 'Авторский вариант'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.none'
+      TermType: 0
+      Description:
+      Languages:
+      - 'None'
+      - 'Нет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.prototype'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Original materials'
+      - 'Исходные материалы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.blue'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Blue'
+      - 'Голубые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.blue_green'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Blue-green'
+      - 'Голубо-зелёные'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.green'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Green'
+      - 'Зелёные'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.grey'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Grey'
+      - 'Серые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.hazel'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hazel'
+      - 'Ореховые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.amber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Amber'
+      - 'Янтарные'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.brown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Brown'
+      - 'Карие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.eye.dark_brown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dark brown'
+      - 'Тёмно-карие'
+
+    - Term: 'admin.voice.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Admin'
+      - 'Админ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.command'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Request in your own words'
+      - 'Просьба своими словами'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.send'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Send'
+      - 'Отправить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.microphone'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Microphone / stop'
+      - 'Микрофон / стоп'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.yes'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Confirm'
+      - 'Подтверждаю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.no'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cancel'
+      - 'Отмена'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.ready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ready'
+      - 'Готово к команде'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.done'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Completed'
+      - 'Выполнено'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.thinking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Thinking…'
+      - 'Думаю…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.listening'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Listening…'
+      - 'Слушаю…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.recognizing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Recognizing…'
+      - 'Распознаю…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.confirm_required'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Confirm the exact action or cancel.'
+      - 'Подтверди указанное действие или скажи «отмена».'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.credential_error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'OS secure storage is unavailable. Access has not been reset; try again when storage is available.'
+      - 'Защищённое хранилище ОС недоступно. Доступ не сброшен; повтори, когда хранилище станет доступно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.microphone_error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Microphone unavailable or recording too quiet.'
+      - 'Микрофон недоступен или запись слишком тихая.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.stt_error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speech recognition unavailable. Use text input.'
+      - 'Распознавание недоступно. Используй текстовый ввод.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.empty'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No speech recognized.'
+      - 'Речь не распознана.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.timeout'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Response delayed. Check the operation result before repeating.'
+      - 'Ответ задерживается. Проверь результат операции перед повтором.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.error'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The server could not complete the request.'
+      - 'Сервер не смог выполнить просьбу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.remove_item'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Remove items'
+      - 'Удалить предметы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.clear_inventory'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clear inventory'
+      - 'Очистить инвентарь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.delete_npc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Delete character and their inventory'
+      - 'Удалить персонажа и его вещи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.demolish_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Demolish building'
+      - 'Снести постройку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.items'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Inventory instances:'
+      - 'Предметов в инвентаре:'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.body.male'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Male'
+      - 'Мужское'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.skinNumber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Skin {0}'
+      - 'Кожа {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.hairNumber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hairstyle {0}'
+      - 'Причёска {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.colourNumber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Colour {0}'
+      - 'Цвет {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.appearance'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Appearance'
+      - 'Внешность'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.parameters'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Attributes & skills'
+      - 'Параметры'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.resetCamera'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Reset view'
+      - 'Восстановить ракурс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.orbitHelp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Right drag: rotate · Wheel: zoom · Middle drag: pan'
+      - 'ПКМ: вращение · Колесо: приближение · СКМ: смещение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.incompatibleRemoved'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Incompatible elements removed: {0}'
+      - 'Убраны несовместимые элементы: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.chooseVariant'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Select an item to see its colours here'
+      - 'Выберите вещь — здесь появятся её расцветки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'lobby.unequip'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Take off'
+      - 'Снять вещь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.request_access'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Request administrator rights'
+      - 'Запросить права администратора'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.unrequested'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator permission is required. Send a request; the server owner approves it.'
+      - 'Нужны права администратора. Отправь запрос — владелец сервера одобрит его.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.pending'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Request sent. Waiting for approval.'
+      - 'Запрос отправлен. Ожидаем одобрения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.approved'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator access granted. Press the microphone to speak.'
+      - 'Права администратора получены. Нажми микрофон и говори.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.rejected'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Request rejected. You may request access again.'
+      - 'Запрос отклонён. Можно запросить права снова.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.expired'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator access has expired. Request access again.'
+      - 'Срок прав администратора истёк. Отправь новый запрос.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.revoked'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator access revoked. Request access again if needed.'
+      - 'Права администратора отозваны. При необходимости отправь новый запрос.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.invalid'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not identify this device.'
+      - 'Не удалось определить это устройство.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.queue_full'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The request queue is full. Try again later.'
+      - 'Очередь запросов заполнена. Попробуй позже.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.debug'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Voice admin / debug'
+      - 'Голосовая админка / дебаг'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.typed_command'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Typed command (JSON)'
+      - 'Типизированная команда (JSON)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.send_typed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Execute typed command'
+      - 'Выполнить типизированную команду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.examples'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Say: Heal the selected character; Restore her left leg; Give her a random skirt; Put a random skirt on her; Spawn a colonist near the camera.'
+      - 'Примеры: «Вылечи выбранного»; «Верни ей левую ногу»; «Выдай случайную юбку»; «Надень случайную юбку»; «Создай персонажа рядом с камерой».'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.typed_help'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Example: {"kind":"heal","npcId":901,"target":"all"}. operationId is generated automatically.
+
+      NPC commands use npcId. heal/restore_limb/fit_prosthetic/repair_prosthetic: target=ArmL, ArmR, LegL, LegR or all; prosthetic definitionId=best.
+
+      set_need: target=all, or a need name and value 0..1. set_attribute: target=attribute, value 0..1, add=true to increase.
+
+      give_item/remove_item: definitionId and count 1..1000. clear_inventory: npcId. give_garment/equip_garment: definitionId=random, category=skirt, count=1.
+
+      rename_npc: text. set_faction: target=faction. assign_npc: target=clientId. delete_npc: npcId.
+
+      spawn_npc: definitionId=colonist, target=faction, tileQ/tileR; optional text=name. create_building: definitionId, tileQ/tileR. complete_building/stock_building/repair_building/demolish_building: objectId.
+
+      Deletion asks for a separate voice confirmation. For catalog names and ambiguous targets, use the request field above.'
+      - 'Пример: {"kind":"heal","npcId":901,"target":"all"}. operationId создаётся автоматически.
+
+      Команды персонажа используют npcId. heal/restore_limb/fit_prosthetic/repair_prosthetic: target=ArmL, ArmR, LegL, LegR или all; для лучшего протеза definitionId=best.
+
+      set_need: target=all либо имя нужды и value от 0 до 1. set_attribute: target=имя характеристики, value от 0 до 1, add=true для прибавки.
+
+      give_item/remove_item: definitionId и count от 1 до 1000. clear_inventory: npcId. give_garment/equip_garment: definitionId=random, category=skirt, count=1.
+
+      rename_npc: text. set_faction: target=фракция. assign_npc: target=clientId. delete_npc: npcId.
+
+      spawn_npc: definitionId=colonist, target=фракция, tileQ/tileR; text — необязательное имя. create_building: definitionId, tileQ/tileR. complete_building/stock_building/repair_building/demolish_building: objectId.
+
+      Удаление требует отдельного голосового подтверждения. Если не знаешь название из каталога или точную цель, используй поле просьбы выше.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.AdminUnauthorized'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Administrator access is required.'
+      - 'Нужны действующие права администратора.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.AgentOffline'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server AI is unavailable. Try later.'
+      - 'Серверная нейросеть недоступна. Попробуй позже.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.SttUnavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speech recognition is unavailable.'
+      - 'Распознавание речи недоступно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.Disconnected'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No connection to the server.'
+      - 'Нет соединения с сервером.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.WorldChanged'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The world changed. Repeat your request in the current world.'
+      - 'Мир изменился. Скажи просьбу заново в текущем мире.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidInput'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not understand this command. Check the example.'
+      - 'Не удалось разобрать команду. Проверь пример.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.TargetChanged'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The target changed. Request the action again.'
+      - 'Цель изменилась. Запроси действие заново.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.ConfirmationExpired'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Confirmation expired. Request the action again.'
+      - 'Подтверждение истекло. Запроси действие заново.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.Cancelled'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Action cancelled.'
+      - 'Действие отменено.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InventoryFull'
+      TermType: 0
+      Description:
+      Languages:
+      - 'There is not enough inventory space.'
+      - 'Недостаточно места в инвентаре.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.OutcomeUnknownInspectState'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The result is uncertain. Inspect the character before repeating.'
+      - 'Результат не подтверждён. Проверь персонажа перед повтором.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.Busy'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The previous request is still running.'
+      - 'Предыдущий запрос ещё выполняется.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.TurnExpired'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The request has expired. Inspect the world before repeating.'
+      - 'Запрос истёк. Проверь мир перед повтором.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.QueueFull'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server request queue is full.'
+      - 'Очередь запросов сервера заполнена.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NoCompatibleGarment'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No compatible clothing found.'
+      - 'Подходящая одежда не найдена.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.partial'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Already completed:'
+      - 'Уже выполнено:'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.heal'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Heal'
+      - 'Залечить раны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.restore_limb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Restore limb'
+      - 'Восстановить конечность'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.fit_prosthetic'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Fit prosthetic'
+      - 'Установить протез'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.repair_prosthetic'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Repair prosthetic'
+      - 'Починить протез'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.set_need'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Restore need'
+      - 'Изменить нужду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.set_attribute'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Change attribute'
+      - 'Изменить характеристику'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.give_item'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Give items'
+      - 'Выдать предметы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.give_garment'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Give clothing'
+      - 'Выдать одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.equip_garment'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Equip clothing'
+      - 'Надеть одежду'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.rename_npc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rename character'
+      - 'Переименовать персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.set_faction'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Change faction'
+      - 'Изменить фракцию'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.assign_npc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Assign character'
+      - 'Назначить персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.spawn_npc'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Spawn character'
+      - 'Создать персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.create_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Create building'
+      - 'Создать постройку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.complete_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Complete building'
+      - 'Завершить постройку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.stock_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Stock building'
+      - 'Выдать материалы стройке'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.action.repair_building'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Repair building'
+      - 'Починить постройку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidContext'
+      TermType: 0
+      Description:
+      Languages:
+      - 'View context is invalid. Start a new recording.'
+      - 'Контекст вида некорректен. Начни новую запись.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.CameraGroundUnavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No ground at the center of the view. Aim at the ground.'
+      - 'В центре вида нет земли. Направь камеру на землю.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NoSpawnLocation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No free valid spawn location near the center of the view.'
+      - 'Около центра вида нет допустимого свободного места.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidCount'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Item count must be valid; clothing commands create one item.'
+      - 'Некорректное количество. Одежда создаётся по одной вещи.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NpcNotFound'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Character not found. Select a current character.'
+      - 'Персонаж не найден. Выбери существующего персонажа.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NpcNotAlive'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A living character is required.'
+      - 'Нужен живой персонаж.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownBodyPart'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Specify ArmL, ArmR, LegL, LegR or all.'
+      - 'Укажи ArmL, ArmR, LegL, LegR или all.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.AmbiguousLimb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Several limbs are missing. Specify which limb to restore.'
+      - 'Утрачено несколько конечностей. Уточни, какую восстановить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NoMissingLimb'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No matching missing limb.'
+      - 'Подходящая утраченная конечность не найдена.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NoProsthetic'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No prosthetic to repair.'
+      - 'Нет протеза для ремонта.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.IncompatibleProsthetic'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This prosthetic is unavailable or incompatible.'
+      - 'Этот протез недоступен или несовместим.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidAttribute'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown attribute.'
+      - 'Неизвестная характеристика.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.ValueOutOfRange'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The result must be between 0 and 1.'
+      - 'Итоговое значение должно быть от 0 до 1.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidNeed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown need or value outside 0..1.'
+      - 'Неизвестная нужда или значение вне диапазона от 0 до 1.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NotCarryable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This item cannot be carried or does not exist.'
+      - 'Такого переносимого предмета нет в каталоге.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NotEnoughItems'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Not enough matching items in inventory.'
+      - 'В инвентаре недостаточно таких предметов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidName'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Name must contain 1 to 48 printable characters.'
+      - 'Имя должно содержать от 1 до 48 печатных символов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidFaction'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Specify a supported faction.'
+      - 'Укажи поддерживаемую фракцию.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidAssignment'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid client or incompatible character faction.'
+      - 'Некорректный клиент или неподходящая фракция персонажа.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.AssignmentUnavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Character assignment service is unavailable.'
+      - 'Сервис назначения персонажей недоступен.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.MissingCoordinates'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Specify tileQ and tileR.'
+      - 'Укажи tileQ и tileR.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownPreset'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Only the colonist spawn preset is supported.'
+      - 'Поддерживается пресет создания colonist.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownTile'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The tile does not exist in this world.'
+      - 'Такого гекса нет в текущем мире.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownBuilding'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Building is not in the supported catalog.'
+      - 'Постройки нет в поддерживаемом каталоге.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidBuildingLocation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This location cannot accommodate the building.'
+      - 'В этом месте нельзя разместить постройку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.BuildFailed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The building could not be completed. Inspect the site.'
+      - 'Не удалось завершить постройку. Проверь стройплощадку.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.ObjectNotFound'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Object not found.'
+      - 'Объект не найден.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NotBuilding'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The target is not a supported building.'
+      - 'Цель не является поддерживаемой постройкой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.NotBuildSite'
+      TermType: 0
+      Description:
+      Languages:
+      - 'An unfinished building site is required.'
+      - 'Нужна незавершённая стройплощадка.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.InvalidOperationId'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid operation identifier. Send a new request.'
+      - 'Некорректный идентификатор операции. Отправь новую просьбу.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.OperationIdConflict'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This operation identifier already belongs to another command.'
+      - 'Этот идентификатор операции уже занят другой командой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.UnknownCommand'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Unknown command. See the debug examples.'
+      - 'Неизвестная команда. Посмотри примеры в дебаг-окне.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.reason.BadFrame'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Invalid request format.'
+      - 'Некорректный формат запроса.'
       Flags: 0101
       Languages_Touch: []
     CaseInsensitiveTerms: 0

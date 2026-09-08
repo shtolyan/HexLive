@@ -53,6 +53,11 @@ public sealed class WorldObjectState
 
     public float ResourceAmount { get; set; }
 
+    // §52 / bug #355: portable vessel provenance follows a dropped bottle.
+    // Water-collector bottles use Rain while ResourceAmount is normalized
+    // fill progress; ordinary ground bottles store whole drink charges.
+    public Agents.WaterKind WaterKind { get; set; } = Agents.WaterKind.None;
+
     // Spec 35.5: ground items get rained on; wetness survives the
     // drop -> pickup -> dress round-trip.
     public float Wetness { get; set; }

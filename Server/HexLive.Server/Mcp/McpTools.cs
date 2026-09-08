@@ -10,6 +10,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
+using HexLive.Simulation.Wire;
 
 namespace HexLive.Server.Mcp
 {
@@ -35,11 +36,13 @@ namespace HexLive.Server.Mcp
 public sealed class McpTools
 {
     private readonly Func<WorldHost> _currentHost;
+    private readonly Func<int> _currentWorldGeneration;
     private readonly ControlLeases _leases;
+    private readonly AgentSessionRegistry _agents;
     private readonly SpecLibrary _spec;
 
     public McpTools(WorldHost host, ControlLeases leases, SpecLibrary? spec = null)
-        : this(() => host, leases, spec)
+        : this(() => host, () => 0, leases, new AgentSessionRegistry(), spec)
     {
     }
 
@@ -49,9 +52,18 @@ public sealed class McpTools
     /// the host that existed when the process mapped <c>/mcp</c>.
     /// </summary>
     public McpTools(Func<WorldHost> currentHost, ControlLeases leases, SpecLibrary? spec = null)
+        : this(currentHost, () => 0, leases, new AgentSessionRegistry(), spec)
+    {
+    }
+
+    public McpTools(Func<WorldHost> currentHost, Func<int> currentWorldGeneration,
+        ControlLeases leases, AgentSessionRegistry agents, SpecLibrary? spec = null)
     {
         _currentHost = currentHost ?? throw new ArgumentNullException(nameof(currentHost));
+        _currentWorldGeneration = currentWorldGeneration ??
+            throw new ArgumentNullException(nameof(currentWorldGeneration));
         _leases = leases;
+        _agents = agents ?? throw new ArgumentNullException(nameof(agents));
         _spec = spec ?? SpecLibrary.Discover(null);
     }
 
@@ -75,6 +87,69 @@ public sealed class McpTools
             "тот текст, который получает LLM-контур. Отсюда берут objectId для interact " +
             "и mobId для attack_mob.",
             Schema(("npcId", "integer", "id колонистки", true))),
+
+        new("attach_agent",
+            "Прикрепить эту MCP-сессию к одному живому NPC без включения manual mode (§160).",
+            Schema(("npcId", "integer", "id NPC", true),
+                   ("displayName", "string", "имя агента для UI, до 48 символов", true),
+                   ("capabilities", "array", "playerText/speech/worldActions/relationView/journal", true),
+                   ("ttlSeconds", "integer", "TTL attachment 15..120, по умолчанию 45", false))),
+
+        new("agent_heartbeat",
+            "Продлить attachment и узнать playerPresent/phase без платного model call.",
+            Schema(("attachmentId", "string", "id из attach_agent", true))),
+
+        new("read_agent_inbox",
+            "Финальные текстовые реплики игрока после sinceSeq; аудио сюда не попадает.",
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("sinceSeq", "integer", "последняя обработанная seq", false),
+                   ("limit", "integer", "1..16", false))),
+
+        new("publish_agent_phase",
+            "Опубликовать Ready/Thinking/Acting/Speaking/Sleeping/Error и текущий turnId.",
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("turnId", "string", "id текущего хода", true),
+                   ("phase", "string", "публичная фаза", true))),
+
+        new("commit_agent_turn",
+            "Идемпотентно завершить ход: короткая мысль, реакция и временный UI read-model.",
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("turnId", "string", "уникальный id хода", true),
+                   ("reaction", "string", "None/Warm/Neutral/Tense/Hostile", true),
+                   ("intentSummary", "string", "до 240 символов, без chain-of-thought", true),
+                   ("relationView", "string", "необязательный публичный вид отношений", false),
+                   ("journalEntry", "string", "необязательная свежая запись до 400", false))),
+
+        new("begin_agent_utterance",
+            "Начать строгую chunked-загрузку готового PCM16 mono 44.1 kHz WAV.",
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("utteranceId", "string", "идемпотентный id реплики", true),
+                   ("turnId", "string", "id хода", true),
+                   ("language", "string", "язык текста", true),
+                   ("text", "string", "точный субтитр до 600", true),
+                   ("emotion", "string", "эмоция", true),
+                   ("delivery", "string", "player_reply или world", true),
+                   ("priority", "string", "Talk или Ambient", true),
+                   ("totalBytes", "integer", "размер WAV до 3 MiB", true),
+                   ("durationMs", "integer", "0..60000", true),
+                   ("sha256", "string", "SHA-256 WAV hex", true))),
+
+        new("append_agent_utterance",
+            "Добавить следующий base64 chunk, максимум 192 KiB после декодирования.",
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("utteranceId", "string", "id реплики", true),
+                   ("chunkIndex", "integer", "строго последовательный индекс с нуля", true),
+                   ("base64", "string", "байты WAV", true))),
+
+        new("commit_agent_utterance",
+            "Проверить размер/SHA/WAV и передать реплику назначенному viewer.",
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("utteranceId", "string", "id реплики", true),
+                   ("sha256", "string", "итоговый SHA-256", true))),
+
+        new("detach_agent",
+            "Снять attachment, очистить временные данные и освободить action lease.",
+            Schema(("attachmentId", "string", "id attachment", true))),
 
         new("read_spec",
             "Спецификация мира — та же, по которой он написан. Начните с неё: правила, " +
@@ -105,7 +180,14 @@ public sealed class McpTools
             "Взять колонистку под управление: занимает лиз и включает ручной режим (§121). " +
             "Пока лиз ваш, ИИ ей не распоряжается, а другой агент не может отдать ей приказ. " +
             "Повторный вызов тем же владельцем продлевает лиз.",
-            Schema(("npcId", "integer", "id колонистки", true))),
+            Schema(("npcId", "integer", "id колонистки", true),
+                   ("ttlSeconds", "integer", "TTL аренды 15..120 секунд", false))),
+
+        new("acquire_npc_control",
+            "Имя §159 для той же единой аренды §121: взять NPC под управление только " +
+            "на время одного действия компаньона. TTL 15..120 секунд.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                   ("ttlSeconds", "integer", "TTL аренды 15..120 секунд", false))),
 
         new("release_control",
             "Вернуть колонистку ИИ и отпустить лиз. Вызывать, закончив работу: иначе она " +
@@ -177,6 +259,17 @@ public sealed class McpTools
                     "вид: CallForHelp/TreatSelf/GroundSit/GroundSleep/Bathe/WashClothes/" +
                     "EatFromPack/DrinkFromPack", true))),
 
+        new("merge_camps",
+            "Добровольно объединить два женских лагеря (§146.12), включая всех их жителей. " +
+            "useTargetCamp=false оставляет общий дом в лагере npcId, true — в лагере targetNpcId. " +
+            "Нужно подойти для разговора; обе направленные Affinity строго выше 0.50. " +
+            "Нельзя пригласить бессознательную, лежащую, переносимую или сражающуюся NPC. " +
+            "Это не принудительный перевод одной девушки: отказы TargetUnavailable, " +
+            "RelationshipTooLow, TooFarToTalk сохраняют мир без изменений.",
+            Schema(("npcId", "integer", "кто предлагает объединение", true),
+                   ("targetNpcId", "integer", "кому предлагает", true),
+                   ("useTargetCamp", "boolean", "true — её дом; false — наш дом (по умолчанию)", false))),
+
         new("carry_person",
             "Взять на руки лежащую (или свою — и стоящую) колонистку (§124). Руки должны " +
             "быть свободны.",
@@ -246,7 +339,8 @@ public sealed class McpTools
     /// Возвращает текст ответа. Отказ — это тоже ответ (<paramref name="isError"/>),
     /// а не исключение: агенту нужна причина, чтобы попробовать иначе.
     /// </summary>
-    public string Call(string name, JsonElement arguments, string owner, out bool isError)
+    public string Call(string name, JsonElement arguments, string owner, out bool isError,
+        Func<int, bool>? canAccessNpc = null)
     {
         // Bind exactly once per JSON-RPC tool invocation. A world swap between
         // calls must be visible; a single call must never mix two worlds.
@@ -254,15 +348,33 @@ public sealed class McpTools
         isError = false;
         try
         {
+            // §163: scope is supplied by the authenticated transport, never by tool arguments.
+            // Unknown/new tools fail closed until assigned an explicit scope below.
+            if (canAccessNpc != null && !IsWithinPlayerScope(name, arguments, owner, canAccessNpc))
+            {
+                isError = true;
+                return Json(new { error = "NpcAccessDenied" });
+            }
             switch (name)
             {
                 case "world_status": return WorldStatus(host);
-                case "list_colonists": return ListColonists(host);
-                case "list_leases": return ListLeases();
+                case "list_colonists": return ListColonists(host, canAccessNpc);
+                case "list_leases": return ListLeases(canAccessNpc);
                 case "read_events": return ReadEvents(host, arguments);
                 case "read_spec": return ReadSpec(arguments, out isError);
-                case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError);
-                case "acquire_control": return Acquire(host, Int(arguments, "npcId"), owner, out isError);
+                case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError, canAccessNpc != null);
+                case "attach_agent": return AttachAgent(host, arguments, owner, out isError);
+                case "agent_heartbeat": return AgentHeartbeat(arguments, owner, out isError);
+                case "read_agent_inbox": return ReadAgentInbox(arguments, owner, out isError);
+                case "publish_agent_phase": return PublishAgentPhase(arguments, owner, out isError);
+                case "commit_agent_turn": return CommitAgentTurn(host, arguments, owner, out isError);
+                case "begin_agent_utterance": return BeginAgentUtterance(arguments, owner, out isError);
+                case "append_agent_utterance": return AppendAgentUtterance(arguments, owner, out isError);
+                case "commit_agent_utterance": return CommitAgentUtterance(arguments, owner, out isError);
+                case "detach_agent": return DetachAgent(host, arguments, owner, out isError);
+                case "acquire_control":
+                case "acquire_npc_control":
+                    return Acquire(host, arguments, owner, out isError);
                 case "release_control": return Release(host, Int(arguments, "npcId"), owner, out isError);
                 case "move_to": return MoveTo(host, arguments, owner, out isError);
                 case "interact": return Interact(host, arguments, owner, out isError);
@@ -289,6 +401,13 @@ public sealed class McpTools
                 }
 
                 case "self_action": return SelfAction(host, arguments, owner, out isError);
+                case "merge_camps":
+                {
+                    var target = new EntityId(Int(arguments, "targetNpcId"));
+                    var useTargetCamp = Bool(arguments, "useTargetCamp", false);
+                    return Simple(host, arguments, owner,
+                        npc => new MergeCampsCommand(npc, target, useTargetCamp), out isError);
+                }
                 case "carry_person":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
@@ -340,8 +459,12 @@ public sealed class McpTools
         return host.Read(world => Json(new Dictionary<string, object?>
         {
             ["tick"] = world.Tick,
+            ["worldId"] = host.WorldId,
             ["seed"] = world.Seed,
+            ["mode"] = world.Mode.ToString(),
             ["clock"] = world.Environment.TimeOfDayNormalized,
+            ["dayLengthTicks"] = WorldBalance.DayLengthTicks,
+            ["gameHour"] = (long)(world.Tick * 24d / WorldBalance.DayLengthTicks),
             ["phase"] = world.Environment.Phase.ToString(),
             ["temperature"] = world.Environment.GlobalTemperature,
             ["raining"] = world.Environment.IsRaining,
@@ -462,16 +585,52 @@ public sealed class McpTools
         });
     }
 
-    private string ListColonists(WorldHost host)
+    private bool IsWithinPlayerScope(string name, JsonElement arguments, string owner, Func<int, bool> allowed)
     {
+        if (name is "world_status" or "read_spec" or "list_colonists" or "list_leases") return true;
+        if (name is "agent_heartbeat" or "read_agent_inbox" or "publish_agent_phase" or
+            "commit_agent_turn" or "begin_agent_utterance" or "append_agent_utterance" or
+            "commit_agent_utterance" or "detach_agent")
+            return arguments.ValueKind == JsonValueKind.Object &&
+                arguments.TryGetProperty("attachmentId", out var attachment) && attachment.ValueKind == JsonValueKind.String &&
+                _agents.TryGetOwnedNpcId(attachment.GetString()!, owner, _currentWorldGeneration(), out var npc) && allowed(npc);
+        // Catalog membership prevents an unreviewed future global tool from gaining access by
+        // accepting an otherwise irrelevant npcId. Every remaining current tool is NPC-scoped.
+        var npcScoped = false;
+        foreach (var tool in Catalog)
+            if (tool.Name == name && tool.InputSchema.TryGetProperty("properties", out var properties) &&
+                properties.TryGetProperty("npcId", out _)) { npcScoped = true; break; }
+        return npcScoped && arguments.ValueKind == JsonValueKind.Object &&
+            arguments.TryGetProperty("npcId", out var id) && id.ValueKind == JsonValueKind.Number &&
+            id.TryGetInt32(out var value) && allowed(value);
+    }
+
+    private string ListColonists(WorldHost host, Func<int, bool>? canAccessNpc = null)
+    {
+        // Assignment reconciliation takes assignments -> world locks. Never invert that
+        // order by calling its predicate while holding the world read lock.
+        if (canAccessNpc != null)
+        {
+            var ids = host.Read(world =>
+            {
+                var result = new List<int>();
+                foreach (var npc in world.Entities.Npcs.Values) result.Add(npc.Id.Value);
+                return result;
+            });
+            var allowed = new HashSet<int>();
+            foreach (var id in ids) if (canAccessNpc(id)) allowed.Add(id);
+            canAccessNpc = allowed.Contains;
+        }
         return host.Read(world =>
         {
             var rows = new List<object>();
             foreach (var npc in world.Entities.Npcs.Values)
             {
+                if (canAccessNpc != null && !canAccessNpc(npc.Id.Value)) continue;
                 rows.Add(new Dictionary<string, object?>
                 {
                     ["npcId"] = npc.Id.Value,
+                    ["profileId"] = npc.ProfileId ?? string.Empty,
                     ["name"] = npc.DisplayName ?? string.Empty,
                     ["faction"] = npc.Faction.ToString(),
                     ["tile"] = $"{npc.Tile.Q},{npc.Tile.R}",
@@ -484,8 +643,10 @@ public sealed class McpTools
                     ["goal"] = npc.Mind.CurrentGoal.ToString(),
                     ["planStatus"] = npc.Plan.Status.ToString(),
                     ["manualControl"] = npc.Mind.ManualControl,
+                    ["carriedNpcId"] = npc.CarriedNpcId?.Value,
+                    ["carriedByNpcId"] = npc.CarriedByNpcId?.Value,
                     ["unconscious"] = npc.IsUnconscious(world.Tick),
-                    ["leaseHolder"] = Holder(npc.Id.Value),
+                    ["leaseHolder"] = canAccessNpc == null ? Holder(npc.Id.Value) : (Holder(npc.Id.Value).Length == 0 ? string.Empty : "occupied"),
                 });
             }
 
@@ -500,15 +661,16 @@ public sealed class McpTools
         static int Id(object row) => (int)((Dictionary<string, object?>)row)["npcId"]!;
     }
 
-    private string ListLeases()
+    private string ListLeases(Func<int, bool>? canAccessNpc = null)
     {
         var rows = new List<object>();
         foreach (var (npcId, owner, idle) in _leases.Snapshot())
         {
+            if (canAccessNpc != null && !canAccessNpc(npcId)) continue;
             rows.Add(new Dictionary<string, object?>
             {
                 ["npcId"] = npcId,
-                ["owner"] = owner,
+                ["owner"] = canAccessNpc == null ? owner : "occupied",
                 ["idleSeconds"] = idle,
             });
         }
@@ -520,7 +682,7 @@ public sealed class McpTools
         });
     }
 
-    private string Describe(WorldHost host, int npcId, out bool isError)
+    private string Describe(WorldHost host, int npcId, out bool isError, bool redactOwner = false)
     {
         var text = host.Read(world =>
         {
@@ -534,6 +696,7 @@ public sealed class McpTools
             return Json(new Dictionary<string, object?>
             {
                 ["npcId"] = npc.Id.Value,
+                ["profileId"] = npc.ProfileId ?? string.Empty,
                 ["name"] = npc.DisplayName ?? string.Empty,
                 ["tick"] = context.Tick,
                 ["position"] = new Dictionary<string, object?>
@@ -543,7 +706,15 @@ public sealed class McpTools
                 },
                 ["tile"] = $"{npc.Tile.Q},{npc.Tile.R}",
                 ["manualControl"] = npc.Mind.ManualControl,
-                ["leaseHolder"] = Holder(npc.Id.Value),
+                ["carriedNpcId"] = npc.CarriedNpcId?.Value,
+                ["carriedByNpcId"] = npc.CarriedByNpcId?.Value,
+                ["leaseHolder"] = redactOwner ? (Holder(npc.Id.Value).Length == 0 ? string.Empty : "occupied") : Holder(npc.Id.Value),
+                // Gameplay-language progress is part of the body/world adapter;
+                // §159's personal memories remain in the local Masha archive.
+                ["hexkufaExposure"] = npc.HexkufaExposure,
+                // One-release migration envelope. AgentHost imports it into
+                // its local workspace; no generic turn writes these fields.
+                ["legacyAgentState"] = LegacyAgentState(npc),
                 ["stateSummary"] = context.StateSummary,
                 ["perceptionSummary"] = context.PerceptionSummary,
                 ["memorySummary"] = context.MemorySummary,
@@ -559,6 +730,46 @@ public sealed class McpTools
 
         isError = false;
         return text;
+    }
+
+    private static object? LegacyAgentState(NPCState npc)
+    {
+        var legacy = npc.Companion;
+        if (legacy.Memories.Count == 0 && legacy.NarrativeJournal.Count == 0 &&
+            legacy.LastIntentSummary.Length == 0 && legacy.HexkufaExposure == 0 &&
+            legacy.PlayerVoiceBond.Familiarity <= 0f && legacy.PlayerVoiceBond.Trust <= 0f &&
+            legacy.PlayerVoiceBond.Affinity <= 0f)
+            return null;
+
+        var memories = new List<object>();
+        foreach (var memory in legacy.Memories)
+        {
+            memories.Add(new Dictionary<string, object?>
+            {
+                ["key"] = memory.Key,
+                ["value"] = memory.Value,
+                ["importance"] = Round(memory.Importance),
+                ["lastUpdatedTick"] = memory.LastUpdatedTick,
+            });
+        }
+        var journal = new List<object>();
+        foreach (var entry in legacy.NarrativeJournal)
+            journal.Add(new Dictionary<string, object?>
+                { ["tick"] = entry.Tick, ["text"] = entry.Text });
+        return new Dictionary<string, object?>
+        {
+            ["hexkufaExposure"] = legacy.HexkufaExposure,
+            ["lastIntentSummary"] = legacy.LastIntentSummary,
+            ["playerVoiceBond"] = new Dictionary<string, object?>
+            {
+                ["familiarity"] = Round(legacy.PlayerVoiceBond.Familiarity),
+                ["trust"] = Round(legacy.PlayerVoiceBond.Trust),
+                ["affinity"] = Round(legacy.PlayerVoiceBond.Affinity),
+                ["lastInteractionTick"] = legacy.PlayerVoiceBond.LastInteractionTick,
+            },
+            ["memories"] = memories,
+            ["journal"] = journal,
+        };
     }
 
     private static List<object> Inventory(NPCState npc)
@@ -583,8 +794,378 @@ public sealed class McpTools
         return rows;
     }
 
-    private string Acquire(WorldHost host, int npcId, string owner, out bool isError)
+    // ── §160 generic agent attachment ────────────────────────────────────
+
+    private string AttachAgent(WorldHost host, JsonElement arguments, string owner,
+        out bool isError)
     {
+        var npcId = Int(arguments, "npcId");
+        var displayName = Text(arguments, "displayName").Trim();
+        var ttl = OptionalInt(arguments, "ttlSeconds") ?? AgentSessionRegistry.DefaultTtlSeconds;
+        if (displayName.Length is < 1 or > 48)
+        {
+            isError = true;
+            return "displayName должен содержать 1..48 символов.";
+        }
+        if (ttl is < 15 or > 120)
+        {
+            isError = true;
+            return "ttlSeconds должен быть в диапазоне 15..120.";
+        }
+        if (!TryCapabilities(arguments, out var capabilities, out var capabilityError))
+        {
+            isError = true;
+            return capabilityError;
+        }
+
+        var alive = host.Read(world => world.Entities.Npcs.TryGetValue(
+            new EntityId(npcId), out var npc) && npc.Health > 0f && !npc.IsDying);
+        if (!alive)
+        {
+            isError = true;
+            return $"Нет живого NPC с id {npcId}.";
+        }
+
+        // An attachment may take over the assigned player's manual controls,
+        // but must not steal another MCP session's in-flight physical action.
+        foreach (var lease in _leases.Snapshot())
+        {
+            if (lease.npcId == npcId && lease.owner != owner &&
+                !lease.owner.StartsWith("ws:", StringComparison.Ordinal))
+            {
+                isError = true;
+                return "ActionLeaseBusy";
+            }
+        }
+
+        var accepted = _agents.TryAttach(npcId, owner, _currentWorldGeneration(), displayName,
+            capabilities, ttl, out var snapshot, out var reason);
+        if (accepted)
+        {
+            var ownAction = false;
+            foreach (var lease in _leases.Snapshot())
+            {
+                if (lease.npcId != npcId) continue;
+                if (lease.owner == owner) ownAction = true;
+                else if (lease.owner.StartsWith("ws:", StringComparison.Ordinal))
+                    _leases.Release(npcId, lease.owner);
+            }
+            if (!ownAction)
+                host.SubmitManualCommand(new SetManualControlCommand(new EntityId(npcId), false));
+        }
+        isError = !accepted;
+        return accepted ? AttachmentJson(snapshot) : reason;
+    }
+
+    private string AgentHeartbeat(JsonElement arguments, string owner, out bool isError)
+    {
+        var accepted = _agents.TryHeartbeat(Text(arguments, "attachmentId"), owner,
+            _currentWorldGeneration(), out var snapshot, out var reason);
+        isError = !accepted;
+        return accepted ? AttachmentJson(snapshot) : reason;
+    }
+
+    private string ReadAgentInbox(JsonElement arguments, string owner, out bool isError)
+    {
+        var since = OptionalLong(arguments, "sinceSeq") ?? 0;
+        var limit = OptionalInt(arguments, "limit") ?? AgentSessionRegistry.MaxReadMessages;
+        if (since < 0 || limit is < 1 or > AgentSessionRegistry.MaxReadMessages)
+        {
+            isError = true;
+            return "sinceSeq должен быть >=0, limit — 1..16.";
+        }
+        if (!_agents.TryReadInbox(Text(arguments, "attachmentId"), owner,
+                _currentWorldGeneration(), since, limit, out var inbox, out var reason))
+        {
+            isError = true;
+            return reason;
+        }
+
+        var messages = new List<object>();
+        for (var i = 0; i < inbox.Messages.Length; i++)
+        {
+            var message = inbox.Messages[i];
+            messages.Add(new Dictionary<string, object?>
+            {
+                ["seq"] = message.Sequence,
+                ["messageId"] = message.MessageId,
+                ["senderId"] = message.SenderId,
+                ["language"] = message.Language,
+                ["text"] = message.Text,
+                ["createdUtc"] = message.CreatedUtc.ToString("O", CultureInfo.InvariantCulture),
+            });
+        }
+        isError = false;
+        return Json(new Dictionary<string, object?>
+        {
+            ["messages"] = messages,
+            ["watermark"] = inbox.Watermark,
+            ["gap"] = inbox.Gap,
+            ["truncated"] = inbox.Truncated,
+        });
+    }
+
+    private string PublishAgentPhase(JsonElement arguments, string owner, out bool isError)
+    {
+        var attachmentId = Text(arguments, "attachmentId");
+        var turnId = Bounded(Text(arguments, "turnId"), 80, "turnId");
+        var phaseText = Text(arguments, "phase");
+        if (!TryEnum<AgentPhase>(phaseText, "phase", out var phase, out var error))
+        {
+            isError = true;
+            return error;
+        }
+        var accepted = _agents.TryPublishPhase(attachmentId, owner,
+            _currentWorldGeneration(), turnId, phase, out var reason);
+        isError = !accepted;
+        return accepted ? Json(new { turnId, phase = phase.ToString() }) : reason;
+    }
+
+    private string CommitAgentTurn(WorldHost host, JsonElement arguments, string owner,
+        out bool isError)
+    {
+        var attachmentId = Text(arguments, "attachmentId");
+        var turnId = Bounded(Text(arguments, "turnId").Trim(), 80, "turnId");
+        var intent = Bounded(Text(arguments, "intentSummary").Trim(),
+            AgentWire.MaxTextCharacters, "intentSummary");
+        var relation = Bounded(OptionalText(arguments, "relationView").Trim(),
+            AgentWire.MaxTextCharacters, "relationView");
+        var journal = Bounded(OptionalText(arguments, "journalEntry").Trim(),
+            AgentWire.MaxJournalCharacters, "journalEntry");
+        if (turnId.Length == 0)
+        {
+            isError = true;
+            return "turnId не может быть пустым.";
+        }
+        if (!TryEnum<CompanionReaction>(Text(arguments, "reaction"), "reaction",
+                out var reaction, out var enumError))
+        {
+            isError = true;
+            return enumError;
+        }
+
+        if (!_agents.TryHeartbeat(attachmentId, owner, _currentWorldGeneration(),
+                out var attachment, out var reason))
+        {
+            isError = true;
+            return reason;
+        }
+
+        // World-side idempotency is committed first. If the process dies before
+        // the ephemeral UI commit, retrying applies Social as a no-op and then
+        // republishes the view; the inverse order could permanently lose Social.
+        if (reaction != CompanionReaction.None)
+        {
+            var admission = host.SubmitManualCommand(new RecordAgentSocialCommand(
+                new EntityId(attachment.NpcId), turnId, reaction));
+            if (!admission.Accepted)
+            {
+                isError = true;
+                return admission.Reason;
+            }
+        }
+        if (!_agents.TryCommitTurn(attachmentId, owner, _currentWorldGeneration(), turnId,
+                intent, relation, journal, out var duplicate, out var npcId, out reason))
+        {
+            isError = true;
+            return reason;
+        }
+        isError = false;
+        return Json(new Dictionary<string, object?>
+        {
+            ["npcId"] = npcId,
+            ["turnId"] = turnId,
+            ["duplicate"] = duplicate,
+            ["status"] = "Committed",
+        });
+    }
+
+    private string BeginAgentUtterance(JsonElement arguments, string owner, out bool isError)
+    {
+        // Read every required field before semantic validation: an omitted
+        // field must always be the refusal the MCP client sees (§144 gate).
+        var attachmentId = Text(arguments, "attachmentId");
+        var utteranceId = Text(arguments, "utteranceId");
+        var turnId = Text(arguments, "turnId");
+        var language = Text(arguments, "language");
+        var text = Text(arguments, "text");
+        var emotion = Text(arguments, "emotion");
+        var deliveryText = Text(arguments, "delivery").Replace("_", string.Empty);
+        var priorityText = Text(arguments, "priority");
+        var totalBytes = Int(arguments, "totalBytes");
+        var durationMs = Int(arguments, "durationMs");
+        var sha256 = Text(arguments, "sha256");
+        if (!TryEnum<AgentSpeechDelivery>(deliveryText, "delivery", out var delivery,
+                out var deliveryError))
+        {
+            isError = true;
+            return deliveryError;
+        }
+        if (!TryEnum<AgentSpeechPriority>(priorityText, "priority",
+                out var priority, out var priorityError))
+        {
+            isError = true;
+            return priorityError;
+        }
+        if (totalBytes is < 0 or > AgentWire.MaxAudioBytes || durationMs is < 0 or > AgentWire.MaxSpeechDurationMs)
+        {
+            isError = true;
+            return "WAV должен быть <=6 MiB и <=60000 ms.";
+        }
+
+        var metadata = new AgentUtteranceMetadata
+        {
+            UtteranceId = Bounded(utteranceId.Trim(), 80, "utteranceId"),
+            TurnId = Bounded(turnId.Trim(), 80, "turnId"),
+            Language = Bounded(language.Trim(), 16, "language"),
+            Text = Bounded(text.Trim(), AgentWire.MaxSpeechCharacters, "text"),
+            Emotion = Bounded(emotion.Trim(), 32, "emotion"),
+            Delivery = delivery,
+            Priority = priority,
+            TotalBytes = totalBytes,
+            DurationMilliseconds = durationMs,
+            Sha256 = Bounded(sha256.Trim(), 64, "sha256"),
+        };
+        if (metadata.UtteranceId.Length == 0 || metadata.TurnId.Length == 0 ||
+            metadata.Text.Length == 0 || metadata.Sha256.Length != 64)
+        {
+            isError = true;
+            return "utteranceId/turnId/text обязательны, sha256 содержит 64 hex-символа.";
+        }
+        if ((delivery == AgentSpeechDelivery.PlayerReply && priority != AgentSpeechPriority.Talk) ||
+            (delivery == AgentSpeechDelivery.World && priority != AgentSpeechPriority.Ambient))
+        {
+            isError = true;
+            return "player_reply требует Talk, world требует Ambient.";
+        }
+
+        var accepted = _agents.TryBeginUtterance(attachmentId, owner,
+            _currentWorldGeneration(), metadata, out var duplicate, out var reason);
+        isError = !accepted;
+        return accepted ? Json(new { metadata.UtteranceId, duplicate }) : reason;
+    }
+
+    private string AppendAgentUtterance(JsonElement arguments, string owner, out bool isError)
+    {
+        var attachmentId = Text(arguments, "attachmentId");
+        var utteranceId = Text(arguments, "utteranceId");
+        var chunkIndex = Int(arguments, "chunkIndex");
+        var encoded = Text(arguments, "base64");
+        if (encoded.Length > 4 * ((AgentWire.MaxChunkBytes + 2) / 3))
+        {
+            isError = true;
+            return "AudioChunkTooLarge";
+        }
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(encoded); }
+        catch (FormatException)
+        {
+            isError = true;
+            return "base64 chunk повреждён.";
+        }
+        var accepted = _agents.TryAppendUtterance(attachmentId, owner,
+            _currentWorldGeneration(), utteranceId, chunkIndex, bytes, out var reason);
+        isError = !accepted;
+        return accepted ? Json(new { acceptedBytes = bytes.Length }) : reason;
+    }
+
+    private string CommitAgentUtterance(JsonElement arguments, string owner, out bool isError)
+    {
+        var accepted = _agents.TryCommitUtterance(Text(arguments, "attachmentId"), owner,
+            _currentWorldGeneration(), Text(arguments, "utteranceId"),
+            Text(arguments, "sha256"), out var duplicate, out var utterance, out var reason);
+        isError = !accepted;
+        return accepted ? Json(new
+        {
+            duplicate,
+            sequence = utterance?.Sequence ?? 0,
+            bytes = utterance?.Bytes.Length ?? 0,
+        }) : reason;
+    }
+
+    private string DetachAgent(WorldHost host, JsonElement arguments, string owner, out bool isError)
+    {
+        var accepted = _agents.TryDetach(Text(arguments, "attachmentId"), owner,
+            _currentWorldGeneration(), out var npcId, out var reason);
+        if (!accepted)
+        {
+            isError = true;
+            return reason;
+        }
+        if (_leases.Release(npcId, owner))
+        {
+            host.SubmitManualCommand(new SetManualControlCommand(new EntityId(npcId), false));
+        }
+        isError = false;
+        return Json(new { npcId, status = "Detached" });
+    }
+
+    private static string AttachmentJson(AgentAttachmentSnapshot snapshot) =>
+        Json(new Dictionary<string, object?>
+        {
+            ["attachmentId"] = snapshot.AttachmentId,
+            ["npcId"] = snapshot.NpcId,
+            ["displayName"] = snapshot.DisplayName,
+            ["capabilities"] = snapshot.Capabilities.ToString(),
+            ["phase"] = snapshot.Phase.ToString(),
+            ["playerPresent"] = snapshot.PlayerPresent,
+            ["presentSpeakerIds"] = snapshot.PresentSpeakerIds,
+            ["intentSummary"] = snapshot.IntentSummary,
+            ["relationView"] = snapshot.RelationView,
+            ["journalEntry"] = snapshot.JournalEntry,
+            ["ttlSeconds"] = snapshot.TtlSeconds,
+        });
+
+    private static bool TryCapabilities(JsonElement arguments,
+        out AgentCapabilities capabilities, out string error)
+    {
+        capabilities = AgentCapabilities.None;
+        error = string.Empty;
+        if (!arguments.TryGetProperty("capabilities", out var value) ||
+            value.ValueKind != JsonValueKind.Array)
+        {
+            error = "capabilities должен быть массивом строк.";
+            return false;
+        }
+        foreach (var item in value.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.String)
+            {
+                error = "capabilities должен быть массивом строк.";
+                return false;
+            }
+            var name = (item.GetString() ?? string.Empty).Replace("_", string.Empty);
+            if (!TryEnum<AgentCapabilities>(name, "capabilities", out var capability,
+                    out error) || capability == AgentCapabilities.None)
+                return false;
+            capabilities |= capability;
+        }
+        return true;
+    }
+
+    private static string Bounded(string value, int max, string name)
+    {
+        if (value.Length > max)
+            throw new McpArgumentException($"{name} длиннее {max} символов.");
+        return value;
+    }
+
+
+    private string Acquire(WorldHost host, JsonElement arguments, string owner, out bool isError)
+    {
+        var npcId = Int(arguments, "npcId");
+        var timeoutSeconds = OptionalInt(arguments, "ttlSeconds") ?? _leases.TimeoutSeconds;
+        if (timeoutSeconds is < 15 or > 120)
+        {
+            isError = true;
+            return "ttlSeconds должен быть в диапазоне 15..120.";
+        }
+        if (!_agents.CanIssueWorldCommands(npcId, owner))
+        {
+            isError = true;
+            return "ControlledByAgent";
+        }
+
         var known = host.Read(world =>
             world.Entities.Npcs.ContainsKey(new EntityId(npcId)));
         if (!known)
@@ -593,11 +1174,11 @@ public sealed class McpTools
             return $"Нет колонистки с id {npcId}.";
         }
 
-        if (!_leases.TryAcquire(npcId, owner, out var leaseId, out var heldBy))
+        if (!_leases.TryAcquire(npcId, owner, timeoutSeconds, out var leaseId, out var heldBy))
         {
             isError = true;
             return $"Колонистка {npcId} уже под управлением другого агента ({heldBy}). " +
-                   $"Лиз освободится сам после {_leases.TimeoutSeconds} с без команд.";
+                   $"Лиз освободится сам после {timeoutSeconds} с без команд.";
         }
 
         // Лиз — это право говорить; ручной режим — это то, что мир слышит.
@@ -618,7 +1199,7 @@ public sealed class McpTools
             ["npcId"] = npcId,
             ["leaseId"] = leaseId,
             ["owner"] = owner,
-            ["timeoutSeconds"] = _leases.TimeoutSeconds,
+            ["timeoutSeconds"] = timeoutSeconds,
             ["note"] = "Лиз продлевается каждой командой. release_control по окончании работы.",
         });
     }
@@ -818,7 +1399,7 @@ public sealed class McpTools
         where T : struct, Enum
     {
         error = string.Empty;
-        if (Enum.TryParse(text, ignoreCase: true, out value))
+        if (Enum.TryParse(text, ignoreCase: true, out value) && Enum.IsDefined(typeof(T), value))
         {
             return true;
         }
@@ -840,6 +1421,11 @@ public sealed class McpTools
     private string Submit(WorldHost host, int npcId, string owner,
         Func<EntityId, ISimulationCommand> build, out bool isError)
     {
+        if (!_agents.CanIssueWorldCommands(npcId, owner))
+        {
+            isError = true;
+            return "ControlledByAgent";
+        }
         if (!_leases.TryRenew(npcId, owner, out var heldBy))
         {
             isError = true;
@@ -989,6 +1575,18 @@ public sealed class McpTools
         }
 
         throw new McpArgumentException($"Нужен строковый параметр «{name}».");
+    }
+
+    private static string OptionalText(JsonElement arguments, string name)
+    {
+        if (arguments.ValueKind == JsonValueKind.Object &&
+            arguments.TryGetProperty(name, out var value) &&
+            value.ValueKind == JsonValueKind.String)
+        {
+            return value.GetString() ?? string.Empty;
+        }
+
+        return string.Empty;
     }
 
     private static double Round(float value) => Math.Round(value, 3);

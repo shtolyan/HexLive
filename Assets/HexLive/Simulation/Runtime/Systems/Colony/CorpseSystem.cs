@@ -32,14 +32,21 @@ public sealed class CorpseSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     private readonly System.Collections.Generic.List<ObjectId> _decayed = new();
     private readonly System.Collections.Generic.List<ObjectId> _skeletonized = new();
+    private readonly System.Collections.Generic.List<WorldObjectState> _tickable = new();
 
     public void Run(WorldState world)
     {
         _decayed.Clear();
         _skeletonized.Clear();
-        foreach (var obj in world.Entities.Objects.Values)
+        // §156: в спящем чанке падаль ждёт. Пороги ниже якорные
+        // (Tick - SpawnTick), поэтому проспавшее тело догонит стадию обычным
+        // кодом на первом же бодром такте.
+        ChunkMath.CollectTickable(world, _tickable);
+        foreach (var obj in _tickable)
         {
             if (obj.DefinitionId == ContentIds.CorpseNpc)
             {
@@ -72,7 +79,17 @@ public sealed class CorpseSystem : ISimulationSystem
                 continue;
             }
 
-            obj.ResourceAmount -= 16f;
+            // §156: списывается ОКНО, а не фиксированные 16 — у бодрого чанка
+            // это ровно прежний slow-такт, у проспавшего весь сон разом, без
+            // цикла по тикам.
+            //
+            // ⭐ Якорь здесь чанковый, а не SpawnTick объекта, и это не лень:
+            // ResourceAmount у падали заводят ДВА разных срока (туша
+            // SimBalance.CarcassDecayTicks, нога Spec50.SeveredLimbDecayTicks),
+            // а §135 ещё и перезаводит его заново, когда зверь бросает ногу
+            // обратно в мир. Порог «Tick - SpawnTick >= константа» стёр бы и
+            // разницу сроков, и этот перезапуск.
+            obj.ResourceAmount -= world.Tick - ChunkMath.SleepWindowStart(world, obj.Tile);
             if (obj.ResourceAmount <= 0f)
             {
                 _decayed.Add(obj.Id);

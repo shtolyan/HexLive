@@ -61,6 +61,10 @@ namespace HexLive.UnityPresentation
             // Without this they fell to the 0.6 default and a bandage roll
             // rendered campfire-big on the ground and in hand.
             if (definitionId.StartsWith("item.")) return r * 0.12f;
+            // Bug #341: med.splint is a small carried medical prop. The med.* id
+            // used to miss every category and fall through to the 0.6 default,
+            // making the one-metre source mesh five times too large everywhere.
+            if (definitionId == "med.splint") return r * 0.12f;
             if (definitionId == "campfire.spot") return r * 0.55f;
             if (definitionId == "grave.npc") return r * 0.35f;
             if (definitionId == "rock.boulder") return r * 0.45f;

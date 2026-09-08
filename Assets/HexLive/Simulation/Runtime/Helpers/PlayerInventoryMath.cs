@@ -72,7 +72,10 @@ namespace HexLive.Simulation.Runtime
                 else return false;
             }
 
-            return FitsProjected(world, npc, carried, worn);
+            return FitsProjected(world, npc, carried, worn) ||
+                (action == InventoryAction.Wear &&
+                 ExecutionSystem.TryFindDropSpotAtFeet(
+                     world, npc, underFoot: true, out _, out _));
         }
 
         internal static bool FitsProjected(

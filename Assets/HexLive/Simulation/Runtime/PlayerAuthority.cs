@@ -38,7 +38,8 @@ namespace HexLive.Simulation.Runtime
         /// заводил вторую, расходящуюся формулировку «своей».</summary>
         public static bool IsPlayerOwned(WorldState world, NPCState npc) =>
             npc != null &&
-            (npc.Faction == Faction.Colony ||
+            (world.CreationConfig != null ? world.PlayerControlledNpcs.Contains(npc.Id.Value) && FactionRelations.IsGirlCamp(npc.Faction) :
+             npc.Faction == Faction.Colony ||
              (world.PlayerControlledNpcs.Contains(npc.Id.Value) &&
               FactionRelations.IsGirlCamp(npc.Faction)));
 

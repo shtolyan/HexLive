@@ -102,7 +102,7 @@ public sealed class Wear : MonoBehaviour
         // back on. Seeding from the fresh instance re-rolled the whole dirt
         // pattern on every re-equip, which read as the cloth flickering.
         _paintSeed = GarmentWearPainter.StableSeed(
-            equipKey ?? name, bodyBones != null ? bodyBones.GetInstanceID() : 0);
+            equipKey ?? name, bodyBones != null ? bodyBones.StablePaintOwnerId : 0);
         _meshRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
         var hip = FindHip();
 

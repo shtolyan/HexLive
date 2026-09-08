@@ -92,7 +92,8 @@ public sealed class PlayerCharacterAssignments
         string playerId,
         IEnumerable<int> retainableNpcIds,
         IEnumerable<int> assignableNpcIds,
-        int characterLimit = DefaultCharacterLimit)
+        int characterLimit = DefaultCharacterLimit,
+        ISet<int>? priorityNpcIds = null)
     {
         if (!TryNormalizePlayerId(playerId, out var canonicalPlayerId))
         {
@@ -109,7 +110,8 @@ public sealed class PlayerCharacterAssignments
         var assignable = assignableNpcIds
             .Where(id => id > 0 && retainable.Contains(id))
             .Distinct()
-            .OrderBy(id => id)
+            .OrderByDescending(id => priorityNpcIds?.Contains(id) == true)
+            .ThenBy(id => id)
             .ToArray();
 
         lock (_gate)
@@ -129,6 +131,8 @@ public sealed class PlayerCharacterAssignments
                 }
             }
 
+            // §149.2: priority only fills vacant slots; it must never evict a
+            // living owner-bound NPC who is temporarily unassignable (dying).
             var next = record.NpcIds
                 .Where(id => retainable.Contains(id) && !usedByOthers.Contains(id))
                 .Distinct()
@@ -166,10 +170,26 @@ public sealed class PlayerCharacterAssignments
         WorldHost host, string playerId, int characterLimit = DefaultCharacterLimit,
         CancellationToken worldLifetime = default, int worldGeneration = 0)
     {
+        var custom = host.Read(world => world.CreationConfig == null ? null :
+            (world.CreationConfig.CreatorPlayerId == playerId
+                ? world.Entities.Npcs.Values.Where(n => world.PlayerControlledNpcs.Contains(n.Id.Value) && FactionRelations.IsGirlCamp(n.Faction)).Select(n => n.Id.Value).OrderBy(id => id).ToArray()
+                : Array.Empty<int>()));
+        if (custom != null)
+        {
+            if (worldLifetime.IsCancellationRequested) return Array.Empty<int>();
+            lock (_gate)
+            {
+                if (worldLifetime.IsCancellationRequested) return Array.Empty<int>();
+                var record = FindOrAdd(playerId);
+                if (!record.NpcIds.SequenceEqual(custom)) { record.NpcIds = custom.ToList(); Save(); }
+            }
+            return custom;
+        }
         var roster = host.Read(world =>
         {
             var retainable = new List<int>();
             var assignable = new List<int>();
+            var authoredPriority = new HashSet<int>();
             foreach (var npc in world.Entities.Npcs.Values)
             {
                 // §149.2: девушка ЛЮБОГО лагеря, не только Faction.Colony.
@@ -187,12 +207,19 @@ public sealed class PlayerCharacterAssignments
                 if (npc.Health > 0f && !npc.IsDying)
                 {
                     assignable.Add(npc.Id.Value);
+                    if (CharacterPresetRegistry.ProfileIds.Contains(npc.ProfileId))
+                        authoredPriority.Add(npc.Id.Value);
                 }
             }
 
             retainable.Sort();
-            assignable.Sort();
-            return (retainable, assignable);
+            assignable.Sort((left, right) =>
+            {
+                var authored = authoredPriority.Contains(right).CompareTo(
+                    authoredPriority.Contains(left));
+                return authored != 0 ? authored : left.CompareTo(right);
+            });
+            return (retainable, assignable, authoredPriority);
         });
 
         if (worldLifetime.IsCancellationRequested)
@@ -224,7 +251,8 @@ public sealed class PlayerCharacterAssignments
             }
 
             var assigned = Reconcile(
-                playerId, roster.retainable, roster.assignable, characterLimit);
+                playerId, roster.retainable, roster.assignable, characterLimit,
+                roster.authoredPriority);
             union = AllAssignedIdsLocked();
             result = assigned;
         }
@@ -236,7 +264,8 @@ public sealed class PlayerCharacterAssignments
         // отбивалась симуляцией с «NotOwned». Публикуем ВЕСЬ союз назначений,
         // а не одного игрока: набор в мире — это состояние, а не дельта.
         host.SetPlayerControlledNpcs(union);
-        return result;
+        // The player's authored body is the initial selection, not the attached agent.
+        return result.OrderByDescending(id => id == NikaCharacterProfile.ReservedNpcId).ToArray();
     }
 
     /// <summary>Союз назначений всех игроков. Вызывать под <c>_gate</c>.</summary>
@@ -259,6 +288,33 @@ public sealed class PlayerCharacterAssignments
     /// сохраняет назначения, которые новый viewer успел сделать до позднего
     /// уведомления <c>WorldSwapped</c>.
     /// </summary>
+    public void BindWorldGeneration(int worldGeneration)
+    {
+        lock (_gate) _worldGeneration = worldGeneration;
+    }
+
+    internal void AdminAssign(string playerId, int npcId)
+    {
+        if (!TryNormalizePlayerId(playerId, out var canonical)) throw new ArgumentException("Invalid player id");
+        lock (_gate)
+        {
+            foreach (var player in _players) player.NpcIds.Remove(npcId);
+            var record = _players.FirstOrDefault(p => p.PlayerId == canonical);
+            if (record == null) { record = new PlayerRecord { PlayerId = canonical }; _players.Add(record); }
+            record.NpcIds = new List<int> { npcId };
+            Save();
+        }
+    }
+    internal void AdminRemoveNpc(int npcId)
+    {
+        lock (_gate) { foreach (var p in _players) p.NpcIds.Remove(npcId); Save(); }
+    }
+    internal int[] AdminAssignedIds(string client)
+    { lock (_gate) return _players.Where(p => p.PlayerId == client).SelectMany(p => p.NpcIds).Distinct().ToArray(); }
+
+    internal bool StillAssigned(string playerId, int npcId)
+    { lock (_gate) return _players.Any(p => p.PlayerId == playerId && p.NpcIds.Contains(npcId)); }
+
     public void SwitchWorld(int worldGeneration)
     {
         lock (_gate)

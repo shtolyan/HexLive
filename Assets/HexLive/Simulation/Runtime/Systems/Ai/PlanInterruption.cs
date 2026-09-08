@@ -299,6 +299,8 @@ public static class PlanInterruption
         npc.Execution.Status = ExecutionStatus.None;
         npc.Execution.CurrentInteraction = null;
         npc.Execution.TargetObject = null;
+        npc.Execution.TargetInventoryItem = null;
+        npc.Execution.TargetInventoryWorldObject = null;
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
 

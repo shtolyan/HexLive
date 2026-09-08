@@ -326,6 +326,8 @@ public sealed class ObjectSnapshot
     // Spec 29E.3: fuel ticks. For a campfire, > 0 means lit/burning.
     public float ResourceAmount { get; set; }
 
+    public Agents.WaterKind WaterKind { get; set; } = Agents.WaterKind.None;
+
     public float Wetness { get; set; }
 
     public float Durability { get; set; } = 1f;
@@ -434,6 +436,11 @@ public sealed class InventorySlotSnapshot
 
     public int StackCount { get; set; }
 
+    // §52 / bug #355: state of the exact physical vessel at SourceIndex.
+    public float ResourceAmount { get; set; }
+
+    public Agents.WaterKind WaterKind { get; set; } = Agents.WaterKind.None;
+
     // Empty for ordinary cells; a typed holster cell carries the one exact id
     // it accepts even while the cell itself is empty.
     public string AcceptedItemDefinitionId { get; set; } = string.Empty;
@@ -467,6 +474,11 @@ public sealed class NpcSnapshot
 {
     public EntityId Id { get; set; }
 
+    // §159: stable companion identity; never infer it from name or body.
+    public string ProfileId { get; set; } = string.Empty;
+
+    public bool UseAuthoredAppearance { get; set; }
+
     // §74: a name ID (resolved through I2 as `npc.<id>.name`), not a label.
     public string DisplayName { get; set; } = string.Empty;
 
@@ -474,6 +486,8 @@ public sealed class NpcSnapshot
 
     // §74: the composition the view assembles the body from — material donor,
     // hair prefab, voice folder. Empty = the mesh's own, i.e. pre-§74 look.
+    public string HairColour { get; set; } = string.Empty;
+
     public string SkinSet { get; set; } = string.Empty;
 
     // §85: iris colour, its own axis (Resources/HexLive/Eyes/<id>/). Empty =
@@ -483,6 +497,12 @@ public sealed class NpcSnapshot
     public string Hairstyle { get; set; } = string.Empty;
 
     public string VoiceBank { get; set; } = string.Empty;
+
+    public int HexkufaExposure { get; set; }
+    public float PlayerVoiceFamiliarity { get; set; }
+    public float PlayerVoiceTrust { get; set; }
+    public float PlayerVoiceAffinity { get; set; }
+    public int PlayerVoiceLastInteractionTick { get; set; } = -1;
 
     // §72: which side this survivor is on, and the one question the UI actually
     // asks — precomputed sim-side so no view file needs the Runtime namespace.
@@ -899,9 +919,14 @@ public sealed class NpcSnapshot
 
     public List<string> InventoryBloodiness { get; } = new();
 
-    // "definitionId\tamountLiters\tcapacityLiters" for carried water containers.
-    // The UI treats bottle and pierced coconut as one water-container category.
+    // "sourceIndex\tdefinitionId\tamount\tcapacity\twaterKind" for carried
+    // water containers. SourceIndex keeps duplicate physical bottles distinct.
     public List<string> InventoryWater { get; } = new();
+
+    // §55.4 / bug #347: compatibility summary for older presentation paths.
+    // The authoritative provenance is per InventoryContainer slot/InventoryWater
+    // row; this field mirrors the first drinkable physical bottle only.
+    public Agents.WaterKind BottleWaterKind { get; set; } = Agents.WaterKind.None;
 
     public List<string> WornItems { get; } = new();
 

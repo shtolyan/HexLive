@@ -120,25 +120,10 @@ public static class CorpseMath
         WorldState world, WorldObjectState anchor, TileCoord tile,
         FragmentId fragment, JunctionId junction)
     {
-        if (world.Caches.ObjectsByTile.TryGetValue(anchor.Tile, out var oldTile))
-        {
-            oldTile.Remove(anchor.Id);
-        }
-
-        anchor.Tile = tile;
+        WorldObjectMutations.MoveObjectTile(world, anchor, tile);
         anchor.Fragment = fragment;
         anchor.Junctions.Clear();
         anchor.Junctions.Add(junction);
-        if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var newTile))
-        {
-            newTile = new System.Collections.Generic.List<ObjectId>();
-            world.Caches.ObjectsByTile[tile] = newTile;
-        }
-
-        if (!newTile.Contains(anchor.Id))
-        {
-            newTile.Add(anchor.Id);
-        }
     }
 
     /// <summary>Осталось ли на теле хоть что-нибудь.</summary>
@@ -180,7 +165,9 @@ public static class CorpseMath
 
     /// <summary>Снять вещь с тела. Возвращает false, если её там уже нет.</summary>
     public static bool TakeSpoil(NPCState body, ItemInstance item, bool fromPockets) =>
-        fromPockets ? body.Inventory.Items.Remove(item) : body.WornItems.Remove(item);
+        fromPockets
+            ? InventoryMath.RemoveReference(body.Inventory.Items, item)
+            : InventoryMath.RemoveReference(body.WornItems, item);
 
     public static ItemInstance NextSpoil(
         WorldState world, WorldObjectState anchor, out SpoilSource source)
@@ -274,9 +261,12 @@ public static class CorpseMath
         var body = BodyOf(world, anchor);
         return source switch
         {
-            SpoilSource.Pockets => body is not null && body.Inventory.Items.Remove(item),
-            SpoilSource.Worn => body is not null && body.WornItems.Remove(item),
-            SpoilSource.Bag => anchor is not null && anchor.Contents.Remove(item),
+            SpoilSource.Pockets => body is not null &&
+                InventoryMath.RemoveReference(body.Inventory.Items, item),
+            SpoilSource.Worn => body is not null &&
+                InventoryMath.RemoveReference(body.WornItems, item),
+            SpoilSource.Bag => anchor is not null &&
+                InventoryMath.RemoveReference(anchor.Contents, item),
             _ => false
         };
     }

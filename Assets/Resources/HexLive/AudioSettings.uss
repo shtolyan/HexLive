@@ -1,0 +1,47 @@
+.audio-settings {
+    margin-top: 16px;
+    margin-bottom: 6px;
+    color: rgb(231, 236, 239);
+    font-size: 15px;
+}
+.audio-settings > .unity-foldout__toggle {
+    min-height: 36px;
+}
+.audio-settings .unity-foldout__content {
+    margin-left: 0;
+}
+.audio-settings-row {
+    margin-top: 12px;
+}
+.audio-settings-heading {
+    flex-direction: row;
+    justify-content: space-between;
+}
+.audio-settings-heading > Label {
+    flex-shrink: 1;
+    white-space: normal;
+}
+.audio-settings-percent {
+    color: rgb(240, 180, 92);
+    min-width: 42px;
+    -unity-text-align: middle-right;
+}
+.audio-settings-slider {
+    height: 30px;
+    margin-top: 4px;
+}
+.audio-settings-slider .unity-base-slider__tracker {
+    height: 4px;
+    background-color: rgb(70, 85, 98);
+}
+.audio-settings-slider .unity-base-slider__dragger {
+    width: 18px;
+    height: 18px;
+    margin-top: -7px;
+    background-color: rgb(240, 180, 92);
+    border-radius: 9px;
+}
+.audio-settings-slider:focus .unity-base-slider__dragger {
+    border-width: 2px;
+    border-color: rgb(255, 255, 255);
+}

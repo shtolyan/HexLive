@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -25,10 +26,11 @@ public sealed class ObjectImpostorVisual : MonoBehaviour { }
 /// (см. NpcPortraitCache). Испечённый материал общий на все экземпляры
 /// definition, инстансинг включён.
 ///
-/// Скрытие мешей — только forceRenderingOff со save/restore (§150.1). Набор
-/// рендереров перечисляется В МОМЕНТ переключения, а не замораживается при
-/// создании: одежда и асинхронные префабы, доехавшие позже, не выпадают из
-/// профиля.
+/// Скрытие мешей — только forceRenderingOff со save/restore (§150.1). У обычных
+/// объектов набор перечисляется в момент переключения. У NPC этим владеет
+/// единый ActorRenderGate с OR-причинами impostor/corpse: он пересканирует
+/// асинхронно приехавшие одежду, волосы и протезы и не позволяет одному
+/// владельцу раскрыть меши вопреки другому.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class ObjectImpostor : MonoBehaviour
@@ -61,6 +63,7 @@ public sealed class ObjectImpostor : MonoBehaviour
     private Color _placeholderTint = new(0.6f, 0.6f, 0.6f);
     private bool _npcMode;
     private Material? _npcMaterial;
+    private ActorRenderGate? _actorRenderGate;
 
     private Transform? _quad;
     private MeshRenderer? _quadRenderer;
@@ -91,6 +94,8 @@ public sealed class ObjectImpostor : MonoBehaviour
         impostor._definitionId = "npc";
         impostor._placeholderSize = NpcDiscSize;
         impostor._placeholderTint = factionTint;
+        impostor._actorRenderGate = viewRoot.GetComponent<ActorRenderGate>() ??
+                                    viewRoot.AddComponent<ActorRenderGate>();
         impostor.BuildQuad();
         impostor._quad!.localPosition = Vector3.up * NpcDiscLift;
         impostor._quad.localScale = Vector3.one * NpcDiscSize;
@@ -128,19 +133,26 @@ public sealed class ObjectImpostor : MonoBehaviour
         _distant = distant;
         if (!distant)
         {
-            for (var i = 0; i < _hiddenRenderers.Count; i++)
+            if (_npcMode && _actorRenderGate != null)
             {
-                if (_hiddenRenderers[i] != null)
-                {
-                    _hiddenRenderers[i].forceRenderingOff = _hiddenSaved[i];
-                }
+                _actorRenderGate.SetHidden(ActorRenderHideReason.NpcImpostor, false);
             }
-
-            for (var i = 0; i < _hiddenBehaviours.Count; i++)
+            else
             {
-                if (_hiddenBehaviours[i] != null)
+                for (var i = 0; i < _hiddenRenderers.Count; i++)
                 {
-                    _hiddenBehaviours[i].enabled = _hiddenBehavioursSaved[i];
+                    if (_hiddenRenderers[i] != null)
+                    {
+                        _hiddenRenderers[i].forceRenderingOff = _hiddenSaved[i];
+                    }
+                }
+
+                for (var i = 0; i < _hiddenBehaviours.Count; i++)
+                {
+                    if (_hiddenBehaviours[i] != null)
+                    {
+                        _hiddenBehaviours[i].enabled = _hiddenBehavioursSaved[i];
+                    }
                 }
             }
 
@@ -173,7 +185,14 @@ public sealed class ObjectImpostor : MonoBehaviour
             }
         }
 
-        HideRealRenderers();
+        if (_npcMode && _actorRenderGate != null)
+        {
+            _actorRenderGate.SetHidden(ActorRenderHideReason.NpcImpostor, true);
+        }
+        else
+        {
+            HideRealRenderers();
+        }
         _quadRenderer.forceRenderingOff = false;
     }
 
@@ -559,6 +578,11 @@ public sealed class ObjectImpostor : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (_npcMode && _actorRenderGate != null)
+        {
+            _actorRenderGate.SetHidden(ActorRenderHideReason.NpcImpostor, false);
+        }
+
         // Компонент может сняться отдельно от вида (передача тела в реестр
         // трупов): вернуть рендереры и не оставить осиротевший квад.
         for (var i = 0; i < _hiddenRenderers.Count; i++)

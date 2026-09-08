@@ -13,6 +13,88 @@ namespace HexLive.Simulation.Tests.Behavior;
 /// <summary>§123/§128 / bug #215: inventory authority is independent of AI/manual mode.</summary>
 public sealed class InventoryControlModeTests
 {
+    [TestCase(false, "carried")]
+    [TestCase(true, "carried")]
+    [TestCase(false, "worn")]
+    [TestCase(true, "worn")]
+    [TestCase(false, "container")]
+    [TestCase(true, "container")]
+    public void TakeAndWearDoesNotNeedTemporaryInventorySpace(bool manual, string origin)
+    {
+        var engine = TestWorld.CreateEngine(36701);
+        var world = engine.World;
+        var npc = Colonist(world);
+        var other = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony && n.Id != npc.Id);
+        foreach (var n in world.Entities.Npcs.Values)
+        {
+            n.Mind.ManualControl = true;
+            n.Needs.Hunger = 0f;
+            n.Needs.Thirst = 0f;
+        }
+        npc.Mind.ManualControl = manual;
+        npc.Mind.OutfitLocked = false;
+        npc.Inventory.Items.Clear();
+        npc.WornItems.Clear();
+        other.Inventory.Items.Clear();
+        other.WornItems.Clear();
+        other.Mind.FaintedUntilTick = world.Tick + 10000;
+        PlaceAdjacent(world, npc, other);
+        const string oldId = "test.quick_wear.old";
+        const string newId = "test.quick_wear.new";
+        foreach (var id in new[] { oldId, newId })
+        {
+            var definition = new ObjectDefinition { Id = id, DisplayName = id, Layer = WearLayer.Wear };
+            definition.Covers.Add(BodyPart.Torso);
+            world.Content.ObjectDefinitions[id] = definition;
+        }
+        var old = new ItemInstance(oldId) { Dirtiness = .2f };
+        var incoming = new ItemInstance(newId) { Dirtiness = .7f, OwnerId = other.Id.Value };
+        npc.WornItems.Add(old);
+        EquipmentMath.RecalculateCapacity(world, npc);
+        while (npc.Inventory.UsedSlots < npc.Inventory.Capacity)
+        {
+            var id = "test.quick_wear.cargo." + npc.Inventory.Items.Count;
+            world.Content.ObjectDefinitions[id] = new ObjectDefinition { Id = id, DisplayName = id };
+            npc.Inventory.Items.Add(new ItemInstance(id));
+        }
+        var cargo = npc.Inventory.Items.ToArray();
+        ManualCommandAdmission admission;
+        if (origin == "container")
+        {
+            var anchor = world.Junctions.Items[npc.CurrentJunction!.Value].Neighbors
+                .Select(id => world.Junctions.Items[id])
+                .First(j => SpatialQueries.IsJunctionFree(world, j.Id));
+            var container = WorldObjectMutations.SpawnObject(world, ContentIds.HumanRemains,
+                anchor.Fragment, anchor.Tiles[0], anchor.Id);
+            container.Contents.Add(incoming);
+            admission = engine.ApplyManualCommand(new TransferContainerCommand(
+                npc.Id, container.Id, 0, newId, 1, InventoryTransferDirection.TakeAndWear));
+        }
+        else
+        {
+            (origin == "worn" ? other.WornItems : other.Inventory.Items).Add(incoming);
+            EquipmentMath.RecalculateCapacity(world, other);
+            admission = engine.ApplyManualCommand(new TransferInventoryCommand(npc.Id, other.Id,
+                new InventoryItemRef(origin == "worn" ? InventoryItemSource.Worn : InventoryItemSource.Carried,
+                    0, newId), 1, InventoryTransferDirection.TakeAndWear));
+        }
+        Assert.That(admission.Accepted, Is.True, admission.Reason);
+        StepUntil(engine, () => npc.WornItems.Any(i => ReferenceEquals(i, incoming)));
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Mind.ManualControl, Is.EqualTo(manual));
+            Assert.That(npc.WornItems.Single(), Is.SameAs(incoming));
+            Assert.That(incoming.Dirtiness, Is.EqualTo(.7f).Within(.001f),
+                "The full simulation tick adds normal wear dirt after the transfer.");
+            Assert.That(npc.Inventory.Items, Is.EquivalentTo(cargo));
+            Assert.That(npc.Inventory.UsedSlots, Is.LessThanOrEqualTo(npc.Inventory.Capacity));
+            Assert.That(world.Entities.Objects.Values.Single(o => o.DefinitionId == oldId).Dirtiness,
+                Is.EqualTo(.2f));
+            Assert.That(other.Inventory.Items.Any(i => ReferenceEquals(i, incoming)), Is.False);
+            Assert.That(other.WornItems.Any(i => ReferenceEquals(i, incoming)), Is.False);
+        });
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public void OutfitLockAndOwnInventoryActionsWorkInBothControlModes_Bug215(

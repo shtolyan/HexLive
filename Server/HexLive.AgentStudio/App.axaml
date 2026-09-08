@@ -1,0 +1,111 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="HexLive.AgentStudio.App" RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="StudioBackground">#1B2227</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioSidebar">#191F23</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioSurface">#222A30</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioBorder">#3A444B</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioText">#E5E9EB</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioMuted">#9AA8B0</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioAccent">#64CBC4</SolidColorBrush>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="StudioBackground">#F5F7F8</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioSidebar">#E9EEF0</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioSurface">#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioBorder">#CBD5DB</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioText">#202C33</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioMuted">#586C77</SolidColorBrush>
+          <SolidColorBrush x:Key="StudioAccent">#176D68</SolidColorBrush>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark" Accent="#39AFA6" />
+        <ColorPaletteResources x:Key="Light" Accent="#247F79" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <Style Selector="TabItem">
+      <Setter Property="FontSize" Value="14" />
+    </Style>
+    <Style Selector="Window">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Background" Value="{DynamicResource StudioBackground}" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioText}" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="Padding" Value="16,10" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="MinHeight" Value="38" />
+      <Setter Property="Background" Value="{DynamicResource StudioSurface}" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioText}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.danger">
+      <Setter Property="Background" Value="#853F49" />
+      <Setter Property="BorderBrush" Value="#AE5965" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.nav">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Border.surface">
+      <Setter Property="Background" Value="{DynamicResource StudioSurface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="Background" Value="{DynamicResource StudioSurface}" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioText}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorder}" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="12,9" />
+    </Style>
+    <Style Selector="ListBox">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="12" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="ListBoxItem:selected">
+      <Setter Property="Background" Value="#28565A" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="#287D78" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="TextBlock.caption">
+      <Setter Property="Foreground" Value="{DynamicResource StudioMuted}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontSize" Value="26" />
+      <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="MinWidth" Value="160" />
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="Background" Value="{DynamicResource StudioSurface}" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioText}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorder}" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+  </Application.Styles>
+</Application>

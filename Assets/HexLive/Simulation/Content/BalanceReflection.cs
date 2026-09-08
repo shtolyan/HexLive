@@ -50,6 +50,7 @@ public static class BalanceReflection
         typeof(SocialBalance),
         typeof(WorldBalance),
         typeof(WildlifeBalance),
+        typeof(ChunkBalance),
         typeof(HexHopTuning),
         // MovementSystem carries exactly two tunables — the swim entry pause and
         // the deep-water speed factor. They are simulation knobs (the speed

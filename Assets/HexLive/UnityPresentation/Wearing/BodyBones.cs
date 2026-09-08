@@ -22,11 +22,17 @@ public sealed class BodyBones : MonoBehaviour
     private readonly Dictionary<VisualWearLayer, Dictionary<VisualWearSlot, Wear>> _byLayer = new();
     private readonly Dictionary<Wear, string> _wearKeys = new();
     private ActorName _actorMesh;
+    private int _stablePaintOwnerId;
     private Wear _hairInstance;
     private readonly List<GameObject> _hairBones = new();
     private bool _forceGenitalsVisible;
 
     public Transform WearTransform => wearTransform;
+
+    /// <summary>Persistent owner identity used to reconstruct the same dirt,
+    /// blood and tear placement after actor-view recreation. Never a Unity
+    /// instance id: those change on every load/stream-in.</summary>
+    public int StablePaintOwnerId => _stablePaintOwnerId;
 
     // Spec §52.8: the skeleton root. Wear.Construct stitches a garment's bones
     // ONTO these body bones (ParentConnection re-parents them out of
@@ -34,9 +40,12 @@ public sealed class BodyBones : MonoBehaviour
     // — end up under here, not under wearTransform. SyncHolster searches this.
     public Transform SkeletonRoot => hip;
 
-    public void Construct(ActorName actorMesh)
+    public void Construct(ActorName actorMesh, int stableOwnerId = 0)
     {
         _actorMesh = actorMesh;
+        _stablePaintOwnerId = stableOwnerId != 0
+            ? stableOwnerId
+            : (int)actorMesh + 1;
         _forceGenitalsVisible = false;
         _bonesMap.Clear();
         _wears.Clear();

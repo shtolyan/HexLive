@@ -48,6 +48,13 @@ public static class Program
                 SimBalance.TimedMeleeEverywhere = true;
             }
 
+            // §156: тот же приём — сравнить мир со спящими чанками и без них
+            // одним бинарём и одним экспортом.
+            if (options.ChunkSleep is { } chunkSleep)
+            {
+                ChunkBalance.ChunkSleepEnabled = chunkSleep;
+            }
+
             // §122 фаза 2: тот же приём — ПОСЛЕ Require, чтобы одним бинарём и
             // одним simdata сравнить колонию с лестницей выхода и без неё.
             if (options.LoopEscape is { } loopEscape)
@@ -95,7 +102,11 @@ public static class Program
         // мы смотрим на два разных мира и спорим о показаниях.
         var definition = options.Arena == "abuse"
             ? HexLive.UnityPresentation.AbuseTest.AbuseTestWorld.Build(seed)
-            : PrototypeWorldDefinitionFactory.Create(seed, options.Mode);
+            // §156.9: растянутый остров — мир для ЗАМЕРА, а не режим игры: у
+            // него нет ни идентичности в сейве, ни пункта меню.
+            : options.Scale > 1
+                ? PrototypeWorldDefinitionFactory.CreateScaledHugeIsland(seed, options.Scale)
+                : PrototypeWorldDefinitionFactory.Create(seed, options.Mode);
         var world = new WorldStateFactory().Create(definition);
 
         if (options.Arena == "abuse")
@@ -157,9 +168,13 @@ public static class Program
         var explainedLoops = 0;
         var explainedDeaths = 0;
 
+        var stepWatch = new Stopwatch();
         for (var i = 0; i < options.Ticks && !world.Completed; i++)
         {
+            stepWatch.Restart();
             engine.Step();
+            stepWatch.Stop();
+            metrics.SampleStep(world.Tick - 1, stepWatch.Elapsed.TotalMilliseconds);
             watermark = Drain(world, watermark, metrics, trace, options.TraceTypes,
                 options, ref explained, ref explainedLoops, ref explainedDeaths);
             metrics.SampleTick(world);

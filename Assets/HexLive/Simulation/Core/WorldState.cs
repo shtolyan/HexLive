@@ -9,6 +9,7 @@ namespace HexLive.Simulation.Core
 
 public sealed class WorldState
 {
+    public Bootstrap.WorldCreationConfig CreationConfig { get; set; }
     /// <summary>
     /// Runtime-only monotonic clock. The engine replaces the default instance
     /// with its clock; saves and snapshots deliberately do not carry it.
@@ -34,6 +35,21 @@ public sealed class WorldState
     public EnvironmentState Environment { get; } = new();
 
     public RuntimeCaches Caches { get; } = new();
+
+    /// <summary>§156: карта чанков — где мир спал и с какого тика.</summary>
+    public ChunkMap Chunks { get; } = new();
+
+    /// <summary>
+    /// §156: такт slow-слоя, зеркало <c>SimulationSettings.SlowInterval</c>.
+    /// Ставит движок в конструкторе; сейв и снапшот его не несут — это
+    /// настройка прогона, а не состояние мира (как <see cref="RuntimeClock"/>).
+    /// <para>
+    /// Нужен там, где формула догона спрашивает «когда был предыдущий
+    /// slow-такт», а движка под рукой нет: интервал приходит из определения
+    /// мира и константой быть не может.
+    /// </para>
+    /// </summary>
+    public int SlowIntervalTicks { get; set; } = 16;
 
     public SimulationEventBuffer Events { get; } = new();
 
@@ -88,6 +104,17 @@ public sealed class WorldState
     // The authored opening outsider is not a wave; this counts 1, 2, ... only.
     public int RaidWavesSpawned { get; set; }
 
+    /// <summary>
+    /// §159: durable one-shot marker. It remains true after Masha's corpse is
+    /// buried or otherwise leaves the entity repository, so re-enabling the
+    /// companion on this save can never create a second incarnation.
+    /// </summary>
+    public bool MashaCompanionHasSpawned { get; set; }
+
+    /// <summary>§160 generic durable spawn markers; profile id is the key.</summary>
+    public System.Collections.Generic.HashSet<string> SpawnedCharacterPresets { get; } =
+        new(System.StringComparer.Ordinal);
+
     // §146: the scenario this world was created as. Stamped by WorldStateFactory
     // from the bootstrap, written into the save blob (v51) and compared on load
     // like the seed — a blob applied onto the wrong mode's worldgen would put
@@ -110,6 +137,12 @@ public sealed class WorldState
     // They count processed opportunities, not living arrivals (no backlog).
     public System.Collections.Generic.Dictionary<Agents.Faction, int>
         ColonyArrivalsProcessedByFaction { get; } = new();
+
+    // §157.7: сколько трёхдневных границ чужаков уже обработано у КАЖДОГО
+    // острова. Живой чужак острова съедает свою границу; глобальный
+    // RaidWavesSpawned в «Островах» не читается.
+    public System.Collections.Generic.Dictionary<Agents.Faction, int>
+        IslandOutsiderWavesByFaction { get; } = new();
 
     // Legacy shim over the Colony entry: the pre-§146 save layout (blob v40)
     // and the mode-0 call sites keep reading the single-camp cursor.
@@ -150,6 +183,8 @@ public sealed class WorldState
     public System.Collections.Generic.HashSet<Common.JunctionId> StrandedSeams { get; } = new();
 
     public int StrandedSeamsBuiltVersion { get; set; } = -1;
+
+    public int StrandedSeamsJournalCursor { get; set; }
 
     // Spec 40.18: sea junctions opened for swimming — a shallow ring the
     // pathfinder may cross at ~4x cost (a slow last resort).
@@ -212,6 +247,11 @@ public sealed class WorldState
     // TopologyVersion increments whenever junction blocking changes (walls).
     public int TopologyVersion { get; set; } = 1;
 
+    // §158.2: журнал изменений топологии — что именно менялось с прошлой
+    // версии. Потребители (связность, замурованные швы, кандидаты слотов)
+    // догоняют по нему точечно вместо полного обхода 2.5 млн узлов.
+    public TopologyJournal Topology { get; } = new();
+
     // §129: increments whenever a door opens or closes. Deliberately SEPARATE
     // from TopologyVersion: a closed door is behaviour, not topology (the
     // portal junction is never Blocked), so swinging a door must not force a
@@ -221,6 +261,24 @@ public sealed class WorldState
     public int DoorStateVersion { get; set; } = 1;
 
     public int ComponentsBuiltVersion { get; set; }
+
+    // §158.3: курсоры журнала для двух графов связности и размеры компонент
+    // прыжкового графа (нужны, чтобы при слиянии перекрашивать МЕНЬШУЮ).
+    public int ComponentsJournalCursor { get; set; }
+
+    public int ComponentsFlatJournalCursor { get; set; }
+
+    public System.Collections.Generic.Dictionary<int, int> JunctionComponentSizes { get; } = new();
+
+    public int NextJumpComponentId { get; set; } = 1;
+
+    public int NextFlatComponentId { get; set; } = 1;
+
+    // §158.3: спуски между плоскими компонентами со СЧЁТОМ рёбер в обе
+    // стороны — точечное удаление/добавление узла вычитает и прибавляет свои
+    // рёбра, а ребро компонент живёт, пока счёт больше нуля.
+    public System.Collections.Generic.Dictionary<int,
+        System.Collections.Generic.Dictionary<int, int>> FlatDescendEdgesIn { get; } = new();
 
     public System.Collections.Generic.Dictionary<JunctionId, int> JunctionComponents { get; } = new();
 
@@ -257,7 +315,7 @@ public sealed class WorldState
     // Строятся в RebuildFlat, замыкание над ними считает Connectivity по
     // требованию. Кэш, не сейв.
     public System.Collections.Generic.Dictionary<int,
-        System.Collections.Generic.HashSet<int>> FlatDescendEdges { get; } = new();
+        System.Collections.Generic.Dictionary<int, int>> FlatDescendEdges { get; } = new();
 
     // Spec §26.6A r4: the junctions closed by an OBJECT FOOTPRINT (a palm trunk,
     // the fire's ember ring, a bed) — as opposed to TERRAIN (a cliff face, a hut

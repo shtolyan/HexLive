@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Agents.Effects;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
@@ -60,6 +61,8 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _outsiderRosterSection;
         private Label _clanRosterHeader;
         private Label _outsiderRosterHeader;
+        private int _visibleClanRosterCount;
+        private int _totalClanRosterCount;
         private int _rosterTick = int.MinValue;
         private bool _rosterVisibilityReady;
         private readonly List<RosterBinding> _rosterBindings = new();
@@ -212,6 +215,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _inventoryMutable;
         private string _invDraggedId;
         private bool _invDraggedWorn;
+        private int _invDraggedSourceIndex = -1;
         private bool _inventoryOpen;
         private string _invSig;               // rebuild the list only on change
         private string _invSelectedId;        // item shown in the detail view
@@ -230,6 +234,7 @@ namespace HexLive.UnityPresentation.UI
         private bool _invPreviewRotated;
         private string _invPointerItemId;
         private bool _invPointerItemWorn;
+        private int _invPointerSourceIndex = -1;
         private int _invPointerId = -1;
         private Vector2 _invPointerDownPosition;
         private bool _invPointerMoved;
@@ -261,7 +266,7 @@ namespace HexLive.UnityPresentation.UI
         private const float InventoryLayerBarGap = 8f;
         private const float InventoryDragThreshold = 6f;
         private Dictionary<string, float> _invWornDurability = new();
-        private Dictionary<string, WaterContainerState> _invCarriedWater = new();
+        private Dictionary<int, WaterContainerState> _invCarriedWater = new();
         private Dictionary<string, int> _invCarriedStacks = new();
         private Dictionary<string, float> _invWornWetness = new();
         private Dictionary<string, float> _invWornDirtiness = new();
@@ -293,8 +298,10 @@ namespace HexLive.UnityPresentation.UI
 
         private struct WaterContainerState
         {
+            public string ItemId;
             public float Amount;
             public float Capacity;
+            public WaterKind Kind;
         }
 
         // Static (re-labeled on language change)
@@ -592,17 +599,20 @@ namespace HexLive.UnityPresentation.UI
         {
             NpcSelection.SelectionChanged += OnSelectionChanged;
             Loc.LanguageChanged += ApplyLanguage;
+            EnableAgentVoice();
         }
 
         private void OnDisable()
         {
             NpcSelection.SelectionChanged -= OnSelectionChanged;
             Loc.LanguageChanged -= ApplyLanguage;
+            DisableAgentVoice();
         }
 
         private void Update()
         {
             UpdateDiagnostics();
+            TickAgentVoice();
 
             if (_runner == null)
             {
@@ -743,6 +753,7 @@ namespace HexLive.UnityPresentation.UI
             CloseInventory(); // a new/cleared selection resets the backpack
             CloseHealth();    // …and the limb-health window
             CloseJournal();   // …and the journal (§136)
+            ResetAgentVoiceSelection();
             if (_shown)
             {
                 _stage.style.display = DisplayStyle.Flex;
@@ -904,6 +915,7 @@ namespace HexLive.UnityPresentation.UI
             // сказать «у неё что-то случилось» до того, как окно откроют.
             UpdateJournalBadge(snapshot, npc);
             RefreshJournal(snapshot, npc);
+            RefreshAgentVoice(npc);
         }
 
         private void BindPortrait(int npcId)
@@ -3813,7 +3825,11 @@ namespace HexLive.UnityPresentation.UI
                         var stillValid = refreshedIndex >= 0 &&
                             refreshedIndex < npc.WornItems.Count &&
                             npc.WornItems[refreshedIndex] == _invSelectedId;
-                        if (!stillValid) refreshedIndex = -1;
+                        if (refreshedIndex >= 0 && !stillValid)
+                        {
+                            HideItemDetail();
+                            return;
+                        }
                     }
                     else
                     {
@@ -3821,9 +3837,10 @@ namespace HexLive.UnityPresentation.UI
                             npc.InventoryContainers.Exists(c => c.Slots.Exists(s =>
                                 s.SourceIndex == refreshedIndex &&
                                 s.ItemDefinitionId == _invSelectedId));
-                        if (!stillValid)
+                        if (refreshedIndex >= 0 && !stillValid)
                         {
-                            refreshedIndex = FindCarriedSourceIndex(npc, _invSelectedId);
+                            HideItemDetail();
+                            return;
                         }
                     }
 
@@ -3842,7 +3859,7 @@ namespace HexLive.UnityPresentation.UI
             NpcSnapshot npc,
             Dictionary<string, float> wornDurability,
             Dictionary<string, float> carriedDurability,
-            Dictionary<string, WaterContainerState> carriedWater,
+            Dictionary<int, WaterContainerState> carriedWater,
             Dictionary<string, int> carriedStacks,
             Dictionary<string, float> wornWetness,
             Dictionary<string, float> carriedWetness,
@@ -3908,7 +3925,8 @@ namespace HexLive.UnityPresentation.UI
                     result.Append('[').Append(slot.Index).Append(':').Append(slot.SourceIndex)
                         .Append(':').Append(slot.ItemDefinitionId)
                         .Append(':').Append(slot.StackCount).Append(':')
-                        .Append(slot.AcceptedItemDefinitionId).Append(']');
+                        .Append(slot.ResourceAmount).Append(':').Append((int)slot.WaterKind)
+                        .Append(':').Append(slot.AcceptedItemDefinitionId).Append(']');
                 }
                 result.Append('|');
             }
@@ -3919,7 +3937,7 @@ namespace HexLive.UnityPresentation.UI
             NpcSnapshot npc,
             InventorySlotSnapshot slot,
             Dictionary<string, float> carriedDurability,
-            Dictionary<string, WaterContainerState> carriedWater,
+            Dictionary<int, WaterContainerState> carriedWater,
             Dictionary<string, int> carriedStacks,
             Dictionary<string, float> carriedWetness,
             Dictionary<string, float> carriedDirtiness)
@@ -4039,7 +4057,7 @@ namespace HexLive.UnityPresentation.UI
             string itemId,
             int sourceIndex,
             Dictionary<string, float> durability,
-            Dictionary<string, WaterContainerState> water,
+            Dictionary<int, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness)
@@ -4130,7 +4148,7 @@ namespace HexLive.UnityPresentation.UI
             string id,
             bool worn,
             Dictionary<string, float> durability,
-            Dictionary<string, WaterContainerState> water,
+            Dictionary<int, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
@@ -4176,7 +4194,7 @@ namespace HexLive.UnityPresentation.UI
 
             BuildItemStats(
                 def, info, worn, durability, water, stacks, wetness, dirtiness,
-                ResolveInventoryOwnerId(id, worn, sourceIndex));
+                sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex));
 
             var wearable = def != null && def.Layer.HasValue;
             var outfitChangeBlocked = _outfitLockedNow && (worn || wearable);
@@ -4187,7 +4205,8 @@ namespace HexLive.UnityPresentation.UI
                 ? DisplayStyle.Flex : DisplayStyle.None;
             // §55.4 (bug #317): «Наполнить» — только у неполной бутылки, когда
             // в карманах есть кокосовая вода для перелива.
-            _invFillAction.style.display = _inventoryMutable && CanFillVessel(id, worn, water)
+            _invFillAction.style.display = _inventoryMutable &&
+                CanFillVessel(id, worn, water, sourceIndex)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invFillActionLabel.text = Loc.Get("inv.action.fill");
             _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
@@ -4205,20 +4224,29 @@ namespace HexLive.UnityPresentation.UI
 
         // §55.4 (bug #317): «Наполнить» доступна у неполной бутылки при
         // кокосовой воде в карманах — зеркало симового VesselTransferMath
-        // по данным снапшота (InventoryWater: id -> amount/capacity).
+        // по данным снапшота (InventoryWater: physical source index -> state).
         private static bool CanFillVessel(
-            string id, bool worn, Dictionary<string, WaterContainerState> water)
+            string id, bool worn, Dictionary<int, WaterContainerState> water,
+            int sourceIndex)
         {
             if (worn || id != GearCatalog.Bottle)
             {
                 return false;
             }
 
-            var hasRoom = !water.TryGetValue(GearCatalog.Bottle, out var bottle) ||
-                bottle.Amount < bottle.Capacity;
-            return hasRoom &&
-                water.TryGetValue("food.coconut_pierced", out var coconut) &&
-                coconut.Amount > 0f;
+            var hasRoom = !water.TryGetValue(sourceIndex, out var bottle) ||
+                (bottle.Amount < bottle.Capacity &&
+                 (bottle.Amount <= 0f || bottle.Kind == WaterKind.Coconut));
+            if (!hasRoom) return false;
+            foreach (var state in water.Values)
+            {
+                if (state.ItemId == "food.coconut_pierced" && state.Amount > 0f)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void EnqueueFillVessel()
@@ -4290,7 +4318,7 @@ namespace HexLive.UnityPresentation.UI
             string itemId,
             bool worn,
             Dictionary<string, float> durability,
-            Dictionary<string, WaterContainerState> water,
+            Dictionary<int, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
@@ -4346,6 +4374,7 @@ namespace HexLive.UnityPresentation.UI
             ClearInventoryDrag();
             _invPointerItemId = itemId;
             _invPointerItemWorn = worn;
+            _invPointerSourceIndex = sourceIndex;
             _invPointerId = evt.pointerId;
             _invPointerDownPosition = new Vector2(evt.position.x, evt.position.y);
             _invPointerMoved = false;
@@ -4396,7 +4425,8 @@ namespace HexLive.UnityPresentation.UI
             _invPointerMoved = true;
             if (_inventoryMutable)
             {
-                BeginInventoryDrag(_invPointerItemId, _invPointerItemWorn);
+                BeginInventoryDrag(
+                    _invPointerItemId, _invPointerItemWorn, _invPointerSourceIndex);
             }
         }
 
@@ -4413,10 +4443,11 @@ namespace HexLive.UnityPresentation.UI
             return true;
         }
 
-        private void BeginInventoryDrag(string itemId, bool worn)
+        private void BeginInventoryDrag(string itemId, bool worn, int sourceIndex)
         {
             _invDraggedId = itemId;
             _invDraggedWorn = worn;
+            _invDraggedSourceIndex = sourceIndex;
         }
 
         private void CompleteInventoryDrag(InventoryAction action)
@@ -4424,6 +4455,7 @@ namespace HexLive.UnityPresentation.UI
             if (_invDraggedId == null) return;
             _invSelectedId = _invDraggedId;
             _invSelectedWorn = _invDraggedWorn;
+            _invSelectedSourceIndex = _invDraggedSourceIndex;
             EnqueueInventoryAction(action);
             ClearInventoryDrag();
         }
@@ -4432,8 +4464,10 @@ namespace HexLive.UnityPresentation.UI
         {
             _invDraggedId = null;
             _invDraggedWorn = false;
+            _invDraggedSourceIndex = -1;
             _invPointerItemId = null;
             _invPointerItemWorn = false;
+            _invPointerSourceIndex = -1;
             _invPointerDoubleClick = false;
             _invPointerId = -1;
             _invPointerMoved = false;
@@ -4446,10 +4480,11 @@ namespace HexLive.UnityPresentation.UI
             ItemInfo info,
             bool worn,
             Dictionary<string, float> durability,
-            Dictionary<string, WaterContainerState> water,
+            Dictionary<int, WaterContainerState> water,
             Dictionary<string, int> stacks,
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
+            int sourceIndex,
             int ownerId)
         {
             _invDetailStats.Clear();
@@ -4468,7 +4503,8 @@ namespace HexLive.UnityPresentation.UI
                     Loc.Get("inv.stack"), $"x{stackCount}", CategoryColor(ItemCategory.Resource)));
             }
 
-            if (!worn && water.TryGetValue(info.DefinitionId, out var waterState))
+            if (!worn && water.TryGetValue(sourceIndex, out var waterState) &&
+                waterState.ItemId == info.DefinitionId)
             {
                 _invDetailStats.Add(MakeWaterContainerBlock(info.DefinitionId, waterState));
             }
@@ -5012,34 +5048,51 @@ namespace HexLive.UnityPresentation.UI
             return map;
         }
 
-        // Parse "definitionId\tamountLiters\tcapacityLiters" entries for
-        // portable water containers (bottle and pierced coconut).
-        private static Dictionary<string, WaterContainerState> ParseWaterKv(List<string> pairs)
+        // Parse "sourceIndex\tdefinitionId\tamount\tcapacity\twaterKind".
+        // The source index distinguishes physical bottles with different water.
+        private static Dictionary<int, WaterContainerState> ParseWaterKv(List<string> pairs)
         {
-            var map = new Dictionary<string, WaterContainerState>();
+            var map = new Dictionary<int, WaterContainerState>();
             foreach (var raw in pairs)
             {
                 var parts = raw.Split('\t');
-                if (parts.Length < 3)
+                if (parts.Length < 4 ||
+                    !int.TryParse(
+                        parts[0],
+                        System.Globalization.NumberStyles.Integer,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var sourceIndex))
                 {
                     continue;
                 }
 
                 if (float.TryParse(
-                        parts[1],
+                        parts[2],
                         System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture,
                         out var amount) &&
                     float.TryParse(
-                        parts[2],
+                        parts[3],
                         System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture,
                         out var capacity))
                 {
-                    map[parts[0]] = new WaterContainerState
+                    var kind = WaterKind.None;
+                    if (parts.Length >= 5 && int.TryParse(
+                            parts[4],
+                            System.Globalization.NumberStyles.Integer,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out var kindOrdinal))
                     {
+                        kind = (WaterKind)kindOrdinal;
+                    }
+
+                    map[sourceIndex] = new WaterContainerState
+                    {
+                        ItemId = parts[1],
                         Amount = amount,
-                        Capacity = capacity
+                        Capacity = capacity,
+                        Kind = kind
                     };
                 }
             }
@@ -5141,7 +5194,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void UpdateRelations(NpcSnapshot npc)
         {
-            if (npc.RelationshipDetails.Count == 0)
+            var hasPlayerVoiceBond = _agentRelationReady && _agentAttachedNpcId == npc.Id.Value;
+            if (npc.RelationshipDetails.Count == 0 && !hasPlayerVoiceBond)
             {
                 if (_relationsBuiltEmpty)
                 {
@@ -5161,6 +5215,18 @@ namespace HexLive.UnityPresentation.UI
             var relations = _relationScratch;
             relations.Clear();
             relations.AddRange(npc.RelationshipDetails);
+            if (hasPlayerVoiceBond)
+            {
+                relations.Add(new RelationshipSnapshot
+                {
+                    OtherId = -159,
+                    OtherName = _agentVoiceName,
+                    Familiarity = _agentFamiliarity,
+                    Trust = _agentTrust,
+                    Affinity = _agentAffinity,
+                    LastInteractionTick = _agentRelationTick
+                });
+            }
             relations.Sort((a, b) =>
             {
                 var byRecent = b.LastInteractionTick.CompareTo(a.LastInteractionTick);
@@ -5798,7 +5864,7 @@ namespace HexLive.UnityPresentation.UI
             var otherId = rel.OtherId;
             chip.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(chip, GoldDim));
             chip.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(chip, Stroke));
-            chip.RegisterCallback<MouseDownEvent>(_ => NpcSelection.Select(otherId));
+            chip.RegisterCallback<MouseDownEvent>(_ => NpcSelection.Activate(otherId));
 
             return chip;
         }
@@ -5888,6 +5954,7 @@ namespace HexLive.UnityPresentation.UI
             BuildInventoryWindow();
             BuildHealthWindow();
             BuildJournalWindow(); // §136
+            BuildAgentSubtitleOverlay(); // §160
             BuildRoster();
         }
 
@@ -6079,7 +6146,7 @@ namespace HexLive.UnityPresentation.UI
                 }
                 portrait.RegisterCallback<MouseDownEvent>(evt =>
                 {
-                    NpcSelection.Replace(actorId, requestFrame: true);
+                    NpcSelection.Activate(actorId);
                     evt.StopPropagation();
                 });
                 _groupPortraits.Add(portrait);
@@ -6203,6 +6270,8 @@ namespace HexLive.UnityPresentation.UI
             _outsiderRosterList.Clear();
 
             var visibleOutsiders = 0;
+            var visibleClan = 0;
+            var totalClan = 0;
 
             // Bug #337: звезда «наш персонаж» имеет смысл только при
             // ВЫБОРОЧНОМ управлении (сервер: выдана одна девушка из лагеря).
@@ -6225,6 +6294,8 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (npc.Health <= 0f) continue;
                 var owned = _runner != null && _runner.CanControlNpc(npc.Id);
+                var clan = PlayerCampView.IsMine(_runner, snapshot, npc);
+                if (clan) totalClan++;
                 if (!owned && (_worldRenderer == null ||
                     !_worldRenderer.IsNpcPickable(npc.Id.Value, npc.Tile, false)))
                 {
@@ -6238,8 +6309,11 @@ namespace HexLive.UnityPresentation.UI
                 // Colony2..Colony6 все соседи падали в «Чужаки». Лагерь
                 // выводится из фракции выданной девушки (PlayerCampView);
                 // фолбэк Colony сохраняет анонимного зрителя и локальную игру.
-                if (owned || npc.Faction == PlayerCampView.Of(_runner, snapshot))
+                if (clan)
+                {
                     _clanRosterList.Add(card);
+                    visibleClan++;
+                }
                 else
                 {
                     _outsiderRosterList.Add(card);
@@ -6247,12 +6321,25 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
+            _visibleClanRosterCount = visibleClan;
+            _totalClanRosterCount = totalClan;
+            RefreshClanRosterHeader();
+
             if (_outsiderRosterSection != null)
             {
                 _outsiderRosterSection.style.display = visibleOutsiders > 0
                     ? DisplayStyle.Flex
                     : DisplayStyle.None;
             }
+        }
+
+        private void RefreshClanRosterHeader()
+        {
+            if (_clanRosterHeader == null) return;
+            _clanRosterHeader.text = string.Format(
+                Loc.Get("roster.clan_count"),
+                _visibleClanRosterCount,
+                _totalClanRosterCount);
         }
 
         private bool _selectiveControl;
@@ -6355,7 +6442,8 @@ namespace HexLive.UnityPresentation.UI
             {
                 var shift = Keyboard.current != null &&
                     (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
-                if (controllable && shift) NpcSelection.Toggle(actorId);
+                if (controllable && shift)
+                    NpcSelection.Toggle(actorId, requestFrame: false);
                 else NpcSelection.Activate(actorId);
                 evt.StopPropagation();
             });
@@ -6831,6 +6919,7 @@ namespace HexLive.UnityPresentation.UI
             col.Add(BuildStopButton());
             col.Add(BuildInventoryButton());
             col.Add(BuildJournalButton()); // §136: под рюкзаком у правого края
+            col.Add(BuildAgentVoiceButton()); // §160: visible for any attached MCP agent
 
             // Why a manual order failed: a transient note above the combined
             // vitals module, never over the actor's face or the readouts.
@@ -7048,7 +7137,10 @@ namespace HexLive.UnityPresentation.UI
             _runByDefaultNow = npc.RunByDefault;
             if (!_controlAvailable)
             {
-                _paceButton.tooltip = Loc.Get("panel.control.readonly");
+                var agentControlled = _runner != null &&
+                    _runner.TryGetAgentState(npc.Id, out var agent) && agent.Attached;
+                _paceButton.tooltip = Loc.Get(agentControlled
+                    ? "panel.control.agent" : "panel.control.readonly");
                 _paceWalkSegment.style.backgroundColor = Color.clear;
                 _paceRunSegment.style.backgroundColor = Color.clear;
                 _paceWalkGlyph.style.color = TextMute;
@@ -7137,8 +7229,10 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
+            var agentControlled = _runner != null &&
+                _runner.TryGetAgentState(npc.Id, out var attachedAgent) && attachedAgent.Attached;
             var available = _runner != null && _runner.SupportsNpcCommands &&
-                _runner.CanControlNpc(npc.Id) && npc.Health > 0f;
+                _runner.CanControlNpc(npc.Id) && npc.Health > 0f && !agentControlled;
             _controlAvailable = available;
             var readable = _runner != null;
             _controlButton.style.display = readable ? DisplayStyle.Flex : DisplayStyle.None;
@@ -7148,7 +7242,8 @@ namespace HexLive.UnityPresentation.UI
             }
             if (!available)
             {
-                _controlButton.tooltip = Loc.Get("panel.control.readonly");
+                _controlButton.tooltip = Loc.Get(agentControlled
+                    ? "panel.control.agent" : "panel.control.readonly");
                 _controlAiSegment.style.backgroundColor = Color.clear;
                 _controlPlayerSegment.style.backgroundColor = Color.clear;
                 _controlAiGlyph.style.color = TextMute;
@@ -7750,7 +7845,7 @@ namespace HexLive.UnityPresentation.UI
             _characterTitle.text = Loc.Get("panel.character");
             _relationsTitle.text = Loc.Get("panel.relations");
             if (_groupStopLabel != null) _groupStopLabel.text = Loc.Get("group.stop");
-            if (_clanRosterHeader != null) _clanRosterHeader.text = Loc.Get("roster.clan");
+            RefreshClanRosterHeader();
             if (_outsiderRosterHeader != null)
                 _outsiderRosterHeader.text = Loc.Get("roster.outsiders");
             if (_invDropActionLabel != null) _invDropActionLabel.text = Loc.Get("inv.action.drop");
@@ -7822,6 +7917,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             LocalizeJournal(); // §136
+            LocalizeAgentVoice(); // §160
 
             // Inventory window (spec §51) — static chrome + force a rebuild so
             // the item rows / open detail re-localize on the next refresh.

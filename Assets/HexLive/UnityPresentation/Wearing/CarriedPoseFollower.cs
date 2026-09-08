@@ -23,7 +23,7 @@ public sealed class CarriedPoseFollower : MonoBehaviour
     private PlayableGraph _graph;
     private AnimationClipPlayable _playable;
     private Transform _hips;
-    private int _handsCarrierId = -1;
+    private Animator _handsCarrierAnimator;
     private Transform _leftHand;
     private Transform _rightHand;
 
@@ -38,8 +38,22 @@ public sealed class CarriedPoseFollower : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (_carrierNpcId < 0 || _self == null || _self.RagdollActive ||
+        if (_self == null)
+        {
+            return;
+        }
+
+        if (_carrierNpcId < 0 || _self.RagdollActive ||
             !NpcActorView.TryGetLive(_carrierNpcId, out var carrierView))
+        {
+            // Streaming can temporarily remove/recreate the carrier view.
+            // A previously confirmed passenger must not remain visibly frozen
+            // at the old hands while there is no current attachment owner.
+            _self.DeferCorpseCarriedPose();
+            return;
+        }
+
+        if (!_self.PrepareCorpseCarriedPose())
         {
             return;
         }
@@ -49,6 +63,7 @@ public sealed class CarriedPoseFollower : MonoBehaviour
         if (animator == null || !animator.isHuman ||
             !CarryPoseVisuals.EnsureGraph(animator, clip, ref _graph, ref _playable))
         {
+            _self.DeferCorpseCarriedPose();
             return;
         }
 
@@ -66,11 +81,21 @@ public sealed class CarriedPoseFollower : MonoBehaviour
         animator.transform.SetPositionAndRotation(rootPosition, rootRotation);
 
         var carrierAnimator = carrierView.BodyAnimator;
-        if (carrierAnimator != null && _handsCarrierId != _carrierNpcId)
+        if (_handsCarrierAnimator != carrierAnimator)
+        {
+            // The streamed carrier can be destroyed and recreated with the
+            // same simulation id in one frame. Unity keeps the old transforms
+            // alive until end-of-frame, so npcId is not a sufficient cache
+            // key: never combine the new root basis with the old hands.
+            _handsCarrierAnimator = carrierAnimator;
+            _leftHand = null;
+            _rightHand = null;
+        }
+
+        if (carrierAnimator != null && (_leftHand == null || _rightHand == null))
         {
             _leftHand = carrierAnimator.GetBoneTransform(HumanBodyBones.LeftHand);
             _rightHand = carrierAnimator.GetBoneTransform(HumanBodyBones.RightHand);
-            _handsCarrierId = _carrierNpcId;
         }
 
         if (_hips == null)
@@ -78,18 +103,27 @@ public sealed class CarriedPoseFollower : MonoBehaviour
             _hips = animator.GetBoneTransform(HumanBodyBones.Hips);
         }
 
+        if (_hips == null || _leftHand == null || _rightHand == null)
+        {
+            // A transform/basis fallback is not a carried-pose confirmation:
+            // it puts the passenger near the carrier, not in her hands.
+            _self.DeferCorpseCarriedPose();
+            return;
+        }
+
         // Anchor: hips to the midpoint of the carrier's hands. The hands come
         // from the Carrying clip, so the body travels with her walk, run and
         // hex-step jump for free; the offset axes stay in the carrier's own
         // facing so a swinging arm cannot spin the passenger.
-        var origin = _leftHand != null && _rightHand != null
-            ? (_leftHand.position + _rightHand.position) * 0.5f
-            : basis.position;
+        var origin = (_leftHand.position + _rightHand.position) * 0.5f;
         var target = origin + basis.TransformVector(CarryPoseVisuals.PatientOffsetPosition);
-        if (_hips != null)
-        {
-            animator.transform.position += target - _hips.position;
-        }
+        animator.transform.position += target - _hips.position;
+
+        // Bug #354: SetCorpseCarried keeps a dead passenger hidden until this
+        // exact point. Animator.enabled only proves that a controller exists;
+        // this callback proves that the BeingCarried graph really wrote its
+        // final pose and attached it to the carrier.
+        _self.ConfirmCorpseCarriedPose();
     }
 
     private void OnDestroy()

@@ -124,6 +124,9 @@ namespace HexLive.UnityPresentation.UI
             new(HexLive.Simulation.Bootstrap.GameMode.Maniac,
                 "menu.newgame.mode.maniac", "menu.newgame.mode.maniac.description",
                 "art-maniac"),
+            new(HexLive.Simulation.Bootstrap.GameMode.Islands,
+                "menu.newgame.mode.islands", "menu.newgame.mode.islands.description",
+                "art-islands"),
         };
 
         private VisualElement _root;
@@ -332,6 +335,17 @@ namespace HexLive.UnityPresentation.UI
             card.Add(MakeMenuRow("plus", Loc.Get("menu.newgame"),
                 primary: false, enabled: true, () => ToggleNewGameBox()));
             _newGameBox = BuildNewGameBox();
+            card.Add(MakeMenuRow("plus", Loc.Get("lobby.title"),
+                primary: false, enabled: true, () => new ServerWorldLobby(_root, this, (url, token) =>
+                {
+                    ServerBook.RememberToken(token);
+                    SessionConfig.UseServer(url, token);
+                    ServerBook.Remember(url);
+                    _connectChosen = true;
+                    _continueChosen = false;
+                    _menuChosen = true;
+                })));
+
 
             // Watch a world running on a server instead of building one here.
             // The row expands into an address field rather than opening another
@@ -849,6 +863,8 @@ namespace HexLive.UnityPresentation.UI
                     HexLive.Simulation.Bootstrap.GameMode.HugeIsland,
                 (int)HexLive.Simulation.Bootstrap.GameMode.Maniac =>
                     HexLive.Simulation.Bootstrap.GameMode.Maniac,
+                (int)HexLive.Simulation.Bootstrap.GameMode.Islands =>
+                    HexLive.Simulation.Bootstrap.GameMode.Islands,
                 _ => HexLive.Simulation.Bootstrap.GameMode.Feud
             };
             SelectNewGameMode(_newGameMode);

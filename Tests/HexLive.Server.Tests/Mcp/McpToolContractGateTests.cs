@@ -27,6 +27,34 @@ namespace HexLive.Server.Tests.Mcp
 [NonParallelizable]
 public sealed class McpToolContractGateTests
 {
+    [Test]
+    public void CarryStateIsExposedAndLeaseReleaseReallyPutsPatientDown()
+    {
+        using var host = CreateHost();
+        var tools = new McpTools(host, new ControlLeases(45), SpecLibrary.Discover(null));
+        var ids = host.Read(w => w.Entities.Npcs.Keys.Select(id => id.Value).OrderBy(id => id).Take(2).ToArray());
+        JsonElement Args(object value) => JsonSerializer.SerializeToElement(value);
+        var acquired = tools.Call("acquire_npc_control", Args(new { npcId = ids[0] }), "mcp:carry", out var error);
+        Assert.That(error, Is.False, acquired);
+        host.Read(w =>
+        {
+            var carrier = w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(ids[0])];
+            var patient = w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(ids[1])];
+            carrier.CarriedNpcId = patient.Id;
+            patient.CarriedByNpcId = carrier.Id;
+            return true;
+        });
+        using var described = JsonDocument.Parse(tools.Call("describe_colonist", Args(new { npcId = ids[0] }), "mcp:carry", out error));
+        Assert.That(described.RootElement.GetProperty("carriedNpcId").GetInt32(), Is.EqualTo(ids[1]));
+        using var listed = JsonDocument.Parse(tools.Call("list_colonists", EmptyArguments(), "mcp:carry", out error));
+        var row = listed.RootElement.GetProperty("colonists").EnumerateArray().Single(r => r.GetProperty("npcId").GetInt32() == ids[0]);
+        Assert.That(row.GetProperty("carriedNpcId").GetInt32(), Is.EqualTo(ids[1]));
+        tools.Call("release_control", Args(new { npcId = ids[0] }), "mcp:carry", out error);
+        Assert.That(error, Is.False);
+        Assert.That(host.Read(w => w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(ids[0])].CarriedNpcId), Is.Null);
+        Assert.That(host.Read(w => w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(ids[1])].CarriedByNpcId), Is.Null);
+    }
+
     /// <summary>
     /// Поля, которые описания обещают агенту прямо текстом. Список ведётся
     /// руками СОЗНАТЕЛЬНО: обещание — решение автора описания, и вписать сюда

@@ -49,8 +49,8 @@ public static class BuildingDoorRules
         }
 
         door.IsDoorOpen = open;
-        portal.Door = true;
-        portal.Blocked = false;
+        WorldTopology.SetDoor(world, portal, true);
+        WorldTopology.SetBlocked(world, portal, false);
         door.BlockedJunctions.Remove(portalId);
         world.DoorStateVersion++;
         return true;

@@ -34,8 +34,9 @@ public sealed class HandPropFallbackContractTests
             Assert.That(wait, Is.GreaterThan(request));
             Assert.That(model, Is.GreaterThan(wait),
                 "Known gear must not be instantiated before its authored grip is ready.");
-            Assert.That(library, Does.Contain(
-                "AtomicResources.Load<GearConfig>(\n                \"HexLive/Objects/\" + gearId)"));
+            Assert.That(library, Does.Match(
+                @"AtomicResources\.Load<GearConfig>\(\s*""HexLive/Objects/""\s*\+\s*gearId\)"),
+                "Atomic GearConfig ownership must not depend on source indentation.");
             Assert.That(library, Does.Contain("GearCatalog.Defaults.ContainsKey(gearId)"));
         });
     }

@@ -1,0 +1,367 @@
+using System.Collections.Generic;
+using System.IO;
+using HexLive.Simulation.Common;
+using HexLive.Simulation.Core;
+using HexLive.Simulation.Persistence;
+using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
+using NUnit.Framework;
+
+namespace HexLive.Simulation.Tests.Behavior
+{
+
+/// <summary>
+/// §156 фаза 1: решётка чанков, активный набор и окно догона. Поведение мира
+/// эти тесты не трогают — механика выключена, и главное здесь именно то, что
+/// при выключенном тумблере всё отвечает «как раньше».
+/// </summary>
+public sealed class ChunkGeometryTests
+{
+    /// <summary>
+    /// Усечённое деление склеило бы Q ∈ [-7..7] в один чанк вдвое шире прочих —
+    /// и ровно на нулевом меридиане, где стоит стартовый лагерь.
+    /// </summary>
+    [Test]
+    public void FloorDivRoundsTowardsMinusInfinity()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ChunkMath.FloorDiv(0, 8), Is.EqualTo(0));
+            Assert.That(ChunkMath.FloorDiv(7, 8), Is.EqualTo(0));
+            Assert.That(ChunkMath.FloorDiv(8, 8), Is.EqualTo(1));
+            Assert.That(ChunkMath.FloorDiv(-1, 8), Is.EqualTo(-1));
+            Assert.That(ChunkMath.FloorDiv(-8, 8), Is.EqualTo(-1));
+            Assert.That(ChunkMath.FloorDiv(-9, 8), Is.EqualTo(-2));
+        });
+    }
+
+    /// <summary>Каждый чанк накрывает РОВНО сторону тайлов, включая отрицательные.</summary>
+    [Test]
+    public void EveryChunkCoversExactlyChunkSizeTilesPerAxis()
+    {
+        var size = ChunkBalance.ChunkSizeTiles;
+        var counts = new Dictionary<ChunkCoord, int>();
+        for (var q = -3 * size; q < 3 * size; q++)
+        {
+            for (var r = -3 * size; r < 3 * size; r++)
+            {
+                var chunk = ChunkMath.ChunkOf(new TileCoord(q, r));
+                counts.TryGetValue(chunk, out var seen);
+                counts[chunk] = seen + 1;
+            }
+        }
+
+        Assert.That(counts, Is.Not.Empty);
+        foreach (var pair in counts)
+        {
+            Assert.That(pair.Value, Is.EqualTo(size * size),
+                $"чанк {pair.Key} накрыл {pair.Value} тайлов вместо {size * size}");
+        }
+    }
+
+    /// <summary>
+    /// Активный набор обязан накрыть ВЕСЬ диск пробуждения каждой NPC: чанк,
+    /// оставшийся спящим внутри чьего-то радиуса, — это ровно то враньё, ради
+    /// запрета которого узаконено пере-покрытие по углам.
+    /// </summary>
+    [Test]
+    public void ActiveSetCoversEveryTileWithinEachNpcWakeRadius()
+    {
+        var previous = ChunkBalance.ChunkSleepEnabled;
+        ChunkBalance.ChunkSleepEnabled = true;
+        try
+        {
+            var world = TestWorld.CreateEngine().World;
+            ChunkMath.RebuildActiveChunks(world);
+
+            foreach (var npc in world.Entities.Npcs.Values)
+            {
+                if (npc.Health <= 0f)
+                {
+                    continue;
+                }
+
+                var radius = ChunkMath.WakeRadiusTiles(npc);
+                for (var dq = -radius; dq <= radius; dq++)
+                {
+                    for (var dr = -radius; dr <= radius; dr++)
+                    {
+                        var tile = new TileCoord(npc.Tile.Q + dq, npc.Tile.R + dr);
+                        if (HexSpatialMath.HexDistance(npc.Tile, tile) > radius)
+                        {
+                            continue;
+                        }
+
+                        Assert.That(ChunkMath.IsAwake(world, tile), Is.True,
+                            $"тайл {tile} в {radius} гексах от NPC {npc.Id.Value} остался спящим");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            ChunkBalance.ChunkSleepEnabled = previous;
+        }
+    }
+
+    /// <summary>
+    /// ⭐ Самая опасная деталь §156.6. При выключенной механике штампов нет, и
+    /// наивный возврат нуля заставил бы формулы догона интегрировать погоду с
+    /// сотворения мира — то есть наполнил бы бутылку из ничего на первом же
+    /// такте. Окно обязано быть ровно одним slow-тактом.
+    /// </summary>
+    [Test]
+    public void SleepWindowIsOneSlowTickWhileChunkSleepIsOff()
+    {
+        var previous = ChunkBalance.ChunkSleepEnabled;
+        ChunkBalance.ChunkSleepEnabled = false;
+        try
+        {
+            var engine = TestWorld.CreateEngine();
+            var world = engine.World;
+            world.Tick = 4096;
+
+            var start = ChunkMath.SleepWindowStart(world, new TileCoord(999, -999));
+            Assert.That(world.SlowIntervalTicks, Is.EqualTo(engine.Settings.SlowInterval));
+            Assert.That(world.Tick - start, Is.EqualTo(world.SlowIntervalTicks));
+        }
+        finally
+        {
+            ChunkBalance.ChunkSleepEnabled = previous;
+        }
+    }
+
+    /// <summary>
+    /// §156.11: механика включена по умолчанию. Тест не про вкус, а про то,
+    /// что выключенная ветка остаётся ЖИВЫМ A/B-ключом соака: обе стороны
+    /// сравнения обязаны существовать, иначе «выключить и проверить» перестанет
+    /// работать ровно тогда, когда понадобится.
+    /// </summary>
+    [Test]
+    public void ChunkSleepShipsEnabled()
+    {
+        Assert.That(ChunkBalance.ChunkSleepEnabled, Is.True);
+    }
+
+    /// <summary>Штамп ставится только на активные чанки и только при включённой механике.</summary>
+    [Test]
+    public void StampRecordsCurrentTickForActiveChunksOnly()
+    {
+        var previous = ChunkBalance.ChunkSleepEnabled;
+        ChunkBalance.ChunkSleepEnabled = true;
+        try
+        {
+            var world = TestWorld.CreateEngine().World;
+            world.Tick = 640;
+            ChunkMath.RebuildActiveChunks(world);
+            ChunkMath.StampSimulated(world);
+
+            Assert.That(world.Chunks.Items, Is.Not.Empty);
+            Assert.That(world.Chunks.Items.Count,
+                Is.EqualTo(world.Caches.ActiveChunks.Count));
+            foreach (var pair in world.Chunks.Items)
+            {
+                Assert.That(pair.Value.LastSimulatedTick, Is.EqualTo(640));
+            }
+
+            // Далёкий чанк записи не получил. §156.1: такой считается СВЕЖИМ,
+            // а не проспавшим с сотворения мира — иначе первый визит в
+            // нетронутый край выдал бы всему, что там лежит, возраст мира.
+            var far = new TileCoord(4096, 4096);
+            Assert.That(ChunkMath.IsAwake(world, far), Is.False);
+            Assert.That(ChunkMath.SleepWindowStart(world, far),
+                Is.EqualTo(world.Tick - world.SlowIntervalTicks));
+            Assert.That(ChunkMath.SleptSlowTicks(world, far), Is.Zero);
+        }
+        finally
+        {
+            ChunkBalance.ChunkSleepEnabled = previous;
+        }
+    }
+
+    /// <summary>
+    /// ⭐ Индекс «объекты по чанкам» обязан совпадать с ростером — всегда. Он
+    /// поддерживается по месту в трёх точках (spawn, despawn, перенос), и
+    /// забытая точка означает объект-призрак: система его либо не увидит вовсе,
+    /// либо увидит дважды. Прогон гоняет живой мир, где всё это и случается.
+    /// </summary>
+    [Test]
+    public void ObjectIndexStaysInSyncWithTheRosterAcrossALiveRun()
+    {
+        var previous = ChunkBalance.ChunkSleepEnabled;
+        ChunkBalance.ChunkSleepEnabled = true;
+        try
+        {
+            var engine = TestWorld.CreateEngine();
+            var world = engine.World;
+            for (var i = 0; i < 1200; i++)
+            {
+                engine.Step();
+                if (world.Tick % world.SlowIntervalTicks != 0)
+                {
+                    continue;
+                }
+
+                AssertIndexMatchesRoster(world);
+            }
+        }
+        finally
+        {
+            ChunkBalance.ChunkSleepEnabled = previous;
+        }
+    }
+
+    /// <summary>
+    /// Индекс после загрузки совпадает с индексом мира, который жил без сейва:
+    /// перестройка идёт по словарю, чей порядок не наш, поэтому списки чанков
+    /// сортируются по id — иначе сохранение меняло бы порядок, в котором мир
+    /// получает плоды и хоронит трупы.
+    /// </summary>
+    [Test]
+    public void ObjectIndexIsOrderedByIdSoSaveLoadCannotReshuffleIt()
+    {
+        var previous = ChunkBalance.ChunkSleepEnabled;
+        ChunkBalance.ChunkSleepEnabled = true;
+        try
+        {
+            var engine = TestWorld.CreateEngine();
+            var world = engine.World;
+            for (var i = 0; i < 400; i++)
+            {
+                engine.Step();
+            }
+
+            var live = Snapshot(world);
+
+            // Перестройка «как после загрузки».
+            world.Caches.ObjectsByChunkSize = 0;
+            world.Caches.ObjectsByChunk.Clear();
+            ChunkMath.EnsureObjectIndex(world);
+
+            Assert.That(Snapshot(world), Is.EqualTo(live),
+                "перестроенный индекс разошёлся с накопленным по месту");
+            foreach (var pair in world.Caches.ObjectsByChunk)
+            {
+                for (var i = 1; i < pair.Value.Count; i++)
+                {
+                    Assert.That(pair.Value[i].Value, Is.GreaterThan(pair.Value[i - 1].Value),
+                        $"чанк {pair.Key}: список не по возрастанию id");
+                }
+            }
+        }
+        finally
+        {
+            ChunkBalance.ChunkSleepEnabled = previous;
+        }
+    }
+
+    private static void AssertIndexMatchesRoster(WorldState world)
+    {
+        var indexed = new List<ObjectId>();
+        foreach (var pair in world.Caches.ObjectsByChunk)
+        {
+            foreach (var id in pair.Value)
+            {
+                Assert.That(world.Entities.Objects.ContainsKey(id), Is.True,
+                    $"тик {world.Tick}: в индексе объект {id.Value}, которого нет в мире");
+                Assert.That(ChunkMath.ChunkOf(world.Entities.Objects[id].Tile),
+                    Is.EqualTo(pair.Key),
+                    $"тик {world.Tick}: объект {id.Value} лежит в чужом чанке");
+                indexed.Add(id);
+            }
+        }
+
+        Assert.That(indexed.Count, Is.EqualTo(world.Entities.Objects.Count),
+            $"тик {world.Tick}: в индексе {indexed.Count} объектов, в мире " +
+            $"{world.Entities.Objects.Count}");
+    }
+
+    private static string Snapshot(WorldState world)
+    {
+        var chunks = new List<ChunkCoord>(world.Caches.ObjectsByChunk.Keys);
+        chunks.Sort((a, b) => a.Cq != b.Cq ? a.Cq.CompareTo(b.Cq) : a.Cr.CompareTo(b.Cr));
+        var text = new System.Text.StringBuilder();
+        foreach (var chunk in chunks)
+        {
+            text.Append(chunk).Append(':');
+            foreach (var id in world.Caches.ObjectsByChunk[chunk])
+            {
+                text.Append(id.Value).Append(',');
+            }
+
+            text.Append(';');
+        }
+
+        return text.ToString();
+    }
+
+    /// <summary>Карта чанков переживает сейв — иначе весь остров «спал с нуля».</summary>
+    [Test]
+    public void ChunkMapSurvivesSaveRoundTrip()
+    {
+        var world = TestWorld.CreateWorld(4242);
+        world.Chunks.Items[new ChunkCoord(2, -3)] = new ChunkState { LastSimulatedTick = 512 };
+        world.Chunks.Items[new ChunkCoord(-1, 0)] = new ChunkState { LastSimulatedTick = 96 };
+
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        stream.Position = 0;
+        var loaded = TestWorld.CreateWorld(4242);
+        using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true);
+        WorldSaveSerializer.Read(loaded, reader);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loaded.Chunks.Items.Count, Is.EqualTo(2));
+            Assert.That(loaded.Chunks.Items[new ChunkCoord(2, -3)].LastSimulatedTick,
+                Is.EqualTo(512));
+            Assert.That(loaded.Chunks.Items[new ChunkCoord(-1, 0)].LastSimulatedTick,
+                Is.EqualTo(96));
+        });
+    }
+
+    /// <summary>
+    /// Байты сейва не зависят от порядка словаря: две карты с одинаковым
+    /// содержимым, наполненные в разном порядке, обязаны дать одинаковый блоб.
+    /// </summary>
+    [Test]
+    public void ChunkMapBytesDoNotDependOnDictionaryOrder()
+    {
+        var forward = TestWorld.CreateWorld(77);
+        var backward = TestWorld.CreateWorld(77);
+        var coords = new[]
+        {
+            new ChunkCoord(-2, 5), new ChunkCoord(0, 0),
+            new ChunkCoord(3, -1), new ChunkCoord(3, -9),
+        };
+
+        for (var i = 0; i < coords.Length; i++)
+        {
+            forward.Chunks.Items[coords[i]] = new ChunkState { LastSimulatedTick = 16 * (i + 1) };
+        }
+
+        for (var i = coords.Length - 1; i >= 0; i--)
+        {
+            backward.Chunks.Items[coords[i]] = new ChunkState { LastSimulatedTick = 16 * (i + 1) };
+        }
+
+        Assert.That(Blob(backward), Is.EqualTo(Blob(forward)));
+    }
+
+    private static byte[] Blob(WorldState world)
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            WorldSaveSerializer.Write(world, writer);
+        }
+
+        return stream.ToArray();
+    }
+}
+
+}

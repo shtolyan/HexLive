@@ -40,6 +40,8 @@ public sealed class StuckDiagnosticSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     /// <summary>Что мы подозреваем и с какого тика.</summary>
     private struct Watch
     {

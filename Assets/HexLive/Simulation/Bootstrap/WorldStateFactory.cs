@@ -15,9 +15,10 @@ public sealed class WorldStateFactory
     private int _nextJunctionValue = 1;
     private readonly Dictionary<(int, int), JunctionId> _junctionsByKey = new();
 
-    public WorldState Create(WorldBootstrapDefinition bootstrap)
+    public WorldState Create(WorldBootstrapDefinition bootstrap, Action<WorldState> topologyReady = null)
     {
         var world = CreateTopology(bootstrap);
+        topologyReady?.Invoke(world);
         BuildStepDeltas(world);
 
         foreach (var objectBootstrap in bootstrap.Objects)
@@ -45,7 +46,7 @@ public sealed class WorldStateFactory
 
         // §54 cold start: the hearth is built, not given. One per camp: the
         // outsider raises and lights his through the very same chain.
-        if (bootstrap.FactionHomes.Count == 0)
+        if (bootstrap.FactionHomes.Count == 0 && bootstrap.CreationConfig == null)
         {
             CreateCampfireSite(world, new TileCoord(0, 4));
         }
@@ -66,7 +67,7 @@ public sealed class WorldStateFactory
         // §146.5: на большом острове ни одной готовой постройки — только
         // редактируемый чертёж Hut1Hex у каждого лагеря. ДО SeedHomeKnowledge:
         // сайт в 2-4 гексах от костра попадает в стартовую память лагеря.
-        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland or GameMode.Maniac)
+        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland or GameMode.Maniac or GameMode.Islands)
         {
             BuildingBootstrap.StakeCampHutPlans(world);
         }
@@ -199,7 +200,7 @@ public sealed class WorldStateFactory
             // random bra, one random pair of panties and one real backpack;
             // every outer garment and every tool has to be found in the world,
             // except the authored armor and machete of Maniac's player starter.
-            if (world.Mode is GameMode.HugeIsland or GameMode.Maniac)
+            if (world.Mode is GameMode.HugeIsland or GameMode.Maniac or GameMode.Islands)
             {
                 Wear(npc, startBackpacks, MathUtil.Hash01(world.Seed, id, 18, 4208));
                 if (world.Mode == GameMode.Maniac &&
@@ -237,7 +238,17 @@ public sealed class WorldStateFactory
         {
             SeedHugeIslandGarments(world);
         }
+        else if (world.Mode == GameMode.Islands)
+        {
+            SeedIslandsGarments(world);
+        }
 
+        // §158.2: worldgen пишет флаги узлов напрямую и кое-где спрашивает
+        // достижимость по дороге (якоря лагерей). Готовый мир — единственная
+        // правда, и производные карты обязаны собраться с него, а не с того
+        // промежуточного состояния, на котором их спросили впервые.
+        WorldCreation.Apply(world, bootstrap.CreationConfig);
+        WorldTopology.InvalidateAll(world);
         return world;
     }
 
@@ -435,6 +446,183 @@ public sealed class WorldStateFactory
             var garment = wardrobe[(int)(MathUtil.Hash01(
                 world.Seed, i, wardrobe.Count, 14657) * wardrobe.Count) % wardrobe.Count];
             Drop(far, garment, 15200 + i);
+        }
+    }
+
+    // §157.8: островной лут. В отличие от §146.9 — МАЛО и ЦЕЛОЕ: на остров
+    // один шлем, две-три пары обуви, двое-трое штанов, две юбки, два рюкзака и
+    // две случайные вещи, все в кольце [2, 12] от лагеря и только на СВОЁМ
+    // острове. Сет надо искать, а найденное стоит того: три строки порчи из
+    // Drop §146.9 здесь не зовутся, SpawnObject даёт вещь целой (1/0/0).
+    private static void SeedIslandsGarments(WorldState world)
+    {
+        var helmets = new List<GarmentParams>();
+        var footwear = new List<GarmentParams>();
+        var pants = new List<GarmentParams>();
+        var skirts = new List<GarmentParams>();
+        var bags = new List<GarmentParams>();
+        var misc = new List<GarmentParams>();
+        foreach (var garment in GarmentLibrary.Spawnable)
+        {
+            if (garment == null || garment.Sex == GarmentSex.Male ||
+                garment.Category == GarmentCategory.Underwear)
+            {
+                continue;
+            }
+
+            if (garment.Id.StartsWith("clothing.helmet_", StringComparison.Ordinal))
+            {
+                helmets.Add(garment);
+            }
+            else if (garment.Category == GarmentCategory.Bag)
+            {
+                if (garment.Id.StartsWith("gear.backpack_", StringComparison.Ordinal)) bags.Add(garment);
+            }
+            else if (garment.Category == GarmentCategory.Footwear)
+            {
+                footwear.Add(garment);
+            }
+            else if (BuildingBootstrap.IsStarterWardrobePants(garment))
+            {
+                pants.Add(garment);
+            }
+            else if (garment.Category == GarmentCategory.Bottom &&
+                     garment.Id.IndexOf("skirt", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                skirts.Add(garment);
+            }
+            else
+            {
+                misc.Add(garment);
+            }
+        }
+
+        foreach (var pool in new[] { helmets, footwear, pants, skirts, bags, misc })
+        {
+            pool.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+        }
+
+        var camps = new List<(Faction faction, TileCoord home)>();
+        foreach (var pair in world.FactionHomes)
+        {
+            if (FactionRelations.IsGirlCamp(pair.Key))
+            {
+                camps.Add((pair.Key, pair.Value));
+            }
+        }
+        camps.Sort((a, b) => ((int)a.faction).CompareTo((int)b.faction));
+
+        var allPoints = new List<(TileCoord tile, JunctionId junction, FragmentId fragment)>();
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                SpatialQueries.IsAllWaterJunction(world, junction.Id) ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id))
+            {
+                continue;
+            }
+
+            TileCoord? dry = null;
+            foreach (var tileCoord in junction.Tiles)
+            {
+                if (world.Tiles.Items.TryGetValue(tileCoord, out var tileState) &&
+                    tileState.Flags.HasFlag(TileFlags.Walkable) &&
+                    !tileState.Flags.HasFlag(TileFlags.Water) &&
+                    !tileState.Flags.HasFlag(TileFlags.Blocked))
+                {
+                    dry = tileCoord;
+                    break;
+                }
+            }
+
+            if (dry is { } tile)
+            {
+                allPoints.Add((tile, junction.Id, junction.Fragment));
+            }
+        }
+        allPoints.Sort((a, b) => a.junction.Value.CompareTo(b.junction.Value));
+
+        void Drop(
+            List<(TileCoord tile, JunctionId junction, FragmentId fragment)> pool,
+            GarmentParams garment, int salt)
+        {
+            if (pool.Count == 0 || garment == null)
+            {
+                return;
+            }
+
+            var pick = (int)(MathUtil.Hash01(world.Seed, pool.Count, salt, 15411) * pool.Count);
+            pick = Math.Min(pool.Count - 1, pick);
+            var point = pool[pick];
+            pool.RemoveAt(pick);
+            allPoints.RemoveAll(candidate => candidate.junction == point.junction);
+
+            // Целая: Durability 1, Dirtiness 0, Wetness 0 — дефолты SpawnObject.
+            WorldObjectMutations.SpawnObject(world, garment.Id, point.fragment, point.tile, point.junction);
+        }
+
+        for (var campIndex = 0; campIndex < camps.Count; campIndex++)
+        {
+            var home = camps[campIndex].home;
+            JunctionId? homeJunction = null;
+            if (world.Tiles.Items.TryGetValue(home, out var homeTile))
+            {
+                foreach (var id in homeTile.Junctions)
+                {
+                    if (!world.Junctions.Items[id].Blocked)
+                    {
+                        homeJunction = id;
+                        break;
+                    }
+                }
+            }
+
+            // Свой остров: ближайший девичий дом — этот, и до него есть дорога.
+            var near = allPoints.FindAll(point =>
+            {
+                var distance = HexSpatialMath.HexDistance(point.tile, home);
+                if (distance < 2 || distance > 12)
+                {
+                    return false;
+                }
+
+                foreach (var other in camps)
+                {
+                    if (HexSpatialMath.HexDistance(point.tile, other.home) < distance)
+                    {
+                        return false;
+                    }
+                }
+
+                return homeJunction is not { } anchor ||
+                       Connectivity.Reachable(world, point.junction, anchor, canJump: true);
+            });
+
+            var salt = 15400 + campIndex * 100;
+            var slot = 0;
+            void Take(List<GarmentParams> pool, int count, int pickSalt)
+            {
+                var candidates = new List<GarmentParams>(pool);
+                for (var i = 0; i < count && candidates.Count > 0 && near.Count > 0; i++)
+                {
+                    var pick = (int)(MathUtil.Hash01(world.Seed, campIndex, slot, pickSalt) *
+                        candidates.Count) % candidates.Count;
+                    var garment = candidates[pick];
+                    candidates.RemoveAt(pick);
+                    Drop(near, garment, salt + slot);
+                    slot++;
+                }
+            }
+
+            int TwoOrThree(int roll) =>
+                2 + (MathUtil.Hash01(world.Seed, campIndex, roll, 15309) < 0.5f ? 0 : 1);
+
+            Take(helmets, 1, 15301);
+            Take(footwear, TwoOrThree(1), 15302);
+            Take(pants, TwoOrThree(2), 15303);
+            Take(skirts, 2, 15304);
+            Take(bags, 2, 15305);
+            Take(misc, 2, 15306);
         }
     }
 
@@ -1075,7 +1263,7 @@ public sealed class WorldStateFactory
         // §146.4: пролив и второй островок — деталь острова Feud; его рамка
         // считается от Feud-констант MaxQ/MaxR и на другой карте не значит
         // ничего.
-        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland or GameMode.Maniac)
+        if (world.Mode is GameMode.BigIsland or GameMode.HugeIsland or GameMode.Maniac or GameMode.Islands)
         {
             return;
         }
@@ -1218,6 +1406,13 @@ public sealed class WorldStateFactory
                 continue;
             }
 
+            // §159: empty eye/hair fields are meaningful for an authored
+            // companion — keep the Jana prefab defaults instead of rolling §74.
+            if (npc.UseAuthoredAppearance)
+            {
+                continue;
+            }
+
             var look = ColonistAppearance.Roll(world.Seed, id, takenNames, takenLooks, takenHairstyles);
 
             if (string.IsNullOrEmpty(npc.ActorMesh))
@@ -1266,6 +1461,8 @@ public sealed class WorldStateFactory
         var npc = new NPCState
         {
             Id = new EntityId(bootstrap.Id),
+            ProfileId = bootstrap.ProfileId,
+            UseAuthoredAppearance = bootstrap.UseAuthoredAppearance,
             DisplayName = bootstrap.DisplayName,
             ActorMesh = bootstrap.ActorMesh,
             SkinSet = bootstrap.SkinSet,
@@ -1328,7 +1525,7 @@ public sealed class WorldStateFactory
         // bottles, medicine, tools and outer clothing are world loot. Maniac's
         // player gets the explicit armor+machete exception later; every other
         // mode keeps the established survival reserve byte-for-byte.
-        var nakedHugeStarter = (world.Mode is GameMode.HugeIsland or GameMode.Maniac) &&
+        var nakedHugeStarter = (world.Mode is GameMode.HugeIsland or GameMode.Maniac or GameMode.Islands) &&
             Runtime.FactionRelations.IsColonyKind(bootstrap.Faction);
         if (!nakedHugeStarter)
         {
@@ -1356,6 +1553,17 @@ public sealed class WorldStateFactory
             // (ColonyArrivalSystem). Остальной запас (бинты, таблетки,
             // инструменты) остаётся мировым лутом §146.9.
             npc.Inventory.Items.Add(new Agents.ItemInstance("tool.bottle"));
+
+            if (world.Mode == GameMode.Islands)
+            {
+                // §157.8: пять фабричных бинтов — ровно на потерпевшую (две
+                // зоны, §157.5) и запас. Островитянка одна, и первый бинт ей
+                // взять больше негде.
+                for (var i = 0; i < 5; i++)
+                {
+                    npc.Inventory.Items.Add(Runtime.MedicalSupplyMath.CreateBandage(herbal: false));
+                }
+            }
         }
 
         // §72 / §79: the authored opening outsider keeps his established

@@ -82,6 +82,29 @@ public static class BugApiEndpoints
             });
         });
 
+        // §114.4c: fix-commit patches. The server owns no repository, so the
+        // agent uploads `git show` of every fix commit from its checkout; the
+        // card then shows files and the diff without leaving the tracker.
+        app.MapGet("/api/bugs/v1/commits", () => Results.Json(bugs.ListCommitPatchShas()));
+
+        app.MapGet("/api/bugs/v1/commits/{sha}", (string sha) =>
+        {
+            var patch = Try(() => bugs.GetCommitPatch(sha));
+            return patch == null ? Results.NotFound() : Results.Json(patch);
+        });
+
+        app.MapPut("/api/bugs/v1/commits/{sha}", async (HttpContext c, string sha) =>
+        {
+            if (Role(c, agentToken, playerToken, sessions) != BugApiRole.Agent) return Results.Unauthorized();
+            var request = await Read<BugCommitPatch>(c);
+            if (request == null) return Results.BadRequest(new { error = "invalid JSON" });
+            if (!string.IsNullOrWhiteSpace(request.Sha) &&
+                !string.Equals(request.Sha.Trim(), sha.Trim(), StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(new { error = "sha in the body differs from the route" });
+            request.Sha = sha;
+            return Try(() => Results.Json(bugs.PutCommitPatch(request)));
+        });
+
         app.MapPost("/api/bugs/v1/reports/{id:int}/delete", (HttpContext c, int id) =>
         {
             if (!CanAdminister(c, agentToken, sessions)) return Results.Unauthorized();
@@ -136,6 +159,13 @@ public static class BugApiEndpoints
         try { return action(); }
         catch (BugRevisionConflictException e) { return Results.Conflict(new { error=e.Message, actualRevision=e.ActualRevision }); }
         catch (InvalidDataException e) { return Results.BadRequest(new { error=e.Message }); }
+    }
+
+    /// <summary>A malformed SHA in a read is «not found», not a 500.</summary>
+    private static BugCommitPatch? Try(Func<BugCommitPatch?> action)
+    {
+        try { return action(); }
+        catch (InvalidDataException) { return null; }
     }
 
     private enum BugApiRole { None, Player, Agent }

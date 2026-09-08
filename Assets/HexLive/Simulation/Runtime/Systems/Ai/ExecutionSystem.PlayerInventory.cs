@@ -35,15 +35,34 @@ namespace HexLive.Simulation.Runtime
             var list = source == InventoryItemSource.Carried
                 ? npc.Inventory.Items
                 : npc.WornItems;
-            if (index < 0 || index >= list.Count ||
-                string.IsNullOrEmpty(definitionId) || list[index].DefinitionId != definitionId)
+            var starting = npc.Execution.Status == ExecutionStatus.None;
+            ItemInstance item;
+            if (starting)
+            {
+                if (index < 0 || index >= list.Count ||
+                    string.IsNullOrEmpty(definitionId) || list[index].DefinitionId != definitionId)
+                {
+                    FailPlayerInventory(world, npc, "StaleItem");
+                    return;
+                }
+
+                item = list[index];
+                npc.Execution.TargetInventoryItem = item;
+            }
+            else
+            {
+                item = npc.Execution.TargetInventoryItem;
+                index = item is null ? -1 : InventoryMath.IndexOfReference(list, item);
+            }
+
+            if (item is null || index < 0 ||
+                string.IsNullOrEmpty(definitionId) || item.DefinitionId != definitionId)
             {
                 FailPlayerInventory(world, npc, "StaleItem");
                 return;
             }
 
-            var item = list[index];
-            if (npc.Execution.Status == ExecutionStatus.None)
+            if (starting)
             {
                 npc.Execution.Status = ExecutionStatus.InProgress;
                 npc.Execution.TargetObject = null;
@@ -138,18 +157,11 @@ namespace HexLive.Simulation.Runtime
         {
             if (!world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var newDefinition))
                 return;
-            npc.Inventory.Items.Remove(item);
-            for (var i = npc.WornItems.Count - 1; i >= 0; i--)
-            {
-                var worn = npc.WornItems[i];
-                if (!world.Content.ObjectDefinitions.TryGetValue(
-                        worn.DefinitionId, out var wornDefinition) ||
-                    !WearSlotCatalog.Occupies(newDefinition, wornDefinition)) continue;
-                npc.WornItems.RemoveAt(i);
-                npc.Inventory.Items.Add(worn);
-            }
+            InventoryMath.RemoveReference(npc.Inventory.Items, item);
+            ResolveWearConflicts(world, npc, item.DefinitionId);
             npc.WornItems.Add(item);
             EquipmentMath.Recalculate(world, npc);
+            StowDisplacedGarments(world, npc);
         }
 
         private static void FailPlayerInventory(WorldState world, NPCState npc, string reason)
@@ -166,6 +178,7 @@ namespace HexLive.Simulation.Runtime
             npc.Execution.Status = ExecutionStatus.None;
             npc.Execution.CurrentInteraction = null;
             npc.Execution.TargetObject = null;
+            npc.Execution.TargetInventoryItem = null;
             npc.Execution.StartTick = 0;
             npc.Execution.EndTick = 0;
             npc.Plan.Status = status;

@@ -5,6 +5,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Wire;
 using HexLive.UnityPresentation.History;
 using UnityEngine;
 using EntityId = HexLive.Simulation.Common.EntityId;
@@ -38,7 +39,7 @@ namespace HexLive.UnityPresentation.Bootstrap
 /// </para>
 /// </summary>
 [DefaultExecutionOrder(-100)]
-public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
+public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource, IAdminSimulationSource
 {
     [SerializeField] private WorldBootstrapAsset? _bootstrapAsset;
     [SerializeField] private bool _startPaused = true;
@@ -112,6 +113,47 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public bool SupportsNpcCommands => _backend?.SupportsNpcCommands ?? false;
 
     public bool CanControlNpc(EntityId npc) => _backend?.CanControlNpc(npc) ?? false;
+    // Ownership grants perception even while an MCP attachment blocks manual commands.
+    public bool IsAssignedNpc(EntityId npc) => _backend is Remote.RemoteSocketBackend remote
+        ? remote.IsAssignedNpc(npc) : CanControlNpc(npc);
+
+    public bool SupportsAgentIntegration => _backend?.SupportsAgentIntegration ?? false;
+
+    public bool SttAvailable => _backend?.SttAvailable ?? false;
+
+    public bool TryGetAgentState(EntityId npc, out AgentStateFrame state)
+    {
+        if (_backend != null) return _backend.TryGetAgentState(npc, out state);
+        state = new AgentStateFrame { NpcId = npc.Value };
+        return false;
+    }
+
+    public void RequestSttToken(int correlationId) => _backend?.RequestSttToken(correlationId);
+
+    public bool TryTakeSttTokenResult(out SttTokenResultFrame result)
+    {
+        if (_backend != null) return _backend.TryTakeSttTokenResult(out result);
+        result = new SttTokenResultFrame();
+        return false;
+    }
+
+    public void SendAgentText(int correlationId, EntityId npc, string messageId,
+        string language, string text) =>
+        _backend?.SendAgentText(correlationId, npc, messageId, language, text);
+
+    public bool TryTakeAgentTextResult(out AgentTextResultFrame result)
+    {
+        if (_backend != null) return _backend.TryTakeAgentTextResult(out result);
+        result = new AgentTextResultFrame();
+        return false;
+    }
+
+    public bool TryTakeAgentSpeech(out AgentSpeechMessage speech)
+    {
+        if (_backend != null) return _backend.TryTakeAgentSpeech(out speech);
+        speech = null!;
+        return false;
+    }
 
     public bool TryGetCraftingOptions(EntityId npc, List<CraftRecipeOption> into)
     {
@@ -171,9 +213,26 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         return false;
     }
 
+    public string AdminClientId => (_backend as IAdminSimulationSource)?.AdminClientId ?? string.Empty;
+    public void SendAgentPairing(string id, string code, bool approve) =>
+        (_backend as Remote.RemoteSocketBackend)?.SendAgentPairing(id, code, approve);
+    public bool TryTakeAgentPairing(out (string Id, string Text, bool Approved) result)
+    {
+        if (_backend is Remote.RemoteSocketBackend remote) return remote.TryTakeAgentPairing(out result);
+        result = default; return false;
+    }
+    public string AdminServer => (_backend as IAdminSimulationSource)?.AdminServer ?? string.Empty;
+    public void SendAdmin(string json) => (_backend as IAdminSimulationSource)?.SendAdmin(json);
+    public bool TryTakeAdminResult(out string json)
+    {
+        if (_backend is IAdminSimulationSource admin) return admin.TryTakeAdminResult(out json);
+        json = string.Empty; return false;
+    }
+
     private void Awake()
     {
         SimulationSource.Current = this;
+        if (GetComponent<UI.AdminVoicePanel>() == null) gameObject.AddComponent<UI.AdminVoicePanel>();
         if (_backend is null)
         {
             Bootstrap();

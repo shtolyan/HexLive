@@ -41,6 +41,7 @@ internal static class PopulationArrivalMath
         Bootstrap.GameMode.BigIsland => WorldBalance.BigIslandMaxLivingNpcs,
         Bootstrap.GameMode.HugeIsland => WorldBalance.HugeIslandMaxLivingNpcs,
         Bootstrap.GameMode.Maniac => WorldBalance.HugeIslandMaxLivingNpcs,
+        Bootstrap.GameMode.Islands => WorldBalance.IslandsMaxLivingNpcs,
         _ => WorldBalance.MaxLivingNpcs
     };
 
@@ -50,13 +51,14 @@ internal static class PopulationArrivalMath
         Bootstrap.GameMode.BigIsland => WorldBalance.BigIslandMaxCampNpcs,
         Bootstrap.GameMode.HugeIsland => WorldBalance.HugeIslandMaxCampNpcs,
         Bootstrap.GameMode.Maniac => WorldBalance.HugeIslandMaxCampNpcs,
+        Bootstrap.GameMode.Islands => WorldBalance.IslandsMaxCampNpcs,
         _ => WorldBalance.MaxColonyNpcs
     };
 
     public static bool HasRoom(WorldState world, Faction faction)
     {
         // §146.6: потолки выбираются селектором по режиму мира.
-        var worldCap = world == null ? 0 : MaxLivingNpcsFor(world.Mode);
+        var worldCap = world == null ? 0 : world.CreationConfig?.PopulationLimit ?? MaxLivingNpcsFor(world.Mode);
         if (world == null || worldCap <= 0 ||
             world.Entities.Npcs.Count >= worldCap)
         {
@@ -68,6 +70,13 @@ internal static class PopulationArrivalMath
         var factionCap = FactionRelations.IsColonyKind(faction)
             ? MaxCampNpcsFor(world.Mode)
             : WorldBalance.MaxOutsiderNpcs;
+        if (world.CreationConfig != null)
+        {
+            var camp = world.CreationConfig.Camp(faction);
+            factionCap = camp?.Enabled == true ? camp.PopulationLimit : 0;
+            if (faction == Faction.Outsiders && world.Mode == Bootstrap.GameMode.Islands)
+                factionCap = world.CreationConfig.PopulationLimit;
+        }
         if (factionCap <= 0)
         {
             return false;
@@ -89,7 +98,7 @@ internal static class PopulationArrivalMath
     }
 
     public static bool TryPickLanding(
-        WorldState world, TileCoord home, int sequence, int salt, out Landing landing)
+        WorldState world, TileCoord home, int sequence, int salt, out Landing landing, bool nearestToHome = false, Float2? nearPoint = null)
     {
         var candidates = new List<Landing>();
         var seen = new HashSet<JunctionId>();
@@ -138,10 +147,122 @@ internal static class PopulationArrivalMath
             var ar = a.Tile.R.CompareTo(b.Tile.R);
             return ar != 0 ? ar : a.Junction.Value.CompareTo(b.Junction.Value);
         });
+        if (nearestToHome)
+        {
+            var center = nearPoint ?? HexSpatialMath.TileToWorld(home);
+            candidates.Sort((a, b) =>
+            {
+                var ax = a.Position.X - center.X; var ay = a.Position.Y - center.Y;
+                var bx = b.Position.X - center.X; var by = b.Position.Y - center.Y;
+                var distance = (ax * ax + ay * ay).CompareTo(bx * bx + by * by);
+                return distance != 0 ? distance : a.Junction.Value.CompareTo(b.Junction.Value);
+            });
+            landing = candidates[0]; return true;
+        }
         var index = (int)(MathUtil.Hash01(world.Seed, sequence, 132, salt) * candidates.Count);
         landing = candidates[System.Math.Min(candidates.Count - 1, index)];
         return true;
     }
+
+    /// <summary>
+    /// §157.5/§157.7: высадка С МОРЯ — сухой свободный узел, касающийся
+    /// глубокой воды, в кольце [min, max] тайлов от дома и ближе к ЭТОМУ дому,
+    /// чем к любому другому девичьему (то есть на своём острове). Общий берег
+    /// потерпевшей и островного чужака; отличаются только кольцо и соль.
+    /// </summary>
+    internal static bool TryPickShoreLanding(
+        WorldState world, TileCoord home, int minDistance, int maxDistance,
+        int sequence, int salt, out Landing landing)
+    {
+        var candidates = new List<(Landing landing, int distance)>();
+        foreach (var junction in world.Junctions.Items.Values)
+        {
+            if (junction.Blocked || junction.Tiles.Count == 0 ||
+                SpatialQueries.IsAllWaterJunction(world, junction.Id) ||
+                !SpatialQueries.IsJunctionFree(world, junction.Id))
+            {
+                continue;
+            }
+
+            var touchesSea = false;
+            foreach (var neighbor in junction.Neighbors)
+            {
+                if (SpatialQueries.IsAllWaterJunction(world, neighbor))
+                {
+                    touchesSea = true;
+                    break;
+                }
+            }
+            if (!touchesSea)
+            {
+                continue;
+            }
+
+            TileCoord? dry = null;
+            foreach (var coord in junction.Tiles)
+            {
+                if (world.Tiles.Items.TryGetValue(coord, out var tile) &&
+                    tile.Flags.HasFlag(TileFlags.Walkable) &&
+                    !tile.Flags.HasFlag(TileFlags.Water) &&
+                    !tile.Flags.HasFlag(TileFlags.Blocked))
+                {
+                    dry = coord;
+                    break;
+                }
+            }
+            if (dry is not { } dryTile)
+            {
+                continue;
+            }
+
+            var distance = HexSpatialMath.HexDistance(dryTile, home);
+            if (distance < minDistance || distance > maxDistance)
+            {
+                continue;
+            }
+
+            var ownShore = true;
+            foreach (var pair in world.FactionHomes)
+            {
+                if (FactionRelations.IsGirlCamp(pair.Key) && !pair.Value.Equals(home) &&
+                    HexSpatialMath.HexDistance(dryTile, pair.Value) < distance)
+                {
+                    ownShore = false;
+                    break;
+                }
+            }
+            if (!ownShore)
+            {
+                continue;
+            }
+
+            candidates.Add((new Landing(
+                dryTile, junction.Id, junction.Fragment, junction.WorldPosition), distance));
+        }
+
+        if (candidates.Count == 0)
+        {
+            landing = default;
+            return false;
+        }
+
+        candidates.Sort((a, b) =>
+        {
+            var byDistance = a.distance.CompareTo(b.distance);
+            return byDistance != 0
+                ? byDistance
+                : a.landing.Junction.Value.CompareTo(b.landing.Junction.Value);
+        });
+        // Ближайший отрезок берега: кольцо [min, max] лишь отсекает лагерь и
+        // чужой остров, а прибой выносит туда, где море ближе всего к дому.
+        var nearest = candidates[0].distance;
+        var pool = candidates.FindAll(candidate => candidate.distance <= nearest + ShoreBandTiles);
+        var pick = (int)(MathUtil.Hash01(world.Seed, sequence, pool.Count, salt) * pool.Count);
+        landing = pool[System.Math.Min(pool.Count - 1, pick)].landing;
+        return true;
+    }
+
+    private const int ShoreBandTiles = 3;
 
     public static ColonistAppearance.Look RollFemaleLook(WorldState world, int id)
     {
@@ -167,6 +288,7 @@ internal static class PopulationArrivalMath
     public static void AddToWorld(WorldState world, NPCState npc, JunctionId junction)
     {
         world.Entities.Npcs[npc.Id] = npc;
+        if (world.CreationConfig?.Owns(npc) == true) world.PlayerControlledNpcs.Add(npc.Id.Value);
 
         if (!world.Occupancy.EntitiesInTile.TryGetValue(npc.Tile, out var occupied))
         {

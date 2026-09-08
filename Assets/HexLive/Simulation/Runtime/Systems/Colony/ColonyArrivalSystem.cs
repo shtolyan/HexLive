@@ -1,4 +1,5 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -18,6 +19,8 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
     public string Name => nameof(ColonyArrivalSystem);
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
+
     // §146.6: порядок обхода лагерей — ординал фракции (правило BedSiteSystem):
     // порядок словаря не смеет попадать в реплей.
     private static readonly System.Collections.Generic.List<Faction> _campScratch = new();
@@ -25,7 +28,7 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
     public void Run(WorldState world)
     {
         var interval = WorldBalance.ColonyArrivalIntervalDays;
-        if (interval <= 0)
+        if (interval <= 0 && world.CreationConfig == null)
         {
             return;
         }
@@ -41,10 +44,18 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
 
         _campScratch.Sort((a, b) => ((int)a).CompareTo((int)b));
 
-        var opportunitiesDue = EnvironmentSystem.CalendarDay(world.Tick) / interval;
+        // §157.6: SOS лежащей на берегу повторяется по кулдауну — до недельного
+        // расписания, чтобы лагерь не забыл о ней между прибытиями.
+        if (world.Mode == GameMode.Islands)
+        {
+            IslandsCastawayMath.RunSos(world);
+        }
+
+        var day = EnvironmentSystem.CalendarDay(world.Tick);
         foreach (var faction in _campScratch)
         {
-            RunForCamp(world, faction, opportunitiesDue);
+            var campInterval = world.CreationConfig?.Camp(faction)?.ArrivalIntervalDays ?? interval;
+            if (campInterval > 0) RunForCamp(world, faction, day / campInterval);
         }
     }
 
@@ -102,12 +113,30 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
             return true;
         }
 
+        // §157.5: в «Островах» недельная лодка — это прибой с потерпевшей.
+        if (world.Mode == GameMode.Islands)
+        {
+            return IslandsCastawayMath.TrySpawn(world, faction, home, arrival, id);
+        }
+
         if (!PopulationArrivalMath.TryPickLanding(
                 world, home, arrival, salt: 13201, out var landing))
         {
             return false;
         }
 
+        var npc = CreateArrival(world, id, faction, landing);
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ColonyArrivalSpawned",
+                $"Arrival={arrival} Name={npc.DisplayName} " +
+                $"Tile={npc.Tile.Q},{npc.Tile.R} Junction={landing.Junction.Value}");
+        }
+
+        return true;
+    }
+    internal static NPCState CreateArrival(WorldState world, EntityId id, Faction faction, PopulationArrivalMath.Landing landing)
+    {
         var look = PopulationArrivalMath.RollFemaleLook(world, id.Value);
         var npc = new NPCState
         {
@@ -148,15 +177,9 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
         EquipmentMath.Recalculate(world, npc);
 
         PopulationArrivalMath.AddToWorld(world, npc, landing.Junction);
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, npc.Id, "ColonyArrivalSpawned",
-                $"Arrival={arrival} Name={npc.DisplayName} " +
-                $"Tile={npc.Tile.Q},{npc.Tile.R} Junction={landing.Junction.Value}");
-        }
-
-        return true;
+        return npc;
     }
+
 }
 
 }

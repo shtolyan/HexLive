@@ -105,10 +105,8 @@ public static class Program
             }
         }
 
-        bool continueExistingWorld;
         try
         {
-            continueExistingWorld = File.Exists(Path.GetFullPath(options.SavePath));
             options.ContinueExistingSaveIfPresent(Console.WriteLine);
         }
         catch (Exception ex) when (
@@ -141,7 +139,8 @@ public static class Program
             // The supervisor owns the world AND its tick thread, so the admin
             // panel can start a fresh colony without restarting the process.
             worlds = new WorldSupervisor(options.Seed, options.Mode, options.SavePath, assetCatalog,
-                options.VerboseTrace, options.IncludeDebugDetails, options.Llm, lifetime.Token);
+                options.VerboseTrace, options.IncludeDebugDetails, options.Llm,
+                options.CompanionProfile, lifetime.Token, options.PlayerAssignmentsPath, options.StartPaused);
         }
         catch (Exception ex)
         {
@@ -183,7 +182,8 @@ public static class Program
         // только открыта хоть одна дверь управления.
         ControlLeases? controlLeases = null;
         AccessTokenFile? playerToken = null;
-        PlayerCharacterAssignments? playerAssignments = null;
+        var agentSessions = new AgentSessionRegistry();
+        using var deepgram = new DeepgramTokenBroker();
         if (options.ControlEnabled || options.McpEnabled)
         {
             controlLeases = new ControlLeases(options.McpLeaseSeconds);
@@ -193,17 +193,7 @@ public static class Program
         {
             playerToken = AccessTokenFile.LoadOrCreate(
                 options.PlayerTokenPath, "PLAYER CONTROL — first run", "hexplay_");
-            try
-            {
-                playerAssignments = PlayerCharacterAssignments.Load(
-                    options.PlayerAssignmentsPath, continueExistingWorld);
-            }
-            catch (Exception ex) when (
-                ex is IOException or InvalidDataException or UnauthorizedAccessException)
-            {
-                Console.Error.WriteLine($"[fatal] {ex.Message}");
-                return 1;
-            }
+
         }
 
         Console.CancelKeyPress += (_, e) =>
@@ -234,6 +224,30 @@ public static class Program
         var app = builder.Build();
         app.UseResponseCompression();
         app.UseWebSockets();
+        var playerMcpAccess = options.McpEnabled ? new Mcp.McpPlayerAccess(
+            Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "hexlive-agent-access.json")) : null;
+
+        var adminAccess = new GodMode.AdminAccess(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "hexlive-admin-clients.json"));
+        var adminBus = new GodMode.AdminCommandBus(worlds, adminAccess,
+            Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "admin-receipts")) { Leases = controlLeases, Agents = agentSessions };
+        var adminHub = new GodMode.AdminAgentHub(adminAccess, adminBus, worlds);
+        var adminViewer = new GodMode.AdminViewerProtocol(adminAccess, adminBus, adminHub, deepgram);
+        var adminAgentToken = Environment.GetEnvironmentVariable("HEXLIVE_ADMIN_AGENT_TOKEN") ?? "";
+        if (adminAgentToken.Length >= 32)
+        {
+            worlds.Host.EnableMcpEventLog();
+            worlds.WorldSwapped += () => worlds.Host.EnableMcpEventLog();
+            app.Use(async (context, next) =>
+            {
+                var supplied = context.Request.Headers.Authorization.ToString();
+                if (context.Request.Path == "/mcp" && supplied.StartsWith("Bearer ", StringComparison.Ordinal) &&
+                    System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                        System.Text.Encoding.UTF8.GetBytes(supplied.Substring(7)), System.Text.Encoding.UTF8.GetBytes(adminAgentToken)))
+                    await GodMode.AdminMcpEndpoint.Handle(context, adminHub);
+                else await next(context);
+            });
+        }
+        GodMode.AdminAccessEndpoints.Map(app, adminAccess, sessions, adminBus, worlds);
 
         app.Map("/watch", async context =>
         {
@@ -266,9 +280,9 @@ public static class Program
                             clientId, out var playerId))
                     {
                         controlOwner = "ws:" + playerId;
-                        assignedNpcIds = playerAssignments!.Reconcile(
+                        assignedNpcIds = viewerSession.Assignments!.Reconcile(
                             viewerSession.Host, playerId,
-                            PlayerCharacterAssignments.DefaultCharacterLimit,
+                            options.PlayerCharacterLimit,
                             viewerSession.Lifetime,
                             viewerSession.WorldGeneration);
                     }
@@ -293,7 +307,11 @@ public static class Program
             var viewer = new ViewerConnection(viewerSession.Host, socket, viewerSession.SimData,
                 options.IncludeDebugDetails, controlOwner,
                 controlOwner is null ? null : controlLeases,
-                assignedNpcIds, acceptsGzip);
+                assignedNpcIds, acceptsGzip,
+                options.McpEnabled ? agentSessions : null,
+                viewerSession.WorldGeneration,
+                controlOwner is null ? null : deepgram,
+                Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments, playerMcpAccess);
             try
             {
                 await viewer.RunAsync(viewerSession.Lifetime);
@@ -304,6 +322,7 @@ public static class Program
             }
             finally
             {
+                viewer.Disconnect();
                 Console.WriteLine("[viewer] disconnected");
             }
         });
@@ -311,6 +330,7 @@ public static class Program
         Admin.AdminEndpoints.Map(
             app, worlds, account, sessions, mailer, lifetime, assetRegistry, assetCatalog,
             options.AdminIconRoot, bugs);
+        WorldCreationEndpoints.Map(app, worlds, account, sessions, assetRegistry, options.CompanionProfile, playerToken);
         Bugs.BugApiEndpoints.Map(app, bugs, bugToken, playerToken, sessions);
 
         if (options.McpEnabled)
@@ -328,7 +348,9 @@ public static class Program
             // спека едет к нему тем же швом, что и всё остальное.
             var spec = Mcp.SpecLibrary.Discover(options.SpecDir);
 
-            Mcp.McpEndpoint.Map(app, worlds, mcpToken, leases, spec);
+            Mcp.McpEndpoint.Map(app, worlds, mcpToken, leases, agentSessions, spec, playerMcpAccess,
+                (playerId, npcId) => worlds.CaptureViewerSession().Assignments?.StillAssigned(playerId, npcId) == true,
+                playerToken == null ? null : value => playerToken.Matches(value));
             Console.WriteLine(
                 $"[server] mcp control    http://localhost:{options.Port}/mcp " +
                 $"(токен в {options.McpTokenPath}, лиз {leases.TimeoutSeconds} с)");
@@ -353,8 +375,9 @@ public static class Program
         worlds.WorldSwapped += () =>
         {
             controlLeases?.Clear();
+            agentSessions.Clear();
             var viewerSession = worlds.CaptureViewerSession();
-            playerAssignments?.SwitchWorld(viewerSession.WorldGeneration);
+            // Assignments are owned by the active world library entry.
             if (options.McpEnabled)
             {
                 worlds.Host.EnableMcpEventLog();
@@ -367,6 +390,9 @@ public static class Program
         var leaseSweep = controlLeases is null
             ? Task.CompletedTask
             : Task.Run(() => LeaseSweepAsync(worlds, controlLeases, lifetime.Token));
+        var agentSweep = options.McpEnabled
+            ? Task.Run(() => AgentSweepAsync(worlds, agentSessions, lifetime.Token))
+            : Task.CompletedTask;
 
         // A plain GET for eyeballing that the thing is alive.
         AssetEndpoints.Map(app, assetRegistry);
@@ -394,7 +420,7 @@ public static class Program
         }
 
         lifetime.Cancel();
-        await Task.WhenAll(autosave, status, leaseSweep).ConfigureAwait(false);
+        await Task.WhenAll(autosave, status, leaseSweep, agentSweep).ConfigureAwait(false);
 
         // Last write wins: whatever happens, the colony that was alive a second
         // ago is on disk when this process ends.
@@ -452,7 +478,8 @@ public static class Program
         {
             while (!cancel.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(5), cancel).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(1), cancel).ConfigureAwait(false);
+                worlds.RefreshCustomRoster();
                 expired.Clear();
                 leases.CollectExpired(expired);
                 foreach (var (npcId, owner) in expired)
@@ -464,6 +491,23 @@ public static class Program
                         $"[control] lease of NPC{npcId} by {owner} expired — " +
                         $"returned to AI ({admission.Status})");
                 }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private static async Task AgentSweepAsync(
+        WorldSupervisor worlds, AgentSessionRegistry sessions, CancellationToken cancel)
+    {
+        try
+        {
+            while (!cancel.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), cancel).ConfigureAwait(false);
+                var viewer = worlds.CaptureViewerSession();
+                sessions.Sweep(viewer.Host, viewer.WorldGeneration);
             }
         }
         catch (OperationCanceledException)
@@ -549,6 +593,10 @@ public sealed class ServerOptions
             case "3":
                 mode = GameMode.Maniac;
                 return true;
+            case "islands":
+            case "4":
+                mode = GameMode.Islands;
+                return true;
             default:
                 mode = GameMode.Feud;
                 return false;
@@ -557,7 +605,7 @@ public sealed class ServerOptions
 
     public void ContinueExistingSaveIfPresent(Action<string>? log = null)
     {
-        var header = ServerSaveHeader.ReadIfPresent(SavePath);
+        var header = ServerSaveHeader.ReadIfPresent(WorldLibrary.StartupSavePath(SavePath));
         if (header is null)
         {
             return;
@@ -655,6 +703,7 @@ public sealed class ServerOptions
     }
 
     public int AutosaveSeconds { get; private set; } = 60;
+    public bool StartPaused { get; private set; }
 
     /// <summary>
     /// Admin credentials, kept beside the save. Not in the repo, not in the
@@ -671,6 +720,10 @@ public sealed class ServerOptions
     /// Дверь, которой не просили, должна быть закрыта.
     /// </summary>
     public bool McpEnabled { get; private set; }
+
+    /// <summary>§160: explicitly enabled authored character preset.</summary>
+    public string? CompanionProfile { get; private set; }
+    public int PlayerCharacterLimit { get; private set; } = PlayerCharacterAssignments.DefaultCharacterLimit;
 
     /// <summary>
     /// §145.3: сетевое управление ИГРОКА выключено по умолчанию по той же
@@ -739,7 +792,7 @@ public sealed class ServerOptions
                     if (!TryParseMode(args[++i], out var mode))
                     {
                         Console.Error.WriteLine(
-                            $"Unknown mode '{args[i]}' — feud, bigisland, hugeisland or maniac.");
+                            $"Unknown mode '{args[i]}' — feud, bigisland, hugeisland, maniac or islands.");
                         return null;
                     }
                     options.Mode = mode;
@@ -774,11 +827,25 @@ public sealed class ServerOptions
                 case "--debug-details":
                     options.IncludeDebugDetails = true;
                     break;
+                case "--start-paused":
+                    options.StartPaused = true;
+                    break;
                 case "--verbose-trace":
                     options.VerboseTrace = true;
                     break;
                 case "--mcp":
                     options.McpEnabled = true;
+                    break;
+                case "--companion" when i + 1 < args.Length:
+                    options.CompanionProfile = args[++i].Trim().ToLowerInvariant();
+                    break;
+                case "--character-preset" when i + 1 < args.Length:
+                    options.CompanionProfile = args[++i].Trim().ToLowerInvariant();
+                    break;
+                case "--player-characters" when i + 1 < args.Length:
+                    options.PlayerCharacterLimit = int.Parse(args[++i]);
+                    if (options.PlayerCharacterLimit is < 1 or > 8)
+                        throw new ArgumentException("--player-characters must be 1..8");
                     break;
                 case "--control":
                     options.ControlEnabled = true;
@@ -815,7 +882,7 @@ public sealed class ServerOptions
                     Console.WriteLine(
                         "HexLive server\n" +
                         "  --seed N         world seed (default 12345)\n" +
-                        "  --mode NAME      fresh world mode: feud | bigisland | hugeisland | maniac (default feud)\n" +
+                        "  --mode NAME      fresh world mode: feud | bigisland | hugeisland | maniac | islands (default feud)\n" +
                         "  --port N         listen port (default 5123)\n" +
                         "  --save PATH      save file (default hexlive-server.sav)\n" +
                         "  --simdata PATH   exported catalogs (default SimData/simdata.json)\n" +
@@ -826,8 +893,11 @@ public sealed class ServerOptions
                         "  --retain-current-asset-variants  add a platform without dropping verified existing variants\n" +
                         "  --autosave N     seconds between saves, 0 to disable (default 60)\n" +
                         "  --debug-details  include per-NPC debug dumps in every frame\n" +
+                        "  --start-paused   pause before the first world tick; resume explicitly\n" +
                         "  --verbose-trace  match the editor's trace verbosity (only ~2% more events)\n" +
                         "  --mcp            expose MCP control at /mcp (off by default)\n" +
+                        "  --character-preset masha  ensure the authored Masha body preset exists\n" +
+                        "  --companion masha  deprecated alias for --character-preset masha\n" +
                         "  --control        allow player NPC control over /watch (token in hexlive-player.txt)\n" +
                         "  --mcp-lease N    seconds a control lease survives without commands (default 120)\n" +
                         "  --spec-dir PATH  spec served to MCP agents (default: Spec/ beside the binary)\n" +
@@ -845,6 +915,13 @@ public sealed class ServerOptions
                     Console.Error.WriteLine($"Unknown option '{args[i]}' — try --help.");
                     return null;
             }
+        }
+
+        if (options.CompanionProfile is { Length: > 0 } profile)
+        {
+            foreach (var entry in profile.Split(','))
+                if (!HexLive.Simulation.Runtime.CharacterPresetRegistry.ProfileIds.Contains(entry))
+                    throw new ArgumentException($"unknown character preset '{entry}'");
         }
 
         options.Llm.Validate();

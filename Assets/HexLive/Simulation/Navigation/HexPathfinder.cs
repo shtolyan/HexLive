@@ -756,12 +756,62 @@ public static class HexPathfinder
             return false;
         }
 
-        if (world.StrandedSeamsBuiltVersion != world.TopologyVersion)
+        EnsureStrandedSeams(world);
+        return world.StrandedSeams.Contains(id);
+    }
+
+    private static readonly List<JunctionId> _strandedChangedScratch = new();
+
+    /// <summary>§158.2: замурованность шва зависит только от Blocked его
+    /// соседей, поэтому после точечного изменения пересматриваются сам узел и
+    /// его соседи-швы, а не все 116 тысяч швов «Островов».</summary>
+    private static void EnsureStrandedSeams(WorldState world)
+    {
+        if (world.StrandedSeamsBuiltVersion == world.TopologyVersion)
         {
-            RebuildStrandedSeams(world);
+            return;
         }
 
-        return world.StrandedSeams.Contains(id);
+        var version = world.StrandedSeamsBuiltVersion;
+        var cursor = world.StrandedSeamsJournalCursor;
+        var full = WorldTopology.CatchUp(world, ref version, ref cursor, _strandedChangedScratch);
+        world.StrandedSeamsBuiltVersion = version;
+        world.StrandedSeamsJournalCursor = cursor;
+        if (full)
+        {
+            RebuildStrandedSeams(world);
+            return;
+        }
+
+        for (var i = 0; i < _strandedChangedScratch.Count; i++)
+        {
+            var id = _strandedChangedScratch[i];
+            RefreshStrandedSeam(world, id);
+            if (world.Junctions.Items.TryGetValue(id, out var junction))
+            {
+                foreach (var neighborId in junction.Neighbors)
+                {
+                    RefreshStrandedSeam(world, neighborId);
+                }
+            }
+        }
+    }
+
+    private static void RefreshStrandedSeam(WorldState world, JunctionId id)
+    {
+        if (!world.ClimbSeams.Contains(id))
+        {
+            return;
+        }
+
+        if (IsStrandedSeamLive(world, id))
+        {
+            world.StrandedSeams.Add(id);
+        }
+        else
+        {
+            world.StrandedSeams.Remove(id);
+        }
     }
 
     private static void RebuildStrandedSeams(WorldState world)
@@ -776,6 +826,7 @@ public static class HexPathfinder
         }
 
         world.StrandedSeamsBuiltVersion = world.TopologyVersion;
+        world.StrandedSeamsJournalCursor = world.Topology.EndIndex;
     }
 
     private static bool IsStrandedSeamLive(WorldState world, JunctionId id)

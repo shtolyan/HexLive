@@ -41,6 +41,12 @@ internal static class ManualCommandExecutor
 
         switch (command)
         {
+            case RecordAgentSocialCommand agentSocial:
+                ApplyRecordAgentSocial(world, agentSocial, admission);
+                break;
+            case RecordCompanionTurnCommand companionTurn:
+                ApplyRecordCompanionTurn(world, companionTurn, admission);
+                break;
             case SetManualControlCommand setManual:
                 ApplySetManual(world, setManual, admission);
                 break;
@@ -193,6 +199,8 @@ internal static class ManualCommandExecutor
 
     private static string OrderName(ISimulationCommand command) => command switch
     {
+        RecordAgentSocialCommand => "RecordAgentSocial",
+        RecordCompanionTurnCommand => "RecordCompanionTurn",
         SetManualControlCommand => "SetManual",
         SetRunByDefaultCommand => "SetRunByDefault",
         SetOutfitLockCommand => "SetOutfitLock",
@@ -234,6 +242,129 @@ internal static class ManualCommandExecutor
         CancelBuildSiteCommand => "CancelBuildSite",
         _ => command.GetType().Name
     };
+
+    private static void ApplyRecordAgentSocial(
+        WorldState world,
+        RecordAgentSocialCommand command,
+        AdmissionTracker admission)
+    {
+        if (!world.Entities.Npcs.TryGetValue(command.Npc, out var npc))
+        {
+            admission.Reject("NpcMissing");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(command.TurnId) || command.TurnId.Length > 80 ||
+            command.Reaction == Agents.CompanionReaction.None ||
+            !System.Enum.IsDefined(typeof(Agents.CompanionReaction), command.Reaction))
+        {
+            admission.Reject("InvalidAgentTurn");
+            return;
+        }
+
+        if (npc.AppliedAgentTurnIds.Contains(command.TurnId)) return;
+        var delta = command.Reaction switch
+        {
+            Agents.CompanionReaction.Warm => 0.18f,
+            Agents.CompanionReaction.Neutral => 0.08f,
+            Agents.CompanionReaction.Tense => -0.06f,
+            Agents.CompanionReaction.Hostile => -0.12f,
+            _ => 0f,
+        };
+        npc.Needs.Social = MathUtil.Clamp01(npc.Needs.Social + delta);
+        npc.AppliedAgentTurnIds.Add(command.TurnId);
+        while (npc.AppliedAgentTurnIds.Count > Agents.CompanionState.MaxAppliedTurnIds)
+            npc.AppliedAgentTurnIds.RemoveAt(0);
+    }
+
+    private static void ApplyRecordCompanionTurn(
+        WorldState world,
+        RecordCompanionTurnCommand command,
+        AdmissionTracker admission)
+    {
+        if (!world.Entities.Npcs.TryGetValue(command.Npc, out var npc))
+        {
+            admission.Reject("NpcMissing");
+            return;
+        }
+
+        if (!string.Equals(npc.ProfileId, "masha", System.StringComparison.Ordinal))
+        {
+            admission.Reject("NotCompanion");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(command.TurnId) || command.TurnId.Length > 80 ||
+            !(string.Equals(command.Trigger, "voice", System.StringComparison.Ordinal) ||
+              string.Equals(command.Trigger, "heartbeat", System.StringComparison.Ordinal) ||
+              string.Equals(command.Trigger, "critical", System.StringComparison.Ordinal) ||
+              string.Equals(command.Trigger, "voice_body", System.StringComparison.Ordinal)) ||
+            command.IntentSummary.Length > Agents.CompanionState.MaxIntentCharacters ||
+            command.JournalText.Length > Agents.CompanionState.MaxJournalCharacters ||
+            command.MemoryUpserts.Count > 3 ||
+            !System.Enum.IsDefined(typeof(Agents.CompanionReaction), command.Reaction))
+        {
+            admission.Reject("InvalidCompanionTurn");
+            return;
+        }
+
+        for (var i = 0; i < command.MemoryUpserts.Count; i++)
+        {
+            var memory = command.MemoryUpserts[i];
+            if (memory == null ||
+                string.IsNullOrWhiteSpace(memory.Key) ||
+                memory.Key.Length > Agents.CompanionState.MaxMemoryKeyCharacters ||
+                string.IsNullOrWhiteSpace(memory.Value) ||
+                memory.Value.Length > Agents.CompanionState.MaxMemoryValueCharacters ||
+                float.IsNaN(memory.Importance) || float.IsInfinity(memory.Importance) ||
+                memory.Importance < 0f || memory.Importance > 1f)
+            {
+                admission.Reject("InvalidCompanionMemory");
+                return;
+            }
+        }
+
+        if (string.Equals(command.Trigger, "voice_body", System.StringComparison.Ordinal))
+        {
+            if (command.IntentSummary.Length != 0 || command.JournalText.Length != 0 ||
+                command.MemoryUpserts.Count != 0 || command.Reaction == Agents.CompanionReaction.None)
+            {
+                admission.Reject("InvalidCompanionBodyEffect");
+                return;
+            }
+
+            var physicalSocial = npc.Needs.Social;
+            npc.Companion.ApplyVoiceSocialEffect(command.TurnId, command.Reaction, ref physicalSocial);
+            npc.Needs.Social = physicalSocial;
+            return;
+        }
+
+        var social = npc.Needs.Social;
+        var reaction = string.Equals(command.Trigger, "voice",
+            System.StringComparison.OrdinalIgnoreCase)
+            ? command.Reaction
+            : Agents.CompanionReaction.None;
+        if (!npc.Companion.ApplyTurn(
+                command.TurnId,
+                reaction,
+                command.IntentSummary,
+                command.MemoryUpserts,
+                command.JournalText,
+                world.Tick,
+                Spec136.HourTicks,
+                ref social))
+        {
+            // Idempotent replay is a successful no-op: a bridge may retry after
+            // losing the HTTP response and must never double-apply the bond.
+            return;
+        }
+
+        npc.Needs.Social = social;
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "CompanionTurnRecorded",
+                $"Turn={command.TurnId} Trigger={command.Trigger} Reaction={command.Reaction}");
+        }
+    }
 
     private static ManualCommandAdmission FinishAdmission(
         WorldState world, AdmissionTracker admission)
@@ -2006,7 +2137,8 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        if (!VesselTransferMath.CanFillBottle(npc))
+        var selectedBottle = items[command.Item.Index];
+        if (!VesselTransferMath.CanFillBottle(npc, selectedBottle))
         {
             Reject(world, npc.Id, "FillVessel", "NothingToPour", admission);
             return;
@@ -2017,7 +2149,14 @@ internal static class ManualCommandExecutor
 
         npc.Plan.Goal = GoalType.PlayerOrder;
         npc.Plan.TargetItemDefinitionId = Content.ContentIds.Bottle;
-        npc.Plan.Steps.Add(new PlanStep { Type = PlanStepType.FillVessel });
+        npc.Execution.TargetInventoryItem = selectedBottle;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.FillVessel,
+            // The selected physical bottle must survive the delayed action;
+            // the definition alone is ambiguous once several are carried.
+            TimeoutEndTick = command.Item.Index
+        });
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
         npc.Mind.CurrentGoal = GoalType.PlayerOrder;
@@ -2025,7 +2164,7 @@ internal static class ManualCommandExecutor
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
-                $"Order=FillVessel Charges={npc.BottleCharges} " +
+                $"Order=FillVessel Charges={BottleInventoryMath.Charges(selectedBottle)} " +
                 $"CoconutSips={VesselTransferMath.CoconutSips(npc)}");
         }
     }
@@ -2047,7 +2186,7 @@ internal static class ManualCommandExecutor
         }
 
         if (command.Direction is not InventoryTransferDirection.Take and
-            not InventoryTransferDirection.Give)
+            not InventoryTransferDirection.Give and not InventoryTransferDirection.TakeAndWear)
         {
             Reject(world, looter.Id, "TransferInventory", "InvalidDirection", admission);
             return;
@@ -2068,7 +2207,9 @@ internal static class ManualCommandExecutor
         // §146.12: an explicit player order uses the same moral boundary as
         // autonomous looting. Own camp/corpses keep §128 semantics; a living
         // neutral neighbour needs hate or desperate hunger.
-        if (command.Direction == InventoryTransferDirection.Take &&
+        var wear = command.Direction == InventoryTransferDirection.TakeAndWear;
+        var take = command.Direction != InventoryTransferDirection.Give;
+        if (take &&
             world.Entities.Npcs.ContainsKey(other.Id) &&
             looter.Faction != other.Faction &&
             !CampDiplomacyMath.CanLoot(world, looter, other))
@@ -2077,10 +2218,13 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        var source = command.Direction == InventoryTransferDirection.Take ? other : looter;
-        var destination = command.Direction == InventoryTransferDirection.Take ? looter : other;
-        if (!PlayerInventoryTransferMath.FitsAfter(
-                world, source, destination, command.Item, command.Count))
+        var source = take ? other : looter;
+        var destination = take ? looter : other;
+        if (!PlayerInventoryTransferMath.TryResolveTransfer(
+                world, source, command.Item, command.Count,
+                out var selectedItems, out _) ||
+            !PlayerInventoryTransferMath.FitsAfter(
+                world, source, destination, command.Item, command.Count, wear))
         {
             Reject(world, looter.Id, "TransferInventory", "StaleOrNoSpace", admission);
             return;
@@ -2149,6 +2293,10 @@ internal static class ManualCommandExecutor
 
         var stepType = (command.Direction, command.Item.Source) switch
         {
+            (InventoryTransferDirection.TakeAndWear, InventoryItemSource.Carried) =>
+                PlanStepType.PlayerTakeAndWearCarried,
+            (InventoryTransferDirection.TakeAndWear, InventoryItemSource.Worn) =>
+                PlanStepType.PlayerTakeAndWearWorn,
             (InventoryTransferDirection.Take, InventoryItemSource.Carried) =>
                 PlanStepType.PlayerTakeCarried,
             (InventoryTransferDirection.Take, InventoryItemSource.Worn) =>
@@ -2157,6 +2305,10 @@ internal static class ManualCommandExecutor
                 PlanStepType.PlayerGiveCarried,
             _ => PlanStepType.PlayerGiveWorn
         };
+        // Bug #355: the trip to a body can span many ticks while the player
+        // keeps managing inventories. Keep the selected physical item, not
+        // merely its mutable index + definition (two bottles share the latter).
+        looter.Execution.TargetInventoryItem = selectedItems[0];
         looter.Plan.Steps.Add(new PlanStep
         {
             Type = stepType,
@@ -2199,7 +2351,7 @@ internal static class ManualCommandExecutor
         }
 
         if (command.Direction is not InventoryTransferDirection.Take and
-            not InventoryTransferDirection.Give)
+            not InventoryTransferDirection.Give and not InventoryTransferDirection.TakeAndWear)
         {
             Reject(world, looter.Id, "TransferContainer", "InvalidDirection", admission);
             return;
@@ -2212,6 +2364,50 @@ internal static class ManualCommandExecutor
         {
             Reject(world, looter.Id, "TransferContainer", "ContainerNotAvailable", admission);
             return;
+        }
+
+        ItemInstance selectedItem;
+        ObjectId? selectedWorldObject = null;
+        var wear = command.Direction == InventoryTransferDirection.TakeAndWear;
+        var take = command.Direction != InventoryTransferDirection.Give;
+        if (take)
+        {
+            if (!ContainerLootMath.TryResolve(
+                    world, container, command.SlotIndex,
+                    command.ExpectedDefinitionId, command.Count,
+                    out var selected, out var groundSources) || selected.Count == 0)
+            {
+                Reject(world, looter.Id, "TransferContainer", "StaleItem", admission);
+                return;
+            }
+
+            selectedItem = selected[0];
+            if (wear && (command.Count != 1 ||
+                !PlayerInventoryTransferMath.CanWearIncoming(world, looter, selectedItem, selected)))
+            {
+                Reject(world, looter.Id, "TransferContainer",
+                    looter.Mind.OutfitLocked ? "OutfitLocked" : "StaleOrNoSpace", admission);
+                return;
+            }
+            if (groundSources.Count > 0)
+            {
+                selectedWorldObject = groundSources[0];
+            }
+        }
+        else
+        {
+            var itemRef = new InventoryItemRef(
+                InventoryItemSource.Carried, command.SlotIndex,
+                command.ExpectedDefinitionId);
+            if (!PlayerInventoryTransferMath.TryResolveTransfer(
+                    world, looter, itemRef, command.Count,
+                    out var selected, out _) || selected.Count == 0)
+            {
+                Reject(world, looter.Id, "TransferContainer", "StaleItem", admission);
+                return;
+            }
+
+            selectedItem = selected[0];
         }
 
         ClearForNewOrder(world, looter, "Ручной обмен с вещью");
@@ -2276,10 +2472,12 @@ internal static class ManualCommandExecutor
             });
         }
 
+        looter.Execution.TargetInventoryItem = selectedItem;
+        looter.Execution.TargetInventoryWorldObject = selectedWorldObject;
         looter.Plan.Steps.Add(new PlanStep
         {
-            Type = command.Direction == InventoryTransferDirection.Take
-                ? PlanStepType.PlayerTakeFromContainer
+            Type = wear ? PlanStepType.PlayerTakeAndWearFromContainer
+                : take ? PlanStepType.PlayerTakeFromContainer
                 : PlanStepType.PlayerGiveToContainer,
             TargetObject = container.Id,
             TimeoutEndTick = PlayerInventoryTransferMath.PackCursor(
@@ -2331,6 +2529,14 @@ internal static class ManualCommandExecutor
         InteractionType interactionType, string requestedInteractionId,
         string verb, AdmissionTracker admission)
     {
+        if (interactionType == InteractionType.FillBottle &&
+            world.Entities.Objects.TryGetValue(targetId, out var legacyTarget) &&
+            world.Content.ObjectDefinitions.TryGetValue(legacyTarget.DefinitionId, out var legacyDefinition) &&
+            legacyDefinition.HasTag("Campfire"))
+        {
+            Reject(world, npc.Id, verb, "RetiredInteraction", admission);
+            return false;
+        }
         // Правило 2: объект берётся из МИРА, а не из npc.Perception.
         if (!world.Entities.Objects.TryGetValue(targetId, out var worldObject))
         {

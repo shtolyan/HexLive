@@ -17,6 +17,8 @@ public sealed class PerceptionSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     // Spec 22.7 / 27.18A: live sight radius and memory TTL for discoveries.
     private static int PerceptionRadiusTiles => AiBalance.PerceptionRadiusTiles;
     private static int MemoryTtlTicks => AiBalance.MemoryTtlTicks;

@@ -68,6 +68,9 @@ array in `BUGS.json`.
   report becomes `ready_for_test`, create an atomic commit
   `fix(bug-<id>): <summary>` with trailer `Bug: #<id>` and append its full SHA
   to `fixCommits`. Never replace earlier SHAs; `fixCommit` is legacy-only.
+  Append it with `bugs.py update <id> --fix-commits <sha>` from the checkout
+  that holds the commit: the same call uploads the commit's patch (§114.4c),
+  which is what the player expands in the card — the server has no git.
   Never include unrelated dirty paths in that commit.
 - The lifecycle is `created → in_progress → ready_for_test → fixed`, with
   `ready_for_test → rework → in_progress` on a failed test. Archive is a
@@ -269,10 +272,13 @@ and loading path as the ordinary game.
   `if (Application.productName != "HexLive") return;` (a second project may share the bridge).
 - **Codex only:** never launch Unity, Unity batchmode, `BuildPipeline`, or a
   command-line project/assembly build while the user's Unity Editor is open.
-  Do not try to detect-and-proceed, do not start a second editor, and do not
-  build "just to compile-check". Use the already-open editor through UnityMCP
-  and let the user initiate player builds unless they explicitly say the editor
-  is closed and ask Codex to build. This restriction does not apply to Claude.
+  The user explicitly permits checking whether Unity Editor is closed before
+  an authorized build (2026-09-08). Check process presence without printing
+  process arguments or secrets; if no Editor is running, proceed without
+  repeatedly asking for confirmation. A failed process check is not proof
+  that Unity is closed. Never close their Editor or start a second Editor
+  automatically. If it is open, use the single-owner UnityMCP workflow or
+  ask the user to close it before building. This restriction does not apply to Claude.
 - **Never `EditorUtility.DisplayDialog` for a result — log it.** A modal box owns
   Unity's main thread, and the bridge runs on that thread, so an "OK" nobody is
   there to click freezes every command until a human comes back. Menu items on the
@@ -564,6 +570,15 @@ moving), `StepOverrun`, `GoallessCrisis`, `PositionFrozen` — and `--explain-st
 prints the flight-recorder tail beside each one, i.e. what that colonist was doing
 BEFORE she froze. Watch the `Reason=`; the per-NPC ring (spec §30.14) is what makes
 the tail survive, since the colony-wide ring only holds ~11 ticks.
+
+⭐ **Смотри на ХУДШИЙ шаг, не на тик/с** (spec §158.1): отчёт печатает
+«худший шаг N мс (тик T), за бюджетом 250 мс: k, дольше секунды: m» и
+«связность целиком: n перестроек». Средний тик 10 мс на «Островах» прятал
+тики по 2.8 с — именно они рвали связь у игрока. На пути тика нет права на
+обход `world.Junctions.Items.Values`/`Tiles.Items.Values`: проходимость
+пишется только через `WorldTopology` (гейт `TopologyWriteLint`), кэши на
+`TopologyVersion` догоняют журнал через `WorldTopology.CatchUp`, кандидаты
+ищутся через `LocalSearch` кольцами тайлов.
 
 `-h` lists the rest. It reports the spec §30.16 metrics: goal churn per NPC-day
 (both raw field changes and "dropped one job for another", which is the number
@@ -914,6 +929,14 @@ dotnet test Tests/HexLive.Simulation.Tests --configuration Release --nologo
 падающих тестов в отчёте; серверные тесты не пропускаются никогда.
 
 ### 2. Публикация и загрузка
+
+Для мира, который должен оставаться на паузе, новый сервер запускается с
+`--start-paused` до первого тика. После изменения systemd drop-ins проверить
+эффективный ExecStart (`systemctl show`), а не только текст созданного файла:
+более поздний override может заменить его. Стартовый pause override должен
+идти после остальных ExecStart overrides. Старый бинарник без этого флага
+при аварийном откате оставлять остановленным до контролируемого восстановления,
+если автоматический запуск нарушит требование сохранить мир на прежнем тике.
 
 Внутри временного архива выполнить self-contained publish именно для Linux x64:
 

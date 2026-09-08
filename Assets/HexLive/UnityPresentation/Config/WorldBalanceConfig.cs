@@ -12,6 +12,7 @@ namespace HexLive.UnityPresentation.Config
     [CreateAssetMenu(menuName = "HexLive/Balance/World", fileName = "WorldBalance")]
     [MirrorTarget(typeof(WorldBalance))]
     [MirrorTarget(typeof(WildlifeBalance))]
+    [MirrorTarget(typeof(ChunkBalance))]
     public sealed class WorldBalanceConfig : ScriptableObject
     {
         [Header("Стартовый состав")]
@@ -116,6 +117,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 80)] public int hugeIslandMaxLivingNpcs = 42;
         [Tooltip("§146.9: потолок живых в одном из шести лагерей.")]
         [Range(0, 20)] public int hugeIslandMaxCampNpcs = 6;
+        [Tooltip("§157: потолок всех живых NPC на Островах (6 лагерей × 3 + чужаки + запас).")]
+        [Range(0, 80)] public int islandsMaxLivingNpcs = 30;
+        [Tooltip("§157: потолок живых девушек в лагере одного острова (решение игрока: 3).")]
+        [Range(0, 20)] public int islandsMaxCampNpcs = 3;
         [Tooltip("§35.5: множитель естественной сушки ОДЕЖДЫ (мир без костра/солнца).")]
         [Range(0f, 1f)] public float clothingNaturalDryMultiplier = 0.1f;
 
@@ -132,6 +137,10 @@ namespace HexLive.UnityPresentation.Config
         [Range(0, 60)] public int hugeIslandWolfSlots = 24;
         [Tooltip("§146.9: слоты крабов на огромном острове.")]
         [Range(0, 100)] public int hugeIslandCrabSlots = 48;
+        [Tooltip("§157: слоты волков на Островах (×6 от Огромного).")]
+        [Range(0, 200)] public int islandsWolfSlots = 144;
+        [Tooltip("§157: слоты крабов на Островах (×6 от Огромного).")]
+        [Range(0, 400)] public int islandsCrabSlots = 288;
         [Tooltip("§147.3: радиус материализации зверя из превью, тайлы от ближайшей девушки.")]
         [Range(1, 20)] public int mobMaterializeRadiusTiles = 8;
         [Tooltip("§147.3: радиус материализации краба, тайлы.")]
@@ -142,5 +151,19 @@ namespace HexLive.UnityPresentation.Config
         [Range(2, 60)] public int mobPreviewSegmentTicks = 12;
         [Tooltip("§147.2: шанс паузы (стоит, нюхает) вместо шага на сегменте превью.")]
         [Range(0f, 1f)] public float mobPreviewPauseChance = 0.45f;
+
+        [Header("Спящие чанки (§156)")]
+        [Tooltip("§156.6: сон дальних чанков. Выключено = мир ведёт себя ровно как до §156.")]
+        [MirrorField(typeof(ChunkBalance), "ChunkSleepEnabled")]
+        public bool chunkSleepEnabled = true;
+        [Tooltip("§156.1: сторона чанка в тайлах.")]
+        [MirrorField(typeof(ChunkBalance), "ChunkSizeTiles")]
+        [Range(2, 32)] public int chunkSizeTiles = 8;
+        [Tooltip("§156.1: пол радиуса пробуждения, тайлы. Не меньше смертного крика §57 (10) и материализации зверя §147.3 (8).")]
+        [MirrorField(typeof(ChunkBalance), "MinWakeRadiusTiles")]
+        [Range(1, 40)] public int minWakeRadiusTiles = 10;
+        [Tooltip("§156.1: запас поверх радиуса пробуждения, тайлы — NPC пересекает границу чанка не мгновенно.")]
+        [MirrorField(typeof(ChunkBalance), "WakeRadiusMarginTiles")]
+        [Range(0, 10)] public int wakeRadiusMarginTiles = 2;
     }
 }

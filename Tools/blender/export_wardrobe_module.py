@@ -90,7 +90,15 @@ export_collection.objects.link(hanger_template)
 hanger_template.parent = export_root
 hanger_template.matrix_parent_inverse = Matrix.Identity(4)
 hanger_template.matrix_basis = Matrix.Identity(4)
-hanger_inverse = hanger_source.matrix_world.inverted()
+# The source hanger's root is NOT merely a position marker: relative to the
+# normalized wardrobe basis it carries the approved across-rail orientation
+# (+90 degrees) and the width scale authored by the wardrobe review.  Runtime
+# deliberately clones HangerTemplate at a ClothingSlot with identity rotation,
+# so both must be baked into the template geometry here.  Basing the meshes on
+# hanger_source.inverse() erased exactly those two parts and exported a YZ-plane
+# template whose width ran ALONG the rail (#349).
+hanger_to_wardrobe = inverse @ hanger_source.matrix_world
+hanger_origin = hanger_to_wardrobe.translation.copy()
 hanger_descendants = []
 hanger_stack = list(hanger_source.children)
 while hanger_stack:
@@ -104,7 +112,13 @@ for source in hanger_descendants:
     clone.data = source.data.copy()
     clone.name = source.name.replace("HL_Wardrobe_Hanger_00_", "Hanger_")
     export_collection.objects.link(clone)
-    clone.data.transform(hanger_inverse @ source.matrix_world)
+    # Wardrobe-local geometry, translated back to a zero template pivot.  This
+    # preserves the source root's rotation/scale without double-applying its
+    # slot position when runtime seats the clone at ClothingSlot_XX.
+    template_from_source = (
+        Matrix.Translation(-hanger_origin) @ inverse @ source.matrix_world
+    )
+    clone.data.transform(template_from_source)
     clone.parent = hanger_template
     clone.matrix_parent_inverse = Matrix.Identity(4)
     clone.matrix_basis = Matrix.Identity(4)
@@ -121,7 +135,11 @@ for index in range(12):
     export_collection.objects.link(socket)
     socket.parent = export_root
     socket.matrix_parent_inverse = Matrix.Identity(4)
-    socket.matrix_basis = inverse @ hanger.matrix_world
+    # Sockets own positions only. The shared normalized HangerTemplate already
+    # contains the wardrobe-local orientation/scale, and runtime intentionally
+    # applies no per-slot rotation or asset-specific compensation.
+    hanger_local = inverse @ hanger.matrix_world
+    socket.matrix_basis = Matrix.Translation(hanger_local.translation)
 for index in range(3):
     shoe = bpy.data.objects.get(f"HL_Wardrobe_Real_CanvasSneakers_Pair_{index:02}")
     if shoe is None:

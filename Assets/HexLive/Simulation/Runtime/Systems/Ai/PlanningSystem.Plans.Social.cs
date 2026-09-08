@@ -166,43 +166,33 @@ public sealed partial class PlanningSystem
             return null;
         }
 
-        JunctionId? best = null;
-        var bestDistance = float.MaxValue;
-        foreach (var junction in world.Junctions.Items.Values)
-        {
-            if (junction.Id.Equals(from) || junction.Blocked ||
-                junction.Tiles.Count == 0 ||
-                !SpatialQueries.IsJunctionFree(world, junction.Id))
+        // §158.4: ближайший сухой выход ищется кольцами от неё, не по всему
+        // графу; дальше NearestSearchMaxRadiusTiles выхода не считается.
+        var exit = LocalSearch.FindNearest(
+            world, npc.Tile, npc.Position, LocalSearch.NearestSearchMaxRadiusTiles,
+            junction =>
             {
-                continue;
-            }
-
-            var allDry = true;
-            foreach (var coord in junction.Tiles)
-            {
-                if (!world.Tiles.Items.TryGetValue(coord, out var tile) ||
-                    !tile.Flags.HasFlag(TileFlags.Walkable) ||
-                    SpatialQueries.IsSwimTile(tile))
+                if (junction.Id.Equals(from) || junction.Blocked ||
+                    junction.Tiles.Count == 0 ||
+                    !SpatialQueries.IsJunctionFree(world, junction.Id))
                 {
-                    allDry = false;
-                    break;
+                    return false;
                 }
-            }
 
-            if (!allDry || !Connectivity.Reachable(
-                    world, from, junction.Id, CanUseCriticalTraversal(npc)))
-            {
-                continue;
-            }
+                foreach (var coord in junction.Tiles)
+                {
+                    if (!world.Tiles.Items.TryGetValue(coord, out var tile) ||
+                        !tile.Flags.HasFlag(TileFlags.Walkable) ||
+                        SpatialQueries.IsSwimTile(tile))
+                    {
+                        return false;
+                    }
+                }
 
-            var distance = HexSpatialMath.Distance(
-                npc.Position, junction.WorldPosition);
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                best = junction.Id;
-            }
-        }
+                return Connectivity.Reachable(
+                    world, from, junction.Id, CanUseCriticalTraversal(npc));
+            });
+        JunctionId? best = exit?.Id;
 
         return best;
     }
@@ -410,20 +400,23 @@ public sealed partial class PlanningSystem
 
         if (!criticalSwimmer)
         {
-            foreach (var pair in world.JunctionComponentsFlat)
+            // §158.4: ближайший свободный узел материка — кольцами от неё, а
+            // не обходом карты плоских компонент (2.5 млн записей на «Островах»).
+            Connectivity.EnsureFlat(world);
+            var mainland = LocalSearch.FindNearest(
+                world, npc.Tile, npc.Position, LocalSearch.NearestSearchMaxRadiusTiles,
+                junction =>
+                    !junction.Blocked &&
+                    world.JunctionComponentsFlat.TryGetValue(junction.Id, out var component) &&
+                    component == world.LargestFlatComponentId &&
+                    SpatialQueries.IsJunctionFree(world, junction.Id));
+            if (mainland is not null)
             {
-                if (pair.Value != world.LargestFlatComponentId ||
-                    !world.Junctions.Items.TryGetValue(pair.Key, out var junction) ||
-                    junction.Blocked)
-                {
-                    continue;
-                }
-
-                var d = HexSpatialMath.Distance(junction.WorldPosition, npc.Position);
-                if (d < bestDistance && SpatialQueries.IsJunctionFree(world, pair.Key))
+                var d = HexSpatialMath.Distance(mainland.WorldPosition, npc.Position);
+                if (d < bestDistance)
                 {
                     bestDistance = d;
-                    best = pair.Key;
+                    best = mainland.Id;
                 }
             }
         }

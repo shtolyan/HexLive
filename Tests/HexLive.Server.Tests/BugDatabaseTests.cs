@@ -52,4 +52,44 @@ public sealed class BugDatabaseTests
         Assert.That(report.Comments,Has.Count.EqualTo(1));
         Assert.That(db.Create(new CreateBugRequest { Text="next" }).Id,Is.EqualTo(8));
     }
+
+    [Test]
+    public void CommitPatchIsStoredOncePerShaAndFoundByPrefix()
+    {
+        var db=new BugDatabase(Path.Combine(_directory,"bugs.sqlite3"));
+        var sha=new string('a',40);
+        var stored=db.PutCommitPatch(new BugCommitPatch
+        {
+            Sha=sha.ToUpperInvariant(),Subject="fix(bug-1): x",Message="fix(bug-1): x\n\nBug: #1",Author="me",WhenUtc="2026-09-03",
+            Files={new BugCommitFile{Path="A.cs",Added=3,Deleted=1}},Patch="diff --git a/A.cs b/A.cs\n@@ -1 +1 @@\n-a\n+b\n",
+        });
+        Assert.That(stored.Sha,Is.EqualTo(sha));
+        Assert.That(stored.StoredUtc,Is.Not.Empty);
+
+        db.PutCommitPatch(new BugCommitPatch { Sha=sha,Subject="replaced",Patch="p" });
+        Assert.That(db.ListCommitPatchShas(),Is.EqualTo(new[]{sha}));
+        Assert.That(db.GetCommitPatch(sha.Substring(0,9))!.Subject,Is.EqualTo("replaced"),"old reports carry short SHAs");
+        Assert.That(db.GetCommitPatch("abc"),Is.Null,"too short to be a commit reference");
+
+        var patches=db.GetCommitPatches(new[]{sha.Substring(0,9),new string('b',40)});
+        Assert.That(patches.Keys,Is.EqualTo(new[]{sha.Substring(0,9)}),"keyed as written on the report; missing ones are absent, not null");
+    }
+
+    [Test]
+    public void CommitPatchRejectsBadShaAndAmbiguousPrefixAndCapsSize()
+    {
+        var db=new BugDatabase(Path.Combine(_directory,"bugs.sqlite3"));
+        Assert.Throws<InvalidDataException>(()=>db.PutCommitPatch(new BugCommitPatch { Sha="9e257f5d2" }),"a short SHA cannot be a storage key");
+        Assert.Throws<InvalidDataException>(()=>db.PutCommitPatch(new BugCommitPatch { Sha=new string('z',40) }));
+
+        var big=db.PutCommitPatch(new BugCommitPatch { Sha=new string('c',40),Patch=new string('x',BugCommitPatch.MaxPatchChars+10) });
+        Assert.That(big.Patch.Length,Is.EqualTo(BugCommitPatch.MaxPatchChars));
+        Assert.That(big.Truncated,Is.True);
+
+        db.PutCommitPatch(new BugCommitPatch { Sha="c"+new string('d',39) });
+        Assert.That(db.GetCommitPatch("c"),Is.Null);
+        Assert.That(db.GetCommitPatch("cccccccc"),Is.Not.Null);
+        Assert.That(db.GetCommitPatch("cdcdcdcd"),Is.Null,"no such commit");
+        Assert.That(db.GetCommitPatches(new[]{"cccccccc"}).Count,Is.EqualTo(1));
+    }
 }

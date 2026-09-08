@@ -91,7 +91,8 @@ public sealed partial class ExecutionSystem
             }
             else
             {
-                DropGarmentWithContents(world, npc, garment);
+                if (DropGarmentWithContents(world, npc, garment) is null)
+                    npc.Inventory.Items.Add(garment);
             }
         }
 
@@ -213,7 +214,12 @@ public sealed partial class ExecutionSystem
 
         // Pass 2: any junction 2 tiles out that's clear of other furniture.
         JunctionId? ring = null;
-        foreach (var junction in world.Junctions.Items.Values)
+        // §158.4: «два тайла от костра» — это кольцо тайлов, а не весь граф.
+        var ringSeen = world.Caches.LocalSearchSeenScratch;
+        ringSeen.Clear();
+        var ringJunctions = world.Caches.LocalSearchRingScratch;
+        LocalSearch.CollectRing(world, campfire.Tile, 2, ringJunctions, ringSeen);
+        foreach (var junction in ringJunctions)
         {
             if (junction.Blocked || junction.Tiles.Count == 0 ||
                 !SpatialQueries.IsJunctionFree(world, junction.Id) ||
@@ -336,7 +342,7 @@ public sealed partial class ExecutionSystem
                 break;
             }
 
-            inv.Items.Remove(victim);
+            InventoryMath.RemoveReference(inv.Items, victim);
             _garmentSpillScratch.Add(victim);
         }
 
@@ -377,7 +383,7 @@ public sealed partial class ExecutionSystem
                 break;
             }
 
-            inv.Items.Remove(victim);
+            InventoryMath.RemoveReference(inv.Items, victim);
             _garmentSpillScratch.Add(victim);
         }
 
@@ -391,6 +397,7 @@ public sealed partial class ExecutionSystem
         hung.Dirtiness = garment.Dirtiness;
         hung.Bloodiness = garment.Bloodiness;
         hung.ResourceAmount = garment.ResourceAmount;
+        hung.WaterKind = garment.WaterKind;
         hung.Owner = garment.OwnerId != 0 ? new EntityId(garment.OwnerId) : npc.Id;
         if (_garmentSpillScratch.Count > 0)
         {
@@ -512,7 +519,7 @@ public sealed partial class ExecutionSystem
             // to HeldGarment. Put that SAME instance back before cancelling;
             // clearing the hand here used to destroy the garment outright.
             if (npc.Execution.HeldGarment is { } held &&
-                !npc.WornItems.Contains(held))
+                !InventoryMath.ContainsReference(npc.WornItems, held))
             {
                 npc.WornItems.Add(held);
                 EquipmentMath.Recalculate(world, npc);
@@ -601,7 +608,7 @@ public sealed partial class ExecutionSystem
             {
                 var doffed = npc.WornItems.Find(i => i.DefinitionId == itemId) ??
                     new ItemInstance(itemId);
-                npc.WornItems.Remove(doffed);
+                InventoryMath.RemoveReference(npc.WornItems, doffed);
                 EquipmentMath.Recalculate(world, npc);
                 npc.Execution.HeldGarment = doffed;
                 if (SimTrace.Enabled)
@@ -622,7 +629,7 @@ public sealed partial class ExecutionSystem
             var wornItem = npc.Execution.HeldGarment ??
                 npc.WornItems.Find(i => i.DefinitionId == itemId) ??
                 new ItemInstance(itemId);
-            npc.WornItems.Remove(wornItem);
+            InventoryMath.RemoveReference(npc.WornItems, wornItem);
             npc.Execution.HeldGarment = null;
             EquipmentMath.Recalculate(world, npc);
             // Spec §52: the garment carries down whatever pocket items no longer
@@ -691,7 +698,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        npc.Inventory.Items.Remove(item);
+        InventoryMath.RemoveReference(npc.Inventory.Items, item);
         var dropped = DropItemAtFeet(world, npc, item);
         if (dropped is null)
         {
@@ -736,6 +743,7 @@ public sealed partial class ExecutionSystem
             !world.Content.ObjectDefinitions.TryGetValue(itemId, out var itemDefinition))
         {
             npc.Plan.Status = PlanStatus.Failed;
+            npc.Execution.TargetInventoryItem = null;
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "ExecFailed",
@@ -754,6 +762,7 @@ public sealed partial class ExecutionSystem
         if (interaction is null)
         {
             npc.Plan.Status = PlanStatus.Failed;
+            npc.Execution.TargetInventoryItem = null;
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "ExecFailed",
@@ -762,10 +771,16 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var item = FindConsumableInventoryItem(npc, itemId, verb, itemDefinition);
-        if (item is null)
+        var starting = npc.Execution.Status == ExecutionStatus.None;
+        var item = starting
+            ? FindConsumableInventoryItem(npc, itemId, verb, itemDefinition)
+            : npc.Execution.TargetInventoryItem;
+        if (item is null || item.DefinitionId != itemId ||
+            (!starting && !InventoryMath.ContainsReference(npc.Inventory.Items, item)) ||
+            (IsPortableCoconutDrink(itemDefinition, verb) && item.ResourceAmount <= 0f))
         {
             npc.Plan.Status = PlanStatus.Failed;
+            npc.Execution.TargetInventoryItem = null;
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "ExecFailed",
@@ -774,11 +789,16 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        if (npc.Execution.Status == ExecutionStatus.None)
+        if (starting)
         {
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = verb;
             npc.Execution.TargetObject = null;
+            // ItemInstance equality is deliberately definition-based. Keep
+            // the exact physical coconut/food instance across the timed
+            // interaction so an inventory reorder cannot redirect a sip to
+            // another equal item with different ResourceAmount.
+            npc.Execution.TargetInventoryItem = item;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + interaction.DurationTicks;
 
@@ -855,7 +875,7 @@ public sealed partial class ExecutionSystem
             }
             else
             {
-                npc.Inventory.Items.Remove(item);
+                InventoryMath.RemoveReference(npc.Inventory.Items, item);
                 // §55: a consumed item may transform rather than vanish — cracking a
                 // coconut (Drink) yields the opened husk straight into the hand.
                 foreach (var yield in interaction.Yields)
@@ -897,6 +917,7 @@ public sealed partial class ExecutionSystem
             npc.Mind.CurrentGoal = GoalType.None;
             npc.Execution.Status = ExecutionStatus.None;
             npc.Execution.CurrentInteraction = null;
+            npc.Execution.TargetInventoryItem = null;
             npc.Execution.StartTick = 0;
             npc.Execution.EndTick = 0;
 
@@ -938,14 +959,54 @@ public sealed partial class ExecutionSystem
     // §55.4 (bug #317): перелить воду вскрытых кокосов инвентаря в личную
     // бутылку — на месте, небыстро (FillVesselDurationTicks, прогресс в
     // Execution). Кокосы теряют ResourceAmount, бутылка получает глотки 1:1;
-    // пустая бутылка становится Raw, непустая сохраняет свой вид воды.
+    // пустая бутылка становится Coconut, непустая сохраняет свой вид воды.
     // Шаг снимает себя из плана: автономный план [FillVessel, DrinkBottle]
     // продолжается штатным питьём, ручной одношаговый — завершается.
     private static void RunFillVessel(WorldState world, NPCState npc)
     {
-        if (npc.Execution.Status == ExecutionStatus.None)
+        var starting = npc.Execution.Status == ExecutionStatus.None;
+        var hasPhysicalSelection = npc.Plan.Steps.Count > 0 &&
+            npc.Plan.Steps[0].TimeoutEndTick.HasValue;
+        ItemInstance targetBottle = null;
+        if (starting && hasPhysicalSelection)
         {
-            if (!VesselTransferMath.CanFillBottle(npc))
+            // Manual admission already resolved the clicked physical slot.
+            // Do not resolve its index again here: another equal bottle can
+            // occupy that index before the first execution tick.
+            targetBottle = npc.Execution.TargetInventoryItem;
+        }
+        else if (starting)
+        {
+            targetBottle = BottleInventoryMath.FirstWithRoomFor(npc, WaterKind.Coconut);
+        }
+        else
+        {
+            // Once the delayed action has started, list position is no longer
+            // identity: inventory management may insert or move equal bottles.
+            // Continue only with the exact instance reserved at start.
+            targetBottle = npc.Execution.TargetInventoryItem;
+        }
+
+        var targetPresent = targetBottle is not null &&
+            targetBottle.DefinitionId == ContentIds.Bottle &&
+            InventoryMath.ContainsReference(npc.Inventory.Items, targetBottle);
+        if ((starting && hasPhysicalSelection && !targetPresent) ||
+            (!starting && npc.Execution.Status == ExecutionStatus.InProgress && !targetPresent))
+        {
+            PlanInterruption.TryAbort(
+                world, npc, InterruptionCause.ExecutionFailure,
+                "FillVessel: selected physical bottle changed or disappeared");
+            if (SimTrace.Enabled)
+            {
+                Trace.Debug(world, npc.Id, "ExecFailed",
+                    "FillVessel: selected physical bottle changed or disappeared");
+            }
+            return;
+        }
+
+        if (starting)
+        {
+            if (!VesselTransferMath.CanFillBottle(npc, targetBottle))
             {
                 npc.Plan.Status = PlanStatus.Failed;
                 if (SimTrace.Enabled)
@@ -959,13 +1020,14 @@ public sealed partial class ExecutionSystem
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.FillVessel;
             npc.Execution.TargetObject = null;
+            npc.Execution.TargetInventoryItem = targetBottle;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + SimBalance.FillVesselDurationTicks;
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "InteractionStarted",
                     $"FillVessel Duration={SimBalance.FillVesselDurationTicks}ticks " +
-                    $"Charges={npc.BottleCharges} " +
+                    $"Charges={BottleInventoryMath.Charges(targetBottle)} " +
                     $"CoconutSips={VesselTransferMath.CoconutSips(npc)}");
             }
             return;
@@ -981,18 +1043,19 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var moved = VesselTransferMath.FillBottleFromCoconuts(npc);
+        var moved = VesselTransferMath.FillBottleFromCoconuts(npc, targetBottle);
         if (moved > 0 && SimTrace.Enabled)
         {
             // Диагностика, не хроника: рядовой быт (как VesselPlaced/Taken).
             Trace.Debug(world, npc.Id, "VesselFilled",
                 $"Poured {moved} sips into tool.bottle " +
-                $"{npc.BottleWater} x{npc.BottleCharges}");
+                $"{targetBottle?.WaterKind} x{BottleInventoryMath.Charges(targetBottle)}");
         }
 
         npc.Plan.Steps.RemoveAt(0);
         npc.Execution.Status = ExecutionStatus.None;
         npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetInventoryItem = null;
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
 
@@ -1014,28 +1077,46 @@ public sealed partial class ExecutionSystem
 
     private static void RunDrinkBottle(WorldState world, NPCState npc)
     {
-        if (npc.BottleWater == WaterKind.None)
+        // §52 / bug #355: reserve one real filled bottle for the whole sip.
+        // Inventory may be managed while AI is acting, so choosing "first"
+        // again on every tick could start with Raw and finish from another
+        // same-definition bottle. Reference identity is sufficient inside the
+        // running world; after save/load the transient reservation is absent
+        // and the interrupted step fails safely instead of drinking a guess.
+        var starting = npc.Execution.Status == ExecutionStatus.None;
+        var bottle = starting
+            ? BottleInventoryMath.FirstDrinkable(npc)
+            : npc.Execution.TargetInventoryItem;
+        var bottlePresent = bottle is not null &&
+            bottle.DefinitionId == ContentIds.Bottle &&
+            BottleInventoryMath.Charges(bottle) > 0 &&
+            InventoryMath.ContainsReference(npc.Inventory.Items, bottle);
+        if (!bottlePresent)
         {
-            npc.Plan.Status = PlanStatus.Failed;
+            PlanInterruption.TryAbort(
+                world, npc, InterruptionCause.ExecutionFailure,
+                "DrinkBottle: selected physical bottle is empty, moved or lost");
             if (SimTrace.Enabled)
             {
-                Trace.Debug(world, npc.Id, "ExecFailed", "DrinkBottle: the bottle is empty");
+                Trace.Debug(world, npc.Id, "ExecFailed",
+                    "DrinkBottle: selected physical bottle is empty, moved or lost");
 
             }
             return;
         }
 
-        if (npc.Execution.Status == ExecutionStatus.None)
+        if (starting)
         {
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.Drink;
             npc.Execution.TargetObject = null;
+            npc.Execution.TargetInventoryItem = bottle;
             npc.Execution.StartTick = world.Tick;
             npc.Execution.EndTick = world.Tick + DrinkBottleDurationTicks;
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "InteractionStarted",
-                    $"Drink (bottle:{npc.BottleWater}) Duration={DrinkBottleDurationTicks}ticks");
+                    $"Drink (bottle:{bottle.WaterKind}) Duration={DrinkBottleDurationTicks}ticks");
             }
             return;
         }
@@ -1051,10 +1132,21 @@ public sealed partial class ExecutionSystem
         // §54.15: RAIN water (the collector's leaf funnel, no ground contact)
         // is clean — boiled-grade thirst relief and NO sickness roll; only
         // the warm-drink comfort bonus stays boiled-only.
-        var raw = npc.BottleWater == WaterKind.Raw;
-        var boiled = npc.BottleWater == WaterKind.Boiled;
+        // §55.4 / bug #347: COCONUT keeps the same data-driven effects as a
+        // direct sip from food.coconut_pierced and never enters the Raw roll.
+        var raw = bottle.WaterKind == WaterKind.Raw;
+        var boiled = bottle.WaterKind == WaterKind.Boiled;
         var thirstTotal = raw ? SimBalance.DrinkThirstRaw : SimBalance.DrinkThirstBoiled;
         var comfortTotal = boiled ? SimBalance.DrinkComfortBoiled : 0f;
+        if (bottle.WaterKind == WaterKind.Coconut &&
+            world.Content.ObjectDefinitions.TryGetValue(
+                ContentIds.CoconutPierced, out var coconutDefinition) &&
+            ResolveInteraction(
+                world, npc, coconutDefinition, InteractionType.Drink) is { } coconutDrink)
+        {
+            thirstTotal = System.MathF.Max(0f, -coconutDrink.Effects.ThirstDelta);
+            comfortTotal = System.MathF.Max(0f, coconutDrink.Effects.ComfortDelta);
+        }
         var share = 1f / DrinkBottleDurationTicks;
         npc.Needs.Thirst = MathUtil.Clamp01(npc.Needs.Thirst - thirstTotal * share);
         npc.Needs.Comfort = MathUtil.Clamp01(npc.Needs.Comfort + comfortTotal * share);
@@ -1134,15 +1226,12 @@ public sealed partial class ExecutionSystem
         }
 
         // Spec §52: spend one gulp; the bottle only empties when the last is gone.
-        npc.BottleCharges--;
-        var driedOut = npc.BottleCharges <= 0;
+        var consumedKind = bottle.WaterKind;
+        BottleInventoryMath.ConsumeOne(bottle, out _);
+        var remaining = BottleInventoryMath.Charges(bottle);
+        var driedOut = remaining <= 0;
         Trace.Emit(world, npc.Id, "DrankBottle",
-            $"{npc.BottleWater} water Thirst={npc.Needs.Thirst:F2} Left={System.Math.Max(0, npc.BottleCharges)}");
-        if (driedOut)
-        {
-            npc.BottleWater = WaterKind.None;
-            npc.BottleCharges = 0;
-        }
+            $"{consumedKind} water Thirst={npc.Needs.Thirst:F2} Left={remaining}");
 
         // Bug #305: глоток теперь 100 мл, и одной жаждущей его мало — пьёт
         // следующий сразу, тем же правилом, что кокосовые глотки (без полного
@@ -1156,7 +1245,7 @@ public sealed partial class ExecutionSystem
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "InteractionStarted",
-                    $"Drink (bottle, next sip) Left={npc.BottleCharges} Thirst={npc.Needs.Thirst:F2}");
+                    $"Drink (bottle, next sip) Left={remaining} Thirst={npc.Needs.Thirst:F2}");
             }
             return;
         }
@@ -1166,6 +1255,7 @@ public sealed partial class ExecutionSystem
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Execution.Status = ExecutionStatus.None;
         npc.Execution.CurrentInteraction = null;
+        npc.Execution.TargetInventoryItem = null;
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
 

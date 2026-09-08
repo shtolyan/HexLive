@@ -13,6 +13,45 @@ public sealed class RuntimeCaches
 
     public Dictionary<TileCoord, List<ObjectId>> ObjectsByTile { get; } = new();
 
+    // §156: чанки, которые симулируются на этом тике — объединение дисков
+    // пробуждения всех живых NPC. Пересобирается движком перед слоем Slow,
+    // поэтому НЕ сериализуется и не едет в снапшоте: это вывод из позиций
+    // колонисток, а не состояние мира. Пуст, пока механика выключена.
+    public HashSet<ChunkCoord> ActiveChunks { get; } = new();
+
+    // Тот же набор списком и в порядке (Cq, Cr). Множество отвечает на вопрос
+    // «спит ли», список — задаёт ПОРЯДОК обхода: у HashSet его нет, а обход по
+    // нему решал бы, в каком порядке мир получает свои плоды и трупы.
+    public List<ChunkCoord> ActiveChunksOrdered { get; } = new();
+
+    // ⭐ §156: посчитан ли набор ВООБЩЕ. Пустой набор и НЕсчитанный — разные
+    // вещи, и различать их обязательно: набор считает движок, а систему можно
+    // запустить и без него (так живёт половина поведенческих тестов и стенды
+    // сцен). Без этого флага такой прогон означал бы «не бодрствует ничто», и
+    // система молча не делала бы НИЧЕГО — костёр не горит, вещи не сохнут, и
+    // никакой ошибки при этом не видно.
+    //
+    // Отказ направлен в безопасную сторону: не посчитан — значит фильтра нет и
+    // мир живёт целиком, как до §156. Потерять можно только экономию, но не
+    // саму жизнь мира.
+    public bool ActiveChunksComputed { get; set; }
+
+    // §156: объекты по чанкам. Ради этого индекса всё и затевалось: пока
+    // системы обходили ВЕСЬ словарь и спрашивали IsAwake про каждого, фильтр
+    // платился за 100% объектов, а экономил на 15-26% (замер §156.9) — то есть
+    // сон стоил дороже, чем экономил. По этому индексу спящий объект не стоит
+    // даже обращения к хешу.
+    //
+    // Держится в тех же ТРЁХ местах, что и ObjectsByTile (Spawn, Despawn,
+    // MoveObjectTile), и восстанавливается из ростера при загрузке — своего
+    // формата в сейве у него нет, потому что он целиком выводится из Tile.
+    public Dictionary<ChunkCoord, List<ObjectId>> ObjectsByChunk { get; } = new();
+
+    // Сторона чанка, на которой индекс выше построен. ChunkSizeTiles — ручка
+    // баланса: её правка на живом мире обязана перестроить индекс, иначе он
+    // молча указывает в клетки, которых больше нет.
+    public int ObjectsByChunkSize { get; set; }
+
     // Spec 29C.3 (chase-path fix): junctions a ground mob may never STEP on —
     // indoor (sanctuary), doors, all-water. Chase pathfinding feeds these into
     // FindPath's avoid set so a dog plans routes it can actually walk; without
@@ -65,19 +104,40 @@ public sealed class RuntimeCaches
     // вырожденный, эвристика выключена.
     public float LongestJunctionEdge { get; set; }
 
-    // §54.12 / §30.16: ledges belong to ONE world. The first implementation
-    // cached Junction object references in a static DecisionSystem list keyed
-    // only by the numeric TopologyVersion. Fresh worlds normally all start at
-    // version 1, so a multi-seed soak silently queried the previous island's
-    // junctions. Keep ids in the existing per-world derived-cache container;
-    // no cross-world reference can survive, even when versions are equal.
-    public List<JunctionId> LedgeJunctions { get; } = new();
+    // §158.3: сколько раз связность пришлось перестроить целиком (первое
+    // построение, загрузка, InvalidateAll, неразрешимый раскол). Метрика
+    // прогона: на бодром мире это единицы, а не «по разу на бревно».
+    public int ConnectivityFullRebuilds { get; set; }
 
-    public int LedgeJunctionsBuiltVersion { get; set; } = -1;
+    // §158.4: скретчи локального перечисления узлов (LocalSearch).
+    public HashSet<JunctionId> LocalSearchSeenScratch { get; } = new();
 
-    // §30.16 r2: path-derived scratch and tick caches are world-owned for the
-    // same reason as ledges. A static tick key can make a second world reuse
-    // another island's danger/hostile ring at an equal simulation tick.
+    public List<HexLive.Simulation.Spatial.Junction> LocalSearchScratch { get; } = new();
+
+    public List<HexLive.Simulation.Spatial.Junction> LocalSearchRingScratch { get; } = new();
+
+    // §158.5: узлы, все тайлы которых — глубокая вода. Геометрия worldgen,
+    // строится один раз на мир (раньше — на КАЖДЫЙ критический маршрут).
+    public HashSet<JunctionId> DeepWaterJunctions { get; } = new();
+
+    public bool DeepWaterJunctionsBuilt { get; set; }
+
+    // §158.5: курсоры журнала топологии для кэшей, что раньше перестраивались
+    // полным обходом на каждую смену TopologyVersion.
+    public int MobForbiddenJournalCursor { get; set; }
+
+    public int LandSlotHomeBaseJournalCursor { get; set; }
+
+    public int CrabSlotHomeBaseJournalCursor { get; set; }
+
+    public List<JunctionId> TopologyChangedScratch { get; } = new();
+
+    // §30.16 r2: path-derived scratch and tick caches are world-owned. The
+    // first ledge cache (§54.12, since replaced by the §158.4 local search)
+    // lived in a static DecisionSystem list keyed only by the numeric
+    // TopologyVersion, and a multi-seed soak silently queried the previous
+    // island's junctions; a static tick key can likewise make a second world
+    // reuse another island's danger/hostile ring at an equal simulation tick.
     public HashSet<JunctionId> OtherActorJunctionsScratch { get; } = new();
 
     public HashSet<JunctionId> DangerRingJunctions { get; } = new();
@@ -139,7 +199,6 @@ public sealed class RuntimeCaches
 
     // The per-call candidate list EnsureSlots mutates (RemoveAt): reused, not
     // reallocated on every medium tick.
-    public List<JunctionId> SlotCandidatesScratch { get; } = new();
 
     // PERF (Aug-2026): позиции джанкшенов — вывод worldgen и не меняются;
     // сетка ячеек для FindNearestJunction строится один раз на мир. Старый

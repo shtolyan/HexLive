@@ -185,6 +185,26 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     [Test]
+    public void FillButtonMirrorsPerBottleProvenanceRule_Bug355()
+    {
+        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var start = source.IndexOf("private static bool CanFillVessel(",
+            StringComparison.Ordinal);
+        var end = source.IndexOf("private void EnqueueFillVessel", start,
+            StringComparison.Ordinal);
+        Assert.That(start, Is.GreaterThanOrEqualTo(0));
+        Assert.That(end, Is.GreaterThan(start));
+        var predicate = source[start..end];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(predicate, Does.Contain("water.TryGetValue(sourceIndex"));
+            Assert.That(predicate, Does.Contain("bottle.Amount <= 0f || bottle.Kind == WaterKind.Coconut"));
+            Assert.That(predicate, Does.Contain("state.ItemId == \"food.coconut_pierced\""));
+        });
+    }
+
+    [Test]
     public void InventoryDetailDismissesOnEmptyClickButNotOnDragOrInsideClick()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
@@ -269,6 +289,14 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(source, Does.Contain(
                 "cell, itemId, true, durability, water, stacks, wetness, dirtiness"));
             Assert.That(source, Does.Contain("_invSelectedSourceIndex = sourceIndex"));
+            Assert.That(source, Does.Contain(
+                "_invPointerItemWorn, _invPointerSourceIndex"),
+                "Drag must carry the clicked physical SourceIndex, not only its definition.");
+            Assert.That(source, Does.Contain(
+                "_invSelectedSourceIndex = _invDraggedSourceIndex"));
+            Assert.That(source, Does.Not.Contain(
+                "refreshedIndex = FindCarriedSourceIndex(npc, _invSelectedId)"),
+                "A stale duplicate selection must close instead of retargeting the first equal item.");
             Assert.That(localization, Does.Contain("Term: inv.tab.clothes"));
             Assert.That(localization, Does.Contain("- Clothes"));
             Assert.That(localization, Does.Contain("Одежда"));

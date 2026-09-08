@@ -157,7 +157,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         HexInspectorPanel.PointerOverPanel ||
         ContextMenuPanel.BlocksWorldPointer ||
         LootTransferPanel.IsOpen ||
-        GameMenu.IsOpen ||
+        GameMenu.IsOpen || AdminVoicePanel.BlocksGameInput ||
         EndSummaryPanel.IsOpen ||
         // Bug #279: окно отчёта об ошибке блокирует мир своим флагом — общий
         // NpcSelection.PointerOverUi затирается CharacterPanel каждый кадр.
@@ -1179,7 +1179,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // открывает меню, а не переключает выбор: атака по неосторожному
         // клику — ровно то, от чего Kenshi защищается отдельным пунктом.
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.select"),
-            () => NpcSelection.Select(npcId)));
+            () => NpcSelection.Activate(npcId)));
 
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
     }

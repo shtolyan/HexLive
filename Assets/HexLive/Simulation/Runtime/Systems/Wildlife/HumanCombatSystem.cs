@@ -24,6 +24,8 @@ public sealed class HumanCombatSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Fast;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         if (!Spec72.Enabled)

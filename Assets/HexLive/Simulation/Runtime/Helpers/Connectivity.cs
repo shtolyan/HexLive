@@ -72,20 +72,14 @@ internal static class Connectivity
         // reachable, the way back is not. Water stays its own world.
         if (!canJump)
         {
-            if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
-            {
-                RebuildFlat(world);
-            }
+            EnsureFlat(world);
 
             return world.JunctionComponentsFlat.TryGetValue(a, out var fa) && fa >= 0 &&
                    world.JunctionComponentsFlat.TryGetValue(b, out var fb) && fb >= 0 &&
                    FlatReaches(world, fa, fb);
         }
 
-        if (world.ComponentsBuiltVersion != world.TopologyVersion)
-        {
-            Rebuild(world);
-        }
+        EnsureJump(world);
 
         return world.JunctionComponents.TryGetValue(a, out var ca) && ca >= 0 &&
                world.JunctionComponents.TryGetValue(b, out var cb) &&
@@ -167,20 +161,14 @@ internal static class Connectivity
 
         if (!canJump)
         {
-            if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
-            {
-                RebuildFlat(world);
-            }
+            EnsureFlat(world);
 
             return world.JunctionComponentsFlat.TryGetValue(junction, out var flat)
                 ? flat
                 : int.MinValue + 1;
         }
 
-        if (world.ComponentsBuiltVersion != world.TopologyVersion)
-        {
-            Rebuild(world);
-        }
+        EnsureJump(world);
 
         return world.JunctionComponents.TryGetValue(junction, out var component)
             ? component
@@ -191,10 +179,7 @@ internal static class Connectivity
     /// заблокирован/неизвестен). Ленивая перестройка как у Reachable.</summary>
     public static int FlatComponentSizeAt(WorldState world, JunctionId junction)
     {
-        if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
-        {
-            RebuildFlat(world);
-        }
+        EnsureFlat(world);
 
         return world.JunctionComponentsFlat.TryGetValue(junction, out var comp) && comp > 0 &&
             world.JunctionComponentsFlatSizes.TryGetValue(comp, out var size)
@@ -202,11 +187,674 @@ internal static class Connectivity
                 : 0;
     }
 
+    // ── §158.3: инкрементальная связность ─────────────────────────────────
+    //
+    // Раньше любая смена TopologyVersion (брошенное бревно, срубленная пальма,
+    // колышек стройки) роняла обе карты компонент целиком, и первый, кто
+    // спрашивал достижимость, платил BFS по ВСЕМУ графу: 0.5 с прыжковый +
+    // 1.8 с плоский на 2.5 млн узлов «Островов» — по 2–3 с тишины сервера на
+    // каждое действие игрока (§158.1). Теперь потребитель догоняет журнал
+    // (§158.2) точечно: заблокированный узел проверяется на раскол ЛОКАЛЬНЫМ
+    // BFS с бюджетом, разблокированный — сливает компоненты соседей
+    // перекраской меньшей. Полная перестройка осталась запасным ходом ровно
+    // для одного случая: узел рассёк компоненту на две части, каждая больше
+    // бюджета (стена поперёк острова), — и каждый такой случай считается
+    // (RuntimeCaches.ConnectivityFullRebuilds) и пишется в самописец.
+    //
+    // Идентификаторы компонент при этом НЕ равны тем, что дала бы свежая
+    // перестройка (та нумерует по порядку обхода), но они нигде не сравниваются
+    // ни с чем, кроме друг друга: ответы Reachable/ComponentOf/размеры совпадают
+    // с ответами перестроенной карты бит-в-бит, что и проверяет гейт
+    // ConnectivityIncrementalParityTests на случайных последовательностях.
+
+    /// <summary>Бюджет локального BFS при блокировке узла: столько узлов старой
+    /// компоненты просматривается, прежде чем область признаётся «большой».
+    /// Интерьеры хижин (десятки узлов) и любые загоны меньше бюджета
+    /// раскалываются точно и локально; две «большие» половины — полная
+    /// перестройка.</summary>
+    internal const int SplitProbeBudget = 4096;
+
     private static readonly System.Collections.Generic.Queue<JunctionId> _queue = new();
+    private static readonly System.Collections.Generic.List<JunctionId> _changedScratch = new();
+    private static readonly System.Collections.Generic.List<JunctionId> _portsScratch = new();
+    private static readonly System.Collections.Generic.HashSet<JunctionId> _pendingScratch = new();
+    private static readonly System.Collections.Generic.List<int> _labelsScratch = new();
+
+    private static System.Collections.Generic.Dictionary<JunctionId, int> Labels(WorldState world, bool flat) =>
+        flat ? world.JunctionComponentsFlat : world.JunctionComponents;
+
+    private static System.Collections.Generic.Dictionary<int, int> Sizes(WorldState world, bool flat) =>
+        flat ? world.JunctionComponentsFlatSizes : world.JunctionComponentSizes;
+
+    /// <summary>Ребро графа компонент между двумя ПРОХОДИМЫМИ узлами: ровно то
+    /// правило, по которому Rebuild/RebuildFlat кладут соседа в очередь.
+    /// Симметрично (перепад высот и швы не зависят от направления).</summary>
+    private static bool EdgeAllowed(WorldState world, JunctionId from, JunctionId to, bool flat)
+    {
+        if (world.ClimbSeams.Contains(from) && world.ClimbSeams.Contains(to))
+        {
+            return false;
+        }
+
+        return !flat || !Navigation.HexPathfinder.RequiresJump(world, from, to);
+    }
+
+    /// <summary>Догон прыжкового графа до текущей версии топологии.</summary>
+    internal static void EnsureJump(WorldState world)
+    {
+        if (world.ComponentsBuiltVersion == world.TopologyVersion)
+        {
+            return;
+        }
+
+        var version = world.ComponentsBuiltVersion;
+        var cursor = world.ComponentsJournalCursor;
+        var full = WorldTopology.CatchUp(world, ref version, ref cursor, _changedScratch);
+        world.ComponentsBuiltVersion = version;
+        world.ComponentsJournalCursor = cursor;
+        if (full)
+        {
+            Rebuild(world);
+            return;
+        }
+
+        ApplyChanges(world, flat: false);
+    }
+
+    /// <summary>Догон плоского графа до текущей версии топологии.</summary>
+    internal static void EnsureFlat(WorldState world)
+    {
+        if (world.ComponentsFlatBuiltVersion == world.TopologyVersion)
+        {
+            return;
+        }
+
+        var version = world.ComponentsFlatBuiltVersion;
+        var cursor = world.ComponentsFlatJournalCursor;
+        var full = WorldTopology.CatchUp(world, ref version, ref cursor, _changedScratch);
+        world.ComponentsFlatBuiltVersion = version;
+        world.ComponentsFlatJournalCursor = cursor;
+        if (full)
+        {
+            RebuildFlat(world);
+            return;
+        }
+
+        ApplyChanges(world, flat: true);
+    }
+
+    private static void ApplyChanges(WorldState world, bool flat)
+    {
+        var labels = Labels(world, flat);
+        var touched = false;
+        for (var i = 0; i < _changedScratch.Count; i++)
+        {
+            var id = _changedScratch[i];
+            if (!world.Junctions.Items.TryGetValue(id, out var junction))
+            {
+                continue;
+            }
+
+            if (!labels.TryGetValue(id, out var label))
+            {
+                // Узел, которого карта не знает, — граф менялся мимо worldgen.
+                FullRebuild(world, flat, "UnknownJunction");
+                return;
+            }
+
+            var wasBlocked = label < 0;
+            if (wasBlocked == junction.Blocked)
+            {
+                continue; // менялась дверь либо блок успел вернуться — карта верна
+            }
+
+            touched = true;
+            if (junction.Blocked)
+            {
+                if (!Block(world, junction, label, flat))
+                {
+                    FullRebuild(world, flat, "AmbiguousSplit");
+                    return;
+                }
+            }
+            else
+            {
+                Unblock(world, junction, flat);
+            }
+        }
+
+        if (touched && flat && _edgeSetChanged)
+        {
+            // Замыкания спусков зависят только от МНОЖЕСТВА рёбер между
+            // компонентами; счётчик, изменившийся с 3 на 2, их не трогает.
+            // Бревно посреди поляны поэтому не заставляет пересчитывать
+            // замыкание материка (сотни мс на 97 тысячах компонент «Островов»).
+            world.FlatDescendClosure.Clear();
+        }
+
+        _edgeSetChanged = false;
+    }
+
+    /// <summary>Появилось или исчезло ребро графа компонент за текущий догон.</summary>
+    private static bool _edgeSetChanged;
+
+    private static void FullRebuild(WorldState world, bool flat, string reason)
+    {
+        world.Caches.ConnectivityFullRebuilds++;
+        if (SimTrace.Enabled)
+        {
+            Trace.DebugSystem(world, "ConnectivityFullRebuild",
+                $"Graph={(flat ? "Flat" : "Jump")} Reason={reason}");
+        }
+
+        if (flat)
+        {
+            RebuildFlat(world);
+        }
+        else
+        {
+            Rebuild(world);
+        }
+    }
+
+    // ── блокировка узла: раскол ──────────────────────────────────────────
+
+    /// <summary>Узел стал непроходимым. Возвращает false, если раскол не
+    /// удалось разрешить локально (две области больше бюджета).</summary>
+    private static bool Block(WorldState world, Junction junction, int label, bool flat)
+    {
+        var labels = Labels(world, flat);
+        if (flat)
+        {
+            NodeDescendEdges(world, junction, label, add: false);
+        }
+
+        labels[junction.Id] = -1;
+        AddSize(world, flat, label, -1);
+
+        // Порты: проходимые соседи той же компоненты, связанные с узлом ребром
+        // графа. Все прочие узлы компоненты достижимы из какого-то порта, так
+        // что компоненты «C минус узел» — это ровно области портов.
+        var ports = _portsScratch;
+        ports.Clear();
+        for (var i = 0; i < junction.Neighbors.Count; i++)
+        {
+            var neighborId = junction.Neighbors[i];
+            if (labels.TryGetValue(neighborId, out var neighborLabel) && neighborLabel == label &&
+                EdgeAllowed(world, junction.Id, neighborId, flat))
+            {
+                ports.Add(neighborId);
+            }
+        }
+
+        if (ports.Count <= 1)
+        {
+            return true;
+        }
+
+        var pending = _pendingScratch;
+        pending.Clear();
+        foreach (var port in ports)
+        {
+            pending.Add(port);
+        }
+
+        System.Collections.Generic.HashSet<JunctionId> big = null;
+        System.Collections.Generic.HashSet<JunctionId> keeper = null; // закрытая область, оставшаяся под старым id
+        for (var p = 0; p < ports.Count; p++)
+        {
+            var port = ports[p];
+            if (!pending.Contains(port))
+            {
+                continue;
+            }
+
+            var visited = new System.Collections.Generic.HashSet<JunctionId>();
+            var outcome = LocalBfs(world, port, label, flat, visited, pending, big,
+                stopWhenPendingEmpty: big is null && keeper is null && p == 0);
+            switch (outcome)
+            {
+                case BfsOutcome.FoundAllPorts:
+                    return true; // компонента не раскололась
+
+                case BfsOutcome.TouchedBig:
+                    break; // часть большой области, метки верны
+
+                case BfsOutcome.Budget:
+                    if (big is not null)
+                    {
+                        return false; // две большие области — локально не решить
+                    }
+
+                    big = visited;
+                    if (keeper is not null)
+                    {
+                        // Старый id обязан остаться у области, чьи члены мы не
+                        // знаем; закрытая область, что держала его, получает новый.
+                        RelabelRegion(world, keeper, label, NextId(world, flat), flat);
+                        keeper = null;
+                    }
+
+                    break;
+
+                case BfsOutcome.Exhausted:
+                    if (big is null && keeper is null)
+                    {
+                        keeper = visited; // первая закрытая область держит старый id
+                    }
+                    else
+                    {
+                        RelabelRegion(world, visited, label, NextId(world, flat), flat);
+                    }
+
+                    break;
+            }
+        }
+
+        return true;
+    }
+
+    private enum BfsOutcome
+    {
+        FoundAllPorts,
+        Exhausted,
+        Budget,
+        TouchedBig,
+    }
+
+    /// <summary>BFS по узлам с меткой <paramref name="label"/> (узел-виновник
+    /// уже помечен -1 и в обход не попадает). Порты, встреченные по дороге,
+    /// вычёркиваются из <paramref name="pending"/>.</summary>
+    private static BfsOutcome LocalBfs(
+        WorldState world, JunctionId start, int label, bool flat,
+        System.Collections.Generic.HashSet<JunctionId> visited,
+        System.Collections.Generic.HashSet<JunctionId> pending,
+        System.Collections.Generic.HashSet<JunctionId> big,
+        bool stopWhenPendingEmpty)
+    {
+        var labels = Labels(world, flat);
+        _queue.Clear();
+        visited.Add(start);
+        pending.Remove(start);
+        _queue.Enqueue(start);
+        if (stopWhenPendingEmpty && pending.Count == 0)
+        {
+            return BfsOutcome.FoundAllPorts;
+        }
+
+        while (_queue.Count > 0)
+        {
+            var currentId = _queue.Dequeue();
+            if (!world.Junctions.Items.TryGetValue(currentId, out var current))
+            {
+                continue;
+            }
+
+            for (var i = 0; i < current.Neighbors.Count; i++)
+            {
+                var neighborId = current.Neighbors[i];
+                if (visited.Contains(neighborId) ||
+                    !labels.TryGetValue(neighborId, out var neighborLabel) || neighborLabel != label ||
+                    !EdgeAllowed(world, currentId, neighborId, flat))
+                {
+                    continue;
+                }
+
+                if (big is not null && big.Contains(neighborId))
+                {
+                    foreach (var seen in visited)
+                    {
+                        big.Add(seen);
+                    }
+
+                    return BfsOutcome.TouchedBig;
+                }
+
+                visited.Add(neighborId);
+                pending.Remove(neighborId);
+                if (stopWhenPendingEmpty && pending.Count == 0)
+                {
+                    return BfsOutcome.FoundAllPorts;
+                }
+
+                if (visited.Count >= SplitProbeBudget)
+                {
+                    return BfsOutcome.Budget;
+                }
+
+                _queue.Enqueue(neighborId);
+            }
+        }
+
+        return BfsOutcome.Exhausted;
+    }
+
+    // ── разблокировка узла: слияние ───────────────────────────────────────
+
+    private static void Unblock(WorldState world, Junction junction, bool flat)
+    {
+        var labels = Labels(world, flat);
+        var sizes = Sizes(world, flat);
+        var comps = _labelsScratch;
+        comps.Clear();
+        for (var i = 0; i < junction.Neighbors.Count; i++)
+        {
+            var neighborId = junction.Neighbors[i];
+            if (labels.TryGetValue(neighborId, out var neighborLabel) && neighborLabel >= 0 &&
+                EdgeAllowed(world, junction.Id, neighborId, flat) &&
+                !comps.Contains(neighborLabel))
+            {
+                comps.Add(neighborLabel);
+            }
+        }
+
+        int target;
+        if (comps.Count == 0)
+        {
+            target = NextId(world, flat);
+        }
+        else
+        {
+            target = comps[0];
+            sizes.TryGetValue(target, out var targetSize);
+            for (var c = 1; c < comps.Count; c++)
+            {
+                sizes.TryGetValue(comps[c], out var size);
+                if (size > targetSize)
+                {
+                    target = comps[c];
+                    targetSize = size;
+                }
+            }
+
+            for (var c = 0; c < comps.Count; c++)
+            {
+                var other = comps[c];
+                if (other == target)
+                {
+                    continue;
+                }
+
+                // Члены сливаемой компоненты — BFS от любого её соседа узла.
+                JunctionId seed = default;
+                var found = false;
+                for (var i = 0; i < junction.Neighbors.Count && !found; i++)
+                {
+                    if (labels.TryGetValue(junction.Neighbors[i], out var l) && l == other)
+                    {
+                        seed = junction.Neighbors[i];
+                        found = true;
+                    }
+                }
+
+                var members = new System.Collections.Generic.HashSet<JunctionId>();
+                CollectComponent(world, seed, other, flat, members);
+                RelabelRegion(world, members, other, target, flat);
+            }
+        }
+
+        labels[junction.Id] = target;
+        AddSize(world, flat, target, +1);
+        if (flat)
+        {
+            NodeDescendEdges(world, junction, target, add: true);
+        }
+    }
+
+    /// <summary>Все узлы компоненты <paramref name="label"/>, достижимые из
+    /// <paramref name="seed"/> — то есть вся компонента целиком.</summary>
+    private static void CollectComponent(
+        WorldState world, JunctionId seed, int label, bool flat,
+        System.Collections.Generic.HashSet<JunctionId> members)
+    {
+        var labels = Labels(world, flat);
+        _queue.Clear();
+        members.Add(seed);
+        _queue.Enqueue(seed);
+        while (_queue.Count > 0)
+        {
+            var currentId = _queue.Dequeue();
+            if (!world.Junctions.Items.TryGetValue(currentId, out var current))
+            {
+                continue;
+            }
+
+            for (var i = 0; i < current.Neighbors.Count; i++)
+            {
+                var neighborId = current.Neighbors[i];
+                if (!members.Contains(neighborId) &&
+                    labels.TryGetValue(neighborId, out var neighborLabel) && neighborLabel == label &&
+                    EdgeAllowed(world, currentId, neighborId, flat))
+                {
+                    members.Add(neighborId);
+                    _queue.Enqueue(neighborId);
+                }
+            }
+        }
+    }
+
+    // ── перекраска области и учёт ─────────────────────────────────────────
+
+    private static int NextId(WorldState world, bool flat)
+    {
+        if (flat)
+        {
+            return world.NextFlatComponentId++;
+        }
+
+        return world.NextJumpComponentId++;
+    }
+
+    /// <summary>Переводит область из компоненты <paramref name="from"/> в
+    /// <paramref name="to"/>: метки, размеры и (в плоском графе) рёбра спусков
+    /// на границе области.</summary>
+    private static void RelabelRegion(
+        WorldState world, System.Collections.Generic.HashSet<JunctionId> region,
+        int from, int to, bool flat)
+    {
+        var labels = Labels(world, flat);
+        if (flat)
+        {
+            _edgeSetChanged = true; // компонента сменила имя — замыкания по старым id лгут
+        }
+
+        foreach (var id in region)
+        {
+            labels[id] = to;
+        }
+
+        AddSize(world, flat, from, -region.Count);
+        AddSize(world, flat, to, region.Count);
+        if (!flat)
+        {
+            return;
+        }
+
+        foreach (var id in region)
+        {
+            if (!world.Junctions.Items.TryGetValue(id, out var junction))
+            {
+                continue;
+            }
+
+            for (var i = 0; i < junction.Neighbors.Count; i++)
+            {
+                var neighborId = junction.Neighbors[i];
+                if (region.Contains(neighborId) ||
+                    !labels.TryGetValue(neighborId, out var neighborLabel) || neighborLabel < 0 ||
+                    !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
+                {
+                    continue;
+                }
+
+                if (Descends(world, junction, i, neighbor))
+                {
+                    if (neighborLabel != from) CountEdge(world, from, neighborLabel, -1);
+                    if (neighborLabel != to) CountEdge(world, to, neighborLabel, +1);
+                }
+
+                var back = neighbor.Neighbors.IndexOf(id);
+                if (back >= 0 && Descends(world, neighbor, back, junction))
+                {
+                    if (neighborLabel != from) CountEdge(world, neighborLabel, from, -1);
+                    if (neighborLabel != to) CountEdge(world, neighborLabel, to, +1);
+                }
+            }
+        }
+    }
+
+    private static void AddSize(WorldState world, bool flat, int component, int delta)
+    {
+        var sizes = Sizes(world, flat);
+        sizes.TryGetValue(component, out var size);
+        size += delta;
+        if (size <= 0)
+        {
+            sizes.Remove(component);
+        }
+        else
+        {
+            sizes[component] = size;
+        }
+
+        if (!flat)
+        {
+            return;
+        }
+
+        // Самая большая плоская компонента: подросшая сравнивается с текущей,
+        // усохшая — если это была она — пересчитывается по словарю размеров
+        // (~100 тысяч записей, миллисекунда; словарь компонент, не узлов).
+        if (component == world.LargestFlatComponentId)
+        {
+            if (delta < 0)
+            {
+                RescanLargestFlat(world);
+            }
+
+            return;
+        }
+
+        world.JunctionComponentsFlatSizes.TryGetValue(world.LargestFlatComponentId, out var largest);
+        if (size > largest)
+        {
+            world.LargestFlatComponentId = component;
+        }
+    }
+
+    private static void RescanLargestFlat(WorldState world)
+    {
+        var bestId = -1;
+        var bestSize = 0;
+        foreach (var pair in world.JunctionComponentsFlatSizes)
+        {
+            if (pair.Value > bestSize || (pair.Value == bestSize && pair.Key < bestId))
+            {
+                bestSize = pair.Value;
+                bestId = pair.Key;
+            }
+        }
+
+        world.LargestFlatComponentId = bestId;
+    }
+
+    // ── рёбра спусков плоского графа ──────────────────────────────────────
+
+    /// <summary>§57.11 / §40.18-C: направленное ребро «спуск» либо «выход из
+    /// воды» между двумя ПРОХОДИМЫМИ узлами разных плоских компонент — ровно
+    /// правило RebuildFlat, вынесенное в одно место.</summary>
+    private static bool Descends(WorldState world, Junction from, int neighborIndex, Junction to)
+    {
+        if (world.ClimbSeams.Contains(from.Id) && world.ClimbSeams.Contains(to.Id))
+        {
+            return false;
+        }
+
+        var waterExit = Navigation.HexPathfinder.IsWaterExit(world, from.Id, to.Id);
+        return waterExit ||
+               (!world.SwimJunctions.Contains(to.Id) &&
+                !world.StraitJunctions.Contains(to.Id) &&
+                Navigation.HexPathfinder.StepDelta(world, from, neighborIndex, to.Id) < 0);
+    }
+
+    /// <summary>Рёбра спусков самого узла (в обе стороны) — прибавить при
+    /// разблокировке, вычесть перед блокировкой.</summary>
+    private static void NodeDescendEdges(WorldState world, Junction junction, int label, bool add)
+    {
+        var labels = world.JunctionComponentsFlat;
+        var delta = add ? +1 : -1;
+        for (var i = 0; i < junction.Neighbors.Count; i++)
+        {
+            var neighborId = junction.Neighbors[i];
+            if (!labels.TryGetValue(neighborId, out var neighborLabel) || neighborLabel < 0 ||
+                neighborLabel == label ||
+                !world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
+            {
+                continue;
+            }
+
+            if (Descends(world, junction, i, neighbor))
+            {
+                CountEdge(world, label, neighborLabel, delta);
+            }
+
+            var back = neighbor.Neighbors.IndexOf(junction.Id);
+            if (back >= 0 && Descends(world, neighbor, back, junction))
+            {
+                CountEdge(world, neighborLabel, label, delta);
+            }
+        }
+    }
+
+    private static void CountEdge(WorldState world, int from, int to, int delta)
+    {
+        Count(world.FlatDescendEdges, from, to, delta);
+        Count(world.FlatDescendEdgesIn, to, from, delta);
+    }
+
+    private static void Count(
+        System.Collections.Generic.Dictionary<int, System.Collections.Generic.Dictionary<int, int>> index,
+        int key, int other, int delta)
+    {
+        if (!index.TryGetValue(key, out var counts))
+        {
+            if (delta <= 0)
+            {
+                return;
+            }
+
+            counts = new System.Collections.Generic.Dictionary<int, int>();
+            index[key] = counts;
+        }
+
+        counts.TryGetValue(other, out var count);
+        var had = count > 0;
+        count += delta;
+        if (count <= 0)
+        {
+            counts.Remove(other);
+            if (counts.Count == 0)
+            {
+                index.Remove(key);
+            }
+        }
+        else
+        {
+            counts[other] = count;
+        }
+
+        if (had != count > 0)
+        {
+            _edgeSetChanged = true;
+        }
+    }
+
+    // ── полные перестройки (запасной ход и первое построение) ────────────
 
     private static void Rebuild(WorldState world)
     {
         world.JunctionComponents.Clear();
+        world.JunctionComponentSizes.Clear();
         foreach (var junction in world.Junctions.Items.Values)
         {
             world.JunctionComponents[junction.Id] = junction.Blocked ? -1 : 0;
@@ -221,6 +869,7 @@ internal static class Connectivity
             }
 
             component++;
+            var size = 1;
             world.JunctionComponents[junction.Id] = component;
             _queue.Clear();
             _queue.Enqueue(junction.Id);
@@ -232,27 +881,22 @@ internal static class Connectivity
                 {
                     if (world.JunctionComponents.TryGetValue(neighborId, out var mark) && mark == 0 &&
                         world.Junctions.Items.TryGetValue(neighborId, out var neighbor) && !neighbor.Blocked &&
-                        // §40.6 r5 / §40.17: the live pathfinder forbids
-                        // seam->seam travel (it is walking along a vertical
-                        // lip, not crossing one). The optimistic component
-                        // graph used to include that edge for jump-capable
-                        // actors, so planning could approve two laundry legs
-                        // that FindPath could never connect. Bug #338 r2:
-                        // stranded-seam слайд теперь СТАРТ-ОТНОСИТЕЛЬНЫЙ
-                        // (только для стоящей на шве) и в общий граф НЕ входит
-                        // — «коридоры по кромке» на весь остров раздували
-                        // достижимость и штормили поиск путей.
                         !(world.ClimbSeams.Contains(currentId) &&
                           world.ClimbSeams.Contains(neighborId)))
                     {
                         world.JunctionComponents[neighborId] = component;
+                        size++;
                         _queue.Enqueue(neighborId);
                     }
                 }
             }
+
+            world.JunctionComponentSizes[component] = size;
         }
 
+        world.NextJumpComponentId = component + 1;
         world.ComponentsBuiltVersion = world.TopologyVersion;
+        world.ComponentsJournalCursor = world.Topology.EndIndex;
         if (SimTrace.Enabled)
         {
             Trace.DebugSystem(world, "ConnectivityRebuilt",
@@ -309,6 +953,8 @@ internal static class Connectivity
             }
         }
 
+        world.NextFlatComponentId = component + 1;
+
         // Размеры компонент — для инстинкта «спуститься на большую землю»
         // (крошечный уступ против материка) и любых будущих вопросов «а велик
         // ли мой мир без прыжка». Считаются здесь же, за один проход.
@@ -344,9 +990,13 @@ internal static class Connectivity
         // комментарий выше: граф обещает то, чего FindPath не строит, либо
         // молчит о том, что FindPath умеет. Замыкание BFS-ом уже устойчиво к
         // тому, что этот граф перестал быть ацикличным по высотам.
+        //
+        // §158.3: рёбра считаются СО СЧЁТОМ (и в обратном индексе), чтобы
+        // точечное удаление узла вычитало свои рёбра, а ребро компонент жило,
+        // пока его держит хоть одна пара узлов.
         world.FlatDescendClosure.Clear();
-        var descendEdges = world.FlatDescendEdges;
-        descendEdges.Clear();
+        world.FlatDescendEdges.Clear();
+        world.FlatDescendEdgesIn.Clear();
         foreach (var junction in world.Junctions.Items.Values)
         {
             if (junction.Blocked ||
@@ -361,32 +1011,14 @@ internal static class Connectivity
                 var neighborId = junction.Neighbors[n];
                 if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor) ||
                     neighbor.Blocked ||
-                    (world.ClimbSeams.Contains(junction.Id) &&
-                     world.ClimbSeams.Contains(neighborId)) ||
                     !world.JunctionComponentsFlat.TryGetValue(neighborId, out var toComp) ||
-                    toComp <= 0 || toComp == fromComp)
+                    toComp <= 0 || toComp == fromComp ||
+                    !Descends(world, junction, n, neighbor))
                 {
                     continue;
                 }
 
-                // Спуск — но не в воду; либо выход из воды на сушу (§40.18-C).
-                var waterExit = Navigation.HexPathfinder.IsWaterExit(
-                    world, junction.Id, neighborId);
-                if (!waterExit &&
-                    (world.SwimJunctions.Contains(neighborId) ||
-                     world.StraitJunctions.Contains(neighborId) ||
-                     Navigation.HexPathfinder.StepDelta(world, junction, n, neighborId) >= 0))
-                {
-                    continue;
-                }
-
-                if (!descendEdges.TryGetValue(fromComp, out var outs))
-                {
-                    outs = new System.Collections.Generic.HashSet<int>();
-                    descendEdges[fromComp] = outs;
-                }
-
-                outs.Add(toComp);
+                CountEdge(world, fromComp, toComp, +1);
             }
         }
 
@@ -397,12 +1029,13 @@ internal static class Connectivity
         // FlatDescendClosure; сами ответы бит-в-бит те же — BFS по тем же
         // рёбрам с тем же исключением самой стартовой компоненты.
         world.ComponentsFlatBuiltVersion = world.TopologyVersion;
+        world.ComponentsFlatJournalCursor = world.Topology.EndIndex;
         if (SimTrace.Enabled)
         {
             Trace.DebugSystem(world, "ConnectivityFlatRebuilt",
                 $"Components={component} Junctions={world.Junctions.Items.Count} " +
                 $"Largest={world.LargestFlatComponentId}({largestSize}) " +
-                $"DescendEdgeSources={descendEdges.Count}");
+                $"DescendEdgeSources={world.FlatDescendEdges.Count}");
         }
     }
 
@@ -420,7 +1053,7 @@ internal static class Connectivity
         {
             var frontier = _closureFrontierScratch;
             frontier.Clear();
-            foreach (var d in direct)
+            foreach (var d in direct.Keys)
             {
                 if (closure.Add(d))
                 {
@@ -436,7 +1069,7 @@ internal static class Connectivity
                     continue;
                 }
 
-                foreach (var further in next)
+                foreach (var further in next.Keys)
                 {
                     if (further != component && closure.Add(further))
                     {
@@ -463,10 +1096,7 @@ internal static class Connectivity
     /// PlanFailed NoRouteToMainland (замерено: 184 события на два сида).</summary>
     public static bool FlatReachesMainland(WorldState world, JunctionId from)
     {
-        if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
-        {
-            RebuildFlat(world);
-        }
+        EnsureFlat(world);
 
         return world.LargestFlatComponentId > 0 &&
                world.JunctionComponentsFlat.TryGetValue(from, out var comp) && comp > 0 &&
@@ -478,10 +1108,7 @@ internal static class Connectivity
     /// §50.9 меряет «я на крошечном уступе» против «подо мной материк».</summary>
     public static int FlatWorldSizeAt(WorldState world, JunctionId junction)
     {
-        if (world.ComponentsFlatBuiltVersion != world.TopologyVersion)
-        {
-            RebuildFlat(world);
-        }
+        EnsureFlat(world);
 
         if (!world.JunctionComponentsFlat.TryGetValue(junction, out var comp) || comp <= 0)
         {

@@ -21,6 +21,8 @@ public sealed class WeatherSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
+
     public void Run(WorldState world)
     {
         // The schedule is a pure function of (seed, cycle) — a per-tick
@@ -204,7 +206,7 @@ public sealed class WeatherSystem : ISimulationSystem
     private static int SurfGiftIntervalDaysFor(GameMode mode)
     {
         var regularInterval = System.Math.Max(1, WorldBalance.SurfGiftIntervalDays);
-        if (mode is not (GameMode.HugeIsland or GameMode.Maniac))
+        if (mode is not (GameMode.HugeIsland or GameMode.Maniac or GameMode.Islands))
         {
             return regularInterval;
         }

@@ -106,6 +106,7 @@ public static class ContentResidency
 
         KitScratch.Clear();
         AddKit("actor/" + npc.ActorMesh);
+        if (!string.IsNullOrEmpty(npc.SkinSet)) AddKit("actor/" + npc.SkinSet);
         if (!string.IsNullOrEmpty(npc.Hairstyle))
         {
             AddKit("hair/" + npc.Hairstyle);
@@ -138,6 +139,7 @@ public static class ContentResidency
 
         KitScratch.Clear();
         AddKit("actor/" + body.ActorMesh);
+        if (!string.IsNullOrEmpty(body.SkinSet)) AddKit("actor/" + body.SkinSet);
         if (!string.IsNullOrEmpty(body.Hairstyle))
         {
             AddKit("hair/" + body.Hairstyle);

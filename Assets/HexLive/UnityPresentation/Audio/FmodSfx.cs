@@ -113,6 +113,8 @@ namespace HexLive.UnityPresentation.Audio
         public struct Loop
         {
             internal FMOD.Channel Channel;
+            internal FMOD.Sound OwnedSound;
+            internal bool OwnsSound;
             // §67.12: когда звук идёт СОБЫТИЕМ Studio, ручка — это инстанс
             // события, а не канал. Голоса остаются на канале: липсинку нужен
             // конкретный файл и позиция воспроизведения (§67.7).
@@ -141,11 +143,74 @@ namespace HexLive.UnityPresentation.Audio
         private static FMOD.ChannelGroup _master;
         private static System.Random _rng = new(9257);
 
+        public enum VolumeCategory { Voices, Music, Environment }
+        private static FMOD.ChannelGroup _voicesGroup, _environmentGroup;
+        private static readonly List<(FMOD.Studio.EventInstance Instance, VolumeCategory Category, float Gain)> MixedEvents = new();
+        private static readonly float[] UserVolumes = { 1f, 1f, 1f };
+        private static bool _volumesLoaded;
+
+        public static float GetUserVolume(VolumeCategory category)
+        {
+            if (!_volumesLoaded)
+            {
+                for (var i = 0; i < UserVolumes.Length; i++)
+                {
+                    var value = PlayerPrefs.GetFloat("HexLive.Audio." + (VolumeCategory)i, 1f);
+                    UserVolumes[i] = float.IsNaN(value) ? 1f : Mathf.Clamp01(value);
+                }
+                _volumesLoaded = true;
+            }
+            return UserVolumes[(int)category];
+        }
+
+        public static void SetUserVolume(VolumeCategory category, float volume)
+        {
+            GetUserVolume(category);
+            volume = float.IsNaN(volume) ? 1f : Mathf.Clamp01(volume);
+            UserVolumes[(int)category] = volume;
+            PlayerPrefs.SetFloat("HexLive.Audio." + category, volume);
+            if (_voicesGroup.hasHandle()) _voicesGroup.setVolume(GetUserVolume(VolumeCategory.Voices));
+            if (_environmentGroup.hasHandle()) _environmentGroup.setVolume(GetUserVolume(VolumeCategory.Environment));
+            if (_musicGroupReady) _musicGroup.setVolume(GetUserVolume(VolumeCategory.Music));
+            PruneMixedEvents();
+            foreach (var item in MixedEvents)
+                item.Instance.setVolume(item.Gain * GetUserVolume(item.Category));
+        }
+
+        private static VolumeCategory CategoryFor(string id) =>
+            id.StartsWith("voice_", System.StringComparison.Ordinal) || id == Sfx.HurtF || id == Sfx.DeathF
+                ? VolumeCategory.Voices : VolumeCategory.Environment;
+
+        private static FMOD.ChannelGroup GroupFor(string id) =>
+            CategoryFor(id) == VolumeCategory.Voices ? _voicesGroup : _environmentGroup;
+
+        private static void PruneMixedEvents()
+        {
+            for (var i = MixedEvents.Count - 1; i >= 0; i--)
+                if (!MixedEvents[i].Instance.isValid())
+                    MixedEvents.RemoveAt(i);
+        }
+
+        private static void MixEvent(FMOD.Studio.EventInstance instance, string id, float gain)
+        {
+            PruneMixedEvents();
+            for (var i = MixedEvents.Count - 1; i >= 0; i--)
+                if (MixedEvents[i].Instance.handle == instance.handle) MixedEvents.RemoveAt(i);
+            var category = CategoryFor(id);
+            instance.setVolume(gain * GetUserVolume(category));
+            MixedEvents.Add((instance, category, gain));
+        }
+
         // Editor "no domain reload" play mode: FMOD's system is torn down each
         // exit-play, our cached handles die with it — start clean every run.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
+            _volumesLoaded = false;
+            _voicesGroup = default;
+            _environmentGroup = default;
+            MixedEvents.Clear();
+            EventPaths.Clear();
             Sounds.Clear();
             Paths.Clear();
             VisemePaths.Clear();
@@ -225,6 +290,13 @@ namespace HexLive.UnityPresentation.Audio
             {
                 var core = FMODUnity.RuntimeManager.CoreSystem;
                 core.getMasterChannelGroup(out _master);
+                if (core.createChannelGroup("HexLiveVoices", out _voicesGroup) != FMOD.RESULT.OK ||
+                    core.createChannelGroup("HexLiveEnvironment", out _environmentGroup) != FMOD.RESULT.OK)
+                    throw new System.InvalidOperationException("Cannot create audio category groups");
+                _master.addGroup(_voicesGroup);
+                _master.addGroup(_environmentGroup);
+                _voicesGroup.setVolume(GetUserVolume(VolumeCategory.Voices));
+                _environmentGroup.setVolume(GetUserVolume(VolumeCategory.Environment));
                 // Доплер выключен (RTS-камера), метрика дистанций 1:1 в wu.
                 core.set3DSettings(0f, 1f, 1f);
 
@@ -384,10 +456,7 @@ namespace HexLive.UnityPresentation.Audio
             {
                 var inst = FMODUnity.RuntimeManager.CreateInstance(path);
                 inst.set3DAttributes(FMODUnity.RuntimeUtils.To3DAttributes(position));
-                if (!Mathf.Approximately(volumeGain, 1f))
-                {
-                    inst.setVolume(volumeGain);
-                }
+                MixEvent(inst, id, volumeGain);
 
                 inst.start();
                 inst.release(); // освободится сама, когда доиграет
@@ -411,7 +480,7 @@ namespace HexLive.UnityPresentation.Audio
             var pick = _rng.Next(variants.Length);
             var sound = variants[pick];
             var core = FMODUnity.RuntimeManager.CoreSystem;
-            if (core.playSound(sound, _master, true, out var channel) != FMOD.RESULT.OK)
+            if (core.playSound(sound, GroupFor(id), true, out var channel) != FMOD.RESULT.OK)
             {
                 return default;
             }
@@ -439,6 +508,52 @@ namespace HexLive.UnityPresentation.Audio
                              VisemePaths.TryGetValue(selectedPaths[pick], out var visemePath)
                     ? visemePath
                     : null,
+            };
+        }
+
+        /// <summary>§159: positional dynamic PCM/WAV reply, still owned by FMOD Core.</summary>
+        public static Loop PlayFileTracked(
+            string wavPath, string visemePath, Vector3 position, float volumeGain = 1f,
+            bool listenerRelative = false)
+        {
+            if (!_ready || string.IsNullOrEmpty(wavPath) || !File.Exists(wavPath))
+            {
+                return default;
+            }
+
+            var core = FMODUnity.RuntimeManager.CoreSystem;
+            var mode = FMOD.MODE.CREATESAMPLE | FMOD.MODE.LOOP_OFF |
+                       (listenerRelative
+                           ? FMOD.MODE._2D
+                           : FMOD.MODE._3D | FMOD.MODE._3D_LINEARSQUAREROLLOFF);
+            if (core.createSound(wavPath, mode, out var sound) != FMOD.RESULT.OK)
+            {
+                return default;
+            }
+            if (!listenerRelative)
+                sound.set3DMinMaxDistance(VoiceDef.MinDist, VoiceDef.MaxDist);
+            if (core.playSound(sound, _voicesGroup, true, out var channel) != FMOD.RESULT.OK)
+            {
+                sound.release();
+                return default;
+            }
+
+            if (!listenerRelative)
+            {
+                var pos = ToFmod(position);
+                var vel = default(FMOD.VECTOR);
+                channel.set3DAttributes(ref pos, ref vel);
+            }
+            channel.setVolume(VoiceDef.Volume * Mathf.Clamp(volumeGain, 0f, 4f));
+            channel.setPaused(false);
+            return new Loop
+            {
+                Channel = channel,
+                OwnedSound = sound,
+                OwnsSound = true,
+                Valid = true,
+                File = wavPath,
+                VisemeFile = visemePath
             };
         }
 
@@ -485,6 +600,7 @@ namespace HexLive.UnityPresentation.Audio
             var res = handle.Channel.isPlaying(out var playing);
             if (res != FMOD.RESULT.OK || !playing)
             {
+                if (handle.OwnsSound) handle.OwnedSound.release();
                 handle = default;
                 return false;
             }
@@ -516,14 +632,14 @@ namespace HexLive.UnityPresentation.Audio
             {
                 var inst = FMODUnity.RuntimeManager.CreateInstance(eventPath);
                 inst.set3DAttributes(FMODUnity.RuntimeUtils.To3DAttributes(position));
-                inst.setVolume(Mathf.Clamp01(volumeGain));
+                MixEvent(inst, id, Mathf.Clamp01(volumeGain));
                 inst.start();
                 return new Loop { Event = inst, IsEvent = true, Valid = true };
             }
 
             var def = LoadedDefs[id];
             var core = FMODUnity.RuntimeManager.CoreSystem;
-            if (core.playSound(variants[0], _master, true, out var channel) != FMOD.RESULT.OK)
+            if (core.playSound(variants[0], GroupFor(id), true, out var channel) != FMOD.RESULT.OK)
             {
                 return default;
             }
@@ -570,7 +686,7 @@ namespace HexLive.UnityPresentation.Audio
             {
                 // Базовую громкость держит само событие в Studio — здесь только
                 // кроссфейд эмбиента (день/ночь/дождь).
-                loop.Event.setVolume(Mathf.Clamp01(volumeGain));
+                MixEvent(loop.Event, id, Mathf.Clamp01(volumeGain));
                 return;
             }
 
@@ -594,6 +710,7 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             loop.Channel.stop();
+            if (loop.OwnsSound) loop.OwnedSound.release();
             loop = default;
         }
 
@@ -678,6 +795,7 @@ namespace HexLive.UnityPresentation.Audio
                 }
             }
 
+            _musicGroup.setVolume(GetUserVolume(VolumeCategory.Music));
             _musicGroupReady = true;
             return true;
         }

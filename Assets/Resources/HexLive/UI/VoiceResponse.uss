@@ -1,0 +1,4 @@
+.voice-response { position: absolute; left: 25%; right: 25%; bottom: 330px; padding: 10px 18px; color: rgb(220, 227, 230); background-color: rgba(3, 8, 10, 0.94); font-size: 18px; white-space: normal; -unity-text-align: middle-center; border-width: 1px; border-color: rgb(30, 98, 104); border-radius: 10px; }
+.voice-response-success { color: rgb(133, 230, 151); border-color: rgb(61, 140, 80); }
+.voice-response-error { color: rgb(255, 154, 150); border-color: rgb(170, 65, 63); }
+.voice-response-hidden { display: none; }

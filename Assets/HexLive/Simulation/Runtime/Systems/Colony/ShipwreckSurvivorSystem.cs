@@ -25,6 +25,8 @@ public sealed class ShipwreckSurvivorSystem : ISimulationSystem
     public string Name => nameof(ShipwreckSurvivorSystem);
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
+
     public void Run(WorldState world)
     {
         if (world.Mode is not (GameMode.HugeIsland or GameMode.Maniac))
@@ -70,6 +72,7 @@ public sealed class ShipwreckSurvivorSystem : ISimulationSystem
         }
 
         survivor.Faction = Faction.Colony;
+        if (world.CreationConfig?.Owns(survivor) == true) world.PlayerControlledNpcs.Add(survivor.Id.Value);
         survivor.Mind.PendingAidFrom = null;
         survivor.Mind.PendingAidSinceTick = 0;
         Trace.Emit(world, survivor.Id, "ShipwreckSurvivorJoined",

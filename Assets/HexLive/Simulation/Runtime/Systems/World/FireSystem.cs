@@ -18,16 +18,38 @@ public sealed class FireSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.PerChunk;
+
     private static float BurnPerSlowTick => WorldBalance.FireBurnPerSlowTick;
+
+    private readonly System.Collections.Generic.List<WorldObjectState> _tickable = new();
 
     public void Run(WorldState world)
     {
-        foreach (var obj in world.Entities.Objects.Values)
+        // §156: обход по бодрым чанкам. При выключенной механике это весь
+        // ростер в его собственном порядке — то есть прежняя игра.
+        ChunkMath.CollectTickable(world, _tickable);
+        foreach (var obj in _tickable)
         {
             if (obj.ResourceAmount <= 0f ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 !definition.HasTag("Campfire"))
             {
+                continue;
+            }
+
+            // §156: догнать проспанное МОЛЧА, до живого такта. У бодрого чанка
+            // окно пусто и вызов не делает ничего, поэтому строка ниже — та же
+            // игра, что была.
+            FireMath.CatchUp(
+                world, obj,
+                ChunkMath.SleepWindowStart(world, obj.Tile),
+                world.Tick,
+                world.SlowIntervalTicks);
+            if (obj.ResourceAmount <= 0f)
+            {
+                // Прогорел во сне. Событие сегодняшним тиком было бы враньём о
+                // времени (§156.3), а смотреть на это было некому.
                 continue;
             }
 

@@ -183,7 +183,10 @@ internal static class HygieneMath
         var candidates = world.Caches.BathShoreCandidatesScratch;
         candidates.Clear();
         var maxDistance = HexSpatialMath.HexRadius * 12f;
-        foreach (var junction in world.Junctions.Items.Values)
+        // §158.4: окрестность вместо всего графа — фильтры и порядок те же.
+        var nearby = world.Caches.LocalSearchScratch;
+        LocalSearch.CollectWithinTiles(world, npc.Tile, LocalSearch.TileRadiusCovering(maxDistance), nearby);
+        foreach (var junction in nearby)
         {
             if (junction.Blocked || junction.Tiles.Count == 0 ||
                 occupied.Contains(junction.Id) ||
@@ -307,7 +310,11 @@ internal static class HygieneMath
         var candidates = world.Caches.BathWaterCandidatesScratch;
         candidates.Clear();
         var maxDistance = HexSpatialMath.HexRadius * 3f;
-        foreach (var junction in world.Junctions.Items.Values)
+        // §158.4: вода ищется вокруг берегового узла, не по всему графу.
+        var nearby = world.Caches.LocalSearchScratch;
+        LocalSearch.CollectWithinTiles(world, shoreJunction.Tiles[0],
+            LocalSearch.TileRadiusCovering(maxDistance), nearby);
+        foreach (var junction in nearby)
         {
             if (junction.Id.Equals(shore) || junction.Blocked ||
                 junction.Tiles.Count == 0 ||

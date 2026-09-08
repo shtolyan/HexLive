@@ -26,6 +26,8 @@ public sealed class AnimalCombatSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Fast;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     // Per-mob combat/movement config (one per mob type — see MobCatalog),
     // resolved per creature so mixed packs each obey their own sheet.
     private static Content.MobStats Stats(Wildlife.MobState dog) => Content.MobCatalog.For(dog.MobId);

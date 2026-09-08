@@ -14,8 +14,12 @@ public interface ISpeechStage
     // bubble is shown either way, so the visual half works before the audio.
     float PlayVoiceLine(string speechId);
 
+    float PlayExternalVoiceLine(string wavPath, string visemePath, string emotion,
+        bool listenerRelative);
+
     // Cut the line that is sounding (an alarm interrupting chatter).
     void StopVoiceLine();
+    bool CanSpeakExternal(bool playerReply);
 
     // seconds <= 0 = hold indefinitely (a running conversation).
     // alarm = пометить пузырь маленьким значком тревоги в углу (§107.5).
@@ -63,10 +67,12 @@ public sealed class NpcSpeechDirector
     private const float AmbientPollGap = 5f;
 
     private readonly ISpeechStage _stage;
+    private readonly System.Func<float> _clock;
     private readonly Dictionary<string, float> _lastSaid = new();
 
     private float _activeUntil = -1f;
     private SpeechCatalog.Rank _activeRank;
+    private bool _activePlayerReply;
     private float _lastAny = -999f;
     private float _lastAmbient = -999f;
 
@@ -86,10 +92,11 @@ public sealed class NpcSpeechDirector
     private string _lastInteraction = string.Empty;
     private float _ambientDue;
 
-    public NpcSpeechDirector(ISpeechStage stage)
+    public NpcSpeechDirector(ISpeechStage stage, System.Func<float> clock = null)
     {
         _stage = stage;
-        _ambientDue = Time.time + AmbientFirstDelay;
+        _clock = clock ?? (() => Time.unscaledTime);
+        _ambientDue = _clock() + AmbientFirstDelay;
     }
 
     public bool IsConversing => _conversationLine != null;
@@ -116,7 +123,7 @@ public sealed class NpcSpeechDirector
         if (line == null)
         {
             // Chat over: drop the bubble unless a timed line still owns it.
-            if (Time.time >= _activeUntil)
+            if (_clock() >= _activeUntil)
             {
                 _heldIcon = null;
                 _stage.HideSpeechIcon();
@@ -127,7 +134,7 @@ public sealed class NpcSpeechDirector
 
         // The bubble adopts the new subject at once — the voice follows on her
         // next turn, so the picture is never behind the conversation.
-        if (Time.time >= _activeUntil)
+        if (_clock() >= _activeUntil)
         {
             HoldConversationIcon();
         }
@@ -178,8 +185,9 @@ public sealed class NpcSpeechDirector
             return;
         }
 
-        var now = Time.time;
-        if (now < _activeUntil && cue.Rank <= _activeRank)
+        var now = _clock();
+        if (now < _activeUntil &&
+            (cue.Rank <= _activeRank || (_activePlayerReply && !alarm)))
         {
             return;
         }
@@ -196,7 +204,10 @@ public sealed class NpcSpeechDirector
             _stage.ShowSpeechIcon(cue.PopIcon, hold, alarm);
         }
 
-        _activeUntil = now + hold;
+        // A silent alarm changes the picture, not the duration of the WAV
+        // still owning this mouth. Otherwise the next work cue can cut it.
+        _activeUntil = _activePlayerReply
+            ? Mathf.Max(_activeUntil, now + hold) : now + hold;
         _activeRank = cue.Rank;
         _activeCueKind = cueKind;
         _activeCueAlarm = alarm;
@@ -206,7 +217,7 @@ public sealed class NpcSpeechDirector
     /// still owns the bubble. A newer alarm/conversation makes this a no-op.</summary>
     public bool TryRefreshCuePicture(string cueKind, Sprite picture)
     {
-        var now = Time.time;
+        var now = _clock();
         if (picture == null || cueKind != _activeCueKind || now >= _activeUntil)
         {
             return false;
@@ -259,11 +270,11 @@ public sealed class NpcSpeechDirector
             return false;
         }
 
-        var now = Time.time;
+        var now = _clock();
         var busy = now < _activeUntil;
 
         // Equal rank does not interrupt — whoever started, finishes.
-        if (busy && line.Rank <= _activeRank)
+        if (busy && (line.Rank <= _activeRank || (_activePlayerReply && !alarm)))
         {
             return false;
         }
@@ -313,6 +324,7 @@ public sealed class NpcSpeechDirector
 
         _activeUntil = now + hold;
         _activeRank = line.Rank;
+        _activePlayerReply = false;
         _lastAny = now;
         _lastSaid[speechId] = now;
         if (line.Rank == SpeechCatalog.Rank.Ambient)
@@ -323,11 +335,50 @@ public sealed class NpcSpeechDirector
         return true;
     }
 
+    /// <summary>§160: external agent speech uses the same one-mouth arbiter.</summary>
+    public bool SayExternal(
+        string wavPath, string visemePath, string emotion, SpeechCatalog.Rank rank)
+    {
+        if (string.IsNullOrEmpty(wavPath)) return false;
+        var alarm = rank == SpeechCatalog.Rank.Alarm;
+        if (!_stage.CanSpeakExternal(rank == SpeechCatalog.Rank.Talk)) return false;
+
+        var now = _clock();
+        var busy = now < _activeUntil;
+        if (busy && (rank <= _activeRank || (_activePlayerReply && !alarm))) return false;
+        if (rank != SpeechCatalog.Rank.Talk && !alarm && now - _lastAny < GlobalGap) return false;
+        if (rank == SpeechCatalog.Rank.Ambient &&
+            (IsConversing || now - _lastAmbient < AmbientGap)) return false;
+        if (busy) _stage.StopVoiceLine();
+
+        var visualId = emotion?.ToLowerInvariant() switch
+        {
+            "sad" or "tired" => "sad_topic_weather",
+            "angry" or "tense" => "angry_topic_grumble",
+            "afraid" => "sad_topic_escape",
+            _ => "happy_agree"
+        };
+        var line = SpeechCatalog.Get(visualId);
+        var length = _stage.PlayExternalVoiceLine(
+            wavPath, visemePath, emotion ?? "neutral", rank == SpeechCatalog.Rank.Talk);
+        if (length <= 0f) return false;
+        var hold = Mathf.Max(SpeechCatalog.MinBubbleSeconds, length) + SpeechCatalog.BubbleTailSeconds;
+        _stage.ShowSpeechIcon(line.Icon, hold, alarm);
+        _heldIcon = line.Icon;
+        _heldFace = null;
+        _activeUntil = now + hold;
+        _activeRank = rank;
+        _activePlayerReply = rank == SpeechCatalog.Rank.Talk;
+        _lastAny = now;
+        if (rank == SpeechCatalog.Rank.Ambient) _lastAmbient = now;
+        return true;
+    }
+
     /// <summary>Per-frame: hand the bubble back to a running conversation once a
     /// timed line has faded, and schedule the ambient layer.</summary>
     public void Tick()
     {
-        var now = Time.time;
+        var now = _clock();
         if (now < _activeUntil)
         {
             return;

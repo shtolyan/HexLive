@@ -16,6 +16,8 @@ public sealed class RescueSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         if (!Spec118.Enabled || !Spec118.RescueEnabled)

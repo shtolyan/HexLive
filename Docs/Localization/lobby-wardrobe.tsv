@@ -1,0 +1,14 @@
+lobby.body.jolly	Graceful	Изящное
+lobby.body.male	Male	Мужское
+lobby.skin	Skin	Кожа
+lobby.skinNumber	Skin {0}	Кожа {0}
+lobby.hairNumber	Hairstyle {0}	Причёска {0}
+lobby.colourNumber	Colour {0}	Цвет {0}
+lobby.appearance	Appearance	Внешность
+lobby.parameters	Attributes & skills	Параметры
+lobby.resetCamera	Reset view	Восстановить ракурс
+lobby.orbitHelp	Right drag: rotate · Wheel: zoom · Middle drag: pan	ПКМ: вращение · Колесо: приближение · СКМ: смещение
+lobby.incompatibleRemoved	Incompatible elements removed: {0}	Убраны несовместимые элементы: {0}
+lobby.chooseVariant	Select an item to see its colours here	Выберите вещь — здесь появятся её расцветки
+lobby.unequip	Take off	Снять вещь
+lobby.layer.bags	Bags	Сумки

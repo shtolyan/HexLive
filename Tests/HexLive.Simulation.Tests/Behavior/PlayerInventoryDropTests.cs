@@ -1,7 +1,9 @@
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
@@ -11,6 +13,86 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <summary>§123.5: explicit disposal frees cargo instead of being capacity-gated.</summary>
 public sealed class PlayerInventoryDropTests
 {
+    [TestCase(false)]
+    [TestCase(true)]
+    public void WearingSmallerGarmentWithFullInventoryKeepsEveryPhysicalItem(bool manual)
+    {
+        var world = TestWorld.CreateWorld();
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        npc.Mind.ManualControl = manual;
+        npc.Mind.OutfitLocked = false;
+        npc.Inventory.Items.Clear();
+        npc.WornItems.Clear();
+        const string oldId = "test.player_wear.large";
+        const string newId = "test.player_wear.small";
+        foreach (var id in new[] { oldId, newId })
+        {
+            var definition = new ObjectDefinition
+            {
+                Id = id, DisplayName = id, Layer = WearLayer.Wear,
+                InventoryCapacity = id == oldId ? 3 : 0
+            };
+            definition.Covers.Add(BodyPart.Torso);
+            world.Content.ObjectDefinitions[id] = definition;
+        }
+        var oldGarment = new ItemInstance(oldId) { Dirtiness = 0.4f, OwnerId = npc.Id.Value };
+        var replacement = new ItemInstance(newId) { Dirtiness = 0.2f };
+        npc.WornItems.Add(oldGarment);
+        EquipmentMath.RecalculateCapacity(world, npc);
+        npc.Inventory.Items.Add(replacement);
+        while (npc.Inventory.UsedSlots < npc.Inventory.Capacity)
+        {
+            var id = "test.player_wear.cargo." + npc.Inventory.Items.Count;
+            world.Content.ObjectDefinitions[id] = new ObjectDefinition { Id = id, DisplayName = id };
+            npc.Inventory.Items.Add(new ItemInstance(id));
+        }
+        var cargo = npc.Inventory.Items.Where(i => !ReferenceEquals(i, replacement)).ToArray();
+        var goal = npc.Mind.CurrentGoal;
+        var steps = npc.Plan.Steps.ToArray();
+        Assert.That(PlayerInventoryCommandExecutor.TryApply(world, npc,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, newId),
+            InventoryAction.Wear, out var reason), Is.True, reason);
+        var dropped = world.Entities.Objects.Values.Single(o => o.DefinitionId == oldId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.WornItems.Single(), Is.SameAs(replacement));
+            Assert.That(dropped.Dirtiness, Is.EqualTo(oldGarment.Dirtiness));
+            Assert.That(dropped.Owner, Is.EqualTo(npc.Id));
+            Assert.That(npc.Inventory.UsedSlots, Is.LessThanOrEqualTo(npc.Inventory.Capacity));
+            Assert.That(cargo.All(item => npc.Inventory.Items.Any(i => ReferenceEquals(i, item)) ||
+                dropped.Contents.Any(i => ReferenceEquals(i, item))), Is.True);
+            Assert.That(npc.Inventory.Items.Count + dropped.Contents.Count, Is.EqualTo(cargo.Length));
+            Assert.That(npc.Mind.ManualControl, Is.EqualTo(manual));
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(goal));
+            Assert.That(npc.Plan.Steps, Is.EqualTo(steps));
+        });
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void GroundDressPermissionDistinguishesExplicitOrderFromAutonomousChoice(bool manual)
+    {
+        var world = TestWorld.CreateWorld();
+        var colony = world.Entities.Npcs.Values.Where(n => n.Faction == Faction.Colony).Take(2).ToArray();
+        var npc = colony[0];
+        npc.Mind.ManualControl = manual;
+        npc.Mind.OutfitLocked = false;
+        npc.Plan.Goal = manual ? GoalType.PlayerOrder : GoalType.Dress;
+        const string id = "test.player_wear.borrowed";
+        var definition = new ObjectDefinition { Id = id, DisplayName = id, Layer = WearLayer.Wear };
+        definition.Covers.Add(BodyPart.Torso);
+        world.Content.ObjectDefinitions[id] = definition;
+        var anchor = world.Junctions.Items.Values.First(j => !j.Blocked && j.Fragment == npc.Fragment);
+        var garment = WorldObjectMutations.SpawnObject(world, id, anchor.Fragment, anchor.Tiles[0],
+            anchor.Id);
+        garment.Owner = colony[1].Id;
+        var dressed = ExecutionSystem.CompleteDress(world, npc, garment, definition,
+            new InteractionDefinition { Type = InteractionType.Dress }, "");
+        Assert.That(dressed, Is.EqualTo(manual));
+        Assert.That(world.Entities.Objects.ContainsKey(garment.Id), Is.EqualTo(!manual));
+        Assert.That(npc.WornItems.Any(i => i.DefinitionId == id), Is.EqualTo(manual));
+    }
+
     [Test]
     public void DroppingWornPocketGarmentCarriesItsOverflowToTheGround()
     {

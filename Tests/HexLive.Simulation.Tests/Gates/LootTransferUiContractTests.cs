@@ -76,6 +76,29 @@ public sealed class LootTransferUiContractTests
     }
 
     [Test]
+    // §128.1b (#344): loot, gift и контейнеры сходятся в DropOn, поэтому
+    // выбор количества обязан стоять до развилки двух авторитетных команд.
+    public void StackTransfersAlwaysAskForAnExactQuantity()
+    {
+        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
+        var localization = ReadLocalization();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel, Does.Contain("InventoryState.IsStackable(_drag.DefinitionId)"));
+            Assert.That(panel, Does.Contain("ShowQuantityPicker(destinationId, _drag)"));
+            Assert.That(panel, Does.Contain("new SliderInt"));
+            Assert.That(panel, Does.Contain("new IntegerField"));
+            Assert.That(panel, Does.Contain("KeyCode.KeypadEnter"));
+            Assert.That(panel, Does.Contain("ExecuteTransfer(destinationId, item, count)"));
+            Assert.That(panel, Does.Contain("new TransferInventoryCommand("));
+            Assert.That(panel, Does.Contain("new TransferContainerCommand("));
+            Assert.That(localization, Does.Contain("Term: loot.quantity_title"));
+            Assert.That(localization, Does.Contain("Сколько {0} переместить?"));
+        });
+    }
+
+    [Test]
     // §128.4: правило двойного клика и его порог живут в ОДНОМ файле, и оба
     // инвентаря спрашивают именно его.
     public void DoubleClickRuleIsSharedBetweenExchangeAndColonistInventory()
@@ -101,8 +124,11 @@ public sealed class LootTransferUiContractTests
             Assert.That(panel, Does.Contain("DoubleClickWatch _doubleClick"));
             Assert.That(panel, Does.Contain("ManageInventoryCommand("),
                 "Надеть/снять в окне обмена идёт штатным приказом §123.");
-            Assert.That(panel, Does.Contain("_autoWearDefinitionId"),
-                "Забранная носимая вещь доводится до надетой отложенным Wear.");
+            Assert.That(panel, Does.Contain("InventoryTransferDirection.TakeAndWear"),
+                "Носимая вещь забирается и надевается одной авторитетной командой.");
+            Assert.That(panel, Does.Contain("ExecuteTransfer(_looterId, item, 1, wear: true)"));
+            Assert.That(panel, Does.Not.Contain("_autoWearDefinitionId"),
+                "Нет ожидания свободной ячейки и выбора экземпляра только по definition id.");
 
             Assert.That(character, Does.Contain("InventoryQuickActions.Resolve("));
             Assert.That(character, Does.Contain("TryInventoryQuickAction("));

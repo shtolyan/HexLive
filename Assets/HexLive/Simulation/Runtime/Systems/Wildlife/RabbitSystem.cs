@@ -21,6 +21,8 @@ public sealed class RabbitSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     private static int MaxRabbits => WildlifeBalance.MaxRabbits;
     private static int RespawnCheckTicks => WildlifeBalance.RabbitRespawnCheckTicks; // rabbits breed fast
 

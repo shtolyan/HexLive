@@ -55,6 +55,7 @@ namespace HexLive.Simulation.Bootstrap
                 GameMode.BigIsland => CreateBigIsland(seed),
                 GameMode.HugeIsland => CreateHugeIsland(seed),
                 GameMode.Maniac => CreateManiac(seed),
+                GameMode.Islands => CreateIslands(seed),
                 _ => CreateFeud(seed)
             };
         }

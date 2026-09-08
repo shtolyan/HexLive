@@ -89,6 +89,21 @@ internal static class WoundMath
         return held;
     }
 
+    /// <summary>§157.5: в зоне гноится незабинтованная рана — зона не
+    /// рубцуется и не регенерирует от еды, пока её не стабилизируют.</summary>
+    public static bool IsFestering(NPCState npc, BodyPart zone)
+    {
+        foreach (var wound in npc.Wounds)
+        {
+            if (wound.Zone == zone && wound.Festering && !wound.Stabilized)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static float OpenCutDamage(NPCState npc, BodyPart zone)
     {
         var open = 0f;
@@ -112,7 +127,7 @@ internal static class WoundMath
 
     private static bool ScarsNaturally(NPCState npc, WoundState wound)
     {
-        if (wound.Clot01 < 1f)
+        if (wound.Clot01 < 1f || wound.Festering)
         {
             return false;
         }

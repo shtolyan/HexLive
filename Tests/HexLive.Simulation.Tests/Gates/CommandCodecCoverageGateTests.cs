@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HexLive.Simulation.AI;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
@@ -31,6 +32,13 @@ public sealed class CommandCodecCoverageGateTests
     // значениями полей (чтобы reader, перепутавший Npc и Target, не прошёл).
     private static readonly ISimulationCommand[] Stamped =
     {
+        new RecordCompanionTurnCommand(
+            new EntityId(901), "turn-159", "voice", CompanionReaction.Warm,
+            "Пойду к костру.",
+            new[] { new CompanionMemoryUpsert("player.name", "Анатолий", 0.73f) },
+            "Сегодня знакомый голос снова помог мне."),
+        new RecordAgentSocialCommand(
+            new EntityId(902), "agent-turn-160", CompanionReaction.Tense),
         new SetManualControlCommand(new EntityId(11), true),
         new SetOutfitLockCommand(new EntityId(111), true),
         new SetRunByDefaultCommand(new EntityId(114), true),
@@ -84,6 +92,13 @@ public sealed class CommandCodecCoverageGateTests
             new EntityId(37), new ObjectId(73), slotIndex: 5,
             expectedDefinitionId: "item.bandage", count: 2,
             InventoryTransferDirection.Take),
+        new TransferInventoryCommand(
+            new EntityId(36), new EntityId(63),
+            new InventoryItemRef(InventoryItemSource.Worn, 2, "underwear.bra"),
+            1, InventoryTransferDirection.TakeAndWear),
+        new TransferContainerCommand(
+            new EntityId(37), new ObjectId(73), 5, "underwear.bra", 1,
+            InventoryTransferDirection.TakeAndWear),
         new PreyPersonCommand(new EntityId(38), new EntityId(83)),
         new AbusePersonCommand(new EntityId(39), new EntityId(84)),
         new PlaceBuildingPlanCommand(new TileCoord(4, -6), rotationDegrees: 120f),

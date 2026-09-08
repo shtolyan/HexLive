@@ -198,6 +198,32 @@ public sealed class LoopbackBackend : ISimulationBackend
         return watermark;
     }
 
+    public bool SupportsAgentIntegration => false;
+    public bool SttAvailable => false;
+    public bool TryGetAgentState(EntityId npc, out AgentStateFrame state)
+    {
+        state = new AgentStateFrame { NpcId = npc.Value };
+        return false;
+    }
+    public void RequestSttToken(int correlationId) { }
+    public bool TryTakeSttTokenResult(out SttTokenResultFrame result)
+    {
+        result = default;
+        return false;
+    }
+    public void SendAgentText(int correlationId, EntityId npc, string messageId,
+        string language, string text) { }
+    public bool TryTakeAgentTextResult(out AgentTextResultFrame result)
+    {
+        result = default;
+        return false;
+    }
+    public bool TryTakeAgentSpeech(out AgentSpeechMessage speech)
+    {
+        speech = null;
+        return false;
+    }
+
     public void WriteSaveNow()
     {
         // Nothing: SupportsClientSave is false, so nobody should be calling this.

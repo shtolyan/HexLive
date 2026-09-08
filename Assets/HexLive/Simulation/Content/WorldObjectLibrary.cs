@@ -91,6 +91,11 @@ namespace HexLive.Simulation.Content
                     }
                 }
             }
+            // §134: old JSON/assets must not resurrect boiling through merge.
+            // Keep the enum for saves, but never advertise this retired verb.
+            foreach (var definition in defs.Values)
+                if (definition.HasTag("Campfire"))
+                    definition.Interactions.RemoveAll(i => i.Type == InteractionType.FillBottle);
         }
     }
 }

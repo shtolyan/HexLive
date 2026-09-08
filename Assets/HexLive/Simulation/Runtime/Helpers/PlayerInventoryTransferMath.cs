@@ -9,8 +9,6 @@ namespace HexLive.Simulation.Runtime
 /// <summary>§128 non-mutating validation for one player drag-transfer.</summary>
 internal static class PlayerInventoryTransferMath
 {
-    private const string BottleDefinitionId = "tool.bottle";
-
     internal static int PackCursor(int index, int count) =>
         ((System.Math.Min(System.Math.Max(count, 1), 0x7fff) << 16) |
          (index & 0xffff));
@@ -81,21 +79,11 @@ internal static class PlayerInventoryTransferMath
         NPCState source,
         NPCState destination,
         InventoryItemRef itemRef,
-        int count)
+        int count,
+        bool wear = false)
     {
         if (!TryResolveTransfer(
                 world, source, itemRef, count, out var moving, out var contents))
-        {
-            return false;
-        }
-
-        // Bottle contents still live on NPCState rather than ItemInstance. Until that
-        // legacy representation is migrated, keep its one-bottle invariant explicit:
-        // otherwise a transfer could duplicate or silently replace the stored water.
-        if ((ContainsDefinition(moving, BottleDefinitionId) ||
-             ContainsDefinition(contents, BottleDefinitionId)) &&
-            (CountDefinition(source.Inventory.Items, BottleDefinitionId) != 1 ||
-             CountDefinition(destination.Inventory.Items, BottleDefinitionId) != 0))
         {
             return false;
         }
@@ -107,11 +95,11 @@ internal static class PlayerInventoryTransferMath
             : sourceWorn;
         foreach (var item in moving)
         {
-            RemoveReference(sourceList, item);
+            InventoryMath.RemoveReference(sourceList, item);
         }
         foreach (var item in contents)
         {
-            RemoveReference(sourceCarried, item);
+            InventoryMath.RemoveReference(sourceCarried, item);
         }
 
         var destinationCarried = new List<ItemInstance>(destination.Inventory.Items);
@@ -139,8 +127,35 @@ internal static class PlayerInventoryTransferMath
 
         return PlayerInventoryMath.FitsProjected(
                    world, source, sourceCarried, sourceWorn) &&
-               PlayerInventoryMath.FitsProjected(
-                   world, destination, destinationCarried, destinationWorn);
+               (wear
+                   ? moving.Count == 1 && CanWearIncoming(world, destination, moving[0], contents)
+                   : PlayerInventoryMath.FitsProjected(
+                       world, destination, destinationCarried, destinationWorn));
+    }
+
+    internal static bool CanWearIncoming(WorldState world, NPCState npc, ItemInstance item,
+        IReadOnlyList<ItemInstance> contents = null)
+    {
+        if (npc.Mind.OutfitLocked ||
+            !world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) ||
+            definition.Layer is null) return false;
+        var carried = new List<ItemInstance>(npc.Inventory.Items);
+        if (contents is not null)
+            foreach (var content in contents)
+                if (!ReferenceEquals(content, item)) carried.Add(content);
+        var worn = new List<ItemInstance>(npc.WornItems);
+        for (var i = worn.Count - 1; i >= 0; i--)
+        {
+            if (world.Content.ObjectDefinitions.TryGetValue(worn[i].DefinitionId, out var existing) &&
+                WearSlotCatalog.Occupies(definition, existing))
+            {
+                carried.Add(worn[i]);
+                worn.RemoveAt(i);
+            }
+        }
+        worn.Add(item);
+        return PlayerInventoryMath.FitsProjected(world, npc, carried, worn) ||
+            ExecutionSystem.TryFindDropSpotAtFeet(world, npc, underFoot: true, out _, out _);
     }
 
     internal static void MoveResolved(
@@ -149,15 +164,28 @@ internal static class PlayerInventoryTransferMath
         NPCState destination,
         InventoryItemRef itemRef,
         IReadOnlyList<ItemInstance> moving,
-        IReadOnlyList<ItemInstance> contents)
+        IReadOnlyList<ItemInstance> contents,
+        bool wear = false)
     {
-        var movesBottle = ContainsDefinition(moving, BottleDefinitionId) ||
-                          ContainsDefinition(contents, BottleDefinitionId);
-        var bottleWater = source.BottleWater;
-        var bottleCharges = source.BottleCharges;
+        if (wear)
+        {
+            var sourceItems = itemRef.Source == InventoryItemSource.Worn
+                ? source.WornItems : source.Inventory.Items;
+            InventoryMath.RemoveReference(sourceItems, moving[0]);
+            destination.Inventory.Items.Add(moving[0]);
+            foreach (var item in contents)
+            {
+                InventoryMath.RemoveReference(source.Inventory.Items, item);
+                destination.Inventory.Items.Add(item);
+            }
+            EquipmentMath.Recalculate(world, source);
+            ExecutionSystem.WearCarriedItem(world, destination, moving[0]);
+            return;
+        }
+
         if (itemRef.Source == InventoryItemSource.Worn)
         {
-            RemoveReference(source.WornItems, moving[0]);
+            InventoryMath.RemoveReference(source.WornItems, moving[0]);
             if (HasWearConflict(world, destination, moving[0]))
             {
                 destination.Inventory.Items.Add(moving[0]);
@@ -168,7 +196,7 @@ internal static class PlayerInventoryTransferMath
             }
             foreach (var item in contents)
             {
-                RemoveReference(source.Inventory.Items, item);
+                InventoryMath.RemoveReference(source.Inventory.Items, item);
                 destination.Inventory.Items.Add(item);
             }
 
@@ -179,18 +207,11 @@ internal static class PlayerInventoryTransferMath
         {
             foreach (var item in moving)
             {
-                RemoveReference(source.Inventory.Items, item);
+                InventoryMath.RemoveReference(source.Inventory.Items, item);
                 destination.Inventory.Items.Add(item);
             }
         }
 
-        if (movesBottle)
-        {
-            destination.BottleWater = bottleWater;
-            destination.BottleCharges = bottleCharges;
-            source.BottleWater = WaterKind.None;
-            source.BottleCharges = 0;
-        }
     }
 
     private static bool HasWearConflict(
@@ -215,38 +236,6 @@ internal static class PlayerInventoryTransferMath
         return false;
     }
 
-    private static bool ContainsDefinition(
-        IReadOnlyList<ItemInstance> items, string definitionId)
-    {
-        for (var i = 0; i < items.Count; i++)
-        {
-            if (items[i].DefinitionId == definitionId) return true;
-        }
-
-        return false;
-    }
-
-    private static int CountDefinition(
-        IReadOnlyList<ItemInstance> items, string definitionId)
-    {
-        var count = 0;
-        for (var i = 0; i < items.Count; i++)
-        {
-            if (items[i].DefinitionId == definitionId) count++;
-        }
-
-        return count;
-    }
-
-    private static void RemoveReference(List<ItemInstance> items, ItemInstance sought)
-    {
-        for (var i = 0; i < items.Count; i++)
-        {
-            if (!ReferenceEquals(items[i], sought)) continue;
-            items.RemoveAt(i);
-            return;
-        }
-    }
 }
 
 }

@@ -30,6 +30,8 @@ public sealed class GroupHuntSystem : ISimulationSystem
     // мирной позе (грабли §103).
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     private readonly List<NPCState> _hunters = new();
 
     public void Run(WorldState world)

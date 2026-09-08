@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using RootMotion.FinalIK;
 using UnityEngine;
@@ -26,6 +27,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private static readonly Dictionary<int, NpcActorView> LiveByNpcId = new();
 
     private BodyBones _bodyBones;
+    private ActorRenderGate _renderGate;
     private Animator _animator;
     private readonly HashSet<int> _animatorParameterHashes = new();
     private LookAtIK _lookAtIK;
@@ -33,6 +35,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private ActorName _actorMesh;
     private readonly Dictionary<string, int> _equippedSimItems = new();
     private readonly List<string> _removeScratch = new();
+    private readonly List<GarmentWearPainter> _garmentPaintScratch = new();
     private int _pendingHairLoads;
 
     // Spec §52.8: leg-slung tool props parked in the worn holster's tool.*
@@ -197,6 +200,43 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     /// <summary>
+    /// Restored corpse readiness includes the first materialized paint pass,
+    /// not just the existence of body/hair/clothing GameObjects. Pending
+    /// painters enter SkinPaintScheduler's one-per-frame priority lane while
+    /// ActorRenderGate keeps every presentation channel hidden.
+    /// </summary>
+    public bool IsCorpsePresentationReady(
+        IReadOnlyList<string> wornDefinitionIds,
+        IReadOnlyList<string> severedParts,
+        IReadOnlyList<BodyPartConditionSnapshot> partConditions)
+    {
+        if (!IsPresentationReady(wornDefinitionIds, severedParts, partConditions))
+        {
+            return false;
+        }
+
+        var ready = true;
+        if (_skinPainter != null && !_skinPainter.PresentationReady)
+        {
+            SkinPaintScheduler.RequestPresentationPass(_skinPainter);
+            ready = false;
+        }
+
+        _garmentPaintScratch.Clear();
+        GetComponentsInChildren(true, _garmentPaintScratch);
+        foreach (var painter in _garmentPaintScratch)
+        {
+            if (painter != null && !painter.PresentationReady)
+            {
+                SkinPaintScheduler.RequestPresentationPass(painter);
+                ready = false;
+            }
+        }
+        _garmentPaintScratch.Clear();
+        return ready;
+    }
+
+    /// <summary>
     /// То же условие, что и <see cref="IsPresentationReady"/>, но словами: ЧТО
     /// именно держит занавес. Нужен затем, что «экран загрузки не пропал» —
     /// симптом без адреса: ждать можно причёску, протез или вещь, и без имени
@@ -323,7 +363,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // clip): a right-handed NPC must mirror it, a lefty plays it native — the
     // opposite polarity to MirrorAction (used by right-native clips). Default 1.
     private static readonly int MirrorActionInvParam = Animator.StringToHash("MirrorActionInv");
-    private static readonly int DeadParam = Animator.StringToHash("Dead");
     private static readonly int AttackParam = Animator.StringToHash("Attack");
     // Base-clip take-names each action state plays (the override KEYS).
     private const string TalkBaseClip = "X Bot@Talking";
@@ -334,7 +373,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // SetCombat so ONE swing spans exactly the weapon's attack duration.
     private const float AttackSwingCycles = 2.6f;
     private const string ChopBaseClip = "Standing Melee Attack Horizontal";
-    private const string DeathBaseClip = "X Bot@Death From Back Headshot";
     // §81: ключ ОДНОРАЗОВОЙ сценки. Само по себе то, что тут сальса, значения
     // не имеет — это только адрес слота, в который вид заряжает нужный клип
     // перед срабатыванием триггера.
@@ -698,7 +736,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private AnimationClip _armedRunClip;
     private AnimationClip _bareStanceClip;
 
-    // A standing action clip becomes the prone idle while legless.
+    // A standing action clip becomes the prone idle while legless. Drinking is
+    // deliberately not routed through this helper: bottle and pierced-coconut
+    // drinking share the canonical full-body drink take in every posture.
     private AnimationClip Standing(AnimationClip standing) =>
         _legless && ProneClip != null ? ProneClip : standing;
 
@@ -812,10 +852,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // per-frame correction.
     private float _layingSurfaceY;
     private SkinnedMeshRenderer[] _bodySkins;
-    // Bare body renderers only. Hair is also a skinned mesh, but its loose
-    // strands can hang below the actual body in a death pose; using that bound
-    // as the support point lifts the whole corpse visibly above the ground.
-    private readonly List<SkinnedMeshRenderer> _corpseSupportSkins = new();
     private Vector3 _lastPosition;
     private float _lastYaw;
     private float _moveEpsilon = 0.01f;
@@ -1106,20 +1142,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : UnityEngine.AnimatorCullingMode.CullUpdateTransforms;
     }
 
-    // ⭐ Труп висел над землёй, потому что ЕГО МЕРИЛИ АВТОРСКОЙ КОРОБКОЙ.
-    //
-    // PlantDeadBodyOnSurface сажает тело по фактическому нижнему краю скина —
-    // и это верно ровно до тех пор, пока `bounds` описывают ТЕКУЩИЙ кадр.
-    // Скиннер пересчитывает их за кадр только при `updateWhenOffscreen`, а
-    // включался он единственной строкой в ApplyLying, по флагу лежания. У
-    // свежего трупа (клип смерти, `_laying` остаётся false) он не только не
-    // включался — ApplyLying зовётся КАЖДЫЙ ТИК и активно гасил его обратно.
-    // Мерка тогда бралась со стоячей авторской коробки: её низ у ступней
-    // стоящей, то есть примерно у корня, поправка выходила почти нулевой, и
-    // тело оставалось на запечённой в клипе высоте — висеть над поверхностью.
-    //
-    // Условие то же самое, что у отключения куллинга выше, и по той же
-    // причине: в этих позах авторским границам верить нельзя.
+    // Лежачие позы выходят за стоячие authored bounds. Труп теперь
+    // всегда идёт через общий SetFallen/FallenIdle, но после подтверждения позы
+    // его Animator выключен; поэтому он сохраняет updateWhenOffscreen по флагу _dead.
     private void RefreshSkinBounds()
     {
         if (_bodySkins == null)
@@ -1816,7 +1841,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // which cast a fixed girl on purpose.
     public void Construct(string actorMeshName, int npcId = 0)
     {
-        Construct(actorMeshName, npcId, null, null, null, null);
+        Construct(actorMeshName, npcId, null, null, null, null, false);
     }
 
     // §74: a girl is a COMPOSITION. The mesh still decides the body — and with
@@ -1832,10 +1857,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // i.e. exactly the pre-§74 body, which is what a test scene and a pre-§74
     // save both get.
     public void Construct(string actorMeshName, int npcId,
-        string skinSet, string eyeColor, string hairstyle, string voiceBank)
+        string skinSet, string eyeColor, string hairstyle, string voiceBank,
+        bool useAuthoredAppearance = false, string hairColour = null)
     {
+        _explicitHairColour = hairColour;
+        _previewSkin = skinSet; _previewEyes = eyeColor; _previewHair = hairstyle; _previewColour = hairColour;
         _npcId = npcId;
         LiveByNpcId[npcId] = this;
+        _renderGate = GetComponent<ActorRenderGate>() ??
+                      gameObject.AddComponent<ActorRenderGate>();
         // §67.6: голосовой банк персонажа = его меш-имя (Molly/Jana/…) —
         // файлы voice_<char>_<emotion>_<n> подхватываются по факту наличия.
         // §74: …если сим не выдал ей ЧУЖОЙ банк — тогда играет он.
@@ -1937,7 +1967,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         ApplyActorLocomotion();
         if (_bodyBones != null)
         {
-            _bodyBones.Construct(_actorMesh);
+            _bodyBones.Construct(_actorMesh, _npcId);
             SyncHeelPoseTarget();
             // BodyBones.Construct wipes its worn-visual state; the worn-item
             // cache must reset with it or a pooled/reused actor (or any
@@ -1991,13 +2021,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // plus their albedo/normal maps once and never looks again. Swap
             // after either of them and the girl wears her donor's skin with the
             // previous body's paint targets, which reads as a shader bug.
-            ApplySkinSet(skinSet);
+            ApplySkinSet(skinSet, preserveAuthoredEyes: useAuthoredAppearance);
             // §85: and her eyes after it, because the skin set carries an eye
             // map of its own — applying the eye set first would let the donor's
             // irises overwrite the rolled ones. Both still land BEFORE
             // BuildSkinTintTargets for the reason above.
             ApplyEyeSet(eyeColor);
-            BuildSkinTintTargets();
+            if (!IsCreationPreview) BuildSkinTintTargets();
             // NOTE: an experiment swapping the SKIN to the GarmentTear paint
             // shader was reverted — Cull Off + the AlphaTest queue flickered on
             // the skinned body and the Daz skin lost its depth (looked flat
@@ -2005,7 +2035,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // droplets (40.8 v4) paint INTO the skin textures
             // (SkinTexturePainter) — droplet water shading is baked at stamp
             // time precisely so no custom skin shader is needed.
-            if (PaintWoundsIntoTexture && _bodyBones != null)
+            if (PaintWoundsIntoTexture && !IsCreationPreview && _bodyBones != null)
             {
                 SkinnedMeshRenderer bodyRenderer = null;
                 var slotScratch = new List<int>();
@@ -2155,11 +2185,16 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _actorsLayer = LayerMask.NameToLayer("Actors");
             if (_actorsLayer < 0)
             {
+                _renderGate?.RefreshHiddenPresentation();
                 return;
             }
         }
 
         ApplyLayerRecursive(transform, _actorsLayer);
+        // The same snapshot pass may just have attached a garment, hairstyle,
+        // prop or prosthesis. Fold it into an active overview/corpse gate now,
+        // without making every distant living NPC rescan every LateUpdate.
+        _renderGate?.RefreshHiddenPresentation();
     }
 
     private static void ApplyLayerRecursive(Transform node, int layer)
@@ -2809,8 +2844,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             "TurnOnSpotLeftA",
             "X Bot@Gathering Objects",
             "X Bot@Talking",
-            "X Bot@Dressing",
-            "X Bot@Drinking"
+            "X Bot@Dressing"
         };
         foreach (var baseName in clips)
         {
@@ -2840,7 +2874,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         OverrideClip("X Bot@Gathering Objects", ProneClip);
         OverrideClip("X Bot@Talking", ProneClip);
         OverrideClip("X Bot@Dressing", ProneClip);
-        OverrideClip("X Bot@Drinking", ProneClip);           // she drinks lying too
     }
 
     // Spec §50: ONE gentle blood fountain at the cut — a softer version of the
@@ -3608,45 +3641,30 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _ragdollBodies = bodies.ToArray();
     }
 
-    // §28.15C v3: СМЕРТЬ — она падает, и на этом всё.
+    // §28.15C / bug #354: труп не показывает переход падения. И свежая
+    // смерть, и восстановленное из сейва тело сразу ставятся в тот же
+    // конечный FallenIdle, которым лежит живой потерявший сознание актёр.
+    // Вся геометрия идёт через SetFallen: ни отдельного corpse-offset, ни особого угла нет.
     //
-    // Раньше смерть была тихим «лечь спать»: тело уходило в обычный LieDown →
-    // Sleep и там замирало, потому что клипов падения в наборе не лежало вовсе
-    // (`death: []`). Теперь их два (death2/death3), состояние Death в
-    // контроллере не имеет выхода, а клипы импортированы с Loop Time OFF — то
-    // есть падение проигрывается ОДИН раз и держит последний кадр.
-    //
-    // Дальше аниматор ВЫКЛЮЧАЕТСЯ совсем. Не «speed = 0», а enabled = false:
-    // поза остаётся ровно той, на которой кончился клип, и её больше некому
-    // сдвинуть — ни дыханию, ни взгляду, ни фиджетам. При переносе включается
-    // только BeingCarried, после укладки запомненная мёртвая поза снова замирает.
+    // Animator выключается ТОЛЬКО после проверки фактического state hash.
+    // `_laying` — запрошенное состояние, а не доказанная поза: именно подмена этих
+    // двух понятий в #325 замораживала ещё стоячую T-позу. Пока state не связался,
+    // меши держит render-only gate; повторы не имеют дедлайна с ложным freeze.
     private bool _dead;
-    private bool _deadWasAlreadyLying;
     private bool _corpseCarried;
-    private float _deathFreezeAt = -1f; // Time.time, когда клип докрутится
-    // Bug #325: у восстановленного трупа Play(FallenIdle) мог тихо не
-    // связаться (актриса ещё собирается, аниматор не активен) — заморозка
-    // фиксировала СТОЯЧУЮ позу навсегда. Поза смерти теперь добивается
-    // повторами, пока аниматор реально не окажется в FallenIdle.
     private bool _deathPosePending;
-    private float _deathPoseDeadline;
-    private float _deathSurfaceY;
-    // Каким клипом падать — для повторов на актрисе, что ещё собирается.
-    private int _deathVariant;
-    private const float DeathPoseRetrySeconds = 3f;
-    private static readonly int DeathStateHash = Animator.StringToHash("Death");
+    private bool _corpseAppearanceReady;
+    private bool _corpseGroundPoseReady;
+    private bool _corpseCarriedPoseReady;
     private static readonly int FallenIdleStateHash = Animator.StringToHash("FallenIdle");
 
     /// <summary>#79: true when death should be silent and preserve this pose.</summary>
     public bool IsLyingStill => _laying;
 
-    /// <param name="variant">Какой из клипов падения — число из СИМУЛЯЦИИ, а
-    /// не Random: иначе одно и то же тело лежало бы по-разному у каждого
-    /// зрителя и после каждой перезагрузки.</param>
-    /// <param name="fresh">Она упала прямо сейчас (проиграть) или лежит с
-    /// прошлой сессии (сразу последний кадр). Второе — это загрузка сейва и
-    /// подключение зрителя к идущему миру: там никто не должен увидеть, как
-    /// давно погибшая падает заново.</param>
+    /// <param name="variant">Сохранённый в симуляции legacy-вариант смерти.
+    /// Вид намеренно не проигрывает его клип: все трупы сразу лежат.</param>
+    /// <param name="fresh">Сохранён для совместимости вызовов. Свежее и
+    /// восстановленное тело рисуются одинаково.</param>
     public void SetDead(float surfaceY, int variant = 0, bool fresh = true)
     {
         if (_dead)
@@ -3655,8 +3673,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _dead = true;
-        _deadWasAlreadyLying = variant < 0;
-        _deathSurfaceY = surfaceY;
+        _ = surfaceY;
+        _ = variant;
+        _ = fresh;
+        ResetTransientPresentationForDeath();
         RefreshAnimatorCulling();
         RefreshSkinBounds();
         // §50: a corpse never crawls — clear the flag so the Crawl loop yields
@@ -3666,147 +3686,98 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetBool(CrawlingParam, false);
         }
 
-        // #79: the simulation persists a negative variant when this character
-        // died already lying still. A live view freezes the exact current pose;
-        // a restored corpse reconstructs the same id-stable FallenIdle pose and
-        // freezes it immediately. Neither path enters the Death state.
-        if (variant < 0)
+        BeginStableCorpsePose();
+    }
+
+    // A live actor can cross into the corpse registry between snapshots while
+    // drinking, crafting, dressing, talking or fighting. The corpse pass does
+    // not call SyncActorView again, so retire every live-only transient here.
+    // Otherwise a held tool can duplicate the same holstered item, or an old
+    // work/speech indicator can keep floating over the body.
+    private void ResetTransientPresentationForDeath()
+    {
+        SetCombat(false, string.Empty, false);
+        SetInteraction(string.Empty, string.Empty);
+        SetWardrobeAction(string.Empty, 0f, string.Empty);
+        SetResting(false);
+        SetWorldProgress(0f, false);
+        _speech?.SetConversationTopic(string.Empty);
+        _speech?.OnInteraction(string.Empty);
+        _speechBubble?.HideIcon();
+        Audio.FmodSfx.StopLoop(ref _voiceChannel);
+        SetHandProp(null);
+        SetHandGarment(null);
+        ClearActionTarget();
+        EndPortraitGaze();
+        EndCameraGaze();
+        ClearGaze();
+        _gazeTarget = null;
+        _gazeWeight = 0f;
+        _gazeWeightTarget = 0f;
+        if (_lookAtIK != null)
         {
-            if (!_laying)
-            {
-                SetFallen(true, sleepAfter: false, surfaceY: surfaceY);
-            }
-
-            // Bug #325: заморозка ТОЛЬКО после того, как аниматор доказал, что
-            // стоит в FallenIdle. На свежесобранной актрисе (труп вошёл в
-            // восприятие, §155.5 тёплая сборка) Play тихо не связывался, и
-            // FreezeDeathPose фиксировал стоячую позу навсегда.
-            if (TryApplyLyingDeathPose())
-            {
-                FreezeDeathPose();
-            }
-            else
-            {
-                _deathPosePending = true;
-                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
-            }
-
-            return;
+            _lookAtIK.solver.IKPositionWeight = 0f;
+            _lookAtIK.enabled = false;
         }
-
-        _deathVariant = variant;
-        var clips = _animSet != null ? _animSet.death : null;
-        if (_animator == null || clips == null || clips.Length == 0)
+        // ArmedCarry is an override layer: confirming only Base Layer's
+        // FallenIdle while its weight is still easing down can freeze the
+        // arms/torso in the old tool pose forever. Death has no transition,
+        // so retire both the intent cache and Animator weight synchronously
+        // before the one-frame FallenIdle sample.
+        _twoHandCarry = false;
+        _offHandGripIk = false;
+        _carryWeight = 0f;
+        _carryWeightWritten = true;
+        var carryLayer = CarryLayerIndex;
+        if (_animator != null && carryLayer >= 0)
         {
-            // Труп стоял: на актрисе, что ещё собирается (§155.5), клипов и
-            // аниматора пока НЕТ — прежний фолбэк «замереть лёжа» на ней тоже
-            // не связывался, и тело оставалось стоять в айдле. Поза смерти
-            // добивается повторами, как в bug #325.
-            if (!AnimatorReadyForDeathPose() || _animSet == null)
-            {
-                _deathPosePending = true;
-                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
-                return;
-            }
-
-            // Актриса собрана, но клипов смерти в наборе честно нет —
-            // старое поведение: замереть лёжа. Заметно хуже, но это поза,
-            // а не дыра в кадре.
-            SetLaying(true, null, surfaceY);
-            return;
+            _animator.SetLayerWeight(carryLayer, 0f);
         }
-
-        var clip = clips[((variant % clips.Length) + clips.Length) % clips.Length];
-        OverrideClip(DeathBaseClip, clip);
-        _animator.SetBool(DeadParam, true);
-
-        if (fresh)
-        {
-            // Дать переходу отыграть, а потом заморозить. Длина берётся у
-            // САМОГО клипа: захардкоженная секунда разошлась бы с ним при
-            // первой же замене (ровно эта грабля — §104 r4).
-            _deathFreezeAt = Time.time + clip.length + 0.35f;
-            return;
-        }
-
-        // Загруженное тело: без перехода, сразу конец клипа, и заморозить в
-        // этом же кадре — падения никто не увидит. Заморозка ТОЛЬКО после
-        // проверки, что Play реально связался: на недособранной актрисе он
-        // тихо проваливается, и прежний безусловный FreezeDeathPose фиксировал
-        // СТОЯЧУЮ позу навсегда (родня bug #325, но для анимированной смерти).
-        _animator.Play(DeathStateHash, 0, 1f);
-        _animator.Update(0f);
-        if (_animator.GetCurrentAnimatorStateInfo(0).shortNameHash == DeathStateHash)
-        {
-            FreezeDeathPose();
-        }
-        else
-        {
-            _deathPosePending = true;
-            _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
-        }
+        _combatFighting = false;
+        _wasFighting = false;
+        _fighting = false;
+        _action = ActionKind.None;
+        _busyInteraction = false;
+        _wantsTalk = false;
+        _sitting = false;
+        _carryingPerson = false;
+        _chopSfxId = string.Empty;
+        _hitRecoilAge = HitRecoilSeconds;
     }
 
     private bool AnimatorReadyForDeathPose() =>
         _animator != null && _animator.isActiveAndEnabled &&
         _animator.runtimeAnimatorController != null;
 
-    // «Поза уже смертная»: лежит своей цепочкой, либо аниматор реально стоит
-    // в Death/FallenIdle. Всё остальное (айдл, недоигранный переход) морозить
-    // нельзя — это и был стоячий труп.
-    private bool AnimatorHoldsDeathPose()
+    private void BeginStableCorpsePose()
     {
-        if (_laying)
+        _corpseGroundPoseReady = false;
+        _deathPosePending = true;
+        // The actor must be active for Animator.Play/Update. This method runs
+        // during snapshot sync, before rendering; a failed attempt is hidden
+        // again below and cannot leak a frame.
+        _renderGate?.SetHidden(ActorRenderHideReason.CorpsePosePending, true);
+        SetFallen(true, sleepAfter: false);
+        if (TryApplyLyingDeathPose())
         {
-            return true;
+            FreezeDeathPose();
         }
-
-        if (!AnimatorReadyForDeathPose())
+        else
         {
-            return false;
+            RefreshCorpseVisibility();
         }
-
-        var hash = _animator.GetCurrentAnimatorStateInfo(0).shortNameHash;
-        return hash == DeathStateHash || hash == FallenIdleStateHash;
-    }
-
-    // Одна попытка привести тело к смертной позе, для повторов из LateUpdate.
-    // Лежачий вариант — как в bug #325; анимированный — конец клипа падения.
-    private bool TryApplyDeathPose()
-    {
-        if (_deadWasAlreadyLying)
-        {
-            return TryApplyLyingDeathPose();
-        }
-
-        if (!AnimatorReadyForDeathPose())
-        {
-            return false;
-        }
-
-        var clips = _animSet != null ? _animSet.death : null;
-        if (clips == null || clips.Length == 0)
-        {
-            return TryApplyLyingDeathPose();
-        }
-
-        var clip = clips[((_deathVariant % clips.Length) + clips.Length) % clips.Length];
-        OverrideClip(DeathBaseClip, clip);
-        _animator.SetBool(DeadParam, true);
-        _animator.Play(DeathStateHash, 0, 1f);
-        _animator.Update(0f);
-        return _animator.GetCurrentAnimatorStateInfo(0).shortNameHash == DeathStateHash;
     }
 
     // Выключить аниматор насовсем. Поза остаётся той, что в костях сейчас.
     private void FreezeDeathPose()
     {
-        _deathFreezeAt = -1f;
         _deathPosePending = false;
+        _corpseGroundPoseReady = true;
         if (_animator != null)
         {
             _animator.enabled = false;
         }
+        RefreshCorpseVisibility();
     }
 
     // Bug #325: попытка уложить труп в FallenIdle с ПРОВЕРКОЙ, что состояние
@@ -3814,13 +3785,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // вызывающий обязан повторить, а не замораживать стоячую позу.
     private bool TryApplyLyingDeathPose()
     {
-        if (_laying)
-        {
-            return true; // уже лежит своей цепочкой — фиксируем как есть
-        }
-
-        if (_animator == null || !_animator.isActiveAndEnabled ||
-            _animator.runtimeAnimatorController == null)
+        if (!AnimatorReadyForDeathPose())
         {
             return false;
         }
@@ -3831,9 +3796,34 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             FallenIdleStateHash;
     }
 
+    private void RefreshCorpseVisibility()
+    {
+        var poseReady = _corpseCarried
+            ? _corpseCarriedPoseReady
+            : _corpseGroundPoseReady;
+        _renderGate?.SetHidden(
+            ActorRenderHideReason.CorpsePosePending, !poseReady);
+        _renderGate?.SetHidden(
+            ActorRenderHideReason.CorpseAppearancePending, !_corpseAppearanceReady);
+    }
+
+    /// <summary>Snapshot renderer calls this after wardrobe, hair and
+    /// prostheses all match the corpse record. A confirmed pose alone must not
+    /// reveal a naked/bind-pose intermediate frame.</summary>
+    public void SetCorpseAppearanceReady(bool ready)
+    {
+        if (!_dead)
+        {
+            return;
+        }
+
+        _corpseAppearanceReady = ready;
+        RefreshCorpseVisibility();
+    }
+
     /// <summary>§124: PlayableGraph переносимой позы требует включённый
-    /// Animator. После выкладывания восстанавливаем авторский последний кадр
-    /// смерти, а не замораживаем вертикальную позу из рук носильщика.</summary>
+    /// Animator. После выкладывания тело снова проходит ту же проверку
+    /// FallenIdle, что и при первом появлении; поза из рук не замораживается.</summary>
     internal void SetCorpseCarried(bool carried)
     {
         if (!_dead || _animator == null || _corpseCarried == carried)
@@ -3844,90 +3834,78 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _corpseCarried = carried;
         if (carried)
         {
-            _deathFreezeAt = -1f;
+            // CarriedPoseFollower will reveal us only after its PlayableGraph
+            // has actually stamped BeingCarried. Merely having an Animator is
+            // not proof; the graph/clip may still be loading asynchronously.
+            _deathPosePending = true;
+            _corpseCarriedPoseReady = false;
             _animator.enabled = true;
+            RefreshCorpseVisibility();
             return;
         }
 
         _animator.enabled = true;
-        _animator.Play(_deadWasAlreadyLying ? FallenIdleStateHash : DeathStateHash,
-            0, _deadWasAlreadyLying ? 0f : 1f);
-        _animator.Update(0f);
-        FreezeDeathPose();
+        BeginStableCorpsePose();
     }
 
-    // Клип смерти авторский, а земля — свойство мира. У одних наборов костей
-    // последний кадр уже лежит на нуле, у других содержит небольшой baked Y
-    // offset: без этой привязки такой труп после падения «улетает» или висит
-    // над склоном. Берём фактический нижний край скина, поэтому правило верно
-    // для любой одежды, позы и высоты тайла.
-    /// <summary>
-    /// баг #170: земля под телом — свойство ТОГО МЕСТА, ГДЕ ОНО ЛЕЖИТ СЕЙЧАС, а не
-    /// того, где человек умер. Высота бралась один раз в SetDead и больше не
-    /// обновлялась, поэтому донесённое и уложенное в другом месте тело садилось
-    /// на высоту СТАРОГО тайла — и висело в воздухе ровно на разницу высот.
-    /// Рендер зовёт это каждым кадром синхронизации трупов.
-    /// </summary>
-    internal void SetDeathSurfaceY(float surfaceY)
+    /// <summary>Prepares a dead passenger for the later carried-pose owner.
+    /// Render suppression stays in place while the real geometry remains
+    /// available for hip-to-hands alignment.</summary>
+    internal bool PrepareCorpseCarriedPose()
     {
-        if (_dead)
+        if (!_dead || !_corpseCarried)
         {
-            _deathSurfaceY = surfaceY;
+            return true;
         }
+
+        // Once the pose is already stamped there is no reason to wake a body
+        // whose appearance is still loading; it remains safely hidden.
+        if (!_deathPosePending && !_corpseAppearanceReady)
+        {
+            RefreshCorpseVisibility();
+            return false;
+        }
+
+        if (_animator != null)
+        {
+            _animator.enabled = true;
+        }
+
+        if (_animator != null && _animator.isActiveAndEnabled)
+        {
+            return true;
+        }
+
+        RefreshCorpseVisibility();
+        return false;
     }
 
-    private void PlantDeadBodyOnSurface()
+    /// <summary>The carried graph or clip was not ready after the temporary
+    /// activation. Keep retrying without exposing its intermediate pose.</summary>
+    internal void DeferCorpseCarriedPose()
     {
-        if (!_dead || _bodyRoot == null)
+        if (!_dead || !_corpseCarried)
         {
             return;
         }
 
-        // баг #170: на руках у носильщика высотой владеет поза переноски. Прежде
-        // посадка на землю дёргала тело вниз каждый кадр и спорила с ней.
-        if (_corpseCarried)
-        {
-            return;
-        }
-
-        var lowestY = LowestVisibleSkinY(_corpseSupportSkins);
-        if (float.IsPositiveInfinity(lowestY) && _bodySkins != null)
-        {
-            // Legacy/custom actor fallback: if material classification found
-            // no bare body, retain the old all-renderer measurement rather
-            // than pinning an otherwise valid pose by its root.
-            lowestY = LowestVisibleSkinY(_bodySkins);
-        }
-
-        if (float.IsPositiveInfinity(lowestY))
-        {
-            _bodyRoot.position = new Vector3(
-                _bodyRoot.position.x, _deathSurfaceY, _bodyRoot.position.z);
-            return;
-        }
-
-        _bodyRoot.position += Vector3.up * (_deathSurfaceY - lowestY);
+        _deathPosePending = true;
+        _corpseCarriedPoseReady = false;
+        RefreshCorpseVisibility();
     }
 
-    private static float LowestVisibleSkinY(
-        System.Collections.Generic.IReadOnlyList<SkinnedMeshRenderer> skins)
+    /// <summary>Called by the carried-pose owner after the BeingCarried graph
+    /// was evaluated and the hips were attached to the carrier's hands.</summary>
+    internal void ConfirmCorpseCarriedPose()
     {
-        var lowestY = float.PositiveInfinity;
-        if (skins == null)
+        if (!_dead || !_corpseCarried || !_deathPosePending)
         {
-            return lowestY;
+            return;
         }
 
-        for (var i = 0; i < skins.Count; i++)
-        {
-            var skin = skins[i];
-            if (skin != null && skin.enabled && skin.gameObject.activeInHierarchy)
-            {
-                lowestY = Mathf.Min(lowestY, skin.bounds.min.y);
-            }
-        }
-
-        return lowestY;
+        _deathPosePending = false;
+        _corpseCarriedPoseReady = true;
+        RefreshCorpseVisibility();
     }
 
     // §29C.3-hit: a standing damage stagger. The renderer feeds every snapshot's
@@ -4300,7 +4278,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetBool(SittingParam, interaction == "Sit");
             // Clip source: config override if present, else the state's base clip.
             if (gathering && _animSet != null) OverrideClip("X Bot@Gathering Objects", Standing(_animSet.gather));
-            if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", Standing(_animSet.drink)); // legless drinks prone
+            // Bug #345: both bottle and pierced-coconut paths arrive as Drink.
+            // Keep one canonical take even while crawling/legless; posture must
+            // not silently replace the verb with prone idle. HeldItemId remains
+            // independent below, so the correct vessel still appears in hand.
+            if (drinking && _animSet != null) OverrideClip("X Bot@Drinking", _animSet.drink);
             // §77.5: fit the work clip to the sim's window — one interaction,
             // one playthrough. Set AFTER the clip swap above, because the length
             // we divide by is the length of whatever take is actually bound.
@@ -4323,8 +4305,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // A full-body clip now covers these (incl. the axe swing and the craft
         // kneel) — suppress the procedural shoulder pose so it doesn't fight the
-        // clip. Eat keeps its own raise-to-mouth — except legless, where the
-        // prone idle carries eat/drink.
+        // clip. A legless actor suppresses Eat's procedural raise-to-mouth;
+        // Drink remains owned by its canonical full-body clip above.
         _action = _legless || !_hasUsableHand || chopping || kneelingCraft || praying
             ? ActionKind.None
             : actionKind;
@@ -4595,6 +4577,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void EnsureSpeechBubble()
     {
+        _speech ??= new UI.NpcSpeechDirector(this);
         // Anchor to the head bone (calibrated in Construct); until it exists the
         // NPC can't have started talking yet, so deferring is harmless.
         if (_speechBubble != null || _headBone == null)
@@ -4606,7 +4589,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         go.transform.SetParent(transform, false);
         _speechBubble = go.AddComponent<NpcSpeechBubble>();
         _speechBubble.Initialize(_headBone, 5000 + _npcId * 4);
-        _speech = new UI.NpcSpeechDirector(this);
     }
 
     // ---- §67.10 ISpeechStage: the mouth the director drives ----------------
@@ -4615,6 +4597,21 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         => PlayVoiceLine(speechId, null, speechId == "hurt_wound" || speechId == "hurt_bitten"
             ? Audio.FmodSfx.Sfx.HurtF
             : speechId == "hurt_death" ? Audio.FmodSfx.Sfx.DeathF : null);
+
+    float UI.ISpeechStage.PlayExternalVoiceLine(
+        string wavPath, string visemePath, string emotion, bool listenerRelative)
+    {
+        if (Audio.FmodSfx.IsPlaying(ref _voiceChannel)) return 0f;
+        var pos = TryGetBodyCenter(out var center) ? center : transform.position;
+        // Core voices bypass the Studio bus duck. Keep their authored gain.
+        _voiceChannel = Audio.FmodSfx.PlayFileTracked(
+            wavPath, visemePath, pos, 1f,
+            listenerRelative);
+        if (_voiceLipSync != null) _voiceLipSync.Speak(ref _voiceChannel);
+        var lengthMs = Audio.FmodSfx.GetLengthMs(ref _voiceChannel);
+        if (_face != null) _face.FlashTalkEmotion(emotion, lengthMs > 0 ? lengthMs / 1000f : 2.5f);
+        return lengthMs > 0 ? lengthMs / 1000f : 0f;
+    }
 
     void UI.ISpeechStage.StopVoiceLine() => Audio.FmodSfx.StopLoop(ref _voiceChannel);
 
@@ -4630,6 +4627,23 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // fast-forward stays mute so a 8× catch-up doesn't shout.
     bool UI.ISpeechStage.CanSpeak(bool alarm)
         => (alarm || !_dead) && _simSpeed <= 4.01f;
+
+    bool UI.ISpeechStage.CanSpeakExternal(bool playerReply)
+        => !_dead && (playerReply || _simSpeed <= 4.01f);
+
+    public bool IsExternalVoicePlaying(string wavPath) =>
+        string.Equals(_voiceChannel.File, wavPath, System.StringComparison.Ordinal) &&
+        Audio.FmodSfx.IsPlaying(ref _voiceChannel);
+
+    /// <summary>§160: external reply routed through the existing mouth director.</summary>
+    public bool SayExternalVoice(
+        string wavPath, string visemePath, string emotion, bool playerReply)
+    {
+        EnsureSpeechBubble();
+        return _speech != null && _speech.SayExternal(
+            wavPath, visemePath, emotion,
+            playerReply ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient);
+    }
 
     // §armed-stance: while ANY tool/weapon (tool.*) is in the hand, the base Idle
     // and Walk clips are swapped for weapon-ready versions (NpcAnimSet.armedIdle /
@@ -4664,7 +4678,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // снапшоте за то, что ничего не меняет, незачем.
     private void UpdateIdleFidget(bool busy)
     {
-        if (_animSet == null || _animSet.idleFidgets == null || _animSet.idleFidgets.Length == 0 ||
+        if (IsCreationPreview || _animSet == null || _animSet.idleFidgets == null || _animSet.idleFidgets.Length == 0 ||
             _animator == null || _legless || busy)
         {
             _idleSince = 0f;
@@ -5218,8 +5232,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // украшение кадра. Поэтому НЕ Random: тот дал бы разную позу на сервере и у
     // каждого зрителя, и новую после каждой перезагрузки. Поле на провод при
     // этом не нужно — id есть у обоих концов, и одинаковое число выводится из
-    // него на месте (в отличие от позы СМЕРТИ, которую сим считает сам: та
-    // выпадает один раз в момент падения и обязана пережить сохранение).
+    // него на месте. Смерть использует общий стабильный FallenIdle; сохранённый
+    // DeathAnimVariant остаётся лишь совместимостью старых данных и позу не
+    // выбирает.
     private void ApplySleepPose()
     {
         var poses = _animSet != null ? _animSet.sleep : null;
@@ -6521,10 +6536,41 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // ColonistAppearance.NoHair ("none") is the explicit bald case; an id the
     // catalog doesn't know is a content bug, so it warns and keeps the prefab
     // hair rather than silently shaving her.
+    public bool IsCreationPreview { get; set; }
+    public int CreationAppearanceSeed { get; set; }
+    public bool CreationHairReady => _pendingHairLoads == 0;
+    public bool CreationAppearanceFailed { get; private set; }
+    public bool CreationClothesReady(IReadOnlyList<string> worn) =>
+        worn.All(id => _equippedSimItems.ContainsKey(id) || _clashedSimItems.Contains(id));
+    public static void ForgetCreationSkin(string id) => _skinSets.Remove(id);
+    private int _hairRequest;
+    private string _previewSkin, _previewEyes, _previewHair, _previewColour;
+
+    public void ApplyCreationAppearance(string skin, string eyes, string hair, string colour)
+    {
+        if (!IsCreationPreview) throw new System.InvalidOperationException("Appearance editing requires a creation preview.");
+        if (_previewSkin != skin || _previewEyes != eyes)
+        {
+            ReplaceBodyMaterials(LoadSkinSet(_actorMesh.ToString()));
+            if (!string.IsNullOrEmpty(skin)) ReplaceBodyMaterials(LoadSkinSet(skin), preserveAuthoredEyes: true);
+            ApplyEyeSet(eyes);
+            _previewSkin = skin; _previewEyes = eyes;
+        }
+        if (_previewHair != hair || _previewColour != colour)
+        {
+            CreationAppearanceFailed = false;
+            _explicitHairColour = colour;
+            ApplyHairstyle(hair);
+            _previewHair = hair; _previewColour = colour;
+        }
+    }
+
     private void ApplyHairstyle(string hairstyle)
     {
+        var request = ++_hairRequest;
         if (_bodyBones == null || string.IsNullOrEmpty(hairstyle))
         {
+            if (IsCreationPreview && _bodyBones != null) _bodyBones.SetHair(_bodyBones.DefaultHair);
             return;
         }
 
@@ -6538,6 +6584,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var catalog = ActorAppearanceCatalog.Instance;
         if (catalog == null || !catalog.Has(hairstyle))
         {
+            if (IsCreationPreview) CreationAppearanceFailed = true;
             Debug.LogWarning(
                 $"[§74] hairstyle '{hairstyle}' is not in the appearance catalog — " +
                 "run HexLive ▸ Actors ▸ Rebuild Appearance Catalog. Keeping the prefab hair.", this);
@@ -6554,7 +6601,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // навсегда оставляла очередь непустой и счётчик ненулевым, и занавес
         // ждал их вечно. Причёска же нужна одинаково и погасшей.
         _pendingHairLoads++;
-        ContentCoroutines.Run(SpawnHair(hairstyle));
+        ContentCoroutines.Run(SpawnHair(hairstyle, request, _explicitHairColour));
     }
 
     // Причёска и её цвет едут по object id, а значит приезжают не
@@ -6563,43 +6610,51 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     //
     // Цвет ставится ПОСЛЕ SetHair и по живому экземпляру: материал в Unity
     // общий, и запись в ассет перекрасила бы эту причёску у всех сразу.
-    private System.Collections.IEnumerator SpawnHair(string hairstyle)
+    private string _explicitHairColour;
+
+    private System.Collections.IEnumerator SpawnHair(string hairstyle, int request, string explicitColour)
     {
-        Wear prefab = null;
-        yield return HairContent.LoadHair(hairstyle, found => prefab = found);
-
-        if (prefab == null || _bodyBones == null)
+        try
         {
-            _pendingHairLoads--;
-            yield break;
+            Wear prefab = null;
+            yield return HairContent.LoadHair(hairstyle, found => prefab = found);
+
+            if (this == null || prefab == null || _bodyBones == null || request != _hairRequest)
+            {
+                if (this != null && request == _hairRequest && prefab == null && IsCreationPreview) CreationAppearanceFailed = true;
+                yield break;
+            }
+
+            var colour = string.IsNullOrEmpty(explicitColour)
+                ? HairColourApplier.Choose(hairstyle, IsCreationPreview ? CreationAppearanceSeed : _npcId)
+                : ActorAppearanceCatalog.Instance?.ColoursFor(hairstyle).FirstOrDefault(c => c.colour == explicitColour);
+            if (colour == null)
+            {
+                _bodyBones.SetHair(prefab);
+                yield break;
+            }
+
+            System.Collections.Generic.Dictionary<string, Material> materials = null;
+            yield return HairContent.LoadColour(hairstyle, colour, loaded => materials = loaded);
+
+            if (this == null || _bodyBones == null || request != _hairRequest) yield break;
+            if ((materials == null || colour.surfaces.Any(surface => !materials.ContainsKey(surface))) && IsCreationPreview) { CreationAppearanceFailed = true; yield break; }
+            _bodyBones.SetHair(prefab);
+            var live = _bodyBones != null ? _bodyBones.HairInstance : null;
+            if (live != null && materials != null)
+            {
+                HairColourApplier.Apply(live.gameObject, materials);
+            }
+
         }
-
-        _bodyBones.SetHair(prefab);
-
-        var colour = HairColourApplier.Choose(hairstyle, _npcId);
-        if (colour == null)
-        {
-            _pendingHairLoads--;
-            yield break;
-        }
-
-        System.Collections.Generic.Dictionary<string, Material> materials = null;
-        yield return HairContent.LoadColour(hairstyle, colour, loaded => materials = loaded);
-
-        var live = _bodyBones != null ? _bodyBones.HairInstance : null;
-        if (live != null && materials != null)
-        {
-            HairColourApplier.Apply(live.gameObject, materials);
-        }
-
-        _pendingHairLoads--;
+        finally { _pendingHairLoads--; }
     }
 
     // §74: wear another actress's face. All four girls are Genesis3Female with
     // the SAME 17 material slot names (Torso/Face/Arms/Legs/Cornea/… — §31B.1a
     // regenerated Jolly's from Molly's precisely so the sets stay parallel), so
     // the swap is a lookup BY NAME and never depends on submesh order.
-    private void ApplySkinSet(string skinSet)
+    private void ApplySkinSet(string skinSet, bool preserveAuthoredEyes = false)
     {
         if (string.IsNullOrEmpty(skinSet) || _bodySkins == null ||
             string.Equals(skinSet, _actorMesh.ToString(), System.StringComparison.OrdinalIgnoreCase))
@@ -6607,7 +6662,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        ReplaceBodyMaterials(LoadSkinSet(skinSet));
+        ReplaceBodyMaterials(LoadSkinSet(skinSet), preserveAuthoredEyes);
     }
 
     // §85: the iris, split out of the skin set above.
@@ -6641,7 +6696,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // own copies from whatever it finds (`body.materials`), and the tan on
     // un-painted slots rides a MaterialPropertyBlock — so nothing here leaks
     // one girl's wounds onto another's shared asset.
-    private void ReplaceBodyMaterials(Dictionary<string, Material> donor)
+    private void ReplaceBodyMaterials(Dictionary<string, Material> donor,
+        bool preserveAuthoredEyes = false)
     {
         if (donor == null || donor.Count == 0)
         {
@@ -6661,7 +6717,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var changed = false;
             for (var i = 0; i < mats.Length; i++)
             {
-                if (mats[i] == null || !donor.TryGetValue(mats[i].name, out var replacement) ||
+                if (mats[i] == null ||
+                    (preserveAuthoredEyes && IsEyeMaterial(mats[i].name)) ||
+                    !donor.TryGetValue(mats[i].name, out var replacement) ||
                     replacement == null || ReferenceEquals(replacement, mats[i]))
                 {
                     continue;
@@ -6676,6 +6734,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 skin.sharedMaterials = mats;
             }
         }
+    }
+
+    // §159: the authored Masha combination is Jana geometry + Marta skin.
+    // The five optical slots remain Jana's even though they also happen to be
+    // present in every donor actor prefab. EyeSocket intentionally is not here:
+    // it is face texture and therefore belongs to the selected skin set (§85).
+    private static bool IsEyeMaterial(string materialName)
+    {
+        return string.Equals(materialName, "Irises", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(materialName, "Sclera", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(materialName, "Pupils", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(materialName, "Cornea", System.StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(materialName, "EyeMoisture", System.StringComparison.OrdinalIgnoreCase);
     }
 
     // Eye colour id → the five eye materials by name, merged from the shared
@@ -6717,7 +6788,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             }
         }
 
-        _eyeSets[eyeColor] = map;
+        if (tinted != null && tinted.Length > 0 && map.Count >= 5) _eyeSets[eyeColor] = map;
         return map;
     }
 
@@ -6736,6 +6807,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             Debug.LogWarning($"[§74] skin set '{actor}' is not ready in atomic content — " +
                 "the body keeps its own materials.");
+            return map; // Loading is not a successfully resolved skin set.
         }
         else
         {
@@ -6764,7 +6836,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         _skinTintTargets.Clear();
         _skinTintMaterials.Clear();
-        _corpseSupportSkins.Clear();
         if (_bodySkins == null)
         {
             return;
@@ -6801,10 +6872,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                     _skinTintMaterials.Add(instanced[i]);
                     // Залежавшийся MPB слота глушил бы карту гладкости.
                     skin.SetPropertyBlock(null, i);
-                    if (!_corpseSupportSkins.Contains(skin))
-                    {
-                        _corpseSupportSkins.Add(skin);
-                    }
                 }
             }
         }
@@ -7762,44 +7829,32 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void LateUpdate()
     {
-        // §28.15C v3: клип падения докрутился — выключить аниматор. Первым
-        // делом в кадре: всё, что ниже, тело уже не касается. Морозить можно
-        // ТОЛЬКО смертную позу: если переход в Death так и не случился
-        // (аниматор был не готов в момент SetDead), безусловная заморозка
-        // фиксировала стоячий айдл навсегда — переходим на повторы.
-        if (_deathFreezeAt >= 0f && Time.time >= _deathFreezeAt)
+        // Bug #354: every corpse appears only after the animator proves that
+        // it is in the shared final FallenIdle state. Re-hide every pass while
+        // waiting because async wardrobe pieces may have joined the hierarchy.
+        // There is deliberately no timed "freeze whatever we have" fallback:
+        // that fallback was the recurring permanent T-pose.
+        if (_deathPosePending && _dead && !_corpseCarried)
         {
-            if (AnimatorHoldsDeathPose())
+            _renderGate?.SetHidden(ActorRenderHideReason.CorpsePosePending, true);
+            if (TryApplyLyingDeathPose())
             {
                 FreezeDeathPose();
-            }
-            else
-            {
-                _deathFreezeAt = -1f;
-                _deathPosePending = true;
-                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
             }
         }
-
-        // Bug #325: поза смерти добивается повторами, пока актриса не
-        // собралась. Дедлайн отсчитывается только от ГОТОВОГО аниматора,
-        // который отказался связывать состояние: несобранную актрису ждём
-        // сколько нужно — её лежачий фолбэк точно так же не связался бы.
-        if (_deathPosePending && _dead)
+        else if (_deathPosePending && _dead && _corpseCarried)
         {
-            if (TryApplyDeathPose())
-            {
-                FreezeDeathPose();
-            }
-            else if (!AnimatorReadyForDeathPose())
-            {
-                _deathPoseDeadline = Time.time + DeathPoseRetrySeconds;
-            }
-            else if (Time.time >= _deathPoseDeadline)
-            {
-                SetLaying(true, null, _deathSurfaceY);
-                FreezeDeathPose();
-            }
+            // CarriedPoseFollower runs later (execution order 31000) and will
+            // reveal only after it evaluates the carried clip. Re-hide here so
+            // wardrobe renderers that arrived this frame cannot leak a T-pose.
+            _renderGate?.SetHidden(ActorRenderHideReason.CorpsePosePending, true);
+        }
+        if (_dead)
+        {
+            // Also catches a renderer (garment/hair/prosthesis) that completed
+            // asynchronously after the pose was already confirmed but before
+            // the snapshot declares the whole appearance ready.
+            RefreshCorpseVisibility();
         }
 
         SampleMotion();
@@ -7926,7 +7981,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         // Spec 40.13: while ragdolled (faint/corpse) the bones belong to
         // physics — no procedural pose layer may write over them.
-        if (!_ragdollActive && !_romanceVisual)
+        if (!_dead && !_ragdollActive && !_romanceVisual)
         {
             // Layer the current action's arm swing over the animated pose.
             ApplyActionPose();
@@ -7945,12 +8000,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // Animator, procedural actions and ragdoll all write bones. The fitted
         // device follows only after those writers have produced the final pose.
 
-        // После Animator и всех позовых слоёв: именно теперь bounds описывают
-        // кадр, который игрок увидит. Так труп остаётся на земле и во время
-        // падения, и после выключения Animator.
-        PlantDeadBodyOnSurface();
-
-        if (_lookAtIK == null)
+        if (_dead || _lookAtIK == null)
         {
             return;
         }

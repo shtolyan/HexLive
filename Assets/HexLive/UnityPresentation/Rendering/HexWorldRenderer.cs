@@ -2279,10 +2279,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 : TryGetFurnitureSeatPose(snapshot, npc, targetRot, out var furnitureSeatPose)
                     ? furnitureSeatPose
                     : new Pose(
-                        // §141: земля берётся из-под ТЕЛА, а не из отстающего
-                        // поля тайла — см. GroundTileUnder.
+                        // §141: свободное тело берёт землю под Position;
+                        // §29G/#346: граничная поза сохраняет авторский seat tile.
                         SimulationUnityMapper.ToUnityPosition(
-                            npc.Position, ActorGroundY(GroundTileUnder(npc))),
+                            npc.Position, ActorGroundY(ActorSupportTile(npc))),
                         targetRot);
             var targetPos = targetPose.Position;
 
@@ -2513,6 +2513,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (FindCorpse(snapshot, key) is { } fallen &&
                 _actorViews.TryGetValue(key, out var deadActor) && deadActor != null)
             {
+                // Bug #354: retire the live NPC impostor BEFORE SetDead takes
+                // ownership of forceRenderingOff as its pose/appearance gate.
+                // ObjectImpostor restores the renderers it hid in SetDistant;
+                // doing that after SetDead used to punch through the corpse
+                // gate and expose the intermediate standing/T-pose frame.
+                if (_npcImpostors.TryGetValue(key, out var deadImpostor) &&
+                    deadImpostor != null)
+                {
+                    deadImpostor.SetDistant(false, 0);
+                    Destroy(deadImpostor);
+                    _npcImpostors.Remove(key);
+                }
+
                 deadActor.SetLedgeSit(false);
                 deadActor.ClearGaze();
                 deadActor.ClearActionTarget();
@@ -2543,15 +2556,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 Destroy(_npcViews[key]);
                 ContentResidency.ForgetNpc(key);
-            }
-            else if (_npcImpostors.TryGetValue(key, out var deadImpostor) &&
-                deadImpostor != null)
-            {
-                // §150.4: трупы живут настоящими мешами — переехавший в реестр
-                // тел вид сдаёт свой портретный диск (с возвратом рендереров,
-                // если дальний режим был активен).
-                deadImpostor.SetDistant(false, 0);
-                Destroy(deadImpostor);
             }
 
             _npcImpostors.Remove(key);
@@ -2666,7 +2670,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         out bool controlled, out bool strangerVisible)
     {
         controlled = _anyControlledInSnapshot
-            ? _runner != null && _runner.CanControlNpc(npc.Id)
+            ? _runner != null && _runner.IsAssignedNpc(npc.Id)
             : isOurs;
         strangerVisible = controlled || TileVisibleNow(npc.Tile);
         return (_fogActive && _fogHidesNpcs && _fogHiddenNpcs.Contains(npc.Id.Value))
@@ -2732,7 +2736,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             var expected = _currNpcPoses.TryGetValue(id, out var pose)
                 ? pose.Position
                 : SimulationUnityMapper.ToUnityPosition(
-                    npc.Position, ActorGroundY(GroundTileUnder(npc)));
+                    npc.Position, ActorGroundY(ActorSupportTile(npc)));
             var actual = view.transform.position;
             var drift = Vector3.Distance(actual, expected);
             if (drift > 3f)
@@ -2919,11 +2923,41 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (_corpseActorViews.TryGetValue(key, out var actor) && actor != null)
             {
-                // баг #170: земля под телом — свойство места, где оно лежит СЕЙЧАС.
-                // Тело носят (§118.4 спасение, ручной перенос), и без этой
-                // строки оно садилось на высоту тайла, где человек умер.
-                actor.SetDeathSurfaceY(ActorGroundY(body.Tile));
                 actor.SyncWorn(body.WornItems);
+                // Bug #354: a restored corpse is still the same NPCState, not
+                // a wardrobe-only mannequin. Keep every presentation channel
+                // that described her last living frame: holstered equipment,
+                // garment wear/soil, wounds and bandages, scars, prostheses and
+                // severed limbs. The first body-condition sync is VFX-silent,
+                // so historical wounds do not spray again after reconnect.
+                actor.SyncHolster(body.HolsteredItems, string.Empty);
+
+                var decay = TryGetDeathTick(snapshot, key, out var deathTick)
+                    ? Mathf.Clamp01((snapshot.Tick - deathTick) /
+                        (float)CorpseSystem.HumanCorpseLifetimeTicks)
+                    : 0f;
+                var corpseHygiene = Mathf.Lerp(body.Hygiene, 0f, decay);
+                // Tint/material baselines must exist before the painter stamps
+                // historical wounds and soil into the skin textures.
+                actor.SetSkinWeathering(body.TanLevel, body.Sunburn, 0f,
+                    corpseHygiene);
+                if (!cullHideCorpse)
+                {
+                    var uncoveredForDecals = UI.DebugControlsPanel.HideClothing
+                        ? AllBodyZones
+                        : body.UncoveredParts;
+                    actor.SetBodyCondition(body.BodyParts, uncoveredForDecals,
+                        corpseHygiene, 0f, 0f, 0f,
+                        body.WornWetness, body.WornDirtiness, body.WornBloodiness,
+                        body.Wounds, body.BandagedZones, body.SeveredParts,
+                        body.BodyPartConditions);
+                }
+                SyncGarmentWear(actor, body.WornDurability);
+                actor.SetClothingHidden(UI.DebugControlsPanel.HideClothing);
+                actor.EnsureActorLayer();
+                actor.SetCorpseAppearanceReady(actor.IsCorpsePresentationReady(
+                    body.WornItems, body.SeveredParts, body.BodyPartConditions));
+
                 var follower = actor.GetComponent<CarriedPoseFollower>();
                 if (body.CarriedByNpcId is { } carrierNpcId)
                 {
@@ -2940,13 +2974,6 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     follower?.Unbind();
                     actor.SetCorpseCarried(false);
                 }
-
-                var decay = TryGetDeathTick(snapshot, key, out var deathTick)
-                    ? Mathf.Clamp01((snapshot.Tick - deathTick) /
-                        (float)CorpseSystem.HumanCorpseLifetimeTicks)
-                    : 0f;
-                actor.SetSkinWeathering(body.TanLevel, body.Sunburn, 0f,
-                    Mathf.Lerp(body.Hygiene, 0f, decay));
             }
         }
 
@@ -3395,18 +3422,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // props and decals spawned this tick) on the Actors layer.
         actorView.EnsureActorLayer();
         // Spec 40.10: tear worn-out garments — cutoff erosion by durability.
-        foreach (var entry in npc.WornDurability)
-        {
-            var tab = entry.IndexOf('\t');
-            if (tab > 0 && float.TryParse(
-                    entry.Substring(tab + 1),
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out var durability))
-            {
-                actorView.SetGarmentWear(entry.Substring(0, tab), durability);
-            }
-        }
+        SyncGarmentWear(actorView, npc.WornDurability);
 
         // Spec 31C.2: sleeping happens lying on the bed's attach point.
         //
@@ -3723,6 +3739,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
     {
         "Head", "Torso", "Pelvis", "ArmL", "ArmR", "LegL", "LegR"
     };
+
+    // One parser for both living actors and corpses: WornDurability is the
+    // same wire field on the same NpcSnapshot record, so presentation must not
+    // quietly diverge merely because the record moved to snapshot.Corpses.
+    private static void SyncGarmentWear(
+        NpcActorView actor, IReadOnlyList<string> wornDurability)
+    {
+        foreach (var entry in wornDurability)
+        {
+            var tab = entry.IndexOf('\t');
+            if (tab > 0 && float.TryParse(
+                    entry.Substring(tab + 1),
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var durability))
+            {
+                actor.SetGarmentWear(entry.Substring(0, tab), durability);
+            }
+        }
+    }
 
     // Spec 20.16/weapon balance: the weapon an NPC fights/hunts with — bow
     // (with arrows, ranged special-case) preferred, then the SAME melee pick
@@ -4106,6 +4142,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static bool OwnsRaisedFloorGeometry(ObjectSnapshot worldObject) =>
         worldObject.DefinitionId == ContentIds.Hut1Hex ||
         worldObject.ArchitectureOwnerObjectId.HasValue;
+
+    private TileCoord ActorSupportTile(NpcSnapshot npc) =>
+        NpcGroundSupport.Select(npc, GroundTileUnder(npc));
 
     // §40.18-B: where an ACTOR's root sits on a tile. On land that is the
     // ground; in deep water she hangs SinkDepth below the water surface; in
@@ -5046,6 +5085,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // matching the debug panel's "target: everyone" convention.
         var selectedOnly = UI.DebugControlsPanel.FogOfWarSelectedOnly &&
             Input.NpcSelection.HasSelection;
+        // §149: an assigned squad shares eyes even when a single card is selected.
+        var assignedEyes = 0;
+        foreach (var member in snapshot.Npcs)
+            if (member.Health > 0f && _runner != null && _runner.IsAssignedNpc(member.Id))
+                assignedEyes++;
+        var sharedSquad = assignedEyes > 1;
         var requestedId = selectedOnly ? Input.NpcSelection.SelectedId : -1;
         var selectedId = selectedOnly
             ? ResolveFogObserverId(snapshot, requestedId, _fogObserverNpcId)
@@ -5054,7 +5099,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         foreach (var npc in engine.World.Entities.Npcs.Values)
         {
-            var include = selectedOnly
+            var include = sharedSquad
+                ? _runner != null && _runner.IsAssignedNpc(npc.Id)
+                : selectedOnly
                 ? npc.Id.Value == selectedId
                 : npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
             if (!include)
@@ -5073,7 +5120,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // (§125.5: вид не выводит формулу повторно).
         foreach (var npc in snapshot.Npcs)
         {
-            var include = selectedOnly
+            var include = sharedSquad
+                ? npc.Health > 0f && _runner != null && _runner.IsAssignedNpc(npc.Id)
+                : selectedOnly
                 ? npc.Id.Value == selectedId
                 : !npc.IsHostileToColony;
             if (include)
@@ -5084,7 +5133,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
         // §125.5: людей прячем только от лица ВЫБРАННОЙ — «чего не видит вся
         // колония сразу» смысла не имеет, там всегда видно всех.
-        _fogHidesNpcs = selectedOnly;
+        _fogHidesNpcs = selectedOnly || sharedSquad;
         if (!_fogHidesNpcs)
         {
             return;
@@ -5100,7 +5149,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // воспроизводится). Выбор скрытой из ростера её честно откроет —
             // это взгляд игрока, а не спавн.
             var exempt = npc.Id.Value == selectedId ||
-                (_runner != null && _runner.CanControlNpc(npc.Id));
+                (_runner != null && _runner.IsAssignedNpc(npc.Id));
             if (!exempt && !FogSeesTile(npc.Tile))
             {
                 _fogHiddenNpcs.Add(npc.Id.Value);
@@ -5131,7 +5180,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 continue;
             }
 
-            var controllable = _runner != null && _runner.CanControlNpc(npc.Id);
+            var controllable = _runner != null && _runner.IsAssignedNpc(npc.Id);
             var colony = npc.Faction == HexLive.Simulation.Agents.Faction.Colony;
             if (!controllable && !colony)
             {
@@ -5318,7 +5367,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _anyControlledInSnapshot = false;
         foreach (var npc in snapshot.Npcs)
         {
-            if (npc.Health > 0f && _runner != null && _runner.CanControlNpc(npc.Id))
+            if (npc.Health > 0f && _runner != null && _runner.IsAssignedNpc(npc.Id))
             {
                 _anyControlledInSnapshot = true;
                 break;
@@ -5331,7 +5380,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // девушка; локально CanControlNpc покрывает колонию). Мёртвые глаз
             // не дают.
             var eye = _anyControlledInSnapshot
-                ? _runner != null && _runner.CanControlNpc(npc.Id)
+                ? _runner != null && _runner.IsAssignedNpc(npc.Id)
                 : IsPlayerOwned(npc);
             if (eye && npc.Health > 0f)
             {
@@ -5911,7 +5960,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // буквальная Colony (фолбэк PlayerCampView для локальной игры и
         // анонимного зрителя — та же Colony).
         npc.Faction == PlayerCampView.Of(_runner, _lastSnapshot) ||
-        (_runner != null && _runner.CanControlNpc(npc.Id));
+        (_runner != null && _runner.IsAssignedNpc(npc.Id));
 
     private bool FogSeesTile(TileCoord tile)
     {
@@ -6208,6 +6257,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
             ContentPrefabCache.Request("actor", npc.ActorMesh, out _) ==
             ContentPrefabCache.Availability.Ready;
 
+        if (!string.IsNullOrEmpty(npc.SkinSet) &&
+            ContentPrefabCache.Request("actor", npc.SkinSet, out _) !=
+            ContentPrefabCache.Availability.Ready)
+            ready = false;
+
         if (!Wearing.HairContent.IsCached(npc.Hairstyle))
         {
             Wearing.HairContent.Prewarm(npc.Hairstyle);
@@ -6233,6 +6287,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private GameObject CreateNpcView(NpcSnapshot npc)
     {
+        // §74: both live and restored-corpse paths must have the material donor
+        // before Construct snapshots material targets for the skin painter.
+        if (!string.IsNullOrEmpty(npc.SkinSet) &&
+            ContentPrefabCache.Request("actor", npc.SkinSet, out _) !=
+            ContentPrefabCache.Availability.Ready)
+            return null;
+
         // Spec 31B.5/§152: the girls get their exact actor payload; a pending or
         // missing actor never turns into a permanent primitive body.
         if (!string.IsNullOrEmpty(npc.ActorMesh))
@@ -6256,7 +6317,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // seed and saved them, so a reload rebuilds the same woman.
                 // §85: and her eyes, on an axis of their own.
                 view.Construct(npc.ActorMesh, npc.Id.Value,
-                    npc.SkinSet, npc.EyeColor, npc.Hairstyle, npc.VoiceBank);
+                    npc.SkinSet, npc.EyeColor, npc.Hairstyle, npc.VoiceBank,
+                    npc.UseAuthoredAppearance, npc.HairColour);
                 _actorViews[npc.Id.Value] = view;
                 _lastTalkResultTick[npc.Id.Value] = npc.TalkResultTick;
                 _lastSocialCueKey[npc.Id.Value] =
@@ -6867,11 +6929,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private static float Hash01(uint value) =>
         (value & 0x00FFFFFFu) / 16777215f;
 
-    // A lying body flattens the grass under it: the tile's tuft clump hides
-    // while someone sleeps/faints/lies dead there and pops back after. Cost is
-    // O(lying bodies) per tick — only the affected tiles ever toggle.
+    // Bug #342: grass hides only for sleep directly on the ground. Other prone
+    // poses (crawl, faint, cry, corpse) keep the vegetation visible.
     private readonly Dictionary<TileCoord, GameObject> _grassByTile = new();
-    private readonly HashSet<TileCoord> _lyingTiles = new();
+    private readonly HashSet<TileCoord> _groundSleepTiles = new();
     private readonly HashSet<TileCoord> _floorTiles = new();
 
     // §120: hexes that already carry at least ONE raised floor sector of a
@@ -6962,36 +7023,30 @@ public sealed class HexWorldRenderer : MonoBehaviour
         npc.PostureHint == "Crawl" ||
         (npc.CurrentInteraction == "Sleep" && npc.ExecutionStatus == "InProgress");
 
+    // Bug #342: grass suppression is a narrower presentation policy than the
+    // shared lying-pose union above. A bed sleep carries its exact bed object;
+    // only an in-progress Sleep with no object target is sleep on the ground.
+    internal static bool ShouldHideGrassForGroundSleep(NpcSnapshot npc) =>
+        npc.CurrentInteraction == "Sleep" &&
+        npc.ExecutionStatus == "InProgress" &&
+        npc.TargetObjectId is null;
+
     private void UpdateGrassFlattening(WorldSnapshot snapshot)
     {
-        _lyingTiles.Clear();
+        _groundSleepTiles.Clear();
         foreach (var npc in snapshot.Npcs)
         {
-            // Баг #125: несомая на руках НЕ приминает траву. Её несут именно
-            // потому, что она в обмороке или коме, так что IsLyingDown для неё
-            // истинно, а Tile у неё — тайл носильщика. Без этой проверки за
-            // парой тянулся след гаснущей травы по всему маршруту, хотя тело
-            // ни одного из этих гексов не касалось.
-            if (IsLyingDown(npc) && npc.CarriedByNpcId is null)
+            if (ShouldHideGrassForGroundSleep(npc))
             {
-                _lyingTiles.Add(npc.Tile);
+                _groundSleepTiles.Add(npc.Tile);
             }
         }
 
-        foreach (var obj in snapshot.Objects)
-        {
-            if (obj.DefinitionId == ContentIds.CorpseNpc ||
-                obj.DefinitionId == ContentIds.HumanRemains)
-            {
-                _lyingTiles.Add(obj.Tile);
-            }
-        }
-
-        // Re-grow where nobody lies anymore.
+        // Re-grow when the ground sleeper wakes or moves into a bed.
         _grassToggleScratch.Clear();
         foreach (var coord in _hiddenGrassTiles)
         {
-            if (!_lyingTiles.Contains(coord) && !_floorTiles.Contains(coord) &&
+            if (!_groundSleepTiles.Contains(coord) && !_floorTiles.Contains(coord) &&
                 !_architectureFloorTiles.Contains(coord))
             {
                 _grassToggleScratch.Add(coord);
@@ -7007,8 +7062,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        // Flatten under the newly lying.
-        HideGrassOn(_lyingTiles);
+        // Flatten under a newly sleeping ground body.
+        HideGrassOn(_groundSleepTiles);
 
         // An architectural floor covers the terrain tuft: the simulation's own
         // floored tiles (a finished hut), and — §120 — any hex where a single

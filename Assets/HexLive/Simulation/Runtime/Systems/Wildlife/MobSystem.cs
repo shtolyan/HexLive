@@ -22,6 +22,8 @@ public sealed class MobSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Medium;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     private static int MaxDogs => WildlifeBalance.MaxDogs; // §46 difficulty pass: 2 -> 3 (12/12 wins at 2 — armed girls out-fought the pair)
     private static int RespawnCheckTicks => WildlifeBalance.DogRespawnCheckTicks; // §46: every 7200 ticks / 30 real minutes — sustained pack pressure, not one skirmish per arc
 
@@ -1081,18 +1083,35 @@ public sealed class MobSystem : ISimulationSystem
 
         var currentToCamp = HexSpatialMath.HexDistance(npc.Tile, camp);
         var candidates = new System.Collections.Generic.List<Junction>();
-        foreach (var junction in world.Junctions.Items.Values)
+        // §158.4: кандидаты сортируются по близости к ЛАГЕРЮ, и пробуются
+        // первые FleePathSearchBudget — то есть узлы ближайших к лагерю колец.
+        // Кольца открываются от лагеря наружу, пока кандидатов не наберётся на
+        // бюджет; узел с Tiles[0] на дистанции k лежит в кольце k, так что
+        // сортировка первых FleePathSearchBudget совпадает с полным обходом.
+        var seen = world.Caches.LocalSearchSeenScratch;
+        seen.Clear();
+        var ringScratch = world.Caches.LocalSearchRingScratch;
+        for (var k = 0; k < currentToCamp && k <= FleeCampSearchMaxRadiusTiles; k++)
         {
-            if (junction.Blocked || junction.Tiles.Count == 0 ||
-                !SpatialQueries.IsJunctionFree(world, junction.Id))
+            if (candidates.Count >= FleePathSearchBudget)
             {
-                continue;
+                break;
             }
 
-            var toCamp = HexSpatialMath.HexDistance(junction.Tiles[0], camp);
-            if (toCamp < currentToCamp)
+            LocalSearch.CollectRing(world, camp, k, ringScratch, seen);
+            foreach (var junction in ringScratch)
             {
-                candidates.Add(junction);
+                if (junction.Blocked || junction.Tiles.Count == 0 ||
+                    !SpatialQueries.IsJunctionFree(world, junction.Id))
+                {
+                    continue;
+                }
+
+                var toCamp = HexSpatialMath.HexDistance(junction.Tiles[0], camp);
+                if (toCamp < currentToCamp)
+                {
+                    candidates.Add(junction);
+                }
             }
         }
 
@@ -1186,20 +1205,49 @@ public sealed class MobSystem : ISimulationSystem
         }
 
         var candidates = new System.Collections.Generic.List<Junction>();
-        foreach (var junction in world.Junctions.Items.Values)
+        // §158.4: укрытие ищется кольцами от неё, а не по всему графу: кольца
+        // открываются, пока не набрано FleePathSearchBudget кандидатов и
+        // следующее кольцо не может дать никого ближе худшего из набранных.
+        // Дальше FleeIndoorSearchMaxRadiusTiles укрытие не считается своим.
+        var seen = world.Caches.LocalSearchSeenScratch;
+        seen.Clear();
+        var ringScratch = world.Caches.LocalSearchRingScratch;
+        var worstKept = float.MaxValue;
+        for (var k = 0; k <= FleeIndoorSearchMaxRadiusTiles; k++)
         {
-            // Jul 2026: the refuge must be FREE — three girls fleeing the same
-            // raid all targeted the same interior junction; the second one's
-            // route came up Blocked, the flee aborted, and she stood re-fleeing
-            // (681→668→667→…) while the dog chewed her down (seed 12345 d0.8).
-            if (junction.Blocked || junction.Tiles.Count == 0 ||
-                !IsIndoorTile(world, junction.Tiles[0]) ||
-                !SpatialQueries.IsJunctionFree(world, junction.Id))
+            if (candidates.Count >= FleePathSearchBudget && LocalSearch.RingLowerBound(k) > worstKept)
             {
-                continue;
+                break;
             }
 
-            candidates.Add(junction);
+            LocalSearch.CollectRing(world, npc.Tile, k, ringScratch, seen);
+            foreach (var junction in ringScratch)
+            {
+                // Jul 2026: the refuge must be FREE — three girls fleeing the same
+                // raid all targeted the same interior junction; the second one's
+                // route came up Blocked, the flee aborted, and she stood re-fleeing
+                // (681→668→667→…) while the dog chewed her down (seed 12345 d0.8).
+                if (junction.Blocked || junction.Tiles.Count == 0 ||
+                    !IsIndoorTile(world, junction.Tiles[0]) ||
+                    !SpatialQueries.IsJunctionFree(world, junction.Id))
+                {
+                    continue;
+                }
+
+                candidates.Add(junction);
+            }
+
+            if (candidates.Count >= FleePathSearchBudget)
+            {
+                candidates.Sort((a, b) =>
+                {
+                    var byDistance = HexSpatialMath.Distance(npc.Position, a.WorldPosition).CompareTo(
+                        HexSpatialMath.Distance(npc.Position, b.WorldPosition));
+                    return byDistance != 0 ? byDistance : a.Id.Value.CompareTo(b.Id.Value);
+                });
+                worstKept = HexSpatialMath.Distance(
+                    npc.Position, candidates[FleePathSearchBudget - 1].WorldPosition);
+            }
         }
 
         candidates.Sort((a, b) =>
@@ -1268,6 +1316,12 @@ public sealed class MobSystem : ISimulationSystem
     // та же болезнь, что бюджет TryFindDestination у переноски §118).
     // После бюджета — тот же честный MarkFleeUnavailable, но за миллисекунды.
     private const int FleePathSearchBudget = 24;
+
+    // §158.4: пределы локального поиска укрытия. Бегство домой открывает кольца
+    // от лагеря (первые кандидаты — у самого лагеря, глубже бюджета не
+    // пробуются); бегство в дом — кольца от неё самой.
+    private const int FleeCampSearchMaxRadiusTiles = 40;
+    private const int FleeIndoorSearchMaxRadiusTiles = 48;
 
     // §135.5: потолок развёрнутых узлов на ОДИН поиск маршрута погони. Жертва
     // стоит максимум в агр+3 гексах, то есть штатный маршрут укладывается в
@@ -1547,20 +1601,48 @@ public sealed class MobSystem : ISimulationSystem
             return cache;
         }
 
-        cache.Clear();
-        foreach (var junction in world.Junctions.Items.Values)
+        // §158.5: догон по журналу — пересматриваются только изменившиеся
+        // узлы (дверь появилась/исчезла); Indoor-флаги тайлов меняются вместе с
+        // InvalidateAll, и тогда набор строится заново.
+        var builtVersion = world.Caches.MobForbiddenBuiltVersion;
+        var cursor = world.Caches.MobForbiddenJournalCursor;
+        var changed = world.Caches.TopologyChangedScratch;
+        var full = WorldTopology.CatchUp(world, ref builtVersion, ref cursor, changed);
+        if (full)
         {
-            if (junction.Door ||
-                IsIndoorJunction(world, junction.Id) ||
-                SpatialQueries.IsAllWaterJunction(world, junction.Id))
+            cache.Clear();
+            foreach (var junction in world.Junctions.Items.Values)
             {
-                cache.Add(junction.Id);
+                if (IsMobForbidden(world, junction))
+                {
+                    cache.Add(junction.Id);
+                }
+            }
+        }
+        else
+        {
+            foreach (var id in changed)
+            {
+                if (world.Junctions.Items.TryGetValue(id, out var junction) && IsMobForbidden(world, junction))
+                {
+                    cache.Add(id);
+                }
+                else
+                {
+                    cache.Remove(id);
+                }
             }
         }
 
-        world.Caches.MobForbiddenBuiltVersion = world.TopologyVersion;
+        world.Caches.MobForbiddenBuiltVersion = builtVersion;
+        world.Caches.MobForbiddenJournalCursor = cursor;
         return cache;
     }
+
+    private static bool IsMobForbidden(WorldState world, Junction junction) =>
+        junction.Door ||
+        IsIndoorJunction(world, junction.Id) ||
+        SpatialQueries.IsAllWaterJunction(world, junction.Id);
 
     private static void ChaseStep(WorldState world, Wildlife.MobState dog, NPCState target)
     {

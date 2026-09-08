@@ -18,7 +18,7 @@ namespace HexLive.UnityPresentation.Wearing
     /// the mesh → slot + wrapped UV (always on a UV island).
     /// Everything is event-driven on state buckets — no per-frame work.
     /// </summary>
-    public sealed class GarmentWearPainter : MonoBehaviour, IPaintTarget
+    public sealed class GarmentWearPainter : MonoBehaviour, IPresentationPaintTarget
     {
         private const int MaskSize = 512;
         private const float TearBucket = 0.05f;
@@ -88,7 +88,7 @@ namespace HexLive.UnityPresentation.Wearing
         private int _naturalHolesPlaced;
         private int _lastObservedDirtTarget;
         private int _lastObservedBloodBucket;
-        private int _lastBloodInputHash;
+        private int _lastBloodInputHash = int.MinValue;
         private int _lastStateHash;
         // Spec 40.8-G: editor-baked per-zone anchor points — blood soak
         // placement without BakeMesh/triangle scans (the legacy world-space
@@ -96,10 +96,18 @@ namespace HexLive.UnityPresentation.Wearing
         // hash miss: the top combat CPU cost after the skin painter).
         private PaintPointMap? _map;
         private bool _mapWarned;
+        private string _mapKey = string.Empty;
+        private int _mapVertexCount;
+        private bool _bloodMapPending;
+        private float _pendingBlood;
+        private string[] _pendingDamageZones = System.Array.Empty<string>();
+        private float[] _pendingDamageStrengths = System.Array.Empty<float>();
+        private int _pendingDamageZoneCount;
 
         // Spec 40.8-G repaint coalescing — see SkinTexturePainter: state
         // changes mark dirty, LateUpdate composites at most once per interval.
         private bool _repaintDirty;
+        private bool _paintFailed;
         private float _lastRepaintTime;
         // Spec 40.8-K: a garment painter is CHEAP (dirt/blood/tears through
         // the plain point map — garments never got the seam-free projection),
@@ -139,8 +147,9 @@ namespace HexLive.UnityPresentation.Wearing
             if (renderer.sharedMesh != null)
             {
                 var mesh = renderer.sharedMesh;
-                _map = PaintPointMap.Load($"garment_{mesh.name}_{mesh.vertexCount}",
-                    mesh.vertexCount);
+                _mapKey = $"garment_{mesh.name}_{mesh.vertexCount}";
+                _mapVertexCount = mesh.vertexCount;
+                _ = PaintPointMap.Request(_mapKey, _mapVertexCount, out _map);
             }
         }
 
@@ -336,6 +345,32 @@ namespace HexLive.UnityPresentation.Wearing
         /// dirt and tears creep, they never pop.</summary>
         public bool WantsFreshPass => false;
 
+        /// <summary>The corpse gate may reveal this garment only after its
+        /// requested dirt, blood and tear composite has been painted.</summary>
+        public bool PresentationReady => !_repaintDirty && !_bloodMapPending && !_paintFailed;
+
+        public bool TryPaintPresentation()
+        {
+            if (_bloodMapPending)
+            {
+                var changed = AccumulateBloodStains(
+                    _pendingBlood, _pendingDamageZones, _pendingDamageStrengths,
+                    _pendingDamageZoneCount);
+                if (changed)
+                {
+                    RequestRepaint();
+                }
+
+                if (_bloodMapPending)
+                {
+                    return false;
+                }
+            }
+
+            PaintCycle();
+            return PresentationReady;
+        }
+
         public void PaintFresh()
         {
         }
@@ -349,10 +384,27 @@ namespace HexLive.UnityPresentation.Wearing
             }
 
             _repaintDirty = false;
+            _paintFailed = false;
             _lastRepaintTime = Time.unscaledTime;
             enabled = false;
-            RepaintMasks();
-            RepaintAlbedo();
+            try
+            {
+                RepaintMasks();
+                RepaintAlbedo();
+            }
+            catch (System.Exception e)
+            {
+                _paintFailed = true;
+                Debug.LogWarning($"[GarmentWear] composite repaint failed — {e.Message}", this);
+            }
+
+            if (_paintFailed)
+            {
+                // A failed GPU composite is not an acknowledgement. Keep the
+                // actor gated and let the bounded scheduler retry next frame.
+                _repaintDirty = true;
+                enabled = true;
+            }
         }
 
         public void SetDroppedState(float tear01, float dirt01, float blood01)
@@ -525,15 +577,32 @@ namespace HexLive.UnityPresentation.Wearing
                 inputHash = inputHash * 31 + Mathf.RoundToInt(strengths![i] * 10f);
             }
 
-            if (blood <= 0.05f || count == 0 || inputHash == _lastBloodInputHash)
+            if (blood <= 0.05f || inputHash == _lastBloodInputHash)
             {
                 _lastBloodInputHash = inputHash;
+                _bloodMapPending = false;
+                _pendingDamageZoneCount = 0;
                 return false;
             }
 
-            _lastBloodInputHash = inputHash;
             if (_map == null)
             {
+                var availability = string.IsNullOrEmpty(_mapKey)
+                    ? HexLive.UnityPresentation.Content.AtomicResources.Availability.Missing
+                    : PaintPointMap.Request(_mapKey, _mapVertexCount, out _map);
+                if (availability ==
+                    HexLive.UnityPresentation.Content.AtomicResources.Availability.Loading)
+                {
+                    RememberPendingBlood(blood, zones, strengths, count);
+                    _bloodMapPending = true;
+                    return false;
+                }
+
+                _bloodMapPending = false;
+                _pendingDamageZoneCount = 0;
+                // Missing/stale/failed map is an explicit terminal art-less
+                // state. Acknowledge only now, never on the async first miss.
+                _lastBloodInputHash = inputHash;
                 if (!_mapWarned)
                 {
                     _mapWarned = true;
@@ -543,6 +612,20 @@ namespace HexLive.UnityPresentation.Wearing
                 }
 
                 return false;
+            }
+
+            _bloodMapPending = false;
+            _pendingDamageZoneCount = 0;
+            if (count == 0)
+            {
+                // WornBloodiness is persistent item state while the hurt-zone
+                // list describes only CURRENT body damage. A healed/starved
+                // corpse can therefore restore bloody clothing with no zones.
+                // Rebuild a stable aggregate pattern from the garment map so
+                // load/stream does not reveal an authored-clean replacement.
+                var aggregateChanged = AccumulateAggregateBlood(blood);
+                _lastBloodInputHash = inputHash;
+                return aggregateChanged;
             }
 
             var changed = false;
@@ -560,64 +643,138 @@ namespace HexLive.UnityPresentation.Wearing
                     continue; // this garment does not cover the hurt zone
                 }
 
-                var anchor = points[0];
-                var slot = anchor.Slot;
+                changed |= AccumulateBloodAtAnchor(points[0], strength);
+            }
 
-                // Garment maps carry ONE anchor per zone — every input event
-                // grows a NEW blot jittered around it (golden-angle spiral),
-                // so repeated wounds read as spreading soak instead of
-                // re-inking one invisible dot. Existing blots re-ink to the
-                // fresh strength when it climbs.
-                var blotIndex = 0;
-                foreach (var s in _bloodStains)
+            // Commit the input only after its map-backed stains have been
+            // materialized. This keeps an async first miss retryable.
+            _lastBloodInputHash = inputHash;
+            return changed;
+        }
+
+        private bool AccumulateAggregateBlood(float blood)
+        {
+            if (_map == null)
+            {
+                return false;
+            }
+
+            var validZoneCount = 0;
+            foreach (var zone in _map.Zones)
+            {
+                if (zone.Points.Length > 0 && zone.Points[0].Valid)
                 {
-                    if (s.Slot == slot && (s.Uv - anchor.Uv).sqrMagnitude < 0.05f)
+                    validZoneCount++;
+                }
+            }
+
+            if (validZoneCount == 0)
+            {
+                return false;
+            }
+
+            var target = Mathf.Min(8,
+                Mathf.Max(1, Mathf.FloorToInt(Mathf.Clamp01(blood) * 8f + 0.0001f)));
+            var changed = false;
+            for (var i = 0; i < target; i++)
+            {
+                // Stable garment identity rotates the aggregate pattern while
+                // the map's authored zone order makes it reproducible after
+                // every load and stream-in.
+                var selected = (int)(((uint)_seed * 2654435761u +
+                                      (uint)i * 2246822519u) % (uint)validZoneCount);
+                var seen = 0;
+                foreach (var zone in _map.Zones)
+                {
+                    if (zone.Points.Length == 0 || !zone.Points[0].Valid)
                     {
-                        blotIndex++;
+                        continue;
                     }
-                }
 
-                if (blotIndex >= MaxBloodBlotsPerZone)
-                {
-                    foreach (var s in _bloodStains)
+                    if (seen++ != selected)
                     {
-                        if (s.Slot == slot && (s.Uv - anchor.Uv).sqrMagnitude < 0.05f &&
-                            strength * 0.8f > s.Alpha + 0.01f)
-                        {
-                            s.Alpha = strength * 0.8f;
-                            changed = true;
-                        }
+                        continue;
                     }
 
-                    continue;
+                    changed |= AccumulateBloodAtAnchor(zone.Points[0], blood);
+                    break;
                 }
-
-                var angle = blotIndex * 2.3999632f; // golden angle
-                var radius = blotIndex == 0 ? 0f : 0.03f + 0.02f * blotIndex;
-                var uv = anchor.Uv + new Vector2(
-                    Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius);
-                var cellKey = slot * 100000 + blotIndex * 10000 +
-                              Mathf.FloorToInt(Mathf.Repeat(uv.x, 1f) * 10f) * 100 +
-                              Mathf.FloorToInt(Mathf.Repeat(uv.y, 1f) * 10f);
-                if (_bloodStainsByCell.ContainsKey(cellKey))
-                {
-                    continue;
-                }
-
-                var stain = new PaintStain
-                {
-                    Slot = slot,
-                    Uv = uv,
-                    Size = Mathf.Lerp(0.12f, 0.2f, strength),
-                    Alpha = strength * 0.8f,
-                    Variant = BloodVariantOf(cellKey)
-                };
-                _bloodStains.Add(stain);
-                _bloodStainsByCell[cellKey] = stain;
-                changed = true;
             }
 
             return changed;
+        }
+
+        private bool AccumulateBloodAtAnchor(PaintPointMap.Point anchor, float strength)
+        {
+            var slot = anchor.Slot;
+
+            // Garment maps carry ONE anchor per zone — every input event grows
+            // a NEW blot jittered around it (golden-angle spiral), so repeated
+            // wounds read as spreading soak instead of re-inking one dot.
+            var blotIndex = 0;
+            foreach (var stain in _bloodStains)
+            {
+                if (stain.Slot == slot && (stain.Uv - anchor.Uv).sqrMagnitude < 0.05f)
+                {
+                    blotIndex++;
+                }
+            }
+
+            if (blotIndex >= MaxBloodBlotsPerZone)
+            {
+                var changed = false;
+                foreach (var stain in _bloodStains)
+                {
+                    if (stain.Slot == slot &&
+                        (stain.Uv - anchor.Uv).sqrMagnitude < 0.05f &&
+                        strength * 0.8f > stain.Alpha + 0.01f)
+                    {
+                        stain.Alpha = strength * 0.8f;
+                        changed = true;
+                    }
+                }
+
+                return changed;
+            }
+
+            var angle = blotIndex * 2.3999632f; // golden angle
+            var radius = blotIndex == 0 ? 0f : 0.03f + 0.02f * blotIndex;
+            var uv = anchor.Uv + new Vector2(
+                Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius);
+            var cellKey = slot * 100000 + blotIndex * 10000 +
+                          Mathf.FloorToInt(Mathf.Repeat(uv.x, 1f) * 10f) * 100 +
+                          Mathf.FloorToInt(Mathf.Repeat(uv.y, 1f) * 10f);
+            if (_bloodStainsByCell.ContainsKey(cellKey))
+            {
+                return false;
+            }
+
+            var created = new PaintStain
+            {
+                Slot = slot,
+                Uv = uv,
+                Size = Mathf.Lerp(0.12f, 0.2f, strength),
+                Alpha = strength * 0.8f,
+                Variant = BloodVariantOf(cellKey)
+            };
+            _bloodStains.Add(created);
+            _bloodStainsByCell[cellKey] = created;
+            return true;
+        }
+
+        private void RememberPendingBlood(
+            float blood, string[] zones, float[] strengths, int count)
+        {
+            if (_pendingDamageZones.Length < count)
+            {
+                _pendingDamageZones = new string[count];
+                _pendingDamageStrengths = new float[count];
+            }
+
+            System.Array.Copy(zones, _pendingDamageZones, count);
+            System.Array.Copy(strengths, _pendingDamageStrengths, count);
+            _pendingBlood = blood;
+            _pendingDamageZoneCount = count;
         }
 
         // ---- placement (seeded triangles on the garment mesh) ----
@@ -830,6 +987,7 @@ namespace HexLive.UnityPresentation.Wearing
                 catch (System.Exception e)
                 {
                     RenderTexture.active = previous;
+                    _paintFailed = true;
                     Debug.LogWarning($"[GarmentWear] mask repaint failed — {e.Message}");
                 }
             }
@@ -985,6 +1143,7 @@ namespace HexLive.UnityPresentation.Wearing
                 catch (System.Exception e)
                 {
                     RenderTexture.active = previous;
+                    _paintFailed = true;
                     _materials[slot].SetTexture("_BaseMap", source);
                     if (source == null)
                     {

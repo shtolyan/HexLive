@@ -13,16 +13,27 @@ public static class BugAdminEndpoints
 
     public static void Map(WebApplication app, BugDatabase bugs, AdminSessions sessions)
     {
+        // §114.3B: the same URLs answer two ways. A browser navigation gets a
+        // whole page; the panel script (X-Requested-With: fetch) gets only the
+        // fragment it swaps in, so the list underneath keeps its scroll.
         app.MapGet("/admin/bugs", (HttpContext c) =>
-            SignedIn(c,sessions)
-                ? Html(BugAdminPages.List(bugs.List(), c.Request.Query["status"].ToString(), c.Request.Query["q"].ToString(), c.Request.Query["notice"].ToString(), Page(c)))
-                : Results.Redirect("/admin"));
+        {
+            if (!SignedIn(c,sessions)) return Results.Redirect("/admin");
+            var status=c.Request.Query["status"].ToString(); var query=c.Request.Query["q"].ToString();
+            return Html(Partial(c)
+                ? BugAdminPages.ListFragment(bugs.List(),status,query,Page(c))
+                : BugAdminPages.List(bugs.List(),status,query,c.Request.Query["notice"].ToString(),Page(c)));
+        });
 
         app.MapGet("/admin/bugs/{id:int}", (HttpContext c, int id) =>
         {
             if (!SignedIn(c,sessions)) return Results.Redirect("/admin");
             var report=bugs.Get(id);
-            return report==null ? Results.NotFound() : Html(BugAdminPages.Detail(report,c.Request.Query["notice"].ToString()));
+            if (report==null) return Partial(c) ? Results.NotFound() : RedirectWithNotice("/admin/bugs",$"Отчёт #{id} не найден");
+            var notice=c.Request.Query["notice"].ToString();
+            return Html(Partial(c)
+                ? BugAdminPages.Detail(report,Patches(bugs,report),notice)
+                : BugAdminPages.List(bugs.List(),string.Empty,string.Empty,notice,1,report,Patches(bugs,report)));
         });
 
         app.MapPost("/admin/bugs/create", async (HttpContext c) =>
@@ -47,9 +58,9 @@ public static class BugAdminEndpoints
             try
             {
                 bugs.Update(id,new UpdateBugRequest { Text=f["text"].ToString(), Status=status, AssignedAgent=f["assignedAgent"].ToString(), AgentHandoff=f["agentHandoff"].ToString(), Archived=f.ContainsKey("archived") });
-                return RedirectWithNotice($"/admin/bugs/{id}", "Сохранено");
+                return Answer(c,bugs,id,"Сохранено");
             }
-            catch(InvalidDataException e) { return RedirectWithNotice($"/admin/bugs/{id}", e.Message); }
+            catch(InvalidDataException e) { return Answer(c,bugs,id,e.Message); }
         });
 
         app.MapPost("/admin/bugs/{id:int}/comment", async (HttpContext c,int id) =>
@@ -58,7 +69,7 @@ public static class BugAdminEndpoints
             var f=await c.Request.ReadFormAsync();
             try { bugs.AddComment(id,new AddBugCommentRequest { Author="user",Text=f["text"].ToString() }); }
             catch(InvalidDataException) { }
-            return Results.Redirect($"/admin/bugs/{id}");
+            return Answer(c,bugs,id,string.Empty);
         });
 
         app.MapPost("/admin/bugs/{id:int}/repeat", async (HttpContext c,int id) =>
@@ -68,16 +79,31 @@ public static class BugAdminEndpoints
             bugs.Update(id,new UpdateBugRequest { Status=BugStatuses.Rework, Archived=false, ReadyForTestInVersion=string.Empty, FixedInVersion=string.Empty });
             var text=f["text"].ToString().Trim();
             if(text.Length>0) bugs.AddComment(id,new AddBugCommentRequest { Author="user",Text=text });
-            return RedirectWithNotice($"/admin/bugs/{id}", "Возвращено на доработку");
+            return Answer(c,bugs,id,"Возвращено на доработку");
         });
 
         app.MapPost("/admin/bugs/{id:int}/delete", (HttpContext c,int id) =>
         {
             if (!SignedIn(c,sessions)) return Results.Redirect("/admin");
             bugs.Delete(id);
-            return RedirectWithNotice("/admin/bugs", "Удалено");
+            return Partial(c) ? Html(BugAdminPages.Deleted("Удалено")) : RedirectWithNotice("/admin/bugs", "Удалено");
         });
     }
+
+    /// <summary>After a panel form: the re-rendered fragment; after a plain form: PRG as before.</summary>
+    private static IResult Answer(HttpContext c,BugDatabase bugs,int id,string notice)
+    {
+        if (!Partial(c)) return notice.Length==0 ? Results.Redirect($"/admin/bugs/{id}") : RedirectWithNotice($"/admin/bugs/{id}",notice);
+        var report=bugs.Get(id);
+        return report==null ? Html(BugAdminPages.Deleted($"Отчёт #{id} уже удалён")) : Html(BugAdminPages.Detail(report,Patches(bugs,report),notice));
+    }
+
+    private static System.Collections.Generic.IReadOnlyDictionary<string,BugCommitPatch> Patches(BugDatabase bugs,BugReport report) =>
+        bugs.GetCommitPatches(report.FixCommits.Count>0 ? report.FixCommits : new[]{report.FixCommit});
+
+    internal static bool Partial(HttpContext c) =>
+        string.Equals(c.Request.Headers["X-Requested-With"].ToString(),"fetch",StringComparison.OrdinalIgnoreCase) ||
+        c.Request.Query["partial"].ToString()=="1";
 
     internal static IResult RedirectWithNotice(string path,string notice) =>
         Results.Redirect(path+"?notice="+Uri.EscapeDataString(notice));

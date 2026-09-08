@@ -153,6 +153,7 @@ public static class ScenePrewarm
         foreach (var npc in npcs)
         {
             WarmOwnerMain("actor", npc.ActorMesh);
+            WarmOwnerMain("actor", npc.SkinSet);
             HairContent.Prewarm(npc.Hairstyle);
             WarmActorPaintMaps(npc.ActorMesh);
 
@@ -327,6 +328,7 @@ public static class ScenePrewarm
         foreach (var npc in world.Entities.Npcs.Values)
         {
             Add("actor", npc.ActorMesh);
+            Add("actor", npc.SkinSet);
             Add("hair", npc.Hairstyle);
             foreach (var garment in npc.WornItems)
             {
@@ -350,6 +352,7 @@ public static class ScenePrewarm
         foreach (var corpse in world.Entities.Corpses.Values)
         {
             Add("actor", corpse.ActorMesh);
+            Add("actor", corpse.SkinSet);
             Add("hair", corpse.Hairstyle);
             foreach (var garment in corpse.WornItems)
             {
@@ -454,6 +457,7 @@ public static class ScenePrewarm
             {
                 actors.Add(npc.ActorMesh);
             }
+            if (!string.IsNullOrEmpty(npc.SkinSet)) actors.Add(npc.SkinSet);
         }
 
         foreach (var corpse in world.Entities.Corpses.Values)
@@ -462,6 +466,7 @@ public static class ScenePrewarm
             {
                 actors.Add(corpse.ActorMesh);
             }
+            if (!string.IsNullOrEmpty(corpse.SkinSet)) actors.Add(corpse.SkinSet);
         }
 
         foreach (var actor in actors)

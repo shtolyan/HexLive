@@ -24,6 +24,13 @@ public sealed class DreamSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    // §156: НЕ PerChunk, хотя объекты обходит. Проход ниже — колониальная
+    // ПЕРЕПИСЬ (кто владеет кроватью, чья одежда осиротела), а не часы на
+    // объекте: пропустив кровать в спящем чанке, колония решила бы, что спать
+    // не на чем, и мечта о кровати вернулась бы в очередь у той, у кого кровать
+    // есть. Цена та же, что у world.TagCensus, и вынесена в долги §156.8.
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.Global;
+
     public void Run(WorldState world)
     {
         if (!SpecDream.Enabled)

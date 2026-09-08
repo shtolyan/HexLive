@@ -18,6 +18,8 @@ public sealed class MovementSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Fast;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     // §21.21B hex-step hop: all timing lives in HexHopTuning — one number
     // drives the sim traversal AND the presentation's clip speed and arc.
 

@@ -16,8 +16,8 @@ namespace HexLive.UnityPresentation.Input
     ///   • Free: the pivot is a loose point magnetised to the hex ground;
     ///     WASD and the arrow keys slide it, while right-drag/two-finger
     ///     horizontal swipe rotate and scroll zooms.
-    ///   • Orbit: click an NPC and the camera focuses on them and follows at
-    ///     once; smoothing delays the catch-up but never changes its target.
+    ///   • Orbit: a repeat click on the already selected NPC focuses on them
+    ///     and follows; smoothing delays the catch-up but never changes its target.
     ///     One Escape (or any pan key) releases it where it settled — the
     ///     angle, distance and framing stay put instead of snapping back to a
     ///     top-down view. A second Escape clears the selection.
@@ -311,18 +311,15 @@ namespace HexLive.UnityPresentation.Input
             _worldRenderer?.SetOverviewImpostorsActive(false);
         }
 
-        // §123: selection no longer implies follow. Losing every selected actor
-        // detaches; changing a non-empty set leaves the current camera mode in
-        // place and the explicit CameraRequested event decides frame/follow.
+        // §123 / bug #348: every real selection change is camera-neutral.
+        // If the old subject was followed, detach at the exact current pivot;
+        // an explicit Frame emitted after SelectionChanged may still reframe.
         private void OnSelectionChanged(System.Collections.Generic.IReadOnlyList<int> selection)
         {
-            if (!NpcSelection.HasSelection && _mode == Mode.Orbit)
+            _pendingFrameSelection = false;
+            if (_mode == Mode.Orbit)
             {
                 ExitOrbit();
-            }
-            else if (_mode == Mode.Orbit)
-            {
-                _hasSmoothedTarget = false;
             }
         }
 
@@ -335,7 +332,8 @@ namespace HexLive.UnityPresentation.Input
                 return;
             }
 
-            // Follow: клик по персонажу — камера сразу фокусируется и следует.
+            // Follow: повторный клик по уже выбранному персонажу —
+            // камера фокусируется и следует.
             // Bug #146: скрытую туманом чужачку слежение не берёт — иначе
             // выделение через карточку отношений выдало бы её позицию (или
             // тут же молча сбросилось бы в UpdateOrbit).
@@ -365,8 +363,9 @@ namespace HexLive.UnityPresentation.Input
                 _worldRenderer = FindAnyObjectByType<HexWorldRenderer>();
             }
 
+            if (UI.AdminVoicePanel.BlocksGameInput) return;
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            if (!UI.AdminVoicePanel.BlocksGameInput && keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
                 if (UI.ContextMenuPanel.IsOpen)
                 {
@@ -455,7 +454,7 @@ namespace HexLive.UnityPresentation.Input
                 FrameSelection(snapshot);
             }
 
-            if (!UI.GameMenu.IsOpen && !UI.EndSummaryPanel.IsOpen)
+            if (!UI.GameMenu.IsOpen && !UI.AdminVoicePanel.BlocksGameInput && !UI.EndSummaryPanel.IsOpen)
             {
                 HandleFreePan();
                 HandleZoom();
@@ -818,7 +817,7 @@ namespace HexLive.UnityPresentation.Input
             NpcSelection.PointerOverUi || UI.TacticalMapPanel.PointerOverMap ||
             UI.HexInspectorPanel.PointerOverPanel ||
             UI.ContextMenuPanel.BlocksWorldPointer || UI.LootTransferPanel.IsOpen ||
-            UI.GameMenu.IsOpen ||
+            UI.GameMenu.IsOpen || UI.AdminVoicePanel.BlocksGameInput ||
             UI.EndSummaryPanel.IsOpen ||
             // Bug #279: окно отчёта об ошибке держит мир закрытым само — его
             // запись в NpcSelection.PointerOverUi каждый кадр затирает
@@ -920,7 +919,8 @@ namespace HexLive.UnityPresentation.Input
             }
         }
 
-        // Left-click on an NPC -> enter orbit mode.
+        // Left-click on an NPC -> select; a repeat enters orbit mode through
+        // NpcSelection's shared activation policy.
         private bool TryPickNpc(
             Vector2 mousePos, WorldSnapshot currentSnapshot = null, bool additiveOnly = false)
         {
@@ -1024,7 +1024,7 @@ namespace HexLive.UnityPresentation.Input
                 if ((additiveOnly || shift) &&
                     _runner != null && _runner.CanControlNpc(npc.Id) && npc.Health > 0f)
                 {
-                    NpcSelection.Toggle(npcId);
+                    NpcSelection.Toggle(npcId, requestFrame: false);
                     return true;
                 }
 
@@ -1122,12 +1122,25 @@ namespace HexLive.UnityPresentation.Input
             }
         }
 
+        public bool TryGetAdminCameraContext(out HexLive.Simulation.Common.TileCoord ground, out Vector3 position, out Vector3 forward, out Vector3 groundPoint)
+        {
+            _camera ??= GetComponent<Camera>();
+            position = _camera != null ? _camera.transform.position : Vector3.zero;
+            forward = _camera != null ? _camera.transform.forward : Vector3.forward;
+            return TryPickHex(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f), out ground, out groundPoint, null);
+        }
+
         private bool TryPickHex(
             Vector2 mousePos,
             out HexLive.Simulation.Common.TileCoord coord,
             WorldSnapshot currentSnapshot = null)
+            => TryPickHex(mousePos, out coord, out _, currentSnapshot);
+
+        private bool TryPickHex(Vector2 mousePos, out HexLive.Simulation.Common.TileCoord coord,
+            out Vector3 groundPoint, WorldSnapshot currentSnapshot)
         {
             coord = default;
+            groundPoint = default;
 
             if (_camera == null)
             {
@@ -1168,6 +1181,7 @@ namespace HexLive.UnityPresentation.Input
 
                 bestT = t;
                 coord = tile.Coord;
+                groundPoint = hit;
                 found = true;
             }
 
@@ -1402,6 +1416,14 @@ namespace HexLive.UnityPresentation.Input
             }
 
             HandlePointerGesture(snapshot);
+            // A world click is handled inside UpdateOrbit itself. Selecting a
+            // different NPC fires OnSelectionChanged -> ExitOrbit; do not let
+            // the remainder of this old orbit tick pull once toward the new
+            // subject before free mode takes over next frame (bug #348).
+            if (_mode != Mode.Orbit)
+            {
+                return;
+            }
 
             if (!TryGetSelectionFrame(snapshot, out var rawTarget, out var radius))
             {

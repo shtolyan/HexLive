@@ -223,6 +223,7 @@ through colony days for <em>everyone</em> watching and multiplies the stream eve
 Connected clients cannot do it — only this panel can.</p></div>");
 
         body.Append("<h2>Account</h2><div class='card'>");
+        body.Append("<p><a href='/admin/voice'>Voice administrator access and history</a></p>");
         body.Append("<form method='post' action='/admin/password'>")
             .Append("<label>Change password</label>")
             .Append("<input type='password' name='password' autocomplete='new-password' placeholder='at least 10 characters'>")
@@ -259,6 +260,7 @@ Connected clients cannot do it — only this panel can.</p></div>");
 <option value='bigisland'>Big island survival (3 camps)</option>
 <option value='hugeisland'>Huge island survival (6 camps + outsiders)</option>
 <option value='maniac'>Maniac (maxed armored woman + machete)</option>
+<option value='islands'>Islands (six islands joined by fords, one castaway each)</option>
 </select>
 <div class='row' style='margin-top:12px'><button class='danger'>Start a new world</button>
 <span class='dim' style='font-size:13px'>The existing save is archived, not deleted.</span></div></form>");

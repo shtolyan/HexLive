@@ -152,6 +152,8 @@ public static class JournalCatalog
             92, perspective: JournalPerspective.Received);
         r["ShipwreckSurvivorJoined"] = new JournalRule(
             88, perspective: JournalPerspective.Received);
+        r["CastawayWashedAshore"] = new JournalRule(
+            92, perspective: JournalPerspective.Received);
         r["FaintedBloodLoss"] = new JournalRule(88, perspective: JournalPerspective.Received);
         r["FellAsleepExhausted"] = new JournalRule(80, perspective: JournalPerspective.Received);
         r["Fainted"] = new JournalRule(80, perspective: JournalPerspective.Received);

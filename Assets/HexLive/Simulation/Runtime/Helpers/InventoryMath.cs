@@ -16,6 +16,35 @@ namespace HexLive.Simulation.Runtime
 // "what do I drop / keep" decisions shared by overflow, haul-to-fire and stash.
 internal static class InventoryMath
 {
+    /// <summary>
+    /// ItemInstance equality intentionally groups equal definitions. Mutations
+    /// that selected a physical slot must use reference identity instead.
+    /// </summary>
+    internal static bool ContainsReference(
+        System.Collections.Generic.IReadOnlyList<ItemInstance> items,
+        ItemInstance sought) => IndexOfReference(items, sought) >= 0;
+
+    internal static int IndexOfReference(
+        System.Collections.Generic.IReadOnlyList<ItemInstance> items,
+        ItemInstance sought)
+    {
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (ReferenceEquals(items[i], sought)) return i;
+        }
+
+        return -1;
+    }
+
+    internal static bool RemoveReference(
+        System.Collections.Generic.List<ItemInstance> items, ItemInstance sought)
+    {
+        var index = IndexOfReference(items, sought);
+        if (index < 0) return false;
+        items.RemoveAt(index);
+        return true;
+    }
+
     public static int Importance(WorldState world, string definitionId) =>
         world.Content.ObjectDefinitions.TryGetValue(definitionId, out var def)
             ? ItemCatalog.Importance(def)
@@ -132,7 +161,7 @@ internal static class InventoryMath
             }
 
             var victimImportance = Importance(world, victim);
-            npc.Inventory.Items.Remove(victim);
+            RemoveReference(npc.Inventory.Items, victim);
             ExecutionSystem.DropItemAtFeet(world, npc, victim);
             if (SimTrace.Enabled)
             {
@@ -173,7 +202,7 @@ internal static class InventoryMath
         }
 
         var victimImportance = Importance(world, victim);
-        npc.Inventory.Items.Remove(victim);
+        RemoveReference(npc.Inventory.Items, victim);
         ExecutionSystem.DropItemAtFeet(world, npc, victim);
         if (SimTrace.Enabled)
         {
@@ -520,7 +549,7 @@ internal static class InventoryMath
                 break;
             }
 
-            inv.Items.Remove(victim);
+            RemoveReference(inv.Items, victim);
             if (ExecutionSystem.DropItemAtFeet(world, npc, victim) is null)
             {
                 inv.Items.Add(victim);

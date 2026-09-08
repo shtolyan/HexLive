@@ -18,6 +18,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Slow;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     private static void RecordImpact(
         NPCState npc,
         NeedKind need,
@@ -49,6 +51,14 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     // immersion. This is deliberately derived from the canonical water wash
     // rate so tuning bathing cannot silently desynchronise the ratio.
     private const float RainHygieneWashFactor = 0.1f;
+
+    // Bug #353 (§40.1): скорость, с какой излишек выносливости над потолком
+    // бодрствования стекает обратно, когда она встала с кровати. Намеренно
+    // ВЫВЕДЕНА из штатного набора на простое, а не заведена отдельной ручкой:
+    // «сколько простой набирает, столько же голод и уносит» — иначе две ручки
+    // тихо разъезжаются, и после сна остаётся либо вечный запас, либо тот же
+    // snap-down, только медленнее.
+    private static float StaminaSurplusSettle => SimBalance.StaminaIdleGain;
 
     // Spec §49 knobs (moved to HexTuningConfig in the tuning pass).
     private static float SickTorsoPerSlowTick => SimBalance.SickTorsoPerSlowTick;   // pace the budget pay-down (~0.08 over ~40 slow ticks)
@@ -624,9 +634,22 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // make the bar run backwards. If the ceiling fell below an already
             // accumulated reserve, hold that reserve until metabolism catches
             // up; work can still spend it normally.
+            // Bug #353: тот же потолок ОСТАНАВЛИВАЛ отдых. В кровати запас
+            // рывком добегал до потолка (~0.60 при обычных голоде/комфорте) и
+            // замирал там на всю ночь: спящая просыпалась полувыжатой. Отдых
+            // теперь восстанавливает запас ПОЛНОСТЬЮ — потолок отдыхающей 1.0,
+            // — но темп остаётся штатным StaminaRestGain, так что подъём
+            // плавный, без мгновенного скачка.
             var staminaUpper = resting
-                ? System.MathF.Max(staminaCeiling, npc.Needs.Stamina)
-                : staminaCeiling;
+                ? 1f
+                // ...и проснувшись, она не теряет накопленное рывком: излишек
+                // над «метаболическим» потолком стекает по чуть-чуть, ровно с
+                // той скоростью, с какой простой его и набирает. Смысл потолка
+                // бодрствования сохранён — голодная бодрой не станет и надолго
+                // бодрой не останется, — но snap-down на первом же тике после
+                // пробуждения больше нет.
+                : System.MathF.Max(
+                    staminaCeiling, npc.Needs.Stamina - StaminaSurplusSettle);
             npc.Needs.Stamina = MathUtil.Clamp(
                 npc.Needs.Stamina + staminaDelta, 0f, staminaUpper);
             RecordImpact(
@@ -1226,7 +1249,9 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     var heldDamage = WoundMath.OpenWoundDamage(npc, part) +
                         (Spec118.Enabled ? condition.BluntDamage : 0f);
                     var ceiling = MathUtil.Clamp01(1f - heldDamage);
+                    // §157.5: гноящаяся зона еды не слышит — только бинт.
                     if ((!Spec118.Enabled || condition.CriticalTrauma <= 0f) &&
+                        !WoundMath.IsFestering(npc, part) &&
                         npc.Body.Parts[part] < ceiling)
                     {
                         // §76: a tough body knits faster. The CEILING is

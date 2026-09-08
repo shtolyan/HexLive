@@ -148,6 +148,12 @@
   background-image: url("project://database/Assets/Resources/HexLive/UI/mode_maniac.png");
 }
 
+/* §157: обложки у режима пока нет — временно берёт картинку огромного
+   острова. TODO игроку: mode_islands.png (шесть островов и броды). */
+.art-islands {
+  background-image: url("project://database/Assets/Resources/HexLive/UI/mode_huge_island.png");
+}
+
 .game-mode-title {
   color: var(--mode-text);
   font-size: 23px;

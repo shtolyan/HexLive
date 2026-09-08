@@ -1,0 +1,118 @@
+lobby.title	New game on server	Новая игра на сервере
+lobby.back	Back	Назад
+lobby.working	Please wait…	Подождите…
+lobby.error	Could not complete the operation	Не удалось выполнить операцию
+lobby.http	Server response	Ответ сервера
+lobby.server	Server address	Адрес сервера
+lobby.password	Administrator password	Пароль администратора
+lobby.playerToken	Player control token	Токен управления игрока
+lobby.login	Sign in	Войти
+lobby.seed	Seed	Сид
+lobby.scenario	Scenario	Сценарий
+lobby.generate	Generate map	Создать карту
+lobby.library	Server worlds	Миры сервера
+lobby.defaultName	New world	Новый мир
+lobby.activate	Save current world and switch	Сохранить текущий мир и переключиться
+lobby.name	World name	Название мира
+lobby.population	World population limit	Лимит населения мира
+lobby.seaRaids	Sea raid interval, days (0 = off)	Морские волны, дней (0 = выкл.)
+lobby.regenerate	Change scenario / seed	Изменить сценарий / сид
+lobby.camp	Camp	Лагерь
+lobby.enabled	Camp enabled	Лагерь включён
+lobby.myCamp	Choose as my camp	Выбрать своим лагерем
+lobby.campPopulation	Camp population limit	Лимит жителей лагеря
+lobby.arrivals	Arrival interval, days (0 = off)	Прибытия, дней (0 = выкл.)
+lobby.controlArrivals	Control new arrivals	Управлять прибывающими
+lobby.spawn	Spawn at start	Появиться при старте
+lobby.controlled	Controlled by me	Управляется мной
+lobby.edit	Edit character	Редактировать персонажа
+lobby.duplicate	Duplicate	Дублировать
+lobby.remove	Remove	Удалить
+lobby.add	Add character	Добавить персонажа
+lobby.newCharacter	New character	Новый персонаж
+lobby.characterName	Character name	Имя персонажа
+lobby.body	Body	Тело
+lobby.body.molly	Slim	Худая
+lobby.body.marta	Athletic	Спортивная
+lobby.body.jana	Curvy	Пухленькая
+lobby.body.jolly	Jolly	Джолли
+lobby.body.kshishtof	Male	Мужское
+lobby.body.tonny	Male (Tonny)	Мужское (Тонни)
+lobby.skin	Materials	Материалы
+lobby.eyes	Eye colour	Цвет глаз
+lobby.hair	Hairstyle	Причёска
+lobby.hairColour	Hair colour	Цвет волос
+lobby.voice	Voice	Голос
+lobby.clothing	Starting clothing	Стартовая одежда
+lobby.search	Search clothing	Поиск одежды
+lobby.random	Randomize appearance	Случайный образ
+lobby.done	Done	Готово
+lobby.start	Save current world and start new	Сохранить текущий мир и начать новый
+lobby.rotate	Rotate	Поворот
+lobby.zoom	Distance	Расстояние
+lobby.loadingAppearance	Loading appearance…	Загружаем образ…
+lobby.appearanceUnavailable	Appearance unavailable. Reopen the editor to retry.	Образ недоступен. Откройте редактор повторно для загрузки.
+lobby.validation.required	Required value	Обязательное значение
+lobby.validation.unsupported	Unsupported version	Неподдерживаемая версия
+lobby.validation.unknown	Unknown option	Неизвестный вариант
+lobby.validation.length	Invalid text length	Недопустимая длина текста
+lobby.validation.invalid	Invalid value	Недопустимое значение
+lobby.validation.range	Value outside allowed range	Значение вне допустимого диапазона
+lobby.validation.capacity	Population or item limit exceeded	Превышен лимит населения или предметов
+lobby.validation.unknownOrDuplicate	Unknown or duplicate identifier	Неизвестный или повторяющийся идентификатор
+lobby.validation.incomplete	Incomplete camp list	Неполный список лагерей
+lobby.validation.otherCamp	Only your camp can contain controlled characters	Управляемые персонажи должны быть в своём лагере
+lobby.validation.incompatible	Content is incompatible with this body	Контент несовместим с телом
+lobby.validation.slotConflict	Another garment occupies these slots on the same layer	Эти слоты на том же слое уже заняты другой одеждой
+lobby.validation.noControlledCharacter	Select at least one controlled starting character	Выберите хотя бы одного управляемого стартового персонажа
+lobby.mapLegend	Gold: your camp · Blue: neighbours · Red: outsiders · Grey: disabled	Золотой — свой лагерь · Синий — соседи · Красный — чужаки · Серый — выключен
+lobby.outsiders	Outsiders	Чужаки
+lobby.layer	Clothing layer	Слой одежды
+lobby.layer.all	All layers	Все слои
+lobby.layer.underwear	Underwear	Бельё
+lobby.layer.wear	Clothing	Одежда
+lobby.layer.outerwear	Outer clothing	Верхняя одежда
+lobby.layer.outer	Outer clothing	Верхняя одежда
+lobby.layer.bags	Bags	Сумки
+lobby.previous	Previous page	Предыдущая страница
+lobby.next	Next page	Следующая страница
+lobby.controlDisabled	Player control is disabled on this server. Enable it in server settings.	На этом сервере выключено управление игрока. Включите его в настройках сервера.
+lobby.validation.catalogChanged	The server content catalog changed. Generate the map again before starting.	Каталог контента сервера изменился. Перед запуском создайте карту повторно.
+lobby.validation.noFreeSpawn	No free starting point in this camp	В этом лагере нет свободной точки появления
+lobby.summary	Characters: {0} · Controlled: {1} · Enabled camps: {2}	Персонажей: {0} · Управляемых: {1} · Лагерей включено: {2}
+lobby.validate	Validate configuration	Проверить настройки
+lobby.valid	Configuration is ready to start	Настройки готовы к запуску
+lobby.slot	Clothing slot	Слот одежды
+lobby.slot.all	All slots	Все слоты
+lobby.slot.head	Head	Голова
+lobby.slot.earr	Right ear	Правое ухо
+lobby.slot.earl	Left ear	Левое ухо
+lobby.slot.neck	Neck	Шея
+lobby.slot.chest	Chest	Грудь
+lobby.slot.belly	Belly	Живот
+lobby.slot.pelvis	Pelvis	Таз
+lobby.slot.shoulderr	Right shoulder	Правое плечо
+lobby.slot.shoulderl	Left shoulder	Левое плечо
+lobby.slot.forearmr	Right forearm	Правое предплечье
+lobby.slot.forearml	Left forearm	Левое предплечье
+lobby.slot.wristr	Right wrist	Правое запястье
+lobby.slot.wristl	Left wrist	Левое запястье
+lobby.slot.handr	Right hand	Правая кисть
+lobby.slot.handl	Left hand	Левая кисть
+lobby.slot.thighr	Right thigh	Правое бедро
+lobby.slot.thighl	Left thigh	Левое бедро
+lobby.slot.shinr	Right shin	Правая голень
+lobby.slot.shinl	Left shin	Левая голень
+lobby.slot.footr	Right foot	Правая стопа
+lobby.slot.footl	Left foot	Левая стопа
+lobby.authored	Authored appearance	Авторский вариант
+lobby.none	None	Нет
+lobby.prototype	Original materials	Исходные материалы
+lobby.eye.blue	Blue	Голубые
+lobby.eye.blue_green	Blue-green	Голубо-зелёные
+lobby.eye.green	Green	Зелёные
+lobby.eye.grey	Grey	Серые
+lobby.eye.hazel	Hazel	Ореховые
+lobby.eye.amber	Amber	Янтарные
+lobby.eye.brown	Brown	Карие
+lobby.eye.dark_brown	Dark brown	Тёмно-карие

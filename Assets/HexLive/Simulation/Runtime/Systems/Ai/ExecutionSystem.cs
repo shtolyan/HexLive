@@ -18,6 +18,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
     public TickLayer Layer => TickLayer.Fast;
 
+    public ChunkPolicy ChunkPolicy => ChunkPolicy.NpcDriven;
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
@@ -111,6 +113,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[^1].Type is
                 PlanStepType.PlayerTakeCarried or
                 PlanStepType.PlayerTakeWorn or
+                PlanStepType.PlayerTakeAndWearCarried or
+                PlanStepType.PlayerTakeAndWearWorn or
                 PlanStepType.PlayerGiveCarried or
                 PlanStepType.PlayerGiveWorn)
             {
@@ -122,6 +126,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             // тут не человек, а объект мира.
             if (npc.Plan.Steps.Count > 0 && npc.Plan.Steps[^1].Type is
                 PlanStepType.PlayerTakeFromContainer or
+                PlanStepType.PlayerTakeAndWearFromContainer or
                 PlanStepType.PlayerGiveToContainer)
             {
                 RunPlayerContainerTransfer(world, npc);
@@ -1105,12 +1110,23 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     {
         if (completedInteraction.Type == InteractionType.FillBottle)
         {
-            npc.BottleWater = definition.HasTag("RawWater")
-                ? WaterKind.Raw : WaterKind.Boiled;
-            // Spec §52: one fill = several gulps; refill only when dry.
-            npc.BottleCharges = SimBalance.BottleCapacity;
+            // §134: an already-running order loaded from an old save cannot
+            // conjure boiled water after the interaction was removed.
+            if (definition.HasTag("Campfire"))
+            {
+                npc.Plan.Status = PlanStatus.Failed;
+                return false;
+            }
+            var bottle = BottleInventoryMath.FirstEmpty(npc);
+            if (bottle is null)
+            {
+                npc.Plan.Status = PlanStatus.Failed;
+                return false;
+            }
+            var kind = definition.HasTag("RawWater") ? WaterKind.Raw : WaterKind.Boiled;
+            BottleInventoryMath.SetContents(bottle, kind, SimBalance.BottleCapacity);
             Trace.Emit(world, npc.Id, "BottleFilled",
-                $"{npc.BottleWater} x{npc.BottleCharges} from {worldObject.DefinitionId}");
+                $"{kind} x{BottleInventoryMath.Charges(bottle)} from {worldObject.DefinitionId}");
         }
 
         // §54.15: park the carried empty bottle in the collector's
@@ -1435,7 +1451,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             var victim = InventoryMath.LowestImportanceDroppable(world, npc);
             if (victim is not null)
             {
-                npc.Inventory.Items.Remove(victim);
+                InventoryMath.RemoveReference(npc.Inventory.Items, victim);
                 DropItemAtFeet(world, npc, victim);
                 if (SimTrace.Enabled)
                 {
@@ -1580,9 +1596,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
-        var bottleItem = npc.Inventory.Items.Find(
-            i => i.DefinitionId == WaterCollectorMath.VesselId);
-        if (bottleItem is null || npc.BottleWater != WaterKind.None ||
+        var bottleItem = BottleInventoryMath.FirstEmpty(npc);
+        if (bottleItem is null ||
             worldObject.Junctions.Count == 0 ||
             WaterCollectorMath.FindVessel(world, worldObject) is not null)
         {
@@ -1596,12 +1611,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return false;
         }
 
-        npc.Inventory.Items.Remove(bottleItem);
+        if (!InventoryMath.RemoveReference(npc.Inventory.Items, bottleItem))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            return false;
+        }
         var vessel = WorldObjectMutations.SpawnObject(
             world, WaterCollectorMath.VesselId, npc.Fragment,
             worldObject.Tile, worldObject.Junctions[0]);
         vessel.Owner = npc.Id; // remembers whose bottle waits here
         vessel.ResourceAmount = 0f;
+        vessel.WaterKind = WaterKind.None;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "VesselPlaced",
@@ -1630,20 +1650,24 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         var charges = WaterCollectorMath.ChargesIn(vessel);
-        var pouredOver = npc.Inventory.Items.Exists(
-            i => i.DefinitionId == WaterCollectorMath.VesselId);
+        var collectedKind = vessel.WaterKind == WaterKind.None
+            ? WaterKind.Rain
+            : vessel.WaterKind;
+        var bottle = BottleInventoryMath.FirstEmpty(npc);
+        var pouredOver = bottle is not null;
         if (pouredOver)
         {
             vessel.ResourceAmount = 0f; // stays parked, keeps collecting
+            vessel.WaterKind = WaterKind.None;
         }
         else
         {
             WorldObjectMutations.DespawnObject(world, vessel.Id);
-            npc.Inventory.Items.Add(new ItemInstance(WaterCollectorMath.VesselId));
+            bottle = new ItemInstance(WaterCollectorMath.VesselId);
+            npc.Inventory.Items.Add(bottle);
         }
 
-        npc.BottleWater = WaterKind.Rain;
-        npc.BottleCharges = charges;
+        BottleInventoryMath.SetContents(bottle, collectedKind, charges);
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "VesselTaken",
@@ -1733,11 +1757,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
             // Item moves from world to inventory; the world object is gone,
             // so occupancy flags die with it (spec 29B.2).
-            npc.Inventory.Items.Add(new ItemInstance(worldObject.DefinitionId)
+            var picked = new ItemInstance(worldObject.DefinitionId)
             {
                 Wetness = worldObject.Wetness,
                 Durability = worldObject.Durability,
-                ResourceAmount = worldObject.ResourceAmount,
+                ResourceAmount = worldObject.DefinitionId == ContentIds.Bottle &&
+                    worldObject.WaterKind == WaterKind.None
+                        ? 0f
+                        : worldObject.ResourceAmount,
+                WaterKind = worldObject.WaterKind,
                 Dirtiness = worldObject.Dirtiness,
                 Bloodiness = worldObject.Bloodiness,
                 // §133: поднятая вещь несёт владельца дальше — иначе одежда
@@ -1745,7 +1773,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 OwnerId = definition.Layer != null
                     ? ClothingOwnership.ResolveOnTake(world, npc, worldObject)
                     : 0
-            });
+            };
+            npc.Inventory.Items.Add(picked);
             if (theft)
             {
                 TheftMath.OnStolen(world, npc, worldObject);
@@ -1785,7 +1814,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // §133: чужое надевают только с разрешения, и разрешение ОДНОРАЗОВОЕ —
         // сгорает здесь же. Планировщик до сюда чужое без «да» не пропускает;
         // это последний рубеж на случай, если вещь сменила хозяйку по дороге.
-        if (!restoringSelectedOutfit &&
+        var explicitPlayerDress = npc.Mind.ManualControl &&
+            npc.Plan.Goal == GoalType.PlayerOrder;
+        if (!restoringSelectedOutfit && !explicitPlayerDress &&
             ClothingOwnership.FellowOwner(world, npc, worldObject) is { } fellowOwner)
         {
             if (!PlanningSystem.HasWearGrant(npc, worldObject.Id, world.Tick))
@@ -1818,6 +1849,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             Wetness = worldObject.Wetness,
             Durability = worldObject.Durability,
+            ResourceAmount = worldObject.ResourceAmount,
+            WaterKind = worldObject.WaterKind,
             Dirtiness = worldObject.Dirtiness,
             Bloodiness = worldObject.Bloodiness,
             // §133: ничейное и трофейное становится её собственным, вещь
@@ -2031,7 +2064,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         var wetWorn = FindWettestWornItem(npc);
         if (wetWorn is not null && worldObject.Junctions.Count > 0)
         {
-            npc.WornItems.Remove(wetWorn);
+            InventoryMath.RemoveReference(npc.WornItems, wetWorn);
             EquipmentMath.Recalculate(world, npc);
             var hung = WorldObjectMutations.SpawnObject(
                 world, wetWorn.DefinitionId, npc.Fragment,
@@ -2537,6 +2570,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             dropped.Wetness = item.Wetness;
             dropped.Durability = item.Durability;
             dropped.ResourceAmount = item.ResourceAmount;
+            dropped.WaterKind = item.WaterKind;
             dropped.Dirtiness = item.Dirtiness;
             dropped.Bloodiness = item.Bloodiness;
             // §133: владение переживает границу «надето/лежит» — вещь на земле
@@ -2548,7 +2582,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return null;
     }
 
-    private static bool TryFindDropSpotAtFeet(
+    internal static bool TryFindDropSpotAtFeet(
         WorldState world,
         NPCState npc,
         bool underFoot,

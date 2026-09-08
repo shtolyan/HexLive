@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import csv
 from contextlib import contextmanager
 import datetime as dt
 import hashlib
 import json
 import os
 from pathlib import Path
+import plistlib
 import re
 import subprocess
 import sys
@@ -30,6 +32,8 @@ UNITY_DEFAULTS = Path("/usr/bin/defaults")
 CODE_SIGN = Path("/usr/bin/codesign")
 AUTO_REFRESH_PREFS = ("kAutoRefreshMode", "kAutoRefresh")
 AUTO_REFRESH_BACKUP = ROOT / "Library" / "HexLiveBuildAutoRefreshBackup.json"
+MICROPHONE_TERM = "agent.voice.microphone_usage"
+MICROPHONE_TERMS = ROOT / "_ArtSource" / "Voice" / "native_permissions.tsv"
 
 
 def parse_args() -> argparse.Namespace:
@@ -327,6 +331,49 @@ def verify_code_signature(app_path: Path) -> tuple[bool, str]:
     )
     details = "\n".join(part for part in (result.stdout.strip(), result.stderr.strip()) if part)
     return result.returncode == 0, details
+
+
+def configure_microphone_permission(app_path: Path, terms_path: Path = MICROPHONE_TERMS) -> None:
+    """Export the §58 I2 authoring term to the native macOS privacy prompt.
+
+    FMOD uses Core recording instead of Unity Microphone, so Unity's managed
+    API scanner does not add NSMicrophoneUsageDescription automatically.
+    This is packaging metadata; configure it before sealing the application.
+    """
+    with terms_path.open(encoding="utf-8", newline="") as source:
+        rows = [row for row in csv.reader(source, delimiter="\t")
+                if row and row[0] == MICROPHONE_TERM]
+    if len(rows) != 1 or len(rows[0]) != 3 or not all(rows[0][1:]):
+        raise RuntimeError("Native microphone permission requires one complete EN/RU I2 term")
+    translations = dict(zip(("en", "ru"), rows[0][1:]))
+    info_path = app_path / "Contents" / "Info.plist"
+    with info_path.open("rb") as source:
+        info = plistlib.load(source)
+    info["NSMicrophoneUsageDescription"] = translations["en"]
+    languages = info.setdefault("CFBundleLocalizations", [])
+    if not isinstance(languages, list):
+        raise RuntimeError("Invalid CFBundleLocalizations in built app")
+    for language in translations:
+        if language not in languages:
+            languages.append(language)
+    localized_files = []
+    for language, description in translations.items():
+        path = app_path / "Contents" / "Resources" / f"{language}.lproj" / "InfoPlist.strings"
+        values = {}
+        if path.exists():
+            converted = subprocess.run(
+                ["/usr/bin/plutil", "-convert", "json", "-o", "-", str(path)],
+                check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            values = json.loads(converted.stdout)
+        values["NSMicrophoneUsageDescription"] = description
+        localized_files.append((path, values))
+    with info_path.open("wb") as output:
+        plistlib.dump(info, output, sort_keys=False)
+    for path, values in localized_files:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as output:
+            plistlib.dump(values, output, sort_keys=False)
+    print("Microphone privacy: NSMicrophoneUsageDescription установлен, EN/RU из I2 term.")
 
 
 def remove_macos_metadata(app_path: Path) -> int:
@@ -691,6 +738,7 @@ def main() -> int:
         if isinstance(report.get("id"), int)
     }
     bugs_at_end = require_successful_version_finalize(version, included_bug_ids)
+    configure_microphone_permission(app_path)
     signature = ensure_development_signature(app_path, args.release)
 
     manifest = write_reports(

@@ -31,10 +31,17 @@ def bundle_identifier(app):
     return value
 
 
-def seal(app, configured_only=False):
+def seal(app, configured_only=False, preserve_distribution=False):
     signer = identity()
     if configured_only and not signer:
         return
+    if preserve_distribution:
+        existing = subprocess.run(['/usr/bin/codesign', '-d', '-vv', str(app)],
+                                  capture_output=True, text=True, check=False)
+        if any(authority in existing.stderr for authority in (
+                'Authority=Developer ID Application:', 'Authority=Apple Distribution:',
+                'Authority=3rd Party Mac Developer Application:')):
+            return
     identifier = bundle_identifier(app)
     # Recompute local development metadata so Info.plist is bound into the
     # new signature, rather than retaining an old ad-hoc apphost's metadata.
@@ -51,5 +58,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('app', type=Path)
     parser.add_argument('--configured-only', action='store_true')
+    parser.add_argument('--preserve-distribution', action='store_true')
     args = parser.parse_args()
-    seal(args.app, args.configured_only)
+    seal(args.app, args.configured_only, args.preserve_distribution)

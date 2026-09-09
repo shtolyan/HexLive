@@ -3,6 +3,7 @@ from pathlib import Path
 import plistlib
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,6 +13,23 @@ SPEC.loader.exec_module(BUILD)
 
 
 class MicrophonePackagingTests(unittest.TestCase):
+    def test_optimized_local_player_uses_configured_identity_and_preserves_distribution(self):
+        with patch.object(BUILD, 'remove_macos_metadata', return_value=0), \
+                patch.object(BUILD, 'verify_code_signature', return_value=(True, 'valid')), \
+                patch.object(BUILD.subprocess, 'run') as run:
+            BUILD.ensure_development_signature(Path('/test.app'), release=True)
+            command = run.call_args.args[0]
+            self.assertIn('--configured-only', command)
+            self.assertIn('--preserve-distribution', command)
+
+    def test_invalid_release_is_not_downgraded_to_ad_hoc(self):
+        with patch.object(BUILD, 'remove_macos_metadata', return_value=0), \
+                patch.object(BUILD, 'verify_code_signature', return_value=(False, 'invalid')), \
+                patch.object(BUILD.subprocess, 'run') as run:
+            with self.assertRaises(RuntimeError):
+                BUILD.ensure_development_signature(Path('/test.app'), release=True)
+            self.assertEqual(run.call_count, 1)
+
     def test_localized_permission_preserves_other_plist_values_and_is_idempotent(self):
         with tempfile.TemporaryDirectory() as folder:
             app = Path(folder) / "HexLive.app"

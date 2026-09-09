@@ -56,6 +56,14 @@ class MacSigningTests(unittest.TestCase):
             self.assertIn('com.hexlive.test', outer)
             self.assertNotIn('--deep', outer)
 
+    def test_existing_distribution_certificate_is_not_replaced(self):
+        result = subprocess.CompletedProcess([], 0, '', 'Authority=Developer ID Application: Distribution Owner')
+        with patch.object(SIGNING, 'identity', return_value='A' * 40), \
+                patch.object(SIGNING.subprocess, 'run', return_value=result) as run:
+            SIGNING.seal(Path('/test.app'), preserve_distribution=True)
+            self.assertEqual(run.call_count, 1)
+            self.assertNotIn('--sign', run.call_args.args[0])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -11,6 +11,11 @@ SPEC.loader.exec_module(SIGNING)
 
 
 class MacSigningTests(unittest.TestCase):
+    def setUp(self):
+        identifier = patch.object(SIGNING, 'bundle_identifier', return_value='com.hexlive.test')
+        identifier.start()
+        self.addCleanup(identifier.stop)
+
     def test_configured_identity_is_not_silently_downgraded_if_signing_fails(self):
         fingerprint = 'A' * 40
         with patch.object(SIGNING, 'identity', return_value=fingerprint), \
@@ -43,9 +48,13 @@ class MacSigningTests(unittest.TestCase):
     def test_signature_must_pass_verification(self):
         with patch.object(SIGNING, 'identity', return_value='A' * 40), patch.object(SIGNING.subprocess, 'run') as run:
             SIGNING.seal(Path('/test.app'))
-            self.assertEqual(run.call_count, 2)
+            self.assertEqual(run.call_count, 3)
             self.assertIn('--verify', run.call_args.args[0])
             self.assertTrue(run.call_args.kwargs['check'])
+            outer = run.call_args_list[1].args[0]
+            self.assertIn('--identifier', outer)
+            self.assertIn('com.hexlive.test', outer)
+            self.assertNotIn('--deep', outer)
 
 
 if __name__ == '__main__':

@@ -59,18 +59,15 @@ public sealed class AgentRelationFeedbackRuntimeTests
             document.rootVisualElement.Add(feedback);
             for (var i = 0; i < 6; i++) yield return null;
             var text = feedback.Q<Label>(className: "agent-relation-feedback-text");
-            Assert.Multiple(() =>
-            {
-                Assert.That(feedback.panel, Is.Not.Null);
-                Assert.That(feedback.layout.height, Is.GreaterThan(0).And.LessThanOrEqualTo(72.1f));
-                Assert.That(text.enableRichText, Is.False);
-                Assert.That(text.text, Does.Contain(reason));
-                Assert.That(text.text, Does.Contain(Loc.Get("rel.familiarity") + " +2%"));
-                Assert.That(text.text, Does.Contain(Loc.Get("rel.trust") + " -3%"));
-                Assert.That(text.text, Does.Contain(Loc.Get("rel.affinity") + " 0%"));
-                Assert.That(text.resolvedStyle.whiteSpace, Is.EqualTo(WhiteSpace.Normal));
-                Assert.That(feedback.contentContainer.layout.height, Is.GreaterThan(feedback.contentViewport.layout.height));
-            });
+            Assert.That(feedback.panel, Is.Not.Null);
+            Assert.That(feedback.layout.height, Is.GreaterThan(0).And.LessThanOrEqualTo(72.1f));
+            Assert.That(text.enableRichText, Is.False);
+            Assert.That(text.text, Does.Contain(reason));
+            Assert.That(text.text, Does.Contain(Loc.Get("rel.familiarity") + " +2%"));
+            Assert.That(text.text, Does.Contain(Loc.Get("rel.trust") + " -3%"));
+            Assert.That(text.text, Does.Contain(Loc.Get("rel.affinity") + " 0%"));
+            Assert.That(text.resolvedStyle.whiteSpace, Is.EqualTo(WhiteSpace.Normal));
+            Assert.That(feedback.contentContainer.layout.height, Is.GreaterThan(feedback.contentViewport.layout.height));
             feedback.scrollOffset = new Vector2(0, 30);
             yield return null;
             Assert.That(feedback.scrollOffset.y, Is.GreaterThan(0), "Long reasons remain readable by scrolling after actual UITK layout.");

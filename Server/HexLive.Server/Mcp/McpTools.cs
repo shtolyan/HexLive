@@ -87,7 +87,9 @@ public sealed class McpTools
             "id и доступными взаимодействиями, союзницы, враги и звери) и память. Ровно " +
             "тот текст, который получает LLM-контур. Отсюда берут objectId для interact " +
             "и mobId для attack_mob.",
-            Schema(("npcId", "integer", "id колонистки", true))),
+            Schema(("npcId", "integer", "id колонистки", true),
+                ("perceptionEpoch", "string", "epoch из recentPerception предыдущего завершённого хода", false),
+                ("perceptionSince", "integer", "watermark из recentPerception завершённого хода", false))),
 
         new("attach_agent",
             "Прикрепить эту MCP-сессию к одному живому NPC без включения manual mode (§160).",
@@ -383,7 +385,9 @@ public sealed class McpTools
                 case "list_leases": return ListLeases(canAccessNpc);
                 case "read_events": return ReadEvents(host, arguments);
                 case "read_spec": return ReadSpec(arguments, out isError);
-                case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError, canAccessNpc != null);
+                case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError,
+                    canAccessNpc != null, owner, OptionalText(arguments, "perceptionEpoch") ?? "",
+                    OptionalLong(arguments, "perceptionSince") ?? 0);
                 case "attach_agent": return AttachAgent(host, arguments, owner, out isError);
                 case "agent_heartbeat": return AgentHeartbeat(arguments, owner, out isError);
                 case "read_agent_inbox": return ReadAgentInbox(arguments, owner, out isError);
@@ -720,8 +724,10 @@ public sealed class McpTools
         });
     }
 
-    private string Describe(WorldHost host, int npcId, out bool isError, bool redactOwner = false)
+    private string Describe(WorldHost host, int npcId, out bool isError, bool redactOwner = false,
+        string owner = "", string perceptionEpoch = "", long perceptionSince = 0)
     {
+        var observations = _agents.GetPerception(npcId, owner, _currentWorldGeneration());
         var text = host.Read(world =>
         {
             if (!world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc))
@@ -759,6 +765,8 @@ public sealed class McpTools
                 ["inventory"] = Inventory(npc),
                 ["visibleItems"] = McpItemObservations.Visible(world, npc),
                 ["visibleNpcs"] = McpNpcObservations.Visible(world, npc),
+                ["recentPerception"] = McpPerceptionObservations.Recent(
+                    observations?.Read(perceptionEpoch, perceptionSince, world.Tick)),
                 ["inventoryItems"] = McpItemObservations.Carried(world, npc),
                 ["wornItems"] = McpItemObservations.Worn(world, npc),
             });
@@ -884,6 +892,16 @@ public sealed class McpTools
             capabilities, ttl, out var snapshot, out var reason);
         if (accepted)
         {
+            var observations = _agents.BindPerception(snapshot.AttachmentId, owner, _currentWorldGeneration());
+            host.Read(world =>
+            {
+                // A concurrent detach may have disposed this attachment after
+                // lookup. Never overwrite a replacement's live buffer with it.
+                if (observations != null &&
+                    world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc) &&
+                    observations.Capture(world, npc)) npc.Perception.Observations = observations;
+                return true;
+            });
             var ownAction = false;
             foreach (var lease in _leases.Snapshot())
             {

@@ -473,6 +473,10 @@ public sealed class PerceptionSystem : ISimulationSystem
             BuildRememberedAgents(world, npc);
             CollectMobsInRadius(world, npc, agentRadius);
 
+            if (npc.Perception.Observations != null &&
+                !npc.Perception.Observations.Capture(world, npc))
+                npc.Perception.Observations = null;
+
             // §146.12: a friendly visitor is real company too. Hostiles never
             // count, and §125 still requires a live sighting.
             npc.Perception.Environment.NearbyAgentsCount = nonHostiles;

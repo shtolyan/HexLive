@@ -15,7 +15,7 @@ namespace HexLive.Server
 /// sessions. It owns no personality or durable journal and never toggles the
 /// simulation's manual-control bit merely because an agent is attached.
 /// </summary>
-public sealed class AgentSessionRegistry
+public sealed partial class AgentSessionRegistry
 {
     public const int DefaultTtlSeconds = 45;
     public const int HeartbeatSeconds = 10;
@@ -67,6 +67,7 @@ public sealed class AgentSessionRegistry
         public readonly Queue<string> UtteranceIds = new();
         public readonly HashSet<string> UtteranceIdSet = new(StringComparer.Ordinal);
         public PendingAgentUtterance? Pending;
+        public Simulation.AI.PerceptionObservationBuffer? Perception;
     }
 
     private sealed class PendingAgentUtterance
@@ -551,7 +552,11 @@ public sealed class AgentSessionRegistry
     {
         lock (_gate)
         {
-            foreach (var attachment in _byId.Values) attachment.Pending?.Bytes.Dispose();
+            foreach (var attachment in _byId.Values)
+            {
+                attachment.Perception?.Dispose();
+                attachment.Pending?.Bytes.Dispose();
+            }
             foreach (var npcId in _attachmentByNpc.Keys.ToArray()) Touch(npcId);
             _byId.Clear();
             _attachmentByNpc.Clear();
@@ -624,6 +629,7 @@ public sealed class AgentSessionRegistry
 
     private void RemoveLocked(Attachment attachment)
     {
+        attachment.Perception?.Dispose();
         attachment.Pending?.Bytes.Dispose();
         _utterances.RemoveAll(item => item.NpcId == attachment.NpcId);
         _byId.Remove(attachment.Id);

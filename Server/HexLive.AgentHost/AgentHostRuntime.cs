@@ -350,7 +350,7 @@ public sealed partial class AgentHostRuntime
             await PublishPhaseAsync(mcp, attachmentId, turnId, "Thinking", cancellationToken);
             _status.Write(true, "Thinking", npcId, true, true);
             var worldStatus = await mcp.CallToolAsync("world_status", new { }, cancellationToken);
-            var state = await mcp.CallToolAsync("describe_colonist", new { npcId }, cancellationToken);
+            var state = await mcp.CallToolAsync("describe_colonist", PerceptionRequest(npcId), cancellationToken);
             if (IsUnconscious(state))
             {
                 await StopActionAsync().ConfigureAwait(false);
@@ -417,6 +417,7 @@ public sealed partial class AgentHostRuntime
             };
             stage = "commit";
             _outbox.Add(pending);
+            ConsumePerception(state);
             consumed = true; // durable result: never regenerate it because delivery failed
             await _memory.CommitTurnAsync(world, turnId, trigger, decision, cancellationToken)
                 .ConfigureAwait(false);

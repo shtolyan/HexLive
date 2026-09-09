@@ -1169,6 +1169,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     starved = npc.Needs.Hunger >= SimBalance.StarveDeathThreshold;
                     Trace.EmitSystem(world, "FoodStolen",
                         $"NPC{npc.Id.Value} stole {loot} from NPC{victim.Id.Value}");
+                    AgentIncidentNotifications.Theft(world, npc, loot, victim.Id);
                     break;
                 }
             }

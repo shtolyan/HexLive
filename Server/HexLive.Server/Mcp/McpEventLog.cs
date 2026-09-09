@@ -55,6 +55,9 @@ public sealed class McpEventLog
             "ManualOrderRejected",
             "ManualOrderFinished",
             "ItemRequestResult",
+            "AgentObservedIntruder",
+            "AgentObservedTheft",
+            "AgentObservedLoot",
         };
 
     private readonly List<EventRecord> _events = new();

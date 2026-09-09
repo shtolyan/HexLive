@@ -123,6 +123,7 @@ public sealed partial class ExecutionSystem
             // The body cannot call for help while unconscious. Nearby allies
             // who see the search treat it as an attack and run at the looter.
             var witnesses = CombatHelpSystem.RallyLootWitnesses(world, mark, npc.Id);
+            AgentIncidentNotifications.Loot(world, npc, mark.Id, "Started");
 
             if (SimTrace.Enabled)
             {
@@ -184,6 +185,7 @@ public sealed partial class ExecutionSystem
         }
 
         npc.Mind.LootHelplessTakenCount++;
+        AgentIncidentNotifications.Loot(world, npc, mark.Id, "TookItem");
         SocialCueSignals.StampItem(world, npc, "LootHelplessTook", takenId);
         if (SimTrace.Enabled)
         {

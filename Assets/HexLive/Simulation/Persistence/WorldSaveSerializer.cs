@@ -1559,7 +1559,7 @@ public static class WorldSaveSerializer
         // §121 (v31): под чьим управлением персонаж. Единственное поле ручного
         // режима в блобе — цель приказа едет своим ходом (план сериализуется
         // целиком), а сцепка PlayerAttack складывается в SaveGoal.
-        w.Write(mind.ManualControl);
+        w.Write(mind.PersistedManualControl);
         // §121.7 (v46 legacy): прежний потиковый штамп остаётся в блобе только
         // ради бинарной совместимости. Реальный lease процесса не сохраняется.
         w.Write(mind.LastManualInputTick);

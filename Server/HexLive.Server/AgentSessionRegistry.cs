@@ -13,7 +13,8 @@ namespace HexLive.Server
 /// <summary>
 /// §160 process-local rendezvous between authenticated /watch viewers and MCP
 /// sessions. It owns no personality or durable journal and never toggles the
-/// simulation's manual-control bit merely because an agent is attached.
+/// simulation's persisted player-control bit merely because an agent is attached.
+/// A transient token supplies effective manual control for worldActions.
 /// </summary>
 public sealed partial class AgentSessionRegistry
 {
@@ -68,6 +69,7 @@ public sealed partial class AgentSessionRegistry
         public readonly HashSet<string> UtteranceIdSet = new(StringComparer.Ordinal);
         public PendingAgentUtterance? Pending;
         public Simulation.AI.PerceptionObservationBuffer? Perception;
+        public Simulation.AI.ExternalNpcControl? Control;
     }
 
     private sealed class PendingAgentUtterance
@@ -97,6 +99,11 @@ public sealed partial class AgentSessionRegistry
 
                 existing.DisplayName = displayName;
                 existing.Capabilities = capabilities;
+                if ((capabilities & AgentCapabilities.WorldActions) == 0)
+                {
+                    existing.Control?.Dispose();
+                    existing.Control = null;
+                }
                 existing.TtlSeconds = Math.Clamp(ttlSeconds, 15, 120);
                 existing.LastSeen = _now();
                 Touch(existing.NpcId);
@@ -555,6 +562,7 @@ public sealed partial class AgentSessionRegistry
             foreach (var attachment in _byId.Values)
             {
                 attachment.Perception?.Dispose();
+                attachment.Control?.Dispose();
                 attachment.Pending?.Bytes.Dispose();
             }
             foreach (var npcId in _attachmentByNpc.Keys.ToArray()) Touch(npcId);
@@ -630,6 +638,7 @@ public sealed partial class AgentSessionRegistry
     private void RemoveLocked(Attachment attachment)
     {
         attachment.Perception?.Dispose();
+        attachment.Control?.Dispose();
         attachment.Pending?.Bytes.Dispose();
         _utterances.RemoveAll(item => item.NpcId == attachment.NpcId);
         _byId.Remove(attachment.Id);

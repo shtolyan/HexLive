@@ -114,6 +114,13 @@ public sealed class CampExpulsionSystem : ISimulationSystem
             return;
         }
 
+        if (owner.Mind.ExpulsionPhase < FightPhase && !owner.IsFighting && !intruder.IsFighting &&
+            (ManualControlMath.IsManual(owner) || ManualControlMath.IsManual(intruder)))
+        {
+            Finish(world, owner, intruder, "ControlTaken", protectIntruder: false);
+            return;
+        }
+
         // A territorial warning is voluntary peacetime behaviour until the
         // fight actually begins. Do not keep marching a starving/dehydrated
         // owner through an approach scene while food or water is the only
@@ -433,6 +440,18 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         }
     }
 
+    internal static void CancelVoluntaryForControl(WorldState world, NPCState npc)
+    {
+        var owner = npc;
+        if (npc.Mind.PendingExpulsionFrom is { } ownerId &&
+            !world.Entities.Npcs.TryGetValue(ownerId, out owner)) return;
+        if (owner.Mind.ExpulsionPhase >= FightPhase ||
+            owner.Mind.ExpulsionTargetNpcId is not { } targetId) return;
+        world.Entities.Npcs.TryGetValue(targetId, out var intruder);
+        if (owner.IsFighting || intruder?.IsFighting == true) return;
+        Finish(world, owner, intruder, "ControlTaken", protectIntruder: false);
+    }
+
     private static void Finish(WorldState world, NPCState owner, NPCState intruder,
         string reason, bool protectIntruder, bool keepIntruderGoal = false)
     {
@@ -440,7 +459,9 @@ public sealed class CampExpulsionSystem : ISimulationSystem
         {
             if (owner.Plan.Status == PlanStatus.Active || owner.Movement.IsMoving)
             {
-                PlanInterruption.TryAbort(world, owner, InterruptionCause.SceneInitiator, $"Expulsion ended: {reason}");
+                PlanInterruption.TryAbort(world, owner,
+                    reason == "ControlTaken" ? InterruptionCause.PlayerCommand : InterruptionCause.SceneInitiator,
+                    $"Expulsion ended: {reason}");
             }
             else if (owner.Plan.TargetJunctionId is { } reserved)
             {

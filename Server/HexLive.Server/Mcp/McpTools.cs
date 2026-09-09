@@ -888,11 +888,21 @@ public sealed class McpTools
             }
         }
 
+        var initialEventWatermark = host.ReadEvents(null, 1, npcId).Watermark;
         var accepted = _agents.TryAttach(npcId, owner, _currentWorldGeneration(), displayName,
             capabilities, ttl, out var snapshot, out var reason);
         if (accepted)
         {
             var observations = _agents.BindPerception(snapshot.AttachmentId, owner, _currentWorldGeneration());
+            var control = _agents.BindControl(snapshot.AttachmentId, owner, _currentWorldGeneration());
+            var ownAction = false;
+            foreach (var lease in _leases.Snapshot())
+            {
+                if (lease.npcId != npcId) continue;
+                if (lease.owner == owner) ownAction = true;
+                else if (control != null && lease.owner.StartsWith("ws:", StringComparison.Ordinal))
+                    _leases.Release(npcId, lease.owner);
+            }
             host.Read(world =>
             {
                 // A concurrent detach may have disposed this attachment after
@@ -900,21 +910,13 @@ public sealed class McpTools
                 if (observations != null &&
                     world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc) &&
                     observations.Capture(world, npc)) npc.Perception.Observations = observations;
+                if (control != null && world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var controlled))
+                    control.Bind(world, controlled, ownAction);
                 return true;
             });
-            var ownAction = false;
-            foreach (var lease in _leases.Snapshot())
-            {
-                if (lease.npcId != npcId) continue;
-                if (lease.owner == owner) ownAction = true;
-                else if (lease.owner.StartsWith("ws:", StringComparison.Ordinal))
-                    _leases.Release(npcId, lease.owner);
-            }
-            if (!ownAction)
-                host.SubmitManualCommand(new SetManualControlCommand(new EntityId(npcId), false));
         }
         isError = !accepted;
-        return accepted ? AttachmentJson(snapshot) : reason;
+        return accepted ? AttachmentJson(snapshot, initialEventWatermark) : reason;
     }
 
     private string AgentHeartbeat(JsonElement arguments, string owner, out bool isError)
@@ -1155,16 +1157,17 @@ public sealed class McpTools
         }
         if (_leases.Release(npcId, owner))
         {
-            host.SubmitManualCommand(new SetManualControlCommand(new EntityId(npcId), false));
+            AgentControlActions.Release(host, npcId);
         }
         isError = false;
         return Json(new { npcId, status = "Detached" });
     }
 
-    private static string AttachmentJson(AgentAttachmentSnapshot snapshot) =>
+    private static string AttachmentJson(AgentAttachmentSnapshot snapshot, long? eventWatermark = null) =>
         Json(new Dictionary<string, object?>
         {
             ["attachmentId"] = snapshot.AttachmentId,
+            ["eventWatermark"] = eventWatermark,
             ["npcId"] = snapshot.NpcId,
             ["displayName"] = snapshot.DisplayName,
             ["capabilities"] = snapshot.Capabilities.ToString(),
@@ -1245,6 +1248,12 @@ public sealed class McpTools
         // Лиз — это право говорить; ручной режим — это то, что мир слышит.
         // Второе без первого пустило бы к ней ИИ, первое без второго оставило
         // бы приказы без исполнителя, поэтому они всегда вместе.
+        host.Read(world =>
+        {
+            if (world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc) &&
+                npc.Mind.ExternalControl?.IsActive == false) npc.Mind.ExternalControl = null;
+            return true;
+        });
         var admission = host.SubmitManualCommand(
             new SetManualControlCommand(new EntityId(npcId), true));
 
@@ -1275,8 +1284,7 @@ public sealed class McpTools
                 : $"Колонисткой {npcId} владеет другой агент ({heldBy}).";
         }
 
-        var admission = host.SubmitManualCommand(
-            new SetManualControlCommand(new EntityId(npcId), false));
+        var admission = AgentControlActions.Release(host, npcId);
         _leases.Release(npcId, owner);
 
         isError = false;

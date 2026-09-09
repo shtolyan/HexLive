@@ -472,7 +472,18 @@ public sealed class NPCMind
     // команд. Единственное поле ручного режима, которое ПИШЕТСЯ В СЕЙВ (v28) —
     // остальное сценное, а «под чьим управлением персонаж» переживает выход
     // из игры так же, как то, во что она одета.
-    public bool ManualControl { get; set; }
+    private bool _playerManualControl;
+
+    // §160.1: all existing manual-mode guards read EFFECTIVE control. The
+    // setter still owns only the saved player switch; attachment never writes it.
+    public bool ManualControl
+    {
+        get => _playerManualControl || ExternalControl?.IsActive == true;
+        set => _playerManualControl = value;
+    }
+
+    internal bool PersistedManualControl => _playerManualControl;
+    public ExternalNpcControl ExternalControl { get; set; }
 
     // §121.11 (bug #294): ПОСТОЯННЫЙ темп ручных приказов этой девушки. Раньше
     // темп задавался жестом — двойной клик значил «бегом», — и одиночный клик

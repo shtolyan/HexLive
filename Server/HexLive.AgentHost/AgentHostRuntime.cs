@@ -167,7 +167,9 @@ public sealed partial class AgentHostRuntime
                 presence.Value ? "Ready" : "Sleeping", cancellationToken);
 
             long inboxWatermark = 0;
-            long? eventWatermark = null;
+            _incidents.Reset();
+            long? eventWatermark = attached.TryGetProperty("eventWatermark", out var initialMark) &&
+                initialMark.ValueKind == JsonValueKind.Number ? initialMark.GetInt64() : null;
             var nextModelHeartbeat = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
             var nextEventRead = DateTimeOffset.UtcNow;
             var retryAfter = DateTimeOffset.MinValue;
@@ -210,7 +212,7 @@ public sealed partial class AgentHostRuntime
                         inboxWatermark = readWatermark;
                 }
 
-                var critical = false;
+                var critical = _incidents.HasPending;
                 if (DateTimeOffset.UtcNow >= nextEventRead)
                 {
                     var events = await mcp.CallToolAsync("read_events", new
@@ -221,7 +223,8 @@ public sealed partial class AgentHostRuntime
                     }, cancellationToken).ConfigureAwait(false);
                     if (events.TryGetProperty("watermark", out var eventMark))
                         eventWatermark = eventMark.GetInt64();
-                    critical = ContainsCriticalEvent(events);
+                    _incidents.Observe(events);
+                    critical = ContainsCriticalEvent(events) || _incidents.HasPending;
                     nextEventRead = DateTimeOffset.UtcNow.AddSeconds(2);
                 }
 
@@ -392,9 +395,12 @@ public sealed partial class AgentHostRuntime
                 .ConfigureAwait(false);
             Console.Error.WriteLine(
                 $"[memory] promptChars={memoryContext.CharacterCount} recalled={memoryContext.RecalledFragments}");
-            var physicalState = JsonSerializer.Serialize(state.EnumerateObject()
+            var incidentSnapshot = _incidents.Snapshot();
+            var physicalFields = state.EnumerateObject()
                 .Where(property => property.Name != "legacyAgentState")
-                .ToDictionary(property => property.Name, property => property.Value));
+                .ToDictionary(property => property.Name, property => property.Value);
+            physicalFields["observedIncidents"] = incidentSnapshot;
+            var physicalState = JsonSerializer.Serialize(physicalFields);
             stage = "model";
             var decision = await _providers.DecideAsync(trigger, physicalState,
                 memoryContext.Text + AgentPromptFiles.Text("AgentHostRuntime.04") + _actionContract +
@@ -418,6 +424,7 @@ public sealed partial class AgentHostRuntime
             stage = "commit";
             _outbox.Add(pending);
             ConsumePerception(state);
+            _incidents.Consume(incidentSnapshot);
             consumed = true; // durable result: never regenerate it because delivery failed
             await _memory.CommitTurnAsync(world, turnId, trigger, decision, cancellationToken)
                 .ConfigureAwait(false);

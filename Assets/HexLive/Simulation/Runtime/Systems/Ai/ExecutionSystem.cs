@@ -2179,6 +2179,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         CorpseMath.TakeSpoil(world, worldObject, spoil, source);
+        AgentIncidentNotifications.LootObject(world, npc, worldObject);
         npc.Inventory.Items.Add(spoil);
         worldObject.IsOccupied = false; // CurrentUser хранит id покойной и на теле, и на останках
 

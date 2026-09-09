@@ -154,6 +154,8 @@ public sealed partial class MashaMemoryStore
         bond.LastInteractionEpisodeId = world.EpisodeId;
         bond.LastInteractionTick = bond.LastVoiceTick;
         bond.LastInteractionUtc = DateTimeOffset.UtcNow;
-        bond.AwaitingReturnVoice = false;
+        // A request started before the observed return may finish afterwards.
+        // Completing it must not consume the next, genuinely new greeting.
+        if (world.Tick >= bond.LastReturnTick) bond.AwaitingReturnVoice = false;
     }
 }

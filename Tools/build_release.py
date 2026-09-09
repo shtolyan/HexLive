@@ -399,6 +399,9 @@ def ensure_development_signature(app_path: Path, release: bool) -> str:
     if removed_metadata:
         print(f"Удалены macOS metadata files из .app перед подписью: {removed_metadata}")
 
+    if not release:
+        subprocess.run([sys.executable, str(ROOT / "Tools/macos_signing.py"),
+                        "--configured-only", str(app_path)], check=True)
     valid, details = verify_code_signature(app_path)
     if valid:
         return "unity"

@@ -176,8 +176,14 @@ public sealed partial class AgentHostRuntime
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (heartbeatTask.IsFaulted)
+                // HttpClient timeouts complete an async heartbeat as Canceled, not
+                // Faulted. Its finally closes the presence gate; ignoring that
+                // completion would sleep forever instead of reattaching (§163.1).
+                if (heartbeatTask.IsCompleted)
+                {
                     await heartbeatTask.ConfigureAwait(false);
+                    throw new McpRequestException("McpHeartbeatStopped");
+                }
 
                 if (!presence.Value)
                 {
@@ -268,8 +274,11 @@ public sealed partial class AgentHostRuntime
             catch { }
             try
             {
-                await mcp.CallToolAsync("detach_agent", new { attachmentId }, CancellationToken.None)
-                    .ConfigureAwait(false);
+                // An expired session cannot own this attachment. Do not create
+                // a fresh anonymous session merely to detach the old one.
+                if (mcp.HasEstablishedSession)
+                    await mcp.CallToolAsync("detach_agent", new { attachmentId }, CancellationToken.None)
+                        .ConfigureAwait(false);
             }
             catch { /* attachment TTL is the hard fallback */ }
             _status.Write(!cancellationToken.IsCancellationRequested, "Detached", npcId,
@@ -469,6 +478,11 @@ public sealed partial class AgentHostRuntime
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             if (consumed) return true;
+            throw;
+        }
+        catch (McpSessionExpiredException)
+        {
+            // Reattach before publishing anything with the old attachment ID.
             throw;
         }
         catch (Exception ex)
@@ -698,7 +712,7 @@ public sealed partial class AgentHostRuntime
         }
         finally
         {
-            if (acquired && !_handoffActionLease) try
+            if (acquired && !_handoffActionLease && mcp.HasEstablishedSession) try
             {
                 await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None)
                     .ConfigureAwait(false);

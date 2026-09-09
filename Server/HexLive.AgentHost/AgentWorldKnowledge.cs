@@ -184,15 +184,29 @@ public sealed class AgentWorldKnowledge
 public sealed class KnowledgeAwareAgentProviders : IAgentProviders
 {
     private readonly IAgentProviders _inner;
-    private readonly McpClient _mcp;
+    private McpClient _mcp;
     private readonly AgentWorldKnowledge _knowledge;
 
     public KnowledgeAwareAgentProviders(IAgentProviders inner, McpClient mcp)
     {
         _inner = inner;
         _mcp = mcp;
-        _knowledge = new AgentWorldKnowledge((section, offset, token) =>
-            _mcp.CallToolAsync("read_spec", new { section, offset }, token));
+        _knowledge = new AgentWorldKnowledge(ReadSpecAsync);
+    }
+
+    private async Task<JsonElement> ReadSpecAsync(string section, int offset, CancellationToken token)
+    {
+        try { return await _mcp.CallToolAsync("read_spec", new { section, offset }, token); }
+        catch (McpSessionExpiredException)
+        {
+            token.ThrowIfCancellationRequested();
+            var expired = _mcp;
+            _mcp = expired.CreateFresh();
+            expired.Dispose();
+            // Only this read-only query is safe to retry. A fresh handshake
+            // failure escapes to the existing knowledge-unavailable backoff.
+            return await _mcp.CallToolAsync("read_spec", new { section, offset }, token);
+        }
     }
 
     public async Task<CompanionDecision> DecideAsync(string trigger, string stateJson,

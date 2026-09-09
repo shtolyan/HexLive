@@ -23,6 +23,7 @@ internal static class McpItemObservations
             if (!world.Entities.Objects.TryGetValue(new ObjectId(id), out var item)) continue;
             var row = Item(world, observer, item.DefinitionId, item.Owner?.Value ?? 0, item.OwnerFaction);
             row["objectId"] = id;
+            Clothing(row, world, observer, item.DefinitionId, item.Durability);
             if (item.DefinitionId == ContentIds.Bottle && WaterCollectorMath.IsParked(world, item))
             {
                 // Collector fill is fractional; ordinary ground bottles already store sips.
@@ -54,6 +55,7 @@ internal static class McpItemObservations
             var row = Item(world, observer, item.DefinitionId, item.OwnerId, null);
             // This is the existing manual-command list index, valid only for this snapshot.
             row["sourceIndex"] = index;
+            Clothing(row, world, observer, item.DefinitionId, item.Durability);
             PortableWater(row, item.DefinitionId, item.ResourceAmount, item.WaterKind);
             rows.Add(row);
         }
@@ -74,6 +76,19 @@ internal static class McpItemObservations
             ["ownerFaction"] = faction?.ToString(),
             ["sameCamp"] = faction.HasValue ? faction.Value == observer.Faction : null,
         };
+    }
+
+    // Same canonical taste and rounded condition shown by CharacterPanel.
+    // Uses each already visited physical instance, never an aggregate by definition.
+    private static void Clothing(Dictionary<string, object?> row, WorldState world,
+        NPCState observer, string definitionId, float durability)
+    {
+        if (!world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) ||
+            !definition.Layer.HasValue) return;
+        var condition = Math.Clamp(durability, 0f, 1f);
+        row["likingPercent"] = (int)MathF.Round(ItemAffinity.For(observer.Id.Value, definitionId) * 100f);
+        row["durability"] = condition;
+        row["conditionPercent"] = (int)MathF.Round(condition * 100f);
     }
 
     private static void PortableWater(

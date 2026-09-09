@@ -684,6 +684,8 @@ def main() -> int:
         raise RuntimeError(f"Release directory already exists; refusing to overwrite: {final_dir}")
 
     unity = find_unity(args.unity)
+    # §160: keep the native authorization bridge synchronized with its source.
+    subprocess.run([sys.executable, str(ROOT / "Tools" / "build_macos_permissions.py")], check=True)
     releases.mkdir(parents=True, exist_ok=True)
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     staging = releases / f"staging-v{version}-{stamp}-{os.getpid()}"

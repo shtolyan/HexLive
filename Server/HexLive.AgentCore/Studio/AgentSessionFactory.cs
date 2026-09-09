@@ -12,6 +12,10 @@ public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecut
         profile.Validate(); server.Validate();
         if (profile.ServerId != server.Id) throw new InvalidDataException("ProfileServerMismatch");
         var credential = await RequireSecret(server.CredentialId, token);
+        // Resolve every provider before attaching, including TTS before the first spoken reply.
+        var modelCredential = profile.Model.Provider == ModelProviderKind.Codex ? null :
+            await RequireSecret(profile.Model.IntegrationId, token);
+        var voiceCredential = profile.Voice == null ? null : await RequireSecret(profile.Voice.IntegrationId, token);
         var options = new AgentHostOptions
         {
             McpUri = server.McpEndpoint, McpToken = credential, PlayerClientId = server.PlayerClientId,
@@ -45,16 +49,16 @@ public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecut
         else
         {
             // Fail missing credentials before attaching; never fall back to a different account.
-            _ = await RequireSecret(profile.Model.IntegrationId, token);
             model = new HttpModelAdapter(profile.Model.Provider, profile.Model.IntegrationId,
-                t => RequireSecret(profile.Model.IntegrationId, t));
+                t => { t.ThrowIfCancellationRequested(); return Task.FromResult(modelCredential!); });
         }
         McpClient? knowledge = null;
         IAgentProviders? providers = null;
         try
         {
             IVoiceAdapter voice = profile.Voice == null ? new NoVoiceAdapter() :
-                new ElevenLabsVoiceAdapter(profile.Voice.IntegrationId, t => RequireSecret(profile.Voice.IntegrationId, t));
+                new ElevenLabsVoiceAdapter(profile.Voice.IntegrationId,
+                    t => { t.ThrowIfCancellationRequested(); return Task.FromResult(voiceCredential!); });
             var inner = new AgentProviders(options.ProviderOptions, model, profile.Model,
                 voice, profile.Voice ?? new VoiceSelection("none", "none", "none"));
             knowledge = new McpClient(options.ProviderOptions, mcpHandler);

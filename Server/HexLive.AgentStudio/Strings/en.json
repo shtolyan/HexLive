@@ -142,5 +142,6 @@
   "SavedIntent": "Saved intention",
   "SavedJournal": "Diary",
   "SavedActivityNotice": "Local history — saved intentions and diary, not a live session log.",
-  "StoppedNoRequests": "Stopped · no requests from Agent Studio"
+  "StoppedNoRequests": "Stopped · no requests from Agent Studio",
+  "InitializingCredentials": "Checking access to saved credentials… Allow system requests now; credentials will not be requested again during this session."
 }

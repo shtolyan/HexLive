@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.IO;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.UI
@@ -10,6 +11,10 @@ namespace HexLive.UnityPresentation.UI
 /// <summary>§161 OS-protected admin credentials. No PlayerPrefs or plaintext fallback.</summary>
 internal static class AdminCredentialStore
 {
+    private static readonly Dictionary<string, string> SessionValues = new();
+    private static readonly HashSet<string> SessionDenied = new();
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetSession() { SessionValues.Clear(); SessionDenied.Clear(); }
     private const string Security = "/System/Library/Frameworks/Security.framework/Security";
     [DllImport(Security)] private static extern int SecKeychainFindGenericPassword(IntPtr keychain, uint serviceLength, byte[] service,
         uint accountLength, byte[] account, out uint passwordLength, out IntPtr password, out IntPtr item);
@@ -27,6 +32,14 @@ internal static class AdminCredentialStore
     private static string Key(string server, string client)
     { using var sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(server + "\n" + client))).Replace("-", ""); }
     public static string Read(string server, string client)
+    {
+        var key = Key(server, client);
+        if (SessionDenied.Contains(key)) throw new IOException("CredentialAccessDeniedForSession");
+        if (SessionValues.TryGetValue(key, out var value)) return value;
+        try { value = ReadNative(server, client); SessionValues[key] = value; return value; }
+        catch { SessionDenied.Add(key); throw; }
+    }
+    private static string ReadNative(string server, string client)
     {
         var account = Encoding.UTF8.GetBytes(Key(server, client)); var service = Encoding.UTF8.GetBytes("HexLiveAdmin");
         if (Application.platform == RuntimePlatform.OSXPlayer || Application.platform == RuntimePlatform.OSXEditor)
@@ -46,6 +59,13 @@ internal static class AdminCredentialStore
         throw new PlatformNotSupportedException("CredentialStoreUnavailable");
     }
     public static void Write(string server, string client, string secret)
+    {
+        WriteNative(server, client, secret);
+        var key = Key(server, client);
+        SessionValues[key] = secret;
+        SessionDenied.Remove(key);
+    }
+    private static void WriteNative(string server, string client, string secret)
     {
         var account = Encoding.UTF8.GetBytes(Key(server, client)); var service = Encoding.UTF8.GetBytes("HexLiveAdmin"); var bytes = Encoding.UTF8.GetBytes(secret);
         if (Application.platform == RuntimePlatform.OSXPlayer || Application.platform == RuntimePlatform.OSXEditor)

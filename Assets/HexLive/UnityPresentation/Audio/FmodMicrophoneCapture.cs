@@ -39,6 +39,12 @@ namespace HexLive.UnityPresentation.Audio
         {
             error = string.Empty;
             if (_recording) return true;
+            // Requesting here would interrupt the conversation. Startup owns the OS prompt.
+            try
+            {
+                if (!MicrophonePermission.Granted) { error = "MicrophonePermissionDenied"; return false; }
+            }
+            catch (Exception) { error = "MicrophonePermissionUnavailable"; return false; }
             if (_owner != null && _owner != this) { error = "MicrophoneBusy"; return false; }
             var core = FMODUnity.RuntimeManager.CoreSystem;
             if (core.getRecordNumDrivers(out var drivers, out var connected) != FMOD.RESULT.OK ||

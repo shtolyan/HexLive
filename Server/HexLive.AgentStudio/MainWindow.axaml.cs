@@ -18,7 +18,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private readonly string _configurationRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HexLive", "AgentStudio");
     private StudioConfigurationStore? _configurationStore;
     private StudioConfigurationSnapshot? _configuration;
-    private readonly ISecretStore _secrets = new OperatingSystemSecretStore();
+    private readonly SessionSecretStore _secrets = new(new OperatingSystemSecretStore());
     private string _configurationStatus = "";
     public string ConfigurationStatus => _configurationStatus;
     private string _selectedName = "Agent Studio";
@@ -30,6 +30,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         InitializeAgentControls();
         Opened += async (_, _) =>
         {
+            IsEnabled = false;
             try
             {
                 _configurationStore = new(_configurationRoot);
@@ -38,12 +39,21 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     ? p with { DialogueStyleId = HexLive.AgentHost.DialogueStyles.DetectAuthoredWorkspace(p.Workspace) } : p).ToArray();
                 if (!migrated.SequenceEqual(_configuration.Configuration.Agents))
                     _configuration = await _configurationStore.SaveAsync(_configuration, _configuration.Configuration with { Agents = migrated });
+                SetConfigurationStatus(Strings["InitializingCredentials"]);
+                var ids = _configuration.Configuration.Servers.Select(s => s.CredentialId)
+                    .Concat(_configuration.Configuration.Agents.Where(p => p.Model.Provider != ModelProviderKind.Codex)
+                        .Select(p => p.Model.IntegrationId))
+                    .Concat(_configuration.Configuration.Agents.Where(p => p.Voice != null).Select(p => p.Voice!.IntegrationId))
+                    .Concat(new[] { "model.OpenAI", "model.Grok", "model.Claude", "model.DeepSeek", "voice.ElevenLabs" });
+                var accessReady = await _secrets.InitializeAsync(ids, default);
+                SetConfigurationStatus(accessReady ? "" : Strings["CredentialAccessDenied"]);
                 foreach (var profile in _configuration.Configuration.Agents) Profiles.Add(profile);
                 foreach (var server in _configuration.Configuration.Servers) Servers.Add(server);
                 if (Profiles.Count > 0) this.FindControl<ListBox>("ProfilesList")!.SelectedItem = Profiles[0];
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Text.Json.JsonException or ArgumentException or InvalidOperationException)
             { SetConfigurationStatus(Strings["ConfigurationError"]); }
+            finally { IsEnabled = true; }
         };
     }
     private void SelectProfile(object? sender, SelectionChangedEventArgs args)

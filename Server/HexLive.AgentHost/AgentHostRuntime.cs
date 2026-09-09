@@ -43,6 +43,7 @@ public sealed partial class AgentHostRuntime
     private CancellationTokenSource? _actionStop;
     private Task _actionTask = Task.CompletedTask;
     private volatile bool _handoffActionLease;
+    private volatile bool _actionAwaitingContinuation;
     private string _actionContract = string.Empty;
     private string _actionFeedback = AgentPromptFiles.Text("AgentHostRuntime.01");
 
@@ -325,6 +326,12 @@ public sealed partial class AgentHostRuntime
         CancellationToken attachmentCancellation, string? messageTurnId = null,
         string senderId = "", string[]? messageIds = null)
     {
+        // §160 / #374: a committed physical command owns ordinary autonomous
+        // turns until it ends. Dialogue and critical events may still request
+        // an explicit replacement; a carried patient needs the next leg chosen.
+        if (!CanStartActionTurn(trigger))
+            return true;
+
         var turnId = messageTurnId ?? Guid.NewGuid().ToString("N");
         var consumed = false;
         var stage = "state";
@@ -420,7 +427,7 @@ public sealed partial class AgentHostRuntime
                 _lastSpeech = decision.Speech.Trim();
             }
             cancellationToken.ThrowIfCancellationRequested();
-            if (decision.Action != null)
+            if (decision.Action != null && CanStartActionTurn(trigger))
             {
                 // Transfer the same owner's lease directly to the next command.
                 // Releasing it here returns to AI and drops a carried patient.
@@ -591,6 +598,9 @@ public sealed partial class AgentHostRuntime
         }, cancellationToken).ConfigureAwait(false);
     }
 
+    private bool CanStartActionTurn(string trigger) =>
+        trigger != "heartbeat" || _actionTask.IsCompleted || _actionAwaitingContinuation;
+
     private async Task PerformActionAsync(McpClient mcp, int npcId,
         CompanionAction action, CancellationToken cancellationToken)
     {
@@ -629,9 +639,14 @@ public sealed partial class AgentHostRuntime
                         Volatile.Write(ref _actionFeedback, AgentPromptFiles.Text("AgentHostRuntime.11"));
                         break;
                     }
+                    _actionAwaitingContinuation = true;
                     Volatile.Write(ref _actionFeedback, AgentPromptFiles.Text("AgentHostRuntime.12"));
                 }
-                else holdingSince = null;
+                else
+                {
+                    holdingSince = null;
+                    _actionAwaitingContinuation = false;
+                }
                 if (DateTimeOffset.UtcNow >= renew)
                 {
                     await mcp.CallToolAsync("acquire_npc_control", new
@@ -657,6 +672,7 @@ public sealed partial class AgentHostRuntime
     private async Task PerformActionSafelyAsync(McpClient mcp, int npcId,
         CompanionAction action, CancellationToken cancellationToken)
     {
+        _actionAwaitingContinuation = false;
         try { await PerformActionAsync(mcp, npcId, action, cancellationToken); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         { Volatile.Write(ref _actionFeedback, action.Tool + AgentPromptFiles.Text("AgentHostRuntime.13")); }
@@ -666,6 +682,7 @@ public sealed partial class AgentHostRuntime
             Volatile.Write(ref _actionFeedback, action.Tool + ": " + code + AgentPromptFiles.Text("AgentHostRuntime.14"));
             Console.Error.WriteLine($"[action] tool={action.Tool} result={code}");
         }
+        finally { _actionAwaitingContinuation = false; }
     }
 
     private async Task StopActionAsync(bool handoffLease = false)

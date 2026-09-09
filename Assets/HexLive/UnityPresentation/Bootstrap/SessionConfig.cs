@@ -50,12 +50,23 @@ public static class SessionConfig
     // "<baseMs>:<jitterMs>[:seed]"; без аргумента симулятора нет вовсе.
     private const string NetSimArgument = "-hexlive-netsim";
     private const string ClientIdPref = "HexLive.RemoteClientId";
+    // §121.9: явный, ВИДИМЫЙ источник личности этого клиента, главнее реестра.
+    // PlayerPrefs (реестр Windows / defaults на mac) непрозрачен и его легко
+    // оставить в чужом значении руками или сторонним инструментом — тогда клиент
+    // молча играет за не тех NPC. Аргумент/файл делают id тем, что можно открыть
+    // глазами и положить в репозиторий рядом со сборкой.
+    //   -hexlive-client-id <32-hex>            — на один запуск;
+    //   hexlive-client-id.txt рядом с exe      — на установку.
+    // Оба нормализуются как канонический GUID "N"; кривое значение игнорируется.
+    private const string ClientIdArgument = "-hexlive-client-id";
+    private const string ClientIdFileName = "hexlive-client-id.txt";
 
     private static bool _resolved;
     private static SimulationMode _mode = SimulationMode.Local;
     private static string? _serverUrl;
     private static string? _controlToken;
     private static (double BaseMs, double JitterMs, int Seed)? _netSim;
+    private static string? _forcedClientId;
 
     public static event Action? ServerChanged;
 
@@ -67,6 +78,7 @@ public static class SessionConfig
         _serverUrl = null;
         _controlToken = null;
         _netSim = null;
+        _forcedClientId = null;
         ServerChanged = null;
     }
 
@@ -118,6 +130,26 @@ public static class SessionConfig
     {
         get
         {
+            Resolve();
+
+            // §121.9: явный источник (аргумент или файл рядом с игрой) главнее
+            // непрозрачного PlayerPrefs. Если он задан — им же приводим и реестр
+            // в согласие, чтобы читатели реестра (Agent Studio) видели тот же id,
+            // и играем именно за него. Это и есть «взять фиксированный id и
+            // загрузиться», без зависимости от того, что лежит в реестре сейчас.
+            var forced = _forcedClientId ?? ReadClientIdFile();
+            if (!string.IsNullOrEmpty(forced))
+            {
+                if (!string.Equals(PlayerPrefs.GetString(ClientIdPref, string.Empty),
+                        forced, StringComparison.Ordinal))
+                {
+                    PlayerPrefs.SetString(ClientIdPref, forced);
+                    PlayerPrefs.Save();
+                }
+
+                return forced!;
+            }
+
             var existing = PlayerPrefs.GetString(ClientIdPref, string.Empty);
             if (!string.IsNullOrEmpty(existing))
             {
@@ -129,6 +161,46 @@ public static class SessionConfig
             PlayerPrefs.Save();
             return fresh;
         }
+    }
+
+    /// <summary>
+    /// §121.9: id из файла <c>hexlive-client-id.txt</c> рядом с игрой (папка над
+    /// <c>*_Data</c>, где лежит exe), либо null — файла нет / значение кривое.
+    /// Видимый на диске источник личности установки; в редакторе смотрит в корень
+    /// проекта, где его обычно нет, и тихо отдаёт null.
+    /// </summary>
+    private static string? ReadClientIdFile()
+    {
+        try
+        {
+            var root = System.IO.Directory.GetParent(Application.dataPath)?.FullName;
+            if (string.IsNullOrEmpty(root))
+            {
+                return null;
+            }
+
+            var path = System.IO.Path.Combine(root!, ClientIdFileName);
+            return System.IO.File.Exists(path)
+                ? NormalizeClientId(System.IO.File.ReadAllText(path))
+                : null;
+        }
+        catch (Exception)
+        {
+            // Нечитаемый/недоступный файл — не повод падать: молча к PlayerPrefs.
+            return null;
+        }
+    }
+
+    // Канонический 32-символьный GUID "N" или null. Пробелы/переводы строк из
+    // файла и регистр значения не мешают; всё, что не GUID, — игнорируется.
+    private static string? NormalizeClientId(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        return Guid.TryParseExact(raw.Trim(), "N", out var id) ? id.ToString("N") : null;
     }
 
     /// <summary>
@@ -211,6 +283,20 @@ public static class SessionConfig
                 string.Equals(args[i], TokenArgument, StringComparison.OrdinalIgnoreCase))
             {
                 _controlToken = ResolveToken(args[i + 1]);
+                continue;
+            }
+
+            if (i + 1 < args.Length &&
+                string.Equals(args[i], ClientIdArgument, StringComparison.OrdinalIgnoreCase))
+            {
+                // §121.9: принудительный id этого запуска. Кривое значение
+                // отбрасывается (null) — тогда сработает файл/реестр.
+                _forcedClientId = NormalizeClientId(args[i + 1]);
+                if (_forcedClientId != null)
+                {
+                    Debug.Log($"[HexLive] Client id forced by {ClientIdArgument}: {_forcedClientId}");
+                }
+
                 continue;
             }
 

@@ -43,8 +43,21 @@ public sealed class CorpsePresentationRuntimeTests
     {
         // A new test scene has no menu selection. Pin the source explicitly in
         // the Editor invocation; never silently use the default NYC registry.
-        Assert.That(ContentEndpoint.Current, Is.EqualTo(SingaporeAssets),
-            "Launch this regression with -hexlive-assets " + SingaporeAssets);
+        var validatingLocalContent = Array.IndexOf(System.Environment.GetCommandLineArgs(),
+            "-hexlive-local-content-validation") >= 0;
+        if (validatingLocalContent)
+        {
+            Assert.That(Uri.TryCreate(ContentEndpoint.Current, UriKind.Absolute, out var endpoint) &&
+                endpoint.Scheme == Uri.UriSchemeHttp && endpoint.IsLoopback &&
+                endpoint.AbsolutePath == "/api/assets/v1" && endpoint.UserInfo.Length == 0 &&
+                endpoint.Query.Length == 0 && endpoint.Fragment.Length == 0, Is.True,
+                "Local content validation requires the explicit loopback HTTP assets proxy.");
+        }
+        else
+        {
+            Assert.That(ContentEndpoint.Current, Is.EqualTo(SingaporeAssets),
+                "Launch this regression with -hexlive-assets " + SingaporeAssets);
+        }
         var service = ContentAssetService.Instance;
         var refreshed = false;
         void OnRefreshed() => refreshed = true;
@@ -60,6 +73,25 @@ public sealed class CorpsePresentationRuntimeTests
             Assert.That(service.TryGetRecord("actor", "Molly", out _), Is.True);
         }
         finally { service.RegistryRefreshed -= OnRefreshed; }
+
+        if (validatingLocalContent)
+        {
+            // Exercise the freshly built candidate through the ordinary loader,
+            // never by injecting a controller/clip directly into the fixture.
+            NpcAnimSet animSet;
+            var deadline = Time.realtimeSinceStartup + 70f;
+            do
+            {
+                animSet = AtomicResources.Load<NpcAnimSet>("HexLive/NpcAnimSet");
+                if (animSet != null) break;
+                yield return null;
+            } while (Time.realtimeSinceStartup < deadline);
+            Assert.That(animSet, Is.Not.Null, "Candidate animation bundle did not load.");
+            Assert.That(animSet.sleep, Has.Length.EqualTo(2));
+            Assert.That(animSet.sleep[1], Is.Not.Null);
+            Assert.That(animSet.sleep[1].name, Is.EqualTo("Sleep Mirrored"),
+                "An old cached Singapore animation set is not candidate validation.");
+        }
     }
 
     [UnityTest, Explicit(ContentRequired)]

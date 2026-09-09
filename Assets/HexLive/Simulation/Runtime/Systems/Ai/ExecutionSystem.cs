@@ -355,6 +355,20 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §52.3 / #378: capacity may change after admission. Do not play
+            // a doomed pickup, including an old save left Active/Completed by
+            // the former completion refusal. Stacks and allowed replacements
+            // use the same predicate as the ordinary planner's availability.
+            if (npc.Execution.Status is ExecutionStatus.None or ExecutionStatus.Completed &&
+                GetPlannedInteractionType(npc.Plan) == InteractionType.PickUp &&
+                IsDirectInventoryPickup(npc, worldObject, definition) &&
+                !InventoryMath.CanMakeRoomForGoal(
+                    world, npc, npc.Plan.Goal, worldObject.DefinitionId))
+            {
+                FailPickupCapacity(world, npc, worldObject);
+                continue;
+            }
+
             if (npc.Execution.Status == ExecutionStatus.None)
             {
                 // Spec 26.3 r2: a Blocked route must FAIL the plan, not fall
@@ -1737,15 +1751,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         else if (!InventoryMath.MakeRoomForGoal(
             world, npc, npc.Plan.Goal, worldObject.DefinitionId))
         {
-            worldObject.IsOccupied = false;
-            worldObject.CurrentUser = null;
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "PickupBlocked",
-                    $"Def={worldObject.DefinitionId} Obj={worldObject.Id.Value} " +
-                    $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
-                    $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
-            }
+            FailPickupCapacity(world, npc, worldObject);
             return false;
         }
         else
@@ -1790,6 +1796,46 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         return true;
+    }
+
+    // These completion adapters transfer contents or wear the result, rather
+    // than inserting the target object's definition into the ordinary pack.
+    private static bool IsDirectInventoryPickup(
+        NPCState npc, WorldObjectState worldObject, ObjectDefinition definition) =>
+        !definition.HasTag("Campfire") &&
+        !(npc.Plan.Goal == GoalType.CraftLeather &&
+          worldObject.DefinitionId == ContentIds.LeatherPants) &&
+        !(RecipeCatalog.UsesPersistentProject(npc.Plan.Goal) &&
+          worldObject.DefinitionId != RecipeCatalog.OutputOf(npc.Plan.Goal) &&
+          worldObject.Contents.Count > 0) &&
+        !(npc.Plan.Goal == GoalType.GatherTools &&
+          worldObject.Contents.Count > 0 && !definition.HasTag("Tool"));
+
+    private static void FailPickupCapacity(
+        WorldState world, NPCState npc, WorldObjectState worldObject)
+    {
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "PickupBlocked",
+                $"Def={worldObject.DefinitionId} Obj={worldObject.Id.Value} " +
+                $"Inventory=[{string.Join(",", npc.Inventory.Items)}] " +
+                $"({npc.Inventory.UsedSlots}/{npc.Inventory.Capacity})");
+        }
+
+        // Completion has already set Execution=Completed, so Abort's ordinary
+        // InProgress occupancy cleanup cannot release this claim for us.
+        if (worldObject.CurrentUser == npc.Id)
+        {
+            worldObject.IsOccupied = false;
+            worldObject.CurrentUser = null;
+        }
+
+        if (PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                $"Pickup inventory full: {worldObject.DefinitionId}"))
+        {
+            npc.Plan.Status = PlanStatus.Failed;
+            npc.Mind.CurrentGoal = GoalType.None;
+        }
     }
 
     internal static bool CompleteDress(

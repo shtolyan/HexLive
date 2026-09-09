@@ -267,7 +267,7 @@ public sealed class LocalEngineBackend : ISimulationBackend
         return false;
     }
     public void SendAgentText(int correlationId, EntityId npc, string messageId,
-        string language, string text) { }
+        string language, string text, string expectedAttachmentId) { }
     public bool TryTakeAgentTextResult(out AgentTextResultFrame result)
     {
         result = default;

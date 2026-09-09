@@ -674,6 +674,7 @@ public sealed partial class PlanningSystem
         }
 
         approachJunction = approach;
+        npc.Plan.RequestedTalkTopic = null;
         npc.Plan.TargetAgentId = targetId;
         npc.Plan.TargetJunctionId = approach;
         npc.Plan.TargetTile = partnerTile;

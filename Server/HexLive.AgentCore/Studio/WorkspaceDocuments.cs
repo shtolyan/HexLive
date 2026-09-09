@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using HexLive.AgentHost;
 
 namespace HexLive.AgentCore.Studio;
 
@@ -51,6 +52,8 @@ public sealed class WorkspaceDocuments
     public async Task<WorkspaceDocument> SaveAsync(WorkspaceDocument original, string text,
         CancellationToken token = default)
     {
+        text = MemoryDocumentEdits.ForEditor(original.RelativePath, MemoryDocumentEdits.NormalizeEdit(original.Text, text));
+        MemoryDocumentEdits.Validate(original.RelativePath, text);
         if (Encoding.UTF8.GetByteCount(text) > 1024 * 1024) throw new InvalidDataException("DocumentTooLarge");
         await _gate.WaitAsync(token);
         try
@@ -73,6 +76,8 @@ public sealed class WorkspaceDocuments
                 current.Text, token);
             Protect(backup);
             var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            string? pending = null;
+            var committed = false;
             try
             {
                 await File.WriteAllTextAsync(temporary, text, token);
@@ -80,9 +85,15 @@ public sealed class WorkspaceDocuments
                 // Catch ordinary external edits that happened while writing the backup.
                 if ((await ReadUnlockedAsync(original.RelativePath, token)).Revision != current.Revision)
                     throw new IOException("DocumentVersionConflict");
+                pending = MemoryDocumentEdits.Prepare(_root, original.RelativePath, current.Text, text);
                 File.Move(temporary, path, overwrite: true);
+                committed = true;
             }
-            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            finally
+            {
+                if (File.Exists(temporary)) File.Delete(temporary);
+                if (!committed && pending != null) File.Delete(pending);
+            }
             return await ReadUnlockedAsync(original.RelativePath, token);
         }
         finally { _gate.Release(); }

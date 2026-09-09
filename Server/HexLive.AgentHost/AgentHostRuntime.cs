@@ -43,8 +43,10 @@ public sealed partial class AgentHostRuntime
     private CancellationTokenSource? _actionStop;
     private Task _actionTask = Task.CompletedTask;
     private volatile bool _handoffActionLease;
+    private volatile bool _actionAwaitingContinuation;
     private string _actionContract = string.Empty;
-    private string _actionFeedback = "Физических приказов в этой сессии ещё не было.";
+    private AgentActionContract? _actionArguments;
+    private string _actionFeedback = AgentPromptFiles.Text("AgentHostRuntime.01");
 
     public AgentHostRuntime(AgentHostOptions options, IAgentProviders? providers = null,
         HttpMessageHandler? mcpHandler = null)
@@ -137,7 +139,8 @@ public sealed partial class AgentHostRuntime
         _pinnedNpcId = npcId;
         var catalog = await mcp.ReadToolCatalogAsync(cancellationToken);
         _actionContract = BuildActionContract(catalog);
-        _actionFeedback = "Новая MCP-сессия: результаты прежних приказов неизвестны.";
+        _actionArguments = new AgentActionContract(catalog);
+        _actionFeedback = AgentPromptFiles.Text("AgentHostRuntime.02");
         var attached = await mcp.CallToolAsync("attach_agent", new
         {
             npcId,
@@ -201,7 +204,11 @@ public sealed partial class AgentHostRuntime
                 var readWatermark = inbox.TryGetProperty("watermark", out var watermark)
                     ? watermark.GetInt64() : inboxWatermark;
                 var playerText = MergePlayerMessages(inbox);
-                if (playerText.Length == 0) inboxWatermark = readWatermark;
+                if (playerText.Length == 0 && readWatermark > inboxWatermark)
+                {
+                    if (await AcknowledgeInboxSafelyAsync(mcp, attachmentId, readWatermark, cancellationToken))
+                        inboxWatermark = readWatermark;
+                }
 
                 var critical = false;
                 if (DateTimeOffset.UtcNow >= nextEventRead)
@@ -231,8 +238,12 @@ public sealed partial class AgentHostRuntime
                             turnStop.Token, cancellationToken,
                             playerText.Length > 0 ? VoiceTurnId(attachmentId, inbox) : null,
                             SenderOf(inbox), MessageIdsOf(inbox)).ConfigureAwait(false);
-                        if (consumed) inboxWatermark = readWatermark;
-                        else retryAfter = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
+                        if (consumed && readWatermark > inboxWatermark)
+                        {
+                            if (await AcknowledgeInboxSafelyAsync(mcp, attachmentId, readWatermark, cancellationToken))
+                                inboxWatermark = readWatermark;
+                        }
+                        else if (!consumed) retryAfter = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && !presence.Value)
                     { /* world paused: do not start another paid operation */ }
@@ -325,6 +336,12 @@ public sealed partial class AgentHostRuntime
         CancellationToken attachmentCancellation, string? messageTurnId = null,
         string senderId = "", string[]? messageIds = null)
     {
+        // §160 / #374: a committed physical command owns ordinary autonomous
+        // turns until it ends. Dialogue and critical events may still request
+        // an explicit replacement; a carried patient needs the next leg chosen.
+        if (!CanStartActionTurn(trigger))
+            return true;
+
         var turnId = messageTurnId ?? Guid.NewGuid().ToString("N");
         var consumed = false;
         var stage = "state";
@@ -340,7 +357,7 @@ public sealed partial class AgentHostRuntime
                 await mcp.CallToolAsync("commit_agent_turn", new
                 {
                     attachmentId, turnId = "body-" + Guid.NewGuid().ToString("N"), reaction = "None",
-                    intentSummary = "Без сознания. Реплики ожидают пробуждения.",
+                    intentSummary = AgentPromptFiles.Text("AgentHostRuntime.03"),
                 }, cancellationToken);
                 await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
                 _status.Write(true, "Ready", npcId, true, true);
@@ -361,7 +378,7 @@ public sealed partial class AgentHostRuntime
             if (messageTurnId != null &&
                 (await _memory.SnapshotAsync(cancellationToken)).AppliedTurnIds.Contains(turnId))
             {
-                Console.Error.WriteLine($"[turn] id={turnId} trigger={trigger} result=duplicate-skipped");
+                Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} result=duplicate-skipped");
                 return true;
             }
             await ImportLegacyStateAsync(world, state, cancellationToken).ConfigureAwait(false);
@@ -380,11 +397,11 @@ public sealed partial class AgentHostRuntime
                 .ToDictionary(property => property.Name, property => property.Value));
             stage = "model";
             var decision = await _providers.DecideAsync(trigger, physicalState,
-                memoryContext.Text + "\nДопустимые arguments (npcId подставляется автоматически):\n" + _actionContract +
-                "\nРезультат последнего физического приказа (не новая просьба):\n" +
+                memoryContext.Text + AgentPromptFiles.Text("AgentHostRuntime.04") + _actionContract +
+                AgentPromptFiles.Text("AgentHostRuntime.05") +
                 Volatile.Read(ref _actionFeedback) +
-                "\nПри отказе исправь причину; не обещай выполненное лечение до подтверждения состоянием. " +
-                "TreatSelf — перевязка готовым бинтом; treat_limbs — шина/протез, не замена бинта.",
+                AgentPromptFiles.Text("AgentHostRuntime.06") +
+                AgentPromptFiles.Text("AgentHostRuntime.07"),
                 playerText, Recent.ToArray(), cancellationToken)
                 .ConfigureAwait(false);
 
@@ -409,7 +426,7 @@ public sealed partial class AgentHostRuntime
             _outbox.Remove(turnId);
             LastIntentSummary = decision.IntentSummary;
 
-            if (playerText.Length > 0) Remember("Игрок: " + playerText);
+            if (playerText.Length > 0) Remember(AgentPromptFiles.Text("AgentHostRuntime.08") + playerText);
             if (decision.Speech.Length > 0)
             {
                 stage = "speech";
@@ -420,17 +437,25 @@ public sealed partial class AgentHostRuntime
                 _lastSpeech = decision.Speech.Trim();
             }
             cancellationToken.ThrowIfCancellationRequested();
-            if (decision.Action != null)
+            if (decision.Action != null && CanStartActionTurn(trigger))
             {
+                try { await ValidateActionAsync(mcp, npcId, decision.Action, cancellationToken); }
+                catch (AgentActionValidationException ex)
+                {
+                    ReportAction(decision.Action.Tool, turnId, ex.ReasonCode);
+                    await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
+                    _status.Write(true, "Ready", npcId, true, true);
+                    return true; // Keep the existing physical action and consume this rejected decision.
+                }
                 // Transfer the same owner's lease directly to the next command.
                 // Releasing it here returns to AI and drops a carried patient.
                 await StopActionAsync(handoffLease: true).ConfigureAwait(false);
                 _actionStop = CancellationTokenSource.CreateLinkedTokenSource(attachmentCancellation);
-                _actionTask = PerformActionSafelyAsync(mcp, npcId, decision.Action, _actionStop.Token);
+                _actionTask = PerformActionSafelyAsync(mcp, npcId, decision.Action, _actionStop.Token, turnId);
             }
             await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
             _status.Write(true, "Ready", npcId, true, true);
-            Console.Error.WriteLine($"[turn] id={turnId} trigger={trigger} result=committed");
+            Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} result=committed");
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -440,7 +465,7 @@ public sealed partial class AgentHostRuntime
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[turn] id={turnId} trigger={trigger} stage={stage} consumed={consumed} error={ex.GetType().Name}");
+            Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} stage={stage} consumed={consumed} error={ex.GetType().Name}");
             _status.Write(true, "Error", npcId, true, true, ex.GetType().Name);
             try
             {
@@ -488,6 +513,7 @@ public sealed partial class AgentHostRuntime
             attachmentId,
             turnId = item.TurnId,
             reaction = item.Decision.Reaction,
+            voiceTurn = string.Equals(item.Trigger, "voice", StringComparison.Ordinal),
             intentSummary = item.Decision.IntentSummary,
             relationView = RelationView(archive, item.World.SpeakerKey),
             journalEntry = journal,
@@ -562,7 +588,7 @@ public sealed partial class AgentHostRuntime
             attachmentId,
             utteranceId,
             turnId,
-            language = "ru",
+            language = AgentConversationLanguage.SpeechTag(decision.Speech),
             text = decision.Speech,
             emotion = decision.Emotion,
             delivery = direct ? "player_reply" : "world",
@@ -591,20 +617,31 @@ public sealed partial class AgentHostRuntime
         }, cancellationToken).ConfigureAwait(false);
     }
 
+    private bool CanStartActionTurn(string trigger) =>
+        trigger != "heartbeat" || _actionTask.IsCompleted || _actionAwaitingContinuation;
+
     private async Task PerformActionAsync(McpClient mcp, int npcId,
-        CompanionAction action, CancellationToken cancellationToken)
+        CompanionAction action, CancellationToken cancellationToken, string turnId)
     {
+        var arguments = await ValidateActionAsync(mcp, npcId, action, cancellationToken);
+        var acquired = false;
         try
         {
             await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 },
                 cancellationToken).ConfigureAwait(false);
-            var arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
-                                action.Arguments.GetRawText()) ?? new();
-            using var npcDocument = JsonDocument.Parse(
-                npcId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            arguments["npcId"] = npcDocument.RootElement.Clone();
-            await mcp.CallToolAsync(action.Tool, arguments, cancellationToken).ConfigureAwait(false);
-            Volatile.Write(ref _actionFeedback, action.Tool + ": Accepted — приказ принят, выполнение ещё не подтверждено.");
+            acquired = true;
+            var outcome = new AgentActionOutcome(npcId,
+                await mcp.CallToolAsync("read_events", new { npcId }, cancellationToken).ConfigureAwait(false));
+            var result = await mcp.CallToolAsync(action.Tool, arguments, cancellationToken).ConfigureAwait(false);
+            if ((result.TryGetProperty("accepted", out var accepted) && accepted.ValueKind == JsonValueKind.False) ||
+                (result.TryGetProperty("status", out var rejected) && rejected.GetString() == "Rejected"))
+                throw new McpToolRejectedException(result.GetRawText());
+            if (result.TryGetProperty("status", out var status) && status.GetString() == "Completed")
+            {
+                ReportAction(action.Tool, turnId, "Completed");
+                return;
+            }
+            ReportAction(action.Tool, turnId, "Accepted");
 
             var renew = DateTimeOffset.UtcNow.AddSeconds(9);
             DateTimeOffset? holdingSince = null;
@@ -613,11 +650,14 @@ public sealed partial class AgentHostRuntime
                 await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
                 var list = await mcp.CallToolAsync("list_colonists", new { }, cancellationToken)
                     .ConfigureAwait(false);
+                outcome.Observe(await mcp.CallToolAsync("read_events", new
+                    { npcId, sinceSeq = outcome.Watermark, limit = 500 }, cancellationToken).ConfigureAwait(false));
                 if (!HasActivePlan(list, npcId))
                 {
                     if (!HasCarriedPerson(list, npcId))
                     {
-                        Volatile.Write(ref _actionFeedback, action.Tool + ": PlanEnded — план закончился; успех проверь по состоянию, это не подтверждение результата.");
+                        if (outcome.Result == null && outcome.HasMore) continue;
+                        ReportAction(action.Tool, turnId, outcome.Result ?? PlanResult(list, npcId));
                         break;
                     }
                     // Pickup/movement completion is not the end of transport.
@@ -626,12 +666,17 @@ public sealed partial class AgentHostRuntime
                     holdingSince ??= DateTimeOffset.UtcNow;
                     if (DateTimeOffset.UtcNow - holdingSince.Value >= TimeSpan.FromSeconds(120))
                     {
-                        Volatile.Write(ref _actionFeedback, "CarryContinuationTimeout — 120 секунд без продолжения переноски; безопасно возвращаю управление AI.");
+                        ReportAction(action.Tool, turnId, "CarryContinuationTimeout");
                         break;
                     }
-                    Volatile.Write(ref _actionFeedback, "HoldingPerson — человек на руках. Выбери move_to к нужному лагерю, put_person_in_bed или put_down_person; не поднимай повторно.");
+                    _actionAwaitingContinuation = true;
+                    ReportAction(action.Tool, turnId, "AwaitingCarryContinuation");
                 }
-                else holdingSince = null;
+                else
+                {
+                    holdingSince = null;
+                    _actionAwaitingContinuation = false;
+                }
                 if (DateTimeOffset.UtcNow >= renew)
                 {
                     await mcp.CallToolAsync("acquire_npc_control", new
@@ -645,7 +690,7 @@ public sealed partial class AgentHostRuntime
         }
         finally
         {
-            if (!_handoffActionLease) try
+            if (acquired && !_handoffActionLease) try
             {
                 await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None)
                     .ConfigureAwait(false);
@@ -655,17 +700,60 @@ public sealed partial class AgentHostRuntime
     }
 
     private async Task PerformActionSafelyAsync(McpClient mcp, int npcId,
-        CompanionAction action, CancellationToken cancellationToken)
+        CompanionAction action, CancellationToken cancellationToken, string turnId)
     {
-        try { await PerformActionAsync(mcp, npcId, action, cancellationToken); }
+        _actionAwaitingContinuation = false;
+        try { await PerformActionAsync(mcp, npcId, action, cancellationToken, turnId); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        { Volatile.Write(ref _actionFeedback, action.Tool + ": Cancelled — приказ прерван, не считай его выполненным."); }
+        { ReportAction(action.Tool, turnId, "Cancelled"); }
         catch (Exception ex)
         {
-            var code = ex is McpToolRejectedException rejection ? rejection.ReasonCode : ex.GetType().Name;
-            Volatile.Write(ref _actionFeedback, action.Tool + ": " + code + " — действие не подтверждено. Проверь аргументы и необходимые припасы.");
-            Console.Error.WriteLine($"[action] tool={action.Tool} result={code}");
+            var code = ex switch
+            {
+                AgentActionValidationException validation => validation.ReasonCode,
+                McpRequestException failure => failure.ReasonCode,
+                OperationCanceledException => "McpTimeout",
+                HttpRequestException => "McpTransportError",
+                JsonException => "McpInvalidResponse",
+                _ => "ActionFailed"
+            };
+            ReportAction(action.Tool, turnId, code);
         }
+        finally { _actionAwaitingContinuation = false; }
+    }
+
+    private async Task<Dictionary<string, JsonElement>> ValidateActionAsync(McpClient mcp, int npcId,
+        CompanionAction action, CancellationToken token)
+    {
+        _actionArguments ??= new AgentActionContract(await mcp.ReadToolCatalogAsync(token));
+        return _actionArguments.BindAndValidate(action, npcId);
+    }
+
+    private void ReportAction(string tool, string turnId, string code)
+    {
+        // All three fields are machine identifiers; never include arguments or exception messages.
+        var safeTool = AgentProviders.IsAllowedTool(tool) ? tool : "unknown";
+        var correlation = ActionCorrelation(turnId);
+        var feedback = $"tool={safeTool} turn={correlation} result={code}";
+        if (Volatile.Read(ref _actionFeedback) == feedback) return;
+        Volatile.Write(ref _actionFeedback, feedback);
+        Console.Error.WriteLine($"[action] {feedback}");
+    }
+
+    private static string ActionCorrelation(string turnId) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(turnId))).ToLowerInvariant()[..16];
+
+    private static string PlanResult(JsonElement response, int npcId)
+    {
+        if (response.TryGetProperty("colonists", out var rows))
+            foreach (var item in rows.EnumerateArray())
+                if (item.GetProperty("npcId").GetInt32() == npcId && item.TryGetProperty("planStatus", out var status))
+                    return status.GetString() switch
+                    {
+                        "Completed" => "PlanCompleted", "Failed" => "PlanFailed", "Invalid" => "PlanInvalid",
+                        "None" => "PlanNone", _ => "PlanStatusUnavailable"
+                    };
+        return "PlanStatusUnavailable";
     }
 
     private async Task StopActionAsync(bool handoffLease = false)
@@ -777,18 +865,8 @@ public sealed partial class AgentHostRuntime
         return false;
     }
 
-    private static string RelationView(MashaArchive archive, string key)
-    {
-        var bond = MashaMemoryStore.BondFor(archive, key);
-        return JsonSerializer.Serialize(new
-        {
-            familiarity = Math.Clamp(bond.Familiarity, 0f, 1f),
-            trust = Math.Clamp(bond.Trust, 0f, 1f),
-            affinity = Math.Clamp(bond.Affinity, -1f, 1f),
-            speakerId = key.Length > 0 ? key.Split(':').Last() : "",
-            voiceName = archive.Speakers.TryGetValue(key, out var speaker) ? speaker.VoiceName : "Голос"
-        }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-    }
+    private static string RelationView(MashaArchive archive, string key) =>
+        AgentRelationView.Serialize(archive, key);
 
     private static int WavDurationMilliseconds(byte[] wav) => wav.Length < 44
         ? 0
@@ -808,7 +886,7 @@ public sealed partial class AgentHostRuntime
             var name = tool.GetProperty("name").GetString() ?? "";
             if (!AgentProviders.IsAllowedTool(name)) continue;
             text.Append(name).Append(": ").AppendLine(tool.TryGetProperty("description", out var description)
-                ? description.GetString() : "Описание не предоставлено сервером; не угадывай параметры.");
+                ? description.GetString() : AgentPromptFiles.Text("AgentHostRuntime.16"));
             text.AppendLine(tool.GetProperty("inputSchema").GetRawText());
         }
         return text.ToString();

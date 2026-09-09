@@ -34,7 +34,9 @@ public static class SimulationCommandCodec
     //    Handshake.ProtocolVersion; этот номер описывает сам формат.
     // 4: §159 typed RecordCompanionTurnCommand.
     // 5: §160 generic RecordAgentSocialCommand.
-    public const int WireVersion = 5;
+    // 6: §28.15G requested shared Talk topic, with legacy opcode 11 unchanged.
+    // 7: §153.4 voluntary request for one carried item (opcode 43).
+    public const int WireVersion = 7;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -83,6 +85,8 @@ public static class SimulationCommandCodec
         FillVessel = 39, // §55.4 (bug #317)
         RecordCompanionTurn = 40,
         RecordAgentSocial = 41,
+        TalkToWithTopic = 42,
+        RequestItem = 43,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -191,15 +195,23 @@ public static class SimulationCommandCodec
                 w.Write((int)c.RecipeGoal);
                 break;
             case TalkToCommand c:
-                w.Write((ushort)CommandType.TalkTo);
+                w.Write((ushort)(c.RequestedTopic.HasValue
+                    ? CommandType.TalkToWithTopic : CommandType.TalkTo));
                 WriteEntity(w, c.Npc);
                 WriteEntity(w, c.Target);
+                if (c.RequestedTopic.HasValue) w.Write((int)c.RequestedTopic.Value);
                 break;
             case RomancePersonCommand c:
                 w.Write((ushort)CommandType.RomancePerson);
                 WriteEntity(w, c.Npc);
                 WriteEntity(w, c.Target);
                 w.Write(c.Forced);
+                break;
+            case RequestItemCommand c:
+                w.Write((ushort)CommandType.RequestItem);
+                WriteEntity(w, c.Npc);
+                WriteEntity(w, c.Target);
+                WireIo.WriteString(w, c.DefinitionId);
                 break;
             case AidPersonCommand c:
                 w.Write((ushort)CommandType.AidPerson);
@@ -416,9 +428,14 @@ public static class SimulationCommandCodec
                 return new CraftItemCommand(ReadEntity(r), (GoalType)r.ReadInt32());
             case CommandType.TalkTo:
                 return new TalkToCommand(ReadEntity(r), ReadEntity(r));
+            case CommandType.TalkToWithTopic:
+                return new TalkToCommand(ReadEntity(r), ReadEntity(r),
+                    (Social.TalkTopic)r.ReadInt32());
             case CommandType.RomancePerson:
                 return new RomancePersonCommand(
                     ReadEntity(r), ReadEntity(r), r.ReadBoolean());
+            case CommandType.RequestItem:
+                return new RequestItemCommand(ReadEntity(r), ReadEntity(r), r.ReadString());
             case CommandType.AidPerson:
                 return new AidPersonCommand(
                     ReadEntity(r), ReadEntity(r), (AidKind)r.ReadInt32());

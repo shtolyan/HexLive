@@ -154,7 +154,7 @@ public sealed partial class ExecutionSystem
     /// не бывает — иначе «подарок» превратился бы в способ качать симпатию,
     /// пока цель без сознания.
     /// </summary>
-    private static void ReactToGift(
+    internal static void ReactToGift(
         WorldState world, NPCState giver, NPCState receiver,
         string definitionId, List<ItemInstance> moving)
     {

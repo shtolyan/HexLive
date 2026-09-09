@@ -132,6 +132,36 @@ public sealed class DialogueContractTests
     }
 
     [Test]
+    public async Task ReplyStartedBeforeDepartureCannotConsumeTheNextReturnGreeting()
+    {
+        var store = new MashaMemoryStore(_root);
+        var world = (await World(store, 900)) with
+        { SpeakerKey = "server:alice", MessageIds = ["first"] };
+        await store.BindSpeakerAsync(world.SpeakerKey, false, Token);
+        await store.ObserveSpeakerPresenceAsync(world.SpeakerKey, true, world, Token);
+        await store.CommitTurnAsync(world, "first", "voice", new(), Token);
+
+        var inFlight = world with { Tick = 1000, MessageIds = ["before-departure"] };
+        await store.ObserveSpeakerPresenceAsync(world.SpeakerKey, false, world with { Tick = 1100 }, Token);
+        await store.ObserveSpeakerPresenceAsync(world.SpeakerKey, true, world with { Tick = 1200 }, Token);
+        await store.CommitTurnAsync(inFlight, "late-answer", "voice", new(), Token);
+
+        store = new MashaMemoryStore(_root);
+        await store.CommitTurnAsync(world with { Tick = 1250 }, "heartbeat", "heartbeat", new(), Token);
+        var waiting = (await store.SnapshotAsync(Token)).Speakers[world.SpeakerKey].Bond;
+        Assert.That(waiting.AwaitingReturnVoice, Is.True,
+            "Finishing an older request is not the first voice input after returning");
+        Assert.That(waiting.LastReturnTick, Is.EqualTo(1200));
+        Assert.That(waiting.Trust, Is.Zero);
+        Assert.That(waiting.Familiarity, Is.Zero);
+
+        await store.CommitTurnAsync(world with { Tick = 1300, MessageIds = ["after-return"] },
+            "new-answer", "voice", new(), Token);
+        Assert.That((await store.SnapshotAsync(Token)).Speakers[world.SpeakerKey].Bond.AwaitingReturnVoice,
+            Is.False);
+    }
+
+    [Test]
     public void DifferentServerPathsCannotShareTheSameSpeakerRecord()
     {
         const string sender = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";

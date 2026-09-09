@@ -206,9 +206,13 @@ public sealed class NpcSpeechDirector
 
         // A silent alarm changes the picture, not the duration of the WAV
         // still owning this mouth. Otherwise the next work cue can cut it.
-        _activeUntil = _activePlayerReply
+        var replyStillPlaying = _activePlayerReply && now < _activeUntil;
+        _activeUntil = replyStillPlaying
             ? Mathf.Max(_activeUntil, now + hold) : now + hold;
-        _activeRank = cue.Rank;
+        // The silent picture must not promote a Talk voice to Alarm: a real
+        // wound cry must still be able to interrupt the player's reply.
+        if (!replyStillPlaying) _activeRank = cue.Rank;
+        _activePlayerReply = replyStillPlaying;
         _activeCueKind = cueKind;
         _activeCueAlarm = alarm;
     }

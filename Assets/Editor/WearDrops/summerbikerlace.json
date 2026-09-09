@@ -65,6 +65,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Denim Shorts",
         "nameRu": "Джинсовые шорты",
         "descEn": "Cut short and worn thin. Nothing between her legs and the weather.",
@@ -131,6 +132,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "T-Shirt",
         "nameRu": "Футболка",
         "descEn": "Plain cotton, short sleeves. What she reaches for first.",
@@ -255,6 +257,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Tank Top",
         "nameRu": "Майка",
         "descEn": "Sleeveless and thin. Shoulders bare to whatever the day brings.",
@@ -374,6 +377,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Cropped Top",
         "nameRu": "Топ",
         "descEn": "Cut off above the ribs. Made for moving, not for keeping warm.",
@@ -467,6 +471,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Leggings",
         "nameRu": "Легинсы",
         "descEn": "Second skin from hip to ankle. Warm, and they tear on the first thorn.",
@@ -547,6 +552,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Detached Sleeves",
         "nameRu": "Отдельные рукава",
         "descEn": "Sleeves and nothing between them. The arms stay covered, the rest does not.",
@@ -652,6 +658,7 @@
         "glove_r_zipper_slider_dup_2"
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Biker Gloves",
         "nameRu": "Байкерские перчатки",
         "descEn": "Leather to the wrist, zipped and studded. The knuckles stay whole.",
@@ -775,6 +782,7 @@
         "jacket_zipper_MainSlider_dup_3"
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Biker Jacket",
         "nameRu": "Косуха",
         "descEn": "Heavy leather, zipped to the throat. The warmest thing she owns, and the toughest.",
@@ -881,6 +889,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Biker Trousers",
         "nameRu": "Байкерские штаны",
         "descEn": "Reinforced leather to the ankle. Warm, and hard to tear.",
@@ -989,6 +998,7 @@
         "Right Boot"
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Leather Boots",
         "nameRu": "Кожаные сапоги",
         "descEn": "Plain leather to mid-calf. Nothing fancy, and nothing to fix.",
@@ -1572,6 +1582,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Folk Blouse",
         "nameRu": "Народная блуза",
         "descEn": "Loose and embroidered at the collar. Cool in the sun, useless in the wind.",
@@ -1646,6 +1657,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Lace Bra",
         "nameRu": "Кружевной лиф",
         "descEn": "Worn against the skin. She notices when it is gone.",
@@ -1725,6 +1737,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Lace Briefs",
         "nameRu": "Кружевные трусики",
         "descEn": "Worn against the skin. She notices when they are gone.",
@@ -1843,6 +1856,7 @@
         "armGuardR"
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Arm Guards",
         "nameRu": "Наручи",
         "descEn": "Bound plates over the forearm. They have stopped a blade once.",
@@ -1895,6 +1909,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Wide Belt",
         "nameRu": "Широкий пояс",
         "descEn": "Wrapped twice around the waist. No warmth — it is there to carry things.",
@@ -1957,6 +1972,7 @@
         "heelCm": 0.74
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Wrapped Sandals",
         "nameRu": "Обмотанные сандалии",
         "descEn": "Cord and hide, bound to the shin. Quiet, and cold in the wet.",
@@ -2029,6 +2045,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Keikogi",
         "nameRu": "Кэйкоги",
         "descEn": "Heavy cotton, crossed at the chest. Takes a grip and does not give.",
@@ -2091,6 +2108,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Training Trousers",
         "nameRu": "Тренировочные штаны",
         "descEn": "Wide and tied at the waist. Nothing binds when she moves.",
@@ -2153,6 +2171,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Wrapped Top",
         "nameRu": "Обёрнутый топ",
         "descEn": "One length of cloth and a knot. Nothing to catch on.",

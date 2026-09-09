@@ -1331,6 +1331,30 @@ public sealed class ManualControlTests
         Assert.That(attacker.Mind.ManualAttackNpcId, Is.Null);
     }
 
+    [TestCase(0f)]
+    [TestCase(0.3f)]
+    public void AttackOrderActuallyHitsAConsciousCrawler(float legFunction)
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var attacker = Colonist(world);
+        TakeControl(engine, attacker);
+        var victim = world.Entities.Npcs.Values.First(n => !n.Id.Equals(attacker.Id));
+        victim.Mind.ManualControl = true;
+        victim.Needs.Hunger = victim.Needs.Thirst = 0f;
+        victim.Body.Parts[BodyPart.LegL] = legFunction;
+        victim.Body.Parts[BodyPart.LegR] = legFunction;
+        PlaceOnFreeNeighbor(world, victim, attacker);
+        var hit = victim.HitStampTick;
+
+        engine.Commands.Enqueue(new AttackNpcCommand(attacker.Id, victim.Id));
+        for (var i = 0; i < MediumTicks * 8 && victim.HitStampTick == hit; i++)
+            engine.Step();
+
+        Assert.That(victim.HitStampTick, Is.GreaterThan(hit),
+            "Accepted player attack must reach an actual hit, not repeatedly lose its prone target.");
+    }
+
     // ── 5. Сейв ──────────────────────────────────────────────────────────
 
     [Test]

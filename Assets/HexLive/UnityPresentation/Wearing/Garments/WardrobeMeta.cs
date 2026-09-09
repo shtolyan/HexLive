@@ -64,14 +64,17 @@ public static class WardrobeMeta
 
     private static GarmentParams ToParams(ContentRecord record)
     {
-        var metadata = record.metadata;
+        // §154: simulation is the server-owned mechanics block. Flat metadata
+        // remains compatible with older records built before that contract.
+        var metadata = record.metadata?["simulation"] as JObject ?? record.metadata;
         if (metadata == null || metadata["layer"] == null)
         {
             return null;
         }
 
         Enum.TryParse(metadata.Value<string>("layer"), out WearLayer layer);
-        Enum.TryParse(metadata.Value<string>("sex"), out GarmentSex sex);
+        if (!Enum.TryParse(metadata.Value<string>("sex"), out GarmentSex sex))
+            sex = GarmentLibrary.DefaultSex(record.id);
         var covers = Values<BodyPart>(metadata["covers"] as JArray);
         return new GarmentParams(
             record.id,

@@ -85,6 +85,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Lace Babydoll",
         "nameRu": "Кружевная сорочка",
         "descEn": "Sheer to the point of pointless. Worn for the wearing, not the warmth.",
@@ -147,6 +148,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Lace Gloves",
         "nameRu": "Кружевные перчатки",
         "descEn": "To the elbow, and see-through the whole way. Keep nothing out.",
@@ -224,6 +226,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Brass Greaves",
         "nameRu": "Латунные поножи",
         "descEn": "Plate strapped over the shin. Heavy, and worth the weight when teeth come.",
@@ -293,6 +296,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Lace Briefs",
         "nameRu": "Кружевные трусики",
         "descEn": "Worn against the skin. She notices when it is gone.",
@@ -380,6 +384,7 @@
         "_source": "поза из набора: ToD All.duf"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Buckled Shoes",
         "nameRu": "Туфли с пряжкой",
         "descEn": "Thin soles and a hard heel. Made for floors, not for forests.",
@@ -443,6 +448,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Lace Stockings",
         "nameRu": "Кружевные чулки",
         "descEn": "Thigh to shin, and you can see the leg through them.",
@@ -519,6 +525,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "High-collar Blouse",
         "nameRu": "Блузка со стойкой",
         "descEn": "Buttoned to the jaw, sleeves to the wrist, and thin as smoke.",
@@ -584,6 +591,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Hide Arm Wraps",
         "nameRu": "Кожаные обмотки",
         "descEn": "Strips of hide bound from wrist to elbow. Warm, and they take a scrape.",
@@ -689,6 +697,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Hide Briefs",
         "nameRu": "Кожаная набедренная повязка",
         "descEn": "Soft hide, tied at the hip. The oldest thing anyone wears.",
@@ -792,6 +801,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Hide Headband",
         "nameRu": "Кожаная повязка",
         "descEn": "A band across the brow. Keeps sweat and hair out of her eyes.",
@@ -907,6 +917,7 @@
         "heelCm": 0.66
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Wrapped Boots",
         "nameRu": "Обмотанные сапоги",
         "descEn": "Hide bound around foot and shin with cord. Quiet on anything.",
@@ -1041,6 +1052,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Hide Skirt",
         "nameRu": "Кожаная юбка",
         "descEn": "Cut short and left ragged. Moves without asking.",
@@ -1177,6 +1189,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Hide Wrap",
         "nameRu": "Кожаная повязка на грудь",
         "descEn": "One piece of hide and a knot. Nothing to catch on a branch.",
@@ -1349,6 +1362,7 @@
         "_source": "поза из набора: AmyBootsFootPose.duf"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Thigh Boots",
         "nameRu": "Ботфорты",
         "descEn": "Over the knee, on a heel. Warm, and slower than she would like.",
@@ -1463,6 +1477,7 @@
         "_source": "поза из набора: AmyBootsFootPose.duf"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ankle Boots",
         "nameRu": "Полусапожки",
         "descEn": "To the ankle, hard-soled. What she wears when there is walking to do.",
@@ -1531,6 +1546,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Pendant",
         "nameRu": "Подвеска",
         "descEn": "A stone on a cord. Worth nothing, and she would not sell it.",
@@ -1601,6 +1617,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Street Shirt",
         "nameRu": "Уличная рубашка",
         "descEn": "Loose, long-sleeved, worn open. Covers the arms and little else.",
@@ -1704,6 +1721,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Pleated Skirt",
         "nameRu": "Юбка в складку",
         "descEn": "Short and pleated, sitting on the hip. Warms nothing at all.",

@@ -88,6 +88,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Round Glasses",
         "nameRu": "Круглые очки",
         "descEn": "Thick rims and thicker lenses. The world comes into focus.",
@@ -153,6 +154,7 @@
         "Nerd Crush Buttons"
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "School Blouse",
         "nameRu": "Школьная блузка",
         "descEn": "Buttoned, pressed, and sleeved to the wrist. Tidier than her week.",
@@ -206,6 +208,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Bow Tie",
         "nameRu": "Галстук-бабочка",
         "descEn": "Tied at the throat. Holds no heat and no blade — it is there to be seen.",
@@ -300,6 +303,7 @@
         "heelCm": 0.81
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Canvas Sneakers",
         "nameRu": "Кеды",
         "descEn": "Soft soles, laced high. Quiet, and no use at all in the wet.",
@@ -393,6 +397,7 @@
         "heelCm": 0.26
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Knee Socks",
         "nameRu": "Гольфы",
         "descEn": "To the knee, ribbed. More warmth than they look like they hold.",
@@ -510,6 +515,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Tutu Skirt",
         "nameRu": "Юбка-пачка",
         "descEn": "Layers of netting that stand out on their own. Warms nothing.",
@@ -582,6 +588,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sports Bra",
         "nameRu": "Спортивный лиф",
         "descEn": "Firm and plain. Made to be forgotten while running.",
@@ -948,6 +955,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Jacket Tied at the Waist",
         "nameRu": "Куртка на поясе",
         "descEn": "Sleeves knotted at the hip. Carried, not worn — until it turns cold.",
@@ -1180,6 +1188,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Training Jacket",
         "nameRu": "Тренировочная куртка",
         "descEn": "Zipped, light, and warmer than it looks. Wind stops at it.",
@@ -1257,6 +1266,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Yoga Pants",
         "nameRu": "Легинсы",
         "descEn": "Full length and close to the skin. Warm, and they tear on the first thorn.",
@@ -1458,6 +1468,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Silk Briefs",
         "nameRu": "Шёлковые трусики",
         "descEn": "Worn against the skin. She notices when they are gone.",
@@ -1575,6 +1586,7 @@
         "_source": "опущено по осмотру (авторские 45° признаны завышенными)"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Pumps",
         "nameRu": "Лодочки",
         "descEn": "A high heel and nothing else. Worn where the ground is flat and swept.",
@@ -1640,6 +1652,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Pencil Skirt",
         "nameRu": "Юбка-карандаш",
         "descEn": "Straight, to the knee. Looks better than it lets her move.",
@@ -1738,6 +1751,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Knit Sweater",
         "nameRu": "Вязаный свитер",
         "descEn": "Loose knit, off one shoulder. The warmest thing that is not a coat.",
@@ -1825,6 +1839,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Training Gloves",
         "nameRu": "Тренировочные перчатки",
         "descEn": "Padded across the knuckles. For grip, and for hitting things.",
@@ -1900,6 +1915,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Crop Top",
         "nameRu": "Укороченный топ",
         "descEn": "Cut off above the ribs. Thin, and she likes it.",
@@ -2183,6 +2199,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Running Shorts",
         "nameRu": "Беговые шорты",
         "descEn": "Light and short. Nothing between her legs and the weather.",
@@ -2430,6 +2447,7 @@
         "heelCm": 0.15
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ankle Socks",
         "nameRu": "Носки",
         "descEn": "Plain and short. Worn until they are not.",

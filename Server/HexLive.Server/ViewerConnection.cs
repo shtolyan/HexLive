@@ -539,7 +539,7 @@ public sealed class ViewerConnection
         }
 
         var accepted = _agentSessions.TryEnqueuePlayerText(input.NpcId, input.MessageId,
-            input.Language, input.Text, out var reason, _controlOwner!.Substring(3));
+            input.Language, input.Text, out var reason, _controlOwner!.Substring(3), input.ExpectedAttachmentId);
         await SendAsync(AgentWire.AgentTextResult(input.CorrelationId, accepted, input.MessageId,
             reason), cancel).ConfigureAwait(false);
     }

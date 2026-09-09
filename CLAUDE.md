@@ -849,7 +849,21 @@ clamped (capped at 200×). A shared world wound forward burns colony days for
 everyone watching and multiplies every viewer's stream — so the Unity speed bar
 greys out >1× on a remote link, and the server enforces it regardless.
 
-## ⭐ Обновление production-сервера 62.146.235.120
+## ⭐ Серверы и обновление production
+
+У HexLive два независимых VPS:
+
+- **Сингапур** — `62.146.235.120`, SSH `hexlive-singapore` (старый алиас
+  `hexlive-server`). Это отдельный ранее развёрнутый сервер; не изменять его,
+  если игрок явно не назвал Сингапур.
+- **Нью-Йорк** — `163.245.204.96`, SSH `hexlive-nyc`. Это текущий production и
+  цель runbook ниже.
+
+Общий ключ Нью-Йорка, установка на macOS/Linux и Windows и правила выбора
+сервера описаны в `Docs/ServerAccess.md`. Не подменять один сервер другим по
+старому алиасу или IP.
+
+### Обновление production-сервера 163.245.204.96
 
 Это канонический runbook для уже развёрнутого VPS. Любой агент обновляет его
 одинаково; импровизированный `dotnet run` в `/root`, новый каталог с сейвом или
@@ -857,15 +871,16 @@ greys out >1× on a remote link, and the server enforces it regardless.
 
 ### Доступ и неизменяемый runtime-контракт
 
-- SSH-алиас: `hexlive-server` (`root@62.146.235.120`). В общей среде агентов он
+- SSH-алиас: `hexlive-nyc` (`root@163.245.204.96`). В общей среде агентов он
   записан в `~/.ssh/config`, отдельный ключ лежит в
-  `~/.ssh/hexlive_62_146_235_120_ed25519` с mode 0600. Проверка всегда
-  беспарольная: `ssh -o BatchMode=yes hexlive-server true`. Если она не прошла,
+  `~/.ssh/hexlive_163_245_204_96_ed25519` с mode 0600. Проверка всегда
+  беспарольная: `ssh -o BatchMode=yes hexlive-nyc true`. Если она не прошла,
   остановиться и попросить игрока восстановить ключ; не искать и не сохранять
   root-пароль в репозитории, shell history, логе или чате.
-- systemd unit: `hexlive.service`; Kestrel origin: `127.0.0.1:5123`;
-  публичный TLS viewer: `wss://vmi3529459.contaboserver.net/watch`;
-  Asset API: `https://vmi3529459.contaboserver.net/api/assets/v1`. Caddy
+- systemd unit: `hexlive.service`; Kestrel слушает `:5123`, но UFW запрещает
+  внешний вход на этот порт, а Caddy обращается к `127.0.0.1:5123`;
+  публичный TLS viewer: `wss://163-245-204-96.sslip.io/watch`;
+  Asset API: `https://163-245-204-96.sslip.io/api/assets/v1`. Caddy
   (`caddy.service`, canonical source `Server/Caddyfile`, deployed path
   `/etc/caddy/Caddyfile`) завершает TLS и проксирует весь host в origin.
 - Версионные бинарники: `/opt/hexlive/releases/<full-git-sha>`; активная версия —
@@ -875,7 +890,7 @@ greys out >1× on a remote link, and the server enforces it regardless.
   `hexlive-players.json`. Никогда не удалять каталог, не менять `--save`, не
   создавать новый admin account/token и не подменять seed/mode при обновлении.
   Локальная копия player token для клиента лежит в
-  `~/.config/hexlive/servers/62.146.235.120/player-token` с mode 0600; её
+  `~/.config/hexlive/servers/163.245.204.96/player-token` с mode 0600; её
   содержимое не печатать.
 
 ### 1. Preflight
@@ -888,7 +903,7 @@ greys out >1× on a remote link, and the server enforces it regardless.
 ```bash
 git rev-parse HEAD
 git status --short
-ssh -o BatchMode=yes hexlive-server \
+ssh -o BatchMode=yes hexlive-nyc \
   'systemctl is-active hexlive.service; readlink -f /opt/hexlive/current; \
    stat -c "%a %U:%G %n" /var/lib/hexlive /var/lib/hexlive/world.sav \
    /var/lib/hexlive/simdata.json /var/lib/hexlive/hexlive-admin.txt \
@@ -949,7 +964,7 @@ deploy_archive="$deploy_tmp/hexlive-server-$deploy_sha.tar.gz"
 COPYFILE_DISABLE=1 tar -czf "$deploy_archive" -C "$deploy_tmp/publish" .
 deploy_archive_sha="$(shasum -a 256 "$deploy_archive" | awk '{print $1}')"
 printf '%s  %s\n' "$deploy_archive_sha" "$deploy_archive"
-scp "$deploy_archive" hexlive-server:/tmp/
+scp "$deploy_archive" hexlive-nyc:/tmp/
 ```
 
 На сервере сверить `$deploy_archive_sha` **до** распаковки; локальные переменные
@@ -984,14 +999,14 @@ journalctl -u hexlive.service -n 80 --no-pager
 
 ```bash
 curl --fail --silent --show-error --max-time 10 \
-  https://vmi3529459.contaboserver.net/
+  https://163-245-204-96.sslip.io/
 curl --http1.1 --silent --output /dev/null --write-out '%{http_code}\n' \
   --max-time 3 -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
   -H 'Sec-WebSocket-Version: 13' \
   -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
-  https://vmi3529459.contaboserver.net/watch
+  https://163-245-204-96.sslip.io/watch
 curl --fail --silent --show-error --max-time 10 \
-  https://vmi3529459.contaboserver.net/api/assets/v1/index/StandaloneOSX/unity6000-content1 \
+  https://163-245-204-96.sslip.io/api/assets/v1/index/StandaloneOSX/unity6000-content1 \
   --output /dev/null
 ```
 
@@ -1004,6 +1019,6 @@ curl --fail --silent --show-error --max-time 10 \
 результаты тестов, HTTP/WS-проверок и restart/save-проверки.
 
 `/admin`, player control, viewer и Asset API снаружи используются только через
-HTTPS/WSS host выше. Порт 5123 остаётся Kestrel origin и временным legacy-входом
-на период миграции клиентов; новый Player нормализует прежний IP-адрес в WSS до
-подключения. Не возвращать в release-инструкции публичный `http/ws` endpoint.
+HTTPS/WSS host выше. Порт 5123 остаётся Kestrel origin и закрыт файрволом от
+внешней сети. Не возвращать в release-инструкции публичный
+`http/ws` endpoint.

@@ -1,4 +1,4 @@
-vmi3529459.contaboserver.net {
+163-245-204-96.sslip.io {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:5123
 }

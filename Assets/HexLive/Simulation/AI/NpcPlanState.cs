@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Social;
 
 namespace HexLive.Simulation.AI
 {
@@ -26,6 +27,9 @@ public sealed class NPCPlanState
 
     // Agent targeted by a Talk plan (spec 28.15A).
     public EntityId? TargetAgentId { get; set; }
+
+    // §28.15G: requested shared subject for this Talk plan, including its approach.
+    public TalkTopic? RequestedTalkTopic { get; set; }
 
     // §121.1: explicit pace of a player-issued movement order. It belongs
     // to the plan (and therefore survives a save with that unfinished order),

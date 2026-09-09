@@ -44,6 +44,11 @@ public sealed class TraceGateLintTests
         "ManualControlExpired",
         // §121.5: снос ПРИНЯТОГО приказа (бой, провал пути) — тоже ответ игроку.
         "ManualOrderInterrupted",
+        // §160: результат для контроллера сохраняется после очистки статуса плана.
+        "ManualOrderFinished",
+        // §153.4: addressed consent/transfer result, visible to the requester
+        // through MCP even when diagnostic tracing is disabled.
+        "ItemRequestResult",
     };
 
     [Test]

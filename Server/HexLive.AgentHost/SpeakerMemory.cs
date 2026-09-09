@@ -7,8 +7,11 @@ public sealed class SpeakerMemory
 {
     public PortablePlayerBond Bond { get; set; } = new();
     public string? RelationshipState { get; set; }
-    public string VoiceName { get; set; } = "Голос";
+    public string VoiceName { get; set; } = AgentPromptFiles.Text("SpeakerMemory.01");
     public string LastAssessmentReason { get; set; } = "";
+    public float? LastFamiliarityDelta { get; set; }
+    public float? LastTrustDelta { get; set; }
+    public float? LastAffinityDelta { get; set; }
     public List<PortableMemory> Facts { get; set; } = new();
     public List<string> AppliedMessageIds { get; set; } = new();
     public List<string> RecentConversation { get; set; } = new();
@@ -32,14 +35,14 @@ public static class AgentGameTime
     public static string Describe(PortablePlayerBond bond, MashaWorldHandle world)
     {
         string Elapsed(long from, long to) => world.DayLengthTicks <= 0 || from < 0 || to < from ||
-            bond.ClockWorldKey != world.EpisodeId || world.Tick < bond.LastClockTick ? "неизвестно" :
-            $"{(long)((to - from) * 1440d / world.DayLengthTicks)} игровых минут";
+            bond.ClockWorldKey != world.EpisodeId || world.Tick < bond.LastClockTick ? AgentPromptFiles.Text("SpeakerMemory.02") :
+            string.Format(AgentPromptFiles.Text("game.elapsed"), (long)((to - from) * 1440d / world.DayLengthTicks));
         return "<game_contact_time>\n" +
-            "С последнего завершённого общения: " + Elapsed(bond.LastVoiceTick, world.Tick) + ".\n" +
-            "Наблюдаемое отсутствие до возвращения: " + Elapsed(bond.LastDepartureTick, bond.LastReturnTick) + ".\n" +
-            "Ожидается первая реплика после возвращения: " + (bond.AwaitingReturnVoice ? "да" : "нет") + ".\n" +
-            "Это игровое время. Пауза не добавляет времени; молчание не доказывает отсутствие. " +
-            "Не выдумывай длительность при неизвестных отметках.\n</game_contact_time>";
+            AgentPromptFiles.Text("SpeakerMemory.03") + Elapsed(bond.LastVoiceTick, world.Tick) + ".\n" +
+            AgentPromptFiles.Text("SpeakerMemory.04") + Elapsed(bond.LastDepartureTick, bond.LastReturnTick) + ".\n" +
+            AgentPromptFiles.Text("SpeakerMemory.05") + (bond.AwaitingReturnVoice ? AgentPromptFiles.Text("SpeakerMemory.06") : AgentPromptFiles.Text("SpeakerMemory.07")) + ".\n" +
+            AgentPromptFiles.Text("SpeakerMemory.08") +
+            AgentPromptFiles.Text("SpeakerMemory.09");
     }
 }
 
@@ -84,6 +87,8 @@ public sealed partial class MashaMemoryStore
                 speaker.Facts = _archive.CoreMemories.Where(m => m.Source is "model-user" or "molly-user")
                     .Select(m => JsonSerializer.Deserialize<PortableMemory>(JsonSerializer.Serialize(m))!).ToList();
                 speaker.RelationshipState = null;
+                foreach (var value in _archive.SuppressedMemoryValues.Where(v => v.StartsWith("legacy-user\n", StringComparison.Ordinal)).ToArray())
+                    _archive.SuppressedMemoryValues.Add(key + "\n" + value["legacy-user\n".Length..]);
                 _archive.PrimarySpeakerKey = key;
             }
             _archive.SchemaVersion = 2;
@@ -140,6 +145,9 @@ public sealed partial class MashaMemoryStore
         {
             if (!relation.Apply(ids, assessment, DateTimeOffset.UtcNow)) return;
             speaker.LastAssessmentReason = assessment.Reason;
+            speaker.LastFamiliarityDelta = relation.Snapshot.Familiarity - bond.Familiarity;
+            speaker.LastTrustDelta = relation.Snapshot.Trust - bond.Trust;
+            speaker.LastAffinityDelta = relation.Snapshot.Sympathy - bond.Affinity;
             speaker.VoiceName = relation.Snapshot.VoiceName;
             bond.Familiarity = relation.Snapshot.Familiarity;
             bond.Trust = relation.Snapshot.Trust;
@@ -152,6 +160,8 @@ public sealed partial class MashaMemoryStore
         bond.LastInteractionEpisodeId = world.EpisodeId;
         bond.LastInteractionTick = bond.LastVoiceTick;
         bond.LastInteractionUtc = DateTimeOffset.UtcNow;
-        bond.AwaitingReturnVoice = false;
+        // A request started before the observed return may finish afterwards.
+        // Completing it must not consume the next, genuinely new greeting.
+        if (world.Tick >= bond.LastReturnTick) bond.AwaitingReturnVoice = false;
     }
 }

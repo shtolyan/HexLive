@@ -1,6 +1,8 @@
 {
   "name": "HexLive.AgentIntegration.Tests",
-  "references": ["HexLive.Simulation", "HexLive.UnityPresentation"],
+  "references": ["HexLive.Simulation", "HexLive.UnityPresentation", "FMODUnity"],
+  "overrideReferences": true,
+  "precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],
   "optionalUnityReferences": ["TestAssemblies"],
   "autoReferenced": false
 }

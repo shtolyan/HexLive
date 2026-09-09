@@ -384,8 +384,10 @@ public sealed class RaidSystem : ISimulationSystem
                 // скользило по земле — тот самый ход мимо CurrentGoal, о
                 // котором предупреждает PLAYDEAD_SPEC (баг #7).
                 target.IsPlayingDead(world.Tick) ||
-                target.Body.IsProne ||
-                !target.Body.CanUseToolsOrWeapons ||
+                // §121 / bug #381: losing leg support does not prevent
+                // conscious unarmed self-defence. Weapon eligibility stays
+                // in MeleeSwing.EffectiveWeapon, separate from replying.
+                !target.Body.HasUsableHand ||
                 // Бегущий бежит: клапаны §29C.4A/§108 сами решают, когда
                 // бегство превращается в бой до победного.
                 target.Mind.CurrentGoal == GoalType.Flee ||

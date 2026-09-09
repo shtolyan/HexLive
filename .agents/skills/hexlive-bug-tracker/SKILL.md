@@ -5,7 +5,7 @@ description: Read and mutate HexLive bug reports in the central server tracker, 
 
 # HexLive server bug tracker
 
-The source of truth is `https://vmi3529459.contaboserver.net/api/bugs/v1`.
+The source of truth is `https://163-245-204-96.sslip.io/api/bugs/v1`.
 Use `scripts/bugs.py`; it preserves JSON encoding and surfaces HTTP conflicts.
 
 ## Authentication

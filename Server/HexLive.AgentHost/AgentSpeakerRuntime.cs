@@ -47,6 +47,23 @@ public sealed partial class AgentHostRuntime
             watermark = inbox.TryGetProperty("watermark", out var w) ? w.GetInt64() : 0 });
     }
 
+    private static async Task<bool> AcknowledgeInboxSafelyAsync(McpClient mcp, string attachmentId,
+        long throughSeq, CancellationToken token)
+    {
+        try
+        {
+            await mcp.CallToolAsync("ack_agent_inbox", new { attachmentId, throughSeq }, token)
+                .ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+        catch
+        {
+            // Keep the attachment/inbox: the durable message IDs suppress a repeated model turn.
+            return false;
+        }
+    }
+
     private async Task ObserveSpeakersAsync(JsonElement attachment, JsonElement clock, int npcId, CancellationToken token)
     {
         if (!attachment.TryGetProperty("presentSpeakerIds", out var present)) return;

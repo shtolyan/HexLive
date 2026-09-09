@@ -312,6 +312,7 @@ public static class PlanInterruption
         npc.Plan.TargetItemDefinitionId = null;
         npc.Plan.TargetAgentId = null;
         npc.Plan.RunRequested = false;
+        npc.Plan.RequestedTalkTopic = null;
 
         npc.Movement.JunctionPath.Clear();
         npc.Movement.PathIndex = 0;

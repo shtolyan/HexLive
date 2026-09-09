@@ -592,7 +592,9 @@ public sealed class BatheUndressAtHomeTests
             // 69 → 70 в §159.1: версия одноразовой миграции её образа.
             // 71 → 72 в §162: цвет волос и владение героями мира лобби;
             // старые v66..71 по-прежнему читаются отдельными migration fixtures.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(72));
+            // 72 → 73 в §28.15G/#359: выбранная общая тема разговора.
+            // RequestedTalkTopicTests.OlderSaveHasNoRequestedTopic проверяет v72.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(73));
         });
     }
 

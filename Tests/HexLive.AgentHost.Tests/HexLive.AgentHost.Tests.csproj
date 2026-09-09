@@ -19,6 +19,7 @@
     <Compile Include="../../Assets/HexLive/UnityPresentation/Audio/VoiceVisemeBaker.cs" Link="RuntimeAudio/VoiceVisemeBaker.cs" />
     <Compile Include="../../Assets/HexLive/UnityPresentation/Audio/RuntimeVoiceAlignment.cs" Link="RuntimeAudio/RuntimeVoiceAlignment.cs" />
     <Compile Include="../../Assets/HexLive/UnityPresentation/Audio/RuntimeVoiceCalibration.cs" Link="RuntimeAudio/RuntimeVoiceCalibration.cs" />
+    <Compile Include="../../Assets/HexLive/UnityPresentation/Audio/PlayerTextOutbox.cs" Link="RuntimeAudio/PlayerTextOutbox.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Fixtures/*.json" CopyToOutputDirectory="PreserveNewest" />

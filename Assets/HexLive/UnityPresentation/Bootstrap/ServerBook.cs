@@ -29,7 +29,7 @@ public static class ServerBook
     // каждую шторку; Player этой константой по-прежнему не пользуется.
     internal const string LegacyProductionUrl = "ws://62.146.235.120:5123/watch";
     public const string ProductionUrl =
-        "wss://vmi3529459.contaboserver.net/watch";
+        "wss://163-245-204-96.sslip.io/watch";
 
     private const string RecentKey = "HexLive.Servers.Recent";
     private const string LastUrlKey = "HexLive.Servers.LastUrl";

@@ -5634,6 +5634,8 @@ namespace HexLive.UnityPresentation.UI
             body.Add(top);
 
             body.Add(BuildRelationRings(rel));
+            if (rel.OtherId == -159 && !string.IsNullOrWhiteSpace(_agentRelationReason))
+                body.Add(BuildAgentRelationFeedback());
 
             card.Add(body);
 

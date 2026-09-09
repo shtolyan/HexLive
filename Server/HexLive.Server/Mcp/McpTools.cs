@@ -10,6 +10,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
+using HexLive.Simulation.Social;
 using HexLive.Simulation.Wire;
 
 namespace HexLive.Server.Mcp
@@ -105,6 +106,11 @@ public sealed class McpTools
                    ("sinceSeq", "integer", "последняя обработанная seq", false),
                    ("limit", "integer", "1..16", false))),
 
+        new("ack_agent_inbox",
+            "Подтвердить непрерывный прочитанный префикс inbox после durable commit хода.",
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("throughSeq", "integer", "последняя обработанная seq", true))),
+
         new("publish_agent_phase",
             "Опубликовать Ready/Thinking/Acting/Speaking/Sleeping/Error и текущий turnId.",
             Schema(("attachmentId", "string", "id attachment", true),
@@ -116,8 +122,9 @@ public sealed class McpTools
             Schema(("attachmentId", "string", "id attachment", true),
                    ("turnId", "string", "уникальный id хода", true),
                    ("reaction", "string", "None/Warm/Neutral/Tense/Hostile", true),
+                   ("voiceTurn", "boolean", "true только для завершённого голосового хода; фиксирует и None. По умолчанию false", false),
                    ("intentSummary", "string", "до 240 символов, без chain-of-thought", true),
-                   ("relationView", "string", "необязательный публичный вид отношений", false),
+                   ("relationView", "string", "необязательный публичный вид отношений до 1024 символов", false),
                    ("journalEntry", "string", "необязательная свежая запись до 400", false))),
 
         new("begin_agent_utterance",
@@ -231,9 +238,18 @@ public sealed class McpTools
 
         new("talk_to",
             "Подойти и поговорить с колонисткой (§121.9/§28). Занятая или не в духе цель " +
-            "откажет ПО ПРИБЫТИИ — это штатный исход, не ошибка инструмента.",
-            Schema(("npcId", "integer", "id колонистки", true),
-                   ("targetNpcId", "integer", "с кем говорить", true))),
+            "откажет ПО ПРИБЫТИИ — это штатный исход, не ошибка инструмента. " +
+            "Необязательная topic выбирает общую тему и штатную реплику Hexkufa, без TTS.",
+            TalkToSchema()),
+
+        new("request_item",
+            "Попросить у конкретного NPC один предмет по definitionId (§153.4). Владелец добровольно " +
+            "соглашается или отказывает. Сначала подойдите: радиус подарка 1.95 wu и проверка " +
+            "препятствий; автоматического подхода нет, вне досягаемости TooFar. " +
+            "Completed/Transferred означает реальную передачу; отказ не меняет вещи владельца.",
+            Schema(("npcId", "integer", "id просящей колонистки", true),
+                   ("targetNpcId", "integer", "id владельца предмета", true),
+                   ("definitionId", "string", "определение нужного предмета; передаётся ровно один экземпляр", true))),
 
         new("aid_person",
             "Помочь конкретной колонистке ЯВНЫМ видом помощи (§53): Feed/Hydrate/Treat/" +
@@ -253,11 +269,12 @@ public sealed class McpTools
         new("self_action",
             "Самодействие (§121.9): CallForHelp (крик о помощи в бою, не сносит план), " +
             "TreatSelf (перевязаться), GroundSit/GroundSleep (сесть/лечь на землю), " +
-            "Bathe/WashClothes (купание/стирка), EatFromPack/DrinkFromPack (из рюкзака).",
+            "Bathe/WashClothes (купание/стирка), EatFromPack/DrinkFromPack (из рюкзака), " +
+            "GoHome (бежать в собственный домашний лагерь; координаты не нужны, " +
+            "маршрут выбирает симуляция; NoRouteToCamp означает отсутствие маршрута).",
             Schema(("npcId", "integer", "id колонистки", true),
                    ("kind", "string",
-                    "вид: CallForHelp/TreatSelf/GroundSit/GroundSleep/Bathe/WashClothes/" +
-                    "EatFromPack/DrinkFromPack", true))),
+                    "вид: " + string.Join("/", Enum.GetNames(typeof(SelfActionKind))), true))),
 
         new("merge_camps",
             "Добровольно объединить два женских лагеря (§146.12), включая всех их жителей. " +
@@ -331,7 +348,11 @@ public sealed class McpTools
                    ("targetNpcId", "integer", "id жертвы (враждебной)", true))),
     };
 
-    public sealed record ToolSpec(string Name, string Description, JsonElement InputSchema);
+    public sealed record ToolSpec(string Name, string Description,
+        [property: System.Text.Json.Serialization.JsonIgnore] JsonElement RawInputSchema)
+    {
+        public JsonElement InputSchema => McpActionSchemas.Enrich(Name, RawInputSchema);
+    }
 
     // ── исполнение ────────────────────────────────────────────────────────
 
@@ -366,6 +387,13 @@ public sealed class McpTools
                 case "attach_agent": return AttachAgent(host, arguments, owner, out isError);
                 case "agent_heartbeat": return AgentHeartbeat(arguments, owner, out isError);
                 case "read_agent_inbox": return ReadAgentInbox(arguments, owner, out isError);
+                case "ack_agent_inbox":
+                    var throughSeq = OptionalLong(arguments, "throughSeq") ??
+                        throw new McpArgumentException("Нужен целочисленный параметр throughSeq");
+                    var acknowledged = _agents.TryAcknowledgeInbox(Text(arguments, "attachmentId"), owner,
+                        _currentWorldGeneration(), throughSeq, out var ackReason);
+                    isError = !acknowledged;
+                    return acknowledged ? Json(new { accepted = true }) : ackReason;
                 case "publish_agent_phase": return PublishAgentPhase(arguments, owner, out isError);
                 case "commit_agent_turn": return CommitAgentTurn(host, arguments, owner, out isError);
                 case "begin_agent_utterance": return BeginAgentUtterance(arguments, owner, out isError);
@@ -388,8 +416,17 @@ public sealed class McpTools
                 case "talk_to":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
+                    TalkTopic? topic = null;
+                    if (arguments.TryGetProperty("topic", out _))
+                    {
+                        var requested = Text(arguments, "topic");
+                        if (!Enum.TryParse<TalkTopic>(requested, out var parsed) ||
+                            !TalkTopicRequest.IsAllowed(parsed) || parsed.ToString() != requested)
+                            throw new McpArgumentException("InvalidTalkTopic: topic должен быть одним из enum схемы talk_to.");
+                        topic = parsed;
+                    }
                     return Simple(host, arguments, owner,
-                        npc => new TalkToCommand(npc, target), out isError);
+                        npc => new TalkToCommand(npc, target, topic), out isError);
                 }
 
                 case "aid_person": return AidPerson(host, arguments, owner, out isError);
@@ -425,6 +462,7 @@ public sealed class McpTools
                 }
 
                 case "manage_inventory": return ManageInventory(host, arguments, owner, out isError);
+                case "request_item": return RequestItem(host, arguments, owner, out isError);
                 case "transfer_inventory": return TransferInventory(host, arguments, owner, out isError);
                 case "transfer_container": return TransferContainer(host, arguments, owner, out isError);
                 case "prey_person":
@@ -588,7 +626,7 @@ public sealed class McpTools
     private bool IsWithinPlayerScope(string name, JsonElement arguments, string owner, Func<int, bool> allowed)
     {
         if (name is "world_status" or "read_spec" or "list_colonists" or "list_leases") return true;
-        if (name is "agent_heartbeat" or "read_agent_inbox" or "publish_agent_phase" or
+        if (name is "agent_heartbeat" or "read_agent_inbox" or "ack_agent_inbox" or "publish_agent_phase" or
             "commit_agent_turn" or "begin_agent_utterance" or "append_agent_utterance" or
             "commit_agent_utterance" or "detach_agent")
             return arguments.ValueKind == JsonValueKind.Object &&
@@ -719,6 +757,10 @@ public sealed class McpTools
                 ["perceptionSummary"] = context.PerceptionSummary,
                 ["memorySummary"] = context.MemorySummary,
                 ["inventory"] = Inventory(npc),
+                ["visibleItems"] = McpItemObservations.Visible(world, npc),
+                ["visibleNpcs"] = McpNpcObservations.Visible(world, npc),
+                ["inventoryItems"] = McpItemObservations.Carried(world, npc),
+                ["wornItems"] = McpItemObservations.Worn(world, npc),
             });
         });
 
@@ -929,9 +971,10 @@ public sealed class McpTools
         var intent = Bounded(Text(arguments, "intentSummary").Trim(),
             AgentWire.MaxTextCharacters, "intentSummary");
         var relation = Bounded(OptionalText(arguments, "relationView").Trim(),
-            AgentWire.MaxTextCharacters, "relationView");
+            AgentWire.MaxRelationCharacters, "relationView");
         var journal = Bounded(OptionalText(arguments, "journalEntry").Trim(),
             AgentWire.MaxJournalCharacters, "journalEntry");
+        var voiceTurn = Bool(arguments, "voiceTurn", false);
         if (turnId.Length == 0)
         {
             isError = true;
@@ -954,7 +997,7 @@ public sealed class McpTools
         // World-side idempotency is committed first. If the process dies before
         // the ephemeral UI commit, retrying applies Social as a no-op and then
         // republishes the view; the inverse order could permanently lose Social.
-        if (reaction != CompanionReaction.None)
+        if (voiceTurn || reaction != CompanionReaction.None)
         {
             var admission = host.SubmitManualCommand(new RecordAgentSocialCommand(
                 new EntityId(attachment.NpcId), turnId, reaction));
@@ -1348,6 +1391,18 @@ public sealed class McpTools
             npc => new ManageInventoryCommand(npc, item, action), out isError);
     }
 
+    private string RequestItem(WorldHost host, JsonElement arguments, string owner, out bool isError)
+    {
+        var npcId = Int(arguments, "npcId");
+        var targetNpcId = Int(arguments, "targetNpcId");
+        var definitionId = Text(arguments, "definitionId");
+        var answer = Submit(host, npcId, owner,
+            npc => new RequestItemCommand(npc, new EntityId(targetNpcId), definitionId), out isError);
+        if (isError) return answer;
+        return Json(new { npcId, targetNpcId, definitionId, count = 1,
+            status = "Completed", outcome = "Transferred" });
+    }
+
     private string TransferInventory(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
@@ -1599,6 +1654,31 @@ public sealed class McpTools
     /// каждого параметра — это то единственное, что агент прочитает перед
     /// первым вызовом.
     /// </summary>
+    private static JsonElement TalkToSchema()
+    {
+        var topics = new List<string>();
+        foreach (var topic in TalkTopicRequest.Allowed) topics.Add(topic.ToString());
+        return JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            additionalProperties = false,
+            properties = new
+            {
+                npcId = new { type = "integer", description = "id колонистки" },
+                targetNpcId = new { type = "integer", description = "с кем говорить" },
+                topic = new
+                {
+                    type = "string",
+                    description = "Общая тема (§28.15E): SmallTalk 💬, Escape ⛵, Dogs 🐕, Weather 🌧, " +
+                        "Food 🥥, Fire 🔥, Home 🏠, Gossip 👀, Flirt 💗, Joke 😂, Grumble 😠. " +
+                        "Без topic симуляция выбирает сама. Реальные жалобы участниц и исход разговора остаются штатными.",
+                    @enum = topics,
+                },
+            },
+            required = new[] { "npcId", "targetNpcId" },
+        });
+    }
+
     private static JsonElement Schema(
         params (string name, string type, string description, bool required)[] properties)
     {

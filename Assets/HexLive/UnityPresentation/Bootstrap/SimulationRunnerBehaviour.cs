@@ -138,8 +138,8 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     }
 
     public void SendAgentText(int correlationId, EntityId npc, string messageId,
-        string language, string text) =>
-        _backend?.SendAgentText(correlationId, npc, messageId, language, text);
+        string language, string text, string expectedAttachmentId) =>
+        _backend?.SendAgentText(correlationId, npc, messageId, language, text, expectedAttachmentId);
 
     public bool TryTakeAgentTextResult(out AgentTextResultFrame result)
     {

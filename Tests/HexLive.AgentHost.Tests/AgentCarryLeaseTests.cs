@@ -30,10 +30,10 @@ public sealed class AgentCarryLeaseTests
         Task Start(string tool)
         {
             var cts = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token);
-            using var args = JsonDocument.Parse("{}");
+            using var args = JsonDocument.Parse(tool switch { "carry_person" => "{\"targetNpcId\":902}", "move_to" => "{\"x\":10,\"y\":10}", _ => "{}" });
             var action = new CompanionAction { Tool = tool, Arguments = args.RootElement.Clone() };
             var task = (Task)typeof(AgentHostRuntime).GetMethod("PerformActionSafelyAsync", Private)!
-                .Invoke(runtime, new object[] { mcp, 901, action, cts.Token })!;
+                .Invoke(runtime, new object[] { mcp, 901, action, cts.Token, "carry-turn" })!;
             typeof(AgentHostRuntime).GetField("_actionStop", Private)!.SetValue(runtime, cts);
             typeof(AgentHostRuntime).GetField("_actionTask", Private)!.SetValue(runtime, task);
             return task;
@@ -83,6 +83,9 @@ public sealed class AgentCarryLeaseTests
             using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
             var root = doc.RootElement;
             object result = new { protocolVersion = "2025-06-18" };
+            if (root.GetProperty("method").GetString() == "tools/list")
+                result = new { tools = HexLive.Server.Mcp.McpTools.Catalog.Select(t => new
+                    { name = t.Name, inputSchema = t.InputSchema }) };
             if (root.GetProperty("method").GetString() == "tools/call")
             {
                 var name = root.GetProperty("params").GetProperty("name").GetString();

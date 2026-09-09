@@ -7,10 +7,10 @@ namespace HexLive.AgentHost;
 public sealed class MashaIdentity
 {
     public string Id { get; set; } = "masha";
-    public string Name { get; set; } = "Маша";
+    public string Name { get; set; } = AgentPromptFiles.Text("MashaMemoryStore.01");
     public int Age { get; set; } = 23;
     public List<string> Traits { get; set; } =
-        ["любопытная", "независимая", "язвительная", "остроумная", "упрямая"];
+        [AgentPromptFiles.Text("MashaMemoryStore.02"), AgentPromptFiles.Text("MashaMemoryStore.03"), AgentPromptFiles.Text("MashaMemoryStore.04"), AgentPromptFiles.Text("MashaMemoryStore.05"), AgentPromptFiles.Text("MashaMemoryStore.06")];
 }
 
 public sealed class PortablePlayerBond
@@ -85,6 +85,8 @@ public sealed class MashaArchive
     public Dictionary<string, string> ImportFingerprints { get; set; } =
         new(StringComparer.Ordinal);
     public List<string> AppliedTurnIds { get; set; } = new();
+    public List<string> AppliedDocumentEditIds { get; set; } = new();
+    public HashSet<string> SuppressedMemoryValues { get; set; } = new(StringComparer.Ordinal);
 }
 
 public sealed record MashaWorldHandle(string EpisodeId, string WorldKey, long Tick, long GameHour)
@@ -130,10 +132,14 @@ public sealed partial class MashaMemoryStore
         var loadPath = File.Exists(_filePath) || !File.Exists(_workspace.LegacyStatePath)
             ? _filePath
             : _workspace.LegacyStatePath;
+        using var documentLock = _workspace.AcquireDocumentLock();
         _archive = LoadOrCreate(loadPath, initialIdentity);
         if (!string.Equals(loadPath, _filePath, StringComparison.Ordinal))
             WriteArchiveAtomically(_filePath, _archive);
-        _workspace.WriteViews(_archive);
+        var edits = ApplyDocumentEdits();
+        if (edits.Count > 0) WriteArchiveAtomically(_filePath, _archive);
+        _workspace.WriteViews(_archive, true);
+        MemoryDocumentEdits.Complete(edits);
     }
 
     public string FilePath => _filePath;
@@ -191,7 +197,7 @@ public sealed partial class MashaMemoryStore
                 episode.Memories.Add(new PortableMemory
                 {
                     Key = "arrival.world",
-                    Value = "Я оказалась в новом незнакомом мире и сначала не понимала, как сюда попала.",
+                    Value = AgentPromptFiles.Text("MashaMemoryStore.07"),
                     Importance = 1f,
                     UpdatedAtTick = tick,
                     UpdatedAtUtc = now,
@@ -460,6 +466,7 @@ public sealed partial class MashaMemoryStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            await RefreshDocumentEditsAsync(cancellationToken);
             var projected = JsonSerializer.Deserialize<MashaArchive>(JsonSerializer.Serialize(_archive, JsonOptions), JsonOptions)!;
             var legacy = world.SpeakerKey.Length == 0 || world.SpeakerKey == _archive.PrimarySpeakerKey;
             if (world.SpeakerKey.Length > 0)
@@ -474,6 +481,12 @@ public sealed partial class MashaMemoryStore
                         !legacy && m.Source is "model" or "hexlive-legacy" or "molly-files");
                     chapter.Journal.RemoveAll(m => m.SpeakerKey.Length > 0 ? m.SpeakerKey != world.SpeakerKey : !legacy);
                 }
+            }
+            projected.CoreMemories.RemoveAll(m => MemoryDocumentEdits.IsSuppressedInContext(projected, world.SpeakerKey, m.Value));
+            foreach (var chapter in projected.Worlds)
+            {
+                chapter.Memories.RemoveAll(m => MemoryDocumentEdits.IsSuppressedInContext(projected, world.SpeakerKey, m.Value));
+                chapter.Journal.RemoveAll(m => MemoryDocumentEdits.IsSuppressedInContext(projected, world.SpeakerKey, m.Text));
             }
             return _workspace.BuildPrompt(projected, projected.Worlds.Single(w => w.Id == world.EpisodeId), recallQuery, world, legacy);
         }
@@ -515,6 +528,7 @@ public sealed partial class MashaMemoryStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            await RefreshDocumentEditsAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(turnId) || _archive.AppliedTurnIds.Contains(turnId))
                 return false;
 
@@ -522,7 +536,7 @@ public sealed partial class MashaMemoryStore
                 return false;
             // Validate before mutating any memory, even for callers restoring a persisted outbox.
             if (trigger == "voice" && decision.RelationshipAssessment is { } proposed)
-                new HexLive.AgentCore.Studio.VoiceRelationship(new(0, 0, 0, "Голос", null))
+                new HexLive.AgentCore.Studio.VoiceRelationship(new(0, 0, 0, AgentPromptFiles.Text("MashaMemoryStore.08"), null))
                     .Apply(world.MessageIds.Length > 0 ? world.MessageIds : [turnId], proposed, DateTimeOffset.UtcNow);
             var episode = RequireEpisode(world.EpisodeId);
             episode.LastTick = Math.Max(episode.LastTick, world.Tick);
@@ -535,6 +549,7 @@ public sealed partial class MashaMemoryStore
                 var scope = update.Key.StartsWith("user:", StringComparison.Ordinal) ? "model-user" :
                     update.Key.StartsWith("self:", StringComparison.Ordinal) ? "model-self" :
                     update.Key.StartsWith("core:", StringComparison.Ordinal) ? "model-core" : "model";
+                if (MemoryDocumentEdits.IsSuppressed(_archive, scope, world.SpeakerKey, Limit(update.Value, 400))) continue;
                 var destination = scope == "model-user" && world.SpeakerKey.Length > 0 ? GetSpeaker(world.SpeakerKey).Facts :
                     scope == "model" ? episode.Memories : _archive.CoreMemories;
                 Upsert(destination, new PortableMemory
@@ -571,14 +586,14 @@ public sealed partial class MashaMemoryStore
                 {
                     ApplySpeakerAssessment(world, turnId, decision);
                     var recent = GetSpeaker(world.SpeakerKey).RecentConversation;
-                    if (world.PlayerText.Length > 0) recent.Add("Игрок: " + Limit(world.PlayerText, 4000));
+                    if (world.PlayerText.Length > 0) recent.Add(AgentPromptFiles.Text("MashaMemoryStore.09") + Limit(world.PlayerText, 4000));
                     if (decision.Speech.Length > 0) recent.Add(_archive.Identity.Name + ": " + Limit(decision.Speech, 600));
                     TrimOldest(recent, 12);
                 }
                 else if (decision.RelationshipAssessment is { } assessment)
                 {
                     var b = _archive.PlayerBond;
-                    var r = new HexLive.AgentCore.Studio.VoiceRelationship(new(b.Familiarity, b.Trust, b.Affinity, "Голос", null));
+                    var r = new HexLive.AgentCore.Studio.VoiceRelationship(new(b.Familiarity, b.Trust, b.Affinity, AgentPromptFiles.Text("MashaMemoryStore.10"), null));
                     r.Apply([turnId], assessment, DateTimeOffset.UtcNow);
                     b.Familiarity = r.Snapshot.Familiarity; b.Trust = r.Snapshot.Trust; b.Affinity = r.Snapshot.Sympathy;
                 }
@@ -611,6 +626,7 @@ public sealed partial class MashaMemoryStore
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            await RefreshDocumentEditsAsync(cancellationToken);
             var json = JsonSerializer.Serialize(_archive, JsonOptions);
             return JsonSerializer.Deserialize<MashaArchive>(json, JsonOptions)!;
         }
@@ -654,15 +670,17 @@ public sealed partial class MashaMemoryStore
         archive.CoreMemories ??= new List<PortableMemory>();
         archive.Worlds ??= new List<MashaWorldEpisode>();
         archive.AppliedTurnIds ??= new List<string>();
+        archive.AppliedDocumentEditIds ??= new();
+        archive.SuppressedMemoryValues ??= new(StringComparer.Ordinal);
         if (archive.Identity.Id == "masha")
         {
         EnsureCoreMemory(archive, "origin.life_before_room",
-            "До странной комнаты у меня была своя жизнь. Детали возвращаются обрывками, но эта жизнь была настоящей и моей.", 1f);
+            AgentPromptFiles.Text("MashaMemoryStore.11"), 1f);
         EnsureCoreMemory(archive, "origin.strange_room",
-            "Когда-то я очнулась запертой в незнакомой странной комнате и пыталась понять, как туда попала.", 1f);
+            AgentPromptFiles.Text("MashaMemoryStore.12"), 1f);
         }
         EnsureCoreMemory(archive, "origin.player_voice",
-            "Невидимый знакомый голос иногда может со мной говорить и советовать, но он не мой хозяин.", 0.95f);
+            AgentPromptFiles.Text("MashaMemoryStore.13"), 0.95f);
         if (!File.Exists(path))
         {
             var json = JsonSerializer.Serialize(archive, JsonOptions);
@@ -674,6 +692,8 @@ public sealed partial class MashaMemoryStore
 
     private async Task SaveAsync(CancellationToken cancellationToken)
     {
+        using var documentLock = _workspace.AcquireDocumentLock();
+        var edits = ApplyDocumentEdits();
         var temp = _filePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
@@ -683,12 +703,31 @@ public sealed partial class MashaMemoryStore
             RestrictPermissions(temp);
             File.Move(temp, _filePath, true);
             RestrictPermissions(_filePath);
-            _workspace.WriteViews(_archive);
+            _workspace.WriteViews(_archive, true);
+            MemoryDocumentEdits.Complete(edits);
         }
         finally
         {
             try { if (File.Exists(temp)) File.Delete(temp); } catch (IOException) { }
         }
+    }
+
+    private Task RefreshDocumentEditsAsync(CancellationToken token) =>
+        MemoryDocumentEdits.HasPending(Path.GetDirectoryName(_workspace.StateDirectory)!) ? SaveAsync(token) : Task.CompletedTask;
+
+    private IReadOnlyList<string> ApplyDocumentEdits()
+    {
+        var root = Path.GetDirectoryName(_workspace.StateDirectory)!;
+        if (!MemoryDocumentEdits.HasPending(root)) return [];
+        var backups = Path.Combine(_workspace.StateDirectory, "backups");
+        if (Directory.Exists(backups) && (File.GetAttributes(backups) & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("LinkedMemoryBackupNotAllowed");
+        Directory.CreateDirectory(backups);
+        WriteArchiveAtomically(Path.Combine(backups, "before-document-edit-" + Guid.NewGuid().ToString("N") + ".json"), _archive);
+        var next = JsonSerializer.Deserialize<MashaArchive>(JsonSerializer.Serialize(_archive, JsonOptions), JsonOptions)!;
+        var edits = MemoryDocumentEdits.ApplyPending(root, next);
+        _archive = next;
+        return edits;
     }
 
     private static void WriteArchiveAtomically(string path, MashaArchive archive)
@@ -710,7 +749,8 @@ public sealed partial class MashaMemoryStore
     private static void EnsureCoreMemory(
         MashaArchive archive, string key, string value, float importance)
     {
-        if (archive.CoreMemories.Any(x => x.Key == key)) return;
+        if (MemoryDocumentEdits.IsSuppressed(archive, "identity-seed", "", value)) return;
+        if (archive.CoreMemories.Any(x => x.Key == key || MemoryDocumentEdits.Normalize(x.Value) == MemoryDocumentEdits.Normalize(value))) return;
         archive.CoreMemories.Add(new PortableMemory
         {
             Key = key,

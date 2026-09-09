@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="650" viewBox="0 0 1080 650">
+<rect width="1080" height="650" fill="#f7f5ef"/>
+<g font-family="Arial,sans-serif" fill="#20313b">
+<text x="30" y="34" font-size="23">Баг #351 — кровать и фактическая ось тела</text>
+<text x="30" y="60" font-size="14">Одна фаза 0.25, yaw 0°. Координаты костей относительно production sleep point; масштаб 240 px/wu.</text>
+<text x="180" y="92" text-anchor="middle" font-size="18">До: широкий Bed-клип</text>
+<rect x="102.05" y="115.00" width="155.90" height="360.00" fill="#78946b" fill-opacity=".18" stroke="#78946b" stroke-width="1.5"/>
+<line x1="180" y1="105" x2="180" y2="485" stroke="#78946b" stroke-dasharray="5 4"/>
+<rect x="232.78" y="361.79" width="38.14" height="48.24" fill="#317cac" fill-opacity=".15" stroke="#317cac" stroke-width="1.5"/>
+<rect x="152.16" y="297.57" width="68.09" height="73.94" fill="#317cac" fill-opacity=".15" stroke="#317cac" stroke-width="1.5"/>
+<line x1="186.19" y1="165.14" x2="241.94" y2="379.55" stroke="#bd573b" stroke-width="2" stroke-dasharray="5 3"/>
+<line x1="167.78" y1="305.22" x2="241.94" y2="379.55" stroke="#bd573b" stroke-width="5"/>
+<circle cx="241.94" cy="379.55" r="4" fill="#bd573b"/>
+<circle cx="167.78" cy="305.22" r="4" fill="#bd573b"/>
+<circle cx="186.19" cy="165.14" r="4" fill="#bd573b"/>
+<text x="180" y="515" text-anchor="middle" font-size="17">Голова–таз: 44.94°</text>
+<text x="180" y="539" text-anchor="middle" font-size="14">Голова–стопы: 14.58°</text>
+<text x="180" y="563" text-anchor="middle" font-size="12">Голова и плечи выходят за край на PNG</text>
+<text x="540" y="92" text-anchor="middle" font-size="18">После: Sleep Mirrored</text>
+<rect x="462.05" y="115.00" width="155.90" height="360.00" fill="#78946b" fill-opacity=".18" stroke="#78946b" stroke-width="1.5"/>
+<line x1="540" y1="105" x2="540" y2="485" stroke="#78946b" stroke-dasharray="5 4"/>
+<rect x="522.65" y="403.29" width="33.67" height="43.46" fill="#317cac" fill-opacity=".15" stroke="#317cac" stroke-width="1.5"/>
+<rect x="512.04" y="308.66" width="56.16" height="68.42" fill="#317cac" fill-opacity=".15" stroke="#317cac" stroke-width="1.5"/>
+<line x1="537.50" y1="124.10" x2="540.00" y2="414.38" stroke="#bd573b" stroke-width="2" stroke-dasharray="5 3"/>
+<line x1="539.69" y1="307.48" x2="540.00" y2="414.38" stroke="#bd573b" stroke-width="5"/>
+<circle cx="540.00" cy="414.38" r="4" fill="#bd573b"/>
+<circle cx="539.69" cy="307.48" r="4" fill="#bd573b"/>
+<circle cx="537.50" cy="124.10" r="4" fill="#bd573b"/>
+<text x="540" y="515" text-anchor="middle" font-size="17">Голова–таз: 0.16°</text>
+<text x="540" y="539" text-anchor="middle" font-size="14">Голова–стопы: 0.49°</text>
+<text x="540" y="563" text-anchor="middle" font-size="12">NPC 1 · зеркальный спокойный вариант</text>
+<text x="900" y="92" text-anchor="middle" font-size="18">После: Sleep</text>
+<rect x="822.05" y="115.00" width="155.90" height="360.00" fill="#78946b" fill-opacity=".18" stroke="#78946b" stroke-width="1.5"/>
+<line x1="900" y1="105" x2="900" y2="485" stroke="#78946b" stroke-dasharray="5 4"/>
+<rect x="883.42" y="403.36" width="33.67" height="43.49" fill="#317cac" fill-opacity=".15" stroke="#317cac" stroke-width="1.5"/>
+<rect x="871.54" y="308.73" width="56.16" height="68.42" fill="#317cac" fill-opacity=".15" stroke="#317cac" stroke-width="1.5"/>
+<line x1="902.23" y1="124.19" x2="899.74" y2="414.45" stroke="#bd573b" stroke-width="2" stroke-dasharray="5 3"/>
+<line x1="900.05" y1="307.55" x2="899.74" y2="414.45" stroke="#bd573b" stroke-width="5"/>
+<circle cx="899.74" cy="414.45" r="4" fill="#bd573b"/>
+<circle cx="900.05" cy="307.55" r="4" fill="#bd573b"/>
+<circle cx="902.23" cy="124.19" r="4" fill="#bd573b"/>
+<text x="900" y="515" text-anchor="middle" font-size="17">Голова–таз: 0.16°</text>
+<text x="900" y="539" text-anchor="middle" font-size="14">Голова–стопы: 0.49°</text>
+<text x="900" y="563" text-anchor="middle" font-size="12">NPC 2 · исходный спокойный вариант</text>
+<text x="30" y="597" font-size="13">Зелёный: реальный leaf-mattress. Красный: центры костей. Синий: объёмы головы/торса по BakeMesh и skin weights.</text>
+<text x="30" y="618" font-size="13">Это схема измерений, не контур тела; визуальный дефект до исправления подтверждён отдельными URP PNG.</text>
+<text x="30" y="639" font-size="12">После: 2 варианта × 6 yaw × 4 фазы = 48 проверок поддержки и высоты. Выбор id % 2 сохранён.</text>
+</g></svg>

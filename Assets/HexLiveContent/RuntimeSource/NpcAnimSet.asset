@@ -32,7 +32,7 @@ MonoBehaviour:
   sadWalk: {fileID: -203655887218126122, guid: e1e06578d9378412ca0ff2cc1240ac4b, type: 3}
   sleep:
   - {fileID: -203655887218126122, guid: 1d449e1d45b2f484fb1e9ac1de5e3d77, type: 3}
-  - {fileID: -203655887218126123, guid: 0663a2605109244c2933506cc48ad1a8, type: 3}
+  - {fileID: -203655887218126123, guid: 1d449e1d45b2f484fb1e9ac1de5e3d77, type: 3}
   armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
   armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}
   male:

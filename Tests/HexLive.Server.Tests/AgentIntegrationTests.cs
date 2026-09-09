@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
@@ -49,27 +50,75 @@ public sealed class AgentIntegrationTests
     }
 
     [Test]
-    public void InboxIsBoundedReportsGapAndDeduplicatesMessageId()
+    public void InboxBackpressurePreservesOldestAndRetryAfterAcknowledgment()
     {
         var registry = new AgentSessionRegistry();
         Assert.That(registry.TryAttach(901, "mcp:a", 4, "Agent",
             AgentCapabilities.PlayerText, 45, out var attachment, out _), Is.True);
-
-        for (var i = 1; i <= 66; i++)
+        for (var i = 1; i <= 64; i++)
             Assert.That(registry.TryEnqueuePlayerText(901, "m" + i, "ru", "текст " + i,
                 out _), Is.True);
-        Assert.That(registry.TryEnqueuePlayerText(901, "m66", "ru", "дубликат", out _), Is.True);
+        Assert.That(registry.TryEnqueuePlayerText(901, "m65", "ru", "сохранённый текст", out var reason), Is.False);
+        Assert.That(reason, Is.EqualTo("InboxFull"));
+        Assert.That(registry.TryEnqueuePlayerText(901, "m64", "ru", "повтор", out _), Is.True);
+        Assert.That(registry.TryReadInbox(attachment.AttachmentId, "mcp:a", 4, 0, 16,
+            out var inbox, out reason), Is.True, reason);
+        Assert.That(inbox.Messages[0].MessageId, Is.EqualTo("m1"));
+        Assert.That(inbox.Truncated, Is.True);
+        Assert.That(registry.TryAcknowledgeInbox(attachment.AttachmentId, "mcp:a", 4,
+            inbox.Watermark, out reason), Is.True, reason);
+        // Lost response to ack is retried safely; accepted text is still deduplicated.
+        Assert.That(registry.TryAcknowledgeInbox(attachment.AttachmentId, "mcp:a", 4,
+            inbox.Watermark, out reason), Is.True, reason);
+        Assert.That(registry.TryEnqueuePlayerText(901, "m1", "ru", "повтор после ack", out _), Is.True);
+        Assert.That(registry.TryEnqueuePlayerText(901, "m65", "ru", "сохранённый текст", out _), Is.True);
+        registry.TryReadInbox(attachment.AttachmentId, "mcp:a", 4, 64, 16, out var tail, out _);
+        Assert.That(tail.Messages, Has.Length.EqualTo(1));
+        Assert.That(tail.Messages[0].MessageId, Is.EqualTo("m65"));
+    }
 
-        Assert.That(registry.TryReadInbox(attachment.AttachmentId, "mcp:a", 4, 1, 16,
-            out var inbox, out var reason), Is.True, reason);
-        Assert.Multiple(() =>
-        {
-            Assert.That(inbox.Gap, Is.True);
-            Assert.That(inbox.Truncated, Is.True);
-            Assert.That(inbox.Messages, Has.Length.EqualTo(16));
-            Assert.That(inbox.Messages[0].MessageId, Is.EqualTo("m3"));
-            Assert.That(inbox.Messages[15].MessageId, Is.EqualTo("m18"));
-        });
+    [Test]
+    public void InboxAcknowledgmentCannotSkipUnreadSpeakerAndIsOwned()
+    {
+        var registry = new AgentSessionRegistry();
+        registry.TryAttach(901, "mcp:a", 4, "Agent", AgentCapabilities.PlayerText, 45,
+            out var attachment, out _);
+        registry.TryEnqueuePlayerText(901, "same", "ru", "A1", out _, "A");
+        registry.TryEnqueuePlayerText(901, "same", "ru", "B1", out _, "B");
+        registry.TryEnqueuePlayerText(901, "next", "ru", "A2", out _, "A");
+        registry.TryReadInbox(attachment.AttachmentId, "mcp:a", 4, 1, 16, out var later, out _);
+        Assert.That(registry.TryAcknowledgeInbox(attachment.AttachmentId, "mcp:a", 4,
+            later.Watermark, out var reason), Is.False);
+        Assert.That(reason, Is.EqualTo("InboxNotDelivered"));
+        registry.TryReadInbox(attachment.AttachmentId, "mcp:a", 4, 0, 16, out var all, out _);
+        Assert.That(registry.TryAcknowledgeInbox(attachment.AttachmentId, "mcp:other", 4,
+            all.Messages[0].Sequence, out _), Is.False);
+        Assert.That(registry.TryAcknowledgeInbox(attachment.AttachmentId, "mcp:a", 4,
+            all.Messages[0].Sequence, out _), Is.True);
+        registry.TryReadInbox(attachment.AttachmentId, "mcp:a", 4, 0, 16, out var remaining, out _);
+        Assert.That(remaining.Messages.Select(x => x.Text), Is.EqualTo(new[] { "B1", "A2" }));
+        Assert.That(registry.TryAcknowledgeInbox(attachment.AttachmentId, "mcp:a", 4,
+            all.Watermark + 1, out _), Is.False);
+    }
+
+    [Test]
+    public void LongPlayerTextBindsToExpectedAttachmentAtEnqueue()
+    {
+        var registry = new AgentSessionRegistry();
+        registry.TryAttach(901, "mcp:a", 4, "Agent", AgentCapabilities.PlayerText, 45,
+            out var first, out _);
+        var text = new string('я', AgentWire.MaxPlayerTextCharacters);
+        var frame = AgentWire.ReadAgentTextInput(Payload(AgentWire.AgentTextInput(5, 901,
+            "message", "ru", text, first.AttachmentId)));
+        Assert.That(frame.Text, Is.EqualTo(text));
+        registry.TryDetach(first.AttachmentId, "mcp:a", 4, out _, out _);
+        registry.TryAttach(901, "mcp:b", 4, "Agent", AgentCapabilities.PlayerText, 45,
+            out var second, out _);
+        Assert.That(registry.TryEnqueuePlayerText(frame.NpcId, frame.MessageId, frame.Language,
+            frame.Text, out var reason, "speaker", frame.ExpectedAttachmentId), Is.False);
+        Assert.That(reason, Is.EqualTo("AttachmentChanged"));
+        registry.TryReadInbox(second.AttachmentId, "mcp:b", 4, 0, 16, out var inbox, out _);
+        Assert.That(inbox.Messages, Is.Empty);
     }
 
     [Test]
@@ -189,7 +238,7 @@ public sealed class AgentIntegrationTests
         Assert.Throws<InvalidDataException>(() => AgentWire.AgentSpeechChunk("u", 0,
             new byte[AgentWire.MaxChunkBytes + 1]));
         Assert.Throws<InvalidDataException>(() => AgentWire.AgentTextInput(1, 901, "m", "ru",
-            new string('я', AgentWire.MaxTextCharacters + 1)));
+            new string('я', AgentWire.MaxPlayerTextCharacters + 1), "attachment"));
     }
 
     [Test]
@@ -227,7 +276,7 @@ public sealed class AgentIntegrationTests
     [Test]
     public void WireRejectsMalformedUtf8BeforeTextReachesInbox()
     {
-        var payload = Payload(AgentWire.AgentTextInput(1, 901, "m", "ru", "Привет"));
+        var payload = Payload(AgentWire.AgentTextInput(1, 901, "m", "ru", "Привет", "attachment"));
         payload[9] = 0xff; // invalid UTF-8 in messageId, after two int32 values + string length
         Assert.Throws<InvalidDataException>(() => AgentWire.ReadAgentTextInput(payload));
     }

@@ -208,7 +208,7 @@ public interface ISimulationSource
     bool TryTakeSttTokenResult(out SttTokenResultFrame result);
 
     void SendAgentText(int correlationId, EntityId npc, string messageId,
-        string language, string text);
+        string language, string text, string expectedAttachmentId);
 
     bool TryTakeAgentTextResult(out AgentTextResultFrame result);
 

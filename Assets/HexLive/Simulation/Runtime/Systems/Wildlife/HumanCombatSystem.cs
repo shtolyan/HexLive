@@ -40,9 +40,12 @@ public sealed class HumanCombatSystem : ISimulationSystem
                 continue;
             }
 
-            if (actor.Health <= 0f || actor.IsUnconscious(world.Tick) || actor.Body.IsProne ||
+            // §121 / bug #381: crawling is not unconsciousness. A prone
+            // conscious person remains a target and can answer with her hands;
+            // EffectiveWeapon still enforces the standing-body weapon gate.
+            if (actor.Health <= 0f || actor.IsUnconscious(world.Tick) ||
                 !world.Entities.Npcs.TryGetValue(opponentId, out var opponent) ||
-                opponent.Health <= 0f || opponent.IsUnconscious(world.Tick) || opponent.Body.IsProne)
+                opponent.Health <= 0f || opponent.IsUnconscious(world.Tick))
             {
                 HumanCombatPairing.ClearFor(world, actor);
                 CombatHelpSystem.ClearAssist(actor);

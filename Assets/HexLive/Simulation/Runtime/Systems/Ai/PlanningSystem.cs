@@ -204,6 +204,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             npc.Plan.TargetItemDefinitionId = null;
             npc.Plan.TargetAgentId = null;
             npc.Plan.RunRequested = false;
+            npc.Plan.RequestedTalkTopic = null;
             npc.Plan.Goal = npc.Mind.CurrentGoal;
 
             if (SimTrace.Enabled)
@@ -1596,7 +1597,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         return false;
     }
 
-    private static bool HasUsableObjectApproach(
+    internal static bool HasUsableObjectApproach(
         WorldState world,
         NPCState npc,
         PerceivedObject perceived,

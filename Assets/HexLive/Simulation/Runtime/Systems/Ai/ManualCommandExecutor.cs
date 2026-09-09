@@ -89,6 +89,9 @@ internal static class ManualCommandExecutor
             case TalkToCommand talkTo:
                 ApplyTalkTo(world, talkTo, admission);
                 break;
+            case RequestItemCommand requestItem:
+                ApplyRequestItem(world, requestItem, admission);
+                break;
             case RomancePersonCommand romance:
                 ApplyRomancePerson(world, romance, admission);
                 break;
@@ -215,6 +218,7 @@ internal static class ManualCommandExecutor
         StopCommand => "Stop",
         CraftItemCommand => "Craft",
         TalkToCommand => "TalkTo",
+        RequestItemCommand => "RequestItem",
         RomancePersonCommand c => c.Forced ? "ForceRomance" : "Romance",
         MergeCampsCommand => "MergeCamps",
         SetCampHomeCommand => "SetCampHome",
@@ -254,7 +258,6 @@ internal static class ManualCommandExecutor
             return;
         }
         if (string.IsNullOrWhiteSpace(command.TurnId) || command.TurnId.Length > 80 ||
-            command.Reaction == Agents.CompanionReaction.None ||
             !System.Enum.IsDefined(typeof(Agents.CompanionReaction), command.Reaction))
         {
             admission.Reject("InvalidAgentTurn");
@@ -497,6 +500,7 @@ internal static class ManualCommandExecutor
 
         npc.Plan.Steps.Clear();
         npc.Plan.RunRequested = false;
+        npc.Plan.RequestedTalkTopic = null;
         npc.Mind.GoalLock = null;
         // §121.10: очередь «собрать всё» живёт ровно до следующего приказа —
         // любого. Игрок сказал «иди туда» посреди сбора листьев: продолжать
@@ -1006,6 +1010,27 @@ internal static class ManualCommandExecutor
         }
     }
 
+    // §153.4: a nearby request resolves immediately, without taking over
+    // either participant's plan or answering for a manually controlled owner.
+    private static void ApplyRequestItem(
+        WorldState world, RequestItemCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "RequestItem", requireManual: false,
+                admission, out var requester)) return;
+
+        var result = ItemRequestMath.Request(world, requester, command.Target, command.DefinitionId);
+        if (result != ItemRequestOutcome.Transferred)
+        {
+            Reject(world, requester.Id, "RequestItem", result.ToString(), admission);
+            return;
+        }
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, requester.Id, "ManualOrderAccepted",
+                $"Order=RequestItem Target=NPC{command.Target.Value} Def={command.DefinitionId} Transferred=1");
+        }
+    }
+
     // §121.9: подойти и поговорить. Цель занята, идёт или не в духе — приказ
     // всё равно принимается: отказ по прибытии сыграет штатный RunTalk
     // (видимый cue TalkRejected), ровно как у автономной инициаторки. На
@@ -1013,6 +1038,12 @@ internal static class ManualCommandExecutor
     private static void ApplyTalkTo(
         WorldState world, TalkToCommand command, AdmissionTracker admission)
     {
+        if (command.RequestedTopic is { } topic && !Social.TalkTopicRequest.IsAllowed(topic))
+        {
+            Reject(world, command.Npc, "TalkTo", "InvalidTalkTopic", admission);
+            return;
+        }
+
         if (!TryTakeOrder(world, command.Npc, "TalkTo", requireManual: true,
                 admission, out var npc))
         {
@@ -1059,6 +1090,7 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        npc.Plan.RequestedTalkTopic = command.RequestedTopic;
         npc.Plan.Goal = GoalType.Socialize;
         npc.Mind.CurrentGoal = GoalType.Socialize;
         if (SimTrace.Enabled)

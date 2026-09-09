@@ -28,6 +28,11 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
   </ItemGroup>
 
+  <!-- §58.7: generated from canonical I2 terms; never a hand-authored C# name table. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Mcp/npc-names.json" LogicalName="HexLive.Mcp.NpcNames.json" />
+  </ItemGroup>
+
   <!--
     §144.9: the spec travels WITH the server.
 

@@ -1,6 +1,9 @@
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using HexLive.Simulation.Agents;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Runtime;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Gates;
@@ -10,16 +13,28 @@ public sealed class GarmentUnderwearVisibilityGateTests
     private const string VestId = "clothing.vest_stars";
 
     [Test]
-    public void Report156ContextEquipsTheStarsVest()
+    public void ControlledStarsVestFixtureEquipsOverExistingUnderwear()
     {
         var engine = TestWorld.CreateEngine(-28260451);
         while (engine.World.Tick < 2565) engine.Step();
 
         var npc = engine.World.Entities.Npcs.Values
             .Single(candidate => candidate.Id.Value == 1);
+        Assert.That(npc.Sex, Is.EqualTo(GarmentSex.Female));
+        // #380 intentionally adds the former male kit to women's loot pools.
+        // Keep the reported item explicit; this is not a historical wardrobe replay.
+        var underwear = npc.WornItems.Where(item =>
+            engine.World.Content.ObjectDefinitions[item.DefinitionId].Layer == WearLayer.Underwear).ToArray();
+        Assert.That(underwear, Is.Not.Empty);
+        var index = npc.Inventory.Items.Count;
+        npc.Inventory.Items.Add(new ItemInstance(VestId) { OwnerId = npc.Id.Value });
+        var result = engine.ApplyManualCommand(new ManageInventoryCommand(npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, index, VestId), InventoryAction.Wear));
+        Assert.That(result.Accepted, Is.True, result.Reason);
         Assert.That(npc.WornItems.Select(item => item.DefinitionId),
-            Does.Contain(VestId),
-            "seed=-28260451 tick=2565 npc=1 must keep identifying the reported item.");
+            Does.Contain(VestId));
+        Assert.That(underwear.All(item => npc.WornItems.Contains(item)), Is.True,
+            "Equipping the open vest must keep the existing underwear equipped.");
     }
 
     [Test]

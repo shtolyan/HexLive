@@ -87,6 +87,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Buckled Halter",
         "nameRu": "Топ с пряжками",
         "descEn": "Leather cut to the ribs, held by buckles and rivets.",
@@ -233,6 +234,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Laced Shorts",
         "nameRu": "Шорты со шнуровкой",
         "descEn": "Short, laced at the hip. More show than cover.",
@@ -344,6 +346,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Jersey Tank",
         "nameRu": "Трикотажная майка",
         "descEn": "Thin jersey, trimmed at the hem. Everyday wear.",
@@ -619,6 +622,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Tiered Skirt",
         "nameRu": "Ярусная юбка",
         "descEn": "Four tiers to the shin, seams between them.",
@@ -1349,6 +1353,7 @@
         "_source": "поза, наложенная самой вещью при примерке: Great Charm Boots"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Thigh-High Boots",
         "nameRu": "Ботфорты",
         "descEn": "Up to the thigh, on a heel that makes walking a decision.",
@@ -2840,6 +2845,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Autumn Jacket",
         "nameRu": "Осенняя куртка",
         "descEn": "Zipped jacket over a turtleneck. The warmest thing here.",
@@ -3907,6 +3913,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Strap Bodysuit",
         "nameRu": "Боди из ремешков",
         "descEn": "Straps and mesh. Covers the idea of the body, not the body.",
@@ -4071,6 +4078,7 @@
         "FadsSlipOn_R_8822"
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Slip-Ons",
         "nameRu": "Слипоны",
         "descEn": "Flat canvas, elastic at the sides. No laces to break.",
@@ -4694,6 +4702,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Bikini Top",
         "nameRu": "Верх бикини",
         "descEn": "Two triangles and a knot.",
@@ -4857,6 +4866,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Bikini Briefs",
         "nameRu": "Низ бикини",
         "descEn": "High on the hip, tied at the sides.",
@@ -5029,6 +5039,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Strappy Bra",
         "nameRu": "Лиф на ремешках",
         "descEn": "Rings and straps, more architecture than cloth.",
@@ -5195,6 +5206,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Strappy Briefs",
         "nameRu": "Трусики на ремешках",
         "descEn": "The bra's other half.",
@@ -5319,6 +5331,7 @@
         "heelCm": 0.32
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Patterned Stockings",
         "nameRu": "Узорчатые чулки",
         "descEn": "Thigh-high, printed. Warmth is not the point.",
@@ -5681,6 +5694,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Plain Panties",
         "nameRu": "Простые трусики",
         "descEn": "Plain cotton. Nothing to say about them.",

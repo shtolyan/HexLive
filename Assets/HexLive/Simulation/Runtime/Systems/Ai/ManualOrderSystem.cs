@@ -182,8 +182,8 @@ public sealed class ManualOrderSystem : ISimulationSystem
 
     private static void KeepAttackingNpc(WorldState world, NPCState npc, EntityId targetId)
     {
-        // Лежащего не добивают: приказ «бить» исполнен, когда противник больше
-        // не противник. Хочет обобрать — §111 это отдельное действие, и
+        // Бессознательного не добивают; сознательное ползание и обычный сон
+        // не завершают приказ. Хочет обобрать — §111 это отдельное действие, и
         // отдавать его должен игрок отдельным приказом.
         if (!world.Entities.Npcs.TryGetValue(targetId, out var target) ||
             target.Health <= 0f ||

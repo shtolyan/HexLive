@@ -71,7 +71,6 @@ namespace HexLive.Simulation.Runtime
                 if (candidate.Id.Equals(attacker.Id) ||
                     candidate.Health <= 0f ||
                     candidate.IsUnconscious(world.Tick) ||
-                    candidate.Body.IsProne ||
                     candidate.Mind.CombatOpponentNpcId is not { } target ||
                     !target.Equals(attacker.Id))
                 {

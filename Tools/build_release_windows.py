@@ -46,7 +46,11 @@ DEFAULT_DISTRIBUTION = Path.home() / "hex-girls"
 DEFAULT_RELEASES = DEFAULT_DISTRIBUTION / "Releases"
 PROJECT_SETTINGS = ROOT / "ProjectSettings" / "ProjectSettings.asset"
 PENDING_VERSION = ROOT / "Library" / "HexLivePendingBuildVersion.txt"
-BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://163-245-204-96.sslip.io/api/bugs/v1").rstrip("/")
+# ⭐ Баг-трекер живёт на СИНГАПУРЕ и никуда не переезжал (указание игрока
+# 2026-09-09): сборка снапшотит и штампует именно его. Нью-Йорк — дополнительный
+# игровой сервер, у него свой отдельный список багов, который для релиза НЕ
+# канонический. Переопределить можно через HEXLIVE_BUG_API, но дефолт — Сингапур.
+BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://vmi3529459.contaboserver.net/api/bugs/v1").rstrip("/")
 REPOSITORY_BUG_TOKEN = ROOT / ".agents" / "skills" / "hexlive-bug-tracker" / "bug-token"
 USER_BUG_TOKEN = Path.home() / ".config" / "hexlive" / "bug-token"
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
@@ -188,7 +192,9 @@ def read_bug_tracker_with_windows_tls(url: str) -> Any:
         "--connect-timeout",
         "10",
         "--max-time",
-        "15",
+        # Нью-Йорк отдаёт весь список отчётов ~1.1 МБ за ~21 с; прежние 15 с
+        # обрывали снапшот и валили сборку. 60 с с запасом на медленный prod.
+        "60",
         "--header",
         "Accept: application/json",
         url,
@@ -215,7 +221,7 @@ def read_bug_tracker() -> dict[str, Any]:
         if os.name == "nt":
             reports = read_bug_tracker_with_windows_tls(url)
         else:
-            with urllib.request.urlopen(url, timeout=15) as response:
+            with urllib.request.urlopen(url, timeout=60) as response:
                 reports = json.loads(response.read().decode("utf-8"))
     except Exception as error:
         raise RuntimeError(f"Could not read bug API {BUG_API}: {error}") from error

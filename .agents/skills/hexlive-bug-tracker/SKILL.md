@@ -5,8 +5,12 @@ description: Read and mutate HexLive bug reports in the central server tracker, 
 
 # HexLive server bug tracker
 
-The source of truth is `https://163-245-204-96.sslip.io/api/bugs/v1`.
-Use `scripts/bugs.py`; it preserves JSON encoding and surfaces HTTP conflicts.
+The source of truth is `https://vmi3529459.contaboserver.net/api/bugs/v1` — the
+**Singapore** server. The bug tracker lives there and has not moved (project
+owner, 2026-09-09); New York (`163-245-204-96.sslip.io`) is an additional game
+server with its own separate, non-canonical bug list. Always read the tracker
+and build releases against Singapore. Use `scripts/bugs.py`; it preserves JSON
+encoding and surfaces HTTP conflicts.
 
 ## Authentication
 

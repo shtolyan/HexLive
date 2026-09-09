@@ -2,7 +2,9 @@
 """Small stdlib client for the HexLive bug API. Never logs the bearer token."""
 import argparse, json, os, pathlib, subprocess, sys, urllib.error, urllib.request
 
-DEFAULT="https://163-245-204-96.sslip.io/api/bugs/v1"
+# ⭐ Баг-трекер живёт на Сингапуре и не переезжал (указание игрока 2026-09-09).
+# Нью-Йорк — дополнительный сервер со своим отдельным списком, не канонический.
+DEFAULT="https://vmi3529459.contaboserver.net/api/bugs/v1"
 REPOSITORY_TOKEN=pathlib.Path(__file__).resolve().parents[1]/"bug-token"
 USER_TOKEN=pathlib.Path("~/.config/hexlive/bug-token").expanduser()
 

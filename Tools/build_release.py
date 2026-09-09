@@ -24,7 +24,9 @@ DEFAULT_DISTRIBUTION = Path.home() / "hex-girls"
 DEFAULT_RELEASES = DEFAULT_DISTRIBUTION / "Releases"
 PROJECT_SETTINGS = ROOT / "ProjectSettings" / "ProjectSettings.asset"
 PENDING_VERSION = ROOT / "Library" / "HexLivePendingBuildVersion.txt"
-BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://163-245-204-96.sslip.io/api/bugs/v1").rstrip("/")
+# ⭐ Баг-трекер — на Сингапуре (указание игрока 2026-09-09); Нью-Йорк —
+# дополнительный сервер и для релиза НЕ канонический. Дефолт — Сингапур.
+BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://vmi3529459.contaboserver.net/api/bugs/v1").rstrip("/")
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
 UNITY_METHOD = "HexLive.UnityDebug.Editor.HexLiveReleaseBuilder.BuildMacOS"
 UNITY_PREFS_DOMAIN = "com.unity3d.UnityEditor5.x"

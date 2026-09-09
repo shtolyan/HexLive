@@ -164,14 +164,19 @@ public sealed class AgentRuntimeIntegrationTests
             if (FailOnce)
             {
                 FailOnce = false;
-                throw new InvalidDataException("synthetic invalid model decision");
+                return AgentProviders.ParseDecision("{\"speech\":\"broken", trigger);
             }
             if (BlockDecision)
             {
                 try { await Task.Delay(Timeout.Infinite, cancellationToken); }
                 catch (OperationCanceledException) { Cancelled = true; throw; }
             }
-            return new CompanionDecision { Speech = "Привет.", Emotion = "warm", Reaction = "Neutral", IntentSummary = "Слушаю голос." };
+            return AgentProviders.ParseDecision("""
+                {"speech":"Привет.","emotion":"warm","action":null,"reaction":"Neutral",
+                "relationshipAssessment":{"learnedSomethingSignificant":false,"trust":"Unchanged",
+                "sympathy":"Unchanged","seriousHarm":false,"reason":"Обычное приветствие.","voiceName":null,"namingReason":null},
+                "intentSummary":"Слушаю голос.","memoryUpserts":[],"journalText":""}
+                """, trigger);
         }
         public Task<VoiceArtifact> SynthesizeAsync(string text, CancellationToken cancellationToken)
         {

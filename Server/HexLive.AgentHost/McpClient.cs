@@ -106,7 +106,9 @@ public sealed class McpClient : IDisposable
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         if (document.RootElement.TryGetProperty("error", out var error))
-            throw new InvalidOperationException(error.GetProperty("message").GetString() ?? "MCP error");
+            throw new McpRequestException(error.TryGetProperty("code", out var code) && code.TryGetInt32(out var number)
+                ? number switch { -32601 => "McpMethodNotFound", -32602 => "McpInvalidParams", -32700 => "McpParseError", _ => "McpRpcError" }
+                : "McpRpcError");
         return document.RootElement.Clone();
     }
 
@@ -146,7 +148,7 @@ public sealed class McpClient : IDisposable
             }
         }
 
-        throw new InvalidOperationException("MCP tool returned no text content.");
+        throw new McpRequestException("McpMissingToolContent");
     }
 
     public void Dispose()
@@ -156,18 +158,40 @@ public sealed class McpClient : IDisposable
     }
 }
 
-public sealed class McpToolRejectedException : InvalidOperationException
+public class McpRequestException(string code) : InvalidOperationException("MCP request failed: " + code)
 {
-    public string ReasonCode { get; }
-    public McpToolRejectedException(string payload) : base("MCP tool rejected the request.")
+    public string ReasonCode { get; protected set; } = code;
+}
+
+public sealed class McpToolRejectedException : McpRequestException
+{
+    // Server admission codes only. Unknown/private reason strings never become feedback or logs.
+    private static readonly HashSet<string> Reasons = new(StringComparer.Ordinal)
+    {
+        "NoSupplies", "NoLimbDamage", "NoSuchNpc", "NpcMissing", "NotOwned", "NotManual",
+        "Incapacitated", "Unreachable", "HandsOccupied", "HandsEmpty", "Crawling", "NoSuchPerson",
+        "PersonNotAvailable", "TargetGone", "TargetUnavailable", "TargetSelf", "Occupied", "TooFarToTalk",
+        "FeatureDisabled", "UnsupportedCommand", "NoSuchObject", "RetiredInteraction", "NoRouteToCamp",
+        "NotGirlCamp", "ForeignCamp", "AlreadyHome", "NoSpace", "InvalidTarget", "MissingItem",
+        "Refused", "NeededByOwner", "CannotTalk", "TooFar", "NotCompanion",
+        "MissingHands", "MissingTool", "NoBandage", "NotNeeded", "NothingToEat", "NothingToDrink",
+        "InvalidRecipe", "MissingResources", "NoStation", "StationBusy", "NoSuchAction", "NothingToBuild",
+        "Exhausted", "FireAlreadyLit", "FireHasNoFuel", "NoFuel", "FuelBufferFull", "NotAlly",
+        "NoMutualConsent", "InvalidTalkTopic", "InvalidKind", "InvalidDirection", "StaleItem", "StaleOrNoSpace",
+        "ContainerNotAvailable", "NoLootMotive", "NotAHearth", "NotAVessel", "NothingToPour",
+        "OutfitLocked", "InvalidAction", "InsufficientSpace", "NoDropSpot", "Cooldown", "NotInCombat",
+        "SoloCampModeOnly", "AlreadySameCamp", "NotNeighbourCamp", "CampMissing", "RelationshipTooLow", "ControlledByAgent"
+    };
+    public McpToolRejectedException(string payload) : base("InvalidToolArgumentsOrRejected")
     {
         ReasonCode = "InvalidToolArgumentsOrRejected";
+        if (Reasons.Contains(payload)) { ReasonCode = payload; return; }
         try
         {
             using var json = JsonDocument.Parse(payload);
-            if (json.RootElement.TryGetProperty("reason", out var reason) &&
+            if (json.RootElement.ValueKind == JsonValueKind.Object && json.RootElement.TryGetProperty("reason", out var reason) &&
                 reason.ValueKind == JsonValueKind.String &&
-                System.Text.RegularExpressions.Regex.IsMatch(reason.GetString() ?? "", @"^[A-Za-z][A-Za-z0-9_]{0,63}$"))
+                Reasons.Contains(reason.GetString() ?? ""))
                 ReasonCode = reason.GetString()!;
         }
         catch (JsonException) { }

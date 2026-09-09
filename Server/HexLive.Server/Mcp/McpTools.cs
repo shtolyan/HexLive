@@ -333,7 +333,11 @@ public sealed class McpTools
                    ("targetNpcId", "integer", "id жертвы (враждебной)", true))),
     };
 
-    public sealed record ToolSpec(string Name, string Description, JsonElement InputSchema);
+    public sealed record ToolSpec(string Name, string Description,
+        [property: System.Text.Json.Serialization.JsonIgnore] JsonElement RawInputSchema)
+    {
+        public JsonElement InputSchema => McpActionSchemas.Enrich(Name, RawInputSchema);
+    }
 
     // ── исполнение ────────────────────────────────────────────────────────
 

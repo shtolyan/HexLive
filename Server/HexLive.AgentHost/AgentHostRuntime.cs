@@ -45,6 +45,7 @@ public sealed partial class AgentHostRuntime
     private volatile bool _handoffActionLease;
     private volatile bool _actionAwaitingContinuation;
     private string _actionContract = string.Empty;
+    private AgentActionContract? _actionArguments;
     private string _actionFeedback = AgentPromptFiles.Text("AgentHostRuntime.01");
 
     public AgentHostRuntime(AgentHostOptions options, IAgentProviders? providers = null,
@@ -138,6 +139,7 @@ public sealed partial class AgentHostRuntime
         _pinnedNpcId = npcId;
         var catalog = await mcp.ReadToolCatalogAsync(cancellationToken);
         _actionContract = BuildActionContract(catalog);
+        _actionArguments = new AgentActionContract(catalog);
         _actionFeedback = AgentPromptFiles.Text("AgentHostRuntime.02");
         var attached = await mcp.CallToolAsync("attach_agent", new
         {
@@ -368,7 +370,7 @@ public sealed partial class AgentHostRuntime
             if (messageTurnId != null &&
                 (await _memory.SnapshotAsync(cancellationToken)).AppliedTurnIds.Contains(turnId))
             {
-                Console.Error.WriteLine($"[turn] id={turnId} trigger={trigger} result=duplicate-skipped");
+                Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} result=duplicate-skipped");
                 return true;
             }
             await ImportLegacyStateAsync(world, state, cancellationToken).ConfigureAwait(false);
@@ -429,15 +431,23 @@ public sealed partial class AgentHostRuntime
             cancellationToken.ThrowIfCancellationRequested();
             if (decision.Action != null && CanStartActionTurn(trigger))
             {
+                try { await ValidateActionAsync(mcp, npcId, decision.Action, cancellationToken); }
+                catch (AgentActionValidationException ex)
+                {
+                    ReportAction(decision.Action.Tool, turnId, ex.ReasonCode);
+                    await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
+                    _status.Write(true, "Ready", npcId, true, true);
+                    return true; // Keep the existing physical action and consume this rejected decision.
+                }
                 // Transfer the same owner's lease directly to the next command.
                 // Releasing it here returns to AI and drops a carried patient.
                 await StopActionAsync(handoffLease: true).ConfigureAwait(false);
                 _actionStop = CancellationTokenSource.CreateLinkedTokenSource(attachmentCancellation);
-                _actionTask = PerformActionSafelyAsync(mcp, npcId, decision.Action, _actionStop.Token);
+                _actionTask = PerformActionSafelyAsync(mcp, npcId, decision.Action, _actionStop.Token, turnId);
             }
             await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
             _status.Write(true, "Ready", npcId, true, true);
-            Console.Error.WriteLine($"[turn] id={turnId} trigger={trigger} result=committed");
+            Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} result=committed");
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -447,7 +457,7 @@ public sealed partial class AgentHostRuntime
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[turn] id={turnId} trigger={trigger} stage={stage} consumed={consumed} error={ex.GetType().Name}");
+            Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} stage={stage} consumed={consumed} error={ex.GetType().Name}");
             _status.Write(true, "Error", npcId, true, true, ex.GetType().Name);
             try
             {
@@ -602,19 +612,25 @@ public sealed partial class AgentHostRuntime
         trigger != "heartbeat" || _actionTask.IsCompleted || _actionAwaitingContinuation;
 
     private async Task PerformActionAsync(McpClient mcp, int npcId,
-        CompanionAction action, CancellationToken cancellationToken)
+        CompanionAction action, CancellationToken cancellationToken, string turnId)
     {
+        var arguments = await ValidateActionAsync(mcp, npcId, action, cancellationToken);
+        var acquired = false;
         try
         {
             await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 },
                 cancellationToken).ConfigureAwait(false);
-            var arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
-                                action.Arguments.GetRawText()) ?? new();
-            using var npcDocument = JsonDocument.Parse(
-                npcId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            arguments["npcId"] = npcDocument.RootElement.Clone();
-            await mcp.CallToolAsync(action.Tool, arguments, cancellationToken).ConfigureAwait(false);
-            Volatile.Write(ref _actionFeedback, action.Tool + AgentPromptFiles.Text("AgentHostRuntime.09"));
+            acquired = true;
+            var result = await mcp.CallToolAsync(action.Tool, arguments, cancellationToken).ConfigureAwait(false);
+            if ((result.TryGetProperty("accepted", out var accepted) && accepted.ValueKind == JsonValueKind.False) ||
+                (result.TryGetProperty("status", out var rejected) && rejected.GetString() == "Rejected"))
+                throw new McpToolRejectedException(result.GetRawText());
+            if (result.TryGetProperty("status", out var status) && status.GetString() == "Completed")
+            {
+                ReportAction(action.Tool, turnId, "Completed");
+                return;
+            }
+            ReportAction(action.Tool, turnId, "Accepted");
 
             var renew = DateTimeOffset.UtcNow.AddSeconds(9);
             DateTimeOffset? holdingSince = null;
@@ -627,7 +643,7 @@ public sealed partial class AgentHostRuntime
                 {
                     if (!HasCarriedPerson(list, npcId))
                     {
-                        Volatile.Write(ref _actionFeedback, action.Tool + AgentPromptFiles.Text("AgentHostRuntime.10"));
+                        ReportAction(action.Tool, turnId, PlanResult(list, npcId));
                         break;
                     }
                     // Pickup/movement completion is not the end of transport.
@@ -636,11 +652,11 @@ public sealed partial class AgentHostRuntime
                     holdingSince ??= DateTimeOffset.UtcNow;
                     if (DateTimeOffset.UtcNow - holdingSince.Value >= TimeSpan.FromSeconds(120))
                     {
-                        Volatile.Write(ref _actionFeedback, AgentPromptFiles.Text("AgentHostRuntime.11"));
+                        ReportAction(action.Tool, turnId, "CarryContinuationTimeout");
                         break;
                     }
                     _actionAwaitingContinuation = true;
-                    Volatile.Write(ref _actionFeedback, AgentPromptFiles.Text("AgentHostRuntime.12"));
+                    ReportAction(action.Tool, turnId, "AwaitingCarryContinuation");
                 }
                 else
                 {
@@ -660,7 +676,7 @@ public sealed partial class AgentHostRuntime
         }
         finally
         {
-            if (!_handoffActionLease) try
+            if (acquired && !_handoffActionLease) try
             {
                 await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None)
                     .ConfigureAwait(false);
@@ -670,19 +686,60 @@ public sealed partial class AgentHostRuntime
     }
 
     private async Task PerformActionSafelyAsync(McpClient mcp, int npcId,
-        CompanionAction action, CancellationToken cancellationToken)
+        CompanionAction action, CancellationToken cancellationToken, string turnId)
     {
         _actionAwaitingContinuation = false;
-        try { await PerformActionAsync(mcp, npcId, action, cancellationToken); }
+        try { await PerformActionAsync(mcp, npcId, action, cancellationToken, turnId); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        { Volatile.Write(ref _actionFeedback, action.Tool + AgentPromptFiles.Text("AgentHostRuntime.13")); }
+        { ReportAction(action.Tool, turnId, "Cancelled"); }
         catch (Exception ex)
         {
-            var code = ex is McpToolRejectedException rejection ? rejection.ReasonCode : ex.GetType().Name;
-            Volatile.Write(ref _actionFeedback, action.Tool + ": " + code + AgentPromptFiles.Text("AgentHostRuntime.14"));
-            Console.Error.WriteLine($"[action] tool={action.Tool} result={code}");
+            var code = ex switch
+            {
+                AgentActionValidationException validation => validation.ReasonCode,
+                McpRequestException failure => failure.ReasonCode,
+                OperationCanceledException => "McpTimeout",
+                HttpRequestException => "McpTransportError",
+                JsonException => "McpInvalidResponse",
+                _ => "ActionFailed"
+            };
+            ReportAction(action.Tool, turnId, code);
         }
         finally { _actionAwaitingContinuation = false; }
+    }
+
+    private async Task<Dictionary<string, JsonElement>> ValidateActionAsync(McpClient mcp, int npcId,
+        CompanionAction action, CancellationToken token)
+    {
+        _actionArguments ??= new AgentActionContract(await mcp.ReadToolCatalogAsync(token));
+        return _actionArguments.BindAndValidate(action, npcId);
+    }
+
+    private void ReportAction(string tool, string turnId, string code)
+    {
+        // All three fields are machine identifiers; never include arguments or exception messages.
+        var safeTool = AgentProviders.IsAllowedTool(tool) ? tool : "unknown";
+        var correlation = ActionCorrelation(turnId);
+        var feedback = $"tool={safeTool} turn={correlation} result={code}";
+        if (Volatile.Read(ref _actionFeedback) == feedback) return;
+        Volatile.Write(ref _actionFeedback, feedback);
+        Console.Error.WriteLine($"[action] {feedback}");
+    }
+
+    private static string ActionCorrelation(string turnId) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(turnId))).ToLowerInvariant()[..16];
+
+    private static string PlanResult(JsonElement response, int npcId)
+    {
+        if (response.TryGetProperty("colonists", out var rows))
+            foreach (var item in rows.EnumerateArray())
+                if (item.GetProperty("npcId").GetInt32() == npcId && item.TryGetProperty("planStatus", out var status))
+                    return status.GetString() switch
+                    {
+                        "Completed" => "PlanCompleted", "Failed" => "PlanFailed", "Invalid" => "PlanInvalid",
+                        "None" => "PlanNone", _ => "PlanStatusUnavailable"
+                    };
+        return "PlanStatusUnavailable";
     }
 
     private async Task StopActionAsync(bool handoffLease = false)

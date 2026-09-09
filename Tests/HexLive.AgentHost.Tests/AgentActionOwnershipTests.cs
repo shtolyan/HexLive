@@ -48,6 +48,64 @@ public sealed class AgentActionOwnershipTests
         Assert.That(fixture.Transport.Carried, Is.False);
     }
 
+    [TestCase("{}", "MissingRequiredArgument")]
+    [TestCase("{\"kind\":\"private-secret\"}", "InvalidArgumentEnum")]
+    public async Task InvalidReplacementDoesNotAcquireOrReleaseAndFeedbackReachesTheNextTurn(string arguments, string code)
+    {
+        await using var fixture = new Fixture();
+        await fixture.Turn("voice", "move_to");
+        var acquired = fixture.Transport.Acquires;
+        fixture.Providers.Arguments = JsonSerializer.Deserialize<JsonElement>(arguments);
+        await fixture.Turn("voice", "self_action");
+        Assert.That(fixture.Transport.Acquires, Is.EqualTo(acquired));
+        Assert.That(fixture.Transport.Releases, Is.Zero);
+        Assert.That(fixture.Transport.Commands, Is.EqualTo(new[] { "move_to" }));
+        await fixture.Turn("voice", null);
+        Assert.That(fixture.Providers.Contexts.Last(), Does.Contain("result=" + code));
+        Assert.That(fixture.Providers.Contexts.Last(), Does.Match("tool=self_action turn=[a-f0-9]{16}"));
+    }
+
+    [Test]
+    public async Task RejectedActionFeedbackContainsOnlyTheSafeReasonAndItsCorrelation()
+    {
+        await using var fixture = new Fixture();
+        fixture.Transport.Reject = true;
+        await fixture.Turn("voice", "self_action");
+        await fixture.ActionTask;
+        Assert.That(fixture.Transport.Releases, Is.EqualTo(1));
+        await fixture.Turn("voice", null);
+        Assert.That(fixture.Providers.Contexts.Last(), Does.Contain("result=NoSupplies"));
+        Assert.That(fixture.Providers.Contexts.Last(), Does.Match("tool=self_action turn=[a-f0-9]{16}"));
+        Assert.That(fixture.Providers.Contexts.Last(), Does.Not.Contain("private-secret"));
+    }
+
+    [TestCase("Completed", "PlanCompleted")]
+    [TestCase("Failed", "PlanFailed")]
+    [TestCase("Invalid", "PlanInvalid")]
+    public async Task CompletionReportsTheActualPlanOutcome(string status, string code)
+    {
+        await using var fixture = new Fixture();
+        fixture.Transport.PlanEndStatus = status;
+        await fixture.Turn("voice", "move_to");
+        fixture.Transport.Active = false;
+        await fixture.ActionTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await fixture.Turn("voice", null);
+        Assert.That(fixture.Providers.Contexts.Last(), Does.Contain("result=" + code));
+    }
+
+    [Test]
+    public async Task SynchronousCompletionIsReportedImmediatelyAndReleasesControl()
+    {
+        await using var fixture = new Fixture();
+        fixture.Transport.Complete = true;
+        await fixture.Turn("voice", "self_action");
+        await fixture.ActionTask;
+        Assert.That(fixture.Transport.Releases, Is.EqualTo(1));
+        Assert.That(fixture.Transport.PlanPolls, Is.Zero);
+        await fixture.Turn("voice", null);
+        Assert.That(fixture.Providers.Contexts.Last(), Does.Contain("result=Completed"));
+    }
+
     private static async Task Until(Func<bool> condition)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
@@ -97,13 +155,24 @@ public sealed class AgentActionOwnershipTests
     {
         public int Decisions;
         public string? Tool;
+        public JsonElement? Arguments;
+        public readonly List<string> Contexts = new();
         public Task<CompanionDecision> DecideAsync(string trigger, string stateJson, string memoryContext,
             string transcript, IReadOnlyList<string> recentConversation, CancellationToken cancellationToken)
         {
             Decisions++;
+            Contexts.Add(memoryContext);
             return Task.FromResult(new CompanionDecision
             {
-                Action = Tool == null ? null : new CompanionAction { Tool = Tool, Arguments = JsonSerializer.SerializeToElement(new { x = 10, y = 10 }) }
+                Action = Tool == null ? null : new CompanionAction { Tool = Tool, Arguments = Arguments ?? JsonSerializer.SerializeToElement(Tool switch
+                {
+                    "move_to" => (object)new { x = 10, y = 10 },
+                    "interact" => new { objectId = 10, interaction = "PickUp" },
+                    "self_action" => new { kind = "GroundSit" },
+                    "attack_mob" => new { mobId = 10 },
+                    "carry_person" => new { targetNpcId = 902 },
+                    _ => new { }
+                }) }
             });
         }
         public Task<VoiceArtifact> SynthesizeAsync(string text, CancellationToken cancellationToken) => throw new AssertionException("No speech requested");
@@ -116,14 +185,24 @@ public sealed class AgentActionOwnershipTests
         public volatile bool Active;
         public bool Carried;
         public int Releases;
+        public int Acquires;
+        public bool Reject;
+        public bool Complete;
+        public int PlanPolls;
+        public string PlanEndStatus = "Completed";
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
             var root = doc.RootElement;
             object result = new { protocolVersion = "2025-06-18" };
+            if (root.GetProperty("method").GetString() == "tools/list")
+                result = new { tools = HexLive.Server.Mcp.McpTools.Catalog.Select(t => new
+                    { name = t.Name, inputSchema = t.InputSchema }) };
             if (root.GetProperty("method").GetString() == "tools/call")
             {
                 var name = root.GetProperty("params").GetProperty("name").GetString();
+                if (name == "list_colonists") PlanPolls++;
+                if (name == "acquire_npc_control") Acquires++;
                 if (name is "move_to" or "interact" or "self_action" or "attack_mob" or "carry_person")
                 {
                     Commands.Add(name);
@@ -135,10 +214,13 @@ public sealed class AgentActionOwnershipTests
                 {
                     "world_status" => new { worldId = "fixture", tick = 100, seed = 12345, paused = false },
                     "describe_colonist" => new { stateSummary = "health=1; unconscious=false" },
-                    "list_colonists" => new { colonists = new[] { new { npcId = 901, planStatus = Active ? "Active" : "Completed", carriedNpcId = Carried ? (int?)902 : null } } },
+                    "list_colonists" => new { colonists = new[] { new { npcId = 901, planStatus = Active ? "Active" : PlanEndStatus, carriedNpcId = Carried ? (int?)902 : null } } },
+                    "self_action" when Complete => new { status = "Completed" },
                     _ => new { accepted = true }
                 };
-                result = new { isError = false, content = new[] { new { type = "text", text = JsonSerializer.Serialize(payload) } } };
+                var rejected = Reject && name == "self_action";
+                result = new { isError = rejected, content = new[] { new { type = "text", text = rejected
+                    ? "{\"reason\":\"NoSupplies\",\"detail\":\"private-secret\"}" : JsonSerializer.Serialize(payload) } } };
             }
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             { Content = new StringContent(JsonSerializer.Serialize(new { jsonrpc = "2.0", result })) };

@@ -698,12 +698,12 @@ public static class WorldSaveSerializer
         world.ComponentsBuiltVersion = 0;
         WorldTopology.InvalidateAll(world);
 
-        world.Entities.Objects.Clear();
+        world.Entities.ClearObjects();
         var objectCount = r.ReadInt32();
         for (var i = 0; i < objectCount; i++)
         {
             var obj = ReadObject(r, version);
-            world.Entities.Objects[obj.Id] = obj;
+            world.Entities.RegisterObject(obj);
         }
 
         world.Entities.Npcs.Clear();

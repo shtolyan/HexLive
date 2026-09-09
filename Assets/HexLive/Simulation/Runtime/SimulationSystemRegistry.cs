@@ -33,6 +33,7 @@ public static class SimulationSystemRegistry
         // §146.10: create the shore event before Perception/Rescue so the
         // ordinary aid machinery can see the wounded castaway immediately.
         engine.Register(new ShipwreckSurvivorSystem());
+        engine.Register(new ObjectReservationSystem()); // §26.26: before perception reads occupancy
         engine.Register(new PerceptionSystem());
         engine.Register(new RescueSystem());
         // §32.15: opt-in LLM adapter. The shipped constructor is double-safe:

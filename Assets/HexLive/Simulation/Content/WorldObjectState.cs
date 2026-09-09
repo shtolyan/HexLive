@@ -25,9 +25,37 @@ public sealed class WorldObjectState
     // (StructurePlacement wraps a real facing into (0, 360], never 0).
     public float RotationDegrees { get; set; }
 
-    public bool IsOccupied { get; set; }
+    private bool _isOccupied;
+    private EntityId? _currentUser;
+    private HashSet<WorldObjectState> _reservationIndex;
 
-    public EntityId? CurrentUser { get; set; }
+    public bool IsOccupied
+    {
+        get => _isOccupied;
+        set { _isOccupied = value; UpdateReservationIndex(); }
+    }
+
+    public EntityId? CurrentUser
+    {
+        get => _currentUser;
+        set { _currentUser = value; UpdateReservationIndex(); }
+    }
+
+    // §26.26 / §158: runtime-only index, rebuilt on registration after load.
+    // Track both halves so an interrupted pair of writes also gets repaired.
+    internal void AttachReservationIndex(HashSet<WorldObjectState> index)
+    {
+        _reservationIndex?.Remove(this);
+        _reservationIndex = index;
+        UpdateReservationIndex();
+    }
+
+    private void UpdateReservationIndex()
+    {
+        if (_reservationIndex is null) return;
+        if (_isOccupied || _currentUser is not null) _reservationIndex.Add(this);
+        else _reservationIndex.Remove(this);
+    }
 
     // Spec §64: persistent ownership — the colonist a personal bed belongs to
     // (stamped on the bed's build-site, carried onto the finished bed when it is

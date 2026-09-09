@@ -33,6 +33,33 @@ public sealed class EntityRepository
     public Dictionary<EntityId, NPCState> Corpses { get; } = new();
 
     public Dictionary<ObjectId, WorldObjectState> Objects { get; } = new();
+
+    // §26.26: only objects carrying occupancy/user state, never the whole map.
+    internal HashSet<WorldObjectState> ObjectReservations { get; } = new();
+    internal HashSet<(ObjectId, EntityId)> LiveObjectReservations { get; } = new();
+    internal HashSet<ObjectId> UsedBodyObjects { get; } = new();
+    internal List<WorldObjectState> ObjectReservationScratch { get; } = new();
+
+    public void RegisterObject(WorldObjectState obj)
+    {
+        if (Objects.TryGetValue(obj.Id, out var previous))
+            previous.AttachReservationIndex(null);
+        Objects[obj.Id] = obj;
+        obj.AttachReservationIndex(ObjectReservations);
+    }
+
+    public void UnregisterObject(WorldObjectState obj)
+    {
+        obj.AttachReservationIndex(null);
+        Objects.Remove(obj.Id);
+    }
+
+    public void ClearObjects()
+    {
+        foreach (var obj in Objects.Values) obj.AttachReservationIndex(null);
+        Objects.Clear();
+        ObjectReservations.Clear();
+    }
 }
 
 }

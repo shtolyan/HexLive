@@ -184,6 +184,9 @@ public static class PlanInterruption
         // этой строки: сорванный поход не должен занимать станцию до тех пор,
         // пока кто-то не заметит, что заявка протухла.
         LyingStations.ReleaseStation(npc);
+        // §26.26: release every indexed claim, even if execution already failed
+        // or its actual target differs from the plan's primary target.
+        ObjectReservationSystem.ReleaseForPlan(world, npc);
         if (npc.Execution.Status == ExecutionStatus.InProgress &&
             npc.Plan.TargetObjectId is { } objId &&
             world.Entities.Objects.TryGetValue(objId, out var worldObject) &&

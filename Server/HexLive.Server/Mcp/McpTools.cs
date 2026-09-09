@@ -10,6 +10,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
+using HexLive.Simulation.Social;
 using HexLive.Simulation.Wire;
 
 namespace HexLive.Server.Mcp
@@ -231,9 +232,9 @@ public sealed class McpTools
 
         new("talk_to",
             "Подойти и поговорить с колонисткой (§121.9/§28). Занятая или не в духе цель " +
-            "откажет ПО ПРИБЫТИИ — это штатный исход, не ошибка инструмента.",
-            Schema(("npcId", "integer", "id колонистки", true),
-                   ("targetNpcId", "integer", "с кем говорить", true))),
+            "откажет ПО ПРИБЫТИИ — это штатный исход, не ошибка инструмента. " +
+            "Необязательная topic выбирает общую тему и штатную реплику Hexkufa, без TTS.",
+            TalkToSchema()),
 
         new("aid_person",
             "Помочь конкретной колонистке ЯВНЫМ видом помощи (§53): Feed/Hydrate/Treat/" +
@@ -389,8 +390,17 @@ public sealed class McpTools
                 case "talk_to":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
+                    TalkTopic? topic = null;
+                    if (arguments.TryGetProperty("topic", out _))
+                    {
+                        var requested = Text(arguments, "topic");
+                        if (!Enum.TryParse<TalkTopic>(requested, out var parsed) ||
+                            !TalkTopicRequest.IsAllowed(parsed) || parsed.ToString() != requested)
+                            throw new McpArgumentException("InvalidTalkTopic: topic должен быть одним из enum схемы talk_to.");
+                        topic = parsed;
+                    }
                     return Simple(host, arguments, owner,
-                        npc => new TalkToCommand(npc, target), out isError);
+                        npc => new TalkToCommand(npc, target, topic), out isError);
                 }
 
                 case "aid_person": return AidPerson(host, arguments, owner, out isError);
@@ -1604,6 +1614,31 @@ public sealed class McpTools
     /// каждого параметра — это то единственное, что агент прочитает перед
     /// первым вызовом.
     /// </summary>
+    private static JsonElement TalkToSchema()
+    {
+        var topics = new List<string>();
+        foreach (var topic in TalkTopicRequest.Allowed) topics.Add(topic.ToString());
+        return JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            additionalProperties = false,
+            properties = new
+            {
+                npcId = new { type = "integer", description = "id колонистки" },
+                targetNpcId = new { type = "integer", description = "с кем говорить" },
+                topic = new
+                {
+                    type = "string",
+                    description = "Общая тема (§28.15E): SmallTalk 💬, Escape ⛵, Dogs 🐕, Weather 🌧, " +
+                        "Food 🥥, Fire 🔥, Home 🏠, Gossip 👀, Flirt 💗, Joke 😂, Grumble 😠. " +
+                        "Без topic симуляция выбирает сама. Реальные жалобы участниц и исход разговора остаются штатными.",
+                    @enum = topics,
+                },
+            },
+            required = new[] { "npcId", "targetNpcId" },
+        });
+    }
+
     private static JsonElement Schema(
         params (string name, string type, string description, bool required)[] properties)
     {

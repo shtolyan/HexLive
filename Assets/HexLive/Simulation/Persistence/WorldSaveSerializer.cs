@@ -169,7 +169,8 @@ public static class WorldSaveSerializer
     // profile, authored appearance flag, bond, memory, journal and turn ids.
     // v70 (§159.1): one-time authored starter-outfit migration latch.
     // v71 (§160): generic authored-preset markers and generic agent Social ids.
-    public const int BlobVersion = 72;
+    // v73 (§28.15G): requested shared Talk topic at the end of each NPC record.
+    public const int BlobVersion = 73;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1986,6 +1987,12 @@ public static class WorldSaveSerializer
                 if (version >= 72) w.Write(npc.HairColour ?? string.Empty);
             }
         }
+
+        if (version >= 73)
+        {
+            w.Write(npc.Plan.RequestedTalkTopic.HasValue);
+            if (npc.Plan.RequestedTalkTopic.HasValue) w.Write((int)npc.Plan.RequestedTalkTopic.Value);
+        }
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -2714,6 +2721,14 @@ public static class WorldSaveSerializer
                 npc.HexkufaExposure = Math.Max(0, npc.Companion.HexkufaExposure);
                 npc.CharacterPresetVersion = Math.Max(0, npc.Companion.AuthoredOutfitVersion);
             }
+        }
+
+        if (version >= 73 && r.ReadBoolean())
+        {
+            var topic = (TalkTopic)r.ReadInt32();
+            if (!TalkTopicRequest.IsAllowed(topic))
+                throw new InvalidDataException("Invalid requested Talk topic in save.");
+            npc.Plan.RequestedTalkTopic = topic;
         }
 
         // v66/v67 kept one global pair; v68's item state is authoritative.

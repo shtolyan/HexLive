@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace HexLive.Simulation.Social
 {
 
@@ -47,6 +50,24 @@ public enum TalkTopic
     // GroupHuntMath. Appended last for the same reason as the complaints:
     // values travel as ints in traces and snapshots.
     Stranger
+}
+
+/// <summary>§28.15G: only shared conversation subjects may be requested by a command.</summary>
+public static class TalkTopicRequest
+{
+    public static IReadOnlyList<TalkTopic> Allowed { get; } = Array.AsReadOnly(new[]
+    {
+        TalkTopic.SmallTalk, TalkTopic.Escape, TalkTopic.Dogs, TalkTopic.Weather,
+        TalkTopic.Food, TalkTopic.Fire, TalkTopic.Home, TalkTopic.Gossip,
+        TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble
+    });
+
+    public static bool IsAllowed(TalkTopic topic)
+    {
+        foreach (var allowed in Allowed)
+            if (topic == allowed) return true;
+        return false;
+    }
 }
 
 }

@@ -204,6 +204,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
             npc.Plan.TargetItemDefinitionId = null;
             npc.Plan.TargetAgentId = null;
             npc.Plan.RunRequested = false;
+            npc.Plan.RequestedTalkTopic = null;
             npc.Plan.Goal = npc.Mind.CurrentGoal;
 
             if (SimTrace.Enabled)

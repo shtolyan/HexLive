@@ -497,6 +497,7 @@ internal static class ManualCommandExecutor
 
         npc.Plan.Steps.Clear();
         npc.Plan.RunRequested = false;
+        npc.Plan.RequestedTalkTopic = null;
         npc.Mind.GoalLock = null;
         // §121.10: очередь «собрать всё» живёт ровно до следующего приказа —
         // любого. Игрок сказал «иди туда» посреди сбора листьев: продолжать
@@ -1013,6 +1014,12 @@ internal static class ManualCommandExecutor
     private static void ApplyTalkTo(
         WorldState world, TalkToCommand command, AdmissionTracker admission)
     {
+        if (command.RequestedTopic is { } topic && !Social.TalkTopicRequest.IsAllowed(topic))
+        {
+            Reject(world, command.Npc, "TalkTo", "InvalidTalkTopic", admission);
+            return;
+        }
+
         if (!TryTakeOrder(world, command.Npc, "TalkTo", requireManual: true,
                 admission, out var npc))
         {
@@ -1059,6 +1066,7 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        npc.Plan.RequestedTalkTopic = command.RequestedTopic;
         npc.Plan.Goal = GoalType.Socialize;
         npc.Mind.CurrentGoal = GoalType.Socialize;
         if (SimTrace.Enabled)

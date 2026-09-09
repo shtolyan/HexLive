@@ -406,15 +406,19 @@ public sealed class CraftItemCommand : ISimulationCommand
 /// занятая или несклонная цель откажет ПО ПРИБЫТИИ, ровно как своей.</summary>
 public sealed class TalkToCommand : ISimulationCommand
 {
-    public TalkToCommand(EntityId npc, EntityId target)
+    public TalkToCommand(EntityId npc, EntityId target,
+        Social.TalkTopic? requestedTopic = null)
     {
         Npc = npc;
         Target = target;
+        RequestedTopic = requestedTopic;
     }
 
     public EntityId Npc { get; }
 
     public EntityId Target { get; }
+
+    public Social.TalkTopic? RequestedTopic { get; }
 
     public EntityId? TargetEntity => Npc;
 }

@@ -174,7 +174,7 @@ public sealed partial class ExecutionSystem
             // then gets HER OWN topic: a colonist who is starving/parched/hurt
             // tells her housemate about it instead of chatting coconuts, so the
             // two bubbles differ and read as a real exchange.
-            var topic = PickTalkTopic(world, npc, target);
+            var topic = npc.Plan.RequestedTalkTopic ?? PickTalkTopic(world, npc, target);
             if (ApplySharedTopic(world, npc, target, topic))
             {
                 // §108: разговор о нём кончился сговором — обе уже идут бить,
@@ -289,6 +289,7 @@ public sealed partial class ExecutionSystem
             npc.Execution.CurrentInteraction = null;
             // Spec 28.15E: talk's over — drop the topic so the bubble clears.
             npc.Execution.CurrentTalkTopic = null;
+            npc.Plan.RequestedTalkTopic = null;
             target.Execution.CurrentTalkTopic = null;
             npc.Execution.CurrentTalkTopicPeerId = null;
             target.Execution.CurrentTalkTopicPeerId = null;
@@ -356,6 +357,7 @@ public sealed partial class ExecutionSystem
     {
         // Spec 28.15E: a dropped talk clears its topic so no bubble lingers.
         npc.Execution.CurrentTalkTopic = null;
+        npc.Plan.RequestedTalkTopic = null;
         npc.Execution.CurrentTalkTopicPeerId = null;
         PlanningSystem.SetGoalCooldown(world, npc, GoalType.Socialize);
         PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, reason);
@@ -1172,7 +1174,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var shared = PickTalkTopic(world, npc, target);
+        var shared = npc.Plan.RequestedTalkTopic ?? PickTalkTopic(world, npc, target);
         ApplySharedTopic(world, npc, target, shared);
     }
 }

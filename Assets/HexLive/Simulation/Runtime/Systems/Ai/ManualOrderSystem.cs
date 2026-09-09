@@ -152,6 +152,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Plan.Status = PlanStatus.None;
         npc.Plan.RunRequested = false;
+        npc.Plan.RequestedTalkTopic = null;
         // §121.7: завершение приказа продлевает lease — поход длиной больше
         // таймаута не должен «истечь» в момент прибытия.
         ManualControlMath.RenewInactivityLease(world, npc);

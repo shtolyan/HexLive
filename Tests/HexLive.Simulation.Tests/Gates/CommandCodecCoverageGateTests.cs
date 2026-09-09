@@ -81,7 +81,8 @@ public sealed class CommandCodecCoverageGateTests
         new ManageInventoryCommand(
             new EntityId(35),
             new InventoryItemRef(InventoryItemSource.Worn, 3, "underwear.bra"),
-            InventoryAction.Drop),
+            InventoryAction.Drop,
+            count: 7),
         // §55.4 (bug #317): «Наполнить» — перелив в выбранную ёмкость.
         new FillVesselCommand(
             new EntityId(38),
@@ -173,6 +174,12 @@ public sealed class CommandCodecCoverageGateTests
             }
 
             Assert.That(decoded.GetType(), Is.EqualTo(original.GetType()));
+            if (original is ManageInventoryCommand originalManage)
+            {
+                Assert.That(((ManageInventoryCommand)decoded).Count,
+                    Is.EqualTo(originalManage.Count),
+                    "ManageInventory.Count must survive the wire round-trip.");
+            }
 
             byte[] second;
             using (var ms = new MemoryStream())

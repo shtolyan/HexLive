@@ -36,7 +36,8 @@ public static class SimulationCommandCodec
     // 5: §160 generic RecordAgentSocialCommand.
     // 6: §28.15G requested shared Talk topic, with legacy opcode 11 unchanged.
     // 7: §153.4 voluntary request for one carried item (opcode 43).
-    public const int WireVersion = 7;
+    // 8: §123.5 ManageInventory carries the authoritative drop quantity.
+    public const int WireVersion = 8;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -264,6 +265,7 @@ public static class SimulationCommandCodec
                 WriteEntity(w, c.Npc);
                 WriteItemRef(w, c.Item);
                 w.Write((int)c.Action);
+                w.Write(c.Count);
                 break;
             case FillVesselCommand c:
                 w.Write((ushort)CommandType.FillVessel);
@@ -459,7 +461,8 @@ public static class SimulationCommandCodec
                 return new SetGroupManualControlCommand(ReadActors(r), r.ReadBoolean());
             case CommandType.ManageInventory:
                 return new ManageInventoryCommand(
-                    ReadEntity(r), ReadItemRef(r), (InventoryAction)r.ReadInt32());
+                    ReadEntity(r), ReadItemRef(r), (InventoryAction)r.ReadInt32(),
+                    r.ReadInt32());
             case CommandType.FillVessel:
                 return new FillVesselCommand(ReadEntity(r), ReadItemRef(r));
             case CommandType.TransferInventory:

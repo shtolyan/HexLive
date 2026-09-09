@@ -5,6 +5,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
 namespace HexLive.Simulation.Tests.Behavior
@@ -185,6 +186,168 @@ public sealed class PlayerInventoryDropTests
                 npc.Inventory.Items[0].DefinitionId),
             InventoryAction.Drop), Is.True,
             "A drop may improve an invalid legacy layout even if one click does not fix it all.");
+    }
+
+    [Test]
+    public void DroppingPartOfStackMovesExactlyRequestedPhysicalInstances()
+    {
+        var engine = TestWorld.CreateEngine(39701);
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n =>
+            n.Faction == Faction.Colony && n.Health > 0f);
+        npc.Inventory.Items.Clear();
+        const string id = "resource.test_drop_stack";
+        world.Content.ObjectDefinitions[id] = new ObjectDefinition
+            { Id = id, DisplayName = id };
+        var stack = Enumerable.Range(0, 5)
+            .Select(i => new ItemInstance(id)
+            {
+                Durability = 0.51f + i * 0.01f,
+                Wetness = 0.11f + i * 0.01f,
+                OwnerId = npc.Id.Value
+            })
+            .ToArray();
+        npc.Inventory.Items.AddRange(stack);
+        var beforeObjects = world.Entities.Objects.Keys.ToHashSet();
+
+        var result = engine.ApplyManualCommand(new ManageInventoryCommand(
+            npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, id),
+            InventoryAction.Drop,
+            count: 3));
+
+        var dropped = world.Entities.Objects.Values
+            .Where(o => !beforeObjects.Contains(o.Id) && o.DefinitionId == id)
+            .OrderBy(o => o.Durability)
+            .ToArray();
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Accepted, Is.True, result.Reason);
+            Assert.That(npc.Inventory.Items, Is.EqualTo(stack.Skip(3)));
+            Assert.That(dropped, Has.Length.EqualTo(3));
+            Assert.That(dropped.Select(o => o.Durability),
+                Is.EqualTo(stack.Take(3).Select(i => i.Durability)));
+            Assert.That(dropped.Select(o => o.Wetness),
+                Is.EqualTo(stack.Take(3).Select(i => i.Wetness)));
+            Assert.That(dropped.All(o => o.Owner == npc.Id), Is.True);
+        });
+    }
+
+    [TestCase(0)]
+    [TestCase(6)]
+    [TestCase(21)]
+    public void InvalidStackDropCountIsRejectedWithoutMutation(int count)
+    {
+        var engine = TestWorld.CreateEngine(39702 + count);
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n =>
+            n.Faction == Faction.Colony && n.Health > 0f);
+        npc.Inventory.Items.Clear();
+        const string id = "resource.test_drop_count";
+        world.Content.ObjectDefinitions[id] = new ObjectDefinition
+            { Id = id, DisplayName = id };
+        var items = Enumerable.Range(0, 5).Select(_ => new ItemInstance(id)).ToArray();
+        npc.Inventory.Items.AddRange(items);
+        var beforeObjects = world.Entities.Objects.Keys.ToArray();
+
+        var result = engine.ApplyManualCommand(new ManageInventoryCommand(
+            npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, id),
+            InventoryAction.Drop,
+            count));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Accepted, Is.False);
+            Assert.That(result.Reason, Is.EqualTo("InvalidCount"));
+            Assert.That(npc.Inventory.Items, Is.EqualTo(items));
+            Assert.That(world.Entities.Objects.Keys, Is.EquivalentTo(beforeObjects));
+        });
+    }
+
+    [Test]
+    public void InvalidCountCannotHideAStaleReference()
+    {
+        var engine = TestWorld.CreateEngine(39703);
+        var npc = engine.World.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance("resource.stone"));
+
+        var result = engine.ApplyManualCommand(new ManageInventoryCommand(
+            npc.Id,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, "resource.stick"),
+            InventoryAction.Drop,
+            count: 0));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Accepted, Is.False);
+            Assert.That(result.Reason, Is.EqualTo("StaleItem"));
+            Assert.That(npc.Inventory.Items.Single().DefinitionId,
+                Is.EqualTo("resource.stone"));
+        });
+    }
+
+    [Test]
+    public void FailedSecondDropRollsBackWorldInventoryClaimsAndFullEventRing()
+    {
+        var world = TestWorld.CreateWorld(39704);
+        var npc = world.Entities.Npcs.Values.First(n =>
+            n.Faction == Faction.Colony && n.Health > 0f);
+        npc.Inventory.Items.Clear();
+        const string id = "resource.test_drop_obstacle";
+        var definition = new ObjectDefinition { Id = id, DisplayName = id };
+        definition.Tags.Add("Obstacle");
+        world.Content.ObjectDefinitions[id] = definition;
+        var items = new[]
+        {
+            new ItemInstance(id) { Durability = 0.61f },
+            new ItemInstance(id) { Durability = 0.62f }
+        };
+        npc.Inventory.Items.AddRange(items);
+
+        var sole = world.Tiles.Items[npc.Tile].Junctions
+            .Where(j => npc.CurrentJunction is null || j != npc.CurrentJunction.Value)
+            .First(j => SpatialQueries.IsJunctionPassable(world, j) &&
+                        SpatialQueries.IsJunctionFree(world, j));
+        npc.CurrentJunction = null;
+        foreach (var junction in world.Junctions.Items.Values)
+            WorldTopology.SetBlocked(world, junction, junction.Id != sole);
+
+        world.Events.Capacity = 2;
+        world.Events.Clear();
+        world.Events.Add(new SimulationEvent { Tick = 10, Type = "ExistingA" });
+        world.Events.Add(new SimulationEvent { Tick = 11, Type = "ExistingB" });
+        var eventsBefore = world.Events.Items.ToArray();
+        var highestSeqBefore = world.Events.HighestSeq;
+        var objectIdsBefore = world.Entities.Objects.Keys.ToArray();
+        var reservationKeysBefore = world.Reservations.Junctions.Keys.ToArray();
+        var objectClaimsBefore = world.Entities.ObjectReservations.Count;
+        var nextObjectIdBefore = world.NextRuntimeObjectId;
+
+        var accepted = PlayerInventoryCommandExecutor.TryApply(
+            world, npc,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, id),
+            InventoryAction.Drop,
+            out var reason,
+            count: 2);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(accepted, Is.False);
+            Assert.That(reason, Is.EqualTo("NoDropSpot"));
+            Assert.That(npc.Inventory.Items, Is.EqualTo(items));
+            Assert.That(world.Entities.Objects.Keys, Is.EquivalentTo(objectIdsBefore));
+            Assert.That(world.Reservations.Junctions.Keys,
+                Is.EquivalentTo(reservationKeysBefore));
+            Assert.That(world.Entities.ObjectReservations.Count,
+                Is.EqualTo(objectClaimsBefore));
+            Assert.That(world.Junctions.Items[sole].Blocked, Is.False);
+            Assert.That(world.Events.Items, Is.EqualTo(eventsBefore));
+            Assert.That(world.Events.HighestSeq, Is.EqualTo(highestSeqBefore));
+            Assert.That(world.NextRuntimeObjectId, Is.EqualTo(nextObjectIdBefore + 1),
+                "Rolled-back ids stay consumed so a later object cannot reuse them.");
+        });
     }
 
     private static void Step(SimulationEngine engine, int count)

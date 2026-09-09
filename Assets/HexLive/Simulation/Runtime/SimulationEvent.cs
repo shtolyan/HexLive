@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace HexLive.Simulation.Runtime
@@ -30,6 +31,7 @@ public sealed class SimulationEvent
 public sealed class SimulationEventBuffer
 {
     private readonly List<SimulationEvent> _events = new();
+    private List<SimulationEvent> _deferredEvents;
 
     private long _nextSeq = 1;
 
@@ -49,6 +51,33 @@ public sealed class SimulationEventBuffer
 
     public void Add(SimulationEvent simulationEvent)
     {
+        if (_deferredEvents != null)
+        {
+            _deferredEvents.Add(simulationEvent);
+            return;
+        }
+
+        Publish(simulationEvent);
+    }
+
+    /// <summary>
+    /// Defers publication for one synchronous, atomic world mutation. The
+    /// ordinary Add path stays allocation-free; only the active bulk command
+    /// owns a temporary list. Nested scopes are forbidden because their commit
+    /// order would make a rolled-back outer mutation observable.
+    /// </summary>
+    internal DeferredPublicationScope DeferPublication()
+    {
+        if (_deferredEvents != null)
+            throw new InvalidOperationException("Simulation event publication is already deferred.");
+
+        var pending = new List<SimulationEvent>();
+        _deferredEvents = pending;
+        return new DeferredPublicationScope(this, pending);
+    }
+
+    private void Publish(SimulationEvent simulationEvent)
+    {
         simulationEvent.Seq = _nextSeq++;
         HighestSeq = simulationEvent.Seq;
 
@@ -60,6 +89,61 @@ public sealed class SimulationEventBuffer
         }
 
         _events.RemoveRange(0, overflow);
+    }
+
+    private void CommitDeferred(List<SimulationEvent> pending)
+    {
+        RequireActiveScope(pending);
+        _deferredEvents = null;
+        foreach (var simulationEvent in pending)
+            Publish(simulationEvent);
+    }
+
+    private void DiscardDeferred(List<SimulationEvent> pending)
+    {
+        RequireActiveScope(pending);
+        _deferredEvents = null;
+    }
+
+    private void RequireActiveScope(List<SimulationEvent> pending)
+    {
+        if (!ReferenceEquals(_deferredEvents, pending))
+            throw new InvalidOperationException("The simulation event scope is no longer active.");
+    }
+
+    internal sealed class DeferredPublicationScope : IDisposable
+    {
+        private readonly SimulationEventBuffer _owner;
+        private readonly List<SimulationEvent> _pending;
+        private bool _active = true;
+
+        internal DeferredPublicationScope(
+            SimulationEventBuffer owner, List<SimulationEvent> pending)
+        {
+            _owner = owner;
+            _pending = pending;
+        }
+
+        internal void Commit()
+        {
+            if (!_active)
+                throw new InvalidOperationException("The simulation event scope is no longer active.");
+            try
+            {
+                _owner.CommitDeferred(_pending);
+            }
+            finally
+            {
+                _active = false;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (!_active) return;
+            _owner.DiscardDeferred(_pending);
+            _active = false;
+        }
     }
 
     // Deliberately does NOT reset the counter: a save restore clears the ring

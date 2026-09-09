@@ -22262,6 +22262,22 @@ MonoBehaviour:
       - "\u0412\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
+    - Term: inv.drop_quantity_title
+      TermType: 0
+      Description:
+      Languages:
+      - How many {0} should be dropped?
+      - "\u0421\u043A\u043E\u043B\u044C\u043A\u043E {0} \u0432\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C?"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.drop_quantity_confirm
+      TermType: 0
+      Description:
+      Languages:
+      - Drop
+      - "\u0412\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
     - Term: inv.action.fill
       TermType: 0
       Description: 

@@ -162,7 +162,8 @@ public sealed class Handshake
     // 13: §160 generic MCP attachment, direct Deepgram STT and agent speech.
     // 16: §160/#361 — bounded relation view includes assessment reason and actual deltas.
     // 17: §160/#357 — full player text and atomic expected attachment binding.
-    public const int ProtocolVersion = 17;
+    // 18: §123.5/#397 — ManageInventory carries a required drop quantity.
+    public const int ProtocolVersion = 18;
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

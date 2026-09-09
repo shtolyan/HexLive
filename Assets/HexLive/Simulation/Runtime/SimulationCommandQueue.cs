@@ -895,16 +895,19 @@ public enum InventoryAction
 
 public sealed class ManageInventoryCommand : ISimulationCommand
 {
-    public ManageInventoryCommand(EntityId npc, InventoryItemRef item, InventoryAction action)
+    public ManageInventoryCommand(
+        EntityId npc, InventoryItemRef item, InventoryAction action, int count = 1)
     {
         Npc = npc;
         Item = item;
         Action = action;
+        Count = count;
     }
 
     public EntityId Npc { get; }
     public InventoryItemRef Item { get; }
     public InventoryAction Action { get; }
+    public int Count { get; }
     public EntityId? TargetEntity => Npc;
 }
 

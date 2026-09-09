@@ -1952,6 +1952,7 @@ namespace HexLive.UnityPresentation.UI
             // stable place just beyond the doll-side edge without covering the
             // RenderTexture or being cut off by the window's rounded bounds.
             _root.Add(_invDetailView);
+            BuildInventoryDropQuantityPicker();
             _root.RegisterCallback<GeometryChangedEvent>(_ =>
             {
                 FitInventoryWindow();
@@ -2812,8 +2813,7 @@ namespace HexLive.UnityPresentation.UI
             _invPrimaryAction.Add(_invPrimaryActionLabel);
             actions.Add(_invPrimaryAction);
 
-            _invDropAction = InventoryActionButton(
-                () => EnqueueInventoryAction(InventoryAction.Drop));
+            _invDropAction = InventoryActionButton(RequestInventoryDrop);
             _invDropAction.style.marginLeft = 8f;
             _invDropActionLabel = new Label(Loc.Get("inv.action.drop"));
             _invDropActionLabel.style.color = Crit;
@@ -3607,6 +3607,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void HideItemDetail()
         {
+            HideInventoryDropQuantityPicker();
             _invSelectedId = null;
             _invDetailAnchor = null;
             _invDetailPlacement = InventoryDetailPlacement.Item;
@@ -4267,7 +4268,7 @@ namespace HexLive.UnityPresentation.UI
             _invSig = null;
         }
 
-        private void EnqueueInventoryAction(InventoryAction action)
+        private void EnqueueInventoryAction(InventoryAction action, int count = 1)
         {
             if (!_inventoryMutable || _runner == null || _invSelectedId == null ||
                 _inventoryActorId < 0) return;
@@ -4308,7 +4309,7 @@ namespace HexLive.UnityPresentation.UI
                 _invSelectedWorn ? InventoryItemSource.Worn : InventoryItemSource.Carried,
                 index, _invSelectedId);
             _runner.EnqueueCommand(new ManageInventoryCommand(
-                new HexLive.Simulation.Common.EntityId(_inventoryActorId), itemRef, action));
+                new HexLive.Simulation.Common.EntityId(_inventoryActorId), itemRef, action, count));
             HideItemDetail();
             _invSig = null;
         }

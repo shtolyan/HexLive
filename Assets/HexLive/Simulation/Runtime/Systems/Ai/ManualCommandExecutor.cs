@@ -2117,7 +2117,7 @@ internal static class ManualCommandExecutor
         }
 
         if (!PlayerInventoryCommandExecutor.TryApply(
-                world, npc, command.Item, command.Action, out var reason))
+                world, npc, command.Item, command.Action, out var reason, command.Count))
         {
             Reject(world, npc.Id, "Inventory", reason, admission);
             return;
@@ -2128,6 +2128,7 @@ internal static class ManualCommandExecutor
             Trace.Debug(world, npc.Id, "PlayerInventoryCompleted",
                 $"Order=Inventory Action={command.Action} Source={command.Item.Source} " +
                 $"Index={command.Item.Index} Def={command.Item.ExpectedDefinitionId} " +
+                $"Count={command.Count} " +
                 $"GoalPreserved={npc.Mind.CurrentGoal}");
         }
     }

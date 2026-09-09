@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Server.Mcp;
 using NUnit.Framework;
@@ -27,6 +29,59 @@ namespace HexLive.Server.Tests.Mcp
 [NonParallelizable]
 public sealed class McpToolContractGateTests
 {
+    [Test]
+    public void SelfActionAdvertisesEverySupportedKindIncludingGoHome()
+    {
+        var tool = McpTools.Catalog.Single(t => t.Name == "self_action");
+        var description = tool.InputSchema.GetProperty("properties")
+            .GetProperty("kind").GetProperty("description").GetString();
+        foreach (var kind in Enum.GetNames(typeof(HexLive.Simulation.Runtime.SelfActionKind)))
+            Assert.That(description, Does.Contain(kind));
+        Assert.That(tool.Description, Does.Contain("GoHome"));
+    }
+
+    [Test]
+    public async Task McpGoHomeUsesTheNormalUrgentHomewardOrderAndRequiresItsLease()
+    {
+        using var host = CreateHost();
+        // Run the ordinary bootstrap tick before commands: initial NPCs have
+        // not yet acquired their current junction in a never-stepped world.
+        using var cancellation = new CancellationTokenSource();
+        var before = host.Tick;
+        var run = Task.Run(() => host.Run(cancellation.Token));
+        try
+        {
+            await host.WaitForNextTickAsync(before, TimeSpan.FromSeconds(30), cancellation.Token);
+            Assert.That(host.Tick, Is.GreaterThan(before));
+        }
+        finally
+        {
+            cancellation.Cancel();
+            await run;
+        }
+        var tools = new McpTools(host, new ControlLeases(120));
+        var npcId = FirstNpcId(host);
+        var arguments = JsonSerializer.SerializeToElement(new { npcId, kind = "GoHome" });
+        tools.Call("self_action", arguments, "mcp:home", out var error);
+        Assert.That(error, Is.True, "No action without the actor's control lease.");
+
+        var acquired = tools.Call("acquire_npc_control",
+            JsonSerializer.SerializeToElement(new { npcId }), "mcp:home", out error);
+        Assert.That(error, Is.False, acquired);
+        var result = tools.Call("self_action", arguments, "mcp:home", out error);
+        Assert.That(error, Is.False, result);
+        host.Read(world =>
+        {
+            var npc = world.Entities.Npcs[new HexLive.Simulation.Common.EntityId(npcId)];
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(HexLive.Simulation.AI.GoalType.Homeward));
+            Assert.That(npc.Plan.Status, Is.EqualTo(HexLive.Simulation.AI.PlanStatus.Active));
+            Assert.That(npc.Plan.TargetTile, Is.Not.Null);
+            Assert.That(HexLive.Simulation.Runtime.ColonyQueries.InCamp(
+                world, npc.Plan.TargetTile!.Value, npc.Faction), Is.True);
+            return true;
+        });
+    }
+
     [Test]
     public void CarryStateIsExposedAndLeaseReleaseReallyPutsPatientDown()
     {

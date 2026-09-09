@@ -253,11 +253,12 @@ public sealed class McpTools
         new("self_action",
             "Самодействие (§121.9): CallForHelp (крик о помощи в бою, не сносит план), " +
             "TreatSelf (перевязаться), GroundSit/GroundSleep (сесть/лечь на землю), " +
-            "Bathe/WashClothes (купание/стирка), EatFromPack/DrinkFromPack (из рюкзака).",
+            "Bathe/WashClothes (купание/стирка), EatFromPack/DrinkFromPack (из рюкзака), " +
+            "GoHome (бежать в собственный домашний лагерь; координаты не нужны, " +
+            "маршрут выбирает симуляция; NoRouteToCamp означает отсутствие маршрута).",
             Schema(("npcId", "integer", "id колонистки", true),
                    ("kind", "string",
-                    "вид: CallForHelp/TreatSelf/GroundSit/GroundSleep/Bathe/WashClothes/" +
-                    "EatFromPack/DrinkFromPack", true))),
+                    "вид: " + string.Join("/", Enum.GetNames(typeof(SelfActionKind))), true))),
 
         new("merge_camps",
             "Добровольно объединить два женских лагеря (§146.12), включая всех их жителей. " +

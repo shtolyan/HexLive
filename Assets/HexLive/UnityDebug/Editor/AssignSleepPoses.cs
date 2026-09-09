@@ -26,18 +26,16 @@ namespace HexLive.UnityDebug.Editor
     public static class AssignSleepPoses
     {
         private const string AnimDir = "Assets/ImportedActors/AnimLibrary/";
-        private const string SetPath = "Assets/Resources/HexLive/NpcAnimSet.asset";
+        private const string SetPath = "Assets/HexLiveContent/RuntimeSource/NpcAnimSet.asset";
 
-        // (файл FBX, имя клипа). Обычно совпадают, но у второй позы клип —
-        // «Bed»-вариант из того же FBX: он довёрнут orientationOffsetY так,
-        // чтобы лежать в ту же сторону, что конец LieDown / Sleep / старт
-        // GetUp (баг #6 — «легла в одном повороте, спит в другом»). Оригинал
-        // без доворота остаётся в файле: на нём стоит состояние FallenIdle,
-        // выровненное под StandUp.
+        // §105 / bug #351: оба варианта должны помещаться на узкой кровати
+        // весь цикл. Humanoid mirror даёт вторую спокойную позу без runtime
+        // доворота; широкий Sleeping Idle с переворотами остаётся в библиотеке,
+        // но не выбирается для общего Sleep/FallenIdle футпринта.
         private static readonly (string file, string clip)[] Poses =
         {
             ("Sleep", "Sleep"),      // авторский — на нём стоит состояние Sleep
-            ("X Bot@Sleeping Idle", "X Bot@Sleeping Idle Bed"), // §105: вторая поза
+            ("Sleep", "Sleep Mirrored"), // штатный Humanoid mirror в импорте
         };
 
         [MenuItem("HexLive/Actors/Assign Sleep Poses")]

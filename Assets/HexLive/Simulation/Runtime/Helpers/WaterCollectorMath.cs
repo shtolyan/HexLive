@@ -10,7 +10,7 @@ namespace HexLive.Simulation.Runtime
 // anchored on the collector's own junction — same idiom as garments hung on
 // the drying rack — so no new persisted state is needed: Owner remembers who
 // parked it, ResourceAmount holds fill progress 0..1.
-internal static class WaterCollectorMath
+public static class WaterCollectorMath
 {
     public const string CollectorId = "station.water_collector";
 

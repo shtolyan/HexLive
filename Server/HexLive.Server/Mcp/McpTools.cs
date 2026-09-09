@@ -720,6 +720,9 @@ public sealed class McpTools
                 ["perceptionSummary"] = context.PerceptionSummary,
                 ["memorySummary"] = context.MemorySummary,
                 ["inventory"] = Inventory(npc),
+                ["visibleItems"] = McpItemObservations.Visible(world, npc),
+                ["inventoryItems"] = McpItemObservations.Carried(world, npc),
+                ["wornItems"] = McpItemObservations.Worn(world, npc),
             });
         });
 

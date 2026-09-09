@@ -89,6 +89,9 @@ internal static class ManualCommandExecutor
             case TalkToCommand talkTo:
                 ApplyTalkTo(world, talkTo, admission);
                 break;
+            case RequestItemCommand requestItem:
+                ApplyRequestItem(world, requestItem, admission);
+                break;
             case RomancePersonCommand romance:
                 ApplyRomancePerson(world, romance, admission);
                 break;
@@ -215,6 +218,7 @@ internal static class ManualCommandExecutor
         StopCommand => "Stop",
         CraftItemCommand => "Craft",
         TalkToCommand => "TalkTo",
+        RequestItemCommand => "RequestItem",
         RomancePersonCommand c => c.Forced ? "ForceRomance" : "Romance",
         MergeCampsCommand => "MergeCamps",
         SetCampHomeCommand => "SetCampHome",
@@ -1005,6 +1009,24 @@ internal static class ManualCommandExecutor
                 $"Order=PutPersonInBed Bed={bed.DefinitionId}#{bed.Id.Value} " +
                 $"Patient=NPC{patient.Id.Value}");
         }
+    }
+
+    // §153.4: a nearby request resolves immediately, without taking over
+    // either participant's plan or answering for a manually controlled owner.
+    private static void ApplyRequestItem(
+        WorldState world, RequestItemCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "RequestItem", requireManual: false,
+                admission, out var requester)) return;
+
+        var result = ItemRequestMath.Request(world, requester, command.Target, command.DefinitionId);
+        if (result != ItemRequestOutcome.Transferred)
+        {
+            Reject(world, requester.Id, "RequestItem", result.ToString(), admission);
+            return;
+        }
+        Trace.Debug(world, requester.Id, "ManualOrderAccepted",
+            $"Order=RequestItem Target=NPC{command.Target.Value} Def={command.DefinitionId} Transferred=1");
     }
 
     // §121.9: подойти и поговорить. Цель занята, идёт или не в духе — приказ

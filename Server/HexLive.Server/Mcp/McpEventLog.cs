@@ -55,6 +55,7 @@ public sealed class McpEventLog
             "ManualOrderAccepted",
             "ManualOrderRejected",
             "ManualOrderFinished",
+            "ItemRequestResult",
         };
 
     private readonly List<EventRecord> _events = new();

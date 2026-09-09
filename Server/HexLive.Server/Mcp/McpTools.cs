@@ -236,6 +236,15 @@ public sealed class McpTools
             "Необязательная topic выбирает общую тему и штатную реплику Hexkufa, без TTS.",
             TalkToSchema()),
 
+        new("request_item",
+            "Попросить у конкретного NPC один предмет по definitionId (§153.4). Владелец добровольно " +
+            "соглашается или отказывает. Сначала подойдите: радиус подарка 1.95 wu и проверка " +
+            "препятствий; автоматического подхода нет, вне досягаемости TooFar. " +
+            "Completed/Transferred означает реальную передачу; отказ не меняет вещи владельца.",
+            Schema(("npcId", "integer", "id просящей колонистки", true),
+                   ("targetNpcId", "integer", "id владельца предмета", true),
+                   ("definitionId", "string", "определение нужного предмета; передаётся ровно один экземпляр", true))),
+
         new("aid_person",
             "Помочь конкретной колонистке ЯВНЫМ видом помощи (§53): Feed/Hydrate/Treat/" +
             "Medicate/Console. Помощь стоит припаса ПОМОЩНИЦЫ (§53.7); отказ NoSupplies " +
@@ -440,6 +449,7 @@ public sealed class McpTools
                 }
 
                 case "manage_inventory": return ManageInventory(host, arguments, owner, out isError);
+                case "request_item": return RequestItem(host, arguments, owner, out isError);
                 case "transfer_inventory": return TransferInventory(host, arguments, owner, out isError);
                 case "transfer_container": return TransferContainer(host, arguments, owner, out isError);
                 case "prey_person":
@@ -1365,6 +1375,18 @@ public sealed class McpTools
         var item = new InventoryItemRef(source, index, expected);
         return Submit(host, npcId, owner,
             npc => new ManageInventoryCommand(npc, item, action), out isError);
+    }
+
+    private string RequestItem(WorldHost host, JsonElement arguments, string owner, out bool isError)
+    {
+        var npcId = Int(arguments, "npcId");
+        var targetNpcId = Int(arguments, "targetNpcId");
+        var definitionId = Text(arguments, "definitionId");
+        var answer = Submit(host, npcId, owner,
+            npc => new RequestItemCommand(npc, new EntityId(targetNpcId), definitionId), out isError);
+        if (isError) return answer;
+        return Json(new { npcId, targetNpcId, definitionId, count = 1,
+            status = "Completed", outcome = "Transferred" });
     }
 
     private string TransferInventory(WorldHost host, JsonElement arguments, string owner, out bool isError)

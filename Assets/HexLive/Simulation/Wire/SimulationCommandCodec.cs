@@ -35,7 +35,8 @@ public static class SimulationCommandCodec
     // 4: §159 typed RecordCompanionTurnCommand.
     // 5: §160 generic RecordAgentSocialCommand.
     // 6: §28.15G requested shared Talk topic, with legacy opcode 11 unchanged.
-    public const int WireVersion = 6;
+    // 7: §153.4 voluntary request for one carried item (opcode 43).
+    public const int WireVersion = 7;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -85,6 +86,7 @@ public static class SimulationCommandCodec
         RecordCompanionTurn = 40,
         RecordAgentSocial = 41,
         TalkToWithTopic = 42,
+        RequestItem = 43,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -204,6 +206,12 @@ public static class SimulationCommandCodec
                 WriteEntity(w, c.Npc);
                 WriteEntity(w, c.Target);
                 w.Write(c.Forced);
+                break;
+            case RequestItemCommand c:
+                w.Write((ushort)CommandType.RequestItem);
+                WriteEntity(w, c.Npc);
+                WriteEntity(w, c.Target);
+                WireIo.WriteString(w, c.DefinitionId);
                 break;
             case AidPersonCommand c:
                 w.Write((ushort)CommandType.AidPerson);
@@ -426,6 +434,8 @@ public static class SimulationCommandCodec
             case CommandType.RomancePerson:
                 return new RomancePersonCommand(
                     ReadEntity(r), ReadEntity(r), r.ReadBoolean());
+            case CommandType.RequestItem:
+                return new RequestItemCommand(ReadEntity(r), ReadEntity(r), r.ReadString());
             case CommandType.AidPerson:
                 return new AidPersonCommand(
                     ReadEntity(r), ReadEntity(r), (AidKind)r.ReadInt32());

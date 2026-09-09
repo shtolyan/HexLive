@@ -69,6 +69,7 @@ namespace HexLive.UnityPresentation.UI
         private string _cachedSttToken = string.Empty;
         private long _cachedSttExpiry;
         private readonly PlayerTextOutbox _playerTextOutbox = new(MaxPendingCaptures, AgentWire.MaxPlayerTextCharacters);
+        private bool _waitingPlayerConnection;
         private string _agentCachePath = string.Empty;
         private FMOD.Studio.EventInstance _agentReplyFocus;
         private float _agentReplyFocusUntil;
@@ -352,10 +353,16 @@ namespace HexLive.UnityPresentation.UI
         {
             if (_runner == null || _sttInFlight || _pendingTokenCorrelation != 0 ||
                 _capturedPlayerInputs.Count == 0) return;
-            _activePlayerInput = _capturedPlayerInputs.Dequeue();
+            var next = _capturedPlayerInputs.Peek();
             if (!_runner.IsReady || !_runner.TryGetAgentState(
-                    new HexLive.Simulation.Common.EntityId(_activePlayerInput.NpcId), out var state) ||
-                !state.Attached || state.AttachmentId != _activePlayerInput.AttachmentId)
+                    new HexLive.Simulation.Common.EntityId(next.NpcId), out var state))
+            {
+                WaitForPlayerConnection();
+                return;
+            }
+            _waitingPlayerConnection = false;
+            _activePlayerInput = _capturedPlayerInputs.Dequeue();
+            if (!state.Attached || state.AttachmentId != _activePlayerInput.AttachmentId)
             {
                 _activePlayerInput = null;
                 ShowAgentSubtitle(Loc.Get("agent.voice.input_failed"), 5f);
@@ -426,9 +433,15 @@ namespace HexLive.UnityPresentation.UI
         private void SendPendingPlayerText()
         {
             var message = _playerTextOutbox.Peek();
-            if (message == null || _runner == null || !_runner.IsReady) return;
-            if (!_runner.TryGetAgentState(new HexLive.Simulation.Common.EntityId(message.NpcId), out var state) ||
-                !state.Attached || state.AttachmentId != message.AttachmentId)
+            if (message == null) return;
+            if (_runner == null || !_runner.IsReady ||
+                !_runner.TryGetAgentState(new HexLive.Simulation.Common.EntityId(message.NpcId), out var state))
+            {
+                WaitForPlayerConnection();
+                return;
+            }
+            _waitingPlayerConnection = false;
+            if (!state.Attached || state.AttachmentId != message.AttachmentId)
             {
                 _playerTextOutbox.RejectHead();
                 ShowAgentSubtitle(Loc.Get("agent.voice.input_failed"), 5f);
@@ -438,6 +451,13 @@ namespace HexLive.UnityPresentation.UI
             _playerTextOutbox.MarkSent(Time.unscaledTime);
             _runner.SendAgentText(message.CorrelationId, new HexLive.Simulation.Common.EntityId(message.NpcId),
                 message.MessageId, "ru", message.Text, message.AttachmentId);
+        }
+
+        private void WaitForPlayerConnection()
+        {
+            if (!_waitingPlayerConnection)
+                ShowAgentSubtitle(Loc.Get("agent.voice.waiting_connection"), 5f);
+            _waitingPlayerConnection = true;
         }
 
         private async Task TranscribeAndSendAsync(byte[] wav, string token, int npcId, string attachmentId,
@@ -595,7 +615,8 @@ namespace HexLive.UnityPresentation.UI
             _agentVoiceGlyph!.SetColor(recording ? Warn : Text);
             SetBorderColor(_agentVoiceButton, recording ? Warn : NeonCyanDim);
             var pending = _capturedPlayerInputs.Count + _playerTextOutbox.Count + (_activePlayerInput != null ? 1 : 0);
-            _agentVoiceStateLabel!.text = recording ? Loc.Get("agent.voice.listening") : pending > 0
+            _agentVoiceStateLabel!.text = recording ? Loc.Get("agent.voice.listening") :
+                pending > 0 && _waitingPlayerConnection ? Loc.Get("agent.voice.waiting_connection") : pending > 0
                 ? string.Format(Loc.Get("agent.voice.queued"), pending)
                 : AgentVoiceStateText(_agentVoiceUiState);
             _agentVoiceButton.tooltip = Loc.Get(pending >= MaxPendingCaptures

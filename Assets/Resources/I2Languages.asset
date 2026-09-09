@@ -27855,6 +27855,14 @@ MonoBehaviour:
       - 'Реплика длиннее {0} символов. Отправь более короткое сообщение.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'agent.voice.waiting_connection'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Message saved. Waiting for the agent connection.'
+      - 'Реплика сохранена. Ожидание подключения агента.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

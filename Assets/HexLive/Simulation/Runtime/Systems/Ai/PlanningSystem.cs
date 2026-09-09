@@ -1596,7 +1596,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
         return false;
     }
 
-    private static bool HasUsableObjectApproach(
+    internal static bool HasUsableObjectApproach(
         WorldState world,
         NPCState npc,
         PerceivedObject perceived,

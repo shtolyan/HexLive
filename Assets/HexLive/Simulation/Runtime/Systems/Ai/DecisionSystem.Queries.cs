@@ -1102,7 +1102,10 @@ public sealed partial class DecisionSystem
         if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
             npc.Memory.IsShunned(obj.Id, world.Tick) ||
             !obj.AvailableInteractions.Contains(InteractionType.Dress) ||
-            !Content.GarmentLibrary.FitsSex(npc.Sex, obj.DefinitionId))
+            !Content.GarmentLibrary.FitsSex(npc.Sex, obj.DefinitionId) ||
+            // §52.7/§24.16: a visible garment whose exact approach is occupied
+            // must not interrupt a meal and then fail the same planner check.
+            !PlanningSystem.HasUsableObjectApproach(world, npc, obj, InteractionType.Dress))
         {
             return false;
         }

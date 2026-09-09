@@ -36,12 +36,14 @@ def seal(app, configured_only=False):
     if configured_only and not signer:
         return
     identifier = bundle_identifier(app)
+    # Recompute local development metadata so Info.plist is bound into the
+    # new signature, rather than retaining an old ad-hoc apphost's metadata.
     subprocess.run(['/usr/bin/codesign', '--force', '--deep', '--sign', signer or '-',
-                    '--timestamp=none', '--preserve-metadata=identifier,entitlements,flags', str(app)], check=True)
+                    '--timestamp=none', str(app)], check=True)
     # .NET apphost's inherited identifier contains a build-specific UUID. The
     # outer process must use the app's stable bundle ID, not that transient ID.
     subprocess.run(['/usr/bin/codesign', '--force', '--sign', signer or '-', '--identifier', identifier,
-                    '--timestamp=none', '--preserve-metadata=entitlements,flags', str(app)], check=True)
+                    '--timestamp=none', str(app)], check=True)
     subprocess.run(['/usr/bin/codesign', '--verify', '--deep', '--strict', str(app)], check=True)
 
 

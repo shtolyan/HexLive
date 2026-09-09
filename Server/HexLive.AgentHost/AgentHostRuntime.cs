@@ -621,6 +621,8 @@ public sealed partial class AgentHostRuntime
             await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 },
                 cancellationToken).ConfigureAwait(false);
             acquired = true;
+            var outcome = new AgentActionOutcome(npcId,
+                await mcp.CallToolAsync("read_events", new { npcId }, cancellationToken).ConfigureAwait(false));
             var result = await mcp.CallToolAsync(action.Tool, arguments, cancellationToken).ConfigureAwait(false);
             if ((result.TryGetProperty("accepted", out var accepted) && accepted.ValueKind == JsonValueKind.False) ||
                 (result.TryGetProperty("status", out var rejected) && rejected.GetString() == "Rejected"))
@@ -639,11 +641,14 @@ public sealed partial class AgentHostRuntime
                 await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
                 var list = await mcp.CallToolAsync("list_colonists", new { }, cancellationToken)
                     .ConfigureAwait(false);
+                outcome.Observe(await mcp.CallToolAsync("read_events", new
+                    { npcId, sinceSeq = outcome.Watermark, limit = 500 }, cancellationToken).ConfigureAwait(false));
                 if (!HasActivePlan(list, npcId))
                 {
                     if (!HasCarriedPerson(list, npcId))
                     {
-                        ReportAction(action.Tool, turnId, PlanResult(list, npcId));
+                        if (outcome.Result == null && outcome.HasMore) continue;
+                        ReportAction(action.Tool, turnId, outcome.Result ?? PlanResult(list, npcId));
                         break;
                     }
                     // Pickup/movement completion is not the end of transport.

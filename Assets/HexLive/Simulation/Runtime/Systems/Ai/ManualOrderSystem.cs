@@ -148,7 +148,12 @@ public sealed class ManualOrderSystem : ISimulationSystem
             return;
         }
 
-        var outcome = npc.Plan.Status == PlanStatus.Completed ? "Completed" : "Failed";
+        var outcome = npc.Plan.Status switch
+        {
+            PlanStatus.Completed => "Completed",
+            PlanStatus.Invalid => "Invalid",
+            _ => "Failed"
+        };
         npc.Mind.CurrentGoal = GoalType.None;
         npc.Plan.Status = PlanStatus.None;
         npc.Plan.RunRequested = false;
@@ -156,11 +161,8 @@ public sealed class ManualOrderSystem : ISimulationSystem
         // §121.7: завершение приказа продлевает lease — поход длиной больше
         // таймаута не должен «истечь» в момент прибытия.
         ManualControlMath.RenewInactivityLease(world, npc);
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, npc.Id, "ManualOrderFinished", $"Order=PlayerOrder Outcome={outcome}");
-
-        }
+        // §160: the controller needs this result after Plan.Status is swept to None.
+        Trace.Emit(world, npc.Id, "ManualOrderFinished", $"Order=PlayerOrder Outcome={outcome}");
     }
 
     private static void KeepAttacking(WorldState world, NPCState npc)
@@ -415,11 +417,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
         npc.Mind.CurrentGoal = GoalType.None;
         // §121.7: конец сцепки = завершение приказа — lease продлевается.
         ManualControlMath.RenewInactivityLease(world, npc);
-        if (SimTrace.Enabled)
-        {
-            Trace.Debug(world, npc.Id, "ManualOrderFinished", $"Order=PlayerAttack Outcome={reason}");
-
-        }
+        Trace.Emit(world, npc.Id, "ManualOrderFinished", $"Order=PlayerAttack Outcome={reason}");
     }
 }
 

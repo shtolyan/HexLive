@@ -721,6 +721,7 @@ public sealed class McpTools
                 ["memorySummary"] = context.MemorySummary,
                 ["inventory"] = Inventory(npc),
                 ["visibleItems"] = McpItemObservations.Visible(world, npc),
+                ["visibleNpcs"] = McpNpcObservations.Visible(world, npc),
                 ["inventoryItems"] = McpItemObservations.Carried(world, npc),
                 ["wornItems"] = McpItemObservations.Worn(world, npc),
             });

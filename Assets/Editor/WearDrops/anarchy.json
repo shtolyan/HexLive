@@ -73,6 +73,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Studded Cap",
         "nameRu": "Кепка с клёпками",
         "descEn": "Peaked, and studded along the brim. Keeps sun and rain off.",
@@ -222,6 +223,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Hip Straps",
         "nameRu": "Набедренные ремни",
         "descEn": "Straps down the hips. Decoration that happens to hold a pouch.",
@@ -291,6 +293,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Studded Belt",
         "nameRu": "Ремень с клёпками",
         "descEn": "Wide, with loops. No warmth — it is there to carry things.",
@@ -385,6 +388,7 @@
         }
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Anarchy Top",
         "nameRu": "Топ «Анархия»",
         "descEn": "A cropped top with a printed front. Thin, and she likes it.",
@@ -565,6 +569,7 @@
         }
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Buckled Thigh Boots",
         "nameRu": "Ботфорты с чулками",
         "descEn": "Heavy leather over the knee, torn stocking tops showing above. The best thing between a wolf and her leg.",
@@ -746,6 +751,7 @@
         }
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Laced Corset",
         "nameRu": "Корсет на шнуровке",
         "descEn": "Stiff panels laced at the back. Holds a shape, and holds a knife edge off.",
@@ -813,6 +819,7 @@
         }
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Long Gloves",
         "nameRu": "Длинные перчатки",
         "descEn": "To the elbow, fingers and all. Little warmth, but the knuckles stay whole.",
@@ -882,6 +889,7 @@
         }
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Torn Trousers",
         "nameRu": "Рваные штаны",
         "descEn": "Full length, and torn at the knees on purpose.",
@@ -949,6 +957,7 @@
         }
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Pleated Skirt",
         "nameRu": "Плиссированная юбка",
         "descEn": "Short and pleated. Moves well, warms nothing.",
@@ -1063,6 +1072,7 @@
         }
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Strap Collar",
         "nameRu": "Ошейник-ремень",
         "descEn": "Straps, rings and rivets at the throat. Says more than it protects.",
@@ -1151,6 +1161,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Strap Gloves",
         "nameRu": "Перчатки с ремешками",
         "descEn": "Plated forearm, buckled at the wrist. For grip, not for warmth.",
@@ -1216,6 +1227,7 @@
         "CA Stud Cuff Right"
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Studded Cuffs",
         "nameRu": "Клёпаные напульсники",
         "descEn": "A pair of studded bands. They have stopped a blade once.",
@@ -1291,6 +1303,7 @@
         }
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Studded Collar",
         "nameRu": "Ошейник с шипами",
         "descEn": "Metal studs on leather. Turns a bite that would open a throat.",
@@ -1363,6 +1376,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Torn Blouse",
         "nameRu": "Рваная блузка",
         "descEn": "Sleeves and holes in equal measure. Covers the arms, and little else.",
@@ -1440,6 +1454,7 @@
         }
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Thong",
         "nameRu": "Стринги",
         "descEn": "Worn against the skin. She notices when it is gone.",

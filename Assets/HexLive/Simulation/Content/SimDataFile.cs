@@ -271,14 +271,7 @@ namespace HexLive.Simulation.Content
                     if (!System.Enum.TryParse<GarmentSex>(
                             Str(g, "sex"), true, out gsex))
                     {
-                        foreach (var d in GarmentLibrary.Defaults)
-                        {
-                            if (d.Id == gid)
-                            {
-                                gsex = d.Sex;
-                                break;
-                            }
-                        }
+                        gsex = GarmentLibrary.DefaultSex(gid);
                     }
 
                     list.Add(new GarmentParams(
@@ -675,6 +668,7 @@ namespace HexLive.Simulation.Content
 
                 sb.Append("    {")
                   .Append($"\"id\": {Q(g.Id)}, \"displayName\": {Q(g.DisplayName)}, \"layer\": {Q(g.Layer.ToString())}, ")
+                  .Append($"\"sex\": {Q(g.Sex.ToString())}, ")
                   .Append($"\"warmth\": {N(g.Warmth)}, \"armor\": {N(g.Armor)}, \"thermalDelta\": {N(g.ThermalDelta)}, ")
                   .Append($"\"dressDurationTicks\": {g.DressDurationTicks}, \"capacity\": {g.Capacity}, ");
 

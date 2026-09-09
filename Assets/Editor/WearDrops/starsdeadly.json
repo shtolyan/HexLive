@@ -62,6 +62,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Uniform Shirt",
         "nameRu": "Форменная рубашка",
         "descEn": "Issue shirt, shoulder seams reinforced.",
@@ -128,6 +129,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Tactical Vest",
         "nameRu": "Тактический жилет",
         "descEn": "Plates front and back. Heavy, and worth it.",
@@ -186,6 +188,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Uniform Trousers",
         "nameRu": "Форменные брюки",
         "descEn": "Thick cotton, knees doubled.",
@@ -243,6 +246,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Duty Belt",
         "nameRu": "Служебный пояс",
         "descEn": "Wide belt with a thigh strap.",
@@ -310,6 +314,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Duty Gloves",
         "nameRu": "Служебные перчатки",
         "descEn": "Leather to the wrist.",
@@ -363,6 +368,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Uniform Cap",
         "nameRu": "Форменная кепка",
         "descEn": "Stiff brim, unit patch gone.",
@@ -416,6 +422,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Cropped Halter",
         "nameRu": "Укороченный топ",
         "descEn": "Cut above the ribs, high collar.",
@@ -471,6 +478,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "High-Waist Shorts",
         "nameRu": "Шорты с высокой посадкой",
         "descEn": "High on the waist, short on the leg.",
@@ -528,6 +536,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Thigh Tights",
         "nameRu": "Плотные чулки",
         "descEn": "Opaque, to the thigh.",
@@ -602,6 +611,7 @@
         "glove_right_1610"
       ],
       "sim": {
+        "sex": "Female",
         "displayName": "Mismatched Gloves",
         "nameRu": "Разные перчатки",
         "descEn": "One to the shoulder, one to the wrist. Nobody remembers why.",
@@ -801,6 +811,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Laced Corset",
         "nameRu": "Корсет на шнуровке",
         "descEn": "Boned and laced. Holds a shape nobody needs out here.",
@@ -886,6 +897,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Skinny Jeans",
         "nameRu": "Узкие джинсы",
         "descEn": "Denim, tight to the ankle.",

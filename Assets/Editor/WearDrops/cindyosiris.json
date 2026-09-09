@@ -82,6 +82,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Cropped Jacket",
         "nameRu": "Укороченная куртка",
         "descEn": "Leather cut short, metal at the seams.",
@@ -135,6 +136,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Halter Bikini Top",
         "nameRu": "Верх бикини на завязках",
         "descEn": "Ties behind the neck. That is the whole design.",
@@ -186,6 +188,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Bikini Bottom",
         "nameRu": "Низ бикини",
         "descEn": "In a set with the top.",
@@ -247,6 +250,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Buttoned Shorts",
         "nameRu": "Шорты на пуговице",
         "descEn": "Short, plain, one button. Nothing to break.",
@@ -302,6 +306,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Field Top",
         "nameRu": "Полевой топ",
         "descEn": "Plain, tight, made to go under gear.",
@@ -354,6 +359,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Field Shorts",
         "nameRu": "Полевые шорты",
         "descEn": "In a set with the top.",
@@ -418,6 +424,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Hip Belt",
         "nameRu": "Пояс на бедро",
         "descEn": "Wide, low on the hip, metal fittings.",
@@ -476,6 +483,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Short Gloves",
         "nameRu": "Короткие перчатки",
         "descEn": "To the wrist. Keeps the palms off hot metal.",
@@ -564,6 +572,7 @@
         "_source": "угол снижен с расчётных 39.8° до 30° по осмотру человека: стопа торчала сквозь сапог; подъём пересчитан по формуле 0.11·sin(угол)"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Heeled Boots",
         "nameRu": "Сапоги на каблуке",
         "descEn": "To the knee, on a heel. Someone chose these for a city.",
@@ -629,6 +638,7 @@
         "heelCm": 1.74
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Combat Boots",
         "nameRu": "Берцы",
         "descEn": "Flat, laced, made for walking all day.",
@@ -686,6 +696,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Wrist Wraps",
         "nameRu": "Напульсники",
         "descEn": "Wrapped from wrist to forearm.",
@@ -760,6 +771,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Holster Belt",
         "nameRu": "Пояс с кобурой",
         "descEn": "An empty holster on a thigh strap. The gun is someone else's story.",
@@ -814,6 +826,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Field Pack",
         "nameRu": "Полевой рюкзак",
         "descEn": "Small and flat. Holds a day, not a week.",

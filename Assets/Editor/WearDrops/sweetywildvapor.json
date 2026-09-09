@@ -75,6 +75,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Fur-Trimmed Dress",
         "nameRu": "Платье с мехом",
         "descEn": "Long, with fur at the shoulders. Someone dressed for a colder place.",
@@ -286,6 +287,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Fur Collar",
         "nameRu": "Меховой воротник",
         "descEn": "A fur collar on its own. Warms the neck and nothing else.",
@@ -501,6 +503,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ringed Bra",
         "nameRu": "Лиф с кольцами",
         "descEn": "Straps through metal rings.",
@@ -560,6 +563,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Strapped Briefs",
         "nameRu": "Трусики с ремешками",
         "descEn": "The bra's other half.",
@@ -638,6 +642,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Studded Skirt",
         "nameRu": "Юбка с клёпками",
         "descEn": "Short, on a studded waistband.",
@@ -843,6 +848,7 @@
       },
       "_review": "покрывает 5 зон — похоже на КОМПЛЕКТ целиком. Проверьте, не приехали ли отдельные его части: держать нужно что-то одно",
       "sim": {
+        "sex": "Female",
         "displayName": "Boxing Outfit",
         "nameRu": "Боксёрский комплект",
         "descEn": "Gloves, shoes and shorts as one kit. Made for a ring that no longer exists.",
@@ -1053,6 +1059,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sheer Top",
         "nameRu": "Прозрачный топ",
         "descEn": "Barely there, and knows it.",
@@ -1404,6 +1411,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sheer Briefs",
         "nameRu": "Прозрачные трусики",
         "descEn": "Matches the top.",
@@ -1760,6 +1768,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Oversized Tee",
         "nameRu": "Футболка навырост",
         "descEn": "Long enough to be a dress on a short day.",
@@ -2264,6 +2273,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Cotton Briefs",
         "nameRu": "Хлопковые трусики",
         "descEn": "Wide waistband, nothing else to say.",
@@ -2707,6 +2717,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sheer Babydoll",
         "nameRu": "Прозрачный бэбидолл",
         "descEn": "Lace over almost nothing, and it flows.",
@@ -3572,6 +3583,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Lace Panties",
         "nameRu": "Кружевные трусики",
         "descEn": "In a set with the babydoll.",
@@ -3946,6 +3958,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Yoga Top",
         "nameRu": "Топ для йоги",
         "descEn": "Stretch fabric, cut short. Made for moving.",
@@ -4164,6 +4177,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Yoga Leggings",
         "nameRu": "Легинсы для йоги",
         "descEn": "Stretch to the ankle. Warm enough to sleep in.",
@@ -4400,6 +4414,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Night Dress",
         "nameRu": "Ночное платье",
         "descEn": "Lace at the hem, a clasp at the shoulder. Not made for outdoors.",
@@ -4529,6 +4544,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Beaded Necklace",
         "nameRu": "Бусы",
         "descEn": "Beads on a metal chain. Worth nothing and kept anyway.",

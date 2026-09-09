@@ -58,6 +58,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Chain Necklace",
         "nameRu": "Цепочка",
         "descEn": "A plain chain. Someone kept it through worse than this.",

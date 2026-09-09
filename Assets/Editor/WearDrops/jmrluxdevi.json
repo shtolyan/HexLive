@@ -68,6 +68,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Open-Back Bra",
         "nameRu": "Лиф с открытой спиной",
         "descEn": "Lace, and a strap around the neck.",
@@ -206,6 +207,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Open-Back Panties",
         "nameRu": "Трусики с открытой спиной",
         "descEn": "In a set with the bra.",
@@ -344,6 +346,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Cross-Back Bra",
         "nameRu": "Спортивный лиф",
         "descEn": "Wide straps crossed at the back. Holds when you run.",
@@ -528,6 +531,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sports Briefs",
         "nameRu": "Спортивные трусики",
         "descEn": "High waist, thick band.",
@@ -738,6 +742,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Strappy Swim Top",
         "nameRu": "Верх купальника",
         "descEn": "Straps over straps. Dries fast, and that is its one virtue now.",
@@ -1393,6 +1398,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Strappy Swim Bottom",
         "nameRu": "Низ купальника",
         "descEn": "In a set with the top.",
@@ -1855,6 +1861,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Loose Sweater",
         "nameRu": "Свободный свитер",
         "descEn": "Knit, oversized, falls off one shoulder whatever you do.",
@@ -2001,6 +2008,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Pleated Mini",
         "nameRu": "Плиссированная мини",
         "descEn": "Short and pleated. Sensible about nothing.",
@@ -2188,6 +2196,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Over-Knee Socks",
         "nameRu": "Гольфы выше колена",
         "descEn": "Knit, to mid-thigh. Warmer than they look.",
@@ -2360,6 +2369,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Jewelled Bikini Top",
         "nameRu": "Верх бикини с камнями",
         "descEn": "Beads and metal. Useless and someone kept it anyway.",
@@ -2543,6 +2553,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Jewelled Bikini Bottom",
         "nameRu": "Низ бикини с камнями",
         "descEn": "In a set with the top.",
@@ -2762,6 +2773,7 @@
         "_source": "поза, наложенная самой вещью при примерке: Luxury Bikini Shoes"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Strap Heels",
         "nameRu": "Босоножки на каблуке",
         "descEn": "Thin straps on a high heel. Made for a floor that no longer exists.",
@@ -3035,6 +3047,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Bracelet",
         "nameRu": "Браслет",
         "descEn": "Metal, on the forearm.",
@@ -3111,6 +3124,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sunglasses",
         "nameRu": "Солнечные очки",
         "descEn": "Dark lenses. The sun here is worse than it used to be.",
@@ -3397,6 +3411,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "City Dress",
         "nameRu": "Городское платье",
         "descEn": "Cut for an office, worn where there are none.",

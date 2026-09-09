@@ -87,6 +87,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Canvas Backpack",
         "nameRu": "Холщовый рюкзак",
         "descEn": "Straps, buckles and room. Carries more than her hands ever could.",
@@ -215,6 +216,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Blouse Tied at the Waist",
         "nameRu": "Блузка на поясе",
         "descEn": "Sleeves knotted at the hip. Not worn so much as carried.",
@@ -339,6 +341,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Work Blouse",
         "nameRu": "Рабочая блузка",
         "descEn": "Long sleeves, buttoned to the throat. Thin, but it covers the arms.",
@@ -475,6 +478,7 @@
         "heelCm": 2.01
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Laced Work Boots",
         "nameRu": "Рабочие ботинки",
         "descEn": "Laces, straps and a hard sole. Made for standing all day.",
@@ -536,6 +540,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Plain Bra",
         "nameRu": "Простой лифчик",
         "descEn": "Worn against the skin. She notices when it is gone.",
@@ -648,6 +653,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Pinned Cap",
         "nameRu": "Кепка со значком",
         "descEn": "A soft cap with a pin on the brim. Keeps sun and rain off.",
@@ -755,6 +761,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Cut-off Shorts",
         "nameRu": "Обрезанные шорты",
         "descEn": "Denim, cut at the thigh. Nothing between her knees and the weather.",
@@ -852,6 +859,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Buttoned Shirt",
         "nameRu": "Рубашка на пуговицах",
         "descEn": "Plain and buttoned. What she puts on without thinking.",
@@ -947,6 +955,7 @@
         "heelCm": 0.62
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Long Stockings",
         "nameRu": "Длинные чулки",
         "descEn": "Thigh to toe. More warmth than they look like they hold.",
@@ -1078,6 +1087,7 @@
         "heelCm": 1.38
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ranger Boots",
         "nameRu": "Ботинки рейнджера",
         "descEn": "Reinforced to mid-calf. The best thing between a wolf and her ankle.",
@@ -1155,6 +1165,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Belt Pouches",
         "nameRu": "Подсумки на поясе",
         "descEn": "Two pouches and a buckle. No warmth — they are there to carry things.",
@@ -1241,6 +1252,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ranger Jacket",
         "nameRu": "Куртка рейнджера",
         "descEn": "Zipped to the collar, lined and heavy. The warmest thing she owns.",
@@ -1338,6 +1350,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ranger Trousers",
         "nameRu": "Штаны рейнджера",
         "descEn": "Full length, reinforced at the knee. Warm and hard to tear.",
@@ -1433,6 +1446,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Padded Vest",
         "nameRu": "Стёганый жилет",
         "descEn": "Quilted panels over the chest. Turns a blow that a shirt would not.",

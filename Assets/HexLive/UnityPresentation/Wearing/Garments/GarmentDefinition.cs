@@ -81,6 +81,7 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 thermalDelta,
                 dressDurationTicks,
                 capacity,
+                GarmentLibrary.DefaultSex(id),
                 parts)
             {
                 PrototypeId = ArtId,

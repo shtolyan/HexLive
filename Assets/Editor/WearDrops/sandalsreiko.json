@@ -117,6 +117,7 @@
         "_source": "по высоте каблука 2.5 см"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sandals, Style I",
         "nameRu": "Сандалии, стиль 1",
         "descEn": "Flat soles and thin straps. Nothing between you and the ground.",
@@ -771,6 +772,7 @@
         "_source": "по высоте каблука 2.5 см"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sandals, Style II",
         "nameRu": "Сандалии, стиль 2",
         "descEn": "Wider straps, same flat sole.",
@@ -1425,6 +1427,7 @@
         "_source": "по высоте каблука 2.5 см"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sandals, Style III",
         "nameRu": "Сандалии, стиль 3",
         "descEn": "Crossed straps up the ankle.",
@@ -2088,6 +2091,7 @@
         "_source": "по высоте каблука 2.5 см"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Sandals, Style IV",
         "nameRu": "Сандалии, стиль 4",
         "descEn": "Ankle strap and a small buckle.",
@@ -2767,6 +2771,7 @@
         "_source": "поза, наложенная самой вещью при примерке: S3D Real Sneakers v5 G3"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Canvas Sneakers",
         "nameRu": "Тканевые кроссовки",
         "descEn": "Worn flat, laces knotted where they broke.",
@@ -3000,6 +3005,7 @@
         "heelCm": 1.32
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Running Shoes",
         "nameRu": "Беговые кроссовки",
         "descEn": "Cushioned, and the cushion is long gone.",
@@ -3283,6 +3289,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Plated Top",
         "nameRu": "Топ с пластинами",
         "descEn": "Metal plates over the shoulders. Someone made this to be seen in.",
@@ -3368,6 +3375,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Plated Skirt",
         "nameRu": "Юбка с пластинами",
         "descEn": "Short, panelled, and heavier than it looks.",
@@ -3482,6 +3490,7 @@
         "_source": "поза, наложенная самой вещью при примерке: Alloy Fusion Boots; опущено на 20% по осмотру человека"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Plated Boots",
         "nameRu": "Ботинки с пластинами",
         "descEn": "A heel this steep was a choice, and not a practical one.",
@@ -3567,6 +3576,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ring Top",
         "nameRu": "Топ борца",
         "descEn": "Cut for a ring, kept for the fabric.",
@@ -3650,6 +3660,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ring Shorts",
         "nameRu": "Шорты борца",
         "descEn": "In a set with the top. The vendor called them a shirt.",
@@ -3748,6 +3759,7 @@
         "_source": "по высоте каблука 3.9 см"
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ring Boots",
         "nameRu": "Ботинки борца",
         "descEn": "Laced high, soled thin. Made for a canvas floor.",
@@ -3822,6 +3834,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Ring Gloves",
         "nameRu": "Перчатки борца",
         "descEn": "Fingerless, wrapped at the wrist.",
@@ -3891,6 +3904,7 @@
         "heelCm": 0.0
       },
       "sim": {
+        "sex": "Female",
         "displayName": "Neck Scarf",
         "nameRu": "Шейный платок",
         "descEn": "Three hundred polygons of pure decoration.",

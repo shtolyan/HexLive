@@ -2,6 +2,8 @@ import importlib.util
 from pathlib import Path
 import plistlib
 import tempfile
+import subprocess
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -10,25 +12,54 @@ ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("mac_build", ROOT / "Tools" / "build_release.py")
 BUILD = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(BUILD)
+HUT_SPEC = importlib.util.spec_from_file_location('hut_build', ROOT / 'Tools/build_hut_test.py')
+HUT = importlib.util.module_from_spec(HUT_SPEC)
+with patch.dict('sys.modules', {'build_release': BUILD}):
+    HUT_SPEC.loader.exec_module(HUT)
 
 
 class MicrophonePackagingTests(unittest.TestCase):
+    def test_test_client_also_requires_identity_before_unity(self):
+        with patch.object(BUILD, 'find_unity') as unity, \
+                patch.object(HUT.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, 'preflight')) as run:
+            with self.assertRaises(subprocess.CalledProcessError):
+                HUT.main()
+        unity.assert_not_called()
+        self.assertIn('--check-identity', run.call_args.args[0])
+
     def test_optimized_local_player_uses_configured_identity_and_preserves_distribution(self):
         with patch.object(BUILD, 'remove_macos_metadata', return_value=0), \
                 patch.object(BUILD, 'verify_code_signature', return_value=(True, 'valid')), \
                 patch.object(BUILD.subprocess, 'run') as run:
             BUILD.ensure_development_signature(Path('/test.app'), release=True)
             command = run.call_args.args[0]
-            self.assertIn('--configured-only', command)
+            self.assertIn('--bundle-id', command)
+            self.assertIn('com.juilcylove.hexgirls', command)
             self.assertIn('--preserve-distribution', command)
 
-    def test_invalid_release_is_not_downgraded_to_ad_hoc(self):
-        with patch.object(BUILD, 'remove_macos_metadata', return_value=0), \
+    def test_invalid_signature_is_never_downgraded_in_either_build_variant(self):
+        for release in (False, True):
+            with self.subTest(release=release), patch.object(BUILD, 'remove_macos_metadata', return_value=0), \
                 patch.object(BUILD, 'verify_code_signature', return_value=(False, 'invalid')), \
                 patch.object(BUILD.subprocess, 'run') as run:
-            with self.assertRaises(RuntimeError):
-                BUILD.ensure_development_signature(Path('/test.app'), release=True)
-            self.assertEqual(run.call_count, 1)
+                with self.assertRaises(RuntimeError):
+                    BUILD.ensure_development_signature(Path('/test.app'), release=release)
+                self.assertEqual(run.call_count, 1)
+
+    def test_missing_identity_stops_before_unity_is_selected_or_started(self):
+        args = SimpleNamespace(output_root=Path('/unused'), release=True, dry_run=False)
+        with patch.object(BUILD, 'parse_args', return_value=args), \
+                patch.dict(BUILD.os.environ, {'HEXLIVE_BUG_TOKEN': 'test-only'}), \
+                patch.object(BUILD, 'planned_version', return_value=('0.1.1', 'test')), \
+                patch.object(BUILD, 'load_last_success'), patch.object(BUILD, 'collect_git'), \
+                patch.object(BUILD, 'read_bug_tracker'), patch.object(BUILD, 'print_plan'), \
+                patch.object(BUILD, 'find_unity') as unity, \
+                patch.object(BUILD.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, 'preflight')) as run:
+            with self.assertRaises(subprocess.CalledProcessError):
+                BUILD.main()
+        unity.assert_not_called()
+        self.assertEqual(run.call_count, 1)
+        self.assertIn('--check-identity', run.call_args.args[0])
 
     def test_localized_permission_preserves_other_plist_values_and_is_idempotent(self):
         with tempfile.TemporaryDirectory() as folder:

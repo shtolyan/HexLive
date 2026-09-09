@@ -20,6 +20,7 @@ UNITY_METHOD = "HexLive.UnityDebug.Editor.HexLiveBuildHutTestBuilder.BuildMacOS"
 
 
 def main() -> int:
+    subprocess.run([sys.executable, str(ROOT / "Tools/macos_signing.py"), "--check-identity"], check=True)
     if build_release.UNITY_LOCK.exists():
         raise RuntimeError(
             f"Unity Editor holds {build_release.UNITY_LOCK}; close it before building."
@@ -98,36 +99,12 @@ def main() -> int:
         )
         shutil.move(str(staging), str(OUTPUT_DIR))
 
-        # Unity/FMOD plug-in signatures can become invalid shortly after the
-        # complete app bundle is moved to its final location. BuildHutTest is a
-        # private sandbox artifact (never the published release), so always
-        # replace the nested signatures with one coherent ad-hoc signature.
+        # A test client follows the same certificate policy as the main client.
+        # Verify the final location without replacing its identity with ad-hoc.
         published_app = OUTPUT_DIR / "BuildHutTest.app"
-        resigned = subprocess.run(
-            [
-                str(build_release.CODE_SIGN),
-                "--force",
-                "--deep",
-                "--sign",
-                "-",
-                "--timestamp=none",
-                str(published_app),
-            ],
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
-        if resigned.returncode != 0:
-            raise RuntimeError(resigned.stderr.strip() or "Could not ad-hoc sign BuildHutTest")
         valid, details = build_release.verify_code_signature(published_app)
         if not valid:
-            raise RuntimeError(f"Ad-hoc BuildHutTest signature is invalid:\n{details}")
-        report["codeSignature"] = "ad-hoc-resigned"
-        (OUTPUT_DIR / "build-manifest.json").write_text(
-            json.dumps(report, ensure_ascii=False, indent=4) + "\n",
-            encoding="utf-8",
-        )
+            raise RuntimeError(f"BuildHutTest certificate signature is invalid:\n{details}")
     except Exception:
         print(f"Staging preserved for diagnostics: {staging}", file=sys.stderr)
         raise

@@ -50,6 +50,7 @@ def publish_latest(releases, bundle):
 
 
 def package(repo, binary_dir, releases, version):
+    run(sys.executable, repo / 'Tools/macos_signing.py', '--check-identity')
     assets = repo / 'Server/HexLive.AgentStudio/Assets'
     icons(assets)
     destination = releases / f'v{version}'
@@ -68,11 +69,12 @@ def package(repo, binary_dir, releases, version):
                       'CFBundlePackageType': 'APPL', 'CFBundleIconFile': 'AgentStudio.icns',
                       'CFBundleShortVersionString': version, 'CFBundleVersion': version,
                       'NSHighResolutionCapable': True, 'LSMinimumSystemVersion': '12.0'}, output)
-    run(sys.executable, repo / 'Tools/macos_signing.py', bundle)
+    run(sys.executable, repo / 'Tools/macos_signing.py', '--bundle-id', 'com.hexlive.agentstudio', bundle)
     run('codesign', '--verify', '--deep', '--strict', bundle)
     report = {'version': version, 'packagedAtUtc': datetime.now(timezone.utc).isoformat(),
         'kind': 'framework-dependent-preview', 'requiresInstalledDotnet': '9',
         'binarySource': str(binary_dir), 'compiledByThisTool': False,
+        'codeSignature': 'certificate-verified',
         'coreSha256': hashlib.sha256((contents / 'MacOS/HexLive.AgentCore.dll').read_bytes()).hexdigest(),
         'note': 'Existing successful binary packaged with icon; not a completed Agent Studio release.'}
     (staging / 'package-report.json').write_text(json.dumps(report, indent=2) + '\n')

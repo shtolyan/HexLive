@@ -401,32 +401,15 @@ def ensure_development_signature(app_path: Path, release: bool) -> str:
 
     # A local optimized Player also needs the persistent identity. --release
     # controls optimization; it must not silently restore an ad-hoc identity.
-    signing_command = [sys.executable, str(ROOT / "Tools/macos_signing.py"), "--configured-only"]
+    signing_command = [sys.executable, str(ROOT / "Tools/macos_signing.py"),
+                       "--bundle-id", "com.juilcylove.hexgirls"]
     if release:
         signing_command.append("--preserve-distribution")
     subprocess.run([*signing_command, str(app_path)], check=True)
     valid, details = verify_code_signature(app_path)
     if valid:
-        return "unity"
-
-    if release:
-        raise RuntimeError(f"Release signature is invalid; refusing an ad-hoc downgrade:\n{details}")
-    else:
-        print("Unity оставил некорректную вложенную подпись; пересоздаю локальную ad-hoc подпись.")
-
-    result = subprocess.run(
-        [str(CODE_SIGN), "--force", "--deep", "--sign", "-", "--timestamp=none", str(app_path)],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or "Could not apply ad-hoc code signature")
-    valid, details = verify_code_signature(app_path)
-    if not valid:
-        raise RuntimeError(f"Ad-hoc code signature is still invalid:\n{details}")
-    return "ad-hoc-resigned"
+        return "certificate-verified"
+    raise RuntimeError(f"Certificate signature is invalid; refusing an ad-hoc downgrade:\n{details}")
 
 
 def require_successful_version_finalize(version: str, included_bug_ids: set[int]) -> dict[str, Any]:
@@ -678,6 +661,8 @@ def main() -> int:
     if args.dry_run:
         print("DRY RUN: Unity не запускалась, версия и файлы не изменены.")
         return 0
+    # Fail before launching Unity or reserving a version if the builder cannot sign.
+    subprocess.run([sys.executable, str(ROOT / "Tools/macos_signing.py"), "--check-identity"], check=True)
     if not os.environ.get("HEXLIVE_BUG_TOKEN", "").strip():
         raise RuntimeError("HEXLIVE_BUG_TOKEN is required so the successful build can stamp bug versions")
 

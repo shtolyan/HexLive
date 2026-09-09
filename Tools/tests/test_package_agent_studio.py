@@ -50,11 +50,19 @@ class StudioPackageTests(unittest.TestCase):
         previous = self.releases / 'v0.1.1/Agent Studio.app'
         previous.mkdir(parents=True)
         latest = studio.publish_latest(self.releases, previous)
-        with patch.object(studio, 'icons'), patch.object(studio, 'run', side_effect=[None, RuntimeError('bad signature')]):
+        with patch.object(studio, 'icons'), patch.object(studio, 'run', side_effect=[None, None, RuntimeError('bad signature')]):
             with self.assertRaises(RuntimeError):
                 studio.package(self.root, self.binary, self.releases, '0.1.2')
         self.assertEqual(latest.resolve(), previous)
         self.assertFalse((self.releases / 'v0.1.2').exists())
+
+    def test_missing_identity_fails_before_assets_or_staging_are_created(self):
+        with patch.object(studio, 'icons') as icons, patch.object(studio, 'run', side_effect=RuntimeError('no identity')) as run:
+            with self.assertRaises(RuntimeError):
+                studio.package(self.root, self.binary, self.releases, '0.1.1')
+        icons.assert_not_called()
+        self.assertIn('--check-identity', run.call_args.args)
+        self.assertEqual(list(self.releases.iterdir()), [])
 
     def test_success_publishes_version_manifest_and_matching_plist(self):
         with patch.object(studio, 'icons'), patch.object(studio, 'run'):

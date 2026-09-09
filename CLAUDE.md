@@ -176,10 +176,16 @@ After `BuildPipeline` succeeds, the command-line entry point explicitly runs
 the idempotent version finalizer instead of trusting Unity 6 to rediscover the
 postprocess half of the combined pre/post callback. The Python publisher then
 refuses success while a pending version remains or any start-snapshot bug lacks
-`readyForTestInVersion`. It also performs strict deep signature verification:
-development builds with Unity/FMOD nested-signature drift are re-signed ad-hoc
-and verified again; `--release` never replaces a distribution signature and
-fails publication instead.
+`readyForTestInVersion`. macOS signing is mandatory for every agent and builder;
+follow `Tools/MACOS_SIGNING.md`. Both development and `--release` clients and
+`Tools/package_agent_studio.py` use the shared `Tools/macos_signing.py` helper.
+Certificate/private-key availability is checked before Unity or app packaging;
+missing configuration or failed signing/strict deep verification stops publication.
+Never fall back to ad-hoc signing or silently choose another certificate. Keep
+the game and Studio bundle IDs stable. A valid existing distribution signature
+is preserved by `--release`; an invalid one fails publication. Signing configuration
+is shared across tasks/checkouts through the macOS user's config and Keychain,
+not conversation memory. Every new macOS publisher must use this same helper.
 
 `CompileControl` normally keeps both Unity Auto Refresh prefs at zero and holds
 `AssetDatabase.DisallowAutoRefresh()`. Before the separate batchmode process,

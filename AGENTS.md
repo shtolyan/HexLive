@@ -13,6 +13,23 @@ picking one by eye is how §84 ended up holding two different topics. Section
 numbers never change: 3773 C# references depend on them. `SpecStructureGate`
 in `dotnet test` guards all of this.
 
+## Mandatory macOS application signing
+
+For every agent, task, checkout and builder, follow `Tools/MACOS_SIGNING.md`.
+Publish the macOS client only through `Tools/build_release.py` and Agent Studio
+through `Tools/package_agent_studio.py`. Both require the shared
+`Tools/macos_signing.py` preflight and certificate signing before publication.
+This includes development and `--release` clients. Do not bypass a failed
+preflight/signature check with ad-hoc signing, a different certificate, or a
+manual latest-link update. Keep bundle IDs `com.juilcylove.hexgirls` and
+`com.hexlive.agentstudio` stable. The configured identity is shared by all tasks
+under the same macOS user via `~/.config/hexlive/macos-signing-identity`;
+another builder needs the same certificate/private key in its own Keychain.
+Private keys must never enter the repository. A new macOS app publisher must
+use the same mandatory helper and verification. Local Apple Development signing
+does not mean Developer ID notarization or automatic microphone/Keychain consent.
+The standalone `Tools/build_hut_test.py` client follows the same signing policy.
+
 ## Furniture art and hex placement
 
 Before editing a furniture Blender source/FBX, pivot, axes, scale, footprint,

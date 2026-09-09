@@ -1,10 +1,93 @@
 .agent-relation-feedback {
-    max-height: 72px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
     flex-shrink: 0;
-    margin-top: 6px;
+    height: 24px;
+    margin-top: 4px;
+    padding-left: 2px;
+    padding-right: 8px;
 }
-.agent-relation-feedback-text {
-    white-space: normal;
+
+.agent-relation-delta-slot {
+    width: 104px;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.agent-relation-delta {
+    min-width: 42px;
+    height: 22px;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-left-width: 1px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+    border-bottom-right-radius: 11px;
+    border-bottom-left-radius: 11px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
     font-size: 11px;
+}
+
+.agent-relation-tooltip {
+    display: none;
+    position: absolute;
+    width: 340px;
+    padding-left: 16px;
+    padding-top: 13px;
+    padding-right: 16px;
+    padding-bottom: 13px;
+    background-color: rgba(19, 24, 28, 0.98);
+    border-left-width: 1px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(240, 180, 92, 0.55);
+    border-top-color: rgba(240, 180, 92, 0.55);
+    border-right-color: rgba(240, 180, 92, 0.55);
+    border-bottom-color: rgba(240, 180, 92, 0.55);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+.agent-relation-tooltip-title {
+    color: rgb(231, 236, 239);
+    -unity-font-style: bold;
+    font-size: 14px;
+    margin-bottom: 7px;
+}
+
+.agent-relation-tooltip-metrics {
+    margin-bottom: 7px;
+}
+
+.agent-relation-tooltip-metric {
+    flex-direction: row;
+    align-items: center;
+    min-height: 21px;
+}
+
+.agent-relation-tooltip-metric-name {
+    flex-grow: 1;
+    color: rgb(181, 192, 199);
+    font-size: 11px;
+}
+
+.agent-relation-tooltip-metric-value {
+    flex-shrink: 0;
+    -unity-font-style: bold;
+    font-size: 11px;
+}
+
+.agent-relation-tooltip-reason {
+    white-space: normal;
     color: rgb(215, 223, 228);
+    font-size: 11px;
 }

@@ -19,7 +19,7 @@ namespace HexLive.UnityPresentation.Audio
     {
         private readonly int _maxCharacters;
         private readonly bool _rejectOverflow;
-        public DeepgramSpeechTranscriber(int maxCharacters = 240, bool rejectOverflow = false)
+        public DeepgramSpeechTranscriber(int maxCharacters = HexLive.Simulation.Wire.AgentWire.MaxPlayerTextCharacters, bool rejectOverflow = true)
         { _maxCharacters = Math.Max(1, maxCharacters); _rejectOverflow = rejectOverflow; }
         private static readonly Uri Endpoint = new(
             "https://api.deepgram.com/v1/listen?model=nova-3&language=ru&smart_format=true&punctuate=true");
@@ -40,6 +40,11 @@ namespace HexLive.UnityPresentation.Audio
             var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var transcript = (string?)JObject.Parse(json)["results"]?["channels"]?[0]?
                 ["alternatives"]?[0]?["transcript"];
+            return BoundTranscript(transcript);
+        }
+
+        private string BoundTranscript(string? transcript)
+        {
             transcript = transcript?.Trim() ?? string.Empty;
             if (_rejectOverflow && transcript.Length > _maxCharacters)
                 throw new InvalidOperationException("TranscriptTooLong");

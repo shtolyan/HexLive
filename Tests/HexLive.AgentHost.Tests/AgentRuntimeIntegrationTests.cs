@@ -107,6 +107,57 @@ public sealed class AgentRuntimeIntegrationTests
         }
     }
 
+    [Test]
+    public async Task LostInboxAcknowledgmentsDoNotRepeatTurnsOrSkipInterleavedSpeakers()
+    {
+        var temporary = Path.Combine(Path.GetTempPath(), "agent-inbox-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temporary);
+        using var stop = new CancellationTokenSource();
+        using var host = new WorldHost(12345, GameMode.Feud, Path.Combine(temporary, "world.sav"),
+            Path.Combine(FindRoot(), "SimData/simdata.json"), false, companionProfile: "masha");
+        host.EnableMcpEventLog();
+        host.PauseAsOperator();
+        var registry = new AgentSessionRegistry();
+        var tools = new McpTools(() => host, () => 1, new ControlLeases(45), registry, SpecLibrary.Discover(null));
+        using var handler = new InProcessMcp(tools) { LoseAcknowledgments = true };
+        var providers = new CountingProviders();
+        var runtime = new AgentHostRuntime(new AgentHostOptions
+        {
+            McpUri = new Uri("http://localhost/mcp"), McpToken = "test-only", ProfileId = "masha",
+            DisplayName = "Test", MemoryDirectory = Path.Combine(temporary, "memory"),
+            StateDirectory = Path.Combine(temporary, "state"), WorldId = "fixture", FakeProviders = true,
+            XaiKey = "", ElevenLabsKey = "", XaiModel = "fixture", ElevenLabsModel = "fixture", ElevenLabsVoiceId = "fixture"
+        }, providers, handler);
+        var running = runtime.RunAsync(stop.Token);
+        try
+        {
+            await Until(() => registry.HasAttachment(901));
+            var a = "11111111111111111111111111111111";
+            var b = "22222222222222222222222222222222";
+            registry.TryEnqueuePlayerText(901, "a1", "ru", new string('я', 3000), out _, a);
+            registry.TryEnqueuePlayerText(901, "b1", "ru", "B1", out _, b);
+            registry.TryEnqueuePlayerText(901, "a2", "ru", "A2", out _, a);
+            var attachment = registry.StatesFor(new[] { 901 })[0].AttachmentId;
+            host.ResumeAsOperator();
+            await Until(() => handler.AckCalls >= 3);
+            await Task.Delay(100);
+            Assert.That(providers.Transcripts.ToArray(), Is.EqualTo(new[] { new string('я', 3000), "B1", "A2" }));
+            Assert.That(providers.Decisions, Is.EqualTo(3));
+            Assert.That(registry.TryReadInbox(attachment, "mcp:fixture", 1, 0, 16, out var inbox, out _), Is.True);
+            Assert.That(inbox.Messages, Is.Empty);
+            // The accepted-response retry uses the same sender/message ID after processing.
+            registry.TryEnqueuePlayerText(901, "a1", "ru", "repeat", out _, a);
+            registry.TryReadInbox(attachment, "mcp:fixture", 1, 0, 16, out inbox, out _);
+            Assert.That(inbox.Messages, Is.Empty);
+        }
+        finally
+        {
+            stop.Cancel();
+            await running.WaitAsync(TimeSpan.FromSeconds(20));
+            Directory.Delete(temporary, true);
+        }
+    }
+
     private static async Task Until(Func<bool> condition)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(75));
@@ -123,6 +174,8 @@ public sealed class AgentRuntimeIntegrationTests
     private sealed class InProcessMcp(McpTools tools) : HttpMessageHandler
     {
         public volatile bool Unconscious;
+        public bool LoseAcknowledgments;
+        public volatile int AckCalls;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             using var document = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
@@ -132,8 +185,12 @@ public sealed class AgentRuntimeIntegrationTests
             if (method == "tools/call")
             {
                 var parameters = root.GetProperty("params");
+                var isAck = parameters.GetProperty("name").GetString() == "ack_agent_inbox";
+                var ack = isAck ? Interlocked.Increment(ref AckCalls) : 0;
+                if (LoseAcknowledgments && ack == 1) throw new HttpRequestException("lost request");
                 var text = tools.Call(parameters.GetProperty("name").GetString()!,
                     parameters.GetProperty("arguments"), "mcp:fixture", out var error);
+                if (LoseAcknowledgments && ack == 2) throw new HttpRequestException("lost response");
                 if (Unconscious && parameters.GetProperty("name").GetString() == "describe_colonist")
                     text = "{\"stateSummary\":\"health=1; unconscious=true\"}";
                 result = new { isError = error, content = new[] { new { type = "text", text } } };
@@ -156,10 +213,12 @@ public sealed class AgentRuntimeIntegrationTests
         public volatile bool Cancelled;
         public bool FailOnce;
         public string LastTranscript = "";
+        public readonly System.Collections.Concurrent.ConcurrentQueue<string> Transcripts = new();
         public async Task<CompanionDecision> DecideAsync(string trigger, string stateJson, string memoryContext,
             string transcript, IReadOnlyList<string> recentConversation, CancellationToken cancellationToken)
         {
             LastTranscript = transcript;
+            Transcripts.Enqueue(transcript);
             Interlocked.Increment(ref Decisions);
             if (FailOnce)
             {

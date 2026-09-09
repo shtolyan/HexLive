@@ -20,6 +20,7 @@ public sealed class AgentSessionRegistry
     public const int DefaultTtlSeconds = 45;
     public const int HeartbeatSeconds = 10;
     public const int MaxInboxMessages = 64;
+    public const int MaxInboxReceipts = 4096;
     public const int MaxReadMessages = 16;
     public const int MaxCommittedUtterances = 20;
 
@@ -59,6 +60,8 @@ public sealed class AgentSessionRegistry
         public readonly List<AgentInboxMessage> Inbox = new();
         public readonly Queue<string> MessageIds = new();
         public readonly HashSet<string> MessageIdSet = new(StringComparer.Ordinal);
+        public readonly HashSet<long> DeliveredMessages = new();
+        public long AcknowledgedSequence;
         public readonly Queue<string> TurnIds = new();
         public readonly HashSet<string> TurnIdSet = new(StringComparer.Ordinal);
         public readonly Queue<string> UtteranceIds = new();
@@ -153,14 +156,35 @@ public sealed class AgentSessionRegistry
 
             attachment.LastSeen = _now();
             limit = Math.Clamp(limit, 1, MaxReadMessages);
-            var oldest = attachment.Inbox.Count == 0
-                ? _messageSequence + 1
-                : attachment.Inbox[0].Sequence;
-            var gap = sinceSequence > 0 && sinceSequence < oldest - 1;
+            var gap = sinceSequence > 0 && sinceSequence < attachment.AcknowledgedSequence;
             var rows = attachment.Inbox.Where(x => x.Sequence > sinceSequence).Take(limit).ToArray();
-            var watermark = rows.Length == 0 ? Math.Max(sinceSequence, oldest - 1) : rows[^1].Sequence;
+            foreach (var row in rows) attachment.DeliveredMessages.Add(row.Sequence);
+            var watermark = rows.Length == 0 ? attachment.AcknowledgedSequence : rows[^1].Sequence;
             var truncated = attachment.Inbox.Any(x => x.Sequence > watermark);
             result = new AgentInboxRead(rows, watermark, gap, truncated);
+            return true;
+        }
+    }
+
+    public bool TryAcknowledgeInbox(string attachmentId, string owner, int worldGeneration,
+        long throughSequence, out string reason)
+    {
+        lock (_gate)
+        {
+            SweepLocked(null, worldGeneration);
+            if (!TryOwned(attachmentId, owner, worldGeneration, out var attachment, out reason))
+                return false;
+            if (throughSequence < 0) { reason = "InvalidWatermark"; return false; }
+            if (throughSequence <= attachment.AcknowledgedSequence) return true;
+            // A caller cannot skip unseen speakers by reading from a later sequence.
+            if (!attachment.DeliveredMessages.Contains(throughSequence) ||
+                attachment.Inbox.Any(x => x.Sequence <= throughSequence &&
+                    !attachment.DeliveredMessages.Contains(x.Sequence)))
+            { reason = "InboxNotDelivered"; return false; }
+            attachment.Inbox.RemoveAll(x => x.Sequence <= throughSequence);
+            attachment.DeliveredMessages.RemoveWhere(x => x <= throughSequence);
+            attachment.AcknowledgedSequence = throughSequence;
+            attachment.LastSeen = _now();
             return true;
         }
     }
@@ -412,7 +436,7 @@ public sealed class AgentSessionRegistry
     }
 
     public bool TryEnqueuePlayerText(int npcId, string messageId, string language, string text,
-        out string reason, string senderId = "")
+        out string reason, string senderId = "", string? expectedAttachmentId = null)
     {
         lock (_gate)
         {
@@ -420,6 +444,11 @@ public sealed class AgentSessionRegistry
             if (!_attachmentByNpc.TryGetValue(npcId, out var id) || !_byId.TryGetValue(id, out var attachment))
             {
                 reason = "AgentDetached";
+                return false;
+            }
+            if (expectedAttachmentId != null && attachment.Id != expectedAttachmentId)
+            {
+                reason = "AttachmentChanged";
                 return false;
             }
             if ((attachment.Capabilities & AgentCapabilities.PlayerText) == 0)
@@ -434,10 +463,14 @@ public sealed class AgentSessionRegistry
                 return true;
             }
 
-            Remember(attachment.MessageIdSet, attachment.MessageIds, scopedMessageId, MaxInboxMessages);
+            if (attachment.Inbox.Count >= MaxInboxMessages)
+            {
+                reason = "InboxFull";
+                return false;
+            }
+            Remember(attachment.MessageIdSet, attachment.MessageIds, scopedMessageId, MaxInboxReceipts);
             attachment.Inbox.Add(new AgentInboxMessage(
                 ++_messageSequence, messageId, language, text, _now(), senderId));
-            while (attachment.Inbox.Count > MaxInboxMessages) attachment.Inbox.RemoveAt(0);
             reason = string.Empty;
             return true;
         }

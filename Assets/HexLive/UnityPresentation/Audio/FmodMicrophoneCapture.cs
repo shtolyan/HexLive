@@ -120,21 +120,28 @@ namespace HexLive.UnityPresentation.Audio
             if (length > 0)
             {
                 var chunk = ReadRing(from, length);
-                _pcm.AddRange(chunk);
-                var rms = Rms(chunk);
-                Level = Mathf.Clamp01((20f * Mathf.Log10(Mathf.Max(rms, 0.0001f)) + 60f) / 45f);
-                if (rms >= VoiceRms)
-                {
-                    _heardVoice = true;
-                    _silence = 0f;
-                }
-                else if (_heardVoice)
-                {
-                    _silence += chunk.Length / (_sampleRate * 2f);
-                }
+                AppendRecordedChunk(chunk);
             }
             _lastPosition = position;
-            return _elapsed >= MaxSeconds || (_heardVoice && _silence >= SilenceToFinishSeconds);
+            return CaptureComplete;
+        }
+
+        private bool CaptureComplete => _elapsed >= MaxSeconds || (_heardVoice && _silence >= SilenceToFinishSeconds);
+
+        private void AppendRecordedChunk(byte[] chunk)
+        {
+            _pcm.AddRange(chunk);
+            var rms = Rms(chunk);
+            Level = Mathf.Clamp01((20f * Mathf.Log10(Mathf.Max(rms, 0.0001f)) + 60f) / 45f);
+            if (rms >= VoiceRms)
+            {
+                _heardVoice = true;
+                _silence = 0f;
+            }
+            else if (_heardVoice)
+            {
+                _silence += chunk.Length / (_sampleRate * 2f);
+            }
         }
 
         public byte[]? Stop(out string error)

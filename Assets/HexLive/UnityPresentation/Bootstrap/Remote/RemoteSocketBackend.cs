@@ -315,10 +315,10 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
     }
 
     public void SendAgentText(int correlationId, EntityId npc, string messageId,
-        string language, string text)
+        string language, string text, string expectedAttachmentId)
     {
         if (SupportsAgentIntegration)
-            Send(AgentWire.AgentTextInput(correlationId, npc.Value, messageId, language, text));
+            Send(AgentWire.AgentTextInput(correlationId, npc.Value, messageId, language, text, expectedAttachmentId));
     }
 
     public bool TryTakeAgentTextResult(out AgentTextResultFrame result)

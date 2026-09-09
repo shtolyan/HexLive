@@ -106,6 +106,11 @@ public sealed class McpTools
                    ("sinceSeq", "integer", "последняя обработанная seq", false),
                    ("limit", "integer", "1..16", false))),
 
+        new("ack_agent_inbox",
+            "Подтвердить непрерывный прочитанный префикс inbox после durable commit хода.",
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("throughSeq", "integer", "последняя обработанная seq", true))),
+
         new("publish_agent_phase",
             "Опубликовать Ready/Thinking/Acting/Speaking/Sleeping/Error и текущий turnId.",
             Schema(("attachmentId", "string", "id attachment", true),
@@ -382,6 +387,13 @@ public sealed class McpTools
                 case "attach_agent": return AttachAgent(host, arguments, owner, out isError);
                 case "agent_heartbeat": return AgentHeartbeat(arguments, owner, out isError);
                 case "read_agent_inbox": return ReadAgentInbox(arguments, owner, out isError);
+                case "ack_agent_inbox":
+                    var throughSeq = OptionalLong(arguments, "throughSeq") ??
+                        throw new McpArgumentException("Нужен целочисленный параметр throughSeq");
+                    var acknowledged = _agents.TryAcknowledgeInbox(Text(arguments, "attachmentId"), owner,
+                        _currentWorldGeneration(), throughSeq, out var ackReason);
+                    isError = !acknowledged;
+                    return acknowledged ? Json(new { accepted = true }) : ackReason;
                 case "publish_agent_phase": return PublishAgentPhase(arguments, owner, out isError);
                 case "commit_agent_turn": return CommitAgentTurn(host, arguments, owner, out isError);
                 case "begin_agent_utterance": return BeginAgentUtterance(arguments, owner, out isError);
@@ -614,7 +626,7 @@ public sealed class McpTools
     private bool IsWithinPlayerScope(string name, JsonElement arguments, string owner, Func<int, bool> allowed)
     {
         if (name is "world_status" or "read_spec" or "list_colonists" or "list_leases") return true;
-        if (name is "agent_heartbeat" or "read_agent_inbox" or "publish_agent_phase" or
+        if (name is "agent_heartbeat" or "read_agent_inbox" or "ack_agent_inbox" or "publish_agent_phase" or
             "commit_agent_turn" or "begin_agent_utterance" or "append_agent_utterance" or
             "commit_agent_utterance" or "detach_agent")
             return arguments.ValueKind == JsonValueKind.Object &&

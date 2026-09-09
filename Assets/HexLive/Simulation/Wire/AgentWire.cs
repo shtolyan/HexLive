@@ -75,9 +75,11 @@ public readonly struct SttTokenResultFrame
 
 public readonly struct AgentTextInputFrame
 {
+    public string ExpectedAttachmentId { get; }
     public AgentTextInputFrame(int correlationId, int npcId, string messageId,
-        string language, string text)
+        string language, string text, string expectedAttachmentId)
     {
+        ExpectedAttachmentId = expectedAttachmentId ?? string.Empty;
         CorrelationId = correlationId;
         NpcId = npcId;
         MessageId = messageId ?? string.Empty;
@@ -155,6 +157,7 @@ public static class AgentWire
 {
     private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
     public const int MaxTextCharacters = 240;
+    public const int MaxPlayerTextCharacters = 4096;
     public const int MaxRelationCharacters = 1024;
     public const int MaxSpeechCharacters = 600;
     public const int MaxSpeechDurationMs = 60000;
@@ -214,18 +217,19 @@ public static class AgentWire
             r.ReadInt64(), ReadBounded(r, 128)));
 
     public static byte[] AgentTextInput(int correlationId, int npcId, string messageId,
-        string language, string text) => Encode(FrameKind.AgentTextInput, w =>
+        string language, string text, string expectedAttachmentId) => Encode(FrameKind.AgentTextInput, w =>
     {
         w.Write(correlationId);
         w.Write(npcId);
         WriteBounded(w, messageId, 80);
         WriteBounded(w, language, 16);
-        WriteBounded(w, text, MaxTextCharacters);
+        WriteBounded(w, text, MaxPlayerTextCharacters);
+        WriteBounded(w, expectedAttachmentId, 80);
     });
 
     public static AgentTextInputFrame ReadAgentTextInput(byte[] payload) => Decode(payload, r =>
         new AgentTextInputFrame(r.ReadInt32(), r.ReadInt32(), ReadBounded(r, 80),
-            ReadBounded(r, 16), ReadBounded(r, MaxTextCharacters)));
+            ReadBounded(r, 16), ReadBounded(r, MaxPlayerTextCharacters), ReadBounded(r, 80)));
 
     public static byte[] AgentTextResult(int correlationId, bool accepted,
         string messageId, string reason) => Encode(FrameKind.AgentTextResult, w =>

@@ -204,7 +204,11 @@ public sealed partial class AgentHostRuntime
                 var readWatermark = inbox.TryGetProperty("watermark", out var watermark)
                     ? watermark.GetInt64() : inboxWatermark;
                 var playerText = MergePlayerMessages(inbox);
-                if (playerText.Length == 0) inboxWatermark = readWatermark;
+                if (playerText.Length == 0 && readWatermark > inboxWatermark)
+                {
+                    if (await AcknowledgeInboxSafelyAsync(mcp, attachmentId, readWatermark, cancellationToken))
+                        inboxWatermark = readWatermark;
+                }
 
                 var critical = false;
                 if (DateTimeOffset.UtcNow >= nextEventRead)
@@ -234,8 +238,12 @@ public sealed partial class AgentHostRuntime
                             turnStop.Token, cancellationToken,
                             playerText.Length > 0 ? VoiceTurnId(attachmentId, inbox) : null,
                             SenderOf(inbox), MessageIdsOf(inbox)).ConfigureAwait(false);
-                        if (consumed) inboxWatermark = readWatermark;
-                        else retryAfter = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
+                        if (consumed && readWatermark > inboxWatermark)
+                        {
+                            if (await AcknowledgeInboxSafelyAsync(mcp, attachmentId, readWatermark, cancellationToken))
+                                inboxWatermark = readWatermark;
+                        }
+                        else if (!consumed) retryAfter = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && !presence.Value)
                     { /* world paused: do not start another paid operation */ }

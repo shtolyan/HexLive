@@ -1,6 +1,6 @@
 {
   "name": "HexLive.AgentIntegration.Tests",
-  "references": ["HexLive.Simulation", "HexLive.UnityPresentation"],
+  "references": ["HexLive.Simulation", "HexLive.UnityPresentation", "FMODUnity"],
   "optionalUnityReferences": ["TestAssemblies"],
   "autoReferenced": false
 }

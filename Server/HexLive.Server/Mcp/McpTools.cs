@@ -117,8 +117,9 @@ public sealed class McpTools
             Schema(("attachmentId", "string", "id attachment", true),
                    ("turnId", "string", "уникальный id хода", true),
                    ("reaction", "string", "None/Warm/Neutral/Tense/Hostile", true),
+                   ("voiceTurn", "boolean", "true только для завершённого голосового хода; фиксирует и None. По умолчанию false", false),
                    ("intentSummary", "string", "до 240 символов, без chain-of-thought", true),
-                   ("relationView", "string", "необязательный публичный вид отношений", false),
+                   ("relationView", "string", "необязательный публичный вид отношений до 1024 символов", false),
                    ("journalEntry", "string", "необязательная свежая запись до 400", false))),
 
         new("begin_agent_utterance",
@@ -958,9 +959,10 @@ public sealed class McpTools
         var intent = Bounded(Text(arguments, "intentSummary").Trim(),
             AgentWire.MaxTextCharacters, "intentSummary");
         var relation = Bounded(OptionalText(arguments, "relationView").Trim(),
-            AgentWire.MaxTextCharacters, "relationView");
+            AgentWire.MaxRelationCharacters, "relationView");
         var journal = Bounded(OptionalText(arguments, "journalEntry").Trim(),
             AgentWire.MaxJournalCharacters, "journalEntry");
+        var voiceTurn = Bool(arguments, "voiceTurn", false);
         if (turnId.Length == 0)
         {
             isError = true;
@@ -983,7 +985,7 @@ public sealed class McpTools
         // World-side idempotency is committed first. If the process dies before
         // the ephemeral UI commit, retrying applies Social as a no-op and then
         // republishes the view; the inverse order could permanently lose Social.
-        if (reaction != CompanionReaction.None)
+        if (voiceTurn || reaction != CompanionReaction.None)
         {
             var admission = host.SubmitManualCommand(new RecordAgentSocialCommand(
                 new EntityId(attachment.NpcId), turnId, reaction));

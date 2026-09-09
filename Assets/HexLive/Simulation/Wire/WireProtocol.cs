@@ -160,7 +160,8 @@ public sealed class Handshake
     //     MoveTo/GroupMove несут необязательный темп, появилась
     //     SetRunByDefault, а RunByDefault едет в записи NPC (snapshot v37).
     // 13: §160 generic MCP attachment, direct Deepgram STT and agent speech.
-    public const int ProtocolVersion = 15;
+    // 16: §160/#361 — bounded relation view includes assessment reason and actual deltas.
+    public const int ProtocolVersion = 16;
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

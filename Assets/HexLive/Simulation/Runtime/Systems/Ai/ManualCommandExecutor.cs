@@ -258,7 +258,6 @@ internal static class ManualCommandExecutor
             return;
         }
         if (string.IsNullOrWhiteSpace(command.TurnId) || command.TurnId.Length > 80 ||
-            command.Reaction == Agents.CompanionReaction.None ||
             !System.Enum.IsDefined(typeof(Agents.CompanionReaction), command.Reaction))
         {
             admission.Reject("InvalidAgentTurn");

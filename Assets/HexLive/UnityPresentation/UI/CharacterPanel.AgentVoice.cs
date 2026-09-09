@@ -31,6 +31,11 @@ namespace HexLive.UnityPresentation.UI
             public float trust;
             public float affinity;
             public string voiceName;
+            public string reason;
+            public bool hasChange;
+            public float familiarityDelta;
+            public float trustDelta;
+            public float affinityDelta;
         }
 
         private VisualElement? _agentVoiceButton;
@@ -89,6 +94,11 @@ namespace HexLive.UnityPresentation.UI
         private float _agentTrust;
         private float _agentAffinity;
         private string _agentVoiceName = "voice";
+        private string _agentRelationReason = "";
+        private bool _agentRelationHasChange;
+        private float _agentFamiliarityDelta;
+        private float _agentTrustDelta;
+        private float _agentAffinityDelta;
         private int _agentRelationTick = -1;
         private bool _agentJournalReady;
         private readonly List<JournalEntrySnapshot> _agentJournal = new();
@@ -580,11 +590,31 @@ namespace HexLive.UnityPresentation.UI
                 _agentTrust = Mathf.Clamp01(value.trust);
                 _agentAffinity = Mathf.Clamp(value.affinity, -1f, 1f);
                 _agentVoiceName = string.IsNullOrWhiteSpace(value.voiceName) ? "voice" : value.voiceName;
+                _agentRelationReason = value.reason ?? "";
+                _agentRelationHasChange = value.hasChange;
+                _agentFamiliarityDelta = value.familiarityDelta;
+                _agentTrustDelta = value.trustDelta;
+                _agentAffinityDelta = value.affinityDelta;
                 _agentRelationTick = _runner?.CurrentTick ?? 0;
                 _agentRelationReady = true;
                 _relationSig.Clear();
             }
             catch (ArgumentException) { }
+        }
+
+        private VisualElement BuildAgentRelationFeedback()
+        {
+            var scroll = new ScrollView(ScrollViewMode.Vertical);
+            scroll.AddToClassList("agent-relation-feedback");
+            var sheet = Resources.Load<StyleSheet>("HexLive/UI/AgentRelations");
+            if (sheet != null) scroll.styleSheets.Add(sheet);
+            var changes = $"{Loc.Get("rel.familiarity")} {_agentFamiliarityDelta:+0%;-0%;0%} · " +
+                $"{Loc.Get("rel.trust")} {_agentTrustDelta:+0%;-0%;0%} · " +
+                $"{Loc.Get("rel.affinity")} {_agentAffinityDelta:+0%;-0%;0%}";
+            var label = new Label((_agentRelationHasChange ? changes + "\n" : "") + _agentRelationReason) { enableRichText = false };
+            label.AddToClassList("agent-relation-feedback-text");
+            scroll.Add(label);
+            return scroll;
         }
 
         private void RefreshAgentJournal(string text, int npcId)

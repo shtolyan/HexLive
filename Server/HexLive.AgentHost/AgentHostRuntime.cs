@@ -505,6 +505,7 @@ public sealed partial class AgentHostRuntime
             attachmentId,
             turnId = item.TurnId,
             reaction = item.Decision.Reaction,
+            voiceTurn = string.Equals(item.Trigger, "voice", StringComparison.Ordinal),
             intentSummary = item.Decision.IntentSummary,
             relationView = RelationView(archive, item.World.SpeakerKey),
             journalEntry = journal,
@@ -856,18 +857,8 @@ public sealed partial class AgentHostRuntime
         return false;
     }
 
-    private static string RelationView(MashaArchive archive, string key)
-    {
-        var bond = MashaMemoryStore.BondFor(archive, key);
-        return JsonSerializer.Serialize(new
-        {
-            familiarity = Math.Clamp(bond.Familiarity, 0f, 1f),
-            trust = Math.Clamp(bond.Trust, 0f, 1f),
-            affinity = Math.Clamp(bond.Affinity, -1f, 1f),
-            speakerId = key.Length > 0 ? key.Split(':').Last() : "",
-            voiceName = archive.Speakers.TryGetValue(key, out var speaker) ? speaker.VoiceName : AgentPromptFiles.Text("AgentHostRuntime.15")
-        }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-    }
+    private static string RelationView(MashaArchive archive, string key) =>
+        AgentRelationView.Serialize(archive, key);
 
     private static int WavDurationMilliseconds(byte[] wav) => wav.Length < 44
         ? 0

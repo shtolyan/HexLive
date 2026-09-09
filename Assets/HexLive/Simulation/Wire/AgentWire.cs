@@ -155,6 +155,7 @@ public static class AgentWire
 {
     private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
     public const int MaxTextCharacters = 240;
+    public const int MaxRelationCharacters = 1024;
     public const int MaxSpeechCharacters = 600;
     public const int MaxSpeechDurationMs = 60000;
     public const int MaxJournalCharacters = 400;
@@ -171,7 +172,7 @@ public static class AgentWire
         w.Write((uint)value.Capabilities);
         w.Write((byte)value.Phase);
         WriteBounded(w, value.IntentSummary, MaxTextCharacters);
-        WriteBounded(w, value.RelationView, MaxTextCharacters);
+        WriteBounded(w, value.RelationView, MaxRelationCharacters);
         WriteBounded(w, value.JournalEntry, MaxJournalCharacters);
         w.Write(value.PlayerPresent);
     });
@@ -187,7 +188,7 @@ public static class AgentWire
             Capabilities = (AgentCapabilities)r.ReadUInt32(),
             Phase = ReadEnum<AgentPhase>(r.ReadByte()),
             IntentSummary = ReadBounded(r, MaxTextCharacters),
-            RelationView = ReadBounded(r, MaxTextCharacters),
+            RelationView = ReadBounded(r, MaxRelationCharacters),
             JournalEntry = ReadBounded(r, MaxJournalCharacters),
             PlayerPresent = r.ReadBoolean(),
         });

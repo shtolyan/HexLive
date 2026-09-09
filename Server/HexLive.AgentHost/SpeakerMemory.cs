@@ -9,6 +9,9 @@ public sealed class SpeakerMemory
     public string? RelationshipState { get; set; }
     public string VoiceName { get; set; } = AgentPromptFiles.Text("SpeakerMemory.01");
     public string LastAssessmentReason { get; set; } = "";
+    public float? LastFamiliarityDelta { get; set; }
+    public float? LastTrustDelta { get; set; }
+    public float? LastAffinityDelta { get; set; }
     public List<PortableMemory> Facts { get; set; } = new();
     public List<string> AppliedMessageIds { get; set; } = new();
     public List<string> RecentConversation { get; set; } = new();
@@ -142,6 +145,9 @@ public sealed partial class MashaMemoryStore
         {
             if (!relation.Apply(ids, assessment, DateTimeOffset.UtcNow)) return;
             speaker.LastAssessmentReason = assessment.Reason;
+            speaker.LastFamiliarityDelta = relation.Snapshot.Familiarity - bond.Familiarity;
+            speaker.LastTrustDelta = relation.Snapshot.Trust - bond.Trust;
+            speaker.LastAffinityDelta = relation.Snapshot.Sympathy - bond.Affinity;
             speaker.VoiceName = relation.Snapshot.VoiceName;
             bond.Familiarity = relation.Snapshot.Familiarity;
             bond.Trust = relation.Snapshot.Trust;

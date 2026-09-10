@@ -20,7 +20,9 @@ public sealed class AgentMemoryRecall
         Func<string, JsonElement, CancellationToken, Task<MemoryReadResult>>? readReference = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(120)); token = timeout.Token;
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        var planningDeadline = state.Objective?.Status == "active";
+        timeout.CancelAfter(TimeSpan.FromSeconds(planningDeadline ? 300 : 120)); token = timeout.Token;
         await Task.Run(() => _search.Refresh(), token);
         bool Allow(AgentMemoryRecord r) => Allowed(r, world.SpeakerKey, state) &&
             // The current question is evidence of what was asked, not proof that its premise happened.
@@ -146,6 +148,13 @@ public sealed class AgentMemoryRecall
                     }
                     else if (AgentReferenceReader.Allowed(request.Operation) && readReference != null)
                     {
+                        if (!planningDeadline)
+                        {
+                            planningDeadline = true;
+                            var remaining = TimeSpan.FromSeconds(300) - elapsed.Elapsed;
+                            if (remaining <= TimeSpan.Zero) timeout.Cancel(); else timeout.CancelAfter(remaining);
+                            token.ThrowIfCancellationRequested();
+                        }
                         if (readCharacters >= 24000)
                         {
                             results.Add(new { operation = request.Operation, error = "ReferenceReadBudgetExceeded" });

@@ -174,6 +174,10 @@ public sealed partial class AgentExecutionRuntimeTests
                 var answer = await model.DecideAsync(trigger, bodyJson, context, player, recent, token);
                 modelDecisions.Add(new { call, elapsedMs = watch.ElapsedMilliseconds, decision = JsonSerializer.SerializeToElement(answer),
                     usage = answer.ModelUsage, body = JsonSerializer.Deserialize<JsonElement>(bodyJson) });
+                var checkpoint = report + ".tmp";
+                File.WriteAllText(checkpoint, JsonSerializer.Serialize(new { providerName, modelId, fixture, repetition,
+                    calls, status = "Planning", modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
+                File.Move(checkpoint, report, true);
                 return answer;
             }
             catch (Exception ex)
@@ -195,7 +199,7 @@ public sealed partial class AgentExecutionRuntimeTests
             { ObjectiveUpdate = new() { Operation = "set", Text = task, Reason = "Приказ игрока" } }, default);
             for (var turn = 0; turn < (scenario == "bed" ? 32 : 8); turn++)
             {
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(150));
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(330));
                 world = await store.BindHexLiveWorldAsync(await mcp.CallToolAsync("world_status", new { }, timeout.Token), 901, "fixture", timeout.Token);
                 prompt = await store.BuildPromptContextAsync(world, task, timeout.Token);
                 world = world with { ObjectiveRevision = prompt.ObjectiveRevision, ExecutionPlanRevision = prompt.ExecutionPlanRevision, ExecutionPlanId = prompt.ExecutionPlanId };

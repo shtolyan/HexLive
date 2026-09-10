@@ -27,6 +27,8 @@ internal static class PlayerInventoryDropExecutor
             return false;
         }
 
+        if (!GroundItemPlacement.CanPlaceBatch(world,npc,items,out reason)) return false;
+
         var originalItems = npc.Inventory.Items.ToArray();
         var droppedIds = new List<ObjectId>(items.Count);
         using var eventScope = world.Events.DeferPublication();

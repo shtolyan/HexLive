@@ -39,8 +39,8 @@ public sealed class InventoryControlModeTests
         other.WornItems.Clear();
         other.Mind.FaintedUntilTick = world.Tick + 10000;
         PlaceAdjacent(world, npc, other);
-        const string oldId = "test.quick_wear.old";
-        const string newId = "test.quick_wear.new";
+        const string oldId = "clothing.jacket_biker";
+        const string newId = "clothing.jacket_autumn";
         foreach (var id in new[] { oldId, newId })
         {
             var definition = new ObjectDefinition { Id = id, DisplayName = id, Layer = WearLayer.Wear };

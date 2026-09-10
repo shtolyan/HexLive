@@ -270,10 +270,15 @@ public static class PlanInterruption
             var stillOwned = restoredLaundry || npc.Mind.CurrentGoal == GoalType.PlayerInventory &&
                 (npc.Inventory.Items.Exists(item => ReferenceEquals(item, held)) ||
                  npc.WornItems.Exists(item => ReferenceEquals(item, held)));
-            var dropped = stillOwned ? null : ExecutionSystem.DropItemAtFeet(world, npc, held);
+            var dropped = stillOwned ? null : ExecutionSystem.DropOrRetain(world, npc, held);
             if (dropped != null && npc.Execution.HeldGarmentContents.Count > 0)
             {
                 dropped.Contents.AddRange(npc.Execution.HeldGarmentContents);
+            }
+            else
+            {
+                foreach (var pocket in npc.Execution.HeldGarmentContents)
+                    InventoryMath.RetainOwnedItem(npc, pocket);
             }
 
             npc.Execution.HeldGarment = null;

@@ -384,9 +384,8 @@ public sealed class InventoryLayoutTests
         EquipmentMath.RecalculateCapacity(world, npc);
         for (var i = 0; i < npc.Inventory.Capacity; i++)
         {
-            var id = "test.item." + i;
-            world.Content.ObjectDefinitions[id] = new ObjectDefinition { Id = id, DisplayName = id };
-            npc.Inventory.Items.Add(id);
+            // Known nonstackable, non-weapon art; no personal-effect/holster exemption.
+            npc.Inventory.Items.Add("item.plaster");
         }
 
         Assert.That(InventoryLayoutBuilder.Build(world, npc).Containers

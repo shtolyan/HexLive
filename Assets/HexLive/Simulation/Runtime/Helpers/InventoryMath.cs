@@ -45,6 +45,23 @@ internal static class InventoryMath
         return true;
     }
 
+    // Already-produced cargo must survive a saturated ground layout. This is
+    // recovery ownership, not permission for another ordinary pickup.
+    internal static void RetainOwnedItem(NPCState npc, ItemInstance item)
+    {
+        if (!ContainsReference(npc.Inventory.Items, item) && !ContainsReference(npc.WornItems, item))
+            npc.Inventory.Items.Add(item);
+    }
+
+    internal static WorldObjectState TryDropAutomatic(WorldState world, NPCState npc, ItemInstance item)
+    {
+        if (world.Tick < npc.Inventory.NextGroundDropRetryTick) return null;
+        var dropped = ExecutionSystem.DropItemAtFeet(world, npc, item);
+        if (dropped == null)
+            npc.Inventory.NextGroundDropRetryTick = world.Tick + System.Math.Max(1, world.SlowIntervalTicks);
+        return dropped;
+    }
+
     public static int Importance(WorldState world, string definitionId) =>
         world.Content.ObjectDefinitions.TryGetValue(definitionId, out var def)
             ? ItemCatalog.Importance(def)
@@ -161,8 +178,8 @@ internal static class InventoryMath
             }
 
             var victimImportance = Importance(world, victim);
+            if (TryDropAutomatic(world, npc, victim) == null) return false;
             RemoveReference(npc.Inventory.Items, victim);
-            ExecutionSystem.DropItemAtFeet(world, npc, victim);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "InventoryMadeRoom",
@@ -202,8 +219,8 @@ internal static class InventoryMath
         }
 
         var victimImportance = Importance(world, victim);
+        if (TryDropAutomatic(world, npc, victim) == null) return false;
         RemoveReference(npc.Inventory.Items, victim);
-        ExecutionSystem.DropItemAtFeet(world, npc, victim);
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "InventoryMadeRoom",
@@ -242,8 +259,8 @@ internal static class InventoryMath
                 continue;
             }
 
+            if (TryDropAutomatic(world, npc, item) == null) return;
             npc.Inventory.Items.RemoveAt(i);
-            ExecutionSystem.DropItemAtFeet(world, npc, item);
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "CarryLimitSpill",
@@ -345,12 +362,15 @@ internal static class InventoryMath
 
     // The least-wanted pocket item — the first to go when room is tight.
     // Personal effects (the bottle) are never candidates.
-    public static ItemInstance LowestImportanceDroppable(WorldState world, NPCState npc)
+    public static ItemInstance LowestImportanceDroppable(WorldState world, NPCState npc) =>
+        LowestImportanceDroppable(world, npc.Id.Value, npc.Inventory);
+
+    internal static ItemInstance LowestImportanceDroppable(WorldState world, int npcId, InventoryState inventory)
     {
         ItemInstance worst = null;
         var worstImp = int.MaxValue;
-        var favoriteWeapon = FavoriteWeaponInstance(npc);
-        foreach (var item in npc.Inventory.Items)
+        var favoriteWeapon = FavoriteWeaponInstance(npcId, inventory);
+        foreach (var item in inventory.Items)
         {
             // §75A protects one physical favorite weapon. Identical copies
             // are ordinary inventory: protecting the definition id made every
@@ -369,7 +389,7 @@ internal static class InventoryMath
             // pocket — shedding it frees nothing, so it is never the victim. It
             // leaves the pack only when the holster itself comes off (the slots
             // vanish first, then it spills by the normal rules).
-            if (npc.Inventory.IsHolstered(item))
+            if (inventory.IsHolstered(item))
             {
                 continue;
             }
@@ -383,6 +403,21 @@ internal static class InventoryMath
         }
 
         return worst;
+    }
+
+    // Shared by live garment stow and read-only capacity projection. Item fields
+    // are never changed; only the supplied inventory/list ownership is moved.
+    internal static void MoveOverflowToGarment(WorldState world, int npcId,
+        InventoryState inventory, System.Collections.Generic.List<ItemInstance> contents)
+    {
+        var guard = 0;
+        while (inventory.UsedSlots > inventory.Capacity && guard++ < 64)
+        {
+            var victim = LowestImportanceDroppable(world, npcId, inventory);
+            if (victim is null) break;
+            RemoveReference(inventory.Items, victim);
+            contents.Add(victim);
+        }
     }
 
     // Normal replacement follows category importance. A useful missing tool
@@ -502,10 +537,13 @@ internal static class InventoryMath
         }
     }
 
-    private static ItemInstance FavoriteWeaponInstance(NPCState npc)
+    private static ItemInstance FavoriteWeaponInstance(NPCState npc) =>
+        FavoriteWeaponInstance(npc.Id.Value, npc.Inventory);
+
+    private static ItemInstance FavoriteWeaponInstance(int npcId, InventoryState inventory)
     {
-        var favoriteId = ItemAffinity.FavoriteWeapon(npc.Id.Value, npc.Inventory.Items);
-        foreach (var item in npc.Inventory.Items)
+        var favoriteId = ItemAffinity.FavoriteWeapon(npcId, inventory.Items);
+        foreach (var item in inventory.Items)
         {
             if (item.DefinitionId == favoriteId)
             {
@@ -549,12 +587,8 @@ internal static class InventoryMath
                 break;
             }
 
+            if (TryDropAutomatic(world, npc, victim) is null) break;
             RemoveReference(inv.Items, victim);
-            if (ExecutionSystem.DropItemAtFeet(world, npc, victim) is null)
-            {
-                inv.Items.Add(victim);
-                break;
-            }
 
             if (SimTrace.Enabled)
             {

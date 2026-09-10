@@ -312,7 +312,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
             // carry. Normal acquisition enforces this before pickup; this pass
             // repairs old saves and legacy direct-add paths without deleting
             // property — extras land at the owner's feet.
-            InventoryMath.SpillCarriedLimitExcess(world, npc);
+            if (world.Tick >= npc.Inventory.NextGroundDropRetryTick)
+            {
+                if (npc.Inventory.UsedSlots > npc.Inventory.Capacity)
+                    InventoryMath.SpillOverflow(world, npc);
+                InventoryMath.SpillCarriedLimitExcess(world, npc);
+            }
 
             var prevHunger = npc.Needs.Hunger;
             var prevEnergy = npc.Needs.Energy;
@@ -1060,8 +1065,8 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     if (idx >= 0)
                     {
                         var item = npc.Inventory.Items[idx];
+                        if (InventoryMath.TryDropAutomatic(world, npc, item) == null) break;
                         npc.Inventory.Items.RemoveAt(idx);
-                        ExecutionSystem.DropItemAtFeet(world, npc, item);
                         Trace.Emit(world, npc.Id, "EmergencyUnload",
                             $"Dropped {junk} (Hunger={npc.Needs.Hunger:F2}, full pack, no food)");
                         break;

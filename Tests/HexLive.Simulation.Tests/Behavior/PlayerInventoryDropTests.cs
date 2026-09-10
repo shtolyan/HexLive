@@ -24,8 +24,8 @@ public sealed class PlayerInventoryDropTests
         npc.Mind.OutfitLocked = false;
         npc.Inventory.Items.Clear();
         npc.WornItems.Clear();
-        const string oldId = "test.player_wear.large";
-        const string newId = "test.player_wear.small";
+        const string oldId = "clothing.jacket_biker";
+        const string newId = "clothing.jacket_autumn";
         foreach (var id in new[] { oldId, newId })
         {
             var definition = new ObjectDefinition
@@ -107,7 +107,7 @@ public sealed class PlayerInventoryDropTests
         npc.Inventory.Items.Clear();
         npc.WornItems.Clear();
 
-        const string garmentId = "test.player_drop.pocket_garment";
+        const string garmentId = "clothing.jacket_biker";
         world.Content.ObjectDefinitions[garmentId] = new ObjectDefinition
         {
             Id = garmentId,
@@ -196,7 +196,7 @@ public sealed class PlayerInventoryDropTests
         var npc = world.Entities.Npcs.Values.First(n =>
             n.Faction == Faction.Colony && n.Health > 0f);
         npc.Inventory.Items.Clear();
-        const string id = "resource.test_drop_stack";
+        const string id = ContentIds.Stick;
         world.Content.ObjectDefinitions[id] = new ObjectDefinition
             { Id = id, DisplayName = id };
         var stack = Enumerable.Range(0, 5)
@@ -289,20 +289,22 @@ public sealed class PlayerInventoryDropTests
     }
 
     [Test]
-    public void FailedSecondDropRollsBackWorldInventoryClaimsAndFullEventRing()
+    public void InjectedMidSpawnObstacleStillRollsBackWorldInventoryClaimsAndFullEventRing()
     {
         var world = TestWorld.CreateWorld(39704);
         var npc = world.Entities.Npcs.Values.First(n =>
             n.Faction == Faction.Colony && n.Health > 0f);
         npc.Inventory.Items.Clear();
-        const string id = "resource.test_drop_obstacle";
+        const string id = ContentIds.Stick;
+        // Same-state batch passes admission. Injected obstacle tagging makes
+        // the first spawn block the sole point only after preflight succeeds.
         var definition = new ObjectDefinition { Id = id, DisplayName = id };
         definition.Tags.Add("Obstacle");
         world.Content.ObjectDefinitions[id] = definition;
         var items = new[]
         {
             new ItemInstance(id) { Durability = 0.61f },
-            new ItemInstance(id) { Durability = 0.62f }
+            new ItemInstance(id) { Durability = 0.61f }
         };
         npc.Inventory.Items.AddRange(items);
 

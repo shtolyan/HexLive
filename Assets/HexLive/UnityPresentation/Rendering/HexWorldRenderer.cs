@@ -113,6 +113,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         public HexLive.UnityPresentation.Environment.BedAssembly Assembly;
         public HexLive.UnityPresentation.Environment.CampfireSpitMeat SpitMeat;
         public GarmentWorldCondition Garment;
+        public GroundPileLayout GroundPile;
         public HexLive.UnityPresentation.Environment.BuildSitePile Pile;
         public HexLive.UnityPresentation.Environment.CraftProjectVisual CraftProject;
         public HexLive.UnityPresentation.Environment.HutAssembly Hut;
@@ -566,6 +567,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // one is PARKED in the vessel slot (drawn on the stone stand, not scattered).
     private readonly HashSet<JunctionId> _collectorJunctions = new();
     private readonly Dictionary<int, int> _rackHangRank = new();
+    private readonly List<ObjectSnapshot> _groundPileScratch = new();
+    private readonly Dictionary<int, int> _groundPileRank = new();
+    private readonly Dictionary<JunctionId, int> _groundPileCounts = new();
+    private readonly Dictionary<JunctionId, string> _groundPileDefinitions = new();
+    private readonly HashSet<JunctionId> _groundPileLegacy = new();
     private readonly List<ObjectSnapshot> _rackHangScratch = new();
     private readonly Dictionary<JunctionId, int> _rackRankScratch = new();
 
@@ -1745,8 +1751,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         _wardrobeYawByJunction.Clear();
         _rackHangRank.Clear();
         _collectorJunctions.Clear();
+        _groundPileScratch.Clear(); _groundPileRank.Clear(); _groundPileCounts.Clear();
+        _groundPileDefinitions.Clear(); _groundPileLegacy.Clear();
         foreach (var worldObject in snapshot.Objects)
         {
+            if (worldObject.Junctions.Count > 0 && GroundPileCatalog.TryGet(worldObject.DefinitionId, false, out _))
+                _groundPileScratch.Add(worldObject);
             if (worldObject.DefinitionId == "station.drying_rack" && worldObject.Junctions.Count > 0)
             {
                 _rackJunctions.Add(worldObject.Junctions[0]);
@@ -1766,6 +1776,19 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 _collectorJunctions.Add(worldObject.Junctions[0]);
             }
+        }
+
+        _groundPileScratch.Sort((a,b) => a.Id.Value.CompareTo(b.Id.Value));
+        foreach (var item in _groundPileScratch)
+        {
+            var junction = item.Junctions[0];
+            if (_rackJunctions.Contains(junction) || _collectorJunctions.Contains(junction)) continue;
+            _groundPileCounts.TryGetValue(junction,out var rank);
+            _groundPileRank[item.Id.Value] = rank;
+            _groundPileCounts[junction] = rank + 1;
+            if ((_groundPileDefinitions.TryGetValue(junction,out var definition) && definition != item.DefinitionId) ||
+                rank + 1 > GroundPileCatalog.Capacity(item.DefinitionId)) _groundPileLegacy.Add(junction);
+            _groundPileDefinitions[junction] = item.DefinitionId;
         }
 
         if (_rackJunctions.Count > 0)
@@ -1878,6 +1901,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     Assembly = objectView.GetComponent<HexLive.UnityPresentation.Environment.BedAssembly>(),
                     SpitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>(),
                     Garment = objectView.GetComponent<GarmentWorldCondition>(),
+                    GroundPile = objectView.GetComponent<GroundPileLayout>(),
                     Pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>(),
                     CraftProject = craftProject,
                     Hut = objectView.GetComponent<HexLive.UnityPresentation.Environment.HutAssembly>(),
@@ -2003,6 +2027,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 }
             }
 
+            if (parts.GroundPile != null && _groundPileRank.TryGetValue(key, out var groundSlot))
+            {
+                if (_groundPileLegacy.Contains(worldObject.Junctions[0])) parts.GroundPile.ApplyLegacy(key);
+                else parts.GroundPile.Apply(groundSlot,GroundPileCatalog.Capacity(worldObject.DefinitionId),key);
+            }
+
             var garmentCondition = parts.Garment;
             if (garmentCondition != null)
             {
@@ -2094,7 +2124,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // not the building's own forward — its model child composes that
             // footprint yaw with the module's local yaw (ArchitectureModuleView),
             // so writing it onto the module's root here would apply it twice.
-            if (worldObject.RotationDegrees != 0f && parts.Module == null &&
+            if (worldObject.RotationDegrees != 0f && parts.GroundPile == null && parts.Module == null &&
                 !HexLive.UnityPresentation.Environment.PalmTreeFactory.IsPalm(
                     worldObject.DefinitionId))
             {
@@ -4644,6 +4674,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var crownRoot = new GameObject("Object resource.palm_crown");
                 crownRoot.transform.SetParent(_objectsRoot, false);
                 crown.transform.SetParent(crownRoot.transform, false);
+                GroundVisual(crown);
+                AttachGroundPile(crownRoot,crown,worldObject);
                 var cAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 crownRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                     cAnchor, GroundY(worldObject.Tile));
@@ -4839,8 +4871,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var parkedBottle = worldObject.DefinitionId == "tool.bottle" &&
                     worldObject.Junctions.Count > 0 &&
                     _collectorJunctions.Contains(worldObject.Junctions[0]);
+                var groundPile = !parkedBottle && _groundPileRank.ContainsKey(worldObject.Id.Value) &&
+                    GroundPileCatalog.TryGet(worldObject.DefinitionId,false,out _);
                 FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
-                    scatter: !parkedBottle && worldObject.RotationDegrees == 0f);
+                    scatter: !groundPile && !parkedBottle && worldObject.RotationDegrees == 0f, pile: groundPile);
+                if (groundPile) AttachGroundPile(prefabRoot,instance,worldObject);
                 if (parkedBottle)
                 {
                     // Не сбрасывать поворот в identity: префаб бутылки несёт
@@ -4935,8 +4970,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // proportional to its former owner; deterministic scatter yaw.
             var garmentScale = HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;
             garment.transform.localScale = Vector3.one * garmentScale;
-            garment.transform.localRotation = Quaternion.Euler(0f, (worldObject.Id.Value * 73) % 360, 0f);
+            garment.transform.localRotation = Quaternion.identity;
             GroundVisual(garment, lift: 0.01f); // epsilon: thin cloth vs tile z-fight
+            AttachGroundPile(garmentRoot,garment,worldObject);
             SuppressSmallPropShadows(garment); // flat cloth on the ground — see above
             var garmentPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             garmentRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
@@ -4951,6 +4987,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // A record-backed object that is not ready stays absent for this frame.
         // Caching a sphere/cube here made the first asynchronous miss permanent.
         return null;
+    }
+
+    private void AttachGroundPile(GameObject root,GameObject visual,ObjectSnapshot item)
+    {
+        if (!GroundPileCatalog.TryGet(item.DefinitionId,false,out var profile)) return;
+        var pile=root.AddComponent<GroundPileLayout>();
+        pile.Initialize(visual.transform,profile);
+        _groundPileRank.TryGetValue(item.Id.Value,out var rank);
+        if (item.Junctions.Count > 0 && _groundPileLegacy.Contains(item.Junctions[0])) pile.ApplyLegacy(item.Id.Value);
+        else pile.Apply(rank,GroundPileCatalog.Capacity(item.DefinitionId),item.Id.Value);
     }
 
     private GameObject CreateHumanRemainsView(
@@ -7147,7 +7193,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     // Spec 31C.3: normalize any downloaded/transferred model to the hex
     // metric by its rendered bounds — no per-asset scale guessing.
-    private void FitObjectPrefab(GameObject instance, string definitionId, int idValue, bool scatter = true)
+    private void FitObjectPrefab(GameObject instance, string definitionId, int idValue, bool scatter = true, bool pile = false)
     {
         // Size comes from the shared ObjectFit table (same one the in-hand prop
         // uses in NpcActorView.SetHandProp) so a tool/coconut is the same physical
@@ -7162,7 +7208,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // bounds (a lain-flat tool sits on its side, not floating at its old height).
         // §66: a BUILT piece is placed, not dropped — its yaw is the sim's, so the
         // scatter must not fight it (the root already carries the staked rotation).
-        if (scatter)
+        if (pile)
+        {
+            // Fixed base pose precedes source seating. The outer slot owns yaw.
+            if (LiesFlatOnGround(definitionId)) instance.transform.localRotation = Quaternion.Euler(90f,0f,0f);
+            // Preserve the imported root basis for resources, including leaf/stick.
+        }
+        else if (scatter)
         {
             instance.transform.localRotation = GroundScatterRotation(
                 definitionId,

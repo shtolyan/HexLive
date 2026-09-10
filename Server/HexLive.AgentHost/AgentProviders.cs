@@ -273,6 +273,7 @@ public sealed class AgentProviders : IAgentProviders
                                     steps = new { type = "array", maxItems = AgentExecutionPlanPolicy.MaxSteps,
                                         items = new { type = "object", additionalProperties = false,
                                             properties = new { id = new { type = "string", minLength = 1, maxLength = 96, pattern = "^[A-Za-z0-9_.-]+$" },
+                                                repeat = new { type = "integer", minimum = 1, maximum = 64 },
                                                 tool = new { type = "string", @enum = AllowedTools.Where(t => t != "query_known_objects").ToArray() },
                                                 arguments = new { type = "object", additionalProperties = true },
                                                 condition = new { type = new[] { "object", "null" }, additionalProperties = false,
@@ -359,6 +360,7 @@ public sealed class AgentProviders : IAgentProviders
             {
                 var fields = new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
                     { ["id"] = JsonValueKind.String, ["tool"] = JsonValueKind.String, ["arguments"] = JsonValueKind.Object };
+                if (step.TryGetProperty("repeat", out _)) fields["repeat"] = JsonValueKind.Number;
                 if (step.TryGetProperty("condition", out var condition))
                 {
                     fields["condition"] = condition.ValueKind == JsonValueKind.Null ? JsonValueKind.Null : JsonValueKind.Object;

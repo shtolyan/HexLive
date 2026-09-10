@@ -8,7 +8,7 @@ public static class CodexDecisionFormat
     public const string Instructions = "\nCodex transport format: every arguments field is an array of {name,value} pairs, " +
         "not a JSON object. Values are strings, numbers, booleans or null. Use [] for no arguments. " +
         "The host converts these pairs to the MCP argument object before validation. Names must be unique. " +
-        "Include condition:null on steps without a condition. Follow the supplied output schema.";
+        "Include condition:null on steps without a condition and repeat:1 for a single execution. Follow the supplied output schema.";
 
     public static string Schema(string gameSchema)
     {

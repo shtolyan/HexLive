@@ -5,6 +5,56 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentExecutionPlanTests
 {
+    [Test]
+    public void AFalseConditionExitsRemainingIterationsWithoutPretendingTheyCompleted()
+    {
+        var initial = Plan();
+        var plan = AgentExecutionPlanPolicy.Create(Objective(), "world", 901,
+            [initial.Steps[0] with { Repeat = 3, Condition = new("inventorySummary.freeSlots", "gte", 1, "unload") }, initial.Steps[1]]);
+        plan = AgentExecutionPlanPolicy.Prepare(plan, plan.Revision, "world", 901, 7);
+        plan = AgentExecutionPlanPolicy.Observe(plan, plan.Revision, new(plan.Command!.Id, "completed"));
+        Assert.That(plan.Iteration, Is.EqualTo(1));
+        Assert.That(AgentExecutionPlanPolicy.ConditionSatisfied(plan.Steps[0].Condition!,
+            JsonSerializer.SerializeToElement(new { inventorySummary = new { freeSlots = 0 } })), Is.False);
+        plan = AgentExecutionPlanPolicy.Branch(plan, plan.Revision);
+        Assert.That(plan.Cursor, Is.EqualTo(1));
+        Assert.That(plan.Iteration, Is.Zero);
+        Assert.That(plan.Command, Is.Null);
+        Assert.That(plan.Status, Is.EqualTo("active"));
+    }
+
+    [Test]
+    public void RepeatCheckpointSurvivesRestartAndNeverReusesThePreviousCommandId()
+    {
+        var plan = Plan() with { SchemaVersion = 3, Steps =
+            [new("craft", "craft_item", JsonSerializer.SerializeToElement(new { recipeGoal = "CraftRope" })) { Repeat = 3 }] };
+        plan = AgentExecutionPlanPolicy.Prepare(plan, plan.Revision, "world", 901, 7);
+        var firstId = plan.Command!.Id;
+        plan = AgentExecutionPlanPolicy.Observe(plan, plan.Revision, new(firstId, "completed"));
+        Assert.That(plan.Cursor, Is.Zero);
+        Assert.That(plan.Iteration, Is.EqualTo(1));
+        plan = AgentExecutionPlanPolicy.Recover(JsonSerializer.Deserialize<AgentExecutionPlan>(JsonSerializer.Serialize(plan))!);
+        plan = AgentExecutionPlanPolicy.Resume(plan, plan.Revision, "world", 901, 7);
+        plan = AgentExecutionPlanPolicy.Prepare(plan, plan.Revision, "world", 901, 7);
+        Assert.That(plan.Command!.Id, Is.Not.EqualTo(firstId));
+        Assert.Throws<InvalidOperationException>(() => AgentExecutionPlanPolicy.Observe(plan, plan.Revision, new(firstId, "completed")));
+        plan = AgentExecutionPlanPolicy.Observe(plan, plan.Revision, new(plan.Command.Id, "failed", "NoIngredients"));
+        Assert.That(plan.Status, Is.EqualTo("paused"));
+        Assert.That(plan.Iteration, Is.EqualTo(1));
+        Assert.Throws<InvalidOperationException>(() => AgentExecutionPlanPolicy.Prepare(plan, plan.Revision, "world", 901, 7));
+    }
+
+    [Test]
+    public void RepeatBudgetAndOldSchemaCannotSilentlyExecuteRepeatedCommands()
+    {
+        var steps = Enumerable.Range(0, 5).Select(i => new AgentExecutionStep("step-" + i, "stop",
+            JsonSerializer.SerializeToElement(new { })) { Repeat = 64 }).ToArray();
+        Assert.Throws<InvalidDataException>(() => AgentExecutionPlanPolicy.ValidateUpdate(
+            new() { Operation = "replace", Reason = "Fixture", Steps = steps }));
+        var old = Plan() with { Steps = [steps[0]] };
+        Assert.Throws<InvalidDataException>(() => AgentExecutionPlanPolicy.Recover(old));
+    }
+
     [TestCase("completed", true)]
     [TestCase("active", false)]
     [TestCase("unknown", false)]

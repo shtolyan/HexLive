@@ -108,7 +108,8 @@ public sealed partial class MashaMemoryStore
             var next = change(current);
             if (!ReferenceEquals(next, current))
             {
-                if (current.Command is { } completed && next.Command == null && next.Cursor > current.Cursor)
+                if (current.Command is { } completed && next.Command == null &&
+                    (next.Cursor > current.Cursor || next.Iteration > current.Iteration))
                 {
                     // Only the command-specific completed receipt makes this transition.
                     // A condition branch has no command and must not invent completed work.

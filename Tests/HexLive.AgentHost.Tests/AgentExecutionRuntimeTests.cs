@@ -22,6 +22,67 @@ public sealed partial class AgentExecutionRuntimeTests
     [TearDown] public void Cleanup() => Directory.Delete(_root, true);
 
     [Test]
+    public async Task BoundedCraftRepeatPaysEachRecipeAndProducesTwoRealRopes()
+    {
+        using var host = Host();
+        var engine = (SimulationEngine)typeof(WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+        host.Read(w =>
+        {
+            foreach (var person in w.Entities.Npcs.Values) { person.Mind.ManualControl = true; person.Faction = Faction.Colony; }
+            for (var i = 0; i < 64; i++) engine.Step();
+            w.Mobs.Clear();
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Inventory.Items.Clear(); npc.Needs.Energy = npc.Needs.Stamina = 1;
+            npc.Needs.Hunger = npc.Needs.Thirst = 0;
+            npc.Perception.Hostiles.Clear(); npc.Perception.Mobs.Clear(); npc.Mind.AdrenalineUntilTick = 0;
+            var bill = RecipeCatalog.InputCount(HexLive.Simulation.AI.GoalType.CraftRope, ContentIds.Fiber);
+            for (var i = 0; i < 2 * bill; i++) npc.Inventory.Items.Add(new ItemInstance(ContentIds.Fiber));
+            return true;
+        });
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("make-rope", "craft_item", JsonSerializer.SerializeToElement(new { recipeGoal = "CraftRope" })) { Repeat = 2 }]);
+        var running = Run(runtime, mcp, plan.Id, world, 30);
+        while (!running.IsCompleted)
+        {
+            host.Read(w =>
+            {
+                for (var i = 0; i < 8 && w.Entities.Npcs[new EntityId(901)].Plan.Status == HexLive.Simulation.AI.PlanStatus.Active; i++) engine.Step();
+                return true;
+            });
+            await Task.Delay(1);
+        }
+        await running;
+        Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("completed"));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Inventory.Items.Count(i => i.DefinitionId == ContentIds.Rope)), Is.EqualTo(2));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Inventory.Items.Count(i => i.DefinitionId == ContentIds.Fiber)), Is.Zero);
+        Assert.That(transport.Executions, Is.EqualTo(2));
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
+    [Test]
+    public async Task BoundedRepeatUsesDistinctReceiptsAndPersistsEachIterationWithoutModelCalls()
+    {
+        using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("repeat-stop", "stop", JsonSerializer.SerializeToElement(new { })) { Repeat = 3 }]);
+        await Run(runtime, mcp, plan.Id, world);
+        var saved = await new MashaMemoryStore(options.MemoryDirectory).SnapshotAsync(default);
+        Assert.That(saved.ExecutionPlan!.SchemaVersion, Is.EqualTo(3));
+        Assert.That(saved.ExecutionPlan.Status, Is.EqualTo("completed"));
+        Assert.That(transport.Executions, Is.EqualTo(3));
+        Assert.That(saved.ExecutionProgress.Select(p => p.CommandId).Distinct().Count(), Is.EqualTo(3));
+        Assert.That(saved.ExecutionProgress.Select(p => p.Sequence), Is.EqualTo(new long[] { 1, 2, 3 }));
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
+    [Test]
     public async Task ExecutesNextStepWithoutModelOrSpeechAndPersistsCompletedCursor()
     {
         using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45)));

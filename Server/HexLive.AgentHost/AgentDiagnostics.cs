@@ -105,7 +105,7 @@ public sealed class AgentDiagnostics
             {
                 planId = Correlate(execution.PlanId), stepId = Correlate(execution.StepId),
                 commandId = Correlate(execution.CommandId), execution.CommandSequence,
-                execution.ObjectiveRevision, execution.PlanRevision, execution.Cursor,
+                execution.ObjectiveRevision, execution.PlanRevision, execution.Cursor, execution.Iteration, execution.Repeat,
                 status = Code(execution.Status), outcome = Code(execution.Outcome), reason = Code(execution.Reason)
             }
         }) + "\n";
@@ -132,11 +132,12 @@ public sealed class AgentDiagnostics
 
 public sealed record AgentDiagnosticExecution(string PlanId, string StepId, string CommandId,
     long? CommandSequence, long ObjectiveRevision, long PlanRevision, int Cursor, string Status,
-    string Outcome = "", string Reason = "")
+    string Outcome = "", string Reason = "", int Iteration = 0, int Repeat = 1)
 {
     public static AgentDiagnosticExecution From(AgentExecutionPlan plan, string outcome = "", string reason = "") => new(plan.Id,
         plan.Cursor < plan.Steps.Length ? plan.Steps[plan.Cursor].Id : "", plan.Command?.Id ?? "",
-        plan.Command?.Sequence, plan.ObjectiveRevision, plan.Revision, plan.Cursor, plan.Status, outcome, reason);
+        plan.Command?.Sequence, plan.ObjectiveRevision, plan.Revision, plan.Cursor, plan.Status, outcome, reason,
+        plan.Iteration, plan.Cursor < plan.Steps.Length ? plan.Steps[plan.Cursor].Repeat : 1);
 }
 
 public sealed record AgentDiagnosticRelationship(float Familiarity, float Trust, float Sympathy,

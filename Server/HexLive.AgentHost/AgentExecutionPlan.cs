@@ -13,6 +13,8 @@ public sealed record AgentExecutionStep(
 {
     [JsonPropertyName("condition"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public AgentExecutionCondition? Condition { get; init; }
+    [JsonPropertyName("repeat")]
+    public int Repeat { get; init; } = 1;
 }
 
 public sealed record AgentExecutionCondition(
@@ -31,6 +33,7 @@ public sealed record AgentExecutionPlan
     public required AgentExecutionStep[] Steps { get; init; }
     public long Revision { get; init; }
     public int Cursor { get; init; }
+    public int Iteration { get; init; }
     public string Status { get; init; } = "active";
     public string Reason { get; init; } = "";
     public AgentExecutionCommand? Command { get; init; }
@@ -59,6 +62,7 @@ public sealed class AgentExecutionPlanUpdate
 public static class AgentExecutionPlanPolicy
 {
     public const int MaxSteps = 64;
+    public const int MaxDispatches = 256;
 
     // Older/provider-specific decisions may express a one-command continuation
     // as action. Give it the same durable receipt semantics as an explicit queue.
@@ -88,6 +92,7 @@ public static class AgentExecutionPlanPolicy
             update.Steps.Select(s => s.Id).Distinct(StringComparer.Ordinal).Count() != update.Steps.Length)
             throw new InvalidDataException("InvalidExecutionPlanUpdate");
         ValidateConditions(update.Steps);
+        ValidateRepeats(update.Steps);
     }
 
     public static AgentExecutionPlan Create(AgentObjective objective,
@@ -103,9 +108,10 @@ public static class AgentExecutionPlanPolicy
             copy.Select(s => s.Id).Distinct(StringComparer.Ordinal).Count() != copy.Length)
             throw new InvalidDataException("InvalidExecutionPlanSteps");
         ValidateConditions(copy);
+        ValidateRepeats(copy);
         return new AgentExecutionPlan
         {
-            SchemaVersion = copy.Any(s => s.Condition != null) ? 2 : 1,
+            SchemaVersion = copy.Any(s => s.Repeat > 1) ? 3 : copy.Any(s => s.Condition != null) ? 2 : 1,
             Id = Guid.NewGuid().ToString("N"), WorldKey = worldKey, NpcId = npcId, ObjectiveRevision = objective.Revision,
             Steps = copy.Select(s => s with { Arguments = s.Arguments.Clone() }).ToArray(),
         };
@@ -120,8 +126,9 @@ public static class AgentExecutionPlanPolicy
             throw new InvalidOperationException("ExecutionPlanNotDispatchable");
         var step = plan.Steps[plan.Cursor];
         // Plan IDs are allocated by the host, never reused for a replacement plan.
-        var commandId = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-            JsonSerializer.Serialize(new[] { plan.WorldKey, plan.NpcId.ToString(System.Globalization.CultureInfo.InvariantCulture), plan.Id, step.Id })))).ToLowerInvariant();
+        var identity = new List<string> { plan.WorldKey, plan.NpcId.ToString(System.Globalization.CultureInfo.InvariantCulture), plan.Id, step.Id };
+        if (step.Repeat > 1) identity.Add(plan.Iteration.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        var commandId = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(identity)))).ToLowerInvariant();
         return plan with { Revision = checked(plan.Revision + 1),
             Command = new(commandId, step.Id, "sending") };
     }
@@ -139,8 +146,10 @@ public static class AgentExecutionPlanPolicy
         // A replayed ACK after completion never advances the next step: its command ID differs.
         if (receipt.Outcome == "completed")
         {
+            if (plan.Iteration + 1 < plan.Steps[plan.Cursor].Repeat)
+                return plan with { Revision = checked(plan.Revision + 1), Iteration = plan.Iteration + 1, Command = null };
             var next = checked(plan.Cursor + 1);
-            return plan with { Revision = checked(plan.Revision + 1), Cursor = next, Command = null,
+            return plan with { Revision = checked(plan.Revision + 1), Cursor = next, Iteration = 0, Command = null,
                 Status = next == plan.Steps.Length ? "completed" : plan.Status,
                 Reason = next == plan.Steps.Length ? "CommandsCompleted" : plan.Reason };
         }
@@ -182,7 +191,13 @@ public static class AgentExecutionPlanPolicy
             throw new InvalidOperationException("ExecutionBranchUnavailable");
         if (condition.OnFalseStepId.Length == 0) return Pause(plan, expectedRevision, "ConditionsNotMet");
         var next = Array.FindIndex(plan.Steps, s => s.Id == condition.OnFalseStepId);
-        return plan with { Cursor = next, Revision = checked(plan.Revision + 1), Reason = "ConditionBranch" };
+        return plan with { Cursor = next, Iteration = 0, Revision = checked(plan.Revision + 1), Reason = "ConditionBranch" };
+    }
+
+    private static void ValidateRepeats(AgentExecutionStep[] steps)
+    {
+        if (steps.Any(s => s.Repeat is < 1 or > 64) || steps.Sum(s => (long)s.Repeat) > MaxDispatches)
+            throw new InvalidDataException("InvalidExecutionPlanUpdate");
     }
 
     private static void ValidateConditions(AgentExecutionStep[] steps)
@@ -243,7 +258,7 @@ public static class AgentExecutionPlanPolicy
 
     private static void ValidateState(AgentExecutionPlan plan)
     {
-        if (plan.SchemaVersion is not (1 or 2) || !Identifier(plan.Id) || string.IsNullOrWhiteSpace(plan.WorldKey) ||
+        if (plan.SchemaVersion is not (1 or 2 or 3) || !Identifier(plan.Id) || string.IsNullOrWhiteSpace(plan.WorldKey) ||
             plan.NpcId <= 0 || plan.ObjectiveRevision <= 0 || plan.Revision < 0 || plan.Steps == null ||
             plan.Steps.Length is 0 or > MaxSteps || plan.Cursor < 0 || plan.Cursor > plan.Steps.Length ||
             plan.Status is not ("active" or "paused" or "completed" or "canceled") ||
@@ -258,6 +273,10 @@ public static class AgentExecutionPlanPolicy
             throw new InvalidDataException("InvalidExecutionPlanState");
         if (plan.SchemaVersion == 1 && plan.Steps.Any(s => s.Condition != null))
             throw new InvalidDataException("ExecutionConditionRequiresSchema2");
+        ValidateRepeats(plan.Steps);
+        if (plan.Iteration < 0 || (plan.Cursor == plan.Steps.Length ? plan.Iteration != 0 : plan.Iteration >= plan.Steps[plan.Cursor].Repeat) ||
+            plan.SchemaVersion < 3 && (plan.Iteration != 0 || plan.Steps.Any(s => s.Repeat > 1)))
+            throw new InvalidDataException("ExecutionRepeatRequiresSchema3");
         ValidateConditions(plan.Steps);
     }
 }

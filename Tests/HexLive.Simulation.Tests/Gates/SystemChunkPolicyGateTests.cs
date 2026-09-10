@@ -63,6 +63,8 @@ public sealed class SystemChunkPolicyGateTests
             ["MobSystem"] = ChunkPolicy.NpcDriven,
             ["MovementSystem"] = ChunkPolicy.NpcDriven,
             ["NeedsDecaySystem"] = ChunkPolicy.NpcDriven,
+            // §26.26: active NPC plans and indexed claims, never a world-object scan.
+            ["ObjectReservationSystem"] = ChunkPolicy.NpcDriven,
             ["PathfindingSystem"] = ChunkPolicy.NpcDriven,
             ["PerceptionSystem"] = ChunkPolicy.NpcDriven,
             ["PlanningSystem"] = ChunkPolicy.NpcDriven,

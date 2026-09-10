@@ -9,7 +9,17 @@ namespace HexLive.AgentHost;
 public sealed record AgentExecutionStep(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("tool")] string Tool,
-    [property: JsonPropertyName("arguments")] JsonElement Arguments);
+    [property: JsonPropertyName("arguments")] JsonElement Arguments)
+{
+    [JsonPropertyName("condition"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AgentExecutionCondition? Condition { get; init; }
+}
+
+public sealed record AgentExecutionCondition(
+    [property: JsonPropertyName("path")] string Path,
+    [property: JsonPropertyName("operator")] string Operator,
+    [property: JsonPropertyName("value")] double Value,
+    [property: JsonPropertyName("onFalseStepId")] string OnFalseStepId);
 
 public sealed record AgentExecutionPlan
 {
@@ -55,6 +65,7 @@ public static class AgentExecutionPlanPolicy
                 s.Tool == "query_known_objects" || s.Arguments.ValueKind != JsonValueKind.Object || s.Arguments.GetRawText().Length > 8192) ||
             update.Steps.Select(s => s.Id).Distinct(StringComparer.Ordinal).Count() != update.Steps.Length)
             throw new InvalidDataException("InvalidExecutionPlanUpdate");
+        ValidateConditions(update.Steps);
     }
 
     public static AgentExecutionPlan Create(AgentObjective objective,
@@ -69,8 +80,10 @@ public static class AgentExecutionPlanPolicy
                 s.Arguments.ValueKind != JsonValueKind.Object || s.Arguments.GetRawText().Length > 8192) ||
             copy.Select(s => s.Id).Distinct(StringComparer.Ordinal).Count() != copy.Length)
             throw new InvalidDataException("InvalidExecutionPlanSteps");
+        ValidateConditions(copy);
         return new AgentExecutionPlan
         {
+            SchemaVersion = copy.Any(s => s.Condition != null) ? 2 : 1,
             Id = Guid.NewGuid().ToString("N"), WorldKey = worldKey, NpcId = npcId, ObjectiveRevision = objective.Revision,
             Steps = copy.Select(s => s with { Arguments = s.Arguments.Clone() }).ToArray(),
         };
@@ -126,6 +139,43 @@ public static class AgentExecutionPlanPolicy
         return plan with { Revision = checked(plan.Revision + 1), Status = "paused", Reason = reason };
     }
 
+    public static bool ConditionSatisfied(AgentExecutionCondition condition, JsonElement observation)
+    {
+        var current = observation;
+        foreach (var part in condition.Path.Split('.'))
+            if (current.ValueKind != JsonValueKind.Object || !current.TryGetProperty(part, out current))
+                throw new InvalidDataException("ExecutionObservationMissing");
+        if (current.ValueKind != JsonValueKind.Number || !current.TryGetDouble(out var value) || !double.IsFinite(value))
+            throw new InvalidDataException("ExecutionObservationInvalid");
+        return condition.Operator switch { "gte" => value >= condition.Value, "lte" => value <= condition.Value,
+            _ => throw new InvalidDataException("InvalidExecutionCondition") };
+    }
+
+    public static AgentExecutionPlan Branch(AgentExecutionPlan plan, long expectedRevision)
+    {
+        CheckRevision(plan, expectedRevision);
+        if (plan.Status != "active" || plan.Command != null || plan.Cursor >= plan.Steps.Length ||
+            plan.Steps[plan.Cursor].Condition is not { } condition)
+            throw new InvalidOperationException("ExecutionBranchUnavailable");
+        if (condition.OnFalseStepId.Length == 0) return Pause(plan, expectedRevision, "ConditionsNotMet");
+        var next = Array.FindIndex(plan.Steps, s => s.Id == condition.OnFalseStepId);
+        return plan with { Cursor = next, Revision = checked(plan.Revision + 1), Reason = "ConditionBranch" };
+    }
+
+    private static void ValidateConditions(AgentExecutionStep[] steps)
+    {
+        for (var i = 0; i < steps.Length; i++)
+        {
+            if (steps[i].Condition is not { } c) continue;
+            if (c.Path is not ("inventorySummary.freeSlots" or "bodyNeeds.energy.value" or
+                    "bodyNeeds.stamina.value" or "bodyNeeds.hunger" or "bodyNeeds.thirst") ||
+                c.Operator is not ("gte" or "lte") || !double.IsFinite(c.Value) ||
+                c.OnFalseStepId == null || c.OnFalseStepId.Length > 0 &&
+                Array.FindIndex(steps, s => s.Id == c.OnFalseStepId) <= i)
+                throw new InvalidDataException("InvalidExecutionCondition");
+        }
+    }
+
     public static AgentExecutionPlan Resume(AgentExecutionPlan plan, long expectedRevision,
         string worldKey, int npcId, long objectiveRevision)
     {
@@ -164,7 +214,7 @@ public static class AgentExecutionPlanPolicy
 
     private static void ValidateState(AgentExecutionPlan plan)
     {
-        if (plan.SchemaVersion != 1 || !Identifier(plan.Id) || string.IsNullOrWhiteSpace(plan.WorldKey) ||
+        if (plan.SchemaVersion is not (1 or 2) || !Identifier(plan.Id) || string.IsNullOrWhiteSpace(plan.WorldKey) ||
             plan.NpcId <= 0 || plan.ObjectiveRevision <= 0 || plan.Revision < 0 || plan.Steps == null ||
             plan.Steps.Length is 0 or > MaxSteps || plan.Cursor < 0 || plan.Cursor > plan.Steps.Length ||
             plan.Status is not ("active" or "paused" or "completed" or "canceled") ||
@@ -177,5 +227,8 @@ public static class AgentExecutionPlanPolicy
                 command.StepId != plan.Steps[plan.Cursor].Id || !Identifier(command.Id) ||
                 command.Status is not ("sending" or "accepted" or "failed" or "unknown")))
             throw new InvalidDataException("InvalidExecutionPlanState");
+        if (plan.SchemaVersion == 1 && plan.Steps.Any(s => s.Condition != null))
+            throw new InvalidDataException("ExecutionConditionRequiresSchema2");
+        ValidateConditions(plan.Steps);
     }
 }

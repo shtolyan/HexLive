@@ -64,6 +64,13 @@ public sealed partial class AgentHostRuntime
                 {
                     var before = await mcp.CallToolAsync("describe_colonist", new { npcId }, token).ConfigureAwait(false);
                     _diagnostics.Record("step.before", turn, tool: step.Tool, observation: AgentDiagnosticObservation.From(before));
+                    if (step.Condition is { } condition && !AgentExecutionPlanPolicy.ConditionSatisfied(condition, before))
+                    {
+                        plan = await _memory.BranchExecutionPlanAsync(plan.Id, plan.Revision, token).ConfigureAwait(false);
+                        _diagnostics.Record("step.condition", turn, tool: step.Tool, result: plan.Reason);
+                        if (plan.Status != "active") break;
+                        continue;
+                    }
                     var action = new CompanionAction { Tool = step.Tool, Arguments = step.Arguments };
                     var arguments = await ValidateActionAsync(mcp, npcId, action, token).ConfigureAwait(false);
                     var head = await mcp.CallToolAsync("read_agent_command", new { npcId, sequence = 0, commandId = "" }, token).ConfigureAwait(false);

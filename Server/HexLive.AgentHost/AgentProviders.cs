@@ -249,7 +249,13 @@ public sealed class AgentProviders : IAgentProviders
                                         items = new { type = "object", additionalProperties = false,
                                             properties = new { id = new { type = "string", minLength = 1, maxLength = 96 },
                                                 tool = new { type = "string", @enum = AllowedTools.Where(t => t != "query_known_objects").ToArray() },
-                                                arguments = new { type = "object", additionalProperties = true } },
+                                                arguments = new { type = "object", additionalProperties = true },
+                                                condition = new { type = new[] { "object", "null" }, additionalProperties = false,
+                                                    properties = new {
+                                                        path = new { type = "string", @enum = new[] { "inventorySummary.freeSlots", "bodyNeeds.energy.value", "bodyNeeds.stamina.value", "bodyNeeds.hunger", "bodyNeeds.thirst" } },
+                                                        @operator = new { type = "string", @enum = new[] { "gte", "lte" } },
+                                                        value = new { type = "number" }, onFalseStepId = new { type = "string", maxLength = 96 } },
+                                                    required = new[] { "path", "operator", "value", "onFalseStepId" } } },
                                             required = new[] { "id", "tool", "arguments" } } }
                                 }, required = new[] { "operation", "reason", "steps" } }
                         }
@@ -325,8 +331,19 @@ public sealed class AgentProviders : IAgentProviders
             RequireExactObject(planUpdate, new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
                 { ["operation"] = JsonValueKind.String, ["reason"] = JsonValueKind.String, ["steps"] = JsonValueKind.Array });
             foreach (var step in planUpdate.GetProperty("steps").EnumerateArray())
-                RequireExactObject(step, new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
-                    { ["id"] = JsonValueKind.String, ["tool"] = JsonValueKind.String, ["arguments"] = JsonValueKind.Object });
+            {
+                var fields = new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
+                    { ["id"] = JsonValueKind.String, ["tool"] = JsonValueKind.String, ["arguments"] = JsonValueKind.Object };
+                if (step.TryGetProperty("condition", out var condition))
+                {
+                    fields["condition"] = condition.ValueKind == JsonValueKind.Null ? JsonValueKind.Null : JsonValueKind.Object;
+                    if (condition.ValueKind != JsonValueKind.Null)
+                        RequireExactObject(condition, new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
+                        { ["path"] = JsonValueKind.String, ["operator"] = JsonValueKind.String,
+                            ["value"] = JsonValueKind.Number, ["onFalseStepId"] = JsonValueKind.String });
+                }
+                RequireExactObject(step, fields);
+            }
         }
         if (assessment.ValueKind != JsonValueKind.Null)
         {

@@ -75,6 +75,31 @@ public sealed class AgentExecutionRuntimeTests
     }
 
     [Test]
+    public async Task CapacityConditionBranchesBeforeSendingTheGuardedCommand()
+    {
+        using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Inventory.Items.Clear();
+            for (var i = 0; i < npc.Inventory.Capacity; i++) npc.Inventory.Items.Add(new ItemInstance(ContentIds.Coconut));
+            return true;
+        });
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("collect", "stop", JsonSerializer.SerializeToElement(new { }))
+                { Condition = new("inventorySummary.freeSlots", "gte", 1, "return") },
+             new("return", "stop", JsonSerializer.SerializeToElement(new { }))]);
+        await Run(runtime, mcp, plan.Id, world);
+        Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("completed"));
+        Assert.That(transport.Executions, Is.EqualTo(1));
+        Assert.That(host.Read(w => w.AgentCommands[901].HighestSequence), Is.EqualTo(1));
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
+    [Test]
     public async Task CoconutPickupReturnAndUnloadRunAsOneSavedQueue()
     {
         using var host = Host();

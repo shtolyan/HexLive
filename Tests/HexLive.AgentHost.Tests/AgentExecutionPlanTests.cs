@@ -99,7 +99,7 @@ public sealed class AgentExecutionPlanTests
     public void CorruptedOrFutureStateIsRejectedBeforeRecoveryCanDispatchAnything()
     {
         var plan = Plan();
-        Assert.Throws<InvalidDataException>(() => AgentExecutionPlanPolicy.Recover(plan with { SchemaVersion = 2 }));
+        Assert.Throws<InvalidDataException>(() => AgentExecutionPlanPolicy.Recover(plan with { SchemaVersion = 99 }));
         Assert.Throws<InvalidDataException>(() => AgentExecutionPlanPolicy.Recover(plan with { Cursor = -1 }));
         Assert.Throws<InvalidDataException>(() => AgentExecutionPlanPolicy.Recover(plan with { Status = "completed" }));
         Assert.Throws<InvalidDataException>(() => AgentExecutionPlanPolicy.Recover(plan with { Command = new("command", "other-step", "accepted") }));

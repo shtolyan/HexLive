@@ -72,6 +72,10 @@ public sealed partial class MashaMemoryStore
         CancellationToken token) => MutateExecutionPlanAsync(planId, revision,
             plan => AgentExecutionPlanPolicy.Pause(plan, revision, reason), token);
 
+    public Task<AgentExecutionPlan> BranchExecutionPlanAsync(string planId, long revision,
+        CancellationToken token) => MutateExecutionPlanAsync(planId, revision,
+            plan => AgentExecutionPlanPolicy.Branch(plan, revision), token);
+
     public Task<AgentExecutionPlan> ObserveExecutionStepAsync(string planId, long revision,
         AgentExecutionReceipt receipt, CancellationToken token) => MutateExecutionPlanAsync(planId, revision,
             plan => AgentExecutionPlanPolicy.Observe(plan, revision, receipt), token);

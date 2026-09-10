@@ -15,7 +15,7 @@ using NUnit.Framework;
 namespace HexLive.AgentHost.Tests;
 
 [NonParallelizable]
-public sealed class AgentExecutionRuntimeTests
+public sealed partial class AgentExecutionRuntimeTests
 {
     private string _root = "";
     [SetUp] public void Setup() => _root = Directory.CreateTempSubdirectory("plan-runtime-").FullName;
@@ -344,11 +344,12 @@ public sealed class AgentExecutionRuntimeTests
     }
     private static MashaMemoryStore Memory(AgentHostRuntime runtime) => (MashaMemoryStore)typeof(AgentHostRuntime)
         .GetField("_memory", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(runtime)!;
-    private static async Task Run(AgentHostRuntime runtime, McpClient mcp, string planId, MashaWorldHandle world, int timeoutSeconds = 15)
+    private static async Task Run(AgentHostRuntime runtime, McpClient mcp, string planId, MashaWorldHandle world, int timeoutSeconds = 15, CancellationToken cancellationToken = default)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
         await ((Task)typeof(AgentHostRuntime).GetMethod("RunExecutionPlanAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .Invoke(runtime, [mcp, 901, planId, world, timeout.Token])!).WaitAsync(timeout.Token);
+            .Invoke(runtime, [mcp, 901, planId, world, timeout.Token])!);
     }
     private AgentHostOptions Options() => new()
     {
@@ -382,7 +383,7 @@ public sealed class AgentExecutionRuntimeTests
             var root = document.RootElement;
             object result = new { protocolVersion = "2025-06-18" };
             if (root.GetProperty("method").GetString() == "tools/list")
-                result = new { tools = McpTools.Catalog.Select(t => new { name = t.Name, inputSchema = t.InputSchema }) };
+                result = new { tools = McpTools.Catalog.Select(t => new { name = t.Name, description = t.Description, inputSchema = t.InputSchema }) };
             if (root.GetProperty("method").GetString() == "tools/call")
             {
                 var parameters = root.GetProperty("params"); var name = parameters.GetProperty("name").GetString()!;

@@ -1,0 +1,3905 @@
+{
+  "providerName": "Codex",
+  "modelId": "gpt-5.6-terra",
+  "scenario": "gift",
+  "fixture": 1,
+  "repetition": 0,
+  "calls": 5,
+  "passed": true,
+  "status": "Completed",
+  "gameTicks": 177,
+  "sawSleep": false,
+  "commands": 2,
+  "receipts": [
+    {
+      "Sequence": 1,
+      "Id": "1265b0671f215b6f867e9ef30b51887cc0134c624b35c56debd02622391842df",
+      "Fingerprint": "c36d1540fb5d4e3f9c2e8d16470367ac729e2d831a775668ec72fe1684a5c00c",
+      "Outcome": "completed",
+      "Reason": "Completed"
+    },
+    {
+      "Sequence": 2,
+      "Id": "04ad6c4a8ea1ec00f3f5b7947681ce2f0dda53aa6fc67026aebc10b90bc327df",
+      "Fingerprint": "909bd934d642378eab53b5e01d25e4331ab4ab15b3da2d9c658bc6117ab9ca49",
+      "Outcome": "completed",
+      "Reason": "Completed"
+    }
+  ],
+  "modelDecisions": [
+    {
+      "call": 1,
+      "elapsedMs": 11042,
+      "decision": {
+        "memoryRequests": [
+          {
+            "operation": "skills.list",
+            "arguments": {}
+          },
+          {
+            "operation": "skills.read",
+            "arguments": {
+              "id": "give-gift"
+            }
+          }
+        ],
+        "memorySources": [],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": null,
+        "speech": "",
+        "emotion": "curious",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      },
+      "body": {
+        "npcId": 901,
+        "profileId": "masha",
+        "name": "masha",
+        "tick": 80,
+        "position": {
+          "x": -19.486,
+          "y": 22.125
+        },
+        "tile": "-12,10",
+        "manualControl": true,
+        "carriedNpcId": null,
+        "carriedByNpcId": null,
+        "leaseHolder": "",
+        "hexkufaExposure": 0,
+        "legacyAgentState": null,
+        "stateSummary": "health=1; goal=None; interaction=none; execution=None; moving=false; fighting=false; manualControl=true; unconscious=false; needs[hunger=0.002, thirst=0.006, energy=0.998, comfort=0.371, social=0.38, thermal=0.038, stamina=0.992, blood=1, stress=0]",
+        "bodyNeeds": {
+          "energy": {
+            "value": 0.9981918,
+            "higherIsBetter": true,
+            "meaning": "wakefulness reserve; restored by sleep",
+            "specSection": "60"
+          },
+          "stamina": {
+            "value": 0.9918,
+            "higherIsBetter": true,
+            "meaning": "work reserve; recovery depends on rest and body condition",
+            "specSection": "40"
+          },
+          "breath": {
+            "value": 1,
+            "higherIsBetter": true,
+            "meaning": "sprint reserve; walking also restores it",
+            "specSection": "71"
+          },
+          "hunger": 0.0024957042,
+          "thirst": 0.0059896903,
+          "blood": 1,
+          "hygiene": 0.99799997,
+          "health": 1
+        },
+        "execution": {
+          "planStatus": "None",
+          "status": "None",
+          "interaction": null,
+          "targetObjectId": null,
+          "failureReason": ""
+        },
+        "effects": [
+          {
+            "kind": "WellFed",
+            "intensity": 0.98336196,
+            "detailKey": ""
+          },
+          {
+            "kind": "Rested",
+            "intensity": 0.9918,
+            "detailKey": ""
+          }
+        ],
+        "effectImpacts": [
+          {
+            "need": "Hunger",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Thirst",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Energy",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "CleanClothes",
+            "direction": "Positive"
+          },
+          {
+            "need": "Social",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Social",
+            "kind": "NearbyCompany",
+            "direction": "Positive"
+          },
+          {
+            "need": "Compassion",
+            "kind": "WitnessingSuffering",
+            "direction": "Negative"
+          },
+          {
+            "need": "Stamina",
+            "kind": "Resting",
+            "direction": "Positive"
+          },
+          {
+            "need": "Stress",
+            "kind": "Calm",
+            "direction": "Positive"
+          },
+          {
+            "need": "Hygiene",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Temperature",
+            "kind": "AmbientTemperature",
+            "direction": "Negative"
+          },
+          {
+            "need": "Breath",
+            "kind": "BreathRecovery",
+            "direction": "Positive"
+          }
+        ],
+        "effectDefinitions": {
+          "WellFed": {
+            "kind": "WellFed",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.wellfed.title",
+            "descriptionKey": "effect.wellfed.desc",
+            "emoji": "\uD83D\uDE0B"
+          },
+          "Rested": {
+            "kind": "Rested",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.rested.title",
+            "descriptionKey": "effect.rested.desc",
+            "emoji": "\uD83D\uDCAA"
+          },
+          "NaturalDecay": {
+            "kind": "NaturalDecay",
+            "polarity": "Debuff",
+            "category": "Survival",
+            "titleKey": "effect.naturaldecay.title",
+            "descriptionKey": "effect.naturaldecay.desc",
+            "emoji": "\u231B"
+          },
+          "CleanClothes": {
+            "kind": "CleanClothes",
+            "polarity": "Buff",
+            "category": "Hygiene",
+            "titleKey": "effect.cleanclothes.title",
+            "descriptionKey": "effect.cleanclothes.desc",
+            "emoji": "\u2728"
+          },
+          "NearbyCompany": {
+            "kind": "NearbyCompany",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.nearbycompany.title",
+            "descriptionKey": "effect.nearbycompany.desc",
+            "emoji": "\uD83D\uDC65"
+          },
+          "WitnessingSuffering": {
+            "kind": "WitnessingSuffering",
+            "polarity": "Debuff",
+            "category": "Mind",
+            "titleKey": "effect.witnessingsuffering.title",
+            "descriptionKey": "effect.witnessingsuffering.desc",
+            "emoji": "\uD83E\uDEF6"
+          },
+          "Resting": {
+            "kind": "Resting",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.resting.title",
+            "descriptionKey": "effect.resting.desc",
+            "emoji": "\uD83E\uDE91"
+          },
+          "Calm": {
+            "kind": "Calm",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.calm.title",
+            "descriptionKey": "effect.calm.desc",
+            "emoji": "\uD83D\uDD4A\uFE0F"
+          },
+          "AmbientTemperature": {
+            "kind": "AmbientTemperature",
+            "polarity": "Debuff",
+            "category": "Environment",
+            "titleKey": "effect.ambienttemperature.title",
+            "descriptionKey": "effect.ambienttemperature.desc",
+            "emoji": "\uD83C\uDF21\uFE0F"
+          },
+          "BreathRecovery": {
+            "kind": "BreathRecovery",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.breathrecovery.title",
+            "descriptionKey": "effect.breathrecovery.desc",
+            "emoji": "\uD83C\uDF2C\uFE0F"
+          }
+        },
+        "effectTerms": {
+          "effect.wellfed.title": {
+            "en": "Well fed",
+            "ru": "\u0421\u044B\u0442\u0430"
+          },
+          "effect.wellfed.desc": {
+            "en": "Freshly full \u2014 content and at her best.",
+            "ru": "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0435\u043B\u0430 \u2014 \u0434\u043E\u0432\u043E\u043B\u044C\u043D\u0430 \u0438 \u043F\u043E\u043B\u043D\u0430 \u0441\u0438\u043B."
+          },
+          "effect.rested.title": {
+            "en": "Rested",
+            "ru": "\u041E\u0442\u0434\u043E\u0445\u043D\u0443\u043B\u0430"
+          },
+          "effect.rested.desc": {
+            "en": "Energy and stamina both high \u2014 ready for anything.",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C \u0432\u044B\u0441\u043E\u043A\u0438 \u2014 \u0433\u043E\u0442\u043E\u0432\u0430 \u043A\u043E \u0432\u0441\u0435\u043C\u0443."
+          },
+          "effect.naturaldecay.title": {
+            "en": "Natural change",
+            "ru": "\u0415\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435"
+          },
+          "effect.naturaldecay.desc": {
+            "en": "The body\u0027s ordinary needs keep changing with time.",
+            "ru": "\u041E\u0431\u044B\u0447\u043D\u044B\u0435 \u043F\u043E\u0442\u0440\u0435\u0431\u043D\u043E\u0441\u0442\u0438 \u0442\u0435\u043B\u0430 \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E \u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F \u0441\u043E \u0432\u0440\u0435\u043C\u0435\u043D\u0435\u043C."
+          },
+          "need.hunger": {
+            "en": "Fed",
+            "ru": "\u0421\u044B\u0442\u043E\u0441\u0442\u044C"
+          },
+          "need.thirst": {
+            "en": "Hydration",
+            "ru": "\u0416\u0430\u0436\u0434\u0430"
+          },
+          "need.energy": {
+            "en": "Energy",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F"
+          },
+          "need.comfort": {
+            "en": "Comfort",
+            "ru": "\u041A\u043E\u043C\u0444\u043E\u0440\u0442"
+          },
+          "effect.cleanclothes.title": {
+            "en": "Clean clothes",
+            "ru": "\u0427\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430"
+          },
+          "effect.cleanclothes.desc": {
+            "en": "Freshly washed clothes are gently increasing comfort.",
+            "ru": "\u0421\u0432\u0435\u0436\u0430\u044F \u0447\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430 \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u043F\u043E\u0432\u044B\u0448\u0430\u0435\u0442 \u043A\u043E\u043C\u0444\u043E\u0440\u0442."
+          },
+          "need.social": {
+            "en": "Social",
+            "ru": "\u041E\u0431\u0449\u0435\u043D\u0438\u0435"
+          },
+          "effect.nearbycompany.title": {
+            "en": "Nearby company",
+            "ru": "\u041A\u0442\u043E-\u0442\u043E \u0440\u044F\u0434\u043E\u043C"
+          },
+          "effect.nearbycompany.desc": {
+            "en": "A nearby companion is easing her loneliness.",
+            "ru": "\u041F\u0440\u0438\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435 \u0442\u043E\u0432\u0430\u0440\u0438\u0449\u0430 \u0440\u044F\u0434\u043E\u043C \u0441\u043C\u044F\u0433\u0447\u0430\u0435\u0442 \u043E\u0434\u0438\u043D\u043E\u0447\u0435\u0441\u0442\u0432\u043E."
+          },
+          "effect.witnessingsuffering.title": {
+            "en": "Witnessing suffering",
+            "ru": "\u0412\u0438\u0434\u0438\u0442 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F"
+          },
+          "effect.witnessingsuffering.desc": {
+            "en": "Seeing someone suffer nearby is draining her care reserve.",
+            "ru": "\u0427\u0443\u0436\u0438\u0435 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F \u0440\u044F\u0434\u043E\u043C \u0438\u0441\u0442\u043E\u0449\u0430\u044E\u0442 \u0435\u0451 \u0437\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B."
+          },
+          "need.compassion": {
+            "en": "Care reserve",
+            "ru": "\u0417\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B"
+          },
+          "effect.resting.title": {
+            "en": "Resting",
+            "ru": "\u041E\u0442\u0434\u044B\u0445"
+          },
+          "effect.resting.desc": {
+            "en": "Taking it easy is restoring stamina.",
+            "ru": "\u0421\u043F\u043E\u043A\u043E\u0439\u043D\u044B\u0439 \u043E\u0442\u0434\u044B\u0445 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C."
+          },
+          "need.stamina": {
+            "en": "Stamina",
+            "ru": "\u0412\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C"
+          },
+          "effect.calm.title": {
+            "en": "Calm",
+            "ru": "\u0421\u043F\u043E\u043A\u043E\u0439\u0441\u0442\u0432\u0438\u0435"
+          },
+          "effect.calm.desc": {
+            "en": "With no immediate threat, stress is easing.",
+            "ru": "\u0411\u0435\u0437 \u043D\u0435\u043F\u043E\u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0439 \u0443\u0433\u0440\u043E\u0437\u044B \u0441\u0442\u0440\u0435\u0441\u0441 \u043E\u0442\u0441\u0442\u0443\u043F\u0430\u0435\u0442."
+          },
+          "need.stress": {
+            "en": "Stress",
+            "ru": "\u0421\u0442\u0440\u0435\u0441\u0441"
+          },
+          "need.hygiene": {
+            "en": "Hygiene",
+            "ru": "\u0413\u0438\u0433\u0438\u0435\u043D\u0430"
+          },
+          "effect.ambienttemperature.title": {
+            "en": "Ambient temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430 \u0432\u043E\u0437\u0434\u0443\u0445\u0430"
+          },
+          "effect.ambienttemperature.desc": {
+            "en": "The surroundings are moving body temperature toward their own.",
+            "ru": "\u041E\u043A\u0440\u0443\u0436\u0430\u044E\u0449\u0430\u044F \u0441\u0440\u0435\u0434\u0430 \u0441\u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0442\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0443 \u0442\u0435\u043B\u0430 \u043A \u0441\u0432\u043E\u0435\u0439."
+          },
+          "need.temperature": {
+            "en": "Temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430"
+          },
+          "effect.breathrecovery.title": {
+            "en": "Catching breath",
+            "ru": "\u041F\u0435\u0440\u0435\u0432\u043E\u0434\u0438\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435"
+          },
+          "effect.breathrecovery.desc": {
+            "en": "Walking or standing is restoring breath.",
+            "ru": "\u0425\u043E\u0434\u044C\u0431\u0430 \u0438\u043B\u0438 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435."
+          },
+          "need.breath": {
+            "en": "Breath",
+            "ru": "\u0414\u044B\u0445\u0430\u043D\u0438\u0435"
+          }
+        },
+        "perceptionSummary": "updatedTick=76; environment[temperature=8.896, crowded=true, private=false, nearbyAgents=3]; objects=[{id=143, definition=rock.boulder, distance=7.694, reachable=true, occupied=false, fromMemory=false, interactions=[Harvest]}; {definition=resource.stone, count=3, nearest=[{id=191, distance=5.524, reachable=true, occupied=false, fromMemory=false}; {id=177, distance=6.375, reachable=true, occupied=false, fromMemory=false}; {id=184, distance=8.224, reachable=true, occupied=false, fromMemory=false}], interactions=[PickUp]}; {id=198, definition=tree.palm, distance=9.101, reachable=true, occupied=false, fromMemory=false, interactions=[Harvest]}; {definition=build.site, count=2, nearest=[{id=1105, distance=23.494, reachable=true, occupied=false, fromMemory=true}; {id=1104, distance=25.853, reachable=true, occupied=false, fromMemory=true}], interactions=[Build]}; {definition=food.coconut, count=4, nearest=[{id=1106, distance=1.352, reachable=true, occupied=false, fromMemory=false}; {id=1107, distance=1.352, reachable=true, occupied=false, fromMemory=false}; {id=1108, distance=1.352, reachable=true, occupied=false, fromMemory=false}], interactions=[PickUp|Process]}]; allies=[{id=1, distance=29.482, reachable=true, busy=false, moving=false, suffering=0.711}; {id=2, distance=33.147, reachable=true, busy=false, moving=false, suffering=0.8}; {id=3, distance=27.985, reachable=true, busy=false, moving=false, suffering=0.567}]; hostiles=[]; mobs=[]",
+        "memorySummary": "knownObjects=[{id=143, definition=rock.boulder, tile=-9,8, lastSeenTick=76, permanent=false}; {id=177, definition=resource.stone, tile=-11,7, lastSeenTick=76, permanent=false}; {id=184, definition=resource.stone, tile=-10,11, lastSeenTick=76, permanent=false}; {id=191, definition=resource.stone, tile=-10,9, lastSeenTick=76, permanent=false}; {id=198, definition=tree.palm, tile=-9,10, lastSeenTick=76, permanent=false}; {id=1083, definition=food.coconut, tile=-9,10, lastSeenTick=76, permanent=false}; {id=1104, definition=build.site, tile=-1,3, lastSeenTick=0, permanent=true}; {id=1105, definition=build.site, tile=-2,4, lastSeenTick=16, permanent=true}; {id=1106, definition=food.coconut, tile=-12,10, lastSeenTick=76, permanent=false}; {id=1107, definition=food.coconut, tile=-13,10, lastSeenTick=76, permanent=false}; {id=1108, definition=food.coconut, tile=-13,10, lastSeenTick=76, permanent=false}]; knownAgents=[{id=1, faction=Colony, tile=0,0, lastSeenTick=76, suffering=0.711, aid=Feed, helpless=false}; {id=2, faction=Colony, tile=2,0, lastSeenTick=76, suffering=0.8, aid=Hydrate, helpless=false}; {id=3, faction=Colony, tile=0,3, lastSeenTick=76, suffering=0.567, aid=Hydrate, helpless=false}]; dangers=[{tile=-7,-1, tick=40}]",
+        "inventory": [],
+        "inventorySummary": {
+          "capacity": 14,
+          "usedSlots": 0,
+          "freeSlots": 14,
+          "overflowSlots": 0,
+          "itemCount": 0,
+          "slots": [
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 1,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 2,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 3,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 4,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 5,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 6,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 7,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 8,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 9,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 10,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 11,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:left",
+              "kind": "HandLeft",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:right",
+              "kind": "HandRight",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            }
+          ],
+          "itemCapacity": [
+            {
+              "itemId": "food.coconut",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "resource.stone",
+              "count": 0,
+              "stackSize": 20,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 280,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "rock.boulder",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "tree.palm",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            }
+          ]
+        },
+        "visibleItems": [
+          {
+            "itemId": "rock.boulder",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 143
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 177
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 184
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 191
+          },
+          {
+            "itemId": "tree.palm",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 198
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1083
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1106
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1107
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1108
+          }
+        ],
+        "visibleNpcs": [
+          {
+            "npcId": 1,
+            "nameId": "Nadia",
+            "names": {
+              "en": "Nadia",
+              "ru": "\u041D\u0430\u0434\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 29.48225,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.7112793,
+            "aidKind": "Feed",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          },
+          {
+            "npcId": 2,
+            "nameId": "Sonya",
+            "names": {
+              "en": "Sonya",
+              "ru": "\u0421\u043E\u043D\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 33.14669,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.8,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0.8
+            }
+          },
+          {
+            "npcId": 3,
+            "nameId": "Tessa",
+            "names": {
+              "en": "Tessa",
+              "ru": "\u0422\u0435\u0441\u0441\u0430"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 27.98465,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.56675684,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          }
+        ],
+        "recentPerception": null,
+        "inventoryItems": [],
+        "wornItems": [
+          {
+            "itemId": "gear.backpack_riot",
+            "inventoryCapacityWhenWorn": 9,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "sourceIndex": 0,
+            "likingPercent": 84,
+            "durability": 0.9999933,
+            "conditionPercent": 100
+          }
+        ]
+      }
+    },
+    {
+      "call": 2,
+      "elapsedMs": 8599,
+      "decision": {
+        "memoryRequests": [
+          {
+            "operation": "spec.read",
+            "arguments": {
+              "section": "153",
+              "offset": 0
+            }
+          }
+        ],
+        "memorySources": [],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": null,
+        "speech": "",
+        "emotion": "curious",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      },
+      "body": {
+        "npcId": 901,
+        "profileId": "masha",
+        "name": "masha",
+        "tick": 80,
+        "position": {
+          "x": -19.486,
+          "y": 22.125
+        },
+        "tile": "-12,10",
+        "manualControl": true,
+        "carriedNpcId": null,
+        "carriedByNpcId": null,
+        "leaseHolder": "",
+        "hexkufaExposure": 0,
+        "legacyAgentState": null,
+        "stateSummary": "health=1; goal=None; interaction=none; execution=None; moving=false; fighting=false; manualControl=true; unconscious=false; needs[hunger=0.002, thirst=0.006, energy=0.998, comfort=0.371, social=0.38, thermal=0.038, stamina=0.992, blood=1, stress=0]",
+        "bodyNeeds": {
+          "energy": {
+            "value": 0.9981918,
+            "higherIsBetter": true,
+            "meaning": "wakefulness reserve; restored by sleep",
+            "specSection": "60"
+          },
+          "stamina": {
+            "value": 0.9918,
+            "higherIsBetter": true,
+            "meaning": "work reserve; recovery depends on rest and body condition",
+            "specSection": "40"
+          },
+          "breath": {
+            "value": 1,
+            "higherIsBetter": true,
+            "meaning": "sprint reserve; walking also restores it",
+            "specSection": "71"
+          },
+          "hunger": 0.0024957042,
+          "thirst": 0.0059896903,
+          "blood": 1,
+          "hygiene": 0.99799997,
+          "health": 1
+        },
+        "execution": {
+          "planStatus": "None",
+          "status": "None",
+          "interaction": null,
+          "targetObjectId": null,
+          "failureReason": ""
+        },
+        "effects": [
+          {
+            "kind": "WellFed",
+            "intensity": 0.98336196,
+            "detailKey": ""
+          },
+          {
+            "kind": "Rested",
+            "intensity": 0.9918,
+            "detailKey": ""
+          }
+        ],
+        "effectImpacts": [
+          {
+            "need": "Hunger",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Thirst",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Energy",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "CleanClothes",
+            "direction": "Positive"
+          },
+          {
+            "need": "Social",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Social",
+            "kind": "NearbyCompany",
+            "direction": "Positive"
+          },
+          {
+            "need": "Compassion",
+            "kind": "WitnessingSuffering",
+            "direction": "Negative"
+          },
+          {
+            "need": "Stamina",
+            "kind": "Resting",
+            "direction": "Positive"
+          },
+          {
+            "need": "Stress",
+            "kind": "Calm",
+            "direction": "Positive"
+          },
+          {
+            "need": "Hygiene",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Temperature",
+            "kind": "AmbientTemperature",
+            "direction": "Negative"
+          },
+          {
+            "need": "Breath",
+            "kind": "BreathRecovery",
+            "direction": "Positive"
+          }
+        ],
+        "effectDefinitions": {
+          "WellFed": {
+            "kind": "WellFed",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.wellfed.title",
+            "descriptionKey": "effect.wellfed.desc",
+            "emoji": "\uD83D\uDE0B"
+          },
+          "Rested": {
+            "kind": "Rested",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.rested.title",
+            "descriptionKey": "effect.rested.desc",
+            "emoji": "\uD83D\uDCAA"
+          },
+          "NaturalDecay": {
+            "kind": "NaturalDecay",
+            "polarity": "Debuff",
+            "category": "Survival",
+            "titleKey": "effect.naturaldecay.title",
+            "descriptionKey": "effect.naturaldecay.desc",
+            "emoji": "\u231B"
+          },
+          "CleanClothes": {
+            "kind": "CleanClothes",
+            "polarity": "Buff",
+            "category": "Hygiene",
+            "titleKey": "effect.cleanclothes.title",
+            "descriptionKey": "effect.cleanclothes.desc",
+            "emoji": "\u2728"
+          },
+          "NearbyCompany": {
+            "kind": "NearbyCompany",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.nearbycompany.title",
+            "descriptionKey": "effect.nearbycompany.desc",
+            "emoji": "\uD83D\uDC65"
+          },
+          "WitnessingSuffering": {
+            "kind": "WitnessingSuffering",
+            "polarity": "Debuff",
+            "category": "Mind",
+            "titleKey": "effect.witnessingsuffering.title",
+            "descriptionKey": "effect.witnessingsuffering.desc",
+            "emoji": "\uD83E\uDEF6"
+          },
+          "Resting": {
+            "kind": "Resting",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.resting.title",
+            "descriptionKey": "effect.resting.desc",
+            "emoji": "\uD83E\uDE91"
+          },
+          "Calm": {
+            "kind": "Calm",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.calm.title",
+            "descriptionKey": "effect.calm.desc",
+            "emoji": "\uD83D\uDD4A\uFE0F"
+          },
+          "AmbientTemperature": {
+            "kind": "AmbientTemperature",
+            "polarity": "Debuff",
+            "category": "Environment",
+            "titleKey": "effect.ambienttemperature.title",
+            "descriptionKey": "effect.ambienttemperature.desc",
+            "emoji": "\uD83C\uDF21\uFE0F"
+          },
+          "BreathRecovery": {
+            "kind": "BreathRecovery",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.breathrecovery.title",
+            "descriptionKey": "effect.breathrecovery.desc",
+            "emoji": "\uD83C\uDF2C\uFE0F"
+          }
+        },
+        "effectTerms": {
+          "effect.wellfed.title": {
+            "en": "Well fed",
+            "ru": "\u0421\u044B\u0442\u0430"
+          },
+          "effect.wellfed.desc": {
+            "en": "Freshly full \u2014 content and at her best.",
+            "ru": "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0435\u043B\u0430 \u2014 \u0434\u043E\u0432\u043E\u043B\u044C\u043D\u0430 \u0438 \u043F\u043E\u043B\u043D\u0430 \u0441\u0438\u043B."
+          },
+          "effect.rested.title": {
+            "en": "Rested",
+            "ru": "\u041E\u0442\u0434\u043E\u0445\u043D\u0443\u043B\u0430"
+          },
+          "effect.rested.desc": {
+            "en": "Energy and stamina both high \u2014 ready for anything.",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C \u0432\u044B\u0441\u043E\u043A\u0438 \u2014 \u0433\u043E\u0442\u043E\u0432\u0430 \u043A\u043E \u0432\u0441\u0435\u043C\u0443."
+          },
+          "effect.naturaldecay.title": {
+            "en": "Natural change",
+            "ru": "\u0415\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435"
+          },
+          "effect.naturaldecay.desc": {
+            "en": "The body\u0027s ordinary needs keep changing with time.",
+            "ru": "\u041E\u0431\u044B\u0447\u043D\u044B\u0435 \u043F\u043E\u0442\u0440\u0435\u0431\u043D\u043E\u0441\u0442\u0438 \u0442\u0435\u043B\u0430 \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E \u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F \u0441\u043E \u0432\u0440\u0435\u043C\u0435\u043D\u0435\u043C."
+          },
+          "need.hunger": {
+            "en": "Fed",
+            "ru": "\u0421\u044B\u0442\u043E\u0441\u0442\u044C"
+          },
+          "need.thirst": {
+            "en": "Hydration",
+            "ru": "\u0416\u0430\u0436\u0434\u0430"
+          },
+          "need.energy": {
+            "en": "Energy",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F"
+          },
+          "need.comfort": {
+            "en": "Comfort",
+            "ru": "\u041A\u043E\u043C\u0444\u043E\u0440\u0442"
+          },
+          "effect.cleanclothes.title": {
+            "en": "Clean clothes",
+            "ru": "\u0427\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430"
+          },
+          "effect.cleanclothes.desc": {
+            "en": "Freshly washed clothes are gently increasing comfort.",
+            "ru": "\u0421\u0432\u0435\u0436\u0430\u044F \u0447\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430 \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u043F\u043E\u0432\u044B\u0448\u0430\u0435\u0442 \u043A\u043E\u043C\u0444\u043E\u0440\u0442."
+          },
+          "need.social": {
+            "en": "Social",
+            "ru": "\u041E\u0431\u0449\u0435\u043D\u0438\u0435"
+          },
+          "effect.nearbycompany.title": {
+            "en": "Nearby company",
+            "ru": "\u041A\u0442\u043E-\u0442\u043E \u0440\u044F\u0434\u043E\u043C"
+          },
+          "effect.nearbycompany.desc": {
+            "en": "A nearby companion is easing her loneliness.",
+            "ru": "\u041F\u0440\u0438\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435 \u0442\u043E\u0432\u0430\u0440\u0438\u0449\u0430 \u0440\u044F\u0434\u043E\u043C \u0441\u043C\u044F\u0433\u0447\u0430\u0435\u0442 \u043E\u0434\u0438\u043D\u043E\u0447\u0435\u0441\u0442\u0432\u043E."
+          },
+          "effect.witnessingsuffering.title": {
+            "en": "Witnessing suffering",
+            "ru": "\u0412\u0438\u0434\u0438\u0442 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F"
+          },
+          "effect.witnessingsuffering.desc": {
+            "en": "Seeing someone suffer nearby is draining her care reserve.",
+            "ru": "\u0427\u0443\u0436\u0438\u0435 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F \u0440\u044F\u0434\u043E\u043C \u0438\u0441\u0442\u043E\u0449\u0430\u044E\u0442 \u0435\u0451 \u0437\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B."
+          },
+          "need.compassion": {
+            "en": "Care reserve",
+            "ru": "\u0417\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B"
+          },
+          "effect.resting.title": {
+            "en": "Resting",
+            "ru": "\u041E\u0442\u0434\u044B\u0445"
+          },
+          "effect.resting.desc": {
+            "en": "Taking it easy is restoring stamina.",
+            "ru": "\u0421\u043F\u043E\u043A\u043E\u0439\u043D\u044B\u0439 \u043E\u0442\u0434\u044B\u0445 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C."
+          },
+          "need.stamina": {
+            "en": "Stamina",
+            "ru": "\u0412\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C"
+          },
+          "effect.calm.title": {
+            "en": "Calm",
+            "ru": "\u0421\u043F\u043E\u043A\u043E\u0439\u0441\u0442\u0432\u0438\u0435"
+          },
+          "effect.calm.desc": {
+            "en": "With no immediate threat, stress is easing.",
+            "ru": "\u0411\u0435\u0437 \u043D\u0435\u043F\u043E\u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0439 \u0443\u0433\u0440\u043E\u0437\u044B \u0441\u0442\u0440\u0435\u0441\u0441 \u043E\u0442\u0441\u0442\u0443\u043F\u0430\u0435\u0442."
+          },
+          "need.stress": {
+            "en": "Stress",
+            "ru": "\u0421\u0442\u0440\u0435\u0441\u0441"
+          },
+          "need.hygiene": {
+            "en": "Hygiene",
+            "ru": "\u0413\u0438\u0433\u0438\u0435\u043D\u0430"
+          },
+          "effect.ambienttemperature.title": {
+            "en": "Ambient temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430 \u0432\u043E\u0437\u0434\u0443\u0445\u0430"
+          },
+          "effect.ambienttemperature.desc": {
+            "en": "The surroundings are moving body temperature toward their own.",
+            "ru": "\u041E\u043A\u0440\u0443\u0436\u0430\u044E\u0449\u0430\u044F \u0441\u0440\u0435\u0434\u0430 \u0441\u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0442\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0443 \u0442\u0435\u043B\u0430 \u043A \u0441\u0432\u043E\u0435\u0439."
+          },
+          "need.temperature": {
+            "en": "Temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430"
+          },
+          "effect.breathrecovery.title": {
+            "en": "Catching breath",
+            "ru": "\u041F\u0435\u0440\u0435\u0432\u043E\u0434\u0438\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435"
+          },
+          "effect.breathrecovery.desc": {
+            "en": "Walking or standing is restoring breath.",
+            "ru": "\u0425\u043E\u0434\u044C\u0431\u0430 \u0438\u043B\u0438 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435."
+          },
+          "need.breath": {
+            "en": "Breath",
+            "ru": "\u0414\u044B\u0445\u0430\u043D\u0438\u0435"
+          }
+        },
+        "perceptionSummary": "updatedTick=76; environment[temperature=8.896, crowded=true, private=false, nearbyAgents=3]; objects=[{id=143, definition=rock.boulder, distance=7.694, reachable=true, occupied=false, fromMemory=false, interactions=[Harvest]}; {definition=resource.stone, count=3, nearest=[{id=191, distance=5.524, reachable=true, occupied=false, fromMemory=false}; {id=177, distance=6.375, reachable=true, occupied=false, fromMemory=false}; {id=184, distance=8.224, reachable=true, occupied=false, fromMemory=false}], interactions=[PickUp]}; {id=198, definition=tree.palm, distance=9.101, reachable=true, occupied=false, fromMemory=false, interactions=[Harvest]}; {definition=build.site, count=2, nearest=[{id=1105, distance=23.494, reachable=true, occupied=false, fromMemory=true}; {id=1104, distance=25.853, reachable=true, occupied=false, fromMemory=true}], interactions=[Build]}; {definition=food.coconut, count=4, nearest=[{id=1106, distance=1.352, reachable=true, occupied=false, fromMemory=false}; {id=1107, distance=1.352, reachable=true, occupied=false, fromMemory=false}; {id=1108, distance=1.352, reachable=true, occupied=false, fromMemory=false}], interactions=[PickUp|Process]}]; allies=[{id=1, distance=29.482, reachable=true, busy=false, moving=false, suffering=0.711}; {id=2, distance=33.147, reachable=true, busy=false, moving=false, suffering=0.8}; {id=3, distance=27.985, reachable=true, busy=false, moving=false, suffering=0.567}]; hostiles=[]; mobs=[]",
+        "memorySummary": "knownObjects=[{id=143, definition=rock.boulder, tile=-9,8, lastSeenTick=76, permanent=false}; {id=177, definition=resource.stone, tile=-11,7, lastSeenTick=76, permanent=false}; {id=184, definition=resource.stone, tile=-10,11, lastSeenTick=76, permanent=false}; {id=191, definition=resource.stone, tile=-10,9, lastSeenTick=76, permanent=false}; {id=198, definition=tree.palm, tile=-9,10, lastSeenTick=76, permanent=false}; {id=1083, definition=food.coconut, tile=-9,10, lastSeenTick=76, permanent=false}; {id=1104, definition=build.site, tile=-1,3, lastSeenTick=0, permanent=true}; {id=1105, definition=build.site, tile=-2,4, lastSeenTick=16, permanent=true}; {id=1106, definition=food.coconut, tile=-12,10, lastSeenTick=76, permanent=false}; {id=1107, definition=food.coconut, tile=-13,10, lastSeenTick=76, permanent=false}; {id=1108, definition=food.coconut, tile=-13,10, lastSeenTick=76, permanent=false}]; knownAgents=[{id=1, faction=Colony, tile=0,0, lastSeenTick=76, suffering=0.711, aid=Feed, helpless=false}; {id=2, faction=Colony, tile=2,0, lastSeenTick=76, suffering=0.8, aid=Hydrate, helpless=false}; {id=3, faction=Colony, tile=0,3, lastSeenTick=76, suffering=0.567, aid=Hydrate, helpless=false}]; dangers=[{tile=-7,-1, tick=40}]",
+        "inventory": [],
+        "inventorySummary": {
+          "capacity": 14,
+          "usedSlots": 0,
+          "freeSlots": 14,
+          "overflowSlots": 0,
+          "itemCount": 0,
+          "slots": [
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 1,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 2,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 3,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 4,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 5,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 6,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 7,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 8,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 9,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 10,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 11,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:left",
+              "kind": "HandLeft",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:right",
+              "kind": "HandRight",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            }
+          ],
+          "itemCapacity": [
+            {
+              "itemId": "food.coconut",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "resource.stone",
+              "count": 0,
+              "stackSize": 20,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 280,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "rock.boulder",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "tree.palm",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            }
+          ]
+        },
+        "visibleItems": [
+          {
+            "itemId": "rock.boulder",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 143
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 177
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 184
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 191
+          },
+          {
+            "itemId": "tree.palm",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 198
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1083
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1106
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1107
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1108
+          }
+        ],
+        "visibleNpcs": [
+          {
+            "npcId": 1,
+            "nameId": "Nadia",
+            "names": {
+              "en": "Nadia",
+              "ru": "\u041D\u0430\u0434\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 29.48225,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.7112793,
+            "aidKind": "Feed",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          },
+          {
+            "npcId": 2,
+            "nameId": "Sonya",
+            "names": {
+              "en": "Sonya",
+              "ru": "\u0421\u043E\u043D\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 33.14669,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.8,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0.8
+            }
+          },
+          {
+            "npcId": 3,
+            "nameId": "Tessa",
+            "names": {
+              "en": "Tessa",
+              "ru": "\u0422\u0435\u0441\u0441\u0430"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 27.98465,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.56675684,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          }
+        ],
+        "recentPerception": null,
+        "inventoryItems": [],
+        "wornItems": [
+          {
+            "itemId": "gear.backpack_riot",
+            "inventoryCapacityWhenWorn": 9,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "sourceIndex": 0,
+            "likingPercent": 84,
+            "durability": 0.9999933,
+            "conditionPercent": 100
+          }
+        ]
+      }
+    },
+    {
+      "call": 3,
+      "elapsedMs": 14731,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [
+          "spec:153:0:a7f4f447cdaa773c00d994df1fb33104637ac92292001bc5146655f60539f502",
+          "skill:give-gift:0:64deb9321cb54e554edd14e6b0a05590e3ba28d4b8e547be716db92a12996470"
+        ],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": {
+          "operation": "replace",
+          "reason": "PlayerRequest",
+          "steps": [
+            {
+              "id": "pick-coconut",
+              "tool": "interact",
+              "arguments": {
+                "npcId": 901,
+                "objectId": 1106,
+                "interaction": "PickUp"
+              }
+            }
+          ]
+        },
+        "speech": "\u041B\u0430\u0434\u043D\u043E. \u0421\u043E\u043D\u044F \u043C\u043D\u0435 \u044F\u0432\u043D\u043E \u043D\u0435 \u0431\u0435\u0437\u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0430, \u0430 \u0435\u0439 \u0441\u0435\u0439\u0447\u0430\u0441 \u0445\u0443\u0436\u0435 \u0432\u0441\u0435\u0433\u043E \u0431\u0435\u0437 \u0432\u043E\u0434\u044B; \u0434\u043B\u044F \u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u043E\u0437\u044C\u043C\u0443 \u043A\u043E\u043A\u043E\u0441, \u043F\u043E\u0442\u043E\u043C \u043F\u0440\u043E\u0432\u0435\u0440\u044E, \u0447\u0442\u043E \u043E\u043D \u0443 \u043C\u0435\u043D\u044F, \u0438 \u043E\u0442\u043D\u0435\u0441\u0443 \u0435\u0439. \u0418\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B \u0442\u0440\u043E\u0433\u0430\u0442\u044C \u043D\u0435 \u0441\u043E\u0431\u0438\u0440\u0430\u044E\u0441\u044C.",
+        "emotion": "curious",
+        "action": null,
+        "relationshipAssessment": {
+          "learnedSomethingSignificant": false,
+          "trust": "Unchanged",
+          "sympathy": "Unchanged",
+          "seriousHarm": false,
+          "reason": "\u0413\u043E\u043B\u043E\u0441 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u043B \u043F\u043E\u043D\u044F\u0442\u043D\u0443\u044E \u043F\u0440\u043E\u0441\u044C\u0431\u0443 \u0431\u0435\u0437 \u0434\u0430\u0432\u043B\u0435\u043D\u0438\u044F.",
+          "voiceName": null,
+          "namingReason": null
+        },
+        "reaction": "None",
+        "intentSummary": "\u0412\u044B\u0431\u0438\u0440\u0430\u044E \u0421\u043E\u043D\u044E: \u043C\u0435\u0436\u0434\u0443 \u043D\u0430\u043C\u0438 \u0435\u0441\u0442\u044C \u0441\u0438\u043C\u043F\u0430\u0442\u0438\u044F, \u0430 \u0435\u0439 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0432\u043E\u0434\u0430. \u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u043E\u0437\u044C\u043C\u0443 \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0438\u0439 \u043A\u043E\u043A\u043E\u0441 \u0438 \u043F\u0440\u043E\u0432\u0435\u0440\u044E \u0440\u044E\u043A\u0437\u0430\u043A.",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      },
+      "body": {
+        "npcId": 901,
+        "profileId": "masha",
+        "name": "masha",
+        "tick": 80,
+        "position": {
+          "x": -19.486,
+          "y": 22.125
+        },
+        "tile": "-12,10",
+        "manualControl": true,
+        "carriedNpcId": null,
+        "carriedByNpcId": null,
+        "leaseHolder": "",
+        "hexkufaExposure": 0,
+        "legacyAgentState": null,
+        "stateSummary": "health=1; goal=None; interaction=none; execution=None; moving=false; fighting=false; manualControl=true; unconscious=false; needs[hunger=0.002, thirst=0.006, energy=0.998, comfort=0.371, social=0.38, thermal=0.038, stamina=0.992, blood=1, stress=0]",
+        "bodyNeeds": {
+          "energy": {
+            "value": 0.9981918,
+            "higherIsBetter": true,
+            "meaning": "wakefulness reserve; restored by sleep",
+            "specSection": "60"
+          },
+          "stamina": {
+            "value": 0.9918,
+            "higherIsBetter": true,
+            "meaning": "work reserve; recovery depends on rest and body condition",
+            "specSection": "40"
+          },
+          "breath": {
+            "value": 1,
+            "higherIsBetter": true,
+            "meaning": "sprint reserve; walking also restores it",
+            "specSection": "71"
+          },
+          "hunger": 0.0024957042,
+          "thirst": 0.0059896903,
+          "blood": 1,
+          "hygiene": 0.99799997,
+          "health": 1
+        },
+        "execution": {
+          "planStatus": "None",
+          "status": "None",
+          "interaction": null,
+          "targetObjectId": null,
+          "failureReason": ""
+        },
+        "effects": [
+          {
+            "kind": "WellFed",
+            "intensity": 0.98336196,
+            "detailKey": ""
+          },
+          {
+            "kind": "Rested",
+            "intensity": 0.9918,
+            "detailKey": ""
+          }
+        ],
+        "effectImpacts": [
+          {
+            "need": "Hunger",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Thirst",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Energy",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "CleanClothes",
+            "direction": "Positive"
+          },
+          {
+            "need": "Social",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Social",
+            "kind": "NearbyCompany",
+            "direction": "Positive"
+          },
+          {
+            "need": "Compassion",
+            "kind": "WitnessingSuffering",
+            "direction": "Negative"
+          },
+          {
+            "need": "Stamina",
+            "kind": "Resting",
+            "direction": "Positive"
+          },
+          {
+            "need": "Stress",
+            "kind": "Calm",
+            "direction": "Positive"
+          },
+          {
+            "need": "Hygiene",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Temperature",
+            "kind": "AmbientTemperature",
+            "direction": "Negative"
+          },
+          {
+            "need": "Breath",
+            "kind": "BreathRecovery",
+            "direction": "Positive"
+          }
+        ],
+        "effectDefinitions": {
+          "WellFed": {
+            "kind": "WellFed",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.wellfed.title",
+            "descriptionKey": "effect.wellfed.desc",
+            "emoji": "\uD83D\uDE0B"
+          },
+          "Rested": {
+            "kind": "Rested",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.rested.title",
+            "descriptionKey": "effect.rested.desc",
+            "emoji": "\uD83D\uDCAA"
+          },
+          "NaturalDecay": {
+            "kind": "NaturalDecay",
+            "polarity": "Debuff",
+            "category": "Survival",
+            "titleKey": "effect.naturaldecay.title",
+            "descriptionKey": "effect.naturaldecay.desc",
+            "emoji": "\u231B"
+          },
+          "CleanClothes": {
+            "kind": "CleanClothes",
+            "polarity": "Buff",
+            "category": "Hygiene",
+            "titleKey": "effect.cleanclothes.title",
+            "descriptionKey": "effect.cleanclothes.desc",
+            "emoji": "\u2728"
+          },
+          "NearbyCompany": {
+            "kind": "NearbyCompany",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.nearbycompany.title",
+            "descriptionKey": "effect.nearbycompany.desc",
+            "emoji": "\uD83D\uDC65"
+          },
+          "WitnessingSuffering": {
+            "kind": "WitnessingSuffering",
+            "polarity": "Debuff",
+            "category": "Mind",
+            "titleKey": "effect.witnessingsuffering.title",
+            "descriptionKey": "effect.witnessingsuffering.desc",
+            "emoji": "\uD83E\uDEF6"
+          },
+          "Resting": {
+            "kind": "Resting",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.resting.title",
+            "descriptionKey": "effect.resting.desc",
+            "emoji": "\uD83E\uDE91"
+          },
+          "Calm": {
+            "kind": "Calm",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.calm.title",
+            "descriptionKey": "effect.calm.desc",
+            "emoji": "\uD83D\uDD4A\uFE0F"
+          },
+          "AmbientTemperature": {
+            "kind": "AmbientTemperature",
+            "polarity": "Debuff",
+            "category": "Environment",
+            "titleKey": "effect.ambienttemperature.title",
+            "descriptionKey": "effect.ambienttemperature.desc",
+            "emoji": "\uD83C\uDF21\uFE0F"
+          },
+          "BreathRecovery": {
+            "kind": "BreathRecovery",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.breathrecovery.title",
+            "descriptionKey": "effect.breathrecovery.desc",
+            "emoji": "\uD83C\uDF2C\uFE0F"
+          }
+        },
+        "effectTerms": {
+          "effect.wellfed.title": {
+            "en": "Well fed",
+            "ru": "\u0421\u044B\u0442\u0430"
+          },
+          "effect.wellfed.desc": {
+            "en": "Freshly full \u2014 content and at her best.",
+            "ru": "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0435\u043B\u0430 \u2014 \u0434\u043E\u0432\u043E\u043B\u044C\u043D\u0430 \u0438 \u043F\u043E\u043B\u043D\u0430 \u0441\u0438\u043B."
+          },
+          "effect.rested.title": {
+            "en": "Rested",
+            "ru": "\u041E\u0442\u0434\u043E\u0445\u043D\u0443\u043B\u0430"
+          },
+          "effect.rested.desc": {
+            "en": "Energy and stamina both high \u2014 ready for anything.",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C \u0432\u044B\u0441\u043E\u043A\u0438 \u2014 \u0433\u043E\u0442\u043E\u0432\u0430 \u043A\u043E \u0432\u0441\u0435\u043C\u0443."
+          },
+          "effect.naturaldecay.title": {
+            "en": "Natural change",
+            "ru": "\u0415\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435"
+          },
+          "effect.naturaldecay.desc": {
+            "en": "The body\u0027s ordinary needs keep changing with time.",
+            "ru": "\u041E\u0431\u044B\u0447\u043D\u044B\u0435 \u043F\u043E\u0442\u0440\u0435\u0431\u043D\u043E\u0441\u0442\u0438 \u0442\u0435\u043B\u0430 \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E \u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F \u0441\u043E \u0432\u0440\u0435\u043C\u0435\u043D\u0435\u043C."
+          },
+          "need.hunger": {
+            "en": "Fed",
+            "ru": "\u0421\u044B\u0442\u043E\u0441\u0442\u044C"
+          },
+          "need.thirst": {
+            "en": "Hydration",
+            "ru": "\u0416\u0430\u0436\u0434\u0430"
+          },
+          "need.energy": {
+            "en": "Energy",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F"
+          },
+          "need.comfort": {
+            "en": "Comfort",
+            "ru": "\u041A\u043E\u043C\u0444\u043E\u0440\u0442"
+          },
+          "effect.cleanclothes.title": {
+            "en": "Clean clothes",
+            "ru": "\u0427\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430"
+          },
+          "effect.cleanclothes.desc": {
+            "en": "Freshly washed clothes are gently increasing comfort.",
+            "ru": "\u0421\u0432\u0435\u0436\u0430\u044F \u0447\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430 \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u043F\u043E\u0432\u044B\u0448\u0430\u0435\u0442 \u043A\u043E\u043C\u0444\u043E\u0440\u0442."
+          },
+          "need.social": {
+            "en": "Social",
+            "ru": "\u041E\u0431\u0449\u0435\u043D\u0438\u0435"
+          },
+          "effect.nearbycompany.title": {
+            "en": "Nearby company",
+            "ru": "\u041A\u0442\u043E-\u0442\u043E \u0440\u044F\u0434\u043E\u043C"
+          },
+          "effect.nearbycompany.desc": {
+            "en": "A nearby companion is easing her loneliness.",
+            "ru": "\u041F\u0440\u0438\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435 \u0442\u043E\u0432\u0430\u0440\u0438\u0449\u0430 \u0440\u044F\u0434\u043E\u043C \u0441\u043C\u044F\u0433\u0447\u0430\u0435\u0442 \u043E\u0434\u0438\u043D\u043E\u0447\u0435\u0441\u0442\u0432\u043E."
+          },
+          "effect.witnessingsuffering.title": {
+            "en": "Witnessing suffering",
+            "ru": "\u0412\u0438\u0434\u0438\u0442 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F"
+          },
+          "effect.witnessingsuffering.desc": {
+            "en": "Seeing someone suffer nearby is draining her care reserve.",
+            "ru": "\u0427\u0443\u0436\u0438\u0435 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F \u0440\u044F\u0434\u043E\u043C \u0438\u0441\u0442\u043E\u0449\u0430\u044E\u0442 \u0435\u0451 \u0437\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B."
+          },
+          "need.compassion": {
+            "en": "Care reserve",
+            "ru": "\u0417\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B"
+          },
+          "effect.resting.title": {
+            "en": "Resting",
+            "ru": "\u041E\u0442\u0434\u044B\u0445"
+          },
+          "effect.resting.desc": {
+            "en": "Taking it easy is restoring stamina.",
+            "ru": "\u0421\u043F\u043E\u043A\u043E\u0439\u043D\u044B\u0439 \u043E\u0442\u0434\u044B\u0445 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C."
+          },
+          "need.stamina": {
+            "en": "Stamina",
+            "ru": "\u0412\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C"
+          },
+          "effect.calm.title": {
+            "en": "Calm",
+            "ru": "\u0421\u043F\u043E\u043A\u043E\u0439\u0441\u0442\u0432\u0438\u0435"
+          },
+          "effect.calm.desc": {
+            "en": "With no immediate threat, stress is easing.",
+            "ru": "\u0411\u0435\u0437 \u043D\u0435\u043F\u043E\u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0439 \u0443\u0433\u0440\u043E\u0437\u044B \u0441\u0442\u0440\u0435\u0441\u0441 \u043E\u0442\u0441\u0442\u0443\u043F\u0430\u0435\u0442."
+          },
+          "need.stress": {
+            "en": "Stress",
+            "ru": "\u0421\u0442\u0440\u0435\u0441\u0441"
+          },
+          "need.hygiene": {
+            "en": "Hygiene",
+            "ru": "\u0413\u0438\u0433\u0438\u0435\u043D\u0430"
+          },
+          "effect.ambienttemperature.title": {
+            "en": "Ambient temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430 \u0432\u043E\u0437\u0434\u0443\u0445\u0430"
+          },
+          "effect.ambienttemperature.desc": {
+            "en": "The surroundings are moving body temperature toward their own.",
+            "ru": "\u041E\u043A\u0440\u0443\u0436\u0430\u044E\u0449\u0430\u044F \u0441\u0440\u0435\u0434\u0430 \u0441\u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0442\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0443 \u0442\u0435\u043B\u0430 \u043A \u0441\u0432\u043E\u0435\u0439."
+          },
+          "need.temperature": {
+            "en": "Temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430"
+          },
+          "effect.breathrecovery.title": {
+            "en": "Catching breath",
+            "ru": "\u041F\u0435\u0440\u0435\u0432\u043E\u0434\u0438\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435"
+          },
+          "effect.breathrecovery.desc": {
+            "en": "Walking or standing is restoring breath.",
+            "ru": "\u0425\u043E\u0434\u044C\u0431\u0430 \u0438\u043B\u0438 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435."
+          },
+          "need.breath": {
+            "en": "Breath",
+            "ru": "\u0414\u044B\u0445\u0430\u043D\u0438\u0435"
+          }
+        },
+        "perceptionSummary": "updatedTick=76; environment[temperature=8.896, crowded=true, private=false, nearbyAgents=3]; objects=[{id=143, definition=rock.boulder, distance=7.694, reachable=true, occupied=false, fromMemory=false, interactions=[Harvest]}; {definition=resource.stone, count=3, nearest=[{id=191, distance=5.524, reachable=true, occupied=false, fromMemory=false}; {id=177, distance=6.375, reachable=true, occupied=false, fromMemory=false}; {id=184, distance=8.224, reachable=true, occupied=false, fromMemory=false}], interactions=[PickUp]}; {id=198, definition=tree.palm, distance=9.101, reachable=true, occupied=false, fromMemory=false, interactions=[Harvest]}; {definition=build.site, count=2, nearest=[{id=1105, distance=23.494, reachable=true, occupied=false, fromMemory=true}; {id=1104, distance=25.853, reachable=true, occupied=false, fromMemory=true}], interactions=[Build]}; {definition=food.coconut, count=4, nearest=[{id=1106, distance=1.352, reachable=true, occupied=false, fromMemory=false}; {id=1107, distance=1.352, reachable=true, occupied=false, fromMemory=false}; {id=1108, distance=1.352, reachable=true, occupied=false, fromMemory=false}], interactions=[PickUp|Process]}]; allies=[{id=1, distance=29.482, reachable=true, busy=false, moving=false, suffering=0.711}; {id=2, distance=33.147, reachable=true, busy=false, moving=false, suffering=0.8}; {id=3, distance=27.985, reachable=true, busy=false, moving=false, suffering=0.567}]; hostiles=[]; mobs=[]",
+        "memorySummary": "knownObjects=[{id=143, definition=rock.boulder, tile=-9,8, lastSeenTick=76, permanent=false}; {id=177, definition=resource.stone, tile=-11,7, lastSeenTick=76, permanent=false}; {id=184, definition=resource.stone, tile=-10,11, lastSeenTick=76, permanent=false}; {id=191, definition=resource.stone, tile=-10,9, lastSeenTick=76, permanent=false}; {id=198, definition=tree.palm, tile=-9,10, lastSeenTick=76, permanent=false}; {id=1083, definition=food.coconut, tile=-9,10, lastSeenTick=76, permanent=false}; {id=1104, definition=build.site, tile=-1,3, lastSeenTick=0, permanent=true}; {id=1105, definition=build.site, tile=-2,4, lastSeenTick=16, permanent=true}; {id=1106, definition=food.coconut, tile=-12,10, lastSeenTick=76, permanent=false}; {id=1107, definition=food.coconut, tile=-13,10, lastSeenTick=76, permanent=false}; {id=1108, definition=food.coconut, tile=-13,10, lastSeenTick=76, permanent=false}]; knownAgents=[{id=1, faction=Colony, tile=0,0, lastSeenTick=76, suffering=0.711, aid=Feed, helpless=false}; {id=2, faction=Colony, tile=2,0, lastSeenTick=76, suffering=0.8, aid=Hydrate, helpless=false}; {id=3, faction=Colony, tile=0,3, lastSeenTick=76, suffering=0.567, aid=Hydrate, helpless=false}]; dangers=[{tile=-7,-1, tick=40}]",
+        "inventory": [],
+        "inventorySummary": {
+          "capacity": 14,
+          "usedSlots": 0,
+          "freeSlots": 14,
+          "overflowSlots": 0,
+          "itemCount": 0,
+          "slots": [
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 1,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 2,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 3,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 4,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 5,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 6,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 7,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 8,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 9,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 10,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 11,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:left",
+              "kind": "HandLeft",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:right",
+              "kind": "HandRight",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            }
+          ],
+          "itemCapacity": [
+            {
+              "itemId": "food.coconut",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "resource.stone",
+              "count": 0,
+              "stackSize": 20,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 280,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "rock.boulder",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "tree.palm",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            }
+          ]
+        },
+        "visibleItems": [
+          {
+            "itemId": "rock.boulder",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 143
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 177
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 184
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 191
+          },
+          {
+            "itemId": "tree.palm",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 198
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1083
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1106
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1107
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1108
+          }
+        ],
+        "visibleNpcs": [
+          {
+            "npcId": 1,
+            "nameId": "Nadia",
+            "names": {
+              "en": "Nadia",
+              "ru": "\u041D\u0430\u0434\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 29.48225,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.7112793,
+            "aidKind": "Feed",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          },
+          {
+            "npcId": 2,
+            "nameId": "Sonya",
+            "names": {
+              "en": "Sonya",
+              "ru": "\u0421\u043E\u043D\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 33.14669,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.8,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0.8
+            }
+          },
+          {
+            "npcId": 3,
+            "nameId": "Tessa",
+            "names": {
+              "en": "Tessa",
+              "ru": "\u0422\u0435\u0441\u0441\u0430"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 27.98465,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.56675684,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          }
+        ],
+        "recentPerception": null,
+        "inventoryItems": [],
+        "wornItems": [
+          {
+            "itemId": "gear.backpack_riot",
+            "inventoryCapacityWhenWorn": 9,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "sourceIndex": 0,
+            "likingPercent": 84,
+            "durability": 0.9999933,
+            "conditionPercent": 100
+          }
+        ]
+      }
+    },
+    {
+      "call": 4,
+      "elapsedMs": 14786,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [
+          "skill:give-gift:0:64deb9321cb54e554edd14e6b0a05590e3ba28d4b8e547be716db92a12996470",
+          "spec:153:0:a7f4f447cdaa773c00d994df1fb33104637ac92292001bc5146655f60539f502"
+        ],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": {
+          "operation": "replace",
+          "reason": "GiftSonya",
+          "steps": [
+            {
+              "id": "give-coconut-sonya",
+              "tool": "transfer_inventory",
+              "arguments": {
+                "npcId": 901,
+                "otherNpcId": 2,
+                "source": "Carried",
+                "index": 0,
+                "expectedDefinitionId": "food.coconut",
+                "count": 1,
+                "direction": "Give"
+              }
+            }
+          ]
+        },
+        "speech": "",
+        "emotion": "tense",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "\u041A\u043E\u043A\u043E\u0441 \u0443\u0436\u0435 \u0443 \u043C\u0435\u043D\u044F; \u043E\u0442\u0434\u0430\u043C \u0435\u0433\u043E \u0421\u043E\u043D\u0435, \u043A\u043E\u0442\u043E\u0440\u043E\u0439 \u0441\u0435\u0439\u0447\u0430\u0441 \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E \u043D\u0443\u0436\u043D\u0430 \u0432\u043E\u0434\u0430.",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      },
+      "body": {
+        "npcId": 901,
+        "profileId": "masha",
+        "name": "masha",
+        "tick": 85,
+        "position": {
+          "x": -19.486,
+          "y": 22.125
+        },
+        "tile": "-12,10",
+        "manualControl": false,
+        "carriedNpcId": null,
+        "carriedByNpcId": null,
+        "leaseHolder": "",
+        "hexkufaExposure": 0,
+        "legacyAgentState": null,
+        "stateSummary": "health=1; goal=None; interaction=none; execution=None; moving=false; fighting=false; manualControl=false; unconscious=false; needs[hunger=0.005, thirst=0.012, energy=0.996, comfort=0.361, social=0.386, thermal=0.056, stamina=0.959, blood=1, stress=0]",
+        "bodyNeeds": {
+          "energy": {
+            "value": 0.99638355,
+            "higherIsBetter": true,
+            "meaning": "wakefulness reserve; restored by sleep",
+            "specSection": "60"
+          },
+          "stamina": {
+            "value": 0.95874983,
+            "higherIsBetter": true,
+            "meaning": "work reserve; recovery depends on rest and body condition",
+            "specSection": "40"
+          },
+          "breath": {
+            "value": 1,
+            "higherIsBetter": true,
+            "meaning": "sprint reserve; walking also restores it",
+            "specSection": "71"
+          },
+          "hunger": 0.0049914084,
+          "thirst": 0.011979381,
+          "blood": 1,
+          "hygiene": 0.99759996,
+          "health": 1
+        },
+        "execution": {
+          "planStatus": "Completed",
+          "status": "None",
+          "interaction": null,
+          "targetObjectId": null,
+          "failureReason": ""
+        },
+        "effects": [
+          {
+            "kind": "WellFed",
+            "intensity": 0.9667239,
+            "detailKey": ""
+          },
+          {
+            "kind": "Rested",
+            "intensity": 0.95874983,
+            "detailKey": ""
+          }
+        ],
+        "effectImpacts": [
+          {
+            "need": "Hunger",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Thirst",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Energy",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "CleanClothes",
+            "direction": "Positive"
+          },
+          {
+            "need": "Social",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Social",
+            "kind": "NearbyCompany",
+            "direction": "Positive"
+          },
+          {
+            "need": "Compassion",
+            "kind": "WitnessingSuffering",
+            "direction": "Negative"
+          },
+          {
+            "need": "Stamina",
+            "kind": "Working",
+            "direction": "Negative"
+          },
+          {
+            "need": "Stress",
+            "kind": "Calm",
+            "direction": "Positive"
+          },
+          {
+            "need": "Hygiene",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Temperature",
+            "kind": "AmbientTemperature",
+            "direction": "Negative"
+          },
+          {
+            "need": "Breath",
+            "kind": "BreathRecovery",
+            "direction": "Positive"
+          }
+        ],
+        "effectDefinitions": {
+          "WellFed": {
+            "kind": "WellFed",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.wellfed.title",
+            "descriptionKey": "effect.wellfed.desc",
+            "emoji": "\uD83D\uDE0B"
+          },
+          "Rested": {
+            "kind": "Rested",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.rested.title",
+            "descriptionKey": "effect.rested.desc",
+            "emoji": "\uD83D\uDCAA"
+          },
+          "NaturalDecay": {
+            "kind": "NaturalDecay",
+            "polarity": "Debuff",
+            "category": "Survival",
+            "titleKey": "effect.naturaldecay.title",
+            "descriptionKey": "effect.naturaldecay.desc",
+            "emoji": "\u231B"
+          },
+          "CleanClothes": {
+            "kind": "CleanClothes",
+            "polarity": "Buff",
+            "category": "Hygiene",
+            "titleKey": "effect.cleanclothes.title",
+            "descriptionKey": "effect.cleanclothes.desc",
+            "emoji": "\u2728"
+          },
+          "NearbyCompany": {
+            "kind": "NearbyCompany",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.nearbycompany.title",
+            "descriptionKey": "effect.nearbycompany.desc",
+            "emoji": "\uD83D\uDC65"
+          },
+          "WitnessingSuffering": {
+            "kind": "WitnessingSuffering",
+            "polarity": "Debuff",
+            "category": "Mind",
+            "titleKey": "effect.witnessingsuffering.title",
+            "descriptionKey": "effect.witnessingsuffering.desc",
+            "emoji": "\uD83E\uDEF6"
+          },
+          "Working": {
+            "kind": "Working",
+            "polarity": "Debuff",
+            "category": "Survival",
+            "titleKey": "effect.working.title",
+            "descriptionKey": "effect.working.desc",
+            "emoji": "\uD83D\uDD28"
+          },
+          "Calm": {
+            "kind": "Calm",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.calm.title",
+            "descriptionKey": "effect.calm.desc",
+            "emoji": "\uD83D\uDD4A\uFE0F"
+          },
+          "AmbientTemperature": {
+            "kind": "AmbientTemperature",
+            "polarity": "Debuff",
+            "category": "Environment",
+            "titleKey": "effect.ambienttemperature.title",
+            "descriptionKey": "effect.ambienttemperature.desc",
+            "emoji": "\uD83C\uDF21\uFE0F"
+          },
+          "BreathRecovery": {
+            "kind": "BreathRecovery",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.breathrecovery.title",
+            "descriptionKey": "effect.breathrecovery.desc",
+            "emoji": "\uD83C\uDF2C\uFE0F"
+          }
+        },
+        "effectTerms": {
+          "effect.wellfed.title": {
+            "en": "Well fed",
+            "ru": "\u0421\u044B\u0442\u0430"
+          },
+          "effect.wellfed.desc": {
+            "en": "Freshly full \u2014 content and at her best.",
+            "ru": "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0435\u043B\u0430 \u2014 \u0434\u043E\u0432\u043E\u043B\u044C\u043D\u0430 \u0438 \u043F\u043E\u043B\u043D\u0430 \u0441\u0438\u043B."
+          },
+          "effect.rested.title": {
+            "en": "Rested",
+            "ru": "\u041E\u0442\u0434\u043E\u0445\u043D\u0443\u043B\u0430"
+          },
+          "effect.rested.desc": {
+            "en": "Energy and stamina both high \u2014 ready for anything.",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C \u0432\u044B\u0441\u043E\u043A\u0438 \u2014 \u0433\u043E\u0442\u043E\u0432\u0430 \u043A\u043E \u0432\u0441\u0435\u043C\u0443."
+          },
+          "effect.naturaldecay.title": {
+            "en": "Natural change",
+            "ru": "\u0415\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435"
+          },
+          "effect.naturaldecay.desc": {
+            "en": "The body\u0027s ordinary needs keep changing with time.",
+            "ru": "\u041E\u0431\u044B\u0447\u043D\u044B\u0435 \u043F\u043E\u0442\u0440\u0435\u0431\u043D\u043E\u0441\u0442\u0438 \u0442\u0435\u043B\u0430 \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E \u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F \u0441\u043E \u0432\u0440\u0435\u043C\u0435\u043D\u0435\u043C."
+          },
+          "need.hunger": {
+            "en": "Fed",
+            "ru": "\u0421\u044B\u0442\u043E\u0441\u0442\u044C"
+          },
+          "need.thirst": {
+            "en": "Hydration",
+            "ru": "\u0416\u0430\u0436\u0434\u0430"
+          },
+          "need.energy": {
+            "en": "Energy",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F"
+          },
+          "need.comfort": {
+            "en": "Comfort",
+            "ru": "\u041A\u043E\u043C\u0444\u043E\u0440\u0442"
+          },
+          "effect.cleanclothes.title": {
+            "en": "Clean clothes",
+            "ru": "\u0427\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430"
+          },
+          "effect.cleanclothes.desc": {
+            "en": "Freshly washed clothes are gently increasing comfort.",
+            "ru": "\u0421\u0432\u0435\u0436\u0430\u044F \u0447\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430 \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u043F\u043E\u0432\u044B\u0448\u0430\u0435\u0442 \u043A\u043E\u043C\u0444\u043E\u0440\u0442."
+          },
+          "need.social": {
+            "en": "Social",
+            "ru": "\u041E\u0431\u0449\u0435\u043D\u0438\u0435"
+          },
+          "effect.nearbycompany.title": {
+            "en": "Nearby company",
+            "ru": "\u041A\u0442\u043E-\u0442\u043E \u0440\u044F\u0434\u043E\u043C"
+          },
+          "effect.nearbycompany.desc": {
+            "en": "A nearby companion is easing her loneliness.",
+            "ru": "\u041F\u0440\u0438\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435 \u0442\u043E\u0432\u0430\u0440\u0438\u0449\u0430 \u0440\u044F\u0434\u043E\u043C \u0441\u043C\u044F\u0433\u0447\u0430\u0435\u0442 \u043E\u0434\u0438\u043D\u043E\u0447\u0435\u0441\u0442\u0432\u043E."
+          },
+          "effect.witnessingsuffering.title": {
+            "en": "Witnessing suffering",
+            "ru": "\u0412\u0438\u0434\u0438\u0442 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F"
+          },
+          "effect.witnessingsuffering.desc": {
+            "en": "Seeing someone suffer nearby is draining her care reserve.",
+            "ru": "\u0427\u0443\u0436\u0438\u0435 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F \u0440\u044F\u0434\u043E\u043C \u0438\u0441\u0442\u043E\u0449\u0430\u044E\u0442 \u0435\u0451 \u0437\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B."
+          },
+          "need.compassion": {
+            "en": "Care reserve",
+            "ru": "\u0417\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B"
+          },
+          "effect.working.title": {
+            "en": "Working",
+            "ru": "\u0420\u0430\u0431\u043E\u0442\u0430"
+          },
+          "effect.working.desc": {
+            "en": "Physical work is spending stamina.",
+            "ru": "\u0424\u0438\u0437\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0440\u0430\u0431\u043E\u0442\u0430 \u0440\u0430\u0441\u0445\u043E\u0434\u0443\u0435\u0442 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C."
+          },
+          "need.stamina": {
+            "en": "Stamina",
+            "ru": "\u0412\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C"
+          },
+          "effect.calm.title": {
+            "en": "Calm",
+            "ru": "\u0421\u043F\u043E\u043A\u043E\u0439\u0441\u0442\u0432\u0438\u0435"
+          },
+          "effect.calm.desc": {
+            "en": "With no immediate threat, stress is easing.",
+            "ru": "\u0411\u0435\u0437 \u043D\u0435\u043F\u043E\u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0439 \u0443\u0433\u0440\u043E\u0437\u044B \u0441\u0442\u0440\u0435\u0441\u0441 \u043E\u0442\u0441\u0442\u0443\u043F\u0430\u0435\u0442."
+          },
+          "need.stress": {
+            "en": "Stress",
+            "ru": "\u0421\u0442\u0440\u0435\u0441\u0441"
+          },
+          "need.hygiene": {
+            "en": "Hygiene",
+            "ru": "\u0413\u0438\u0433\u0438\u0435\u043D\u0430"
+          },
+          "effect.ambienttemperature.title": {
+            "en": "Ambient temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430 \u0432\u043E\u0437\u0434\u0443\u0445\u0430"
+          },
+          "effect.ambienttemperature.desc": {
+            "en": "The surroundings are moving body temperature toward their own.",
+            "ru": "\u041E\u043A\u0440\u0443\u0436\u0430\u044E\u0449\u0430\u044F \u0441\u0440\u0435\u0434\u0430 \u0441\u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0442\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0443 \u0442\u0435\u043B\u0430 \u043A \u0441\u0432\u043E\u0435\u0439."
+          },
+          "need.temperature": {
+            "en": "Temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430"
+          },
+          "effect.breathrecovery.title": {
+            "en": "Catching breath",
+            "ru": "\u041F\u0435\u0440\u0435\u0432\u043E\u0434\u0438\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435"
+          },
+          "effect.breathrecovery.desc": {
+            "en": "Walking or standing is restoring breath.",
+            "ru": "\u0425\u043E\u0434\u044C\u0431\u0430 \u0438\u043B\u0438 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435."
+          },
+          "need.breath": {
+            "en": "Breath",
+            "ru": "\u0414\u044B\u0445\u0430\u043D\u0438\u0435"
+          }
+        },
+        "perceptionSummary": "updatedTick=84; environment[temperature=8.925, crowded=true, private=false, nearbyAgents=3]; objects=[{id=143, definition=rock.boulder, distance=7.694, reachable=true, occupied=false, fromMemory=false, interactions=[Harvest]}; {definition=resource.stone, count=3, nearest=[{id=191, distance=5.524, reachable=true, occupied=false, fromMemory=false}; {id=177, distance=6.375, reachable=true, occupied=false, fromMemory=false}; {id=184, distance=8.224, reachable=true, occupied=false, fromMemory=false}], interactions=[PickUp]}; {id=198, definition=tree.palm, distance=9.101, reachable=true, occupied=false, fromMemory=false, interactions=[Harvest]}; {definition=build.site, count=2, nearest=[{id=1105, distance=23.494, reachable=true, occupied=false, fromMemory=true}; {id=1104, distance=25.853, reachable=true, occupied=false, fromMemory=true}], interactions=[Build]}; {definition=food.coconut, count=3, nearest=[{id=1107, distance=1.352, reachable=true, occupied=false, fromMemory=false}; {id=1108, distance=1.352, reachable=true, occupied=false, fromMemory=false}; {id=1083, distance=9.101, reachable=true, occupied=false, fromMemory=false}], interactions=[PickUp|Process]}]; allies=[{id=1, distance=29.482, reachable=true, busy=false, moving=false, suffering=0.714}; {id=2, distance=33.147, reachable=true, busy=false, moving=false, suffering=0.805}; {id=3, distance=27.985, reachable=true, busy=false, moving=false, suffering=0.572}]; hostiles=[]; mobs=[]",
+        "memorySummary": "knownObjects=[{id=143, definition=rock.boulder, tile=-9,8, lastSeenTick=84, permanent=false}; {id=177, definition=resource.stone, tile=-11,7, lastSeenTick=84, permanent=false}; {id=184, definition=resource.stone, tile=-10,11, lastSeenTick=84, permanent=false}; {id=191, definition=resource.stone, tile=-10,9, lastSeenTick=84, permanent=false}; {id=198, definition=tree.palm, tile=-9,10, lastSeenTick=84, permanent=false}; {id=1083, definition=food.coconut, tile=-9,10, lastSeenTick=84, permanent=false}; {id=1104, definition=build.site, tile=-1,3, lastSeenTick=0, permanent=true}; {id=1105, definition=build.site, tile=-2,4, lastSeenTick=16, permanent=true}; {id=1107, definition=food.coconut, tile=-13,10, lastSeenTick=84, permanent=false}; {id=1108, definition=food.coconut, tile=-13,10, lastSeenTick=84, permanent=false}]; knownAgents=[{id=1, faction=Colony, tile=0,0, lastSeenTick=84, suffering=0.714, aid=Feed, helpless=false}; {id=2, faction=Colony, tile=2,0, lastSeenTick=84, suffering=0.805, aid=Hydrate, helpless=false}; {id=3, faction=Colony, tile=0,3, lastSeenTick=84, suffering=0.572, aid=Hydrate, helpless=false}]; dangers=[{tile=-7,-1, tick=40}]",
+        "inventory": [
+          {
+            "itemId": "food.coconut",
+            "count": 1
+          }
+        ],
+        "inventorySummary": {
+          "capacity": 14,
+          "usedSlots": 1,
+          "freeSlots": 13,
+          "overflowSlots": 0,
+          "itemCount": 1,
+          "slots": [
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 0,
+              "sourceIndex": 0,
+              "itemId": "food.coconut",
+              "count": 1,
+              "acceptedItemId": "",
+              "countToFreeSlot": 1
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 1,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 2,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 3,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 4,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 5,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 6,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 7,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 8,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 9,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 10,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 11,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:left",
+              "kind": "HandLeft",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:right",
+              "kind": "HandRight",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            }
+          ],
+          "itemCapacity": [
+            {
+              "itemId": "food.coconut",
+              "count": 1,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 13,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "resource.stone",
+              "count": 0,
+              "stackSize": 20,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 260,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "rock.boulder",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 13,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "tree.palm",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 13,
+              "canAcceptWithoutDropping": true
+            }
+          ]
+        },
+        "visibleItems": [
+          {
+            "itemId": "rock.boulder",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 143
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 177
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 184
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 191
+          },
+          {
+            "itemId": "tree.palm",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 198
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1083
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1107
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1108
+          }
+        ],
+        "visibleNpcs": [
+          {
+            "npcId": 1,
+            "nameId": "Nadia",
+            "names": {
+              "en": "Nadia",
+              "ru": "\u041D\u0430\u0434\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 29.48225,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.71353513,
+            "aidKind": "Feed",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          },
+          {
+            "npcId": 2,
+            "nameId": "Sonya",
+            "names": {
+              "en": "Sonya",
+              "ru": "\u0421\u043E\u043D\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 33.14669,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.8051,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0.79980004
+            }
+          },
+          {
+            "npcId": 3,
+            "nameId": "Tessa",
+            "names": {
+              "en": "Tessa",
+              "ru": "\u0422\u0435\u0441\u0441\u0430"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 27.98465,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.5721082,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          }
+        ],
+        "recentPerception": null,
+        "inventoryItems": [
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "sourceIndex": 0
+          }
+        ],
+        "wornItems": [
+          {
+            "itemId": "gear.backpack_riot",
+            "inventoryCapacityWhenWorn": 9,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "sourceIndex": 0,
+            "likingPercent": 84,
+            "durability": 0.99998665,
+            "conditionPercent": 100
+          }
+        ]
+      }
+    },
+    {
+      "call": 5,
+      "elapsedMs": 11522,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [],
+        "objectiveUpdate": {
+          "operation": "complete",
+          "text": "",
+          "reason": "\u041F\u0435\u0440\u0435\u0434\u0430\u0447\u0430 \u043A\u043E\u043A\u043E\u0441\u0430 \u0421\u043E\u043D\u0435 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0430 \u043A\u0432\u0438\u0442\u0430\u043D\u0446\u0438\u0435\u0439, \u0435\u0451 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442 \u0432\u0438\u0434\u0435\u043D \u043F\u043E \u043F\u0443\u0441\u0442\u043E\u043C\u0443 \u0440\u044E\u043A\u0437\u0430\u043A\u0443."
+        },
+        "executionPlanUpdate": null,
+        "speech": "",
+        "emotion": "neutral",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "\u041A\u043E\u043A\u043E\u0441 \u043F\u0435\u0440\u0435\u0434\u0430\u043D \u0421\u043E\u043D\u0435; \u043F\u043E\u0434\u0430\u0440\u043E\u043A \u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D, \u0446\u0435\u043B\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0430.",
+        "memoryUpserts": [
+          {
+            "key": "world:gift_to_sonya",
+            "value": "\u042F \u043F\u043E\u0434\u0430\u0440\u0438\u043B\u0430 \u0421\u043E\u043D\u0435 \u043A\u043E\u043A\u043E\u0441; \u043E\u043D\u0430 \u043C\u043D\u0435 \u043D\u0435\u0431\u0435\u0437\u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0430.",
+            "importance": 0.6
+          }
+        ],
+        "journalText": "\u041A\u043E\u043A\u043E\u0441 \u0443\u0436\u0435 \u0443 \u0421\u043E\u043D\u0438. \u0425\u043E\u0440\u043E\u0448\u043E, \u0447\u0442\u043E \u044F \u0432\u044B\u0431\u0440\u0430\u043B\u0430 \u0434\u043B\u044F \u043D\u0435\u0451 \u043D\u0435 \u0431\u0435\u0441\u043F\u043E\u043B\u0435\u0437\u043D\u0443\u044E \u0431\u0435\u0437\u0434\u0435\u043B\u0443\u0448\u043A\u0443."
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      },
+      "body": {
+        "npcId": 901,
+        "profileId": "masha",
+        "name": "masha",
+        "tick": 257,
+        "position": {
+          "x": 4.871,
+          "y": 0.188
+        },
+        "tile": "2,0",
+        "manualControl": false,
+        "carriedNpcId": null,
+        "carriedByNpcId": null,
+        "leaseHolder": "",
+        "hexkufaExposure": 0,
+        "legacyAgentState": null,
+        "stateSummary": "health=1; goal=None; interaction=none; execution=None; moving=false; fighting=false; manualControl=false; unconscious=false; needs[hunger=0.032, thirst=0.078, energy=0.976, comfort=0.253, social=0.452, thermal=0.801, stamina=0.904, blood=1, stress=0]",
+        "bodyNeeds": {
+          "energy": {
+            "value": 0.9764937,
+            "higherIsBetter": true,
+            "meaning": "wakefulness reserve; restored by sleep",
+            "specSection": "60"
+          },
+          "stamina": {
+            "value": 0.9039919,
+            "higherIsBetter": true,
+            "meaning": "work reserve; recovery depends on rest and body condition",
+            "specSection": "40"
+          },
+          "breath": {
+            "value": 1,
+            "higherIsBetter": true,
+            "meaning": "sprint reserve; walking also restores it",
+            "specSection": "71"
+          },
+          "hunger": 0.032444157,
+          "thirst": 0.07786597,
+          "blood": 1,
+          "hygiene": 0.9931999,
+          "health": 1
+        },
+        "execution": {
+          "planStatus": "Completed",
+          "status": "None",
+          "interaction": null,
+          "targetObjectId": null,
+          "failureReason": ""
+        },
+        "effects": [
+          {
+            "kind": "Cold",
+            "intensity": 0.48768803,
+            "detailKey": ""
+          },
+          {
+            "kind": "WellFed",
+            "intensity": 0.78370565,
+            "detailKey": ""
+          },
+          {
+            "kind": "Rested",
+            "intensity": 0.9039919,
+            "detailKey": ""
+          }
+        ],
+        "effectImpacts": [
+          {
+            "need": "Breath",
+            "kind": "BreathRecovery",
+            "direction": "Positive"
+          },
+          {
+            "need": "Hunger",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Thirst",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Energy",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Comfort",
+            "kind": "CleanClothes",
+            "direction": "Positive"
+          },
+          {
+            "need": "Social",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Social",
+            "kind": "NearbyCompany",
+            "direction": "Positive"
+          },
+          {
+            "need": "Compassion",
+            "kind": "WitnessingSuffering",
+            "direction": "Negative"
+          },
+          {
+            "need": "Stamina",
+            "kind": "Resting",
+            "direction": "Positive"
+          },
+          {
+            "need": "Stress",
+            "kind": "Calm",
+            "direction": "Positive"
+          },
+          {
+            "need": "Hygiene",
+            "kind": "NaturalDecay",
+            "direction": "Negative"
+          },
+          {
+            "need": "Temperature",
+            "kind": "AmbientTemperature",
+            "direction": "Positive"
+          }
+        ],
+        "effectDefinitions": {
+          "Cold": {
+            "kind": "Cold",
+            "polarity": "Debuff",
+            "category": "Environment",
+            "titleKey": "effect.cold.title",
+            "descriptionKey": "effect.cold.desc",
+            "emoji": "\u2744\uFE0F"
+          },
+          "WellFed": {
+            "kind": "WellFed",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.wellfed.title",
+            "descriptionKey": "effect.wellfed.desc",
+            "emoji": "\uD83D\uDE0B"
+          },
+          "Rested": {
+            "kind": "Rested",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.rested.title",
+            "descriptionKey": "effect.rested.desc",
+            "emoji": "\uD83D\uDCAA"
+          },
+          "BreathRecovery": {
+            "kind": "BreathRecovery",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.breathrecovery.title",
+            "descriptionKey": "effect.breathrecovery.desc",
+            "emoji": "\uD83C\uDF2C\uFE0F"
+          },
+          "NaturalDecay": {
+            "kind": "NaturalDecay",
+            "polarity": "Debuff",
+            "category": "Survival",
+            "titleKey": "effect.naturaldecay.title",
+            "descriptionKey": "effect.naturaldecay.desc",
+            "emoji": "\u231B"
+          },
+          "CleanClothes": {
+            "kind": "CleanClothes",
+            "polarity": "Buff",
+            "category": "Hygiene",
+            "titleKey": "effect.cleanclothes.title",
+            "descriptionKey": "effect.cleanclothes.desc",
+            "emoji": "\u2728"
+          },
+          "NearbyCompany": {
+            "kind": "NearbyCompany",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.nearbycompany.title",
+            "descriptionKey": "effect.nearbycompany.desc",
+            "emoji": "\uD83D\uDC65"
+          },
+          "WitnessingSuffering": {
+            "kind": "WitnessingSuffering",
+            "polarity": "Debuff",
+            "category": "Mind",
+            "titleKey": "effect.witnessingsuffering.title",
+            "descriptionKey": "effect.witnessingsuffering.desc",
+            "emoji": "\uD83E\uDEF6"
+          },
+          "Resting": {
+            "kind": "Resting",
+            "polarity": "Buff",
+            "category": "Survival",
+            "titleKey": "effect.resting.title",
+            "descriptionKey": "effect.resting.desc",
+            "emoji": "\uD83E\uDE91"
+          },
+          "Calm": {
+            "kind": "Calm",
+            "polarity": "Buff",
+            "category": "Mind",
+            "titleKey": "effect.calm.title",
+            "descriptionKey": "effect.calm.desc",
+            "emoji": "\uD83D\uDD4A\uFE0F"
+          },
+          "AmbientTemperature": {
+            "kind": "AmbientTemperature",
+            "polarity": "Debuff",
+            "category": "Environment",
+            "titleKey": "effect.ambienttemperature.title",
+            "descriptionKey": "effect.ambienttemperature.desc",
+            "emoji": "\uD83C\uDF21\uFE0F"
+          }
+        },
+        "effectTerms": {
+          "effect.cold.title": {
+            "en": "Cold",
+            "ru": "\u0425\u043E\u043B\u043E\u0434\u043D\u043E"
+          },
+          "effect.cold.desc": {
+            "en": "Chilly and uncomfortable \u2014 and edging toward freezing. Warmth would help.",
+            "ru": "\u0417\u044F\u0431\u043A\u043E \u0438 \u043D\u0435\u043A\u043E\u043C\u0444\u043E\u0440\u0442\u043D\u043E \u2014 \u0438 \u043A\u043B\u043E\u043D\u0438\u0442 \u043A \u043F\u0435\u0440\u0435\u043E\u0445\u043B\u0430\u0436\u0434\u0435\u043D\u0438\u044E. \u041D\u0435 \u043F\u043E\u043C\u0435\u0448\u0430\u043B\u043E \u0431\u044B \u0441\u043E\u0433\u0440\u0435\u0442\u044C\u0441\u044F."
+          },
+          "effect.wellfed.title": {
+            "en": "Well fed",
+            "ru": "\u0421\u044B\u0442\u0430"
+          },
+          "effect.wellfed.desc": {
+            "en": "Freshly full \u2014 content and at her best.",
+            "ru": "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0435\u043B\u0430 \u2014 \u0434\u043E\u0432\u043E\u043B\u044C\u043D\u0430 \u0438 \u043F\u043E\u043B\u043D\u0430 \u0441\u0438\u043B."
+          },
+          "effect.rested.title": {
+            "en": "Rested",
+            "ru": "\u041E\u0442\u0434\u043E\u0445\u043D\u0443\u043B\u0430"
+          },
+          "effect.rested.desc": {
+            "en": "Energy and stamina both high \u2014 ready for anything.",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F \u0438 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C \u0432\u044B\u0441\u043E\u043A\u0438 \u2014 \u0433\u043E\u0442\u043E\u0432\u0430 \u043A\u043E \u0432\u0441\u0435\u043C\u0443."
+          },
+          "effect.breathrecovery.title": {
+            "en": "Catching breath",
+            "ru": "\u041F\u0435\u0440\u0435\u0432\u043E\u0434\u0438\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435"
+          },
+          "effect.breathrecovery.desc": {
+            "en": "Walking or standing is restoring breath.",
+            "ru": "\u0425\u043E\u0434\u044C\u0431\u0430 \u0438\u043B\u0438 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0434\u044B\u0445\u0430\u043D\u0438\u0435."
+          },
+          "need.breath": {
+            "en": "Breath",
+            "ru": "\u0414\u044B\u0445\u0430\u043D\u0438\u0435"
+          },
+          "effect.naturaldecay.title": {
+            "en": "Natural change",
+            "ru": "\u0415\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435"
+          },
+          "effect.naturaldecay.desc": {
+            "en": "The body\u0027s ordinary needs keep changing with time.",
+            "ru": "\u041E\u0431\u044B\u0447\u043D\u044B\u0435 \u043F\u043E\u0442\u0440\u0435\u0431\u043D\u043E\u0441\u0442\u0438 \u0442\u0435\u043B\u0430 \u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u043E \u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F \u0441\u043E \u0432\u0440\u0435\u043C\u0435\u043D\u0435\u043C."
+          },
+          "need.hunger": {
+            "en": "Fed",
+            "ru": "\u0421\u044B\u0442\u043E\u0441\u0442\u044C"
+          },
+          "need.thirst": {
+            "en": "Hydration",
+            "ru": "\u0416\u0430\u0436\u0434\u0430"
+          },
+          "need.energy": {
+            "en": "Energy",
+            "ru": "\u042D\u043D\u0435\u0440\u0433\u0438\u044F"
+          },
+          "need.comfort": {
+            "en": "Comfort",
+            "ru": "\u041A\u043E\u043C\u0444\u043E\u0440\u0442"
+          },
+          "effect.cleanclothes.title": {
+            "en": "Clean clothes",
+            "ru": "\u0427\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430"
+          },
+          "effect.cleanclothes.desc": {
+            "en": "Freshly washed clothes are gently increasing comfort.",
+            "ru": "\u0421\u0432\u0435\u0436\u0430\u044F \u0447\u0438\u0441\u0442\u0430\u044F \u043E\u0434\u0435\u0436\u0434\u0430 \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u043F\u043E\u0432\u044B\u0448\u0430\u0435\u0442 \u043A\u043E\u043C\u0444\u043E\u0440\u0442."
+          },
+          "need.social": {
+            "en": "Social",
+            "ru": "\u041E\u0431\u0449\u0435\u043D\u0438\u0435"
+          },
+          "effect.nearbycompany.title": {
+            "en": "Nearby company",
+            "ru": "\u041A\u0442\u043E-\u0442\u043E \u0440\u044F\u0434\u043E\u043C"
+          },
+          "effect.nearbycompany.desc": {
+            "en": "A nearby companion is easing her loneliness.",
+            "ru": "\u041F\u0440\u0438\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435 \u0442\u043E\u0432\u0430\u0440\u0438\u0449\u0430 \u0440\u044F\u0434\u043E\u043C \u0441\u043C\u044F\u0433\u0447\u0430\u0435\u0442 \u043E\u0434\u0438\u043D\u043E\u0447\u0435\u0441\u0442\u0432\u043E."
+          },
+          "effect.witnessingsuffering.title": {
+            "en": "Witnessing suffering",
+            "ru": "\u0412\u0438\u0434\u0438\u0442 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F"
+          },
+          "effect.witnessingsuffering.desc": {
+            "en": "Seeing someone suffer nearby is draining her care reserve.",
+            "ru": "\u0427\u0443\u0436\u0438\u0435 \u0441\u0442\u0440\u0430\u0434\u0430\u043D\u0438\u044F \u0440\u044F\u0434\u043E\u043C \u0438\u0441\u0442\u043E\u0449\u0430\u044E\u0442 \u0435\u0451 \u0437\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B."
+          },
+          "need.compassion": {
+            "en": "Care reserve",
+            "ru": "\u0417\u0430\u043F\u0430\u0441 \u0437\u0430\u0431\u043E\u0442\u044B"
+          },
+          "effect.resting.title": {
+            "en": "Resting",
+            "ru": "\u041E\u0442\u0434\u044B\u0445"
+          },
+          "effect.resting.desc": {
+            "en": "Taking it easy is restoring stamina.",
+            "ru": "\u0421\u043F\u043E\u043A\u043E\u0439\u043D\u044B\u0439 \u043E\u0442\u0434\u044B\u0445 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0432\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C."
+          },
+          "need.stamina": {
+            "en": "Stamina",
+            "ru": "\u0412\u044B\u043D\u043E\u0441\u043B\u0438\u0432\u043E\u0441\u0442\u044C"
+          },
+          "effect.calm.title": {
+            "en": "Calm",
+            "ru": "\u0421\u043F\u043E\u043A\u043E\u0439\u0441\u0442\u0432\u0438\u0435"
+          },
+          "effect.calm.desc": {
+            "en": "With no immediate threat, stress is easing.",
+            "ru": "\u0411\u0435\u0437 \u043D\u0435\u043F\u043E\u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0439 \u0443\u0433\u0440\u043E\u0437\u044B \u0441\u0442\u0440\u0435\u0441\u0441 \u043E\u0442\u0441\u0442\u0443\u043F\u0430\u0435\u0442."
+          },
+          "need.stress": {
+            "en": "Stress",
+            "ru": "\u0421\u0442\u0440\u0435\u0441\u0441"
+          },
+          "need.hygiene": {
+            "en": "Hygiene",
+            "ru": "\u0413\u0438\u0433\u0438\u0435\u043D\u0430"
+          },
+          "effect.ambienttemperature.title": {
+            "en": "Ambient temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430 \u0432\u043E\u0437\u0434\u0443\u0445\u0430"
+          },
+          "effect.ambienttemperature.desc": {
+            "en": "The surroundings are moving body temperature toward their own.",
+            "ru": "\u041E\u043A\u0440\u0443\u0436\u0430\u044E\u0449\u0430\u044F \u0441\u0440\u0435\u0434\u0430 \u0441\u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0442\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0443 \u0442\u0435\u043B\u0430 \u043A \u0441\u0432\u043E\u0435\u0439."
+          },
+          "need.temperature": {
+            "en": "Temperature",
+            "ru": "\u0422\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u0430"
+          }
+        },
+        "perceptionSummary": "updatedTick=256; environment[temperature=9.218, crowded=true, private=false, nearbyAgents=4]; objects=[{definition=tree.palm, count=4, nearest=[{id=107, distance=7.006, reachable=true, occupied=false, fromMemory=false}; {id=104, distance=8.625, reachable=true, occupied=false, fromMemory=true}; {id=203, distance=11.552, reachable=true, occupied=false, fromMemory=true}], interactions=[Harvest]}; {id=123, definition=forest.deadfall, distance=13.38, reachable=false, occupied=false, fromMemory=true, interactions=[]}; {definition=rock.boulder, count=5, nearest=[{id=132, distance=7.125, reachable=true, occupied=false, fromMemory=false}; {id=145, distance=18.375, reachable=true, occupied=false, fromMemory=true}; {id=126, distance=20.909, reachable=true, occupied=false, fromMemory=true}], interactions=[Harvest]}; {definition=resource.stone, count=12, nearest=[{id=172, distance=7.472, reachable=true, occupied=false, fromMemory=false}; {id=160, distance=8.121, reachable=true, occupied=false, fromMemory=false}; {id=183, distance=9.285, reachable=true, occupied=false, fromMemory=true}], interactions=[PickUp]}; {definition=plant.yucca, count=3, nearest=[{id=227, distance=4.699, reachable=true, occupied=false, fromMemory=false}; {id=216, distance=17.625, reachable=true, occupied=false, fromMemory=true}; {id=223, distance=26.625, reachable=true, occupied=false, fromMemory=true}], interactions=[Harvest]}; {id=1030, definition=building.hut_plan, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[]}; {definition=architecture.support.wood, count=6, nearest=[{id=1031, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1032, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1033, distance=9.101, reachable=true, occupied=false, fromMemory=true}], interactions=[]}; {definition=architecture.floor.board, count=6, nearest=[{id=1037, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1038, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1039, distance=9.101, reachable=true, occupied=false, fromMemory=true}], interactions=[]}; {definition=architecture.wall.wood, count=11, nearest=[{id=1043, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1044, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1045, distance=9.101, reachable=true, occupied=false, fromMemory=true}], interactions=[]}; {definition=architecture.window.wood, count=6, nearest=[{id=1047, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1049, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1051, distance=9.101, reachable=true, occupied=false, fromMemory=true}], interactions=[]}; {id=1048, definition=architecture.door.wood, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[]}; {definition=architecture.roof.palm, count=6, nearest=[{id=1061, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1062, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1063, distance=9.101, reachable=true, occupied=false, fromMemory=true}], interactions=[]}; {definition=bed.basic, count=2, nearest=[{id=1071, distance=9.101, reachable=true, occupied=false, fromMemory=true}; {id=1072, distance=9.101, reachable=true, occupied=false, fromMemory=true}], interactions=[Sleep]}; {id=1073, definition=campfire.spot, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[PickUp|Fuel|Craft|Build|Build|Observe|Ignite]}; {id=1074, definition=furniture.wardrobe, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[Hang]}; {id=1075, definition=item.medkit, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[]}; {id=1076, definition=clothing.leggings_yoga_01_pants, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[PickUp|Dress]}; {id=1077, definition=clothing.boots_charm_latex_red, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[PickUp|Dress]}; {id=1078, definition=clothing.corset_anarchy_red, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[PickUp|Dress]}; {id=1079, definition=clothing.outfit_reiko_default, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[PickUp|Dress]}; {id=1080, definition=clothing.suit_bandaid_bs_bluemesh, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[PickUp|Dress]}; {id=1081, definition=clothing.tank_jane_lavendar, distance=9.101, reachable=true, occupied=false, fromMemory=true, interactions=[PickUp|Dress]}; {definition=food.coconut, count=6, nearest=[{id=1096, distance=7.006, reachable=true, occupied=false, fromMemory=false}; {id=1088, distance=8.625, reachable=true, occupied=false, fromMemory=true}; {id=1090, distance=11.552, reachable=true, occupied=false, fromMemory=true}], interactions=[PickUp|Process]}; {definition=build.site, count=3, nearest=[{id=1104, distance=7.472, reachable=true, occupied=false, fromMemory=false}; {id=1000, distance=8.818, reachable=true, occupied=false, fromMemory=true}; {id=1105, distance=10.069, reachable=true, occupied=false, fromMemory=true}], interactions=[Build]}; {omitted=2}]; allies=[{id=1, distance=4.875, reachable=true, busy=false, moving=false, suffering=0.736}; {id=2, distance=0.375, reachable=true, busy=false, moving=false, suffering=0.856}; {id=3, distance=6.634, reachable=true, busy=false, moving=false, suffering=0.626}; {id=101, distance=25.125, reachable=true, busy=false, moving=false, suffering=0}]; hostiles=[]; mobs=[]",
+        "memorySummary": "knownObjects=[{id=104, definition=tree.palm, tile=-2,2, lastSeenTick=248, permanent=false}; {id=107, definition=tree.palm, tile=3,2, lastSeenTick=256, permanent=false}; {id=132, definition=rock.boulder, tile=4,-3, lastSeenTick=256, permanent=false}; {id=160, definition=resource.stone, tile=5,-3, lastSeenTick=256, permanent=false}; {id=172, definition=resource.stone, tile=-1,0, lastSeenTick=256, permanent=false}; {id=183, definition=resource.stone, tile=1,-3, lastSeenTick=248, permanent=false}; {id=185, definition=resource.stone, tile=-2,0, lastSeenTick=248, permanent=false}; {id=203, definition=tree.palm, tile=-3,1, lastSeenTick=240, permanent=false}; {id=227, definition=plant.yucca, tile=3,-2, lastSeenTick=256, permanent=false}; {id=1000, definition=build.site, tile=0,4, lastSeenTick=240, permanent=false}; {id=1030, definition=building.hut_plan, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1031, definition=architecture.support.wood, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1032, definition=architecture.support.wood, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1033, definition=architecture.support.wood, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1034, definition=architecture.support.wood, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1035, definition=architecture.support.wood, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1036, definition=architecture.support.wood, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1037, definition=architecture.floor.board, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1038, definition=architecture.floor.board, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1039, definition=architecture.floor.board, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1040, definition=architecture.floor.board, tile=-1,4, lastSeenTick=240, permanent=false}; {id=1088, definition=food.coconut, tile=-2,2, lastSeenTick=248, permanent=false}; {id=1096, definition=food.coconut, tile=3,2, lastSeenTick=256, permanent=false}; {id=1104, definition=build.site, tile=-1,3, lastSeenTick=256, permanent=true}; {omitted=60}]; knownAgents=[{id=1, faction=Colony, tile=0,0, lastSeenTick=256, suffering=0.736, aid=Feed, helpless=false}; {id=2, faction=Colony, tile=2,0, lastSeenTick=256, suffering=0.856, aid=Hydrate, helpless=false}; {id=3, faction=Colony, tile=0,3, lastSeenTick=256, suffering=0.626, aid=Hydrate, helpless=false}; {id=101, faction=Colony, tile=12,-9, lastSeenTick=256, suffering=0, aid=None, helpless=false}]; dangers=[{tile=-7,-1, tick=40}]",
+        "inventory": [],
+        "inventorySummary": {
+          "capacity": 14,
+          "usedSlots": 0,
+          "freeSlots": 14,
+          "overflowSlots": 0,
+          "itemCount": 0,
+          "slots": [
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 1,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 2,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 3,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 4,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 5,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 6,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 7,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 8,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 9,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 10,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "carry",
+              "kind": "Carry",
+              "slot": 11,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:left",
+              "kind": "HandLeft",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            },
+            {
+              "containerId": "hand:right",
+              "kind": "HandRight",
+              "slot": 0,
+              "sourceIndex": -1,
+              "itemId": "",
+              "count": 0,
+              "acceptedItemId": "",
+              "countToFreeSlot": 0
+            }
+          ],
+          "itemCapacity": [
+            {
+              "itemId": "build.site",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "food.coconut",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "plant.yucca",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "resource.stone",
+              "count": 0,
+              "stackSize": 20,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 280,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "rock.boulder",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            },
+            {
+              "itemId": "tree.palm",
+              "count": 0,
+              "stackSize": 1,
+              "existingStackSpace": 0,
+              "additionalWithoutDropping": 14,
+              "canAcceptWithoutDropping": true
+            }
+          ]
+        },
+        "visibleItems": [
+          {
+            "itemId": "tree.palm",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 107
+          },
+          {
+            "itemId": "rock.boulder",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 132
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 160
+          },
+          {
+            "itemId": "resource.stone",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 172
+          },
+          {
+            "itemId": "plant.yucca",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 227
+          },
+          {
+            "itemId": "food.coconut",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1096
+          },
+          {
+            "itemId": "build.site",
+            "inventoryCapacityWhenWorn": 0,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "objectId": 1104,
+            "construction": {
+              "product": "station.drying_rack",
+              "needsHammer": false,
+              "materials": [
+                {
+                  "definitionId": "resource.stick",
+                  "required": 4,
+                  "delivered": 0,
+                  "remaining": 4,
+                  "currentStageRemaining": 2
+                },
+                {
+                  "definitionId": "resource.rope",
+                  "required": 4,
+                  "delivered": 0,
+                  "remaining": 4,
+                  "currentStageRemaining": 0
+                }
+              ]
+            }
+          }
+        ],
+        "visibleNpcs": [
+          {
+            "npcId": 1,
+            "nameId": "Nadia",
+            "names": {
+              "en": "Nadia",
+              "ru": "\u041D\u0430\u0434\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 4.875,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.7360931,
+            "aidKind": "Feed",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          },
+          {
+            "npcId": 2,
+            "nameId": "Sonya",
+            "names": {
+              "en": "Sonya",
+              "ru": "\u0421\u043E\u043D\u044F"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 0.37499997,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.8560997,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0.075,
+              "affinity": 0.7976003
+            }
+          },
+          {
+            "npcId": 3,
+            "nameId": "Tessa",
+            "names": {
+              "en": "Tessa",
+              "ru": "\u0422\u0435\u0441\u0441\u0430"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 6.634427,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0.62562186,
+            "aidKind": "Hydrate",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          },
+          {
+            "npcId": 101,
+            "nameId": "Kshishtof",
+            "names": {
+              "en": "Kshishtof",
+              "ru": "\u041A\u0448\u0438\u0448\u0442\u043E\u0444"
+            },
+            "faction": "Colony",
+            "sameCamp": true,
+            "hostile": false,
+            "distance": 25.125,
+            "reachable": true,
+            "busy": false,
+            "moving": false,
+            "unconscious": false,
+            "dying": false,
+            "suffering": 0,
+            "aidKind": "None",
+            "observerRelationship": {
+              "trust": 0,
+              "familiarity": 0,
+              "affinity": 0
+            }
+          }
+        ],
+        "recentPerception": null,
+        "inventoryItems": [],
+        "wornItems": [
+          {
+            "itemId": "gear.backpack_riot",
+            "inventoryCapacityWhenWorn": 9,
+            "ownerNpcId": null,
+            "ownerAlive": null,
+            "ownerFaction": null,
+            "sameCamp": null,
+            "sourceIndex": 0,
+            "likingPercent": 84,
+            "durability": 0.9999132,
+            "conditionPercent": 100
+          }
+        ]
+      }
+    }
+  ],
+  "turns": [
+    {
+      "turn": 0,
+      "tick": 80,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [
+          "spec:153:0:a7f4f447cdaa773c00d994df1fb33104637ac92292001bc5146655f60539f502",
+          "skill:give-gift:0:64deb9321cb54e554edd14e6b0a05590e3ba28d4b8e547be716db92a12996470"
+        ],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": {
+          "operation": "replace",
+          "reason": "PlayerRequest",
+          "steps": [
+            {
+              "id": "pick-coconut",
+              "tool": "interact",
+              "arguments": {
+                "npcId": 901,
+                "objectId": 1106,
+                "interaction": "PickUp"
+              }
+            }
+          ]
+        },
+        "speech": "\u041B\u0430\u0434\u043D\u043E. \u0421\u043E\u043D\u044F \u043C\u043D\u0435 \u044F\u0432\u043D\u043E \u043D\u0435 \u0431\u0435\u0437\u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0430, \u0430 \u0435\u0439 \u0441\u0435\u0439\u0447\u0430\u0441 \u0445\u0443\u0436\u0435 \u0432\u0441\u0435\u0433\u043E \u0431\u0435\u0437 \u0432\u043E\u0434\u044B; \u0434\u043B\u044F \u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u043E\u0437\u044C\u043C\u0443 \u043A\u043E\u043A\u043E\u0441, \u043F\u043E\u0442\u043E\u043C \u043F\u0440\u043E\u0432\u0435\u0440\u044E, \u0447\u0442\u043E \u043E\u043D \u0443 \u043C\u0435\u043D\u044F, \u0438 \u043E\u0442\u043D\u0435\u0441\u0443 \u0435\u0439. \u0418\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B \u0442\u0440\u043E\u0433\u0430\u0442\u044C \u043D\u0435 \u0441\u043E\u0431\u0438\u0440\u0430\u044E\u0441\u044C.",
+        "emotion": "curious",
+        "action": null,
+        "relationshipAssessment": {
+          "learnedSomethingSignificant": false,
+          "trust": "Unchanged",
+          "sympathy": "Unchanged",
+          "seriousHarm": false,
+          "reason": "\u0413\u043E\u043B\u043E\u0441 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u043B \u043F\u043E\u043D\u044F\u0442\u043D\u0443\u044E \u043F\u0440\u043E\u0441\u044C\u0431\u0443 \u0431\u0435\u0437 \u0434\u0430\u0432\u043B\u0435\u043D\u0438\u044F.",
+          "voiceName": null,
+          "namingReason": null
+        },
+        "reaction": "None",
+        "intentSummary": "\u0412\u044B\u0431\u0438\u0440\u0430\u044E \u0421\u043E\u043D\u044E: \u043C\u0435\u0436\u0434\u0443 \u043D\u0430\u043C\u0438 \u0435\u0441\u0442\u044C \u0441\u0438\u043C\u043F\u0430\u0442\u0438\u044F, \u0430 \u0435\u0439 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0432\u043E\u0434\u0430. \u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u043E\u0437\u044C\u043C\u0443 \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0438\u0439 \u043A\u043E\u043A\u043E\u0441 \u0438 \u043F\u0440\u043E\u0432\u0435\u0440\u044E \u0440\u044E\u043A\u0437\u0430\u043A.",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      }
+    },
+    {
+      "turn": 1,
+      "tick": 85,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [
+          "skill:give-gift:0:64deb9321cb54e554edd14e6b0a05590e3ba28d4b8e547be716db92a12996470",
+          "spec:153:0:a7f4f447cdaa773c00d994df1fb33104637ac92292001bc5146655f60539f502"
+        ],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": {
+          "operation": "replace",
+          "reason": "GiftSonya",
+          "steps": [
+            {
+              "id": "give-coconut-sonya",
+              "tool": "transfer_inventory",
+              "arguments": {
+                "npcId": 901,
+                "otherNpcId": 2,
+                "source": "Carried",
+                "index": 0,
+                "expectedDefinitionId": "food.coconut",
+                "count": 1,
+                "direction": "Give"
+              }
+            }
+          ]
+        },
+        "speech": "",
+        "emotion": "tense",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "\u041A\u043E\u043A\u043E\u0441 \u0443\u0436\u0435 \u0443 \u043C\u0435\u043D\u044F; \u043E\u0442\u0434\u0430\u043C \u0435\u0433\u043E \u0421\u043E\u043D\u0435, \u043A\u043E\u0442\u043E\u0440\u043E\u0439 \u0441\u0435\u0439\u0447\u0430\u0441 \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E \u043D\u0443\u0436\u043D\u0430 \u0432\u043E\u0434\u0430.",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      }
+    },
+    {
+      "turn": 2,
+      "tick": 257,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [],
+        "objectiveUpdate": {
+          "operation": "complete",
+          "text": "",
+          "reason": "\u041F\u0435\u0440\u0435\u0434\u0430\u0447\u0430 \u043A\u043E\u043A\u043E\u0441\u0430 \u0421\u043E\u043D\u0435 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0430 \u043A\u0432\u0438\u0442\u0430\u043D\u0446\u0438\u0435\u0439, \u0435\u0451 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442 \u0432\u0438\u0434\u0435\u043D \u043F\u043E \u043F\u0443\u0441\u0442\u043E\u043C\u0443 \u0440\u044E\u043A\u0437\u0430\u043A\u0443."
+        },
+        "executionPlanUpdate": null,
+        "speech": "",
+        "emotion": "neutral",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "\u041A\u043E\u043A\u043E\u0441 \u043F\u0435\u0440\u0435\u0434\u0430\u043D \u0421\u043E\u043D\u0435; \u043F\u043E\u0434\u0430\u0440\u043E\u043A \u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D, \u0446\u0435\u043B\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0430.",
+        "memoryUpserts": [
+          {
+            "key": "world:gift_to_sonya",
+            "value": "\u042F \u043F\u043E\u0434\u0430\u0440\u0438\u043B\u0430 \u0421\u043E\u043D\u0435 \u043A\u043E\u043A\u043E\u0441; \u043E\u043D\u0430 \u043C\u043D\u0435 \u043D\u0435\u0431\u0435\u0437\u0440\u0430\u0437\u043B\u0438\u0447\u043D\u0430.",
+            "importance": 0.6
+          }
+        ],
+        "journalText": "\u041A\u043E\u043A\u043E\u0441 \u0443\u0436\u0435 \u0443 \u0421\u043E\u043D\u0438. \u0425\u043E\u0440\u043E\u0448\u043E, \u0447\u0442\u043E \u044F \u0432\u044B\u0431\u0440\u0430\u043B\u0430 \u0434\u043B\u044F \u043D\u0435\u0451 \u043D\u0435 \u0431\u0435\u0441\u043F\u043E\u043B\u0435\u0437\u043D\u0443\u044E \u0431\u0435\u0437\u0434\u0435\u043B\u0443\u0448\u043A\u0443."
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      }
+    }
+  ]
+}

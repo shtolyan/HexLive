@@ -4621,13 +4621,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : speechId == "hurt_death" ? Audio.FmodSfx.Sfx.DeathF : null);
 
     float UI.ISpeechStage.PlayExternalVoiceLine(
-        string wavPath, string visemePath, string emotion, bool listenerRelative)
+        string wavPath, string visemePath, string emotion, bool listenerRelative,
+        float playbackGain)
     {
         if (Audio.FmodSfx.IsPlaying(ref _voiceChannel)) return 0f;
         var pos = TryGetBodyCenter(out var center) ? center : transform.position;
         // Core voices bypass the Studio bus duck. Keep their authored gain.
         _voiceChannel = Audio.FmodSfx.PlayFileTracked(
-            wavPath, visemePath, pos, 1f,
+            wavPath, visemePath, pos, playbackGain,
             listenerRelative);
         if (_voiceLipSync != null) _voiceLipSync.Speak(ref _voiceChannel);
         var lengthMs = Audio.FmodSfx.GetLengthMs(ref _voiceChannel);
@@ -4659,12 +4660,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     /// <summary>§160: external reply routed through the existing mouth director.</summary>
     public bool SayExternalVoice(
-        string wavPath, string visemePath, string emotion, bool playerReply)
+        string wavPath, string visemePath, string emotion, bool playerReply,
+        float playbackGain = 1f)
     {
         EnsureSpeechBubble();
         return _speech != null && _speech.SayExternal(
             wavPath, visemePath, emotion,
-            playerReply ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient);
+            playerReply ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient,
+            playbackGain);
     }
 
     // §armed-stance: while ANY tool/weapon (tool.*) is in the hand, the base Idle

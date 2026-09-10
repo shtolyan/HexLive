@@ -33,7 +33,7 @@ namespace HexLive.UnityPresentation.UI
         private Label _mainMenuLabel;
         private Label _quitLabel;
         private Foldout _soundSettings;
-        private readonly Label[] _soundLabels = new Label[3];
+        private readonly Label[] _soundLabels = new Label[4];
 
         private static readonly Color Dim = new(0f, 0f, 0f, 0.55f);
         private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.98f);
@@ -217,6 +217,7 @@ namespace HexLive.UnityPresentation.UI
             _soundSettings.AddToClassList("audio-settings");
             card.Add(_soundSettings);
             AddSoundSlider(FmodSfx.VolumeCategory.Voices);
+            AddSoundSlider(FmodSfx.VolumeCategory.AgentVoices);
             AddSoundSlider(FmodSfx.VolumeCategory.Music);
             AddSoundSlider(FmodSfx.VolumeCategory.Environment);
 
@@ -294,9 +295,10 @@ namespace HexLive.UnityPresentation.UI
             _mainMenuLabel.text = Loc.Get("menu.mainmenu");
             _quitLabel.text = Loc.Get("menu.quit");
             _soundSettings.text = Loc.Get("audio.settings");
-            _soundLabels[0].text = Loc.Get("audio.voices");
-            _soundLabels[1].text = Loc.Get("audio.music");
-            _soundLabels[2].text = Loc.Get("audio.environment");
+            _soundLabels[(int)FmodSfx.VolumeCategory.Voices].text = Loc.Get("audio.voices");
+            _soundLabels[(int)FmodSfx.VolumeCategory.AgentVoices].text = Loc.Get("audio.agent_voices");
+            _soundLabels[(int)FmodSfx.VolumeCategory.Music].text = Loc.Get("audio.music");
+            _soundLabels[(int)FmodSfx.VolumeCategory.Environment].text = Loc.Get("audio.environment");
             _soundSettings.tooltip = Loc.Get("audio.settings.hint");
         }
 

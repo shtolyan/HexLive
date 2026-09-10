@@ -19,6 +19,16 @@ namespace HexLive.Tests
             Assert.That(stage.Started, Is.EqualTo(1));
         }
 
+        [Test]
+        public void ExternalPlaybackGainPassesThroughTheMouthArbiter()
+        {
+            var stage = new Stage();
+            var director = new NpcSpeechDirector(stage);
+            Assert.That(director.SayExternal("test.wav", "test.vis", "warm",
+                SpeechCatalog.Rank.Talk, 1.2f), Is.True);
+            Assert.That(stage.PlaybackGain, Is.EqualTo(1.2f));
+        }
+
         [UnityTest]
         public IEnumerator AlarmInterruptsExternalTalkThroughTheSameDirector()
         {
@@ -157,8 +167,10 @@ namespace HexLive.Tests
             public bool AllowOrdinary;
             public int OrdinaryStarted;
             public float ExternalLength = 3f;
-            public float PlayExternalVoiceLine(string wav, string vis, string emotion, bool listenerRelative)
-            { Started++; ListenerRelative = listenerRelative; return ExternalLength; }
+            public float PlaybackGain;
+            public float PlayExternalVoiceLine(string wav, string vis, string emotion,
+                bool listenerRelative, float playbackGain)
+            { Started++; ListenerRelative = listenerRelative; PlaybackGain = playbackGain; return ExternalLength; }
             public float PlayVoiceLine(string id) { OrdinaryStarted++; return .5f; }
             public void StopVoiceLine() => Stopped++;
             public bool CanSpeakExternal(bool playerReply) => playerReply || AllowOrdinary;

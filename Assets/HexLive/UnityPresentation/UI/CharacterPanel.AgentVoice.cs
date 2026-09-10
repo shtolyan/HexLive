@@ -84,6 +84,7 @@ namespace HexLive.UnityPresentation.UI
             public AgentSpeechBeginFrame Metadata = null!;
             public string WavPath = string.Empty;
             public string VisPath = string.Empty;
+            public float PlaybackGain = 1f;
             public float Deadline;
         }
         private readonly Queue<PreparedAgentSpeech> _preparedAgentSpeech = new();
@@ -527,14 +528,16 @@ namespace HexLive.UnityPresentation.UI
                 var basename = "agent_" + SafeFileName(metadata.UtteranceId);
                 var wavPath = Path.Combine(_agentCachePath, basename + ".wav");
                 var visPath = Path.Combine(_agentCachePath, basename + ".vis");
-                var hasAudio = false;
-                try { hasAudio = speech.Wav.Length > 0 && await Task.Run(() =>
+                var playbackGain = 0f;
+                try { if (speech.Wav.Length > 0) playbackGain = await Task.Run(() =>
                 {
                     Directory.CreateDirectory(_agentCachePath);
-                    if (!VoiceVisemeBaker.TryBake(speech.Wav, metadata.Text, visPath, out _, cancellationToken)) return false;
+                    if (!VoiceVisemeBaker.TryBake(speech.Wav, metadata.Text, visPath,
+                            FmodSfx.VoicePlaybackBaseGain, out _, out var measuredGain,
+                            cancellationToken)) return 0f;
                     File.WriteAllBytes(wavPath, speech.Wav);
                     TrimAgentVoiceCache(_agentCachePath);
-                    return true;
+                    return measuredGain;
                 }, cancellationToken); }
                 catch (IOException) { /* still deliver the exact subtitle */ }
                 catch (UnauthorizedAccessException) { }
@@ -543,8 +546,9 @@ namespace HexLive.UnityPresentation.UI
                     if (cancellationToken.IsCancellationRequested) return;
                     if (_preparedAgentSpeech.Count >= 20) _preparedAgentSpeech.Dequeue();
                     _preparedAgentSpeech.Enqueue(new PreparedAgentSpeech
-                    { Metadata = metadata, WavPath = hasAudio ? wavPath : string.Empty,
-                      VisPath = visPath, Deadline = Time.unscaledTime + 35f });
+                    { Metadata = metadata, WavPath = playbackGain > 0f ? wavPath : string.Empty,
+                      VisPath = visPath, PlaybackGain = playbackGain > 0f ? playbackGain : 1f,
+                      Deadline = Time.unscaledTime + 35f });
                 });
                 }
                 finally { _agentBakeGate.Release(); }
@@ -572,7 +576,8 @@ namespace HexLive.UnityPresentation.UI
             if (pending.WavPath.Length > 0 && _worldRenderer != null &&
                 _worldRenderer.TryGetActorView(metadata.NpcId, out var actor))
             {
-                played = actor.SayExternalVoice(pending.WavPath, pending.VisPath, metadata.Emotion, direct);
+                played = actor.SayExternalVoice(pending.WavPath, pending.VisPath, metadata.Emotion,
+                    direct, pending.PlaybackGain);
                 if (played && direct)
                 {
                     StartAgentReplyFocus(metadata.DurationMilliseconds);

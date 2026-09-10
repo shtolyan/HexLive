@@ -9,10 +9,30 @@ namespace HexLive.UnityPresentation.Audio
 /// <summary>§160 bounded runtime WAV → canonical §67.7 HXLS timeline.</summary>
 public static class VoiceVisemeBaker
 {
+    private const int SampleRate = 44100;
+    private const int LevelFrameSamples = SampleRate / 50; // 20 ms
+    private const int MinimumActiveFrames = 5;             // reject clicks/impulses
+    private const double ActiveThreshold = 0.005623413251903491; // -45 dBFS
+    private const double TargetActiveRms = 0.204880204996;       // -13.77 dBFS
+    private const double MaximumBoost = 1.412537544623;          // +3 dB
+    private const double OutputPeakCeiling = 0.891250938134;     // -1 dBFS
+
     public static bool TryBake(byte[] wav, string text, string outputPath, out string error,
         CancellationToken cancellationToken = default)
+        => TryBake(wav, text, outputPath, 1f, out error, out _, cancellationToken);
+
+    /// <summary>
+    /// Bakes the canonical lip-sync sidecar and measures a bounded playback
+    /// gain from that same decoded PCM. The gain raises only sustained active
+    /// speech, never attenuation, and keeps the final channel peak below the
+    /// supplied FMOD base gain's -1 dBFS ceiling (§67.15, #386).
+    /// </summary>
+    public static bool TryBake(byte[] wav, string text, string outputPath, float playbackBaseGain,
+        out string error, out float playbackGain, CancellationToken cancellationToken = default)
     {
+        playbackGain = 1f;
         if (!TryReadPcm(wav, out var pcm, out error)) return false;
+        playbackGain = MeasurePlaybackGain(pcm, playbackBaseGain);
         try
         {
             var frames = RuntimeVoiceAlignment.Bake(pcm, text, cancellationToken);
@@ -33,11 +53,50 @@ public static class VoiceVisemeBaker
         catch (UnauthorizedAccessException) { error = "VisemeWriteFailed"; return false; }
     }
 
+    private static float MeasurePlaybackGain(short[] samples, float playbackBaseGain)
+    {
+        if (samples.Length == 0 || float.IsNaN(playbackBaseGain) ||
+            float.IsInfinity(playbackBaseGain) || playbackBaseGain <= 0f) return 1f;
+
+        long peak = 0;
+        double activeSquares = 0d;
+        var activeSamples = 0;
+        var activeFrames = 0;
+        for (var start = 0; start < samples.Length; start += LevelFrameSamples)
+        {
+            var count = Math.Min(LevelFrameSamples, samples.Length - start);
+            double squares = 0d;
+            for (var i = start; i < start + count; i++)
+            {
+                var value = (long)samples[i];
+                var magnitude = Math.Abs(value);
+                if (magnitude > peak) peak = magnitude;
+                squares += value * value;
+            }
+
+            var frameRms = Math.Sqrt(squares / count) / 32768d;
+            if (frameRms < ActiveThreshold) continue;
+            activeFrames++;
+            activeSamples += count;
+            activeSquares += squares;
+        }
+
+        // Silence, background hiss and isolated transients are not speech.
+        if (activeFrames < MinimumActiveFrames || activeSamples == 0 || peak == 0) return 1f;
+        var activeRms = Math.Sqrt(activeSquares / activeSamples) / 32768d;
+        if (activeRms <= 0d) return 1f;
+
+        var targetGain = TargetActiveRms / activeRms;
+        var peakGain = OutputPeakCeiling / ((peak / 32768d) * playbackBaseGain);
+        var gain = Math.Min(MaximumBoost, Math.Min(targetGain, peakGain));
+        return gain > 1d && !double.IsNaN(gain) && !double.IsInfinity(gain) ? (float)gain : 1f;
+    }
+
     public static bool TryValidateWave(byte[] wav, out int durationMilliseconds, out string error)
     {
         durationMilliseconds = 0;
         if (!TryReadPcm(wav, out var samples, out error)) return false;
-        durationMilliseconds = (int)Math.Round(samples.Length * 1000d / 44100);
+        durationMilliseconds = (int)Math.Round(samples.Length * 1000d / SampleRate);
         return true;
     }
 
@@ -81,9 +140,9 @@ public static class VoiceVisemeBaker
             offset += 8 + size + (size & 1);
         }
         error = "WaveMustBePcm16Mono44100";
-        if (format != 1 || channels != 1 || rate != 44100 || byteRate != 88200 ||
+        if (format != 1 || channels != 1 || rate != SampleRate || byteRate != SampleRate * 2 ||
             blockAlign != 2 || bits != 16 || dataOffset < 0 || dataBytes < 2 ||
-            (dataBytes & 1) != 0 || dataBytes > 44100 * 2 * 30) return false;
+            (dataBytes & 1) != 0 || dataBytes > SampleRate * 2 * 30) return false;
         samples = new short[dataBytes / 2];
         Buffer.BlockCopy(wav, dataOffset, samples, 0, dataBytes);
         error = string.Empty;

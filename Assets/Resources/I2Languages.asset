@@ -69,8 +69,16 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - "Character voices"
-      - "Голоса персонажей"
+      - "Recorded character voices"
+      - "Записанные голоса персонажей"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.agent_voices
+      TermType: 0
+      Description:
+      Languages:
+      - "Connected AI voices"
+      - "Голоса подключённого AI"
       Flags: 0101
       Languages_Touch: []
     - Term: audio.music
@@ -93,8 +101,8 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - "Voices include connected AI. Changes apply immediately and are saved automatically."
-      - "Голоса включают подключённый AI. Изменения применяются сразу и сохраняются автоматически."
+      - "Recorded and connected AI voices are adjusted separately. Changes apply immediately and are saved automatically."
+      - "Записанные голоса и голоса подключённого AI настраиваются отдельно. Изменения применяются сразу и сохраняются автоматически."
       Flags: 0101
       Languages_Touch: []
     - Term: loading.content.wear

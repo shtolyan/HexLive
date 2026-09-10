@@ -830,6 +830,7 @@ public sealed class McpTools
                 ["perceptionSummary"] = context.PerceptionSummary,
                 ["memorySummary"] = context.MemorySummary,
                 ["inventory"] = Inventory(npc),
+                ["inventorySummary"] = McpInventoryObservations.Read(world, npc),
                 ["visibleItems"] = McpItemObservations.Visible(world, npc),
                 ["visibleNpcs"] = McpNpcObservations.Visible(world, npc),
                 ["recentPerception"] = McpPerceptionObservations.Recent(

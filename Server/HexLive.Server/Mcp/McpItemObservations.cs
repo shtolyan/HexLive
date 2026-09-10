@@ -71,6 +71,8 @@ internal static class McpItemObservations
         return new Dictionary<string, object?>
         {
             ["itemId"] = definitionId,
+            ["inventoryCapacityWhenWorn"] = world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition)
+                ? definition.InventoryCapacity : 0,
             ["ownerNpcId"] = ownerId == 0 ? null : ownerId,
             ["ownerAlive"] = ownerId == 0 ? null : ownerAlive,
             ["ownerFaction"] = faction?.ToString(),

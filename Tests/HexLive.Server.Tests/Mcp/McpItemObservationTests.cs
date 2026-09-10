@@ -18,6 +18,39 @@ namespace HexLive.Server.Tests.Mcp;
 public sealed class McpItemObservationTests
 {
     [Test]
+    public void InventorySummaryDistinguishesPartialStacksFromEmptySlotsWithoutMutation()
+    {
+        using var host = CreateHost();
+        var id = host.Read(world =>
+        {
+            var npc = Observer(world);
+            npc.Inventory.Items.Clear(); npc.Inventory.HolsterSlotIds.Clear();
+            npc.Inventory.Capacity = 2;
+            for (var i = 0; i < 3; i++) npc.Inventory.Items.Add(new ItemInstance("resource.stick"));
+            npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+            return npc.Id.Value;
+        });
+        using var response = Describe(host, id);
+        var summary = response.RootElement.GetProperty("inventorySummary");
+        var sticks = summary.GetProperty("itemCapacity").EnumerateArray().Single(r => r.GetProperty("itemId").GetString() == "resource.stick");
+        Assert.Multiple(() =>
+        {
+            Assert.That(summary.GetProperty("itemCount").GetInt32(), Is.EqualTo(4));
+            Assert.That(summary.GetProperty("usedSlots").GetInt32(), Is.EqualTo(2));
+            Assert.That(summary.GetProperty("freeSlots").GetInt32(), Is.Zero);
+            Assert.That(sticks.GetProperty("additionalWithoutDropping").GetInt32(), Is.EqualTo(InventoryState.StackSizeFor("resource.stick") - 3));
+            Assert.That(sticks.GetProperty("canAcceptWithoutDropping").GetBoolean(), Is.True);
+            Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(id)].Inventory.Items.Count), Is.EqualTo(4));
+        });
+        host.Read(w => { w.Entities.Npcs[new EntityId(id)].Inventory.Items.RemoveAt(0); return true; });
+        using var afterOne = Describe(host, id);
+        Assert.That(afterOne.RootElement.GetProperty("inventorySummary").GetProperty("freeSlots").GetInt32(), Is.Zero);
+        host.Read(w => { w.Entities.Npcs[new EntityId(id)].Inventory.Items.RemoveAll(i => i.DefinitionId == "resource.stick"); return true; });
+        using var afterStack = Describe(host, id);
+        Assert.That(afterStack.RootElement.GetProperty("inventorySummary").GetProperty("freeSlots").GetInt32(), Is.EqualTo(1));
+    }
+
+    [Test]
     public void VisibleOwnershipUsesTheOwnerAndCampNeverTheCurrentUser()
     {
         using var host = CreateHost();

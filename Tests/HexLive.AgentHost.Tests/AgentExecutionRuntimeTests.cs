@@ -74,6 +74,70 @@ public sealed class AgentExecutionRuntimeTests
         Assert.That(providers.Calls, Is.Zero);
     }
 
+    [TestCase("Energy")]
+    [TestCase("Stamina")]
+    public async Task BoundedRecoveryContinuesSavedQueueWithoutAnotherModelDecision(string need)
+    {
+        using var host = Host();
+        var engine = (SimulationEngine)typeof(WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+        host.Read(w =>
+        {
+            w.Mobs.Clear();
+            foreach (var person in w.Entities.Npcs.Values)
+            { person.Mind.ManualControl = true; person.Faction = Faction.Colony; }
+            // Let the normal initial wildlife spawn finish before making this
+            // isolated recovery fixture safe; do not suppress threats while resting.
+            for (var i = 0; i < 64; i++) engine.Step();
+            w.Mobs.Clear();
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Needs.Energy = need == "Energy" ? .2f : .8f;
+            npc.Needs.Stamina = need == "Stamina" ? .2f : .8f;
+            npc.Needs.Hunger = npc.Needs.Thirst = 0f;
+            npc.Mind.AdrenalineUntilTick = 0;
+            npc.Perception.Hostiles.Clear();
+            npc.Perception.Mobs.Clear();
+            return true;
+        });
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("rest", "rest_until", JsonSerializer.SerializeToElement(new { need, target = .4 }))
+                { Condition = new("bodyNeeds." + need.ToLowerInvariant() + ".value", "lte", .3, "continue") },
+             new("continue", "stop", JsonSerializer.SerializeToElement(new { }))]);
+        var running = Run(runtime, mcp, plan.Id, world, 90);
+        var sawRest = false;
+        for (var batch = 0; !running.IsCompleted && batch < 2000; batch++)
+        {
+            host.Read(w =>
+            {
+                var npc = w.Entities.Npcs[new EntityId(901)];
+                for (var i = 0; i < 32 && npc.Plan.Status == HexLive.Simulation.AI.PlanStatus.Active; i++)
+                {
+                    engine.Step();
+                    sawRest |= need == "Energy" ? npc.Execution.CurrentInteraction == InteractionType.Sleep :
+                        npc.Execution.CurrentInteraction is InteractionType.Sit or InteractionType.Rest;
+                }
+                return true;
+            });
+            await Task.Delay(1);
+        }
+        await running;
+        var saved = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        Assert.That(saved.Status, Is.EqualTo("completed"), host.Read(w => JsonSerializer.Serialize(new
+        { saved.Reason, ledger = w.AgentCommands.GetValueOrDefault(901),
+            w.Tick, mobs = w.Mobs.Count,
+            hostiles = w.Entities.Npcs[new EntityId(901)].Perception.Hostiles.Select(h => h.Id.Value),
+            adrenaline = w.Entities.Npcs[new EntityId(901)].Mind.AdrenalineUntilTick,
+            events = w.Events.Items.TakeLast(8).Select(e => new { e.Type, e.Message }) })));
+        Assert.That(sawRest, Is.True, "Energy and stamina require their own form of recovery.");
+        Assert.That(host.Read(w => need == "Energy" ? w.Entities.Npcs[new EntityId(901)].Needs.Energy :
+            w.Entities.Npcs[new EntityId(901)].Needs.Stamina), Is.GreaterThanOrEqualTo(.4f));
+        Assert.That(transport.Executions, Is.EqualTo(2));
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
     [Test]
     public async Task CapacityConditionBranchesBeforeSendingTheGuardedCommand()
     {
@@ -280,9 +344,9 @@ public sealed class AgentExecutionRuntimeTests
     }
     private static MashaMemoryStore Memory(AgentHostRuntime runtime) => (MashaMemoryStore)typeof(AgentHostRuntime)
         .GetField("_memory", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(runtime)!;
-    private static async Task Run(AgentHostRuntime runtime, McpClient mcp, string planId, MashaWorldHandle world)
+    private static async Task Run(AgentHostRuntime runtime, McpClient mcp, string planId, MashaWorldHandle world, int timeoutSeconds = 15)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
         await ((Task)typeof(AgentHostRuntime).GetMethod("RunExecutionPlanAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
             .Invoke(runtime, [mcp, 901, planId, world, timeout.Token])!).WaitAsync(timeout.Token);
     }

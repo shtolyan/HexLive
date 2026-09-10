@@ -116,3 +116,8 @@ condition={path:"inventorySummary.freeSlots",operator:"gte",value:1,onFalseStepI
 bodyNeeds.thirst; операторы gte/lte. Пустой onFalseStepId приостанавливает план для
 нового решения. Переход только вперёд. Для стаков учитывай возможность дополнить
 существующий стак: freeSlots=0 само по себе не запрещает подобрать ресурс.
+
+Для ограниченного сна/отдыха включай rest_until только в executionPlanUpdate.steps:
+need=Energy для сна, need=Stamina для сидячего отдыха; target в (0,1]. Сервер
+штатно завершает отдых при достижении порога. GroundSleep сам по себе бессрочен.
+Прерывание отдыхавшей угрозой или отказ — failed, а не доказательство восстановления.

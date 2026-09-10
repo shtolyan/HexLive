@@ -82,6 +82,57 @@ public sealed class AgentCommandReceiptTests
     }
 
     [Test]
+    public void NativeRejectionIsReturnedAsAKnownFailedReceipt()
+    {
+        using var host = Host(); var tools = Tools(host);
+        var result = Call(tools, "execute_agent_command", new
+        { npcId = 901, sequence = 1, commandId = "command-1", tool = "interact",
+            arguments = new { objectId = int.MaxValue, interaction = "PickUp" } });
+        Assert.That(result.GetProperty("outcome").GetString(), Is.EqualTo("failed"));
+        Assert.That(result.GetProperty("reason").GetString(), Is.EqualTo("TargetGone"));
+        Assert.That(Read(tools, 1).GetProperty("outcome").GetString(), Is.EqualTo("failed"));
+    }
+
+    [Test]
+    public void BoundedRestCannotRunOutsideTheTrackedContractOrWithInvalidTargets()
+    {
+        using var host = Host(); var tools = Tools(host);
+        tools.Call("rest_until", JsonSerializer.SerializeToElement(new { npcId = 901, need = "Energy", target = .8 }), "fixture", out var error);
+        Assert.That(error, Is.True);
+        foreach (var (need, target) in new[] { ("Energy", 0d), ("Stamina", 1.1d), ("Hunger", .8d) })
+        {
+            tools.Call("execute_agent_command", JsonSerializer.SerializeToElement(new
+            { npcId = 901, sequence = 1, commandId = "command-1", tool = "rest_until", arguments = new { need, target } }), "fixture", out error);
+            Assert.That(error, Is.True);
+        }
+        Assert.That(host.Read(w => w.AgentCommands.Count), Is.Zero);
+    }
+
+    [Test]
+    public void InterruptingBoundedRestFailsItsReceiptAndClearsItsWakeTarget()
+    {
+        using var host = Host(); var tools = Tools(host);
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Needs.Energy = .2f; npc.Mind.AdrenalineUntilTick = 0;
+            npc.Perception.Hostiles.Clear(); npc.Perception.Mobs.Clear();
+            return true;
+        });
+        var accepted = Call(tools, "execute_agent_command", new
+        { npcId = 901, sequence = 1, commandId = "command-1", tool = "rest_until", arguments = new { need = "Energy", target = .8 } });
+        Assert.That(accepted.GetProperty("outcome").GetString(), Is.EqualTo("accepted"));
+        host.Read(w =>
+        {
+            PlanInterruption.TryAbort(w, w.Entities.Npcs[new EntityId(901)], InterruptionCause.PathFailure, "fixture");
+            Assert.That(w.AgentCommands[901].RestNeed, Is.Empty);
+            Assert.That(w.AgentCommands[901].RestTarget, Is.Zero);
+            return true;
+        });
+        Assert.That(Read(tools, 1).GetProperty("outcome").GetString(), Is.EqualTo("failed"));
+    }
+
+    [Test]
     public void ReceiptToolsCannotBypassActorScopeOrLease()
     {
         using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));

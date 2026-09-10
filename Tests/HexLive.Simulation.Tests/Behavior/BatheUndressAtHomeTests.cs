@@ -597,7 +597,8 @@ public sealed class BatheUndressAtHomeTests
             // 73 → 74 в §31C.1/#411: происхождение лежащего плода;
             // CoconutStockLifetimeTests проверяет миграцию v66–73.
             // 74 → 75 в §144/#409: квитанции команд сохраняются вместе с миром.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(75));
+            // 75 → 76: сохраняемый порог ограниченного агентского отдыха.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(76));
         });
     }
 

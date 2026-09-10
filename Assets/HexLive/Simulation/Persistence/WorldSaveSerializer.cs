@@ -172,8 +172,8 @@ public static class WorldSaveSerializer
     // v73 (§28.15G): requested shared Talk topic at the end of each NPC record.
     // v74 (§31C.1 / bug #411): ground produce provenance; old saves infer
     // Natural only from a producer's saved ids, leaving other origins Unknown.
-    // v75 (§144 / bug #409): bounded command receipts and permanent sequence watermarks.
-    public const int BlobVersion = 75;
+    // v76 (§144 / bug #409): saved completion target for bounded agent rest.
+    public const int BlobVersion = 76;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -513,6 +513,7 @@ public static class WorldSaveSerializer
                     w.Write(receipt.Sequence); w.Write(receipt.Id); w.Write(receipt.Fingerprint);
                     w.Write(receipt.Outcome); w.Write(receipt.Reason);
                 }
+                if (version >= 76) { w.Write(pair.Value.RestNeed); w.Write(pair.Value.RestTarget); }
             }
         }
         w.Write(EndMarker);
@@ -993,6 +994,15 @@ public static class WorldSaveSerializer
                         receipt.Outcome is not ("accepted" or "completed" or "failed" or "unknown") || receipt.Reason.Length > 96)
                         throw new InvalidDataException("Invalid agent command receipt");
                     previous = receipt.Sequence; ledger.Receipts.Add(receipt);
+                }
+                if (version >= 76)
+                {
+                    ledger.RestNeed = r.ReadString(); ledger.RestTarget = r.ReadSingle();
+                    if (ledger.RestNeed is not ("" or "Energy" or "Stamina") ||
+                        !float.IsFinite(ledger.RestTarget) ||
+                        (ledger.RestNeed.Length == 0 ? ledger.RestTarget != 0 :
+                            ledger.ActiveSequence == 0 || ledger.RestTarget <= 0 || ledger.RestTarget > 1))
+                        throw new InvalidDataException("Invalid agent rest target");
                 }
                 if (npcId <= 0 || ledger.HighestSequence < 0 || ledger.ActiveSequence < 0 ||
                     ledger.ActiveSequence > ledger.HighestSequence || world.AgentCommands.ContainsKey(npcId) ||

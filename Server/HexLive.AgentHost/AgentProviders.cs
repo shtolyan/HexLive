@@ -27,7 +27,7 @@ public sealed class AgentProviders : IAgentProviders
         "move_to", "interact", "craft_item", "stop", "talk_to", "aid_person",
         "treat_limbs", "self_action", "carry_person", "put_down_person",
         "put_person_in_bed", "manage_inventory", "attack_mob", "merge_camps", "request_item",
-        "query_known_objects", "transfer_inventory"
+        "query_known_objects", "transfer_inventory", "rest_until"
     };
     public static bool IsAllowedTool(string name) => AllowedTools.Contains(name);
 

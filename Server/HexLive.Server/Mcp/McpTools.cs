@@ -312,6 +312,11 @@ public sealed class McpTools
                    ("kind", "string",
                     "вид: " + string.Join("/", Enum.GetNames(typeof(SelfActionKind))), true))),
 
+        new("rest_until", "Ограниченный отдых только внутри execute_agent_command: Energy — сон на земле, Stamina — отдых сидя. Сервер сам завершит отдых при достижении target; прерывание считается сбоем.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                ("need", "string", "Energy или Stamina", true),
+                ("target", "number", "целевой показатель больше 0 и не больше 1", true))),
+
         new("merge_camps",
             "Добровольно объединить два женских лагеря (§146.12), включая всех их жителей. " +
             "useTargetCamp=false оставляет общий дом в лагере npcId, true — в лагере targetNpcId. " +
@@ -482,6 +487,11 @@ public sealed class McpTools
                 }
 
                 case "self_action": return SelfAction(host, arguments, owner, out isError);
+                case "rest_until":
+                    if (_trackedCommand.Value is not { RestNeed.Length: > 0 } rest)
+                        throw new McpArgumentException("RestRequiresTrackedExecution");
+                    return Submit(host, Int(arguments, "npcId"), owner,
+                        npc => new SelfActionCommand(npc, rest.RestNeed == "Energy" ? SelfActionKind.GroundSleep : SelfActionKind.GroundSit), out isError);
                 case "merge_camps":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
@@ -1649,7 +1659,7 @@ public sealed class McpTools
             throw new McpArgumentException("Нужен объект arguments до 8192 символов");
         if (tool is not ("move_to" or "interact" or "craft_item" or "stop" or "talk_to" or
             "aid_person" or "treat_limbs" or "self_action" or "carry_person" or "put_down_person" or
-            "put_person_in_bed" or "manage_inventory" or "attack_mob" or "merge_camps" or "request_item" or "transfer_inventory"))
+            "put_person_in_bed" or "manage_inventory" or "attack_mob" or "merge_camps" or "request_item" or "transfer_inventory" or "rest_until"))
             throw new McpArgumentException("TrackedToolUnavailable");
         var properties = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);
         foreach (var property in nested.EnumerateObject())
@@ -1663,9 +1673,23 @@ public sealed class McpTools
         try
         {
             _trackedCommand.Value = new(npcId, sequence, commandId, fingerprint);
+            if (tool == "rest_until")
+            {
+                var need = Text(bound, "need"); var target = Number(bound, "target");
+                if (need is not ("Energy" or "Stamina") || !float.IsFinite(target) || target <= 0 || target > 1)
+                    throw new McpArgumentException("InvalidRestTarget");
+                _trackedCommand.Value = _trackedCommand.Value with { RestNeed = need, RestTarget = target };
+            }
             _trackedResult.Value = null;
             var result = Call(tool, bound, owner, out isError);
-            return _trackedResult.Value is { } receipt ? Json(receipt) : result;
+            if (_trackedResult.Value is { } receipt)
+            {
+                // A recorded failure is a valid receipt, not an unknown transport
+                // error. Let the executor persist failed rather than lose its outcome.
+                isError = false;
+                return Json(receipt);
+            }
+            return result;
         }
         finally { _trackedCommand.Value = previous; _trackedResult.Value = previousResult; }
     }

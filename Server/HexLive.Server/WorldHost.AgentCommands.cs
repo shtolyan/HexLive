@@ -7,7 +7,11 @@ using HexLive.Simulation.Runtime;
 
 namespace HexLive.Server;
 
-public sealed record AgentCommandRequest(int NpcId, long Sequence, string Id, string Fingerprint);
+public sealed record AgentCommandRequest(int NpcId, long Sequence, string Id, string Fingerprint)
+{
+    public string RestNeed { get; init; } = "";
+    public float RestTarget { get; init; }
+}
 public sealed record AgentCommandResult(
     [property: JsonPropertyName("highestSequence")] long HighestSequence,
     [property: JsonPropertyName("sequence")] long Sequence,
@@ -41,6 +45,11 @@ public sealed partial class WorldHost
                 request.Fingerprint.Length != 64 || command.TargetEntity?.Value != request.NpcId ||
                 !world.Entities.Npcs.TryGetValue(new EntityId(request.NpcId), out var npc))
                 throw new ArgumentException("InvalidAgentCommand");
+            if (request.RestNeed.Length > 0 && (request.RestNeed is not ("Energy" or "Stamina") ||
+                !float.IsFinite(request.RestTarget) || request.RestTarget <= 0 || request.RestTarget > 1 ||
+                command is not SelfActionCommand rest || rest.Kind !=
+                    (request.RestNeed == "Energy" ? SelfActionKind.GroundSleep : SelfActionKind.GroundSit)))
+                throw new ArgumentException("InvalidRestCommand");
             if (!world.AgentCommands.TryGetValue(request.NpcId, out var ledger))
                 world.AgentCommands.Add(request.NpcId, ledger = new AgentCommandLedger());
             AgentCommandLedger.Observe(world, npc);
@@ -63,10 +72,13 @@ public sealed partial class WorldHost
             var admission = SubmitManualCommand(command);
             if (!admission.Accepted)
             { receipt.Outcome = "failed"; receipt.Reason = admission.Reason.Length <= 96 ? admission.Reason : "Rejected"; }
+            else if (command is StopCommand)
+            { receipt.Outcome = "completed"; receipt.Reason = "Completed"; }
             else if (npc.Plan.Status is PlanStatus.Failed or PlanStatus.Invalid)
             { receipt.Outcome = "failed"; receipt.Reason = "PlanFailed"; }
             else if (npc.Plan.Status == PlanStatus.Active || npc.Execution.Status == ExecutionStatus.InProgress)
-            { receipt.Outcome = "accepted"; receipt.Reason = "Accepted"; ledger.ActiveSequence = request.Sequence; }
+            { receipt.Outcome = "accepted"; receipt.Reason = "Accepted"; ledger.ActiveSequence = request.Sequence;
+                ledger.RestNeed = request.RestNeed; ledger.RestTarget = request.RestTarget; }
             else
             { receipt.Outcome = "completed"; receipt.Reason = "Completed"; }
             return ReadAgentCommand(request.NpcId, request.Sequence, request.Id);

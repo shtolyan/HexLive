@@ -94,16 +94,15 @@ public sealed class AgentProviders : IAgentProviders
         }
 
         var system = AgentPromptBuilder.Build(_options.DialogueStyleId, memoryContext, transcript);
-        var lastPlayerMessage = AgentConversationLanguage.LastMessage(transcript, recentConversation, "");
 
         using var stateDocument = JsonDocument.Parse(stateJson);
         var user = JsonSerializer.Serialize(new
         {
             trigger,
             worldAndBody = stateDocument.RootElement,
-            playerSpeech = transcript,
-            lastPlayerMessageForLanguage = lastPlayerMessage,
-            recentConversation
+            hasNewPlayerMessage = trigger == "voice" && !string.IsNullOrWhiteSpace(transcript),
+            playerSpeech = trigger == "voice" ? transcript : "",
+            recentConversation = new { alreadyProcessed = true, messages = recentConversation }
         });
         if (_modelAdapter != null)
         {

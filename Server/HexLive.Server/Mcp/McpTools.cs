@@ -86,7 +86,9 @@ public sealed class McpTools
             "Полная картина по одной колонистке: состояние, восприятие (объекты рядом с их " +
             "id и доступными взаимодействиями, союзницы, враги и звери) и память. Ровно " +
             "тот текст, который получает LLM-контур. Отсюда берут objectId для interact " +
-            "и mobId для attack_mob.",
+            "и mobId для attack_mob. effects и effectImpacts — статусы и текущие причины " +
+            "изменения параметров этого тела, как в UI; effectDefinitions/effectTerms " +
+            "дают их канонические объяснения EN/RU.",
             Schema(("npcId", "integer", "id колонистки", true),
                 ("perceptionEpoch", "string", "epoch из recentPerception предыдущего завершённого хода", false),
                 ("perceptionSince", "integer", "watermark из recentPerception завершённого хода", false))),
@@ -737,6 +739,7 @@ public sealed class McpTools
 
             // ⭐ Тот же сборщик, что кормит §32.15. Не копия — он сам.
             var context = LlmDecisionContextBuilder.Build(world, npc);
+            var effects = McpEffectObservations.Read(world, npc);
             return Json(new Dictionary<string, object?>
             {
                 ["npcId"] = npc.Id.Value,
@@ -760,6 +763,10 @@ public sealed class McpTools
                 // its local workspace; no generic turn writes these fields.
                 ["legacyAgentState"] = LegacyAgentState(npc),
                 ["stateSummary"] = context.StateSummary,
+                ["effects"] = effects.Effects,
+                ["effectImpacts"] = effects.Impacts,
+                ["effectDefinitions"] = effects.Definitions,
+                ["effectTerms"] = effects.Terms,
                 ["perceptionSummary"] = context.PerceptionSummary,
                 ["memorySummary"] = context.MemorySummary,
                 ["inventory"] = Inventory(npc),

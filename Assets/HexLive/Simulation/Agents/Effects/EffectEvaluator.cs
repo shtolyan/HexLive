@@ -50,6 +50,15 @@ namespace HexLive.Simulation.Agents.Effects
             List<ActiveEffect> results)
         {
             results.Clear();
+            var sink = new ListSink(results);
+            Collect(npc, currentTick, effectiveUv, nearLitFire, restingInBed, ref sink);
+        }
+
+        // §48.8: constrained dispatch writes directly to the caller's output.
+        public static void Collect<TSink>(
+            NPCState npc, int currentTick, float effectiveUv, bool nearLitFire,
+            bool restingInBed, ref TSink results) where TSink : struct, IActiveEffectSink
+        {
             if (npc == null)
             {
                 return;
@@ -302,6 +311,13 @@ namespace HexLive.Simulation.Agents.Effects
             AI.DyingCause.Dehydration => "effect.dying.reason.dehydration",
             _ => string.Empty,
         };
+
+        private readonly struct ListSink : IActiveEffectSink
+        {
+            private readonly List<ActiveEffect> _results;
+            public ListSink(List<ActiveEffect> results) => _results = results;
+            public void Add(ActiveEffect effect) => _results.Add(effect);
+        }
 
         private static float Part(NPCState npc, BodyPart part) =>
             npc.Body.Parts.TryGetValue(part, out var v) ? v : 1f;

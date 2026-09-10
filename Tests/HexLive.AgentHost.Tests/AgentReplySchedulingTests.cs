@@ -7,6 +7,21 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentReplySchedulingTests
 {
+    [Test]
+    public async Task CommittedActionStartsBeforeBlockedSpeechSynthesis()
+    {
+        await using var f = new Fixture(blockTts: true, replyAction: true);
+        await f.Provider.AutonomyBlocked.Task.WaitAsync(TimeSpan.FromSeconds(4));
+        Assert.That(f.Provider.Release.Task.IsCompleted, Is.False);
+        await Until(() => f.Transport.Actions.Count == 1);
+        Assert.That(f.Transport.Actions, Is.EqualTo(new[] { 10 }));
+        Assert.That(f.Transport.Delivered, Is.Empty, "The physical order must not wait for TTS.");
+        Assert.That(f.Transport.Decisions, Is.EqualTo(new[] { "stale-autonomy" }));
+        f.Provider.Release.TrySetResult();
+        await Until(() => f.Transport.Delivered.Contains("ambient"));
+        Assert.That(f.Transport.Actions, Is.EqualTo(new[] { 10 }), "Finishing speech must not submit the order twice.");
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task ReplyProgressesWhileAutonomyModelOrTtsIsBlocked(bool blockTts)

@@ -374,12 +374,6 @@ public sealed partial class AgentHostRuntime
             _diagnostics.Record("model.completed", turnId, trigger, elapsedMs: modelMs);
             if (trigger != "voice" && string.Equals(decision.Speech.Trim(), previousSpeech,
                     StringComparison.OrdinalIgnoreCase)) decision.Speech = string.Empty;
-            stage = "tts";
-            var ttsStarted = latency.ElapsedMilliseconds;
-            var wav = decision.Speech.Length == 0 ? Array.Empty<byte>() :
-                await PrepareSpeechAsync(decision.Speech, cancellationToken).ConfigureAwait(false);
-            var ttsMs = latency.ElapsedMilliseconds - ttsStarted;
-            _diagnostics.Record("speech.prepared", turnId, trigger, elapsedMs: ttsMs);
             if (scheduled != null)
             {
                 scheduled.ReadyToCommit = true;
@@ -416,7 +410,7 @@ public sealed partial class AgentHostRuntime
                 ++_controlVersion;
                 _autonomyTurn?.Stop.Cancel();
             }
-            Console.Error.WriteLine($"[latency] turn={ActionCorrelation(turnId)} lane={trigger} modelMs={modelMs} ttsMs={ttsMs} readyMs={latency.ElapsedMilliseconds}");
+            Console.Error.WriteLine($"[latency] turn={ActionCorrelation(turnId)} lane={trigger} modelMs={modelMs} readyMs={latency.ElapsedMilliseconds}");
 
             var pending = new PendingAgentTurn
             {
@@ -442,19 +436,6 @@ public sealed partial class AgentHostRuntime
             LastIntentSummary = decision.IntentSummary;
 
             if (playerText.Length > 0) Remember(AgentPromptFiles.Text("AgentHostRuntime.08") + playerText);
-            if (decision.Speech.Length > 0)
-            {
-                stage = "speech";
-                Remember(_options.DisplayName + ": " + decision.Speech);
-                await PublishPhaseAsync(mcp, attachmentId, turnId, "Speaking", cancellationToken);
-                await UploadSpeechAsync(mcp, attachmentId, turnId, trigger, decision, wav,
-                    cancellationToken).ConfigureAwait(false);
-                _memory.History.Append(new() { Id = AgentMemoryArchive.Id("delivery:" + turnId), Kind = "delivery",
-                    Text = decision.Speech, Status = "delivered", Source = "agent", Episode = world.EpisodeId,
-                    Speaker = world.SpeakerKey, Group = world.SpeakerKey, OccurredUtc = DateTimeOffset.UtcNow,
-                    Tick = world.Tick, DayLengthTicks = world.DayLengthTicks });
-                _lastSpeech = decision.Speech.Trim();
-            }
             cancellationToken.ThrowIfCancellationRequested();
             if (decision.Action != null && CanStartActionTurn(trigger))
             {
@@ -470,6 +451,31 @@ public sealed partial class AgentHostRuntime
                 await StopActionAsync(handoffLease: true).ConfigureAwait(false);
                 _actionStop = CancellationTokenSource.CreateLinkedTokenSource(attachmentCancellation);
                 _actionTask = PerformActionSafelyAsync(mcp, npcId, decision.Action, _actionStop.Token, turnId);
+            }
+            // #408: a committed command starts before any TTS work. Release the
+            // writer while synthesizing so inbox/history/control renewal keep progressing.
+            _turnWriter.Release(); ownsWriter = false;
+            stage = "tts";
+            var ttsStarted = latency.ElapsedMilliseconds;
+            var wav = decision.Speech.Length == 0 ? Array.Empty<byte>() :
+                await PrepareSpeechAsync(decision.Speech, cancellationToken).ConfigureAwait(false);
+            _diagnostics.Record("speech.prepared", turnId, trigger, elapsedMs: latency.ElapsedMilliseconds - ttsStarted);
+            await _turnWriter.WaitAsync(cancellationToken).ConfigureAwait(false);
+            ownsWriter = true;
+            EnsureCurrentTurn(scheduled, cancellationToken);
+            _activeSpeakerKey = world.SpeakerKey;
+            if (decision.Speech.Length > 0)
+            {
+                stage = "speech";
+                Remember(_options.DisplayName + ": " + decision.Speech);
+                await PublishPhaseAsync(mcp, attachmentId, turnId, "Speaking", cancellationToken);
+                await UploadSpeechAsync(mcp, attachmentId, turnId, trigger, decision, wav,
+                    cancellationToken).ConfigureAwait(false);
+                _memory.History.Append(new() { Id = AgentMemoryArchive.Id("delivery:" + turnId), Kind = "delivery",
+                    Text = decision.Speech, Status = "delivered", Source = "agent", Episode = world.EpisodeId,
+                    Speaker = world.SpeakerKey, Group = world.SpeakerKey, OccurredUtc = DateTimeOffset.UtcNow,
+                    Tick = world.Tick, DayLengthTicks = world.DayLengthTicks });
+                _lastSpeech = decision.Speech.Trim();
             }
             await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
             _status.Write(true, "Ready", npcId, true, true);

@@ -150,9 +150,48 @@ public sealed class AgentReplySchedulingTests
         Assert.That(f.Provider.ReplyCalls, Is.Zero);
     }
 
-    private static async Task Until(Func<bool> predicate)
+    [Test]
+    public async Task ReplyObjectiveWithoutActionFencesLateAutonomyBeforeDurableCommit()
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(4));
+        await using var f = new Fixture(ignoreAutonomyCancellation: true, replyObjective: true);
+        await f.Provider.AutonomyBlocked.Task.WaitAsync(TimeSpan.FromSeconds(4));
+        f.Transport.Question = 1;
+        await Until(() => f.Transport.Acknowledged == 1);
+        f.Provider.Release.TrySetResult();
+        await Task.Delay(250);
+        Assert.That(f.Transport.Actions, Is.Empty);
+        Assert.That(f.Transport.Decisions, Is.EqualTo(new[] { "reply-1" }));
+        var archive = await f.Memory.SnapshotAsync(default);
+        Assert.That(archive.Objective!.Text, Is.EqualTo("Rescue friend"));
+        Assert.That(archive.Objective.Revision, Is.EqualTo(1));
+        Assert.That(archive.Worlds.SelectMany(w => w.Journal).Any(j => j.Text == "stale-autonomy"), Is.False);
+    }
+
+    [Test]
+    public async Task StaleReplyObjectiveRetainsSameQuestionUntilFreshSnapshotRetry()
+    {
+        await using var f = new Fixture(blockReply: true, startAutonomy: false, replyObjective: true);
+        f.Transport.Question = 1;
+        await f.Provider.ReplyBlocked.Task.WaitAsync(TimeSpan.FromSeconds(4));
+        var archive = await f.Memory.SnapshotAsync(default);
+        var episode = archive.Worlds.Single();
+        await f.Memory.CommitTurnAsync(new(episode.Id, episode.WorldKey, episode.LastTick, -1)
+            { ObjectiveRevision = 0 }, "concurrent-goal", "heartbeat", new()
+            { ObjectiveUpdate = new() { Operation = "set", Text = "Find water", Reason = "Immediate survival" } }, default);
+        f.Provider.Release.TrySetResult();
+        await Task.Delay(500);
+        Assert.That(f.Transport.Acknowledged, Is.Zero);
+        Assert.That(f.Transport.Delivered, Is.Empty);
+        Assert.That(f.Transport.Decisions, Is.Empty);
+        await Until(() => f.Transport.Acknowledged == 1, 9);
+        Assert.That(f.Provider.ReplyCalls, Is.EqualTo(2));
+        Assert.That(f.Transport.Delivered, Is.EqualTo(new[] { "reply-1" }));
+        Assert.That((await f.Memory.SnapshotAsync(default)).Objective!.Revision, Is.EqualTo(2));
+    }
+
+    private static async Task Until(Func<bool> predicate, int seconds = 4)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
         while (!predicate()) await Task.Delay(20, timeout.Token);
     }
 
@@ -163,11 +202,12 @@ public sealed class AgentReplySchedulingTests
         public readonly Provider Provider;
         public readonly Transport Transport;
         public readonly Task Running;
+        public readonly MashaMemoryStore Memory;
         public Fixture(bool blockTts = false, bool failAutonomy = false, bool failReplyTts = false,
             bool ignoreAutonomyCancellation = false, bool replyAction = false, bool blockReply = false,
-            bool startAutonomy = true)
+            bool startAutonomy = true, bool replyObjective = false)
         {
-            Provider = new(blockTts, failAutonomy, failReplyTts, ignoreAutonomyCancellation, replyAction, blockReply);
+            Provider = new(blockTts, failAutonomy, failReplyTts, ignoreAutonomyCancellation, replyAction, blockReply, replyObjective);
             Transport = new(startAutonomy);
             var options = new AgentHostOptions
             {
@@ -177,7 +217,10 @@ public sealed class AgentReplySchedulingTests
                 ElevenLabsVoiceId = "fixture", FakeProviders = true,
                 MemoryDirectory = Path.Combine(_path, "memory"), StateDirectory = Path.Combine(_path, "state"),
             };
-            Running = new AgentHostRuntime(options, Provider, Transport).RunAsync(Stop.Token);
+            var runtime = new AgentHostRuntime(options, Provider, Transport);
+            Memory = (MashaMemoryStore)typeof(AgentHostRuntime).GetField("_memory",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(runtime)!;
+            Running = runtime.RunAsync(Stop.Token);
         }
         public async ValueTask DisposeAsync()
         {
@@ -188,7 +231,7 @@ public sealed class AgentReplySchedulingTests
     }
 
     private sealed class Provider(bool blockTts, bool failAutonomy, bool failReplyTts,
-        bool ignoreAutonomyCancellation, bool replyAction, bool blockReply) : IAgentProviders
+        bool ignoreAutonomyCancellation, bool replyAction, bool blockReply, bool replyObjective) : IAgentProviders
     {
         public readonly TaskCompletionSource AutonomyBlocked = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public readonly TaskCompletionSource ReplyBlocked = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -213,7 +256,8 @@ public sealed class AgentReplySchedulingTests
                 return new CompanionDecision
                 {
                     Speech = reply ? transcript : "ambient", IntentSummary = reply ? transcript : "stale-autonomy",
-                    Action = replyAction ? new CompanionAction { Tool = "move_to", Arguments = JsonSerializer.SerializeToElement(new { x = reply ? 20 : 10, y = 10 }) } : null,
+                    Action = replyAction || (!reply && replyObjective) ? new CompanionAction { Tool = "move_to", Arguments = JsonSerializer.SerializeToElement(new { x = reply ? 20 : 10, y = 10 }) } : null,
+                    ObjectiveUpdate = reply && replyObjective ? new() { Operation = "set", Text = "Rescue friend", Reason = "New player request" } : null,
                 };
             }
             catch (OperationCanceledException) { Interlocked.Increment(ref Canceled); throw; }

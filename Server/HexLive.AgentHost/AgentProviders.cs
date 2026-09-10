@@ -221,6 +221,19 @@ public sealed class AgentProviders : IAgentProviders
                         @enum = AllowedReactions.OrderBy(x => x, StringComparer.Ordinal).ToArray()
                     },
                     intentSummary = new { type = "string", maxLength = 240 },
+                    objectiveUpdate = new
+                    {
+                        anyOf = new object[] {
+                            new { type = "null" },
+                            new { type = "object", additionalProperties = false,
+                                properties = new {
+                                    operation = new { type = "string", @enum = new[] { "set", "pause", "resume", "complete", "clear" } },
+                                    text = new { type = "string", maxLength = AgentObjectivePolicy.TextLimit },
+                                    reason = new { type = "string", minLength = 1, maxLength = AgentObjectivePolicy.ReasonLimit }
+                                }, required = new[] { "operation", "text", "reason" }
+                            }
+                        }
+                    },
                     memoryUpserts = new
                     {
                         type = "array",
@@ -243,7 +256,7 @@ public sealed class AgentProviders : IAgentProviders
                 required = new[]
                 {
                     "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
-                    "memoryUpserts", "journalText"
+                    "memoryUpserts", "journalText", "objectiveUpdate"
                 }
             }
         }
@@ -261,7 +274,7 @@ public sealed class AgentProviders : IAgentProviders
             "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
             "memoryUpserts"
         };
-        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText" };
+        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText", "objectiveUpdate" };
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in root.EnumerateObject())
         {
@@ -278,6 +291,13 @@ public sealed class AgentProviders : IAgentProviders
         if (root.TryGetProperty("journalText", out var journalText) &&
             journalText.ValueKind != JsonValueKind.String)
             throw new InvalidDataException("Companion journal entry must be a string.");
+
+        if (root.TryGetProperty("objectiveUpdate", out var objective) && objective.ValueKind != JsonValueKind.Null)
+            RequireExactObject(objective, new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
+            {
+                ["operation"] = JsonValueKind.String, ["text"] = JsonValueKind.String,
+                ["reason"] = JsonValueKind.String
+            });
 
         var assessment = root.GetProperty("relationshipAssessment");
         if (assessment.ValueKind != JsonValueKind.Null)
@@ -328,6 +348,8 @@ public sealed class AgentProviders : IAgentProviders
     private static void RequireExactObject(
         JsonElement value, IReadOnlyDictionary<string, JsonValueKind> fields)
     {
+        if (value.ValueKind != JsonValueKind.Object)
+            throw new InvalidDataException("Nested companion decision must be an object.");
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in value.EnumerateObject())
         {
@@ -398,6 +420,7 @@ public sealed class AgentProviders : IAgentProviders
 
     private static void Validate(CompanionDecision decision, string trigger)
     {
+        if (decision.ObjectiveUpdate != null) AgentObjectivePolicy.ValidateUpdate(decision.ObjectiveUpdate);
         if (trigger == "voice" && decision.RelationshipAssessment == null)
             throw new InvalidDataException("VoiceRelationshipAssessmentRequired");
         if (trigger != "voice") decision.RelationshipAssessment = null;

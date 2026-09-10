@@ -322,6 +322,7 @@ public sealed partial class AgentHostRuntime
             var recall = BuildRecallQuery(playerText, state, Recent);
             var memoryContext = await _memory.BuildPromptContextAsync(world, recall, cancellationToken)
                 .ConfigureAwait(false);
+            world = world with { ObjectiveRevision = memoryContext.ObjectiveRevision };
             Console.Error.WriteLine(
                 $"[memory] promptChars={memoryContext.CharacterCount} recalled={memoryContext.RecalledFragments}");
             var incidentSnapshot = _incidents.Snapshot();
@@ -371,6 +372,7 @@ public sealed partial class AgentHostRuntime
                 ownsWriter = true;
             }
             EnsureCurrentTurn(scheduled, cancellationToken);
+            await _memory.ValidateObjectiveUpdateAsync(world, decision, cancellationToken).ConfigureAwait(false);
             _activeSpeakerKey = world.SpeakerKey;
             if (trigger != "voice" && string.Equals(decision.Speech.Trim(), _lastSpeech,
                     StringComparison.OrdinalIgnoreCase)) decision.Speech = string.Empty;
@@ -382,11 +384,12 @@ public sealed partial class AgentHostRuntime
                     ReportAction(decision.Action.Tool, turnId, ex.ReasonCode);
                     decision.Action = null;
                 }
-                if (scheduled is { IsReply: true } && decision.Action != null)
-                {
-                    ++_controlVersion;
-                    _autonomyTurn?.Stop.Cancel();
-                }
+            }
+            if (scheduled is { IsReply: true } &&
+                (decision.ObjectiveUpdate != null || (decision.Action != null && CanStartActionTurn(trigger))))
+            {
+                ++_controlVersion;
+                _autonomyTurn?.Stop.Cancel();
             }
             Console.Error.WriteLine($"[latency] turn={ActionCorrelation(turnId)} lane={trigger} modelMs={modelMs} ttsMs={ttsMs} readyMs={latency.ElapsedMilliseconds}");
 
@@ -446,6 +449,11 @@ public sealed partial class AgentHostRuntime
         {
             // Reattach before publishing anything with the old attachment ID.
             throw;
+        }
+        catch (AgentObjectiveConflictException)
+        {
+            Console.Error.WriteLine($"[turn] correlation={ActionCorrelation(turnId)} result=objective-conflict-retry");
+            return false; // No durable write or inbox acknowledgement: regenerate from the new goal.
         }
         catch (AgentTargetChangedException) { throw; }
         catch (HttpRequestException ex) when (ex.StatusCode is

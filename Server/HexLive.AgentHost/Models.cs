@@ -18,6 +18,7 @@ public sealed class CompanionAction
 
 public sealed class CompanionDecision
 {
+    [JsonPropertyName("objectiveUpdate")] public AgentObjectiveUpdate? ObjectiveUpdate { get; set; }
     [JsonPropertyName("speech")] public string Speech { get; set; } = string.Empty;
     [JsonPropertyName("emotion")] public string Emotion { get; set; } = "neutral";
     [JsonPropertyName("action")] public CompanionAction? Action { get; set; }

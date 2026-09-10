@@ -75,6 +75,7 @@ public sealed class MashaWorldEpisode
 
 public sealed class MashaArchive
 {
+    public AgentObjective? Objective { get; set; }
     public int SchemaVersion { get; set; } = 1;
     public MashaIdentity Identity { get; set; } = new();
     public Dictionary<string, SpeakerMemory> Speakers { get; set; } = new(StringComparer.Ordinal);
@@ -91,6 +92,8 @@ public sealed class MashaArchive
 
 public sealed record MashaWorldHandle(string EpisodeId, string WorldKey, long Tick, long GameHour)
 {
+    // Revision of the same immutable snapshot used to construct the model prompt.
+    public long? ObjectiveRevision { get; init; }
     public string SpeakerKey { get; init; } = "";
     public string[] MessageIds { get; init; } = [];
     public string PlayerText { get; init; } = "";
@@ -518,6 +521,27 @@ public sealed partial class MashaMemoryStore
         }
     }
 
+    public async Task ValidateObjectiveUpdateAsync(MashaWorldHandle world,
+        CompanionDecision decision, CancellationToken cancellationToken)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { ProjectObjective(world, decision); }
+        finally { _gate.Release(); }
+    }
+
+    private AgentObjective? ProjectObjective(MashaWorldHandle world, CompanionDecision decision)
+    {
+        var revision = _archive.Objective?.Revision ?? 0;
+        if (world.ObjectiveRevision is { } expected && expected != revision &&
+            (decision.ObjectiveUpdate != null || decision.Action != null))
+            throw new AgentObjectiveConflictException();
+        if (decision.ObjectiveUpdate == null) return _archive.Objective;
+        if (world.ObjectiveRevision == null) throw new AgentObjectiveConflictException();
+        var episode = RequireEpisode(world.EpisodeId);
+        return AgentObjectivePolicy.Apply(_archive.Objective, decision.ObjectiveUpdate,
+            world.ObjectiveRevision.Value, episode.WorldKey, episode.AvatarNpcId, DateTimeOffset.UtcNow);
+    }
+
     public async Task<bool> CommitTurnAsync(
         MashaWorldHandle world,
         string turnId,
@@ -535,6 +559,7 @@ public sealed partial class MashaMemoryStore
             if (world.SpeakerKey.Length > 0 && world.MessageIds.Any(GetSpeaker(world.SpeakerKey).AppliedMessageIds.Contains))
                 return false;
             // Validate before mutating any memory, even for callers restoring a persisted outbox.
+            var objective = ProjectObjective(world, decision);
             if (trigger == "voice" && decision.RelationshipAssessment is { } proposed)
                 new HexLive.AgentCore.Studio.VoiceRelationship(new(0, 0, 0, AgentPromptFiles.Text("MashaMemoryStore.08"), null))
                     .Apply(world.MessageIds.Length > 0 ? world.MessageIds : [turnId], proposed, DateTimeOffset.UtcNow);
@@ -610,6 +635,7 @@ public sealed partial class MashaMemoryStore
                 }
             }
 
+            _archive.Objective = objective;
             _archive.AppliedTurnIds.Add(Limit(turnId, 80));
             TrimOldest(_archive.AppliedTurnIds, MaxAppliedTurnIds);
             await SaveAsync(cancellationToken).ConfigureAwait(false);

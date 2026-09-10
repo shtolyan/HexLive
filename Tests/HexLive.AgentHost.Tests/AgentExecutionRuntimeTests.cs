@@ -75,6 +75,63 @@ public sealed class AgentExecutionRuntimeTests
     }
 
     [Test]
+    public async Task CoconutPickupReturnAndUnloadRunAsOneSavedQueue()
+    {
+        using var host = Host();
+        var engine = (SimulationEngine)typeof(WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+        var fixture = host.Read(w =>
+        {
+            foreach (var person in w.Entities.Npcs.Values) person.Mind.ManualControl = true;
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Inventory.Items.Clear();
+            npc.Needs.Hunger = npc.Needs.Thirst = 0f;
+            engine.Step();
+            var at = SpatialQueries.GetPassableNeighbors(w, npc.CurrentJunction!.Value).First();
+            var coconut = WorldObjectMutations.SpawnObject(w, ContentIds.Coconut,
+                npc.Fragment, w.Junctions.Items[at].Tiles[0], at);
+            return (coconut.Id, Home: npc.Position);
+        });
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("collect", "interact", JsonSerializer.SerializeToElement(new { objectId = fixture.Id.Value, interaction = "PickUp" })),
+             new("return", "move_to", JsonSerializer.SerializeToElement(new { x = fixture.Home.X, y = fixture.Home.Y })),
+             new("unload", "manage_inventory", JsonSerializer.SerializeToElement(new
+             { source = "Carried", index = 0, expectedDefinitionId = "food.coconut", action = "Drop" }))]);
+        var running = Run(runtime, mcp, plan.Id, world);
+        var carried = false;
+        for (var i = 0; !running.IsCompleted && i < 10000; i++)
+        {
+            host.Read(w =>
+            {
+                var npc = w.Entities.Npcs[new EntityId(901)];
+                carried |= npc.Inventory.Items.Any(item => item.DefinitionId == "food.coconut");
+                if (npc.Plan.Status == HexLive.Simulation.AI.PlanStatus.Active) engine.Step();
+                return true;
+            });
+            await Task.Delay(1);
+        }
+        await running;
+        var saved = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        Assert.That(saved.Status, Is.EqualTo("completed"), saved.Reason);
+        Assert.That(carried, Is.True, "The coconut must pass through the real inventory.");
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            Assert.That(npc.Inventory.Items, Is.Empty);
+            Assert.That(npc.Position.X, Is.EqualTo(fixture.Home.X).Within(.01f));
+            Assert.That(npc.Position.Y, Is.EqualTo(fixture.Home.Y).Within(.01f));
+            Assert.That(w.Entities.Objects.Values.Any(o => o.DefinitionId == "food.coconut" && o.Id != fixture.Id && o.ProduceOrigin == ProduceOrigin.Gathered && o.Junctions.Count > 0 &&
+                Math.Abs(w.Junctions.Items[o.Junctions[0]].WorldPosition.X - npc.Position.X) < 2f && Math.Abs(w.Junctions.Items[o.Junctions[0]].WorldPosition.Y - npc.Position.Y) < 2f), Is.True);
+            return true;
+        });
+        Assert.That(transport.Executions, Is.EqualTo(3));
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
+    [Test]
     public async Task GiftCommandTransfersThePhysicalItemAndRecordsRecipientReactionWithoutModel()
     {
         using var host = Host();

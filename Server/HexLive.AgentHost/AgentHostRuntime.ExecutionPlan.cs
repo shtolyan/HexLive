@@ -7,6 +7,9 @@ public sealed partial class AgentHostRuntime
     private volatile bool _executingPlan;
     private int _planNeedsDecision;
     private volatile string _lastExecutionAttempt = "";
+    private volatile bool _reconcilingPlan;
+    private DateTimeOffset _nextExecutionRetry;
+    private int _reconciliationAttempts;
 
     private async Task ValidateExecutionPlanAsync(McpClient mcp, int npcId,
         CompanionDecision decision, CancellationToken token)
@@ -22,9 +25,11 @@ public sealed partial class AgentHostRuntime
 
     private async Task TryStartExecutionPlanAsync(McpClient mcp, int npcId, CancellationToken token)
     {
-        if (!_actionTask.IsCompleted || _executingPlan) return;
+        if (!_actionTask.IsCompleted || _executingPlan || DateTimeOffset.UtcNow < _nextExecutionRetry) return;
         var archive = await _memory.SnapshotAsync(token).ConfigureAwait(false);
         var plan = archive.ExecutionPlan;
+        if (plan == null || plan.Status is "completed" or "canceled" || archive.Objective?.Status != "active")
+        { _reconcilingPlan = false; _reconciliationAttempts = 0; }
         var world = Volatile.Read(ref _historyWorld);
         if (plan == null || world == null || plan.WorldKey != world.WorldKey || plan.NpcId != npcId ||
             archive.Objective?.Status != "active" || archive.Objective.Revision != plan.ObjectiveRevision ||
@@ -42,11 +47,13 @@ public sealed partial class AgentHostRuntime
         MashaWorldHandle world, CancellationToken token)
     {
         bool acquired = false;
+        bool reconcilingInitial = false;
         string turn = planId;
         try
         {
             var initial = (await _memory.SnapshotAsync(token).ConfigureAwait(false)).ExecutionPlan;
             if (initial?.Id != planId) return;
+            reconcilingInitial = initial.Reason == "CommandOutcomeUnknown" && initial.Command != null;
             if (initial.Status == "active")
             {
                 await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 }, token).ConfigureAwait(false);
@@ -62,6 +69,11 @@ public sealed partial class AgentHostRuntime
                 turn = planId + ":" + step.Id;
                 if (plan.Command == null)
                 {
+                    if (!acquired)
+                    {
+                        await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 }, token).ConfigureAwait(false);
+                        acquired = true;
+                    }
                     var before = await mcp.CallToolAsync("describe_colonist", new { npcId }, token).ConfigureAwait(false);
                     _diagnostics.Record("step.before", turn, tool: step.Tool, observation: AgentDiagnosticObservation.From(before), execution: AgentDiagnosticExecution.From(plan));
                     if (step.Condition is { } condition && !AgentExecutionPlanPolicy.ConditionSatisfied(condition, before))
@@ -92,6 +104,11 @@ public sealed partial class AgentHostRuntime
                     var receipt = await mcp.CallToolAsync("read_agent_command",
                         new { npcId, sequence = command.Sequence, commandId = command.Id }, token).ConfigureAwait(false);
                     plan = await ApplyExecutionReceiptAsync(plan, receipt, token).ConfigureAwait(false);
+                    if (!acquired && plan.Command?.Status == "accepted" && plan.Reason == "CommandOutcomeUnknown")
+                    {
+                        await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 }, token).ConfigureAwait(false);
+                        acquired = true;
+                    }
                     if (plan.Command?.Status == "unknown") break; // Ask for a decision; never guess or replay.
                     if (acquired && DateTimeOffset.UtcNow >= renew)
                     {
@@ -127,17 +144,31 @@ public sealed partial class AgentHostRuntime
         }
         finally
         {
-            if (acquired && !_handoffActionLease && mcp.HasEstablishedSession)
-                try { await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None).ConfigureAwait(false); } catch { }
             _executingPlan = false;
             var needsDecision = true;
+            var retryReceipt = false;
             try
             {
                 var saved = (await _memory.SnapshotAsync(CancellationToken.None).ConfigureAwait(false)).ExecutionPlan;
                 needsDecision = saved?.Id == planId && saved.Status != "canceled";
-                if (saved?.Id == planId && saved.Status == "paused") _lastExecutionAttempt = saved.Id + ":" + saved.Revision;
+                retryReceipt = saved?.Id == planId && saved.Status == "paused" && saved.Reason == "CommandOutcomeUnknown" &&
+                    saved.Command is { Status: "sending" or "accepted" or "unknown" } && ++_reconciliationAttempts <= 3;
+                if (retryReceipt)
+                {
+                    _lastExecutionAttempt = "";
+                    _nextExecutionRetry = DateTimeOffset.UtcNow.AddSeconds(2);
+                    needsDecision = false;
+                }
+                else
+                {
+                    _reconciliationAttempts = 0;
+                    if (saved?.Id == planId && saved.Status == "paused") _lastExecutionAttempt = saved.Id + ":" + saved.Revision;
+                }
             }
             catch { }
+            _reconcilingPlan = retryReceipt;
+            if ((acquired || reconcilingInitial) && !retryReceipt && !_handoffActionLease && mcp.HasEstablishedSession)
+                try { await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None).ConfigureAwait(false); } catch { }
             if (needsDecision) Interlocked.Exchange(ref _planNeedsDecision, 1);
         }
     }

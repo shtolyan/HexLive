@@ -78,7 +78,17 @@ public sealed partial class MashaMemoryStore
 
     public Task<AgentExecutionPlan> ObserveExecutionStepAsync(string planId, long revision,
         AgentExecutionReceipt receipt, CancellationToken token) => MutateExecutionPlanAsync(planId, revision,
-            plan => AgentExecutionPlanPolicy.Observe(plan, revision, receipt), token);
+            plan =>
+            {
+                var next = AgentExecutionPlanPolicy.Observe(plan, revision, receipt);
+                if (receipt.Outcome == "completed" && plan.Reason == "CommandOutcomeUnknown" &&
+                    next.Status == "paused" && next.Command == null &&
+                    _archive.Objective is { Status: "active" } objective &&
+                    objective.WorldKey == next.WorldKey && objective.AvatarNpcId == next.NpcId &&
+                    objective.Revision == next.ObjectiveRevision)
+                    next = AgentExecutionPlanPolicy.Resume(next, next.Revision, next.WorldKey, next.NpcId, objective.Revision);
+                return next;
+            }, token);
 
     public Task<AgentExecutionPlan> RecoverExecutionPlanAsync(string planId, long revision,
         CancellationToken token) => MutateExecutionPlanAsync(planId, revision, AgentExecutionPlanPolicy.Recover, token);

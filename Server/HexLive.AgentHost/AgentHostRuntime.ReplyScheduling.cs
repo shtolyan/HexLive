@@ -196,7 +196,7 @@ public sealed partial class AgentHostRuntime
                         if (_autonomyTurn == null && _replyTurn == null && now >= retryAutonomy)
                         {
                             var trigger = critical || planDecision || _incidents.HasPending ? "critical" :
-                                !_executingPlan && now >= nextAutonomy ? "heartbeat" : "";
+                                !_executingPlan && !_reconcilingPlan && now >= nextAutonomy ? "heartbeat" : "";
                             if (trigger.Length > 0)
                             {
                                 critical = false;

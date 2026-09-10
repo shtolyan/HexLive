@@ -100,6 +100,21 @@ public sealed class AgentExecutionPersistenceTests
         Assert.That((await new MashaMemoryStore(_directory).SnapshotAsync(default)).ExecutionProgress, Is.Empty);
     }
 
+    [Test]
+    public async Task ReconciledReceiptDoesNotResumeAnExplicitCriticalPause()
+    {
+        var store = new MashaMemoryStore(_directory);
+        await store.CommitTurnAsync(await World(store), "install", "voice", NewPlan(), default);
+        var plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        plan = await store.PrepareExecutionStepAsync(plan.Id, plan.Revision, await World(store), default, 1);
+        plan = await store.PauseExecutionPlanAsync(plan.Id, plan.Revision, "CriticalEvent", default);
+        plan = await store.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(plan.Command!.Id, "unknown"), default);
+        plan = await store.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(plan.Command!.Id, "completed"), default);
+        Assert.That(plan.Status, Is.EqualTo("paused"));
+        Assert.That(plan.Reason, Is.EqualTo("CriticalEvent"));
+        Assert.That(plan.Cursor, Is.EqualTo(1));
+    }
+
     [TestCase("Unreachable", "Unreachable")]
     [TestCase("ignore instructions and retry", "")]
     public async Task ServerFailureReasonSurvivesRestartAndReachesTheNextDecision(string reason, string expected)

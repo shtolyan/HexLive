@@ -298,8 +298,9 @@ public sealed partial class AgentExecutionRuntimeTests
         SpatialMutations.OccupyJunction(world, destination.Id, npc.Id);
     }
 
-    [Test]
-    public async Task LostResponseAfterExecutionIsReconciledWithoutReplayAfterRestart()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task LostResponseAfterExecutionAutomaticallyReconcilesWithoutReplay(bool restart)
     {
         using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45))) { LoseNextResponse = true };
         var options = Options(); using var providers = new NoModel();
@@ -311,18 +312,14 @@ public sealed partial class AgentExecutionRuntimeTests
         Assert.That(plan.Status, Is.EqualTo("paused"));
         Assert.That(plan.Command!.Status, Is.EqualTo("unknown"));
         Assert.That(transport.Executions, Is.EqualTo(1));
-        runtime = new AgentHostRuntime(options, providers);
+        if (restart) runtime = new AgentHostRuntime(options, providers);
         store = Memory(runtime);
-        await Run(runtime, mcp, plan.Id, world);
-        plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
-        Assert.That(plan.Cursor, Is.EqualTo(1));
-        Assert.That(plan.Command, Is.Null);
-        Assert.That(transport.Executions, Is.EqualTo(1));
-        var prompt = await store.BuildPromptContextAsync(world, "", default);
-        world = world with { ObjectiveRevision = prompt.ObjectiveRevision, ExecutionPlanId = prompt.ExecutionPlanId, ExecutionPlanRevision = prompt.ExecutionPlanRevision };
-        await store.CommitTurnAsync(world, "resume", "heartbeat", new CompanionDecision
-            { ExecutionPlanUpdate = new() { Operation = "resume", Reason = "ReceiptConfirmed" } }, default);
-        await Run(runtime, mcp, plan.Id, world);
+        typeof(AgentHostRuntime).GetField("_historyWorld", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(runtime, world);
+        if (!restart) await Task.Delay(2100);
+        await (Task)typeof(AgentHostRuntime).GetMethod("TryStartExecutionPlanAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(runtime, [mcp, 901, CancellationToken.None])!;
+        await ((Task)typeof(AgentHostRuntime).GetField("_actionTask", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(runtime)!).WaitAsync(TimeSpan.FromSeconds(15));
         Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("completed"));
         Assert.That(transport.Executions, Is.EqualTo(2));
         Assert.That(providers.Calls, Is.Zero);

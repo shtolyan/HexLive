@@ -898,12 +898,24 @@ greys out >1× on a remote link, and the server enforces it regardless.
   Asset API: `https://163-245-204-96.sslip.io/api/assets/v1`. Caddy
   (`caddy.service`, canonical source `Server/Caddyfile`, deployed path
   `/etc/caddy/Caddyfile`) завершает TLS и проксирует весь host в origin.
+- Голосовой STT на обоих VPS использует один Deepgram API key. На Нью-Йорке он
+  хранится только в `/etc/hexlive/deepgram.env` (`0600 hexlive:hexlive`) и
+  подключён через
+  `/etc/systemd/system/hexlive.service.d/10-deepgram.conf`. Значение ключа не
+  печатать и не переносить в репозиторий. После каждого restart проверять не
+  только наличие EnvironmentFile, но и авторизованный `/watch` handshake
+  `SttAvailable=true` плюс успешную выдачу временного STT-token; уже открытый
+  Player должен переподключиться, чтобы получить новый handshake.
 - Версионные бинарники: `/opt/hexlive/releases/<full-git-sha>`; активная версия —
   атомарный symlink `/opt/hexlive/current`.
-- **Вся постоянная жизнь сервера** находится в `/var/lib/hexlive`: `world.sav`,
-  `simdata.json`, `hexlive-admin.txt`, `hexlive-player.txt` и
-  `hexlive-players.json`. Никогда не удалять каталог, не менять `--save`, не
-  создавать новый admin account/token и не подменять seed/mode при обновлении.
+- **Вся постоянная жизнь сервера** находится в `/var/lib/hexlive`: библиотека
+  миров `worlds/` (`active.json`, `<world-id>/world.sav`, `players.json` и
+  world-local simdata), а также корневые `simdata.json`, `hexlive-admin.txt`,
+  `hexlive-player.txt` и `hexlive-mcp.txt`. Аргумент `--save .../world.sav`
+  остаётся bootstrap/legacy-путём и у активной multi-world установки может не
+  существовать — это не потеря сейва. Никогда не удалять каталог, не менять
+  `--save`, не создавать новый admin account/token и не подменять seed/mode при
+  обновлении.
   Локальная копия player token для клиента лежит в
   `~/.config/hexlive/servers/163.245.204.96/player-token` с mode 0600; её
   содержимое не печатать.
@@ -920,13 +932,17 @@ git rev-parse HEAD
 git status --short
 ssh -o BatchMode=yes hexlive-nyc \
   'systemctl is-active hexlive.service; readlink -f /opt/hexlive/current; \
-   stat -c "%a %U:%G %n" /var/lib/hexlive /var/lib/hexlive/world.sav \
-   /var/lib/hexlive/simdata.json /var/lib/hexlive/hexlive-admin.txt \
-   /var/lib/hexlive/hexlive-player.txt; curl --fail --silent http://127.0.0.1:5123/'
+   stat -c "%a %U:%G %n" /var/lib/hexlive /var/lib/hexlive/worlds \
+   /var/lib/hexlive/worlds/active.json /var/lib/hexlive/simdata.json \
+   /var/lib/hexlive/hexlive-admin.txt /var/lib/hexlive/hexlive-player.txt \
+   /var/lib/hexlive/hexlive-mcp.txt /etc/hexlive/deepgram.env; \
+   systemctl show hexlive.service -p EnvironmentFiles -p DropInPaths --no-pager; \
+   curl --fail --silent http://127.0.0.1:5123/'
 ```
 
-Ожидаются `active`, release под `/opt/hexlive/releases/`, каталог state 0750 и
-секреты/сейв 0600 пользователя `hexlive`. До сборки соблюсти общее правило выше:
+Ожидаются `active`, release под `/opt/hexlive/releases/`, state не шире 0750,
+world-файлы и секреты 0600 пользователя `hexlive`, а также обязательный
+`EnvironmentFiles=/etc/hexlive/deepgram.env`. До сборки соблюсти общее правило выше:
 Unity Editor должен быть закрыт. Собрать из чистого временного `git archive`,
 чтобы не компилировать случайные dirty-файлы и не писать build output в рабочую
 копию. В одной shell-сессии:
@@ -1002,8 +1018,19 @@ systemctl is-active hexlive.service
 journalctl -u hexlive.service -n 80 --no-pager
 ```
 
+До restart записать текущие `paused` и speed. Постоянный ExecStart Нью-Йорка
+содержит `--start-paused`, поэтому restart всегда безопасно поднимает мир на
+паузе, даже если до него мир шёл. После всех health/STT-проверок вернуть прежнее
+состояние clock через админку; не оставлять игровой сервер на паузе случайно и
+не сбрасывать неизвестный admin password. Если админ-сессии нет, допустим
+одноразовый **runtime** drop-in в `/run/systemd/system/...` с тем же ExecStart
+без `--start-paused`: после успешного старта немедленно удалить drop-in и
+сделать `daemon-reload` без нового restart, чтобы следующий аварийный запуск
+снова был безопасно paused.
+
 В журнале не показывать рамки первого запуска с паролем/token. Проверить строки
-`save file /var/lib/hexlive/world.sav` и
+`save file /var/lib/hexlive/world.sav` (legacy bootstrap-path, не обязательно
+существующий рядом с библиотекой `worlds/`) и
 `admin account /var/lib/hexlive/hexlive-admin.txt`, отсутствие `[fatal]`, а также
 что новый `[world] seed ... tick ...` продолжает прежний мир. Если новый процесс
 не стал healthy за 30 секунд, **сразу** вернуть прежний symlink и прежний

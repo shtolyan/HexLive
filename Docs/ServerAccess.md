@@ -75,6 +75,34 @@ ssh -o BatchMode=yes hexlive-nyc 'hostname; systemctl is-active hexlive.service'
 проверку host key. Полное обновление Нью-Йорка выполнять по разделу
 «Обновление production-сервера» в `CLAUDE.md`.
 
+## Голос и распознавание речи на Нью-Йорке
+
+Сингапур и Нью-Йорк намеренно используют один Deepgram API key. На Нью-Йорке
+он хранится вне репозитория в `/etc/hexlive/deepgram.env` с правами `0600` и
+владельцем `hexlive:hexlive`. Systemd подключает файл через
+`/etc/systemd/system/hexlive.service.d/10-deepgram.conf`.
+
+При обновлении сервера эти файлы нельзя удалять или заменять пустыми. Без них
+сервер продолжает игру, но сообщает в `/watch` `SttAvailable=false`, поэтому
+Player показывает полупрозрачную некликабельную кнопку микрофона. После
+исправления и restart уже открытый Player обязан переподключиться: capability
+передаётся только в новом handshake.
+
+Безопасная серверная проверка, не выводящая ключ:
+
+```bash
+ssh hexlive-nyc \
+  'stat -c "%a %U:%G %s %n" /etc/hexlive/deepgram.env; \
+   systemctl show hexlive.service -p EnvironmentFiles -p DropInPaths --no-pager'
+```
+
+Этого недостаточно для приёмки: финальная проверка должна авторизоваться
+игровым player token, получить `control=true`, `agent=true`, `stt=true` в WSS
+handshake и успешно запросить краткоживущий STT-token. Значения master key и
+временного token никогда не писать в вывод. Кнопка микрофона не зависит от
+Agent Studio: Studio даёт attachment агента, а сервер отдельно выдаёт Player
+доступ к Deepgram.
+
 ## Сингапур
 
 Сингапур использует отдельный локальный ключ

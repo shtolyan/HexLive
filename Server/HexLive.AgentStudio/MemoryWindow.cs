@@ -26,6 +26,8 @@ public sealed class MemoryWindow : Window
         var history = new Button { Content = strings["History"] };
         var activity = new Button { Content = strings["Activity"] };
         var relationships = new Button { Content = strings["Relationships"] };
+        var archive = new Button { Content = strings["MemoryArchive"] };
+        archive.Click += async (_, _) => await new MemoryArchiveWindow(root, strings).ShowDialog(this);
         relationships.Click += async (_, _) =>
         {
             var view = new TextBox { IsReadOnly = true, AcceptsReturn = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
@@ -82,8 +84,9 @@ public sealed class MemoryWindow : Window
         cancel.Click += (_, _) => _editor.Text = _original?.Text ?? "";
         save.Classes.Add("primary");
         var layout = new Grid { Margin = new Thickness(20), RowDefinitions = new RowDefinitions("Auto,*,Auto,Auto") };
-        var toolbar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10,
-            Margin = new Thickness(0, 0, 0, 12), Children = { open, history, activity, relationships } };
+        var toolbar = new WrapPanel { Orientation = Orientation.Horizontal,
+            Margin = new Thickness(0, 0, 0, 12), Children = { open, history, activity, relationships, archive } };
+        foreach (var control in toolbar.Children) control.Margin = new Thickness(0, 0, 10, 8);
         layout.Children.Add(toolbar);
         Grid.SetRow(_editor, 1); layout.Children.Add(_editor);
         _status.TextWrapping = Avalonia.Media.TextWrapping.Wrap;

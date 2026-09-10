@@ -40,6 +40,7 @@ public sealed partial class AgentHostRuntime
         }
     }
     private string _lastSpeech = string.Empty;
+    private AgentMemoryRecall? _recallEngine;
     private CancellationTokenSource? _actionStop;
     private Task _actionTask = Task.CompletedTask;
     private volatile bool _handoffActionLease;
@@ -131,6 +132,7 @@ public sealed partial class AgentHostRuntime
         var worldStatus = await mcp.CallToolAsync("world_status", new { }, cancellationToken);
         PinWorld(worldStatus);
         var colonists = await mcp.CallToolAsync("list_colonists", new { }, cancellationToken);
+        RememberNames(colonists);
         var npcId = _pinnedNpcId ?? _options.NpcId ?? SelectNpc(colonists, _options.ProfileId);
         if (!colonists.GetProperty("colonists").EnumerateArray().Any(n =>
                 n.GetProperty("npcId").GetInt32() == npcId &&
@@ -152,12 +154,14 @@ public sealed partial class AgentHostRuntime
         // §163: this gate means world execution permission, NOT player presence.
         var presence = new PresenceState(!IsWorldPaused(worldStatus));
         var playerPresent = attached.TryGetProperty("playerPresent", out var present) && present.GetBoolean();
+        _historyWorld = await _memory.BindHexLiveWorldAsync(worldStatus, npcId, _options.WorldId, cancellationToken);
         await ObserveSpeakersAsync(attached, worldStatus, npcId, cancellationToken);
         _status.Write(true, presence.Value ? "Ready" : "Sleeping", npcId, true, playerPresent);
         Console.WriteLine($"[agent] attached profile={_options.ProfileId} npc={npcId}");
 
         using var heartbeatStop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var heartbeatTask = HeartbeatAsync(mcp, attachmentId, npcId, presence, heartbeatStop.Token);
+        var historyTask = CollectHistoryAsync(mcp, npcId, heartbeatStop.Token);
         try
         {
             await FlushOutboxAsync(mcp, attachmentId, npcId, cancellationToken).ConfigureAwait(false);
@@ -167,15 +171,14 @@ public sealed partial class AgentHostRuntime
                 presence.Value ? "Ready" : "Sleeping", cancellationToken);
 
             long inboxWatermark = 0;
-            long? eventWatermark = null;
             var nextModelHeartbeat = DateTimeOffset.UtcNow.Add(ModelHeartbeat);
-            var nextEventRead = DateTimeOffset.UtcNow;
             var retryAfter = DateTimeOffset.MinValue;
 
             while (!cancellationToken.IsCancellationRequested)
             {
                 if (heartbeatTask.IsFaulted)
                     await heartbeatTask.ConfigureAwait(false);
+                if (historyTask.IsFaulted) await historyTask.ConfigureAwait(false);
 
                 if (!presence.Value)
                 {
@@ -200,6 +203,7 @@ public sealed partial class AgentHostRuntime
                     sinceSeq = inboxWatermark,
                     limit = 16,
                 }, cancellationToken).ConfigureAwait(false);
+                ArchiveInbox(inbox);
                 inbox = FirstSpeakerInbox(await RemoveProcessedMessagesAsync(inbox, cancellationToken));
                 var readWatermark = inbox.TryGetProperty("watermark", out var watermark)
                     ? watermark.GetInt64() : inboxWatermark;
@@ -210,20 +214,7 @@ public sealed partial class AgentHostRuntime
                         inboxWatermark = readWatermark;
                 }
 
-                var critical = false;
-                if (DateTimeOffset.UtcNow >= nextEventRead)
-                {
-                    var events = await mcp.CallToolAsync("read_events", new
-                    {
-                        sinceSeq = eventWatermark,
-                        limit = 50,
-                        npcId,
-                    }, cancellationToken).ConfigureAwait(false);
-                    if (events.TryGetProperty("watermark", out var eventMark))
-                        eventWatermark = eventMark.GetInt64();
-                    critical = ContainsCriticalEvent(events);
-                    nextEventRead = DateTimeOffset.UtcNow.AddSeconds(2);
-                }
+                var critical = Interlocked.Exchange(ref _historyCritical, 0) != 0;
 
                 var trigger = playerText.Length > 0 ? "voice" :
                     critical ? "critical" :
@@ -260,6 +251,9 @@ public sealed partial class AgentHostRuntime
         {
             await StopActionAsync().ConfigureAwait(false);
             heartbeatStop.Cancel();
+            try { await historyTask.ConfigureAwait(false); }
+            catch (OperationCanceledException) { }
+            catch { }
             try { await heartbeatTask.ConfigureAwait(false); }
             catch (OperationCanceledException) { }
             catch { }
@@ -375,6 +369,8 @@ public sealed partial class AgentHostRuntime
                     return true;
             }
             world = world with { SpeakerKey = _activeSpeakerKey, MessageIds = messageIds ?? [], PlayerText = playerText };
+            Volatile.Write(ref _historyWorld, world);
+            RememberNames(state);
             if (messageTurnId != null &&
                 (await _memory.SnapshotAsync(cancellationToken)).AppliedTurnIds.Contains(turnId))
             {
@@ -387,8 +383,8 @@ public sealed partial class AgentHostRuntime
             if (!_conversations.ContainsKey(_activeSpeakerKey) &&
                 (await _memory.SnapshotAsync(cancellationToken)).Speakers.TryGetValue(_activeSpeakerKey, out var savedSpeaker))
                 _conversations[_activeSpeakerKey] = new Queue<string>(savedSpeaker.RecentConversation.TakeLast(12));
-            var recall = BuildRecallQuery(playerText, state, Recent);
-            var memoryContext = await _memory.BuildPromptContextAsync(world, recall, cancellationToken)
+            var recall = playerText;
+            var memoryContext = await _memory.BuildPromptContextAsync(world, "", cancellationToken)
                 .ConfigureAwait(false);
             Console.Error.WriteLine(
                 $"[memory] promptChars={memoryContext.CharacterCount} recalled={memoryContext.RecalledFragments}");
@@ -396,13 +392,15 @@ public sealed partial class AgentHostRuntime
                 .Where(property => property.Name != "legacyAgentState")
                 .ToDictionary(property => property.Name, property => property.Value));
             stage = "model";
-            var decision = await _providers.DecideAsync(trigger, physicalState,
+            var memoryState = await _memory.SnapshotAsync(cancellationToken);
+            var recallEngine = _recallEngine ??= new AgentMemoryRecall(_options.MemoryDirectory);
+            var decision = await recallEngine.DecideAsync(playerText, world, memoryState, (evidence, memoryToken) => _providers.DecideAsync(trigger, physicalState,
                 memoryContext.Text + AgentPromptFiles.Text("AgentHostRuntime.04") + _actionContract +
                 AgentPromptFiles.Text("AgentHostRuntime.05") +
                 Volatile.Read(ref _actionFeedback) +
                 AgentPromptFiles.Text("AgentHostRuntime.06") +
-                AgentPromptFiles.Text("AgentHostRuntime.07"),
-                playerText, Recent.ToArray(), cancellationToken)
+                AgentPromptFiles.Text("AgentHostRuntime.07") + "\n" + evidence,
+                playerText, Recent.ToArray(), memoryToken), cancellationToken)
                 .ConfigureAwait(false);
 
             if (trigger != "voice" && string.Equals(decision.Speech.Trim(), _lastSpeech,
@@ -434,11 +432,22 @@ public sealed partial class AgentHostRuntime
                 await PublishPhaseAsync(mcp, attachmentId, turnId, "Speaking", cancellationToken);
                 await PublishSpeechAsync(mcp, attachmentId, turnId, trigger, decision,
                     cancellationToken).ConfigureAwait(false);
+                _memory.History.Append(new() { Id = AgentMemoryArchive.Id("delivery:" + turnId), Kind = "delivery",
+                    Text = decision.Speech, Status = "delivered", Source = "agent", Episode = world.EpisodeId,
+                    Speaker = world.SpeakerKey, Group = world.SpeakerKey, OccurredUtc = DateTimeOffset.UtcNow,
+                    Tick = world.Tick, DayLengthTicks = world.DayLengthTicks });
                 _lastSpeech = decision.Speech.Trim();
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (decision.Action != null && CanStartActionTurn(trigger))
             {
+                _actionWorlds[turnId] = world;
+                _memory.History.Append(new() { Id = AgentMemoryArchive.Id("command:" + turnId), Kind = "action",
+                    Text = HistoryLabel(decision.Action.Tool) + " " + decision.Action.Tool + " " + decision.Action.Arguments.GetRawText() + " " +
+                        string.Join(" ", decision.Action.Arguments.EnumerateObject().Where(p => p.Name.EndsWith("Id", StringComparison.Ordinal) && p.Value.ValueKind == JsonValueKind.Number && p.Value.TryGetInt32(out _))
+                            .Select(p => WithNames("NPC" + p.Value.GetInt32()))), Status = "requested",
+                    Source = "agent", Episode = world.EpisodeId, Group = turnId, OccurredUtc = DateTimeOffset.UtcNow,
+                    Tick = world.Tick, DayLengthTicks = world.DayLengthTicks });
                 try { await ValidateActionAsync(mcp, npcId, decision.Action, cancellationToken); }
                 catch (AgentActionValidationException ex)
                 {
@@ -731,6 +740,11 @@ public sealed partial class AgentHostRuntime
 
     private void ReportAction(string tool, string turnId, string code)
     {
+        var world = _actionWorlds.GetValueOrDefault(turnId) ?? Volatile.Read(ref _historyWorld);
+        if (code is not ("Accepted" or "AwaitingCarryContinuation")) _actionWorlds.TryRemove(turnId, out _);
+        if (world != null) _memory.History.Append(new() { Id = AgentMemoryArchive.Id("action:" + turnId + ":" + code),
+            Kind = "action", Text = tool + " " + code, Status = code, Source = "controller", Episode = world.EpisodeId,
+            Group = turnId, OccurredUtc = DateTimeOffset.UtcNow });
         // All three fields are machine identifiers; never include arguments or exception messages.
         var safeTool = AgentProviders.IsAllowedTool(tool) ? tool : "unknown";
         var correlation = ActionCorrelation(turnId);

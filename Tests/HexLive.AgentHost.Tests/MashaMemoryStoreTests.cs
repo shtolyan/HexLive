@@ -165,7 +165,7 @@ public sealed class MashaMemoryStoreTests
     }
 
     [Test]
-    public async Task MollyImportKeepsCuratedFilesButNeverPersistsConversationTranscript()
+    public async Task MollyImportPreservesFullTranscriptOutsideBoundedState()
     {
         var molly = Path.Combine(_directory, "iphone", "masha");
         Directory.CreateDirectory(Path.Combine(molly, "diary"));
@@ -173,7 +173,7 @@ public sealed class MashaMemoryStoreTests
             "- Игрок любит море\n- Player's name is ЛЛМ-модель\n");
         File.WriteAllText(Path.Combine(molly, "MEMORY.md"), "- Я помню комнату\n");
         File.WriteAllText(Path.Combine(molly, "conversations.md"),
-            "Player: FULL_TRANSCRIPT_MUST_NOT_PERSIST\nMasha: ответ\n");
+            "Player: FULL_TRANSCRIPT_IN_ARCHIVE\nMasha: ответ\n");
         File.WriteAllText(Path.Combine(molly, "diary", "2026-01-01.md"), "[12:00] Я нашла дверь.\n");
         File.WriteAllText(Path.Combine(molly, "state.txt"),
             "dead: true\nrel_friendship: 54.9\nrel_love: 3.5\nrel_hostility: 0.0\n" +
@@ -196,7 +196,8 @@ public sealed class MashaMemoryStoreTests
             Assert.That(snapshot.PlayerBond.Trust, Is.EqualTo(0.549f).Within(0.0001f));
             Assert.That(snapshot.PlayerBond.Affinity, Is.EqualTo(0.035f).Within(0.0001f));
             Assert.That(snapshot.PlayerBond.LastInteractionEpisodeId, Is.EqualTo(snapshot.Worlds.Single().Id));
-            Assert.That(persisted, Does.Not.Contain("FULL_TRANSCRIPT_MUST_NOT_PERSIST"));
+            Assert.That(persisted, Does.Not.Contain("FULL_TRANSCRIPT_IN_ARCHIVE"));
+            Assert.That(Directory.GetFiles(Path.Combine(_directory, "archive", "memory", "imports"), "conversations.md", SearchOption.AllDirectories).Select(File.ReadAllText).Single(), Does.Contain("FULL_TRANSCRIPT_IN_ARCHIVE"));
         });
     }
 

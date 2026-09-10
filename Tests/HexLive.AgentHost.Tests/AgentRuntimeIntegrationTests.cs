@@ -94,6 +94,14 @@ public sealed class AgentRuntimeIntegrationTests
             providers.BlockDecision = true;
             registry.TryEnqueuePlayerText(901, "voice2", "ru", "Подожди", out _);
             await Until(() => providers.Decisions == 3);
+            handler.SyntheticHistory = true;
+            var eventsBefore = handler.EventReads;
+            await Until(() => handler.EventReads >= eventsBefore + 2);
+            Assert.That(providers.Decisions, Is.EqualTo(3), "archive polling continues while the provider is blocked");
+            var archive = new AgentMemorySearch(options.MemoryDirectory); archive.Refresh();
+            Assert.That(archive.Search("Подожди").Hits.Any(h => h.Record.Kind == "player"), Is.True);
+            Assert.That(archive.Search("ARCHIVE_EVENT_FIXTURE").Hits.Count(h => h.Record.Source.StartsWith("server-ring:")), Is.EqualTo(1), "Repeated batches are idempotent");
+            Assert.That(archive.Search("",new MemoryFilter(Kind:"gap")).Hits,Is.Not.Empty,"Epoch switch creates an explicit gap");
             host.PauseAsOperator();
             await Until(() => providers.Cancelled);
             Assert.That(providers.Syntheses, Is.EqualTo(1), "Pausing must cancel before a second TTS call.");
@@ -176,6 +184,8 @@ public sealed class AgentRuntimeIntegrationTests
         public volatile bool Unconscious;
         public bool LoseAcknowledgments;
         public volatile int AckCalls;
+        public volatile int EventReads;
+        public volatile bool SyntheticHistory;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             using var document = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
@@ -185,12 +195,18 @@ public sealed class AgentRuntimeIntegrationTests
             if (method == "tools/call")
             {
                 var parameters = root.GetProperty("params");
+                if (parameters.GetProperty("name").GetString() == "read_events") Interlocked.Increment(ref EventReads);
                 var isAck = parameters.GetProperty("name").GetString() == "ack_agent_inbox";
                 var ack = isAck ? Interlocked.Increment(ref AckCalls) : 0;
                 if (LoseAcknowledgments && ack == 1) throw new HttpRequestException("lost request");
                 var text = tools.Call(parameters.GetProperty("name").GetString()!,
                     parameters.GetProperty("arguments"), "mcp:fixture", out var error);
                 if (LoseAcknowledgments && ack == 2) throw new HttpRequestException("lost response");
+                if (SyntheticHistory && parameters.GetProperty("name").GetString() == "read_events")
+                    text = """
+                    {"events":[{"seq":7,"tick":10,"type":"Aided","message":"ARCHIVE_EVENT_FIXTURE NPC901 helped NPC902"}],
+                    "watermark":7,"sessionEpoch":"fixture-new-epoch","gap":false,"truncated":false}
+                    """;
                 if (Unconscious && parameters.GetProperty("name").GetString() == "describe_colonist")
                     text = "{\"stateSummary\":\"health=1; unconscious=true\"}";
                 result = new { isError = error, content = new[] { new { type = "text", text } } };

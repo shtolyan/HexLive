@@ -175,8 +175,7 @@ public sealed partial class MashaMemoryWorkspace
         foreach (var source in Directory.GetFiles(sourceRoot, "*", SearchOption.AllDirectories))
         {
             var name = Path.GetFileName(source);
-            if (name.Equals("conversations.md", StringComparison.OrdinalIgnoreCase) ||
-                name.Equals("inventory.txt", StringComparison.OrdinalIgnoreCase) ||
+            if (name.Equals("inventory.txt", StringComparison.OrdinalIgnoreCase) ||
                 name.Equals("clothing_prefs.txt", StringComparison.OrdinalIgnoreCase))
                 continue;
             if (!name.EndsWith(".md", StringComparison.OrdinalIgnoreCase) &&

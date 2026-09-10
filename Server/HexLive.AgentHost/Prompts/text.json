@@ -157,5 +157,10 @@
   "AgentProviders.02": "Обычное обращение",
   "AgentProviders.03": "Осматриваюсь и продолжаю жить на острове.",
   "AgentProviders.04": "Голос",
-  "game.elapsed": "{0} игровых минут"
+  "game.elapsed": "{0} игровых минут",
+  "HistoryEpochGap": "Сессия сервера сменилась; между записями возможен пробел или восстановление мира.",
+  "HistoryRingGap": "Часть событий уже вытеснена из серверной ленты. Подробности этого промежутка неизвестны.",
+  "HistoryMovement": "Наблюдаемое передвижение: из {0} в {1}, затем остановилась. Это не подтверждение достижения цели маршрута. / Observed movement and stop; destination success not established.",
+  "HistoryObservedHealth": "Наблюдала {0}: было {1}, стало {2}. Это наблюдение состояния, а не доказательство того, кто оказал помощь. / Observed condition change, not attribution of rescue.",
+  "HistoryEpisodeStart": "Начало доступной записи эпизода: {0}. Не обязательно истинное начало путешествия. / Earliest recorded episode boundary; earlier events may be missing."
 }

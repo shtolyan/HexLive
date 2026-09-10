@@ -9,7 +9,9 @@ import os
 from pathlib import Path
 import plistlib
 import re
+import shutil
 import subprocess
+import tempfile
 
 IDENTITY_FILE = Path.home() / '.config/hexlive/macos-signing-identity'
 
@@ -71,6 +73,29 @@ def seal(app, preserve_distribution=False, expected_identifier=None):
     subprocess.run(['/usr/bin/codesign', '--verify', '--deep', '--strict', str(app)], check=True)
 
 
+def check_signing_access():
+    """Listing an identity does not prove the private key can actually sign."""
+    signer = require_identity()
+    with tempfile.TemporaryDirectory(prefix='hexlive-signing-preflight-') as directory:
+        probe = Path(directory) / 'probe'
+        shutil.copyfile('/usr/bin/true', probe)
+        probe.chmod(0o700)
+        try:
+            result = subprocess.run(
+                ['/usr/bin/codesign', '--force', '--sign', signer, '--timestamp=none', str(probe)],
+                capture_output=True, text=True, timeout=30)
+        except subprocess.TimeoutExpired:
+            raise RuntimeError('Signing preflight timed out waiting for Keychain access. '
+                               'Resolve the macOS prompt before retrying; nothing was published.') from None
+        if result.returncode:
+            raise RuntimeError('The certificate exists, but a private-key signing probe failed: '
+                               + result.stderr.strip() + '\nResolve access to the existing key in Keychain; '
+                               'do not replace the certificate or publish ad-hoc.')
+        subprocess.run(['/usr/bin/codesign', '--verify', '--strict', str(probe)], check=True,
+                       capture_output=True, timeout=30)
+    return signer
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('app', type=Path, nargs='?')
@@ -79,7 +104,7 @@ if __name__ == '__main__':
     parser.add_argument('--preserve-distribution', action='store_true')
     args = parser.parse_args()
     if args.check_identity:
-        print('Persistent macOS signing identity available: ' + require_identity())
+        print('Persistent macOS signing identity and private-key access verified: ' + check_signing_access())
     elif args.app is None:
         parser.error('app is required unless --check-identity is used')
     else:

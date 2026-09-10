@@ -1,0 +1,110 @@
+using System.Text.Json;
+
+namespace HexLive.AgentHost;
+
+/// <summary>§165: provider-independent, read-only recall rounds. Only the final decision reaches the outbox.</summary>
+public sealed class AgentMemoryRecall
+{
+    private readonly AgentMemoryArchive _archive;
+    private readonly AgentMemorySearch _search;
+    public AgentMemoryRecall(string root) { _archive = new(root); _search = new(root); }
+    public static bool Allowed(AgentMemoryRecord row, string speaker, MashaArchive state) =>
+        (row.Speaker.Length == 0 || row.Speaker == speaker || row.Speaker == "legacy" &&
+            (speaker.Length == 0 || speaker == state.PrimarySpeakerKey)) &&
+        !MemoryDocumentEdits.IsSuppressedInContext(state, speaker, row.Text);
+
+    public async Task<CompanionDecision> DecideAsync(string query, MashaWorldHandle world, MashaArchive state,
+        Func<string, CancellationToken, Task<CompanionDecision>> decide, CancellationToken token)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(120)); token = timeout.Token;
+        await Task.Run(() => _search.Refresh(), token);
+        bool Allow(AgentMemoryRecord r) => Allowed(r, world.SpeakerKey, state) &&
+            // The current question is evidence of what was asked, not proof that its premise happened.
+            !(r.Kind == "player" && (r.Text == query || world.MessageIds.Any(id => r.Id == AgentMemoryArchive.Id("player:" + world.SpeakerKey + ":" + id))));
+        var evidence = new Dictionary<string, MemoryReadResult>();
+        var trace = new List<object>();
+        var readCharacters = 0;
+        var requested = _search.Search(query, allowed: Allow);
+        trace.Add(new { operation = "automatic.search", query, ids = requested.Hits.Select(h => h.Record.Id) });
+        // Initial reads make direct recollection grounded even when a provider elects not to request more tools.
+        foreach (var hit in requested.Hits.Take(string.IsNullOrWhiteSpace(query) ? 0 : 2)) Read(hit.Record.Id, 0);
+        var context = JsonSerializer.Serialize(requested.Hits.Select(h => new { sourceId = h.Record.Id, h.Record.Source,
+            h.Record.Episode, h.Record.OccurredUtc, h.Record.Kind, snippet = Clip(h.Record.Text, 350) }), AgentMemoryArchive.Json);
+
+        for (var round = 0; round <= 3; round++)
+        {
+            token.ThrowIfCancellationRequested();
+            var sent = new List<string>(); var used = 0;
+            var sources = new List<string>();
+            foreach (var (id, read) in evidence.Reverse())
+            {
+                var text = read.Text;
+                if (used + text.Length > 16000) continue;
+                sent.AddRange(read.SourceIds); sources.Add(text); used += text.Length;
+            }
+            var tools = AgentPromptFiles.Read("memory.md") + "\n" + JsonSerializer.Serialize(new {
+                memoryRound = round, memoryOperationsRemaining = 3 - round,
+                now = DateTimeOffset.Now, timeZone = TimeZoneInfo.Local.Id,
+                currentEpisode = world.EpisodeId, currentGameDay = world.DayLengthTicks > 0 ? world.Tick / world.DayLengthTicks : (long?)null,
+                searchResults = context, readSources = sources, sentSourceIds = sent
+            }, AgentMemoryArchive.Json);
+            var answer = await decide(tools, token);
+            if (answer.MemoryRequests.Count == 0)
+            {
+                answer.MemorySources = answer.MemorySources.Where(sent.Contains).Distinct().Take(16).ToList();
+                _archive.Atomic(".state/last-memory-search.json", JsonSerializer.Serialize(new {
+                    occurredUtc = DateTimeOffset.UtcNow, query, trace, sentSourceIds = sent,
+                    citedSourceIds = answer.MemorySources, readCharacters, contextCharacters = used
+                }, AgentMemoryArchive.Json));
+                return answer;
+            }
+            if (round == 3) throw new InvalidDataException("MemoryRoundLimitExceeded");
+            var results = new List<object>();
+            foreach (var request in answer.MemoryRequests.Take(2))
+            {
+                token.ThrowIfCancellationRequested();
+                try
+                {
+                    var a = request.Arguments;
+                    string Text(string key, string fallback = "") => a.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString()! : fallback;
+                    var offset = a.TryGetProperty("offset", out var off) && off.TryGetInt32(out var n) ? Math.Max(0, n) : 0;
+                    if (request.Operation == "memory.read")
+                    {
+                        var id = Text("sourceId"); var read = Read(id, offset);
+                        results.Add(new { operation = request.Operation, sourceId = id, read.NextOffset, available = read.SourceIds.Length > 0 });
+                    }
+                    else if (request.Operation == "memory.search")
+                    {
+                        var q = Text("query");
+                        DateTimeOffset? Date(string key) => DateTimeOffset.TryParse(Text(key), out var d) ? d : null;
+                        long? day = a.TryGetProperty("gameDay", out var g) && g.TryGetInt64(out var gd) ? gd : null;
+                        var result = _search.Search(q, new(Text("kind"), Text("episode"), Text("participant"), Date("from"), Date("until"), day), Text("order", "relevance"), offset, Allow);
+                        results.Add(new { operation = request.Operation, query = q, result.NextOffset, result.Total,
+                            hits = result.Hits.Select(h => new { sourceId = h.Record.Id, h.Record.Source, h.Record.Kind,
+                                h.Record.OccurredUtc, h.Record.Tick, h.Record.DayLengthTicks, snippet = Clip(h.Record.Text, 350) }) });
+                        trace.Add(new { operation = request.Operation, query = q, ids = result.Hits.Select(h => h.Record.Id) });
+                    }
+                }
+                catch (Exception ex) when (ex is JsonException or FormatException or InvalidOperationException)
+                { results.Add(new { error = "InvalidMemoryArguments" }); }
+            }
+            context = JsonSerializer.Serialize(results, AgentMemoryArchive.Json);
+        }
+        throw new InvalidOperationException();
+
+        MemoryReadResult Read(string id, int offset)
+        {
+            if (readCharacters >= 24000) return new("MemoryReadBudgetExceeded", [], null);
+            var result = _search.Read(id, offset, Allow);
+            if (readCharacters + result.Text.Length > 24000) return new("MemoryReadBudgetExceeded", [], null);
+            if (result.SourceIds.Length > 0)
+            {
+                readCharacters += result.Text.Length; evidence[id + ":" + offset] = result;
+                trace.Add(new { operation = "memory.read", sourceId = id, offset, characters = result.Text.Length });
+            }
+            return result;
+        }
+    }
+    private static string Clip(string text, int max) => text.Length <= max ? text : text[..max];
+}

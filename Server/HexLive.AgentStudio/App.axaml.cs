@@ -10,7 +10,14 @@ public sealed partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            desktop.MainWindow = new MainWindow();
+        {
+            if (desktop.Args is ["--memory-review", var workspace])
+            {
+                var strings = new StudioStrings(); strings.SetLanguage("ru");
+                desktop.MainWindow = new MemoryArchiveWindow(Path.GetFullPath(workspace), strings);
+            }
+            else desktop.MainWindow = new MainWindow();
+        }
         base.OnFrameworkInitializationCompleted();
     }
 }

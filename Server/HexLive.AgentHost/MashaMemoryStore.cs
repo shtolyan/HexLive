@@ -119,6 +119,7 @@ public sealed partial class MashaMemoryStore
     private readonly string _filePath;
     private readonly MashaMemoryWorkspace _workspace;
     private MashaArchive _archive;
+    public AgentMemoryArchive History { get; }
 
     public MashaMemoryStore(string memoryDirectory, MashaIdentity? initialIdentity = null)
     {
@@ -134,6 +135,8 @@ public sealed partial class MashaMemoryStore
             : _workspace.LegacyStatePath;
         using var documentLock = _workspace.AcquireDocumentLock();
         _archive = LoadOrCreate(loadPath, initialIdentity);
+        History = new AgentMemoryArchive(directory);
+        History.Migrate(_archive);
         if (!string.Equals(loadPath, _filePath, StringComparison.Ordinal))
             WriteArchiveAtomically(_filePath, _archive);
         var edits = ApplyDocumentEdits();
@@ -203,6 +206,10 @@ public sealed partial class MashaMemoryStore
                     UpdatedAtUtc = now,
                     Source = "world-adapter"
                 });
+                History.Append(new() { Id = AgentMemoryArchive.Id("episode:" + episode.Id), Kind = "event",
+                    Text = string.Format(AgentPromptFiles.Text("HistoryEpisodeStart"), episode.Label), Source = "world-adapter",
+                    Episode = episode.Id, Group = episode.Id, OccurredUtc = now, Tick = tick,
+                    DayLengthTicks = ReadNullableInt32(worldStatus, "dayLengthTicks") ?? 0, Incomplete = true });
                 _archive.Worlds.Add(episode);
                 TrimWorlds();
             }
@@ -423,7 +430,7 @@ public sealed partial class MashaMemoryStore
             }
 
             // conversations.md is included in the fingerprint so re-imports are stable,
-            // but its full transcript is intentionally never copied into durable memory.
+            // and its full transcript is preserved in the local evidence archive (§165).
             _archive.ImportFingerprints[importKey] = fingerprint;
             TrimWorlds();
             await SaveAsync(cancellationToken).ConfigureAwait(false);
@@ -532,12 +539,28 @@ public sealed partial class MashaMemoryStore
             if (string.IsNullOrWhiteSpace(turnId) || _archive.AppliedTurnIds.Contains(turnId))
                 return false;
 
+
+
             if (world.SpeakerKey.Length > 0 && world.MessageIds.Any(GetSpeaker(world.SpeakerKey).AppliedMessageIds.Contains))
                 return false;
             // Validate before mutating any memory, even for callers restoring a persisted outbox.
             if (trigger == "voice" && decision.RelationshipAssessment is { } proposed)
                 new HexLive.AgentCore.Studio.VoiceRelationship(new(0, 0, 0, AgentPromptFiles.Text("MashaMemoryStore.08"), null))
                     .Apply(world.MessageIds.Length > 0 ? world.MessageIds : [turnId], proposed, DateTimeOffset.UtcNow);
+            History.AppendMany(new[] {
+                new AgentMemoryRecord { Id = AgentMemoryArchive.Id("speech:" + turnId), Kind = "speech", Text = decision.Speech,
+                    Source = "agent", Group = world.SpeakerKey, Speaker = world.SpeakerKey, Episode = world.EpisodeId,
+                    OccurredUtc = DateTimeOffset.UtcNow, Tick = world.Tick, DayLengthTicks = world.DayLengthTicks, Status = "prepared" },
+                new AgentMemoryRecord { Id = AgentMemoryArchive.Id("intent:" + turnId), Kind = "intent", Text = decision.IntentSummary,
+                    Source = "agent", Group = turnId, Speaker = world.SpeakerKey, Episode = world.EpisodeId,
+                    OccurredUtc = DateTimeOffset.UtcNow, Tick = world.Tick, DayLengthTicks = world.DayLengthTicks },
+                new AgentMemoryRecord { Id = AgentMemoryArchive.Id("diary:" + turnId), Kind = "diary", Text = decision.JournalText,
+                    Source = "agent", Group = turnId, Speaker = world.SpeakerKey, Episode = world.EpisodeId,
+                    OccurredUtc = DateTimeOffset.UtcNow, Tick = world.Tick, DayLengthTicks = world.DayLengthTicks }
+            }.Where(r => r.Text.Length > 0).Concat(decision.MemoryUpserts.Select((m, i) => new AgentMemoryRecord {
+                Id = AgentMemoryArchive.Id("note:" + turnId + ":" + i), Kind = "note", Text = m.Value, Source = "agent",
+                Speaker = world.SpeakerKey, Episode = world.EpisodeId, Group = turnId, OccurredUtc = DateTimeOffset.UtcNow,
+                Tick = world.Tick, DayLengthTicks = world.DayLengthTicks })));
             var episode = RequireEpisode(world.EpisodeId);
             episode.LastTick = Math.Max(episode.LastTick, world.Tick);
             episode.LastSeenUtc = DateTimeOffset.UtcNow;

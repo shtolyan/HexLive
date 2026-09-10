@@ -9,5 +9,6 @@
     <!-- One implementation shared by CLI and desktop; no Unity dependency. -->
     <Compile Include="../HexLive.AgentHost/*.cs" Exclude="../HexLive.AgentHost/Program.cs" Link="Runtime/%(Filename)%(Extension)" />
     <Content Include="../HexLive.AgentHost/Prompts/*" Link="AgentPrompts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../HexLive.Server/Mcp/npc-names.json" Link="AgentPrompts/npc-names.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

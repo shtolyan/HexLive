@@ -123,6 +123,22 @@ calls Unity MCP does not take the lease.
 
 ## Versioned player builds
 
+### Agent Studio distribution (player rule, 2026-09-09)
+
+Agent Studio belongs beside the player's game builds, not only in `/Applications`
+or the repository's scratch `Build/` directory. After compiling Studio, use
+`python3 Tools/package_agent_studio.py`. Its default versioned output is
+`~/hex-girls/AgentStudioReleases/v<studio-version>/Agent Studio.app`, with
+`BUILD_REPORT.md` and `package-report.json`. It atomically updates the sibling
+`~/hex-girls/Agent Studio.app` relative symlink, next to `~/hex-girls/HexLive.app`.
+Studio has its own automatically incremented patch version; packaging it does not
+bump the game's version, rebuild Unity, deploy the server, or launch the agent.
+Keep old versions. Publish only after signature verification, never overwrite a
+real application at the latest-link path. `--output-root` relocates the versioned
+directory and its sibling latest link together; `--dry-run` writes nothing.
+
+### Game player distribution
+
 The build agent uses one entry point **per platform** — macOS and Windows are
 two scripts, not one script with a flag, because almost nothing about the
 outside of a build is portable (prefs live in `defaults` vs the registry,

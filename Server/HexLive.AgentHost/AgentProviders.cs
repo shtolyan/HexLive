@@ -169,6 +169,10 @@ public sealed class AgentProviders : IAgentProviders
                 additionalProperties = false,
                 properties = new
                 {
+                    memoryRequests = new { type = "array", maxItems = 2, items = new { type = "object", additionalProperties = false,
+                        properties = new { operation = new { type = "string", @enum = new[] { "memory.search", "memory.read" } },
+                            arguments = new { type = "object", additionalProperties = true } }, required = new[] { "operation", "arguments" } } },
+                    memorySources = new { type = "array", maxItems = 16, items = new { type = "string" } },
                     speech = new { type = "string", maxLength = 600 },
                     emotion = new
                     {
@@ -243,7 +247,7 @@ public sealed class AgentProviders : IAgentProviders
                 required = new[]
                 {
                     "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
-                    "memoryUpserts", "journalText"
+                    "memoryUpserts", "journalText", "memoryRequests", "memorySources"
                 }
             }
         }
@@ -261,7 +265,7 @@ public sealed class AgentProviders : IAgentProviders
             "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
             "memoryUpserts"
         };
-        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText" };
+        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText", "memoryRequests", "memorySources" };
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in root.EnumerateObject())
         {
@@ -398,6 +402,17 @@ public sealed class AgentProviders : IAgentProviders
 
     private static void Validate(CompanionDecision decision, string trigger)
     {
+        if (decision.MemoryRequests == null || decision.MemorySources == null || decision.MemoryRequests.Count > 2 || decision.MemorySources.Count > 16)
+            throw new InvalidDataException("InvalidMemoryOperations");
+        foreach (var request in decision.MemoryRequests)
+            if (request == null || request.Operation is not ("memory.search" or "memory.read") || request.Arguments.ValueKind != JsonValueKind.Object || request.Arguments.GetRawText().Length > 4000)
+                throw new InvalidDataException("InvalidMemoryOperation");
+        if (decision.MemoryRequests.Count > 0)
+        {
+            decision.Speech = ""; decision.Action = null; decision.RelationshipAssessment = null;
+            decision.Reaction = "None"; decision.MemoryUpserts.Clear(); decision.JournalText = ""; decision.IntentSummary = "";
+            return;
+        }
         if (trigger == "voice" && decision.RelationshipAssessment == null)
             throw new InvalidDataException("VoiceRelationshipAssessmentRequired");
         if (trigger != "voice") decision.RelationshipAssessment = null;

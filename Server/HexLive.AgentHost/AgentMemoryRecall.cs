@@ -74,7 +74,16 @@ public sealed class AgentMemoryRecall
                 currentEpisode = world.EpisodeId, currentGameDay = world.DayLengthTicks > 0 ? world.Tick / world.DayLengthTicks : (long?)null,
                 searchResults = context, readSources = sources, sentSourceIds = sent
             }, AgentMemoryArchive.Json);
-            var answer = await decide(tools, token);
+            CompanionDecision answer;
+            try { answer = await decide(tools, token); }
+            catch (InvalidDataException ex) when (round < 3 && ex.Message is
+                "InvalidExecutionPlanUpdate" or "InvalidExecutionCondition")
+            {
+                context = JsonSerializer.Serialize(new { decisionError = ex.Message,
+                    instruction = "Repair the decision before any action: replace requires 1..64 uniquely named steps; pause/resume/cancel require empty steps. IDs and reason use only ASCII letters, digits, dot, dash or underscore. Conditions branch only to an existing later step, or use an empty onFalseStepId to pause. Never branch backward or to a nonexistent step. No command has been sent." });
+                trace.Add(new { operation = "decision.repair", error = ex.Message });
+                continue;
+            }
             if (answer.Action != null && answer.ExecutionPlanUpdate != null)
             {
                 if (round == 3) throw new InvalidDataException("ConflictingActionAndExecutionPlan");

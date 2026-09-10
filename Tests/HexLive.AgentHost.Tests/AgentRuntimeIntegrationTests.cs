@@ -12,6 +12,83 @@ namespace HexLive.AgentHost.Tests;
 [NonParallelizable]
 public sealed class AgentRuntimeIntegrationTests
 {
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task LiveClockDialoguePreservesQueueButThreatOrCancellationStopsIt(bool cancelByPlayer)
+    {
+        var temporary = Directory.CreateTempSubdirectory("agent-live-plan-").FullName;
+        using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+        using var host = new WorldHost(12345, GameMode.Feud, Path.Combine(temporary, "world.sav"),
+            Path.Combine(FindRoot(), "SimData/simdata.json"), false, companionProfile: "masha");
+        var engine = (HexLive.Simulation.Runtime.SimulationEngine)typeof(WorldHost)
+            .GetField("_engine", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(host)!;
+        host.Read(w =>
+        {
+            foreach (var npc in w.Entities.Npcs.Values) npc.Mind.ManualControl = true;
+            for (var i = 0; i < 64; i++) engine.Step();
+            w.Mobs.Clear();
+            var actor = w.Entities.Npcs[new EntityId(901)];
+            actor.Needs.Energy = .2f; actor.Needs.Stamina = 1;
+            actor.Needs.Hunger = actor.Needs.Thirst = 0;
+            actor.Perception.Hostiles.Clear(); actor.Perception.Mobs.Clear(); actor.Mind.AdrenalineUntilTick = 0;
+            return true;
+        });
+        host.EnableMcpEventLog();
+        var registry = new AgentSessionRegistry();
+        using var handler = new InProcessMcp(new McpTools(() => host, () => 1, new ControlLeases(45), registry, SpecLibrary.Discover(null)));
+        var providers = new CountingProviders { Factory = (_, text) => text switch
+        {
+            "Начни" => new() { ObjectiveUpdate = new() { Operation = "set", Text = "Восстановиться и продолжить", Reason = "Fixture" },
+                ExecutionPlanUpdate = new() { Operation = "replace", Reason = "Fixture", Steps =
+                    [new("sleep", "rest_until", JsonSerializer.SerializeToElement(new { need = "Energy", target = .8 })),
+                     new("after", "stop", JsonSerializer.SerializeToElement(new { }))] } },
+            "Отмени" => new() { ObjectiveUpdate = new() { Operation = "clear", Reason = "PlayerRequest" } },
+            _ => new() { IntentSummary = "Продолжаю слушать" }
+        } };
+        var options = new AgentHostOptions { McpUri = new("http://fixture/mcp"), McpToken = "fixture", ProfileId = "masha",
+            DisplayName = "fixture", WorldId = "fixture", MemoryDirectory = Path.Combine(temporary, "memory"),
+            StateDirectory = Path.Combine(temporary, "state"), XaiKey = "", ElevenLabsKey = "", XaiModel = "fixture",
+            ElevenLabsModel = "fixture", ElevenLabsVoiceId = "fixture" };
+        var runtime = new AgentHostRuntime(options, providers, handler);
+        var running = runtime.RunAsync(stop.Token);
+        Task clock = Task.CompletedTask;
+        var memory = (MashaMemoryStore)typeof(AgentHostRuntime).GetField("_memory",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(runtime)!;
+        try
+        {
+            await Until(() => registry.HasAttachment(901));
+            clock = Task.Run(() => host.Run(stop.Token));
+            Assert.That(registry.TryEnqueuePlayerText(901, "start", "ru", "Начни", out _), Is.True);
+            await Until(() => handler.PlanCommands == 1);
+            var before = (await memory.SnapshotAsync(default)).ExecutionPlan!;
+            var tick = host.Tick;
+            registry.TryEnqueuePlayerText(901, "chat", "ru", "Как дела?", out _);
+            await Until(() => providers.Transcripts.Contains("Как дела?"));
+            await Until(() => handler.AckCalls >= 2 && host.Tick > tick + 10);
+            var chatting = (await memory.SnapshotAsync(default)).ExecutionPlan!;
+            Assert.That(chatting.Id, Is.EqualTo(before.Id));
+            Assert.That(chatting.Status, Is.EqualTo("active"));
+            Assert.That(chatting.Cursor, Is.Zero);
+            Assert.That(handler.PlanCommands, Is.EqualTo(1));
+            if (cancelByPlayer) registry.TryEnqueuePlayerText(901, "cancel", "ru", "Отмени", out _);
+            else handler.SyntheticThreat = true;
+            await Until(() => memory.SnapshotAsync(default).GetAwaiter().GetResult().ExecutionPlan!.Status ==
+                (cancelByPlayer ? "canceled" : "paused"));
+            await Task.Delay(2500);
+            var after = (await memory.SnapshotAsync(default)).ExecutionPlan!;
+            Assert.That(after.Cursor, Is.Zero);
+            Assert.That(handler.PlanCommands, Is.EqualTo(1), "The post-rest command must not run after interruption.");
+            if (!cancelByPlayer) Assert.That(after.Reason, Is.EqualTo("CriticalEvent"));
+        }
+        finally
+        {
+            stop.Cancel();
+            await running.WaitAsync(TimeSpan.FromSeconds(15));
+            await clock.WaitAsync(TimeSpan.FromSeconds(15));
+            Directory.Delete(temporary, true);
+        }
+    }
+
     [Test]
     public void InboxBatchDoesNotDiscardMessagesBeyondOneThousandCharacters()
     {
@@ -199,6 +276,8 @@ public sealed class AgentRuntimeIntegrationTests
         public volatile int AckCalls;
         public volatile int EventReads;
         public volatile bool SyntheticHistory;
+        public volatile bool SyntheticThreat;
+        public int PlanCommands;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             using var document = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
@@ -208,6 +287,7 @@ public sealed class AgentRuntimeIntegrationTests
             if (method == "tools/call")
             {
                 var parameters = root.GetProperty("params");
+                if (parameters.GetProperty("name").GetString() == "execute_agent_command") Interlocked.Increment(ref PlanCommands);
                 if (parameters.GetProperty("name").GetString() == "read_events") Interlocked.Increment(ref EventReads);
                 var isAck = parameters.GetProperty("name").GetString() == "ack_agent_inbox";
                 var ack = isAck ? Interlocked.Increment(ref AckCalls) : 0;
@@ -222,10 +302,12 @@ public sealed class AgentRuntimeIntegrationTests
                     """;
                 if (Unconscious && parameters.GetProperty("name").GetString() == "describe_colonist")
                     text = "{\"stateSummary\":\"health=1; unconscious=true\"}";
+                if (SyntheticThreat && parameters.GetProperty("name").GetString() == "read_events")
+                    text = "{\"events\":[{\"seq\":999999,\"tick\":100,\"type\":\"Threat\",\"message\":\"NPC901 fixture threat\"}],\"watermark\":999999,\"sessionEpoch\":\"fixture\",\"gap\":false,\"truncated\":false}";
                 result = new { isError = error, content = new[] { new { type = "text", text } } };
             }
             else if (method == "tools/list") result = new { tools = McpTools.Catalog.Select(
-                tool => new { name = tool.Name, inputSchema = tool.InputSchema }) };
+                tool => new { name = tool.Name, description = tool.Description, inputSchema = tool.InputSchema }) };
             else result = new { protocolVersion = "2025-06-18" };
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             { Content = new StringContent(JsonSerializer.Serialize(new { jsonrpc = "2.0", result })) };
@@ -241,6 +323,7 @@ public sealed class AgentRuntimeIntegrationTests
         public volatile bool BlockDecision;
         public volatile bool Cancelled;
         public bool FailOnce;
+        public Func<string, string, CompanionDecision>? Factory;
         public string LastTranscript = "";
         public readonly System.Collections.Concurrent.ConcurrentQueue<string> Transcripts = new();
         public async Task<CompanionDecision> DecideAsync(string trigger, string stateJson, string memoryContext,
@@ -249,6 +332,7 @@ public sealed class AgentRuntimeIntegrationTests
             LastTranscript = transcript;
             Transcripts.Enqueue(transcript);
             Interlocked.Increment(ref Decisions);
+            if (Factory != null) return Factory(trigger, transcript);
             if (FailOnce)
             {
                 FailOnce = false;

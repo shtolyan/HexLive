@@ -78,9 +78,13 @@ public sealed partial class AgentHostRuntime
             _diagnostics.Record("model.request.completed", turnId, trigger, elapsedMs: started.ElapsedMilliseconds, usage: result.ModelUsage);
             return result;
         }
-        catch
+        catch (Exception ex)
         {
-            _diagnostics.Record("model.request.failed", turnId, trigger, elapsedMs: started.ElapsedMilliseconds);
+            var code = ex is AgentActionValidationException validation ? validation.ReasonCode :
+                ex is InvalidDataException && ex.Message.Length is > 0 and <= 96 &&
+                ex.Message.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '.')
+                    ? ex.Message : ex.GetType().Name;
+            _diagnostics.Record("model.request.failed", turnId, trigger, result: code, elapsedMs: started.ElapsedMilliseconds);
             throw;
         }
     }

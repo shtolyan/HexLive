@@ -6,6 +6,26 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentReferenceReaderTests
 {
+    [TestCase("InvalidExecutionCondition")]
+    [TestCase("InvalidExecutionPlanUpdate")]
+    public async Task InvalidPlanCanBeCorrectedBeforeReturningAnExecutableDecision(string code)
+    {
+        var root = Directory.CreateTempSubdirectory("invalid-plan-repair-").FullName;
+        try
+        {
+            var calls = 0;
+            var result = await new AgentMemoryRecall(root).DecideAsync("", new("world", "world", 0, 50), new(), (context, _) =>
+            {
+                if (++calls == 1) throw new InvalidDataException(code);
+                Assert.That(context, Does.Contain(code));
+                return Task.FromResult(new CompanionDecision { IntentSummary = "repaired" });
+            }, default);
+            Assert.That(result.IntentSummary, Is.EqualTo("repaired"));
+            Assert.That(calls, Is.EqualTo(2));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task ConflictingControlFormsAreRepairedWithinTheExistingRoundBudget(bool alwaysConflicting)

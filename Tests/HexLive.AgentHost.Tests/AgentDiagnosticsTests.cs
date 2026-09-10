@@ -57,9 +57,12 @@ public sealed class AgentDiagnosticsTests
         var log = new AgentDiagnostics(_root, "private-profile");
         using var state = JsonDocument.Parse("""{"tick":12,"position":{"x":1,"y":2},"inventoryItems":[],"visibleItems":[],"transcript":"SECRET","token":"SECRET"}""");
         log.Bind("private-world", 901);
-        log.Record("turn.observed", "private-turn", result: "Bearer SECRET", observation: AgentDiagnosticObservation.From(state.RootElement));
+        var source = "spec:153:0:" + new string('a', 64);
+        log.Record("turn.observed", "private-turn", result: "Bearer SECRET", observation: AgentDiagnosticObservation.From(state.RootElement),
+            sourceIds: [source, "Bearer SECRET"]);
         var text = File.ReadAllText(Path.Combine(_root, "events.jsonl"));
         Assert.That(text, Does.Not.Contain("SECRET").And.Not.Contain("private-"));
+        Assert.That(Rows().Last().GetProperty("sourceIds")[0].GetString(), Is.EqualTo(source));
         Assert.That(Rows().Last().GetProperty("observation").GetProperty("Tick").GetInt64(), Is.EqualTo(12));
     }
 

@@ -14,7 +14,8 @@ public sealed class AgentMemoryRecall
         !MemoryDocumentEdits.IsSuppressedInContext(state, speaker, row.Text);
 
     public async Task<CompanionDecision> DecideAsync(string query, MashaWorldHandle world, MashaArchive state,
-        Func<string, CancellationToken, Task<CompanionDecision>> decide, CancellationToken token)
+        Func<string, CancellationToken, Task<CompanionDecision>> decide, CancellationToken token,
+        Func<string, JsonElement, CancellationToken, Task<MemoryReadResult>>? readReference = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeout.CancelAfter(TimeSpan.FromSeconds(120)); token = timeout.Token;
@@ -85,6 +86,25 @@ public sealed class AgentMemoryRecall
                                 h.Record.OccurredUtc, h.Record.Tick, h.Record.DayLengthTicks, snippet = Clip(h.Record.Text, 350) }) });
                         trace.Add(new { operation = request.Operation, query = q, ids = result.Hits.Select(h => h.Record.Id) });
                     }
+                    else if (AgentReferenceReader.Allowed(request.Operation) && readReference != null)
+                    {
+                        if (readCharacters >= 24000)
+                        {
+                            results.Add(new { operation = request.Operation, error = "ReferenceReadBudgetExceeded" });
+                            continue;
+                        }
+                        var read = await readReference(request.Operation, a, token).ConfigureAwait(false);
+                        if (read.Text.Length > 8000 || readCharacters + read.Text.Length > 24000)
+                            results.Add(new { operation = request.Operation, error = "ReferenceReadBudgetExceeded" });
+                        else
+                        {
+                            readCharacters += read.Text.Length;
+                            foreach (var source in read.SourceIds) evidence[source] = read;
+                            results.Add(new { operation = request.Operation, read.SourceIds, read.NextOffset });
+                            trace.Add(new { operation = request.Operation, read.SourceIds, read.NextOffset, characters = read.Text.Length });
+                        }
+                    }
+                    else results.Add(new { operation = request.Operation, error = "ReferenceOperationUnavailable" });
                 }
                 catch (Exception ex) when (ex is JsonException or FormatException or InvalidOperationException)
                 { results.Add(new { error = "InvalidMemoryArguments" }); }

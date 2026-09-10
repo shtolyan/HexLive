@@ -29,3 +29,16 @@ You have at most memoryOperationsRemaining extra rounds. At zero return a final 
 memoryRequests=[], and memorySources listing the read source IDs actually supporting it.
 If nothing supports a recollection, say you cannot recall the details and ask for one clue.
 Intermediate memory requests cannot execute actions or change relationships.
+
+Before planning an unfamiliar task, retrieve its procedure and authoritative rules through
+the same read-only memoryRequests field. Available operations:
+{"operation":"skills.list","arguments":{}}
+{"operation":"skills.read","arguments":{"id":"collect-and-deliver"}}
+Skill IDs also include give-gift and build-bed. Skills are versioned procedures, not proof
+of inventory, permissions, current recipes or success. Follow their specSections using
+{"operation":"spec.read","arguments":{"section":"153","offset":0}}.
+Follow nextOffset to read more; a page is not the entire section. Reference source IDs
+include a content hash and offset. Cite only supplied source IDs. Keep executionPlanUpdate
+and objectiveUpdate null during retrieval; construct the plan after the required evidence
+is read. If a required rule is unavailable, report the missing information instead of
+inventing resource costs or claiming the task completed.

@@ -41,13 +41,13 @@ public sealed class AgentDiagnostics
 
     public void Record(string kind, string turn = "", string trigger = "", string tool = "",
         string result = "", long? elapsedMs = null, bool? committed = null,
-        AgentDiagnosticObservation? observation = null)
+        AgentDiagnosticObservation? observation = null, IReadOnlyList<string>? sourceIds = null)
     {
         lock (_gate)
         {
             try
             {
-                Write(kind, turn, trigger, tool, result, elapsedMs, committed, observation);
+                Write(kind, turn, trigger, tool, result, elapsedMs, committed, observation, sourceIds);
                 ErrorCode = "";
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
@@ -80,7 +80,7 @@ public sealed class AgentDiagnostics
     }
 
     private void Write(string kind, string turn, string trigger, string tool, string result,
-        long? elapsedMs, bool? committed, AgentDiagnosticObservation? observation)
+        long? elapsedMs, bool? committed, AgentDiagnosticObservation? observation, IReadOnlyList<string>? sourceIds)
     {
         Directory.CreateDirectory(_directory);
         if (!OperatingSystem.IsWindows())
@@ -93,7 +93,8 @@ public sealed class AgentDiagnostics
             profileId = _profile, worldId = _world, npcId = _npc,
             runtimeVersion = typeof(AgentDiagnostics).Assembly.GetName().Version?.ToString(),
             kind = Code(kind), turnId = turn.Length == 0 ? "" : Correlate(turn),
-            trigger = Code(trigger), tool = Code(tool), result = Code(result), elapsedMs, committed, observation
+            trigger = Code(trigger), tool = Code(tool), result = Code(result), elapsedMs, committed, observation,
+            sourceIds = sourceIds?.Take(16).Select(ReferenceId).ToArray()
         }) + "\n";
         if (File.Exists(current) && new FileInfo(current).Length + Encoding.UTF8.GetByteCount(line) > _maxBytes)
             File.Move(current, Path.Combine(_directory, "events-" + now.ToUnixTimeMilliseconds() + "-" + Guid.NewGuid().ToString("N") + ".jsonl"));
@@ -109,6 +110,9 @@ public sealed class AgentDiagnostics
 
     private static string Code(string value) => value.Length <= 96 &&
         value.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-') ? value : "redacted";
+    private static string ReferenceId(string value) =>
+        System.Text.RegularExpressions.Regex.IsMatch(value, "^(spec:[0-9]{1,4}[A-Z]?|spec:preamble|skill:[a-z-]{1,48}|skills:index):[0-9]{1,10}:[a-f0-9]{64}$")
+            ? value : Correlate(value);
     public static string Correlate(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant()[..16];
 }

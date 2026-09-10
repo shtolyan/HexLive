@@ -371,7 +371,12 @@ public sealed partial class AgentHostRuntime
                 decision = await recallEngine.DecideAsync(playerText, world, memoryState,
                     (evidence, memoryToken) => _providers.DecideAsync(trigger, physicalState,
                         requestContext + "\n" + evidence, playerText, recent, memoryToken),
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken, async (operation, arguments, referenceToken) =>
+                    {
+                        var source = await new AgentReferenceReader(mcp).ReadAsync(operation, arguments, referenceToken).ConfigureAwait(false);
+                        _diagnostics.Record("reference.read", turnId, tool: operation, sourceIds: source.SourceIds);
+                        return source;
+                    }).ConfigureAwait(false);
                 if (decision.Action?.Tool == KnownObjectTool)
                     decision = await ResolveObjectKnowledgeAsync(mcp, npcId,
                         worldStatus.GetProperty("worldId").GetString() ?? "", decision, trigger,

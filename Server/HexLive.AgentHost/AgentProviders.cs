@@ -170,7 +170,7 @@ public sealed class AgentProviders : IAgentProviders
                 properties = new
                 {
                     memoryRequests = new { type = "array", maxItems = 2, items = new { type = "object", additionalProperties = false,
-                        properties = new { operation = new { type = "string", @enum = new[] { "memory.search", "memory.read" } },
+                        properties = new { operation = new { type = "string", @enum = new[] { "memory.search", "memory.read", "spec.read", "skills.list", "skills.read" } },
                             arguments = new { type = "object", additionalProperties = true } }, required = new[] { "operation", "arguments" } } },
                     memorySources = new { type = "array", maxItems = 16, items = new { type = "string" } },
                     speech = new { type = "string", maxLength = 600 },
@@ -452,7 +452,7 @@ public sealed class AgentProviders : IAgentProviders
         if (decision.MemoryRequests == null || decision.MemorySources == null || decision.MemoryRequests.Count > 2 || decision.MemorySources.Count > 16)
             throw new InvalidDataException("InvalidMemoryOperations");
         foreach (var request in decision.MemoryRequests)
-            if (request == null || request.Operation is not ("memory.search" or "memory.read") || request.Arguments.ValueKind != JsonValueKind.Object || request.Arguments.GetRawText().Length > 4000)
+            if (request == null || !(request.Operation is "memory.search" or "memory.read" || AgentReferenceReader.Allowed(request.Operation)) || request.Arguments.ValueKind != JsonValueKind.Object || request.Arguments.GetRawText().Length > 4000)
                 throw new InvalidDataException("InvalidMemoryOperation");
         if (decision.MemoryRequests.Count > 0)
         {

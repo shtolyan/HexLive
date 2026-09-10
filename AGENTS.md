@@ -66,7 +66,11 @@ python3 Tools/unity_mcp_lease.py acquire --agent <stable-agent-task-name> --task
 
 At the start of every bug-fixing session, and whenever the user asks to inspect
 or fix bugs, use `.agents/skills/hexlive-bug-tracker/SKILL.md`. The source of
-truth is the production server SQLite database exposed at `/api/bugs/v1`.
+truth is Flashback PostgreSQL in Singapore, exposed at
+`https://flashback.62-146-235-120.sslip.io/api/bugs/v1`. The old production
+New York HTTPS `/api/bugs/v1` route proxies to this same API. Direct game-server
+routes and the old Singapore hostname return 410. The embedded SQLite tracker
+has been removed; archived snapshots are not writable runtime stores.
 
 - The work queue is every report whose `status` is `"created"` or `"rework"`.
   Before beginning work on one, immediately set its status to `"in_progress"`
@@ -92,7 +96,8 @@ truth is the production server SQLite database exposed at `/api/bugs/v1`.
   `ready_for_test → rework → in_progress` for a failed test. `archived` is a
   separate history flag for a confirmed `fixed` report, not deletion.
 - Do not edit `BUGS.json` for report work. It is a retired one-shot migration
-  source. The game and agents read and mutate reports through authenticated
-  HTTP; the web admin uses the same database.
+  source. The game and agents read and mutate reports through the same HTTP API;
+  all requests require a Flashback Bearer access key. The web UI uses the
+  same PostgreSQL database.
 - `BUGS.json` remains only the coordination file for the Unity MCP lease below.
   Never add reports back to it or treat its stale `reports` array as a queue.

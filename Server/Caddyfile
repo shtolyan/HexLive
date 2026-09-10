@@ -1,4 +1,19 @@
 163-245-204-96.sslip.io {
 	encode zstd gzip
-	reverse_proxy 127.0.0.1:5123
+	route {
+		@bugs path /api/bugs/v1 /api/bugs/v1/*
+		reverse_proxy @bugs https://flashback.62-146-235-120.sslip.io {
+			header_up Host flashback.62-146-235-120.sslip.io
+		}
+		@oldBugForms {
+			path /admin/bugs /admin/bugs/*
+			not method GET HEAD
+		}
+		respond @oldBugForms "Bug tracker moved to https://flashback.62-146-235-120.sslip.io. Reload the page before saving." 409
+		@bugCard path_regexp bugCard ^/admin/bugs/([0-9]+)/?$
+		redir @bugCard https://flashback.62-146-235-120.sslip.io/?bug={re.bugCard.1} 302
+		@bugAdmin path /admin/bugs /admin/bugs/*
+		redir @bugAdmin https://flashback.62-146-235-120.sslip.io/ 302
+		reverse_proxy 127.0.0.1:5123
+	}
 }

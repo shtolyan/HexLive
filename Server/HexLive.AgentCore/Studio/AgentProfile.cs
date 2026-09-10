@@ -40,7 +40,7 @@ public sealed record ServerProfile(Guid Id, string Name, Uri McpEndpoint, string
 }
 
 public sealed record ModelDescriptor(string Id, IReadOnlyList<string> ReasoningModes);
-public sealed record ModelRequest(string Instructions, string Context, string Input);
+public sealed record ModelRequest(string Instructions, string Context, string Input, string? ResponseSchema = null);
 public sealed record ModelAnswer(string DecisionJson, long? InputTokens = null, long? OutputTokens = null);
 public interface IModelAdapter
 {

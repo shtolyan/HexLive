@@ -12,7 +12,7 @@ public sealed class CodexModelAdapter(string executable, string integrationId) :
             throw new InvalidDataException("InvalidCodexSelection");
         var answer = await CodexDecisionRunner.DecideAsync(executable,
             request.Instructions + "\n" + request.Context + "\n" + request.Input,
-            token, selection.ModelId, selection.Reasoning ?? CodexDecisionRunner.ReasoningEffort);
+            token, selection.ModelId, selection.Reasoning ?? CodexDecisionRunner.ReasoningEffort, request.ResponseSchema);
         return new(answer);
     }
 }

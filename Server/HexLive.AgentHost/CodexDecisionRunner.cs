@@ -34,7 +34,8 @@ public static class CodexDecisionRunner
     }
 
     public static async Task<string> DecideAsync(string executable, string prompt,
-        CancellationToken cancellationToken, string model = Model, string reasoningEffort = ReasoningEffort)
+        CancellationToken cancellationToken, string model = Model, string reasoningEffort = ReasoningEffort,
+        string? responseSchema = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(120));
@@ -46,6 +47,12 @@ public static class CodexDecisionRunner
         try
         {
             var start = CreateStartInfo(executable, directory);
+            if (responseSchema != null)
+            {
+                var schemaPath = Path.Combine(directory, "schema.json");
+                await File.WriteAllTextAsync(schemaPath, responseSchema, timeout.Token);
+                // Added after the exec subcommand below.
+            }
             foreach (var arg in new[] { "exec", "--ignore-user-config", "--ephemeral",
                 "--skip-git-repo-check", "-s", "read-only", "-m", model,
                 "-c", "forced_login_method=\"chatgpt\"", "-c", $"model_reasoning_effort=\"{reasoningEffort}\"",
@@ -53,7 +60,10 @@ public static class CodexDecisionRunner
                 "--disable", "multi_agent", "--disable", "apps", "--disable", "plugins",
                 "--disable", "browser_use", "--disable", "computer_use",
                 "--disable", "image_generation", "--disable", "hooks",
-                "-o", output, "-" }) start.ArgumentList.Add(arg);
+                "-o", output }) start.ArgumentList.Add(arg);
+            if (responseSchema != null)
+            { start.ArgumentList.Add("--output-schema"); start.ArgumentList.Add(Path.Combine(directory, "schema.json")); }
+            start.ArgumentList.Add("-");
             var (code, _) = await RunAsync(start, prompt, timeout.Token);
             if (code != 0 || !File.Exists(output))
                 throw new InvalidOperationException("Codex subscription request failed; no provider fallback.");

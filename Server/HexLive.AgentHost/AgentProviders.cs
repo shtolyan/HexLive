@@ -106,11 +106,13 @@ public sealed class AgentProviders : IAgentProviders
         });
         if (_modelAdapter != null)
         {
+            var codexFormat = _modelSelection!.Provider == ModelProviderKind.Codex;
             var answer = await _modelAdapter.CompleteAsync(_modelSelection!,
-                new ModelRequest(system + "\nExact response contract:\n" + JsonSerializer.Serialize(DecisionResponseFormat()),
-                    memoryContext, user), cancellationToken);
+                new ModelRequest(system + "\nExact response contract:\n" + JsonSerializer.Serialize(DecisionResponseFormat()) +
+                    (codexFormat ? CodexDecisionFormat.Instructions : ""),
+                    memoryContext, user, codexFormat ? CodexDecisionFormat.Schema(DecisionSchemaJson()) : DecisionSchemaJson()), cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            var decision = ParseDecision(answer.DecisionJson, trigger);
+            var decision = ParseDecision(codexFormat ? CodexDecisionFormat.Decode(answer.DecisionJson) : answer.DecisionJson, trigger);
             decision.ModelUsage = new(_modelSelection!.Provider.ToString(), _modelSelection.ModelId,
                 answer.InputTokens is >= 0 ? answer.InputTokens : null,
                 answer.OutputTokens is >= 0 ? answer.OutputTokens : null);
@@ -121,8 +123,9 @@ public sealed class AgentProviders : IAgentProviders
             var codexJson = await CodexDecisionRunner.DecideAsync(_options.CodexExecutable,
                 system + "\nDo not use tools. Return only the requested decision JSON.\n" +
                 "Exact response contract:\n" + JsonSerializer.Serialize(DecisionResponseFormat()) + "\n" +
-                "<memory>\n" + memoryContext + "\n</memory>\n" + user, cancellationToken);
-            var decision = ParseDecision(codexJson, trigger);
+                "<memory>\n" + memoryContext + "\n</memory>\n" + user + CodexDecisionFormat.Instructions, cancellationToken,
+                responseSchema: CodexDecisionFormat.Schema(DecisionSchemaJson()));
+            var decision = ParseDecision(CodexDecisionFormat.Decode(codexJson), trigger);
             decision.ModelUsage = new("Codex", CodexDecisionRunner.Model, null, null);
             return decision;
         }
@@ -165,6 +168,9 @@ public sealed class AgentProviders : IAgentProviders
         Validate(decision, trigger);
         return decision;
     }
+
+    public static string DecisionSchemaJson() => JsonSerializer.SerializeToElement(DecisionResponseFormat())
+        .GetProperty("json_schema").GetProperty("schema").GetRawText();
 
     private static object DecisionResponseFormat() => new
     {

@@ -161,8 +161,9 @@ public sealed partial class MashaMemoryWorkspace
             (bond.Trust <= .25f ? AgentPromptFiles.Text("MashaMemoryWorkspace.44") : bond.Trust >= .75f ? AgentPromptFiles.Text("MashaMemoryWorkspace.45") : AgentPromptFiles.Text("MashaMemoryWorkspace.46")) +
             (bond.Affinity <= -.25f ? AgentPromptFiles.Text("MashaMemoryWorkspace.47") : bond.Affinity >= .75f ? AgentPromptFiles.Text("MashaMemoryWorkspace.48") : AgentPromptFiles.Text("MashaMemoryWorkspace.49")) +
             "\n" + AgentGameTime.Describe(bond, world ?? new(current.Id, current.WorldKey, current.LastTick, -1)) + "\n" +
-            AgentObjectivePolicy.Describe(archive.Objective, current.WorldKey, current.AvatarNpcId) + "\n" +
-            DescribeExecutionPlan(archive.ExecutionPlan);
+            AgentObjectivePolicy.Describe(archive.Objective, current.WorldKey, current.AvatarNpcId) + "\n";
+        mandatory += DescribeExecutionPlan(archive, current.WorldKey, current.AvatarNpcId,
+            Math.Max(0, Math.Min(2200, MaxPromptCharacters - mandatory.Length)));
         var bounded = mandatory + AtLineBoundary(prompt.ToString(), Math.Min(MemoryBudgetCharacters, MaxPromptCharacters - mandatory.Length));
         return new MashaPromptContext(
             bounded,
@@ -172,10 +173,25 @@ public sealed partial class MashaMemoryWorkspace
                 ExecutionPlanRevision = archive.ExecutionPlan?.Revision ?? 0, ExecutionPlanId = archive.ExecutionPlan?.Id ?? "" };
     }
 
-    private static string DescribeExecutionPlan(AgentExecutionPlan? plan) => plan == null ? "" :
-        $"Исполняемый план: {Clean(plan.Status, 16)}, шаг {plan.Cursor + 1}/{plan.Steps.Length}, версия {plan.Revision}. " +
-        $"Причина: {Clean(plan.Reason, 96)}. Команда: {Clean(plan.Command?.Status ?? "none", 16)}. " +
-        "Обычный разговор не заменяет план. Принятие команды не означает завершения.\n";
+    private static string DescribeExecutionPlan(MashaArchive archive, string worldKey, int npcId, int budget)
+    {
+        var plan = archive.ExecutionPlan;
+        if (plan == null || plan.WorldKey != worldKey || plan.NpcId != npcId) return "";
+        var text = new StringBuilder();
+        text.AppendLine($"Исполняемый план: {Clean(plan.Status, 16)}, позиция {plan.Cursor}/{plan.Steps.Length}, версия {plan.Revision}. " +
+            $"Причина: {Clean(plan.Reason, 96)}. Команда: {Clean(plan.Command?.Status ?? "none", 16)}.");
+        if (plan.Cursor < plan.Steps.Length)
+        {
+            text.AppendLine("Следующие шаги очереди (ещё не завершены):");
+            foreach (var step in plan.Steps.Skip(plan.Cursor).Take(3))
+                text.AppendLine($"{Clean(step.Id, 48)}: {Clean(step.Tool, 32)} {Clean(step.Arguments.GetRawText(), 220)}");
+        }
+        text.AppendLine("Подтверждённые completed квитанции этой цели (от новых к старым; уже выполнено, не повторять):");
+        foreach (var row in archive.ExecutionProgress.Where(p => p.WorldKey == worldKey && p.NpcId == npcId).TakeLast(8).Reverse())
+            text.AppendLine($"#{row.Sequence} {Clean(row.Step.Id, 48)}: {Clean(row.Step.Tool, 32)} {Clean(row.Step.Arguments.GetRawText(), 220)}");
+        text.AppendLine("Сопоставь квитанции со свежим миром: цель могла уже выполниться. Разговор не заменяет план; accepted не значит completed.");
+        return AtLineBoundary(text.ToString(), budget);
+    }
 
     public string PreserveImport(string sourceRoot, string fingerprint, string label)
     {

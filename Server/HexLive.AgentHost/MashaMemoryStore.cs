@@ -77,6 +77,7 @@ public sealed class MashaArchive
 {
     public AgentObjective? Objective { get; set; }
     public AgentExecutionPlan? ExecutionPlan { get; set; }
+    public List<AgentExecutionProgress> ExecutionProgress { get; set; } = new();
     public int SchemaVersion { get; set; } = 1;
     public MashaIdentity Identity { get; set; } = new();
     public Dictionary<string, SpeakerMemory> Speakers { get; set; } = new(StringComparer.Ordinal);
@@ -664,6 +665,7 @@ public sealed partial class MashaMemoryStore
 
             _archive.Objective = objective;
             _archive.ExecutionPlan = executionPlan;
+            if (decision.ObjectiveUpdate?.Operation is "set" or "clear") _archive.ExecutionProgress.Clear();
             _archive.AppliedTurnIds.Add(Limit(turnId, 80));
             TrimOldest(_archive.AppliedTurnIds, MaxAppliedTurnIds);
             await SaveAsync(cancellationToken).ConfigureAwait(false);

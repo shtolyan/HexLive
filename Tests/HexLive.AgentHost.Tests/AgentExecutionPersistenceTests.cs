@@ -65,6 +65,42 @@ public sealed class AgentExecutionPersistenceTests
     }
 
     [Test]
+    public async Task ConfirmedProgressSurvivesNewSegmentsAndRestartButNewObjectiveClearsIt()
+    {
+        var store = new MashaMemoryStore(_directory);
+        await store.CommitTurnAsync(await World(store), "install", "voice", NewPlan(), default);
+        var plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        plan = await store.PrepareExecutionStepAsync(plan.Id, plan.Revision, await World(store), default, 1);
+        plan = await store.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(plan.Command!.Id, "completed"), default);
+        store = new MashaMemoryStore(_directory);
+        await store.CommitTurnAsync(await World(store), "segment", "heartbeat", new CompanionDecision
+        { ExecutionPlanUpdate = new() { Operation = "replace", Reason = "NextSegment", Steps =
+            [new("unload", "manage_inventory", JsonSerializer.SerializeToElement(new
+            { source = "Carried", index = 0, expectedDefinitionId = "food.coconut", action = "Drop" }))] } }, default);
+        var progress = (await store.SnapshotAsync(default)).ExecutionProgress;
+        Assert.That(progress, Has.Count.EqualTo(1));
+        Assert.That(progress[0].Step.Id, Is.EqualTo("move"));
+        var prompt = await store.BuildPromptContextAsync(await World(store), "", default);
+        Assert.That(prompt.Text, Does.Contain("Подтверждённые completed").And.Contain("move_to").And.Contain("manage_inventory"));
+        Assert.That(prompt.CharacterCount, Is.LessThanOrEqualTo(MashaMemoryWorkspace.MaxPromptCharacters));
+        await store.CommitTurnAsync(await World(store), "new-goal", "voice", NewPlan(), default);
+        Assert.That((await store.SnapshotAsync(default)).ExecutionProgress, Is.Empty);
+    }
+
+    [Test]
+    public async Task SkippedConditionDoesNotCreateACompletedReceiptInMemory()
+    {
+        var store = new MashaMemoryStore(_directory);
+        var decision = NewPlan();
+        decision.ExecutionPlanUpdate!.Steps[0] = decision.ExecutionPlanUpdate.Steps[0] with
+            { Condition = new("inventorySummary.freeSlots", "gte", 1, "collect") };
+        await store.CommitTurnAsync(await World(store), "install", "voice", decision, default);
+        var plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        await store.BranchExecutionPlanAsync(plan.Id, plan.Revision, default);
+        Assert.That((await new MashaMemoryStore(_directory).SnapshotAsync(default)).ExecutionProgress, Is.Empty);
+    }
+
+    [Test]
     public async Task ConfirmedFailureCanBeReplannedWithoutDiscardingTheObjective()
     {
         var store = new MashaMemoryStore(_directory);

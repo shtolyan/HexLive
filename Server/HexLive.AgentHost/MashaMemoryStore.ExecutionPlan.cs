@@ -96,6 +96,16 @@ public sealed partial class MashaMemoryStore
             var next = change(current);
             if (!ReferenceEquals(next, current))
             {
+                if (current.Command is { } completed && next.Command == null && next.Cursor > current.Cursor)
+                {
+                    // Only the command-specific completed receipt makes this transition.
+                    // A condition branch has no command and must not invent completed work.
+                    _archive.ExecutionProgress.Add(new(current.WorldKey, current.NpcId, current.Id,
+                        completed.Id, completed.Sequence, current.Steps[current.Cursor] with
+                            { Arguments = current.Steps[current.Cursor].Arguments.Clone() }, DateTimeOffset.UtcNow));
+                    if (_archive.ExecutionProgress.Count > 64)
+                        _archive.ExecutionProgress.RemoveRange(0, _archive.ExecutionProgress.Count - 64);
+                }
                 _archive.ExecutionPlan = next;
                 try { await SaveAsync(token).ConfigureAwait(false); }
                 catch

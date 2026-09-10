@@ -45,6 +45,9 @@ public sealed record AgentExecutionCommand(string Id, string StepId, string Stat
 // An idle NPC, an accepted request or a model's prose cannot establish completion.
 public sealed record AgentExecutionReceipt(string CommandId, string Outcome);
 
+public sealed record AgentExecutionProgress(string WorldKey, int NpcId, string PlanId,
+    string CommandId, long Sequence, AgentExecutionStep Step, DateTimeOffset RecordedUtc);
+
 public sealed class AgentExecutionPlanUpdate
 {
     [JsonPropertyName("operation")] public string Operation { get; set; } = "";

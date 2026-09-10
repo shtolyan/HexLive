@@ -59,13 +59,18 @@ public sealed partial class MashaMemoryStore
     }
 
     public Task<AgentExecutionPlan> PrepareExecutionStepAsync(string planId, long revision,
-        MashaWorldHandle world, CancellationToken token) => MutateExecutionPlanAsync(planId, revision, plan =>
+        MashaWorldHandle world, CancellationToken token, long sequence = 0) => MutateExecutionPlanAsync(planId, revision, plan =>
     {
         var episode = RequireEpisode(world.EpisodeId);
         if (_archive.Objective is not { Status: "active" } goal)
             throw new InvalidOperationException("ExecutionObjectiveInactive");
-        return AgentExecutionPlanPolicy.Prepare(plan, revision, episode.WorldKey, episode.AvatarNpcId, goal.Revision);
+        var next = AgentExecutionPlanPolicy.Prepare(plan, revision, episode.WorldKey, episode.AvatarNpcId, goal.Revision);
+        return next with { Command = next.Command! with { Sequence = sequence } };
     }, token);
+
+    public Task<AgentExecutionPlan> PauseExecutionPlanAsync(string planId, long revision, string reason,
+        CancellationToken token) => MutateExecutionPlanAsync(planId, revision,
+            plan => AgentExecutionPlanPolicy.Pause(plan, revision, reason), token);
 
     public Task<AgentExecutionPlan> ObserveExecutionStepAsync(string planId, long revision,
         AgentExecutionReceipt receipt, CancellationToken token) => MutateExecutionPlanAsync(planId, revision,

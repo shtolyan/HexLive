@@ -135,6 +135,7 @@ public sealed partial class AgentHostRuntime
 
     private async Task RunAttachedAsync(CancellationToken cancellationToken)
     {
+        _lastExecutionAttempt = "";
         using var mcp = new McpClient(_options.ProviderOptions, _mcpHandler);
         var worldStatus = await mcp.CallToolAsync("world_status", new { }, cancellationToken);
         PinWorld(worldStatus);
@@ -400,6 +401,7 @@ public sealed partial class AgentHostRuntime
                 ownsWriter = true;
             }
             EnsureCurrentTurn(scheduled, cancellationToken);
+            await ValidateExecutionPlanAsync(mcp, npcId, decision, cancellationToken).ConfigureAwait(false);
             await _memory.ValidateObjectiveUpdateAsync(world, decision, cancellationToken).ConfigureAwait(false);
             _activeSpeakerKey = world.SpeakerKey;
             if (trigger != "voice" && string.Equals(decision.Speech.Trim(), _lastSpeech,
@@ -414,7 +416,7 @@ public sealed partial class AgentHostRuntime
                 }
             }
             if (scheduled is { IsReply: true } &&
-                (decision.ObjectiveUpdate != null || (decision.Action != null && CanStartActionTurn(trigger))))
+                (decision.ObjectiveUpdate != null || decision.ExecutionPlanUpdate != null || (decision.Action != null && CanStartActionTurn(trigger))))
             {
                 ++_controlVersion;
                 _autonomyTurn?.Stop.Cancel();
@@ -443,6 +445,10 @@ public sealed partial class AgentHostRuntime
                 .ConfigureAwait(false);
             _outbox.Remove(turnId);
             LastIntentSummary = decision.IntentSummary;
+
+            if (decision.ExecutionPlanUpdate != null ||
+                (_executingPlan && decision.ObjectiveUpdate?.Operation is "set" or "pause" or "clear" or "complete"))
+                await StopActionAsync(handoffLease: decision.ExecutionPlanUpdate?.Operation == "replace").ConfigureAwait(false);
 
             if (playerText.Length > 0) Remember(AgentPromptFiles.Text("AgentHostRuntime.08") + playerText);
             cancellationToken.ThrowIfCancellationRequested();

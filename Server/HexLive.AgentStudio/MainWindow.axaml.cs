@@ -45,8 +45,11 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                         .Select(p => p.Model.IntegrationId))
                     .Concat(_configuration.Configuration.Agents.Where(p => p.Voice != null).Select(p => p.Voice!.IntegrationId))
                     .Concat(new[] { "model.OpenAI", "model.Grok", "model.Claude", "model.DeepSeek", "voice.ElevenLabs" });
-                var accessReady = await _secrets.InitializeAsync(ids, default);
-                SetConfigurationStatus(accessReady ? "" : Strings["CredentialAccessDenied"]);
+                var authenticationFailed = false;
+                var accessReady = await _secrets.InitializeAsync(ids, default, ex =>
+                    authenticationFailed |= ex is CredentialStoreException { NativeStatus: -25293 });
+                SetConfigurationStatus(accessReady ? "" : Strings[authenticationFailed
+                    ? "KeychainAuthenticationFailed" : "CredentialAccessDenied"]);
                 foreach (var profile in _configuration.Configuration.Agents) Profiles.Add(profile);
                 foreach (var server in _configuration.Configuration.Servers) Servers.Add(server);
                 if (Profiles.Count > 0) this.FindControl<ListBox>("ProfilesList")!.SelectedItem = Profiles[0];

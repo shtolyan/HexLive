@@ -61,14 +61,33 @@ public sealed class SessionSecretStoreTests
         Assert.That(await store.ReadAsync("model", default), Is.EqualTo("model-value"));
     }
 
+    [Test]
+    public async Task ExplicitRetryRecoversStartupFailureWithoutRereadingSuccessfulKeys()
+    {
+        var native = new FakeStore { FailNext = true };
+        var store = new SessionSecretStore(native);
+        Exception? diagnostic = null;
+        Assert.That(await store.InitializeAsync(["model", "voice"], default, ex => diagnostic = ex), Is.False);
+        Assert.That(diagnostic, Is.TypeOf<CredentialStoreException>());
+        Assert.That(((CredentialStoreException)diagnostic!).NativeStatus, Is.EqualTo(-25293));
+        var cached = Assert.ThrowsAsync<CredentialStoreException>(() => store.ReadAsync("model", default));
+        Assert.That(cached, Is.SameAs(diagnostic));
+        Assert.That(native.Reads, Is.EqualTo(2));
+        await store.RetryFailedReadsAsync(default);
+        Assert.That(await store.ReadAsync("model", default), Is.EqualTo("model-value"));
+        Assert.That(await store.ReadAsync("voice", default), Is.EqualTo("voice-value"));
+        Assert.That(native.Reads, Is.EqualTo(3));
+    }
+
     private sealed class FakeStore : ISecretStore
     {
         public int Reads;
-        public bool CancelNext, FailWrite;
+        public bool CancelNext, FailWrite, FailNext;
         public async Task<string?> ReadAsync(string id, CancellationToken token)
         {
             Reads++;
             await Task.Yield();
+            if (FailNext) { FailNext = false; throw new CredentialStoreException(-25293); }
             if (CancelNext) { CancelNext = false; throw new OperationCanceledException(); }
             if (id == "denied") throw new InvalidOperationException("Denied");
             return id == "missing" ? null : id + "-value";

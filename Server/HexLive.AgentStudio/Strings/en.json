@@ -65,6 +65,7 @@
   "Connect": "Connect",
   "ConnectingNow": "Connecting…",
   "ReadingServerCredential": "Reading the saved token. If macOS shows a Keychain prompt, allow Agent Studio access. No model requests.",
+  "KeychainAuthenticationFailed": "macOS could not authenticate access to the login keychain. Unlock your Mac and the login keychain with your Mac password, then click Connect to retry. Your saved token has not been changed.",
   "CredentialAccessDenied": "Cannot read the saved token. Allow credential-store access or enter the token again in server settings.",
   "ConnectedCharacters": "Connected · available characters: {0}.",
   "ConnectionTimeout": "Connection timed out or was cancelled. Check the server address and try again.",

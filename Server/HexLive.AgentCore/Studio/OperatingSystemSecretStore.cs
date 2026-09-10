@@ -55,7 +55,7 @@ public sealed class OperatingSystemSecretStore : ISecretStore
         {
             var status = Find(id, out var size, out var bytes, out var item);
             if (status == -25300) return null;
-            if (status != 0) throw Failure();
+            if (status != 0) throw Failure(status);
             try { return Marshal.PtrToStringUTF8(bytes, checked((int)size)); }
             finally { SecKeychainItemFreeContent(IntPtr.Zero, bytes); if (item != IntPtr.Zero) CFRelease(item); }
         }
@@ -94,7 +94,7 @@ public sealed class OperatingSystemSecretStore : ISecretStore
                     try { status = SecKeychainItemModifyAttributesAndData(item, IntPtr.Zero, (uint)bytes.Length, bytes); }
                     finally { if (item != IntPtr.Zero) CFRelease(item); }
                 }
-                if (status != 0) throw Failure();
+                if (status != 0) throw Failure(status);
                 return;
             }
             throw new PlatformNotSupportedException("NativeSecretStoreUnavailable");
@@ -112,7 +112,7 @@ public sealed class OperatingSystemSecretStore : ISecretStore
         {
             var status = Find(id, out _, out var data, out var item);
             if (status == -25300) return;
-            if (status != 0) throw Failure();
+            if (status != 0) throw Failure(status);
             SecKeychainItemFreeContent(IntPtr.Zero, data);
             try { if (SecKeychainItemDelete(item) != 0) throw Failure(); }
             finally { if (item != IntPtr.Zero) CFRelease(item); }
@@ -120,7 +120,7 @@ public sealed class OperatingSystemSecretStore : ISecretStore
         }
         throw new PlatformNotSupportedException("NativeSecretStoreUnavailable");
     }
-    private static Exception Failure() => new InvalidOperationException("OperatingSystemCredentialOperationFailed");
+    private static Exception Failure(int? status = null) => new CredentialStoreException(status);
     private static int Find(string id, out uint size, out IntPtr data, out IntPtr item) =>
         SecKeychainFindGenericPassword(IntPtr.Zero, (uint)Service.Length, Service, (uint)id.Length, id, out size, out data, out item);
 

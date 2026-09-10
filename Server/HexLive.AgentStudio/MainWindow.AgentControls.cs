@@ -137,6 +137,7 @@ public sealed partial class MainWindow
         try
         {
             if (await IsAgentActive(profile.Id)) { SetConfigurationStatus(Strings["StopBeforeEdit"]); return; }
+            await _secrets.RetryFailedReadsAsync(cancellation.Token);
             var credential = await _secrets.ReadAsync(server.CredentialId, cancellation.Token).WaitAsync(cancellation.Token);
             if (credential == null)
             {
@@ -167,8 +168,8 @@ public sealed partial class MainWindow
         catch (OperationCanceledException) { SetConfigurationStatus(Strings["ConnectionTimeout"]); }
         catch (HttpRequestException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
         { SetConfigurationStatus(Strings["ConnectionDenied"]); }
-        catch (InvalidOperationException ex) when (ex.Message == "OperatingSystemCredentialOperationFailed")
-        { SetConfigurationStatus(Strings["CredentialAccessDenied"]); }
+        catch (CredentialStoreException ex)
+        { SetConfigurationStatus(Strings[ex.NativeStatus == -25293 ? "KeychainAuthenticationFailed" : "CredentialAccessDenied"]); }
         catch { SetConfigurationStatus(Strings["ConnectionFailed"]); }
         finally { _connectionCancellation = null; _operation = false; SetConnecting(false); }
     }

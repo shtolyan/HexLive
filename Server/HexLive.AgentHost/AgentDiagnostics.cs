@@ -95,6 +95,7 @@ public sealed class AgentDiagnostics
             schemaVersion = 1, sessionId = _session, sequence = ++_sequence, utc = now,
             profileId = _profile, worldId = _world, npcId = _npc,
             runtimeVersion = typeof(AgentDiagnostics).Assembly.GetName().Version?.ToString(),
+            runtimeBuildId = typeof(AgentDiagnostics).Module.ModuleVersionId.ToString("N"),
             kind = Code(kind), turnId = turn.Length == 0 ? "" : Correlate(turn),
             trigger = Code(trigger), tool = Code(tool), result = Code(result), elapsedMs, committed, observation,
             sourceIds = sourceIds?.Take(16).Select(ReferenceId).ToArray(), relationship,

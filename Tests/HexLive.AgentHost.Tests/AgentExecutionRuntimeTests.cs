@@ -38,6 +38,42 @@ public sealed partial class AgentExecutionRuntimeTests
         Assert.That(host.Read(w => w.AgentCommands[901].HighestSequence), Is.EqualTo(2));
     }
 
+    [TestCase("world-pause")]
+    [TestCase("pause")]
+    [TestCase("complete")]
+    public async Task CompletedSegmentRetainsControlWhileSimulationAdvancesAndReleasesWhenFinished(string end)
+    {
+        using var host = Host();
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp);
+        typeof(AgentHostRuntime).GetField("_historyWorld", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(runtime, world);
+        await Run(runtime, mcp, plan.Id, world);
+        var maintain = typeof(AgentHostRuntime).GetMethod("MaintainPlanLeaseAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        await (Task)maintain.Invoke(runtime, [mcp, 901, true, CancellationToken.None])!;
+        var engine = (SimulationEngine)typeof(WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+        host.Read(w =>
+        {
+            for (var i = 0; i < 120; i++) engine.Step();
+            Assert.That(w.Entities.Npcs[new EntityId(901)].Mind.ManualControl, Is.True,
+                "Inference between completed segments must not hand the body to native AI.");
+            return true;
+        });
+        Assert.That(providers.Calls, Is.Zero);
+        Assert.That(transport.Executions, Is.EqualTo(2));
+        if (end != "world-pause")
+        {
+            var state = await store.SnapshotAsync(default);
+            await store.CommitTurnAsync(world with { ObjectiveRevision = state.Objective!.Revision,
+                ExecutionPlanRevision = state.ExecutionPlan!.Revision, ExecutionPlanId = state.ExecutionPlan.Id },
+                "end", "voice", new CompanionDecision { ObjectiveUpdate = new() { Operation = end, Reason = "Fixture" } }, default);
+        }
+        await (Task)maintain.Invoke(runtime, [mcp, 901, end != "world-pause", CancellationToken.None])!;
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ManualControl), Is.False);
+    }
+
     [Test]
     public async Task NativeMovementCompletesBeforeNextCommandWithoutAnIntermediateModelTurn()
     {

@@ -10,6 +10,28 @@ public sealed partial class AgentHostRuntime
     private volatile bool _reconcilingPlan;
     private DateTimeOffset _nextExecutionRetry;
     private int _reconciliationAttempts;
+    private volatile bool _holdingPlanLease;
+    private DateTimeOffset _nextPlanLeaseRenewal;
+
+    private async Task MaintainPlanLeaseAsync(McpClient mcp, int npcId, bool enabled, CancellationToken token)
+    {
+        if (!_holdingPlanLease) return;
+        var state = await _memory.SnapshotAsync(token).ConfigureAwait(false);
+        var keep = enabled && state.Objective is { Status: "active" } goal &&
+            goal.AvatarNpcId == npcId && goal.WorldKey == _historyWorld?.WorldKey &&
+            state.ExecutionPlan is { Status: "active" or "completed" };
+        if (!keep)
+        {
+            _holdingPlanLease = false;
+            // A newly dispatched queue/action already owns the same lease.
+            if (!_executingPlan && _actionTask.IsCompleted && mcp.HasEstablishedSession)
+                await mcp.CallToolAsync("release_control", new { npcId }, token).ConfigureAwait(false);
+            return;
+        }
+        if (DateTimeOffset.UtcNow < _nextPlanLeaseRenewal) return;
+        await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 }, token).ConfigureAwait(false);
+        _nextPlanLeaseRenewal = DateTimeOffset.UtcNow.AddSeconds(9);
+    }
 
     private async Task ValidateExecutionPlanAsync(McpClient mcp, int npcId,
         CompanionDecision decision, CancellationToken token)
@@ -51,6 +73,7 @@ public sealed partial class AgentHostRuntime
         string turn = planId;
         try
         {
+            _holdingPlanLease = false; // Transfer the same session's lease to this queue.
             var initial = (await _memory.SnapshotAsync(token).ConfigureAwait(false)).ExecutionPlan;
             if (initial?.Id != planId) return;
             reconcilingInitial = initial.Reason == "CommandOutcomeUnknown" && initial.Command != null;
@@ -149,7 +172,12 @@ public sealed partial class AgentHostRuntime
             var retryReceipt = false;
             try
             {
-                var saved = (await _memory.SnapshotAsync(CancellationToken.None).ConfigureAwait(false)).ExecutionPlan;
+                var archive = await _memory.SnapshotAsync(CancellationToken.None).ConfigureAwait(false);
+                var saved = archive.ExecutionPlan;
+                _holdingPlanLease = acquired && !token.IsCancellationRequested && saved?.Id == planId &&
+                    saved.Status == "completed" && archive.Objective is { Status: "active" } goal &&
+                    goal.WorldKey == world.WorldKey && goal.AvatarNpcId == npcId;
+                if (_holdingPlanLease) _nextPlanLeaseRenewal = DateTimeOffset.UtcNow;
                 needsDecision = saved?.Id == planId && saved.Status != "canceled";
                 retryReceipt = saved?.Id == planId && saved.Status == "paused" && saved.Reason == "CommandOutcomeUnknown" &&
                     saved.Command is { Status: "sending" or "accepted" or "unknown" } && ++_reconciliationAttempts <= 3;
@@ -167,7 +195,7 @@ public sealed partial class AgentHostRuntime
             }
             catch { }
             _reconcilingPlan = retryReceipt;
-            if ((acquired || reconcilingInitial) && !retryReceipt && !_handoffActionLease && mcp.HasEstablishedSession)
+            if ((acquired || reconcilingInitial) && !retryReceipt && !_holdingPlanLease && !_handoffActionLease && mcp.HasEstablishedSession)
                 try { await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None).ConfigureAwait(false); } catch { }
             if (needsDecision) Interlocked.Exchange(ref _planNeedsDecision, 1);
         }

@@ -189,6 +189,8 @@ public sealed partial class AgentHostRuntime
         finally
         {
             await StopActionAsync().ConfigureAwait(false);
+            try { await MaintainPlanLeaseAsync(mcp, npcId, false, CancellationToken.None).ConfigureAwait(false); }
+            catch { /* Session teardown and TTL remain the fallback. */ }
             heartbeatStop.Cancel();
             try { await historyTask.ConfigureAwait(false); }
             catch (OperationCanceledException) { }
@@ -373,20 +375,28 @@ public sealed partial class AgentHostRuntime
                 EnsureCurrentTurn(scheduled, cancellationToken);
                 modelStarted = latency.ElapsedMilliseconds;
                 _diagnostics.Record("model.started", turnId, trigger);
+                var queriedObjects = false;
                 decision = await recallEngine.DecideAsync(playerText, world, memoryState,
-                    (evidence, memoryToken) => DecideWithDiagnosticsAsync(turnId, trigger, physicalState,
-                        requestContext + "\n" + evidence, playerText, recent, memoryToken),
+                    async (evidence, memoryToken) =>
+                    {
+                        var context = requestContext + "\n" + evidence +
+                            (queriedObjects ? "\n" + AgentPromptFiles.Read("object-knowledge.md") : "");
+                        var answer = await DecideWithDiagnosticsAsync(turnId, trigger, physicalState,
+                            context, playerText, recent, memoryToken).ConfigureAwait(false);
+                        if (answer.Action?.Tool != KnownObjectTool) return answer;
+                        if (queriedObjects) throw new AgentActionValidationException("KnowledgeQueryLimitReached");
+                        queriedObjects = true;
+                        return await ResolveObjectKnowledgeAsync(mcp, npcId,
+                            worldStatus.GetProperty("worldId").GetString() ?? "", answer, trigger,
+                            physicalState, context, playerText, recent, scheduled, memoryToken, turnId,
+                            enriched => physicalState = enriched).ConfigureAwait(false);
+                    },
                     cancellationToken, async (operation, arguments, referenceToken) =>
                     {
                         var source = await new AgentReferenceReader(mcp).ReadAsync(operation, arguments, referenceToken).ConfigureAwait(false);
                         _diagnostics.Record("reference.read", turnId, tool: operation, sourceIds: source.SourceIds);
                         return source;
                     }).ConfigureAwait(false);
-                if (decision.Action?.Tool == KnownObjectTool)
-                    decision = await ResolveObjectKnowledgeAsync(mcp, npcId,
-                        worldStatus.GetProperty("worldId").GetString() ?? "", decision, trigger,
-                        physicalState, requestContext, playerText, recent, scheduled, cancellationToken, turnId)
-                        .ConfigureAwait(false);
             }
             finally { _modelSlot.Release(); }
             cancellationToken.ThrowIfCancellationRequested();
@@ -715,6 +725,7 @@ public sealed partial class AgentHostRuntime
             await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 },
                 cancellationToken).ConfigureAwait(false);
             acquired = true;
+            _holdingPlanLease = false; // The ordinary action now owns this session's lease.
             var outcome = new AgentActionOutcome(npcId,
                 await mcp.CallToolAsync("read_events", new { npcId }, cancellationToken).ConfigureAwait(false));
             var result = await mcp.CallToolAsync(action.Tool, arguments, cancellationToken).ConfigureAwait(false);

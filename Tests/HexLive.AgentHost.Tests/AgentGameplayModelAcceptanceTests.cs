@@ -5,6 +5,8 @@ using HexLive.Server;
 using HexLive.Server.Mcp;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Bootstrap;
+using HexLive.Simulation.Runtime.Blueprints;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -56,12 +58,19 @@ public sealed partial class AgentExecutionRuntimeTests
         }, adapter, new(providerName == "Codex" ? ModelProviderKind.Codex : ModelProviderKind.Grok, "eval", modelId, providerName == "Codex" ? "low" : null));
         using var host = Host();
         var engine = (SimulationEngine)typeof(HexLive.Server.WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
-        ObjectId? bedSite = null;
+        var bedAnchors = new HashSet<JunctionId>();
         var sawSleep = false;
         var recipientId = 0;
         var recipientItemsBefore = 0;
         host.Read(w =>
         {
+            if (scenario == "bed")
+                foreach (var id in w.Entities.Npcs.Keys.Where(id => id.Value != 901).ToArray())
+                {
+                    var removed = AdminWorldCommands.Execute(w, new AdminCommand
+                    { Kind = "delete_npc", NpcId = id.Value, OperationId = "bed-fixture-" + id.Value });
+                    Assert.That(removed.Accepted, Is.True);
+                }
             foreach (var n in w.Entities.Npcs.Values) { n.Mind.ManualControl = true; n.Faction = Faction.Colony; }
             for (var i = 0; i < 64; i++) engine.Step();
             w.Mobs.Clear();
@@ -83,9 +92,44 @@ public sealed partial class AgentExecutionRuntimeTests
             for (var i = 0; i < 8; i++) engine.Step();
             if (scenario == "bed")
             {
-                var site = w.Entities.Objects.Values.First(o => o.DefinitionId == "build.site" && o.BuildProduct == "bed.basic");
-                Assert.That(site.Contents, Is.Empty, "Bed acceptance starts with an empty site.");
-                bedSite = site.Id;
+                // Prepare only the house through the ordinary blueprint/build path.
+                // Completing its architecture stakes EMPTY furniture sites; no bed is paid or raised.
+                var draft = BuiltInBuildingBlueprints.Hut1Hex();
+                var blueprintId = w.NextPlayerBlueprintId++;
+                w.PlayerBlueprints[blueprintId] = draft;
+                var home = ColonyQueries.Home(w, Faction.Colony) ?? npc.Tile;
+                var house = w.Tiles.Items.Keys.OrderBy(t => HexSpatialMath.HexDistance(t, home))
+                    .Select(t => BuildingBootstrap.CreatePlayerBlueprintSite(w, t, 0f, blueprintId)).FirstOrDefault(h => h != null);
+                Assert.That(house, Is.Not.Null, "No legal house fixture location.");
+                DoorTopology.StampOwner(w, house!, Faction.Colony);
+                var bill = BlueprintBuildingPlan.Bill(BlueprintBuildingPlan.Modules(draft));
+                foreach (var (id, count) in new[] { (ContentIds.Stick, bill.Sticks), (ContentIds.Board, bill.Boards),
+                    (ContentIds.Rope, bill.Rope), (ContentIds.PalmLeaf, bill.Leaves) })
+                    for (var i = 0; i < count; i++) house!.Contents.Add(new ItemInstance(id));
+                BuildingRules.SyncHutElements(w, house!);
+                Assert.That(BuildingRules.Elements(w, house!).All(e => e.Complete), Is.True);
+                var raised = (WorldObjectState)typeof(ExecutionSystem).GetMethod("RaiseFurnitureSite", BindingFlags.NonPublic | BindingFlags.Static)!
+                    .Invoke(null, [w, house, house!.Fragment, house.Junctions[0]])!;
+                Assert.That(BuildingRules.FloorComplete(w, raised), Is.True);
+                var sites = w.Entities.Objects.Values.Where(o => o.Tile.Equals(raised.Tile) &&
+                    o.DefinitionId == ContentIds.BuildSite && o.BuildProduct == ContentIds.BedBasic).ToArray();
+                Assert.That(sites, Has.Length.GreaterThan(0));
+                foreach (var site in sites)
+                {
+                    Assert.That(site.Contents, Is.Empty, "Bed acceptance starts with an empty bill.");
+                    bedAnchors.Add(site.Junctions[0]);
+                }
+                File.WriteAllText(Path.Combine(output, $"bed-layout-{fixture}-{repetition}.json"), JsonSerializer.Serialize(new
+                {
+                    hexRadius = HexSpatialMath.HexRadius, gridStep = HexSpatialMath.HexRadius / HexPointLayout.BoundaryRadius,
+                    interiorCount = HexPointLayout.GetInteriorTemplates().Count,
+                    center = HexSpatialMath.TileToWorld(raised.Tile),
+                    nodes = w.Tiles.Items[raised.Tile].Junctions.Select(id => new
+                    { id = id.Value, x = w.Junctions.Items[id].WorldPosition.X, y = w.Junctions.Items[id].WorldPosition.Y,
+                      blocked = w.Junctions.Items[id].Blocked, door = w.Junctions.Items[id].Door, bed = bedAnchors.Contains(id) }),
+                    beds = sites.Select(site => new { id = site.Id.Value, blocked = site.BlockedJunctions.Count })
+                }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
+                for (var i = 0; i < 8; i++) engine.Step();
                 npc.Needs.Energy = .2f;
             }
             if (scenario == "gift")
@@ -156,52 +200,62 @@ public sealed partial class AgentExecutionRuntimeTests
                 var body = await mcp.CallToolAsync("describe_colonist", new { npcId = 901 }, timeout.Token);
                 var state = await store.SnapshotAsync(timeout.Token);
                 var context = prompt.Text + "\nAvailable MCP actions:\n" + contract;
+                var queriedObjects = false;
                 var decision = await recall.DecideAsync(turn == 0 ? task : "", world, state, async (evidence, token) =>
                 {
-                    return await Decide(turn == 0 ? "voice" : "heartbeat", body.GetRawText(), context + "\n" + evidence,
+                    var requestContext = context + "\n" + evidence +
+                        (queriedObjects ? "\n" + AgentPromptFiles.Read("object-knowledge.md") : "");
+                    var answer = await Decide(turn == 0 ? "voice" : "heartbeat", body.GetRawText(), requestContext,
                         turn == 0 ? task : "", turn == 0 ? [] : ["Игрок: " + task], token);
-                }, timeout.Token, reader.ReadAsync);
-                if (decision.Action?.Tool == "query_known_objects")
-                {
+                    if (answer.Action?.Tool != "query_known_objects") return answer;
+                    if (queriedObjects) throw new AgentActionValidationException("KnowledgeQueryLimitReached");
+                    queriedObjects = true;
                     JsonElement known;
                     try
                     {
-                        var args = new AgentActionContract(catalog).BindAndValidate(decision.Action, 901);
-                        known = await mcp.CallToolAsync("query_known_objects", args, timeout.Token);
+                        var args = new AgentActionContract(catalog).BindAndValidate(answer.Action, 901);
+                        known = await mcp.CallToolAsync("query_known_objects", args, token);
                     }
                     catch (Exception ex) when (ex is AgentActionValidationException or McpToolRejectedException)
                     {
-                        // Match ResolveObjectKnowledgeAsync: a rejected read is evidence,
-                        // not a physical side effect and not an erased objective.
                         known = JsonSerializer.SerializeToElement(new { error = "KnowledgeReadUnavailable", npcId = 901 });
                     }
                     var fields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(body.GetRawText())!;
                     fields["knownObjectQuery"] = known;
-                    decision = await Decide(turn == 0 ? "voice" : "heartbeat", JsonSerializer.Serialize(fields), context + "\n" + AgentPromptFiles.Read("object-knowledge.md"),
-                        turn == 0 ? task : "", turn == 0 ? [] : ["Игрок: " + task], timeout.Token);
-                }
+                    body = JsonSerializer.SerializeToElement(fields);
+                    return await Decide(turn == 0 ? "voice" : "heartbeat", body.GetRawText(),
+                        requestContext + "\n" + AgentPromptFiles.Read("object-knowledge.md"),
+                        turn == 0 ? task : "", turn == 0 ? [] : ["Игрок: " + task], token);
+                }, timeout.Token, reader.ReadAsync);
                 turns.Add(new { turn, tick = host.Read(w => w.Tick), decision, usage = decision.ModelUsage });
                 File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, fixture, repetition, calls, status, modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
-                if (decision.Action != null) throw new InvalidOperationException("ModelDidNotProduceExecutionPlan");
+                var emergency = decision.Action != null &&
+                    (decision.ObjectiveUpdate?.Operation == "pause" || state.Objective?.Status == "paused");
+                if (decision.Action != null && !emergency) throw new InvalidOperationException("ModelDidNotProduceExecutionPlan");
                 await store.CommitTurnAsync(world, "model-" + turn, turn == 0 ? "voice" : "heartbeat", decision, timeout.Token);
                 var saved = await store.SnapshotAsync(timeout.Token);
+                Assert.That(saved.Objective?.Text, Is.EqualTo(task), "Recovery must preserve the original objective.");
                 var delivered = host.Read(w => w.Entities.Objects.Values.Count(o => o.DefinitionId == ContentIds.Coconut &&
                     o.ProduceOrigin == ProduceOrigin.Gathered && ColonyQueries.InCamp(w, o.Tile, Faction.Colony)));
                 if (saved.Objective?.Status == "completed")
                 {
                     passed = scenario == "coconuts" ? delivered == 3 && multiStep : scenario == "bed"
                         ? multiStep && sawSleep && host.Read(w => w.Tick - initialTick <= 3 * EnvironmentSystem.DayLengthTicks &&
-                            w.Entities.Objects.TryGetValue(bedSite!.Value, out var site) && site.DefinitionId == "bed.basic")
+                            w.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.BedBasic && o.Junctions.Any(bedAnchors.Contains)))
                         : saved.ExecutionProgress.Any(p => p.Step.Tool == "interact") && host.Read(w =>
                         w.Entities.Npcs[new EntityId(recipientId)].Inventory.Items.Count > recipientItemsBefore &&
                         w.Events.Items.Count(e => e.Type == "GiftGiven" && e.Message.Contains($"->NPC{recipientId} ")) == 1);
                     status = passed ? "Completed" : "FalseCompletion";
                     break;
                 }
-                if (saved.ExecutionPlan is not { Status: "active" } plan) continue;
-                multiStep |= plan.Steps.Length >= 2;
-                using var executionStop = new CancellationTokenSource();
-                var running = Run(runtime, mcp, plan.Id, world, 90, executionStop.Token);
+                var plan = saved.ExecutionPlan;
+                if (!emergency && plan is not { Status: "active" }) continue;
+                if (!emergency) multiStep |= plan!.Steps.Length >= 2;
+                using var executionStop = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+                var running = emergency
+                    ? (Task)typeof(AgentHostRuntime).GetMethod("PerformActionAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .Invoke(runtime, [mcp, 901, decision.Action, executionStop.Token, "emergency-" + turn])!
+                    : Run(runtime, mcp, plan!.Id, world, 90, executionStop.Token);
                 var exceeded = false;
                 while (!running.IsCompleted)
                 {

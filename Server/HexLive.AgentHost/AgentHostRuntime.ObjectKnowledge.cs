@@ -12,7 +12,8 @@ public sealed partial class AgentHostRuntime
     private async Task<CompanionDecision> ResolveObjectKnowledgeAsync(McpClient mcp,
         int npcId, string expectedWorldId, CompanionDecision decision, string trigger,
         string physicalState, string requestContext, string playerText, string[] recent,
-        ScheduledTurn? scheduled, CancellationToken cancellationToken, string turnId)
+        ScheduledTurn? scheduled, CancellationToken cancellationToken, string turnId,
+        Action<string> rememberState)
     {
         if (decision.Action?.Tool != KnownObjectTool) return decision;
         EnsureCurrentTurn(scheduled, cancellationToken);
@@ -57,6 +58,7 @@ public sealed partial class AgentHostRuntime
             ?? throw new InvalidDataException("InvalidPhysicalState");
         fields["knownObjectQuery"] = answer;
         var enrichedState = JsonSerializer.Serialize(fields);
+        rememberState(enrichedState);
         var final = await DecideWithDiagnosticsAsync(turnId, trigger, enrichedState,
             requestContext + "\n" + AgentPromptFiles.Read("object-knowledge.md"), playerText, recent,
             cancellationToken).ConfigureAwait(false);

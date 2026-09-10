@@ -106,6 +106,7 @@ public sealed partial class AgentHostRuntime
                 await _turnWriter.WaitAsync(token).ConfigureAwait(false);
                 try
                 {
+                    await MaintainPlanLeaseAsync(mcp, npcId, presence.Value, token).ConfigureAwait(false);
                     if (_replyTurn is { } reply && reply.Completion.Task.IsCompleted)
                     {
                         _replyTurn = null;

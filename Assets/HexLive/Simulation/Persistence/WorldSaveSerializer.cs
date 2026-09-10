@@ -172,7 +172,8 @@ public static class WorldSaveSerializer
     // v73 (§28.15G): requested shared Talk topic at the end of each NPC record.
     // v74 (§31C.1 / bug #411): ground produce provenance; old saves infer
     // Natural only from a producer's saved ids, leaving other origins Unknown.
-    public const int BlobVersion = 74;
+    // v75 (§144 / bug #409): bounded command receipts and permanent sequence watermarks.
+    public const int BlobVersion = 75;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -499,6 +500,20 @@ public static class WorldSaveSerializer
             var owned = world.CreationConfig == null ? new List<int>() : new List<int>(world.PlayerControlledNpcs);
             owned.Sort(); w.Write(owned.Count);
             foreach (var id in owned) w.Write(id);
+        }
+        if (version >= 75)
+        {
+            w.Write(world.AgentCommands.Count);
+            foreach (var pair in world.AgentCommands.OrderBy(p => p.Key))
+            {
+                w.Write(pair.Key); w.Write(pair.Value.HighestSequence); w.Write(pair.Value.ActiveSequence);
+                w.Write(pair.Value.Receipts.Count);
+                foreach (var receipt in pair.Value.Receipts)
+                {
+                    w.Write(receipt.Sequence); w.Write(receipt.Id); w.Write(receipt.Fingerprint);
+                    w.Write(receipt.Outcome); w.Write(receipt.Reason);
+                }
+            }
         }
         w.Write(EndMarker);
     }
@@ -957,6 +972,33 @@ public static class WorldSaveSerializer
             {
                 var id = r.ReadInt32();
                 if (world.CreationConfig != null) world.PlayerControlledNpcs.Add(id);
+            }
+        }
+        world.AgentCommands.Clear();
+        if (version >= 75)
+        {
+            var ledgers = ReadBoundedCount(r, 100000, "agent command ledgers");
+            for (var i = 0; i < ledgers; i++)
+            {
+                var npcId = r.ReadInt32();
+                var ledger = new AgentCommandLedger { HighestSequence = r.ReadInt64(), ActiveSequence = r.ReadInt64() };
+                var receipts = ReadBoundedCount(r, AgentCommandLedger.Capacity, "agent command receipts");
+                long previous = 0;
+                for (var j = 0; j < receipts; j++)
+                {
+                    var receipt = new AgentCommandReceipt { Sequence = r.ReadInt64(), Id = r.ReadString(),
+                        Fingerprint = r.ReadString(), Outcome = r.ReadString(), Reason = r.ReadString() };
+                    if (receipt.Sequence <= previous || receipt.Sequence > ledger.HighestSequence ||
+                        receipt.Id.Length is 0 or > 96 || receipt.Fingerprint.Length != 64 ||
+                        receipt.Outcome is not ("accepted" or "completed" or "failed" or "unknown") || receipt.Reason.Length > 96)
+                        throw new InvalidDataException("Invalid agent command receipt");
+                    previous = receipt.Sequence; ledger.Receipts.Add(receipt);
+                }
+                if (npcId <= 0 || ledger.HighestSequence < 0 || ledger.ActiveSequence < 0 ||
+                    ledger.ActiveSequence > ledger.HighestSequence || world.AgentCommands.ContainsKey(npcId) ||
+                    ledger.ActiveSequence != 0 && !ledger.Receipts.Any(x => x.Sequence == ledger.ActiveSequence && x.Outcome == "accepted"))
+                    throw new InvalidDataException("Invalid agent command ledger");
+                world.AgentCommands.Add(npcId, ledger);
             }
         }
         if (r.ReadInt32() != EndMarker)

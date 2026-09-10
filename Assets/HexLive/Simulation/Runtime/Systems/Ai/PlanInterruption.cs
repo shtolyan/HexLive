@@ -150,6 +150,8 @@ public static class PlanInterruption
     private static EntityId? AbortCore(
         WorldState world, NPCState npc, string reason, bool keepCarriedPerson)
     {
+        AgentCommandLedger.Observe(world, npc);
+        AgentCommandLedger.Finish(world, npc, "failed", "PlanInterrupted");
         if (npc.Mind.RomancePartnerNpcId is not null)
         {
             ExecutionSystem.AbortRomancePair(world, npc, reason,

@@ -27,7 +27,7 @@ namespace HexLive.Server
 /// a half-stepped world.
 /// </para>
 /// </summary>
-public sealed class WorldHost : IDisposable
+public sealed partial class WorldHost : IDisposable
 {
     /// <summary>
     /// The one lock in the process. The tick thread holds it while stepping;

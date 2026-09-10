@@ -36,6 +36,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
 
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            AgentCommandLedger.Observe(world, npc);
             if (!npc.Mind.ManualControl || npc.Health <= 0f)
             {
                 continue;
@@ -406,6 +407,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
 
     private static void EndAttack(WorldState world, NPCState npc, string reason)
     {
+        AgentCommandLedger.Finish(world, npc, reason == "TargetDown" ? "completed" : "failed", reason);
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {

@@ -596,7 +596,8 @@ public sealed class BatheUndressAtHomeTests
             // RequestedTalkTopicTests.OlderSaveHasNoRequestedTopic проверяет v72.
             // 73 → 74 в §31C.1/#411: происхождение лежащего плода;
             // CoconutStockLifetimeTests проверяет миграцию v66–73.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(74));
+            // 74 → 75 в §144/#409: квитанции команд сохраняются вместе с миром.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(75));
         });
     }
 

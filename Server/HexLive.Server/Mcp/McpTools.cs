@@ -41,6 +41,8 @@ public sealed class McpTools
     private readonly ControlLeases _leases;
     private readonly AgentSessionRegistry _agents;
     private readonly SpecLibrary _spec;
+    private readonly System.Threading.AsyncLocal<AgentCommandRequest?> _trackedCommand = new();
+    private readonly System.Threading.AsyncLocal<AgentCommandResult?> _trackedResult = new();
 
     public McpTools(WorldHost host, ControlLeases leases, SpecLibrary? spec = null)
         : this(() => host, () => 0, leases, new AgentSessionRegistry(), spec)
@@ -76,6 +78,14 @@ public sealed class McpTools
             "Состояние мира: тик, часы, погода, сколько колонисток живо, темп сервера. " +
             "Ничего не меняет.",
             Schema()),
+
+        new("read_agent_command", "Квитанция команды и последний принятый номер. unknown не означает разрешение повторить команду.",
+            Schema(("npcId", "integer", "исполнитель", true), ("sequence", "integer", "номер команды; 0 для чтения верхней границы", true),
+                ("commandId", "string", "ID команды; пусто при sequence=0", true))),
+        new("execute_agent_command", "Идемпотентная обёртка штатной команды: сохраняет номер и результат в том же мире. Требует control lease.",
+            Schema(("npcId", "integer", "исполнитель", true), ("sequence", "integer", "следующий номер из read_agent_command", true),
+                ("commandId", "string", "уникальный ID шага от контроллера", true), ("tool", "string", "штатный tool действия", true),
+                ("arguments", "object", "аргументы действия", true))),
 
         new("list_colonists",
             "Все колонистки: id, имя, фракция, тайл, здоровье, текущая цель, под ручным ли " +
@@ -394,6 +404,9 @@ public sealed class McpTools
             }
             switch (name)
             {
+                case "read_agent_command": return Json(host.ReadAgentCommand(Int(arguments, "npcId"),
+                    OptionalLong(arguments, "sequence") ?? throw new McpArgumentException("Нужен параметр sequence"), Text(arguments, "commandId")));
+                case "execute_agent_command": return ExecuteAgentCommand(arguments, owner, out isError);
                 case "world_status": return WorldStatus(host);
                 case "list_colonists": return ListColonists(host, canAccessNpc);
                 case "list_leases": return ListLeases(canAccessNpc);
@@ -1583,6 +1596,14 @@ public sealed class McpTools
                 : $"Колонисткой {npcId} владеет другой агент ({heldBy}).";
         }
 
+        if (_trackedCommand.Value is { } tracked)
+        {
+            if (tracked.NpcId != npcId) throw new McpArgumentException("TrackedActorMismatch");
+            var receipt = host.SubmitTrackedManualCommand(tracked, build(new EntityId(npcId)));
+            _trackedResult.Value = receipt;
+            isError = receipt.Outcome == "failed";
+            return Json(receipt);
+        }
         var admission = host.SubmitManualCommand(build(new EntityId(npcId)));
         isError = !admission.Accepted;
         return Json(new Dictionary<string, object?>
@@ -1598,6 +1619,37 @@ public sealed class McpTools
     {
         var holder = _leases.HolderOf(npcId);
         return holder.Length == 0 ? string.Empty : holder;
+    }
+
+    private string ExecuteAgentCommand(JsonElement args, string owner, out bool isError)
+    {
+        var npcId = Int(args, "npcId");
+        var sequence = OptionalLong(args, "sequence") ?? throw new McpArgumentException("Нужен параметр sequence");
+        var commandId = Text(args, "commandId");
+        var tool = Text(args, "tool");
+        if (!args.TryGetProperty("arguments", out var nested) || nested.ValueKind != JsonValueKind.Object || nested.GetRawText().Length > 8192)
+            throw new McpArgumentException("Нужен объект arguments до 8192 символов");
+        if (tool is not ("move_to" or "interact" or "craft_item" or "stop" or "talk_to" or
+            "aid_person" or "treat_limbs" or "self_action" or "carry_person" or "put_down_person" or
+            "put_person_in_bed" or "manage_inventory" or "attack_mob" or "merge_camps" or "request_item" or "transfer_inventory"))
+            throw new McpArgumentException("TrackedToolUnavailable");
+        var properties = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var property in nested.EnumerateObject())
+            if (!properties.TryAdd(property.Name, property.Value.Clone())) throw new McpArgumentException("DuplicateArgument");
+        properties["npcId"] = JsonSerializer.SerializeToElement(npcId);
+        var bound = JsonSerializer.SerializeToElement(properties);
+        var fingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            Encoding.UTF8.GetBytes(tool + "\n" + bound.GetRawText()))).ToLowerInvariant();
+        var previous = _trackedCommand.Value;
+        var previousResult = _trackedResult.Value;
+        try
+        {
+            _trackedCommand.Value = new(npcId, sequence, commandId, fingerprint);
+            _trackedResult.Value = null;
+            var result = Call(tool, bound, owner, out isError);
+            return _trackedResult.Value is { } receipt ? Json(receipt) : result;
+        }
+        finally { _trackedCommand.Value = previous; _trackedResult.Value = previousResult; }
     }
 
     // ── аргументы и вывод ─────────────────────────────────────────────────

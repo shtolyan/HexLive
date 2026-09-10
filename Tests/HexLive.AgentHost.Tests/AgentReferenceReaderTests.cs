@@ -54,6 +54,20 @@ public sealed class AgentReferenceReaderTests
     {
         Assert.That(AgentReferenceReader.Allowed("execute_agent_command"), Is.False);
         Assert.That(AgentReferenceReader.Allowed("manage_inventory"), Is.False);
+        Assert.That(AgentReferenceReader.Allowed("recipes.read"), Is.True);
+    }
+
+    [Test]
+    public void GiftUsesTheAdvertisedTransferContractAndAttachmentActor()
+    {
+        var catalog = JsonSerializer.SerializeToElement(new { tools = HexLive.Server.Mcp.McpTools.Catalog.Select(t => new { name = t.Name, inputSchema = t.InputSchema }) });
+        var bound = new AgentActionContract(catalog).BindAndValidate(new CompanionAction
+        {
+            Tool = "transfer_inventory", Arguments = JsonSerializer.SerializeToElement(new { npcId = 999,
+                otherNpcId = 902, source = "Carried", index = 0, expectedDefinitionId = "food.coconut", direction = "Give" })
+        }, 901);
+        Assert.That(bound["npcId"].GetInt32(), Is.EqualTo(901));
+        Assert.That(bound["direction"].GetString(), Is.EqualTo("Give"));
     }
 
     private static AgentProviderOptions Options() => new() { McpUri = new("http://fixture/mcp"), McpToken = "fixture", XaiKey = "", ElevenLabsKey = "", XaiModel = "fixture", ElevenLabsModel = "fixture", ElevenLabsVoiceId = "fixture" };

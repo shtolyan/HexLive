@@ -184,6 +184,10 @@ public sealed class McpTools
             "Снять attachment, очистить временные данные и освободить action lease.",
             Schema(("attachmentId", "string", "id attachment", true))),
 
+        new("read_recipes",
+            "Действующие рецепты: ингредиенты, результат, станция и работа. Без definitionId — список рецептов; с ним — рецепт предмета.",
+            Schema(("definitionId", "string", "id результата, например resource.rope", false))),
+
         new("read_spec",
             "Спецификация мира — та же, по которой он написан. Начните с неё: правила, " +
             "решающие, сработает приказ или нет, живут здесь, а не в описаниях " +
@@ -340,9 +344,9 @@ public sealed class McpTools
                    ("action", "string", "Wear/Stow/Drop", true))),
 
         new("transfer_inventory",
-            "Обмен с лежащим человеком (§128): взять или отдать одну ячейку.",
+            "Give: подарить предмет живому человеку (§153); Take: взять у беспомощного по §128. Проверки цели и предмета выполняются при исполнении.",
             Schema(("npcId", "integer", "id колонистки", true),
-                   ("otherNpcId", "integer", "id второй стороны (лежащей)", true),
+                   ("otherNpcId", "integer", "id получателя подарка или цели обыска", true),
                    ("source", "string", "Carried или Worn — чья ячейка описывается", true),
                    ("index", "integer", "номер ячейки", true),
                    ("expectedDefinitionId", "string", "ожидаемый id предмета", true),
@@ -412,6 +416,7 @@ public sealed class McpTools
                 case "list_leases": return ListLeases(canAccessNpc);
                 case "read_events": return ReadEvents(host, arguments);
                 case "read_spec": return ReadSpec(arguments, out isError);
+                case "read_recipes": return host.Read(_ => McpPlanningObservations.Recipes(OptionalText(arguments, "definitionId") ?? ""));
                 case "query_known_objects": return QueryKnownObjects(host, arguments, out isError);
                 case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError,
                     canAccessNpc != null, owner, OptionalText(arguments, "perceptionEpoch") ?? "",
@@ -657,7 +662,7 @@ public sealed class McpTools
 
     private bool IsWithinPlayerScope(string name, JsonElement arguments, string owner, Func<int, bool> allowed)
     {
-        if (name is "world_status" or "read_spec" or "list_colonists" or "list_leases") return true;
+        if (name is "world_status" or "read_spec" or "read_recipes" or "list_colonists" or "list_leases") return true;
         if (name is "agent_heartbeat" or "read_agent_inbox" or "ack_agent_inbox" or "publish_agent_phase" or
             "commit_agent_turn" or "begin_agent_utterance" or "append_agent_utterance" or
             "commit_agent_utterance" or "detach_agent")
@@ -836,6 +841,8 @@ public sealed class McpTools
                 // its local workspace; no generic turn writes these fields.
                 ["legacyAgentState"] = LegacyAgentState(npc),
                 ["stateSummary"] = context.StateSummary,
+                ["bodyNeeds"] = McpPlanningObservations.Needs(npc),
+                ["execution"] = McpPlanningObservations.Execution(npc),
                 ["effects"] = effects.Effects,
                 ["effectImpacts"] = effects.Impacts,
                 ["effectDefinitions"] = effects.Definitions,

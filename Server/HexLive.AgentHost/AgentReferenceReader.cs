@@ -7,7 +7,7 @@ namespace HexLive.AgentHost;
 // Read-only reference capabilities. A skill never grants a new MCP permission.
 public sealed class AgentReferenceReader(McpClient mcp)
 {
-    public static bool Allowed(string operation) => operation is "spec.read" or "skills.list" or "skills.read";
+    public static bool Allowed(string operation) => operation is "spec.read" or "skills.list" or "skills.read" or "recipes.read";
 
     public async Task<MemoryReadResult> ReadAsync(string operation, JsonElement arguments, CancellationToken token)
     {
@@ -25,6 +25,14 @@ public sealed class AgentReferenceReader(McpClient mcp)
             name = "spec:" + response.GetProperty("section").GetString();
             text = response.GetProperty("text").GetString() ?? "";
             total = response.GetProperty("totalChars").GetInt32();
+        }
+        else if (operation == "recipes.read")
+        {
+            var response = await mcp.CallToolAsync("read_recipes", new { definitionId = String("definitionId") }, token).ConfigureAwait(false);
+            name = "recipes:" + (String("definitionId").Length == 0 ? "index" : String("definitionId"));
+            text = response.GetRawText();
+            total = text.Length;
+            text = offset >= total ? "" : text[offset..];
         }
         else
         {

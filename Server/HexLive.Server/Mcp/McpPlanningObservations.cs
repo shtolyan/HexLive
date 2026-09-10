@@ -1,0 +1,46 @@
+using System;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using HexLive.Simulation.Agents;
+using HexLive.Simulation.Content;
+
+namespace HexLive.Server.Mcp;
+
+internal static class McpPlanningObservations
+{
+    public static object Needs(NPCState npc) => new
+    {
+        energy = new { value = npc.Needs.Energy, higherIsBetter = true, meaning = "wakefulness reserve; restored by sleep", specSection = "60" },
+        stamina = new { value = npc.Needs.Stamina, higherIsBetter = true, meaning = "work reserve; recovery depends on rest and body condition", specSection = "40" },
+        breath = new { value = npc.Needs.Breath, higherIsBetter = true, meaning = "sprint reserve; walking also restores it", specSection = "71" },
+        hunger = npc.Needs.Hunger, thirst = npc.Needs.Thirst, blood = npc.Needs.Blood,
+        hygiene = npc.Needs.Hygiene, health = npc.Health
+    };
+
+    public static object Execution(NPCState npc) => new
+    {
+        planStatus = npc.Plan.Status.ToString(), status = npc.Execution.Status.ToString(),
+        interaction = npc.Execution.CurrentInteraction?.ToString(), targetObjectId = npc.Execution.TargetObject?.Value,
+        failureReason = npc.Execution.FailureReason.ToString()
+    };
+
+    public static string Recipes(string definitionId)
+    {
+        var recipes = RecipeCatalog.ByGoal.Values.OrderBy(r => r.Goal.ToString(), StringComparer.Ordinal).ToArray();
+        var catalog = recipes.Select(r => new
+        {
+            goal = r.Goal.ToString(), outputDefinitionId = r.OutputDefinitionId,
+            inputs = r.Inputs.Select(i => new { definitionId = i.Id, count = i.Count }).ToArray(),
+            station = r.Station, needsLitFire = r.NeedsLitFire, requiresNoRack = r.RequiresNoRack,
+            baseWorkTicks = r.BaseWorkTicks
+        }).ToArray();
+        var version = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(catalog)))).ToLowerInvariant();
+        if (definitionId.Length == 0)
+            return JsonSerializer.Serialize(new { source = "RecipeCatalog", version, specSections = new[] { "54", "119" },
+                recipes = catalog.Select(r => new { r.goal, r.outputDefinitionId }).ToArray() });
+        return JsonSerializer.Serialize(new { source = "RecipeCatalog", version, specSections = new[] { "54", "119" },
+            recipes = catalog.Where(r => r.outputDefinitionId == definitionId).ToArray() });
+    }
+}

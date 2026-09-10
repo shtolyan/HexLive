@@ -42,3 +42,6 @@ include a content hash and offset. Cite only supplied source IDs. Keep execution
 and objectiveUpdate null during retrieval; construct the plan after the required evidence
 is read. If a required rule is unavailable, report the missing information instead of
 inventing resource costs or claiming the task completed.
+For crafting, request {"operation":"recipes.read","arguments":{"definitionId":"resource.rope"}}.
+Omit definitionId for the recipe index. Read the live recipe before budgeting ingredients;
+baseWorkTicks are work units, not a promise of wall-clock duration.

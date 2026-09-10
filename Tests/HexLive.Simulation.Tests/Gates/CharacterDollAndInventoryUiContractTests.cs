@@ -327,10 +327,17 @@ public sealed class CharacterDollAndInventoryUiContractTests
     public void DroppingIsAnExplicitDetailActionWithoutBottomDragZone()
     {
         var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var quantityPicker = File.ReadAllText(Presentation(
+            "UI", "CharacterPanel.InventoryDropQuantity.cs"));
 
         Assert.Multiple(() =>
         {
-            Assert.That(source, Does.Contain("EnqueueInventoryAction(InventoryAction.Drop)"));
+            Assert.That(source, Does.Contain(
+                "_invDropAction = InventoryActionButton(RequestInventoryDrop)"));
+            Assert.That(quantityPicker, Does.Contain(
+                "EnqueueInventoryAction(InventoryAction.Drop, 1)"));
+            Assert.That(quantityPicker, Does.Contain(
+                "EnqueueInventoryAction(InventoryAction.Drop, count)"));
             Assert.That(source, Does.Contain("_invDropActionLabel"));
             Assert.That(source, Does.Not.Contain("_invDropZone"));
             Assert.That(source, Does.Not.Contain("Loc.Get(\"inv.drop_zone\")"));

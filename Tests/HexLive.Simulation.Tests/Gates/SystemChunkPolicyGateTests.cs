@@ -50,6 +50,8 @@ public sealed class SystemChunkPolicyGateTests
             ["WeatherSystem"] = ChunkPolicy.Global,
 
             // Работают от живых NPC — те сами будят чанки вокруг себя.
+            // §160.6: only personal perception lists of attached NPCs.
+            ["AgentIncidentSystem"] = ChunkPolicy.NpcDriven,
             ["AnimalCombatSystem"] = ChunkPolicy.NpcDriven,
             ["CampExpulsionSystem"] = ChunkPolicy.NpcDriven,
             ["DecisionSystem"] = ChunkPolicy.NpcDriven,

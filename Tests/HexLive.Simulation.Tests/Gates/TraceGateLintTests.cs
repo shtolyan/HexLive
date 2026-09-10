@@ -27,7 +27,7 @@ namespace HexLive.Simulation.Tests.Gates
 public sealed class TraceGateLintTests
 {
     // Хроника: пишется всегда. Белый список читается из самого GameEventTypes,
-    // чтобы список жил в ОДНОМ месте; сюда добавлены лишь два класса имён,
+    // чтобы список жил в ОДНОМ месте; сюда добавлены адресные факты и причины,
     // которые не в списке, но обязаны звучать всегда.
     private static readonly string[] DeathCauses =
     {
@@ -49,6 +49,9 @@ public sealed class TraceGateLintTests
         // §153.4: addressed consent/transfer result, visible to the requester
         // through MCP even when diagnostic tracing is disabled.
         "ItemRequestResult",
+        // §160.6: personal observations wake the witnessing controller even
+        // with diagnostics off; they never join the public GameEventTypes feed.
+        "AgentObservedIntruder", "AgentObservedTheft", "AgentObservedLoot",
     };
 
     [Test]

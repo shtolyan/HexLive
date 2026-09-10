@@ -151,6 +151,7 @@ public sealed partial class AgentHostRuntime
         _diagnostics.Record("command.receipt", plan.Id + ":" + plan.Steps[plan.Cursor].Id,
             result: outcome, execution: AgentDiagnosticExecution.From(plan, outcome,
                 response.TryGetProperty("reason", out var reason) && reason.ValueKind == JsonValueKind.String ? reason.GetString()! : ""));
-        return await _memory.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(command.Id, outcome), token).ConfigureAwait(false);
+        return await _memory.ObserveExecutionStepAsync(plan.Id, plan.Revision,
+            new(command.Id, outcome, reason.ValueKind == JsonValueKind.String ? reason.GetString()! : ""), token).ConfigureAwait(false);
     }
 }

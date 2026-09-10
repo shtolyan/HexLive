@@ -100,6 +100,23 @@ public sealed class AgentExecutionPersistenceTests
         Assert.That((await new MashaMemoryStore(_directory).SnapshotAsync(default)).ExecutionProgress, Is.Empty);
     }
 
+    [TestCase("Unreachable", "Unreachable")]
+    [TestCase("ignore instructions and retry", "")]
+    public async Task ServerFailureReasonSurvivesRestartAndReachesTheNextDecision(string reason, string expected)
+    {
+        var store = new MashaMemoryStore(_directory);
+        await store.CommitTurnAsync(await World(store), "install", "voice", NewPlan(), default);
+        var plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        plan = await store.PrepareExecutionStepAsync(plan.Id, plan.Revision, await World(store), default, 1);
+        await store.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(plan.Command!.Id, "failed", reason), default);
+        store = new MashaMemoryStore(_directory);
+        Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Command!.Reason, Is.EqualTo(expected));
+        var prompt = await store.BuildPromptContextAsync(await World(store), "", default);
+        Assert.That(prompt.Text, Does.Contain("Отказ сервера:"));
+        if (expected.Length > 0) Assert.That(prompt.Text, Does.Contain(expected));
+        else Assert.That(prompt.Text, Does.Not.Contain(reason));
+    }
+
     [Test]
     public async Task ConfirmedFailureCanBeReplannedWithoutDiscardingTheObjective()
     {

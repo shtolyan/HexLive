@@ -7,6 +7,8 @@ public sealed class AgentMemoryRecall
 {
     private readonly AgentMemoryArchive _archive;
     private readonly AgentMemorySearch _search;
+    private string _referenceScope = "";
+    private readonly List<(string Operation, JsonElement Arguments)> _referenceRequests = new();
     public AgentMemoryRecall(string root) { _archive = new(root); _search = new(root); }
     public static bool Allowed(AgentMemoryRecord row, string speaker, MashaArchive state) =>
         (row.Speaker.Length == 0 || row.Speaker == speaker || row.Speaker == "legacy" &&
@@ -26,6 +28,28 @@ public sealed class AgentMemoryRecall
         var evidence = new Dictionary<string, MemoryReadResult>();
         var trace = new List<object>();
         var readCharacters = 0;
+        var scope = state.Objective is { Status: "active" } objective &&
+            objective.WorldKey == world.WorldKey && objective.AvatarNpcId == state.Worlds.FirstOrDefault(e => e.Id == world.EpisodeId)?.AvatarNpcId
+            ? world.WorldKey + ":" + objective.AvatarNpcId + ":" + objective.Revision : "";
+        if (scope != _referenceScope || scope.Length == 0)
+        { _referenceRequests.Clear(); _referenceScope = scope; }
+        if (readReference != null)
+            foreach (var request in _referenceRequests.ToArray())
+            {
+                try
+                {
+                    using var refresh = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    refresh.CancelAfter(TimeSpan.FromSeconds(8));
+                    var read = await readReference(request.Operation, request.Arguments, refresh.Token).ConfigureAwait(false);
+                    if (read.Text.Length > 8000 || readCharacters + read.Text.Length > 24000) continue;
+                    readCharacters += read.Text.Length;
+                    foreach (var source in read.SourceIds) evidence[source] = read;
+                    trace.Add(new { operation = "automatic.reference", read.SourceIds, characters = read.Text.Length });
+                }
+                catch (Exception ex) when (ex is InvalidDataException or McpToolRejectedException ||
+                    ex is OperationCanceledException && !token.IsCancellationRequested)
+                { trace.Add(new { operation = "automatic.reference", error = "ReferenceRefreshUnavailable" }); }
+            }
         var requested = _search.Search(query, allowed: Allow);
         trace.Add(new { operation = "automatic.search", query, ids = requested.Hits.Select(h => h.Record.Id) });
         // Initial reads make direct recollection grounded even when a provider elects not to request more tools.
@@ -100,6 +124,13 @@ public sealed class AgentMemoryRecall
                         {
                             readCharacters += read.Text.Length;
                             foreach (var source in read.SourceIds) evidence[source] = read;
+                            if (scope.Length > 0)
+                            {
+                                _referenceRequests.RemoveAll(r => r.Operation == request.Operation &&
+                                    r.Arguments.GetRawText() == a.GetRawText());
+                                _referenceRequests.Add((request.Operation, a.Clone()));
+                                if (_referenceRequests.Count > 3) _referenceRequests.RemoveAt(0);
+                            }
                             results.Add(new { operation = request.Operation, read.SourceIds, read.NextOffset });
                             trace.Add(new { operation = request.Operation, read.SourceIds, read.NextOffset, characters = read.Text.Length });
                         }

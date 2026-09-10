@@ -180,6 +180,8 @@ public sealed partial class MashaMemoryWorkspace
         var text = new StringBuilder();
         text.AppendLine($"Исполняемый план: {Clean(plan.Status, 16)}, позиция {plan.Cursor}/{plan.Steps.Length}, версия {plan.Revision}. " +
             $"Причина: {Clean(plan.Reason, 96)}. Команда: {Clean(plan.Command?.Status ?? "none", 16)}.");
+        if (plan.Command?.Status == "failed")
+            text.AppendLine($"Отказ сервера: {Clean(plan.Command.Reason, 96)}. Измени подход; не повторяй тот же шаг без новых оснований.");
         if (plan.Cursor < plan.Steps.Length)
         {
             text.AppendLine("Следующие шаги очереди (ещё не завершены):");

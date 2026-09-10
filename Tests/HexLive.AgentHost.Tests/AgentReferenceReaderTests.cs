@@ -50,6 +50,45 @@ public sealed class AgentReferenceReaderTests
     }
 
     [Test]
+    public async Task ActiveGoalRefreshesSelectedReferencesBeforeTheNextModelCallAndDropsThemOnNewGoal()
+    {
+        var root = Directory.CreateTempSubdirectory("goal-refs-").FullName;
+        try
+        {
+            var recall = new AgentMemoryRecall(root);
+            var world = new MashaWorldHandle("episode", "world", 0, 0);
+            var state = new MashaArchive { Objective = new() { Status = "active", WorldKey = "world", AvatarNpcId = 901, Revision = 1 },
+                Worlds = [new() { Id = "episode", WorldKey = "world", AvatarNpcId = 901 }] };
+            var reads = 0;
+            var version = "version-one";
+            Task<MemoryReadResult> Read(string operation, JsonElement args, CancellationToken token)
+            { reads++; return Task.FromResult(new MemoryReadResult(version, [version], null)); }
+            var calls = 0;
+            await recall.DecideAsync("", world, state, (_, _) => Task.FromResult(++calls == 1
+                ? new CompanionDecision { MemoryRequests = [new() { Operation = "skills.read", Arguments = JsonSerializer.SerializeToElement(new { id = "give-gift" }) }] }
+                : new CompanionDecision()), default, Read);
+            version = "version-two";
+            calls = 0;
+            await recall.DecideAsync("", world, state, (context, _) =>
+            {
+                calls++;
+                Assert.That(context, Does.Contain("version-two").And.Not.Contain("version-one"));
+                return Task.FromResult(new CompanionDecision());
+            }, default, Read);
+            Assert.That(calls, Is.EqualTo(1), "No model round should be needed to reread the same skill.");
+            Assert.That(reads, Is.EqualTo(2), "References are refreshed, not served stale.");
+            state.Objective.Revision++;
+            await recall.DecideAsync("", world, state, (context, _) =>
+            {
+                Assert.That(context, Does.Not.Contain("version-two"));
+                return Task.FromResult(new CompanionDecision());
+            }, default, Read);
+            Assert.That(reads, Is.EqualTo(2));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Test]
     public void ReferencesCannotInvokeMutatingTools()
     {
         Assert.That(AgentReferenceReader.Allowed("execute_agent_command"), Is.False);

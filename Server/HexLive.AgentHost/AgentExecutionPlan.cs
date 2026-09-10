@@ -39,11 +39,12 @@ public sealed record AgentExecutionPlan
 public sealed record AgentExecutionCommand(string Id, string StepId, string Status)
 {
     public long Sequence { get; init; }
+    public string Reason { get; init; } = "";
 }
 
 // Only an authoritative command-specific receipt can resolve an uncertain send.
 // An idle NPC, an accepted request or a model's prose cannot establish completion.
-public sealed record AgentExecutionReceipt(string CommandId, string Outcome);
+public sealed record AgentExecutionReceipt(string CommandId, string Outcome, string Reason = "");
 
 public sealed record AgentExecutionProgress(string WorldKey, int NpcId, string PlanId,
     string CommandId, long Sequence, AgentExecutionStep Step, DateTimeOffset RecordedUtc);
@@ -129,7 +130,8 @@ public static class AgentExecutionPlanPolicy
             return plan with { Revision = checked(plan.Revision + 1),
                 Command = plan.Command with { Status = "accepted" } };
         return plan with { Revision = checked(plan.Revision + 1),
-            Command = plan.Command with { Status = receipt.Outcome },
+            Command = plan.Command with { Status = receipt.Outcome,
+                Reason = Identifier(receipt.Reason) ? receipt.Reason : "" },
             Status = receipt.Outcome is "failed" or "unknown" ? "paused" : plan.Status,
             Reason = receipt.Outcome switch { "failed" => "CommandFailed",
                 "unknown" when plan.Status != "paused" => "CommandOutcomeUnknown", _ => plan.Reason } };

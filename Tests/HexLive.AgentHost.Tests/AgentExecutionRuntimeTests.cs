@@ -282,6 +282,35 @@ public sealed partial class AgentExecutionRuntimeTests
         Assert.That(providers.Calls, Is.Zero);
     }
 
+    [Test]
+    public async Task UnresolvableReceiptStopsAfterThreeReadsWithoutReplayingTheCommand()
+    {
+        using var host = Host();
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)))
+            { LoseNextResponse = true, UnknownCommandReads = true };
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (_, world, plan) = await Install(runtime, mcp);
+        await Run(runtime, mcp, plan.Id, world);
+        typeof(AgentHostRuntime).GetField("_historyWorld", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(runtime, world);
+        for (var attempt = 0; attempt < 4; attempt++)
+        {
+            // Advance the scheduler deadline; the inner receipt poll still runs normally.
+            typeof(AgentHostRuntime).GetField("_nextExecutionRetry", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(runtime, DateTimeOffset.MinValue);
+            await (Task)typeof(AgentHostRuntime).GetMethod("TryStartExecutionPlanAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(runtime, [mcp, 901, CancellationToken.None])!;
+            await ((Task)typeof(AgentHostRuntime).GetField("_actionTask", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(runtime)!).WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        Assert.That(transport.CommandReads, Is.EqualTo(3));
+        Assert.That(transport.Executions, Is.EqualTo(1));
+        Assert.That(providers.Calls, Is.Zero);
+        Assert.That(typeof(AgentHostRuntime).GetField("_planNeedsDecision", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(runtime), Is.EqualTo(1));
+    }
+
     private static void Place(WorldState world, NPCState npc, Junction destination)
     {
         if (npc.CurrentJunction is { } previous)
@@ -373,6 +402,8 @@ public sealed partial class AgentExecutionRuntimeTests
     private sealed class Transport(McpTools tools) : HttpMessageHandler
     {
         public bool LoseNextResponse;
+        public bool UnknownCommandReads;
+        public int CommandReads;
         public int Executions;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
@@ -385,6 +416,16 @@ public sealed partial class AgentExecutionRuntimeTests
             {
                 var parameters = root.GetProperty("params"); var name = parameters.GetProperty("name").GetString()!;
                 var text = tools.Call(name, parameters.GetProperty("arguments"), "mcp:plans", out var error);
+                if (name == "read_agent_command" && parameters.GetProperty("arguments").GetProperty("sequence").GetInt64() > 0)
+                {
+                    CommandReads++;
+                    if (UnknownCommandReads)
+                    {
+                        var args = parameters.GetProperty("arguments");
+                        text = JsonSerializer.Serialize(new { highestSequence = 1, sequence = args.GetProperty("sequence").GetInt64(),
+                            commandId = args.GetProperty("commandId").GetString(), outcome = "unknown", reason = "FixtureUnavailable" });
+                    }
+                }
                 if (name == "execute_agent_command")
                 {
                     Executions++;

@@ -359,16 +359,24 @@ public sealed partial class AgentHostRuntime
             _turnWriter.Release(); ownsWriter = false;
             stage = "model";
             var modelStarted = latency.ElapsedMilliseconds;
-            _diagnostics.Record("model.started", turnId, trigger);
-            var decision = await recallEngine.DecideAsync(playerText, world, memoryState,
-                (evidence, memoryToken) => _providers.DecideAsync(trigger, physicalState,
-                    requestContext + "\n" + evidence, playerText, recent, memoryToken),
-                cancellationToken).ConfigureAwait(false);
-            if (decision.Action?.Tool == KnownObjectTool)
-                decision = await ResolveObjectKnowledgeAsync(mcp, npcId,
-                    worldStatus.GetProperty("worldId").GetString() ?? "", decision, trigger,
-                    physicalState, requestContext, playerText, recent, scheduled, cancellationToken)
-                    .ConfigureAwait(false);
+            CompanionDecision decision;
+            await _modelSlot.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                EnsureCurrentTurn(scheduled, cancellationToken);
+                modelStarted = latency.ElapsedMilliseconds;
+                _diagnostics.Record("model.started", turnId, trigger);
+                decision = await recallEngine.DecideAsync(playerText, world, memoryState,
+                    (evidence, memoryToken) => _providers.DecideAsync(trigger, physicalState,
+                        requestContext + "\n" + evidence, playerText, recent, memoryToken),
+                    cancellationToken).ConfigureAwait(false);
+                if (decision.Action?.Tool == KnownObjectTool)
+                    decision = await ResolveObjectKnowledgeAsync(mcp, npcId,
+                        worldStatus.GetProperty("worldId").GetString() ?? "", decision, trigger,
+                        physicalState, requestContext, playerText, recent, scheduled, cancellationToken)
+                        .ConfigureAwait(false);
+            }
+            finally { _modelSlot.Release(); }
             cancellationToken.ThrowIfCancellationRequested();
             var modelMs = latency.ElapsedMilliseconds - modelStarted;
             _diagnostics.Record("model.completed", turnId, trigger, elapsedMs: modelMs);

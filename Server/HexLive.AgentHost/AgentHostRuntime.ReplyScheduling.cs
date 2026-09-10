@@ -7,6 +7,7 @@ public sealed partial class AgentHostRuntime
     // One writer for snapshots, durable commits, control handoffs and speech
     // uploads. Inference/TTS never hold this gate. No second simulation owner.
     private readonly SemaphoreSlim _turnWriter = new(1, 1);
+    private readonly SemaphoreSlim _modelSlot = new(1, 1);
     private ScheduledTurn? _replyTurn, _autonomyTurn;
     private long _attachmentVersion, _controlVersion;
 
@@ -41,7 +42,14 @@ public sealed partial class AgentHostRuntime
             TurnId = id ?? Guid.NewGuid().ToString("N"),
             Stop = CancellationTokenSource.CreateLinkedTokenSource(attachmentToken),
         };
-        if (turn.IsReply) _replyTurn = turn; else _autonomyTurn = turn;
+        if (turn.IsReply)
+        {
+            // #408: a new question preempts unfinished autonomous reasoning.
+            // The accepted body's action has an attachment token and keeps running.
+            _autonomyTurn?.Stop.Cancel();
+            _replyTurn = turn;
+        }
+        else _autonomyTurn = turn;
         presence.BeginTurn(turn.Stop);
         turn.Worker = RunTurnAsync();
         return turn;
@@ -170,7 +178,7 @@ public sealed partial class AgentHostRuntime
                             critical |= ContainsCriticalEvent(events);
                             nextEvents = now.AddSeconds(2);
                         }
-                        if (_autonomyTurn == null && now >= retryAutonomy)
+                        if (_autonomyTurn == null && _replyTurn == null && now >= retryAutonomy)
                         {
                             var trigger = critical || _incidents.HasPending ? "critical" :
                                 now >= nextAutonomy ? "heartbeat" : "";

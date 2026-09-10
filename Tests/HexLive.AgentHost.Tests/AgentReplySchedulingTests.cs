@@ -38,21 +38,18 @@ public sealed class AgentReplySchedulingTests
     }
 
     [Test]
-    public async Task SimultaneouslyReadyResultsCommitReplyFirstWithoutWriterDeadlock()
+    public async Task NewQuestionCancelsAutonomyBeforeEnteringTheSingleModelSlot()
     {
         await using var f = new Fixture(blockReply: true);
         await f.Provider.AutonomyBlocked.Task.WaitAsync(TimeSpan.FromSeconds(4));
         f.Transport.Question = 1;
         await f.Provider.ReplyBlocked.Task.WaitAsync(TimeSpan.FromSeconds(4));
-        f.Transport.HoldEvents = true;
-        await f.Transport.EventsHeld.Task.WaitAsync(TimeSpan.FromSeconds(4));
+        Assert.That(f.Provider.Canceled, Is.EqualTo(1));
+        Assert.That(f.Provider.ModelConcurrency, Is.All.EqualTo(1));
         f.Provider.Release.TrySetResult();
-        await Task.Delay(100); // Both model/TTS results queue behind the held poll.
-        f.Transport.ReleaseEvents.TrySetResult();
-        await Until(() => f.Transport.Delivered.Count == 2);
-        Assert.That(f.Transport.Delivered, Is.EqualTo(new[] { "reply-1", "ambient" }));
-        Assert.That(f.Transport.Decisions, Is.EqualTo(new[] { "reply-1", "stale-autonomy" }));
         await Until(() => f.Transport.Acknowledged == 1);
+        Assert.That(f.Transport.Delivered, Is.EqualTo(new[] { "reply-1" }));
+        Assert.That(f.Transport.Decisions, Is.EqualTo(new[] { "reply-1" }));
     }
 
     [Test]
@@ -97,8 +94,11 @@ public sealed class AgentReplySchedulingTests
         await using var f = new Fixture(ignoreAutonomyCancellation: true, replyAction: true);
         await f.Provider.AutonomyBlocked.Task.WaitAsync(TimeSpan.FromSeconds(4));
         f.Transport.Question = 1;
-        await Until(() => f.Transport.Actions.Count > 0);
+        await f.Provider.AutonomyCancellation.Task.WaitAsync(TimeSpan.FromSeconds(4));
+        Assert.That(f.Provider.ReplyCalls, Is.Zero, "A non-cooperative provider still occupies the single slot");
         f.Provider.Release.TrySetResult();
+        await Until(() => f.Transport.Actions.Count > 0);
+        Assert.That(f.Provider.ModelConcurrency, Is.All.EqualTo(1));
         await Task.Delay(250);
         Assert.That(f.Transport.Actions, Is.EqualTo(new[] { 20 }));
         Assert.That(f.Transport.Delivered, Does.Not.Contain("ambient"));
@@ -171,8 +171,10 @@ public sealed class AgentReplySchedulingTests
         await using var f = new Fixture(ignoreAutonomyCancellation: true, replyObjective: true);
         await f.Provider.AutonomyBlocked.Task.WaitAsync(TimeSpan.FromSeconds(4));
         f.Transport.Question = 1;
-        await Until(() => f.Transport.Acknowledged == 1);
+        await f.Provider.AutonomyCancellation.Task.WaitAsync(TimeSpan.FromSeconds(4));
         f.Provider.Release.TrySetResult();
+        await Until(() => f.Transport.Acknowledged == 1);
+        Assert.That(f.Provider.ModelConcurrency, Is.All.EqualTo(1));
         await Task.Delay(250);
         Assert.That(f.Transport.Actions, Is.Empty);
         Assert.That(f.Transport.Decisions, Is.EqualTo(new[] { "reply-1" }));
@@ -252,11 +254,16 @@ public sealed class AgentReplySchedulingTests
         public readonly TaskCompletionSource ReplyBlocked = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public readonly TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int AutonomyCalls, ReplyCalls, Canceled, MaxReply, MaxAutonomy;
+        public readonly TaskCompletionSource AutonomyCancellation = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public readonly ConcurrentQueue<int> ModelConcurrency = new();
+        private int _activeModels;
         private int _replyActive, _autonomyActive;
         public async Task<CompanionDecision> DecideAsync(string trigger, string stateJson, string memoryContext,
             string transcript, IReadOnlyList<string> recentConversation, CancellationToken cancellationToken)
         {
             var reply = trigger == "voice";
+            ModelConcurrency.Enqueue(Interlocked.Increment(ref _activeModels));
+            using var cancellation = cancellationToken.Register(() => { if (!reply) AutonomyCancellation.TrySetResult(); });
             if (reply) { Interlocked.Increment(ref ReplyCalls); MaxReply = Math.Max(MaxReply, Interlocked.Increment(ref _replyActive)); }
             else { Interlocked.Increment(ref AutonomyCalls); MaxAutonomy = Math.Max(MaxAutonomy, Interlocked.Increment(ref _autonomyActive)); }
             try
@@ -276,7 +283,7 @@ public sealed class AgentReplySchedulingTests
                 };
             }
             catch (OperationCanceledException) { Interlocked.Increment(ref Canceled); throw; }
-            finally { if (reply) Interlocked.Decrement(ref _replyActive); else Interlocked.Decrement(ref _autonomyActive); }
+            finally { Interlocked.Decrement(ref _activeModels); if (reply) Interlocked.Decrement(ref _replyActive); else Interlocked.Decrement(ref _autonomyActive); }
         }
         public async Task<VoiceArtifact> SynthesizeAsync(string text, CancellationToken cancellationToken)
         {

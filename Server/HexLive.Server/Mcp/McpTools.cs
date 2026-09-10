@@ -488,9 +488,14 @@ public sealed class McpTools
 
                 case "self_action": return SelfAction(host, arguments, owner, out isError);
                 case "rest_until":
+                    var restNpc = Int(arguments, "npcId");
+                    var restNeed = Text(arguments, "need");
+                    var restTarget = Number(arguments, "target");
                     if (_trackedCommand.Value is not { RestNeed.Length: > 0 } rest)
                         throw new McpArgumentException("RestRequiresTrackedExecution");
-                    return Submit(host, Int(arguments, "npcId"), owner,
+                    if (rest.RestNeed != restNeed || rest.RestTarget != restTarget)
+                        throw new McpArgumentException("RestTargetMismatch");
+                    return Submit(host, restNpc, owner,
                         npc => new SelfActionCommand(npc, rest.RestNeed == "Energy" ? SelfActionKind.GroundSleep : SelfActionKind.GroundSit), out isError);
                 case "merge_camps":
                 {

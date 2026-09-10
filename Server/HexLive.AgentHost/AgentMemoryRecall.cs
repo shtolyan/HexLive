@@ -75,6 +75,16 @@ public sealed class AgentMemoryRecall
                 searchResults = context, readSources = sources, sentSourceIds = sent
             }, AgentMemoryArchive.Json);
             var answer = await decide(tools, token);
+            if (answer.Action != null && answer.ExecutionPlanUpdate != null)
+            {
+                if (round == 3) throw new InvalidDataException("ConflictingActionAndExecutionPlan");
+                // No side effects or provisional speech: ask the same model to
+                // resolve its conflicting control forms within the existing budget.
+                context = JsonSerializer.Serialize(new { decisionError = "ConflictingActionAndExecutionPlan",
+                    instruction = "Return one consistent decision: executionPlanUpdate with action=null, or action without executionPlanUpdate. Do not claim anything was executed." });
+                trace.Add(new { operation = "decision.repair", error = "ConflictingActionAndExecutionPlan" });
+                continue;
+            }
             if (answer.MemoryRequests.Count == 0)
             {
                 answer.MemorySources = answer.MemorySources.Where(sent.Contains).Distinct().Take(16).ToList();

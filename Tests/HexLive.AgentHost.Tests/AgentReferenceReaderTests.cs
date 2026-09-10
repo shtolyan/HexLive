@@ -6,6 +6,40 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentReferenceReaderTests
 {
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ConflictingControlFormsAreRepairedWithinTheExistingRoundBudget(bool alwaysConflicting)
+    {
+        var root = Directory.CreateTempSubdirectory("decision-repair-").FullName;
+        try
+        {
+            var calls = 0;
+            var run = new AgentMemoryRecall(root).DecideAsync("", new("world", "world", 0, 50), new(), (context, _) =>
+            {
+                calls++;
+                if (calls > 1) Assert.That(context, Does.Contain("ConflictingActionAndExecutionPlan"));
+                return Task.FromResult(calls == 1 || alwaysConflicting
+                    ? new CompanionDecision { Speech = "must-not-publish", Action = new() { Tool = "stop", Arguments = JsonSerializer.SerializeToElement(new { }) },
+                        ExecutionPlanUpdate = new() { Operation = "replace", Reason = "Fixture",
+                            Steps = [new("stop", "stop", JsonSerializer.SerializeToElement(new { }))] } }
+                    : new CompanionDecision { IntentSummary = "consistent-final" });
+            }, default);
+            if (alwaysConflicting)
+            {
+                Assert.ThrowsAsync<InvalidDataException>(async () => await run);
+                Assert.That(calls, Is.EqualTo(4));
+            }
+            else
+            {
+                var result = await run;
+                Assert.That(result.IntentSummary, Is.EqualTo("consistent-final"));
+                Assert.That(result.Speech, Is.Empty);
+                Assert.That(calls, Is.EqualTo(2));
+            }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     [Test]
     public async Task SpecPagesRetainOffsetsAndContentIdentity()
     {

@@ -32,6 +32,25 @@ public sealed class McpPlanningObservationTests
     }
 
     [Test]
+    public void CampMembershipIsReadFromTheActorsActualFactionAndCurrentTile()
+    {
+        using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));
+        var expected = host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            return HexLive.Simulation.Runtime.ColonyQueries.InCamp(w, npc.Tile, npc.Faction);
+        });
+        Assert.That(Call(tools, "describe_colonist", new { npcId = 901 }).GetProperty("inOwnCamp").GetBoolean(), Is.EqualTo(expected));
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Tile = w.Tiles.Items.Keys.First(t => !HexLive.Simulation.Runtime.ColonyQueries.InCamp(w, t, npc.Faction));
+            return true;
+        });
+        Assert.That(Call(tools, "describe_colonist", new { npcId = 901 }).GetProperty("inOwnCamp").GetBoolean(), Is.False);
+    }
+
+    [Test]
     public void RecipesReadTheLiveCatalogAndExposeAllIngredients()
     {
         using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));

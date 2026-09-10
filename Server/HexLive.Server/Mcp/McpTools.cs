@@ -866,6 +866,7 @@ public sealed class McpTools
                 ["legacyAgentState"] = LegacyAgentState(npc),
                 ["stateSummary"] = context.StateSummary,
                 ["bodyNeeds"] = McpPlanningObservations.Needs(npc),
+                ["inOwnCamp"] = ColonyQueries.InCamp(world, npc.Tile, npc.Faction),
                 ["execution"] = McpPlanningObservations.Execution(npc),
                 ["effects"] = effects.Effects,
                 ["effectImpacts"] = effects.Impacts,

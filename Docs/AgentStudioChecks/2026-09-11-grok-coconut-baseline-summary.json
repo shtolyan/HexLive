@@ -1,0 +1,123 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Grok",
+      "model": "grok-4.20-0309-non-reasoning",
+      "scenario": "coconuts",
+      "passed": 0,
+      "total": 6,
+      "missing": [],
+      "accepted": false,
+      "calls": 41,
+      "commands": 46,
+      "failures": [
+        {
+          "fixture": 0,
+          "repetition": 0,
+          "status": "AssertionException:Incomplete"
+        },
+        {
+          "fixture": 0,
+          "repetition": 1,
+          "status": "InvalidDataException:Incomplete"
+        },
+        {
+          "fixture": 1,
+          "repetition": 0,
+          "status": "AssertionException:Incomplete"
+        },
+        {
+          "fixture": 1,
+          "repetition": 1,
+          "status": "AssertionException:Incomplete"
+        },
+        {
+          "fixture": 2,
+          "repetition": 0,
+          "status": "InvalidDataException:Incomplete"
+        },
+        {
+          "fixture": 2,
+          "repetition": 1,
+          "status": "AssertionException:FalseCompletion"
+        }
+      ]
+    },
+    {
+      "provider": "Grok",
+      "model": "grok-4.20-0309-non-reasoning",
+      "scenario": "gift",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Grok",
+      "model": "grok-4.20-0309-non-reasoning",
+      "scenario": "bed",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    }
+  ],
+  "scope": "Three gameplay scenarios only; live threat/reconnect checks are reported separately"
+}

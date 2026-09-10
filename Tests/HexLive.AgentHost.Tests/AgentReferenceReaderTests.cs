@@ -6,6 +6,20 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentReferenceReaderTests
 {
+    [Test]
+    public void InvalidDecisionCarriesItsRejectedFinalJsonForCorrection()
+    {
+        const string json = """
+            {"speech":"","emotion":"neutral","action":null,"reaction":"None","intentSummary":"","relationshipAssessment":null,
+             "memoryUpserts":[],"journalText":"","executionPlanUpdate":{"operation":"replace","reason":"Fixture",
+             "steps":[{"id":"first","tool":"stop","arguments":{},"condition":{"path":"inventorySummary.freeSlots",
+             "operator":"gte","value":1,"onFalseStepId":"first"}}]}}
+            """;
+        var error = Assert.Throws<InvalidDataException>(() => AgentProviders.ParseDecision(json, "heartbeat"));
+        Assert.That(error!.Message, Is.EqualTo("InvalidExecutionCondition"));
+        Assert.That(error.Data["decisionJson"], Is.EqualTo(json));
+    }
+
     [TestCase("InvalidExecutionCondition")]
     [TestCase("InvalidExecutionPlanUpdate")]
     public async Task InvalidPlanCanBeCorrectedBeforeReturningAnExecutableDecision(string code)
@@ -16,8 +30,14 @@ public sealed class AgentReferenceReaderTests
             var calls = 0;
             var result = await new AgentMemoryRecall(root).DecideAsync("", new("world", "world", 0, 50), new(), (context, _) =>
             {
-                if (++calls == 1) throw new InvalidDataException(code);
+                if (++calls == 1)
+                {
+                    var error = new InvalidDataException(code);
+                    error.Data["decisionJson"] = "rejected-plan-sentinel";
+                    throw error;
+                }
                 Assert.That(context, Does.Contain(code));
+                Assert.That(context, Does.Contain("rejected-plan-sentinel"));
                 return Task.FromResult(new CompanionDecision { IntentSummary = "repaired" });
             }, default);
             Assert.That(result.IntentSummary, Is.EqualTo("repaired"));

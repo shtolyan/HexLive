@@ -165,7 +165,15 @@ public sealed class AgentProviders : IAgentProviders
         var decision = JsonSerializer.Deserialize<CompanionDecision>(json,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = false })
             ?? throw new InvalidDataException("Model returned an empty companion decision.");
-        Validate(decision, trigger);
+        try { Validate(decision, trigger); }
+        catch (InvalidDataException ex) when (json.Length <= 32768 && ex.Message is
+            "InvalidExecutionPlanUpdate" or "InvalidExecutionCondition")
+        {
+            // Final decision data only, for a bounded corrective model request.
+            // Diagnostics continue to record the code, never this raw payload.
+            ex.Data["decisionJson"] = json;
+            throw;
+        }
         return decision;
     }
 

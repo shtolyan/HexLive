@@ -9,6 +9,29 @@ public sealed class AgentExecutionPersistenceTests
     [SetUp] public void Setup() => _directory = Directory.CreateTempSubdirectory("execution-plan-").FullName;
     [TearDown] public void Cleanup() => Directory.Delete(_directory, true);
 
+    [TestCase("failed")]
+    [TestCase("completed")]
+    public async Task AnUnfinishedQueueCannotBecomeASuccessByCompletingTheObjective(string firstOutcome)
+    {
+        var store = new MashaMemoryStore(_directory);
+        var world = await World(store);
+        await store.CommitTurnAsync(world, "install", "voice", NewPlan(), default);
+        var plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        plan = await store.PrepareExecutionStepAsync(plan.Id, plan.Revision, world, default);
+        plan = await store.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(plan.Command!.Id, firstOutcome), default);
+        world = await World(store);
+        var error = Assert.ThrowsAsync<InvalidDataException>(() => store.CommitTurnAsync(world, "false-success", "heartbeat",
+            new CompanionDecision { ObjectiveUpdate = new() { Operation = "complete", Reason = "ClaimedSuccess" } }, default));
+        Assert.That(error!.Message, Is.EqualTo("ExecutionPlanNotCompleted"));
+        var saved = await new MashaMemoryStore(_directory).SnapshotAsync(default);
+        Assert.That(saved.Objective!.Status, Is.EqualTo("active"));
+        Assert.That(saved.ExecutionPlan!.Status, Is.EqualTo(plan.Status));
+        Assert.That(saved.AppliedTurnIds, Does.Not.Contain("false-success"));
+        await store.CommitTurnAsync(world, "cancel", "voice",
+            new CompanionDecision { ObjectiveUpdate = new() { Operation = "clear", Reason = "PlayerRequest" } }, default);
+        Assert.That((await store.SnapshotAsync(default)).Objective!.Status, Is.EqualTo("canceled"));
+    }
+
     [Test]
     public async Task PlanAndObjectiveCommitOnceWithTurnAndPreparedCommandSurvivesRestart()
     {

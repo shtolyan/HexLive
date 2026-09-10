@@ -10,6 +10,18 @@ public sealed class AgentDiagnosticsTests
     [TearDown] public void TearDown() => Directory.Delete(_root, true);
 
     [Test]
+    public void StepObservationIncludesPersistedFailureReasonWithoutExplicitOverrides()
+    {
+        var plan = new AgentExecutionPlan { Id = "plan", WorldKey = "world", NpcId = 901,
+            ObjectiveRevision = 1, Steps = [new("step", "stop", JsonSerializer.SerializeToElement(new { }))],
+            Status = "paused", Reason = "CommandFailed", Command = new("command", "step", "failed") { Reason = "MissingTool" } };
+        var observation = AgentDiagnosticExecution.From(plan);
+        Assert.That(observation.Outcome, Is.EqualTo("failed"));
+        Assert.That(observation.Reason, Is.EqualTo("MissingTool"));
+        Assert.That(AgentDiagnosticExecution.From(plan, "unknown", "Override").Reason, Is.EqualTo("Override"));
+    }
+
+    [Test]
     public void RepeatedPollsAreNotRepeatedFailuresAndSuccessBreaksTheSeries()
     {
         var log = new AgentDiagnostics(_root, "profile"); log.Bind("world", 901);

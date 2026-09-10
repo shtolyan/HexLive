@@ -124,7 +124,7 @@ public sealed class AgentDiagnostics
     private static string Code(string value) => value.Length <= 96 &&
         value.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-') ? value : "redacted";
     private static string ReferenceId(string value) =>
-        System.Text.RegularExpressions.Regex.IsMatch(value, "^(spec:[0-9]{1,4}[A-Z]?|spec:preamble|skill:[a-z-]{1,48}|skills:index|(?:recipes|build):[a-z0-9._-]{1,80}):[0-9]{1,10}:[a-f0-9]{64}$")
+        System.Text.RegularExpressions.Regex.IsMatch(value, "^(spec:[0-9]{1,4}[A-Z]?|spec:preamble|skill:[a-z0-9][a-z0-9-]{0,63}|skills:index|(?:recipes|build):[a-z0-9._-]{1,80}):[0-9]{1,10}:[a-f0-9]{64}$")
             ? value : Correlate(value);
     public static string Correlate(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant()[..16];
@@ -136,7 +136,9 @@ public sealed record AgentDiagnosticExecution(string PlanId, string StepId, stri
 {
     public static AgentDiagnosticExecution From(AgentExecutionPlan plan, string outcome = "", string reason = "") => new(plan.Id,
         plan.Cursor < plan.Steps.Length ? plan.Steps[plan.Cursor].Id : "", plan.Command?.Id ?? "",
-        plan.Command?.Sequence, plan.ObjectiveRevision, plan.Revision, plan.Cursor, plan.Status, outcome, reason,
+        plan.Command?.Sequence, plan.ObjectiveRevision, plan.Revision, plan.Cursor, plan.Status,
+        outcome.Length > 0 ? outcome : plan.Command?.Status ?? "",
+        reason.Length > 0 ? reason : plan.Command?.Reason is { Length: > 0 } commandReason ? commandReason : plan.Reason,
         plan.Iteration, plan.Cursor < plan.Steps.Length ? plan.Steps[plan.Cursor].Repeat : 1);
 }
 

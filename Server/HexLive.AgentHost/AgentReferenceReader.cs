@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace HexLive.AgentHost;
 
 // Read-only reference capabilities. A skill never grants a new MCP permission.
-public sealed class AgentReferenceReader(McpClient mcp)
+public sealed class AgentReferenceReader(McpClient mcp, string? workspace = null)
 {
     public static bool Allowed(string operation) => operation is "spec.read" or "skills.list" or "skills.read" or "recipes.read" or "build.read";
 
@@ -37,17 +37,17 @@ public sealed class AgentReferenceReader(McpClient mcp)
         }
         else
         {
-            using var catalog = JsonDocument.Parse(AgentPromptFiles.Read("skills.json"));
+            var catalog = AgentSkillCatalog.Read(workspace);
             if (operation == "skills.list")
             {
                 name = "skills:index";
-                text = JsonSerializer.Serialize(catalog.RootElement.EnumerateObject().Select(s => new
-                    { id = s.Name, title = s.Value.GetProperty("title").GetString(), version = s.Value.GetProperty("version").GetInt32() }), AgentMemoryArchive.Json);
+                text = JsonSerializer.Serialize(catalog.Select(s => new
+                    { id = s.Key, title = s.Value.GetProperty("title").GetString(), version = s.Value.GetProperty("version").GetInt32() }), AgentMemoryArchive.Json);
             }
             else
             {
                 var id = String("id");
-                if (!catalog.RootElement.TryGetProperty(id, out var skill)) throw new InvalidDataException("UnknownSkill");
+                if (!catalog.TryGetValue(id, out var skill)) throw new InvalidDataException("UnknownSkill");
                 name = "skill:" + id;
                 text = JsonSerializer.Serialize(skill, AgentMemoryArchive.Json);
             }

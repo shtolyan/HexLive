@@ -42,13 +42,14 @@ public sealed class AgentDiagnostics
     public void Record(string kind, string turn = "", string trigger = "", string tool = "",
         string result = "", long? elapsedMs = null, bool? committed = null,
         AgentDiagnosticObservation? observation = null, IReadOnlyList<string>? sourceIds = null,
-        AgentDiagnosticRelationship? relationship = null)
+        AgentDiagnosticRelationship? relationship = null, AgentDiagnosticExecution? execution = null,
+        AgentModelUsage? usage = null)
     {
         lock (_gate)
         {
             try
             {
-                Write(kind, turn, trigger, tool, result, elapsedMs, committed, observation, sourceIds, relationship);
+                Write(kind, turn, trigger, tool, result, elapsedMs, committed, observation, sourceIds, relationship, execution, usage);
                 ErrorCode = "";
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
@@ -82,7 +83,7 @@ public sealed class AgentDiagnostics
 
     private void Write(string kind, string turn, string trigger, string tool, string result,
         long? elapsedMs, bool? committed, AgentDiagnosticObservation? observation, IReadOnlyList<string>? sourceIds,
-        AgentDiagnosticRelationship? relationship)
+        AgentDiagnosticRelationship? relationship, AgentDiagnosticExecution? execution, AgentModelUsage? usage)
     {
         Directory.CreateDirectory(_directory);
         if (!OperatingSystem.IsWindows())
@@ -96,7 +97,17 @@ public sealed class AgentDiagnostics
             runtimeVersion = typeof(AgentDiagnostics).Assembly.GetName().Version?.ToString(),
             kind = Code(kind), turnId = turn.Length == 0 ? "" : Correlate(turn),
             trigger = Code(trigger), tool = Code(tool), result = Code(result), elapsedMs, committed, observation,
-            sourceIds = sourceIds?.Take(16).Select(ReferenceId).ToArray(), relationship
+            sourceIds = sourceIds?.Take(16).Select(ReferenceId).ToArray(), relationship,
+            usage = usage == null ? null : new { provider = Code(usage.Provider), model = Code(usage.Model),
+                inputTokens = usage.InputTokens is >= 0 ? usage.InputTokens : null,
+                outputTokens = usage.OutputTokens is >= 0 ? usage.OutputTokens : null },
+            execution = execution == null ? null : new
+            {
+                planId = Correlate(execution.PlanId), stepId = Correlate(execution.StepId),
+                commandId = Correlate(execution.CommandId), execution.CommandSequence,
+                execution.ObjectiveRevision, execution.PlanRevision, execution.Cursor,
+                status = Code(execution.Status), outcome = Code(execution.Outcome), reason = Code(execution.Reason)
+            }
         }) + "\n";
         if (File.Exists(current) && new FileInfo(current).Length + Encoding.UTF8.GetByteCount(line) > _maxBytes)
             File.Move(current, Path.Combine(_directory, "events-" + now.ToUnixTimeMilliseconds() + "-" + Guid.NewGuid().ToString("N") + ".jsonl"));
@@ -119,6 +130,15 @@ public sealed class AgentDiagnostics
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant()[..16];
 }
 
+public sealed record AgentDiagnosticExecution(string PlanId, string StepId, string CommandId,
+    long? CommandSequence, long ObjectiveRevision, long PlanRevision, int Cursor, string Status,
+    string Outcome = "", string Reason = "")
+{
+    public static AgentDiagnosticExecution From(AgentExecutionPlan plan, string outcome = "", string reason = "") => new(plan.Id,
+        plan.Cursor < plan.Steps.Length ? plan.Steps[plan.Cursor].Id : "", plan.Command?.Id ?? "",
+        plan.Command?.Sequence, plan.ObjectiveRevision, plan.Revision, plan.Cursor, plan.Status, outcome, reason);
+}
+
 public sealed record AgentDiagnosticRelationship(float Familiarity, float Trust, float Sympathy,
     float? FamiliarityDelta, float? TrustDelta, float? SympathyDelta)
 {
@@ -133,7 +153,8 @@ public sealed record AgentDiagnosticRelationship(float Familiarity, float Trust,
 
 /// <summary>Allowlisted observations, not raw world/prompt/voice payloads.</summary>
 public sealed record AgentDiagnosticObservation(long? Tick, double? X, double? Y,
-    int? CarriedItems, int? VisibleItems, int? Capacity, int? UsedSlots, int? FreeSlots)
+    int? CarriedItems, int? VisibleItems, int? Capacity, int? UsedSlots, int? FreeSlots,
+    double? Energy = null, double? Stamina = null, double? Hunger = null, double? Thirst = null)
 {
     public static AgentDiagnosticObservation From(JsonElement state)
     {
@@ -141,8 +162,12 @@ public sealed record AgentDiagnosticObservation(long? Tick, double? X, double? Y
         static int? Number(JsonElement e, string key) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(key, out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out var n) ? n : null;
         static double? Coordinate(JsonElement e, string key) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(key, out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetDouble(out var n) && double.IsFinite(n) ? n : null;
         state.TryGetProperty("position", out var position); state.TryGetProperty("inventorySummary", out var inventory);
+        state.TryGetProperty("bodyNeeds", out var needs);
+        static JsonElement Child(JsonElement e, string key) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(key, out var c) ? c : default;
         return new(state.TryGetProperty("tick", out var tick) && tick.ValueKind == JsonValueKind.Number && tick.TryGetInt64(out var t) ? t : null,
             Coordinate(position, "x"), Coordinate(position, "y"), Count(state, "inventoryItems"), Count(state, "visibleItems"),
-            Number(inventory, "capacity"), Number(inventory, "usedSlots"), Number(inventory, "freeSlots"));
+            Number(inventory, "capacity"), Number(inventory, "usedSlots"), Number(inventory, "freeSlots"),
+            Coordinate(Child(needs, "energy"), "value"), Coordinate(Child(needs, "stamina"), "value"),
+            Coordinate(needs, "hunger"), Coordinate(needs, "thirst"));
     }
 }

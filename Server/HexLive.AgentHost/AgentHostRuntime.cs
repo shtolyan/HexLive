@@ -374,7 +374,7 @@ public sealed partial class AgentHostRuntime
                 modelStarted = latency.ElapsedMilliseconds;
                 _diagnostics.Record("model.started", turnId, trigger);
                 decision = await recallEngine.DecideAsync(playerText, world, memoryState,
-                    (evidence, memoryToken) => _providers.DecideAsync(trigger, physicalState,
+                    (evidence, memoryToken) => DecideWithDiagnosticsAsync(turnId, trigger, physicalState,
                         requestContext + "\n" + evidence, playerText, recent, memoryToken),
                     cancellationToken, async (operation, arguments, referenceToken) =>
                     {
@@ -385,7 +385,7 @@ public sealed partial class AgentHostRuntime
                 if (decision.Action?.Tool == KnownObjectTool)
                     decision = await ResolveObjectKnowledgeAsync(mcp, npcId,
                         worldStatus.GetProperty("worldId").GetString() ?? "", decision, trigger,
-                        physicalState, requestContext, playerText, recent, scheduled, cancellationToken)
+                        physicalState, requestContext, playerText, recent, scheduled, cancellationToken, turnId)
                         .ConfigureAwait(false);
             }
             finally { _modelSlot.Release(); }

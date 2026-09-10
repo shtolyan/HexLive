@@ -12,7 +12,7 @@ public sealed partial class AgentHostRuntime
     private async Task<CompanionDecision> ResolveObjectKnowledgeAsync(McpClient mcp,
         int npcId, string expectedWorldId, CompanionDecision decision, string trigger,
         string physicalState, string requestContext, string playerText, string[] recent,
-        ScheduledTurn? scheduled, CancellationToken cancellationToken)
+        ScheduledTurn? scheduled, CancellationToken cancellationToken, string turnId)
     {
         if (decision.Action?.Tool != KnownObjectTool) return decision;
         EnsureCurrentTurn(scheduled, cancellationToken);
@@ -57,12 +57,29 @@ public sealed partial class AgentHostRuntime
             ?? throw new InvalidDataException("InvalidPhysicalState");
         fields["knownObjectQuery"] = answer;
         var enrichedState = JsonSerializer.Serialize(fields);
-        var final = await _providers.DecideAsync(trigger, enrichedState,
+        var final = await DecideWithDiagnosticsAsync(turnId, trigger, enrichedState,
             requestContext + "\n" + AgentPromptFiles.Read("object-knowledge.md"), playerText, recent,
             cancellationToken).ConfigureAwait(false);
         EnsureCurrentTurn(scheduled, cancellationToken);
         if (final.Action?.Tool == KnownObjectTool)
             throw new AgentActionValidationException("KnowledgeQueryLimitReached");
         return final;
+    }
+
+    private async Task<CompanionDecision> DecideWithDiagnosticsAsync(string turnId, string trigger,
+        string state, string context, string text, IReadOnlyList<string> recent, CancellationToken token)
+    {
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            var result = await _providers.DecideAsync(trigger, state, context, text, recent, token).ConfigureAwait(false);
+            _diagnostics.Record("model.request.completed", turnId, trigger, elapsedMs: started.ElapsedMilliseconds, usage: result.ModelUsage);
+            return result;
+        }
+        catch
+        {
+            _diagnostics.Record("model.request.failed", turnId, trigger, elapsedMs: started.ElapsedMilliseconds);
+            throw;
+        }
     }
 }

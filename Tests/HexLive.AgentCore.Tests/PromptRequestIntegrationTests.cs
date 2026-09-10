@@ -60,6 +60,17 @@ public sealed class PromptRequestIntegrationTests
     }
 
     [Test]
+    public async Task TransportUsageSurvivesParsingButCannotEnterTheModelDecisionContract()
+    {
+        using var provider = Provider(new CaptureModel());
+        var decision = await provider.DecideAsync("heartbeat", "{}", "", "", [], default);
+        Assert.That(decision.ModelUsage!.InputTokens, Is.EqualTo(123));
+        Assert.That(decision.ModelUsage.OutputTokens, Is.EqualTo(17));
+        Assert.That(decision.ModelUsage.Provider, Is.EqualTo("Grok"));
+        Assert.That(JsonSerializer.Serialize(decision), Does.Not.Contain("ModelUsage").And.Not.Contain("InputTokens"));
+    }
+
+    [Test]
     public void PromptFilesRejectInvalidUtf8OversizeAndLinksAndReadEdits()
     {
         var name = "fixture-" + Guid.NewGuid().ToString("N") + ".md";
@@ -103,7 +114,7 @@ public sealed class PromptRequestIntegrationTests
              "memoryUpserts":[],"journalText":"","relationshipAssessment":{
              "learnedSomethingSignificant":false,"trust":"Unchanged","sympathy":"Unchanged",
              "seriousHarm":false,"reason":"Fixture","voiceName":null,"namingReason":null}}
-            """));
+            """, 123, 17));
         }
     }
 }

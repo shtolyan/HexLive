@@ -110,7 +110,11 @@ public sealed class AgentProviders : IAgentProviders
                 new ModelRequest(system + "\nExact response contract:\n" + JsonSerializer.Serialize(DecisionResponseFormat()),
                     memoryContext, user), cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            return ParseDecision(answer.DecisionJson, trigger);
+            var decision = ParseDecision(answer.DecisionJson, trigger);
+            decision.ModelUsage = new(_modelSelection!.Provider.ToString(), _modelSelection.ModelId,
+                answer.InputTokens is >= 0 ? answer.InputTokens : null,
+                answer.OutputTokens is >= 0 ? answer.OutputTokens : null);
+            return decision;
         }
         if (_options.LlmBackend == "codex")
         {
@@ -118,7 +122,9 @@ public sealed class AgentProviders : IAgentProviders
                 system + "\nDo not use tools. Return only the requested decision JSON.\n" +
                 "Exact response contract:\n" + JsonSerializer.Serialize(DecisionResponseFormat()) + "\n" +
                 "<memory>\n" + memoryContext + "\n</memory>\n" + user, cancellationToken);
-            return ParseDecision(codexJson, trigger);
+            var decision = ParseDecision(codexJson, trigger);
+            decision.ModelUsage = new("Codex", CodexDecisionRunner.Model, null, null);
+            return decision;
         }
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.x.ai/v1/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.XaiKey);
@@ -141,7 +147,12 @@ public sealed class AgentProviders : IAgentProviders
         using var envelope = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var json = envelope.RootElement.GetProperty("choices")[0]
             .GetProperty("message").GetProperty("content").GetString() ?? "{}";
-        return ParseDecision(json, trigger);
+        var parsed = ParseDecision(json, trigger);
+        long? Count(string key) => envelope.RootElement.TryGetProperty("usage", out var usage) &&
+            usage.ValueKind == JsonValueKind.Object && usage.TryGetProperty(key, out var count) &&
+            count.ValueKind == JsonValueKind.Number && count.TryGetInt64(out var n) && n >= 0 ? n : null;
+        parsed.ModelUsage = new("Grok", _options.XaiModel, Count("prompt_tokens"), Count("completion_tokens"));
+        return parsed;
     }
 
     public static CompanionDecision ParseDecision(string json, string trigger)

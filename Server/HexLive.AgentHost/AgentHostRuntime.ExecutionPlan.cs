@@ -52,7 +52,7 @@ public sealed partial class AgentHostRuntime
                 await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 }, token).ConfigureAwait(false);
                 acquired = true;
             }
-            _diagnostics.Record("plan.started", planId);
+            _diagnostics.Record("plan.started", planId, execution: AgentDiagnosticExecution.From(initial));
             while (!token.IsCancellationRequested)
             {
                 var plan = (await _memory.SnapshotAsync(token).ConfigureAwait(false)).ExecutionPlan;
@@ -63,11 +63,11 @@ public sealed partial class AgentHostRuntime
                 if (plan.Command == null)
                 {
                     var before = await mcp.CallToolAsync("describe_colonist", new { npcId }, token).ConfigureAwait(false);
-                    _diagnostics.Record("step.before", turn, tool: step.Tool, observation: AgentDiagnosticObservation.From(before));
+                    _diagnostics.Record("step.before", turn, tool: step.Tool, observation: AgentDiagnosticObservation.From(before), execution: AgentDiagnosticExecution.From(plan));
                     if (step.Condition is { } condition && !AgentExecutionPlanPolicy.ConditionSatisfied(condition, before))
                     {
                         plan = await _memory.BranchExecutionPlanAsync(plan.Id, plan.Revision, token).ConfigureAwait(false);
-                        _diagnostics.Record("step.condition", turn, tool: step.Tool, result: plan.Reason);
+                        _diagnostics.Record("step.condition", turn, tool: step.Tool, result: plan.Reason, execution: AgentDiagnosticExecution.From(plan));
                         if (plan.Status != "active") break;
                         continue;
                     }
@@ -76,7 +76,7 @@ public sealed partial class AgentHostRuntime
                     var head = await mcp.CallToolAsync("read_agent_command", new { npcId, sequence = 0, commandId = "" }, token).ConfigureAwait(false);
                     var sequence = checked(head.GetProperty("highestSequence").GetInt64() + 1);
                     plan = await _memory.PrepareExecutionStepAsync(plan.Id, plan.Revision, world, token, sequence).ConfigureAwait(false);
-                    _diagnostics.Record("step.sending", turn, tool: step.Tool);
+                    _diagnostics.Record("step.sending", turn, tool: step.Tool, execution: AgentDiagnosticExecution.From(plan));
                     var receipt = await mcp.CallToolAsync("execute_agent_command", new
                         { npcId, sequence, commandId = plan.Command!.Id, tool = step.Tool, arguments }, token).ConfigureAwait(false);
                     plan = await ApplyExecutionReceiptAsync(plan, receipt, token).ConfigureAwait(false);
@@ -101,7 +101,7 @@ public sealed partial class AgentHostRuntime
                 }
                 _diagnostics.Record("step.observed", turn, tool: step.Tool, result: plan.Command?.Status ?? "completed");
                 var after = await mcp.CallToolAsync("describe_colonist", new { npcId }, token).ConfigureAwait(false);
-                _diagnostics.Record("step.after", turn, tool: step.Tool, observation: AgentDiagnosticObservation.From(after));
+                _diagnostics.Record("step.after", turn, tool: step.Tool, observation: AgentDiagnosticObservation.From(after), execution: AgentDiagnosticExecution.From(plan));
                 if (plan.Status != "active") break;
             }
         }
@@ -148,6 +148,9 @@ public sealed partial class AgentHostRuntime
         if (response.GetProperty("sequence").GetInt64() != command.Sequence || response.GetProperty("commandId").GetString() != command.Id)
             throw new InvalidDataException("ExecutionReceiptMismatch");
         var outcome = response.GetProperty("outcome").GetString() ?? "unknown";
+        _diagnostics.Record("command.receipt", plan.Id + ":" + plan.Steps[plan.Cursor].Id,
+            result: outcome, execution: AgentDiagnosticExecution.From(plan, outcome,
+                response.TryGetProperty("reason", out var reason) && reason.ValueKind == JsonValueKind.String ? reason.GetString()! : ""));
         return await _memory.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(command.Id, outcome), token).ConfigureAwait(false);
     }
 }

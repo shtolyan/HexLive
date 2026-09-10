@@ -31,7 +31,6 @@ public sealed class AgentProviders : IAgentProviders
     public static bool IsAllowedTool(string name) => AllowedTools.Contains(name);
 
     private readonly AgentProviderOptions _options;
-    private string _lastPlayerMessage = "";
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(45) };
 
     private readonly IModelAdapter? _modelAdapter;
@@ -94,7 +93,7 @@ public sealed class AgentProviders : IAgentProviders
         }
 
         var system = AgentPromptBuilder.Build(_options.DialogueStyleId, memoryContext, transcript);
-        _lastPlayerMessage = AgentConversationLanguage.LastMessage(transcript, recentConversation, _lastPlayerMessage);
+        var lastPlayerMessage = AgentConversationLanguage.LastMessage(transcript, recentConversation, "");
 
         using var stateDocument = JsonDocument.Parse(stateJson);
         var user = JsonSerializer.Serialize(new
@@ -102,7 +101,7 @@ public sealed class AgentProviders : IAgentProviders
             trigger,
             worldAndBody = stateDocument.RootElement,
             playerSpeech = transcript,
-            lastPlayerMessageForLanguage = _lastPlayerMessage,
+            lastPlayerMessageForLanguage = lastPlayerMessage,
             recentConversation
         });
         if (_modelAdapter != null)

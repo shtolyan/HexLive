@@ -238,6 +238,23 @@ public sealed class AgentProviders : IAgentProviders
                             }
                         }
                     },
+                    executionPlanUpdate = new
+                    {
+                        anyOf = new object[] {
+                            new { type = "null" },
+                            new { type = "object", additionalProperties = false,
+                                properties = new {
+                                    operation = new { type = "string", @enum = new[] { "replace", "pause", "resume", "cancel" } },
+                                    reason = new { type = "string", minLength = 1, maxLength = 96 },
+                                    steps = new { type = "array", maxItems = AgentExecutionPlanPolicy.MaxSteps,
+                                        items = new { type = "object", additionalProperties = false,
+                                            properties = new { id = new { type = "string", minLength = 1, maxLength = 96 },
+                                                tool = new { type = "string", @enum = AllowedTools.Where(t => t != "query_known_objects").ToArray() },
+                                                arguments = new { type = "object", additionalProperties = true } },
+                                            required = new[] { "id", "tool", "arguments" } } }
+                                }, required = new[] { "operation", "reason", "steps" } }
+                        }
+                    },
                     memoryUpserts = new
                     {
                         type = "array",
@@ -260,7 +277,7 @@ public sealed class AgentProviders : IAgentProviders
                 required = new[]
                 {
                     "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
-                    "memoryUpserts", "journalText", "memoryRequests", "memorySources", "objectiveUpdate"
+                    "memoryUpserts", "journalText", "memoryRequests", "memorySources", "objectiveUpdate", "executionPlanUpdate"
                 }
             }
         }
@@ -278,7 +295,7 @@ public sealed class AgentProviders : IAgentProviders
             "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
             "memoryUpserts"
         };
-        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText", "memoryRequests", "memorySources", "objectiveUpdate" };
+        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText", "memoryRequests", "memorySources", "objectiveUpdate", "executionPlanUpdate" };
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in root.EnumerateObject())
         {
@@ -304,6 +321,14 @@ public sealed class AgentProviders : IAgentProviders
             });
 
         var assessment = root.GetProperty("relationshipAssessment");
+        if (root.TryGetProperty("executionPlanUpdate", out var planUpdate) && planUpdate.ValueKind != JsonValueKind.Null)
+        {
+            RequireExactObject(planUpdate, new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
+                { ["operation"] = JsonValueKind.String, ["reason"] = JsonValueKind.String, ["steps"] = JsonValueKind.Array });
+            foreach (var step in planUpdate.GetProperty("steps").EnumerateArray())
+                RequireExactObject(step, new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
+                    { ["id"] = JsonValueKind.String, ["tool"] = JsonValueKind.String, ["arguments"] = JsonValueKind.Object });
+        }
         if (assessment.ValueKind != JsonValueKind.Null)
         {
             if (assessment.ValueKind != JsonValueKind.Object) throw new InvalidDataException("InvalidRelationshipAssessment");
@@ -431,11 +456,12 @@ public sealed class AgentProviders : IAgentProviders
                 throw new InvalidDataException("InvalidMemoryOperation");
         if (decision.MemoryRequests.Count > 0)
         {
-            decision.ObjectiveUpdate = null; decision.Speech = ""; decision.Action = null; decision.RelationshipAssessment = null;
+            decision.ObjectiveUpdate = null; decision.ExecutionPlanUpdate = null; decision.Speech = ""; decision.Action = null; decision.RelationshipAssessment = null;
             decision.Reaction = "None"; decision.MemoryUpserts.Clear(); decision.JournalText = ""; decision.IntentSummary = "";
             return;
         }
         if (decision.ObjectiveUpdate != null) AgentObjectivePolicy.ValidateUpdate(decision.ObjectiveUpdate);
+        if (decision.ExecutionPlanUpdate != null) AgentExecutionPlanPolicy.ValidateUpdate(decision.ExecutionPlanUpdate);
         if (trigger == "voice" && decision.RelationshipAssessment == null)
             throw new InvalidDataException("VoiceRelationshipAssessmentRequired");
         if (trigger != "voice") decision.RelationshipAssessment = null;

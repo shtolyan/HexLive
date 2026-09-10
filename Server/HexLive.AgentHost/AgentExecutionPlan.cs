@@ -1,11 +1,15 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace HexLive.AgentHost;
 
 // §163.3c: execution state, not a transcript and not evidence that the goal is achieved.
-public sealed record AgentExecutionStep(string Id, string Tool, JsonElement Arguments);
+public sealed record AgentExecutionStep(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("tool")] string Tool,
+    [property: JsonPropertyName("arguments")] JsonElement Arguments);
 
 public sealed record AgentExecutionPlan
 {
@@ -28,9 +32,27 @@ public sealed record AgentExecutionCommand(string Id, string StepId, string Stat
 // An idle NPC, an accepted request or a model's prose cannot establish completion.
 public sealed record AgentExecutionReceipt(string CommandId, string Outcome);
 
+public sealed class AgentExecutionPlanUpdate
+{
+    [JsonPropertyName("operation")] public string Operation { get; set; } = "";
+    [JsonPropertyName("reason")] public string Reason { get; set; } = "";
+    [JsonPropertyName("steps")] public AgentExecutionStep[] Steps { get; set; } = [];
+}
+
 public static class AgentExecutionPlanPolicy
 {
     public const int MaxSteps = 64;
+
+    public static void ValidateUpdate(AgentExecutionPlanUpdate update)
+    {
+        if (update.Operation is not ("replace" or "pause" or "resume" or "cancel") ||
+            !Identifier(update.Reason) || update.Steps == null ||
+            (update.Operation == "replace" ? update.Steps.Length is 0 or > MaxSteps : update.Steps.Length != 0) ||
+            update.Steps.Any(s => s == null || !Identifier(s.Id) || !AgentProviders.IsAllowedTool(s.Tool) ||
+                s.Tool == "query_known_objects" || s.Arguments.ValueKind != JsonValueKind.Object || s.Arguments.GetRawText().Length > 8192) ||
+            update.Steps.Select(s => s.Id).Distinct(StringComparer.Ordinal).Count() != update.Steps.Length)
+            throw new InvalidDataException("InvalidExecutionPlanUpdate");
+    }
 
     public static AgentExecutionPlan Create(AgentObjective objective,
         string worldKey, int npcId, IEnumerable<AgentExecutionStep> steps)

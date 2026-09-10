@@ -340,7 +340,8 @@ public sealed partial class AgentHostRuntime
             var recall = playerText;
             var memoryContext = await _memory.BuildPromptContextAsync(world, "", cancellationToken)
                 .ConfigureAwait(false);
-            world = world with { ObjectiveRevision = memoryContext.ObjectiveRevision };
+            world = world with { ObjectiveRevision = memoryContext.ObjectiveRevision,
+                ExecutionPlanRevision = memoryContext.ExecutionPlanRevision, ExecutionPlanId = memoryContext.ExecutionPlanId };
             Console.Error.WriteLine(
                 $"[memory] promptChars={memoryContext.CharacterCount} recalled={memoryContext.RecalledFragments}");
             var incidentSnapshot = _incidents.Snapshot();

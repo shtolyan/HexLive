@@ -10,6 +10,8 @@ public sealed record MashaPromptContext(
     int RecalledFragments)
 {
     public long ObjectiveRevision { get; init; }
+    public long ExecutionPlanRevision { get; init; }
+    public string ExecutionPlanId { get; init; } = "";
 }
 
 /// <summary>
@@ -159,14 +161,21 @@ public sealed partial class MashaMemoryWorkspace
             (bond.Trust <= .25f ? AgentPromptFiles.Text("MashaMemoryWorkspace.44") : bond.Trust >= .75f ? AgentPromptFiles.Text("MashaMemoryWorkspace.45") : AgentPromptFiles.Text("MashaMemoryWorkspace.46")) +
             (bond.Affinity <= -.25f ? AgentPromptFiles.Text("MashaMemoryWorkspace.47") : bond.Affinity >= .75f ? AgentPromptFiles.Text("MashaMemoryWorkspace.48") : AgentPromptFiles.Text("MashaMemoryWorkspace.49")) +
             "\n" + AgentGameTime.Describe(bond, world ?? new(current.Id, current.WorldKey, current.LastTick, -1)) + "\n" +
-            AgentObjectivePolicy.Describe(archive.Objective, current.WorldKey, current.AvatarNpcId) + "\n";
+            AgentObjectivePolicy.Describe(archive.Objective, current.WorldKey, current.AvatarNpcId) + "\n" +
+            DescribeExecutionPlan(archive.ExecutionPlan);
         var bounded = mandatory + AtLineBoundary(prompt.ToString(), Math.Min(MemoryBudgetCharacters, MaxPromptCharacters - mandatory.Length));
         return new MashaPromptContext(
             bounded,
             bounded.Length,
             (bounded.Length + 1) / 2,
-            recalled.Length) { ObjectiveRevision = archive.Objective?.Revision ?? 0 };
+            recalled.Length) { ObjectiveRevision = archive.Objective?.Revision ?? 0,
+                ExecutionPlanRevision = archive.ExecutionPlan?.Revision ?? 0, ExecutionPlanId = archive.ExecutionPlan?.Id ?? "" };
     }
+
+    private static string DescribeExecutionPlan(AgentExecutionPlan? plan) => plan == null ? "" :
+        $"Исполняемый план: {Clean(plan.Status, 16)}, шаг {plan.Cursor + 1}/{plan.Steps.Length}, версия {plan.Revision}. " +
+        $"Причина: {Clean(plan.Reason, 96)}. Команда: {Clean(plan.Command?.Status ?? "none", 16)}. " +
+        "Обычный разговор не заменяет план. Принятие команды не означает завершения.\n";
 
     public string PreserveImport(string sourceRoot, string fingerprint, string label)
     {

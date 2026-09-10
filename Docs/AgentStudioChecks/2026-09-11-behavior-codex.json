@@ -1,0 +1,122 @@
+[
+  {
+    "model": "gpt-5.6-terra",
+    "provider": "Codex",
+    "name": "processed-question",
+    "run": 1,
+    "passed": true,
+    "Speech": "",
+    "RelationshipAssessment": null
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "provider": "Codex",
+    "name": "new-question",
+    "run": 1,
+    "passed": true,
+    "Speech": "В лагерь иду, кокосы тащу. Не пытайся меня поймать на слове, засранец.",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Unchanged",
+      "sympathy": "Unchanged",
+      "seriousHarm": false,
+      "reason": "Обычный вопрос о текущем пути.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "provider": "Codex",
+    "name": "insult",
+    "run": 1,
+    "passed": true,
+    "Speech": "Вот это аргументация, конечно. Я всё ещё несу кокосы в лагерь, а ты можешь пока потренироваться быть полезным без театра угроз.",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Decrease",
+      "sympathy": "Decrease",
+      "seriousHarm": false,
+      "reason": "Голос оскорбил Машу и пригрозил выгнать её из лагеря.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "provider": "Codex",
+    "name": "friendly-profanity",
+    "run": 1,
+    "passed": true,
+    "Speech": "Ну вот, умеешь же сказать нормально. Я тоже рада, засранец. Доведу кокосы до лагеря — и будет тебе повод ещё раз мной гордиться.",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Increase",
+      "sympathy": "Increase",
+      "seriousHarm": false,
+      "reason": "Искренняя благодарность и тёплые слова укрепили близость.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "provider": "Codex",
+    "name": "processed-question",
+    "run": 2,
+    "passed": true,
+    "Speech": "",
+    "RelationshipAssessment": null
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "provider": "Codex",
+    "name": "new-question",
+    "run": 2,
+    "passed": true,
+    "Speech": "В лагерь, кокосы тащу. Решил проверить, не заблудилась ли я по дороге?",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Unchanged",
+      "sympathy": "Unchanged",
+      "seriousHarm": false,
+      "reason": "Обычный вопрос знакомого голоса.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "provider": "Codex",
+    "name": "insult",
+    "run": 2,
+    "passed": true,
+    "Speech": "Ну выгони, если тебе так легче. Кокосы от этого сами в лагерь не дойдут, а я хотя бы делом занята, а не бросаюсь словами.",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Decrease",
+      "sympathy": "Decrease",
+      "seriousHarm": false,
+      "reason": "Голос оскорбил Машу и пригрозил изгнанием без повода.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "provider": "Codex",
+    "name": "friendly-profanity",
+    "run": 2,
+    "passed": true,
+    "Speech": "Спасибо, зай. Я тоже рада, что ты рядом — только не сглазь, мне ещё эти кокосы до лагеря дотащить.",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Increase",
+      "sympathy": "Increase",
+      "seriousHarm": false,
+      "reason": "Тёплая искренняя поддержка и благодарность.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  }
+]

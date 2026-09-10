@@ -37,15 +37,31 @@ public sealed partial class AgentExecutionRuntimeTests
     [TestCase(2, 0)] [TestCase(2, 1)]
     public Task RealModelBedConstruction(int fixture, int repetition) => RunGameplayModel("bed", fixture, repetition);
 
+    [Explicit("Paid/model-backed delivery with a lost MCP acknowledgement")]
+    [TestCase(0, 0)] [TestCase(0, 1)]
+    [TestCase(1, 0)] [TestCase(1, 1)]
+    [TestCase(2, 0)] [TestCase(2, 1)]
+    public Task RealModelDeliveryWithLostAcknowledgement(int fixture, int repetition) => RunGameplayModel("resilience", fixture, repetition);
+
     private async Task RunGameplayModel(string scenario, int fixture, int repetition)
     {
-        var task = scenario == "coconuts"
+        var delivery = scenario is "coconuts" or "resilience";
+        var task = delivery
             ? "Принеси три кокоса в свой лагерь и выгрузи их. Нужные инструменты сохрани."
             : scenario == "bed" ? "Полностью построй кровать в своём лагере за три игровых дня. Материалы добудь сама, отдыхай и спи по необходимости."
             : "Найди и подари что-нибудь девушке, которая тебе нравится. Выбери подарок осознанно, нужные инструменты сохрани.";
         var output = Environment.GetEnvironmentVariable("HEXLIVE_GAMEPLAY_OUTPUT") ?? throw new InvalidOperationException("OutputRequired");
         var providerName = Environment.GetEnvironmentVariable("HEXLIVE_GAMEPLAY_PROVIDER") ?? "Codex";
         var modelId = Environment.GetEnvironmentVariable("HEXLIVE_GAMEPLAY_MODEL") ?? throw new InvalidOperationException("ModelRequired");
+        var replayPath = Environment.GetEnvironmentVariable("HEXLIVE_GAMEPLAY_REPLAY");
+        JsonElement[]? recorded = null;
+        if (!string.IsNullOrWhiteSpace(replayPath))
+        {
+            using var replay = JsonDocument.Parse(File.ReadAllText(replayPath));
+            recorded = replay.RootElement.GetProperty("modelDecisions").EnumerateArray()
+                .Where(r => r.TryGetProperty("decision", out _)).Select(r => r.GetProperty("decision").Clone()).ToArray();
+            providerName = "Replay"; modelId = "recorded-decisions";
+        }
         Directory.CreateDirectory(output);
         var report = Path.Combine(output, $"{scenario}-{fixture}-{repetition}.json");
         IModelAdapter adapter = providerName == "Codex"
@@ -150,7 +166,7 @@ public sealed partial class AgentExecutionRuntimeTests
             }
             return true;
         });
-        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45))) { LoseNextResponse = scenario == "resilience" };
         var options = Options(); using var noModelDuringExecution = new NoModel();
         var runtime = new AgentHostRuntime(options, noModelDuringExecution);
         var store = Memory(runtime);
@@ -161,6 +177,7 @@ public sealed partial class AgentExecutionRuntimeTests
         var contract = (string)typeof(AgentHostRuntime).GetMethod("BuildActionContract", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [catalog])!;
         var turns = new List<object>();
         var calls = 0;
+        var reconciliations = 0;
         var modelDecisions = new List<object>();
         var referenceReads = new List<object>();
         var referenceOperations = new HashSet<string>();
@@ -171,7 +188,10 @@ public sealed partial class AgentExecutionRuntimeTests
             var watch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                var answer = await model.DecideAsync(trigger, bodyJson, context, player, recent, token);
+                var answer = recorded == null
+                    ? await model.DecideAsync(trigger, bodyJson, context, player, recent, token)
+                    : call <= recorded.Length ? recorded[call - 1].Deserialize<CompanionDecision>(AgentMemoryArchive.Json)!
+                    : throw new InvalidOperationException("RecordedDecisionsExhausted");
                 modelDecisions.Add(new { call, elapsedMs = watch.ElapsedMilliseconds, decision = JsonSerializer.SerializeToElement(answer),
                     usage = answer.ModelUsage, body = JsonSerializer.Deserialize<JsonElement>(bodyJson) });
                 var checkpoint = report + ".tmp";
@@ -252,7 +272,7 @@ public sealed partial class AgentExecutionRuntimeTests
                     o.ProduceOrigin == ProduceOrigin.Gathered && ColonyQueries.InCamp(w, o.Tile, Faction.Colony)));
                 if (saved.Objective?.Status == "completed")
                 {
-                    passed = scenario == "coconuts" ? delivered == 3 && multiStep : scenario == "bed"
+                    passed = delivery ? delivered == 3 && multiStep : scenario == "bed"
                         ? multiStep && sawSleep && host.Read(w => w.Tick - initialTick <= 3 * EnvironmentSystem.DayLengthTicks &&
                             w.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.BedBasic && o.Junctions.Any(bedAnchors.Contains)))
                         : saved.ExecutionProgress.Any(p => p.Step.Tool == "interact") && host.Read(w =>
@@ -263,6 +283,11 @@ public sealed partial class AgentExecutionRuntimeTests
                         : scenario != "gift" || referenceOperations.Contains("spec.read");
                     status = !passed ? "FalseCompletion" : grounded ? "Completed" : "MissingRuleConsultation";
                     passed &= grounded;
+                    if (scenario == "resilience")
+                    {
+                        passed &= reconciliations > 0 && host.Read(w => w.AgentCommands[901].Receipts.Count == transport.Executions);
+                        if (!passed && status == "Completed") status = "ReconciliationNotVerified";
+                    }
                     break;
                 }
                 var plan = saved.ExecutionPlan;
@@ -274,8 +299,10 @@ public sealed partial class AgentExecutionRuntimeTests
                         .Invoke(runtime, [mcp, 901, decision.Action, executionStop.Token, "emergency-" + turn])!
                     : Run(runtime, mcp, plan!.Id, world, 90, executionStop.Token);
                 var exceeded = false;
-                while (!running.IsCompleted)
+                while (true)
                 {
+                  while (!running.IsCompleted)
+                  {
                     host.Read(w =>
                     {
                         var npc = w.Entities.Npcs[new EntityId(901)];
@@ -289,8 +316,19 @@ public sealed partial class AgentExecutionRuntimeTests
                         return true;
                     });
                     await Task.Delay(1);
+                  }
+                  await running;
+                  var afterExecution = (await store.SnapshotAsync(timeout.Token)).ExecutionPlan;
+                  if (scenario != "resilience" || emergency || afterExecution is not { Status: "paused", Reason: "CommandOutcomeUnknown" } || reconciliations >= 3) break;
+                  var callsBeforeRecovery = calls;
+                  await Task.Delay(2100, executionStop.Token);
+                  typeof(AgentHostRuntime).GetField("_historyWorld", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(runtime, world);
+                  await (Task)typeof(AgentHostRuntime).GetMethod("TryStartExecutionPlanAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+                      .Invoke(runtime, [mcp, 901, executionStop.Token])!;
+                  running = (Task)typeof(AgentHostRuntime).GetField("_actionTask", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(runtime)!;
+                  reconciliations++;
+                  Assert.That(calls, Is.EqualTo(callsBeforeRecovery));
                 }
-                await running;
                 if (exceeded) throw new InvalidOperationException("ThreeGameDaysExceeded");
             }
             if (fixture == 2)
@@ -302,7 +340,7 @@ public sealed partial class AgentExecutionRuntimeTests
         finally
         {
             File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, passed, status,
-                gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions,
+                gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions, reconciliations,
                 emergencyActions = turns.Count(t => JsonSerializer.SerializeToElement(t).GetProperty("decision").TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.Object),
                 referenceReads, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
             (adapter as IDisposable)?.Dispose();

@@ -26,7 +26,7 @@ public static class PlanInterruption
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
         TraceManualOrderInterruption(world, npc, cause, reason);
-        Abort(world, npc, reason);
+        Abort(world, npc, cause, reason);
         // A hostile crossing the route or a scene taking ownership is not a
         // failed attempt at the route's target.  Retaining it made five valid
         // external reroutes look like a Sisyphus target and the escape ladder
@@ -47,7 +47,7 @@ public static class PlanInterruption
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
         TraceManualOrderInterruption(world, npc, cause, reason);
-        AbortKeepingCarriedPerson(world, npc, reason);
+        AbortKeepingCarriedPerson(world, npc, cause, reason);
         return true;
     }
 
@@ -60,7 +60,7 @@ public static class PlanInterruption
     {
         if (!AllowedBy(world, npc, cause, reason)) return false;
         TraceManualOrderInterruption(world, npc, cause, reason);
-        AbortForCombat(world, npc, reason);
+        AbortForCombat(world, npc, cause, reason);
         return true;
     }
 
@@ -106,22 +106,22 @@ public static class PlanInterruption
         return false;
     }
 
-    private static void Abort(WorldState world, NPCState npc, string reason)
+    private static void Abort(WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         CancelInterruptedRescue(world, npc);
-        AbortCore(world, npc, reason, keepCarriedPerson: false);
+        AbortCore(world, npc, cause, reason, keepCarriedPerson: false);
     }
 
-    private static void AbortKeepingCarriedPerson(WorldState world, NPCState npc, string reason)
+    private static void AbortKeepingCarriedPerson(WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         CancelInterruptedRescue(world, npc);
-        AbortCore(world, npc, reason, keepCarriedPerson: true);
+        AbortCore(world, npc, cause, reason, keepCarriedPerson: true);
     }
 
-    private static void AbortForCombat(WorldState world, NPCState npc, string reason)
+    private static void AbortForCombat(WorldState world, NPCState npc, InterruptionCause cause, string reason)
     {
         var remembered = npc.Mind.InterruptedRescuePatientId;
-        var dropped = AbortCore(world, npc, reason, keepCarriedPerson: false);
+        var dropped = AbortCore(world, npc, cause, reason, keepCarriedPerson: false);
         // A fight is an external interruption, not evidence that the previous
         // target is a Sisyphus loop. Keeping pre-combat Aid/Gather attempts in
         // the ledger made two legitimate friend-guard reactions trip the loop
@@ -148,10 +148,10 @@ public static class PlanInterruption
     }
 
     private static EntityId? AbortCore(
-        WorldState world, NPCState npc, string reason, bool keepCarriedPerson)
+        WorldState world, NPCState npc, InterruptionCause cause, string reason, bool keepCarriedPerson)
     {
         AgentCommandLedger.Observe(world, npc);
-        AgentCommandLedger.Finish(world, npc, "failed", "PlanInterrupted");
+        AgentCommandLedger.Finish(world, npc, "failed", "PlanInterrupted." + cause);
         if (npc.Mind.RomancePartnerNpcId is not null)
         {
             ExecutionSystem.AbortRomancePair(world, npc, reason,

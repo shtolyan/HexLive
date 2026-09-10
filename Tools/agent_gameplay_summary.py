@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-SCENARIOS = ("coconuts", "gift", "bed")
+SCENARIOS = ("coconuts", "gift", "bed", "resilience")
 CASES = {(fixture, repetition) for fixture in range(3) for repetition in range(2)}
 
 
@@ -16,6 +16,8 @@ def summarize(directories):
             data = json.loads(path.read_text())
             if not isinstance(data, dict) or data.get("scenario") not in SCENARIOS:
                 continue
+            if data.get("providerName") == "Replay":
+                continue  # Recorded choices reproduce a failure; they are not model acceptance.
             provider = (data["providerName"], data["modelId"])
             key = (*provider, data["scenario"])
             case = (data["fixture"], data["repetition"])
@@ -42,7 +44,7 @@ def summarize(directories):
                                        for c, d in sorted(cases.items())
                                        if not (d.get("passed") is True and d.get("status") == "Completed")]))
     return dict(accepted=bool(rows) and all(r["accepted"] for r in rows), rows=rows,
-                scope="Three gameplay scenarios only; live threat/reconnect checks are reported separately")
+                scope="Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks.")
 
 
 def main():

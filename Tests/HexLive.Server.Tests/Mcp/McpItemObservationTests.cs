@@ -17,29 +17,30 @@ namespace HexLive.Server.Tests.Mcp;
 
 public sealed class McpItemObservationTests
 {
-    [Test]
-    public void VisibleHarvestExplainsMissingToolAndUpdatesAfterAcquiringOne()
+    [TestCase("tree.palm", "ChopWood", GearCatalog.Axe)]
+    [TestCase("rock.boulder", "Mine", GearCatalog.Pickaxe)]
+    [TestCase("plant.yucca", "Cut", GearCatalog.Knife)]
+    public void VisibleHarvestExplainsMissingToolAndUpdatesAfterAcquiringOne(string definitionId, string capability, string tool)
     {
         using var host = CreateHost();
         var actorId = host.Read(world =>
         {
             var actor = Observer(world);
             actor.Perception.Objects.Clear(); actor.Inventory.Items.Clear();
-            Add(world, actor, 900010, "tree.palm");
+            Add(world, actor, 900010, definitionId);
             return actor.Id.Value;
         });
         using var before = Describe(host, actorId);
         var harvest = before.RootElement.GetProperty("visibleItems")[0].GetProperty("interactions")
             .EnumerateArray().First(i => i.GetProperty("type").GetString() == "Harvest");
         Assert.That(harvest.GetProperty("toolRequirementMet").GetBoolean(), Is.False);
-        Assert.That(harvest.GetProperty("requiresAnyCapability").GetRawText(), Does.Contain("ChopWood"));
-        Assert.That(harvest.GetProperty("yields").GetRawText(), Does.Contain("resource.log"));
-        host.Read(world => { Observer(world).Inventory.Items.Add(new ItemInstance(GearCatalog.Axe)); return true; });
+        Assert.That(harvest.GetProperty("requiresAllCapabilityGroups").GetRawText(), Does.Contain(capability));
+        host.Read(world => { Observer(world).Inventory.Items.Add(new ItemInstance(tool)); return true; });
         using var after = Describe(host, actorId);
         harvest = after.RootElement.GetProperty("visibleItems")[0].GetProperty("interactions")
             .EnumerateArray().First(i => i.GetProperty("type").GetString() == "Harvest");
         Assert.That(harvest.GetProperty("toolRequirementMet").GetBoolean(), Is.True);
-        Assert.That(after.RootElement.GetProperty("inventoryItems")[0].GetProperty("capabilities").GetString(), Does.Contain("ChopWood"));
+        Assert.That(after.RootElement.GetProperty("inventoryItems")[0].GetProperty("capabilities").GetString(), Does.Contain(capability));
     }
 
     [Test]

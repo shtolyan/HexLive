@@ -22,6 +22,29 @@ public sealed partial class AgentExecutionRuntimeTests
     [TearDown] public void Cleanup() => Directory.Delete(_root, true);
 
     [Test]
+    public async Task NativeInterruptionCauseReachesThePausedQueue()
+    {
+        using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        host.Read(w => { w.Entities.Npcs[new EntityId(901)].Needs.Energy = .2f; return true; });
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("rest", "rest_until", JsonSerializer.SerializeToElement(new { need = "Energy", target = .8 })),
+             new("next", "stop", JsonSerializer.SerializeToElement(new { }))]);
+        var running = Run(runtime, mcp, plan.Id, world, 15);
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (transport.Executions == 0 && !running.IsCompleted && DateTime.UtcNow < deadline) await Task.Delay(10);
+        Assert.That(transport.Executions, Is.EqualTo(1));
+        host.Read(w => PlanInterruption.TryAbort(w, w.Entities.Npcs[new EntityId(901)], InterruptionCause.Crying, "Fixture body interruption"));
+        await running;
+        var saved = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        Assert.That(saved.Status, Is.EqualTo("paused"));
+        Assert.That(saved.Command!.Reason, Is.EqualTo("PlanInterrupted.Crying"));
+        Assert.That(transport.Executions, Is.EqualTo(1), "No next step after a body interruption.");
+    }
+
+    [Test]
     public async Task BoundedCraftRepeatPaysEachRecipeAndProducesTwoRealRopes()
     {
         using var host = Host();

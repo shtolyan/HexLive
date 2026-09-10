@@ -594,6 +594,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                             : hasChopTool;
                     if (!toolOk)
                     {
+                        AgentCommandLedger.Finish(world, npc, "failed", "MissingTool");
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                         PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot harvest {worldObject.DefinitionId} (missing tool)");
@@ -628,6 +629,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 if (interaction.RequiredCapabilities.Count > 0 &&
                     !DecisionSystem.HasAnyCapability(npc, interaction.RequiredCapabilities))
                 {
+                    AgentCommandLedger.Finish(world, npc, "failed", "MissingTool");
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                         $"Cannot {interaction.Id} on {worldObject.DefinitionId} " +

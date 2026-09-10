@@ -25,13 +25,18 @@ internal static class McpItemObservations
             var row = Item(world, observer, item.DefinitionId, item.Owner?.Value ?? 0, item.OwnerFaction);
             row["objectId"] = id;
             if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition))
-                row["interactions"] = definition.Interactions.Select(interaction => new
+                row["interactions"] = definition.Interactions.Select(interaction =>
                 {
-                    id = interaction.Id, type = interaction.Type.ToString(), baseDurationTicks = interaction.DurationTicks,
-                    requiresAnyCapability = interaction.RequiredCapabilities.Select(c => c.ToString()).ToArray(),
-                    toolRequirementMet = interaction.RequiredCapabilities.Count == 0 || observer.Body.HasUsableHand &&
-                        interaction.RequiredCapabilities.Any(c => GearCatalog.HasCapability(observer.Inventory.Items, c)),
-                    yields = interaction.Yields.Select(y => new { definitionId = y.DefinitionId, count = y.Count }).ToArray()
+                    var groups = RequiredToolGroups(definition, interaction);
+                    return new
+                    {
+                        id = interaction.Id, type = interaction.Type.ToString(), baseDurationTicks = interaction.DurationTicks,
+                        requiresAnyCapability = groups.Count == 1 ? groups[0].Select(c => c.ToString()).ToArray() : Array.Empty<string>(),
+                        requiresAllCapabilityGroups = groups.Select(g => g.Select(c => c.ToString()).ToArray()).ToArray(),
+                        toolRequirementMet = groups.Count == 0 || observer.Body.HasUsableHand &&
+                            groups.All(g => g.Any(c => GearCatalog.HasCapability(observer.Inventory.Items, c))),
+                        yields = interaction.Yields.Select(y => new { definitionId = y.DefinitionId, count = y.Count }).ToArray()
+                    };
                 }).ToArray();
             if (!string.IsNullOrEmpty(item.BuildProduct))
                 row["construction"] = new { product = item.BuildProduct, needsHammer = BuildSiteView.NeedsHammer(world, item),
@@ -55,6 +60,24 @@ internal static class McpItemObservations
 
     public static List<object> Carried(WorldState world, NPCState observer) =>
         Instances(world, observer, observer.Inventory.Items);
+
+    // ExecutionSystem retains these legacy gates even when older world data has
+    // no RequiredCapabilities. Empty data must not advertise tool-free mining.
+    private static List<GearCapability[]> RequiredToolGroups(ObjectDefinition definition, InteractionDefinition interaction)
+    {
+        var groups = new List<GearCapability[]>();
+        if (interaction.RequiredCapabilities.Count > 0) groups.Add(interaction.RequiredCapabilities.ToArray());
+        GearCapability? legacy = interaction.Type switch
+        {
+            InteractionType.Harvest when !definition.HasTag("HerbBush") => definition.HasTag("Boulder")
+                ? GearCapability.Mine : definition.HasTag("Yucca") ? GearCapability.Cut : GearCapability.ChopWood,
+            InteractionType.Process when groups.Count == 0 => definition.HasTag("Coconut") ? GearCapability.Cut : GearCapability.ChopWood,
+            InteractionType.Butcher when groups.Count == 0 => GearCapability.Butcher,
+            _ => null
+        };
+        if (legacy is { } capability && !groups.Any(g => g.Length == 1 && g[0] == capability)) groups.Add([capability]);
+        return groups;
+    }
 
     public static List<object> Worn(WorldState world, NPCState observer) =>
         Instances(world, observer, observer.WornItems);

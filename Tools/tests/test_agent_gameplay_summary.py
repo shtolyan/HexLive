@@ -10,13 +10,22 @@ spec.loader.exec_module(summary)
 
 
 class AcceptanceMatrixTests(unittest.TestCase):
+    def test_recorded_choices_are_not_model_acceptance(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.write(root, "replay.json", "bed", 0, 0)
+            path = Path(root, "replay.json")
+            data = json.loads(path.read_text()); data["providerName"] = "Replay"
+            path.write_text(json.dumps(data))
+            self.assertEqual(summary.summarize([root])["rows"], [])
+            self.assertFalse(summary.summarize([root])["accepted"])
+
     def test_one_success_cannot_stand_in_for_missing_scenarios_or_repetitions(self):
         with tempfile.TemporaryDirectory() as root:
             self.write(root, "one.json", "coconuts", 0, 0)
             result = summary.summarize([root])
             self.assertFalse(result["accepted"])
             self.assertEqual(sum(r["passed"] for r in result["rows"]), 1)
-            self.assertEqual(sum(len(r["missing"]) for r in result["rows"]), 17)
+            self.assertEqual(sum(len(r["missing"]) for r in result["rows"]), 23)
 
     def test_duplicate_success_does_not_replace_a_failed_attempt(self):
         with tempfile.TemporaryDirectory() as root:

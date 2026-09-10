@@ -261,10 +261,10 @@ public sealed class AgentProviders : IAgentProviders
                             new { type = "object", additionalProperties = false,
                                 properties = new {
                                     operation = new { type = "string", @enum = new[] { "replace", "pause", "resume", "cancel" } },
-                                    reason = new { type = "string", minLength = 1, maxLength = 96 },
+                                    reason = new { type = "string", minLength = 1, maxLength = 96, pattern = "^[A-Za-z0-9_.-]+$" },
                                     steps = new { type = "array", maxItems = AgentExecutionPlanPolicy.MaxSteps,
                                         items = new { type = "object", additionalProperties = false,
-                                            properties = new { id = new { type = "string", minLength = 1, maxLength = 96 },
+                                            properties = new { id = new { type = "string", minLength = 1, maxLength = 96, pattern = "^[A-Za-z0-9_.-]+$" },
                                                 tool = new { type = "string", @enum = AllowedTools.Where(t => t != "query_known_objects").ToArray() },
                                                 arguments = new { type = "object", additionalProperties = true },
                                                 condition = new { type = new[] { "object", "null" }, additionalProperties = false,

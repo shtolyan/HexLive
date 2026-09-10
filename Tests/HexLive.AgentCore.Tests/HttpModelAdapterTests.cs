@@ -7,6 +7,26 @@ namespace HexLive.AgentCore.Tests;
 
 public sealed class HttpModelAdapterTests
 {
+    [Test]
+    public async Task GrokReceivesRequestedSchemaWithoutEmbeddingItAsQuotedText()
+    {
+        using var handler = new Handler(async request =>
+        {
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
+            var format = body.RootElement.GetProperty("response_format");
+            Assert.That(format.GetProperty("type").GetString(), Is.EqualTo("json_schema"));
+            Assert.That(format.GetProperty("json_schema").GetProperty("strict").GetBoolean(), Is.True);
+            Assert.That(format.GetProperty("json_schema").GetProperty("schema").GetProperty("type").GetString(), Is.EqualTo("object"));
+            return new(HttpStatusCode.OK) { Content = new StringContent("""
+                {"choices":[{"finish_reason":"stop","message":{"content":"{}"}}],"usage":{"prompt_tokens":12,"completion_tokens":2}}
+                """) };
+        });
+        using var adapter = new HttpModelAdapter(ModelProviderKind.Grok, "grok", _ => Task.FromResult("test-key"), handler);
+        var answer = await adapter.CompleteAsync(new(ModelProviderKind.Grok, "grok", "fixture"),
+            new("instructions", "context", "input", "{\"type\":\"object\",\"additionalProperties\":false}"), default);
+        Assert.That(answer.OutputTokens, Is.EqualTo(2));
+    }
+
     [TestCase("enabled")]
     [TestCase("disabled")]
     public async Task DeepSeekThinkingIsExplicitAndOnlyFinalContentEscapes(string mode)

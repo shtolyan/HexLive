@@ -87,6 +87,9 @@ public sealed class HttpModelAdapter : IModelAdapter, IModelCatalog, IDisposable
             payload["messages"] = new[] { new { role = "system", content = instructions }, new { role = "user", content = input.Input } };
             payload["max_tokens"] = 8192;
             payload["response_format"] = new { type = "json_object" };
+            if (_kind == ModelProviderKind.Grok && input.ResponseSchema != null)
+                payload["response_format"] = new { type = "json_schema", json_schema = new
+                { name = "agent_decision", strict = true, schema = JsonSerializer.Deserialize<JsonElement>(input.ResponseSchema) } };
             if (_kind == ModelProviderKind.DeepSeek)
             {
                 if (selection.Reasoning is not (null or "enabled" or "disabled"))

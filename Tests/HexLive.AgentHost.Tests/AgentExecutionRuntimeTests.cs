@@ -5,6 +5,9 @@ using HexLive.Server;
 using HexLive.Server.Mcp;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Core;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Spatial;
 using NUnit.Framework;
@@ -69,6 +72,84 @@ public sealed class AgentExecutionRuntimeTests
         Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].CurrentJunction), Is.EqualTo(destination.Id));
         Assert.That(transport.Executions, Is.EqualTo(2));
         Assert.That(providers.Calls, Is.Zero);
+    }
+
+    [Test]
+    public async Task GiftCommandTransfersThePhysicalItemAndRecordsRecipientReactionWithoutModel()
+    {
+        using var host = Host();
+        var gift = new ItemInstance("food.coconut") { ResourceAmount = 1f };
+        var receiverId = host.Read(w =>
+        {
+            var giver = w.Entities.Npcs[new EntityId(901)];
+            var receiver = w.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony && n.Id != giver.Id);
+            foreach (var person in w.Entities.Npcs.Values) person.Mind.ManualControl = true;
+            giver.Inventory.Items.Clear();
+            receiver.Inventory.Items.Clear();
+            giver.Inventory.Items.Add(gift);
+            receiver.Needs.Thirst = 1f;
+            var from = w.Junctions.Items.Values.First(j => !j.Blocked &&
+                SpatialQueries.IsJunctionFree(w, j.Id) && !SpatialQueries.IsAllWaterJunction(w, j.Id) &&
+                j.Neighbors.Any(id => SpatialQueries.IsJunctionFree(w, id) &&
+                    !SpatialQueries.IsAllWaterJunction(w, id) &&
+                    SpatialQueries.CanTouchAcross(w, j.Id, id, HexSpatialMath.HexRadius * 1.3f)));
+            var to = w.Junctions.Items[from.Neighbors.First(id => SpatialQueries.IsJunctionFree(w, id) &&
+                !SpatialQueries.IsAllWaterJunction(w, id) &&
+                SpatialQueries.CanTouchAcross(w, from.Id, id, HexSpatialMath.HexRadius * 1.3f))];
+            Place(w, giver, from);
+            Place(w, receiver, to);
+            receiver.Social.GetOrCreate(giver.Id).Affinity = 0f;
+            return receiver.Id;
+        });
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("give", "transfer_inventory", JsonSerializer.SerializeToElement(new
+            {
+                otherNpcId = receiverId.Value, source = "Carried", index = 0,
+                expectedDefinitionId = gift.DefinitionId, count = 1, direction = "Give"
+            }))]);
+        var engine = (SimulationEngine)typeof(WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+        var running = Run(runtime, mcp, plan.Id, world);
+        for (var i = 0; !running.IsCompleted && i < 5000; i++)
+        {
+            host.Read(w =>
+            {
+                if (!w.Events.Items.Any(e => e.Type == "GiftGiven")) engine.Step();
+                return true;
+            });
+            await Task.Delay(1);
+        }
+        await running;
+        Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("completed"));
+        host.Read(w =>
+        {
+            Assert.That(w.Entities.Npcs[new EntityId(901)].Inventory.Items, Does.Not.Contain(gift));
+            Assert.That(w.Entities.Npcs[receiverId].Inventory.Items.Single(), Is.SameAs(gift));
+            Assert.That(w.Entities.Npcs[receiverId].Social.GetOrCreate(new EntityId(901)).Affinity, Is.GreaterThan(0));
+            Assert.That(w.Events.Items.Count(e => e.Type == "GiftGiven"), Is.EqualTo(1));
+            return true;
+        });
+        Assert.That(transport.Executions, Is.EqualTo(1));
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
+    private static void Place(WorldState world, NPCState npc, Junction destination)
+    {
+        if (npc.CurrentJunction is { } previous)
+        {
+            SpatialMutations.FreeJunction(world, previous, npc.Id);
+            SpatialMutations.ReleaseJunctionReservation(world, previous, npc.Id);
+        }
+        var oldTile = npc.Tile;
+        npc.CurrentJunction = destination.Id;
+        npc.Position = destination.WorldPosition;
+        npc.Tile = destination.Tiles[0];
+        npc.Fragment = destination.Fragment;
+        SpatialMutations.MoveEntityToTile(world, npc.Id, oldTile, npc.Tile);
+        SpatialMutations.OccupyJunction(world, destination.Id, npc.Id);
     }
 
     [Test]

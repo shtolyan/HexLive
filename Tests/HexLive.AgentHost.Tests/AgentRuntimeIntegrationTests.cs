@@ -101,6 +101,13 @@ public sealed class AgentRuntimeIntegrationTests
             await Until(() => handler.EventReads >= eventsBefore + 2);
             Assert.That(providers.Decisions, Is.EqualTo(3), "archive polling continues while the provider is blocked");
             var archive = new AgentMemorySearch(options.MemoryDirectory); archive.Refresh();
+            // The scheduler also reads events. Its two polls do not prove the
+            // archive writer completed epoch reconciliation and indexed the batch.
+            await Until(() =>
+            {
+                archive.Refresh();
+                return archive.Search("ARCHIVE_EVENT_FIXTURE").Hits.Any(h => h.Record.Source.StartsWith("server-ring:"));
+            });
             Assert.That(archive.Search("Подожди").Hits.Any(h => h.Record.Kind == "player"), Is.True);
             Assert.That(archive.Search("ARCHIVE_EVENT_FIXTURE").Hits.Count(h => h.Record.Source.StartsWith("server-ring:")), Is.EqualTo(1), "Repeated batches are idempotent");
             Assert.That(archive.Search("",new MemoryFilter(Kind:"gap")).Hits,Is.Not.Empty,"Epoch switch creates an explicit gap");

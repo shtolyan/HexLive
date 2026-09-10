@@ -85,6 +85,7 @@ public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecut
             _ => AgentRunState.Running
         };
         public string IntentSummary => runtime.LastIntentSummary;
+        public string DiagnosticsErrorCode => runtime.DiagnosticsErrorCode;
         private readonly CancellationTokenSource _stop = new();
         private Task? _run;
         public async Task RunAsync(CancellationToken cancellationToken)

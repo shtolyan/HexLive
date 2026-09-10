@@ -58,6 +58,7 @@ public sealed partial class MainWindow
                 _activityStatus = selectedStates.Length == 0 ? Strings["StoppedNoRequests"] : string.Join(Environment.NewLine, selectedStates.Select(s =>
                     (Profiles.FirstOrDefault(p => p.Id == s.ProfileId)?.Name ?? s.ProfileId.ToString()) + ": " +
                     Strings["State" + s.State] + (s.ErrorCode == null ? "" : " · " + s.ErrorCode) +
+                    (s.DiagnosticsErrorCode.Length == 0 ? "" : " · " + Strings["DiagnosticsUnavailable"]) +
                     (string.IsNullOrEmpty(s.IntentSummary) ? "" : Environment.NewLine + s.IntentSummary)));
                 PropertyChanged?.Invoke(this, new(nameof(ActivityStatus)));
             }

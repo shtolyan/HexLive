@@ -1,6 +1,7 @@
 namespace HexLive.AgentCore.Studio;
 
-public sealed record AgentFleetStatus(Guid ProfileId, AgentRunState State, string? ErrorCode, string IntentSummary);
+public sealed record AgentFleetStatus(Guid ProfileId, AgentRunState State, string? ErrorCode, string IntentSummary,
+    string DiagnosticsErrorCode = "");
 
 /// <summary>§163: one controller and immutable run configuration per profile; no shared model/voice.</summary>
 public sealed class AgentFleet : IAsyncDisposable
@@ -47,7 +48,7 @@ public sealed class AgentFleet : IAsyncDisposable
     public async Task<IReadOnlyList<AgentFleetStatus>> SnapshotAsync()
     {
         await _gate.WaitAsync().ConfigureAwait(false);
-        try { return _controllers.Select(x => new AgentFleetStatus(x.Key, x.Value.State, x.Value.ErrorCode, x.Value.IntentSummary)).ToArray(); }
+        try { return _controllers.Select(x => new AgentFleetStatus(x.Key, x.Value.State, x.Value.ErrorCode, x.Value.IntentSummary, x.Value.DiagnosticsErrorCode)).ToArray(); }
         finally { _gate.Release(); }
     }
 

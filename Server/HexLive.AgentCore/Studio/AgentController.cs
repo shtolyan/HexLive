@@ -10,6 +10,7 @@ public interface IAgentSessionStatus
 {
     AgentRunState State { get; }
     string IntentSummary { get; }
+    string DiagnosticsErrorCode => "";
 }
 
 /// <summary>§163: explicit local run intent; the transport owns world/NPC validation.</summary>
@@ -25,6 +26,7 @@ public sealed class AgentController : IAsyncDisposable
     public AgentRunState State => (AgentRunState)Volatile.Read(ref _state) == AgentRunState.Running && _session is IAgentSessionStatus status
         ? status.State : (AgentRunState)Volatile.Read(ref _state);
     public string IntentSummary => (_session as IAgentSessionStatus)?.IntentSummary ?? string.Empty;
+    public string DiagnosticsErrorCode => (_session as IAgentSessionStatus)?.DiagnosticsErrorCode ?? string.Empty;
     public string? ErrorCode { get; private set; }
     public AgentController(Func<AgentProfile, CancellationToken, Task<IAgentSession>> connect) => _connect = connect;
 

@@ -147,7 +147,7 @@ recovery address on file.</p>
 
     public static string Dashboard(WorldHost host, AdminAccount account, bool insecureTransport,
         string? notice, bool canSendMail, AssetCatalogOverview catalog,
-        long pinnedCatalogRevision, int actionableBugs)
+        long pinnedCatalogRevision)
     {
         var census = host.Census();
         var body = new StringBuilder();
@@ -199,9 +199,8 @@ recovery address on file.</p>
             .Append("</span></div></div>");
 
         body.Append("<h2>Bug tracker</h2><div class='card'><div class='row'>")
-            .Append("<a href='/admin/bugs'><button type='button' class='primary'>Open bug tracker</button></a>")
-            .Append("<span class='dim'>").Append(actionableBugs)
-            .Append(" actionable reports · central SQLite store</span></div></div>");
+            .Append("<a href='" + RetiredBugTracker.Url + "'><button type='button' class='primary'>Open Flashback</button></a>")
+            .Append("<span class='dim'>Shared bug tracker</span></div></div>");
 
         body.Append("<h2>World clock</h2><div class='card'><div class='row'>");
         body.Append(host.IsPaused

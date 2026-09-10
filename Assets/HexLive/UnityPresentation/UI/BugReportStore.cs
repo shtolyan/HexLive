@@ -177,7 +177,7 @@ namespace HexLive.UnityPresentation.UI
                 context = context,
                 reportedInVersion = Application.version
             };
-            var report = Send<Report>(HttpMethod.Post, "/reports", JsonUtility.ToJson(request), false);
+            var report = Send<Report>(HttpMethod.Post, "/reports", JsonUtility.ToJson(request), true);
             if (report == null) return null;
             EnsureLoaded();
             _model.reports.Add(report);
@@ -419,13 +419,7 @@ namespace HexLive.UnityPresentation.UI
             for (var i=0;i+1<args.Length;i++)
                 if (string.Equals(args[i], argument, StringComparison.OrdinalIgnoreCase))
                     return args[i+1].TrimEnd('/');
-            var websocket = new Uri(SessionConfig.ServerUrl ?? ServerBook.ProductionUrl, UriKind.Absolute);
-            var builder = new UriBuilder(websocket)
-            {
-                Scheme = websocket.Scheme == "wss" ? "https" : "http",
-                Path = "/api/bugs/v1", Query = string.Empty, Fragment = string.Empty
-            };
-            return builder.Uri.ToString().TrimEnd('/');
+            return "https://flashback.62-146-235-120.sslip.io/api/bugs/v1";
         }
 
         private static void Replace(Report report)

@@ -49,7 +49,12 @@ obstacle-блокировки, зоны падения/спавна, пути и
 
 ## ⭐ Server bug tracker (spec §114)
 
-The player files bugs from inside the game into the central server SQLite store.
+The player files bugs into Flashback PostgreSQL in Singapore:
+`https://flashback.62-146-235-120.sslip.io/api/bugs/v1`. The previous production
+New York HTTPS API address proxies to it. Direct game-server APIs and the old Singapore
+hostname return 410. Updated clients use the direct Flashback URL and send Bearer on every
+request; older game builds need the authenticated creation fix.
+The old SQLite store is retired. Flashback requires Bearer authentication on every request, including GET and creation. Agent keys cannot confirm fixed, archive, delete, or manage keys.
 When the user says «разбери баги» / «посмотри баг-трекер», use the project skill
 `.agents/skills/hexlive-bug-tracker/SKILL.md`; do not read the retired reports
 array in `BUGS.json`.
@@ -77,11 +82,15 @@ array in `BUGS.json`.
   history flag for a confirmed fix. Permanent deletion is an explicit player
   or administrator action, never part of the agent workflow.
 - The game polls `/api/bugs/v1/reports` and sends mutations to the same API;
-  the web admin at `/admin/bugs` is another surface over the same rows.
+  the New York HTTPS `/admin/bugs` redirects to Flashback; direct game-server
+  routes return 410 and never access tracker storage.
 - `BUGS.json` is retained only for the Unity MCP lease. Its historical reports
-  are imported into SQLite once and must not be edited or reintroduced.
+  were migrated to Flashback and must not be edited or reintroduced.
 
-Code: `Server/HexLive.Server/Bugs/` (SQLite + API + admin),
+Tracker: `https://github.com/shtolyan/flashback` (PostgreSQL + compatible API + UI).
+The embedded `Server/HexLive.Server/Bugs/` implementation and SQLite dependency
+have been deleted. `RetiredBugTracker.cs` only returns 410 for stale clients.
+Game client:
 `UnityPresentation/UI/BugReportStore.cs` (HTTP client),
 `UI/BugReportPanel.cs` (window), button in `DebugControlsPanel`.
 Основной текст существующего отчёта игрок может отредактировать из карточки;

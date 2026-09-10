@@ -5,23 +5,32 @@ description: Read and mutate HexLive bug reports in the central server tracker, 
 
 # HexLive server bug tracker
 
-The source of truth is `https://163-245-204-96.sslip.io/api/bugs/v1`.
+The source of truth is `https://flashback.62-146-235-120.sslip.io/api/bugs/v1`.
 Use `scripts/bugs.py`; it preserves JSON encoding and surfaces HTTP conflicts.
 
-## Authentication
+## Connection and compatibility
 
-Mutations require the bug-only agent Bearer token. By the project owner's
-explicit decision, the portable token is tracked as `bug-token` beside this
-file in the private repository so every repository checkout can operate the
-tracker. `scripts/bugs.py` checks `HEXLIVE_BUG_TOKEN`, an explicit
-`--token-file`, the repository token, then `~/.config/hexlive/bug-token`.
-On the server the matching token is `/var/lib/hexlive/hexlive-bugs-token.txt`.
-Never print it, paste it into chat/logs, or reuse it for SSH, player control, or
-admin access. If repository visibility ever stops being private, rotate this
-token immediately.
+Production storage is Flashback PostgreSQL in Singapore. The previous
+`https://163-245-204-96.sslip.io/api/bugs/v1` address proxies to the same API,
+so already running agents and game clients remain compatible. The retired
+SQLite database is a backup, not the source of current reports.
 
-Reads and new player reports are public. Status changes, agent fields,
-comments authored by an agent, and deletion are authenticated.
+Every request, including GET and report creation, requires a Bearer access key.
+The updated CLI reads HEXLIVE_BUG_TOKEN, --token-file, the private skill bug-token,
+or ~/.config/hexlive/bug-token. The existing agent key is registered with
+created/in_progress/ready_for_test/rework permissions; it cannot set fixed,
+archive, delete, or manage keys. Use a separate named key per agent when available.
+The player key has all statuses but cannot manage access keys. A distinct admin
+key manages keys in Flashback. Never print token files or include secrets in reports.
+
+Only the old New York HTTPS API remains proxied. Singapore legacy URLs and
+direct game-server ports return 410; do not retry or restore SQLite writers.
+The embedded server implementation has been deleted. Singapore legacy IDs
+373–377 moved to 398–402; IDs 378–397 were preserved. Always reload the
+Flashback card before editing; old Singapore #373–375 refer to different bugs.
+Old clients must send authentication on reads
+and creates too. The game creation call is updated in source and requires a new
+player build. Do not make an anonymous compatibility exception.
 
 ## Workflow
 

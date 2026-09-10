@@ -46,7 +46,7 @@ DEFAULT_DISTRIBUTION = Path.home() / "hex-girls"
 DEFAULT_RELEASES = DEFAULT_DISTRIBUTION / "Releases"
 PROJECT_SETTINGS = ROOT / "ProjectSettings" / "ProjectSettings.asset"
 PENDING_VERSION = ROOT / "Library" / "HexLivePendingBuildVersion.txt"
-BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://163-245-204-96.sslip.io/api/bugs/v1").rstrip("/")
+BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://flashback.62-146-235-120.sslip.io/api/bugs/v1").rstrip("/")
 REPOSITORY_BUG_TOKEN = ROOT / ".agents" / "skills" / "hexlive-bug-tracker" / "bug-token"
 USER_BUG_TOKEN = Path.home() / ".config" / "hexlive" / "bug-token"
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
@@ -191,10 +191,16 @@ def read_bug_tracker_with_windows_tls(url: str) -> Any:
         "15",
         "--header",
         "Accept: application/json",
+        "--config",
+        "-",
         url,
     ]
+    token = os.environ.get("HEXLIVE_BUG_TOKEN", "").strip()
+    if any(c in token for c in '\r\n"\\'):
+        raise RuntimeError("Invalid bug access token")
     result = subprocess.run(
         command,
+        input=('header = "Authorization: Bearer ' + token + '"\n').encode(),
         cwd=ROOT,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -215,7 +221,7 @@ def read_bug_tracker() -> dict[str, Any]:
         if os.name == "nt":
             reports = read_bug_tracker_with_windows_tls(url)
         else:
-            with urllib.request.urlopen(url, timeout=15) as response:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={"Authorization": "Bearer " + os.environ.get("HEXLIVE_BUG_TOKEN", "").strip()}), timeout=15) as response:
                 reports = json.loads(response.read().decode("utf-8"))
     except Exception as error:
         raise RuntimeError(f"Could not read bug API {BUG_API}: {error}") from error

@@ -2,7 +2,7 @@
 """Small stdlib client for the HexLive bug API. Never logs the bearer token."""
 import argparse, json, os, pathlib, subprocess, sys, urllib.error, urllib.request
 
-DEFAULT="https://163-245-204-96.sslip.io/api/bugs/v1"
+DEFAULT="https://flashback.62-146-235-120.sslip.io/api/bugs/v1"
 REPOSITORY_TOKEN=pathlib.Path(__file__).resolve().parents[1]/"bug-token"
 USER_TOKEN=pathlib.Path("~/.config/hexlive/bug-token").expanduser()
 
@@ -23,10 +23,9 @@ def call(args,method,path,payload=None,auth=False):
     data=None if payload is None else json.dumps(payload,ensure_ascii=False).encode()
     headers={"Accept":"application/json"}
     if data is not None: headers["Content-Type"]="application/json"
-    if auth:
-        value=token(args)
-        if not value: raise SystemExit("bug token is missing (environment, --token-file, repository, or user config)")
-        headers["Authorization"]="Bearer "+value
+    value=token(args)
+    if not value: raise SystemExit("bug token is missing (environment, --token-file, repository, or user config)")
+    headers["Authorization"]="Bearer "+value
     request=urllib.request.Request(args.api.rstrip("/")+path,data=data,headers=headers,method=method)
     try:
         with urllib.request.urlopen(request,timeout=15) as response:

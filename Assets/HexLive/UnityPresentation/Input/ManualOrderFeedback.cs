@@ -55,6 +55,7 @@ public static class ManualOrderFeedback
         }
 
         NpcId = npcId;
+        if (reason.StartsWith("UnknownGroundGeometry:", System.StringComparison.Ordinal)) reason = "NoDropSpot";
         ReasonKey = "toast.order_rejected." + reason;
         _stampedAt = Time.unscaledTime;
     }

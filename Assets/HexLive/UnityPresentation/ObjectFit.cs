@@ -21,63 +21,8 @@ namespace HexLive.UnityPresentation
         public const float PalmSegmentLength = 0.7f;
 
         /// World-space target for the object's measured dimension.
-        public static float TargetWorldSize(string definitionId)
-        {
-            var r = SimulationUnityMapper.HexRadius;
-            // §54.2: PalmTreeFactory returns before generic fitting; palm_final
-            // keeps its authored 1:1 dimensions.
-            if (definitionId.Contains("tree")) return r * 2.2f;
-            if (definitionId.Contains("bed")) return r * 0.95f;
-            // A meat chunk reads bigger than a coconut half — 1.5× the standard
-            // food size. Ground, hand and the roasting spit all share this.
-            if (definitionId == "food.meat_raw" || definitionId == "food.meat_cooked") return r * 0.18f;
-            if (definitionId.StartsWith("food.")) return r * 0.12f;
-            // Spec §54.2: a log/stick is a full palm-trunk segment long (big, like
-            // Stranded Deep) — measured by its long axis; the crown and leaf are
-            // sized to sit with the palm.
-            if (definitionId == "resource.log" || definitionId == "resource.stick") return r * PalmSegmentLength;
-            // §119.1: доска — распущенное бревно (saw.log даёт две штуки), а не
-            // ручной инструмент. На общей ручке для resource.* (0.216) она лежала
-            // в траве щепкой втрое короче бревна: модель рисовалась, но игрок её
-            // не находил. 0.5 — заметно меньше бревна и всё же доска.
-            if (definitionId == "resource.board") return r * 0.5f;
-            if (definitionId == "resource.palm_crown") return r * 0.7f;
-            if (definitionId == "resource.palm_leaf") return r * 0.55f;
-            // The spear is a long two-handed weapon — much longer than a hand tool.
-            if (definitionId == "tool.spear") return r * 0.9f;
-            // A rope coil is a small bundle — slightly smaller than a coconut
-            // half (food.* renders at 0.12), not tool-sized.
-            if (definitionId == "resource.rope") return r * 0.10f;
-            // A lighter is a tiny pocket object — 1/3 of the standard tool size,
-            // applied to BOTH ground and hand (0.216 / 3).
-            if (definitionId == "tool.lighter") return r * 0.072f;
-            // A one-litre bottle is shorter than a hand tool. Keep this in the
-            // shared fit table so the ground and hand cannot drift apart again.
-            if (definitionId == "tool.bottle") return r * 0.18f;
-            // Tools & resources: 0.216 = the standard hand/ground tool size
-            // (was 0.18; +20% after in-hand testing, applied to BOTH paths).
-            if (definitionId.StartsWith("tool.") || definitionId.StartsWith("resource.")) return r * 0.216f;
-            // Small carried items (item.bandage…) are pocket-sized, like food.
-            // Without this they fell to the 0.6 default and a bandage roll
-            // rendered campfire-big on the ground and in hand.
-            if (definitionId.StartsWith("item.")) return r * 0.12f;
-            // Bug #341: med.splint is a small carried medical prop. The med.* id
-            // used to miss every category and fall through to the 0.6 default,
-            // making the one-metre source mesh five times too large everywhere.
-            if (definitionId == "med.splint") return r * 0.12f;
-            if (definitionId == "campfire.spot") return r * 0.55f;
-            if (definitionId == "grave.npc") return r * 0.35f;
-            if (definitionId == "rock.boulder") return r * 0.45f;
-            // §35.5B/§54.15: station.drying_rack and station.water_collector are
-            // NOT sized here — drying_rack_final / water_collector_final are
-            // authored 1:1 like the beds and rendered via BedAssembly, whose
-            // renderer branch returns before FitObjectPrefab ever runs. Adding
-            // a factor here would be dead code today and a double-scale the
-            // day that branch changes.
-            if (definitionId == "forest.deadfall" ||
-                definitionId == "construction.site") return r * 0.7f;
-            return r * 0.6f;
-        }
+        public static float TargetWorldSize(string definitionId) =>
+            HexLive.Simulation.Content.GroundPileCatalog.TargetWorldSize(definitionId);
 
         /// Which bounds dimension is normalized for a given category.
         public static float MeasureCurrent(string definitionId, Bounds b)

@@ -1346,7 +1346,7 @@ public sealed class WorldStateFactory
             worldObject.Junctions.Add(tile.Junctions[slot]);
         }
 
-        world.Entities.Objects[worldObject.Id] = worldObject;
+        world.Entities.RegisterObject(worldObject);
         if (!world.Caches.ObjectsByTile.TryGetValue(tileCoord, out var objects))
         {
             objects = new List<ObjectId>();

@@ -479,12 +479,10 @@ public static class Program
                 leases.CollectExpired(expired);
                 foreach (var (npcId, owner) in expired)
                 {
-                    var admission = worlds.Host.SubmitManualCommand(
-                        new HexLive.Simulation.Runtime.SetManualControlCommand(
-                            new HexLive.Simulation.Common.EntityId(npcId), false));
+                    var admission = AgentControlActions.Release(worlds.Host, npcId);
                     Console.WriteLine(
                         $"[control] lease of NPC{npcId} by {owner} expired — " +
-                        $"returned to AI ({admission.Status})");
+                        $"action control released ({admission.Status})");
                 }
             }
         }

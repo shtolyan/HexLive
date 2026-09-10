@@ -1,0 +1,567 @@
+// Bug 396, authoring measurement v2. Execute as one CodeDOM C#6 body.
+// Requires the executing agent's Unity MCP lease. No content network/bundle proof.
+// Uses canonical ResolveWear source, owned Wear clones, real GarmentDropFactory
+// and real GroundVisual. No vertex/index buffers, importer changes or async loads.
+if (UnityEngine.Application.productName != "HexLive") return "FAIL: wrong project";
+if (UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode || UnityEditor.EditorApplication.isCompiling || UnityEditor.EditorApplication.isUpdating)
+    return "FAIL: requires idle EditMode";
+if (!HexLive.UnityPresentation.Wearing.Garments.ContentQueue.IsIdle) return "FAIL: content queue active";
+var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
+var instanceFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+var wardrobeType = typeof(HexLive.UnityPresentation.Wearing.ActorWardrobe);
+var variantsType = typeof(HexLive.UnityPresentation.Wearing.Garments.GarmentVariants);
+var libraryType = typeof(HexLive.Simulation.Content.GarmentLibrary);
+var serviceType = typeof(HexLive.UnityPresentation.Content.ContentAssetService);
+var serviceField = serviceType.GetField("_instance", flags);
+var originalService = serviceField.GetValue(null);
+if (originalService != null)
+{
+    foreach (var fieldName in new[] { "_bundles", "_blobRequests" })
+        if (((System.Collections.IDictionary)serviceType.GetField(fieldName, instanceFlags).GetValue(originalService)).Count != 0)
+            return "FAIL: content service owns bundles/loads; do not replace live wardrobe state";
+}
+var loading = (System.Collections.Generic.HashSet<string>)wardrobeType.GetField("Loading", flags).GetValue(null);
+var handles = (System.Collections.IDictionary)wardrobeType.GetField("Handles", flags).GetValue(null);
+var waiters = (System.Collections.IDictionary)variantsType.GetField("Waiters", flags).GetValue(null);
+if (loading.Count != 0 || handles.Count != 0 || waiters.Count != 0) return "FAIL: wardrobe owns loads/handles";
+foreach (var go in UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.GameObject>())
+{
+    if (!go.scene.IsValid() || !go.activeInHierarchy) continue;
+    foreach (var behaviour in go.GetComponents<UnityEngine.MonoBehaviour>())
+        if (behaviour != null && behaviour.enabled && behaviour.GetType().Name == "SimulationRunnerBehaviour")
+            return "FAIL: active gameplay runner";
+}
+var directory = System.IO.Path.GetFullPath("Build/bug396-diagnosis");
+var resultPath = System.IO.Path.Combine(directory, "garment-ground-bounds.result.json");
+if (System.IO.File.Exists(resultPath))
+{
+    var prior = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(resultPath));
+    if ((bool?)prior["busy"] == true) return "FAIL: previous garment probe still owns state";
+}
+var runId = System.Guid.NewGuid().ToString("N");
+var result = new Newtonsoft.Json.Linq.JObject();
+result["proofVersion"] = 2;
+result["runId"] = runId;
+result["busy"] = true;
+result["passed"] = false;
+result["scope"] = "Authoring source -> canonical wear resolver -> isolated wardrobe clones -> actual ground factory and seating. Not registry/network/bundle/publish verification. Bounds are conservative renderer/mesh-bounds unions, not triangle intersection proof.";
+result["stage"] = "setup";
+var profiles = new Newtonsoft.Json.Linq.JObject();
+var coverage = new Newtonsoft.Json.Linq.JObject();
+var failures = new Newtonsoft.Json.Linq.JArray();
+result["profiles"] = profiles;
+result["coverage"] = coverage;
+result["failures"] = failures;
+var started = UnityEditor.EditorApplication.timeSinceStartup;
+var deadline = started + 180.0;
+System.Action save = delegate {
+    result["elapsedSeconds"] = UnityEditor.EditorApplication.timeSinceStartup - started;
+    System.IO.File.WriteAllText(resultPath, result.ToString(Newtonsoft.Json.Formatting.Indented), new System.Text.UTF8Encoding(false));
+};
+System.Func<UnityEngine.Vector3, Newtonsoft.Json.Linq.JObject> vector = v => new Newtonsoft.Json.Linq.JObject { ["x"] = v.x, ["y"] = v.y, ["z"] = v.z };
+System.Func<UnityEngine.Quaternion, Newtonsoft.Json.Linq.JObject> quaternion = q => new Newtonsoft.Json.Linq.JObject { ["x"] = q.x, ["y"] = q.y, ["z"] = q.z, ["w"] = q.w };
+System.Func<UnityEngine.Matrix4x4, Newtonsoft.Json.Linq.JArray> matrix = delegate(UnityEngine.Matrix4x4 m) {
+    var values = new Newtonsoft.Json.Linq.JArray();
+    for (var row = 0; row < 4; row++) for (var col = 0; col < 4; col++) values.Add(m[row, col]);
+    return values;
+};
+System.Func<UnityEngine.Bounds, Newtonsoft.Json.Linq.JObject> boundsJson = b => new Newtonsoft.Json.Linq.JObject {
+    ["min"] = vector(b.min), ["max"] = vector(b.max), ["center"] = vector(b.center), ["size"] = vector(b.size)
+};
+System.Func<UnityEngine.Transform, Newtonsoft.Json.Linq.JObject> trs = t => new Newtonsoft.Json.Linq.JObject {
+    ["localPosition"] = vector(t.localPosition), ["localRotation"] = quaternion(t.localRotation),
+    ["localScale"] = vector(t.localScale), ["localToWorldMatrixRowMajor"] = matrix(t.localToWorldMatrix)
+};
+System.Func<UnityEngine.Bounds, UnityEngine.Vector3[]> corners = delegate(UnityEngine.Bounds b) {
+    var values = new UnityEngine.Vector3[8];
+    for (var i = 0; i < 8; i++) values[i] = new UnityEngine.Vector3((i & 1) == 0 ? b.min.x : b.max.x, (i & 2) == 0 ? b.min.y : b.max.y, (i & 4) == 0 ? b.min.z : b.max.z);
+    return values;
+};
+System.Func<string, string> sha = delegate(string path) {
+    using (var hash = System.Security.Cryptography.SHA256.Create())
+    using (var stream = System.IO.File.OpenRead(path))
+        return System.BitConverter.ToString(hash.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
+};
+var sourceRecords = new Newtonsoft.Json.Linq.JObject();
+result["sources"] = sourceRecords;
+System.Action<string> recordSource = delegate(string path) {
+    if (string.IsNullOrEmpty(path) || sourceRecords[path] != null) return;
+    var row = new Newtonsoft.Json.Linq.JObject { ["path"] = path };
+    if (System.IO.File.Exists(path)) row["sha256"] = sha(path);
+    if (path.StartsWith("Assets/", System.StringComparison.Ordinal))
+    {
+        row["guid"] = UnityEditor.AssetDatabase.AssetPathToGUID(path);
+        row["dependencyHash"] = UnityEditor.AssetDatabase.GetAssetDependencyHash(path).ToString();
+        if (System.IO.File.Exists(path + ".meta")) row["metaSha256"] = sha(path + ".meta");
+    }
+    sourceRecords[path] = row;
+};
+var cache = (System.Collections.IDictionary)wardrobeType.GetField("Cache", flags).GetValue(null);
+var variantCache = (System.Collections.IDictionary)variantsType.GetField("ById", flags).GetValue(null);
+var cacheBefore = new System.Collections.Generic.List<System.Collections.DictionaryEntry>();
+var variantsBefore = new System.Collections.Generic.List<System.Collections.DictionaryEntry>();
+foreach (System.Collections.DictionaryEntry entry in cache) cacheBefore.Add(entry);
+foreach (System.Collections.DictionaryEntry entry in variantCache) variantsBefore.Add(entry);
+var activeField = libraryType.GetField("_active", flags);
+var spawnableField = libraryType.GetField("_spawnable", flags);
+var activeBefore = activeField.GetValue(null);
+var spawnableBefore = spawnableField.GetValue(null);
+var originalScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+var sceneCountBefore = UnityEngine.SceneManagement.SceneManager.sceneCount;
+var sceneStates = new System.Collections.Generic.List<object>();
+var sceneHandles = new System.Collections.Generic.List<UnityEngine.SceneManagement.Scene>();
+var sceneDirty = new System.Collections.Generic.List<bool>();
+var sceneRoots = new System.Collections.Generic.List<int>();
+for (var i = 0; i < sceneCountBefore; i++)
+{
+    var scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
+    sceneHandles.Add(scene); sceneDirty.Add(scene.isDirty); sceneRoots.Add(scene.rootCount);
+    sceneStates.Add(new { path = scene.path, handle = scene.handle, dirty = scene.isDirty, roots = scene.rootCount });
+}
+result["originalScenes"] = Newtonsoft.Json.Linq.JArray.FromObject(sceneStates);
+var fixtureScene = default(UnityEngine.SceneManagement.Scene);
+var queued = new System.Collections.Generic.List<string>();
+var members = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>(System.StringComparer.Ordinal);
+var allParams = new System.Collections.Generic.Dictionary<string, HexLive.Simulation.Content.GarmentParams>(System.StringComparer.Ordinal);
+var definitions = new System.Collections.Generic.Dictionary<string, HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition>(System.StringComparer.Ordinal);
+var claimedMappings = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.HashSet<string>>(System.StringComparer.Ordinal);
+var sourceTags = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.HashSet<string>>(System.StringComparer.Ordinal);
+var allRetired = new System.Collections.Generic.Dictionary<string, bool>(System.StringComparer.Ordinal);
+var declaredGroundBranches = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.HashSet<bool>>(System.StringComparer.Ordinal);
+var branchSamples = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.Dictionary<bool, HexLive.Simulation.Content.GarmentParams>>(System.StringComparer.Ordinal);
+var branchOrigins = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.Dictionary<bool, System.Collections.Generic.HashSet<string>>>(System.StringComparer.Ordinal);
+var prototypeBranches = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.HashSet<bool>>(System.StringComparer.Ordinal);
+var ownedObjects = new System.Collections.Generic.List<UnityEngine.GameObject>();
+var ownedMeshes = new System.Collections.Generic.List<UnityEngine.Mesh>();
+var ownedMaterials = new System.Collections.Generic.List<UnityEngine.Material>();
+var seenOwnedIds = new System.Collections.Generic.HashSet<int>();
+var borrowedTransientIds = new System.Collections.Generic.HashSet<int>();
+foreach (var mesh in UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Mesh>()) if (!UnityEditor.EditorUtility.IsPersistent(mesh)) borrowedTransientIds.Add(mesh.GetInstanceID());
+foreach (var material in UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Material>()) if (!UnityEditor.EditorUtility.IsPersistent(material)) borrowedTransientIds.Add(material.GetInstanceID());
+var persistentSources = new System.Collections.Generic.List<UnityEngine.Object>();
+var persistentDirtyBefore = new System.Collections.Generic.List<bool>();
+var persistentSourceIds = new System.Collections.Generic.HashSet<int>();
+System.Action<UnityEngine.Object> rememberPersistent = delegate(UnityEngine.Object asset) {
+    if (asset != null && UnityEditor.EditorUtility.IsPersistent(asset) && persistentSourceIds.Add(asset.GetInstanceID()))
+    { persistentSources.Add(asset); persistentDirtyBefore.Add(UnityEditor.EditorUtility.IsDirty(asset)); }
+};
+System.Action<UnityEngine.GameObject> trackOwned = delegate(UnityEngine.GameObject root) {
+    foreach (var transform in root.GetComponentsInChildren<UnityEngine.Transform>(true))
+        if (seenOwnedIds.Add(transform.gameObject.GetInstanceID())) ownedObjects.Add(transform.gameObject);
+    var meshes = new System.Collections.Generic.List<UnityEngine.Mesh>();
+    foreach (var filter in root.GetComponentsInChildren<UnityEngine.MeshFilter>(true)) if (filter.sharedMesh != null) meshes.Add(filter.sharedMesh);
+    foreach (var renderer in root.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true)) if (renderer.sharedMesh != null) meshes.Add(renderer.sharedMesh);
+    foreach (var mesh in meshes)
+    {
+        if (UnityEditor.EditorUtility.IsPersistent(mesh)) { rememberPersistent(mesh); continue; }
+        if (!borrowedTransientIds.Contains(mesh.GetInstanceID()) && seenOwnedIds.Add(mesh.GetInstanceID())) ownedMeshes.Add(mesh);
+    }
+    foreach (var renderer in root.GetComponentsInChildren<UnityEngine.Renderer>(true))
+        foreach (var material in renderer.sharedMaterials)
+        {
+            if (material == null) continue;
+            if (UnityEditor.EditorUtility.IsPersistent(material)) { rememberPersistent(material); continue; }
+            if (!borrowedTransientIds.Contains(material.GetInstanceID()) && seenOwnedIds.Add(material.GetInstanceID())) ownedMaterials.Add(material);
+        }
+};
+System.Action destroyRemainingOwnedAssets = delegate {
+    foreach (var mesh in ownedMeshes) if (mesh != null) UnityEngine.Object.DestroyImmediate(mesh);
+    foreach (var material in ownedMaterials) if (material != null) UnityEngine.Object.DestroyImmediate(material);
+};
+var index = 0;
+var done = false;
+var cleanupSucceeded = false;
+UnityEditor.EditorApplication.CallbackFunction update = null;
+System.Action cleanup = null;
+// All generated meshes are private to the factory root. Clear its production
+// owner list before DestroyImmediate: its usual Destroy() is deferred for Play.
+System.Action<UnityEngine.GameObject> destroyOwned = delegate(UnityEngine.GameObject go) {
+    if (go == null) return;
+    trackOwned(go);
+    foreach (var component in go.GetComponentsInChildren<UnityEngine.MonoBehaviour>(true))
+    {
+        if (component == null || component.GetType().Name != "GeneratedMeshOwner") continue;
+        var field = component.GetType().GetField("_meshes", instanceFlags);
+        var meshes = field == null ? null : field.GetValue(component) as System.Collections.IList;
+        if (meshes == null) continue;
+        var owned = new System.Collections.Generic.List<UnityEngine.Mesh>();
+        foreach (var item in meshes) { var mesh = item as UnityEngine.Mesh; if (mesh != null) owned.Add(mesh); }
+        meshes.Clear();
+        foreach (var mesh in owned)
+        {
+            if (UnityEditor.AssetDatabase.Contains(mesh)) throw new System.InvalidOperationException("Factory ownership incorrectly includes a persistent mesh");
+            UnityEngine.Object.DestroyImmediate(mesh);
+        }
+    }
+    UnityEngine.Object.DestroyImmediate(go);
+};
+cleanup = delegate {
+    var errors = new Newtonsoft.Json.Linq.JArray();
+    try
+    {
+        if (fixtureScene.IsValid())
+            foreach (var root in fixtureScene.GetRootGameObjects())
+                try { destroyOwned(root); } catch (System.Exception e) { errors.Add("objects: " + e.GetBaseException().Message); }
+    }
+    finally
+    {
+        try { destroyRemainingOwnedAssets(); }
+        catch (System.Exception e) { errors.Add("owned mesh/material cleanup: " + e.Message); }
+        try { cache.Clear(); foreach (var entry in cacheBefore) cache.Add(entry.Key, entry.Value); }
+        catch (System.Exception e) { errors.Add("wardrobe restore: " + e.Message); }
+        try { variantCache.Clear(); foreach (var entry in variantsBefore) variantCache.Add(entry.Key, entry.Value); }
+        catch (System.Exception e) { errors.Add("variant restore: " + e.Message); }
+        try { activeField.SetValue(null, activeBefore); spawnableField.SetValue(null, spawnableBefore); }
+        catch (System.Exception e) { errors.Add("library restore: " + e.Message); }
+        try
+        {
+            if (originalScene.IsValid()) UnityEngine.SceneManagement.SceneManager.SetActiveScene(originalScene);
+            if (fixtureScene.IsValid() && fixtureScene.rootCount == 0) UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(fixtureScene);
+        }
+        catch (System.Exception e) { errors.Add("scene restore: " + e.Message); }
+    }
+    var dictionariesRestored = cache.Count == cacheBefore.Count && variantCache.Count == variantsBefore.Count;
+    foreach (var entry in cacheBefore) dictionariesRestored &= cache.Contains(entry.Key) && object.ReferenceEquals(cache[entry.Key], entry.Value);
+    foreach (var entry in variantsBefore) dictionariesRestored &= variantCache.Contains(entry.Key) && object.ReferenceEquals(variantCache[entry.Key], entry.Value);
+    var libraryRestored = object.ReferenceEquals(activeBefore, activeField.GetValue(null)) && object.ReferenceEquals(spawnableBefore, spawnableField.GetValue(null));
+    var scenesRestored = UnityEngine.SceneManagement.SceneManager.sceneCount == sceneCountBefore && UnityEngine.SceneManagement.SceneManager.GetActiveScene() == originalScene;
+    for (var i = 0; i < sceneHandles.Count; i++) scenesRestored &= sceneHandles[i].IsValid() && sceneHandles[i].isDirty == sceneDirty[i] && sceneHandles[i].rootCount == sceneRoots[i];
+    var noLoads = loading.Count == 0 && waiters.Count == 0 && HexLive.UnityPresentation.Wearing.Garments.ContentQueue.IsIdle && object.ReferenceEquals(serviceField.GetValue(null), originalService);
+    var liveObjects = 0; var liveMeshes = 0; var liveMaterials = 0;
+    foreach (var value in ownedObjects) if (value != null) liveObjects++;
+    foreach (var value in ownedMeshes) if (value != null) liveMeshes++;
+    foreach (var value in ownedMaterials) if (value != null) liveMaterials++;
+    var persistentUnchanged = true;
+    for (var i = 0; i < persistentSources.Count; i++) persistentUnchanged &= persistentSources[i] != null && UnityEditor.EditorUtility.IsDirty(persistentSources[i]) == persistentDirtyBefore[i];
+    cleanupSucceeded = errors.Count == 0 && !fixtureScene.IsValid() && dictionariesRestored && libraryRestored && scenesRestored && noLoads && liveObjects == 0 && liveMeshes == 0 && liveMaterials == 0 && persistentUnchanged;
+    result["cleanup"] = new Newtonsoft.Json.Linq.JObject { ["succeeded"] = cleanupSucceeded, ["errors"] = errors, ["cacheRestored"] = dictionariesRestored, ["libraryRestored"] = libraryRestored, ["scenesRestored"] = scenesRestored, ["noLoads"] = noLoads, ["persistentSourceDirtyFlagsUnchanged"] = persistentUnchanged,
+        ["ownedGameObjectsTracked"] = ownedObjects.Count, ["ownedMeshesTracked"] = ownedMeshes.Count, ["ownedMaterialsTracked"] = ownedMaterials.Count,
+        ["liveOwnedGameObjects"] = liveObjects, ["liveOwnedMeshes"] = liveMeshes, ["liveOwnedMaterials"] = liveMaterials,
+        ["allocationProofScope"] = "Explicit owned references destroyed; total loaded Resources count is not an allocation baseline because authoring assets are loaded persistently by AssetDatabase." };
+    result["busy"] = !cleanupSucceeded;
+    result["passed"] = cleanupSucceeded && failures.Count == 0 && queued.Count > 0 && index == queued.Count;
+    result["stage"] = cleanupSucceeded ? "complete" : "cleanup-needs-attention";
+    save();
+    if (cleanupSucceeded) UnityEditor.EditorApplication.update -= update;
+};
+System.Action<string, string, bool, string> addCoverage = delegate(string id, string prototype, bool retired, string origin) {
+    if (string.IsNullOrEmpty(id)) return;
+    if (string.IsNullOrEmpty(prototype)) prototype = id;
+    if (!claimedMappings.ContainsKey(id))
+    {
+        claimedMappings[id] = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+        sourceTags[id] = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+        allRetired[id] = false;
+    }
+    claimedMappings[id].Add(prototype); sourceTags[id].Add(origin); allRetired[id] |= retired;
+};
+System.Action<HexLive.Simulation.Content.GarmentParams, string> recordBranch = delegate(HexLive.Simulation.Content.GarmentParams param, string origin) {
+    if (!declaredGroundBranches.ContainsKey(param.Id)) declaredGroundBranches[param.Id] = new System.Collections.Generic.HashSet<bool>();
+    var keepsShape = param.Category == HexLive.Simulation.Content.GarmentCategory.Footwear || param.Category == HexLive.Simulation.Content.GarmentCategory.Bag || param.Category == HexLive.Simulation.Content.GarmentCategory.Headwear || param.Layer == HexLive.Simulation.Content.WearLayer.Bags;
+    declaredGroundBranches[param.Id].Add(keepsShape);
+    if (!branchSamples.ContainsKey(param.Id)) branchSamples[param.Id] = new System.Collections.Generic.Dictionary<bool, HexLive.Simulation.Content.GarmentParams>();
+    branchSamples[param.Id][keepsShape] = param;
+    if (!branchOrigins.ContainsKey(param.Id)) branchOrigins[param.Id] = new System.Collections.Generic.Dictionary<bool, System.Collections.Generic.HashSet<string>>();
+    if (!branchOrigins[param.Id].ContainsKey(keepsShape)) branchOrigins[param.Id][keepsShape] = new System.Collections.Generic.HashSet<string>();
+    branchOrigins[param.Id][keepsShape].Add(origin);
+};
+System.Action<string, bool> measure = delegate(string prototype, bool requestedShape) {
+    var itemIds = members[prototype];
+    var representative = itemIds.Contains(prototype) ? prototype : itemIds[0];
+    if (branchSamples.ContainsKey(representative) && !branchSamples[representative].ContainsKey(requestedShape))
+        foreach (var id in itemIds) if (branchSamples.ContainsKey(id) && branchSamples[id].ContainsKey(requestedShape)) { representative = id; break; }
+    var sampleParams = new System.Collections.Generic.List<HexLive.Simulation.Content.GarmentParams>(allParams.Values);
+    HexLive.Simulation.Content.GarmentParams actualSample = null;
+    if (branchSamples.ContainsKey(representative) && branchSamples[representative].ContainsKey(requestedShape))
+    {
+        actualSample = branchSamples[representative][requestedShape];
+        for (var i = 0; i < sampleParams.Count; i++) if (sampleParams[i].Id == representative) sampleParams[i] = actualSample;
+    }
+    HexLive.Simulation.Content.GarmentLibrary.Override(sampleParams);
+    var bundleId = HexLive.UnityPresentation.Wearing.WearArtAliases.ArtId(representative);
+    var definition = definitions[bundleId];
+    var resolver = typeof(AtomicContentBatchBuild).GetMethod("ResolveWear", flags);
+    var resolved = resolver.Invoke(null, new object[] { bundleId });
+    var path = (string)resolved.GetType().GetField("Main", instanceFlags).GetValue(resolved);
+    var metadataPath = (string)resolved.GetType().GetField("Metadata", instanceFlags).GetValue(resolved);
+    var source = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(path);
+    if (source == null || source.GetComponent<HexLive.UnityPresentation.Wearing.Wear>() == null) throw new System.InvalidOperationException("Canonical prefab lacks root Wear: " + path);
+    rememberPersistent(source); rememberPersistent(definition);
+    foreach (var component in source.GetComponentsInChildren<UnityEngine.Component>(true)) rememberPersistent(component);
+    var keepsShape = HexLive.Simulation.Content.GarmentStorageCategories.KeepsShapeOnGround(representative);
+    if (keepsShape != requestedShape) throw new System.InvalidOperationException("No actual parameter sample for requested ground branch");
+    foreach (var id in itemIds)
+    {
+        var aliasId = HexLive.UnityPresentation.Wearing.WearArtAliases.ArtId(id);
+        if (!definitions.ContainsKey(aliasId) || definitions[aliasId].ArtId != definition.ArtId)
+            throw new System.InvalidOperationException("Prototype maps to different/missing source art: " + id);
+        recordSource(UnityEditor.AssetDatabase.GetAssetPath(definitions[aliasId]));
+    }
+    recordSource(path); recordSource(metadataPath);
+    var sourceClone = UnityEngine.Object.Instantiate(source);
+    sourceClone.name = "396 owned source " + prototype;
+    UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(sourceClone, fixtureScene);
+    trackOwned(sourceClone);
+    // Retain authored root basis exactly; never overwrite FBX/prefab conversion.
+    var clonedWear = sourceClone.GetComponent<HexLive.UnityPresentation.Wearing.Wear>();
+    foreach (var behaviour in sourceClone.GetComponentsInChildren<UnityEngine.Behaviour>(true)) behaviour.enabled = false;
+    var boneTransforms = sourceClone.GetComponentsInChildren<UnityEngine.Transform>(true);
+    var bonePositions = new UnityEngine.Vector3[boneTransforms.Length];
+    var boneRotations = new UnityEngine.Quaternion[boneTransforms.Length];
+    var boneScales = new UnityEngine.Vector3[boneTransforms.Length];
+    for (var i = 0; i < boneTransforms.Length; i++) { bonePositions[i] = boneTransforms[i].localPosition; boneRotations[i] = boneTransforms[i].localRotation; boneScales[i] = boneTransforms[i].localScale; }
+    cache[representative] = new System.Collections.Generic.List<HexLive.UnityPresentation.Wearing.Wear> { clonedWear };
+    variantCache[representative] = definition;
+    // Factory has no parent argument. Synchronous root creation starts in the
+    // original active scene, then moves immediately to our preview. If Build
+    // throws, take only its exact newly created root, never an existing object.
+    var rootsBefore = new System.Collections.Generic.HashSet<int>();
+    foreach (var root in originalScene.GetRootGameObjects()) rootsBefore.Add(root.GetInstanceID());
+    UnityEngine.GameObject built = null;
+    try { built = HexLive.UnityPresentation.Wearing.GarmentDropFactory.Build(representative); }
+    finally
+    {
+        foreach (var root in originalScene.GetRootGameObjects())
+            if (!rootsBefore.Contains(root.GetInstanceID()) && root.name == "GarmentDrop " + representative)
+            { UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(root, fixtureScene); trackOwned(root); }
+    }
+    if (built == null) throw new System.InvalidOperationException("Factory returned no ground model");
+    UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(built, fixtureScene);
+    trackOwned(built);
+    var basisBeforeScale = trs(built.transform);
+    var anchor = new UnityEngine.GameObject("396 ground anchor " + prototype);
+    UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(anchor, fixtureScene);
+    trackOwned(anchor);
+    built.transform.SetParent(anchor.transform, false);
+    var scale = HexLive.UnityPresentation.Rendering.HexWorldRenderer.ActorScale;
+    if (System.Math.Abs(scale - 0.7764705882352941) > 0.000001) throw new System.InvalidOperationException("Renderer scale contract changed: " + scale);
+    built.transform.localScale = UnityEngine.Vector3.one * scale;
+    built.transform.localRotation = UnityEngine.Quaternion.identity; // unyawed sample; production id yaw is a later catalog transform
+    typeof(HexLive.UnityPresentation.Rendering.HexWorldRenderer).GetMethod("GroundVisual", flags).Invoke(null, new object[] { built, .01f });
+    var renderers = built.GetComponentsInChildren<UnityEngine.MeshRenderer>();
+    if (renderers.Length == 0) throw new System.InvalidOperationException("No factory MeshRenderer");
+    var bounds = renderers[0].bounds;
+    var meshBounds = new UnityEngine.Bounds();
+    var hasMeshBounds = false;
+    var rendererRows = new Newtonsoft.Json.Linq.JArray();
+    foreach (var renderer in renderers)
+    {
+        bounds.Encapsulate(renderer.bounds);
+        var filter = renderer.GetComponent<UnityEngine.MeshFilter>();
+        if (filter == null || filter.sharedMesh == null) throw new System.InvalidOperationException("Renderer missing mesh");
+        var mesh = filter.sharedMesh;
+        var toAnchor = anchor.transform.worldToLocalMatrix * renderer.transform.localToWorldMatrix;
+        foreach (var corner in corners(mesh.bounds))
+        {
+            var point = toAnchor.MultiplyPoint3x4(corner);
+            if (!hasMeshBounds) { meshBounds = new UnityEngine.Bounds(point, UnityEngine.Vector3.zero); hasMeshBounds = true; }
+            else meshBounds.Encapsulate(point);
+        }
+        var materialRows = new Newtonsoft.Json.Linq.JArray();
+        foreach (var material in renderer.sharedMaterials) materialRows.Add(material == null ? null : new Newtonsoft.Json.Linq.JObject { ["name"] = material.name, ["path"] = UnityEditor.AssetDatabase.GetAssetPath(material), ["shader"] = material.shader == null ? null : material.shader.name });
+        rendererRows.Add(new Newtonsoft.Json.Linq.JObject { ["name"] = renderer.name, ["meshName"] = mesh.name, ["vertexCount"] = mesh.vertexCount, ["subMeshCount"] = mesh.subMeshCount, ["meshBounds"] = boundsJson(mesh.bounds), ["meshToAnchorMatrixRowMajor"] = matrix(toAnchor), ["rendererBounds"] = boundsJson(renderer.bounds), ["materials"] = materialRows });
+    }
+    if ((bounds.min - meshBounds.min).magnitude > .0001f || (bounds.max - meshBounds.max).magnitude > .0001f) throw new System.InvalidOperationException("Renderer bounds disagree with transformed safe mesh bounds");
+    foreach (var point in corners(bounds))
+        if (float.IsNaN(point.x) || float.IsNaN(point.y) || float.IsNaN(point.z) || float.IsInfinity(point.x) || float.IsInfinity(point.y) || float.IsInfinity(point.z))
+            throw new System.InvalidOperationException("Nonfinite ground bounds");
+    if (bounds.size.x <= 0 || bounds.size.y <= 0 || bounds.size.z <= 0 || System.Math.Abs(bounds.min.y - .01f) > .0001f) throw new System.InvalidOperationException("Invalid/nonseated ground bounds");
+    for (var i = 0; i < boneTransforms.Length; i++)
+        if ((boneTransforms[i].localPosition - bonePositions[i]).magnitude > .00001f || UnityEngine.Quaternion.Angle(boneTransforms[i].localRotation, boneRotations[i]) > .01f || (boneTransforms[i].localScale - boneScales[i]).magnitude > .00001f)
+            throw new System.InvalidOperationException("Factory did not restore owned source bone: " + boneTransforms[i].name);
+    var sourceMeshes = new Newtonsoft.Json.Linq.JArray();
+    foreach (var smr in source.GetComponentsInChildren<UnityEngine.SkinnedMeshRenderer>(true))
+    {
+        if (smr.sharedMesh == null) continue;
+        var meshPath = UnityEditor.AssetDatabase.GetAssetPath(smr.sharedMesh);
+        recordSource(meshPath);
+        sourceMeshes.Add(new Newtonsoft.Json.Linq.JObject { ["renderer"] = smr.name, ["meshName"] = smr.sharedMesh.name, ["meshPath"] = meshPath, ["meshBounds"] = boundsJson(smr.sharedMesh.bounds), ["sourceRootRelativeMatrixRowMajor"] = matrix(source.transform.worldToLocalMatrix * smr.transform.localToWorldMatrix) });
+    }
+    var cornerRows = new Newtonsoft.Json.Linq.JArray();
+    var radius = 0.0;
+    foreach (var point in corners(bounds)) { cornerRows.Add(vector(point)); radius = System.Math.Max(radius, System.Math.Sqrt(point.x * point.x + point.z * point.z)); }
+    profiles[prototype] = new Newtonsoft.Json.Linq.JObject {
+        ["prototypeId"] = prototype, ["sourceArtId"] = definition.ArtId, ["wearBundleId"] = bundleId,
+        ["representativeDefinitionId"] = representative, ["definitionIds"] = new Newtonsoft.Json.Linq.JArray(itemIds),
+        ["sourcePrefab"] = path, ["sourceMetadata"] = metadataPath, ["sourceRootTRS"] = trs(source.transform), ["sourceMeshes"] = sourceMeshes,
+        ["factoryRootTRSBeforeRenderer"] = basisBeforeScale, ["factoryRootTRSAfterSeating"] = trs(built.transform),
+        ["frame"] = "ground-anchor local wu, scale applied, yaw 0, ground seating lift .01; source mesh origin retained",
+        ["rendererScale"] = scale, ["groundLift"] = .01, ["keepsShapeOnGround"] = keepsShape,
+        ["sampleParameters"] = actualSample == null ? null : new Newtonsoft.Json.Linq.JObject { ["definitionId"] = actualSample.Id, ["prototypeId"] = actualSample.PrototypeId, ["category"] = actualSample.Category.ToString(), ["layer"] = actualSample.Layer.ToString(), ["retired"] = actualSample.Retired },
+        ["parameterProvenance"] = actualSample == null ? new Newtonsoft.Json.Linq.JArray("Dress-only object has no GarmentParams row") : new Newtonsoft.Json.Linq.JArray(branchOrigins[representative][requestedShape]),
+        ["scaledBounds"] = boundsJson(bounds), ["localCorners"] = cornerRows, ["radiusXZ"] = radius,
+        ["renderers"] = rendererRows, ["sourceBonesRestored"] = true, ["passed"] = true
+    };
+    foreach (var id in itemIds) { coverage[id]["measured"] = true; coverage[id]["profileId"] = prototype; }
+};
+// Cleanup callback exists before any scene/cache mutation. No asynchronous native
+// operations are started, so timeout/exception can always stop and clean up now.
+update = delegate {
+    if (done) { cleanup(); return; }
+    try
+    {
+        if (UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode || UnityEditor.EditorApplication.isCompiling || UnityEditor.EditorApplication.isUpdating || UnityEditor.EditorApplication.timeSinceStartup > deadline)
+            throw new System.InvalidOperationException("Editor changed state or bounded 180s deadline reached");
+        if (index < queued.Count)
+        {
+            var key = queued[index]; result["stage"] = "measuring " + key;
+            try
+            {
+                var poses = new Newtonsoft.Json.Linq.JArray();
+                var merged = new UnityEngine.Bounds(); var hasMerged = false;
+                foreach (var branch in prototypeBranches[key])
+                {
+                    measure(key, branch);
+                    var pose = (Newtonsoft.Json.Linq.JObject)profiles[key].DeepClone();
+                    poses.Add(pose);
+                    var minimum = pose["scaledBounds"]["min"]; var maximum = pose["scaledBounds"]["max"];
+                    var low = new UnityEngine.Vector3((float)minimum["x"], (float)minimum["y"], (float)minimum["z"]);
+                    var high = new UnityEngine.Vector3((float)maximum["x"], (float)maximum["y"], (float)maximum["z"]);
+                    if (!hasMerged) { merged = new UnityEngine.Bounds(low, UnityEngine.Vector3.zero); hasMerged = true; }
+                    else merged.Encapsulate(low);
+                    merged.Encapsulate(high);
+                    foreach (var root in fixtureScene.GetRootGameObjects()) destroyOwned(root);
+                    destroyRemainingOwnedAssets();
+                }
+                var mergedCorners = new Newtonsoft.Json.Linq.JArray(); var mergedRadius = 0.0;
+                foreach (var point in corners(merged)) { mergedCorners.Add(vector(point)); mergedRadius = System.Math.Max(mergedRadius, System.Math.Sqrt(point.x * point.x + point.z * point.z)); }
+                var profile = (Newtonsoft.Json.Linq.JObject)poses[0].DeepClone();
+                profile["poses"] = poses; profile["scaledBounds"] = boundsJson(merged); profile["localCorners"] = mergedCorners; profile["radiusXZ"] = mergedRadius;
+                profile["poseCoverage"] = poses.Count == 1 ? "single supported ground branch" : "conservative union of all observed supported ground branches; parameter-source disagreement retained";
+                profile.Remove("factoryRootTRSAfterSeating"); profile.Remove("renderers"); profile.Remove("keepsShapeOnGround"); profile.Remove("sampleParameters");
+                profiles[key] = profile;
+            }
+            catch (System.Exception e) { failures.Add(key + ": " + e.GetBaseException().Message); }
+            finally
+            {
+                foreach (var root in fixtureScene.GetRootGameObjects()) destroyOwned(root);
+                destroyRemainingOwnedAssets();
+                cache.Clear(); foreach (var entry in cacheBefore) cache.Add(entry.Key, entry.Value);
+                variantCache.Clear(); foreach (var entry in variantsBefore) variantCache.Add(entry.Key, entry.Value);
+            }
+            index++; result["completedPrototypes"] = index; save();
+            return;
+        }
+        // An actual-bounds SVG: every cell has the SAME wu scale. The anchor is
+        // drawn separately, so source offsets never disappear through recentering.
+        var maxRadius = .1;
+        foreach (var property in profiles.Properties()) maxRadius = System.Math.Max(maxRadius, (double)property.Value["radiusXZ"]);
+        var pixelsPerWu = 65.0 / maxRadius;
+        var rowCount = (profiles.Count + 4) / 5;
+        var svg = new System.Text.StringBuilder();
+        svg.Append("<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='").Append(80 + rowCount * 200).Append("' viewBox='0 0 1200 ").Append(80 + rowCount * 200).Append("'><rect width='100%' height='100%' fill='#131923'/><g fill='#edf1f8' font-family='Arial' font-size='11'><text x='20' y='25'>Одежда на земле: реальные границы фабрики; одинаковый масштаб, крест = точка размещения</text><text x='20' y='45'>Yaw 0; scale 0.7764705882352941; lift 0.01 wu; контур = консервативная проекция bounds</text>");
+        var n = 0;
+        foreach (var property in profiles.Properties())
+        {
+            var cellX = 120 + n % 5 * 240; var cellY = 135 + n / 5 * 200;
+            var min = property.Value["scaledBounds"]["min"]; var size = property.Value["scaledBounds"]["size"];
+            var fmt = System.Globalization.CultureInfo.InvariantCulture;
+            svg.Append("<path d='M ").Append(cellX - 5).Append(' ').Append(cellY).Append(" h10 M ").Append(cellX).Append(' ').Append(cellY - 5).Append(" v10' stroke='#fbba63'/><rect x='").Append((cellX + (double)min["x"] * pixelsPerWu).ToString("F3", fmt)).Append("' y='").Append((cellY - ((double)min["z"] + (double)size["z"]) * pixelsPerWu).ToString("F3", fmt)).Append("' width='").Append(((double)size["x"] * pixelsPerWu).ToString("F3", fmt)).Append("' height='").Append(((double)size["z"] * pixelsPerWu).ToString("F3", fmt)).Append("' fill='#487dc0' fill-opacity='.25' stroke='#a3c8ff'/><text x='").Append(cellX - 112).Append("' y='").Append(cellY + 83).Append("'>").Append(System.Security.SecurityElement.Escape(property.Name)).Append("</text><text x='").Append(cellX - 112).Append("' y='").Append(cellY + 98).Append("'>X ").Append(((double)size["x"]).ToString("F4", fmt)).Append(" · Y ").Append(((double)size["y"]).ToString("F4", fmt)).Append(" · Z ").Append(((double)size["z"]).ToString("F4", fmt)).Append(" wu</text>"); n++;
+        }
+        svg.Append("</g></svg>");
+        System.IO.File.WriteAllText(System.IO.Path.Combine(directory, "garment-ground-bounds.svg"), svg.ToString(), new System.Text.UTF8Encoding(false));
+        result["svg"] = System.IO.Path.Combine(directory, "garment-ground-bounds.svg");
+        done = true; cleanup();
+    }
+    catch (System.Exception e) { failures.Add(e.GetBaseException().Message); done = true; cleanup(); }
+};
+UnityEditor.EditorApplication.update += update;
+try
+{
+    foreach (var param in HexLive.Simulation.Content.GarmentLibrary.Defaults)
+    { allParams[param.Id] = param; addCoverage(param.Id, param.PrototypeId, param.Retired, "defaults"); recordBranch(param, "defaults"); }
+    foreach (var param in HexLive.Simulation.Content.GarmentLibrary.Active)
+    { allParams[param.Id] = param; addCoverage(param.Id, param.PrototypeId, param.Retired, "active-at-entry"); recordBranch(param, "active-at-entry"); }
+    var simData = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText("SimData/simdata.json"));
+    foreach (var token in simData["garments"])
+    {
+        var id = (string)token["id"];
+        addCoverage(id, (string)token["prototypeId"] ?? id, (bool?)token["retired"] ?? false, "simdata");
+        // Match SimDataFile.ApplyGarments construction without calling its global
+        // balance/content mutation pipeline. Category is derived by this ctor.
+        var cover = new System.Collections.Generic.List<HexLive.Simulation.Content.BodyPart>();
+        foreach (var value in token["covers"])
+        {
+            HexLive.Simulation.Content.BodyPart bodyPart;
+            if (System.Enum.TryParse<HexLive.Simulation.Content.BodyPart>((string)value, true, out bodyPart)) cover.Add(bodyPart);
+        }
+        HexLive.Simulation.Content.WearLayer layer;
+        if (!System.Enum.TryParse<HexLive.Simulation.Content.WearLayer>((string)token["layer"], true, out layer)) layer = HexLive.Simulation.Content.WearLayer.Wear;
+        var fromSaveData = new HexLive.Simulation.Content.GarmentParams(id, (string)token["displayName"], layer, (float?)token["warmth"] ?? 0f, (float?)token["armor"] ?? 0f, (float?)token["thermalDelta"] ?? 0f, (int?)token["dressDurationTicks"] ?? 20, (int?)token["capacity"] ?? 0, cover.ToArray());
+        fromSaveData.PrototypeId = (string)token["prototypeId"] ?? id;
+        fromSaveData.Retired = (bool?)token["retired"] ?? false;
+        allParams[id] = fromSaveData; recordBranch(fromSaveData, "simdata-constructor");
+    }
+    // Legacy/crafted garments can be Dress objects without any GarmentParams row.
+    // In particular leather_pants borrows pants_biker through WearArtAliases.
+    // Preserve the absence of params: do not invent a bag/footwear classification.
+    foreach (var token in simData["worldObjects"])
+    {
+        var interactions = token["interactions"] as Newtonsoft.Json.Linq.JArray;
+        if (interactions == null) continue;
+        var dress = false;
+        foreach (var interaction in interactions) if ((string)interaction["type"] == "Dress") dress = true;
+        if (!dress) continue;
+        var id = (string)token["id"];
+        // The object view does not serialize PrototypeId; reuse an existing
+        // authoritative mapping instead of claiming an invented id->id conflict.
+        if (!claimedMappings.ContainsKey(id)) addCoverage(id, id, false, "simdata-object-dress");
+        else sourceTags[id].Add("simdata-object-dress");
+    }
+    foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:GarmentDefinition", new[] { "Assets/HexLive/UnityPresentation/Wearing/Garments/Assets" }))
+    {
+        var definition = UnityEditor.AssetDatabase.LoadAssetAtPath<HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition>(UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
+        if (definition == null || string.IsNullOrEmpty(definition.id)) continue;
+        if (definitions.ContainsKey(definition.id)) throw new System.InvalidOperationException("Duplicate authored garment definition: " + definition.id);
+        definitions.Add(definition.id, definition);
+        addCoverage(definition.id, definition.ArtId, definition.retired, "authored-definition");
+        allParams[definition.id] = definition.ToParams(); recordBranch(allParams[definition.id], "authored-definition");
+    }
+    var catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<HexLive.UnityPresentation.Wearing.Garments.GarmentCatalog>("Assets/HexLiveContent/RuntimeSource/GarmentCatalog.asset");
+    if (catalog == null) throw new System.InvalidOperationException("Missing authored GarmentCatalog");
+    foreach (var definition in catalog.garments)
+    {
+        if (definition == null) throw new System.InvalidOperationException("Null GarmentCatalog entry");
+        addCoverage(definition.id, definition.ArtId, definition.retired, "catalog-including-retired");
+    }
+    foreach (var pair in claimedMappings)
+    {
+        var id = pair.Key;
+        HexLive.Simulation.Content.GarmentParams param;
+        allParams.TryGetValue(id, out param);
+        var prototype = param == null || string.IsNullOrEmpty(param.PrototypeId) ? id : param.PrototypeId;
+        var bundleId = HexLive.UnityPresentation.Wearing.WearArtAliases.ArtId(id);
+        var row = new Newtonsoft.Json.Linq.JObject { ["definitionId"] = id, ["prototypeId"] = prototype, ["wearBundleId"] = bundleId, ["retired"] = allRetired[id], ["status"] = allRetired[id] ? "retired-save-supported" : "active", ["sources"] = new Newtonsoft.Json.Linq.JArray(sourceTags[id]), ["declaredPrototypes"] = new Newtonsoft.Json.Linq.JArray(pair.Value), ["measured"] = false };
+        coverage[id] = row;
+        row["hasGarmentParams"] = param != null;
+        if (declaredGroundBranches.ContainsKey(id))
+        {
+            row["declaredKeepsShapeBranches"] = new Newtonsoft.Json.Linq.JArray(declaredGroundBranches[id]);
+            row["groundBranchSourceDisagreement"] = declaredGroundBranches[id].Count != 1;
+        }
+        if (!definitions.ContainsKey(bundleId)) { failures.Add("Missing canonical wearable definition for " + id + " (" + bundleId + ")"); continue; }
+        row["sourceArtId"] = definitions[bundleId].ArtId;
+        row["sourceDefinitionPath"] = UnityEditor.AssetDatabase.GetAssetPath(definitions[bundleId]);
+        if (pair.Value.Count != 1) failures.Add("Prototype disagreement across coverage sources: " + id + " -> " + string.Join(",", pair.Value));
+        if (!members.ContainsKey(prototype)) members.Add(prototype, new System.Collections.Generic.List<string>());
+        members[prototype].Add(id);
+    }
+    foreach (var pair in members)
+    {
+        pair.Value.Sort(System.StringComparer.Ordinal); queued.Add(pair.Key);
+        var branches = new System.Collections.Generic.HashSet<bool>();
+        foreach (var id in pair.Value) if (declaredGroundBranches.ContainsKey(id)) foreach (var branch in declaredGroundBranches[id]) branches.Add(branch);
+        if (branches.Count == 0) branches.Add(false); // no params: actual factory classifies the Dress-only alias as ordinary cloth
+        prototypeBranches[pair.Key] = branches;
+    }
+    queued.Sort(System.StringComparer.Ordinal);
+    HexLive.Simulation.Content.GarmentLibrary.Override(allParams.Values);
+    foreach (var path in new[] { "Assets/HexLiveContent/RuntimeSource/GarmentCatalog.asset", "SimData/simdata.json", "Assets/HexLive/Simulation/Content/Garments/GarmentLibrary.cs", "Assets/HexLive/Simulation/Content/Garments/GarmentStorageCategories.cs", "Assets/HexLive/UnityPresentation/Wearing/GarmentDropFactory.cs", "Assets/HexLive/UnityPresentation/Wearing/ActorWardrobe.cs", "Assets/HexLive/UnityPresentation/Wearing/WearArtAliases.cs", "Assets/HexLive/UnityPresentation/Rendering/HexWorldRenderer.cs", "Assets/Editor/AtomicContent/AtomicContentBatchBuild.cs" }) recordSource(path);
+    // Preview scenes are legal with an unsaved Untitled editor scene. Preserve
+    // the original active scene; each owned object is immediately moved here.
+    fixtureScene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
+    result["definitionCount"] = coverage.Count; result["prototypeCount"] = queued.Count;
+    result["stage"] = "ready-to-measure"; save();
+}
+catch (System.Exception e) { failures.Add(e.GetBaseException().Message); done = true; cleanup(); }
+return "Garment ground measurement " + runId + ": " + result["stage"] + "; inspect " + resultPath;

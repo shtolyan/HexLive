@@ -1153,63 +1153,11 @@ internal static class KenshiRescueMath
         patient.CurrentJunction = SpatialQueries.FindNearestJunction(world, patient.Position);
     }
 
-    // Saves can contain an object claim after its sleeper was picked up or its
-    // plan was interrupted. Such a claim must not force every later rescue to
-    // the ground. The only live bed users are an actual sleeper, or the exact
-    // patient currently being carried to that bed.
-    private static void ReconcileBedOccupancy(WorldState world)
-    {
-        foreach (var bed in world.Entities.Objects.Values)
-        {
-            if (!IsBed(bed) || (!bed.IsOccupied && bed.CurrentUser is null))
-            {
-                continue;
-            }
+    // §26.26: the same claim predicate serves rescue admission and the
+    // periodic watchdog, including the approach BEFORE picking the patient up.
+    private static void ReconcileBedOccupancy(WorldState world) =>
+        ObjectReservationSystem.Reconcile(world);
 
-            var live = false;
-            if (bed.CurrentUser is { } userId &&
-                world.Entities.Npcs.TryGetValue(userId, out var user))
-            {
-                live = !user.IsBeingCarried &&
-                    user.Execution.Status == ExecutionStatus.InProgress &&
-                    user.Execution.CurrentInteraction == InteractionType.Sleep &&
-                    user.Execution.TargetObject == bed.Id;
-
-                if (!live && user.CarriedByNpcId is { } carrierId &&
-                    world.Entities.Npcs.TryGetValue(carrierId, out var carrier))
-                {
-                    live = carrier.CarriedNpcId == user.Id &&
-                        carrier.RescueDestinationObjectId == bed.Id;
-                }
-
-                if (!live)
-                {
-                    foreach (var candidateCarrier in world.Entities.Npcs.Values)
-                    {
-                        if (candidateCarrier.Plan.Status == PlanStatus.Active &&
-                            candidateCarrier.Plan.Goal == GoalType.Rescue &&
-                            candidateCarrier.Plan.TargetAgentId == user.Id &&
-                            candidateCarrier.RescueDestinationObjectId == bed.Id &&
-                            (candidateCarrier.CarriedNpcId == user.Id ||
-                             candidateCarrier.Mind.InterruptedRescuePatientId == user.Id))
-                        {
-                            live = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (live)
-            {
-                bed.IsOccupied = true;
-                continue;
-            }
-
-            bed.IsOccupied = false;
-            bed.CurrentUser = null;
-        }
-    }
 }
 
 }

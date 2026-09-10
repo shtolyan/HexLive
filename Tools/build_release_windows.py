@@ -29,6 +29,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from urllib.parse import urlsplit
 from typing import Any
 
 # Отчёты и план печатаются по-русски, а консоль на этой машине бывает в cp1251
@@ -168,51 +169,57 @@ def windows_curl_executable() -> Path:
 
 
 def read_bug_tracker_with_windows_tls(url: str) -> Any:
-    # curl.exe supplied by Windows uses Schannel and the Windows certificate
-    # store. Bypass environment/system HTTP proxies for this fixed production
-    # API so an expired interception certificate cannot break the build gate.
-    # TLS verification remains mandatory: there is deliberately no -k or
-    # --insecure escape hatch here.
-    command = [
-        str(windows_curl_executable()),
-        "--fail",
-        "--silent",
-        "--show-error",
-        "--location",
-        "--proto",
-        "=https",
-        "--proto-redir",
-        "=https",
-        "--noproxy",
-        "*",
-        "--connect-timeout",
-        "10",
-        "--max-time",
-        "15",
-        "--header",
-        "Accept: application/json",
-        "--config",
-        "-",
-        url,
-    ]
-    token = os.environ.get("HEXLIVE_BUG_TOKEN", "").strip()
-    if any(c in token for c in '\r\n"\\'):
-        raise RuntimeError("Invalid bug access token")
-    result = subprocess.run(
-        command,
-        input=('header = "Authorization: Bearer ' + token + '"\n').encode(),
-        cwd=ROOT,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if result.returncode != 0:
-        details = result.stderr.decode("utf-8", errors="replace").strip()
-        raise RuntimeError(
-            f"Windows system TLS could not read bug API {BUG_API}: "
-            f"{details or f'curl.exe exited with {result.returncode}'}"
-        )
-    return json.loads(result.stdout.decode("utf-8"))
+    # The token belongs on stdin, never in curl argv, logs or a temporary file.
+    raw_token = os.environ.get("HEXLIVE_BUG_TOKEN", "")
+    if any(ord(c) < 32 or ord(c) > 126 for c in raw_token):
+        raise RuntimeError("A valid HEXLIVE_BUG_TOKEN is required for the bug snapshot")
+    token = raw_token.strip()
+    if not token:
+        raise RuntimeError("A valid HEXLIVE_BUG_TOKEN is required for the bug snapshot")
+    escaped = token.replace("\\", "\\\\").replace('"', '\\"')
+    config = ('header = "Authorization: Bearer ' + escaped + '"\n').encode("ascii")
+
+    def origin(value: str) -> tuple[str, str, int]:
+        parsed = urlsplit(value)
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.username is not None
+                or parsed.password is not None or parsed.fragment
+                or any(ord(c) < 32 or ord(c) == 127 for c in value)):
+            raise RuntimeError("Bug API must be an absolute HTTPS URL without credentials or fragment")
+        return parsed.scheme, parsed.hostname.lower(), parsed.port or 443
+
+    allowed_origin = origin(url)
+    for hop in range(6):
+        # No implicit redirects: custom credentials may only reach the same
+        # HTTPS origin. --disable must be first to ignore per-user curlrc.
+        command = [
+            str(windows_curl_executable()), "--disable", "--config", "-",
+            "--fail", "--silent", "--show-error", "--proto", "=https",
+            "--noproxy", "*", "--connect-timeout", "10", "--max-time", "60",
+            "--header", "Accept: application/json",
+            "--write-out", "\n%{http_code}\n%{redirect_url}", "--url", url,
+        ]
+        completed = subprocess.run(command, cwd=ROOT, input=config,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        if completed.returncode != 0:
+            # Do not echo curl stderr: an endpoint/error may reflect credentials.
+            raise RuntimeError(f"Windows TLS bug snapshot failed (curl exit {completed.returncode})")
+        try:
+            body, status_bytes, redirect_bytes = completed.stdout.rsplit(b"\n", 2)
+            status = int(status_bytes)
+            redirect = redirect_bytes.decode("utf-8")
+        except (ValueError, UnicodeDecodeError) as error:
+            raise RuntimeError("Windows TLS bug snapshot returned invalid status metadata") from error
+        if 200 <= status < 300:
+            return json.loads(body.decode("utf-8"))
+        if status in (301, 302, 303, 307, 308) and redirect:
+            if origin(redirect) != allowed_origin:
+                raise RuntimeError("Refusing a cross-origin bug API redirect with credentials")
+            if hop == 5:
+                raise RuntimeError("Bug API redirect limit exceeded")
+            url = redirect
+            continue
+        raise RuntimeError(f"Bug API snapshot returned HTTP {status}")
+    raise RuntimeError("Bug API redirect limit exceeded")
 
 
 def read_bug_tracker() -> dict[str, Any]:

@@ -172,6 +172,96 @@ public sealed class McpItemObservationTests
         });
     }
 
+    [Test]
+    public void DuplicateGarmentsKeepPhysicalConditionButShareCanonicalPersonalTaste()
+    {
+        using var host = CreateHost();
+        var id = host.Read(world =>
+        {
+            var actor = Observer(world);
+            actor.Inventory.Items.Clear();
+            actor.WornItems.Clear();
+            actor.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants) { Durability = 1f });
+            actor.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants) { Durability = 0.125f });
+            actor.WornItems.Add(new ItemInstance(ContentIds.LeatherPants) { Durability = 0.875f });
+            return actor.Id.Value;
+        });
+        using var response = Describe(host, id);
+        var carried = response.RootElement.GetProperty("inventoryItems");
+        var worn = response.RootElement.GetProperty("wornItems");
+        var liking = (int)MathF.Round(ItemAffinity.For(id, ContentIds.LeatherPants) * 100f);
+        Assert.Multiple(() =>
+        {
+            Assert.That(carried[0].GetProperty("conditionPercent").GetInt32(), Is.EqualTo(100));
+            Assert.That(carried[1].GetProperty("conditionPercent").GetInt32(), Is.EqualTo(12));
+            Assert.That(worn[0].GetProperty("conditionPercent").GetInt32(), Is.EqualTo(88));
+            Assert.That(carried[1].GetProperty("durability").GetSingle(), Is.EqualTo(0.125f));
+            Assert.That(carried[1].GetProperty("sourceIndex").GetInt32(), Is.EqualTo(1));
+            Assert.That(carried[0].GetProperty("likingPercent").GetInt32(), Is.EqualTo(liking));
+            Assert.That(carried[1].GetProperty("likingPercent").GetInt32(), Is.EqualTo(liking));
+            Assert.That(worn[0].GetProperty("likingPercent").GetInt32(), Is.EqualTo(liking));
+        });
+    }
+
+    [Test]
+    public void VisibleClothesExposeConditionWithoutRevealingRememberedOrHiddenInstances()
+    {
+        using var host = CreateHost();
+        var id = host.Read(world =>
+        {
+            var actor = Observer(world);
+            actor.Perception.Objects.Clear();
+            Add(world, actor, 902001, ContentIds.LeatherPants).Durability = -0.5f;
+            Add(world, actor, 902002, ContentIds.LeatherPants).Durability = 1.5f;
+            Add(world, actor, 902003, ContentIds.LeatherPants);
+            actor.Perception.Objects.Last().FromMemory = true;
+            Add(world, actor, 902004, ContentIds.LeatherPants);
+            actor.Perception.Objects.RemoveAt(actor.Perception.Objects.Count - 1);
+            Add(world, actor, 902005, ContentIds.Bottle);
+            return actor.Id.Value;
+        });
+        using var response = Describe(host, id);
+        var visible = response.RootElement.GetProperty("visibleItems");
+        Assert.Multiple(() =>
+        {
+            Assert.That(visible.GetArrayLength(), Is.EqualTo(3));
+            Assert.That(visible[0].GetProperty("durability").GetSingle(), Is.Zero);
+            Assert.That(visible[0].GetProperty("conditionPercent").GetInt32(), Is.Zero);
+            Assert.That(visible[1].GetProperty("conditionPercent").GetInt32(), Is.EqualTo(100));
+            Assert.That(visible[0].GetProperty("likingPercent").GetInt32(),
+                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, ContentIds.LeatherPants) * 100f)));
+            Assert.That(visible[2].TryGetProperty("conditionPercent", out _), Is.False);
+            Assert.That(visible[2].TryGetProperty("likingPercent", out _), Is.False);
+        });
+        Assert.That(host.Read(world => world.Entities.Objects[new ObjectId(902002)].Durability),
+            Is.EqualTo(1.5f), "Observation clamps its output without repairing the physical item.");
+    }
+
+    [Test]
+    public void ClothingTasteBelongsToObserverRatherThanOwner()
+    {
+        using var host = CreateHost();
+        var ids = host.Read(world =>
+        {
+            var people = world.Entities.Npcs.Values.Take(2).ToArray();
+            foreach (var actor in people)
+            {
+                actor.Inventory.Items.Clear();
+                actor.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants)
+                    { OwnerId = people[0].Id.Value, Durability = 0.4f });
+            }
+            return people.Select(n => n.Id.Value).ToArray();
+        });
+        foreach (var id in ids)
+        {
+            using var response = Describe(host, id);
+            var item = response.RootElement.GetProperty("inventoryItems")[0];
+            Assert.That(item.GetProperty("likingPercent").GetInt32(),
+                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, ContentIds.LeatherPants) * 100f)));
+            Assert.That(item.GetProperty("ownerNpcId").GetInt32(), Is.EqualTo(ids[0]));
+        }
+    }
+
     private static NPCState Observer(WorldState world) => world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
 
     private static WorldObjectState Add(WorldState world, NPCState actor, int id, string itemId, EntityId? owner = null)

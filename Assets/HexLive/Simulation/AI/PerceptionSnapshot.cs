@@ -59,6 +59,9 @@ public sealed class PerceptionSnapshot
 
     public int LastUpdatedTick { get; set; }
 
+    // §160.6a: allocated only for a live external-agent attachment, never saved.
+    public PerceptionObservationBuffer Observations { get; set; }
+
     // §22.7 кэш вида памяти: FromMemory-записи пересобираются только когда
     // сменился любой из ключей ниже (компонента её джанкшена, топология,
     // состав памяти, умение прыгать). Тайла NPC в ключе НЕТ нарочно (PERF,

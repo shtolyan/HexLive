@@ -6,6 +6,137 @@ namespace HexLive.AgentHost.Tests;
 public sealed class AgentWorldKnowledgeTests
 {
     [Test]
+    public async Task BlockedAutonomyKnowledgeDoesNotSerializeReplyKnowledge()
+    {
+        using var transport = new ParallelKnowledgeTransport();
+        using var stop = new CancellationTokenSource();
+        var inner = new KnowledgeProviders();
+        using var providers = new KnowledgeAwareAgentProviders(inner,
+            new McpClient(McpSessionRecoveryTests.Options(), transport));
+        var autonomy = providers.DecideAsync("heartbeat", "{}", "", "§121", [], stop.Token);
+        await transport.Blocked.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await providers.DecideAsync("voice", "{}", "", "§121", [], stop.Token).WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.That(autonomy.IsCompleted, Is.False);
+        Assert.That(inner.Context, Does.Contain("REPLY-KNOWLEDGE"));
+        Assert.That(transport.Initializations, Is.EqualTo(2));
+        stop.Cancel();
+        Assert.CatchAsync<OperationCanceledException>(async () => await autonomy);
+    }
+
+    private sealed class ParallelKnowledgeTransport : HttpMessageHandler
+    {
+        public int Initializations;
+        public readonly TaskCompletionSource Blocked = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
+            var root = doc.RootElement;
+            var session = request.Headers.TryGetValues("Mcp-Session-Id", out var ids) ? ids.Single() : "";
+            object result = new { protocolVersion = "2025-06-18" };
+            if (root.GetProperty("method").GetString() == "initialize")
+                session = "parallel-" + Interlocked.Increment(ref Initializations);
+            if (root.GetProperty("method").GetString() == "tools/call")
+            {
+                if (session == "parallel-1") { Blocked.TrySetResult(); await Task.Delay(Timeout.InfiniteTimeSpan, token); }
+                var args = root.GetProperty("params").GetProperty("arguments");
+                var page = args.GetProperty("section").GetString() == "" ? Index() : Page("REPLY-KNOWLEDGE");
+                result = new { isError = false, content = new[] { new { type = "text", text = page.GetRawText() } } };
+            }
+            var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                { Content = new StringContent(JsonSerializer.Serialize(new { jsonrpc = "2.0", result })) };
+            response.Headers.Add("Mcp-Session-Id", session); return response;
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ExpiredKnowledgeSessionGetsOneFreshReadOnlyAttempt(bool rejectFresh)
+    {
+        using var transport = new KnowledgeTransport { RejectFresh = rejectFresh };
+        var original = new McpClient(McpSessionRecoveryTests.Options(), transport);
+        await original.CallToolAsync("world_status", new { }, default);
+        var inner = new KnowledgeProviders();
+        using var providers = new KnowledgeAwareAgentProviders(inner, original);
+        await providers.DecideAsync("voice", "{}", "", "§121", Array.Empty<string>(), default);
+        Assert.That(transport.Initializations, Is.EqualTo(2));
+        Assert.That(transport.Tools, Is.All.Matches<string>(name => name is "world_status" or "read_spec"));
+        Assert.That(inner.Context, rejectFresh ? Does.Contain("не подтверждены") : Does.Contain("KNOWLEDGE-RESTORED"));
+        Assert.ThrowsAsync<ObjectDisposedException>(() => original.CallToolAsync("world_status", new { }, default));
+        var calls = transport.Tools.Count;
+        await providers.DecideAsync("voice", "{}", "", "§121", Array.Empty<string>(), default);
+        Assert.That(transport.Tools, Has.Count.EqualTo(calls), "Success caches; failure backs off instead of another immediate handshake.");
+        Assert.That(transport.Initializations, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task StoppingDuringExpiredKnowledgeReadDoesNotReconnectOrCallModel()
+    {
+        using var stop = new CancellationTokenSource();
+        using var transport = new KnowledgeTransport { StopOnExpiry = stop };
+        var original = new McpClient(McpSessionRecoveryTests.Options(), transport);
+        await original.CallToolAsync("world_status", new { }, default);
+        var inner = new KnowledgeProviders();
+        using var providers = new KnowledgeAwareAgentProviders(inner, original);
+        Assert.CatchAsync<OperationCanceledException>(async () =>
+            await providers.DecideAsync("voice", "{}", "", "§121", Array.Empty<string>(), stop.Token));
+        Assert.That(transport.Initializations, Is.EqualTo(1));
+        Assert.That(inner.Decisions, Is.Zero);
+    }
+
+    private sealed class KnowledgeProviders : IAgentProviders
+    {
+        public string Context = "";
+        public int Decisions;
+        public Task<CompanionDecision> DecideAsync(string trigger, string stateJson, string memoryContext,
+            string transcript, IReadOnlyList<string> recentConversation, CancellationToken cancellationToken)
+        { Context = memoryContext; Decisions++; return Task.FromResult(new CompanionDecision()); }
+        public Task<VoiceArtifact> SynthesizeAsync(string text, CancellationToken cancellationToken) => throw new AssertionException("Not requested");
+        public void Dispose() { }
+    }
+
+    private sealed class KnowledgeTransport : HttpMessageHandler
+    {
+        public bool RejectFresh;
+        public CancellationTokenSource? StopOnExpiry;
+        public int Initializations;
+        public readonly List<string> Tools = [];
+        private bool _expired;
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            using var document = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
+            var root = document.RootElement;
+            var method = root.GetProperty("method").GetString();
+            object result = new { protocolVersion = "2025-06-18" };
+            if (method == "initialize")
+            {
+                Initializations++;
+                Assert.That(request.Headers.Contains("Mcp-Session-Id"), Is.False);
+                if (RejectFresh && Initializations > 1) return new(System.Net.HttpStatusCode.Unauthorized);
+            }
+            if (method == "tools/call")
+            {
+                var parameters = root.GetProperty("params");
+                var name = parameters.GetProperty("name").GetString()!;
+                Tools.Add(name);
+                if (name == "read_spec" && !_expired)
+                {
+                    _expired = true;
+                    StopOnExpiry?.Cancel();
+                    return new(System.Net.HttpStatusCode.Unauthorized);
+                }
+                object payload = name == "read_spec"
+                    ? parameters.GetProperty("arguments").GetProperty("section").GetString() == "" ? Index() : Page("KNOWLEDGE-RESTORED")
+                    : new { };
+                result = new { isError = false, content = new[] { new { type = "text", text = JsonSerializer.Serialize(payload) } } };
+            }
+            var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            { Content = new StringContent(JsonSerializer.Serialize(new { jsonrpc = "2.0", result })) };
+            response.Headers.Add("Mcp-Session-Id", "knowledge-" + Initializations);
+            return response;
+        }
+    }
+
+    [Test]
     public async Task WoundedHeartbeatSelectsTreatmentNotAlwaysPresentEnergyFields()
     {
         var calls = new List<string>();

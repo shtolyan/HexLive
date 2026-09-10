@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace HexLive.UnityDebug.Editor
 {
@@ -141,14 +142,15 @@ namespace HexLive.UnityDebug.Editor
                     options |= BuildOptions.Development | BuildOptions.AllowDebugging;
                 }
 
-                var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                var buildOptions = new BuildPlayerOptions
                 {
                     scenes = scenes,
                     locationPathName = outputPath,
                     target = target,
                     targetGroup = BuildTargetGroup.Standalone,
                     options = options
-                });
+                };
+                var report = BuildPlayerWithSafeGraphicsApi(buildOptions);
 
                 var build = report.summary;
                 if (build.result == BuildResult.Succeeded)
@@ -226,6 +228,39 @@ namespace HexLive.UnityDebug.Editor
 
             var result = configure.Invoke(null, null);
             Debug.Log(result as string ?? "[FMOD] atomic Player mode configured.");
+        }
+
+        private static BuildReport BuildPlayerWithSafeGraphicsApi(BuildPlayerOptions options)
+        {
+            if (options.target != BuildTarget.StandaloneWindows64)
+            {
+                return BuildPipeline.BuildPlayer(options);
+            }
+
+            // Unity 6000.4 may choose D3D12 first when the project uses the
+            // default Windows API list. On affected hybrid Intel/NVIDIA
+            // machines the device is created successfully but the very first
+            // swap-chain Present fails with DXGI_ERROR_INVALID_CALL, causing a
+            // native crash before any HexLive bootstrap code can run. D3D11 is
+            // the stable Windows baseline for this Player. Keep the override
+            // scoped to the build so an interactive Editor retains its prefs.
+            var target = BuildTarget.StandaloneWindows64;
+            var usedDefaultApis = PlayerSettings.GetUseDefaultGraphicsAPIs(target);
+            var configuredApis = PlayerSettings.GetGraphicsAPIs(target);
+            try
+            {
+                PlayerSettings.SetUseDefaultGraphicsAPIs(target, false);
+                PlayerSettings.SetGraphicsAPIs(
+                    target, new[] { GraphicsDeviceType.Direct3D11 });
+                Debug.Log("[HexLiveReleaseBuilder] Windows graphics API: D3D11 " +
+                          "(D3D12 startup-device-loss fallback).");
+                return BuildPipeline.BuildPlayer(options);
+            }
+            finally
+            {
+                PlayerSettings.SetGraphicsAPIs(target, configuredApis);
+                PlayerSettings.SetUseDefaultGraphicsAPIs(target, usedDefaultApis);
+            }
         }
 
         private static CommandLineBuildSummary CreateSummary(

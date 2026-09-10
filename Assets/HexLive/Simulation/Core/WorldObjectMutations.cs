@@ -35,7 +35,7 @@ public static class WorldObjectMutations
         };
         worldObject.Junctions.Add(anchorJunction);
 
-        world.Entities.Objects[worldObject.Id] = worldObject;
+        world.Entities.RegisterObject(worldObject);
 
         if (!world.Caches.ObjectsByTile.TryGetValue(tile, out var objects))
         {
@@ -106,7 +106,7 @@ public static class WorldObjectMutations
             return false;
         }
 
-        world.Entities.Objects.Remove(objectId);
+        world.Entities.UnregisterObject(worldObject);
 
         if (world.Caches.ObjectsByTile.TryGetValue(worldObject.Tile, out var objects))
         {

@@ -39,7 +39,9 @@ public sealed class SystemRegistryGateTests
         // §146.10: the shore event must exist before Perception/Rescue in the
         // same medium pass, so the ordinary aid chain can claim her at once.
         "ShipwreckSurvivorSystem",
+        "ObjectReservationSystem",
         "PerceptionSystem",
+        "AgentIncidentSystem",
         // §118: rescue claims patients before the ordinary decision auction,
         // so the same medium pass cannot send the free helper to a chore.
         "RescueSystem",

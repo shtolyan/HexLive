@@ -30,7 +30,7 @@ public sealed class AgentRelationFeedbackRuntimeTests
     }
 
     [UnityTest]
-    public IEnumerator LongPlainReasonWrapsAndScrollsWithinItsRuntimePanel()
+    public IEnumerator CompactDeltasOpenBoundedPlainTextHoverPopupAndRepositionAfterExpansion()
     {
         var owner = new GameObject("RelationMethods");
         owner.SetActive(false); // Exercise production UI methods without starting a player world.
@@ -44,33 +44,74 @@ public sealed class AgentRelationFeedbackRuntimeTests
         document.panelSettings = settings;
         try
         {
-            var reason = ("<b>Не разметка</b> " + string.Join(" ", Enumerable.Repeat("длинная причина оценки", 20))).Substring(0, 240);
+            const string reason = "Короткая оценка";
+            var expandedReason = ("<b>Не разметка</b>\n\n" +
+                string.Join(" ", Enumerable.Repeat("длинная причина оценки", 20))).Substring(0, 240);
             typeof(CharacterPanel).GetMethod("ParseAgentRelation", Private)!.Invoke(character,
                 new object[] { JsonUtility.ToJson(new Payload { reason = reason }) });
+            typeof(CharacterPanel).GetField("_root", Private)!.SetValue(character, document.rootVisualElement);
             var buildCard = typeof(CharacterPanel).GetMethod("BuildRelationFocusCard", Private)!;
             var npcCard = (VisualElement)buildCard.Invoke(character, new object[] { new RelationshipSnapshot { OtherId = 42, OtherName = "Dasha" } });
-            Assert.That(npcCard.Q<ScrollView>(className: "agent-relation-feedback"), Is.Null);
+            Assert.That(npcCard.Q<VisualElement>(className: "agent-relation-feedback"), Is.Null);
             var voiceCard = (VisualElement)buildCard.Invoke(character, new object[] { new RelationshipSnapshot { OtherId = -159, OtherName = "Голос" } });
-            var feedback = voiceCard.Q<ScrollView>(className: "agent-relation-feedback");
+            var feedback = voiceCard.Q<VisualElement>(className: "agent-relation-feedback");
             Assert.That(feedback, Is.Not.Null, "Only the voice relation contains its assessment.");
-            feedback.RemoveFromHierarchy();
-            document.rootVisualElement.style.width = 200;
-            document.rootVisualElement.style.height = 200;
-            document.rootVisualElement.Add(feedback);
+            document.rootVisualElement.style.width = 360;
+            document.rootVisualElement.style.height = 320;
+            document.rootVisualElement.Add(voiceCard);
             for (var i = 0; i < 6; i++) yield return null;
-            var text = feedback.Q<Label>(className: "agent-relation-feedback-text");
             Assert.That(feedback.panel, Is.Not.Null);
-            Assert.That(feedback.layout.height, Is.GreaterThan(0).And.LessThanOrEqualTo(72.1f));
-            Assert.That(text.enableRichText, Is.False);
-            Assert.That(text.text, Does.Contain(reason));
-            Assert.That(text.text, Does.Contain(Loc.Get("rel.familiarity") + " +2%"));
-            Assert.That(text.text, Does.Contain(Loc.Get("rel.trust") + " -3%"));
-            Assert.That(text.text, Does.Contain(Loc.Get("rel.affinity") + " 0%"));
-            Assert.That(text.resolvedStyle.whiteSpace, Is.EqualTo(WhiteSpace.Normal));
-            Assert.That(feedback.contentContainer.layout.height, Is.GreaterThan(feedback.contentViewport.layout.height));
-            feedback.scrollOffset = new Vector2(0, 30);
+            Assert.That(feedback.layout.height, Is.EqualTo(24f).Within(.1f));
+            var deltas = feedback.Query<Label>(className: "agent-relation-delta").ToList();
+            Assert.That(deltas.Select(x => x.text), Is.EqualTo(new[] { "+0", "+2", "-3" }),
+                "Compact values follow the same Affinity/Familiarity/Trust order as the rings.");
+
+            using (var enter = MouseEnterEvent.GetPooled()) feedback.SendEvent(enter);
+            for (var i = 0; i < 3; i++) yield return null;
+            var popup = document.rootVisualElement.Q<VisualElement>(className: "agent-relation-tooltip");
+            Assert.That(popup, Is.Not.Null);
+            Assert.That(popup.resolvedStyle.display, Is.EqualTo(DisplayStyle.Flex));
+            Assert.That(popup.pickingMode, Is.EqualTo(PickingMode.Ignore), "The popup cannot steal hover or clicks.");
+            Assert.That(popup.worldBound.xMin, Is.GreaterThanOrEqualTo(document.rootVisualElement.worldBound.xMin - .1f));
+            Assert.That(popup.worldBound.xMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.xMax + .1f));
+            Assert.That(popup.worldBound.yMin, Is.GreaterThanOrEqualTo(document.rootVisualElement.worldBound.yMin - .1f));
+            Assert.That(popup.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax + .1f));
+            var popupReason = popup.Q<Label>(className: "agent-relation-tooltip-reason");
+            Assert.That(popupReason.enableRichText, Is.False);
+            Assert.That(popupReason.text, Is.EqualTo(reason));
+            Assert.That(popupReason.resolvedStyle.whiteSpace, Is.EqualTo(WhiteSpace.Normal));
+            var details = popup.Query<Label>(className: "agent-relation-tooltip-metric-value").ToList();
+            Assert.That(details.Select(x => x.text), Is.EqualTo(new[] { "+0%", "+2%", "-3%" }));
+
+            typeof(CharacterPanel).GetMethod("ParseAgentRelation", Private)!.Invoke(character,
+                new object[] { JsonUtility.ToJson(new Payload { reason = reason }) });
             yield return null;
-            Assert.That(feedback.scrollOffset.y, Is.GreaterThan(0), "Long reasons remain readable by scrolling after actual UITK layout.");
+            Assert.That(popup.resolvedStyle.display, Is.EqualTo(DisplayStyle.Flex),
+                "Unchanged relation polling must not dismiss a popup under a stationary pointer.");
+
+            typeof(CharacterPanel).GetMethod("ParseAgentRelation", Private)!.Invoke(character,
+                new object[] { JsonUtility.ToJson(new Payload { reason = expandedReason, trustDelta = .03f }) });
+            Assert.That(popup.resolvedStyle.display, Is.EqualTo(DisplayStyle.None),
+                "A changed payload must not leave stale details visible.");
+            using (var leaveAfterChange = MouseLeaveEvent.GetPooled()) feedback.SendEvent(leaveAfterChange);
+            using (var firstReenter = MouseEnterEvent.GetPooled()) feedback.SendEvent(firstReenter);
+            using (var immediateLeave = MouseLeaveEvent.GetPooled()) feedback.SendEvent(immediateLeave);
+            using (var finalReenter = MouseEnterEvent.GetPooled()) feedback.SendEvent(finalReenter);
+            for (var i = 0; i < 6; i++) yield return null;
+            Assert.That(popup.resolvedStyle.display, Is.EqualTo(DisplayStyle.Flex));
+            Assert.That(popup.resolvedStyle.visibility, Is.EqualTo(Visibility.Visible));
+            Assert.That(popup.Q<Label>(className: "agent-relation-tooltip-reason").text, Is.EqualTo(expandedReason));
+            Assert.That(popup.Query<Label>(className: "agent-relation-tooltip-metric-value").ToList()
+                .Select(x => x.text), Is.EqualTo(new[] { "+0%", "+2%", "+3%" }));
+            Assert.That(popup.worldBound.xMin, Is.GreaterThanOrEqualTo(document.rootVisualElement.worldBound.xMin - .1f));
+            Assert.That(popup.worldBound.xMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.xMax + .1f));
+            Assert.That(popup.worldBound.yMin, Is.GreaterThanOrEqualTo(document.rootVisualElement.worldBound.yMin - .1f));
+            Assert.That(popup.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax + .1f),
+                "A stale short-popup schedule must not leave expanded details outside the panel.");
+
+            using (var leave = MouseLeaveEvent.GetPooled()) feedback.SendEvent(leave);
+            yield return null;
+            Assert.That(popup.resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
         }
         finally
         {

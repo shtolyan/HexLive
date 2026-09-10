@@ -94,7 +94,7 @@ namespace HexLive.UnityPresentation.UI
             Camera.onPostRender += OnCameraPostRender;
         }
 
-        /// <summary>Follow this NPC's face; pass a negative id to stop.</summary>
+        /// <summary>Film this NPC in the pose-appropriate frame; negative id stops.</summary>
         public void SetTarget(int npcId)
         {
             if (_npcId == npcId)
@@ -141,6 +141,19 @@ namespace HexLive.UnityPresentation.UI
                     _camera.enabled = false;
                     return;
                 }
+            }
+
+            // §107.4a: sleep animation moves the face through the frame, not
+            // the lens around the face. The support is also the actor's own
+            // ground/bed pin, so no stale first-frame pose needs to be cached.
+            if (_worldRenderer.TryGetActorView(_npcId, out var actor) && actor != null &&
+                actor.TryGetLyingPortraitFrame(out var support, out var lyingScale))
+            {
+                var shot = LyingPortraitFraming.CameraPose(
+                    support, lyingScale, _camera.fieldOfView, TextureAspect);
+                _camera.transform.SetPositionAndRotation(shot.position, shot.rotation);
+                _camera.enabled = true;
+                return;
             }
 
             if (!_worldRenderer.TryGetNpcFace(

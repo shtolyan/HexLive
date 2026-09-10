@@ -126,6 +126,7 @@ public sealed partial class ExecutionSystem
             looter.Faction != other.Faction)
         {
             CombatHelpSystem.RallyLootWitnesses(world, other, looter.Id);
+            AgentIncidentNotifications.Loot(world, looter, other.Id, "TookItem");
             SocialCueSignals.StampItem(
                 world, looter, "LootHelplessTook", itemRef.ExpectedDefinitionId);
         }

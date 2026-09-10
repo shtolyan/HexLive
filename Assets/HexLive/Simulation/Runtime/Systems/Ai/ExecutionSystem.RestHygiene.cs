@@ -730,6 +730,19 @@ public sealed partial class ExecutionSystem
             }
 
             var doffed = StowGarmentWithContents(world, npc, garment, stowTarget);
+            if (doffed is null)
+            {
+                // Keep the exact item and personal-care transaction. Retrying
+                // this strip beat each tick would loop forever on full ground.
+                if (!InventoryMath.ContainsReference(npc.WornItems, garment))
+                    npc.WornItems.Add(garment);
+                npc.Execution.HeldGarment = null;
+                EquipmentMath.Recalculate(world, npc);
+                PlanningSystem.SetGoalCooldown(world, npc, GoalType.Bathe);
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Bathe: no garment placement");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
             // §40.6: remember this exact ground piece so she re-dons it after
             // the swim (the same clothes she took off, not just any garment).
             if (doffed != null)

@@ -87,6 +87,18 @@ public sealed partial class ExecutionSystem
         var held = npc.Execution.HeldGarment;
         npc.Execution.HeldGarment = null;
         var laid = StowGarmentWithContents(world, npc, held, npc.Plan.TargetObjectId);
+        if (laid is null)
+        {
+            // Complete ownership transfer before clearing transient hand data.
+            InventoryMath.RetainOwnedItem(npc, held);
+            foreach (var pocket in npc.Execution.HeldGarmentContents)
+                InventoryMath.RetainOwnedItem(npc, pocket);
+            npc.Execution.HeldGarmentContents.Clear();
+            PlanningSystem.SetGoalCooldown(world, npc, GoalType.StowClothes);
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "StowClothes: no garment placement");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
         if (laid != null && npc.Execution.HeldGarmentContents.Count > 0)
         {
             laid.Contents.AddRange(npc.Execution.HeldGarmentContents);

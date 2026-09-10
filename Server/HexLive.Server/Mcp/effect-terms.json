@@ -1,0 +1,530 @@
+{
+  "effect.adrenaline.desc": {
+    "en": "Fresh pain keeps her alert: she cannot sleep, keeps a sliver of energy, and runs faster for a short while.",
+    "ru": "Свежая боль держит в тонусе: нельзя уснуть, остается немного энергии, и бег временно быстрее."
+  },
+  "effect.adrenaline.title": {
+    "en": "Adrenaline",
+    "ru": "Адреналин"
+  },
+  "effect.ambienttemperature.desc": {
+    "en": "The surroundings are moving body temperature toward their own.",
+    "ru": "Окружающая среда сдвигает температуру тела к своей."
+  },
+  "effect.ambienttemperature.title": {
+    "en": "Ambient temperature",
+    "ru": "Температура воздуха"
+  },
+  "effect.bandaged.desc": {
+    "en": "A dressed wound: the bleeding is stopped and it closes faster.",
+    "ru": "Рана перевязана: кровотечение остановлено, заживает быстрее."
+  },
+  "effect.bandaged.title": {
+    "en": "Bandaged",
+    "ru": "Перевязана"
+  },
+  "effect.bleeding.desc": {
+    "en": "An open wound is draining her blood — dress it before she runs dry.",
+    "ru": "Открытая рана теряет кровь — перевяжите, пока она не истекла."
+  },
+  "effect.bleeding.title": {
+    "en": "Bleeding",
+    "ru": "Кровотечение"
+  },
+  "effect.bloodrecovery.desc": {
+    "en": "The body is replenishing lost blood.",
+    "ru": "Тело восполняет потерянную кровь."
+  },
+  "effect.bloodrecovery.title": {
+    "en": "Blood recovery",
+    "ru": "Восстановление крови"
+  },
+  "effect.bodycrisis.desc": {
+    "en": "Injury, hunger or thirst is pushing stress upward.",
+    "ru": "Травма, голод или жажда усиливают стресс."
+  },
+  "effect.bodycrisis.title": {
+    "en": "Body in crisis",
+    "ru": "Кризис тела"
+  },
+  "effect.breathrecovery.desc": {
+    "en": "Walking or standing is restoring breath.",
+    "ru": "Ходьба или остановка восстанавливает дыхание."
+  },
+  "effect.breathrecovery.title": {
+    "en": "Catching breath",
+    "ru": "Переводит дыхание"
+  },
+  "effect.calm.desc": {
+    "en": "With no immediate threat, stress is easing.",
+    "ru": "Без непосредственной угрозы стресс отступает."
+  },
+  "effect.calm.title": {
+    "en": "Calm",
+    "ru": "Спокойствие"
+  },
+  "effect.cleanclothes.desc": {
+    "en": "Freshly washed clothes are gently increasing comfort.",
+    "ru": "Свежая чистая одежда немного повышает комфорт."
+  },
+  "effect.cleanclothes.title": {
+    "en": "Clean clothes",
+    "ru": "Чистая одежда"
+  },
+  "effect.cold.desc": {
+    "en": "Chilly and uncomfortable — and edging toward freezing. Warmth would help.",
+    "ru": "Зябко и некомфортно — и клонит к переохлаждению. Не помешало бы согреться."
+  },
+  "effect.cold.title": {
+    "en": "Cold",
+    "ru": "Холодно"
+  },
+  "effect.coma.desc": {
+    "en": "Out cold — the body lies as if dead, healing as in sleep, until it recovers enough to come to.",
+    "ru": "Глубоко без сознания — тело лежит как мёртвое и восстанавливается, как во сне, пока не окрепнет настолько, чтобы очнуться."
+  },
+  "effect.coma.reason.bloodloss": {
+    "en": "Cause: critical blood loss. She remains in a coma until her blood level recovers.",
+    "ru": "Причина: критическая потеря крови. Кома продлится, пока уровень крови не восстановится."
+  },
+  "effect.coma.title": {
+    "en": "Coma",
+    "ru": "Кома"
+  },
+  "effect.content.desc": {
+    "en": "Comfortable and at ease.",
+    "ru": "Комфортно и спокойно."
+  },
+  "effect.content.title": {
+    "en": "Content",
+    "ru": "Довольна"
+  },
+  "effect.convalescent.desc": {
+    "en": "Pulled back from the brink — slow on her feet and out of breath at once.",
+    "ru": "Вытащили с того света — еле ходит и мгновенно выдыхается."
+  },
+  "effect.convalescent.title": {
+    "en": "Barely alive",
+    "ru": "Едва живая"
+  },
+  "effect.cozy.desc": {
+    "en": "Warmed by the campfire — its glow slowly restores comfort.",
+    "ru": "Греется у костра — его тепло создаёт уют и понемногу восполняет комфорт."
+  },
+  "effect.cozy.title": {
+    "en": "Cozy",
+    "ru": "Уют"
+  },
+  "effect.crying.desc": {
+    "en": "Broke down under the strain — lying on the ground, crying it out.",
+    "ru": "Сломалась от напряжения — лежит и выплакивает своё."
+  },
+  "effect.crying.reason.breakdown": {
+    "en": "Cause: stress reached its limit while stamina was completely spent.",
+    "ru": "Причина: стресс достиг предела при полностью потраченной выносливости."
+  },
+  "effect.crying.title": {
+    "en": "Crying",
+    "ru": "Плачет"
+  },
+  "effect.dehydrated.desc": {
+    "en": "Thirst past the edge — her health is draining. She needs to drink.",
+    "ru": "Жажда за гранью — здоровье убывает. Нужно пить."
+  },
+  "effect.dehydrated.title": {
+    "en": "Dehydrated",
+    "ru": "Обезвожена"
+  },
+  "effect.dirtyclothes.desc": {
+    "en": "Grimy clothing is steadily reducing comfort.",
+    "ru": "Грязная одежда постепенно снижает комфорт."
+  },
+  "effect.dirtyclothes.title": {
+    "en": "Dirty clothes",
+    "ru": "Грязная одежда"
+  },
+  "effect.drinking.desc": {
+    "en": "Drinking is relieving thirst.",
+    "ru": "Питьё утоляет жажду."
+  },
+  "effect.drinking.title": {
+    "en": "Drinking",
+    "ru": "Пьёт"
+  },
+  "effect.dying.desc": {
+    "en": "On the brink — she has minutes left unless someone helps her.",
+    "ru": "На грани — без чужой помощи ей осталось недолго."
+  },
+  "effect.dying.reason.bloodloss": {
+    "en": "Cause: fatal blood loss. Bandaging can still save her before the reserve runs out.",
+    "ru": "Причина: смертельная потеря крови. Перевязка ещё может спасти её, пока не иссяк запас времени."
+  },
+  "effect.dying.reason.dehydration": {
+    "en": "Cause: fatal dehydration. Giving her water can still stop the dying process.",
+    "ru": "Причина: смертельное обезвоживание. Вода ещё может остановить умирание."
+  },
+  "effect.dying.reason.starvation": {
+    "en": "Cause: fatal starvation. Feeding her can still stop the dying process.",
+    "ru": "Причина: смертельный голод. Кормление ещё может остановить умирание."
+  },
+  "effect.dying.reason.vitalcrushed": {
+    "en": "Cause: a vital body part is destroyed. Immediate treatment is required.",
+    "ru": "Причина: разрушена жизненно важная часть тела. Требуется немедленное лечение."
+  },
+  "effect.dying.title": {
+    "en": "Dying",
+    "ru": "При смерти"
+  },
+  "effect.eating.desc": {
+    "en": "Eating is relieving hunger.",
+    "ru": "Еда утоляет голод."
+  },
+  "effect.eating.title": {
+    "en": "Eating",
+    "ru": "Ест"
+  },
+  "effect.everyonesafe.desc": {
+    "en": "With nobody nearby in distress, her care reserve is recovering.",
+    "ru": "Когда рядом никто не страдает, её запас заботы восстанавливается."
+  },
+  "effect.everyonesafe.title": {
+    "en": "Everyone is safe",
+    "ru": "Все в безопасности"
+  },
+  "effect.exhausted.desc": {
+    "en": "Stamina spent to the floor — winded and desperate to sit down.",
+    "ru": "Выносливость на нуле — запыхалась, хочет присесть."
+  },
+  "effect.exhausted.title": {
+    "en": "Exhausted",
+    "ru": "Вымотана"
+  },
+  "effect.fainted.desc": {
+    "en": "Knocked out cold — she lies unable to act until she comes to.",
+    "ru": "Потеряла сознание — лежит и не может действовать, пока не очнётся."
+  },
+  "effect.fainted.reason.bloodloss": {
+    "en": "Cause: collapse from low blood and spent stamina.",
+    "ru": "Причина: потеря крови на фоне полностью потраченной выносливости."
+  },
+  "effect.fainted.reason.energy": {
+    "en": "Cause: total energy exhaustion. She will wake after recovering enough energy.",
+    "ru": "Причина: полное истощение энергии. Очнётся, когда достаточно восстановит силы."
+  },
+  "effect.fainted.reason.exhaustion": {
+    "en": "Cause: physical collapse after stamina was completely spent.",
+    "ru": "Причина: физический обморок после полного истощения выносливости."
+  },
+  "effect.fainted.reason.starvation": {
+    "en": "Cause: collapse from starvation and spent stamina.",
+    "ru": "Причина: голод на фоне полностью потраченной выносливости."
+  },
+  "effect.fainted.title": {
+    "en": "Fainted",
+    "ru": "Без сознания"
+  },
+  "effect.filthy.desc": {
+    "en": "Grubby and long overdue a wash.",
+    "ru": "Замызгана — давно пора помыться."
+  },
+  "effect.filthy.title": {
+    "en": "Filthy",
+    "ru": "Грязная"
+  },
+  "effect.freezing.desc": {
+    "en": "Far too cold — she's losing health. She needs warmth or clothes.",
+    "ru": "Слишком холодно — теряет здоровье. Нужно тепло или одежда."
+  },
+  "effect.freezing.title": {
+    "en": "Freezing",
+    "ru": "Замерзает"
+  },
+  "effect.friendlytalk.desc": {
+    "en": "A warm conversation is relieving stress.",
+    "ru": "Тёплый разговор снимает стресс."
+  },
+  "effect.friendlytalk.title": {
+    "en": "Friendly conversation",
+    "ru": "Дружеский разговор"
+  },
+  "effect.grieving.desc": {
+    "en": "Mourning a fallen housemate.",
+    "ru": "Оплакивает погибшую подругу."
+  },
+  "effect.grieving.title": {
+    "en": "Grieving",
+    "ru": "Скорбит"
+  },
+  "effect.heatstroke.desc": {
+    "en": "Far too hot — the heat is draining her health. She needs shade or water.",
+    "ru": "Слишком жарко — жара отнимает здоровье. Нужна тень или вода."
+  },
+  "effect.heatstroke.title": {
+    "en": "Heatstroke",
+    "ru": "Перегрев"
+  },
+  "effect.hobbled.desc": {
+    "en": "Hurt legs — she moves slower than usual.",
+    "ru": "Повреждены ноги — двигается медленнее обычного."
+  },
+  "effect.hobbled.title": {
+    "en": "Hobbled",
+    "ru": "Хромает"
+  },
+  "effect.hot.desc": {
+    "en": "Uncomfortably warm — and edging toward heatstroke. Shade or water would help.",
+    "ru": "Жарко и некомфортно — и клонит к перегреву. Не помешает тень или вода."
+  },
+  "effect.hot.title": {
+    "en": "Hot",
+    "ru": "Жарко"
+  },
+  "effect.injured.desc": {
+    "en": "Wounds slow her healing and lock part of her HP until they close.",
+    "ru": "Раны замедляют заживление и удерживают часть здоровья, пока не закроются."
+  },
+  "effect.injured.title": {
+    "en": "Injured",
+    "ru": "Ранена"
+  },
+  "effect.lonely.desc": {
+    "en": "Starved of company — she needs someone to talk to.",
+    "ru": "Не хватает общения — нужен кто-то рядом."
+  },
+  "effect.lonely.title": {
+    "en": "Lonely",
+    "ru": "Одинока"
+  },
+  "effect.maimed.desc": {
+    "en": "The limb was amputated. Without a prosthetic its function is lost.",
+    "ru": "Конечность ампутирована. Без протеза её функция утрачена."
+  },
+  "effect.maimed.title": {
+    "en": "Lost limb",
+    "ru": "Потеряна конечность"
+  },
+  "effect.miserable.desc": {
+    "en": "Comfort has bottomed out — everything feels wretched.",
+    "ru": "Комфорт на нуле — всё вокруг тягостно."
+  },
+  "effect.miserable.title": {
+    "en": "Miserable",
+    "ru": "Подавлена"
+  },
+  "effect.naturaldecay.desc": {
+    "en": "The body's ordinary needs keep changing with time.",
+    "ru": "Обычные потребности тела постепенно меняются со временем."
+  },
+  "effect.naturaldecay.title": {
+    "en": "Natural change",
+    "ru": "Естественное изменение"
+  },
+  "effect.nearbycompany.desc": {
+    "en": "A nearby companion is easing her loneliness.",
+    "ru": "Присутствие товарища рядом смягчает одиночество."
+  },
+  "effect.nearbycompany.title": {
+    "en": "Nearby company",
+    "ru": "Кто-то рядом"
+  },
+  "effect.playingdead.desc": {
+    "en": "Lying limp with an enemy nearby — getting up would only earn another beating.",
+    "ru": "Лежит не шевелясь, пока рядом враг: встать значит огрести снова."
+  },
+  "effect.playingdead.title": {
+    "en": "Playing dead",
+    "ru": "Притворяется мёртвой"
+  },
+  "effect.rainwashed.desc": {
+    "en": "Rain is slowly washing dirt from exposed skin.",
+    "ru": "Дождь понемногу смывает грязь с открытой кожи."
+  },
+  "effect.rainwashed.title": {
+    "en": "Washed by rain",
+    "ru": "Омывается дождём"
+  },
+  "effect.rested.desc": {
+    "en": "Energy and stamina both high — ready for anything.",
+    "ru": "Энергия и выносливость высоки — готова ко всему."
+  },
+  "effect.rested.title": {
+    "en": "Rested",
+    "ru": "Отдохнула"
+  },
+  "effect.resting.desc": {
+    "en": "Taking it easy is restoring stamina.",
+    "ru": "Спокойный отдых восстанавливает выносливость."
+  },
+  "effect.resting.title": {
+    "en": "Resting",
+    "ru": "Отдых"
+  },
+  "effect.sick.desc": {
+    "en": "Poisoned by raw water — nauseous and losing health. Boil water before drinking.",
+    "ru": "Отравилась сырой водой — тошнит, здоровье убывает. Воду нужно кипятить."
+  },
+  "effect.sick.title": {
+    "en": "Sick",
+    "ru": "Тошнит"
+  },
+  "effect.sleeping.desc": {
+    "en": "Sleep restores energy and comfort while the body rests.",
+    "ru": "Сон восстанавливает энергию и комфорт, пока тело отдыхает."
+  },
+  "effect.sleeping.title": {
+    "en": "Sleeping",
+    "ru": "Сон"
+  },
+  "effect.snug.desc": {
+    "en": "Asleep in a proper bed — resting deeply and recovering energy faster.",
+    "ru": "Спит в настоящей кровати — глубокий сон, энергия восстанавливается быстрее."
+  },
+  "effect.snug.title": {
+    "en": "Snug",
+    "ru": "В кровати"
+  },
+  "effect.soaked.desc": {
+    "en": "Soaked to the skin — chilly and miserable; wet clothes give no warmth and slow her down.",
+    "ru": "Промокла до нитки — зябко и неуютно; мокрая одежда не греет и замедляет."
+  },
+  "effect.soaked.title": {
+    "en": "Soaked",
+    "ru": "Промокла"
+  },
+  "effect.sprinting.desc": {
+    "en": "Running hard is spending breath.",
+    "ru": "Быстрый бег расходует дыхание."
+  },
+  "effect.sprinting.title": {
+    "en": "Sprinting",
+    "ru": "Бег"
+  },
+  "effect.starving.desc": {
+    "en": "Hunger past the edge — her health is draining. She needs to eat now.",
+    "ru": "Голод за гранью — здоровье убывает. Срочно нужно поесть."
+  },
+  "effect.starving.title": {
+    "en": "Starving",
+    "ru": "Голодает"
+  },
+  "effect.stressed.desc": {
+    "en": "Stress is climbing toward the breaking point — enough can knock her out.",
+    "ru": "Стресс растёт к пределу — на грани может свалить с ног."
+  },
+  "effect.stressed.title": {
+    "en": "Stressed",
+    "ru": "В стрессе"
+  },
+  "effect.strongsun.desc": {
+    "en": "The UV is high right here — bare skin will burn without cover or shade.",
+    "ru": "Здесь высокий UV — без одежды или тени открытая кожа обгорит."
+  },
+  "effect.strongsun.title": {
+    "en": "Strong sun",
+    "ru": "Палящее солнце"
+  },
+  "effect.sunburnt.desc": {
+    "en": "Raw red skin from the sun. It stings — Comfort drains until the red fades into tan.",
+    "ru": "Кожа обгорела на солнце. Саднит и снижает комфорт, пока краснота не сойдёт в загар."
+  },
+  "effect.sunburnt.title": {
+    "en": "Sunburnt",
+    "ru": "Обгорела"
+  },
+  "effect.sunstroke.desc": {
+    "en": "Too long in the sun on bare skin — it burns her and saps comfort.",
+    "ru": "Долго на солнце с голой кожей — обжигает и снижает комфорт."
+  },
+  "effect.sunstroke.title": {
+    "en": "Sunstroke",
+    "ru": "Солнечный удар"
+  },
+  "effect.threatened.desc": {
+    "en": "Immediate danger is increasing stress.",
+    "ru": "Непосредственная угроза усиливает стресс."
+  },
+  "effect.threatened.title": {
+    "en": "Threatened",
+    "ru": "Под угрозой"
+  },
+  "effect.washing.desc": {
+    "en": "Water is washing dirt from the body.",
+    "ru": "Вода смывает грязь с тела."
+  },
+  "effect.washing.title": {
+    "en": "Washing",
+    "ru": "Моется"
+  },
+  "effect.wellfed.desc": {
+    "en": "Freshly full — content and at her best.",
+    "ru": "Только поела — довольна и полна сил."
+  },
+  "effect.wellfed.title": {
+    "en": "Well fed",
+    "ru": "Сыта"
+  },
+  "effect.witnessingsuffering.desc": {
+    "en": "Seeing someone suffer nearby is draining her care reserve.",
+    "ru": "Чужие страдания рядом истощают её запас заботы."
+  },
+  "effect.witnessingsuffering.title": {
+    "en": "Witnessing suffering",
+    "ru": "Видит страдания"
+  },
+  "effect.working.desc": {
+    "en": "Physical work is spending stamina.",
+    "ru": "Физическая работа расходует выносливость."
+  },
+  "effect.working.title": {
+    "en": "Working",
+    "ru": "Работа"
+  },
+  "need.blood": {
+    "en": "Blood",
+    "ru": "Кровь"
+  },
+  "need.breath": {
+    "en": "Breath",
+    "ru": "Дыхание"
+  },
+  "need.comfort": {
+    "en": "Comfort",
+    "ru": "Комфорт"
+  },
+  "need.compassion": {
+    "en": "Care reserve",
+    "ru": "Запас заботы"
+  },
+  "need.energy": {
+    "en": "Energy",
+    "ru": "Энергия"
+  },
+  "need.hunger": {
+    "en": "Fed",
+    "ru": "Сытость"
+  },
+  "need.hygiene": {
+    "en": "Hygiene",
+    "ru": "Гигиена"
+  },
+  "need.social": {
+    "en": "Social",
+    "ru": "Общение"
+  },
+  "need.stamina": {
+    "en": "Stamina",
+    "ru": "Выносливость"
+  },
+  "need.stress": {
+    "en": "Stress",
+    "ru": "Стресс"
+  },
+  "need.temperature": {
+    "en": "Temperature",
+    "ru": "Температура"
+  },
+  "need.thirst": {
+    "en": "Hydration",
+    "ru": "Жажда"
+  }
+}

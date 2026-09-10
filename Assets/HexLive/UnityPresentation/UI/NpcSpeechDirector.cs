@@ -15,7 +15,7 @@ public interface ISpeechStage
     float PlayVoiceLine(string speechId);
 
     float PlayExternalVoiceLine(string wavPath, string visemePath, string emotion,
-        bool listenerRelative);
+        bool listenerRelative, float playbackGain);
 
     // Cut the line that is sounding (an alarm interrupting chatter).
     void StopVoiceLine();
@@ -341,7 +341,8 @@ public sealed class NpcSpeechDirector
 
     /// <summary>§160: external agent speech uses the same one-mouth arbiter.</summary>
     public bool SayExternal(
-        string wavPath, string visemePath, string emotion, SpeechCatalog.Rank rank)
+        string wavPath, string visemePath, string emotion, SpeechCatalog.Rank rank,
+        float playbackGain = 1f)
     {
         if (string.IsNullOrEmpty(wavPath)) return false;
         var alarm = rank == SpeechCatalog.Rank.Alarm;
@@ -364,7 +365,8 @@ public sealed class NpcSpeechDirector
         };
         var line = SpeechCatalog.Get(visualId);
         var length = _stage.PlayExternalVoiceLine(
-            wavPath, visemePath, emotion ?? "neutral", rank == SpeechCatalog.Rank.Talk);
+            wavPath, visemePath, emotion ?? "neutral", rank == SpeechCatalog.Rank.Talk,
+            playbackGain);
         if (length <= 0f) return false;
         var hold = Mathf.Max(SpeechCatalog.MinBubbleSeconds, length) + SpeechCatalog.BubbleTailSeconds;
         _stage.ShowSpeechIcon(line.Icon, hold, alarm);

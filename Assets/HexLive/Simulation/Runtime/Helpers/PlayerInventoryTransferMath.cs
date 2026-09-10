@@ -144,18 +144,19 @@ internal static class PlayerInventoryTransferMath
             foreach (var content in contents)
                 if (!ReferenceEquals(content, item)) carried.Add(content);
         var worn = new List<ItemInstance>(npc.WornItems);
-        for (var i = worn.Count - 1; i >= 0; i--)
+        var displaced = new List<ItemInstance>();
+        for (var i = 0; i < worn.Count;)
         {
             if (world.Content.ObjectDefinitions.TryGetValue(worn[i].DefinitionId, out var existing) &&
                 WearSlotCatalog.Occupies(definition, existing))
             {
-                carried.Add(worn[i]);
+                displaced.Add(worn[i]);
                 worn.RemoveAt(i);
             }
+            else i++;
         }
         worn.Add(item);
-        return PlayerInventoryMath.FitsProjected(world, npc, carried, worn) ||
-            ExecutionSystem.TryFindDropSpotAtFeet(world, npc, underFoot: true, out _, out _);
+        return PlayerInventoryMath.FitsWearProjected(world, npc, carried, worn, displaced);
     }
 
     internal static void MoveResolved(

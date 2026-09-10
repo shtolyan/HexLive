@@ -26,12 +26,12 @@ public sealed class AgentProviders : IAgentProviders
     {
         "move_to", "interact", "craft_item", "stop", "talk_to", "aid_person",
         "treat_limbs", "self_action", "carry_person", "put_down_person",
-        "put_person_in_bed", "manage_inventory", "attack_mob", "merge_camps", "request_item"
+        "put_person_in_bed", "manage_inventory", "attack_mob", "merge_camps", "request_item",
+        "query_known_objects"
     };
     public static bool IsAllowedTool(string name) => AllowedTools.Contains(name);
 
     private readonly AgentProviderOptions _options;
-    private string _lastPlayerMessage = "";
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(45) };
 
     private readonly IModelAdapter? _modelAdapter;
@@ -94,7 +94,7 @@ public sealed class AgentProviders : IAgentProviders
         }
 
         var system = AgentPromptBuilder.Build(_options.DialogueStyleId, memoryContext, transcript);
-        _lastPlayerMessage = AgentConversationLanguage.LastMessage(transcript, recentConversation, _lastPlayerMessage);
+        var lastPlayerMessage = AgentConversationLanguage.LastMessage(transcript, recentConversation, "");
 
         using var stateDocument = JsonDocument.Parse(stateJson);
         var user = JsonSerializer.Serialize(new
@@ -102,7 +102,7 @@ public sealed class AgentProviders : IAgentProviders
             trigger,
             worldAndBody = stateDocument.RootElement,
             playerSpeech = transcript,
-            lastPlayerMessageForLanguage = _lastPlayerMessage,
+            lastPlayerMessageForLanguage = lastPlayerMessage,
             recentConversation
         });
         if (_modelAdapter != null)
@@ -225,6 +225,19 @@ public sealed class AgentProviders : IAgentProviders
                         @enum = AllowedReactions.OrderBy(x => x, StringComparer.Ordinal).ToArray()
                     },
                     intentSummary = new { type = "string", maxLength = 240 },
+                    objectiveUpdate = new
+                    {
+                        anyOf = new object[] {
+                            new { type = "null" },
+                            new { type = "object", additionalProperties = false,
+                                properties = new {
+                                    operation = new { type = "string", @enum = new[] { "set", "pause", "resume", "complete", "clear" } },
+                                    text = new { type = "string", maxLength = AgentObjectivePolicy.TextLimit },
+                                    reason = new { type = "string", minLength = 1, maxLength = AgentObjectivePolicy.ReasonLimit }
+                                }, required = new[] { "operation", "text", "reason" }
+                            }
+                        }
+                    },
                     memoryUpserts = new
                     {
                         type = "array",
@@ -247,7 +260,7 @@ public sealed class AgentProviders : IAgentProviders
                 required = new[]
                 {
                     "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
-                    "memoryUpserts", "journalText", "memoryRequests", "memorySources"
+                    "memoryUpserts", "journalText", "memoryRequests", "memorySources", "objectiveUpdate"
                 }
             }
         }
@@ -265,7 +278,7 @@ public sealed class AgentProviders : IAgentProviders
             "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
             "memoryUpserts"
         };
-        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText", "memoryRequests", "memorySources" };
+        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText", "memoryRequests", "memorySources", "objectiveUpdate" };
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in root.EnumerateObject())
         {
@@ -282,6 +295,13 @@ public sealed class AgentProviders : IAgentProviders
         if (root.TryGetProperty("journalText", out var journalText) &&
             journalText.ValueKind != JsonValueKind.String)
             throw new InvalidDataException("Companion journal entry must be a string.");
+
+        if (root.TryGetProperty("objectiveUpdate", out var objective) && objective.ValueKind != JsonValueKind.Null)
+            RequireExactObject(objective, new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
+            {
+                ["operation"] = JsonValueKind.String, ["text"] = JsonValueKind.String,
+                ["reason"] = JsonValueKind.String
+            });
 
         var assessment = root.GetProperty("relationshipAssessment");
         if (assessment.ValueKind != JsonValueKind.Null)
@@ -332,6 +352,8 @@ public sealed class AgentProviders : IAgentProviders
     private static void RequireExactObject(
         JsonElement value, IReadOnlyDictionary<string, JsonValueKind> fields)
     {
+        if (value.ValueKind != JsonValueKind.Object)
+            throw new InvalidDataException("Nested companion decision must be an object.");
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in value.EnumerateObject())
         {
@@ -409,10 +431,11 @@ public sealed class AgentProviders : IAgentProviders
                 throw new InvalidDataException("InvalidMemoryOperation");
         if (decision.MemoryRequests.Count > 0)
         {
-            decision.Speech = ""; decision.Action = null; decision.RelationshipAssessment = null;
+            decision.ObjectiveUpdate = null; decision.Speech = ""; decision.Action = null; decision.RelationshipAssessment = null;
             decision.Reaction = "None"; decision.MemoryUpserts.Clear(); decision.JournalText = ""; decision.IntentSummary = "";
             return;
         }
+        if (decision.ObjectiveUpdate != null) AgentObjectivePolicy.ValidateUpdate(decision.ObjectiveUpdate);
         if (trigger == "voice" && decision.RelationshipAssessment == null)
             throw new InvalidDataException("VoiceRelationshipAssessmentRequired");
         if (trigger != "voice") decision.RelationshipAssessment = null;

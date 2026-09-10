@@ -1463,10 +1463,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             // fireside stockpile) — the pack has room again, and the item
             // waits here to be reclaimed by normal pickup later.
             var victim = InventoryMath.LowestImportanceDroppable(world, npc);
-            if (victim is not null)
+            if (victim is not null && InventoryMath.TryDropAutomatic(world, npc, victim) != null)
             {
                 InventoryMath.RemoveReference(npc.Inventory.Items, victim);
-                DropItemAtFeet(world, npc, victim);
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "StashedAtFire",
@@ -2032,6 +2031,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
         // Spec §54: a Process consumes the object and scatters its
         // yields — a log → sticks, a palm crown → leaves.
+        // Consumption is unconditional here. Release this source only before
+        // placement; its captured spatial fields remain valid for scatter.
+        // Failed admission retains outputs, so completion never retries yields.
+        WorldObjectMutations.DespawnObject(world, worldObject.Id);
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
         var isCrown = definition.HasTag("PalmCrown");
         var yieldCount = 0;
@@ -2048,7 +2051,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 ? $"{worldObject.DefinitionId} -> {yieldCount} leaves"
                 : $"{worldObject.DefinitionId} -> {sticks} sticks" +
                   (boards > 0 ? $" + {boards} boards" : string.Empty));
-        WorldObjectMutations.DespawnObject(world, worldObject.Id);
         }
 
         return true;
@@ -2081,12 +2083,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             foreach (var item in body.WornItems)
             {
-                DropItemAtFeet(world, npc, item);
+                DropOrRetain(world, npc, item);
             }
 
             foreach (var item in body.Inventory.Items)
             {
-                DropItemAtFeet(world, npc, item);
+                DropOrRetain(world, npc, item);
             }
 
             world.Entities.Corpses.Remove(body.Id);
@@ -2179,6 +2181,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         CorpseMath.TakeSpoil(world, worldObject, spoil, source);
+        AgentIncidentNotifications.LootObject(world, npc, worldObject);
         npc.Inventory.Items.Add(spoil);
         worldObject.IsOccupied = false; // CurrentUser хранит id покойной и на теле, и на останках
 
@@ -2337,6 +2340,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
     }
 
+    // Terminal outputs are issued once even if the ground can accept only part
+    // of a batch. The same remaining instances stay in durable NPC ownership.
+    internal static WorldObjectState DropOrRetain(WorldState world, NPCState npc, ItemInstance item)
+    {
+        var dropped = InventoryMath.TryDropAutomatic(world, npc, item);
+        if (dropped == null) InventoryMath.RetainOwnedItem(npc, item);
+        return dropped;
+    }
+
     // Spec 29F: into the inventory, or at the feet when full.
     internal static void GiveOrDrop(WorldState world, NPCState npc, ItemInstance item)
     {
@@ -2346,7 +2358,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else
         {
-            DropItemAtFeet(world, npc, item);
+            DropOrRetain(world, npc, item);
         }
     }
 
@@ -2380,7 +2392,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         WorldState world, NPCState npc, WorldObjectState source,
         System.Collections.Generic.IReadOnlyList<HarvestDrop> yields)
     {
-        var used = new System.Collections.Generic.HashSet<JunctionId>();
         foreach (var drop in yields)
         {
             for (var i = 0; i < drop.Count; i++)
@@ -2395,19 +2406,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
-                var (tile, junction) = FindScatterSpot(world, source, used);
-                if (junction is { } j)
-                {
-                    var spawned = WorldObjectMutations.SpawnObject(
-                        world, drop.DefinitionId, source.Fragment, tile, j);
-                    spawned.SpawnTick = world.Tick;
-                    used.Add(j);
-                }
-                else
-                {
-                    // No free spot in the ring — don't lose the item, hand it over.
-                    GiveOrDrop(world, npc, CreateYieldItem(world, drop.DefinitionId));
-                }
+                var item = CreateYieldItem(world, drop.DefinitionId);
+                if (!TryDropYieldNear(world,npc,source,item,out _)) GiveOrDrop(world,npc,item);
             }
         }
     }
@@ -2440,45 +2440,35 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return null;
         }
 
-        var tile = source.Tile;
-        var junction = source.Junctions[0];
-        var fragment = source.Fragment;
         WorldObjectMutations.DespawnObject(world, source.Id);
-
         WorldObjectState? primary = null;
-        var used = new System.Collections.Generic.HashSet<JunctionId> { junction };
         foreach (var drop in yields)
         {
             for (var i = 0; i < drop.Count; i++)
             {
-                var spawnTile = tile;
-                var spawnJunction = junction;
-                if (primary is not null)
-                {
-                    var scatter = FindScatterSpot(world, source, used);
-                    if (scatter.Item2 is not { } freeJunction)
-                    {
-                        GiveOrDrop(world, npc, CreateYieldItem(world, drop.DefinitionId));
-                        continue;
-                    }
-
-                    spawnTile = scatter.Item1;
-                    spawnJunction = freeJunction;
-                    used.Add(freeJunction);
-                }
-
-                var spawned = WorldObjectMutations.SpawnObject(world, drop.DefinitionId, fragment, spawnTile, spawnJunction);
-                spawned.SpawnTick = world.Tick;
-                // §59-склад: заявленный запас; без склада — ноль (расходники).
-                spawned.ResourceAmount =
-                    world.Content.ObjectDefinitions.TryGetValue(drop.DefinitionId, out var dropDef)
-                        ? dropDef.StoredAmount(Content.StoredKind.Water)
-                        : 0f;
-                primary ??= spawned;
+                var item = CreateYieldItem(world,drop.DefinitionId);
+                item.ResourceAmount = world.Content.ObjectDefinitions.TryGetValue(drop.DefinitionId,out var definition)
+                    ? definition.StoredAmount(Content.StoredKind.Water) : 0f;
+                if (TryDropYieldNear(world,npc,source,item,out var spawned)) primary ??= spawned;
+                else GiveOrDrop(world,npc,item);
             }
         }
 
         return primary;
+    }
+
+    private static bool TryDropYieldNear(WorldState world,NPCState npc,WorldObjectState source,
+        ItemInstance item,out WorldObjectState spawned)
+    {
+        var position = source.Junctions.Count > 0 && world.Junctions.Items.TryGetValue(source.Junctions[0],out var anchor)
+            ? anchor.WorldPosition : npc.Position;
+        if (GroundItemPlacement.TryFindNear(world,npc,item,source.Tile,position,out var tile,out var junction,out _))
+        {
+            spawned = SpawnDroppedItem(world,npc,item,tile,junction);
+            return true;
+        }
+        spawned = null;
+        return false;
     }
 
     private static bool TryContinueWorldPlanAfterInteraction(
@@ -2553,146 +2543,38 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         return true;
     }
 
-    // Spec §54: a free junction on the harvested tile or a neighbour, skipping
-    // junctions already claimed by earlier drops this call so the yields land
-    // at DISTINCT points (the scattered look).
-    private static (TileCoord, JunctionId?) FindScatterSpot(
-        WorldState world, WorldObjectState source,
-        System.Collections.Generic.HashSet<JunctionId> used)
-    {
-        var tiles = new System.Collections.Generic.List<TileCoord> { source.Tile };
-        foreach (var neighbor in SpatialQueries.GetNeighbors(world, source.Tile))
-        {
-            tiles.Add(neighbor);
-        }
-
-        // §26.6A r5: the coconut drop is scored by legal approaches
-        // (FruitProductionSystem) — scatter deliberately is NOT. The same change
-        // here was tried and MEASURED: 30 seeds × 10 days moved the CONTROL arm
-        // (rule off) 91/120 → 84/120 as well, i.e. it reshuffled seeds instead of
-        // feeding anyone, unlike the coconut drop which left the control at
-        // exactly 91 and lifted the rule arm 81 → 84. Scatter runs on every
-        // harvest, so it costs a rim BFS per candidate junction for a benefit
-        // nothing could demonstrate. Revisit only with a measurement, not a hunch.
-        foreach (var tileCoord in tiles)
-        {
-            if (!SpatialQueries.IsTileWalkable(world, tileCoord) ||
-                !world.Tiles.Items.TryGetValue(tileCoord, out var tile))
-            {
-                continue;
-            }
-
-            foreach (var junctionId in tile.Junctions)
-            {
-                if (used.Contains(junctionId) ||
-                    !SpatialQueries.IsJunctionPassable(world, junctionId) ||
-                    !SpatialQueries.IsJunctionFree(world, junctionId))
-                {
-                    continue;
-                }
-
-                return (tileCoord, junctionId);
-            }
-        }
-
-        return (source.Tile, null);
-    }
-
     // Spec 35.5: dropped items keep their instance state on the ground.
     internal static WorldObjectState DropItemAtFeet(WorldState world, NPCState npc, ItemInstance item)
         => DropItemAtFeet(world, npc, item, underFoot: false);
 
-    // underFoot=true lays the item on the NPC's OWN junction (directly beneath
-    // her) instead of a scattered neighbour — used when undressing so the doffed
-    // garment appears in the same cell she is standing in (user request), not one
-    // cell over.
+    // §54/§123: both normal drop and undressing prefer the nearest legal point.
+    // The own point wins when its measured footprint is available.
     internal static WorldObjectState DropItemAtFeet(
         WorldState world, NPCState npc, ItemInstance item, bool underFoot)
     {
-        if (TryFindDropSpotAtFeet(world, npc, underFoot, out var dropTile, out var dropJunction))
+        if (GroundItemPlacement.TryFind(world, npc, item, out var dropTile, out var dropJunction, out _))
         {
-            var dropped = WorldObjectMutations.SpawnObject(
-                world, item.DefinitionId, npc.Fragment, dropTile, dropJunction);
-            dropped.Wetness = item.Wetness;
-            dropped.Durability = item.Durability;
-            dropped.ResourceAmount = item.ResourceAmount;
-            dropped.WaterKind = item.WaterKind;
-            dropped.Dirtiness = item.Dirtiness;
-            dropped.Bloodiness = item.Bloodiness;
-            // §133: владение переживает границу «надето/лежит» — вещь на земле
-            // помнит хозяйку, поэтому подруга спросит разрешение, а не наденет.
-            dropped.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : null;
-            return dropped;
+            return SpawnDroppedItem(world,npc,item,dropTile,dropJunction);
         }
 
         return null;
     }
 
-    internal static bool TryFindDropSpotAtFeet(
-        WorldState world,
-        NPCState npc,
-        bool underFoot,
-        out TileCoord tile,
-        out JunctionId junction)
+    private static WorldObjectState SpawnDroppedItem(WorldState world,NPCState npc,ItemInstance item,
+        TileCoord dropTile,JunctionId dropJunction)
     {
-        // underFoot: lay it exactly where she stands — same cell, right beneath
-        // her (undressing). A ground garment is passable, so sharing her junction
-        // is fine; it stays put when she steps off.
-        if (underFoot && npc.CurrentJunction is { } feet &&
-            world.Junctions.Items.ContainsKey(feet))
-        {
-            tile = npc.Tile;
-            junction = feet;
-            return true;
-        }
-
-        // Prefer a genuinely free ground junction near the actor so dropped
-        // items become ordinary world objects immediately. The actor's current
-        // junction is usually occupied by the actor, so keep it as a fallback
-        // rather than the first choice.
-        var source = new WorldObjectState
-        {
-            Tile = npc.Tile,
-            Fragment = npc.Fragment
-        };
-        var used = new System.Collections.Generic.HashSet<JunctionId>();
-        if (npc.CurrentJunction is { } current)
-        {
-            used.Add(current);
-        }
-
-        var scatter = FindScatterSpot(world, source, used);
-        if (scatter.Item2 is { } freeJunction)
-        {
-            tile = scatter.Item1;
-            junction = freeJunction;
-            return true;
-        }
-
-        if (npc.CurrentJunction is { } fallback &&
-            world.Junctions.Items.ContainsKey(fallback))
-        {
-            tile = npc.Tile;
-            junction = fallback;
-            return true;
-        }
-
-        if (world.Tiles.Items.TryGetValue(npc.Tile, out var tileState))
-        {
-            foreach (var candidate in tileState.Junctions)
-            {
-                if (SpatialQueries.IsJunctionPassable(world, candidate))
-                {
-                    tile = npc.Tile;
-                    junction = candidate;
-                    return true;
-                }
-            }
-        }
-
-        tile = npc.Tile;
-        junction = default;
-        return false;
+        var dropped = WorldObjectMutations.SpawnObject(
+            world, item.DefinitionId, npc.Fragment, dropTile, dropJunction);
+        dropped.Wetness = item.Wetness;
+        dropped.Durability = item.Durability;
+        dropped.ResourceAmount = item.ResourceAmount;
+        dropped.WaterKind = item.WaterKind;
+        dropped.Dirtiness = item.Dirtiness;
+        dropped.Bloodiness = item.Bloodiness;
+        // §133: владение переживает границу «надето/лежит» — вещь на земле
+        // помнит хозяйку, поэтому подруга спросит разрешение, а не наденет.
+        dropped.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : null;
+        return dropped;
     }
 
     // §110.9: crying is a conscious choice of posture. If a free bed is

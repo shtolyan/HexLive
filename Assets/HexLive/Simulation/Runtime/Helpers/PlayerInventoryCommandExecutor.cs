@@ -19,7 +19,8 @@ internal static class PlayerInventoryCommandExecutor
         NPCState npc,
         InventoryItemRef reference,
         InventoryAction action,
-        out string reason)
+        out string reason,
+        int count = 1)
     {
         var source = reference.Source == InventoryItemSource.Carried
             ? npc.Inventory.Items
@@ -32,6 +33,14 @@ internal static class PlayerInventoryCommandExecutor
         }
 
         var item = source[reference.Index];
+        if (count <= 0 ||
+            count != 1 &&
+            (action != InventoryAction.Drop || reference.Source != InventoryItemSource.Carried))
+        {
+            reason = "InvalidCount";
+            return false;
+        }
+
         if (npc.Mind.OutfitLocked &&
             (action == InventoryAction.Wear || reference.Source == InventoryItemSource.Worn))
         {
@@ -56,6 +65,13 @@ internal static class PlayerInventoryCommandExecutor
             return false;
         }
 
+        if (action == InventoryAction.Drop &&
+            reference.Source == InventoryItemSource.Carried)
+        {
+            return PlayerInventoryDropExecutor.TryApply(
+                world, npc, reference, count, out reason);
+        }
+
         switch (action)
         {
             case InventoryAction.Wear:
@@ -65,15 +81,6 @@ internal static class PlayerInventoryCommandExecutor
                 npc.WornItems.RemoveAt(reference.Index);
                 npc.Inventory.Items.Add(item);
                 EquipmentMath.Recalculate(world, npc);
-                break;
-            case InventoryAction.Drop when reference.Source == InventoryItemSource.Carried:
-                if (ExecutionSystem.DropItemAtFeet(world, npc, item) is null)
-                {
-                    reason = "NoDropSpot";
-                    return false;
-                }
-
-                npc.Inventory.Items.RemoveAt(reference.Index);
                 break;
             case InventoryAction.Drop:
                 var dropped = ExecutionSystem.DropItemAtFeet(world, npc, item, underFoot: true);

@@ -9,10 +9,16 @@ public sealed class McpClient : IDisposable
 {
     private readonly HttpClient _http;
     private readonly Uri _endpoint;
+    private readonly AgentProviderOptions _options;
+    private readonly HttpMessageHandler? _handler;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string _sessionId = string.Empty;
     private long _requestId;
     private long _lastSuccessUtcTicks;
+    private bool _sessionExpired;
+
+    internal bool HasEstablishedSession => _sessionId.Length > 0;
+    internal McpClient CreateFresh() => new(_options, _handler);
 
     public bool Healthy => _lastSuccessUtcTicks > 0 &&
         DateTime.UtcNow - new DateTime(Interlocked.Read(ref _lastSuccessUtcTicks), DateTimeKind.Utc)
@@ -20,6 +26,8 @@ public sealed class McpClient : IDisposable
 
     public McpClient(AgentProviderOptions options, HttpMessageHandler? handler = null)
     {
+        _options = options;
+        _handler = handler;
         _endpoint = options.McpUri;
         _http = handler == null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
         _http.Timeout = TimeSpan.FromSeconds(15);
@@ -38,6 +46,7 @@ public sealed class McpClient : IDisposable
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (_sessionExpired) throw new McpSessionExpiredException();
             if (_sessionId.Length == 0)
                 await InitializeAsync(cancellationToken).ConfigureAwait(false);
 
@@ -71,6 +80,7 @@ public sealed class McpClient : IDisposable
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (_sessionExpired) throw new McpSessionExpiredException();
             if (_sessionId.Length == 0) await InitializeAsync(cancellationToken);
             var response = await SendAsync("tools/list", new { }, cancellationToken);
             return response.GetProperty("result").Clone();
@@ -99,6 +109,7 @@ public sealed class McpClient : IDisposable
         var id = Interlocked.Increment(ref _requestId);
         using var request = BuildRequest(new { jsonrpc = "2.0", id, method, @params = parameters });
         using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        CheckExpiredSession(request, response);
         response.EnsureSuccessStatusCode();
         CaptureSession(response);
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken)
@@ -117,9 +128,27 @@ public sealed class McpClient : IDisposable
     {
         using var request = BuildRequest(new { jsonrpc = "2.0", method, @params = parameters });
         using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        CheckExpiredSession(request, response);
         if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.Accepted)
             response.EnsureSuccessStatusCode();
         CaptureSession(response);
+    }
+
+    private void CheckExpiredSession(HttpRequestMessage request, HttpResponseMessage response)
+    {
+        // The server uses 401 both for a revoked credential and for an expired
+        // session (e.g. sleep > five minutes). Only an established session gets
+        // another handshake. A fresh initialize returning 401 remains terminal.
+        // Never replay this RPC: the runtime must validate its pinned world/NPC
+        // and acquire a new attachment before it can issue more actions.
+        if (response.StatusCode != System.Net.HttpStatusCode.Unauthorized ||
+            !request.Headers.Contains("Mcp-Session-Id")) return;
+        _sessionId = string.Empty;
+        // Poison under _gate: queued actions must not initialize behind the
+        // runtime's back and use the old attachment/target in a new session.
+        _sessionExpired = true;
+        Interlocked.Exchange(ref _lastSuccessUtcTicks, 0);
+        throw new McpSessionExpiredException();
     }
 
     private HttpRequestMessage BuildRequest(object payload)
@@ -162,6 +191,8 @@ public class McpRequestException(string code) : InvalidOperationException("MCP r
 {
     public string ReasonCode { get; protected set; } = code;
 }
+
+public sealed class McpSessionExpiredException() : McpRequestException("McpSessionExpired");
 
 public sealed class McpToolRejectedException : McpRequestException
 {

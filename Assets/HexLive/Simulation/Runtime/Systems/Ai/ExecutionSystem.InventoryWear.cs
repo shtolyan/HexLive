@@ -332,19 +332,7 @@ public sealed partial class ExecutionSystem
         WorldObjectState dropped)
     {
         _garmentSpillScratch.Clear();
-        var inv = npc.Inventory;
-        var guard = 0;
-        while (inv.UsedSlots > inv.Capacity && guard++ < 64)
-        {
-            var victim = InventoryMath.LowestImportanceDroppable(world, npc);
-            if (victim is null)
-            {
-                break;
-            }
-
-            InventoryMath.RemoveReference(inv.Items, victim);
-            _garmentSpillScratch.Add(victim);
-        }
+        InventoryMath.MoveOverflowToGarment(world, npc.Id.Value, npc.Inventory, _garmentSpillScratch);
 
         if (_garmentSpillScratch.Count > 0)
         {
@@ -373,19 +361,7 @@ public sealed partial class ExecutionSystem
         }
 
         _garmentSpillScratch.Clear();
-        var inv = npc.Inventory;
-        var guard = 0;
-        while (inv.UsedSlots > inv.Capacity && guard++ < 64)
-        {
-            var victim = InventoryMath.LowestImportanceDroppable(world, npc);
-            if (victim is null)
-            {
-                break;
-            }
-
-            InventoryMath.RemoveReference(inv.Items, victim);
-            _garmentSpillScratch.Add(victim);
-        }
+        InventoryMath.MoveOverflowToGarment(world, npc.Id.Value, npc.Inventory, _garmentSpillScratch);
 
         // Рецепт тот же, что у CompleteHang: вещь становится объектом на
         // джанкшене станции и наследует её поворот (§66 — иначе висит мимо).
@@ -636,7 +612,15 @@ public sealed partial class ExecutionSystem
             // fit — they wait inside it on the ground, retrievable later.
             // §133: дошла до гардероба/сушилки — вещь вешается туда, а не
             // остаётся лежать под ногами.
-            StowGarmentWithContents(world, npc, wornItem, step.TargetObject);
+            var laid = StowGarmentWithContents(world, npc, wornItem, step.TargetObject);
+            if (laid is null)
+            {
+                InventoryMath.RetainOwnedItem(npc, wornItem);
+                PlanningSystem.SetGoalCooldown(world, npc, GoalType.Undress);
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Undress: no garment placement");
+                npc.Mind.CurrentGoal = GoalType.None;
+                return;
+            }
 
             npc.Execution.Status = ExecutionStatus.None;
             npc.Execution.CurrentInteraction = null;
@@ -646,7 +630,7 @@ public sealed partial class ExecutionSystem
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "ItemUndressed",
-                    $"{itemId} dropped at Tile={npc.Tile.Q},{npc.Tile.R} " +
+                    $"{itemId} stowed at Tile={npc.Tile.Q},{npc.Tile.R} " +
                     $"Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
             }
 
@@ -698,7 +682,6 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        InventoryMath.RemoveReference(npc.Inventory.Items, item);
         var dropped = DropItemAtFeet(world, npc, item);
         if (dropped is null)
         {
@@ -711,6 +694,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        InventoryMath.RemoveReference(npc.Inventory.Items, item);
         npc.Plan.TargetObjectId = dropped.Id;
         npc.Plan.TargetTile = dropped.Tile;
         npc.Plan.TargetJunctionId = dropped.Junctions.Count > 0 ? dropped.Junctions[0] : npc.CurrentJunction;

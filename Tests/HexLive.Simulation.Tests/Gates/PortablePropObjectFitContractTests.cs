@@ -1,7 +1,6 @@
 using System;
-using System.Globalization;
 using System.IO;
-using System.Text.RegularExpressions;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Spatial;
 using NUnit.Framework;
 
@@ -19,19 +18,15 @@ public sealed class PortablePropObjectFitContractTests
     {
         var source = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "ObjectFit.cs"));
-        var prefix = Regex.Escape(
-            $"if (definitionId == \"{definitionId}\") return r * ");
-        var match = Regex.Match(source,
-            prefix + @"(?<factor>[0-9]+(?:\.[0-9]+)?)f;");
-
-        Assert.That(match.Success, Is.True,
-            $"{definitionId} must keep an explicit target in the shared ObjectFit table.");
-        var factor = float.Parse(match.Groups["factor"].Value, CultureInfo.InvariantCulture);
+        var target = GroundPileCatalog.TargetWorldSize(definitionId);
 
         Assert.Multiple(() =>
         {
-            Assert.That(factor, Is.EqualTo(expectedHexRadii).Within(0.000001f));
-            Assert.That(factor * HexSpatialMath.HexRadius,
+            Assert.That(source, Does.Contain("GroundPileCatalog.TargetWorldSize(definitionId)"),
+                "ObjectFit must delegate hand and ground sizes to the shared catalog.");
+            Assert.That(target / HexSpatialMath.HexRadius,
+                Is.EqualTo(expectedHexRadii).Within(0.000001f));
+            Assert.That(target,
                 Is.EqualTo(expectedWorldUnits).Within(0.000001f));
         });
     }

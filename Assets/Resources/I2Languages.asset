@@ -69,8 +69,16 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - "Character voices"
-      - "Голоса персонажей"
+      - "Recorded character voices"
+      - "Записанные голоса персонажей"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: audio.agent_voices
+      TermType: 0
+      Description:
+      Languages:
+      - "Connected AI voices"
+      - "Голоса подключённого AI"
       Flags: 0101
       Languages_Touch: []
     - Term: audio.music
@@ -93,8 +101,8 @@ MonoBehaviour:
       TermType: 0
       Description:
       Languages:
-      - "Voices include connected AI. Changes apply immediately and are saved automatically."
-      - "Голоса включают подключённый AI. Изменения применяются сразу и сохраняются автоматически."
+      - "Recorded and connected AI voices are adjusted separately. Changes apply immediately and are saved automatically."
+      - "Записанные голоса и голоса подключённого AI настраиваются отдельно. Изменения применяются сразу и сохраняются автоматически."
       Flags: 0101
       Languages_Touch: []
     - Term: loading.content.wear
@@ -3051,6 +3059,14 @@ MonoBehaviour:
       Languages:
       - Trust
       - "\u0414\u043E\u0432\u0435\u0440\u0438\u0435"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: rel.last_voice_impact
+      TermType: 0
+      Description:
+      Languages:
+      - Last line influence
+      - "\u0412\u043B\u0438\u044F\u043D\u0438\u0435 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0439 \u0440\u0435\u043F\u043B\u0438\u043A\u0438"
       Flags: 0101
       Languages_Touch: []
     - Term: uv.high
@@ -22249,6 +22265,22 @@ MonoBehaviour:
     - Term: inv.action.drop
       TermType: 0
       Description: 
+      Languages:
+      - Drop
+      - "\u0412\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.drop_quantity_title
+      TermType: 0
+      Description:
+      Languages:
+      - How many {0} should be dropped?
+      - "\u0421\u043A\u043E\u043B\u044C\u043A\u043E {0} \u0432\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C?"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.drop_quantity_confirm
+      TermType: 0
+      Description:
       Languages:
       - Drop
       - "\u0412\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C"

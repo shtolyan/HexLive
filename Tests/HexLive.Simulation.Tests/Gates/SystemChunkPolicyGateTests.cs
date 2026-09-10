@@ -50,6 +50,8 @@ public sealed class SystemChunkPolicyGateTests
             ["WeatherSystem"] = ChunkPolicy.Global,
 
             // Работают от живых NPC — те сами будят чанки вокруг себя.
+            // §160.6: only personal perception lists of attached NPCs.
+            ["AgentIncidentSystem"] = ChunkPolicy.NpcDriven,
             ["AnimalCombatSystem"] = ChunkPolicy.NpcDriven,
             ["CampExpulsionSystem"] = ChunkPolicy.NpcDriven,
             ["DecisionSystem"] = ChunkPolicy.NpcDriven,
@@ -63,6 +65,8 @@ public sealed class SystemChunkPolicyGateTests
             ["MobSystem"] = ChunkPolicy.NpcDriven,
             ["MovementSystem"] = ChunkPolicy.NpcDriven,
             ["NeedsDecaySystem"] = ChunkPolicy.NpcDriven,
+            // §26.26: active NPC plans and indexed claims, never a world-object scan.
+            ["ObjectReservationSystem"] = ChunkPolicy.NpcDriven,
             ["PathfindingSystem"] = ChunkPolicy.NpcDriven,
             ["PerceptionSystem"] = ChunkPolicy.NpcDriven,
             ["PlanningSystem"] = ChunkPolicy.NpcDriven,

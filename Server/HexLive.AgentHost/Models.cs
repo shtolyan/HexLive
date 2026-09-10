@@ -20,6 +20,7 @@ public sealed class CompanionDecision
 {
     [JsonPropertyName("memoryRequests")] public List<MemoryRequest> MemoryRequests { get; set; } = new();
     [JsonPropertyName("memorySources")] public List<string> MemorySources { get; set; } = new();
+    [JsonPropertyName("objectiveUpdate")] public AgentObjectiveUpdate? ObjectiveUpdate { get; set; }
     [JsonPropertyName("speech")] public string Speech { get; set; } = string.Empty;
     [JsonPropertyName("emotion")] public string Emotion { get; set; } = "neutral";
     [JsonPropertyName("action")] public CompanionAction? Action { get; set; }

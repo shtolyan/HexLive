@@ -161,26 +161,19 @@ public static class ScenePrewarm
             {
                 WarmItemOwner(id);
             }
-            foreach (var id in npc.InventoryItems)
-            {
-                WarmItemOwner(id);
-            }
             foreach (var id in npc.HolsteredItems)
             {
                 WarmItemOwner(id);
             }
             WarmItemOwner(npc.HeldItemId);
             WarmItemOwner(npc.HeldGarmentId);
-            WarmItemOwner(npc.FavoriteWeaponId);
 
-            foreach (var container in npc.InventoryContainers)
-            {
-                WarmItemOwner(container.OwnerItemDefinitionId);
-                foreach (var slot in container.Slots)
-                {
-                    WarmItemOwner(slot.ItemDefinitionId);
-                }
-            }
+            // Inventory contents are not part of the first visible frame.
+            // Prewarming their owner `main` entries made the curtain wait for
+            // hundreds of wear/tool/resource bundles (950 s in bug #273),
+            // even after every actor was ready. Inventory UI requests the
+            // small retained icon entry lazily; if an item becomes held or
+            // worn, the ordinary snapshot path above warms its main entry.
 
             foreach (var condition in npc.BodyPartConditions)
             {
@@ -293,10 +286,6 @@ public static class ScenePrewarm
         foreach (var npc in world.Entities.Npcs.Values)
         {
             foreach (var item in npc.WornItems)
-            {
-                Add(item.DefinitionId);
-            }
-            foreach (var item in npc.Inventory.Items)
             {
                 Add(item.DefinitionId);
             }

@@ -184,22 +184,45 @@ public sealed class AgentWorldKnowledge
 public sealed class KnowledgeAwareAgentProviders : IAgentProviders
 {
     private readonly IAgentProviders _inner;
-    private readonly McpClient _mcp;
-    private readonly AgentWorldKnowledge _knowledge;
+    private readonly KnowledgeLane _reply, _autonomy;
 
     public KnowledgeAwareAgentProviders(IAgentProviders inner, McpClient mcp)
     {
         _inner = inner;
-        _mcp = mcp;
-        _knowledge = new AgentWorldKnowledge((section, offset, token) =>
-            _mcp.CallToolAsync("read_spec", new { section, offset }, token));
+        _reply = new KnowledgeLane(mcp);
+        _autonomy = new KnowledgeLane(mcp.CreateFresh());
+    }
+
+    // At most one request per runtime lane. The two caches, pagination state
+    // and poisoned-client replacement must never share mutable state.
+    private sealed class KnowledgeLane : IDisposable
+    {
+        private McpClient _mcp;
+        public AgentWorldKnowledge Knowledge { get; }
+        public KnowledgeLane(McpClient mcp)
+        { _mcp = mcp; Knowledge = new AgentWorldKnowledge(ReadSpecAsync); }
+        private async Task<JsonElement> ReadSpecAsync(string section, int offset, CancellationToken token)
+        {
+            try { return await _mcp.CallToolAsync("read_spec", new { section, offset }, token); }
+            catch (McpSessionExpiredException)
+            {
+                token.ThrowIfCancellationRequested();
+                var expired = _mcp;
+                _mcp = expired.CreateFresh();
+                expired.Dispose();
+                // Only this read-only query is retried, once (#391).
+                return await _mcp.CallToolAsync("read_spec", new { section, offset }, token);
+            }
+        }
+        public void Dispose() => _mcp.Dispose();
     }
 
     public async Task<CompanionDecision> DecideAsync(string trigger, string stateJson,
         string memoryContext, string transcript, IReadOnlyList<string> recentConversation,
         CancellationToken cancellationToken)
     {
-        var knowledge = await _knowledge.BuildAsync(transcript, stateJson, cancellationToken);
+        var lane = trigger == "voice" ? _reply : _autonomy;
+        var knowledge = await lane.Knowledge.BuildAsync(transcript, stateJson, cancellationToken);
         return await _inner.DecideAsync(trigger, stateJson, memoryContext + "\n\n" + knowledge,
             transcript, recentConversation, cancellationToken);
     }
@@ -207,5 +230,5 @@ public sealed class KnowledgeAwareAgentProviders : IAgentProviders
     public Task<VoiceArtifact> SynthesizeAsync(string text, CancellationToken cancellationToken)
         => _inner.SynthesizeAsync(text, cancellationToken);
 
-    public void Dispose() { _inner.Dispose(); _mcp.Dispose(); }
+    public void Dispose() { _inner.Dispose(); _reply.Dispose(); _autonomy.Dispose(); }
 }

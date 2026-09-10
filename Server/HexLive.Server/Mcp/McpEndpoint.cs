@@ -230,8 +230,7 @@ public static class McpEndpoint
                 var host = worlds.Host;
                 foreach (var npcId in leases.OwnedBy(owner))
                 {
-                    host.SubmitManualCommand(new HexLive.Simulation.Runtime.SetManualControlCommand(
-                        new HexLive.Simulation.Common.EntityId(npcId), false));
+                    AgentControlActions.Release(host, npcId);
                     leases.Release(npcId, owner);
                 }
                 playerAccess?.CloseSession(session);

@@ -66,6 +66,7 @@ public static class TheftMath
     /// каждой свидетельницы НЕсоюзной фракции, которая видит воровку.</summary>
     public static void OnStolen(WorldState world, NPCState thief, WorldObjectState obj)
     {
+        AgentIncidentNotifications.Theft(world, thief, obj.DefinitionId, source: obj);
         Trace.Emit(world, thief.Id, "ItemStolen",
             $"NPC{thief.Id.Value} Def={obj.DefinitionId} " +
             $"Tile={obj.Tile.Q},{obj.Tile.R}");

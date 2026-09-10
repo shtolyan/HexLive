@@ -6,6 +6,50 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class DialogueContractTests
 {
+    [Test]
+    public void ObjectiveIsOptionalForOldDecisionsAndNullableForNewOnes()
+    {
+        var json = JsonSerializer.Serialize(new CompanionDecision());
+        Assert.That(AgentProviders.ParseDecision(json, "heartbeat").ObjectiveUpdate, Is.Null);
+        Assert.That(AgentProviders.ParseDecision(json.Replace("\"objectiveUpdate\":null,", ""), "heartbeat").ObjectiveUpdate, Is.Null);
+        var updated = JsonSerializer.Serialize(new CompanionDecision { ObjectiveUpdate = new()
+            { Operation = "set", Text = "Rescue friend", Reason = "Observed distress" },
+            Action = new() { Tool = "query_known_objects", Arguments = JsonSerializer.SerializeToElement(new { }) } });
+        var parsed = AgentProviders.ParseDecision(updated, "heartbeat");
+        Assert.That(parsed.ObjectiveUpdate!.Text, Is.EqualTo("Rescue friend"));
+        Assert.That(parsed.Action!.Tool, Is.EqualTo("query_known_objects"));
+        var format = typeof(AgentProviders).GetMethod("DecisionResponseFormat",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.Invoke(null, null);
+        var schema = JsonSerializer.SerializeToElement(format).GetProperty("json_schema").GetProperty("schema");
+        Assert.That(schema.GetProperty("required").EnumerateArray().Select(x => x.GetString()), Does.Contain("objectiveUpdate"));
+        var objectiveSchema = schema.GetProperty("properties").GetProperty("objectiveUpdate").GetProperty("anyOf");
+        Assert.That(objectiveSchema[0].GetProperty("type").GetString(), Is.EqualTo("null"));
+        Assert.That(objectiveSchema[1].GetProperty("additionalProperties").GetBoolean(), Is.False);
+    }
+
+    [TestCase("[]")]
+    [TestCase("{\"operation\":\"run\",\"text\":\"x\",\"reason\":\"why\"}")]
+    [TestCase("{\"operation\":\"set\",\"text\":12,\"reason\":\"why\"}")]
+    [TestCase("{\"operation\":\"set\",\"text\":\"x\",\"text\":\"y\",\"reason\":\"why\"}")]
+    [TestCase("{\"operation\":\"pause\",\"text\":\"replacement\",\"reason\":\"why\"}")]
+    [TestCase("{\"operation\":\"set\",\"text\":\"x\",\"reason\":\" \"}")]
+    public void MalformedObjectiveCannotEnterDecision(string objective)
+    {
+        var json = JsonSerializer.Serialize(new CompanionDecision()).Replace("\"objectiveUpdate\":null", "\"objectiveUpdate\":" + objective);
+        Assert.Throws<InvalidDataException>(() => AgentProviders.ParseDecision(json, "heartbeat"));
+    }
+
+    [TestCase(600, 240, true)]
+    [TestCase(601, 240, false)]
+    [TestCase(600, 241, false)]
+    public void ObjectiveContractHasBoundedText(int textLength, int reasonLength, bool accepted)
+    {
+        var json = JsonSerializer.Serialize(new CompanionDecision { ObjectiveUpdate = new()
+            { Operation = "set", Text = new string('x', textLength), Reason = new string('r', reasonLength) } });
+        if (accepted) Assert.That(AgentProviders.ParseDecision(json, "heartbeat").ObjectiveUpdate, Is.Not.Null);
+        else Assert.Throws<InvalidDataException>(() => AgentProviders.ParseDecision(json, "heartbeat"));
+    }
+
     private string _root = "";
     private static readonly CancellationToken Token = CancellationToken.None;
     private static RelationshipAssessment Warm => new(true, RelationshipDirection.Increase,

@@ -131,7 +131,11 @@ namespace HexLive.UnityPresentation.Audio
         // §67.6: character voice lines auto-register from the file scan —
         // any "voice_<char>_<emotion>_<n>" group gets this shared def, so a
         // new colonist's folder needs zero code.
-        private static readonly Def VoiceDef = new(0.75f, 1.2f, 22f, 0.03f);
+        // Shared with the §160 runtime level measurement. Keeping the authored
+        // base gain in one place prevents its peak ceiling from drifting away
+        // from the gain FMOD actually applies.
+        public const float VoicePlaybackBaseGain = 0.75f;
+        private static readonly Def VoiceDef = new(VoicePlaybackBaseGain, 1.2f, 22f, 0.03f);
 
         private static readonly Dictionary<string, FMOD.Sound[]> Sounds = new();
         private static readonly Dictionary<string, string[]> Paths = new();
@@ -143,10 +147,12 @@ namespace HexLive.UnityPresentation.Audio
         private static FMOD.ChannelGroup _master;
         private static System.Random _rng = new(9257);
 
-        public enum VolumeCategory { Voices, Music, Environment }
-        private static FMOD.ChannelGroup _voicesGroup, _environmentGroup;
+        // AgentVoices stays last so the persisted names and numeric positions
+        // of the three existing settings remain stable.
+        public enum VolumeCategory { Voices, Music, Environment, AgentVoices }
+        private static FMOD.ChannelGroup _voicesGroup, _agentVoicesGroup, _environmentGroup;
         private static readonly List<(FMOD.Studio.EventInstance Instance, VolumeCategory Category, float Gain)> MixedEvents = new();
-        private static readonly float[] UserVolumes = { 1f, 1f, 1f };
+        private static readonly float[] UserVolumes = { 1f, 1f, 1f, 1f };
         private static bool _volumesLoaded;
 
         public static float GetUserVolume(VolumeCategory category)
@@ -155,8 +161,17 @@ namespace HexLive.UnityPresentation.Audio
             {
                 for (var i = 0; i < UserVolumes.Length; i++)
                 {
-                    var value = PlayerPrefs.GetFloat("HexLive.Audio." + (VolumeCategory)i, 1f);
+                    var storedCategory = (VolumeCategory)i;
+                    var key = "HexLive.Audio." + storedCategory;
+                    // #386: the former single Voices setting governed both
+                    // banks. On first upgrade preserve that choice for each
+                    // independent slider; later writes use their own keys.
+                    var value = storedCategory == VolumeCategory.AgentVoices && !PlayerPrefs.HasKey(key)
+                        ? PlayerPrefs.GetFloat("HexLive.Audio." + VolumeCategory.Voices, 1f)
+                        : PlayerPrefs.GetFloat(key, 1f);
                     UserVolumes[i] = float.IsNaN(value) ? 1f : Mathf.Clamp01(value);
+                    if (storedCategory == VolumeCategory.AgentVoices && !PlayerPrefs.HasKey(key))
+                        PlayerPrefs.SetFloat(key, UserVolumes[i]);
                 }
                 _volumesLoaded = true;
             }
@@ -170,6 +185,7 @@ namespace HexLive.UnityPresentation.Audio
             UserVolumes[(int)category] = volume;
             PlayerPrefs.SetFloat("HexLive.Audio." + category, volume);
             if (_voicesGroup.hasHandle()) _voicesGroup.setVolume(GetUserVolume(VolumeCategory.Voices));
+            if (_agentVoicesGroup.hasHandle()) _agentVoicesGroup.setVolume(GetUserVolume(VolumeCategory.AgentVoices));
             if (_environmentGroup.hasHandle()) _environmentGroup.setVolume(GetUserVolume(VolumeCategory.Environment));
             if (_musicGroupReady) _musicGroup.setVolume(GetUserVolume(VolumeCategory.Music));
             PruneMixedEvents();
@@ -208,6 +224,7 @@ namespace HexLive.UnityPresentation.Audio
         {
             _volumesLoaded = false;
             _voicesGroup = default;
+            _agentVoicesGroup = default;
             _environmentGroup = default;
             MixedEvents.Clear();
             EventPaths.Clear();
@@ -291,11 +308,14 @@ namespace HexLive.UnityPresentation.Audio
                 var core = FMODUnity.RuntimeManager.CoreSystem;
                 core.getMasterChannelGroup(out _master);
                 if (core.createChannelGroup("HexLiveVoices", out _voicesGroup) != FMOD.RESULT.OK ||
+                    core.createChannelGroup("HexLiveAgentVoices", out _agentVoicesGroup) != FMOD.RESULT.OK ||
                     core.createChannelGroup("HexLiveEnvironment", out _environmentGroup) != FMOD.RESULT.OK)
                     throw new System.InvalidOperationException("Cannot create audio category groups");
                 _master.addGroup(_voicesGroup);
+                _master.addGroup(_agentVoicesGroup);
                 _master.addGroup(_environmentGroup);
                 _voicesGroup.setVolume(GetUserVolume(VolumeCategory.Voices));
+                _agentVoicesGroup.setVolume(GetUserVolume(VolumeCategory.AgentVoices));
                 _environmentGroup.setVolume(GetUserVolume(VolumeCategory.Environment));
                 // Доплер выключен (RTS-камера), метрика дистанций 1:1 в wu.
                 core.set3DSettings(0f, 1f, 1f);
@@ -532,7 +552,7 @@ namespace HexLive.UnityPresentation.Audio
             }
             if (!listenerRelative)
                 sound.set3DMinMaxDistance(VoiceDef.MinDist, VoiceDef.MaxDist);
-            if (core.playSound(sound, _voicesGroup, true, out var channel) != FMOD.RESULT.OK)
+            if (core.playSound(sound, _agentVoicesGroup, true, out var channel) != FMOD.RESULT.OK)
             {
                 sound.release();
                 return default;

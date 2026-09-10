@@ -40,6 +40,9 @@ internal static class ManualControlMath
     /// </summary>
     public static bool InactivityLeaseExpired(WorldState world, NPCState npc)
     {
+        // Attachment TTL owns this lifetime. Idle reasoning is not permission
+        // for the simulation to start autonomous camp/social behaviour.
+        if (npc.Mind.ExternalControl?.IsActive == true) return false;
         var now = world.RuntimeClock.RealtimeSeconds;
         if (npc.Mind.ManualControlLeaseRenewedAtSeconds is not { } renewedAt)
         {

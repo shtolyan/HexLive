@@ -47,6 +47,69 @@ public sealed class RuntimeVoiceTests
             "Привет", "must-not-be-created.vis", out _, stop.Token));
     }
 
+    [Test]
+    public void ExternalSpeechLevelMatchesAuthoredTargetWithinPeakCeiling()
+    {
+        var wav = MakeLevelWave(activeAmplitude: 5193, peakAmplitude: 30000, activeFrames: 10);
+        var gain = BakeAndMeasure(wav);
+        var activeRms = 5193d / 32768d;
+        var afterDb = 20d * Math.Log10(activeRms * gain);
+        var finalPeakDb = 20d * Math.Log10(30000d / 32768d * 0.75d * gain);
+        Assert.That(afterDb, Is.EqualTo(-13.77d).Within(0.03d));
+        Assert.That(finalPeakDb, Is.LessThanOrEqualTo(-1d + 0.001d));
+        Assert.That(gain, Is.InRange(1f, (float)Math.Pow(10d, 3d / 20d)));
+    }
+
+    [Test]
+    public void ExternalSpeechLevelDoesNotRaiseSilenceOrAnIsolatedImpulse()
+    {
+        Assert.That(BakeAndMeasure(MakeLevelWave(0, 0, 10)), Is.EqualTo(1f));
+        Assert.That(BakeAndMeasure(MakeLevelWave(0, short.MaxValue, 1)), Is.EqualTo(1f));
+    }
+
+    [Test]
+    public void ExternalSpeechLevelLimitsHotPeakInsteadOfClipping()
+    {
+        var gain = BakeAndMeasure(MakeLevelWave(activeAmplitude: 4500,
+            peakAmplitude: short.MaxValue, activeFrames: 10));
+        var finalPeak = short.MaxValue / 32768d * 0.75d * gain;
+        Assert.That(gain, Is.GreaterThan(1f));
+        Assert.That(20d * Math.Log10(finalPeak), Is.EqualTo(-1d).Within(0.01d));
+    }
+
+    private static float BakeAndMeasure(byte[] wav)
+    {
+        var path = Path.Combine(Path.GetTempPath(), "hexlive-level-" + Guid.NewGuid().ToString("N") + ".vis");
+        try
+        {
+            Assert.That(VoiceVisemeBaker.TryBake(wav, "Привет", path, 0.75f,
+                out var error, out var gain), Is.True, error);
+            return gain;
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    private static byte[] MakeLevelWave(short activeAmplitude, short peakAmplitude, int activeFrames)
+    {
+        const int frameSamples = 882;
+        const int totalFrames = 10;
+        var samples = frameSamples * totalFrames;
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+        writer.Write(Encoding.ASCII.GetBytes("RIFF")); writer.Write(36 + samples * 2);
+        writer.Write(Encoding.ASCII.GetBytes("WAVEfmt ")); writer.Write(16);
+        writer.Write((ushort)1); writer.Write((ushort)1); writer.Write(44100);
+        writer.Write(88200); writer.Write((ushort)2); writer.Write((ushort)16);
+        writer.Write(Encoding.ASCII.GetBytes("data")); writer.Write(samples * 2);
+        for (var i = 0; i < samples; i++)
+        {
+            var value = i < activeFrames * frameSamples ? activeAmplitude : (short)0;
+            if (i == 0) value = peakAmplitude;
+            writer.Write(value);
+        }
+        return stream.ToArray();
+    }
+
     private static byte[] MakeWave()
     {
         const int samples = 88200;

@@ -31,6 +31,27 @@ namespace HexLive.Simulation.Tests.Gates
         }
 
         [Test]
+        public void WindowsReleaseForcesD3D11ForStartupStability()
+        {
+            var builder = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "HexLive", "UnityDebug", "Editor",
+                "HexLiveReleaseBuilder.cs"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(builder, Does.Contain("BuildPlayerWithSafeGraphicsApi(buildOptions)"));
+                Assert.That(builder, Does.Contain("BuildTarget.StandaloneWindows64"));
+                Assert.That(builder,
+                    Does.Contain("new[] { GraphicsDeviceType.Direct3D11 }"));
+                Assert.That(builder,
+                    Does.Not.Contain("GraphicsDeviceType.Direct3D12 }"));
+                Assert.That(builder,
+                    Does.Contain("SetUseDefaultGraphicsAPIs(target, usedDefaultApis)"),
+                    "The batch build must restore the interactive Editor preference.");
+            });
+        }
+
+        [Test]
         public void AtomicScenePrewarmRoutesWorldObjectsToTheirOwningType()
         {
             var prewarm = File.ReadAllText(Path.Combine(
@@ -48,6 +69,36 @@ namespace HexLive.Simulation.Tests.Gates
                 Assert.That(prewarm, Does.Contain("IsPayloadFreeWorldAnchor(definitionId)"));
                 Assert.That(prosthetics, Does.Contain("TryWorldDropObjectId("));
                 Assert.That(prosthetics, Does.Contain("TryDescribeWorldDrop("));
+            });
+        }
+
+        [Test]
+        public void LoadingCurtainDoesNotPrewarmBackpackMainBundles_Bug273()
+        {
+            var prewarm = File.ReadAllText(Path.Combine(
+                RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Wearing",
+                "ScenePrewarm.cs"));
+            var snapshotStart = prewarm.IndexOf(
+                "private static void WarmSnapshotNpcs", System.StringComparison.Ordinal);
+            var snapshotEnd = prewarm.IndexOf(
+                "private static void WarmActorPaintMaps", snapshotStart,
+                System.StringComparison.Ordinal);
+            var snapshotWarm = prewarm[snapshotStart..snapshotEnd];
+            var localStart = prewarm.IndexOf(
+                "private static void WarmItems", System.StringComparison.Ordinal);
+            var localEnd = prewarm.IndexOf(
+                "private static void ResolveWorkingSet", localStart,
+                System.StringComparison.Ordinal);
+            var localWarm = prewarm[localStart..localEnd];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(snapshotWarm, Does.Contain("npc.WornItems"));
+                Assert.That(snapshotWarm, Does.Contain("npc.HeldItemId"));
+                Assert.That(snapshotWarm, Does.Not.Contain("npc.InventoryItems"));
+                Assert.That(snapshotWarm, Does.Not.Contain("npc.InventoryContainers"));
+                Assert.That(snapshotWarm, Does.Not.Contain("npc.FavoriteWeaponId"));
+                Assert.That(localWarm, Does.Not.Contain("npc.Inventory.Items"));
             });
         }
     }

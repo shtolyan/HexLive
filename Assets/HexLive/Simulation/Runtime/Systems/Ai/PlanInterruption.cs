@@ -184,6 +184,9 @@ public static class PlanInterruption
         // этой строки: сорванный поход не должен занимать станцию до тех пор,
         // пока кто-то не заметит, что заявка протухла.
         LyingStations.ReleaseStation(npc);
+        // §26.26: release every indexed claim, even if execution already failed
+        // or its actual target differs from the plan's primary target.
+        ObjectReservationSystem.ReleaseForPlan(world, npc);
         if (npc.Execution.Status == ExecutionStatus.InProgress &&
             npc.Plan.TargetObjectId is { } objId &&
             world.Entities.Objects.TryGetValue(objId, out var worldObject) &&
@@ -267,10 +270,15 @@ public static class PlanInterruption
             var stillOwned = restoredLaundry || npc.Mind.CurrentGoal == GoalType.PlayerInventory &&
                 (npc.Inventory.Items.Exists(item => ReferenceEquals(item, held)) ||
                  npc.WornItems.Exists(item => ReferenceEquals(item, held)));
-            var dropped = stillOwned ? null : ExecutionSystem.DropItemAtFeet(world, npc, held);
+            var dropped = stillOwned ? null : ExecutionSystem.DropOrRetain(world, npc, held);
             if (dropped != null && npc.Execution.HeldGarmentContents.Count > 0)
             {
                 dropped.Contents.AddRange(npc.Execution.HeldGarmentContents);
+            }
+            else
+            {
+                foreach (var pocket in npc.Execution.HeldGarmentContents)
+                    InventoryMath.RetainOwnedItem(npc, pocket);
             }
 
             npc.Execution.HeldGarment = null;

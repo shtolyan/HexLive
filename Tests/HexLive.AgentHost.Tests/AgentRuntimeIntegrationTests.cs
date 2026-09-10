@@ -66,7 +66,9 @@ public sealed class AgentRuntimeIntegrationTests
                 Assert.That(providers.Decisions, Is.Zero);
                 Assert.That(providers.Syntheses, Is.Zero);
                 Assert.That(registry.StatesFor(new[] { 901 })[0].Phase, Is.EqualTo(AgentPhase.Sleeping));
-                Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ManualControl), Is.False);
+                Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ManualControl), Is.True,
+                    "Attachment keeps effective manual control while the world is paused.");
+                Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ExternalControl?.IsActive), Is.True);
             });
 
             host.ResumeAsOperator();
@@ -111,6 +113,10 @@ public sealed class AgentRuntimeIntegrationTests
             stop.Cancel();
             await running.WaitAsync(TimeSpan.FromSeconds(20));
             Assert.That(registry.HasAttachment(901), Is.False, "off must detach without waiting for TTL");
+            Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ExternalControl?.IsActive == true), Is.False,
+                "Off removes the transient attachment control token.");
+            Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ManualControl), Is.True,
+                "Off preserves the player manual switch explicitly enabled before attachment.");
             if (Directory.Exists(temporary)) Directory.Delete(temporary, true);
         }
     }

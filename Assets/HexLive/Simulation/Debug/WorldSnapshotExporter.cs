@@ -28,6 +28,20 @@ public static class WorldSnapshotExporter
     private static string Num(float value, string format = "0.###") =>
         value.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
 
+    private readonly struct EffectSnapshotSink : IEffectSink
+    {
+        private readonly NpcSnapshot _snapshot;
+        public EffectSnapshotSink(NpcSnapshot snapshot) => _snapshot = snapshot;
+        public void Add(ActiveEffect effect)
+        {
+            var encoded = $"{effect.Kind}\t{Num(effect.Intensity)}";
+            if (!string.IsNullOrEmpty(effect.DetailKey)) encoded += $"\t{effect.DetailKey}";
+            _snapshot.Effects.Add(encoded);
+        }
+        public void Add(EffectImpact impact) => _snapshot.EffectImpacts.Add(
+            $"{impact.Need}\t{impact.Kind}\t{impact.Direction}");
+    }
+
     // Trace events, per-NPC memory dumps, relationship/cooldown strings and
     // goal scores are read only by the debug panel, but cost megabytes of
     // garbage per tick when exported unconditionally. The panel opts in
@@ -1353,46 +1367,10 @@ public static class WorldSnapshotExporter
         npcSnapshot.VitalHealth = npc.Body.VitalHealth(); // §105 r2
         npcSnapshot.DisplayHealth = npc.Body.DisplayHealth(); // §105 r3
 
-        // Spec §48: derive the active status effects (buffs/debuffs) from this
-        // NPC's live state — read-only, so nothing here touches balance. Each
-        // exports as "Kind\tintensity\tdetailKey" for the character panel's
-        // chip row; the optional third field explains the concrete cause.
-        var effects = new List<ActiveEffect>();
-        // Spec §49.8: a lit campfire within warming range earns the Cozy buff —
-        // same warmth probe the temperature/sleep-comfort systems use.
-        var nearLitFire = Runtime.TemperatureSystem.NearbyFireWarmth(world, npc.Tile, out _) > 0f;
-        // §54.11: is she asleep on a bed right now? Drives the "Snug" buff (the
-        // bed she built speeding her recovery). Same object the sleep bonus keys on.
-        var restingInBed = npc.Execution.CurrentInteraction == Content.InteractionType.Sleep &&
-            npc.Execution.TargetObject is { } bedId &&
-            world.Entities.Objects.TryGetValue(bedId, out var bedObj) &&
-            bedObj.DefinitionId == ContentIds.BedBasic;
-        EffectEvaluator.Collect(npc, world.Tick, npcSnapshot.EffectiveUv, nearLitFire, restingInBed, effects);
-        foreach (var effect in effects)
-        {
-            var encoded = $"{effect.Kind}\t{Num(effect.Intensity)}";
-            if (!string.IsNullOrEmpty(effect.DetailKey))
-            {
-                encoded += $"\t{effect.DetailKey}";
-            }
-            npcSnapshot.Effects.Add(encoded);
-        }
-
-        // §48.7: systems wrote these rows beside the real parameter mutation.
-        // The bridge does not infer causes from final values and sends no
-        // changing magnitude, keeping this Character group delta-friendly.
-        foreach (var impact in npc.EffectImpacts.Items)
-        {
-            var encoded = $"{impact.Need}\t{impact.Kind}\t{impact.Direction}";
-            // Fast and slow owners may both describe the same cause. Cadence
-            // stays separate inside the ledger so either owner can clear its
-            // own row without erasing the other, but cadence is deliberately
-            // absent from the wire contract: export one visible triple only.
-            if (!npcSnapshot.EffectImpacts.Contains(encoded))
-            {
-                npcSnapshot.EffectImpacts.Add(encoded);
-            }
-        }
+        // §48.8: the same context/classifier/ledger projection as MCP, streamed
+        // straight into the existing wire rows without an intermediate list.
+        var effectSink = new EffectSnapshotSink(npcSnapshot);
+        EffectReadModel.Visit(world, npc, npcSnapshot.EffectiveUv, ref effectSink);
 
         // §76: the character sheet. Looped off AttributeSet.All/SkillSet.All so
         // adding a seventh attribute never means remembering this file.

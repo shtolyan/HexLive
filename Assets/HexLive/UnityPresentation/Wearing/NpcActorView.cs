@@ -1791,6 +1791,28 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    /// <summary>§107.4a: the same non-animated support that pins the lying body.</summary>
+    public bool TryGetLyingPortraitFrame(out Pose support, out float scale)
+    {
+        scale = _bodyRoot != null ? _bodyRoot.lossyScale.y :
+            Rendering.HexWorldRenderer.ActorScale * transform.lossyScale.y;
+        support = _laying ? LyingRootPose() : default;
+        return _laying;
+    }
+
+    private Pose LyingRootPose()
+    {
+        var attachSane = _layingAttach != null &&
+            (_layingAttach.position - transform.position).magnitude < _moveEpsilon * 30f;
+        if (attachSane)
+            return new Pose(new Vector3(_layingAttach.position.x, _layingSurfaceY,
+                _layingAttach.position.z), _layingAttach.rotation);
+        // Equivalent to the existing local zero/identity pin even when an
+        // authored hierarchy nests the Animator below the actor's first child.
+        var groundRoot = _bodyRoot != null && _bodyRoot.parent != null ? _bodyRoot.parent : transform;
+        return new Pose(groundRoot.position, groundRoot.rotation);
+    }
+
     // Orbit-camera pivot: the visual center of the body in ANY pose — a point
     // between the head and the hip bones, biased toward the head so the face
     // keeps priority. Standing it sits at the chest; lying it follows the body
@@ -4599,13 +4621,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : speechId == "hurt_death" ? Audio.FmodSfx.Sfx.DeathF : null);
 
     float UI.ISpeechStage.PlayExternalVoiceLine(
-        string wavPath, string visemePath, string emotion, bool listenerRelative)
+        string wavPath, string visemePath, string emotion, bool listenerRelative,
+        float playbackGain)
     {
         if (Audio.FmodSfx.IsPlaying(ref _voiceChannel)) return 0f;
         var pos = TryGetBodyCenter(out var center) ? center : transform.position;
         // Core voices bypass the Studio bus duck. Keep their authored gain.
         _voiceChannel = Audio.FmodSfx.PlayFileTracked(
-            wavPath, visemePath, pos, 1f,
+            wavPath, visemePath, pos, playbackGain,
             listenerRelative);
         if (_voiceLipSync != null) _voiceLipSync.Speak(ref _voiceChannel);
         var lengthMs = Audio.FmodSfx.GetLengthMs(ref _voiceChannel);
@@ -4637,12 +4660,14 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     /// <summary>§160: external reply routed through the existing mouth director.</summary>
     public bool SayExternalVoice(
-        string wavPath, string visemePath, string emotion, bool playerReply)
+        string wavPath, string visemePath, string emotion, bool playerReply,
+        float playbackGain = 1f)
     {
         EnsureSpeechBubble();
         return _speech != null && _speech.SayExternal(
             wavPath, visemePath, emotion,
-            playerReply ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient);
+            playerReply ? UI.SpeechCatalog.Rank.Talk : UI.SpeechCatalog.Rank.Ambient,
+            playbackGain);
     }
 
     // §armed-stance: while ANY tool/weapon (tool.*) is in the hand, the base Idle
@@ -7878,24 +7903,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // renderer's normalization — preserved).
         if (_bodyRoot != null)
         {
-            var attachSane = _layingAttach != null &&
-                (_layingAttach.position - transform.position).magnitude < _moveEpsilon * 30f;
-            if (_laying && attachSane)
+            if (_laying)
             {
-                // Lie on the bed: attach owns XZ + orientation, the sleep
-                // surface owns Y. The clips are ground-authored (Y baked into
-                // the pose), so the root is simply pinned — one fixed point,
-                // no per-frame bounds correction.
-                _bodyRoot.position = new Vector3(
-                    _layingAttach.position.x, _layingSurfaceY, _layingAttach.position.z);
-                _bodyRoot.rotation = _layingAttach.rotation;
-            }
-            else if (_laying)
-            {
-                // Sleeping without a bed: the actor root already sits on the
-                // ground, and the clip keeps the body on it.
-                _bodyRoot.localPosition = Vector3.zero;
-                _bodyRoot.localRotation = Quaternion.identity;
+                // Bed XZ/yaw + surface Y, otherwise actor ground root. Shared
+                // with the portrait so camera and body cannot disagree.
+                var support = LyingRootPose();
+                _bodyRoot.SetPositionAndRotation(support.position, support.rotation);
             }
             else
             {

@@ -7,7 +7,10 @@ public sealed record MashaPromptContext(
     string Text,
     int CharacterCount,
     int EstimatedTokenUpperBound,
-    int RecalledFragments);
+    int RecalledFragments)
+{
+    public long ObjectiveRevision { get; init; }
+}
 
 /// <summary>
 /// Agent-readable memory workspace inspired by OpenClaw. Markdown is the portable
@@ -69,7 +72,7 @@ public sealed partial class MashaMemoryWorkspace
 
         foreach (var world in archive.Worlds)
         {
-            WriteGeneratedView(Path.Combine(_worldRoot, SafeName(world.Id) + ".md"), World(world));
+            WriteGeneratedView(Path.Combine(_worldRoot, SafeName(world.Id) + ".md"), World(world, archive.Objective));
         }
 
         foreach (var group in archive.Worlds.SelectMany(world => world.Journal.Select(entry =>
@@ -155,13 +158,14 @@ public sealed partial class MashaMemoryWorkspace
         var mandatory = relation.BuildPromptBlock() + "\n" +
             (bond.Trust <= .25f ? AgentPromptFiles.Text("MashaMemoryWorkspace.44") : bond.Trust >= .75f ? AgentPromptFiles.Text("MashaMemoryWorkspace.45") : AgentPromptFiles.Text("MashaMemoryWorkspace.46")) +
             (bond.Affinity <= -.25f ? AgentPromptFiles.Text("MashaMemoryWorkspace.47") : bond.Affinity >= .75f ? AgentPromptFiles.Text("MashaMemoryWorkspace.48") : AgentPromptFiles.Text("MashaMemoryWorkspace.49")) +
-            "\n" + AgentGameTime.Describe(bond, world ?? new(current.Id, current.WorldKey, current.LastTick, -1)) + "\n";
+            "\n" + AgentGameTime.Describe(bond, world ?? new(current.Id, current.WorldKey, current.LastTick, -1)) + "\n" +
+            AgentObjectivePolicy.Describe(archive.Objective, current.WorldKey, current.AvatarNpcId) + "\n";
         var bounded = mandatory + AtLineBoundary(prompt.ToString(), Math.Min(MemoryBudgetCharacters, MaxPromptCharacters - mandatory.Length));
         return new MashaPromptContext(
             bounded,
             bounded.Length,
             (bounded.Length + 1) / 2,
-            recalled.Length);
+            recalled.Length) { ObjectiveRevision = archive.Objective?.Revision ?? 0 };
     }
 
     public string PreserveImport(string sourceRoot, string fingerprint, string label)
@@ -318,7 +322,7 @@ public sealed partial class MashaMemoryWorkspace
         return text.ToString();
     }
 
-    private static string World(MashaWorldEpisode world)
+    private static string World(MashaWorldEpisode world, AgentObjective? objective)
     {
         var text = new StringBuilder("# ").AppendLine(Clean(world.Label, 100)).AppendLine()
             .Append("- ID: `").Append(world.Id).AppendLine("`")
@@ -330,6 +334,8 @@ public sealed partial class MashaMemoryWorkspace
             text.Append("- ").AppendLine(Clean(memory.Value, 400));
         text.AppendLine().AppendLine(AgentPromptFiles.Text("MashaMemoryWorkspace.64")).AppendLine()
             .AppendLine(Clean(world.LastIntentSummary, 400));
+        if (objective != null && objective.WorldKey == world.WorldKey && objective.AvatarNpcId == world.AvatarNpcId)
+            text.AppendLine().AppendLine(AgentObjectivePolicy.Describe(objective, world.WorldKey, world.AvatarNpcId));
         return text.ToString();
     }
 

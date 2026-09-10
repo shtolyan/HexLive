@@ -63,6 +63,9 @@ public sealed class InventoryState
 {
     public List<ItemInstance> Items { get; } = new();
 
+    // Transient automatic spill backoff. Item ownership itself is persisted.
+    public int NextGroundDropRetryTick { get; set; }
+
     // Spec §52: no longer a fixed number — functional hands + the body's Carry
     // allowance + the capacity of worn garments/backpacks, recomputed by
     // EquipmentMath.Recalculate. InventoryLayoutBuilder only visualizes this

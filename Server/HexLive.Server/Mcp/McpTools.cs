@@ -86,8 +86,24 @@ public sealed class McpTools
             "Полная картина по одной колонистке: состояние, восприятие (объекты рядом с их " +
             "id и доступными взаимодействиями, союзницы, враги и звери) и память. Ровно " +
             "тот текст, который получает LLM-контур. Отсюда берут objectId для interact " +
-            "и mobId для attack_mob.",
-            Schema(("npcId", "integer", "id колонистки", true))),
+            "и mobId для attack_mob. effects и effectImpacts — статусы и текущие причины " +
+            "изменения параметров этого тела, как в UI; effectDefinitions/effectTerms " +
+            "дают их канонические объяснения EN/RU.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                ("perceptionEpoch", "string", "epoch из recentPerception предыдущего завершённого хода", false),
+                ("perceptionSince", "integer", "watermark из recentPerception завершённого хода", false))),
+
+        new("query_known_objects",
+            "Поиск в личной памяти NPC, включая предметы вне текущего восприятия. " +
+            "Не меняет игру и не требует control lease. definitionPrefix: например food.coconut. " +
+            "Возвращает последние известные координаты, давность и источник знания; предмет мог исчезнуть. " +
+            "catalogInteractions — возможности типа, не обещание текущей доступности. " +
+            "В Agent Studio выбор этого tool запрашивает данные перед финальным решением, без публикации предварительной речи. " +
+            "Пустой результат означает отсутствие знания, а не отсутствие предметов в мире.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                   ("definitionPrefix", "string", "префикс definition id, до 128 символов; пустой — любые", false),
+                   ("interaction", "string", "имя InteractionType для фильтра по каталогу", false),
+                   ("limit", "integer", "1..64, по умолчанию 16", false))),
 
         new("attach_agent",
             "Прикрепить эту MCP-сессию к одному живому NPC без включения manual mode (§160).",
@@ -383,7 +399,10 @@ public sealed class McpTools
                 case "list_leases": return ListLeases(canAccessNpc);
                 case "read_events": return ReadEvents(host, arguments);
                 case "read_spec": return ReadSpec(arguments, out isError);
-                case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError, canAccessNpc != null);
+                case "query_known_objects": return QueryKnownObjects(host, arguments, out isError);
+                case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError,
+                    canAccessNpc != null, owner, OptionalText(arguments, "perceptionEpoch") ?? "",
+                    OptionalLong(arguments, "perceptionSince") ?? 0);
                 case "attach_agent": return AttachAgent(host, arguments, owner, out isError);
                 case "agent_heartbeat": return AgentHeartbeat(arguments, owner, out isError);
                 case "read_agent_inbox": return ReadAgentInbox(arguments, owner, out isError);
@@ -720,8 +739,57 @@ public sealed class McpTools
         });
     }
 
-    private string Describe(WorldHost host, int npcId, out bool isError, bool redactOwner = false)
+    private static string QueryKnownObjects(WorldHost host, JsonElement arguments, out bool isError)
     {
+        isError = true;
+        const string invalid = "{\"error\":\"InvalidKnowledgeQueryArguments\"}";
+        if (arguments.ValueKind != JsonValueKind.Object) return invalid;
+        if (!arguments.TryGetProperty("npcId", out _))
+            return "{\"error\":\"MissingKnowledgeQueryArgument\",\"parameter\":\"npcId\"}";
+        var fields = new HashSet<string>(StringComparer.Ordinal);
+        var npcId = 0;
+        var prefix = "";
+        InteractionType? interaction = null;
+        var limit = McpKnownObjectObservations.DefaultLimit;
+        foreach (var field in arguments.EnumerateObject())
+        {
+            if (!fields.Add(field.Name)) return invalid;
+            switch (field.Name)
+            {
+                case "npcId":
+                    if (field.Value.ValueKind != JsonValueKind.Number || !field.Value.TryGetInt32(out npcId) || npcId < 1) return invalid;
+                    break;
+                case "definitionPrefix":
+                    if (field.Value.ValueKind != JsonValueKind.String) return invalid;
+                    prefix = field.Value.GetString()!;
+                    if (prefix.Length > 128) return invalid;
+                    break;
+                case "interaction":
+                    if (field.Value.ValueKind != JsonValueKind.String ||
+                        !Enum.TryParse<InteractionType>(field.Value.GetString(), true, out var parsed) ||
+                        !string.Equals(Enum.GetName(parsed), field.Value.GetString(), StringComparison.OrdinalIgnoreCase)) return invalid;
+                    interaction = parsed;
+                    break;
+                case "limit":
+                    if (field.Value.ValueKind != JsonValueKind.Number || !field.Value.TryGetInt32(out limit) ||
+                        limit < 1 || limit > McpKnownObjectObservations.MaximumLimit) return invalid;
+                    break;
+                default: return invalid;
+            }
+        }
+        if (!fields.Contains("npcId")) return invalid;
+        var query = new McpKnownObjectObservations.Query(prefix, interaction, limit);
+        var result = host.Read(world => world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc)
+            ? McpKnownObjectObservations.Read(world, npc, query, host.WorldId) : null);
+        if (result == null) return "{\"error\":\"NpcMissing\"}";
+        isError = false;
+        return Json(result);
+    }
+
+    private string Describe(WorldHost host, int npcId, out bool isError, bool redactOwner = false,
+        string owner = "", string perceptionEpoch = "", long perceptionSince = 0)
+    {
+        var observations = _agents.GetPerception(npcId, owner, _currentWorldGeneration());
         var text = host.Read(world =>
         {
             if (!world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc))
@@ -731,6 +799,7 @@ public sealed class McpTools
 
             // ⭐ Тот же сборщик, что кормит §32.15. Не копия — он сам.
             var context = LlmDecisionContextBuilder.Build(world, npc);
+            var effects = McpEffectObservations.Read(world, npc);
             return Json(new Dictionary<string, object?>
             {
                 ["npcId"] = npc.Id.Value,
@@ -754,11 +823,17 @@ public sealed class McpTools
                 // its local workspace; no generic turn writes these fields.
                 ["legacyAgentState"] = LegacyAgentState(npc),
                 ["stateSummary"] = context.StateSummary,
+                ["effects"] = effects.Effects,
+                ["effectImpacts"] = effects.Impacts,
+                ["effectDefinitions"] = effects.Definitions,
+                ["effectTerms"] = effects.Terms,
                 ["perceptionSummary"] = context.PerceptionSummary,
                 ["memorySummary"] = context.MemorySummary,
                 ["inventory"] = Inventory(npc),
                 ["visibleItems"] = McpItemObservations.Visible(world, npc),
                 ["visibleNpcs"] = McpNpcObservations.Visible(world, npc),
+                ["recentPerception"] = McpPerceptionObservations.Recent(
+                    observations?.Read(perceptionEpoch, perceptionSince, world.Tick)),
                 ["inventoryItems"] = McpItemObservations.Carried(world, npc),
                 ["wornItems"] = McpItemObservations.Worn(world, npc),
             });
@@ -880,23 +955,35 @@ public sealed class McpTools
             }
         }
 
+        var initialEventWatermark = host.ReadEvents(null, 1, npcId).Watermark;
         var accepted = _agents.TryAttach(npcId, owner, _currentWorldGeneration(), displayName,
             capabilities, ttl, out var snapshot, out var reason);
         if (accepted)
         {
+            var observations = _agents.BindPerception(snapshot.AttachmentId, owner, _currentWorldGeneration());
+            var control = _agents.BindControl(snapshot.AttachmentId, owner, _currentWorldGeneration());
             var ownAction = false;
             foreach (var lease in _leases.Snapshot())
             {
                 if (lease.npcId != npcId) continue;
                 if (lease.owner == owner) ownAction = true;
-                else if (lease.owner.StartsWith("ws:", StringComparison.Ordinal))
+                else if (control != null && lease.owner.StartsWith("ws:", StringComparison.Ordinal))
                     _leases.Release(npcId, lease.owner);
             }
-            if (!ownAction)
-                host.SubmitManualCommand(new SetManualControlCommand(new EntityId(npcId), false));
+            host.Read(world =>
+            {
+                // A concurrent detach may have disposed this attachment after
+                // lookup. Never overwrite a replacement's live buffer with it.
+                if (observations != null &&
+                    world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc) &&
+                    observations.Capture(world, npc)) npc.Perception.Observations = observations;
+                if (control != null && world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var controlled))
+                    control.Bind(world, controlled, ownAction);
+                return true;
+            });
         }
         isError = !accepted;
-        return accepted ? AttachmentJson(snapshot) : reason;
+        return accepted ? AttachmentJson(snapshot, initialEventWatermark) : reason;
     }
 
     private string AgentHeartbeat(JsonElement arguments, string owner, out bool isError)
@@ -1137,16 +1224,17 @@ public sealed class McpTools
         }
         if (_leases.Release(npcId, owner))
         {
-            host.SubmitManualCommand(new SetManualControlCommand(new EntityId(npcId), false));
+            AgentControlActions.Release(host, npcId);
         }
         isError = false;
         return Json(new { npcId, status = "Detached" });
     }
 
-    private static string AttachmentJson(AgentAttachmentSnapshot snapshot) =>
+    private static string AttachmentJson(AgentAttachmentSnapshot snapshot, long? eventWatermark = null) =>
         Json(new Dictionary<string, object?>
         {
             ["attachmentId"] = snapshot.AttachmentId,
+            ["eventWatermark"] = eventWatermark,
             ["npcId"] = snapshot.NpcId,
             ["displayName"] = snapshot.DisplayName,
             ["capabilities"] = snapshot.Capabilities.ToString(),
@@ -1227,6 +1315,12 @@ public sealed class McpTools
         // Лиз — это право говорить; ручной режим — это то, что мир слышит.
         // Второе без первого пустило бы к ней ИИ, первое без второго оставило
         // бы приказы без исполнителя, поэтому они всегда вместе.
+        host.Read(world =>
+        {
+            if (world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc) &&
+                npc.Mind.ExternalControl?.IsActive == false) npc.Mind.ExternalControl = null;
+            return true;
+        });
         var admission = host.SubmitManualCommand(
             new SetManualControlCommand(new EntityId(npcId), true));
 
@@ -1257,8 +1351,7 @@ public sealed class McpTools
                 : $"Колонисткой {npcId} владеет другой агент ({heldBy}).";
         }
 
-        var admission = host.SubmitManualCommand(
-            new SetManualControlCommand(new EntityId(npcId), false));
+        var admission = AgentControlActions.Release(host, npcId);
         _leases.Release(npcId, owner);
 
         isError = false;

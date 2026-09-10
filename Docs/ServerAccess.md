@@ -9,6 +9,51 @@
 | Сингапур | `62.146.235.120` | `hexlive-singapore` (`hexlive-server` — старый алиас) | Отдельный ранее развёрнутый сервер; не изменять без явного указания |
 | Нью-Йорк | `163.245.204.96` | `hexlive-nyc` | Текущий production и цель канонического runbook |
 
+## MSI/MCI: полный доступ разработчика к обоим серверам
+
+Ключ ноутбука `%USERPROFILE%\.ssh\hexlive_windows_content_ed25519` разрешён
+для пользователя `root` на Сингапуре и в Нью-Йорке. Старое имя файла содержит
+`content` только по исторической причине: этот ключ даёт полный доступ к
+службам, конфигурации, логам и деплою на обоих серверах.
+
+- fingerprint: `SHA256:JWmeE/liz1ez6vp/x0TeV37lTvJQQSHLi7jkto8Z/wc`;
+- комментарий публичного ключа: `natepo4ty@gmail.com`;
+- приватный ключ остаётся только в профиле пользователя ноутбука и не должен
+  попадать в репозиторий, чат или логи.
+
+На MSI/MCI добавить в `%USERPROFILE%\.ssh\config`:
+
+```sshconfig
+Host hexlive-singapore
+    HostName 62.146.235.120
+    User root
+    IdentityFile ~/.ssh/hexlive_windows_content_ed25519
+    IdentitiesOnly yes
+
+Host hexlive-nyc
+    HostName 163.245.204.96
+    User root
+    IdentityFile ~/.ssh/hexlive_windows_content_ed25519
+    IdentitiesOnly yes
+```
+
+Проверка из PowerShell:
+
+```powershell
+ssh -o BatchMode=yes hexlive-singapore 'hostname; id; systemctl is-active hexlive.service caddy.service'
+ssh -o BatchMode=yes hexlive-nyc 'hostname; id; systemctl is-active hexlive.service caddy.service'
+```
+
+Обе команды должны показать `uid=0(root)` и два раза `active`. Для просмотра
+логов использовать, например:
+
+```powershell
+ssh hexlive-nyc 'journalctl -u hexlive.service -n 200 --no-pager'
+```
+
+Ограниченный аккаунт `hexlive-content` можно продолжать использовать для
+обычной публикации бандлов, но он не заменяет эти root-алиасы.
+
 ## Нью-Йорк: общий SSH-ключ
 
 Приватный deploy-ключ намеренно хранится в этом **закрытом** репозитории по

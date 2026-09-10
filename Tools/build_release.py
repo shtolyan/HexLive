@@ -24,7 +24,7 @@ DEFAULT_DISTRIBUTION = Path.home() / "hex-girls"
 DEFAULT_RELEASES = DEFAULT_DISTRIBUTION / "Releases"
 PROJECT_SETTINGS = ROOT / "ProjectSettings" / "ProjectSettings.asset"
 PENDING_VERSION = ROOT / "Library" / "HexLivePendingBuildVersion.txt"
-BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://163-245-204-96.sslip.io/api/bugs/v1").rstrip("/")
+BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://flashback.62-146-235-120.sslip.io/api/bugs/v1").rstrip("/")
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
 UNITY_METHOD = "HexLive.UnityDebug.Editor.HexLiveReleaseBuilder.BuildMacOS"
 UNITY_PREFS_DOMAIN = "com.unity3d.UnityEditor5.x"
@@ -126,7 +126,7 @@ def read_json(path: Path) -> dict[str, Any]:
 
 def read_bug_tracker() -> dict[str, Any]:
     try:
-        with urllib.request.urlopen(BUG_API + "/reports", timeout=15) as response:
+        with urllib.request.urlopen(urllib.request.Request(BUG_API + "/reports", headers={"Authorization": "Bearer " + os.environ.get("HEXLIVE_BUG_TOKEN", "").strip()}), timeout=15) as response:
             reports = json.loads(response.read().decode("utf-8"))
     except Exception as error:
         raise RuntimeError(f"Could not read bug API {BUG_API}: {error}") from error

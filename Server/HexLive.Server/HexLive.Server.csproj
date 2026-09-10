@@ -3,9 +3,8 @@
   <!--
     Headless HexLive: the colony keeps living with no Unity anywhere.
 
-    The simulation remains package-free. The server host has one deliberate
-    infrastructure dependency: Microsoft.Data.Sqlite, used by the central
-    bug tracker (§114). The self-contained publish carries SQLite with it.
+    The simulation remains package-free. Bug tracking (§114) is hosted by
+    standalone Flashback; this game server has no tracker storage or writers.
   -->
 
   <PropertyGroup>
@@ -22,10 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../../HexLive.Simulation.Standalone.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
   </ItemGroup>
 
   <!-- §58.7: generated from canonical I2 terms; never a hand-authored C# name table. -->

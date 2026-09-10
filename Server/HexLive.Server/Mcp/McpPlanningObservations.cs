@@ -5,11 +5,27 @@ using System.Text;
 using System.Text.Json;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Runtime;
 
 namespace HexLive.Server.Mcp;
 
 internal static class McpPlanningObservations
 {
+    public static object[] BuildMaterials(WorldObjectState site) => BuildSiteView.Materials(site).Where(r => r.Required > 0 || r.Delivered > 0)
+        .Select(r => (object)new { definitionId = r.DefinitionId, required = r.Required, delivered = r.Delivered,
+            remaining = r.Remaining, currentStageRemaining = r.CurrentStageRemaining }).ToArray();
+
+    public static string BuildCatalog(string definitionId)
+    {
+        var entries = BuildCatalogDefinition.All.Where(e => e.PlacementKind == BuildCatalogPlacementKind.Furniture &&
+            (definitionId.Length == 0 || e.DefinitionId == definitionId)).Select(e => new
+            {
+                definitionId = e.DefinitionId, requiresCompletedFloor = e.RequiresCompletedFloor,
+                materials = BuildMaterials(BuildSiteView.FurnitureBillPreview(e.DefinitionId))
+            }).ToArray();
+        return JsonSerializer.Serialize(new { source = "BuildCatalog", specSections = new[] { "54", "120" }, entries });
+    }
+
     public static object Needs(NPCState npc) => new
     {
         energy = new { value = npc.Needs.Energy, higherIsBetter = true, meaning = "wakefulness reserve; restored by sleep", specSection = "60" },

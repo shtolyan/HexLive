@@ -47,6 +47,19 @@ public sealed class McpPlanningObservationTests
         Assert.That(Call(tools, "read_recipes", new { }).GetProperty("recipes").GetArrayLength(), Is.EqualTo(RecipeCatalog.ByGoal.Count));
     }
 
+    [Test]
+    public void BedCatalogUsesTheSameBillAsANewSite()
+    {
+        using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));
+        var entry = Call(tools, "read_build_catalog", new { definitionId = "bed.basic" }).GetProperty("entries")[0];
+        Assert.That(entry.GetProperty("requiresCompletedFloor").GetBoolean(), Is.True);
+        var materials = entry.GetProperty("materials").EnumerateArray().ToDictionary(m => m.GetProperty("definitionId").GetString()!, m => m.GetProperty("required").GetInt32());
+        Assert.That(materials["resource.log"], Is.EqualTo(HexLive.Simulation.Runtime.SimBalance.BedBasicBillLogs));
+        Assert.That(materials["resource.rope"], Is.EqualTo(HexLive.Simulation.Runtime.SimBalance.BedBasicBillRope));
+        Assert.That(materials["resource.palm_leaf"], Is.EqualTo(HexLive.Simulation.Runtime.SimBalance.BedBasicBillLeaves));
+        Assert.That(materials["resource.stick"], Is.EqualTo(HexLive.Simulation.Runtime.SimBalance.BedBasicBillSticks));
+    }
+
     private static JsonElement Call(McpTools tools, string name, object arguments)
     {
         var text = tools.Call(name, JsonSerializer.SerializeToElement(arguments), "fixture", out var error);

@@ -45,3 +45,5 @@ inventing resource costs or claiming the task completed.
 For crafting, request {"operation":"recipes.read","arguments":{"definitionId":"resource.rope"}}.
 Omit definitionId for the recipe index. Read the live recipe before budgeting ingredients;
 baseWorkTicks are work units, not a promise of wall-clock duration.
+For furniture, request {"operation":"build.read","arguments":{"definitionId":"bed.basic"}}.
+Use visibleItems[].construction for a started site's actual remaining materials and stage.

@@ -7,7 +7,7 @@ namespace HexLive.AgentHost;
 // Read-only reference capabilities. A skill never grants a new MCP permission.
 public sealed class AgentReferenceReader(McpClient mcp)
 {
-    public static bool Allowed(string operation) => operation is "spec.read" or "skills.list" or "skills.read" or "recipes.read";
+    public static bool Allowed(string operation) => operation is "spec.read" or "skills.list" or "skills.read" or "recipes.read" or "build.read";
 
     public async Task<MemoryReadResult> ReadAsync(string operation, JsonElement arguments, CancellationToken token)
     {
@@ -26,10 +26,11 @@ public sealed class AgentReferenceReader(McpClient mcp)
             text = response.GetProperty("text").GetString() ?? "";
             total = response.GetProperty("totalChars").GetInt32();
         }
-        else if (operation == "recipes.read")
+        else if (operation is "recipes.read" or "build.read")
         {
-            var response = await mcp.CallToolAsync("read_recipes", new { definitionId = String("definitionId") }, token).ConfigureAwait(false);
-            name = "recipes:" + (String("definitionId").Length == 0 ? "index" : String("definitionId"));
+            var response = await mcp.CallToolAsync(operation == "recipes.read" ? "read_recipes" : "read_build_catalog",
+                new { definitionId = String("definitionId") }, token).ConfigureAwait(false);
+            name = (operation == "recipes.read" ? "recipes:" : "build:") + (String("definitionId").Length == 0 ? "index" : String("definitionId"));
             text = response.GetRawText();
             total = text.Length;
             text = offset >= total ? "" : text[offset..];

@@ -18,6 +18,36 @@ namespace HexLive.Server.Tests.Mcp;
 public sealed class McpItemObservationTests
 {
     [Test]
+    public void VisibleSiteShowsItsActualBillAndCurrentStageWithoutRevealingRememberedSites()
+    {
+        using var host = CreateHost();
+        var id = host.Read(world =>
+        {
+            var actor = Observer(world); actor.Perception.Objects.Clear();
+            var site = Add(world, actor, 900001, ContentIds.BuildSite);
+            site.BuildProduct = ContentIds.BedBasic; site.BillLogs = 4; site.BillSticks = 5; site.BillRope = 10; site.BillLeaves = 50;
+            for (var i = 0; i < 6; i++) site.Contents.Add(new ItemInstance("resource.log"));
+            Add(world, actor, 900002, ContentIds.BuildSite).BuildProduct = ContentIds.BedBasic;
+            actor.Perception.Objects.Last().FromMemory = true;
+            return actor.Id.Value;
+        });
+        using var response = Describe(host, id);
+        var visible = response.RootElement.GetProperty("visibleItems");
+        Assert.That(visible.GetArrayLength(), Is.EqualTo(1));
+        var construction = visible[0].GetProperty("construction");
+        Assert.That(construction.GetProperty("needsHammer").GetBoolean(), Is.True);
+        var materials = construction.GetProperty("materials").EnumerateArray().ToArray();
+        var logs = materials.Single(m => m.GetProperty("definitionId").GetString() == "resource.log");
+        Assert.That(logs.GetProperty("required").GetInt32(), Is.EqualTo(4));
+        Assert.That(logs.GetProperty("delivered").GetInt32(), Is.EqualTo(6));
+        Assert.That(logs.GetProperty("remaining").GetInt32(), Is.Zero);
+        var sticks = materials.Single(m => m.GetProperty("definitionId").GetString() == "resource.stick");
+        Assert.That(sticks.GetProperty("currentStageRemaining").GetInt32(), Is.EqualTo(5));
+        Assert.That(materials.Single(m => m.GetProperty("definitionId").GetString() == "resource.rope")
+            .GetProperty("currentStageRemaining").GetInt32(), Is.Zero);
+    }
+
+    [Test]
     public void InventorySummaryDistinguishesPartialStacksFromEmptySlotsWithoutMutation()
     {
         using var host = CreateHost();

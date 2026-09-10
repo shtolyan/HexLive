@@ -23,6 +23,9 @@ internal static class McpItemObservations
             if (!world.Entities.Objects.TryGetValue(new ObjectId(id), out var item)) continue;
             var row = Item(world, observer, item.DefinitionId, item.Owner?.Value ?? 0, item.OwnerFaction);
             row["objectId"] = id;
+            if (!string.IsNullOrEmpty(item.BuildProduct))
+                row["construction"] = new { product = item.BuildProduct, needsHammer = BuildSiteView.NeedsHammer(world, item),
+                    materials = McpPlanningObservations.BuildMaterials(item) };
             Clothing(row, world, observer, item.DefinitionId, item.Durability);
             if (item.DefinitionId == ContentIds.Bottle && WaterCollectorMath.IsParked(world, item))
             {

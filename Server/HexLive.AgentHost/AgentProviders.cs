@@ -170,7 +170,7 @@ public sealed class AgentProviders : IAgentProviders
                 properties = new
                 {
                     memoryRequests = new { type = "array", maxItems = 2, items = new { type = "object", additionalProperties = false,
-                        properties = new { operation = new { type = "string", @enum = new[] { "memory.search", "memory.read", "spec.read", "skills.list", "skills.read", "recipes.read" } },
+                        properties = new { operation = new { type = "string", @enum = new[] { "memory.search", "memory.read", "spec.read", "skills.list", "skills.read", "recipes.read", "build.read" } },
                             arguments = new { type = "object", additionalProperties = true } }, required = new[] { "operation", "arguments" } } },
                     memorySources = new { type = "array", maxItems = 16, items = new { type = "string" } },
                     speech = new { type = "string", maxLength = 600 },

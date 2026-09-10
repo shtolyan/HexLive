@@ -184,6 +184,10 @@ public sealed class McpTools
             "Снять attachment, очистить временные данные и освободить action lease.",
             Schema(("attachmentId", "string", "id attachment", true))),
 
+        new("read_build_catalog",
+            "Каталог мебели и её ведомости из штатного сборщика площадок. Для продолжения используйте ведомость конкретной видимой стройки.",
+            Schema(("definitionId", "string", "id мебели, например bed.basic; без него — весь каталог мебели", false))),
+
         new("read_recipes",
             "Действующие рецепты: ингредиенты, результат, станция и работа. Без definitionId — список рецептов; с ним — рецепт предмета.",
             Schema(("definitionId", "string", "id результата, например resource.rope", false))),
@@ -417,6 +421,7 @@ public sealed class McpTools
                 case "read_events": return ReadEvents(host, arguments);
                 case "read_spec": return ReadSpec(arguments, out isError);
                 case "read_recipes": return host.Read(_ => McpPlanningObservations.Recipes(OptionalText(arguments, "definitionId") ?? ""));
+                case "read_build_catalog": return host.Read(_ => McpPlanningObservations.BuildCatalog(OptionalText(arguments, "definitionId") ?? ""));
                 case "query_known_objects": return QueryKnownObjects(host, arguments, out isError);
                 case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError,
                     canAccessNpc != null, owner, OptionalText(arguments, "perceptionEpoch") ?? "",
@@ -662,7 +667,7 @@ public sealed class McpTools
 
     private bool IsWithinPlayerScope(string name, JsonElement arguments, string owner, Func<int, bool> allowed)
     {
-        if (name is "world_status" or "read_spec" or "read_recipes" or "list_colonists" or "list_leases") return true;
+        if (name is "world_status" or "read_spec" or "read_recipes" or "read_build_catalog" or "list_colonists" or "list_leases") return true;
         if (name is "agent_heartbeat" or "read_agent_inbox" or "ack_agent_inbox" or "publish_agent_phase" or
             "commit_agent_turn" or "begin_agent_utterance" or "append_agent_utterance" or
             "commit_agent_utterance" or "detach_agent")

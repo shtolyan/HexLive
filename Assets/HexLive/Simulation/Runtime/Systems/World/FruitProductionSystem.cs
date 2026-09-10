@@ -29,8 +29,9 @@ public sealed class FruitProductionSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
-        // Spec 31C.1: unclaimed fruit rots after 2400 ticks — drops on
-        // unreachable junctions no longer litter the world forever.
+        // §31C.1 / bug #411: the whole-fruit TTL cleans untouched natural
+        // litter, never a gathered stock. Opened food keeps its existing rot.
+        // Provenance belongs to the fruit so felling its palm cannot erase it.
         _rotted.Clear();
         // §156: порог якорный (Tick - SpawnTick), поэтому проспавший плод
         // сгниёт обычным кодом на первом бодром такте — обход по бодрым чанкам
@@ -38,7 +39,8 @@ public sealed class FruitProductionSystem : ISimulationSystem
         ChunkMath.CollectTickable(world, _tickable);
         foreach (var candidate in _tickable)
         {
-            if ((candidate.DefinitionId == ContentIds.Coconut ||
+            if (((candidate.DefinitionId == ContentIds.Coconut &&
+                  candidate.ProduceOrigin == ProduceOrigin.Natural) ||
                  candidate.DefinitionId == ContentIds.CoconutPierced ||
                  candidate.DefinitionId == ContentIds.CoconutOpen) &&
                 candidate.SpawnTick > 0 && world.Tick - candidate.SpawnTick > WorldBalance.FruitRotTicks &&
@@ -168,6 +170,7 @@ public sealed class FruitProductionSystem : ISimulationSystem
 
             var spawned = WorldObjectMutations.SpawnObject(
                 world, produce.ProducedDefinitionId, producer.Fragment, dropTile, dropJunction.Value);
+            spawned.ProduceOrigin = ProduceOrigin.Natural;
             producer.ProducedItems.Add(spawned.Id);
 
             if (SimTrace.Enabled)

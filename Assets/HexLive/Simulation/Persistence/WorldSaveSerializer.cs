@@ -170,7 +170,9 @@ public static class WorldSaveSerializer
     // v70 (§159.1): one-time authored starter-outfit migration latch.
     // v71 (§160): generic authored-preset markers and generic agent Social ids.
     // v73 (§28.15G): requested shared Talk topic at the end of each NPC record.
-    public const int BlobVersion = 73;
+    // v74 (§31C.1 / bug #411): ground produce provenance; old saves infer
+    // Natural only from a producer's saved ids, leaving other origins Unknown.
+    public const int BlobVersion = 74;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -706,6 +708,8 @@ public static class WorldSaveSerializer
             world.Entities.RegisterObject(obj);
         }
 
+        if (version < 74) MigrateProduceOrigins(world);
+
         world.Entities.Npcs.Clear();
         var npcCount = r.ReadInt32();
         for (var i = 0; i < npcCount; i++)
@@ -1174,6 +1178,25 @@ public static class WorldSaveSerializer
         };
     }
 
+    // A saved producer-to-fruit link proves a natural drop. The absence of
+    // that link proves nothing: its palm may have been felled, or a colonist
+    // may have carried the fruit. Keep Unknown instead of inventing history.
+    private static void MigrateProduceOrigins(WorldState world)
+    {
+        foreach (var producer in world.Entities.Objects.Values)
+        {
+            if (!world.Content.ObjectDefinitions.TryGetValue(producer.DefinitionId, out var definition) ||
+                definition.Produce?.ProducedDefinitionId != ContentIds.Coconut)
+                continue;
+            foreach (var id in producer.ProducedItems)
+            {
+                if (world.Entities.Objects.TryGetValue(id, out var fruit) &&
+                    fruit.DefinitionId == ContentIds.Coconut)
+                    fruit.ProduceOrigin = ProduceOrigin.Natural;
+            }
+        }
+    }
+
     private static void WriteObject(BinaryWriter w, WorldObjectState obj, int version)
     {
         w.Write(obj.Id.Value);
@@ -1260,6 +1283,7 @@ public static class WorldSaveSerializer
 
         // v68 (§52 / bug #355): provenance of a loose physical vessel.
         if (version >= 68) w.Write((int)obj.WaterKind);
+        if (version >= 74) w.Write((byte)obj.ProduceOrigin);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1375,6 +1399,9 @@ public static class WorldSaveSerializer
         // очаги: здесь FactionHomes ещё может быть не тем, чем станет.
         obj.OwnerFaction = version >= 62 ? ReadNullableFaction(r) : null;
         obj.WaterKind = version >= 68 ? (WaterKind)r.ReadInt32() : WaterKind.None;
+        obj.ProduceOrigin = version >= 74 ? (ProduceOrigin)r.ReadByte() : ProduceOrigin.Unknown;
+        if (obj.ProduceOrigin > ProduceOrigin.Gathered)
+            throw new InvalidDataException("Invalid ground produce origin.");
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including

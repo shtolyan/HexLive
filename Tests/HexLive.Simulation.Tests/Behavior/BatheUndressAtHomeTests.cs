@@ -594,7 +594,9 @@ public sealed class BatheUndressAtHomeTests
             // старые v66..71 по-прежнему читаются отдельными migration fixtures.
             // 72 → 73 в §28.15G/#359: выбранная общая тема разговора.
             // RequestedTalkTopicTests.OlderSaveHasNoRequestedTopic проверяет v72.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(73));
+            // 73 → 74 в §31C.1/#411: происхождение лежащего плода;
+            // CoconutStockLifetimeTests проверяет миграцию v66–73.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(74));
         });
     }
 

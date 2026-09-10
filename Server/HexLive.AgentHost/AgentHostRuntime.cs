@@ -46,6 +46,7 @@ public sealed partial class AgentHostRuntime
     private CancellationTokenSource? _actionStop;
     private Task _actionTask = Task.CompletedTask;
     private volatile bool _handoffActionLease;
+    private string _inboxResumeKey = "";
     private volatile bool _actionAwaitingContinuation;
     private string _actionContract = string.Empty;
     private AgentActionContract? _actionArguments;
@@ -158,8 +159,11 @@ public sealed partial class AgentHostRuntime
             displayName = _options.DisplayName,
             capabilities = Capabilities,
             ttlSeconds = 45,
+            inboxResumeKey = _inboxResumeKey,
         }, cancellationToken);
         var attachmentId = RequiredString(attached, "attachmentId");
+        _inboxResumeKey = attached.TryGetProperty("inboxResumeKey", out var resume) && resume.ValueKind == JsonValueKind.String
+            ? resume.GetString() ?? "" : "";
         // §163: this gate means world execution permission, NOT player presence.
         var presence = new PresenceState(!IsWorldPaused(worldStatus));
         var playerPresent = attached.TryGetProperty("playerPresent", out var present) && present.GetBoolean();
@@ -197,10 +201,11 @@ public sealed partial class AgentHostRuntime
                 // An expired session cannot own this attachment. Do not create
                 // a fresh anonymous session merely to detach the old one.
                 if (mcp.HasEstablishedSession)
-                    await mcp.CallToolAsync("detach_agent", new { attachmentId }, CancellationToken.None)
+                    await mcp.CallToolAsync("detach_agent", new { attachmentId, preserveInbox = !cancellationToken.IsCancellationRequested }, CancellationToken.None)
                         .ConfigureAwait(false);
             }
             catch { /* attachment TTL is the hard fallback */ }
+            if (cancellationToken.IsCancellationRequested) _inboxResumeKey = "";
             _status.Write(!cancellationToken.IsCancellationRequested, "Detached", npcId,
                 false, false);
         }

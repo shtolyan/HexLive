@@ -44,6 +44,7 @@ public sealed partial class AgentSessionRegistry
 
     private sealed class Attachment
     {
+        public string InboxResumeKey = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
         public string Id = string.Empty;
         public string Owner = string.Empty;
         public int WorldGeneration;
@@ -82,7 +83,7 @@ public sealed partial class AgentSessionRegistry
 
     public bool TryAttach(int npcId, string owner, int worldGeneration,
         string displayName, AgentCapabilities capabilities, int ttlSeconds,
-        out AgentAttachmentSnapshot snapshot, out string reason)
+        out AgentAttachmentSnapshot snapshot, out string reason, string? inboxResumeKey = null)
     {
         lock (_gate)
         {
@@ -123,6 +124,7 @@ public sealed partial class AgentSessionRegistry
                 LastSeen = _now(),
                 TtlSeconds = Math.Clamp(ttlSeconds, 15, 120),
             };
+            RestoreInboxLocked(attachment, inboxResumeKey);
             _byId.Add(attachment.Id, attachment);
             _attachmentByNpc[npcId] = attachment.Id;
             Touch(npcId);
@@ -588,7 +590,13 @@ public sealed partial class AgentSessionRegistry
             (host != null && !host.Read(world =>
                 world.Entities.Npcs.TryGetValue(new EntityId(x.NpcId), out var npc) &&
                 npc.Health > 0f && !npc.IsDying))).ToArray();
-        foreach (var attachment in stale) RemoveLocked(attachment);
+        foreach (var attachment in stale)
+        {
+            if ((worldGeneration == int.MaxValue || attachment.WorldGeneration == worldGeneration) &&
+                (now - attachment.LastSeen).TotalSeconds >= attachment.TtlSeconds)
+                PreserveInboxLocked(attachment);
+            RemoveLocked(attachment);
+        }
 
         foreach (var attachment in _byId.Values)
         {

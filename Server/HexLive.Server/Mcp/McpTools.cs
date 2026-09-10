@@ -120,7 +120,8 @@ public sealed class McpTools
             Schema(("npcId", "integer", "id NPC", true),
                    ("displayName", "string", "имя агента для UI, до 48 символов", true),
                    ("capabilities", "array", "playerText/speech/worldActions/relationView/journal", true),
-                   ("ttlSeconds", "integer", "TTL attachment 15..120, по умолчанию 45", false))),
+                   ("ttlSeconds", "integer", "TTL attachment 15..120, по умолчанию 45", false),
+                   ("inboxResumeKey", "string", "закрытый ключ восстановления inbox после разрыва", false))),
 
         new("agent_heartbeat",
             "Продлить attachment и узнать playerPresent/phase без платного model call.",
@@ -182,7 +183,8 @@ public sealed class McpTools
 
         new("detach_agent",
             "Снять attachment, очистить временные данные и освободить action lease.",
-            Schema(("attachmentId", "string", "id attachment", true))),
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("preserveInbox", "boolean", "сохранить inbox для сетевого переподключения владельца", false))),
 
         new("read_build_catalog",
             "Каталог мебели и её ведомости из штатного сборщика площадок. Для продолжения используйте ведомость конкретной видимой стройки.",
@@ -983,7 +985,7 @@ public sealed class McpTools
 
         var initialEventWatermark = host.ReadEvents(null, 1, npcId).Watermark;
         var accepted = _agents.TryAttach(npcId, owner, _currentWorldGeneration(), displayName,
-            capabilities, ttl, out var snapshot, out var reason);
+            capabilities, ttl, out var snapshot, out var reason, OptionalText(arguments, "inboxResumeKey"));
         if (accepted)
         {
             var observations = _agents.BindPerception(snapshot.AttachmentId, owner, _currentWorldGeneration());
@@ -1009,7 +1011,8 @@ public sealed class McpTools
             });
         }
         isError = !accepted;
-        return accepted ? AttachmentJson(snapshot, initialEventWatermark) : reason;
+        return accepted ? AttachmentJson(snapshot, initialEventWatermark,
+            _agents.InboxResumeKey(snapshot.AttachmentId, owner, _currentWorldGeneration())) : reason;
     }
 
     private string AgentHeartbeat(JsonElement arguments, string owner, out bool isError)
@@ -1241,6 +1244,8 @@ public sealed class McpTools
 
     private string DetachAgent(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
+        if (arguments.TryGetProperty("preserveInbox", out var preserve) && preserve.ValueKind == JsonValueKind.True)
+            _agents.PreserveInbox(Text(arguments, "attachmentId"), owner, _currentWorldGeneration());
         var accepted = _agents.TryDetach(Text(arguments, "attachmentId"), owner,
             _currentWorldGeneration(), out var npcId, out var reason);
         if (!accepted)
@@ -1256,10 +1261,11 @@ public sealed class McpTools
         return Json(new { npcId, status = "Detached" });
     }
 
-    private static string AttachmentJson(AgentAttachmentSnapshot snapshot, long? eventWatermark = null) =>
+    private static string AttachmentJson(AgentAttachmentSnapshot snapshot, long? eventWatermark = null, string? inboxResumeKey = null) =>
         Json(new Dictionary<string, object?>
         {
             ["attachmentId"] = snapshot.AttachmentId,
+            ["inboxResumeKey"] = inboxResumeKey,
             ["eventWatermark"] = eventWatermark,
             ["npcId"] = snapshot.NpcId,
             ["displayName"] = snapshot.DisplayName,

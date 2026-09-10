@@ -166,6 +166,38 @@ public sealed class AgentReferenceReaderTests
     }
 
     [Test]
+    public async Task PausingAndResumingRetainsReferencesButSettingTheSameTaskAgainDoesNot()
+    {
+        var root = Directory.CreateTempSubdirectory("paused-goal-refs-").FullName;
+        try
+        {
+            var recall = new AgentMemoryRecall(root);
+            var world = new MashaWorldHandle("episode", "world", 0, 0);
+            var state = new MashaArchive { Worlds = [new() { Id = "episode", WorldKey = "world", AvatarNpcId = 901 }] };
+            void Change(string operation) => state.Objective = AgentObjectivePolicy.Apply(state.Objective,
+                new() { Operation = operation, Text = operation == "set" ? "Build a new bed" : "", Reason = "Fixture" },
+                state.Objective?.Revision ?? 0, "world", 901, DateTimeOffset.UtcNow);
+            Change("set");
+            Task<MemoryReadResult> Read(string operation, JsonElement args, CancellationToken token) =>
+                Task.FromResult(new MemoryReadResult("fresh-bed-recipe", ["recipe-source"], null));
+            var calls = 0;
+            await recall.DecideAsync("", world, state, (_, _) => Task.FromResult(++calls == 1
+                ? new CompanionDecision { MemoryRequests = [new() { Operation = "build.read", Arguments = JsonSerializer.SerializeToElement(new { definitionId = "bed.basic" }) }] }
+                : new CompanionDecision()), default, Read);
+            foreach (var operation in new[] { "pause", "resume", "set" })
+            {
+                Change(operation);
+                await recall.DecideAsync("", world, state, (context, _) =>
+                {
+                    Assert.That(context.Contains("fresh-bed-recipe"), Is.EqualTo(operation != "set"));
+                    return Task.FromResult(new CompanionDecision());
+                }, default, Read);
+            }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Test]
     public void ReferencesCannotInvokeMutatingTools()
     {
         Assert.That(AgentReferenceReader.Allowed("execute_agent_command"), Is.False);

@@ -17,6 +17,26 @@ namespace HexLive.Server.Tests.Mcp;
 
 public sealed class McpItemObservationTests
 {
+    [Test]
+    public void CarriedCrownAdvertisesItsGroundProcessingWithoutInventingAWorldObjectId()
+    {
+        using var host = CreateHost();
+        var actorId = host.Read(world =>
+        {
+            var actor = Observer(world); actor.Inventory.Items.Clear();
+            actor.Inventory.Items.Add(new ItemInstance("resource.palm_crown"));
+            actor.Inventory.Items.Add(new ItemInstance(GearCatalog.Axe));
+            return actor.Id.Value;
+        });
+        using var body = Describe(host, actorId);
+        var crown = body.RootElement.GetProperty("inventoryItems")[0];
+        Assert.That(crown.TryGetProperty("objectId", out _), Is.False);
+        var process = crown.GetProperty("groundInteractions").EnumerateArray().First(i => i.GetProperty("type").GetString() == "Process");
+        Assert.That(process.GetProperty("yields").GetRawText(), Does.Contain("resource.palm_leaf"));
+        Assert.That(process.GetProperty("toolRequirementMet").GetBoolean(), Is.True);
+        Assert.That(host.Read(w => Observer(w).Inventory.Items.Count), Is.EqualTo(2));
+    }
+
     [TestCase("tree.palm", "ChopWood", GearCatalog.Axe)]
     [TestCase("rock.boulder", "Mine", GearCatalog.Pickaxe)]
     [TestCase("plant.yucca", "Cut", GearCatalog.Knife)]

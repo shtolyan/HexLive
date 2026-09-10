@@ -7,6 +7,8 @@ namespace HexLive.AgentHost;
 public sealed class AgentObjective
 {
     public long Revision { get; set; }
+    // Stable across pause/resume; Revision still protects every state mutation.
+    public long StartedRevision { get; set; }
     public string Status { get; set; } = "none";
     public string Text { get; set; } = "";
     public string Reason { get; set; } = "";
@@ -51,6 +53,8 @@ public static class AgentObjectivePolicy
         return new AgentObjective
         {
             Revision = checked(current.Revision + 1), Status = status,
+            StartedRevision = replaced ? checked(current.Revision + 1) :
+                current.StartedRevision > 0 ? current.StartedRevision : current.Revision,
             Text = replaced ? text : current.Text, Reason = reason,
             WorldKey = replaced ? worldKey : current.WorldKey,
             AvatarNpcId = replaced ? avatarNpcId : current.AvatarNpcId, UpdatedUtc = now,

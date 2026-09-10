@@ -25,19 +25,7 @@ internal static class McpItemObservations
             var row = Item(world, observer, item.DefinitionId, item.Owner?.Value ?? 0, item.OwnerFaction);
             row["objectId"] = id;
             if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition))
-                row["interactions"] = definition.Interactions.Select(interaction =>
-                {
-                    var groups = RequiredToolGroups(definition, interaction);
-                    return new
-                    {
-                        id = interaction.Id, type = interaction.Type.ToString(), baseDurationTicks = interaction.DurationTicks,
-                        requiresAnyCapability = groups.Count == 1 ? groups[0].Select(c => c.ToString()).ToArray() : Array.Empty<string>(),
-                        requiresAllCapabilityGroups = groups.Select(g => g.Select(c => c.ToString()).ToArray()).ToArray(),
-                        toolRequirementMet = groups.Count == 0 || observer.Body.HasUsableHand &&
-                            groups.All(g => g.Any(c => GearCatalog.HasCapability(observer.Inventory.Items, c))),
-                        yields = interaction.Yields.Select(y => new { definitionId = y.DefinitionId, count = y.Count }).ToArray()
-                    };
-                }).ToArray();
+                row["interactions"] = definition.Interactions.Select(interaction => DescribeInteraction(definition, observer, interaction)).ToArray();
             if (!string.IsNullOrEmpty(item.BuildProduct))
                 row["construction"] = new { product = item.BuildProduct, needsHammer = BuildSiteView.NeedsHammer(world, item),
                     materials = McpPlanningObservations.BuildMaterials(item) };
@@ -60,6 +48,20 @@ internal static class McpItemObservations
 
     public static List<object> Carried(WorldState world, NPCState observer) =>
         Instances(world, observer, observer.Inventory.Items);
+
+    private static object DescribeInteraction(ObjectDefinition definition, NPCState observer, InteractionDefinition interaction)
+    {
+        var groups = RequiredToolGroups(definition, interaction);
+        return new
+        {
+            id = interaction.Id, type = interaction.Type.ToString(), baseDurationTicks = interaction.DurationTicks,
+            requiresAnyCapability = groups.Count == 1 ? groups[0].Select(c => c.ToString()).ToArray() : Array.Empty<string>(),
+            requiresAllCapabilityGroups = groups.Select(g => g.Select(c => c.ToString()).ToArray()).ToArray(),
+            toolRequirementMet = groups.Count == 0 || observer.Body.HasUsableHand &&
+                groups.All(g => g.Any(c => GearCatalog.HasCapability(observer.Inventory.Items, c))),
+            yields = interaction.Yields.Select(y => new { definitionId = y.DefinitionId, count = y.Count }).ToArray()
+        };
+    }
 
     // ExecutionSystem retains these legacy gates even when older world data has
     // no RequiredCapabilities. Empty data must not advertise tool-free mining.
@@ -91,6 +93,12 @@ internal static class McpItemObservations
             var row = Item(world, observer, item.DefinitionId, item.OwnerId, null);
             // This is the existing manual-command list index, valid only for this snapshot.
             row["sourceIndex"] = index;
+            if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition))
+            {
+                var processing = definition.Interactions.Where(i => i.Yields.Count > 0)
+                    .Select(interaction => DescribeInteraction(definition, observer, interaction)).ToArray();
+                if (processing.Length > 0) row["groundInteractions"] = processing;
+            }
             Clothing(row, world, observer, item.DefinitionId, item.Durability);
             PortableWater(row, item.DefinitionId, item.ResourceAmount, item.WaterKind);
             rows.Add(row);

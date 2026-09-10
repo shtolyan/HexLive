@@ -21,7 +21,7 @@ public sealed class AgentMemoryRecall
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
-        var planningDeadline = state.Objective?.Status == "active";
+        var planningDeadline = state.Objective?.Status is "active" or "paused";
         timeout.CancelAfter(TimeSpan.FromSeconds(planningDeadline ? 300 : 120)); token = timeout.Token;
         await Task.Run(() => _search.Refresh(), token);
         bool Allow(AgentMemoryRecord r) => Allowed(r, world.SpeakerKey, state) &&
@@ -31,9 +31,10 @@ public sealed class AgentMemoryRecall
         var trace = new List<object>();
         var readCharacters = 0;
         object? decisionRepair = null;
-        var scope = state.Objective is { Status: "active" } objective &&
+        var scope = state.Objective is { Status: "active" or "paused" } objective &&
             objective.WorldKey == world.WorldKey && objective.AvatarNpcId == state.Worlds.FirstOrDefault(e => e.Id == world.EpisodeId)?.AvatarNpcId
-            ? world.WorldKey + ":" + objective.AvatarNpcId + ":" + objective.Revision : "";
+            ? world.WorldKey + ":" + objective.AvatarNpcId + ":" +
+                (objective.StartedRevision > 0 ? objective.StartedRevision : objective.Revision) : "";
         if (scope != _referenceScope || scope.Length == 0)
         { _referenceRequests.Clear(); _referenceScope = scope; }
         if (readReference != null)

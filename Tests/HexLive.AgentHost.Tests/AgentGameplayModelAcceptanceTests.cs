@@ -207,10 +207,14 @@ public sealed partial class AgentExecutionRuntimeTests
             var watch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                await (Task)typeof(AgentHostRuntime).GetMethod("MaintainPlanLeaseAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .Invoke(runtime, [mcp, 901, true, token])!;
                 var answer = recorded == null
                     ? await model.DecideAsync(trigger, bodyJson, context, player, recent, token)
                     : call <= recorded.Length ? recorded[call - 1].Deserialize<CompanionDecision>(AgentMemoryArchive.Json)!
                     : throw new InvalidOperationException("RecordedDecisionsExhausted");
+                await (Task)typeof(AgentHostRuntime).GetMethod("MaintainPlanLeaseAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .Invoke(runtime, [mcp, 901, true, token])!;
                 modelDecisions.Add(new { call, elapsedMs = watch.ElapsedMilliseconds, decision = JsonSerializer.SerializeToElement(answer),
                     usage = answer.ModelUsage, body = JsonSerializer.Deserialize<JsonElement>(bodyJson) });
                 var checkpoint = report + ".tmp";
@@ -229,6 +233,20 @@ public sealed partial class AgentExecutionRuntimeTests
         var multiStep = false;
         var status = "Incomplete";
         var initialTick = host.Read(w => w.Tick);
+        void AdvanceObservationClock(bool heartbeat)
+        {
+            var ticks = heartbeat ? Math.Max(8, (int)Math.Ceiling(options.HeartbeatSeconds / host.TickDeltaTime)) : 8;
+            host.Read(w =>
+            {
+                for (var i = 0; i < ticks; i++)
+                {
+                    engine.Step();
+                    if (w.Tick - initialTick > 3 * EnvironmentSystem.DayLengthTicks)
+                        throw new InvalidOperationException("ThreeGameDaysExceeded");
+                }
+                return true;
+            });
+        }
         try
         {
             var world = await store.BindHexLiveWorldAsync(await mcp.CallToolAsync("world_status", new { }, default), 901, "fixture", default);
@@ -240,6 +258,7 @@ public sealed partial class AgentExecutionRuntimeTests
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(330));
                 world = await store.BindHexLiveWorldAsync(await mcp.CallToolAsync("world_status", new { }, timeout.Token), 901, "fixture", timeout.Token);
+                typeof(AgentHostRuntime).GetField("_historyWorld", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(runtime, world);
                 prompt = await store.BuildPromptContextAsync(world, task, timeout.Token);
                 world = world with { ObjectiveRevision = prompt.ObjectiveRevision, ExecutionPlanRevision = prompt.ExecutionPlanRevision, ExecutionPlanId = prompt.ExecutionPlanId };
                 var body = await mcp.CallToolAsync("describe_colonist", new { npcId = 901 }, timeout.Token);
@@ -298,7 +317,8 @@ public sealed partial class AgentExecutionRuntimeTests
                         w.Entities.Npcs[new EntityId(recipientId)].Inventory.Items.Count > recipientItemsBefore &&
                         w.Events.Items.Count(e => e.Type == "GiftGiven" && e.Message.Contains($"->NPC{recipientId} ")) == 1);
                     var grounded = scenario == "bed"
-                        ? referenceOperations.Contains("build.read") && referenceOperations.Contains("recipes.read")
+                        ? referenceOperations.Contains("build.read") && referenceOperations.Contains("recipes.read") &&
+                          saved.ExecutionProgress.Any(p => p.Step.Tool == "interact" && p.Step.Arguments.TryGetProperty("interaction", out var verb) && verb.GetString() == "Build")
                         : scenario != "gift" || referenceOperations.Contains("spec.read");
                     status = !passed ? "FalseCompletion" : grounded ? "Completed" : "MissingRuleConsultation";
                     passed &= grounded;
@@ -312,7 +332,7 @@ public sealed partial class AgentExecutionRuntimeTests
                     break;
                 }
                 var plan = saved.ExecutionPlan;
-                if (!emergency && plan is not { Status: "active" }) continue;
+                if (!emergency && plan is not { Status: "active" }) { AdvanceObservationClock(true); continue; }
                 if (!emergency) multiStep |= plan!.Steps.Length >= 2;
                 using var executionStop = new CancellationTokenSource(TimeSpan.FromSeconds(90));
                 var running = emergency
@@ -339,7 +359,7 @@ public sealed partial class AgentExecutionRuntimeTests
                     await Task.Delay(1);
                   }
                   await running;
-                  host.Read(w => { for (var refresh = 0; refresh < 8; refresh++) engine.Step(); return true; });
+                  AdvanceObservationClock(saved.Objective?.Status == "paused");
                   var afterExecution = (await store.SnapshotAsync(timeout.Token)).ExecutionPlan;
                   if (scenario != "resilience" || emergency || afterExecution is not { Status: "paused", Reason: "CommandOutcomeUnknown" } || reconciliations >= 3) break;
                   var callsBeforeRecovery = calls;

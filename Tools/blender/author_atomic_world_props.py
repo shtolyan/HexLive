@@ -484,7 +484,12 @@ def crab() -> None:
              wrist + Vector((side * 0.32, -0.03, 0.01)), 0.04, shell, 7)
 
 
-def export_collection(owner_name: str, output: Path) -> None:
+def export_collection(
+        owner_name: str,
+        output: Path,
+        *,
+        bake_space_transform: bool = False,
+) -> None:
     bpy.ops.object.select_all(action="DESELECT")
     owner = bpy.data.collections[owner_name]
     for obj in owner.all_objects:
@@ -494,7 +499,9 @@ def export_collection(owner_name: str, output: Path) -> None:
     bpy.ops.export_scene.fbx(
         filepath=str(output), use_selection=True, object_types={"MESH"},
         apply_unit_scale=True, apply_scale_options="FBX_SCALE_ALL",
-        axis_forward="-Z", axis_up="Y", add_leaf_bones=False,
+        axis_forward="-Z", axis_up="Y",
+        bake_space_transform=bake_space_transform,
+        add_leaf_bones=False,
         bake_anim=False, path_mode="AUTO", embed_textures=False,
     )
 
@@ -521,6 +528,18 @@ def merge_by_material(owner_name: str) -> None:
 
 
 def main() -> None:
+    if "--only-stump" in sys.argv:
+        clean_scene()
+        stump()
+        merge_by_material("stump.palm")
+        export_collection(
+            "stump.palm",
+            OBJECTS / "stump.palm.fbx",
+            bake_space_transform=True,
+        )
+        print("Exported stump.palm with its Blender-to-Unity space baked into the mesh.")
+        return
+
     if "--only-palm-drops" in sys.argv:
         clean_scene()
         stump()
@@ -529,7 +548,11 @@ def main() -> None:
         for asset_id in (
                 "stump.palm", "resource.palm_crown", "resource.palm_crown_small"):
             merge_by_material(asset_id)
-            export_collection(asset_id, OBJECTS / f"{asset_id}.fbx")
+            export_collection(
+                asset_id,
+                OBJECTS / f"{asset_id}.fbx",
+                bake_space_transform=asset_id == "stump.palm",
+            )
         print("Restored the three pre-§152 palm-drop visuals as atomic FBXs.")
         return
 
@@ -565,7 +588,11 @@ def main() -> None:
         "tool.bow", "resource.arrow",
         "stump.palm", "resource.palm_crown", "resource.palm_crown_small",
     ):
-        export_collection(asset_id, OBJECTS / f"{asset_id}.fbx")
+        export_collection(
+            asset_id,
+            OBJECTS / f"{asset_id}.fbx",
+            bake_space_transform=asset_id == "stump.palm",
+        )
     export_collection("crab", ANIMALS / "crab.fbx")
     print("Authored 14 independent atomic world props.")
 

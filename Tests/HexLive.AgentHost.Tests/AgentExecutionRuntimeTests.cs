@@ -22,6 +22,42 @@ public sealed partial class AgentExecutionRuntimeTests
     [TearDown] public void Cleanup() => Directory.Delete(_root, true);
 
     [Test]
+    public async Task TargetDisappearingBeforeDispatchStopsTheRemainingQueue()
+    {
+        using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var objectId = host.Read(w => w.Entities.Objects.Values.First(o => o.DefinitionId == "tree.palm").Id);
+        transport.BeforeToolCall = (name, _) =>
+        {
+            if (name == "execute_agent_command") host.Read(w => WorldObjectMutations.DespawnObject(w, objectId));
+        };
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("harvest", "interact", JsonSerializer.SerializeToElement(new { objectId = objectId.Value, interaction = "Harvest" })),
+             new("next", "stop", JsonSerializer.SerializeToElement(new { }))]);
+        await Run(runtime, mcp, plan.Id, world, 15);
+        var saved = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        Assert.That(saved.Status, Is.EqualTo("paused"));
+        Assert.That(saved.Command!.Status, Is.EqualTo("failed"));
+        Assert.That(saved.Command.Reason, Is.Not.Empty);
+        Assert.That(saved.Cursor, Is.Zero);
+        Assert.That(transport.Executions, Is.EqualTo(1));
+        Assert.That(providers.Calls, Is.Zero);
+        typeof(AgentHostRuntime).GetField("_historyWorld", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(runtime, world);
+        var maintain = typeof(AgentHostRuntime).GetMethod("MaintainPlanLeaseAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        await (Task)maintain.Invoke(runtime, [mcp, 901, true, CancellationToken.None])!;
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ManualControl), Is.True,
+            "A known failed step needs a new decision, not native AI taking over.");
+        var archive = await store.SnapshotAsync(default);
+        await store.CommitTurnAsync(world with { ObjectiveRevision = archive.Objective!.Revision,
+            ExecutionPlanRevision = saved.Revision, ExecutionPlanId = saved.Id }, "pause", "voice",
+            new CompanionDecision { ObjectiveUpdate = new() { Operation = "pause", Reason = "Fixture" } }, default);
+        await (Task)maintain.Invoke(runtime, [mcp, 901, true, CancellationToken.None])!;
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ManualControl), Is.False);
+    }
+
+    [Test]
     public async Task NativeInterruptionCauseReachesThePausedQueue()
     {
         using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
@@ -447,15 +483,18 @@ public sealed partial class AgentExecutionRuntimeTests
         SpatialMutations.OccupyJunction(world, destination.Id, npc.Id);
     }
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task LostResponseAfterExecutionAutomaticallyReconcilesWithoutReplay(bool restart)
+    [TestCase(false, false)]
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    [TestCase(true, true)]
+    public async Task LostResponseAfterExecutionAutomaticallyReconcilesWithoutReplay(bool restart, bool lastCommand)
     {
         using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45))) { LoseNextResponse = true };
         var options = Options(); using var providers = new NoModel();
         var runtime = new AgentHostRuntime(options, providers);
         using var mcp = new McpClient(options.ProviderOptions, transport);
-        var (store, world, plan) = await Install(runtime, mcp);
+        var (store, world, plan) = await Install(runtime, mcp, lastCommand
+            ? [new("last", "stop", JsonSerializer.SerializeToElement(new { }))] : null);
         await Run(runtime, mcp, plan.Id, world);
         plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
         Assert.That(plan.Status, Is.EqualTo("paused"));
@@ -470,7 +509,8 @@ public sealed partial class AgentExecutionRuntimeTests
         await ((Task)typeof(AgentHostRuntime).GetField("_actionTask", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(runtime)!).WaitAsync(TimeSpan.FromSeconds(15));
         Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("completed"));
-        Assert.That(transport.Executions, Is.EqualTo(2));
+        Assert.That(transport.Executions, Is.EqualTo(lastCommand ? 1 : 2));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Mind.ManualControl), Is.True);
         Assert.That(providers.Calls, Is.Zero);
     }
 
@@ -521,6 +561,7 @@ public sealed partial class AgentExecutionRuntimeTests
     }
     private sealed class Transport(McpTools tools) : HttpMessageHandler
     {
+        public Action<string, JsonElement>? BeforeToolCall;
         public bool LoseNextResponse;
         public bool UnknownCommandReads;
         public int CommandReads;
@@ -535,6 +576,7 @@ public sealed partial class AgentExecutionRuntimeTests
             if (root.GetProperty("method").GetString() == "tools/call")
             {
                 var parameters = root.GetProperty("params"); var name = parameters.GetProperty("name").GetString()!;
+                BeforeToolCall?.Invoke(name, parameters.GetProperty("arguments"));
                 var text = tools.Call(name, parameters.GetProperty("arguments"), "mcp:plans", out var error);
                 if (name == "read_agent_command" && parameters.GetProperty("arguments").GetProperty("sequence").GetInt64() > 0)
                 {

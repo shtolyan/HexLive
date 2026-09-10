@@ -48,7 +48,7 @@ public sealed partial class AgentExecutionRuntimeTests
         var delivery = scenario is "coconuts" or "resilience";
         var task = delivery
             ? "Принеси три кокоса в свой лагерь и выгрузи их. Нужные инструменты сохрани."
-            : scenario == "bed" ? "Полностью построй кровать в своём лагере за три игровых дня. Материалы добудь сама, отдыхай и спи по необходимости."
+            : scenario == "bed" ? "Полностью построй НОВУЮ кровать с нуля в своём лагере за три игровых дня. Уже существующие кровати не засчитываются. Материалы добудь сама, отдыхай и спи по необходимости."
             : "Найди и подари что-нибудь девушке, которая тебе нравится. Выбери подарок осознанно, нужные инструменты сохрани.";
         var output = Environment.GetEnvironmentVariable("HEXLIVE_GAMEPLAY_OUTPUT") ?? throw new InvalidOperationException("OutputRequired");
         var providerName = Environment.GetEnvironmentVariable("HEXLIVE_GAMEPLAY_PROVIDER") ?? "Codex";
@@ -167,6 +167,24 @@ public sealed partial class AgentExecutionRuntimeTests
             return true;
         });
         using var transport = new Transport(new McpTools(host, new ControlLeases(45))) { LoseNextResponse = scenario == "resilience" };
+        var targetReplaced = false;
+        if (scenario == "resilience" && fixture == 1)
+            transport.BeforeToolCall = (name, arguments) =>
+            {
+                if (targetReplaced || name != "execute_agent_command" || arguments.GetProperty("tool").GetString() != "interact") return;
+                var action = arguments.GetProperty("arguments");
+                if (!action.TryGetProperty("objectId", out var id) || !action.TryGetProperty("interaction", out var interaction) || interaction.GetString() != "PickUp") return;
+                host.Read(w =>
+                {
+                    if (!w.Entities.Objects.TryGetValue(new ObjectId(id.GetInt32()), out var item) || item.DefinitionId != ContentIds.Coconut) return false;
+                    // Same physical fixture location; stale identity must fail and be re-observed.
+                    var anchor = item.Junctions[0];
+                    WorldObjectMutations.DespawnObject(w, item.Id);
+                    WorldObjectMutations.SpawnObject(w, item.DefinitionId, item.Fragment, item.Tile, anchor);
+                    targetReplaced = true;
+                    return true;
+                });
+            };
         var options = Options(); using var noModelDuringExecution = new NoModel();
         var runtime = new AgentHostRuntime(options, noModelDuringExecution);
         var store = Memory(runtime);
@@ -178,6 +196,7 @@ public sealed partial class AgentExecutionRuntimeTests
         var turns = new List<object>();
         var calls = 0;
         var reconciliations = 0;
+        var restarted = false;
         var modelDecisions = new List<object>();
         var referenceReads = new List<object>();
         var referenceOperations = new HashSet<string>();
@@ -286,6 +305,8 @@ public sealed partial class AgentExecutionRuntimeTests
                     if (scenario == "resilience")
                     {
                         passed &= reconciliations > 0 && host.Read(w => w.AgentCommands[901].Receipts.Count == transport.Executions);
+                        passed &= fixture != 1 || targetReplaced;
+                        passed &= fixture != 2 || restarted;
                         if (!passed && status == "Completed") status = "ReconciliationNotVerified";
                     }
                     break;
@@ -318,10 +339,17 @@ public sealed partial class AgentExecutionRuntimeTests
                     await Task.Delay(1);
                   }
                   await running;
+                  host.Read(w => { for (var refresh = 0; refresh < 8; refresh++) engine.Step(); return true; });
                   var afterExecution = (await store.SnapshotAsync(timeout.Token)).ExecutionPlan;
                   if (scenario != "resilience" || emergency || afterExecution is not { Status: "paused", Reason: "CommandOutcomeUnknown" } || reconciliations >= 3) break;
                   var callsBeforeRecovery = calls;
                   await Task.Delay(2100, executionStop.Token);
+                  if (fixture == 2 && !restarted)
+                  {
+                      runtime = new AgentHostRuntime(options, noModelDuringExecution);
+                      store = Memory(runtime);
+                      restarted = true;
+                  }
                   typeof(AgentHostRuntime).GetField("_historyWorld", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(runtime, world);
                   await (Task)typeof(AgentHostRuntime).GetMethod("TryStartExecutionPlanAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
                       .Invoke(runtime, [mcp, 901, executionStop.Token])!;
@@ -340,7 +368,7 @@ public sealed partial class AgentExecutionRuntimeTests
         finally
         {
             File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, passed, status,
-                gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions, reconciliations,
+                gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
                 emergencyActions = turns.Count(t => JsonSerializer.SerializeToElement(t).GetProperty("decision").TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.Object),
                 referenceReads, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
             (adapter as IDisposable)?.Dispose();

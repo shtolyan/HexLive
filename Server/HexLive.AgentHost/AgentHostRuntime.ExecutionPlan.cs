@@ -13,13 +13,16 @@ public sealed partial class AgentHostRuntime
     private volatile bool _holdingPlanLease;
     private DateTimeOffset _nextPlanLeaseRenewal;
 
+    private static bool KeepGoalControl(AgentExecutionPlan? plan) => plan is { Status: "active" or "completed" } ||
+        plan is { Status: "paused", Reason: "CommandFailed", Command.Status: "failed" };
+
     private async Task MaintainPlanLeaseAsync(McpClient mcp, int npcId, bool enabled, CancellationToken token)
     {
         if (!_holdingPlanLease) return;
         var state = await _memory.SnapshotAsync(token).ConfigureAwait(false);
         var keep = enabled && state.Objective is { Status: "active" } goal &&
             goal.AvatarNpcId == npcId && goal.WorldKey == _historyWorld?.WorldKey &&
-            state.ExecutionPlan is { Status: "active" or "completed" };
+            KeepGoalControl(state.ExecutionPlan);
         if (!keep)
         {
             _holdingPlanLease = false;
@@ -174,8 +177,15 @@ public sealed partial class AgentHostRuntime
             {
                 var archive = await _memory.SnapshotAsync(CancellationToken.None).ConfigureAwait(false);
                 var saved = archive.ExecutionPlan;
+                if (!acquired && reconcilingInitial && !token.IsCancellationRequested &&
+                    saved?.Id == planId && KeepGoalControl(saved) && archive.Objective is { Status: "active" } recoveringGoal &&
+                    recoveringGoal.WorldKey == world.WorldKey && recoveringGoal.AvatarNpcId == npcId)
+                {
+                    await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 }, token).ConfigureAwait(false);
+                    acquired = true;
+                }
                 _holdingPlanLease = acquired && !token.IsCancellationRequested && saved?.Id == planId &&
-                    saved.Status == "completed" && archive.Objective is { Status: "active" } goal &&
+                    KeepGoalControl(saved) && archive.Objective is { Status: "active" } goal &&
                     goal.WorldKey == world.WorldKey && goal.AvatarNpcId == npcId;
                 if (_holdingPlanLease) _nextPlanLeaseRenewal = DateTimeOffset.UtcNow;
                 needsDecision = saved?.Id == planId && saved.Status != "canceled";

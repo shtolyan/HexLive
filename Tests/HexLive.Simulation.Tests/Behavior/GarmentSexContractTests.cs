@@ -10,6 +10,12 @@ namespace HexLive.Simulation.Tests.Behavior;
 
 public sealed class GarmentSexContractTests
 {
+    private ObjectDefinition[] _registeredBeforeTest = Array.Empty<ObjectDefinition>();
+
+    [SetUp]
+    public void CaptureRegisteredObjects() =>
+        _registeredBeforeTest = WorldObjectLibrary.Registered.ToArray();
+
     private static readonly string[] TacticalKit =
     {
         "TonnyFlash", "FCO Pants Male", "FCO Belt Male", "FCO Gloves Male",
@@ -18,7 +24,18 @@ public sealed class GarmentSexContractTests
     };
 
     [TearDown]
-    public void RestoreCatalog() => SimDataFile.Require(RepoPaths.SimData);
+    public void RestoreCatalog()
+    {
+        try { SimDataFile.Require(RepoPaths.SimData); }
+        finally
+        {
+            // ExportJson includes effective garment object definitions. ApplyJson
+            // overlays them, so Require alone cannot remove synthetic test IDs.
+            WorldObjectLibrary.Clear();
+            foreach (var definition in _registeredBeforeTest)
+                WorldObjectLibrary.Override(definition);
+        }
+    }
 
     [Test]
     public void FemaleDropPrototypesAndTheirColourwaysRejectMaleWearers()

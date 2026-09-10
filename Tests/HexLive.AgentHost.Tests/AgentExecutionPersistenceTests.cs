@@ -65,6 +65,46 @@ public sealed class AgentExecutionPersistenceTests
     }
 
     [Test]
+    public async Task ConfirmedFailureCanBeReplannedWithoutDiscardingTheObjective()
+    {
+        var store = new MashaMemoryStore(_directory);
+        await store.CommitTurnAsync(await World(store), "install", "voice", NewPlan(), default);
+        var before = await store.SnapshotAsync(default);
+        var plan = before.ExecutionPlan!;
+        plan = await store.PrepareExecutionStepAsync(plan.Id, plan.Revision, await World(store), default, 1);
+        await store.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(plan.Command!.Id, "failed"), default);
+        store = new MashaMemoryStore(_directory);
+        await store.CommitTurnAsync(await World(store), "replan", "heartbeat", new CompanionDecision
+        {
+            ExecutionPlanUpdate = new() { Operation = "replace", Reason = "TargetChanged", Steps =
+                [new("alternative", "stop", JsonSerializer.SerializeToElement(new { }))] }
+        }, default);
+        var after = await new MashaMemoryStore(_directory).SnapshotAsync(default);
+        Assert.That(after.Objective!.Text, Is.EqualTo(before.Objective!.Text));
+        Assert.That(after.Objective.Revision, Is.EqualTo(before.Objective.Revision));
+        Assert.That(after.ExecutionPlan!.Id, Is.Not.EqualTo(plan.Id));
+        Assert.That(after.ExecutionPlan.Status, Is.EqualTo("active"));
+        Assert.That(after.ExecutionPlan.Command, Is.Null);
+    }
+
+    [TestCase("sending")]
+    [TestCase("accepted")]
+    [TestCase("unknown")]
+    public async Task UnresolvedCommandStillPreventsReplacement(string outcome)
+    {
+        var store = new MashaMemoryStore(_directory);
+        await store.CommitTurnAsync(await World(store), "install", "voice", NewPlan(), default);
+        var plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        plan = await store.PrepareExecutionStepAsync(plan.Id, plan.Revision, await World(store), default, 1);
+        if (outcome != "sending")
+            await store.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(plan.Command!.Id, outcome), default);
+        var world = await World(store);
+        Assert.ThrowsAsync<InvalidDataException>(() => store.CommitTurnAsync(world, "unsafe", "heartbeat",
+            new CompanionDecision { ExecutionPlanUpdate = NewPlan().ExecutionPlanUpdate }, default));
+        Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Id, Is.EqualTo(plan.Id));
+    }
+
+    [Test]
     public async Task FailedCheckpointNeverReturnsDispatchAndRequiresReload()
     {
         var store = new MashaMemoryStore(_directory);

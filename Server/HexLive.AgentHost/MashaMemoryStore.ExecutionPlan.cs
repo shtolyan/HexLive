@@ -41,7 +41,7 @@ public sealed partial class MashaMemoryStore
         if (update.Operation == "replace")
         {
             if (decision.Action != null || objective == null ||
-                current is { Command: not null, Status: not "canceled" })
+                current is { Command: { Status: not "failed" }, Status: not "canceled" })
                 throw new InvalidDataException("ExecutionPlanReplacementBlocked");
             return AgentExecutionPlanPolicy.Create(objective, episode.WorldKey, episode.AvatarNpcId, update.Steps);
         }

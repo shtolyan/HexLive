@@ -18,6 +18,9 @@ public sealed class AgentReferenceReaderTests
         var error = Assert.Throws<InvalidDataException>(() => AgentProviders.ParseDecision(json, "heartbeat"));
         Assert.That(error!.Message, Is.EqualTo("InvalidExecutionCondition"));
         Assert.That(error.Data["decisionJson"], Is.EqualTo(json));
+        Assert.That(error.Data["conditionStep"], Is.EqualTo("first"));
+        Assert.That(error.Data["conditionTarget"], Is.EqualTo("first"));
+        Assert.That(error.Data["laterStepIds"], Is.Empty);
     }
 
     [TestCase("InvalidExecutionCondition")]

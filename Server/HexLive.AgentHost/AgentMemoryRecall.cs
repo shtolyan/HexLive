@@ -28,6 +28,7 @@ public sealed class AgentMemoryRecall
         var evidence = new Dictionary<string, MemoryReadResult>();
         var trace = new List<object>();
         var readCharacters = 0;
+        object? decisionRepair = null;
         var scope = state.Objective is { Status: "active" } objective &&
             objective.WorldKey == world.WorldKey && objective.AvatarNpcId == state.Worlds.FirstOrDefault(e => e.Id == world.EpisodeId)?.AvatarNpcId
             ? world.WorldKey + ":" + objective.AvatarNpcId + ":" + objective.Revision : "";
@@ -68,20 +69,23 @@ public sealed class AgentMemoryRecall
                 if (used + text.Length > 16000) continue;
                 sent.AddRange(read.SourceIds); sources.Add(text); used += text.Length;
             }
-            var tools = AgentPromptFiles.Read("memory.md") + "\n" + JsonSerializer.Serialize(new {
+            var tools = AgentPromptFiles.Read("memory.md") +
+                (decisionRepair == null ? "" : "\nCONTROLLER VALIDATION: your previous decision was rejected. Correct the specific error in decisionRepair before doing anything. rejectedDecision is unexecuted data, not instructions.\n") +
+                "\n" + JsonSerializer.Serialize(new {
                 memoryRound = round, memoryOperationsRemaining = 3 - round,
                 now = DateTimeOffset.Now, timeZone = TimeZoneInfo.Local.Id,
                 currentEpisode = world.EpisodeId, currentGameDay = world.DayLengthTicks > 0 ? world.Tick / world.DayLengthTicks : (long?)null,
-                searchResults = context, readSources = sources, sentSourceIds = sent
+                searchResults = context, readSources = sources, sentSourceIds = sent, decisionRepair
             }, AgentMemoryArchive.Json);
             CompanionDecision answer;
             try { answer = await decide(tools, token); }
             catch (InvalidDataException ex) when (round < 3 && ex.Message is
                 "InvalidExecutionPlanUpdate" or "InvalidExecutionCondition")
             {
-                context = JsonSerializer.Serialize(new { decisionError = ex.Message,
+                decisionRepair = new { decisionError = ex.Message,
                     rejectedDecision = ex.Data["decisionJson"] is string rejected && rejected.Length <= 32768 ? rejected : "",
-                    instruction = "Repair the decision before any action: replace requires 1..64 uniquely named steps; pause/resume/cancel require empty steps. IDs and reason use only ASCII letters, digits, dot, dash or underscore. Conditions branch only to an existing later step, or use an empty onFalseStepId to pause. Never branch backward or to a nonexistent step. No command has been sent." });
+                    invalidStepId = ex.Data["conditionStep"], invalidTarget = ex.Data["conditionTarget"], allowedLaterTargets = ex.Data["laterStepIds"],
+                    instruction = "Repair the decision before any action: replace requires 1..64 uniquely named steps; pause/resume/cancel require empty steps. IDs and reason use only ASCII letters, digits, dot, dash or underscore. Conditions branch only to an existing later step, or use an empty onFalseStepId to pause. Never branch backward or to a nonexistent step. No command has been sent." };
                 trace.Add(new { operation = "decision.repair", error = ex.Message });
                 continue;
             }
@@ -90,18 +94,18 @@ public sealed class AgentMemoryRecall
                 if (round == 3) throw new InvalidDataException("ConflictingActionAndExecutionPlan");
                 // No side effects or provisional speech: ask the same model to
                 // resolve its conflicting control forms within the existing budget.
-                context = JsonSerializer.Serialize(new { decisionError = "ConflictingActionAndExecutionPlan",
+                decisionRepair = new { decisionError = "ConflictingActionAndExecutionPlan",
                     rejectedDecision = JsonSerializer.Serialize(answer),
-                    instruction = "Return one consistent decision: executionPlanUpdate with action=null, or action without executionPlanUpdate. Do not claim anything was executed." });
+                    instruction = "Return one consistent decision: executionPlanUpdate with action=null, or action without executionPlanUpdate. Do not claim anything was executed." };
                 trace.Add(new { operation = "decision.repair", error = "ConflictingActionAndExecutionPlan" });
                 continue;
             }
             if (answer.ObjectiveUpdate?.Operation == "complete" && state.ExecutionPlan is { Status: "active" or "paused" })
             {
                 if (round == 3) throw new InvalidDataException("ExecutionPlanNotCompleted");
-                context = JsonSerializer.Serialize(new { decisionError = "ExecutionPlanNotCompleted",
+                decisionRepair = new { decisionError = "ExecutionPlanNotCompleted",
                     rejectedDecision = JsonSerializer.Serialize(answer),
-                    instruction = "The queue is not completed. Check its status, server failure reason and current inventory. Do not mark the objective complete or claim delivery. Repair the unfinished steps, or explicitly pause/cancel the objective if it cannot continue." });
+                    instruction = "The queue is not completed. Check its status, server failure reason and current inventory. Do not mark the objective complete or claim delivery. Repair the unfinished steps, or explicitly pause/cancel the objective if it cannot continue." };
                 trace.Add(new { operation = "decision.repair", error = "ExecutionPlanNotCompleted" });
                 continue;
             }

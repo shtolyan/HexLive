@@ -195,7 +195,13 @@ public static class AgentExecutionPlanPolicy
                 c.Operator is not ("gte" or "lte") || !double.IsFinite(c.Value) ||
                 c.OnFalseStepId == null || c.OnFalseStepId.Length > 0 &&
                 Array.FindIndex(steps, s => s.Id == c.OnFalseStepId) <= i)
-                throw new InvalidDataException("InvalidExecutionCondition");
+            {
+                var error = new InvalidDataException("InvalidExecutionCondition");
+                error.Data["conditionStep"] = steps[i].Id;
+                error.Data["conditionTarget"] = c.OnFalseStepId;
+                error.Data["laterStepIds"] = steps.Skip(i + 1).Select(s => s.Id).ToArray();
+                throw error;
+            }
         }
     }
 

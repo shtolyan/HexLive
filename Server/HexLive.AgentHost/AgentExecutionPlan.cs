@@ -60,6 +60,24 @@ public static class AgentExecutionPlanPolicy
 {
     public const int MaxSteps = 64;
 
+    // Older/provider-specific decisions may express a one-command continuation
+    // as action. Give it the same durable receipt semantics as an explicit queue.
+    public static void NormalizeContinuation(CompanionDecision decision, MashaArchive state, string worldKey, int npcId)
+    {
+        if (decision.Action is not { } action || action.Tool == "query_known_objects" ||
+            decision.ExecutionPlanUpdate != null || decision.MemoryRequests.Count > 0 ||
+            decision.ObjectiveUpdate?.Operation is "pause" or "clear" or "complete") return;
+        var newGoal = decision.ObjectiveUpdate?.Operation == "set";
+        if (!newGoal && !(state.Objective is { Status: "active" } goal &&
+            goal.WorldKey == worldKey && goal.AvatarNpcId == npcId)) return;
+        if (!newGoal && state.ExecutionPlan is { } plan &&
+            plan.Status is not ("completed" or "canceled") && plan.Command?.Status != "failed")
+            throw new AgentActionValidationException("ActiveExecutionPlanRequiresExplicitUpdate");
+        decision.ExecutionPlanUpdate = new() { Operation = "replace", Reason = "GoalContinuation",
+            Steps = [new("continue", action.Tool, action.Arguments.Clone())] };
+        decision.Action = null;
+    }
+
     public static void ValidateUpdate(AgentExecutionPlanUpdate update)
     {
         if (update.Operation is not ("replace" or "pause" or "resume" or "cancel") ||

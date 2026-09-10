@@ -5,6 +5,40 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentExecutionPlanTests
 {
+    [TestCase("completed", true)]
+    [TestCase("active", false)]
+    [TestCase("unknown", false)]
+    public void LegacyContinuationUsesDurableQueueWithoutOverwritingPendingWork(string status, bool allowed)
+    {
+        var plan = Plan();
+        plan = status == "unknown" ? AgentExecutionPlanPolicy.Recover(
+            AgentExecutionPlanPolicy.Prepare(plan, 0, "world", 901, 7)) : plan with { Status = status };
+        var state = new MashaArchive { Objective = new() { Status = "active", Revision = 7, WorldKey = "world", AvatarNpcId = 901 }, ExecutionPlan = plan };
+        var decision = new CompanionDecision { Action = new() { Tool = "move_to", Arguments = JsonSerializer.SerializeToElement(new { x = 1, y = 2 }) } };
+        if (!allowed)
+        {
+            Assert.Throws<AgentActionValidationException>(() => AgentExecutionPlanPolicy.NormalizeContinuation(decision, state, "world", 901));
+            Assert.That(decision.Action, Is.Not.Null);
+            Assert.That(decision.ExecutionPlanUpdate, Is.Null);
+            return;
+        }
+        AgentExecutionPlanPolicy.NormalizeContinuation(decision, state, "world", 901);
+        Assert.That(decision.Action, Is.Null);
+        Assert.That(decision.ExecutionPlanUpdate!.Steps.Single().Arguments.GetProperty("x").GetInt32(), Is.EqualTo(1));
+        AgentExecutionPlanPolicy.ValidateUpdate(decision.ExecutionPlanUpdate);
+    }
+
+    [Test]
+    public void EmergencyPauseKeepsOrdinaryActionOutsideThePausedObjective()
+    {
+        var state = new MashaArchive { Objective = new() { Status = "active", Revision = 7, WorldKey = "world", AvatarNpcId = 901 }, ExecutionPlan = Plan() };
+        var decision = new CompanionDecision { ObjectiveUpdate = new() { Operation = "pause", Reason = "Threat" },
+            Action = new() { Tool = "move_to", Arguments = JsonSerializer.SerializeToElement(new { x = 1, y = 2 }) } };
+        AgentExecutionPlanPolicy.NormalizeContinuation(decision, state, "world", 901);
+        Assert.That(decision.Action, Is.Not.Null);
+        Assert.That(decision.ExecutionPlanUpdate, Is.Null);
+    }
+
     [Test]
     public void AcknowledgementDoesNotCompleteStepAndDuplicateReceiptCannotCompleteNextStep()
     {

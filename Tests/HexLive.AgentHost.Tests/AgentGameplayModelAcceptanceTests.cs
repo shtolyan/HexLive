@@ -162,6 +162,8 @@ public sealed partial class AgentExecutionRuntimeTests
         var turns = new List<object>();
         var calls = 0;
         var modelDecisions = new List<object>();
+        var referenceReads = new List<object>();
+        var referenceOperations = new HashSet<string>();
         async Task<CompanionDecision> Decide(string trigger, string bodyJson, string context, string player,
             IReadOnlyList<string> recent, CancellationToken token)
         {
@@ -170,7 +172,7 @@ public sealed partial class AgentExecutionRuntimeTests
             try
             {
                 var answer = await model.DecideAsync(trigger, bodyJson, context, player, recent, token);
-                modelDecisions.Add(new { call, elapsedMs = watch.ElapsedMilliseconds, decision = answer,
+                modelDecisions.Add(new { call, elapsedMs = watch.ElapsedMilliseconds, decision = JsonSerializer.SerializeToElement(answer),
                     usage = answer.ModelUsage, body = JsonSerializer.Deserialize<JsonElement>(bodyJson) });
                 return answer;
             }
@@ -226,7 +228,14 @@ public sealed partial class AgentExecutionRuntimeTests
                     return await Decide(turn == 0 ? "voice" : "heartbeat", body.GetRawText(),
                         requestContext + "\n" + AgentPromptFiles.Read("object-knowledge.md"),
                         turn == 0 ? task : "", turn == 0 ? [] : ["Игрок: " + task], token);
-                }, timeout.Token, reader.ReadAsync);
+                }, timeout.Token, async (operation, arguments, token) =>
+                {
+                    var read = await reader.ReadAsync(operation, arguments, token);
+                    referenceOperations.Add(operation);
+                    referenceReads.Add(new { operation, arguments, read.SourceIds });
+                    return read;
+                });
+                AgentExecutionPlanPolicy.NormalizeContinuation(decision, state, world.WorldKey, 901);
                 turns.Add(new { turn, tick = host.Read(w => w.Tick), decision, usage = decision.ModelUsage });
                 File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, fixture, repetition, calls, status, modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
                 var emergency = decision.Action != null &&
@@ -245,7 +254,11 @@ public sealed partial class AgentExecutionRuntimeTests
                         : saved.ExecutionProgress.Any(p => p.Step.Tool == "interact") && host.Read(w =>
                         w.Entities.Npcs[new EntityId(recipientId)].Inventory.Items.Count > recipientItemsBefore &&
                         w.Events.Items.Count(e => e.Type == "GiftGiven" && e.Message.Contains($"->NPC{recipientId} ")) == 1);
-                    status = passed ? "Completed" : "FalseCompletion";
+                    var grounded = scenario == "bed"
+                        ? referenceOperations.Contains("build.read") && referenceOperations.Contains("recipes.read")
+                        : scenario != "gift" || referenceOperations.Contains("spec.read");
+                    status = !passed ? "FalseCompletion" : grounded ? "Completed" : "MissingRuleConsultation";
+                    passed &= grounded;
                     break;
                 }
                 var plan = saved.ExecutionPlan;
@@ -285,7 +298,9 @@ public sealed partial class AgentExecutionRuntimeTests
         finally
         {
             File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, passed, status,
-                gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
+                gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions,
+                emergencyActions = turns.Count(t => JsonSerializer.SerializeToElement(t).GetProperty("decision").TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.Object),
+                referenceReads, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
             (adapter as IDisposable)?.Dispose();
         }
     }

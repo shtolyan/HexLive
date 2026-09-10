@@ -421,6 +421,11 @@ public sealed partial class AgentHostRuntime
                 ownsWriter = true;
             }
             EnsureCurrentTurn(scheduled, cancellationToken);
+            var proposedAction = decision.Action?.Tool;
+            AgentExecutionPlanPolicy.NormalizeContinuation(decision,
+                await _memory.SnapshotAsync(cancellationToken).ConfigureAwait(false), world.WorldKey, npcId);
+            if (proposedAction != null && decision.Action == null)
+                _diagnostics.Record("decision.normalized", turnId, trigger, tool: proposedAction, result: "GoalContinuation");
             await ValidateExecutionPlanAsync(mcp, npcId, decision, cancellationToken).ConfigureAwait(false);
             await _memory.ValidateObjectiveUpdateAsync(world, decision, cancellationToken).ConfigureAwait(false);
             _activeSpeakerKey = world.SpeakerKey;

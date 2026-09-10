@@ -7,6 +7,7 @@ public sealed class AgentHostStatusStore
         { WriteIndented = true };
     private readonly string _path;
     public string Phase { get; private set; } = "Stopped";
+    public Func<string>? DiagnosticsError { get; set; }
 
     public AgentHostStatusStore(string path) => _path = path;
 
@@ -22,6 +23,7 @@ public sealed class AgentHostStatusStore
             attached,
             playerPresent,
             error,
+            diagnosticsError = DiagnosticsError?.Invoke() ?? "",
             updatedUtc = DateTimeOffset.UtcNow,
         }, JsonOptions));
     }

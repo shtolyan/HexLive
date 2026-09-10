@@ -26,6 +26,8 @@ public sealed partial class AgentHostRuntime
     private readonly HttpMessageHandler? _mcpHandler;
     private readonly AgentTurnOutbox _outbox;
     private readonly AgentHostStatusStore _status;
+    private readonly AgentDiagnostics _diagnostics;
+    public string DiagnosticsErrorCode => _diagnostics.ErrorCode;
     public string CurrentPhase => _status.Phase;
     public string LastIntentSummary { get; private set; } = string.Empty;
     private readonly Dictionary<string, Queue<string>> _conversations = new(StringComparer.Ordinal);
@@ -60,6 +62,8 @@ public sealed partial class AgentHostRuntime
         _mcpHandler = mcpHandler;
         _outbox = new AgentTurnOutbox(options.OutboxPath);
         _status = new AgentHostStatusStore(options.StatusPath);
+        _diagnostics = new AgentDiagnostics(Path.Combine(options.StateDirectory, "diagnostics"), options.ProfileId);
+        _status.DiagnosticsError = () => _diagnostics.ErrorCode;
     }
 
     public static async Task DoctorAsync(AgentHostOptions options, CancellationToken cancellationToken)
@@ -87,6 +91,7 @@ public sealed partial class AgentHostRuntime
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         TerminalErrorCode = null;
+        _diagnostics.Record("session.start");
         _status.Write(true, "Starting", 0, false, false);
         var terminalError = false;
         try
@@ -112,6 +117,7 @@ public sealed partial class AgentHostRuntime
                     return;
                 }
                 _status.Write(true, "Reconnecting", 0, false, false, ex.GetType().Name);
+                _diagnostics.Record("session.reconnect", result: ex.GetType().Name);
                 Console.Error.WriteLine($"[agent] reconnecting after {ex.GetType().Name}");
                 await Task.Delay(RetryDelay, cancellationToken).ConfigureAwait(false);
             }
@@ -123,6 +129,7 @@ public sealed partial class AgentHostRuntime
             await StopActionAsync().ConfigureAwait(false);
             if (!terminalError) _status.Write(false, "Stopped", _pinnedNpcId ?? 0, false, false);
             _providers.Dispose();
+            _diagnostics.Record("session.stopped", result: terminalError ? "Error" : "Stopped");
         }
     }
 
@@ -139,6 +146,7 @@ public sealed partial class AgentHostRuntime
                 (!n.TryGetProperty("health", out var health) || health.GetSingle() > 0)))
             throw new AgentTargetChangedException();
         _pinnedNpcId = npcId;
+        _diagnostics.Bind(_pinnedWorldId ?? _options.WorldId, npcId);
         var catalog = await mcp.ReadToolCatalogAsync(cancellationToken);
         _actionContract = BuildActionContract(catalog);
         _actionArguments = new AgentActionContract(catalog);
@@ -290,6 +298,7 @@ public sealed partial class AgentHostRuntime
             _status.Write(true, "Thinking", npcId, true, true);
             var worldStatus = await mcp.CallToolAsync("world_status", new { }, cancellationToken);
             var state = await mcp.CallToolAsync("describe_colonist", PerceptionRequest(npcId), cancellationToken);
+            _diagnostics.Record("turn.observed", turnId, trigger, observation: AgentDiagnosticObservation.From(state));
             if (IsUnconscious(state))
             {
                 await StopActionAsync().ConfigureAwait(false);
@@ -350,6 +359,7 @@ public sealed partial class AgentHostRuntime
             _turnWriter.Release(); ownsWriter = false;
             stage = "model";
             var modelStarted = latency.ElapsedMilliseconds;
+            _diagnostics.Record("model.started", turnId, trigger);
             var decision = await recallEngine.DecideAsync(playerText, world, memoryState,
                 (evidence, memoryToken) => _providers.DecideAsync(trigger, physicalState,
                     requestContext + "\n" + evidence, playerText, recent, memoryToken),
@@ -361,6 +371,7 @@ public sealed partial class AgentHostRuntime
                     .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             var modelMs = latency.ElapsedMilliseconds - modelStarted;
+            _diagnostics.Record("model.completed", turnId, trigger, elapsedMs: modelMs);
             if (trigger != "voice" && string.Equals(decision.Speech.Trim(), previousSpeech,
                     StringComparison.OrdinalIgnoreCase)) decision.Speech = string.Empty;
             stage = "tts";
@@ -368,6 +379,7 @@ public sealed partial class AgentHostRuntime
             var wav = decision.Speech.Length == 0 ? Array.Empty<byte>() :
                 await PrepareSpeechAsync(decision.Speech, cancellationToken).ConfigureAwait(false);
             var ttsMs = latency.ElapsedMilliseconds - ttsStarted;
+            _diagnostics.Record("speech.prepared", turnId, trigger, elapsedMs: ttsMs);
             if (scheduled != null)
             {
                 scheduled.ReadyToCommit = true;
@@ -462,10 +474,12 @@ public sealed partial class AgentHostRuntime
             await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
             _status.Write(true, "Ready", npcId, true, true);
             Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} result=committed");
+            _diagnostics.Record("turn.committed", turnId, trigger, elapsedMs: latency.ElapsedMilliseconds, committed: true);
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            _diagnostics.Record("turn.cancelled", turnId, trigger, result: stage, committed: consumed);
             if (consumed) return true;
             throw;
         }
@@ -476,6 +490,7 @@ public sealed partial class AgentHostRuntime
         }
         catch (AgentObjectiveConflictException)
         {
+            _diagnostics.Record("turn.conflict", turnId, trigger, result: "ObjectiveChanged");
             Console.Error.WriteLine($"[turn] correlation={ActionCorrelation(turnId)} result=objective-conflict-retry");
             return false; // No durable write or inbox acknowledgement: regenerate from the new goal.
         }
@@ -491,6 +506,7 @@ public sealed partial class AgentHostRuntime
             }
             EnsureCurrentTurn(scheduled, cancellationToken);
             Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} stage={stage} consumed={consumed} error={ex.GetType().Name}");
+            _diagnostics.Record("turn.failed", turnId, trigger, result: ex.GetType().Name, elapsedMs: latency.ElapsedMilliseconds, committed: consumed);
             _status.Write(true, "Error", npcId, true, true, ex.GetType().Name);
             try
             {
@@ -764,6 +780,7 @@ public sealed partial class AgentHostRuntime
 
     private void ReportAction(string tool, string turnId, string code)
     {
+        _diagnostics.Action(turnId, tool, code);
         var world = _actionWorlds.GetValueOrDefault(turnId) ?? Volatile.Read(ref _historyWorld);
         if (code is not ("Accepted" or "AwaitingCarryContinuation")) _actionWorlds.TryRemove(turnId, out _);
         if (world != null) _memory.History.Append(new() { Id = AgentMemoryArchive.Id("action:" + turnId + ":" + code),

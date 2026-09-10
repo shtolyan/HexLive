@@ -59,10 +59,11 @@ public sealed class AgentDiagnosticsTests
         log.Bind("private-world", 901);
         var source = "spec:153:0:" + new string('a', 64);
         log.Record("turn.observed", "private-turn", result: "Bearer SECRET", observation: AgentDiagnosticObservation.From(state.RootElement),
-            sourceIds: [source, "Bearer SECRET"]);
+            sourceIds: [source, "Bearer SECRET"], relationship: new(.9f, .8f, .7f, 0f, -.05f, -.05f));
         var text = File.ReadAllText(Path.Combine(_root, "events.jsonl"));
         Assert.That(text, Does.Not.Contain("SECRET").And.Not.Contain("private-"));
         Assert.That(Rows().Last().GetProperty("sourceIds")[0].GetString(), Is.EqualTo(source));
+        Assert.That(Rows().Last().GetProperty("relationship").GetProperty("SympathyDelta").GetSingle(), Is.EqualTo(-.05f));
         Assert.That(Rows().Last().GetProperty("observation").GetProperty("Tick").GetInt64(), Is.EqualTo(12));
     }
 

@@ -448,8 +448,13 @@ public sealed partial class AgentHostRuntime
                 _incidents.Consume(incidentSnapshot);
             }
             consumed = true; // durable result: never regenerate it because delivery failed
-            await _memory.CommitTurnAsync(world, turnId, trigger, decision, cancellationToken)
+            var localCommitted = await _memory.CommitTurnAsync(world, turnId, trigger, decision, cancellationToken)
                 .ConfigureAwait(false);
+            if (localCommitted && trigger == "voice" && decision.RelationshipAssessment is { } assessment)
+                _diagnostics.Record("relationship.committed", turnId, trigger,
+                    result: "Trust" + assessment.Trust + ".Sympathy" + assessment.Sympathy,
+                    committed: true, relationship: AgentDiagnosticRelationship.From(
+                        await _memory.SnapshotAsync(cancellationToken).ConfigureAwait(false), world.SpeakerKey));
             _outbox.MarkLocalCommitted(turnId);
             await CommitServerViewAsync(mcp, attachmentId, pending, cancellationToken)
                 .ConfigureAwait(false);

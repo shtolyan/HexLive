@@ -41,13 +41,14 @@ public sealed class AgentDiagnostics
 
     public void Record(string kind, string turn = "", string trigger = "", string tool = "",
         string result = "", long? elapsedMs = null, bool? committed = null,
-        AgentDiagnosticObservation? observation = null, IReadOnlyList<string>? sourceIds = null)
+        AgentDiagnosticObservation? observation = null, IReadOnlyList<string>? sourceIds = null,
+        AgentDiagnosticRelationship? relationship = null)
     {
         lock (_gate)
         {
             try
             {
-                Write(kind, turn, trigger, tool, result, elapsedMs, committed, observation, sourceIds);
+                Write(kind, turn, trigger, tool, result, elapsedMs, committed, observation, sourceIds, relationship);
                 ErrorCode = "";
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
@@ -80,7 +81,8 @@ public sealed class AgentDiagnostics
     }
 
     private void Write(string kind, string turn, string trigger, string tool, string result,
-        long? elapsedMs, bool? committed, AgentDiagnosticObservation? observation, IReadOnlyList<string>? sourceIds)
+        long? elapsedMs, bool? committed, AgentDiagnosticObservation? observation, IReadOnlyList<string>? sourceIds,
+        AgentDiagnosticRelationship? relationship)
     {
         Directory.CreateDirectory(_directory);
         if (!OperatingSystem.IsWindows())
@@ -94,7 +96,7 @@ public sealed class AgentDiagnostics
             runtimeVersion = typeof(AgentDiagnostics).Assembly.GetName().Version?.ToString(),
             kind = Code(kind), turnId = turn.Length == 0 ? "" : Correlate(turn),
             trigger = Code(trigger), tool = Code(tool), result = Code(result), elapsedMs, committed, observation,
-            sourceIds = sourceIds?.Take(16).Select(ReferenceId).ToArray()
+            sourceIds = sourceIds?.Take(16).Select(ReferenceId).ToArray(), relationship
         }) + "\n";
         if (File.Exists(current) && new FileInfo(current).Length + Encoding.UTF8.GetByteCount(line) > _maxBytes)
             File.Move(current, Path.Combine(_directory, "events-" + now.ToUnixTimeMilliseconds() + "-" + Guid.NewGuid().ToString("N") + ".jsonl"));
@@ -115,6 +117,18 @@ public sealed class AgentDiagnostics
             ? value : Correlate(value);
     public static string Correlate(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant()[..16];
+}
+
+public sealed record AgentDiagnosticRelationship(float Familiarity, float Trust, float Sympathy,
+    float? FamiliarityDelta, float? TrustDelta, float? SympathyDelta)
+{
+    public static AgentDiagnosticRelationship From(MashaArchive archive, string key)
+    {
+        var bond = MashaMemoryStore.BondFor(archive, key);
+        archive.Speakers.TryGetValue(key, out var speaker);
+        return new(bond.Familiarity, bond.Trust, bond.Affinity, speaker?.LastFamiliarityDelta,
+            speaker?.LastTrustDelta, speaker?.LastAffinityDelta);
+    }
 }
 
 /// <summary>Allowlisted observations, not raw world/prompt/voice payloads.</summary>

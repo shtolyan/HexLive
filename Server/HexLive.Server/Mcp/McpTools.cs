@@ -93,6 +93,18 @@ public sealed class McpTools
                 ("perceptionEpoch", "string", "epoch из recentPerception предыдущего завершённого хода", false),
                 ("perceptionSince", "integer", "watermark из recentPerception завершённого хода", false))),
 
+        new("query_known_objects",
+            "Поиск в личной памяти NPC, включая предметы вне текущего восприятия. " +
+            "Не меняет игру и не требует control lease. definitionPrefix: например food.coconut. " +
+            "Возвращает последние известные координаты, давность и источник знания; предмет мог исчезнуть. " +
+            "catalogInteractions — возможности типа, не обещание текущей доступности. " +
+            "В Agent Studio выбор этого tool запрашивает данные перед финальным решением, без публикации предварительной речи. " +
+            "Пустой результат означает отсутствие знания, а не отсутствие предметов в мире.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                   ("definitionPrefix", "string", "префикс definition id, до 128 символов; пустой — любые", false),
+                   ("interaction", "string", "имя InteractionType для фильтра по каталогу", false),
+                   ("limit", "integer", "1..64, по умолчанию 16", false))),
+
         new("attach_agent",
             "Прикрепить эту MCP-сессию к одному живому NPC без включения manual mode (§160).",
             Schema(("npcId", "integer", "id NPC", true),
@@ -387,6 +399,7 @@ public sealed class McpTools
                 case "list_leases": return ListLeases(canAccessNpc);
                 case "read_events": return ReadEvents(host, arguments);
                 case "read_spec": return ReadSpec(arguments, out isError);
+                case "query_known_objects": return QueryKnownObjects(host, arguments, out isError);
                 case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError,
                     canAccessNpc != null, owner, OptionalText(arguments, "perceptionEpoch") ?? "",
                     OptionalLong(arguments, "perceptionSince") ?? 0);
@@ -724,6 +737,53 @@ public sealed class McpTools
             ["timeoutSeconds"] = _leases.TimeoutSeconds,
             ["leases"] = rows,
         });
+    }
+
+    private static string QueryKnownObjects(WorldHost host, JsonElement arguments, out bool isError)
+    {
+        isError = true;
+        const string invalid = "{\"error\":\"InvalidKnowledgeQueryArguments\"}";
+        if (arguments.ValueKind != JsonValueKind.Object) return invalid;
+        if (!arguments.TryGetProperty("npcId", out _))
+            return "{\"error\":\"MissingKnowledgeQueryArgument\",\"parameter\":\"npcId\"}";
+        var fields = new HashSet<string>(StringComparer.Ordinal);
+        var npcId = 0;
+        var prefix = "";
+        InteractionType? interaction = null;
+        var limit = McpKnownObjectObservations.DefaultLimit;
+        foreach (var field in arguments.EnumerateObject())
+        {
+            if (!fields.Add(field.Name)) return invalid;
+            switch (field.Name)
+            {
+                case "npcId":
+                    if (field.Value.ValueKind != JsonValueKind.Number || !field.Value.TryGetInt32(out npcId) || npcId < 1) return invalid;
+                    break;
+                case "definitionPrefix":
+                    if (field.Value.ValueKind != JsonValueKind.String) return invalid;
+                    prefix = field.Value.GetString()!;
+                    if (prefix.Length > 128) return invalid;
+                    break;
+                case "interaction":
+                    if (field.Value.ValueKind != JsonValueKind.String ||
+                        !Enum.TryParse<InteractionType>(field.Value.GetString(), true, out var parsed) ||
+                        !string.Equals(Enum.GetName(parsed), field.Value.GetString(), StringComparison.OrdinalIgnoreCase)) return invalid;
+                    interaction = parsed;
+                    break;
+                case "limit":
+                    if (field.Value.ValueKind != JsonValueKind.Number || !field.Value.TryGetInt32(out limit) ||
+                        limit < 1 || limit > McpKnownObjectObservations.MaximumLimit) return invalid;
+                    break;
+                default: return invalid;
+            }
+        }
+        if (!fields.Contains("npcId")) return invalid;
+        var query = new McpKnownObjectObservations.Query(prefix, interaction, limit);
+        var result = host.Read(world => world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc)
+            ? McpKnownObjectObservations.Read(world, npc, query, host.WorldId) : null);
+        if (result == null) return "{\"error\":\"NpcMissing\"}";
+        isError = false;
+        return Json(result);
     }
 
     private string Describe(WorldHost host, int npcId, out bool isError, bool redactOwner = false,

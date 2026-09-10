@@ -340,6 +340,11 @@ public sealed partial class AgentHostRuntime
             var modelStarted = latency.ElapsedMilliseconds;
             var decision = await _providers.DecideAsync(trigger, physicalState, requestContext,
                 playerText, recent, cancellationToken).ConfigureAwait(false);
+            if (decision.Action?.Tool == KnownObjectTool)
+                decision = await ResolveObjectKnowledgeAsync(mcp, npcId,
+                    worldStatus.GetProperty("worldId").GetString() ?? "", decision, trigger,
+                    physicalState, requestContext, playerText, recent, scheduled, cancellationToken)
+                    .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             var modelMs = latency.ElapsedMilliseconds - modelStarted;
             if (trigger != "voice" && string.Equals(decision.Speech.Trim(), previousSpeech,
@@ -442,6 +447,9 @@ public sealed partial class AgentHostRuntime
             // Reattach before publishing anything with the old attachment ID.
             throw;
         }
+        catch (AgentTargetChangedException) { throw; }
+        catch (HttpRequestException ex) when (ex.StatusCode is
+            System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden) { throw; }
         catch (Exception ex)
         {
             if (!ownsWriter)
@@ -614,6 +622,8 @@ public sealed partial class AgentHostRuntime
     private async Task PerformActionAsync(McpClient mcp, int npcId,
         CompanionAction action, CancellationToken cancellationToken, string turnId)
     {
+        if (action.Tool == KnownObjectTool)
+            throw new AgentActionValidationException("ReadOnlyToolNotAnAction");
         var arguments = await ValidateActionAsync(mcp, npcId, action, cancellationToken);
         var acquired = false;
         try

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
@@ -23,6 +24,15 @@ internal static class McpItemObservations
             if (!world.Entities.Objects.TryGetValue(new ObjectId(id), out var item)) continue;
             var row = Item(world, observer, item.DefinitionId, item.Owner?.Value ?? 0, item.OwnerFaction);
             row["objectId"] = id;
+            if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition))
+                row["interactions"] = definition.Interactions.Select(interaction => new
+                {
+                    id = interaction.Id, type = interaction.Type.ToString(), baseDurationTicks = interaction.DurationTicks,
+                    requiresAnyCapability = interaction.RequiredCapabilities.Select(c => c.ToString()).ToArray(),
+                    toolRequirementMet = interaction.RequiredCapabilities.Count == 0 || observer.Body.HasUsableHand &&
+                        interaction.RequiredCapabilities.Any(c => GearCatalog.HasCapability(observer.Inventory.Items, c)),
+                    yields = interaction.Yields.Select(y => new { definitionId = y.DefinitionId, count = y.Count }).ToArray()
+                }).ToArray();
             if (!string.IsNullOrEmpty(item.BuildProduct))
                 row["construction"] = new { product = item.BuildProduct, needsHammer = BuildSiteView.NeedsHammer(world, item),
                     materials = McpPlanningObservations.BuildMaterials(item) };
@@ -74,6 +84,7 @@ internal static class McpItemObservations
         return new Dictionary<string, object?>
         {
             ["itemId"] = definitionId,
+            ["capabilities"] = GearCatalog.Active.TryGetValue(definitionId, out var gear) ? gear.Capabilities.ToString() : "None",
             ["inventoryCapacityWhenWorn"] = world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition)
                 ? definition.InventoryCapacity : 0,
             ["ownerNpcId"] = ownerId == 0 ? null : ownerId,

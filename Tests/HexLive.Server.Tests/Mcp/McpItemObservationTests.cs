@@ -82,6 +82,9 @@ public sealed class McpItemObservationTests
         Assert.That(visible.GetArrayLength(), Is.EqualTo(1));
         var construction = visible[0].GetProperty("construction");
         Assert.That(construction.GetProperty("needsHammer").GetBoolean(), Is.True);
+        Assert.That(construction.GetProperty("hammerRequiredFor").GetString(), Is.EqualTo("finishingWork"));
+        Assert.That(construction.GetProperty("materialDeliveryRequiresHammer").GetBoolean(), Is.False,
+            "The native finishing gate must not be described as a gate on delivering the bill.");
         var materials = construction.GetProperty("materials").EnumerateArray().ToArray();
         var logs = materials.Single(m => m.GetProperty("definitionId").GetString() == "resource.log");
         Assert.That(logs.GetProperty("required").GetInt32(), Is.EqualTo(4));

@@ -222,6 +222,46 @@ public sealed class AgentExecutionPersistenceTests
     }
 
     [Test]
+    public async Task LongPickupBatchKeepsTheConfirmedBuildTargetAcrossRestartAndClearsItForANewGoal()
+    {
+        var store = new MashaMemoryStore(_directory);
+        var decision = NewPlan();
+        decision.ObjectiveUpdate!.Text = "Построить новую кровать";
+        decision.ExecutionPlanUpdate!.Steps = [new("bed-work", "interact",
+            JsonSerializer.SerializeToElement(new { objectId = 1145, interaction = "Build" }))];
+        await store.CommitTurnAsync(await World(store), "install", "voice", decision, default);
+        async Task CompleteSegment()
+        {
+            var world = await World(store);
+            var plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
+            while (plan.Status == "active")
+            {
+                plan = await store.PrepareExecutionStepAsync(plan.Id, plan.Revision, world, default);
+                plan = await store.ObserveExecutionStepAsync(plan.Id, plan.Revision,
+                    new(plan.Command!.Id, "completed"), default);
+            }
+        }
+        await CompleteSegment();
+        for (var batch = 0; batch < 2; batch++)
+        {
+            await store.CommitTurnAsync(await World(store), "collect-" + batch, "heartbeat", new CompanionDecision
+            { ExecutionPlanUpdate = new() { Operation = "replace", Reason = "GatherMaterials", Steps =
+                Enumerable.Range(0, 40).Select(i => new AgentExecutionStep("pickup-" + i, "interact",
+                    JsonSerializer.SerializeToElement(new { objectId = 2000 + batch * 40 + i, interaction = "PickUp" }))).ToArray() } }, default);
+            await CompleteSegment();
+        }
+        store = new MashaMemoryStore(_directory);
+        var saved = await store.SnapshotAsync(default);
+        Assert.That(saved.ExecutionProgress, Has.Count.EqualTo(64));
+        Assert.That(saved.ExecutionProgress.Any(p => p.Step.Id == "bed-work"), Is.True);
+        var prompt = await store.BuildPromptContextAsync(await World(store), "", default);
+        Assert.That(prompt.Text, Does.Contain("objectId=1145").And.Contain("construction.product"));
+        Assert.That(prompt.CharacterCount, Is.LessThanOrEqualTo(MashaMemoryWorkspace.MaxPromptCharacters));
+        await store.CommitTurnAsync(await World(store), "new-goal", "voice", NewPlan(), default);
+        Assert.That((await store.SnapshotAsync(default)).ExecutionProgress, Is.Empty);
+    }
+
+    [Test]
     public async Task ReconciledReceiptDoesNotResumeAnExplicitCriticalPause()
     {
         var store = new MashaMemoryStore(_directory);

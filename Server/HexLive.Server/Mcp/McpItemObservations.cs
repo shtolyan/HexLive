@@ -27,8 +27,12 @@ internal static class McpItemObservations
             if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition))
                 row["interactions"] = definition.Interactions.Select(interaction => DescribeInteraction(definition, observer, interaction)).ToArray();
             if (!string.IsNullOrEmpty(item.BuildProduct))
-                row["construction"] = new { product = item.BuildProduct, needsHammer = BuildSiteView.NeedsHammer(world, item),
+            {
+                var needsHammer = BuildSiteView.NeedsHammer(world, item);
+                row["construction"] = new { product = item.BuildProduct, needsHammer,
+                    hammerRequiredFor = needsHammer ? "finishingWork" : "none", materialDeliveryRequiresHammer = false,
                     materials = McpPlanningObservations.BuildMaterials(item) };
+            }
             Clothing(row, world, observer, item.DefinitionId, item.Durability);
             if (item.DefinitionId == ContentIds.Bottle && WaterCollectorMath.IsParked(world, item))
             {

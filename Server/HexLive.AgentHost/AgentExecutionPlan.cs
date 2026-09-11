@@ -52,6 +52,31 @@ public sealed record AgentExecutionReceipt(string CommandId, string Outcome, str
 public sealed record AgentExecutionProgress(string WorldKey, int NpcId, string PlanId,
     string CommandId, long Sequence, AgentExecutionStep Step, DateTimeOffset RecordedUtc);
 
+internal static class AgentExecutionProgressView
+{
+    public static int BuildTarget(AgentExecutionProgress row) => row.Step.Tool == "interact" &&
+        row.Step.Arguments.ValueKind == JsonValueKind.Object &&
+        row.Step.Arguments.TryGetProperty("interaction", out var verb) && verb.ValueKind == JsonValueKind.String &&
+        verb.GetString() == "Build" && row.Step.Arguments.TryGetProperty("objectId", out var id) &&
+        id.ValueKind == JsonValueKind.Number && id.TryGetInt32(out var value) && value > 0 ? value : 0;
+
+    public static AgentExecutionProgress[] BuildTargets(IEnumerable<AgentExecutionProgress> rows) => rows
+        .Select((row, index) => (row, index, target: BuildTarget(row))).Where(x => x.target > 0)
+        .GroupBy(x => (x.row.WorldKey, x.row.NpcId, x.target)).Select(g => g.Last())
+        .OrderBy(x => x.index).TakeLast(8).Select(x => x.row).ToArray();
+
+    public static void Trim(List<AgentExecutionProgress> rows)
+    {
+        if (rows.Count <= 64) return;
+        var targets = BuildTargets(rows).Select(r => r.CommandId).ToHashSet(StringComparer.Ordinal);
+        while (rows.Count > 64)
+        {
+            var discard = rows.FindIndex(r => !targets.Contains(r.CommandId));
+            rows.RemoveAt(Math.Max(0, discard));
+        }
+    }
+}
+
 public sealed class AgentExecutionPlanUpdate
 {
     [JsonPropertyName("operation")] public string Operation { get; set; } = "";

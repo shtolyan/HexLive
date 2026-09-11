@@ -391,6 +391,102 @@ public sealed class AgentReferenceReaderTests
     }
 
     [Test]
+    public async Task LongGoalKeepsEightReferencesAndEvictsOlderOnes()
+    {
+        var root = Directory.CreateTempSubdirectory("eight-goal-refs-").FullName;
+        try
+        {
+            var recall = new AgentMemoryRecall(root);
+            var world = new MashaWorldHandle("episode", "world", 0, 0);
+            var state = new MashaArchive { Objective = new() { Status = "active", WorldKey = "world", AvatarNpcId = 901, Revision = 1 },
+                Worlds = [new() { Id = "episode", WorldKey = "world", AvatarNpcId = 901 }] };
+            Task<MemoryReadResult> Read(string operation, JsonElement args, CancellationToken token)
+            {
+                var id = args.GetProperty("id").GetString()!;
+                return Task.FromResult(new MemoryReadResult(id, [id], null));
+            }
+            for (var batch = 0; batch < 2; batch++)
+            {
+                var next = batch * 5;
+                var end = next + 5;
+                await recall.DecideAsync("", world, state, (_, _) =>
+                {
+                    var requests = new List<MemoryRequest>();
+                    while (next < end && requests.Count < 2)
+                        requests.Add(new() { Operation = "skills.read", Arguments = JsonSerializer.SerializeToElement(new { id = "reference-" + next++ + "-end" }) });
+                    return Task.FromResult(new CompanionDecision { MemoryRequests = requests });
+                }, default, Read);
+            }
+            await recall.DecideAsync("", world, state, (context, _) =>
+            {
+                for (var i = 0; i < 10; i++)
+                    Assert.That(context.Contains("reference-" + i + "-end"), Is.EqualTo(i >= 2));
+                return Task.FromResult(new CompanionDecision());
+            }, default, Read);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Test]
+    public async Task AutomaticReferenceRefreshLeavesBudgetForANewFullPage()
+    {
+        var root = Directory.CreateTempSubdirectory("goal-ref-budget-").FullName;
+        try
+        {
+            var recall = new AgentMemoryRecall(root);
+            var world = new MashaWorldHandle("episode", "world", 0, 0);
+            var state = new MashaArchive { Objective = new() { Status = "active", WorldKey = "world", AvatarNpcId = 901, Revision = 1 },
+                Worlds = [new() { Id = "episode", WorldKey = "world", AvatarNpcId = 901 }] };
+            Task<MemoryReadResult> Read(string operation, JsonElement args, CancellationToken token)
+            {
+                var id = args.GetProperty("id").GetString()!;
+                return Task.FromResult(new MemoryReadResult(id + new string('x', 8000 - id.Length), [id], null));
+            }
+            var page = 0;
+            await recall.DecideAsync("", world, state, (_, _) => Task.FromResult(page < 3
+                ? new CompanionDecision { MemoryRequests = [new() { Operation = "skills.read", Arguments = JsonSerializer.SerializeToElement(new { id = "old-page-" + page++ }) }] }
+                : new CompanionDecision()), default, Read);
+            var calls = 0;
+            await recall.DecideAsync("", world, state, (context, _) =>
+            {
+                if (++calls == 1) return Task.FromResult(new CompanionDecision { MemoryRequests =
+                    [new() { Operation = "skills.read", Arguments = JsonSerializer.SerializeToElement(new { id = "new-page" }) }] });
+                Assert.That(context, Does.Contain("new-page").And.Not.Contain("ReferenceReadBudgetExceeded"));
+                return Task.FromResult(new CompanionDecision());
+            }, default, Read);
+            Assert.That(calls, Is.EqualTo(2));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Test]
+    public async Task InventoryDropSnapshotIsNotAutomaticallyReusedAfterInventoryChanges()
+    {
+        var root = Directory.CreateTempSubdirectory("drop-ref-once-").FullName;
+        try
+        {
+            var recall = new AgentMemoryRecall(root);
+            var world = new MashaWorldHandle("episode", "world", 0, 0);
+            var state = new MashaArchive { Objective = new() { Status = "active", WorldKey = "world", AvatarNpcId = 901, Revision = 1 },
+                Worlds = [new() { Id = "episode", WorldKey = "world", AvatarNpcId = 901 }] };
+            var reads = 0;
+            Task<MemoryReadResult> Read(string operation, JsonElement args, CancellationToken token)
+            { reads++; return Task.FromResult(new MemoryReadResult("one-time-placement", ["drop-source"], null)); }
+            var calls = 0;
+            await recall.DecideAsync("", world, state, (_, _) => Task.FromResult(++calls == 1
+                ? new CompanionDecision { MemoryRequests = [new() { Operation = "inventory.drop.read", Arguments = JsonSerializer.SerializeToElement(new { index = 0, expectedDefinitionId = "resource.palm_crown" }) }] }
+                : new CompanionDecision()), default, Read);
+            await recall.DecideAsync("", world, state, (context, _) =>
+            {
+                Assert.That(context, Does.Not.Contain("one-time-placement"));
+                return Task.FromResult(new CompanionDecision());
+            }, default, Read);
+            Assert.That(reads, Is.EqualTo(1));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Test]
     public void ReferencesCannotInvokeMutatingTools()
     {
         Assert.That(AgentReferenceReader.Allowed("execute_agent_command"), Is.False);

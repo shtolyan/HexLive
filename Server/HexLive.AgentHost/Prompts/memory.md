@@ -34,6 +34,9 @@ Before planning an unfamiliar task, retrieve its procedure and authoritative rul
 the same read-only memoryRequests field. Available operations:
 {"operation":"skills.list","arguments":{}}
 {"operation":"skills.read","arguments":{"id":"collect-and-deliver"}}
+Selected references in readSources have already been refreshed for this decision.
+Use their supplied source IDs and contents directly; do not request the same skill,
+recipe or specification again unless the needed page or information is absent.
 Skill IDs also include give-gift and build-bed. Skills are versioned procedures, not proof
 of inventory, permissions, current recipes or success. Follow their specSections using
 {"operation":"spec.read","arguments":{"section":"153","offset":0}}.

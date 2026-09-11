@@ -184,6 +184,15 @@ public sealed partial class MashaMemoryWorkspace
             text.AppendLine($"Текущая итерация: {plan.Iteration + 1}/{plan.Steps[plan.Cursor].Repeat}.");
         if (plan.Command?.Status == "failed")
             text.AppendLine($"Отказ сервера: {Clean(plan.Command.Reason, 96)}. Измени подход; не повторяй тот же шаг без новых оснований.");
+        var buildTargets = AgentExecutionProgressView.BuildTargets(archive.ExecutionProgress
+            .Where(p => p.WorldKey == worldKey && p.NpcId == npcId));
+        if (buildTargets.Length > 0)
+        {
+            text.AppendLine("Площадки с подтверждёнными Build-командами этой цели (история, не готовность):");
+            foreach (var target in buildTargets.Reverse())
+                text.AppendLine($"objectId={AgentExecutionProgressView.BuildTarget(target)}, квитанция #{target.Sequence}");
+            text.AppendLine("Перед продолжением сверяй construction.product и ведомость. Ближайшая площадка может строить другой предмет.");
+        }
         if (plan.Cursor < plan.Steps.Length)
         {
             text.AppendLine("Следующие шаги очереди (ещё не завершены):");

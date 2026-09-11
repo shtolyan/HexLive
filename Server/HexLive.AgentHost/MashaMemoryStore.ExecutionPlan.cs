@@ -119,8 +119,7 @@ public sealed partial class MashaMemoryStore
                     _archive.ExecutionProgress.Add(new(current.WorldKey, current.NpcId, current.Id,
                         completed.Id, completed.Sequence, current.Steps[current.Cursor] with
                             { Arguments = current.Steps[current.Cursor].Arguments.Clone() }, DateTimeOffset.UtcNow));
-                    if (_archive.ExecutionProgress.Count > 64)
-                        _archive.ExecutionProgress.RemoveRange(0, _archive.ExecutionProgress.Count - 64);
+                    AgentExecutionProgressView.Trim(_archive.ExecutionProgress);
                 }
                 _archive.ExecutionPlan = next;
                 try { await SaveAsync(token).ConfigureAwait(false); }

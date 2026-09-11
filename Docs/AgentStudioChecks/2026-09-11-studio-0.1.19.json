@@ -1,0 +1,47 @@
+{
+  "version": "0.1.19",
+  "packagedAtUtc": "2026-09-11T08:16:20.698813+00:00",
+  "kind": "framework-dependent-preview",
+  "requiresInstalledDotnet": "9",
+  "binarySource": "/private/tmp/hexlive-studio-release-6dc36/Build/dotnet/bin/HexLive.AgentStudio/Release/net9.0",
+  "compiledByThisTool": false,
+  "codeSignature": "certificate-verified",
+  "coreSha256": "311b7486d8b7c1e81e42f026af2dbdf834ecc8bd65640bed6ca21a434ae2c5bc",
+  "note": "Existing successful binary packaged with icon; not a completed Agent Studio release.",
+  "sourceCommit": "6dc36b6768f5ea29f51641fb9fe538e8e8eeeb22",
+  "requiredServerSourceCommit": "90036ef2b744dd67b44bbdf154317abd4bb35fe5",
+  "sourceManifest": "/private/tmp/hexlive-studio-release-6dc36/source-manifest.json",
+  "promptSha256": {
+    "README.md": "2651501edd5a997e7ed9681aa0c278ebaa2fcfb21fde13e1a61c6bbff2e14017",
+    "assessment.md": "76889628f8cbedc0a0ca51540376e72339ee01c1a5fd5c16bc7dc996c1aad72d",
+    "history-events.json": "70b3c4e1b612679d2325f903a56a6f89e4b8733aac4e7e13b006060cb33f480b",
+    "language.md": "928139a115c32df0c86c9cc577327fb388d131f2d848edf644a3a684c1ce7d27",
+    "masha-style.md": "6dfcd89f437f419ae03e4c328fba973cf029ab4d34fa15a32fb4d5c60a8ddb98",
+    "memory.md": "a0781fb8aca95529c4af09715e8e387e67210bbdbccd2129c6bb9562e7cd0812",
+    "object-knowledge.md": "c64b9c28a72eabfea511957e120b6536ef1a8d7f1e9e3f8c4f1575cbb280beba",
+    "rules.md": "73ee524660c14b44d0abcf9c96f09f5a91e8dd22851b92f8e25900217a3113c3",
+    "skills.json": "28fdfdd53ba655d0a2790f587b9a9292c0dbb97c79174170dbcf0a80331261a0",
+    "soul.md": "5d6ee49d11b965ab1a9b78df3fddc661d5c7cc0ff74fae701d0d251fb9555bf3",
+    "text.json": "0211ff26b02cb28bab21ba4a799a3e40d09b99d35b729ef376595655f17a63d8",
+    "world-guidance.md": "26a16901f2442b1041b68fac365d87c107e93a122af2bd2cf8a44ec612f17034",
+    "npc-names.json": "892044b2cfa919b8bc77ccfda2d21da1d5042a4dd8f8ddaa72500ca8f1aa2bbb"
+  },
+  "skillVersions": {
+    "build-bed": 16,
+    "find-object": 3,
+    "recover-and-resume": 7
+  },
+  "technicalChecks": {
+    "source6dc36": {
+      "Simulation": 1586,
+      "SimulationSkipped": 6,
+      "Server": 320,
+      "Host": 311,
+      "Core": 106
+    },
+    "serverArrivalCorrectionFocused": 15,
+    "serverArrivalCorrectionFull": "running"
+  },
+  "modelAcceptance": "Incomplete. Astra90036 bed0/0 running; previous272c4 failed after all materials and repeated hammer search,6dc36 early probe stopped for arrival-side code audit. Grok403; no imports.",
+  "productionUpdated": false
+}

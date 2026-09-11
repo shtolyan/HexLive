@@ -47,3 +47,10 @@ Omit definitionId for the recipe index. Read the live recipe before budgeting in
 baseWorkTicks are work units, not a promise of wall-clock duration.
 For furniture, request {"operation":"build.read","arguments":{"definitionId":"bed.basic"}}.
 Use visibleItems[].construction for a started site's actual remaining materials and stage.
+For a carried item that cannot be dropped, request
+{"operation":"inventory.drop.read","arguments":{"index":0,"expectedDefinitionId":"resource.palm_crown"}}.
+Use the current physical sourceIndex. The server checks one item with actual drop geometry;
+canDropHere allows Drop now, otherwise found supplies a nearby approach coordinate.
+This is not a path or reservation: move there, refresh the inventory and check again.
+NoNearbyDropSpot means no admitted placement in this bounded area, not an absent place
+everywhere. Do not retry identical Drop without a changed location or new evidence.

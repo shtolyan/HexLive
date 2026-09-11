@@ -189,7 +189,7 @@ public sealed partial class AgentExecutionRuntimeTests
         var runtime = new AgentHostRuntime(options, noModelDuringExecution);
         var store = Memory(runtime);
         using var mcp = new McpClient(options.ProviderOptions, transport);
-        var reader = new AgentReferenceReader(mcp);
+        var reader = new AgentReferenceReader(mcp, options.MemoryDirectory, 901);
         var recall = new AgentMemoryRecall(options.MemoryDirectory);
         var catalog = await mcp.ReadToolCatalogAsync(default);
         var contract = (string)typeof(AgentHostRuntime).GetMethod("BuildActionContract", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [catalog])!;

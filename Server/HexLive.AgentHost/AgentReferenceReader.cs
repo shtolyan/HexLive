@@ -5,9 +5,9 @@ using System.Text.Json;
 namespace HexLive.AgentHost;
 
 // Read-only reference capabilities. A skill never grants a new MCP permission.
-public sealed class AgentReferenceReader(McpClient mcp, string? workspace = null)
+public sealed class AgentReferenceReader(McpClient mcp, string? workspace = null, int? npcId = null)
 {
-    public static bool Allowed(string operation) => operation is "spec.read" or "skills.list" or "skills.read" or "recipes.read" or "build.read";
+    public static bool Allowed(string operation) => operation is "spec.read" or "skills.list" or "skills.read" or "recipes.read" or "build.read" or "inventory.drop.read";
 
     public async Task<MemoryReadResult> ReadAsync(string operation, JsonElement arguments, CancellationToken token)
     {
@@ -17,7 +17,18 @@ public sealed class AgentReferenceReader(McpClient mcp, string? workspace = null
         var offset = arguments.TryGetProperty("offset", out var off) && off.TryGetInt32(out var n) ? Math.Max(0, n) : 0;
         string text, name;
         int total;
-        if (operation == "spec.read")
+        if (operation == "inventory.drop.read")
+        {
+            if (npcId is not > 0) throw new InvalidDataException("ReferenceActorRequired");
+            if (!arguments.TryGetProperty("index", out var index) || index.ValueKind != JsonValueKind.Number || !index.TryGetInt32(out var sourceIndex) || sourceIndex < 0)
+                throw new InvalidDataException("ReferenceItemRequired");
+            var response = await mcp.CallToolAsync("read_inventory_drop", new
+                { npcId = npcId.Value, index = sourceIndex, expectedDefinitionId = String("expectedDefinitionId") }, token).ConfigureAwait(false);
+            name = "inventory-drop:" + npcId + ":" + sourceIndex;
+            text = response.GetRawText(); total = text.Length;
+            text = offset >= total ? "" : text[offset..];
+        }
+        else if (operation == "spec.read")
         {
             var section = String("section");
             if (section.Length == 0) throw new InvalidDataException("ReferenceSectionRequired");

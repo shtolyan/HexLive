@@ -17,6 +17,48 @@ namespace HexLive.Simulation.Tests.Behavior
 {
 public sealed class GroundItemPlacementTests
 {
+    [TestCase(false)]
+    [TestCase(true)]
+    public void DropPreviewDoesNotMutateAndItsSuggestedOriginUsesNativeAdmission(bool blockLocalRing)
+    {
+        var (world, npc) = Fixture();
+        var item = new ItemInstance("resource.palm_crown");
+        if (blockLocalRing)
+            foreach (var node in world.Junctions.Items.Values)
+                if (node.Tiles.Any(t => HexSpatialMath.HexDistance(npc.Tile, t) <= 1))
+                    world.Occupancy.JunctionOwner[node.Id] = new EntityId(999999);
+        var position = npc.Position; var tile = npc.Tile; var count = world.Entities.Objects.Count;
+        var found = GroundItemPlacementPreview.TryFindApproach(world, npc, item,
+            out var here, out var approach, out var target, out var checkedOrigins);
+        Assert.That(found, Is.True);
+        Assert.That(here, Is.EqualTo(!blockLocalRing));
+        Assert.That(checkedOrigins, Is.InRange(1, 19));
+        Assert.That(npc.Position, Is.EqualTo(position));
+        Assert.That(npc.Tile, Is.EqualTo(tile));
+        Assert.That(world.Entities.Objects.Count, Is.EqualTo(count));
+        // Move only in the fixture to verify the spatial admission, not routing.
+        var origin = world.Junctions.Items.Values.First(n => n.WorldPosition.Equals(approach));
+        npc.Position = approach; npc.CurrentJunction = origin.Id;
+        npc.Tile = origin.Tiles.OrderBy(t => HexSpatialMath.HexDistance(t, tile)).First();
+        var dropped = ExecutionSystem.DropItemAtFeet(world, npc, item);
+        Assert.That(dropped, Is.Not.Null);
+        Assert.That(dropped!.Junctions[0], Is.EqualTo(target));
+    }
+
+    [Test]
+    public void SaturatedPreviewReportsNoNearbySpaceWithoutMovingTheActor()
+    {
+        var (world, npc) = Fixture(onlyOwnPoint: true);
+        Put(world, npc, new ItemInstance(ContentIds.Coconut));
+        var before = npc.Position; var count = world.Entities.Objects.Count;
+        Assert.That(GroundItemPlacementPreview.TryFindApproach(world, npc, new ItemInstance("resource.palm_crown"),
+            out var here, out _, out _, out var checkedOrigins), Is.False);
+        Assert.That(here, Is.False);
+        Assert.That(checkedOrigins, Is.InRange(1, 19));
+        Assert.That(npc.Position, Is.EqualTo(before));
+        Assert.That(world.Entities.Objects.Count, Is.EqualTo(count));
+    }
+
     [Test]
     public void EveryPortableDefinitionHasSharedGeometryAndCampfireIsExcluded()
     {

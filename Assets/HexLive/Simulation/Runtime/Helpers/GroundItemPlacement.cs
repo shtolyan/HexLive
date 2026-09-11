@@ -10,6 +10,51 @@ using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
 {
+// Read-only local planning view. Uses exactly the same admission as Drop;
+// a suggested approach is not a route, a reservation, or a future guarantee.
+public static class GroundItemPlacementPreview
+{
+    public const int ApproachRadiusTiles = 2;
+
+    public static bool TryFindApproach(WorldState world, NPCState npc, ItemInstance item,
+        out bool canDropHere, out Float2 approach, out JunctionId dropJunction, out int checkedOrigins)
+    {
+        approach = npc.Position;
+        checkedOrigins = 1;
+        canDropHere = GroundItemPlacement.TryFind(world, npc, item, out _, out dropJunction, out _);
+        if (canDropHere) return true;
+        for (var ring = 1; ring <= ApproachRadiusTiles; ring++)
+        for (var dq = -ring; dq <= ring; dq++)
+        for (var dr = Math.Max(-ring, -dq - ring); dr <= Math.Min(ring, -dq + ring); dr++)
+        {
+            var tile = new TileCoord(npc.Tile.Q + dq, npc.Tile.R + dr);
+            if (HexSpatialMath.HexDistance(npc.Tile, tile) != ring ||
+                !SpatialQueries.IsTileWalkable(world, tile)) continue;
+            JunctionId? origin = null;
+            var closest = float.MaxValue;
+            foreach (var id in world.Tiles.Items[tile].Junctions)
+            {
+                var node = world.Junctions.Items[id];
+                if (node.Fragment != npc.Fragment || !SpatialQueries.IsJunctionPassable(world, id) ||
+                    !SpatialQueries.IsJunctionFree(world, id)) continue;
+                var dx = node.WorldPosition.X - npc.Position.X;
+                var dy = node.WorldPosition.Y - npc.Position.Y;
+                var distance = dx * dx + dy * dy;
+                if (distance < closest || distance == closest && (origin == null || id.Value < origin.Value.Value))
+                { origin = id; closest = distance; }
+            }
+            if (origin == null) continue;
+            var position = world.Junctions.Items[origin.Value].WorldPosition;
+            checkedOrigins++;
+            if (!GroundItemPlacement.TryFindNear(world, npc, item, tile, position, out _, out dropJunction, out _)) continue;
+            approach = position;
+            return true;
+        }
+        dropJunction = default;
+        return false;
+    }
+}
+
 // §54/§123: local, definition-aware drop admission. No world-object scan.
 internal static class GroundItemPlacement
 {

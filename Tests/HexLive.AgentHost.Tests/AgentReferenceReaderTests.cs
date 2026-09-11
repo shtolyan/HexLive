@@ -6,6 +6,42 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentReferenceReaderTests
 {
+    [Test]
+    public async Task DropReferenceUsesAttachedActorInsteadOfModelSuppliedNpc()
+    {
+        using var handler = new DropTransport();
+        using var client = new McpClient(Options(), handler);
+        var reader = new AgentReferenceReader(client, npcId: 901);
+        var read = await reader.ReadAsync("inventory.drop.read", JsonSerializer.SerializeToElement(new
+            { npcId = 999, index = 2, expectedDefinitionId = "resource.palm_crown" }), default);
+        Assert.That(handler.Arguments.GetProperty("npcId").GetInt32(), Is.EqualTo(901));
+        Assert.That(handler.Arguments.GetProperty("index").GetInt32(), Is.EqualTo(2));
+        Assert.That(read.Text, Does.Contain("inventory-drop:901:2"));
+        Assert.ThrowsAsync<InvalidDataException>(() => new AgentReferenceReader(client).ReadAsync("inventory.drop.read",
+            JsonSerializer.SerializeToElement(new { index = 2, expectedDefinitionId = "resource.palm_crown" }), default));
+    }
+
+    private sealed class DropTransport : HttpMessageHandler
+    {
+        public JsonElement Arguments;
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
+            object result = new { protocolVersion = "2025-06-18" };
+            if (doc.RootElement.GetProperty("method").GetString() == "tools/call")
+            {
+                var parameters = doc.RootElement.GetProperty("params");
+                Assert.That(parameters.GetProperty("name").GetString(), Is.EqualTo("read_inventory_drop"));
+                Arguments = parameters.GetProperty("arguments").Clone();
+                result = new { content = new[] { new { type = "text", text = "{\"canDropHere\":true}" } } };
+            }
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+                { Content = new StringContent(JsonSerializer.Serialize(new { jsonrpc = "2.0", result })) };
+            response.Headers.Add("Mcp-Session-Id", "fixture");
+            return response;
+        }
+    }
+
     [TestCase(false, false)]
     [TestCase(false, true)]
     [TestCase(true, false)]

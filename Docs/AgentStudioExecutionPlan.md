@@ -64,6 +64,8 @@ request/command/result; краткое решение, источники, до/
 
 ## Журнал выполнения
 
+- Добавлен read_inventory_drop / inventory.drop.read: проверка одного carried-предмета через штатный GroundItemPlacement, до 19 начал поиска в радиусе двух тайлов; маршрут не проверяется и место не резервируется. Actor берётся из attachment, stale index отклоняется. Схема AgentStudioChecks/2026-09-11-drop-preview-area.svg. Focused Simulation 33/33, Server 22/22 и Host 19/19 PASS. Навык build-bed v11 использует проверку вместо слепых повторов Drop.
+
 - Полный Server после пустого фильтра: 299/299 PASS. Studio Release build PASS (два CS9057 предупреждения Avalonia), публикация ещё не выполнена.
 - Grok resilience: 5/6; один ответ сочетал complete и новую выгрузку, запись отвергла InvalidExecutionPlanBinding. Конфликт теперь обрабатывается до записи общим ограниченным decision.repair и повторно проверяется persistence; focused Host 38/38 PASS. Grok gift остановлен диагностически после двух сбоев: повтор подарков из-за неизменного голода и complete вместе с aid_person. Навык различает подарок и кормление.
 - Codex bed c14d: диагностически остановлен после каркаса и палок, на повторных NoDropSpot. Крона попала в инвентарь через native scatter fallback при рубке, а не отдельный PickUp модели. Нужны проверяемые сведения о месте выгрузки; подсказки навыка одни этого не исправили.

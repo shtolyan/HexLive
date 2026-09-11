@@ -32,6 +32,27 @@ public sealed class McpPlanningObservationTests
     }
 
     [Test]
+    public void DropPreviewIsActorScopedAndRejectsStaleInventoryWithoutTakingControl()
+    {
+        using var host = Host(); var leases = new ControlLeases(45); var tools = new McpTools(host, leases);
+        host.Read(w => { var n = w.Entities.Npcs[new EntityId(901)]; n.Inventory.Items.Clear();
+            n.Inventory.Items.Add(new HexLive.Simulation.Agents.ItemInstance(ContentIds.Coconut)); return true; });
+        var before = host.Read(w => (w.Tick, w.Entities.Objects.Count, w.Entities.Npcs[new EntityId(901)].Position));
+        var result = Call(tools, "read_inventory_drop", new { npcId = 901, index = 0, expectedDefinitionId = ContentIds.Coconut });
+        Assert.That(result.GetProperty("checkedOrigins").GetInt32(), Is.InRange(1, 19));
+        Assert.That(result.GetProperty("routeChecked").GetBoolean(), Is.False);
+        Assert.That(result.GetProperty("reserved").GetBoolean(), Is.False);
+        Assert.That(leases.TryRenew(901, "fixture", out _), Is.False);
+        var stale = Call(tools, "read_inventory_drop", new { npcId = 901, index = 0, expectedDefinitionId = ContentIds.Stick });
+        Assert.That(stale.GetProperty("error").GetString(), Is.EqualTo("StaleInventoryItem"));
+        tools.Call("read_inventory_drop", JsonSerializer.SerializeToElement(new
+            { npcId = 901, index = 0, expectedDefinitionId = ContentIds.Coconut }), "fixture", out var denied, _ => false);
+        Assert.That(denied, Is.True);
+        Assert.That(host.Read(w => (w.Tick, w.Entities.Objects.Count, w.Entities.Npcs[new EntityId(901)].Position)), Is.EqualTo(before));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Inventory.Items.Single().DefinitionId), Is.EqualTo(ContentIds.Coconut));
+    }
+
+    [Test]
     public void CampMembershipIsReadFromTheActorsActualFactionAndCurrentTile()
     {
         using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));

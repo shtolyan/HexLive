@@ -4,6 +4,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Common;
+using HexLive.Simulation.Core;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Runtime;
 
@@ -11,6 +13,21 @@ namespace HexLive.Server.Mcp;
 
 internal static class McpPlanningObservations
 {
+    public static string InventoryDrop(WorldState world, int npcId, int index, string expectedDefinitionId)
+    {
+        if (!world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc))
+            return JsonSerializer.Serialize(new { error = "NpcMissing", npcId });
+        if (index < 0 || index >= npc.Inventory.Items.Count || npc.Inventory.Items[index].DefinitionId != expectedDefinitionId)
+            return JsonSerializer.Serialize(new { error = "StaleInventoryItem", npcId });
+        var found = GroundItemPlacementPreview.TryFindApproach(world, npc, npc.Inventory.Items[index],
+            out var canDropHere, out var approach, out var junction, out var checkedOrigins);
+        return JsonSerializer.Serialize(new { npcId, tick = world.Tick, sourceIndex = index, expectedDefinitionId,
+            count = 1, canDropHere, found, reason = found ? "" : "NoNearbyDropSpot", checkedOrigins,
+            approachRadiusTiles = GroundItemPlacementPreview.ApproachRadiusTiles,
+            approach = found ? new { x = approach.X, y = approach.Y } : null,
+            dropJunction = found ? (int?)junction.Value : null, routeChecked = false, reserved = false });
+    }
+
     public static object[] BuildMaterials(WorldObjectState site) => BuildSiteView.Materials(site).Where(r => r.Required > 0 || r.Delivered > 0)
         .Select(r => (object)new { definitionId = r.DefinitionId, required = r.Required, delivered = r.Delivered,
             remaining = r.Remaining, currentStageRemaining = r.CurrentStageRemaining }).ToArray();

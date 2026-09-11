@@ -393,7 +393,7 @@ public sealed partial class AgentHostRuntime
                     },
                     cancellationToken, async (operation, arguments, referenceToken) =>
                     {
-                        var source = await new AgentReferenceReader(mcp, _options.MemoryDirectory).ReadAsync(operation, arguments, referenceToken).ConfigureAwait(false);
+                        var source = await new AgentReferenceReader(mcp, _options.MemoryDirectory, npcId).ReadAsync(operation, arguments, referenceToken).ConfigureAwait(false);
                         _diagnostics.Record("reference.read", turnId, tool: operation, sourceIds: source.SourceIds);
                         return source;
                     }).ConfigureAwait(false);

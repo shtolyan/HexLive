@@ -54,6 +54,36 @@ ssh hexlive-nyc 'journalctl -u hexlive.service -n 200 --no-pager'
 Ограниченный аккаунт `hexlive-content` можно продолжать использовать для
 обычной публикации бандлов, но он не заменяет эти root-алиасы.
 
+## Голосовая админка: DeepSeek на обоих серверах
+
+Голосовая админка состоит из двух независимых частей: Deepgram переводит голос
+в текст, а отдельная служба `hexlive-admin-agent.service` передаёт текст
+`deepseek-chat` и разрешает модели только типизированные MCP-команды §161.
+Служба не имеет shell-инструмента и доступа к сейвам или репозиторию.
+
+Секреты на каждом VPS хранятся вне release:
+
+- `/etc/hexlive/admin-agent-token.env` — уникальный токен локальной MCP-шины;
+- `/etc/hexlive/deepseek-admin.env` — DeepSeek API key;
+- оба файла `root:root`, mode `0600`.
+
+`hexlive.service` должен читать только `admin-agent-token.env` через drop-in
+`20-admin-agent.conf`. Служба агента читает оба файла. После обновления игрового
+сервера эти файлы и drop-in нельзя удалять. Проверка без вывода секретов:
+
+```bash
+ssh hexlive-nyc \
+  'systemctl is-active hexlive.service hexlive-admin-agent.service; \
+   stat -c "%a %U:%G %n" /etc/hexlive/admin-agent-token.env \
+   /etc/hexlive/deepseek-admin.env; \
+   systemctl show hexlive.service -p EnvironmentFiles --no-pager'
+```
+
+Ожидаются два `active`, права `600 root:root` и только
+`admin-agent-token.env` в окружении игрового сервера. Idle-служба не вызывает
+DeepSeek. При замене ключа достаточно атомарно заменить
+`deepseek-admin.env` и перезапустить только `hexlive-admin-agent.service`.
+
 ## Нью-Йорк: общий SSH-ключ
 
 Приватный deploy-ключ намеренно хранится в этом **закрытом** репозитории по

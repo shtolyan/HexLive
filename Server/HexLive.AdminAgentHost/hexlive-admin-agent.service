@@ -1,0 +1,34 @@
+[Unit]
+Description=HexLive DeepSeek voice administrator
+Wants=network-online.target
+After=network-online.target hexlive.service
+PartOf=hexlive.service
+
+[Service]
+Type=simple
+User=hexlive-admin
+Group=hexlive-admin
+WorkingDirectory=/var/lib/hexlive-admin/workspace
+EnvironmentFile=/etc/hexlive/admin-agent-token.env
+EnvironmentFile=/etc/hexlive/deepseek-admin.env
+ExecStart=/usr/bin/python3 /srv/hexlive-admin/admin_agent.py --endpoint http://127.0.0.1:5123/mcp --workspace /var/lib/hexlive-admin/workspace --provider deepseek --model deepseek-chat
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/hexlive-admin
+
+[Install]
+WantedBy=multi-user.target

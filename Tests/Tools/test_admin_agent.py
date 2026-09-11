@@ -54,4 +54,51 @@ class AdminAgentTests(unittest.TestCase):
     def test_remote_plain_http_is_refused_before_network(self):
         with self.assertRaises(ValueError): agent.Mcp("http://public.example/mcp", "secret")
 
+    def run_deepseek_turn(self, tool_calls, refusal=False):
+        deepseek = agent.DeepSeek("sk-test-key")
+        payloads = []
+        responses = iter([
+            {"choices": [{"finish_reason": "tool_calls", "message": {
+                "role": "assistant", "content": None, "tool_calls": tool_calls}}]},
+            {"choices": [{"finish_reason": "stop", "message": {
+                "role": "assistant", "content": "Готово"}}]},
+        ])
+        def complete(mcp, payload, deadline):
+            payloads.append(payload)
+            return next(responses)
+        deepseek._complete_with_heartbeat = complete
+        mcp = FakeMcp(refusal)
+        result = deepseek.turn(mcp,
+            {"turnId": "0123456789abcdef0123456789abcdef", "text": "Вылечи", "selectedNpcId": 7},
+            [{"name": "admin_execute", "description": "execute", "inputSchema": {
+                "type": "object", "properties": {"turnId": {}, "operationId": {}, "kind": {}}}}],
+            "deepseek-chat", "/tmp", [])
+        return mcp, payloads, result
+
+    def test_deepseek_tool_identity_is_host_owned_and_repeat_is_deduplicated(self):
+        call = {"id": "same", "type": "function", "function": {
+            "name": "admin_execute", "arguments": '{"kind":"heal","npcId":7,"turnId":"forged"}'}}
+        mcp, payloads, result = self.run_deepseek_turn([call, call])
+        executions = [args for name, args in mcp.calls if name == "admin_execute"]
+        self.assertEqual(len(executions), 1)
+        self.assertEqual(executions[0]["turnId"], "0123456789abcdef0123456789abcdef")
+        self.assertEqual(len(executions[0]["operationId"]), 32)
+        self.assertEqual(result, "Готово")
+        parameters = payloads[0]["tools"][0]["function"]["parameters"]
+        self.assertNotIn("turnId", parameters["properties"])
+        self.assertNotIn("operationId", parameters["properties"])
+
+    def test_deepseek_confirmation_stops_later_actions(self):
+        calls = [{"id": call_id, "type": "function", "function": {
+            "name": "admin_execute", "arguments": '{"kind":"heal","npcId":7}'}}
+            for call_id in ("a", "b")]
+        mcp, _, _ = self.run_deepseek_turn(calls, True)
+        self.assertEqual(sum(name == "admin_execute" for name, _ in mcp.calls), 1)
+
+    def test_deepseek_unknown_tool_never_reaches_server(self):
+        call = {"id": "bad", "type": "function", "function": {
+            "name": "shell", "arguments": '{"command":"id"}'}}
+        mcp, _, _ = self.run_deepseek_turn([call])
+        self.assertFalse(any(name == "shell" for name, _ in mcp.calls))
+
 if __name__ == "__main__": unittest.main()

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""§161 subscription-backed Codex adapter. Python stdlib only; no OpenAI API key.
+"""§161 isolated admin-model adapter. Python stdlib only.
 
-Run in an isolated service account with its own CODEX_HOME. Never in the game
-checkout. Logs contain status codes only, not model transcripts or credentials.
+Run in an isolated service account, never in the game checkout. Production can
+use DeepSeek through its HTTPS API; the subscription-backed Codex backend remains
+available. Logs contain status codes only, not model transcripts or credentials.
 """
 import argparse
 import json
@@ -161,38 +162,203 @@ class Codex:
         self.request("turn/interrupt", {"threadId": thread, "turnId": started["turn"]["id"]})
         raise TimeoutError("CodexTimeout")
 
+class DeepSeek:
+    CHAT_ENDPOINT = "https://api.deepseek.com/chat/completions"
+    MODELS_ENDPOINT = "https://api.deepseek.com/models"
+    MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+    MAX_TOOL_ROUNDS = 12
+
+    def __init__(self, api_key):
+        if not api_key or len(api_key) > 4096 or any(c.isspace() for c in api_key):
+            raise ValueError("InvalidDeepSeekCredential")
+        self.api_key = api_key
+
+    def close(self):
+        # Kept for the common provider lifecycle in main().
+        pass
+
+    def models(self):
+        payload = self._json_request(self.MODELS_ENDPOINT, None, 30)
+        return [item.get("id") for item in payload.get("data", []) if isinstance(item, dict)]
+
+    def _json_request(self, endpoint, payload, timeout):
+        headers = {"Authorization": "Bearer " + self.api_key, "Accept": "application/json",
+                   "User-Agent": "HexLive-AdminAgent/1"}
+        data = None
+        if payload is not None:
+            data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
+            headers["Content-Type"] = "application/json"
+        request = urllib.request.Request(endpoint, data=data, headers=headers,
+                                         method="POST" if data is not None else "GET")
+        # Refuse redirects so the bearer can never be forwarded to another host.
+        with urllib.request.build_opener(NoRedirect).open(request, timeout=timeout) as response:
+            body = response.read(self.MAX_RESPONSE_BYTES + 1)
+            if len(body) > self.MAX_RESPONSE_BYTES:
+                raise ValueError("DeepSeekResponseTooLarge")
+        parsed = json.loads(body)
+        if not isinstance(parsed, dict):
+            raise ValueError("InvalidDeepSeekResponse")
+        return parsed
+
+    def _complete_with_heartbeat(self, mcp, payload, deadline):
+        completed = queue.Queue(maxsize=1)
+        def request():
+            try:
+                remaining = max(1, min(120, int(deadline - time.monotonic())))
+                completed.put((True, self._json_request(self.CHAT_ENDPOINT, payload, remaining)))
+            except BaseException as exc:
+                completed.put((False, exc))
+        threading.Thread(target=request, daemon=True).start()
+        heartbeat = 0
+        while time.monotonic() < deadline:
+            now = time.monotonic()
+            if now >= heartbeat:
+                mcp.tool("admin_next_turn", {})
+                heartbeat = now + 5
+            try:
+                ok, value = completed.get(timeout=min(1, max(.1, deadline - now)))
+            except queue.Empty:
+                continue
+            if ok:
+                return value
+            raise value
+        raise TimeoutError("DeepSeekTimeout")
+
+    @staticmethod
+    def _tools(catalog):
+        result = []
+        for tool in catalog:
+            if tool.get("name") not in ALLOWED:
+                continue
+            schema = dict(tool["inputSchema"])
+            schema["properties"] = {key: value for key, value in schema.get("properties", {}).items()
+                                    if key not in ("turnId", "operationId")}
+            if "required" in schema:
+                schema["required"] = [key for key in schema["required"]
+                                      if key not in ("turnId", "operationId")]
+            result.append({"type": "function", "function": {"name": tool["name"],
+                "description": tool.get("description", ""), "parameters": schema}})
+        return result
+
+    def turn(self, mcp, turn, catalog, model, workspace, conversation):
+        del workspace
+        tools = self._tools(catalog)
+        messages = [
+            {"role": "system", "content": INSTRUCTIONS},
+            {"role": "user", "content": json.dumps(
+                {"recent": conversation[-6:], "current": turn}, ensure_ascii=False)},
+        ]
+        calls = {}
+        stopped = False
+        deadline = time.monotonic() + 150
+        for _ in range(self.MAX_TOOL_ROUNDS):
+            response = self._complete_with_heartbeat(mcp, {
+                "model": model,
+                "messages": messages,
+                "tools": tools,
+                "tool_choice": "auto",
+                "temperature": 0.1,
+                "max_tokens": 4000,
+                "stream": False,
+            }, deadline)
+            choices = response.get("choices")
+            if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+                raise ValueError("InvalidDeepSeekResponse")
+            choice = choices[0]
+            message = choice.get("message")
+            if not isinstance(message, dict):
+                raise ValueError("InvalidDeepSeekResponse")
+            tool_calls = message.get("tool_calls") or []
+            if not isinstance(tool_calls, list):
+                raise ValueError("InvalidDeepSeekToolCalls")
+            if not tool_calls:
+                if choice.get("finish_reason") != "stop":
+                    raise ValueError("IncompleteDeepSeekResponse")
+                reply = message.get("content")
+                if not isinstance(reply, str):
+                    raise ValueError("InvalidDeepSeekReply")
+                return reply[:4000] or "Нет текстового ответа. Проверь журнал команд."
+
+            assistant = {"role": "assistant", "content": message.get("content"),
+                         "tool_calls": tool_calls}
+            messages.append(assistant)
+            for tool_call in tool_calls:
+                call_id = tool_call.get("id") if isinstance(tool_call, dict) else None
+                function = tool_call.get("function") if isinstance(tool_call, dict) else None
+                name = function.get("name") if isinstance(function, dict) else None
+                arguments = function.get("arguments") if isinstance(function, dict) else None
+                if not isinstance(call_id, str) or not call_id or not isinstance(name, str):
+                    raise ValueError("InvalidDeepSeekToolCall")
+                if call_id in calls:
+                    result = calls[call_id]
+                elif stopped or name not in ALLOWED:
+                    result = {"accepted": False, "reason": "TurnStopped"}
+                    calls[call_id] = result
+                    stopped = True
+                else:
+                    try:
+                        args = json.loads(arguments) if isinstance(arguments, str) else arguments
+                    except json.JSONDecodeError:
+                        args = None
+                    if not isinstance(args, dict):
+                        result = {"accepted": False, "reason": "InvalidArguments"}
+                        calls[call_id] = result
+                        stopped = True
+                    else:
+                        args["turnId"] = turn["turnId"]
+                        if name == "admin_execute":
+                            args["operationId"] = uuid.uuid5(uuid.UUID(turn["turnId"]), call_id).hex
+                        result = mcp.tool(name, args)
+                        calls[call_id] = result
+                        if result.get("accepted") is False:
+                            stopped = True
+                messages.append({"role": "tool", "tool_call_id": call_id,
+                                 "content": json.dumps(result, ensure_ascii=False)})
+        raise RuntimeError("DeepSeekToolRoundLimit")
+
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument("--endpoint", required=True)
     parser.add_argument("--workspace", required=True); parser.add_argument("--codex", default="codex")
-    parser.add_argument("--model", default="gpt-6-astra"); parser.add_argument("--doctor", action="store_true")
+    parser.add_argument("--provider", choices=("codex", "deepseek"), default="codex")
+    parser.add_argument("--model"); parser.add_argument("--doctor", action="store_true")
     args = parser.parse_args(); Path(args.workspace).mkdir(parents=True, exist_ok=True)
     token = os.environ.get("HEXLIVE_ADMIN_AGENT_TOKEN", "")
     if len(token) < 32: raise SystemExit("HEXLIVE_ADMIN_AGENT_TOKEN is required (at least 32 characters)")
-    mcp = Mcp(args.endpoint, token); codex = Codex(args.codex, args.workspace)
+    mcp = Mcp(args.endpoint, token)
+    model = args.model or ("deepseek-chat" if args.provider == "deepseek" else "gpt-6-astra")
+    if args.provider == "deepseek":
+        provider = DeepSeek(os.environ.get("HEXLIVE_ADMIN_LLM_API_KEY", ""))
+    else:
+        provider = Codex(args.codex, args.workspace)
     try:
-        account = codex.request("account/read", {})
-        if (account.get("account") or {}).get("type") != "chatgpt": raise RuntimeError("ChatGPTLoginRequired")
-        models = []; cursor = None
-        while True:
-            page = codex.request("model/list", {"limit": 100, "cursor": cursor})
-            models += page["data"]; cursor = page.get("nextCursor")
-            if not cursor: break
-        if not any(m.get("model") == args.model for m in models): raise RuntimeError("RequestedModelUnavailable")
+        if args.provider == "codex":
+            account = provider.request("account/read", {})
+            if (account.get("account") or {}).get("type") != "chatgpt": raise RuntimeError("ChatGPTLoginRequired")
+            models = []; cursor = None
+            while True:
+                page = provider.request("model/list", {"limit": 100, "cursor": cursor})
+                models += page["data"]; cursor = page.get("nextCursor")
+                if not cursor: break
+            if not any(item.get("model") == model for item in models): raise RuntimeError("RequestedModelUnavailable")
+        elif model not in provider.models():
+            raise RuntimeError("RequestedModelUnavailable")
         catalog = mcp.request("tools/list", {})["tools"]
-        if args.doctor: print("Admin MCP, ChatGPT authentication and requested model: OK"); return
+        if args.doctor:
+            print("Admin MCP, provider authentication and requested model: OK")
+            return
         conversation = {}
         while True:
             turn = mcp.tool("admin_next_turn", {})
             if turn.get("idle"): time.sleep(2); continue
             history = conversation.setdefault((turn["clientId"], turn.get("epoch", "")), [])
             failed = False
-            try: reply = codex.turn(mcp, turn, catalog, args.model, args.workspace, history)
+            try: reply = provider.turn(mcp, turn, catalog, model, args.workspace, history)
             except Exception:
                 failed = True
-                reply = "CodexTurnFailed: проверь авторизацию, доступность модели и лимиты. Выполненные команды доступны в журнале."
+                reply = "ModelTurnFailed: проверь авторизацию, доступность модели и лимиты. Выполненные команды доступны в журнале."
             mcp.tool("admin_reply", {"turnId": turn["turnId"], "text": reply, "failed": failed})
             history.extend([{"user": turn["text"]}, {"assistant": reply}]); del history[:-6]
-    finally: codex.close()
+    finally: provider.close()
 
 if __name__ == "__main__":
     try: main()

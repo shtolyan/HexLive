@@ -7,7 +7,8 @@
 с реальной LLM; изменение исходников само по себе не обновляет сервер.
 
 Путь команды: FMOD → Deepgram → `/watch` → AdminAgentHub → отдельный Python
-адаптер → Codex App Server → три разрешённых инструмента MCP → AdminCommandBus.
+адаптер → DeepSeek (production) или Codex App Server → три разрешённых
+инструмента MCP → AdminCommandBus.
 Python 3.10+ использует только стандартную библиотеку. Подтверждение удаления
 идёт от игрового клиента; инструмента подтверждения у модели нет.
 
@@ -22,13 +23,39 @@ Python 3.10+ использует только стандартную библи
    адаптера. Это отдельный секрет, не player token и не API key OpenAI.
    Хранить env-файл с правами 0600; не коммитить его.
 4. Для голоса настроить существующий DeepgramTokenBroker (§160). Текстовый ввод
-   работает без STT. Deepgram тарифицируется отдельно от подписки Codex.
+   работает без STT. Deepgram тарифицируется отдельно от выбранной LLM.
 5. Создать отдельного непривилегированного OS-пользователя адаптера с пустым
-   рабочим каталогом и собственным `CODEX_HOME`. Не давать ему доступ к сейвам,
-   игровому репозиторию, SSH-ключам и окружению production. Не копировать
-   личный Codex config, плагины, MCP-серверы или skills в этот профиль.
+   рабочим каталогом. Не давать ему доступ к сейвам, игровому репозиторию,
+   SSH-ключам и остальному окружению production. Для Codex backend использовать
+   отдельный `CODEX_HOME`; не копировать личный Codex config, плагины,
+   MCP-серверы или skills в этот профиль.
 
-## Авторизация Codex по подписке
+## Production: DeepSeek API
+
+DeepSeek-ключ хранится отдельно от общего токена шины:
+
+- `/etc/hexlive/admin-agent-token.env`, root:root `0600` — только
+  `HEXLIVE_ADMIN_AGENT_TOKEN`, один случайный секрет на конкретный сервер;
+- `/etc/hexlive/deepseek-admin.env`, root:root `0600` — только
+  `HEXLIVE_ADMIN_LLM_API_KEY`.
+
+Значения не передавать аргументами процесса и не печатать в `journalctl`.
+`hexlive.service` получает только первый файл; `hexlive-admin-agent.service` —
+оба. Установить `hexlive-admin-agent.service` из этого каталога, а адаптер — в
+`/srv/hexlive-admin/admin_agent.py`. Штатный запуск:
+
+```sh
+python3 /srv/hexlive-admin/admin_agent.py \
+  --endpoint http://127.0.0.1:5123/mcp \
+  --workspace /var/lib/hexlive-admin/workspace \
+  --provider deepseek --model deepseek-chat --doctor
+```
+
+`--doctor` проверяет MCP, DeepSeek-ключ и наличие модели без LLM-запроса. После
+успеха запускать тот же процесс без `--doctor` через systemd. Ожидание очереди
+делает только локальные heartbeat-запросы и не расходует токены DeepSeek.
+
+## Альтернатива: авторизация Codex по подписке
 
 Под пользователем адаптера, с его собственным `CODEX_HOME`:
 
@@ -46,7 +73,7 @@ Codex CLI с experimental dynamic tools в App Server. Доступность As
 python3 /srv/hexlive-admin/admin_agent.py \
   --endpoint http://127.0.0.1:8080/mcp \
   --workspace /var/lib/hexlive-admin/workspace \
-  --model gpt-6-astra --doctor
+  --provider codex --model gpt-6-astra --doctor
 ```
 
 Порт заменить на порт тестового сервера. Для удалённого адреса требуется HTTPS.
@@ -95,4 +122,4 @@ python3 Tools/spec_index.py --check
 проверки по `CLAUDE.md`. Затем открыть Unity из проверяемого checkout, проверить
 компиляцию, микрофон, повторное подключение, восстановление всех четырёх
 конечностей/позы/протезов, отказ обычному клиенту и голосовое подтверждение.
-Не считать Python-тесты проверкой работающего Unity-клиента или live Astra.
+Не считать Python-тесты проверкой работающего Unity-клиента или live LLM.

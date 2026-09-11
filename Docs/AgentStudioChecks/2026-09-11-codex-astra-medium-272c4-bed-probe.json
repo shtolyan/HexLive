@@ -1,0 +1,1208 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "coconuts",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "gift",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "bed",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 113,
+      "commands": 160,
+      "failures": [
+        {
+          "fixture": 0,
+          "repetition": 0,
+          "status": "AssertionException:DecisionTurnLimitExceeded"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "resilience",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks.",
+  "sourceCommit": "272c41d1aa8adb8d9a8fd21a95d18d25c6368748",
+  "rawDirectory": "/private/tmp/hexlive-codex-astra-medium-272c4",
+  "scopeNote": "Only first bed0/0 attempted. Preparation produced knife and stone axe; all materials delivered, hammer not found after repeated native exploration. Original fauna, limits and item visibility unchanged. No other cases imported.",
+  "cases": [
+    {
+      "fixture": 0,
+      "repetition": 0,
+      "status": "AssertionException:DecisionTurnLimitExceeded",
+      "passed": false,
+      "calls": 113,
+      "commands": 160,
+      "gameTicks": 13821,
+      "sawSleep": true
+    }
+  ],
+  "decisionTurns": 64,
+  "observedDecisionPositions": [
+    {
+      "call": 1,
+      "tick": 80,
+      "tile": "-12,10",
+      "position": {
+        "x": -19.486,
+        "y": 22.125
+      }
+    },
+    {
+      "call": 2,
+      "tick": 80,
+      "tile": "-12,10",
+      "position": {
+        "x": -19.486,
+        "y": 22.125
+      }
+    },
+    {
+      "call": 3,
+      "tick": 80,
+      "tile": "-12,10",
+      "position": {
+        "x": -19.486,
+        "y": 22.125
+      }
+    },
+    {
+      "call": 4,
+      "tick": 80,
+      "tile": "-12,10",
+      "position": {
+        "x": -19.486,
+        "y": 22.125
+      }
+    },
+    {
+      "call": 5,
+      "tick": 209,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 6,
+      "tick": 6614,
+      "tile": "-1,4",
+      "position": {
+        "x": 3.248,
+        "y": 9
+      }
+    },
+    {
+      "call": 7,
+      "tick": 6614,
+      "tile": "-1,4",
+      "position": {
+        "x": 3.248,
+        "y": 9
+      }
+    },
+    {
+      "call": 8,
+      "tick": 6614,
+      "tile": "-1,4",
+      "position": {
+        "x": 3.248,
+        "y": 9
+      }
+    },
+    {
+      "call": 9,
+      "tick": 6614,
+      "tile": "-1,4",
+      "position": {
+        "x": 3.248,
+        "y": 9
+      }
+    },
+    {
+      "call": 10,
+      "tick": 6833,
+      "tile": "1,4",
+      "position": {
+        "x": 7.469,
+        "y": 8.438
+      }
+    },
+    {
+      "call": 11,
+      "tick": 6889,
+      "tile": "1,4",
+      "position": {
+        "x": 8.119,
+        "y": 9.188
+      }
+    },
+    {
+      "call": 12,
+      "tick": 6981,
+      "tile": "1,4",
+      "position": {
+        "x": 8.119,
+        "y": 8.812
+      }
+    },
+    {
+      "call": 13,
+      "tick": 7137,
+      "tile": "3,2",
+      "position": {
+        "x": 10.068,
+        "y": 3.938
+      }
+    },
+    {
+      "call": 14,
+      "tick": 7137,
+      "tile": "3,2",
+      "position": {
+        "x": 10.068,
+        "y": 3.938
+      }
+    },
+    {
+      "call": 15,
+      "tick": 7293,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 16,
+      "tick": 7293,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 17,
+      "tick": 7293,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 18,
+      "tick": 7293,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 19,
+      "tick": 7293,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 20,
+      "tick": 7485,
+      "tile": "2,-3",
+      "position": {
+        "x": 0.974,
+        "y": -5.812
+      }
+    },
+    {
+      "call": 21,
+      "tick": 7533,
+      "tile": "3,-2",
+      "position": {
+        "x": 5.521,
+        "y": -5.438
+      }
+    },
+    {
+      "call": 22,
+      "tick": 7573,
+      "tile": "3,-2",
+      "position": {
+        "x": 5.846,
+        "y": -5.25
+      }
+    },
+    {
+      "call": 23,
+      "tick": 7709,
+      "tile": "3,-2",
+      "position": {
+        "x": 5.846,
+        "y": -5.25
+      }
+    },
+    {
+      "call": 24,
+      "tick": 7753,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 25,
+      "tick": 7909,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 26,
+      "tick": 7909,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 27,
+      "tick": 8085,
+      "tile": "1,-1",
+      "position": {
+        "x": 1.624,
+        "y": -2.438
+      }
+    },
+    {
+      "call": 28,
+      "tick": 8085,
+      "tile": "1,-1",
+      "position": {
+        "x": 1.624,
+        "y": -2.438
+      }
+    },
+    {
+      "call": 29,
+      "tick": 8129,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 30,
+      "tick": 8129,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 31,
+      "tick": 8129,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 32,
+      "tick": 8181,
+      "tile": "-3,8",
+      "position": {
+        "x": 2.598,
+        "y": 16.875
+      }
+    },
+    {
+      "call": 33,
+      "tick": 8181,
+      "tile": "-3,8",
+      "position": {
+        "x": 2.598,
+        "y": 16.875
+      }
+    },
+    {
+      "call": 34,
+      "tick": 8189,
+      "tile": "-3,8",
+      "position": {
+        "x": 2.598,
+        "y": 16.875
+      }
+    },
+    {
+      "call": 35,
+      "tick": 8261,
+      "tile": "-2,9",
+      "position": {
+        "x": 5.196,
+        "y": 21
+      }
+    },
+    {
+      "call": 36,
+      "tick": 8445,
+      "tile": "-1,7",
+      "position": {
+        "x": 6.82,
+        "y": 14.812
+      }
+    },
+    {
+      "call": 37,
+      "tick": 8669,
+      "tile": "-1,7",
+      "position": {
+        "x": 5.846,
+        "y": 16.875
+      }
+    },
+    {
+      "call": 38,
+      "tick": 8877,
+      "tile": "1,4",
+      "position": {
+        "x": 8.444,
+        "y": 9.75
+      }
+    },
+    {
+      "call": 39,
+      "tick": 9001,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 40,
+      "tick": 9001,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 41,
+      "tick": 9001,
+      "tile": "0,3",
+      "position": {
+        "x": 2.923,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 42,
+      "tick": 9125,
+      "tile": "-5,3",
+      "position": {
+        "x": -8.119,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 43,
+      "tick": 9125,
+      "tile": "-5,3",
+      "position": {
+        "x": -8.119,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 44,
+      "tick": 9133,
+      "tile": "-5,3",
+      "position": {
+        "x": -8.119,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 45,
+      "tick": 9181,
+      "tile": "-6,3",
+      "position": {
+        "x": -11.042,
+        "y": 6.75
+      }
+    },
+    {
+      "call": 46,
+      "tick": 9273,
+      "tile": "-6,3",
+      "position": {
+        "x": -10.717,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 47,
+      "tick": 9361,
+      "tile": "-6,3",
+      "position": {
+        "x": -10.717,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 48,
+      "tick": 9449,
+      "tile": "-6,3",
+      "position": {
+        "x": -10.717,
+        "y": 6.938
+      }
+    },
+    {
+      "call": 49,
+      "tick": 9589,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 50,
+      "tick": 9781,
+      "tile": "3,2",
+      "position": {
+        "x": 11.367,
+        "y": 4.312
+      }
+    },
+    {
+      "call": 51,
+      "tick": 9821,
+      "tile": "3,2",
+      "position": {
+        "x": 11.042,
+        "y": 4.125
+      }
+    },
+    {
+      "call": 52,
+      "tick": 9821,
+      "tile": "3,2",
+      "position": {
+        "x": 11.042,
+        "y": 4.125
+      }
+    },
+    {
+      "call": 53,
+      "tick": 9921,
+      "tile": "-3,10",
+      "position": {
+        "x": 4.871,
+        "y": 21.938
+      }
+    },
+    {
+      "call": 54,
+      "tick": 9921,
+      "tile": "-3,10",
+      "position": {
+        "x": 4.871,
+        "y": 21.938
+      }
+    },
+    {
+      "call": 55,
+      "tick": 9989,
+      "tile": "-1,5",
+      "position": {
+        "x": 3.248,
+        "y": 11.25
+      }
+    },
+    {
+      "call": 56,
+      "tick": 9989,
+      "tile": "-1,5",
+      "position": {
+        "x": 3.248,
+        "y": 11.25
+      }
+    },
+    {
+      "call": 57,
+      "tick": 10085,
+      "tile": "3,3",
+      "position": {
+        "x": 12.016,
+        "y": 5.812
+      }
+    },
+    {
+      "call": 58,
+      "tick": 10085,
+      "tile": "3,3",
+      "position": {
+        "x": 12.016,
+        "y": 5.812
+      }
+    },
+    {
+      "call": 59,
+      "tick": 10189,
+      "tile": "3,-3",
+      "position": {
+        "x": 3.572,
+        "y": -6.562
+      }
+    },
+    {
+      "call": 60,
+      "tick": 10189,
+      "tile": "3,-3",
+      "position": {
+        "x": 3.572,
+        "y": -6.562
+      }
+    },
+    {
+      "call": 61,
+      "tick": 10257,
+      "tile": "4,0",
+      "position": {
+        "x": 9.093,
+        "y": 0.375
+      }
+    },
+    {
+      "call": 62,
+      "tick": 10257,
+      "tile": "4,0",
+      "position": {
+        "x": 9.093,
+        "y": 0.375
+      }
+    },
+    {
+      "call": 63,
+      "tick": 10373,
+      "tile": "-4,1",
+      "position": {
+        "x": -8.769,
+        "y": 1.688
+      }
+    },
+    {
+      "call": 64,
+      "tick": 10373,
+      "tile": "-4,1",
+      "position": {
+        "x": -8.769,
+        "y": 1.688
+      }
+    },
+    {
+      "call": 65,
+      "tick": 10601,
+      "tile": "-1,5",
+      "position": {
+        "x": 3.572,
+        "y": 10.312
+      }
+    },
+    {
+      "call": 66,
+      "tick": 10601,
+      "tile": "-1,5",
+      "position": {
+        "x": 3.572,
+        "y": 10.312
+      }
+    },
+    {
+      "call": 67,
+      "tick": 10685,
+      "tile": "4,0",
+      "position": {
+        "x": 10.717,
+        "y": -1.312
+      }
+    },
+    {
+      "call": 68,
+      "tick": 10685,
+      "tile": "4,0",
+      "position": {
+        "x": 10.717,
+        "y": -1.312
+      }
+    },
+    {
+      "call": 69,
+      "tick": 10801,
+      "tile": "-4,8",
+      "position": {
+        "x": -0.325,
+        "y": 18.188
+      }
+    },
+    {
+      "call": 70,
+      "tick": 10801,
+      "tile": "-4,8",
+      "position": {
+        "x": -0.325,
+        "y": 18.188
+      }
+    },
+    {
+      "call": 71,
+      "tick": 10909,
+      "tile": "1,9",
+      "position": {
+        "x": 14.289,
+        "y": 19.875
+      }
+    },
+    {
+      "call": 72,
+      "tick": 10909,
+      "tile": "1,9",
+      "position": {
+        "x": 14.289,
+        "y": 19.875
+      }
+    },
+    {
+      "call": 73,
+      "tick": 10997,
+      "tile": "4,6",
+      "position": {
+        "x": 19.161,
+        "y": 12.562
+      }
+    },
+    {
+      "call": 74,
+      "tick": 10997,
+      "tile": "4,6",
+      "position": {
+        "x": 19.161,
+        "y": 12.562
+      }
+    },
+    {
+      "call": 75,
+      "tick": 11073,
+      "tile": "8,2",
+      "position": {
+        "x": 22.733,
+        "y": 3.75
+      }
+    },
+    {
+      "call": 76,
+      "tick": 11073,
+      "tile": "8,2",
+      "position": {
+        "x": 22.733,
+        "y": 3.75
+      }
+    },
+    {
+      "call": 77,
+      "tick": 11241,
+      "tile": "4,7",
+      "position": {
+        "x": 19.486,
+        "y": 15.375
+      }
+    },
+    {
+      "call": 78,
+      "tick": 11241,
+      "tile": "4,7",
+      "position": {
+        "x": 19.486,
+        "y": 15.375
+      }
+    },
+    {
+      "call": 79,
+      "tick": 11305,
+      "tile": "4,8",
+      "position": {
+        "x": 21.759,
+        "y": 17.812
+      }
+    },
+    {
+      "call": 80,
+      "tick": 11333,
+      "tile": "4,8",
+      "position": {
+        "x": 21.759,
+        "y": 17.812
+      }
+    },
+    {
+      "call": 81,
+      "tick": 11333,
+      "tile": "4,8",
+      "position": {
+        "x": 21.759,
+        "y": 17.812
+      }
+    },
+    {
+      "call": 82,
+      "tick": 11537,
+      "tile": "-4,7",
+      "position": {
+        "x": -1.949,
+        "y": 15
+      }
+    },
+    {
+      "call": 83,
+      "tick": 11537,
+      "tile": "-4,7",
+      "position": {
+        "x": -1.949,
+        "y": 15
+      }
+    },
+    {
+      "call": 84,
+      "tick": 11609,
+      "tile": "1,3",
+      "position": {
+        "x": 5.846,
+        "y": 7.125
+      }
+    },
+    {
+      "call": 85,
+      "tick": 11609,
+      "tile": "1,3",
+      "position": {
+        "x": 5.846,
+        "y": 7.125
+      }
+    },
+    {
+      "call": 86,
+      "tick": 11725,
+      "tile": "-4,1",
+      "position": {
+        "x": -8.769,
+        "y": 2.062
+      }
+    },
+    {
+      "call": 87,
+      "tick": 11725,
+      "tile": "-4,1",
+      "position": {
+        "x": -8.769,
+        "y": 2.062
+      }
+    },
+    {
+      "call": 88,
+      "tick": 11793,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 89,
+      "tick": 11793,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 90,
+      "tick": 11897,
+      "tile": "-4,2",
+      "position": {
+        "x": -8.769,
+        "y": 5.438
+      }
+    },
+    {
+      "call": 91,
+      "tick": 11897,
+      "tile": "-4,2",
+      "position": {
+        "x": -8.769,
+        "y": 5.438
+      }
+    },
+    {
+      "call": 92,
+      "tick": 11933,
+      "tile": "-7,4",
+      "position": {
+        "x": -13.64,
+        "y": 8.625
+      }
+    },
+    {
+      "call": 93,
+      "tick": 11933,
+      "tile": "-7,4",
+      "position": {
+        "x": -13.64,
+        "y": 8.625
+      }
+    },
+    {
+      "call": 94,
+      "tick": 12033,
+      "tile": "-3,6",
+      "position": {
+        "x": 0,
+        "y": 14.25
+      }
+    },
+    {
+      "call": 95,
+      "tick": 12033,
+      "tile": "-3,6",
+      "position": {
+        "x": 0,
+        "y": 14.25
+      }
+    },
+    {
+      "call": 96,
+      "tick": 12381,
+      "tile": "2,5",
+      "position": {
+        "x": 12.016,
+        "y": 10.688
+      }
+    },
+    {
+      "call": 97,
+      "tick": 12381,
+      "tile": "2,5",
+      "position": {
+        "x": 12.016,
+        "y": 10.688
+      }
+    },
+    {
+      "call": 98,
+      "tick": 12429,
+      "tile": "5,4",
+      "position": {
+        "x": 17.862,
+        "y": 8.438
+      }
+    },
+    {
+      "call": 99,
+      "tick": 12429,
+      "tile": "5,4",
+      "position": {
+        "x": 17.862,
+        "y": 8.438
+      }
+    },
+    {
+      "call": 100,
+      "tick": 12541,
+      "tile": "3,1",
+      "position": {
+        "x": 9.093,
+        "y": 2.25
+      }
+    },
+    {
+      "call": 101,
+      "tick": 12541,
+      "tile": "3,1",
+      "position": {
+        "x": 9.093,
+        "y": 2.25
+      }
+    },
+    {
+      "call": 102,
+      "tick": 12633,
+      "tile": "3,4",
+      "position": {
+        "x": 12.666,
+        "y": 10.312
+      }
+    },
+    {
+      "call": 103,
+      "tick": 12633,
+      "tile": "3,4",
+      "position": {
+        "x": 12.666,
+        "y": 10.312
+      }
+    },
+    {
+      "call": 104,
+      "tick": 12689,
+      "tile": "2,7",
+      "position": {
+        "x": 13.315,
+        "y": 15.188
+      }
+    },
+    {
+      "call": 105,
+      "tick": 12689,
+      "tile": "2,7",
+      "position": {
+        "x": 13.315,
+        "y": 15.188
+      }
+    },
+    {
+      "call": 106,
+      "tick": 12769,
+      "tile": "3,9",
+      "position": {
+        "x": 18.836,
+        "y": 21
+      }
+    },
+    {
+      "call": 107,
+      "tick": 12769,
+      "tile": "3,9",
+      "position": {
+        "x": 18.836,
+        "y": 21
+      }
+    },
+    {
+      "call": 108,
+      "tick": 12869,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 109,
+      "tick": 12869,
+      "tile": "0,4",
+      "position": {
+        "x": 5.196,
+        "y": 9
+      }
+    },
+    {
+      "call": 110,
+      "tick": 13041,
+      "tile": "6,5",
+      "position": {
+        "x": 21.109,
+        "y": 11.438
+      }
+    },
+    {
+      "call": 111,
+      "tick": 13041,
+      "tile": "6,5",
+      "position": {
+        "x": 21.109,
+        "y": 11.438
+      }
+    },
+    {
+      "call": 112,
+      "tick": 13581,
+      "tile": "8,2",
+      "position": {
+        "x": 24.032,
+        "y": 4.125
+      }
+    },
+    {
+      "call": 113,
+      "tick": 13733,
+      "tile": "8,7",
+      "position": {
+        "x": 30.852,
+        "y": 15.562
+      }
+    }
+  ],
+  "positionScope": "Model observation snapshots only, not a continuous movement trace.",
+  "finalObservedState": "health=1; goal=None; interaction=none; execution=None; moving=false; fighting=false; manualControl=true; unconscious=false; needs[hunger=0.037, thirst=0.228, energy=0.196, comfort=0, social=0, thermal=0, stamina=0.673, blood=1, stress=0]",
+  "confirmedReceiptsByOutcome": {
+    "completed": 32
+  }
+}

@@ -14,25 +14,30 @@ public sealed partial class AgentHostRuntime
     private DateTimeOffset _nextPlanLeaseRenewal;
 
     private static bool KeepGoalControl(AgentExecutionPlan? plan) => plan is { Status: "active" or "completed" } ||
-        plan is { Status: "paused", Reason: "CommandFailed", Command.Status: "failed" };
+        plan is { Status: "paused", Command: null } or { Status: "paused", Command.Status: "failed" };
 
     private async Task MaintainPlanLeaseAsync(McpClient mcp, int npcId, bool enabled, CancellationToken token)
     {
-        if (!_holdingPlanLease) return;
+        if (!_holdingPlanLease && (!enabled || _executingPlan || !_actionTask.IsCompleted)) return;
         var state = await _memory.SnapshotAsync(token).ConfigureAwait(false);
+        // A paused queue can be restored after reconnect or a completed
+        // interruption without an action task still owning its lease.
+        if (!_holdingPlanLease && state.ExecutionPlan?.Status != "paused") return;
         var keep = enabled && state.Objective is { Status: "active" } goal &&
             goal.AvatarNpcId == npcId && goal.WorldKey == _historyWorld?.WorldKey &&
             KeepGoalControl(state.ExecutionPlan);
         if (!keep)
         {
+            if (!_holdingPlanLease) return;
             _holdingPlanLease = false;
             // A newly dispatched queue/action already owns the same lease.
             if (!_executingPlan && _actionTask.IsCompleted && mcp.HasEstablishedSession)
                 await mcp.CallToolAsync("release_control", new { npcId }, token).ConfigureAwait(false);
             return;
         }
-        if (DateTimeOffset.UtcNow < _nextPlanLeaseRenewal) return;
+        if (_holdingPlanLease && DateTimeOffset.UtcNow < _nextPlanLeaseRenewal) return;
         await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 }, token).ConfigureAwait(false);
+        _holdingPlanLease = true;
         _nextPlanLeaseRenewal = DateTimeOffset.UtcNow.AddSeconds(9);
     }
 

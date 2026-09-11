@@ -478,7 +478,7 @@ public sealed partial class AgentHostRuntime
 
             if (decision.ExecutionPlanUpdate != null ||
                 (_executingPlan && decision.ObjectiveUpdate?.Operation is "set" or "pause" or "clear" or "complete"))
-                await StopActionAsync(handoffLease: decision.ExecutionPlanUpdate?.Operation == "replace").ConfigureAwait(false);
+                await StopActionAsync(handoffLease: decision.Action != null || decision.ExecutionPlanUpdate?.Operation == "replace").ConfigureAwait(false);
 
             if (playerText.Length > 0) Remember(AgentPromptFiles.Text("AgentHostRuntime.08") + playerText);
             cancellationToken.ThrowIfCancellationRequested();
@@ -791,7 +791,19 @@ public sealed partial class AgentHostRuntime
         }
         finally
         {
-            if (acquired && !_handoffActionLease && mcp.HasEstablishedSession) try
+            if (acquired && !cancellationToken.IsCancellationRequested && !_handoffActionLease)
+            {
+                try
+                {
+                    var archive = await _memory.SnapshotAsync(CancellationToken.None).ConfigureAwait(false);
+                    _holdingPlanLease = archive.Objective is { Status: "active" } goal &&
+                        goal.AvatarNpcId == npcId && goal.WorldKey == _historyWorld?.WorldKey &&
+                        KeepGoalControl(archive.ExecutionPlan);
+                    if (_holdingPlanLease) _nextPlanLeaseRenewal = DateTimeOffset.UtcNow;
+                }
+                catch { _holdingPlanLease = false; }
+            }
+            if (acquired && !_holdingPlanLease && !_handoffActionLease && mcp.HasEstablishedSession) try
             {
                 await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None)
                     .ConfigureAwait(false);

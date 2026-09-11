@@ -321,7 +321,8 @@ public sealed partial class AgentExecutionRuntimeTests
                 turns.Add(new { turn, tick = host.Read(w => w.Tick), decision, usage = decision.ModelUsage });
                 await WriteCheckpointAsync(status, timeout.Token);
                 var emergency = decision.Action != null &&
-                    (decision.ObjectiveUpdate?.Operation == "pause" || state.Objective?.Status == "paused");
+                    (decision.ObjectiveUpdate?.Operation == "pause" || state.Objective?.Status == "paused" ||
+                     decision.ExecutionPlanUpdate?.Operation == "pause");
                 if (decision.Action != null && !emergency) throw new InvalidOperationException("ModelDidNotProduceExecutionPlan");
                 await store.CommitTurnAsync(world, "model-" + turn, turn == 0 ? "voice" : "heartbeat", decision, timeout.Token);
                 var saved = await store.SnapshotAsync(timeout.Token);

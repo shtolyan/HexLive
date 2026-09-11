@@ -24,6 +24,8 @@
 !HexLive.Simulation.Standalone.csproj
 !/Server/**/*.csproj
 !/Tests/**/*.csproj
+!/Launcher/**/*.csproj
+/Launcher/**/[Bb]in/
 *.suo
 *.tmp
 *.user
@@ -110,3 +112,16 @@ _ArtSource/Voice/lipsync_analysis.json
 
 # Артефакты прогонов dotnet test (.trx) — локальные результаты, не исходники.
 /Tests/**/TestResults/
+
+# Machine-local agent configuration and credentials.
+/.claude/settings.local.json
+/.codex/config.toml
+/.agents/skills/hexlive-bug-tracker/bug-token
+/Docs/WindowsClientIdentityFollowup.md
+
+# Git LFS working files accidentally created outside .git/.
+/lfs/
+/hooks/post-checkout
+/hooks/post-commit
+/hooks/post-merge
+/hooks/pre-push

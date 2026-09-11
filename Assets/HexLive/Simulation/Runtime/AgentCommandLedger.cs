@@ -41,6 +41,13 @@ public sealed class AgentCommandLedger
         if (!world.AgentCommands.TryGetValue(npc.Id.Value, out var ledger) || ledger.ActiveSequence == 0) return;
         if (npc.Health <= 0 || !npc.Mind.ManualControl)
             Finish(world, npc, "failed", "ControlLost");
+        else if (npc.Mind.CurrentGoal == GoalType.PlayerAttack &&
+            (npc.Mind.ManualAttackNpcId is not null || npc.Mind.ManualAttackMobId is not null))
+        {
+            // The attack latch owns its outcome. A movement leg can be absent,
+            // finished or replaced while the fight is still pending.
+            return;
+        }
         else if (ledger.RestNeed.Length > 0 && npc.Plan.Status == PlanStatus.Active &&
             npc.Execution.Status == ExecutionStatus.InProgress &&
             ((ledger.RestNeed == "Energy" && npc.Execution.CurrentInteraction == InteractionType.Sleep && npc.Needs.Energy >= ledger.RestTarget) ||
@@ -68,6 +75,13 @@ public sealed class AgentCommandLedger
             else if (npc.Plan.Status == PlanStatus.Failed || npc.Plan.Status == PlanStatus.Invalid)
                 Finish(world, npc, "failed", "PlanFailed");
         }
+    }
+
+    public static void FinishMobAttacks(WorldState world, int mobId)
+    {
+        foreach (var npc in world.Entities.Npcs.Values)
+            if (npc.Mind.CurrentGoal == GoalType.PlayerAttack && npc.Mind.ManualAttackMobId == mobId)
+                Finish(world, npc, "completed", "TargetDown");
     }
 }
 }

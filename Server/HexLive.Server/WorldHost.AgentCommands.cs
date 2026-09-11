@@ -78,11 +78,14 @@ public sealed partial class WorldHost
             { receipt.Outcome = "failed"; receipt.Reason = admission.Reason.Length <= 96 ? admission.Reason : "Rejected"; }
             else if (restSatisfied)
             { receipt.Outcome = "completed"; receipt.Reason = "RestTargetReached"; }
-            else if (command is StopCommand)
+            else if (command is StopCommand or RequestItemCommand or MergeCampsCommand or ManageInventoryCommand ||
+                command is SelfActionCommand { Kind: SelfActionKind.CallForHelp })
             { receipt.Outcome = "completed"; receipt.Reason = "Completed"; }
             else if (npc.Plan.Status is PlanStatus.Failed or PlanStatus.Invalid)
             { receipt.Outcome = "failed"; receipt.Reason = "PlanFailed"; }
-            else if (npc.Plan.Status == PlanStatus.Active || npc.Execution.Status == ExecutionStatus.InProgress)
+            else if (npc.Plan.Status == PlanStatus.Active || npc.Execution.Status == ExecutionStatus.InProgress ||
+                command is AttackMobCommand or AttackNpcCommand ||
+                command is SelfActionCommand { Kind: SelfActionKind.EatFromPack or SelfActionKind.DrinkFromPack })
             { receipt.Outcome = "accepted"; receipt.Reason = "Accepted"; ledger.ActiveSequence = request.Sequence;
                 ledger.RestNeed = request.RestNeed; ledger.RestTarget = request.RestTarget; }
             else

@@ -1,0 +1,24 @@
+{
+  "change": "Command-specific completion for immediate inventory/help and deferred attack/needs; gameplay clock advances pending receipts without a movement plan.",
+  "focusedChecks": {
+    "ServerReceiptTestsPassed": 21,
+    "HostNativeQueueTestsPassed": 2
+  },
+  "regressions": {
+    "oldAttackWithoutPlan": "Incorrectly completed on admission",
+    "oldAttackAfterFailure": "Inherited PlanFailed",
+    "oldInventoryNeedAfterFailure": "Inherited PlanFailed",
+    "oldHelpCry": "Corrected valid fixture fails against original production classifier; real cry occurs but receipt is failed.",
+    "newCombatQueue": "Actual native combat kills a weak fixture mob before next step;2 commands,0 model calls.",
+    "attackApproach": "Internal approach retirement preserves attack receipt; explicit Stop fails it.",
+    "death": "Both native death sweep paths completeTargetDown; unverified disappearance remainsfailedTargetGone.",
+    "instantInventory": "Actual Wear completes and preserves previous body plan; duplicate receipt does not reapply."
+  },
+  "fullChecks": "Running; no full pass claimed for this revision yet.",
+  "modelAcceptance": "Not yet tested. ca678 diagnostic stopped after27calls/18turns because false emergency receipts invalidated behavior evaluation. Grok requests remain stopped afterHTTP403.",
+  "baselineProductionRevision": "a31e9035220749b5ffdfa7c8f4036b9f9d9f0e12",
+  "baselineHelpCryLog": "/private/tmp/hexlive-help-cry-baseline.log",
+  "receiptLog": "/private/tmp/hexlive-command-lifecycle-receipts.log",
+  "nativeQueueLog": "/private/tmp/hexlive-command-lifecycle-runtime.log",
+  "productionUpdated": false
+}

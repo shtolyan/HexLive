@@ -81,6 +81,59 @@ public sealed partial class AgentExecutionRuntimeTests
     }
 
     [Test]
+    public async Task CombatQueueAdvancesTheClockWithoutAMovementPlanAndWaitsForTheRealOutcome()
+    {
+        using var host = Host();
+        var engine = (SimulationEngine)typeof(WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+        host.Read(w =>
+        {
+            foreach (var person in w.Entities.Npcs.Values) { person.Mind.ManualControl = true; person.Faction = Faction.Colony; }
+            for (var i = 0; i < 64; i++) engine.Step();
+            w.Mobs.Clear();
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Needs.Hunger = npc.Needs.Thirst = 0;
+            npc.Needs.Energy = npc.Needs.Stamina = 1;
+            npc.IsFighting = true;
+            w.Mobs.Add(new HexLive.Simulation.Wildlife.MobState
+            { Id = 777, Tile = npc.Tile, Junction = npc.CurrentJunction!.Value,
+              Position = npc.Position, TargetPosition = npc.Position, TargetNpc = npc.Id,
+              Status = HexLive.Simulation.Wildlife.MobStatus.Fighting,
+              Health = .0001f, AttackReadyAtTick = w.Tick + 10000 });
+            return true;
+        });
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("defend", "attack_mob", JsonSerializer.SerializeToElement(new { mobId = 777 })),
+             new("after", "stop", JsonSerializer.SerializeToElement(new { }))]);
+        var running = Run(runtime, mcp, plan.Id, world, 30);
+        var sawDeferredWithoutMovement = false;
+        while (!running.IsCompleted)
+        {
+            host.Read(w =>
+            {
+                var npc = w.Entities.Npcs[new EntityId(901)];
+                for (var i = 0; i < 16 && GameplayExecutionPending(w, npc); i++)
+                {
+                    sawDeferredWithoutMovement |= npc.Plan.Status != HexLive.Simulation.AI.PlanStatus.Active;
+                    engine.Step();
+                }
+                return true;
+            });
+            await Task.Delay(1);
+        }
+        await running;
+        Assert.That(sawDeferredWithoutMovement, Is.True);
+        Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("completed"));
+        Assert.That(host.Read(w => w.Mobs.Any(m => m.Id == 777)), Is.False);
+        Assert.That(host.Read(w => w.AgentCommands[901].Receipts[0].Reason), Is.EqualTo("TargetDown"));
+        Assert.That(transport.Executions, Is.EqualTo(2));
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
+    [Test]
     public async Task TwoNativeExplorationLegsRunWithoutModelCallsAndKeepTheObjective()
     {
         using var host = Host();

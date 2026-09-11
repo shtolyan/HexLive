@@ -21,6 +21,149 @@ public sealed class AgentCommandReceiptTests
     [TearDown] public void Cleanup() => Directory.Delete(_directory, true);
 
     [Test]
+    public void HelpCryCompletesWithoutInheritingThePreviousFailedPlan()
+    {
+        using var host = Host(); var tools = Tools(host);
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Plan.Status = PlanStatus.Failed;
+            npc.IsFighting = true;
+            npc.Mind.LastHelpCryTick = -10000;
+            npc.Mind.CombatOpponentNpcId = w.Entities.Npcs.Keys.First(id => id.Value != 901);
+            return true;
+        });
+        var args = new { npcId = 901, sequence = 1, commandId = "command-1", tool = "self_action",
+            arguments = new { kind = "CallForHelp" } };
+        var result = Call(tools, "execute_agent_command", args);
+        Assert.That(host.Read(w => w.Events.Items.Count(e => e.Type == "HelpCry" && e.EntityId == 901)), Is.EqualTo(1));
+        Assert.That(result.GetProperty("outcome").GetString(), Is.EqualTo("completed"));
+        Assert.That(Call(tools, "execute_agent_command", args).GetProperty("outcome").GetString(), Is.EqualTo("completed"));
+        Assert.That(host.Read(w => w.Events.Items.Count(e => e.Type == "HelpCry" && e.EntityId == 901)), Is.EqualTo(1));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Plan.Status), Is.EqualTo(PlanStatus.Failed), "A cry must not change the body's previous plan.");
+    }
+
+    [TestCase(PlanStatus.None)]
+    [TestCase(PlanStatus.Failed)]
+    public void MobAttackRemainsPendingUntilItsOwnOutcome(PlanStatus previousStatus)
+    {
+        using var host = Host(); var engine = Engine(host);
+        host.Read(w => { engine.Step(); return true; });
+        var tools = Tools(host);
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Plan.Status = previousStatus;
+            w.Mobs.Add(new HexLive.Simulation.Wildlife.MobState
+            { Id = 777, Tile = npc.Tile, Junction = npc.CurrentJunction!.Value,
+              Position = npc.Position, TargetPosition = npc.Position });
+            return true;
+        });
+        var result = Call(tools, "execute_agent_command", new
+        { npcId = 901, sequence = 1, commandId = "command-1", tool = "attack_mob", arguments = new { mobId = 777 } });
+        Assert.That(result.GetProperty("outcome").GetString(), Is.EqualTo("accepted"));
+        Assert.That(Read(tools, 1).GetProperty("outcome").GetString(), Is.EqualTo("accepted"));
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Plan.Status = PlanStatus.Active;
+            npc.Plan.Goal = GoalType.PlayerAttack;
+            new ManualOrderSystem().Run(w); // Already beside the target: retire the approach, keep fighting.
+            return true;
+        });
+        Assert.That(Read(tools, 1).GetProperty("outcome").GetString(), Is.EqualTo("accepted"), "Ending an approach is not ending the fight.");
+        Call(tools, "stop", new { npcId = 901 });
+        Assert.That(Read(tools, 1).GetProperty("outcome").GetString(), Is.EqualTo("failed"));
+        Assert.That(Read(tools, 1).GetProperty("reason").GetString(), Is.EqualTo("PlanInterrupted.PlayerCommand"));
+    }
+
+    [TestCase(PlanStatus.Failed)]
+    [TestCase(PlanStatus.Active)]
+    public void InstantInventoryChangeHasItsOwnCompletedReceipt(PlanStatus previousStatus)
+    {
+        using var host = Host(); var tools = Tools(host);
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Inventory.Items.Clear(); npc.WornItems.Clear();
+            npc.Inventory.Items.Add(new HexLive.Simulation.Agents.ItemInstance("gear.backpack_riot"));
+            npc.Plan.Status = previousStatus;
+            return true;
+        });
+        var args = new { npcId = 901, sequence = 1, commandId = "command-1", tool = "manage_inventory",
+            arguments = new { source = "Carried", index = 0, expectedDefinitionId = "gear.backpack_riot", action = "Wear" } };
+        Assert.That(Call(tools, "execute_agent_command", args).GetProperty("outcome").GetString(), Is.EqualTo("completed"));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].WornItems.Count), Is.EqualTo(1));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Plan.Status), Is.EqualTo(previousStatus));
+        Assert.That(Call(tools, "execute_agent_command", args).GetProperty("outcome").GetString(), Is.EqualTo("completed"));
+    }
+
+    [TestCase("fast-death", "completed", "TargetDown")]
+    [TestCase("medium-death", "completed", "TargetDown")]
+    [TestCase("disappeared", "failed", "TargetGone")]
+    public void MobAttackDistinguishesDeathFromUnexplainedDisappearance(string finish, string outcome, string reason)
+    {
+        using var host = Host(); var engine = Engine(host);
+        host.Read(w => { engine.Step(); return true; });
+        var tools = Tools(host);
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            w.Mobs.Add(new HexLive.Simulation.Wildlife.MobState
+            { Id = 777, Tile = npc.Tile, Junction = npc.CurrentJunction!.Value,
+              Position = npc.Position, TargetPosition = npc.Position });
+            return true;
+        });
+        var result = Call(tools, "execute_agent_command", new
+        { npcId = 901, sequence = 1, commandId = "command-1", tool = "attack_mob", arguments = new { mobId = 777 } });
+        Assert.That(result.GetProperty("outcome").GetString(), Is.EqualTo("accepted"));
+        host.Read(w =>
+        {
+            var mob = w.Mobs.Single(m => m.Id == 777);
+            if (finish == "disappeared") w.Mobs.Remove(mob);
+            else
+            {
+                mob.Health = 0;
+                if (finish == "fast-death") new AnimalCombatSystem().Run(w);
+                else new MobSystem().Run(w);
+            }
+            new ManualOrderSystem().Run(w);
+            return true;
+        });
+        Assert.That(Read(tools, 1).GetProperty("outcome").GetString(), Is.EqualTo(outcome));
+        Assert.That(Read(tools, 1).GetProperty("reason").GetString(), Is.EqualTo(reason));
+    }
+
+    [TestCase("EatFromPack", "food.meat_cooked")]
+    [TestCase("DrinkFromPack", "food.coconut_pierced")]
+    public void InventoryNeedWaitsForActualConsumptionAfterAFailedPlan(string kind, string item)
+    {
+        using var host = Host(); var engine = Engine(host);
+        host.Read(w => { engine.Step(); return true; });
+        var tools = Tools(host);
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Plan.Status = PlanStatus.Failed; npc.Inventory.Items.Clear();
+            npc.Inventory.Items.Add(new HexLive.Simulation.Agents.ItemInstance(item)
+                { ResourceAmount = kind == "DrinkFromPack" ? 2f : 0f });
+            npc.Needs.Hunger = kind == "EatFromPack" ? .4f : 0;
+            npc.Needs.Thirst = kind == "DrinkFromPack" ? .4f : 0;
+            return true;
+        });
+        var result = Call(tools, "execute_agent_command", new
+        { npcId = 901, sequence = 1, commandId = "command-1", tool = "self_action", arguments = new { kind } });
+        Assert.That(result.GetProperty("outcome").GetString(), Is.EqualTo("accepted"));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Inventory.Items.Count), Is.EqualTo(1));
+        for (var i = 0; i < 400 && Read(tools, 1).GetProperty("outcome").GetString() == "accepted"; i++)
+            host.Read(w => { engine.Step(); return true; });
+        Assert.That(Read(tools, 1).GetProperty("outcome").GetString(), Is.EqualTo("completed"));
+        Assert.That(host.Read(w => kind == "EatFromPack"
+            ? w.Entities.Npcs[new EntityId(901)].Needs.Hunger
+            : w.Entities.Npcs[new EntityId(901)].Needs.Thirst), Is.LessThan(.15f));
+    }
+
+    [Test]
     public void ReplayAndSaveReloadDoNotExecuteTheCommandAgain()
     {
         using (var host = Host())

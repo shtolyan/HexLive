@@ -498,6 +498,10 @@ internal static class ManualCommandExecutor
                 npc.Mind.WakeGraceUntilTick, world.Tick + AiBalance.WakeGraceTicks);
         }
 
+        // A pending attack/need can have no active movement plan. Its receipt
+        // still belongs to the old order and must not survive a new command.
+        AgentCommandLedger.Observe(world, npc);
+        AgentCommandLedger.Finish(world, npc, "failed", "PlanInterrupted.PlayerCommand");
         npc.Plan.Steps.Clear();
         npc.Plan.RunRequested = false;
         npc.Plan.RequestedTalkTopic = null;
@@ -1667,6 +1671,7 @@ internal static class ManualCommandExecutor
                 ClearAttackOrder(world, npc);
                 // План построит штатный планировщик: Eat в списке
                 // MayPlanGoal ручной (§121.6, inventory-only).
+                npc.Plan.Status = PlanStatus.None;
                 npc.Mind.CurrentGoal = GoalType.Eat;
                 break;
 
@@ -1680,6 +1685,7 @@ internal static class ManualCommandExecutor
 
                 ClearForNewOrder(world, npc, "Приказ попить", keepCarriedPerson: true);
                 ClearAttackOrder(world, npc);
+                npc.Plan.Status = PlanStatus.None;
                 npc.Mind.CurrentGoal = GoalType.Drink;
                 break;
 
@@ -3142,6 +3148,7 @@ internal static class ManualCommandExecutor
 
         npc.Mind.CurrentGoal = GoalType.PlayerAttack;
         npc.Mind.ManualAttackNpcId = target.Id;
+        npc.Plan.Status = PlanStatus.None;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
@@ -3176,6 +3183,7 @@ internal static class ManualCommandExecutor
 
         npc.Mind.CurrentGoal = GoalType.PlayerAttack;
         npc.Mind.ManualAttackMobId = command.MobId;
+        npc.Plan.Status = PlanStatus.None;
         // Сцепку со зверем держит §57: AnimalCombatSystem бьёт любого, у кого
         // стоит CombatAssistDogId, — приказ просто становится в тот же строй.
         npc.Mind.CombatAssistDogId = command.MobId;

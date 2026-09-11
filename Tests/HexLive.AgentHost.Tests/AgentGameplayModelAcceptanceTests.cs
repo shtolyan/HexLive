@@ -19,6 +19,9 @@ namespace HexLive.AgentHost.Tests;
 public sealed partial class AgentExecutionRuntimeTests
 {
     private const string GameplayProviderComposition = "production-knowledge-v1";
+    private static bool GameplayExecutionPending(WorldState world, NPCState npc) =>
+        npc.Plan.Status == PlanStatus.Active ||
+        world.AgentCommands.TryGetValue(npc.Id.Value, out var ledger) && ledger.ActiveSequence != 0;
     private static IAgentProviders GameplayProviders(IAgentProviders inner, McpClient mcp)
         => new KnowledgeAwareAgentProviders(inner, mcp.CreateFresh());
 
@@ -412,7 +415,9 @@ public sealed partial class AgentExecutionRuntimeTests
                     host.Read(w =>
                     {
                         var npc = w.Entities.Npcs[new EntityId(901)];
-                        for (var i = 0; i < 16 && npc.Plan.Status == PlanStatus.Active; i++)
+                        // An accepted attack or inventory need starts outside the
+                        // movement planner. Freeze only inference, not that work.
+                        for (var i = 0; i < 16 && GameplayExecutionPending(w, npc); i++)
                         {
                             engine.Step();
                             sawSleep |= npc.Execution.CurrentInteraction == InteractionType.Sleep;

@@ -64,6 +64,10 @@ request/command/result; краткое решение, источники, до/
 
 ## Журнал выполнения
 
+- Полный Server после пустого фильтра: 299/299 PASS. Studio Release build PASS (два CS9057 предупреждения Avalonia), публикация ещё не выполнена.
+- Grok resilience: 5/6; один ответ сочетал complete и новую выгрузку, запись отвергла InvalidExecutionPlanBinding. Конфликт теперь обрабатывается до записи общим ограниченным decision.repair и повторно проверяется persistence; focused Host 38/38 PASS. Grok gift остановлен диагностически после двух сбоев: повтор подарков из-за неизменного голода и complete вместе с aid_person. Навык различает подарок и кормление.
+- Codex bed c14d: диагностически остановлен после каркаса и палок, на повторных NoDropSpot. Крона попала в инвентарь через native scatter fallback при рубке, а не отдельный PickUp модели. Нужны проверяемые сведения о месте выгрузки; подсказки навыка одни этого не исправили.
+
 - После исправления пустого фильтра: MCP knowledge 17/17 PASS, полный AgentHost 271/271 PASS, Python отчёты/диагностика 6/6 PASS, spec index актуален.
 
 - Grok `grok-4.20-0309-reasoning`: кокосы 6/6 PASS на 187cacd73. Отдельные результаты reasoning-модели не заменяют baseline non-reasoning 0/6.

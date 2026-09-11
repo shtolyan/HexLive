@@ -103,12 +103,12 @@ public sealed class AgentMemoryRecall
                 trace.Add(new { operation = "decision.repair", error = "ConflictingActionAndExecutionPlan" });
                 continue;
             }
-            if (answer.ObjectiveUpdate?.Operation == "complete" && state.ExecutionPlan is { Status: "active" or "paused" })
+            if (AgentExecutionPlanPolicy.CompletesWithPendingWork(answer, state.ExecutionPlan))
             {
                 if (round == 3) throw new InvalidDataException("ExecutionPlanNotCompleted");
                 decisionRepair = new { decisionError = "ExecutionPlanNotCompleted",
                     rejectedDecision = JsonSerializer.Serialize(answer),
-                    instruction = "The queue is not completed. Check its status, server failure reason and current inventory. Do not mark the objective complete or claim delivery. Repair the unfinished steps, or explicitly pause/cancel the objective if it cannot continue." };
+                    instruction = "Completion cannot accompany new actions or a plan update, or an unfinished existing queue. If work remains (including unloading), keep the objective active and return that plan without claiming completion. Only a later observation of confirmed results permits complete with action=null and executionPlanUpdate=null. Check the queue, server failure reason and current inventory." };
                 trace.Add(new { operation = "decision.repair", error = "ExecutionPlanNotCompleted" });
                 continue;
             }

@@ -232,6 +232,7 @@ public sealed partial class AgentExecutionRuntimeTests
         var passed = false;
         var multiStep = false;
         var status = "Incomplete";
+        string? failureCode = null;
         var initialTick = host.Read(w => w.Tick);
         void AdvanceObservationClock(bool heartbeat)
         {
@@ -384,10 +385,18 @@ public sealed partial class AgentExecutionRuntimeTests
             Assert.That(noModelDuringExecution.Calls, Is.Zero);
             Assert.That(passed, Is.True, status + "; inspect " + report);
         }
-        catch (Exception ex) { status = ex.GetType().Name + ":" + status; throw; }
+        catch (Exception ex)
+        {
+            failureCode = ex is InvalidDataException or InvalidOperationException &&
+                ex.Message.Length is > 0 and <= 96 &&
+                ex.Message.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '.')
+                    ? ex.Message : ex.GetType().Name;
+            status = ex.GetType().Name + ":" + status;
+            throw;
+        }
         finally
         {
-            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, passed, status,
+            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, passed, status, failureCode,
                 gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
                 emergencyActions = turns.Count(t => JsonSerializer.SerializeToElement(t).GetProperty("decision").TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.Object),
                 referenceReads, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));

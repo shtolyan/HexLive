@@ -66,6 +66,10 @@ public static class AgentExecutionPlanPolicy
 
     // Older/provider-specific decisions may express a one-command continuation
     // as action. Give it the same durable receipt semantics as an explicit queue.
+    public static bool CompletesWithPendingWork(CompanionDecision decision, AgentExecutionPlan? current) =>
+        decision.ObjectiveUpdate?.Operation == "complete" &&
+        (current is { Status: "active" or "paused" } || decision.ExecutionPlanUpdate != null || decision.Action != null);
+
     public static void NormalizeContinuation(CompanionDecision decision, MashaArchive state, string worldKey, int npcId)
     {
         if (decision.Action is not { } action || action.Tool == "query_known_objects" ||

@@ -6,6 +6,45 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentReferenceReaderTests
 {
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public async Task CompletionWithNewWorkIsRepairedBeforeCommit(bool physicalAction, bool alwaysConflicting)
+    {
+        var root = Directory.CreateTempSubdirectory("completion-repair-").FullName;
+        try
+        {
+            var calls = 0;
+            var run = new AgentMemoryRecall(root).DecideAsync("", new("world", "world", 0, 50), new(), (context, _) =>
+            {
+                calls++;
+                if (calls > 1) Assert.That(context, Does.Contain("ExecutionPlanNotCompleted"));
+                return Task.FromResult(calls == 1 || alwaysConflicting
+                    ? new CompanionDecision { Speech = "must-not-publish", ObjectiveUpdate = new() { Operation = "complete" },
+                        Action = physicalAction ? new() { Tool = "stop", Arguments = JsonSerializer.SerializeToElement(new { }) } : null,
+                        ExecutionPlanUpdate = physicalAction ? null : new() { Operation = "replace", Reason = "Unload",
+                            Steps = [new("drop", "stop", JsonSerializer.SerializeToElement(new { }))] } }
+                    : new CompanionDecision { IntentSummary = "continue-unloading" });
+            }, default);
+            if (alwaysConflicting)
+            {
+                var error = Assert.ThrowsAsync<InvalidDataException>(async () => await run);
+                Assert.That(error!.Message, Is.EqualTo("ExecutionPlanNotCompleted"));
+                Assert.That(calls, Is.EqualTo(4));
+            }
+            else
+            {
+                var result = await run;
+                Assert.That(result.IntentSummary, Is.EqualTo("continue-unloading"));
+                Assert.That(result.Speech, Is.Empty);
+                Assert.That(result.ObjectiveUpdate, Is.Null);
+                Assert.That(calls, Is.EqualTo(2));
+            }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     [Test]
     public void InvalidDecisionCarriesItsRejectedFinalJsonForCorrection()
     {

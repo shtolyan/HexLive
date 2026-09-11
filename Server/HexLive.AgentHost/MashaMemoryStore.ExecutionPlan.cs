@@ -18,7 +18,7 @@ public sealed partial class MashaMemoryStore
             throw new AgentObjectiveConflictException();
         if (update != null && (world.ExecutionPlanRevision == null || world.ExecutionPlanId == null))
             throw new AgentObjectiveConflictException();
-        if (decision.ObjectiveUpdate?.Operation == "complete" && current is { Status: "active" or "paused" })
+        if (AgentExecutionPlanPolicy.CompletesWithPendingWork(decision, current))
             throw new InvalidDataException("ExecutionPlanNotCompleted");
 
         if (current is { Status: "active" or "paused" } && decision.ObjectiveUpdate is { } goalUpdate)

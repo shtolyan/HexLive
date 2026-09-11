@@ -32,6 +32,31 @@ public sealed class AgentExecutionPersistenceTests
         Assert.That((await store.SnapshotAsync(default)).Objective!.Status, Is.EqualTo("canceled"));
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task CompletingAlongsideNewWorkLeavesObjectiveAndTurnUntouched(bool physicalAction)
+    {
+        var store = new MashaMemoryStore(_directory);
+        var world = await World(store);
+        var goal = NewPlan();
+        goal.ExecutionPlanUpdate = null;
+        await store.CommitTurnAsync(world, "goal", "voice", goal, default);
+        world = await World(store);
+        var decision = new CompanionDecision
+        {
+            ObjectiveUpdate = new() { Operation = "complete", Reason = "Premature" },
+            ExecutionPlanUpdate = physicalAction ? null : NewPlan().ExecutionPlanUpdate,
+            Action = physicalAction ? new() { Tool = "stop", Arguments = JsonSerializer.SerializeToElement(new { }) } : null
+        };
+        var error = Assert.ThrowsAsync<InvalidDataException>(() =>
+            store.CommitTurnAsync(world, "premature", "heartbeat", decision, default));
+        Assert.That(error!.Message, Is.EqualTo("ExecutionPlanNotCompleted"));
+        var saved = await new MashaMemoryStore(_directory).SnapshotAsync(default);
+        Assert.That(saved.Objective!.Status, Is.EqualTo("active"));
+        Assert.That(saved.ExecutionPlan, Is.Null);
+        Assert.That(saved.AppliedTurnIds, Does.Not.Contain("premature"));
+    }
+
     [Test]
     public async Task PlanAndObjectiveCommitOnceWithTurnAndPreparedCommandSurvivesRestart()
     {

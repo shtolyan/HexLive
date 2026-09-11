@@ -61,6 +61,23 @@ class AcceptanceMatrixTests(unittest.TestCase):
             self.assertEqual({r["reasoningEffort"] for r in rows}, {"low", "medium"})
             self.assertTrue(all(r["passed"] == 3 and not r["accepted"] for r in rows))
 
+    def test_five_successes_cannot_accept_a_sixth_running_checkpoint(self):
+        with tempfile.TemporaryDirectory() as root:
+            for fixture, repeat in summary.CASES:
+                self.write(root, f"bed-{fixture}-{repeat}.json", "bed", fixture, repeat)
+            path = Path(root, "bed-2-1.json")
+            data = json.loads(path.read_text())
+            data.pop("passed")
+            data["status"] = "Incomplete"
+            path.write_text(json.dumps(data))
+            row = next(r for r in summary.summarize([root])["rows"] if r["scenario"] == "bed")
+            self.assertEqual(row["passed"], 5)
+            self.assertEqual(row["pending"], [(2, 1)])
+            self.assertFalse(row["accepted"])
+            data.update(passed=False, status="DiagnosticStopped")
+            path.write_text(json.dumps(data))
+            self.assertFalse(next(r for r in summary.summarize([root])["rows"] if r["scenario"] == "bed")["accepted"])
+
     @staticmethod
     def write(root, filename, scenario, fixture, repeat, passed=True):
         Path(root, filename).write_text(json.dumps(dict(providerName="fixture", modelId="model", scenario=scenario,

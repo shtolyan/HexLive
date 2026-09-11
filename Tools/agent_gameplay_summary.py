@@ -34,9 +34,12 @@ def summarize(directories):
             cases = groups.get((*provider, scenario), {})
             passed = sum(d.get("passed") is True and d.get("status") == "Completed" for d in cases.values())
             missing = sorted(CASES - cases.keys())
+            pending = sorted(c for c, d in cases.items()
+                             if type(d.get("passed")) is not bool or
+                             d.get("status") in ("Incomplete", "DiagnosticStopped"))
             rows.append(dict(provider=provider[0], model=provider[1], reasoningEffort=provider[2], scenario=scenario,
-                             passed=passed, total=6, missing=missing,
-                             accepted=not missing and passed >= 5 and not any(
+                             passed=passed, total=6, missing=missing, pending=pending,
+                             accepted=not missing and not pending and passed >= 5 and not any(
                                  "FalseCompletion" in str(d.get("status", "")) for d in cases.values()),
                              calls=sum(d.get("calls", 0) for d in cases.values()),
                              commands=sum(d.get("commands", 0) for d in cases.values()),

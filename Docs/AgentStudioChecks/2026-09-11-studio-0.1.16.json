@@ -1,0 +1,21 @@
+{
+  "version": "0.1.16",
+  "packagedAtUtc": "2026-09-11T04:33:10.830732+00:00",
+  "kind": "framework-dependent-preview",
+  "requiresInstalledDotnet": "9",
+  "binarySource": "/private/tmp/hexlive-studio-release-b54/Build/dotnet/bin/HexLive.AgentStudio/Release/net9.0",
+  "compiledByThisTool": false,
+  "codeSignature": "certificate-verified",
+  "coreSha256": "fe2cd8124a7bb05c3c1dc7ebc642c5c1c05ea9ec1b8a71361abfb95318ff2e9f",
+  "note": "Existing successful binary packaged with icon; not a completed Agent Studio release.",
+  "sourceCommit": "48d6724c104f3cba5e6bfbc17bd221d6ae4a1267",
+  "sourceManifest": "/private/tmp/hexlive-studio-release-b54/source-manifest.json",
+  "technicalChecks": {
+    "Host": 307,
+    "Core": 106,
+    "Server": 307,
+    "SimulationPassed": 1576,
+    "SimulationPreexistingSkipped": 6
+  },
+  "modelAcceptance": "Incomplete; frozen source48d bed0/0 and2/1 running. Prior source713e bed2/1 passed and0/0 stopped diagnostically; results are not mixed. Grok requests stopped due HTTP403 balance/spending restriction."
+}

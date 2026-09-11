@@ -17,6 +17,7 @@ import subprocess
 import sys
 import urllib.request
 from typing import Any
+from bug_credentials import configure_build_bug_token
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -644,9 +645,7 @@ def update_latest_player_link(releases: Path, artifact: Path) -> Path:
 
 def main() -> int:
     args = parse_args()
-    local_bug_token = Path.home() / ".config" / "hexlive" / "bug-token"
-    if not os.environ.get("HEXLIVE_BUG_TOKEN") and local_bug_token.is_file():
-        os.environ["HEXLIVE_BUG_TOKEN"] = local_bug_token.read_text(encoding="utf-8").strip()
+    configure_build_bug_token()
     releases = args.output_root.expanduser().resolve()
     version, version_reason = planned_version()
     variant = "release" if args.release else "development"

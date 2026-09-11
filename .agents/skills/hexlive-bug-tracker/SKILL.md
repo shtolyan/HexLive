@@ -16,10 +16,15 @@ so already running agents and game clients remain compatible. The retired
 SQLite database is a backup, not the source of current reports.
 
 Every request, including GET and report creation, requires a Bearer access key.
-The updated CLI reads HEXLIVE_BUG_TOKEN, --token-file, the private skill bug-token,
-or ~/.config/hexlive/bug-token. The existing agent key is registered with
-created/in_progress/ready_for_test/rework permissions; it cannot set fixed,
-archive, delete, or manage keys. Use a separate named key per agent when available.
+The CLI and both player builders use only this device's private file:
+`~/.config/hexlive/bug-token` (Windows: `%USERPROFILE%\.config\hexlive\bug-token`).
+Each laptop has its own named key. Never select another agent's personal token
+or copy credentials into a checkout/shared instructions. The CLI's explicit
+`--token-file` overrides the default file; unreadable or empty files fail closed.
+Inherited HEXLIVE_BUG_TOKEN and repository token files are never fallback sources.
+Before writes, run `bugs.py whoami` and check the key name matches this device.
+Agent/device keys allow created/in_progress/ready_for_test/rework, not fixed,
+archive, delete, or key management. Keep assignedAgent/handoff for task ownership.
 The player key has all statuses but cannot manage access keys. A distinct admin
 key manages keys in Flashback. Never print token files or include secrets in reports.
 
@@ -58,6 +63,7 @@ Unity MCP lease coordination file and a retired migration source.
 Useful commands:
 
 ```bash
+python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py whoami
 python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py queue
 python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py get 123
 python3 .agents/skills/hexlive-bug-tracker/scripts/bugs.py update 123 --status in_progress --assigned-agent /root --handoff "Взят в работу"

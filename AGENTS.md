@@ -89,6 +89,11 @@ New York HTTPS `/api/bugs/v1` route proxies to this same API. Direct game-server
 routes and the old Singapore hostname return 410. The embedded SQLite tracker
 has been removed; archived snapshots are not writable runtime stores.
 
+- All agents on a laptop use its device key in `~/.config/hexlive/bug-token`
+  (Windows: `%USERPROFILE%\.config\hexlive\bug-token`). Never prescribe a
+  person's token in shared instructions. Run `bugs.py whoami` before writes;
+  verify the displayed key name belongs to this device. Missing credentials
+  must stop work, never fall back to another key or a repository token.
 - The work queue is every report whose `status` is `"created"` or `"rework"`.
   Before beginning work on one, immediately set its status to `"in_progress"`
   and append a Russian `codex` comment saying that work has been taken. Use its

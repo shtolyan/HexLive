@@ -31,6 +31,7 @@ import time
 import urllib.request
 from urllib.parse import urlsplit
 from typing import Any
+from bug_credentials import configure_build_bug_token
 
 # Отчёты и план печатаются по-русски, а консоль на этой машине бывает в cp1251
 # (Git Bash) — тогда обычный print падает на UnicodeEncodeError ещё до запуска
@@ -48,8 +49,6 @@ DEFAULT_RELEASES = DEFAULT_DISTRIBUTION / "Releases"
 PROJECT_SETTINGS = ROOT / "ProjectSettings" / "ProjectSettings.asset"
 PENDING_VERSION = ROOT / "Library" / "HexLivePendingBuildVersion.txt"
 BUG_API = os.environ.get("HEXLIVE_BUG_API", "https://flashback.62-146-235-120.sslip.io/api/bugs/v1").rstrip("/")
-REPOSITORY_BUG_TOKEN = ROOT / ".agents" / "skills" / "hexlive-bug-tracker" / "bug-token"
-USER_BUG_TOKEN = Path.home() / ".config" / "hexlive" / "bug-token"
 UNITY_LOCK = ROOT / "Temp" / "UnityLockfile"
 PLAYER_METHOD = "HexLive.UnityDebug.Editor.HexLiveReleaseBuilder.BuildWindows"
 AUTO_REFRESH_BACKUP = ROOT / "Library" / "HexLiveBuildAutoRefreshBackup-Windows.json"
@@ -238,16 +237,7 @@ def read_bug_tracker() -> dict[str, Any]:
 
 
 def configure_bug_token() -> None:
-    if os.environ.get("HEXLIVE_BUG_TOKEN", "").strip():
-        return
-    for path in (REPOSITORY_BUG_TOKEN, USER_BUG_TOKEN):
-        if not path.is_file():
-            continue
-        value = path.read_text(encoding="utf-8").strip()
-        if value:
-            os.environ["HEXLIVE_BUG_TOKEN"] = value
-            return
-
+    configure_build_bug_token()
 
 def active_reports(tracker: dict[str, Any], statuses: set[str]) -> list[dict[str, Any]]:
     return [

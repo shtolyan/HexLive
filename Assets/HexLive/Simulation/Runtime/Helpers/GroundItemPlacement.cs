@@ -15,15 +15,19 @@ namespace HexLive.Simulation.Runtime
 public static class GroundItemPlacementPreview
 {
     public const int ApproachRadiusTiles = 2;
+    public const int MaxApproachRadiusTiles = 6;
 
     public static bool TryFindApproach(WorldState world, NPCState npc, ItemInstance item,
-        out bool canDropHere, out Float2 approach, out JunctionId dropJunction, out int checkedOrigins)
+        out bool canDropHere, out Float2 approach, out JunctionId dropJunction, out int checkedOrigins,
+        int approachRadiusTiles = ApproachRadiusTiles)
     {
+        if (approachRadiusTiles < 1 || approachRadiusTiles > MaxApproachRadiusTiles)
+            throw new ArgumentOutOfRangeException(nameof(approachRadiusTiles));
         approach = npc.Position;
         checkedOrigins = 1;
         canDropHere = GroundItemPlacement.TryFind(world, npc, item, out _, out dropJunction, out _);
         if (canDropHere) return true;
-        for (var ring = 1; ring <= ApproachRadiusTiles; ring++)
+        for (var ring = 1; ring <= approachRadiusTiles; ring++)
         for (var dq = -ring; dq <= ring; dq++)
         for (var dr = Math.Max(-ring, -dq - ring); dr <= Math.Min(ring, -dq + ring); dr++)
         {

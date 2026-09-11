@@ -53,4 +53,5 @@ Use the current physical sourceIndex. The server checks one item with actual dro
 canDropHere allows Drop now, otherwise found supplies a nearby approach coordinate.
 This is not a path or reservation: move there, refresh the inventory and check again.
 NoNearbyDropSpot means no admitted placement in this bounded area, not an absent place
-everywhere. Do not retry identical Drop without a changed location or new evidence.
+everywhere. If exhausted, request approachRadiusTiles up to 6 (default 2, range 1..6).
+Do not retry identical Drop without a changed location or new evidence.

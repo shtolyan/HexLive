@@ -13,17 +13,17 @@ namespace HexLive.Server.Mcp;
 
 internal static class McpPlanningObservations
 {
-    public static string InventoryDrop(WorldState world, int npcId, int index, string expectedDefinitionId)
+    public static string InventoryDrop(WorldState world, int npcId, int index, string expectedDefinitionId, int approachRadiusTiles = GroundItemPlacementPreview.ApproachRadiusTiles)
     {
         if (!world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc))
             return JsonSerializer.Serialize(new { error = "NpcMissing", npcId });
         if (index < 0 || index >= npc.Inventory.Items.Count || npc.Inventory.Items[index].DefinitionId != expectedDefinitionId)
             return JsonSerializer.Serialize(new { error = "StaleInventoryItem", npcId });
         var found = GroundItemPlacementPreview.TryFindApproach(world, npc, npc.Inventory.Items[index],
-            out var canDropHere, out var approach, out var junction, out var checkedOrigins);
+            out var canDropHere, out var approach, out var junction, out var checkedOrigins, approachRadiusTiles);
         return JsonSerializer.Serialize(new { npcId, tick = world.Tick, sourceIndex = index, expectedDefinitionId,
             count = 1, canDropHere, found, reason = found ? "" : "NoNearbyDropSpot", checkedOrigins,
-            approachRadiusTiles = GroundItemPlacementPreview.ApproachRadiusTiles,
+            approachRadiusTiles,
             approach = found ? new { x = approach.X, y = approach.Y } : null,
             dropJunction = found ? (int?)junction.Value : null, routeChecked = false, reserved = false });
     }

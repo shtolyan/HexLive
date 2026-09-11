@@ -6,6 +6,50 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentReferenceReaderTests
 {
+    [TestCase("build-bed")]
+    [TestCase("recover-and-resume")]
+    public async Task CoreLongTaskSkillsFitOneReferencePage(string id)
+    {
+        using var handler = new DropTransport();
+        using var client = new McpClient(Options(), handler);
+        var read = await new AgentReferenceReader(client).ReadAsync("skills.read",
+            JsonSerializer.SerializeToElement(new { id }), default);
+        Assert.That(read.NextOffset, Is.Null, "Preparation and completion rules must arrive in the same initial skill read.");
+        using var envelope = JsonDocument.Parse(read.Text);
+        using var skill = JsonDocument.Parse(envelope.RootElement.GetProperty("text").GetString()!);
+        Assert.That(skill.RootElement.GetProperty("procedure").GetArrayLength(), Is.GreaterThan(0));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task IncompleteProviderResponseUsesBoundedCorrectionWithoutReturningPartialWork(bool alwaysIncomplete)
+    {
+        var root = Directory.CreateTempSubdirectory("incomplete-provider-").FullName;
+        try
+        {
+            var calls = 0;
+            var run = new AgentMemoryRecall(root).DecideAsync("", new("world", "world", 0, 50), new(), (context, _) =>
+            {
+                calls++;
+                if (calls > 1) Assert.That(context, Does.Contain("IncompleteModelResponse"));
+                if (alwaysIncomplete || calls == 1) throw new InvalidDataException("IncompleteModelResponse");
+                return Task.FromResult(new CompanionDecision());
+            }, default);
+            if (alwaysIncomplete)
+            {
+                var error = Assert.ThrowsAsync<InvalidDataException>(async () => await run);
+                Assert.That(error!.Message, Is.EqualTo("IncompleteModelResponse"));
+                Assert.That(calls, Is.EqualTo(4));
+            }
+            else
+            {
+                Assert.That((await run).Action, Is.Null);
+                Assert.That(calls, Is.EqualTo(2));
+            }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     [TestCase("conflict")]
     [TestCase("io")]
     public async Task PreflightConcurrencyAndStorageFailuresDoNotTriggerModelRepair(string kind)
@@ -41,7 +85,8 @@ public sealed class AgentReferenceReaderTests
             var run = new AgentMemoryRecall(root).DecideAsync("", new("world", "world", 0, 50), new(), (context, _) =>
             {
                 calls++;
-                if (calls > 1) Assert.That(context, Does.Contain("GiftRulesNotRead"));
+                if (calls == 2 || calls > 2 && !readsRules) Assert.That(context, Does.Contain("GiftRulesNotRead"));
+                if (calls == 3 && readsRules) Assert.That(context, Does.Not.Contain("GiftRulesNotRead"), "Resolved prerequisite must not demand the same read again.");
                 if (calls == 2 && readsRules)
                     return Task.FromResult(new CompanionDecision { MemoryRequests =
                         [new() { Operation = "spec.read", Arguments = JsonSerializer.SerializeToElement(new { section = "153" }) }] });
@@ -85,9 +130,10 @@ public sealed class AgentReferenceReaderTests
         using var client = new McpClient(Options(), handler);
         var reader = new AgentReferenceReader(client, npcId: 901);
         var read = await reader.ReadAsync("inventory.drop.read", JsonSerializer.SerializeToElement(new
-            { npcId = 999, index = 2, expectedDefinitionId = "resource.palm_crown" }), default);
+            { npcId = 999, index = 2, expectedDefinitionId = "resource.palm_crown", approachRadiusTiles = 6 }), default);
         Assert.That(handler.Arguments.GetProperty("npcId").GetInt32(), Is.EqualTo(901));
         Assert.That(handler.Arguments.GetProperty("index").GetInt32(), Is.EqualTo(2));
+        Assert.That(handler.Arguments.GetProperty("approachRadiusTiles").GetInt32(), Is.EqualTo(6));
         Assert.That(read.Text, Does.Contain("inventory-drop:901:2"));
         Assert.ThrowsAsync<InvalidDataException>(() => new AgentReferenceReader(client).ReadAsync("inventory.drop.read",
             JsonSerializer.SerializeToElement(new { index = 2, expectedDefinitionId = "resource.palm_crown" }), default));

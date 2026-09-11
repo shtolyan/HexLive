@@ -1,0 +1,24 @@
+{
+  "providerName": "Codex",
+  "modelId": "gpt-5.6-terra",
+  "scenario": "bed",
+  "fixture": 2,
+  "repetition": 0,
+  "calls": 56,
+  "passed": false,
+  "status": "AssertionException:Incomplete",
+  "failureCode": "AssertionException",
+  "gameTicks": 7283,
+  "sawSleep": true,
+  "commands": 51,
+  "reconciliations": 0,
+  "targetReplaced": false,
+  "restarted": false,
+  "emergencyActions": 3,
+  "sourceCommit": "99181f487",
+  "diagnosticOnly": true,
+  "observedProblems": [
+    "NoNearbyDropSpot exhausted local radius; moved without a broader placement query",
+    "Water preparation deferred until dehydration; repeated recovery and construction not completed within turn budget"
+  ]
+}

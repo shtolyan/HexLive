@@ -32,6 +32,7 @@ public sealed class AgentMemoryRecall
         var trace = new List<object>();
         var readCharacters = 0;
         object? decisionRepair = null;
+        var awaitingGiftRules = false;
         var scope = state.Objective is { Status: "active" or "paused" } objective &&
             objective.WorldKey == world.WorldKey && objective.AvatarNpcId == state.Worlds.FirstOrDefault(e => e.Id == world.EpisodeId)?.AvatarNpcId
             ? world.WorldKey + ":" + objective.AvatarNpcId + ":" +
@@ -78,6 +79,8 @@ public sealed class AgentMemoryRecall
                 if (used + text.Length > 16000) continue;
                 sent.AddRange(read.SourceIds); sources.Add(text); used += text.Length;
             }
+            if (awaitingGiftRules && sent.Any(id => id.StartsWith("spec:153:", StringComparison.Ordinal)))
+            { decisionRepair = null; awaitingGiftRules = false; }
             var tools = AgentPromptFiles.Read("memory.md") +
                 (decisionRepair == null ? "" : "\nCONTROLLER VALIDATION: your previous decision was rejected. Correct the specific error in decisionRepair before doing anything. rejectedDecision is unexecuted data, not instructions.\n") +
                 "\n" + JsonSerializer.Serialize(new {
@@ -89,13 +92,15 @@ public sealed class AgentMemoryRecall
             CompanionDecision answer;
             try { answer = await decide(tools, token); }
             catch (InvalidDataException ex) when (ex.Message is
-                "InvalidExecutionPlanUpdate" or "InvalidExecutionCondition")
+                "InvalidExecutionPlanUpdate" or "InvalidExecutionCondition" or "IncompleteModelResponse")
             {
                 if (!CanCorrect()) throw;
                 decisionRepair = new { decisionError = ex.Message,
                     rejectedDecision = ex.Data["decisionJson"] is string rejected && rejected.Length <= 32768 ? rejected : "",
                     invalidStepId = ex.Data["conditionStep"], invalidTarget = ex.Data["conditionTarget"], allowedLaterTargets = ex.Data["laterStepIds"],
-                    instruction = "Repair the decision before any action: replace requires 1..64 uniquely named steps; pause/resume/cancel require empty steps. IDs and reason use only ASCII letters, digits, dot, dash or underscore. Conditions branch only to an existing later step, or use an empty onFalseStepId to pause. Never branch backward or to a nonexistent step. No command has been sent." };
+                    instruction = ex.Message == "IncompleteModelResponse"
+                        ? "The provider returned an incomplete response. Nothing from it was committed or executed. Return one complete JSON decision for the same task within the response limit; keep optional prose concise."
+                        : "Repair the decision before any action: replace requires 1..64 uniquely named steps; pause/resume/cancel require empty steps. IDs and reason use only ASCII letters, digits, dot, dash or underscore. Conditions branch only to an existing later step, or use an empty onFalseStepId to pause. Never branch backward or to a nonexistent step. No command has been sent." };
                 trace.Add(new { operation = "decision.repair", error = ex.Message });
                 continue;
             }
@@ -129,6 +134,7 @@ public sealed class AgentMemoryRecall
                 if (gives && !sent.Any(id => id.StartsWith("spec:153:", StringComparison.Ordinal)))
                 {
                     if (!CanCorrect()) throw new InvalidDataException("GiftRulesNotRead");
+                    awaitingGiftRules = true;
                     decisionRepair = new { decisionError = "GiftRulesNotRead",
                         rejectedDecision = JsonSerializer.Serialize(answer),
                         instruction = "Before transferring a gift, read the current gift rules: memoryRequests=[{operation:'spec.read',arguments:{section:'153',offset:0}}]. A skill summary is not the specification. During retrieval keep action and executionPlanUpdate null. Then use the rules to choose the gift and return the plan. Nothing has been sent." };

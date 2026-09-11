@@ -31,6 +31,17 @@ public sealed class McpPlanningObservationTests
         Assert.That(error, Is.True);
     }
 
+    [TestCase(0)]
+    [TestCase(7)]
+    public void DropPreviewRejectsUnboundedRadius(int radius)
+    {
+        using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));
+        tools.Call("read_inventory_drop", JsonSerializer.SerializeToElement(new
+            { npcId = 901, index = 0, expectedDefinitionId = ContentIds.Coconut, approachRadiusTiles = radius }),
+            "fixture", out var error);
+        Assert.That(error, Is.True);
+    }
+
     [Test]
     public void DropPreviewIsActorScopedAndRejectsStaleInventoryWithoutTakingControl()
     {

@@ -22,8 +22,12 @@ public sealed class AgentReferenceReader(McpClient mcp, string? workspace = null
             if (npcId is not > 0) throw new InvalidDataException("ReferenceActorRequired");
             if (!arguments.TryGetProperty("index", out var index) || index.ValueKind != JsonValueKind.Number || !index.TryGetInt32(out var sourceIndex) || sourceIndex < 0)
                 throw new InvalidDataException("ReferenceItemRequired");
+            var radius = 2;
+            if (arguments.TryGetProperty("approachRadiusTiles", out var requestedRadius) &&
+                (requestedRadius.ValueKind != JsonValueKind.Number || !requestedRadius.TryGetInt32(out radius) || radius is < 1 or > 6))
+                throw new InvalidDataException("InvalidDropSearchRadius");
             var response = await mcp.CallToolAsync("read_inventory_drop", new
-                { npcId = npcId.Value, index = sourceIndex, expectedDefinitionId = String("expectedDefinitionId") }, token).ConfigureAwait(false);
+                { npcId = npcId.Value, index = sourceIndex, expectedDefinitionId = String("expectedDefinitionId"), approachRadiusTiles = radius }, token).ConfigureAwait(false);
             name = "inventory-drop:" + npcId + ":" + sourceIndex;
             text = response.GetRawText(); total = text.Length;
             text = offset >= total ? "" : text[offset..];

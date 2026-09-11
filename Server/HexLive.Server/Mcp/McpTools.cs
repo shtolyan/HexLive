@@ -195,10 +195,11 @@ public sealed class McpTools
             Schema(("definitionId", "string", "id результата, например resource.rope", false))),
 
         new("read_inventory_drop",
-            "Проверить место для одного carried-предмета по штатной геометрии Drop. При NoDropSpot ищет подход в радиусе двух тайлов. Не двигает NPC и не резервирует место; маршрут не проверен. После движения перечитать инвентарь и место.",
+            "Проверить место для одного carried-предмета по штатной геометрии Drop. При NoDropSpot ищет подход в радиусе approachRadiusTiles (по умолчанию 2, максимум 6). Не двигает NPC и не резервирует место; маршрут не проверен. После движения перечитать инвентарь и место.",
             Schema(("npcId", "integer", "id колонистки", true),
                 ("index", "integer", "актуальный физический sourceIndex carried-предмета", true),
-                ("expectedDefinitionId", "string", "definitionId выбранного экземпляра", true))),
+                ("expectedDefinitionId", "string", "definitionId выбранного экземпляра", true),
+                ("approachRadiusTiles", "integer", "радиус поиска подхода 1..6 тайлов; по умолчанию 2", false))),
 
         new("read_spec",
             "Спецификация мира — та же, по которой он написан. Начните с неё: правила, " +
@@ -437,8 +438,14 @@ public sealed class McpTools
                 case "read_spec": return ReadSpec(arguments, out isError);
                 case "read_recipes": return host.Read(_ => McpPlanningObservations.Recipes(OptionalText(arguments, "definitionId") ?? ""));
                 case "read_build_catalog": return host.Read(_ => McpPlanningObservations.BuildCatalog(OptionalText(arguments, "definitionId") ?? ""));
-                case "read_inventory_drop": return host.Read(w => McpPlanningObservations.InventoryDrop(w,
-                    Int(arguments, "npcId"), Int(arguments, "index"), Text(arguments, "expectedDefinitionId")));
+                case "read_inventory_drop":
+                {
+                    var radius = OptionalInt(arguments, "approachRadiusTiles") ?? GroundItemPlacementPreview.ApproachRadiusTiles;
+                    if (radius < 1 || radius > GroundItemPlacementPreview.MaxApproachRadiusTiles)
+                        throw new McpArgumentException("InvalidDropSearchRadius");
+                    return host.Read(w => McpPlanningObservations.InventoryDrop(w,
+                        Int(arguments, "npcId"), Int(arguments, "index"), Text(arguments, "expectedDefinitionId"), radius));
+                }
                 case "query_known_objects": return QueryKnownObjects(host, arguments, out isError);
                 case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError,
                     canAccessNpc != null, owner, OptionalText(arguments, "perceptionEpoch") ?? "",

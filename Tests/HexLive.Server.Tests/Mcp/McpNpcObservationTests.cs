@@ -8,6 +8,7 @@ using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
@@ -16,6 +17,54 @@ namespace HexLive.Server.Tests.Mcp;
 
 public sealed class McpNpcObservationTests
 {
+    [Test]
+    public void VisibleMissingLegsIdentifyTwoProsthesesAndDoNotExposeHiddenPatients()
+    {
+        using var host = CreateHost();
+        var actorId = host.Read(world =>
+        {
+            var actor = Observer(world);
+            var patient = world.Entities.Npcs.Values.First(n => n.Id != actor.Id);
+            ClearPerception(actor);
+            patient.Body.Severed.Add(BodyPart.LegL);
+            patient.Body.Severed.Add(BodyPart.LegR);
+            actor.Perception.Agents.Add(new PerceivedAgent { Id = patient.Id, CanSee = true });
+            return actor.Id.Value;
+        });
+        using (var response = Describe(host, actorId))
+        {
+            var body = response.RootElement.GetProperty("visibleNpcs")[0].GetProperty("bodyObservation");
+            var missing = body.GetProperty("limbs").EnumerateArray().Where(x => x.GetProperty("needsProsthetic").GetBoolean()).ToArray();
+            Assert.That(missing.Select(x => x.GetProperty("part").GetString()), Is.EquivalentTo(new[] { "LegL", "LegR" }));
+            Assert.That(body.GetProperty("installationReadinessChecked").GetBoolean(), Is.False);
+        }
+        host.Read(world => { Observer(world).Perception.Agents[0].CanSee = false; return true; });
+        using var hidden = Describe(host, actorId);
+        Assert.That(hidden.RootElement.GetProperty("visibleNpcs").GetArrayLength(), Is.Zero);
+    }
+
+    [Test]
+    public void AnInstalledLegDoesNotRequestASecondProsthesisForTheSameLimb()
+    {
+        using var host = CreateHost();
+        var actorId = host.Read(world =>
+        {
+            var actor = Observer(world);
+            var patient = world.Entities.Npcs.Values.First(n => n.Id != actor.Id);
+            ClearPerception(actor);
+            patient.Body.Severed.Add(BodyPart.LegL);
+            patient.Body.Condition(BodyPart.LegL).Prosthetic = new ProstheticState { DefinitionId = "prosthetic-test", Part = BodyPart.LegL };
+            actor.Perception.Agents.Add(new PerceivedAgent { Id = patient.Id, CanSee = true });
+            return actor.Id.Value;
+        });
+        using var response = Describe(host, actorId);
+        var leg = response.RootElement.GetProperty("visibleNpcs")[0].GetProperty("bodyObservation").GetProperty("limbs")
+            .EnumerateArray().Single(x => x.GetProperty("part").GetString() == "LegL");
+        Assert.That(leg.GetProperty("missing").GetBoolean(), Is.True);
+        Assert.That(leg.GetProperty("needsProsthetic").GetBoolean(), Is.False);
+        Assert.That(leg.GetProperty("prostheticDefinitionId").GetString(), Is.EqualTo("prosthetic-test"));
+    }
+
     [Test]
     public void VisibleDashaHasTheUiNameAndObservedAidWithoutPrivateStateOrAnIntroduction()
     {

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Core;
@@ -47,12 +49,28 @@ internal static class McpNpcObservations
                 ["dying"] = agent.IsDying,
                 ["suffering"] = agent.Suffering,
                 ["aidKind"] = agent.AidKind.ToString(),
+                ["bodyObservation"] = BodyObservation(body),
                 ["observerRelationship"] = relationship == null ? null : new
                 { trust = relationship.Trust, familiarity = relationship.Familiarity, affinity = relationship.Affinity },
             });
         }
         return rows;
     }
+
+    // §144.12 / #419: externally observable limb loss, not a remote medical chart.
+    // Call only after the target has passed the current-sight check above.
+    private static object BodyObservation(NPCState body) => new
+    {
+        source = "currentSight",
+        limbs = new[] { BodyPart.ArmL, BodyPart.ArmR, BodyPart.LegL, BodyPart.LegR }.Select(part =>
+        {
+            var missing = body.Body.IsSevered(part);
+            var prosthetic = body.Body.Conditions.TryGetValue(part, out var condition) ? condition.Prosthetic : null;
+            return new { part = part.ToString(), missing, prostheticDefinitionId = prosthetic?.DefinitionId,
+                needsProsthetic = missing && prosthetic == null };
+        }).ToArray(),
+        installationReadinessChecked = false
+    };
 
     private static Dictionary<string, string> LocalizedNames(string nameId) =>
         Names.Value.TryGetValue(nameId, out var names)

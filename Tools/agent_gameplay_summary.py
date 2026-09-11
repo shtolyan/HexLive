@@ -18,7 +18,7 @@ def summarize(directories):
                 continue
             if data.get("providerName") == "Replay":
                 continue  # Recorded choices reproduce a failure; they are not model acceptance.
-            provider = (data["providerName"], data["modelId"])
+            provider = (data["providerName"], data["modelId"], data.get("reasoningEffort") or "unspecified")
             key = (*provider, data["scenario"])
             case = (data["fixture"], data["repetition"])
             if case not in CASES or any(type(v) is not int for v in case):
@@ -34,7 +34,7 @@ def summarize(directories):
             cases = groups.get((*provider, scenario), {})
             passed = sum(d.get("passed") is True and d.get("status") == "Completed" for d in cases.values())
             missing = sorted(CASES - cases.keys())
-            rows.append(dict(provider=provider[0], model=provider[1], scenario=scenario,
+            rows.append(dict(provider=provider[0], model=provider[1], reasoningEffort=provider[2], scenario=scenario,
                              passed=passed, total=6, missing=missing,
                              accepted=not missing and passed >= 5 and not any(
                                  "FalseCompletion" in str(d.get("status", "")) for d in cases.values()),

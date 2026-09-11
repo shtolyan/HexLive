@@ -64,6 +64,10 @@ public sealed partial class AgentExecutionRuntimeTests
                 .Where(r => r.TryGetProperty("decision", out _)).Select(r => r.GetProperty("decision").Clone()).ToArray();
             providerName = "Replay"; modelId = "recorded-decisions";
         }
+        var reasoningEffort = providerName == "Codex"
+            ? Environment.GetEnvironmentVariable("HEXLIVE_GAMEPLAY_CODEX_REASONING") ?? "low" : null;
+        if (reasoningEffort != null && reasoningEffort is not ("low" or "medium" or "high" or "xhigh" or "max"))
+            throw new InvalidOperationException("InvalidReasoningEffort");
         Directory.CreateDirectory(output);
         var report = Path.Combine(output, $"{scenario}-{fixture}-{repetition}.json");
         IModelAdapter adapter = providerName == "Codex"
@@ -73,7 +77,7 @@ public sealed partial class AgentExecutionRuntimeTests
         {
             McpUri = new("http://fixture/mcp"), McpToken = "fixture", XaiKey = "", ElevenLabsKey = "",
             XaiModel = "", ElevenLabsModel = "", ElevenLabsVoiceId = "", DialogueStyleId = DialogueStyles.Masha
-        }, adapter, new(providerName == "Codex" ? ModelProviderKind.Codex : ModelProviderKind.Grok, "eval", modelId, providerName == "Codex" ? "low" : null));
+        }, adapter, new(providerName == "Codex" ? ModelProviderKind.Codex : ModelProviderKind.Grok, "eval", modelId, reasoningEffort));
         using var host = Host();
         var engine = (SimulationEngine)typeof(HexLive.Server.WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
         var bedAnchors = new HashSet<JunctionId>();
@@ -239,7 +243,7 @@ public sealed partial class AgentExecutionRuntimeTests
             var checkpoint = report + ".tmp";
             File.WriteAllText(checkpoint, JsonSerializer.Serialize(new
             {
-                providerName, modelId, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy,
+                providerName, modelId, reasoningEffort, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy,
                 status = checkpointStatus, gameTicks = host.Read(w => w.Tick) - initialTick,
                 sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
                 objective = saved.Objective, executionPlan = saved.ExecutionPlan, executionProgress = saved.ExecutionProgress,
@@ -414,7 +418,7 @@ public sealed partial class AgentExecutionRuntimeTests
         }
         finally
         {
-            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy, passed, status, failureCode,
+            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, reasoningEffort, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy, passed, status, failureCode,
                 gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
                 emergencyActions = turns.Count(t => JsonSerializer.SerializeToElement(t).GetProperty("decision").TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.Object),
                 referenceReads, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));

@@ -55,6 +55,16 @@ internal static class BuildSiteMath
              site.BuildProduct, out var definition) ||
          !definition.HasTag(ObjectTags.HandBuilt));
 
+    // §54: the same carried-or-at-site rule used by native construction.
+    public static bool HammerAvailable(WorldState world, NPCState npc, WorldObjectState site)
+    {
+        if (GearCatalog.HasCapability(npc.Inventory.Items, GearCapability.Hammer)) return true;
+        foreach (var item in world.Entities.Objects.Values)
+            if (GearCatalog.For(item.DefinitionId).Has(GearCapability.Hammer) &&
+                HexSpatialMath.HexDistance(item.Tile, site.Tile) <= 1) return true;
+        return false;
+    }
+
     public static int Delivered(WorldObjectState site, string materialId)
     {
         var n = 0;

@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "bd5ec52b5714d80fb1deafe9dab769dab3f69892",
+  "provider": "Codex",
+  "model": "gpt-5.6-terra",
+  "fixture": 0,
+  "repetition": 0,
+  "status": "DiagnosticStopped",
+  "accepted": false,
+  "callsAtLastCheckpoint": 82,
+  "decisionTurnsAtLastCheckpoint": 44,
+  "lastGameTick": 7848,
+  "report": "/private/tmp/hexlive-codex-bed64-matrix/bed-0-0.json",
+  "finding": "All materials delivered to selected bed site; missing hammer; repeated Build/rest without completing a new bed. Full matrix stopped, not accepted."
+}

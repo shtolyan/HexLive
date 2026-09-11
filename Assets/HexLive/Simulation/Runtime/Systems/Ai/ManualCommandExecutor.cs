@@ -2631,6 +2631,17 @@ internal static class ManualCommandExecutor
             return false;
         }
 
+        // A paid furniture bill cannot progress without its finishing tool.
+        // Delivery before the bill is complete still needs no hammer.
+        if (interactionType == InteractionType.Build && BuildSiteMath.IsSite(worldObject) &&
+            !BuildSiteMath.IsDemolitionSite(worldObject) && BuildSiteMath.IsStocked(worldObject) &&
+            BuildSiteMath.NeedsHammer(world, worldObject) &&
+            !BuildSiteMath.HammerAvailable(world, npc, worldObject))
+        {
+            Reject(world, npc.Id, verb, "MissingTool", admission);
+            return false;
+        }
+
         // Bug #310 (вердикт игрока): выдохшаяся не берётся за РАБОЧИЙ приказ —
         // отклоняет его и садится отдыхать. Порог тот же, что красит стамину
         // «выдохлась» (StaminaExhaustedThreshold). Еда/питьё/сон/подбор/лечение

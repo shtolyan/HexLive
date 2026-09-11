@@ -190,22 +190,6 @@ public sealed partial class ExecutionSystem
         // simply lying at the build site (the tool waits at the workbench). This
         // keeps the hammer a real requirement without demanding the one girl who
         // stocks the last stone also happen to be carrying it.
-        var hammerAtSite = false;
-        foreach (var obj in world.Entities.Objects.Values)
-        {
-            if (!Content.GearCatalog.For(obj.DefinitionId).Has(Content.GearCapability.Hammer))
-            {
-                continue;
-            }
-
-            if (obj.Tile.Equals(site.Tile) ||
-                HexSpatialMath.HexDistance(obj.Tile, site.Tile) <= 1)
-            {
-                hammerAtSite = true;
-                break;
-            }
-        }
-
         // Spec §54: костёр складывают из камней, а циновку, сушилку (§35.5B) и
         // водосбор (§54.15) вяжут руками. Жёсткая мебель по-прежнему требует
         // молотка.
@@ -217,8 +201,7 @@ public sealed partial class ExecutionSystem
         var needsHammer = BuildSiteMath.NeedsHammer(world, site);
         if (BuildSiteMath.IsStocked(site) &&
             (!needsHammer ||
-             Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Hammer) ||
-             hammerAtSite))
+             BuildSiteMath.HammerAvailable(world, npc, site)))
         {
             // §54.14: an upgraded-in-place piece (the campfire) IS its own
             // product — completion just closes the bill. Despawn/respawn here

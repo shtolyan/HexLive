@@ -108,6 +108,30 @@ public sealed class AgentCommandReceiptTests
         Assert.That(host.Read(w => w.AgentCommands.Count), Is.Zero);
     }
 
+    [TestCase("Energy")]
+    [TestCase("Stamina")]
+    public void AlreadyRestoredNeedsCompleteOnceWithoutSearchingForASittingOrSleepingSpot(string need)
+    {
+        using var host = Host(); var tools = Tools(host);
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Needs.Energy = npc.Needs.Stamina = 1f;
+            foreach (var id in w.Junctions.Items.Keys) w.Occupancy.JunctionOwner[id] = new EntityId(999999);
+            return true;
+        });
+        var arguments = new { npcId = 901, sequence = 1, commandId = "command-1", tool = "rest_until",
+            arguments = new { need, target = .8 } };
+        var first = Call(tools, "execute_agent_command", arguments);
+        Assert.That(first.GetProperty("outcome").GetString(), Is.EqualTo("completed"));
+        Assert.That(first.GetProperty("reason").GetString(), Is.EqualTo("RestTargetReached"));
+        var events = host.Read(w => w.Events.HighestSeq);
+        Assert.That(Call(tools, "execute_agent_command", arguments).GetRawText(), Is.EqualTo(first.GetRawText()));
+        Assert.That(host.Read(w => w.Events.HighestSeq), Is.EqualTo(events), "Duplicate request must not dispatch another Stop.");
+        Assert.That(host.Read(w => w.AgentCommands[901].ActiveSequence), Is.Zero);
+        Assert.That(host.Read(w => w.AgentCommands[901].RestNeed), Is.Empty);
+    }
+
     [Test]
     public void InterruptingBoundedRestFailsItsReceiptAndClearsItsWakeTarget()
     {

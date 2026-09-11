@@ -46,6 +46,7 @@ public sealed partial class AgentExecutionRuntimeTests
     private async Task RunGameplayModel(string scenario, int fixture, int repetition)
     {
         var delivery = scenario is "coconuts" or "resilience";
+        var decisionTurnLimit = scenario == "bed" ? 64 : 8;
         var task = delivery
             ? "Принеси три кокоса в свой лагерь и выгрузи их. Нужные инструменты сохрани."
             : scenario == "bed" ? "Полностью построй НОВУЮ кровать с нуля в своём лагере за три игровых дня. Уже существующие кровати не засчитываются. Материалы добудь сама, отдыхай и спи по необходимости."
@@ -219,7 +220,7 @@ public sealed partial class AgentExecutionRuntimeTests
                     usage = answer.ModelUsage, body = JsonSerializer.Deserialize<JsonElement>(bodyJson) });
                 var checkpoint = report + ".tmp";
                 File.WriteAllText(checkpoint, JsonSerializer.Serialize(new { providerName, modelId, fixture, repetition,
-                    calls, status = "Planning", modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
+                    calls, decisionTurnLimit, status = "Planning", modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
                 File.Move(checkpoint, report, true);
                 return answer;
             }
@@ -255,7 +256,7 @@ public sealed partial class AgentExecutionRuntimeTests
             world = world with { ObjectiveRevision = prompt.ObjectiveRevision, ExecutionPlanRevision = prompt.ExecutionPlanRevision, ExecutionPlanId = prompt.ExecutionPlanId };
             await store.CommitTurnAsync(world, "request", "voice", new CompanionDecision
             { ObjectiveUpdate = new() { Operation = "set", Text = task, Reason = "Приказ игрока" } }, default);
-            for (var turn = 0; turn < (scenario == "bed" ? 32 : 8); turn++)
+            for (var turn = 0; turn < decisionTurnLimit; turn++)
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(330));
                 world = await store.BindHexLiveWorldAsync(await mcp.CallToolAsync("world_status", new { }, timeout.Token), 901, "fixture", timeout.Token);
@@ -300,7 +301,7 @@ public sealed partial class AgentExecutionRuntimeTests
                 }, (answer, validationToken) => store.ValidateObjectiveUpdateAsync(world, answer, validationToken));
                 AgentExecutionPlanPolicy.NormalizeContinuation(decision, state, world.WorldKey, 901);
                 turns.Add(new { turn, tick = host.Read(w => w.Tick), decision, usage = decision.ModelUsage });
-                File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, fixture, repetition, calls, status, modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
+                File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, fixture, repetition, calls, decisionTurnLimit, status, modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
                 var emergency = decision.Action != null &&
                     (decision.ObjectiveUpdate?.Operation == "pause" || state.Objective?.Status == "paused");
                 if (decision.Action != null && !emergency) throw new InvalidOperationException("ModelDidNotProduceExecutionPlan");
@@ -380,6 +381,7 @@ public sealed partial class AgentExecutionRuntimeTests
                 }
                 if (exceeded) throw new InvalidOperationException("ThreeGameDaysExceeded");
             }
+            if (!passed && status == "Incomplete") status = "DecisionTurnLimitExceeded";
             if (fixture == 2)
                 Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Inventory.Items.Any(i => i.DefinitionId == GearCatalog.Hammer)), Is.True);
             Assert.That(noModelDuringExecution.Calls, Is.Zero);
@@ -396,7 +398,7 @@ public sealed partial class AgentExecutionRuntimeTests
         }
         finally
         {
-            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, passed, status, failureCode,
+            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, decisionTurnLimit, passed, status, failureCode,
                 gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
                 emergencyActions = turns.Count(t => JsonSerializer.SerializeToElement(t).GetProperty("decision").TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.Object),
                 referenceReads, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));

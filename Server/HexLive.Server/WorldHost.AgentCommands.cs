@@ -69,9 +69,15 @@ public sealed partial class WorldHost
             if (ledger.Receipts.Count > AgentCommandLedger.Capacity) ledger.Receipts.RemoveAt(0);
             // The number is consumed before entering the ordinary command bus. Even an exception
             // cannot make a retry execute this command again.
-            var admission = SubmitManualCommand(command);
+            // Reaching the requested reserve needs no new sleeping/sitting site.
+            // Stop still uses ordinary actor validation and interruption cleanup.
+            var restSatisfied = request.RestNeed == "Energy" && npc.Needs.Energy >= request.RestTarget ||
+                request.RestNeed == "Stamina" && npc.Needs.Stamina >= request.RestTarget;
+            var admission = SubmitManualCommand(restSatisfied ? new StopCommand(npc.Id) : command);
             if (!admission.Accepted)
             { receipt.Outcome = "failed"; receipt.Reason = admission.Reason.Length <= 96 ? admission.Reason : "Rejected"; }
+            else if (restSatisfied)
+            { receipt.Outcome = "completed"; receipt.Reason = "RestTargetReached"; }
             else if (command is StopCommand)
             { receipt.Outcome = "completed"; receipt.Reason = "Completed"; }
             else if (npc.Plan.Status is PlanStatus.Failed or PlanStatus.Invalid)

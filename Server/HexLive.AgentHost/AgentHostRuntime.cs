@@ -557,7 +557,7 @@ public sealed partial class AgentHostRuntime
             }
             EnsureCurrentTurn(scheduled, cancellationToken);
             Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} stage={stage} consumed={consumed} error={ex.GetType().Name}");
-            _diagnostics.Record("turn.failed", turnId, trigger, result: ex.GetType().Name, elapsedMs: latency.ElapsedMilliseconds, committed: consumed);
+            _diagnostics.Record("turn.failed", turnId, trigger, result: AgentDiagnostics.FailureKind(ex), elapsedMs: latency.ElapsedMilliseconds, committed: consumed);
             _status.Write(true, "Error", npcId, true, true, ex.GetType().Name);
             try
             {

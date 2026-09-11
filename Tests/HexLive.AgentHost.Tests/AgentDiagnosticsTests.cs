@@ -9,6 +9,19 @@ public sealed class AgentDiagnosticsTests
     [SetUp] public void SetUp() => _root = Directory.CreateTempSubdirectory("agent-diagnostics-").FullName;
     [TearDown] public void TearDown() => Directory.Delete(_root, true);
 
+    [TestCase(403, "Http403")]
+    [TestCase(429, "Http429")]
+    [TestCase(-1, "HttpRequestException")]
+    public void HttpFailureIncludesOnlyStatusAndNeverProviderPayload(int status, string expected)
+    {
+        var error = new HttpRequestException("Bearer SECRET private provider payload", null,
+            status < 0 ? null : (System.Net.HttpStatusCode)status);
+        var log = new AgentDiagnostics(_root, "profile");
+        log.Record("model.request.failed", result: AgentDiagnostics.FailureKind(error));
+        Assert.That(Rows().Single().GetProperty("result").GetString(), Is.EqualTo(expected));
+        Assert.That(File.ReadAllText(Path.Combine(_root, "events.jsonl")), Does.Not.Contain("SECRET").And.Not.Contain("private provider payload"));
+    }
+
     [Test]
     public void StepObservationIncludesPersistedFailureReasonWithoutExplicitOverrides()
     {

@@ -127,6 +127,9 @@ public sealed class AgentDiagnostics
     private static string ReferenceId(string value) =>
         System.Text.RegularExpressions.Regex.IsMatch(value, "^(spec:[0-9]{1,4}[A-Z]?|spec:preamble|skill:[a-z0-9][a-z0-9-]{0,63}|skills:index|(?:recipes|build):[a-z0-9._-]{1,80}):[0-9]{1,10}:[a-f0-9]{64}$")
             ? value : Correlate(value);
+    public static string FailureKind(Exception error) => error is HttpRequestException { StatusCode: { } status }
+        ? "Http" + ((int)status).ToString(System.Globalization.CultureInfo.InvariantCulture)
+        : error.GetType().Name;
     public static string Correlate(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant()[..16];
 }

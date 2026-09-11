@@ -226,7 +226,7 @@ public sealed partial class AgentExecutionRuntimeTests
             }
             catch (Exception ex)
             {
-                modelDecisions.Add(new { call, elapsedMs = watch.ElapsedMilliseconds, error = ex.GetType().Name });
+                modelDecisions.Add(new { call, elapsedMs = watch.ElapsedMilliseconds, error = AgentDiagnostics.FailureKind(ex) });
                 throw;
             }
         }
@@ -392,7 +392,7 @@ public sealed partial class AgentExecutionRuntimeTests
             failureCode = ex is InvalidDataException or InvalidOperationException &&
                 ex.Message.Length is > 0 and <= 96 &&
                 ex.Message.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '.')
-                    ? ex.Message : ex.GetType().Name;
+                    ? ex.Message : AgentDiagnostics.FailureKind(ex);
             status = ex.GetType().Name + ":" + status;
             throw;
         }

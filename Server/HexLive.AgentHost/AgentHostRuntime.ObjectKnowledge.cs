@@ -83,7 +83,7 @@ public sealed partial class AgentHostRuntime
             var code = ex is AgentActionValidationException validation ? validation.ReasonCode :
                 ex is InvalidDataException && ex.Message.Length is > 0 and <= 96 &&
                 ex.Message.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '.')
-                    ? ex.Message : ex.GetType().Name;
+                    ? ex.Message : AgentDiagnostics.FailureKind(ex);
             _diagnostics.Record("model.request.failed", turnId, trigger, result: code, elapsedMs: started.ElapsedMilliseconds);
             throw;
         }

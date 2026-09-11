@@ -173,7 +173,8 @@ public static class WorldSaveSerializer
     // v74 (§31C.1 / bug #411): ground produce provenance; old saves infer
     // Natural only from a producer's saved ids, leaving other origins Unknown.
     // v76 (§144 / bug #409): saved completion target for bounded agent rest.
-    public const int BlobVersion = 76;
+    // v77 (§27.18A r3): bounded personal object-survey history.
+    public const int BlobVersion = 77;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -2072,6 +2073,16 @@ public static class WorldSaveSerializer
             w.Write(npc.Plan.RequestedTalkTopic.HasValue);
             if (npc.Plan.RequestedTalkTopic.HasValue) w.Write((int)npc.Plan.RequestedTalkTopic.Value);
         }
+
+        if (version >= 77)
+        {
+            w.Write(npc.Memory.SurveyedTiles.Count);
+            foreach (var pair in npc.Memory.SurveyedTiles.OrderBy(p => p.Key.Q).ThenBy(p => p.Key.R))
+            {
+                WriteTile(w, pair.Key);
+                w.Write(pair.Value);
+            }
+        }
     }
 
     private static NPCState ReadNpc(BinaryReader r, int version)
@@ -2808,6 +2819,19 @@ public static class WorldSaveSerializer
             if (!TalkTopicRequest.IsAllowed(topic))
                 throw new InvalidDataException("Invalid requested Talk topic in save.");
             npc.Plan.RequestedTalkTopic = topic;
+        }
+
+        if (version >= 77)
+        {
+            var count = ReadBoundedCount(r, MemoryState.SurveyCapacity, "personal surveyed tiles");
+            for (var i = 0; i < count; i++)
+            {
+                var tile = ReadTile(r);
+                var tick = r.ReadInt32();
+                if (tick < 0 || npc.Memory.SurveyedTiles.ContainsKey(tile))
+                    throw new InvalidDataException("Invalid personal survey entry.");
+                npc.Memory.SurveyedTiles.Add(tile, tick);
+            }
         }
 
         // v66/v67 kept one global pair; v68's item state is authoritative.

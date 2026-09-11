@@ -1,0 +1,41 @@
+{
+  "scope": "Personal survey ranking for explicit Explore; autonomous planner and geometric admission unchanged. Not model acceptance.",
+  "checks": {
+    "simulationFocused": {
+      "passed": 14,
+      "failed": 0
+    },
+    "hostFocused": {
+      "passed": 32,
+      "failed": 0
+    },
+    "oldSelectorRegression": {
+      "failedAsExpected": true,
+      "oldDistanceToGapTiles": 17,
+      "objectSensorRadiusTiles": 3
+    },
+    "initialFullSimulation": {
+      "passed": 1584,
+      "failed": 1,
+      "skipped": 6,
+      "failure": "Only stale assertion BlobVersion==76; updated to77 and focused save tests pass."
+    },
+    "fullRegression": "pending"
+  },
+  "save": {
+    "version": 77,
+    "priorVersionReadTested": 76,
+    "personalSurveyCapacityPerNpc": 4096,
+    "sharedFogUsedForSelection": false
+  },
+  "geometry": {
+    "source": "/private/tmp/hexlive-personal-explore-geometry.json",
+    "svg": "2026-09-11-personal-explore.svg",
+    "tiles": 667,
+    "hexRadiusWorldUnits": 1.5,
+    "sensorRadiusTiles": 3,
+    "newDistanceToGapTiles": 0,
+    "actualMovementTicks": 94
+  },
+  "scopeLimit": "No guarantee that a searched object exists or that destination is safe for sleep. Oldest personal observations can be evicted at the cap."
+}

@@ -12,6 +12,7 @@ public sealed class AgentCommandSaveCompatibilityTests
 {
     [TestCase(75)]
     [TestCase(76)]
+    [TestCase(77)]
     public void RestTargetRoundTripsOnlyInTheVersionThatSupportsIt(int version)
     {
         var world = TestWorld.CreateWorld();

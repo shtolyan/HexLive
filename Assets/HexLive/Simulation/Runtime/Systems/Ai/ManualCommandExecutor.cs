@@ -1698,7 +1698,7 @@ internal static class ManualCommandExecutor
             case SelfActionKind.Explore:
                 InstallSelfPlan(world, npc, admission, GoalType.Explore,
                     "Приказ исследовать", "NoExploreDestination",
-                    () => ManualPlanner.BuildExplorePlan(world, npc));
+                    () => ManualPlanner.BuildExplorePlan(world, npc, preferPersonalSurvey: true));
                 break;
 
             default:

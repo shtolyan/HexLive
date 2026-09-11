@@ -598,7 +598,8 @@ public sealed class BatheUndressAtHomeTests
             // CoconutStockLifetimeTests проверяет миграцию v66–73.
             // 74 → 75 в §144/#409: квитанции команд сохраняются вместе с миром.
             // 75 → 76: сохраняемый порог ограниченного агентского отдыха.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(76));
+            // 76 → 77: личная ограниченная память обследования для Explore.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(77));
         });
     }
 

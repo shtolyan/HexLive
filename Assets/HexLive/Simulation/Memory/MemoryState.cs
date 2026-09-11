@@ -10,6 +10,30 @@ public sealed class MemoryState
 {
     public Dictionary<ObjectId, ObjectMemory> KnownObjects { get; } = new();
 
+    // §27.18A r3: personal object-survey history, not shared player fog.
+    public const int SurveyCapacity = 4096;
+    public Dictionary<TileCoord, int> SurveyedTiles { get; } = new();
+
+    public void RememberSurvey(TileCoord tile, int tick)
+    {
+        if (!SurveyedTiles.ContainsKey(tile) && SurveyedTiles.Count >= SurveyCapacity)
+        {
+            var oldest = default(TileCoord);
+            var oldestTick = int.MaxValue;
+            var found = false;
+            foreach (var pair in SurveyedTiles)
+                if (!found || pair.Value < oldestTick || pair.Value == oldestTick &&
+                    (pair.Key.Q < oldest.Q || pair.Key.Q == oldest.Q && pair.Key.R < oldest.R))
+                {
+                    found = true;
+                    oldest = pair.Key;
+                    oldestTick = pair.Value;
+                }
+            SurveyedTiles.Remove(oldest);
+        }
+        SurveyedTiles[tile] = tick;
+    }
+
     // §22.7/27.18A: ЛЮБАЯ мутация состава KnownObjects (добавление, удаление)
     // обязана поднять Version — по нему PerceptionSystem понимает, что его
     // кэшированный вид памяти устарел. Правки полей УЖЕ видимой записи

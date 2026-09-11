@@ -886,6 +886,7 @@ public sealed class McpTools
                 ["bodyNeeds"] = McpPlanningObservations.Needs(npc),
                 ["inOwnCamp"] = ColonyQueries.InCamp(world, npc.Tile, npc.Faction),
                 ["execution"] = McpPlanningObservations.Execution(npc),
+                ["recentGiftResults"] = McpPlanningObservations.RecentGiftResults(world, npc.Id.Value),
                 ["effects"] = effects.Effects,
                 ["effectImpacts"] = effects.Impacts,
                 ["effectDefinitions"] = effects.Definitions,

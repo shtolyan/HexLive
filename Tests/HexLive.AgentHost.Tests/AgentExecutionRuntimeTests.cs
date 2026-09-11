@@ -434,6 +434,11 @@ public sealed partial class AgentExecutionRuntimeTests
             Assert.That(w.Events.Items.Count(e => e.Type == "GiftGiven"), Is.EqualTo(1));
             return true;
         });
+        var observed = await mcp.CallToolAsync("describe_colonist", new { npcId = 901 }, default);
+        var gifts = observed.GetProperty("recentGiftResults").GetProperty("events");
+        Assert.That(gifts.GetArrayLength(), Is.EqualTo(1));
+        Assert.That(gifts[0].GetProperty("type").GetString(), Is.EqualTo("GiftGiven"));
+        Assert.That(gifts[0].GetProperty("details").GetString(), Does.Contain("->NPC" + receiverId.Value).And.Contain(gift.DefinitionId));
         Assert.That(transport.Executions, Is.EqualTo(1));
         Assert.That(providers.Calls, Is.Zero);
     }

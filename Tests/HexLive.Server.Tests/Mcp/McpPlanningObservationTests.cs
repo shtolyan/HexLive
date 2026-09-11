@@ -31,6 +31,30 @@ public sealed class McpPlanningObservationTests
         Assert.That(error, Is.True);
     }
 
+    [Test]
+    public void RecentGiftResultsIncludeOnlyTheAttachedActorsLastEightEvents()
+    {
+        using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));
+        host.Read(w =>
+        {
+            w.Events.Clear();
+            for (var i = 0; i < 10; i++) w.Events.Add(new HexLive.Simulation.Runtime.SimulationEvent
+                { EntityId = 901, Type = "GiftGiven", Tick = w.Tick, Message = "own-" + i });
+            w.Events.Add(new HexLive.Simulation.Runtime.SimulationEvent
+                { EntityId = 902, Type = "GiftGiven", Tick = w.Tick, Message = "foreign" });
+            w.Events.Add(new HexLive.Simulation.Runtime.SimulationEvent
+                { EntityId = 901, Type = "RelationshipChanged", Tick = w.Tick, Message = "not-a-gift" });
+            return true;
+        });
+        var result = Call(tools, "describe_colonist", new { npcId = 901 }).GetProperty("recentGiftResults");
+        Assert.That(result.GetProperty("partialHistory").GetBoolean(), Is.True);
+        var events = result.GetProperty("events");
+        Assert.That(events.GetArrayLength(), Is.EqualTo(8));
+        Assert.That(events[0].GetProperty("details").GetString(), Is.EqualTo("own-2"));
+        Assert.That(events[7].GetProperty("details").GetString(), Is.EqualTo("own-9"));
+        Assert.That(result.GetRawText(), Does.Not.Contain("foreign").And.Not.Contain("not-a-gift"));
+    }
+
     [TestCase(0)]
     [TestCase(7)]
     public void DropPreviewRejectsUnboundedRadius(int radius)

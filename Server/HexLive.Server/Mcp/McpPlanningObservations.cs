@@ -28,6 +28,14 @@ internal static class McpPlanningObservations
             dropJunction = found ? (int?)junction.Value : null, routeChecked = false, reserved = false });
     }
 
+    public static object RecentGiftResults(WorldState world, int npcId) => new
+    {
+        source = "SimulationEventBuffer", partialHistory = true,
+        events = world.Events.Items.Where(e => e.EntityId == npcId && e.Type == "GiftGiven")
+            .TakeLast(8).Select(e => new { sequence = e.Seq, tick = e.Tick, type = e.Type,
+                details = e.Message.Length > 512 ? e.Message[..512] : e.Message }).ToArray()
+    };
+
     public static object[] BuildMaterials(WorldObjectState site) => BuildSiteView.Materials(site).Where(r => r.Required > 0 || r.Delivered > 0)
         .Select(r => (object)new { definitionId = r.DefinitionId, required = r.Required, delivered = r.Delivered,
             remaining = r.Remaining, currentStageRemaining = r.CurrentStageRemaining }).ToArray();

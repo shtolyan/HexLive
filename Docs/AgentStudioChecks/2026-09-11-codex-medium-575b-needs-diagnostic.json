@@ -1,0 +1,179 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "coconuts",
+      "passed": 6,
+      "total": 6,
+      "missing": [],
+      "pending": [],
+      "accepted": true,
+      "calls": 27,
+      "commands": 42,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "gift",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "bed",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "pending": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "accepted": false,
+      "calls": 139,
+      "commands": 118,
+      "failures": [
+        {
+          "fixture": 0,
+          "repetition": 0,
+          "status": "DiagnosticStopped"
+        },
+        {
+          "fixture": 0,
+          "repetition": 1,
+          "status": "DiagnosticStopped"
+        },
+        {
+          "fixture": 1,
+          "repetition": 0,
+          "status": "DiagnosticStopped"
+        },
+        {
+          "fixture": 2,
+          "repetition": 1,
+          "status": "DiagnosticStopped"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "resilience",
+      "passed": 4,
+      "total": 6,
+      "missing": [
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [
+        [
+          2,
+          0
+        ]
+      ],
+      "accepted": false,
+      "calls": 27,
+      "commands": 35,
+      "failures": [
+        {
+          "fixture": 2,
+          "repetition": 0,
+          "status": "DiagnosticStopped"
+        }
+      ]
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks.",
+  "sourceCommit": "575bdbf596ed59713746b0220aea5da3ba4081f7",
+  "rawDirectory": "/private/tmp/hexlive-codex-medium-575b",
+  "diagnosis": "Bed2/1 repeatedly treated low thirst pressure as critical dehydration. Hunger/thirst were numeric with no scale direction, unlike Energy/Stamina/Breath. Add authoritative metadata and matching rules; preserve old attempts without accepting this matrix.",
+  "evidence": [
+    {
+      "call": 44,
+      "thirst": 0.049037345,
+      "intent": "Сначала добуду воду из свежего кокоса: жажда почти критическая, затем вернусь к строительству кровати."
+    },
+    {
+      "call": 45,
+      "thirst": 0.08519493,
+      "intent": "Сначала восполню воду из свежего кокоса, затем продолжу строительство кровати."
+    },
+    {
+      "call": 46,
+      "thirst": 0.0060431357,
+      "intent": "Сначала вскрою свежий кокос: жажда критическая. Затем проверю воду и продолжу строить кровать."
+    },
+    {
+      "call": 47,
+      "thirst": 0.03610818,
+      "intent": "Сначала утолю почти критическую жажду свежим кокосом, затем продолжу собирать материалы для выбранной кровати."
+    }
+  ]
+}

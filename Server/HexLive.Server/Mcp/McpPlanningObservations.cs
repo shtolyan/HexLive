@@ -70,7 +70,14 @@ internal static class McpPlanningObservations
         stamina = new { value = npc.Needs.Stamina, higherIsBetter = true, meaning = "work reserve; recovery depends on rest and body condition", specSection = "40" },
         breath = new { value = npc.Needs.Breath, higherIsBetter = true, meaning = "sprint reserve; walking also restores it", specSection = "71" },
         hunger = npc.Needs.Hunger, thirst = npc.Needs.Thirst, blood = npc.Needs.Blood,
-        hygiene = npc.Needs.Hygiene, health = npc.Health
+        hygiene = npc.Needs.Hygiene, health = npc.Health,
+        // Preserve numeric paths used by existing clients and plan conditions.
+        // These are pressures, opposite to the reserves above (§144.9).
+        scales = new
+        {
+            hunger = new { higherIsBetter = false, zeroMeaning = "sated", oneMeaning = "maximum hunger" },
+            thirst = new { higherIsBetter = false, zeroMeaning = "hydrated; no thirst", oneMeaning = "maximum thirst" }
+        }
     };
 
     public static object Execution(NPCState npc) => new

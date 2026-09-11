@@ -31,6 +31,28 @@ public sealed class McpPlanningObservationTests
         Assert.That(error, Is.True);
     }
 
+    [TestCase(0f, 0.049f)]
+    [TestCase(1f, 1f)]
+    public void HungerAndThirstKeepNumericValuesAndDeclareOppositeReserveDirection(float hunger, float thirst)
+    {
+        using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));
+        host.Read(w => { var n = w.Entities.Npcs[new EntityId(901)]; n.Needs.Hunger = hunger; n.Needs.Thirst = thirst; return true; });
+        var needs = Call(tools, "describe_colonist", new { npcId = 901 }).GetProperty("bodyNeeds");
+        Assert.Multiple(() =>
+        {
+            Assert.That(needs.GetProperty("hunger").GetSingle(), Is.EqualTo(hunger));
+            Assert.That(needs.GetProperty("thirst").GetSingle(), Is.EqualTo(thirst));
+            Assert.That(needs.GetProperty("energy").GetProperty("higherIsBetter").GetBoolean(), Is.True);
+            foreach (var name in new[] { "hunger", "thirst" })
+            {
+                var scale = needs.GetProperty("scales").GetProperty(name);
+                Assert.That(scale.GetProperty("higherIsBetter").GetBoolean(), Is.False);
+                Assert.That(scale.GetProperty("zeroMeaning").GetString(), Is.Not.Empty);
+                Assert.That(scale.GetProperty("oneMeaning").GetString(), Is.Not.EqualTo(scale.GetProperty("zeroMeaning").GetString()));
+            }
+        });
+    }
+
     [Test]
     public void RestReadinessExplainsNativeSleepRefusalWithoutMutatingTheActor()
     {

@@ -101,7 +101,6 @@ public sealed partial class AgentHostRuntime
                     throw new McpRequestException("McpHeartbeatStopped");
                 }
                 if (historyTask.IsFaulted) await historyTask.ConfigureAwait(false);
-                critical |= Interlocked.Exchange(ref _historyCritical, 0) != 0;
                 planDecision |= Interlocked.Exchange(ref _planNeedsDecision, 0) != 0;
                 await _turnWriter.WaitAsync(token).ConfigureAwait(false);
                 try

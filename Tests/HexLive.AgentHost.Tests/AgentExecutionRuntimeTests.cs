@@ -22,6 +22,48 @@ public sealed partial class AgentExecutionRuntimeTests
     [TearDown] public void Cleanup() => Directory.Delete(_root, true);
 
     [Test]
+    public async Task PickupTravelAndPutDownKeepThePatientAndRunWithoutModelCalls()
+    {
+        using var host = Host();
+        var engine = (SimulationEngine)typeof(WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+        var targetId = host.Read(w =>
+        {
+            foreach (var person in w.Entities.Npcs.Values) { person.Mind.ManualControl = true; person.Faction = Faction.Colony; }
+            for (var i = 0; i < 64; i++) engine.Step();
+            w.Mobs.Clear();
+            var actor = w.Entities.Npcs[new EntityId(901)];
+            actor.Needs.Energy = actor.Needs.Stamina = 1; actor.Needs.Hunger = actor.Needs.Thirst = 0;
+            return w.Entities.Npcs.Values.First(n => n.Id.Value != 901).Id.Value;
+        });
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var carriedDuringTravel = false;
+        transport.BeforeToolCall = (name, args) =>
+        {
+            if (name == "execute_agent_command" && args.GetProperty("tool").GetString() == "self_action")
+                carriedDuringTravel = host.Read(w => w.Entities.Npcs[new EntityId(901)].CarriedNpcId?.Value == targetId);
+        };
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("lift", "carry_person", JsonSerializer.SerializeToElement(new { targetNpcId = targetId })),
+             new("home", "self_action", JsonSerializer.SerializeToElement(new { kind = "GoHome" })),
+             new("down", "put_down_person", JsonSerializer.SerializeToElement(new { }))]);
+        var running = Run(runtime, mcp, plan.Id, world, 30);
+        while (!running.IsCompleted)
+        {
+            host.Read(w => { for (var i = 0; i < 8 && w.Entities.Npcs[new EntityId(901)].Plan.Status == HexLive.Simulation.AI.PlanStatus.Active; i++) engine.Step(); return true; });
+            await Task.Delay(1);
+        }
+        await running;
+        Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("completed"), JsonSerializer.Serialize((await store.SnapshotAsync(default)).ExecutionPlan));
+        Assert.That(carriedDuringTravel, Is.True);
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].CarriedNpcId), Is.Null);
+        Assert.That(transport.Executions, Is.EqualTo(3));
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
+    [Test]
     public async Task TargetDisappearingBeforeDispatchStopsTheRemainingQueue()
     {
         using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45)));

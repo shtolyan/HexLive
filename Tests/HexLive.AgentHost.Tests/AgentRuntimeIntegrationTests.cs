@@ -61,6 +61,11 @@ public sealed class AgentRuntimeIntegrationTests
             Assert.That(registry.TryEnqueuePlayerText(901, "start", "ru", "Начни", out _), Is.True);
             await Until(() => handler.PlanCommands == 1);
             var before = (await memory.SnapshotAsync(default)).ExecutionPlan!;
+            handler.HistoricalThreat = true;
+            await Until(() => handler.HistoricalThreatReads > 0);
+            await Task.Delay(2500);
+            Assert.That((await memory.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("active"),
+                "Replaying an archived wound must not interrupt work already chosen for the current situation.");
             var tick = host.Tick;
             registry.TryEnqueuePlayerText(901, "chat", "ru", "Как дела?", out _);
             await Until(() => providers.Transcripts.Contains("Как дела?"));
@@ -277,6 +282,8 @@ public sealed class AgentRuntimeIntegrationTests
         public volatile int EventReads;
         public volatile bool SyntheticHistory;
         public volatile bool SyntheticThreat;
+        public volatile bool HistoricalThreat;
+        public volatile int HistoricalThreatReads;
         public int PlanCommands;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -300,6 +307,15 @@ public sealed class AgentRuntimeIntegrationTests
                     {"events":[{"seq":7,"tick":10,"type":"Aided","message":"ARCHIVE_EVENT_FIXTURE NPC901 helped NPC902"}],
                     "watermark":7,"sessionEpoch":"fixture-new-epoch","gap":false,"truncated":false}
                     """;
+                if (HistoricalThreat && parameters.GetProperty("name").GetString() == "read_events" &&
+                    parameters.GetProperty("arguments").TryGetProperty("limit", out var historyLimit) && historyLimit.GetInt32() == 500)
+                {
+                    Interlocked.Increment(ref HistoricalThreatReads);
+                    text = """
+                    {"events":[{"seq":7,"tick":1,"type":"Wound","message":"ARCHIVED_WOUND"}],
+                    "watermark":7,"sessionEpoch":"archive-fixture","gap":false,"truncated":false}
+                    """;
+                }
                 if (Unconscious && parameters.GetProperty("name").GetString() == "describe_colonist")
                     text = "{\"stateSummary\":\"health=1; unconscious=true\"}";
                 if (SyntheticThreat && parameters.GetProperty("name").GetString() == "read_events")

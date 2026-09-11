@@ -1692,7 +1692,7 @@ internal static class ManualCommandExecutor
             case SelfActionKind.GoHome:
                 InstallSelfPlan(world, npc, admission, GoalType.Homeward,
                     "Приказ бежать домой", "NoRouteToCamp",
-                    () => ManualPlanner.BuildHomewardPlan(world, npc));
+                    () => ManualPlanner.BuildHomewardPlan(world, npc), keepCarriedPerson: true);
                 break;
 
             case SelfActionKind.Explore:
@@ -1892,9 +1892,9 @@ internal static class ManualCommandExecutor
     // «есть ли где» (Plan.Status == Active — принято; иначе честный отказ).
     private static void InstallSelfPlan(
         WorldState world, NPCState npc, AdmissionTracker admission, GoalType goal,
-        string clearReason, string failReason, System.Action build)
+        string clearReason, string failReason, System.Action build, bool keepCarriedPerson = false)
     {
-        ClearForNewOrder(world, npc, clearReason);
+        ClearForNewOrder(world, npc, clearReason, keepCarriedPerson: keepCarriedPerson);
         ClearAttackOrder(world, npc);
         npc.Mind.CurrentGoal = goal;
         npc.Plan.Goal = goal;

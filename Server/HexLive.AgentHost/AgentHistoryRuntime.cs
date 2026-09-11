@@ -7,7 +7,6 @@ namespace HexLive.AgentHost;
 public sealed partial class AgentHostRuntime
 {
     private MashaWorldHandle? _historyWorld;
-    private int _historyCritical;
     private readonly ConcurrentDictionary<int, string> _historyNames = new();
     private readonly ConcurrentDictionary<string, MashaWorldHandle> _actionWorlds = new();
     private readonly Dictionary<int, string> _observedHealth = new();
@@ -156,7 +155,8 @@ public sealed partial class AgentHostRuntime
             _memory.History.AppendMany(rows);
             cursor = batch.TryGetProperty("watermark", out var mark) ? mark.GetInt64() : cursor;
             _memory.History.Atomic(cursorPath, JsonSerializer.Serialize(new { cursor, epoch }, AgentMemoryArchive.Json));
-            if (ContainsCriticalEvent(batch)) Interlocked.Exchange(ref _historyCritical, 1);
+            // Archive catch-up can contain old threats already handled by the live lane.
+            // Only the attachment's forward event cursor may interrupt current execution.
             if (batch.TryGetProperty("truncated", out var truncated) && truncated.ValueKind == JsonValueKind.True) continue;
             await Task.Delay(TimeSpan.FromSeconds(2), token);
         }

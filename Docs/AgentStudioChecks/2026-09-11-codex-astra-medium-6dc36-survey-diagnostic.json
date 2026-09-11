@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "6dc36b6768f5ea29f51641fb9fe538e8e8eeeb22",
+  "sourceDirectory": "/private/tmp/hexlive-personal-exploration-source",
+  "provider": "Codex",
+  "model": "gpt-6-astra",
+  "reasoningEffort": "medium",
+  "providerComposition": "production-knowledge-v1",
+  "executionClockPolicy": "active-plan-or-pending-receipt-v2",
+  "rawDirectory": "/private/tmp/hexlive-codex-astra-medium-6dc36",
+  "accepted": false,
+  "scope": "Early diagnostic stop after code audit, not a observed model failure; no other scenarios started.",
+  "case": {
+    "fixture": 0,
+    "repetition": 0,
+    "status": "DiagnosticStopped",
+    "passed": false,
+    "calls": 7,
+    "commands": 4,
+    "gameTicks": 6534
+  },
+  "decisionTurns": 2,
+  "reason": "Code audit: scoring rounded coordinates can overestimate unseen tiles at a shared junction. Replacing with a conservative score across possible arrival tiles before model acceptance."
+}

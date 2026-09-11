@@ -270,6 +270,41 @@ public sealed partial class PlanningSystem
     private readonly System.Collections.Generic.Dictionary<TileCoord, (int NewTiles, int LastSurvey)>
         _exploreSurveyScores = new();
 
+    private (int NewTiles, int LastSurvey) PersonalSurveyForTile(WorldState world, NPCState npc, TileCoord tile)
+    {
+        if (_exploreSurveyScores.TryGetValue(tile, out var score)) return score;
+        var fresh = 0;
+        var radius = AiBalance.PerceptionRadiusTiles;
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            var lo = System.Math.Max(-radius, -dq - radius);
+            var hi = System.Math.Min(radius, -dq + radius);
+            for (var dr = lo; dr <= hi; dr++)
+            {
+                var seen = new TileCoord(tile.Q + dq, tile.R + dr);
+                if (world.Tiles.Items.ContainsKey(seen) && !npc.Memory.SurveyedTiles.ContainsKey(seen)) fresh++;
+            }
+        }
+        score = (fresh, npc.Memory.SurveyedTiles.TryGetValue(tile, out var tick) ? tick : -1);
+        _exploreSurveyScores.Add(tile, score);
+        return score;
+    }
+
+    // Arrival at a shared junction keeps the approach side (MovementSystem).
+    // A rounded position is therefore not the next sensor's authoritative tile.
+    // Rank by the conservative result across every possible arrival side.
+    internal (int NewTiles, int LastSurvey) PersonalSurveyForDestination(WorldState world, NPCState npc, Junction destination)
+    {
+        var result = (NewTiles: int.MaxValue, LastSurvey: -1);
+        foreach (var tile in destination.Tiles)
+        {
+            var score = PersonalSurveyForTile(world, npc, tile);
+            result.NewTiles = System.Math.Min(result.NewTiles, score.NewTiles);
+            result.LastSurvey = System.Math.Max(result.LastSurvey, score.LastSurvey);
+        }
+        return destination.Tiles.Count == 0 ? (0, int.MaxValue) : result;
+    }
+
     // §27.18A r3: rank only already-admissible endpoints, using personal
     // survey history and static topology. No world object lookup, no shared fog.
     private void PreferUnsurveyedExploreTargets(WorldState world, NPCState npc)
@@ -281,25 +316,7 @@ public sealed partial class PlanningSystem
         for (var i = 0; i < _exploreCandidates.Count; i++)
         {
             var candidate = _exploreCandidates[i];
-            var tile = HexSpatialMath.WorldToTile(candidate.WorldPosition);
-            if (!_exploreSurveyScores.TryGetValue(tile, out var score))
-            {
-                var fresh = 0;
-                var radius = AiBalance.PerceptionRadiusTiles;
-                for (var dq = -radius; dq <= radius; dq++)
-                {
-                    var lo = System.Math.Max(-radius, -dq - radius);
-                    var hi = System.Math.Min(radius, -dq + radius);
-                    for (var dr = lo; dr <= hi; dr++)
-                    {
-                        var seen = new TileCoord(tile.Q + dq, tile.R + dr);
-                        if (world.Tiles.Items.ContainsKey(seen) && !npc.Memory.SurveyedTiles.ContainsKey(seen))
-                            fresh++;
-                    }
-                }
-                score = (fresh, npc.Memory.SurveyedTiles.TryGetValue(tile, out var tick) ? tick : -1);
-                _exploreSurveyScores.Add(tile, score);
-            }
+            var score = PersonalSurveyForDestination(world, npc, candidate);
             if (score.NewTiles > bestNew || score.NewTiles == bestNew && score.LastSurvey < bestLast)
             {
                 bestNew = score.NewTiles;
@@ -414,7 +431,7 @@ public sealed partial class PlanningSystem
                     ? $"Camp={visitFaction} Home={visitHome.Q},{visitHome.R} "
                     : string.Empty) +
                 (preferPersonalSurvey
-                    ? $"PersonalSurvey={npc.Memory.SurveyedTiles.Count} NewTiles={_exploreSurveyScores[HexSpatialMath.WorldToTile(destination.WorldPosition)].NewTiles} "
+                    ? $"PersonalSurvey={npc.Memory.SurveyedTiles.Count} NewTiles={PersonalSurveyForDestination(world, npc, destination).NewTiles} "
                     : string.Empty) +
                 "Steps=[MoveToJunction]");
         }

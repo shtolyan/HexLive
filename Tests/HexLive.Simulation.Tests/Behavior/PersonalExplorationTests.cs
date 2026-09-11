@@ -40,6 +40,8 @@ public sealed class PersonalExplorationTests
         var endpointTile = HexSpatialMath.WorldToTile(endpoint.WorldPosition);
         Assert.That(HexSpatialMath.HexDistance(endpointTile, gap), Is.LessThanOrEqualTo(AiBalance.PerceptionRadiusTiles),
             "The next observation must cover the one personally unobserved tile, even when shared fog says all is known.");
+        Assert.That(endpoint.Tiles.All(t => HexSpatialMath.HexDistance(t, gap) <= AiBalance.PerceptionRadiusTiles), Is.True,
+            "Every legal arrival side must observe the remaining gap.");
         Assert.That(PlanningSystem.IsExploreCandidate(world, actor, endpoint), Is.True);
         var output = System.Environment.GetEnvironmentVariable("HEXLIVE_PERSONAL_EXPLORE_DIAGNOSTIC");
         var start = actor.Position;
@@ -59,7 +61,39 @@ public sealed class PersonalExplorationTests
                 hexRadius = HexSpatialMath.HexRadius, sensorRadiusTiles = AiBalance.PerceptionRadiusTiles,
                 start = new { x = start.X, y = start.Y }, oldTile = new { q = oldTile.Q, r = oldTile.R },
                 gap = new { q = gap.Q, r = gap.R }, endpoint = new { x = endpoint.WorldPosition.X, y = endpoint.WorldPosition.Y },
-                endpointTile = new { q = endpointTile.Q, r = endpointTile.R }, tiles = initialTiles, route }));
+                endpointTile = new { q = actor.Tile.Q, r = actor.Tile.R }, tiles = initialTiles, route }));
+    }
+
+    [Test]
+    public void SharedJunctionEstimateNeverExceedsWhatAnyArrivalSideActuallySees()
+    {
+        var world = TestWorld.CreateWorld();
+        var actor = world.Entities.Npcs.Values.First();
+        actor.Mind.ManualControl = true;
+        actor.Mind.CurrentGoal = GoalType.None;
+        var radius = AiBalance.PerceptionRadiusTiles;
+        var sample = (from junction in world.Junctions.Items.Values
+                      where junction.Tiles.Count > 1
+                      let rounded = HexSpatialMath.WorldToTile(junction.WorldPosition)
+                      from gap in world.Tiles.Items.Keys
+                      where HexSpatialMath.HexDistance(rounded, gap) <= radius &&
+                            junction.Tiles.Any(t => HexSpatialMath.HexDistance(t, gap) > radius)
+                      select (junction, gap)).First();
+        foreach (var tile in world.Tiles.Items.Keys)
+            if (!tile.Equals(sample.gap)) actor.Memory.RememberSurvey(tile, 0);
+        var predicted = new PlanningSystem().PersonalSurveyForDestination(world, actor, sample.junction).NewTiles;
+        foreach (var arrival in sample.junction.Tiles)
+        {
+            actor.Memory.SurveyedTiles.Remove(sample.gap);
+            actor.Tile = arrival;
+            actor.Position = sample.junction.WorldPosition;
+            actor.CurrentJunction = sample.junction.Id;
+            var before = actor.Memory.SurveyedTiles.Count;
+            new PerceptionSystem().Run(world);
+            var actualNew = actor.Memory.SurveyedTiles.Count - before;
+            Assert.That(predicted, Is.LessThanOrEqualTo(actualNew),
+                $"Survey estimate must hold for real sensor tile {arrival}, not a rounded coordinate.");
+        }
     }
 
     [Test]

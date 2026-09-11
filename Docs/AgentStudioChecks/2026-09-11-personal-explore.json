@@ -20,7 +20,26 @@
       "skipped": 6,
       "failure": "Only stale assertion BlobVersion==76; updated to77 and focused save tests pass."
     },
-    "fullRegression": "pending"
+    "fullRegression": {
+      "sourceCommit": "6dc36b6768f5ea29f51641fb9fe538e8e8eeeb22",
+      "passed": {
+        "Simulation": 1586,
+        "Server": 320,
+        "AgentHost": 311,
+        "AgentCore": 106
+      },
+      "simulationSkipped": 6
+    },
+    "arrivalCorrectionFocused": {
+      "passed": 15,
+      "failed": 0
+    },
+    "roundedPositionBaseline": {
+      "failedAsExpected": true,
+      "predictedNewTiles": 1,
+      "actualNewTiles": 0
+    },
+    "fullRegressionAfterArrivalCorrection": "pending"
   },
   "save": {
     "version": 77,
@@ -34,8 +53,9 @@
     "tiles": 667,
     "hexRadiusWorldUnits": 1.5,
     "sensorRadiusTiles": 3,
-    "newDistanceToGapTiles": 0,
-    "actualMovementTicks": 94
+    "newDistanceToGapTiles": 3,
+    "actualMovementTicks": 69,
+    "arrivalScore": "minimum unseen count across all junction arrival tiles; diagram sensor centered on actual arrival tile"
   },
   "scopeLimit": "No guarantee that a searched object exists or that destination is safe for sleep. Oldest personal observations can be evicted at the cap."
 }

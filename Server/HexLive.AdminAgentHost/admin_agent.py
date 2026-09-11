@@ -325,7 +325,7 @@ def main():
     token = os.environ.get("HEXLIVE_ADMIN_AGENT_TOKEN", "")
     if len(token) < 32: raise SystemExit("HEXLIVE_ADMIN_AGENT_TOKEN is required (at least 32 characters)")
     mcp = Mcp(args.endpoint, token)
-    model = args.model or ("deepseek-chat" if args.provider == "deepseek" else "gpt-6-astra")
+    model = args.model or ("deepseek-v4-pro" if args.provider == "deepseek" else "gpt-6-astra")
     if args.provider == "deepseek":
         provider = DeepSeek(os.environ.get("HEXLIVE_ADMIN_LLM_API_KEY", ""))
     else:

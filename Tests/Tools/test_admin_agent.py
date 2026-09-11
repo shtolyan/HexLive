@@ -72,7 +72,7 @@ class AdminAgentTests(unittest.TestCase):
             {"turnId": "0123456789abcdef0123456789abcdef", "text": "Вылечи", "selectedNpcId": 7},
             [{"name": "admin_execute", "description": "execute", "inputSchema": {
                 "type": "object", "properties": {"turnId": {}, "operationId": {}, "kind": {}}}}],
-            "deepseek-chat", "/tmp", [])
+            "deepseek-v4-pro", "/tmp", [])
         return mcp, payloads, result
 
     def test_deepseek_tool_identity_is_host_owned_and_repeat_is_deduplicated(self):

@@ -48,7 +48,7 @@ DeepSeek-ключ хранится отдельно от общего токен
 python3 /srv/hexlive-admin/admin_agent.py \
   --endpoint http://127.0.0.1:5123/mcp \
   --workspace /var/lib/hexlive-admin/workspace \
-  --provider deepseek --model deepseek-chat --doctor
+  --provider deepseek --model deepseek-v4-pro --doctor
 ```
 
 `--doctor` проверяет MCP, DeepSeek-ключ и наличие модели без LLM-запроса. После

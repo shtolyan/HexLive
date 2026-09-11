@@ -347,7 +347,9 @@ public sealed class AgentReplySchedulingTests
                     "agent_heartbeat" => new { playerPresent = true },
                     "describe_colonist" => new { stateSummary = "health=1; unconscious=false" },
                     "read_agent_inbox" => new { watermark = (long)question, messages = question > Acknowledged ? new[] { new { seq = (long)question, messageId = "message-" + question, text = "reply-" + question, senderId = "player", language = "en", createdUtc = DateTimeOffset.UtcNow } } : [] },
-                    "read_events" => new { watermark = 1L, events = startAutonomy && Interlocked.Increment(ref _events) == 1 ? new[] { new { seq = 1L, tick = 100L, type = "Threat", message = "Threat nearby" } } : [] },
+                    "read_events" => new { watermark = 1L, events = startAutonomy &&
+                        a.TryGetProperty("limit", out var liveLimit) && liveLimit.GetInt32() == 50 &&
+                        Interlocked.Increment(ref _events) == 1 ? new[] { new { seq = 1L, tick = 100L, type = "Threat", message = "Threat nearby" } } : [] },
                     _ => new { accepted = true, status = "Completed" },
                 };
                 result = new { isError = false, content = new[] { new { type = "text", text = JsonSerializer.Serialize(payload) } } };

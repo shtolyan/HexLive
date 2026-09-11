@@ -79,6 +79,7 @@ public sealed partial class WorldHost
             else if (restSatisfied)
             { receipt.Outcome = "completed"; receipt.Reason = "RestTargetReached"; }
             else if (command is StopCommand or RequestItemCommand or MergeCampsCommand or ManageInventoryCommand ||
+                command is PutDownPersonCommand && !npc.IsCarryingPerson ||
                 command is SelfActionCommand { Kind: SelfActionKind.CallForHelp })
             { receipt.Outcome = "completed"; receipt.Reason = "Completed"; }
             else if (npc.Plan.Status is PlanStatus.Failed or PlanStatus.Invalid)

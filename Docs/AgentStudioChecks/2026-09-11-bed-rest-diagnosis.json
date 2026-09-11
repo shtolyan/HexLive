@@ -1,0 +1,24 @@
+{
+  "low": {
+    "sourceCommit": "0a562b33c10586297b73e52db33ea87d608cc191",
+    "fixture": 2,
+    "repetition": 0,
+    "status": "AssertionException:DecisionTurnLimitExceeded",
+    "passed": false,
+    "calls": 97,
+    "gameTicks": 7879,
+    "commands": 148,
+    "sawSleep": true,
+    "lateReceiptFailures": [
+      "SleepDanger"
+    ]
+  },
+  "medium": {
+    "sourceCommit": "fa3086ace737588663a00a6e2af1cdd5860f18b5",
+    "status": "DiagnosticStopped",
+    "accepted": false,
+    "callsAtLastCheckpoint": 44,
+    "decisionTurnsAtLastCheckpoint": 22,
+    "finding": "Repeated NoGroundSpot at rest_until Stamina; native IdleRest fallback rejects ManualControl, including explicit Sit order."
+  }
+}

@@ -437,7 +437,7 @@ public sealed partial class ExecutionSystem
     /// caution intact while removing the visible lie-down/get-up loop from a
     /// deliberate order.
     /// </summary>
-    internal static string? GetSleepInterruptReason(
+    public static string? GetSleepInterruptReason(
         WorldState world, NPCState npc, bool alreadyAsleep = false,
         bool manualOrder = false)
     {

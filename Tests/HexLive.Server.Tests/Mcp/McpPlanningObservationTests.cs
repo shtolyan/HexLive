@@ -32,6 +32,34 @@ public sealed class McpPlanningObservationTests
     }
 
     [Test]
+    public void RestReadinessExplainsNativeSleepRefusalWithoutMutatingTheActor()
+    {
+        using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));
+        host.Read(w =>
+        {
+            var n = w.Entities.Npcs[new EntityId(901)];
+            n.Needs.Hunger = n.Needs.Thirst = 0f;
+            n.Perception.Mobs.Clear(); n.Perception.Hostiles.Clear();
+            n.Mind.AdrenalineUntilTick = w.Tick + 100;
+            n.Mind.RestCooldownUntilTick = w.Tick + 20;
+            return true;
+        });
+        var before = host.Read(w => (w.Tick, w.Events.HighestSeq, w.Entities.Npcs[new EntityId(901)].Position));
+        var first = Call(tools, "describe_colonist", new { npcId = 901 }).GetProperty("restReadiness");
+        Assert.That(first.GetProperty("sleepBodyReady").GetBoolean(), Is.False);
+        Assert.That(first.GetProperty("sleepBodyBlockReason").GetString(), Is.EqualTo("SleepDanger"));
+        Assert.That(first.GetProperty("adrenalineTicksRemaining").GetInt64(), Is.EqualTo(100));
+        Assert.That(first.GetProperty("idleRestCooldownTicksRemaining").GetInt64(), Is.EqualTo(20));
+        Assert.That(first.GetProperty("sleepSpaceChecked").GetBoolean(), Is.False);
+        Assert.That(host.Read(w => (w.Tick, w.Events.HighestSeq, w.Entities.Npcs[new EntityId(901)].Position)), Is.EqualTo(before));
+        host.Read(w => { var n = w.Entities.Npcs[new EntityId(901)]; n.Mind.AdrenalineUntilTick = w.Tick; n.Mind.RestCooldownUntilTick = w.Tick - 1; return true; });
+        var ready = Call(tools, "describe_colonist", new { npcId = 901 }).GetProperty("restReadiness");
+        Assert.That(ready.GetProperty("sleepBodyReady").GetBoolean(), Is.True);
+        Assert.That(ready.GetProperty("adrenalineTicksRemaining").GetInt64(), Is.Zero);
+        Assert.That(ready.GetProperty("idleRestCooldownTicksRemaining").GetInt64(), Is.Zero);
+    }
+
+    [Test]
     public void RecentGiftResultsIncludeOnlyTheAttachedActorsLastEightEvents()
     {
         using var host = Host(); var tools = new McpTools(host, new ControlLeases(45));

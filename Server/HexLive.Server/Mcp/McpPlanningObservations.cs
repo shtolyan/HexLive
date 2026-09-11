@@ -28,6 +28,19 @@ internal static class McpPlanningObservations
             dropJunction = found ? (int?)junction.Value : null, routeChecked = false, reserved = false });
     }
 
+    public static object RestReadiness(WorldState world, NPCState npc)
+    {
+        var sleepReason = ExecutionSystem.GetSleepInterruptReason(world, npc, manualOrder: true) ?? "";
+        return new
+        {
+            source = "nativeRestRules", sleepBodyReady = sleepReason.Length == 0,
+            sleepBodyBlockReason = sleepReason, sleepSpaceChecked = false,
+            adrenalineTicksRemaining = Math.Max(0L, npc.Mind.AdrenalineUntilTick - world.Tick),
+            idleRestCooldownTicksRemaining = Math.Max(0L, npc.Mind.RestCooldownUntilTick - world.Tick),
+            perceivedThreatCount = npc.Perception.Hostiles.Count + npc.Perception.Mobs.Count
+        };
+    }
+
     public static object RecentGiftResults(WorldState world, int npcId) => new
     {
         source = "SimulationEventBuffer", partialHistory = true,

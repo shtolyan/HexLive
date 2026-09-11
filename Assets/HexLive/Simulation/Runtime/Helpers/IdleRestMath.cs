@@ -1,4 +1,5 @@
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Spatial;
 
@@ -42,10 +43,10 @@ internal static class IdleRestMath
             return true;
         }
 
-        // §121: ручной приказ — не повод плюхнуться на землю. Аукцион для
-        // ручной и так закрыт, но гейт стоит здесь же, чтобы предикат
-        // оставался полным ответом на свой вопрос.
-        if (npc.Mind.ManualControl)
+        // §121/§137: explicit GroundSit also uses IdleRest when no ledge exists.
+        // Manual control forbids unsolicited Idle, not the native Sit goal
+        // installed by the player's rest order (or exhausted-work recovery).
+        if (npc.Mind.ManualControl && npc.Mind.CurrentGoal != GoalType.Sit)
         {
             return true;
         }

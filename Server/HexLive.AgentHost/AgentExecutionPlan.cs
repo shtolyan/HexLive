@@ -210,7 +210,7 @@ public static class AgentExecutionPlanPolicy
         {
             if (steps[i].Condition is not { } c) continue;
             if (c.Path is not ("inventorySummary.freeSlots" or "bodyNeeds.energy.value" or
-                    "bodyNeeds.stamina.value" or "bodyNeeds.hunger" or "bodyNeeds.thirst") ||
+                    "bodyNeeds.stamina.value" or "bodyNeeds.hunger" or "bodyNeeds.thirst" or "restReadiness.adrenalineTicksRemaining" or "restReadiness.idleRestCooldownTicksRemaining") ||
                 c.Operator is not ("gte" or "lte") || !double.IsFinite(c.Value) ||
                 c.OnFalseStepId == null || c.OnFalseStepId.Length > 0 &&
                 Array.FindIndex(steps, s => s.Id == c.OnFalseStepId) <= i)

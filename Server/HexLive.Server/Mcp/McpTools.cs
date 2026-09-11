@@ -884,6 +884,7 @@ public sealed class McpTools
                 ["legacyAgentState"] = LegacyAgentState(npc),
                 ["stateSummary"] = context.StateSummary,
                 ["bodyNeeds"] = McpPlanningObservations.Needs(npc),
+                ["restReadiness"] = McpPlanningObservations.RestReadiness(world, npc),
                 ["inOwnCamp"] = ColonyQueries.InCamp(world, npc.Tile, npc.Faction),
                 ["execution"] = McpPlanningObservations.Execution(npc),
                 ["recentGiftResults"] = McpPlanningObservations.RecentGiftResults(world, npc.Id.Value),

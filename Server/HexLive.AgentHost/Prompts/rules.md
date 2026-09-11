@@ -125,7 +125,8 @@ steps — список {id,tool,arguments}; id шагов уникальны. П
 condition={path:"inventorySummary.freeSlots",operator:"gte",value:1,onFalseStepId:"return"}.
 При заполнении инвентаря этот пример сразу переходит к последующему шагу return.
 Разрешены также bodyNeeds.energy.value, bodyNeeds.stamina.value, bodyNeeds.hunger,
-bodyNeeds.thirst; операторы gte/lte. Пустой onFalseStepId приостанавливает план для
+bodyNeeds.thirst, restReadiness.adrenalineTicksRemaining и
+restReadiness.idleRestCooldownTicksRemaining; операторы gte/lte. Пустой onFalseStepId приостанавливает план для
 нового решения. Переход только вперёд. Для стаков учитывай возможность дополнить
 существующий стак: freeSlots=0 само по себе не запрещает подобрать ресурс.
 

@@ -278,7 +278,7 @@ public sealed class AgentProviders : IAgentProviders
                                                 arguments = new { type = "object", additionalProperties = true },
                                                 condition = new { type = new[] { "object", "null" }, additionalProperties = false,
                                                     properties = new {
-                                                        path = new { type = "string", @enum = new[] { "inventorySummary.freeSlots", "bodyNeeds.energy.value", "bodyNeeds.stamina.value", "bodyNeeds.hunger", "bodyNeeds.thirst" } },
+                                                        path = new { type = "string", @enum = new[] { "inventorySummary.freeSlots", "bodyNeeds.energy.value", "bodyNeeds.stamina.value", "bodyNeeds.hunger", "bodyNeeds.thirst", "restReadiness.adrenalineTicksRemaining", "restReadiness.idleRestCooldownTicksRemaining" } },
                                                         @operator = new { type = "string", @enum = new[] { "gte", "lte" } },
                                                         value = new { type = "number" }, onFalseStepId = new { type = "string", maxLength = 96 } },
                                                     required = new[] { "path", "operator", "value", "onFalseStepId" } } },

@@ -23,6 +23,26 @@ public sealed class AgentExecutionPlanTests
         Assert.That(plan.Status, Is.EqualTo("active"));
     }
 
+    [TestCase("adrenalineTicksRemaining")]
+    [TestCase("idleRestCooldownTicksRemaining")]
+    public void RecoveryTimerCanSkipAnUnavailableRestWithoutACommand(string timer)
+    {
+        var initial = Plan();
+        var condition = new AgentExecutionCondition("restReadiness." + timer, "lte", 0, "unload");
+        var plan = AgentExecutionPlanPolicy.Create(Objective(), "world", 901,
+            [initial.Steps[0] with { Condition = condition }, initial.Steps[1]]);
+        var waiting = JsonSerializer.SerializeToElement(new { restReadiness = new Dictionary<string, long> { [timer] = 100 } });
+        Assert.That(AgentExecutionPlanPolicy.ConditionSatisfied(condition, waiting), Is.False);
+        var skipped = AgentExecutionPlanPolicy.Branch(plan, plan.Revision);
+        Assert.That(skipped.Cursor, Is.EqualTo(1));
+        Assert.That(skipped.Command, Is.Null);
+        Assert.That(AgentExecutionPlanPolicy.ConditionSatisfied(condition,
+            JsonSerializer.SerializeToElement(new { restReadiness = new Dictionary<string, long> { [timer] = 0 } })), Is.True);
+        Assert.That(Assert.Throws<InvalidDataException>(() => AgentExecutionPlanPolicy.ConditionSatisfied(
+            condition, JsonSerializer.SerializeToElement(new { })))!.Message, Is.EqualTo("ExecutionObservationMissing"),
+            "A server without readiness fields must not authorize a speculative rest.");
+    }
+
     [Test]
     public void RepeatCheckpointSurvivesRestartAndNeverReusesThePreviousCommandId()
     {

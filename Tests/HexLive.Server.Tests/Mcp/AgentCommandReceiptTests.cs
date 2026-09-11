@@ -108,6 +108,40 @@ public sealed class AgentCommandReceiptTests
         Assert.That(host.Read(w => w.AgentCommands.Count), Is.Zero);
     }
 
+    [Test]
+    public void BoundedStaminaRestUsesManualIdleFallbackWithoutANavigationAnchor()
+    {
+        using var host = Host(); var tools = Tools(host); var engine = Engine(host);
+        host.Read(w =>
+        {
+            foreach (var n in w.Entities.Npcs.Values) n.Mind.ManualControl = true;
+            w.Mobs.Clear();
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.CurrentJunction = null;
+            npc.Movement.IsMoving = false;
+            npc.Needs.Stamina = .3f; npc.Needs.Energy = 1f;
+            npc.Needs.Hunger = npc.Needs.Thirst = 0f;
+            npc.Mind.AdrenalineUntilTick = npc.Mind.RestCooldownUntilTick = 0;
+            npc.Perception.Mobs.Clear(); npc.Perception.Hostiles.Clear();
+            return true;
+        });
+        var accepted = Call(tools, "execute_agent_command", new
+        { npcId = 901, sequence = 1, commandId = "command-1", tool = "rest_until", arguments = new { need = "Stamina", target = .5 } });
+        Assert.That(accepted.GetProperty("outcome").GetString(), Is.EqualTo("accepted"));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Plan.Steps.Any(s => s.Type == PlanStepType.IdleRest)), Is.True);
+        var rested = false;
+        for (var tick = 0; tick < 100; tick++)
+        {
+            host.Read(w => { engine.Step(); rested |= w.Entities.Npcs[new EntityId(901)].Execution.CurrentInteraction == HexLive.Simulation.Content.InteractionType.Rest; return true; });
+            if (Read(tools, 1).GetProperty("outcome").GetString() != "accepted") break;
+        }
+        var receipt = Read(tools, 1);
+        Assert.That(rested, Is.True);
+        Assert.That(receipt.GetProperty("outcome").GetString(), Is.EqualTo("completed"));
+        Assert.That(receipt.GetProperty("reason").GetString(), Is.EqualTo("RestTargetReached"));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Needs.Stamina), Is.GreaterThanOrEqualTo(.5f));
+    }
+
     [TestCase("Energy")]
     [TestCase("Stamina")]
     public void AlreadyRestoredNeedsCompleteOnceWithoutSearchingForASittingOrSleepingSpot(string need)

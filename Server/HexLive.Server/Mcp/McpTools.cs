@@ -112,7 +112,7 @@ public sealed class McpTools
             "Пустой результат означает отсутствие знания, а не отсутствие предметов в мире.",
             Schema(("npcId", "integer", "id колонистки", true),
                    ("definitionPrefix", "string", "префикс definition id, до 128 символов; пустой — любые", false),
-                   ("interaction", "string", "имя InteractionType для фильтра по каталогу", false),
+                   ("interaction", "string", "имя InteractionType для фильтра по каталогу; пустой — любые", false),
                    ("limit", "integer", "1..64, по умолчанию 16", false))),
 
         new("attach_agent",
@@ -807,8 +807,11 @@ public sealed class McpTools
                     if (prefix.Length > 128) return invalid;
                     break;
                 case "interaction":
-                    if (field.Value.ValueKind != JsonValueKind.String ||
-                        !Enum.TryParse<InteractionType>(field.Value.GetString(), true, out var parsed) ||
+                    if (field.Value.ValueKind != JsonValueKind.String) return invalid;
+                    // Optional filters emitted by structured model responses may be empty.
+                    // Only an empty string means no filter; unknown names still fail closed.
+                    if (field.Value.GetString()!.Length == 0) break;
+                    if (!Enum.TryParse<InteractionType>(field.Value.GetString(), true, out var parsed) ||
                         !string.Equals(Enum.GetName(parsed), field.Value.GetString(), StringComparison.OrdinalIgnoreCase)) return invalid;
                     interaction = parsed;
                     break;

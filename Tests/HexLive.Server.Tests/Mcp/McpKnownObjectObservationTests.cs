@@ -42,6 +42,8 @@ public sealed class McpKnownObjectObservationTests
     [TestCase("\"definitionPrefix\":7")]
     [TestCase("\"interaction\":\"999\"")]
     [TestCase("\"interaction\":\"unknown\"")]
+    [TestCase("\"interaction\":\" \"")]
+    [TestCase("\"interaction\":null")]
     [TestCase("\"secret\":true")]
     public void MalformedFiltersFailInsteadOfSilentlyReturningUnfilteredKnowledge(string tail)
     {
@@ -52,6 +54,21 @@ public sealed class McpKnownObjectObservationTests
             "mcp:388", out var error);
         Assert.That(error, Is.True);
         Assert.That(result, Is.EqualTo("{\"error\":\"InvalidKnowledgeQueryArguments\"}"));
+    }
+
+    [Test]
+    public void EmptyOptionalInteractionKeepsDefinitionFilterAndMatchesOmission()
+    {
+        using var host = CreateHost();
+        var id = host.Read(world => world.Entities.Npcs.Keys.First().Value);
+        var tools = new McpTools(host, new ControlLeases(45));
+        var omitted = tools.Call("query_known_objects", JsonSerializer.SerializeToElement(new
+            { npcId = id, definitionPrefix = "tool.", limit = 16 }), "mcp:409", out var omittedError);
+        var empty = tools.Call("query_known_objects", JsonSerializer.SerializeToElement(new
+            { npcId = id, definitionPrefix = "tool.", interaction = "", limit = 16 }), "mcp:409", out var emptyError);
+        Assert.That(omittedError, Is.False, omitted);
+        Assert.That(emptyError, Is.False, empty);
+        Assert.That(empty, Is.EqualTo(omitted));
     }
 
     [Test]

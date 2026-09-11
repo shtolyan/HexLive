@@ -1,0 +1,79 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "coconuts",
+      "passed": 6,
+      "total": 6,
+      "missing": [],
+      "accepted": true,
+      "calls": 26,
+      "commands": 42,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "gift",
+      "passed": 6,
+      "total": 6,
+      "missing": [],
+      "accepted": true,
+      "calls": 35,
+      "commands": 12,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "bed",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "resilience",
+      "passed": 6,
+      "total": 6,
+      "missing": [],
+      "accepted": true,
+      "calls": 27,
+      "commands": 44,
+      "failures": []
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks."
+}

@@ -40,7 +40,16 @@
       "Core": 106
     },
     "serverArrivalCorrectionFocused": 15,
-    "serverArrivalCorrectionFull": "running"
+    "serverArrivalCorrectionFull": {
+      "sourceCommit": "90036ef2b744dd67b44bbdf154317abd4bb35fe5",
+      "passed": {
+        "Simulation": 1587,
+        "Server": 320,
+        "AgentHost": 311,
+        "AgentCore": 106
+      },
+      "simulationSkipped": 6
+    }
   },
   "modelAcceptance": "Incomplete. Astra90036 bed0/0 running; previous272c4 failed after all materials and repeated hammer search,6dc36 early probe stopped for arrival-side code audit. Grok403; no imports.",
   "productionUpdated": false

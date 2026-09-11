@@ -39,7 +39,16 @@
       "predictedNewTiles": 1,
       "actualNewTiles": 0
     },
-    "fullRegressionAfterArrivalCorrection": "pending"
+    "fullRegressionAfterArrivalCorrection": {
+      "sourceCommit": "90036ef2b744dd67b44bbdf154317abd4bb35fe5",
+      "passed": {
+        "Simulation": 1587,
+        "Server": 320,
+        "AgentHost": 311,
+        "AgentCore": 106
+      },
+      "simulationSkipped": 6
+    }
   },
   "save": {
     "version": 77,

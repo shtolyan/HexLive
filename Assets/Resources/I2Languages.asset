@@ -27895,6 +27895,14 @@ MonoBehaviour:
       - 'Реплика сохранена. Ожидание подключения агента.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'toast.order_rejected.FireNotLit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Light the fire before warming up'
+      - 'Сначала разожгите костёр, чтобы согреться'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

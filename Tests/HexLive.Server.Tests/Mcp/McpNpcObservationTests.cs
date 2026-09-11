@@ -18,6 +18,48 @@ namespace HexLive.Server.Tests.Mcp;
 public sealed class McpNpcObservationTests
 {
     [Test]
+    public void CarriedDeathRemainsExplicitAfterRemovalFromTheLivingRoster()
+    {
+        using var host = CreateHost();
+        var setup = host.Read(world =>
+        {
+            var actor = Observer(world); var patient = world.Entities.Npcs.Values.First(n => n.Id != actor.Id);
+            ClearPerception(actor); actor.Perception.Objects.Clear();
+            actor.CarriedNpcId = patient.Id; patient.CarriedByNpcId = actor.Id;
+            patient.Health = 0; world.Entities.Npcs.Remove(patient.Id); world.Entities.Corpses[patient.Id] = patient;
+            return (actor.Id.Value, patient.Id.Value);
+        });
+        using var dead = Describe(host, setup.Item1);
+        var carried = dead.RootElement.GetProperty("carriedPerson");
+        Assert.That(carried.GetProperty("npcId").GetInt32(), Is.EqualTo(setup.Item2));
+        Assert.That(carried.GetProperty("lifeStatus").GetString(), Is.EqualTo("dead"));
+        host.Read(w => { w.Entities.Corpses.Remove(new EntityId(setup.Item2)); return true; });
+        using var missing = Describe(host, setup.Item1);
+        Assert.That(missing.RootElement.GetProperty("carriedPerson").GetProperty("lifeStatus").GetString(), Is.EqualTo("unknown"));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void OnlyACurrentlySeenCorpseRevealsTheDeadPersonsIdentity(bool remembered)
+    {
+        using var host = CreateHost();
+        var actorId = host.Read(world =>
+        {
+            var actor = Observer(world); var patient = world.Entities.Npcs.Values.First(n => n.Id != actor.Id);
+            ClearPerception(actor); actor.Perception.Objects.Clear();
+            patient.Health = 0; patient.DisplayName = "corpse-name-sentinel";
+            world.Entities.Npcs.Remove(patient.Id); world.Entities.Corpses[patient.Id] = patient;
+            var anchor = world.Entities.Objects.Values.First(); anchor.DefinitionId = ContentIds.CorpseNpc; anchor.CurrentUser = patient.Id;
+            actor.Perception.Objects.Add(new PerceivedObject { Id = anchor.Id, FromMemory = remembered });
+            return actor.Id.Value;
+        });
+        using var response = Describe(host, actorId);
+        var corpses = response.RootElement.GetProperty("visibleCorpses");
+        Assert.That(corpses.GetArrayLength(), Is.EqualTo(remembered ? 0 : 1));
+        if (!remembered) Assert.That(corpses[0].GetProperty("nameId").GetString(), Is.EqualTo("corpse-name-sentinel"));
+    }
+
+    [Test]
     public void VisibleMissingLegsIdentifyTwoProsthesesAndDoNotExposeHiddenPatients()
     {
         using var host = CreateHost();

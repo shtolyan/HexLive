@@ -10,6 +10,21 @@ namespace HexLive.Simulation.Runtime
 /// Uses the ordinary personal perception lists, including visible hostiles.</summary>
 internal static class AgentIncidentNotifications
 {
+    internal static void Death(WorldState world, NPCState dead)
+    {
+        if (dead.Health > 0f) return;
+        foreach (var observer in world.Entities.Npcs.Values)
+        {
+            var carried = observer.CarriedNpcId == dead.Id && dead.CarriedByNpcId == observer.Id;
+            if (observer.Mind.ExternalControl?.IsActive != true || observer.Id == dead.Id ||
+                observer.Health <= 0f || observer.IsUnconscious(world.Tick) ||
+                (!carried && !PerceptionMath.Sees(observer, dead.Id))) continue;
+            Trace.Emit(world, observer.Id, "AgentObservedDeath",
+                $"Person=NPC{dead.Id.Value} Name={dead.DisplayName} LifeStatus=dead CarriedByMe={carried} " +
+                $"Tile={dead.Tile.Q},{dead.Tile.R}");
+        }
+    }
+
     internal static bool CanWitness(WorldState world, NPCState observer, NPCState actor) =>
         observer.Mind.ExternalControl?.IsActive == true &&
         observer.Id != actor.Id && observer.Health > 0f &&

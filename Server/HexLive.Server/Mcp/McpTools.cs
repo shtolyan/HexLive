@@ -878,6 +878,7 @@ public sealed class McpTools
                 ["manualControl"] = npc.Mind.ManualControl,
                 ["carriedNpcId"] = npc.CarriedNpcId?.Value,
                 ["carriedByNpcId"] = npc.CarriedByNpcId?.Value,
+                ["carriedPerson"] = McpNpcObservations.CarriedPerson(world, npc),
                 ["leaseHolder"] = redactOwner ? (Holder(npc.Id.Value).Length == 0 ? string.Empty : "occupied") : Holder(npc.Id.Value),
                 // Gameplay-language progress is part of the body/world adapter;
                 // §159's personal memories remain in the local Masha archive.
@@ -901,6 +902,7 @@ public sealed class McpTools
                 ["inventorySummary"] = McpInventoryObservations.Read(world, npc),
                 ["visibleItems"] = McpItemObservations.Visible(world, npc),
                 ["visibleNpcs"] = McpNpcObservations.Visible(world, npc),
+                ["visibleCorpses"] = McpNpcObservations.VisibleCorpses(world, npc),
                 ["recentPerception"] = McpPerceptionObservations.Recent(
                     observations?.Read(perceptionEpoch, perceptionSince, world.Tick)),
                 ["inventoryItems"] = McpItemObservations.Carried(world, npc),

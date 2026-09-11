@@ -1951,6 +1951,8 @@ public sealed class MobSystem : ISimulationSystem
     {
         if (world.Entities.Npcs.TryGetValue(deadId, out var dying))
         {
+            // #414: capture direct sight/carry before cleanup can break the relation.
+            AgentIncidentNotifications.Death(world, dying);
             ExecutionSystem.ReleaseClaims(world, dying);
         }
 

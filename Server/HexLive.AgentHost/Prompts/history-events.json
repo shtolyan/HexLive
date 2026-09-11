@@ -23,5 +23,6 @@
   "aid_person": "помощь человеку / aid a person",
   "craft_item": "крафт, изготовление / crafting",
   "put_person_in_bed": "уложить в кровать / put a person in bed",
-  "interact": "взаимодействие / interaction"
+  "interact": "взаимодействие / interaction",
+  "AgentObservedDeath": "лично видела смерть человека / personally witnessed a person die"
 }

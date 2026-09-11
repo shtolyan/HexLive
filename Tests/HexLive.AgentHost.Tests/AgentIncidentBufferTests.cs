@@ -6,6 +6,20 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentIncidentBufferTests
 {
+    [Test]
+    public void ConfirmedDeathIsRetainedAcrossFailedDecisionsButGlobalDeathDoesNotBecomeWitnessed()
+    {
+        var buffer = new AgentIncidentBuffer();
+        buffer.Observe(Event(1, "NpcDied"));
+        Assert.That(buffer.HasPending, Is.False);
+        buffer.Observe(Event(2, "AgentObservedDeath"));
+        var pending = buffer.Snapshot();
+        buffer.Observe(Event(2, "AgentObservedDeath"));
+        Assert.That(buffer.Snapshot().GetRawText(), Is.EqualTo(pending.GetRawText()));
+        buffer.Consume(pending);
+        Assert.That(buffer.HasPending, Is.False);
+    }
+
     private static JsonElement Event(long seq, string type = "AgentObservedTheft") =>
         JsonSerializer.SerializeToElement(new { events = new[] { new { seq, type, data = "Actor=NPC7 Item=resource.food" } } });
 

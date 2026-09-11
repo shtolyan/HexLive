@@ -8,6 +8,7 @@ using HexLive.Simulation.Content;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Runtime;
 
 namespace HexLive.Server.Mcp;
 
@@ -71,6 +72,27 @@ internal static class McpNpcObservations
         }).ToArray(),
         installationReadinessChecked = false
     };
+
+    public static object? CarriedPerson(WorldState world, NPCState observer)
+    {
+        if (observer.CarriedNpcId is not { } id) return null;
+        var alive = world.Entities.Npcs.TryGetValue(id, out var body) && body.Health > 0f;
+        if (body == null) world.Entities.Corpses.TryGetValue(id, out body);
+        if (body == null || body.CarriedByNpcId != observer.Id)
+            return new { npcId = id.Value, lifeStatus = "unknown", source = "carryRelationUnconfirmed" };
+        return new { npcId = id.Value, nameId = body.DisplayName, names = LocalizedNames(body.DisplayName),
+            lifeStatus = alive ? "alive" : "dead", source = "carriedByMe",
+            dying = alive && body.IsDying, unconscious = alive && body.IsUnconscious(world.Tick) };
+    }
+
+    public static object[] VisibleCorpses(WorldState world, NPCState observer) => observer.Perception.Objects
+        .Where(p => !p.FromMemory).Select(p => world.Entities.Objects.TryGetValue(p.Id, out var item) ? item : null)
+        .Where(item => item != null && item.DefinitionId == ContentIds.CorpseNpc)
+        .Select(item => new { item, body = CorpseMath.BodyOf(world, item!) })
+        .Where(x => x.body != null && x.body.Health <= 0f).DistinctBy(x => x.body!.Id)
+        .Select(x => (object)new { npcId = x.body!.Id.Value, objectId = x.item!.Id.Value,
+            nameId = x.body.DisplayName, names = LocalizedNames(x.body.DisplayName), lifeStatus = "dead",
+            source = "currentSight" }).ToArray();
 
     private static Dictionary<string, string> LocalizedNames(string nameId) =>
         Names.Value.TryGetValue(nameId, out var names)

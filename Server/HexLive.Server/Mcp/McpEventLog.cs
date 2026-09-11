@@ -58,6 +58,7 @@ public sealed class McpEventLog
             "AgentObservedIntruder",
             "AgentObservedTheft",
             "AgentObservedLoot",
+            "AgentObservedDeath",
         };
 
     private readonly List<EventRecord> _events = new();

@@ -51,7 +51,7 @@ public sealed class TraceGateLintTests
         "ItemRequestResult",
         // §160.6: personal observations wake the witnessing controller even
         // with diagnostics off; they never join the public GameEventTypes feed.
-        "AgentObservedIntruder", "AgentObservedTheft", "AgentObservedLoot",
+        "AgentObservedIntruder", "AgentObservedTheft", "AgentObservedLoot", "AgentObservedDeath",
     };
 
     [Test]

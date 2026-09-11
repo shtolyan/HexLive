@@ -31,7 +31,7 @@ internal sealed class AgentIncidentBuffer
             if (!item.TryGetProperty("seq", out var seqValue) || !seqValue.TryGetInt64(out var seq) ||
                 seq <= _lastSeen || !item.TryGetProperty("type", out var type)) continue;
             var name = type.GetString();
-            if (name != "AgentObservedIntruder" && name != "AgentObservedTheft" && name != "AgentObservedLoot") continue;
+            if (name != "AgentObservedIntruder" && name != "AgentObservedTheft" && name != "AgentObservedLoot" && name != "AgentObservedDeath") continue;
             _lastSeen = seq;
             if (_pending.Count == Capacity)
             {

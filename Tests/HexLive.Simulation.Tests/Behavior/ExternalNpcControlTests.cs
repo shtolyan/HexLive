@@ -12,6 +12,29 @@ public sealed class ExternalNpcControlTests
 {
     [TestCase(false)]
     [TestCase(true)]
+    public void DeathIsReportedToItsWitnessOrCarrierButNotHiddenObservers(bool carried)
+    {
+        var world = TestWorld.CreateWorld();
+        var people = world.Entities.Npcs.Values.Take(3).ToArray();
+        var observer = people[0]; var patient = people[1]; var hidden = people[2];
+        using var control = new ExternalNpcControl(); control.Bind(world, observer);
+        using var hiddenControl = new ExternalNpcControl(); hiddenControl.Bind(world, hidden);
+        foreach (var person in people) { person.Perception.Agents.Clear(); person.Perception.Hostiles.Clear(); }
+        if (carried) { observer.CarriedNpcId = patient.Id; patient.CarriedByNpcId = observer.Id; }
+        else observer.Perception.Agents.Add(new PerceivedAgent { Id = patient.Id, CanSee = true });
+        patient.Health = 0f;
+        MobSystem.RemoveDeadNpc(world, patient.Id);
+        var events = world.Events.Items.Where(e => e.Type == "AgentObservedDeath").ToArray();
+        Assert.That(events.Length, Is.EqualTo(1));
+        Assert.That(events[0].EntityId, Is.EqualTo(observer.Id.Value));
+        Assert.That(events[0].Message, Does.Contain("Person=NPC" + patient.Id.Value).And.Contain("LifeStatus=dead"));
+        Assert.That(events[0].Message, Does.Not.Contain("inventory=").And.Not.Contain("Blood="));
+        MobSystem.RemoveDeadNpc(world, patient.Id);
+        Assert.That(world.Events.Items.Count(e => e.Type == "AgentObservedDeath"), Is.EqualTo(1));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
     public void AttachmentAndActionReleasePreservePlayersSavedSwitch(bool playerManual)
     {
         var world = TestWorld.CreateWorld();

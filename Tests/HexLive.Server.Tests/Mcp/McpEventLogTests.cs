@@ -16,6 +16,16 @@ namespace HexLive.Server.Tests.Mcp
 /// </summary>
 public sealed class McpEventLogTests
 {
+    [Test]
+    public void PersonallyWitnessedDeathSurvivesFilteringAndRemainsAddressedToTheWitness()
+    {
+        var (log, buffer) = Fresh();
+        buffer.Add(Visible("AgentObservedDeath", 902));
+        log.Drain(buffer, 0);
+        Assert.That(log.Read(0, 10, 902).Events, Has.Count.EqualTo(1));
+        Assert.That(log.Read(0, 10, 901).Events, Is.Empty);
+    }
+
     private static SimulationEvent Visible(string type = "TalkStarted", int? entityId = null) =>
         new() { Tick = 1, Type = type, Message = "Kind=Chat", EntityId = entityId };
 

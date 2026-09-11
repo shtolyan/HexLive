@@ -1,0 +1,194 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "coconuts",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "gift",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "bed",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 241,
+      "commands": 266,
+      "failures": [
+        {
+          "fixture": 0,
+          "repetition": 0,
+          "status": "AssertionException:DecisionTurnLimitExceeded"
+        },
+        {
+          "fixture": 2,
+          "repetition": 1,
+          "status": "AssertionException:DecisionTurnLimitExceeded"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "resilience",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks.",
+  "sourceCommit": "c380dfcfde19b66920d5273c8f865393c0166c78",
+  "rawDirectory": "/private/tmp/hexlive-codex-medium-c380",
+  "scopeNote": "Two first bed probes only, both reached the64-decision budget without a completed new bed; no other cases started. Hunger/thirst polarity metadata is included. Separate stronger-model comparison is running, not accepted.",
+  "cases": [
+    {
+      "fixture": 0,
+      "repetition": 0,
+      "status": "AssertionException:DecisionTurnLimitExceeded",
+      "passed": false,
+      "calls": 119,
+      "commands": 136,
+      "gameTicks": 10495,
+      "sawSleep": true
+    },
+    {
+      "fixture": 2,
+      "repetition": 1,
+      "status": "AssertionException:DecisionTurnLimitExceeded",
+      "passed": false,
+      "calls": 122,
+      "commands": 130,
+      "gameTicks": 10340,
+      "sawSleep": true
+    }
+  ]
+}

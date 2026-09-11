@@ -104,6 +104,33 @@ public sealed class AgentExecutionPersistenceTests
     }
 
     [Test]
+    public async Task FailedCommandResumeIsRepairableWithoutResendingIt()
+    {
+        var store = new MashaMemoryStore(_directory);
+        var world = await World(store);
+        await store.CommitTurnAsync(world, "install", "voice", NewPlan(), default);
+        var plan = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        plan = await store.PrepareExecutionStepAsync(plan.Id, plan.Revision, world, default);
+        plan = await store.ObserveExecutionStepAsync(plan.Id, plan.Revision, new(plan.Command!.Id, "failed"), default);
+        world = await World(store);
+        var before = await store.SnapshotAsync(default); var calls = 0;
+        var answer = await new AgentMemoryRecall(_directory).DecideAsync("", world, before, (context, _) =>
+        {
+            calls++;
+            if (calls == 2) Assert.That(context, Does.Contain("InvalidExecutionPlanTransition"));
+            return Task.FromResult(new CompanionDecision { ExecutionPlanUpdate = calls == 1
+                ? new() { Operation = "resume", Reason = "TryAgain" }
+                : NewPlan().ExecutionPlanUpdate });
+        }, default, validateDecision: (decision, token) => store.ValidateObjectiveUpdateAsync(world, decision, token));
+        Assert.That(calls, Is.EqualTo(2));
+        var unchanged = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        Assert.That(unchanged.Revision, Is.EqualTo(plan.Revision));
+        Assert.That(unchanged.Command!.Id, Is.EqualTo(plan.Command!.Id));
+        await store.CommitTurnAsync(world, "replacement", "heartbeat", answer, default);
+        Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Command, Is.Null);
+    }
+
+    [Test]
     public async Task PlanAndObjectiveCommitOnceWithTurnAndPreparedCommandSurvivesRestart()
     {
         var store = new MashaMemoryStore(_directory);

@@ -147,7 +147,7 @@ public sealed class AgentMemoryRecall
                         if (!CanCorrect()) throw;
                         decisionRepair = new { decisionError = ex.Message,
                             rejectedDecision = JsonSerializer.Serialize(answer),
-                            instruction = "The authoritative state preflight rejected this decision; no action, speech or memory was committed. Keep the original goal. A new execution queue requires an active goal: rest_until can be a step while that goal stays active; pausing the goal disables queued work. Resume a paused goal when continuing, but do not resume an already active goal. Do not replace a command with unknown outcome; wait for reconciliation. Return one consistent objective/plan transition." };
+                            instruction = "The authoritative state preflight rejected this decision; no action, speech or memory was committed. Keep the original goal. A new execution queue requires an active goal: rest_until can be a step while that goal stays active; pausing the goal disables queued work. Resume a paused goal when continuing, but do not resume an already active goal. A failed command cannot resume: replace its queue with a corrected plan using the current observation. Resume only a paused queue with no pending command. Do not replace a command with unknown outcome; wait for reconciliation. Return one consistent objective/plan transition." };
                         trace.Add(new { operation = "decision.repair", error = ex.Message });
                         continue;
                     }

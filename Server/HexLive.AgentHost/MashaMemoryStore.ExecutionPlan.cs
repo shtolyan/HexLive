@@ -52,10 +52,13 @@ public sealed partial class MashaMemoryStore
         {
             "pause" when current.Status == "active" => AgentExecutionPlanPolicy.Pause(current, current.Revision, update.Reason),
             "pause" when current.Status == "paused" => current,
-            "resume" when objective?.Status == "active" && decision.Action == null =>
+            "resume" when objective?.Status == "active" && decision.Action == null &&
+                current.Status == "paused" && current.Command == null &&
+                current.WorldKey == episode.WorldKey && current.NpcId == episode.AvatarNpcId &&
+                current.ObjectiveRevision == objective.Revision =>
                 AgentExecutionPlanPolicy.Resume(current, current.Revision, episode.WorldKey, episode.AvatarNpcId, objective.Revision),
             "cancel" when current.Status == "canceled" => current,
-            "cancel" => AgentExecutionPlanPolicy.Cancel(current, current.Revision),
+            "cancel" when current.Status is "active" or "paused" => AgentExecutionPlanPolicy.Cancel(current, current.Revision),
             _ => throw new InvalidDataException("InvalidExecutionPlanTransition")
         };
     }

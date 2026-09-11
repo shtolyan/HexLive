@@ -47,6 +47,7 @@ public sealed partial class AgentExecutionRuntimeTests
     {
         var delivery = scenario is "coconuts" or "resilience";
         var decisionTurnLimit = scenario == "bed" ? 64 : 8;
+        const string executionWallBudgetPolicy = "max(90, 30 + 4 * declaredDispatches) seconds";
         var task = delivery
             ? "Принеси три кокоса в свой лагерь и выгрузи их. Нужные инструменты сохрани."
             : scenario == "bed" ? "Полностью построй НОВУЮ кровать с нуля в своём лагере за три игровых дня. Уже существующие кровати не засчитываются. Материалы добудь сама, отдыхай и спи по необходимости."
@@ -238,7 +239,7 @@ public sealed partial class AgentExecutionRuntimeTests
             var checkpoint = report + ".tmp";
             File.WriteAllText(checkpoint, JsonSerializer.Serialize(new
             {
-                providerName, modelId, scenario, fixture, repetition, calls, decisionTurnLimit,
+                providerName, modelId, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy,
                 status = checkpointStatus, gameTicks = host.Read(w => w.Tick) - initialTick,
                 sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
                 objective = saved.Objective, executionPlan = saved.ExecutionPlan, executionProgress = saved.ExecutionProgress,
@@ -348,11 +349,14 @@ public sealed partial class AgentExecutionRuntimeTests
                 var plan = saved.ExecutionPlan;
                 if (!emergency && plan is not { Status: "active" }) { AdvanceObservationClock(true); continue; }
                 if (!emergency) multiStep |= plan!.Steps.Length >= 2;
-                using var executionStop = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+                // Native polling takes two wall seconds even with an accelerated world.
+                // A valid 256-dispatch segment must not fail the old 90-second harness cap.
+                var executionSeconds = emergency ? 90 : Math.Max(90, 30 + 4 * plan!.Steps.Sum(step => step.Repeat));
+                using var executionStop = new CancellationTokenSource(TimeSpan.FromSeconds(executionSeconds));
                 var running = emergency
                     ? (Task)typeof(AgentHostRuntime).GetMethod("PerformActionAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
                         .Invoke(runtime, [mcp, 901, decision.Action, executionStop.Token, "emergency-" + turn])!
-                    : Run(runtime, mcp, plan!.Id, world, 90, executionStop.Token);
+                    : Run(runtime, mcp, plan!.Id, world, executionSeconds, executionStop.Token);
                 var exceeded = false;
                 while (true)
                 {
@@ -374,7 +378,7 @@ public sealed partial class AgentExecutionRuntimeTests
                   }
                   await running;
                   AdvanceObservationClock(saved.Objective?.Status == "paused");
-                  var afterExecution = (await store.SnapshotAsync(timeout.Token)).ExecutionPlan;
+                  var afterExecution = (await store.SnapshotAsync(executionStop.Token)).ExecutionPlan;
                   if (scenario != "resilience" || emergency || afterExecution is not { Status: "paused", Reason: "CommandOutcomeUnknown" } || reconciliations >= 3) break;
                   var callsBeforeRecovery = calls;
                   await Task.Delay(2100, executionStop.Token);
@@ -410,7 +414,7 @@ public sealed partial class AgentExecutionRuntimeTests
         }
         finally
         {
-            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, decisionTurnLimit, passed, status, failureCode,
+            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy, passed, status, failureCode,
                 gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
                 emergencyActions = turns.Count(t => JsonSerializer.SerializeToElement(t).GetProperty("decision").TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.Object),
                 referenceReads, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));

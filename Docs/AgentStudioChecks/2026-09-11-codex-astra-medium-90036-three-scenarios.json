@@ -1,0 +1,113 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "coconuts",
+      "passed": 6,
+      "total": 6,
+      "missing": [],
+      "pending": [],
+      "accepted": true,
+      "calls": 30,
+      "commands": 42,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "gift",
+      "passed": 5,
+      "total": 6,
+      "missing": [],
+      "pending": [],
+      "accepted": true,
+      "calls": 66,
+      "commands": 28,
+      "failures": [
+        {
+          "fixture": 1,
+          "repetition": 1,
+          "status": "AssertionException:DecisionTurnLimitExceeded"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "bed",
+      "passed": 3,
+      "total": 6,
+      "missing": [
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "accepted": false,
+      "calls": 264,
+      "commands": 578,
+      "failures": [
+        {
+          "fixture": 1,
+          "repetition": 0,
+          "status": "Incomplete"
+        },
+        {
+          "fixture": 2,
+          "repetition": 0,
+          "status": "Incomplete"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "resilience",
+      "passed": 6,
+      "total": 6,
+      "missing": [],
+      "pending": [],
+      "accepted": true,
+      "calls": 32,
+      "commands": 44,
+      "failures": []
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks.",
+  "sourceCommit": "90036ef2b744dd67b44bbdf154317abd4bb35fe5",
+  "rawDirectory": "/private/tmp/hexlive-codex-astra-medium-90036",
+  "scopeNote": "All18 short cases completed: coconuts6/6, gift5/6, resilience6/6. Bed matrix still pending. No imports/retries. Individual NUnit short runner exits1 because gift1/1 is genuinely retained as failed; aggregate per-scenario threshold remains5/6.",
+  "giftFailure": {
+    "fixture": 1,
+    "repetition": 1,
+    "status": "AssertionException:DecisionTurnLimitExceeded",
+    "decisions": 8,
+    "calls": 15,
+    "commands": 9,
+    "lastReceipt": {
+      "sequence": 9,
+      "outcome": "completed"
+    },
+    "interpretation": "Give command got a completed receipt on the final allowed decision. No subsequent model observation/goal completion inside the eight-decision limit. Not reclassified as PASS."
+  }
+}

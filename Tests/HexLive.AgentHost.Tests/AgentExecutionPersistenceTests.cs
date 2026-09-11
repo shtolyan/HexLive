@@ -57,9 +57,11 @@ public sealed class AgentExecutionPersistenceTests
         Assert.That(saved.AppliedTurnIds, Does.Not.Contain("premature"));
     }
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task ActualStorePreflightRepairsPausedGoalWithNewRestQueueBeforeAnyCommit(bool alwaysConflicting)
+    [TestCase(false, 0)]
+    [TestCase(true, 0)]
+    [TestCase(false, 3)]
+    [TestCase(true, 3)]
+    public async Task ActualStorePreflightRepairsPausedGoalWithNewRestQueueBeforeAnyCommit(bool alwaysConflicting, int referenceRounds)
     {
         var store = new MashaMemoryStore(_directory);
         var world = await World(store);
@@ -70,24 +72,29 @@ public sealed class AgentExecutionPersistenceTests
         var run = new AgentMemoryRecall(_directory).DecideAsync("", world, before, (context, _) =>
         {
             calls++;
-            if (calls > 1) Assert.That(context, Does.Contain("InvalidExecutionPlanBinding"));
+            if (calls <= referenceRounds)
+                return Task.FromResult(new CompanionDecision { MemoryRequests =
+                    [new() { Operation = "spec.read", Arguments = JsonSerializer.SerializeToElement(new { section = "120", offset = calls - 1 }) }] });
+            if (calls > referenceRounds + 1) Assert.That(context, Does.Contain("InvalidExecutionPlanBinding"));
             return Task.FromResult(new CompanionDecision
             {
-                ObjectiveUpdate = calls == 1 || alwaysConflicting ? new() { Operation = "pause", Reason = "Rest" } : null,
+                ObjectiveUpdate = calls == referenceRounds + 1 || alwaysConflicting ? new() { Operation = "pause", Reason = "Rest" } : null,
                 ExecutionPlanUpdate = new() { Operation = "replace", Reason = "Rest",
                     Steps = [new("sleep", "rest_until", JsonSerializer.SerializeToElement(new { need = "Energy", target = .7 }))] }
             });
-        }, default, validateDecision: (decision, token) => store.ValidateObjectiveUpdateAsync(world, decision, token));
+        }, default, readReference: (_, arguments, _) => Task.FromResult(new MemoryReadResult(
+            "construction rules", ["spec:120:" + arguments.GetProperty("offset").GetInt32()], null)),
+            validateDecision: (decision, token) => store.ValidateObjectiveUpdateAsync(world, decision, token));
         if (alwaysConflicting)
         {
             var error = Assert.ThrowsAsync<InvalidDataException>(async () => await run);
             Assert.That(error!.Message, Is.EqualTo("InvalidExecutionPlanBinding"));
-            Assert.That(calls, Is.EqualTo(4));
+            Assert.That(calls, Is.EqualTo(referenceRounds + 4));
         }
         else
         {
             var decision = await run;
-            Assert.That(calls, Is.EqualTo(2));
+            Assert.That(calls, Is.EqualTo(referenceRounds + 2));
             Assert.That((await store.SnapshotAsync(default)).ExecutionPlan, Is.Null, "Preflight never installs work.");
             await store.CommitTurnAsync(world, "repaired", "heartbeat", decision, default);
             Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("active"));

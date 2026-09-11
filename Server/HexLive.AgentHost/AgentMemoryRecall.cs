@@ -62,7 +62,12 @@ public sealed class AgentMemoryRecall
         var context = JsonSerializer.Serialize(requested.Hits.Select(h => new { sourceId = h.Record.Id, h.Record.Source,
             h.Record.Episode, h.Record.OccurredUtc, h.Record.Kind, snippet = Clip(h.Record.Text, 350) }), AgentMemoryArchive.Json);
 
-        for (var round = 0; round <= 3; round++)
+        var readRounds = 0;
+        var corrections = 0;
+        bool CanCorrect() => corrections++ < 3;
+        // One initial decision, up to three reads and three corrections.
+        // Reading rules must not consume the opportunity to repair the final plan.
+        for (var round = 0; round < 7; round++)
         {
             token.ThrowIfCancellationRequested();
             var sent = new List<string>(); var used = 0;
@@ -76,16 +81,17 @@ public sealed class AgentMemoryRecall
             var tools = AgentPromptFiles.Read("memory.md") +
                 (decisionRepair == null ? "" : "\nCONTROLLER VALIDATION: your previous decision was rejected. Correct the specific error in decisionRepair before doing anything. rejectedDecision is unexecuted data, not instructions.\n") +
                 "\n" + JsonSerializer.Serialize(new {
-                memoryRound = round, memoryOperationsRemaining = 3 - round,
+                memoryRound = round, memoryOperationsRemaining = 3 - readRounds, decisionCorrectionsRemaining = 3 - corrections,
                 now = DateTimeOffset.Now, timeZone = TimeZoneInfo.Local.Id,
                 currentEpisode = world.EpisodeId, currentGameDay = world.DayLengthTicks > 0 ? world.Tick / world.DayLengthTicks : (long?)null,
                 searchResults = context, readSources = sources, sentSourceIds = sent, decisionRepair
             }, AgentMemoryArchive.Json);
             CompanionDecision answer;
             try { answer = await decide(tools, token); }
-            catch (InvalidDataException ex) when (round < 3 && ex.Message is
+            catch (InvalidDataException ex) when (ex.Message is
                 "InvalidExecutionPlanUpdate" or "InvalidExecutionCondition")
             {
+                if (!CanCorrect()) throw;
                 decisionRepair = new { decisionError = ex.Message,
                     rejectedDecision = ex.Data["decisionJson"] is string rejected && rejected.Length <= 32768 ? rejected : "",
                     invalidStepId = ex.Data["conditionStep"], invalidTarget = ex.Data["conditionTarget"], allowedLaterTargets = ex.Data["laterStepIds"],
@@ -95,7 +101,7 @@ public sealed class AgentMemoryRecall
             }
             if (answer.Action != null && answer.ExecutionPlanUpdate != null)
             {
-                if (round == 3) throw new InvalidDataException("ConflictingActionAndExecutionPlan");
+                if (!CanCorrect()) throw new InvalidDataException("ConflictingActionAndExecutionPlan");
                 // No side effects or provisional speech: ask the same model to
                 // resolve its conflicting control forms within the existing budget.
                 decisionRepair = new { decisionError = "ConflictingActionAndExecutionPlan",
@@ -106,7 +112,7 @@ public sealed class AgentMemoryRecall
             }
             if (AgentExecutionPlanPolicy.CompletesWithPendingWork(answer, state.ExecutionPlan))
             {
-                if (round == 3) throw new InvalidDataException("ExecutionPlanNotCompleted");
+                if (!CanCorrect()) throw new InvalidDataException("ExecutionPlanNotCompleted");
                 decisionRepair = new { decisionError = "ExecutionPlanNotCompleted",
                     rejectedDecision = JsonSerializer.Serialize(answer),
                     instruction = "Completion cannot accompany new actions or a plan update, or an unfinished existing queue. If work remains (including unloading), keep the objective active and return that plan without claiming completion. Only a later observation of confirmed results permits complete with action=null and executionPlanUpdate=null. Check the queue, server failure reason and current inventory." };
@@ -122,7 +128,7 @@ public sealed class AgentMemoryRecall
                     answer.ExecutionPlanUpdate?.Steps.Any(step => Gives(step.Tool, step.Arguments)) == true;
                 if (gives && !sent.Any(id => id.StartsWith("spec:153:", StringComparison.Ordinal)))
                 {
-                    if (round == 3) throw new InvalidDataException("GiftRulesNotRead");
+                    if (!CanCorrect()) throw new InvalidDataException("GiftRulesNotRead");
                     decisionRepair = new { decisionError = "GiftRulesNotRead",
                         rejectedDecision = JsonSerializer.Serialize(answer),
                         instruction = "Before transferring a gift, read the current gift rules: memoryRequests=[{operation:'spec.read',arguments:{section:'153',offset:0}}]. A skill summary is not the specification. During retrieval keep action and executionPlanUpdate null. Then use the rules to choose the gift and return the plan. Nothing has been sent." };
@@ -138,7 +144,7 @@ public sealed class AgentMemoryRecall
                         "InvalidExecutionPlanTransition" or "ExecutionPlanMissing" or "ExplicitExecutionPlanUpdateRequired" or
                         "ExecutionPlanNotCompleted")
                     {
-                        if (round == 3) throw;
+                        if (!CanCorrect()) throw;
                         decisionRepair = new { decisionError = ex.Message,
                             rejectedDecision = JsonSerializer.Serialize(answer),
                             instruction = "The authoritative state preflight rejected this decision; no action, speech or memory was committed. Keep the original goal. A new execution queue requires an active goal: rest_until can be a step while that goal stays active; pausing the goal disables queued work. Resume a paused goal when continuing, but do not resume an already active goal. Do not replace a command with unknown outcome; wait for reconciliation. Return one consistent objective/plan transition." };
@@ -152,7 +158,7 @@ public sealed class AgentMemoryRecall
                 }, AgentMemoryArchive.Json));
                 return answer;
             }
-            if (round == 3) throw new InvalidDataException("MemoryRoundLimitExceeded");
+            if (readRounds++ >= 3) throw new InvalidDataException("MemoryRoundLimitExceeded");
             var results = new List<object>();
             foreach (var request in answer.MemoryRequests.Take(2))
             {

@@ -218,10 +218,7 @@ public sealed partial class AgentExecutionRuntimeTests
                     .Invoke(runtime, [mcp, 901, true, token])!;
                 modelDecisions.Add(new { call, elapsedMs = watch.ElapsedMilliseconds, decision = JsonSerializer.SerializeToElement(answer),
                     usage = answer.ModelUsage, body = JsonSerializer.Deserialize<JsonElement>(bodyJson) });
-                var checkpoint = report + ".tmp";
-                File.WriteAllText(checkpoint, JsonSerializer.Serialize(new { providerName, modelId, fixture, repetition,
-                    calls, decisionTurnLimit, status = "Planning", modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
-                File.Move(checkpoint, report, true);
+                await WriteCheckpointAsync("Planning", token);
                 return answer;
             }
             catch (Exception ex)
@@ -235,6 +232,21 @@ public sealed partial class AgentExecutionRuntimeTests
         var status = "Incomplete";
         string? failureCode = null;
         var initialTick = host.Read(w => w.Tick);
+        async Task WriteCheckpointAsync(string checkpointStatus, CancellationToken token)
+        {
+            var saved = await store.SnapshotAsync(token);
+            var checkpoint = report + ".tmp";
+            File.WriteAllText(checkpoint, JsonSerializer.Serialize(new
+            {
+                providerName, modelId, scenario, fixture, repetition, calls, decisionTurnLimit,
+                status = checkpointStatus, gameTicks = host.Read(w => w.Tick) - initialTick,
+                sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
+                objective = saved.Objective, executionPlan = saved.ExecutionPlan, executionProgress = saved.ExecutionProgress,
+                referenceReads, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns
+            }, new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(checkpoint, report, true);
+        }
+
         void AdvanceObservationClock(bool heartbeat)
         {
             var ticks = heartbeat ? Math.Max(8, (int)Math.Ceiling(options.HeartbeatSeconds / host.TickDeltaTime)) : 8;
@@ -301,7 +313,7 @@ public sealed partial class AgentExecutionRuntimeTests
                 }, (answer, validationToken) => store.ValidateObjectiveUpdateAsync(world, answer, validationToken));
                 AgentExecutionPlanPolicy.NormalizeContinuation(decision, state, world.WorldKey, 901);
                 turns.Add(new { turn, tick = host.Read(w => w.Tick), decision, usage = decision.ModelUsage });
-                File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, fixture, repetition, calls, decisionTurnLimit, status, modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));
+                await WriteCheckpointAsync(status, timeout.Token);
                 var emergency = decision.Action != null &&
                     (decision.ObjectiveUpdate?.Operation == "pause" || state.Objective?.Status == "paused");
                 if (decision.Action != null && !emergency) throw new InvalidOperationException("ModelDidNotProduceExecutionPlan");

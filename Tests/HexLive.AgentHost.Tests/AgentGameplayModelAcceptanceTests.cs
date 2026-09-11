@@ -18,6 +18,48 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed partial class AgentExecutionRuntimeTests
 {
+    private const string GameplayProviderComposition = "production-knowledge-v1";
+    private static IAgentProviders GameplayProviders(IAgentProviders inner, McpClient mcp)
+        => new KnowledgeAwareAgentProviders(inner, mcp.CreateFresh());
+
+    [Test]
+    public async Task GameplayProviderIncludesProductionThirstKnowledgeWithoutPhysicalCommands()
+    {
+        using var host = Host();
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var sections = new List<string>();
+        transport.BeforeToolCall = (tool, arguments) =>
+        {
+            if (tool == "read_spec") sections.Add(arguments.GetProperty("section").GetString()!);
+        };
+        using var mcp = new McpClient(Options().ProviderOptions, transport);
+        var inner = new GameplayKnowledgeCapture();
+        using var provider = GameplayProviders(inner, mcp);
+        await provider.DecideAsync("heartbeat", JsonSerializer.Serialize(new
+            { stateSummary = "thirst=0.95 energy=0.8 stamina=0.8 health=1 blood=1" }),
+            "original-goal", "", [], default);
+        Assert.Multiple(() =>
+        {
+            Assert.That(inner.Calls, Is.EqualTo(1));
+            Assert.That(inner.Context, Does.Contain("original-goal").And.Contain("кокосовую"));
+            Assert.That(inner.Context, Does.Contain("§55").And.Contain("§134"));
+            Assert.That(sections, Does.Contain("55").And.Contain("134"));
+            Assert.That(transport.Executions, Is.Zero);
+        });
+    }
+
+    private sealed class GameplayKnowledgeCapture : IAgentProviders
+    {
+        public string Context = "";
+        public int Calls;
+        public Task<CompanionDecision> DecideAsync(string trigger, string stateJson, string memoryContext,
+            string transcript, IReadOnlyList<string> recentConversation, CancellationToken cancellationToken)
+        { Context = memoryContext; Calls++; return Task.FromResult(new CompanionDecision()); }
+        public Task<VoiceArtifact> SynthesizeAsync(string text, CancellationToken token)
+            => throw new AssertionException("Knowledge retrieval must not synthesize speech.");
+        public void Dispose() { }
+    }
+
     // Real model, real native commands, isolated save and memory. Never connects to a game server.
     [Explicit("Paid/model-backed gameplay acceptance; needs explicit provider and output environment")]
     [TestCase(0, 0)] [TestCase(0, 1)]
@@ -73,11 +115,6 @@ public sealed partial class AgentExecutionRuntimeTests
         IModelAdapter adapter = providerName == "Codex"
             ? new CodexModelAdapter(Environment.GetEnvironmentVariable("HEXLIVE_CODEX_SMOKE_EXECUTABLE") ?? throw new InvalidOperationException("CodexExecutableRequired"), "eval")
             : new HttpModelAdapter(ModelProviderKind.Grok, "eval", _ => Task.FromResult(Environment.GetEnvironmentVariable("XAI_API_KEY") ?? throw new InvalidOperationException("GrokCredentialRequired")));
-        using var model = new AgentProviders(new AgentProviderOptions
-        {
-            McpUri = new("http://fixture/mcp"), McpToken = "fixture", XaiKey = "", ElevenLabsKey = "",
-            XaiModel = "", ElevenLabsModel = "", ElevenLabsVoiceId = "", DialogueStyleId = DialogueStyles.Masha
-        }, adapter, new(providerName == "Codex" ? ModelProviderKind.Codex : ModelProviderKind.Grok, "eval", modelId, reasoningEffort));
         using var host = Host();
         var engine = (SimulationEngine)typeof(HexLive.Server.WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
         var bedAnchors = new HashSet<JunctionId>();
@@ -195,6 +232,11 @@ public sealed partial class AgentExecutionRuntimeTests
         var runtime = new AgentHostRuntime(options, noModelDuringExecution);
         var store = Memory(runtime);
         using var mcp = new McpClient(options.ProviderOptions, transport);
+        using var model = GameplayProviders(new AgentProviders(new AgentProviderOptions
+        {
+            McpUri = new("http://fixture/mcp"), McpToken = "fixture", XaiKey = "", ElevenLabsKey = "",
+            XaiModel = "", ElevenLabsModel = "", ElevenLabsVoiceId = "", DialogueStyleId = DialogueStyles.Masha
+        }, adapter, new(providerName == "Codex" ? ModelProviderKind.Codex : ModelProviderKind.Grok, "eval", modelId, reasoningEffort)), mcp);
         var reader = new AgentReferenceReader(mcp, options.MemoryDirectory, 901);
         var recall = new AgentMemoryRecall(options.MemoryDirectory);
         var catalog = await mcp.ReadToolCatalogAsync(default);
@@ -243,7 +285,7 @@ public sealed partial class AgentExecutionRuntimeTests
             var checkpoint = report + ".tmp";
             File.WriteAllText(checkpoint, JsonSerializer.Serialize(new
             {
-                providerName, modelId, reasoningEffort, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy,
+                providerName, modelId, reasoningEffort, providerComposition = GameplayProviderComposition, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy,
                 status = checkpointStatus, gameTicks = host.Read(w => w.Tick) - initialTick,
                 sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
                 objective = saved.Objective, executionPlan = saved.ExecutionPlan, executionProgress = saved.ExecutionProgress,
@@ -419,7 +461,7 @@ public sealed partial class AgentExecutionRuntimeTests
         }
         finally
         {
-            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, reasoningEffort, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy, passed, status, failureCode,
+            File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, reasoningEffort, providerComposition = GameplayProviderComposition, scenario, fixture, repetition, calls, decisionTurnLimit, executionWallBudgetPolicy, passed, status, failureCode,
                 gameTicks = host.Read(w => w.Tick) - initialTick, sawSleep, commands = transport.Executions, reconciliations, targetReplaced, restarted,
                 emergencyActions = turns.Count(t => JsonSerializer.SerializeToElement(t).GetProperty("decision").TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.Object),
                 referenceReads, receipts = host.Read(w => w.AgentCommands.GetValueOrDefault(901)?.Receipts), modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));

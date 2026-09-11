@@ -139,3 +139,11 @@ python3 Tools/package_agent_studio.py --binary-dir Build/dotnet/bin/HexLive.Agen
 с игровыми сборками. Это framework-dependent preview с установленным .NET 9;
 подпись Apple Development не означает публичную нотарификацию. Не запускать агента
 автоматически и не считать упаковку подтверждением всех модельных сценариев.
+
+### Соответствие слоя знаний приложению
+
+Сценарный провайдер обёрнут в production `KnowledgeAwareAgentProviders`: текущие
+`read_spec` выдержки по нуждам тела поступают до решения, как в CLI/Studio.
+Отчёты содержат `providerComposition=production-knowledge-v1`; старые без поля
+группируются как legacy-unspecified. Их нельзя суммировать с новыми для приёмки.
+Исправление стенда не меняет runtime Studio0.1.16 и не требует нового пакета.

@@ -78,6 +78,22 @@ class AcceptanceMatrixTests(unittest.TestCase):
             path.write_text(json.dumps(data))
             self.assertFalse(next(r for r in summary.summarize([root])["rows"] if r["scenario"] == "bed")["accepted"])
 
+    def test_provider_compositions_cannot_combine_into_a_passing_scenario(self):
+        with tempfile.TemporaryDirectory() as root:
+            for fixture, repeat in summary.CASES:
+                name = f"case-{fixture}-{repeat}.json"
+                self.write(root, name, "bed", fixture, repeat)
+                if repeat == 1:
+                    path = Path(root, name)
+                    data = json.loads(path.read_text())
+                    data["providerComposition"] = "production-knowledge-v1"
+                    path.write_text(json.dumps(data))
+            rows = [r for r in summary.summarize([root])["rows"] if r["scenario"] == "bed"]
+            self.assertEqual(len(rows), 2)
+            self.assertEqual({r["providerComposition"] for r in rows},
+                             {"legacy-unspecified", "production-knowledge-v1"})
+            self.assertTrue(all(r["passed"] == 3 and not r["accepted"] for r in rows))
+
     @staticmethod
     def write(root, filename, scenario, fixture, repeat, passed=True):
         Path(root, filename).write_text(json.dumps(dict(providerName="fixture", modelId="model", scenario=scenario,

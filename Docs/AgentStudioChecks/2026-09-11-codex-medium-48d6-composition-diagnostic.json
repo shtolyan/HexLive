@@ -1,0 +1,144 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "legacy-unspecified",
+      "scenario": "coconuts",
+      "passed": 6,
+      "total": 6,
+      "missing": [],
+      "pending": [],
+      "accepted": true,
+      "calls": 32,
+      "commands": 43,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "legacy-unspecified",
+      "scenario": "gift",
+      "passed": 2,
+      "total": 6,
+      "missing": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [
+        [
+          1,
+          0
+        ]
+      ],
+      "accepted": false,
+      "calls": 14,
+      "commands": 4,
+      "failures": [
+        {
+          "fixture": 1,
+          "repetition": 0,
+          "status": "DiagnosticStopped"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "legacy-unspecified",
+      "scenario": "bed",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "pending": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "accepted": false,
+      "calls": 328,
+      "commands": 279,
+      "failures": [
+        {
+          "fixture": 0,
+          "repetition": 0,
+          "status": "DiagnosticStopped"
+        },
+        {
+          "fixture": 0,
+          "repetition": 1,
+          "status": "DiagnosticStopped"
+        },
+        {
+          "fixture": 1,
+          "repetition": 0,
+          "status": "DiagnosticStopped"
+        },
+        {
+          "fixture": 2,
+          "repetition": 1,
+          "status": "DiagnosticStopped"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "medium",
+      "providerComposition": "legacy-unspecified",
+      "scenario": "resilience",
+      "passed": 6,
+      "total": 6,
+      "missing": [],
+      "pending": [],
+      "accepted": true,
+      "calls": 39,
+      "commands": 46,
+      "failures": []
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks.",
+  "sourceCommit": "48d6724c104f3cba5e6bfbc17bd221d6ae4a1267",
+  "rawDirectory": "/private/tmp/hexlive-codex-bed-medium-48d6",
+  "diagnosis": "The harness called AgentProviders directly, omitting production KnowledgeAwareAgentProviders and its automatic body/world rule excerpts. All unfinished cases were stopped and preserved. These results do not accept the full Studio composition.",
+  "technicalChecks": {
+    "knowledgeParity": 15,
+    "summary": 7
+  }
+}

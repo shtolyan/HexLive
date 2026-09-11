@@ -175,8 +175,9 @@ The Windows script differs where the platform forces it:
 - The pre-build bug snapshot uses the Windows-provided `curl.exe`/Schannel
   directly against the HTTPS production API, without an HTTP proxy. Certificate
   verification is mandatory; never add `-k`/`--insecure`. The build token is
-  discovered from the private repository skill first and the per-user config
-  second, so a fresh trusted checkout needs no manual token setup.
+  loaded only from this device’s `~/.config/hexlive/bug-token`. Repository
+  credentials and inherited HEXLIVE_BUG_TOKEN never select the identity;
+  configure the local device file once and verify it with `bugs.py whoami`.
 
 It builds the macOS development player into
 `~/hex-girls/Releases/v<version>/` on the internal disk, next to

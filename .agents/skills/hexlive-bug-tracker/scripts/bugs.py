@@ -3,30 +3,23 @@
 import argparse, json, os, pathlib, subprocess, sys, urllib.error, urllib.request
 
 DEFAULT="https://flashback.62-146-235-120.sslip.io/api/bugs/v1"
-REPOSITORY_TOKEN=pathlib.Path(__file__).resolve().parents[1]/"bug-token"
-USER_TOKEN=pathlib.Path("~/.config/hexlive/bug-token").expanduser()
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[4] / "Tools"))
+from bug_credentials import read_bug_token, device_token_path
 
 def token(args):
-    value=os.environ.get("HEXLIVE_BUG_TOKEN","").strip()
-    paths=[]
-    if args.token_file: paths.append(pathlib.Path(args.token_file).expanduser())
-    paths.extend((REPOSITORY_TOKEN,USER_TOKEN))
-    for path in paths:
-        if value or not path.is_file(): continue
-        if path == REPOSITORY_TOKEN and os.name != "nt":
-            try: path.chmod(0o600)
-            except OSError: pass
-        value=path.read_text(encoding="utf-8").strip()
-    return value
+    try:
+        return read_bug_token(args.token_file)
+    except RuntimeError as error:
+        raise SystemExit(str(error)) from None
 
-def call(args,method,path,payload=None,auth=False):
+def call(args,method,path,payload=None,auth=False,api=None):
     data=None if payload is None else json.dumps(payload,ensure_ascii=False).encode()
     headers={"Accept":"application/json"}
     if data is not None: headers["Content-Type"]="application/json"
     value=token(args)
-    if not value: raise SystemExit("bug token is missing (environment, --token-file, repository, or user config)")
+    if not value: raise SystemExit("device bug token is missing")
     headers["Authorization"]="Bearer "+value
-    request=urllib.request.Request(args.api.rstrip("/")+path,data=data,headers=headers,method=method)
+    request=urllib.request.Request((api or args.api).rstrip("/")+path,data=data,headers=headers,method=method)
     try:
         with urllib.request.urlopen(request,timeout=15) as response:
             body=response.read().decode()
@@ -88,6 +81,7 @@ def main():
     p=argparse.ArgumentParser(); p.add_argument("--api",default=DEFAULT); p.add_argument("--token-file")
     sub=p.add_subparsers(dest="cmd",required=True)
     sub.add_parser("list"); sub.add_parser("queue")
+    sub.add_parser("whoami",help="show authenticated key name/id and token-file path, never the secret")
     g=sub.add_parser("get"); g.add_argument("id",type=int)
     c=sub.add_parser("create"); c.add_argument("--text",required=True); c.add_argument("--context",default=""); c.add_argument("--version",default="")
     u=sub.add_parser("update"); u.add_argument("id",type=int); u.add_argument("--status"); u.add_argument("--text"); u.add_argument("--assigned-agent"); u.add_argument("--handoff"); u.add_argument("--fix-commits",nargs="*"); u.add_argument("--expected-revision",type=int); u.add_argument("--archived",choices=("true","false")); u.add_argument("--repo",default=".",help="checkout to read --fix-commits patches from"); u.add_argument("--no-patch",action="store_true",help="do not upload the patches of --fix-commits")
@@ -96,7 +90,11 @@ def main():
     m=sub.add_parser("comment"); m.add_argument("id",type=int); m.add_argument("--author",default="codex"); m.add_argument("--text",required=True)
     d=sub.add_parser("delete"); d.add_argument("id",type=int)
     a=p.parse_args()
-    if a.cmd in ("list","queue"):
+    if a.cmd == "whoami":
+        origin = a.api.rstrip("/").removesuffix("/api/bugs/v1")
+        data = call(a,"GET","/api/auth/me",api=origin)
+        data["tokenFile"] = str(pathlib.Path(a.token_file).expanduser() if a.token_file else device_token_path())
+    elif a.cmd in ("list","queue"):
         data=call(a,"GET","/reports")
         if a.cmd=="queue": data=[r for r in data if r.get("status") in ("created","rework")]
     elif a.cmd=="get": data=call(a,"GET",f"/reports/{a.id}")

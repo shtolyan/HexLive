@@ -14,11 +14,18 @@
     "death": "Both native death sweep paths completeTargetDown; unverified disappearance remainsfailedTargetGone.",
     "instantInventory": "Actual Wear completes and preserves previous body plan; duplicate receipt does not reapply."
   },
-  "fullChecks": "Running; no full pass claimed for this revision yet.",
-  "modelAcceptance": "Not yet tested. ca678 diagnostic stopped after27calls/18turns because false emergency receipts invalidated behavior evaluation. Grok requests remain stopped afterHTTP403.",
+  "fullChecks": {
+    "SimulationPassed": 1578,
+    "SimulationPreexistingSkipped": 6,
+    "Server": 320,
+    "Host": 311,
+    "CoreUnchanged": 106
+  },
+  "modelAcceptance": "Astra5e400 bed0/0 failed after14calls/7decisions: entered exploration with no carried items, was attacked and became unconscious from blood loss. HelpCry now has a completed receipt; attack has the genuine PlanInterrupted.Dying. Full construction not accepted.",
   "baselineProductionRevision": "a31e9035220749b5ffdfa7c8f4036b9f9d9f0e12",
   "baselineHelpCryLog": "/private/tmp/hexlive-help-cry-baseline.log",
   "receiptLog": "/private/tmp/hexlive-command-lifecycle-receipts.log",
   "nativeQueueLog": "/private/tmp/hexlive-command-lifecycle-runtime.log",
-  "productionUpdated": false
+  "productionUpdated": false,
+  "sourceCommit": "5e400105b5cb5da4306a5e6fc84463233f67d8c5"
 }

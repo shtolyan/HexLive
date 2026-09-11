@@ -6,6 +6,28 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentReferenceReaderTests
 {
+    [TestCase("conflict")]
+    [TestCase("io")]
+    public async Task PreflightConcurrencyAndStorageFailuresDoNotTriggerModelRepair(string kind)
+    {
+        var root = Directory.CreateTempSubdirectory("preflight-failure-").FullName;
+        try
+        {
+            var calls = 0;
+            Exception failure = kind == "conflict" ? new AgentObjectiveConflictException() : new IOException("fixture");
+            try
+            {
+                await new AgentMemoryRecall(root).DecideAsync("", new("world", "world", 0, 50), new(), (_, _) =>
+                { calls++; return Task.FromResult(new CompanionDecision()); }, default,
+                    validateDecision: (_, _) => Task.FromException(failure));
+                Assert.Fail("Expected the original preflight failure.");
+            }
+            catch (Exception actual) { Assert.That(actual, Is.SameAs(failure)); }
+            Assert.That(calls, Is.EqualTo(1));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     [TestCase(false, false)]
     [TestCase(false, true)]
     [TestCase(true, false)]

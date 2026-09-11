@@ -57,6 +57,45 @@ public sealed class AgentExecutionPersistenceTests
         Assert.That(saved.AppliedTurnIds, Does.Not.Contain("premature"));
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ActualStorePreflightRepairsPausedGoalWithNewRestQueueBeforeAnyCommit(bool alwaysConflicting)
+    {
+        var store = new MashaMemoryStore(_directory);
+        var world = await World(store);
+        var goal = NewPlan(); goal.ExecutionPlanUpdate = null;
+        await store.CommitTurnAsync(world, "goal", "voice", goal, default);
+        world = await World(store);
+        var before = await store.SnapshotAsync(default); var calls = 0;
+        var run = new AgentMemoryRecall(_directory).DecideAsync("", world, before, (context, _) =>
+        {
+            calls++;
+            if (calls > 1) Assert.That(context, Does.Contain("InvalidExecutionPlanBinding"));
+            return Task.FromResult(new CompanionDecision
+            {
+                ObjectiveUpdate = calls == 1 || alwaysConflicting ? new() { Operation = "pause", Reason = "Rest" } : null,
+                ExecutionPlanUpdate = new() { Operation = "replace", Reason = "Rest",
+                    Steps = [new("sleep", "rest_until", JsonSerializer.SerializeToElement(new { need = "Energy", target = .7 }))] }
+            });
+        }, default, validateDecision: (decision, token) => store.ValidateObjectiveUpdateAsync(world, decision, token));
+        if (alwaysConflicting)
+        {
+            var error = Assert.ThrowsAsync<InvalidDataException>(async () => await run);
+            Assert.That(error!.Message, Is.EqualTo("InvalidExecutionPlanBinding"));
+            Assert.That(calls, Is.EqualTo(4));
+        }
+        else
+        {
+            var decision = await run;
+            Assert.That(calls, Is.EqualTo(2));
+            Assert.That((await store.SnapshotAsync(default)).ExecutionPlan, Is.Null, "Preflight never installs work.");
+            await store.CommitTurnAsync(world, "repaired", "heartbeat", decision, default);
+            Assert.That((await store.SnapshotAsync(default)).ExecutionPlan!.Status, Is.EqualTo("active"));
+        }
+        Assert.That((await store.SnapshotAsync(default)).Objective!.Status, Is.EqualTo("active"));
+        Assert.That((await store.SnapshotAsync(default)).Objective!.Text, Is.EqualTo(before.Objective!.Text));
+    }
+
     [Test]
     public async Task PlanAndObjectiveCommitOnceWithTurnAndPreparedCommandSurvivesRestart()
     {

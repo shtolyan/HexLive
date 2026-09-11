@@ -297,7 +297,7 @@ public sealed partial class AgentExecutionRuntimeTests
                     referenceOperations.Add(operation);
                     referenceReads.Add(new { operation, arguments, read.SourceIds, response = read.Text });
                     return read;
-                });
+                }, (answer, validationToken) => store.ValidateObjectiveUpdateAsync(world, answer, validationToken));
                 AgentExecutionPlanPolicy.NormalizeContinuation(decision, state, world.WorldKey, 901);
                 turns.Add(new { turn, tick = host.Read(w => w.Tick), decision, usage = decision.ModelUsage });
                 File.WriteAllText(report, JsonSerializer.Serialize(new { providerName, modelId, fixture, repetition, calls, status, modelDecisions, turns }, new JsonSerializerOptions { WriteIndented = true }));

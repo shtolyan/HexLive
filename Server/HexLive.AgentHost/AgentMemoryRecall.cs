@@ -17,7 +17,8 @@ public sealed class AgentMemoryRecall
 
     public async Task<CompanionDecision> DecideAsync(string query, MashaWorldHandle world, MashaArchive state,
         Func<string, CancellationToken, Task<CompanionDecision>> decide, CancellationToken token,
-        Func<string, JsonElement, CancellationToken, Task<MemoryReadResult>>? readReference = null)
+        Func<string, JsonElement, CancellationToken, Task<MemoryReadResult>>? readReference = null,
+        Func<CompanionDecision, CancellationToken, Task>? validateDecision = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
@@ -129,6 +130,22 @@ public sealed class AgentMemoryRecall
                     continue;
                 }
                 answer.MemorySources = answer.MemorySources.Where(sent.Contains).Distinct().Take(16).ToList();
+                if (validateDecision != null)
+                {
+                    try { await validateDecision(answer, token).ConfigureAwait(false); }
+                    catch (InvalidDataException ex) when (ex.Message is "InvalidObjectiveTransition" or
+                        "InvalidObjectiveUpdate" or "InvalidExecutionPlanBinding" or "ExecutionPlanReplacementBlocked" or
+                        "InvalidExecutionPlanTransition" or "ExecutionPlanMissing" or "ExplicitExecutionPlanUpdateRequired" or
+                        "ExecutionPlanNotCompleted")
+                    {
+                        if (round == 3) throw;
+                        decisionRepair = new { decisionError = ex.Message,
+                            rejectedDecision = JsonSerializer.Serialize(answer),
+                            instruction = "The authoritative state preflight rejected this decision; no action, speech or memory was committed. Keep the original goal. A new execution queue requires an active goal: rest_until can be a step while that goal stays active; pausing the goal disables queued work. Resume a paused goal when continuing, but do not resume an already active goal. Do not replace a command with unknown outcome; wait for reconciliation. Return one consistent objective/plan transition." };
+                        trace.Add(new { operation = "decision.repair", error = ex.Message });
+                        continue;
+                    }
+                }
                 _archive.Atomic(".state/last-memory-search.json", JsonSerializer.Serialize(new {
                     occurredUtc = DateTimeOffset.UtcNow, query, trace, sentSourceIds = sent,
                     citedSourceIds = answer.MemorySources, readCharacters, contextCharacters = used

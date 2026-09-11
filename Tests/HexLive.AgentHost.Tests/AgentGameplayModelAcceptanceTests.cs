@@ -282,7 +282,8 @@ public sealed partial class AgentExecutionRuntimeTests
                 world = world with { ObjectiveRevision = prompt.ObjectiveRevision, ExecutionPlanRevision = prompt.ExecutionPlanRevision, ExecutionPlanId = prompt.ExecutionPlanId };
                 var body = await mcp.CallToolAsync("describe_colonist", new { npcId = 901 }, timeout.Token);
                 var state = await store.SnapshotAsync(timeout.Token);
-                var context = prompt.Text + "\nAvailable MCP actions:\n" + contract;
+                var context = prompt.Text + "\nAvailable MCP actions:\n" + contract +
+                    AgentPromptFiles.Text("AgentHostRuntime.05") + GameplayActionFeedback(runtime);
                 var queriedObjects = false;
                 var decision = await recall.DecideAsync(turn == 0 ? task : "", world, state, async (evidence, token) =>
                 {
@@ -358,8 +359,7 @@ public sealed partial class AgentExecutionRuntimeTests
                 var executionSeconds = emergency ? 90 : Math.Max(90, 30 + 4 * plan!.Steps.Sum(step => step.Repeat));
                 using var executionStop = new CancellationTokenSource(TimeSpan.FromSeconds(executionSeconds));
                 var running = emergency
-                    ? (Task)typeof(AgentHostRuntime).GetMethod("PerformActionAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
-                        .Invoke(runtime, [mcp, 901, decision.Action, executionStop.Token, "emergency-" + turn])!
+                    ? RunGameplayEmergencyAsync(runtime, mcp, decision.Action!, executionStop.Token, "emergency-" + turn)
                     : Run(runtime, mcp, plan!.Id, world, executionSeconds, executionStop.Token);
                 var exceeded = false;
                 while (true)
@@ -425,4 +425,12 @@ public sealed partial class AgentExecutionRuntimeTests
             (adapter as IDisposable)?.Dispose();
         }
     }
+
+    private static string GameplayActionFeedback(AgentHostRuntime runtime) =>
+        (string)typeof(AgentHostRuntime).GetField("_actionFeedback", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(runtime)!;
+
+    private static Task RunGameplayEmergencyAsync(AgentHostRuntime runtime, McpClient mcp,
+        CompanionAction action, CancellationToken token, string turnId) =>
+        (Task)typeof(AgentHostRuntime).GetMethod("PerformActionSafelyAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(runtime, [mcp, 901, action, token, turnId])!;
 }

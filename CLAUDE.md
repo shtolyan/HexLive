@@ -969,25 +969,35 @@ ssh -o BatchMode=yes hexlive-nyc \
 Ожидаются `active`, release под `/opt/hexlive/releases/`, state не шире 0750,
 world-файлы и секреты 0600 пользователя `hexlive`, а также обязательный
 `EnvironmentFiles=/etc/hexlive/deepgram.env`. До сборки соблюсти общее правило выше:
-Unity Editor должен быть закрыт. Собрать из чистого временного `git archive`,
-чтобы не компилировать случайные dirty-файлы и не писать build output в рабочую
-копию. В одной shell-сессии:
+Unity Editor должен быть закрыт. Собирать из чистого временного `git worktree`
+точного SHA, чтобы не компилировать случайные dirty-файлы, не писать build output
+в рабочую копию и не пропустить транзитивные файлы тестов из-за ручного списка
+для `git archive`. В одной shell-сессии:
 
 ```bash
+deploy_repo="$(git rev-parse --show-toplevel)"
 deploy_sha="$(git rev-parse HEAD)"
 deploy_tmp="$(mktemp -d /private/tmp/hexlive-server.XXXXXX)"
-trap 'rm -rf "$deploy_tmp"' EXIT
-mkdir "$deploy_tmp/src"
-git archive -o "$deploy_tmp/source.tar" "$deploy_sha" \
-  HexLive.Simulation.Standalone.csproj Server \
-  Tests/HexLive.Server.Tests Tests/HexLive.Simulation.Tests \
-  Assets/HexLive/Simulation \
-  Assets/HexLive/UnityPresentation/AbuseTest/AbuseTestWorld.cs \
-  Assets/HexLive/UnityPresentation/Wearing/PresentationSpeed.cs \
-  SimData Spec spec.md Tools
-tar -xf "$deploy_tmp/source.tar" -C "$deploy_tmp/src"
-cd "$deploy_tmp/src"
+deploy_src="$deploy_tmp/src"
+cleanup_deploy() {
+  case "$deploy_tmp" in
+    /private/tmp/hexlive-server.*)
+      git -C "$deploy_repo" worktree remove --force "$deploy_src" 2>/dev/null || true
+      rm -rf -- "$deploy_tmp"
+      ;;
+  esac
+}
+trap cleanup_deploy EXIT
+git -C "$deploy_repo" worktree add --detach "$deploy_src" "$deploy_sha"
+git -C "$deploy_src" lfs checkout
+cd "$deploy_src"
 ```
+
+`git lfs checkout` обязателен: без него LFS-объекты могут остаться маленькими
+pointer-файлами и дать ложное падение simulation suite. Если локального LFS
+объекта нет, сначала получить его штатным `git lfs pull` в этом worktree; не
+подменять fixture и не исключать тест. Cleanup удаляет только проверенный temp
+путь `/private/tmp/hexlive-server.*` и регистрацию созданного worktree.
 
 Обязательные проверки из этого temp checkout:
 

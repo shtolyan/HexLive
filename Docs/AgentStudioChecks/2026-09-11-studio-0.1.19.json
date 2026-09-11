@@ -51,6 +51,7 @@
       "simulationSkipped": 6
     }
   },
-  "modelAcceptance": "Incomplete. Astra90036 bed0/0 running; previous272c4 failed after all materials and repeated hammer search,6dc36 early probe stopped for arrival-side code audit. Grok403; no imports.",
-  "productionUpdated": false
+  "modelAcceptance": "Codex/Astra medium90036 complete:23/24 PASS; coconuts6/6,gift5/6,bed6/6,resilience6/6, accepted by>=5/6 per scenario. Gift1/1 budget failure retained. Same Studio/Core source; no imports. Grok remains blockedHTTP403.",
+  "productionUpdated": false,
+  "modelMatrixReport": "2026-09-11-codex-astra-medium-90036-matrix.json"
 }

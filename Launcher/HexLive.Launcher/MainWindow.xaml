@@ -1,0 +1,50 @@
+<Window x:Class="HexLive.Launcher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HexLive" Width="620" Height="430" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen" Background="#11151A" Foreground="#F5F0E8">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#E58B52"/><Setter Property="Foreground" Value="#17120E"/>
+            <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="16"/>
+            <Setter Property="Padding" Value="26,11"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#20262D"/><Setter Property="Foreground" Value="#F5F0E8"/>
+            <Setter Property="BorderBrush" Value="#3A444E"/><Setter Property="Padding" Value="10,8"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="34">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="HEXLIVE" FontSize="30" FontWeight="Bold" Foreground="#F0A36E"/>
+            <TextBlock Text="Windows launcher" Foreground="#8E9AA5" Margin="1,2,0,0"/>
+        </StackPanel>
+        <Grid Grid.Row="1" Margin="0,22,0,18">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Grid Width="180" Height="180" VerticalAlignment="Center">
+                <Ellipse Stroke="#29323A" StrokeThickness="12"/>
+                <Path x:Name="ProgressArc" Stroke="#E58B52" StrokeThickness="12" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="PercentText" Text="0%" FontSize="34" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    <TextBlock Text="готово" Foreground="#8E9AA5" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock x:Name="StageText" Text="Проверяем обновления…" FontSize="18" TextWrapping="Wrap"/>
+                <TextBlock x:Name="DetailText" Text="" Foreground="#8E9AA5" Margin="0,8,0,18"/>
+                <TextBlock Text="Папка установки" Foreground="#AAB3BC" Margin="0,0,0,5"/>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" x:Name="BrowseButton" Content="…" Padding="12,7" Margin="8,0,0,0" Click="Browse_Click"/>
+                    <TextBox x:Name="InstallPathText" VerticalContentAlignment="Center"/>
+                </DockPanel>
+                <TextBlock x:Name="ErrorText" Foreground="#FF8B7B" TextWrapping="Wrap" Margin="0,12,0,0"/>
+            </StackPanel>
+        </Grid>
+        <DockPanel Grid.Row="2">
+            <Button x:Name="UninstallButton" Content="Удалить" Background="#303842" Foreground="#D8DEE4" Click="Uninstall_Click" Visibility="Collapsed"/>
+            <Button x:Name="PrimaryButton" Content="Установить" HorizontalAlignment="Right" Click="Primary_Click"/>
+        </DockPanel>
+    </Grid>
+</Window>

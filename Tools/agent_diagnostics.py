@@ -74,6 +74,7 @@ def summarize(directory, turn=None, plan=None):
                         f" command={execution.get('CommandSequence')} reason={execution.get('reason', '')}")
         if observation:
             details += (f" energy={observation.get('Energy')} stamina={observation.get('Stamina')}"
+                        f" hunger={observation.get('Hunger')} thirst={observation.get('Thirst')}"
                         f" freeSlots={observation.get('FreeSlots')}")
         output.append(f"{r.get('utc')} npc={r.get('npcId')} turn={r.get('turnId')} "
                       f"{r.get('kind')} {r.get('tool', '')} {r.get('result', '')}{details}")

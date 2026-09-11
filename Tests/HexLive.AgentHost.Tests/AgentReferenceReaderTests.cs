@@ -7,6 +7,7 @@ namespace HexLive.AgentHost.Tests;
 public sealed class AgentReferenceReaderTests
 {
     [TestCase("build-bed")]
+    [TestCase("find-object")]
     [TestCase("recover-and-resume")]
     public async Task CoreLongTaskSkillsFitOneReferencePage(string id)
     {

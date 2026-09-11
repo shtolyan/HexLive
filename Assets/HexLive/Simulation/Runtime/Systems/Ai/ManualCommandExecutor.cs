@@ -1689,6 +1689,12 @@ internal static class ManualCommandExecutor
                     () => ManualPlanner.BuildHomewardPlan(world, npc));
                 break;
 
+            case SelfActionKind.Explore:
+                InstallSelfPlan(world, npc, admission, GoalType.Explore,
+                    "Приказ исследовать", "NoExploreDestination",
+                    () => ManualPlanner.BuildExplorePlan(world, npc));
+                break;
+
             default:
                 admission.Reject("UnsupportedCommand");
                 return;

@@ -81,6 +81,58 @@ public sealed partial class AgentExecutionRuntimeTests
     }
 
     [Test]
+    public async Task TwoNativeExplorationLegsRunWithoutModelCallsAndKeepTheObjective()
+    {
+        using var host = Host();
+        var engine = (SimulationEngine)typeof(WorldHost).GetField("_engine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+        host.Read(w =>
+        {
+            foreach (var person in w.Entities.Npcs.Values) { person.Mind.ManualControl = true; person.Faction = Faction.Colony; }
+            for (var i = 0; i < 64; i++) engine.Step();
+            w.Mobs.Clear();
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Needs.Energy = npc.Needs.Stamina = 1;
+            npc.Needs.Hunger = npc.Needs.Thirst = 0;
+            npc.Perception.Hostiles.Clear(); npc.Perception.Mobs.Clear(); npc.Mind.AdrenalineUntilTick = 0;
+            return true;
+        });
+        using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var departureNodes = new List<JunctionId?>();
+        transport.BeforeToolCall = (name, _) =>
+        {
+            if (name == "execute_agent_command")
+                departureNodes.Add(host.Read(w => w.Entities.Npcs[new EntityId(901)].CurrentJunction));
+        };
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("scout", "self_action", JsonSerializer.SerializeToElement(new { kind = "Explore" })) { Repeat = 2 }]);
+        var objective = (await store.SnapshotAsync(default)).Objective!;
+        var running = Run(runtime, mcp, plan.Id, world, 30);
+        while (!running.IsCompleted)
+        {
+            host.Read(w =>
+            {
+                for (var i = 0; i < 8 && w.Entities.Npcs[new EntityId(901)].Plan.Status == HexLive.Simulation.AI.PlanStatus.Active; i++) engine.Step();
+                return true;
+            });
+            await Task.Delay(1);
+        }
+        await running;
+        var saved = await store.SnapshotAsync(default);
+        Assert.That(saved.ExecutionPlan!.Status, Is.EqualTo("completed"));
+        Assert.That(saved.Objective!.StartedRevision, Is.EqualTo(objective.StartedRevision));
+        Assert.That(saved.Objective.Text, Is.EqualTo(objective.Text));
+        Assert.That(saved.Objective.Status, Is.EqualTo("active"));
+        Assert.That(transport.Executions, Is.EqualTo(2));
+        Assert.That(departureNodes[1], Is.Not.EqualTo(departureNodes[0]), "First exploration must actually move.");
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].CurrentJunction), Is.Not.EqualTo(departureNodes[1]), "Second exploration must actually move.");
+        Assert.That(saved.ExecutionProgress.Select(p => p.CommandId).Distinct().Count(), Is.EqualTo(2));
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
+    [Test]
     public async Task BoundedCraftRepeatPaysEachRecipeAndProducesTwoRealRopes()
     {
         using var host = Host();

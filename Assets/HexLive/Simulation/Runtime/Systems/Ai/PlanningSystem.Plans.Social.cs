@@ -267,7 +267,7 @@ public sealed partial class PlanningSystem
             : ExploreRejection.Unreachable;
     }
 
-    private void BuildExplorePlan(WorldState world, NPCState npc)
+    internal void BuildExplorePlan(WorldState world, NPCState npc)
     {
         // PERF: то же кольцо, что в HasExploreCandidate; порядок (по id)
         // совпадает со старым словарным, так что сидированный pick ниже

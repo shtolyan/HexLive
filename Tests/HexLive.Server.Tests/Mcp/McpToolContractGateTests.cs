@@ -38,10 +38,12 @@ public sealed class McpToolContractGateTests
         foreach (var kind in Enum.GetNames(typeof(HexLive.Simulation.Runtime.SelfActionKind)))
             Assert.That(description, Does.Contain(kind));
         Assert.That(tool.Description, Does.Contain("GoHome"));
+        Assert.That(tool.Description, Does.Contain("Explore"));
     }
 
-    [Test]
-    public async Task McpGoHomeUsesTheNormalUrgentHomewardOrderAndRequiresItsLease()
+    [TestCase("GoHome")]
+    [TestCase("Explore")]
+    public async Task McpSelfMovementUsesTheNativeOrderAndRequiresItsLease(string kind)
     {
         using var host = CreateHost();
         // Run the ordinary bootstrap tick before commands: initial NPCs have
@@ -61,7 +63,7 @@ public sealed class McpToolContractGateTests
         }
         var tools = new McpTools(host, new ControlLeases(120));
         var npcId = FirstNpcId(host);
-        var arguments = JsonSerializer.SerializeToElement(new { npcId, kind = "GoHome" });
+        var arguments = JsonSerializer.SerializeToElement(new { npcId, kind });
         tools.Call("self_action", arguments, "mcp:home", out var error);
         Assert.That(error, Is.True, "No action without the actor's control lease.");
 
@@ -73,11 +75,13 @@ public sealed class McpToolContractGateTests
         host.Read(world =>
         {
             var npc = world.Entities.Npcs[new HexLive.Simulation.Common.EntityId(npcId)];
-            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(HexLive.Simulation.AI.GoalType.Homeward));
+            Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(kind == "GoHome"
+                ? HexLive.Simulation.AI.GoalType.Homeward : HexLive.Simulation.AI.GoalType.Explore));
             Assert.That(npc.Plan.Status, Is.EqualTo(HexLive.Simulation.AI.PlanStatus.Active));
             Assert.That(npc.Plan.TargetTile, Is.Not.Null);
-            Assert.That(HexLive.Simulation.Runtime.ColonyQueries.InCamp(
-                world, npc.Plan.TargetTile!.Value, npc.Faction), Is.True);
+            if (kind == "GoHome")
+                Assert.That(HexLive.Simulation.Runtime.ColonyQueries.InCamp(
+                    world, npc.Plan.TargetTile!.Value, npc.Faction), Is.True);
             return true;
         });
     }

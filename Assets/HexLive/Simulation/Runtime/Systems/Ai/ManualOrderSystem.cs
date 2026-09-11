@@ -72,6 +72,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 case GoalType.Sit:
                 case GoalType.Bathe:
                 case GoalType.WashClothes:
+                case GoalType.Explore:
                     SweepFinishedOrder(world, npc);
                     break;
                 case GoalType.PlayerAttack:

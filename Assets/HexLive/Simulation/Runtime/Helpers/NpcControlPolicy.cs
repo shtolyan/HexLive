@@ -72,7 +72,7 @@ internal static class NpcControlPolicy
              or GoalType.TreatWounds
              or GoalType.Sleep or GoalType.Sit
              or GoalType.Bathe or GoalType.WashClothes
-             or GoalType.Homeward ||
+             or GoalType.Homeward or GoalType.Explore ||
         // §121.9: «тёмные» приказы — за своим выключателем. Выключили — цель
         // немедленно перестаёт быть законной, и sweep честно её снимает.
         (Spec121.ManualDarkOrdersEnabled &&

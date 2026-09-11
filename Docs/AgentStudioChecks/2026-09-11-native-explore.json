@@ -1,0 +1,29 @@
+{
+  "change": "Explicit finite native Explore order through MCP; find-object v1 and build-bed v15",
+  "focusedChecks": {
+    "Simulation": 10,
+    "Server": 9,
+    "Host": 31
+  },
+  "nativeQueue": {
+    "legs": 2,
+    "realMovement": true,
+    "distinctReceipts": 2,
+    "modelCalls": 0,
+    "objectivePreserved": true
+  },
+  "geometry": {
+    "snapshot": "/private/tmp/hexlive-manual-explore-geometry.json",
+    "sha256": "ea37e2f9788c9d82d20aba832a1af9266293eb355e9711899a6d81f5c785f06a",
+    "hexRadius": 1.5,
+    "nodes": 13237,
+    "candidates": 8951,
+    "blocked": 651,
+    "positionRecords": 97,
+    "svg": "2026-09-11-native-explore.svg"
+  },
+  "fullChecks": "Running; allocation test WarmAllocatorWorkIsIndependentOfDistantObjectCount has reported1808B instead of0B. Requires isolated verification; not counted as passing.",
+  "modelAcceptance": "Not yet run with Explore. Frozen c380 Astra bed0/0 failed64 decisions; bed2/1 still running.",
+  "hiddenObjectCoordinatesExposed": false,
+  "productionUpdated": false
+}

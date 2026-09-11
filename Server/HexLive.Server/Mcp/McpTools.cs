@@ -314,7 +314,10 @@ public sealed class McpTools
             "TreatSelf (перевязаться), GroundSit/GroundSleep (сесть/лечь на землю), " +
             "Bathe/WashClothes (купание/стирка), EatFromPack/DrinkFromPack (из рюкзака), " +
             "GoHome (бежать в собственный домашний лагерь; координаты не нужны, " +
-            "маршрут выбирает симуляция; NoRouteToCamp означает отсутствие маршрута).",
+            "маршрут выбирает симуляция; NoRouteToCamp означает отсутствие маршрута). " +
+            "Explore — один разведывательный переход штатного планировщика без выдумывания координат; " +
+            "можно ограниченно повторять в очереди, затем query_known_objects. " +
+            "Не гарантирует находку или безопасность сна; NoExploreDestination — нет допустимой цели перехода.",
             Schema(("npcId", "integer", "id колонистки", true),
                    ("kind", "string",
                     "вид: " + string.Join("/", Enum.GetNames(typeof(SelfActionKind))), true))),

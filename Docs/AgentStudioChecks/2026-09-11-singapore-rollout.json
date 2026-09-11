@@ -1,0 +1,78 @@
+{
+  "sourceCommit": "d31b1342ea62784ccf403ad29c96f85161cf25a5",
+  "oldRelease": "/opt/hexlive/releases/745c21dc229d63825ae2af56fb7fe6722a6c0fad",
+  "newRelease": "/opt/hexlive/releases/d31b1342ea62784ccf403ad29c96f85161cf25a5",
+  "before": {
+    "worldId": "31c7cb25667448d68c5b138c7c11539d",
+    "tick": 230397,
+    "seed": 12345,
+    "paused": true,
+    "speedMultiplier": 1,
+    "colonistsAlive": 13,
+    "colonistsTotal": 13,
+    "objects": 3143
+  },
+  "after": {
+    "worldId": "31c7cb25667448d68c5b138c7c11539d",
+    "tick": 230397,
+    "seed": 12345,
+    "paused": true,
+    "speedMultiplier": 1,
+    "colonistsAlive": 13,
+    "colonistsTotal": 13,
+    "objects": 3143
+  },
+  "credentialsPreserved": true,
+  "activeWorldPreserved": true,
+  "restartVerified": true,
+  "saveMode": "0600",
+  "backup": "/var/lib/hexlive/deploy-backups/20260911-d31b1342ea62784ccf403ad29c96f85161cf25a5",
+  "packageSha256": "b6ee2428326016b76d801cdb8a518bcba68794e0906013cb38b5b577746f861e",
+  "target": "Singapore",
+  "newYorkModified": false,
+  "checks": {
+    "Server": 324,
+    "Simulation": 1587,
+    "SimulationSkipped": 6
+  },
+  "voiceBefore": {
+    "protocol": 18,
+    "WorldId": "31c7cb25667448d68c5b138c7c11539d",
+    "Tick": 230397,
+    "Paused": true,
+    "SpeedMultiplier": 1,
+    "ControlEnabled": true,
+    "AgentIntegrationEnabled": true,
+    "SttAvailable": true,
+    "sttGrantAccepted": true
+  },
+  "voiceAfter": {
+    "protocol": 18,
+    "WorldId": "31c7cb25667448d68c5b138c7c11539d",
+    "Tick": 230397,
+    "Paused": true,
+    "SpeedMultiplier": 1,
+    "ControlEnabled": true,
+    "AgentIntegrationEnabled": true,
+    "SttAvailable": true,
+    "sttGrantAccepted": true
+  },
+  "assetApiHttp": 200,
+  "studio": {
+    "version": "0.1.20",
+    "rebuildNeeded": false,
+    "sourceUnchanged": true,
+    "signatureVerified": true
+  },
+  "macClient": {
+    "built": false,
+    "intendedVersion": "0.1.110",
+    "unityLaunched": false,
+    "reason": "Mandatory signing preflight failed with errSecInternalComponent; same result in native Terminal. Certificate verifies and login Keychain reports unlocked. No signing bypass or identity change."
+  },
+  "verificationArchive": {
+    "path": "/Users/shtolyan/hex-girls/AgentStudioChecks/2026-09-11-singapore-d31b.tar.gz",
+    "sha256": "c38764462603e3d88f0b3ceda24d0c302753f62220488e3b77674d9fe639e831",
+    "fileCount": 12
+  }
+}

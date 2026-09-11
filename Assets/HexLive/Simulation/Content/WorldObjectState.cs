@@ -4,6 +4,14 @@ using HexLive.Simulation.Common;
 namespace HexLive.Simulation.Content
 {
 
+// §31C.1 / bug #411: historical saves may not prove where a fruit came from.
+public enum ProduceOrigin : byte
+{
+    Unknown = 0,
+    Natural = 1,
+    Gathered = 2
+}
+
 public sealed class WorldObjectState
 {
     public ObjectId Id { get; set; }
@@ -98,7 +106,12 @@ public sealed class WorldObjectState
 
     public float Bloodiness { get; set; }
 
-    // Spec 31C.1: runtime spawn moment; produce rots 2400 ticks after it.
+    // §31C.1: authority-only provenance, persisted independently of the palm.
+    // Pickup removes the ground object; any later carried/harvested drop is Gathered.
+    // Unknown is deliberately distinct from Gathered for pre-v74 saves.
+    public ProduceOrigin ProduceOrigin { get; set; }
+
+    // Spec 31C.1: runtime spawn moment; eligible ground produce rots after it.
     public int SpawnTick { get; set; }
 
     // Spec 31C.7: exactly the junctions THIS object flipped to Blocked —

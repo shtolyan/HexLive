@@ -30,6 +30,7 @@ internal static class McpNpcObservations
                 continue;
             var agent = entry.Agent;
             var nameId = body.DisplayName ?? string.Empty;
+            observer.Social.Relationships.TryGetValue(body.Id, out var relationship);
             rows.Add(new Dictionary<string, object?>
             {
                 ["npcId"] = id,
@@ -46,6 +47,8 @@ internal static class McpNpcObservations
                 ["dying"] = agent.IsDying,
                 ["suffering"] = agent.Suffering,
                 ["aidKind"] = agent.AidKind.ToString(),
+                ["observerRelationship"] = relationship == null ? null : new
+                { trust = relationship.Trust, familiarity = relationship.Familiarity, affinity = relationship.Affinity },
             });
         }
         return rows;

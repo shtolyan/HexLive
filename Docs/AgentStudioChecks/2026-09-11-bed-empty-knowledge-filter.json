@@ -1,0 +1,285 @@
+{
+  "status": "DiagnosticInterrupted",
+  "accepted": false,
+  "sourceRevision": "187cacd73",
+  "calls": 38,
+  "observations": [
+    {
+      "call": 6,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.hammer",
+          "interaction": "",
+          "limit": 16
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 7,
+      "queryAction": null,
+      "queryResult": {
+        "error": "KnowledgeReadUnavailable",
+        "npcId": 901
+      }
+    },
+    {
+      "call": 8,
+      "queryAction": null,
+      "queryResult": {
+        "error": "KnowledgeReadUnavailable",
+        "npcId": 901
+      }
+    },
+    {
+      "call": 9,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.axe",
+          "limit": 16
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 10,
+      "queryAction": null,
+      "queryResult": {
+        "npcId": 901,
+        "worldId": "",
+        "tick": 4843,
+        "source": "personalMemory",
+        "objects": [],
+        "totalMatches": 0,
+        "truncated": false
+      }
+    },
+    {
+      "call": 12,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.",
+          "interaction": "Harvest",
+          "limit": 64
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 13,
+      "queryAction": null,
+      "queryResult": {
+        "npcId": 901,
+        "worldId": "",
+        "tick": 4916,
+        "source": "personalMemory",
+        "objects": [],
+        "totalMatches": 0,
+        "truncated": false
+      }
+    },
+    {
+      "call": 15,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.hammer",
+          "limit": 16
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 16,
+      "queryAction": null,
+      "queryResult": {
+        "npcId": 901,
+        "worldId": "",
+        "tick": 4946,
+        "source": "personalMemory",
+        "objects": [],
+        "totalMatches": 0,
+        "truncated": false
+      }
+    },
+    {
+      "call": 17,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.",
+          "limit": 64
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 18,
+      "queryAction": null,
+      "queryResult": {
+        "npcId": 901,
+        "worldId": "",
+        "tick": 4976,
+        "source": "personalMemory",
+        "objects": [],
+        "totalMatches": 0,
+        "truncated": false
+      }
+    },
+    {
+      "call": 19,
+      "queryAction": null,
+      "queryResult": {
+        "npcId": 901,
+        "worldId": "",
+        "tick": 4976,
+        "source": "personalMemory",
+        "objects": [],
+        "totalMatches": 0,
+        "truncated": false
+      }
+    },
+    {
+      "call": 20,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.hammer",
+          "interaction": "",
+          "limit": 16
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 21,
+      "queryAction": null,
+      "queryResult": {
+        "error": "KnowledgeReadUnavailable",
+        "npcId": 901
+      }
+    },
+    {
+      "call": 24,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.hammer",
+          "interaction": "",
+          "limit": 16
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 25,
+      "queryAction": null,
+      "queryResult": {
+        "error": "KnowledgeReadUnavailable",
+        "npcId": 901
+      }
+    },
+    {
+      "call": 28,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.",
+          "interaction": "",
+          "limit": 64
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 29,
+      "queryAction": null,
+      "queryResult": {
+        "error": "KnowledgeReadUnavailable",
+        "npcId": 901
+      }
+    },
+    {
+      "call": 31,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.",
+          "interaction": "",
+          "limit": 64
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 32,
+      "queryAction": null,
+      "queryResult": {
+        "error": "KnowledgeReadUnavailable",
+        "npcId": 901
+      }
+    },
+    {
+      "call": 33,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.",
+          "interaction": "",
+          "limit": 32
+        }
+      },
+      "queryResult": null
+    },
+    {
+      "call": 34,
+      "queryAction": null,
+      "queryResult": {
+        "error": "KnowledgeReadUnavailable",
+        "npcId": 901
+      }
+    },
+    {
+      "call": 35,
+      "queryAction": null,
+      "queryResult": {
+        "error": "KnowledgeReadUnavailable",
+        "npcId": 901
+      }
+    },
+    {
+      "call": 36,
+      "queryAction": null,
+      "queryResult": {
+        "error": "KnowledgeReadUnavailable",
+        "npcId": 901
+      }
+    },
+    {
+      "call": 38,
+      "queryAction": {
+        "tool": "query_known_objects",
+        "arguments": {
+          "npcId": 901,
+          "definitionPrefix": "tool.",
+          "interaction": "",
+          "limit": 64
+        }
+      },
+      "queryResult": null
+    }
+  ]
+}

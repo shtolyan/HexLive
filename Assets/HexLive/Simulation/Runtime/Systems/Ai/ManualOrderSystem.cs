@@ -36,6 +36,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
 
         foreach (var npc in world.Entities.Npcs.Values)
         {
+            AgentCommandLedger.Observe(world, npc);
             if (!npc.Mind.ManualControl || npc.Health <= 0f)
             {
                 continue;
@@ -71,6 +72,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 case GoalType.Sit:
                 case GoalType.Bathe:
                 case GoalType.WashClothes:
+                case GoalType.Explore:
                     SweepFinishedOrder(world, npc);
                     break;
                 case GoalType.PlayerAttack:
@@ -203,7 +205,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
             // свою зарезервированную клетку посреди размена.
             if (npc.Plan.Status == PlanStatus.Active)
             {
-                PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Дошла до цели приказа");
+                ClearAttackApproach(world, npc, "Дошла до цели приказа");
                 npc.Mind.CurrentGoal = GoalType.PlayerAttack;
             }
 
@@ -242,7 +244,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
 
         if (npc.Plan.Status == PlanStatus.Active)
         {
-            PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Цель приказа сместилась");
+            ClearAttackApproach(world, npc, "Цель приказа сместилась");
             npc.Mind.CurrentGoal = GoalType.PlayerAttack;
         }
 
@@ -285,7 +287,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
         {
             if (npc.Plan.Status == PlanStatus.Active)
             {
-                PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Дошла до зверя");
+                ClearAttackApproach(world, npc, "Дошла до зверя");
                 npc.Mind.CurrentGoal = GoalType.PlayerAttack;
                 npc.Mind.CombatAssistDogId = mobId;
             }
@@ -304,7 +306,7 @@ public sealed class ManualOrderSystem : ISimulationSystem
 
         if (npc.Plan.Status == PlanStatus.Active)
         {
-            PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, "Зверь сместился");
+            ClearAttackApproach(world, npc, "Зверь сместился");
             npc.Mind.CurrentGoal = GoalType.PlayerAttack;
             npc.Mind.CombatAssistDogId = mobId;
         }
@@ -404,8 +406,25 @@ public sealed class ManualOrderSystem : ISimulationSystem
         }
     }
 
+    // Replacing an approach is internal work of the same attack order. The
+    // ordinary abort still releases route state, but must not fail its receipt.
+    private static void ClearAttackApproach(WorldState world, NPCState npc, string reason)
+    {
+        world.AgentCommands.TryGetValue(npc.Id.Value, out var ledger);
+        var sequence = ledger?.ActiveSequence ?? 0;
+        if (ledger != null) ledger.ActiveSequence = 0;
+        try { PlanInterruption.TryAbort(world, npc, InterruptionCause.PlayerCommand, reason); }
+        finally
+        {
+            if (ledger != null && sequence != 0 && ledger.ActiveSequence == 0 &&
+                ledger.Receipts.Find(r => r.Sequence == sequence)?.Outcome == "accepted")
+                ledger.ActiveSequence = sequence;
+        }
+    }
+
     private static void EndAttack(WorldState world, NPCState npc, string reason)
     {
+        AgentCommandLedger.Finish(world, npc, reason == "TargetDown" ? "completed" : "failed", reason);
         if (npc.Plan.Status == PlanStatus.Active ||
             npc.Execution.Status == ExecutionStatus.InProgress)
         {

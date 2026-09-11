@@ -123,7 +123,7 @@ public sealed class DialogueContractTests
                 true, "Подтверждённое серьёзное воздействие") }, Token);
         var speaker = (await new MashaMemoryStore(_root).SnapshotAsync(Token)).Speakers[world.SpeakerKey];
         Assert.That(speaker.Bond.Trust, Is.Zero);
-        Assert.That(speaker.Bond.Affinity, Is.EqualTo(-.04f).Within(.0001));
+        Assert.That(speaker.Bond.Affinity, Is.EqualTo(-.10f).Within(.0001));
     }
 
     [Test]

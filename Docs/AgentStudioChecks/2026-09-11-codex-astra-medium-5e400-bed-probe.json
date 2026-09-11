@@ -1,0 +1,205 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "coconuts",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "gift",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "bed",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 14,
+      "commands": 8,
+      "failures": [
+        {
+          "fixture": 0,
+          "repetition": 0,
+          "status": "McpToolRejectedException:Incomplete"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "resilience",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks.",
+  "sourceCommit": "5e400105b5cb5da4306a5e6fc84463233f67d8c5",
+  "rawDirectory": "/private/tmp/hexlive-codex-astra-medium-5e400",
+  "scopeNote": "Only bed0/0 attempted. At exploration call10 carried inventory was empty; subsequent dog attack caused blood-loss unconsciousness. No hidden items or helper NPCs were added. Genuine help and combat outcomes now reach the model.",
+  "cases": [
+    {
+      "fixture": 0,
+      "repetition": 0,
+      "status": "McpToolRejectedException:Incomplete",
+      "passed": false,
+      "calls": 14,
+      "commands": 8,
+      "gameTicks": 6977,
+      "sawSleep": true
+    }
+  ],
+  "lastReceipts": [
+    {
+      "Sequence": 5,
+      "Outcome": "failed",
+      "Reason": "PlanInterrupted.CombatVictim"
+    },
+    {
+      "Sequence": 6,
+      "Outcome": "failed",
+      "Reason": "PlanInterrupted.CombatVictim"
+    },
+    {
+      "Sequence": 7,
+      "Outcome": "completed",
+      "Reason": "Completed"
+    },
+    {
+      "Sequence": 8,
+      "Outcome": "failed",
+      "Reason": "PlanInterrupted.Dying"
+    }
+  ]
+}

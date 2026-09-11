@@ -1,0 +1,20 @@
+{
+  "providerName": "Codex",
+  "modelId": "gpt-5.6-terra",
+  "reasoningEffort": "medium",
+  "scenario": "bed",
+  "fixture": 0,
+  "repetition": 0,
+  "passed": false,
+  "status": "McpToolRejectedException:Incomplete",
+  "failureCode": "McpToolRejectedException",
+  "calls": 85,
+  "commands": 102,
+  "gameTicks": 7517,
+  "sawSleep": true,
+  "sourceCommit": "0e6e493555fbdea5b68a3a8dc5de8fee3890474b",
+  "rawReport": "/private/tmp/hexlive-codex-bed-medium-0e6e/bed-0-0.json",
+  "rawReportSha256": "683f832f0cd5dfbc88c0e2723e9731bb965ddf0e95eaa42377e8a50efc14f771",
+  "diagnosis": "TreatSelf is a valid command. The gameplay harness called PerformActionAsync directly and aborted on native admission refusal instead of using Studio PerformActionSafelyAsync and passing its safe feedback to the next decision. This old attempt remains failed, not accepted.",
+  "focusedChecks": "16 passed: emergency admission, native action outcomes, action ownership"
+}

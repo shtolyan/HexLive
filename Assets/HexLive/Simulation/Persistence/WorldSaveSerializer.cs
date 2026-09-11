@@ -170,7 +170,11 @@ public static class WorldSaveSerializer
     // v70 (§159.1): one-time authored starter-outfit migration latch.
     // v71 (§160): generic authored-preset markers and generic agent Social ids.
     // v73 (§28.15G): requested shared Talk topic at the end of each NPC record.
-    public const int BlobVersion = 73;
+    // v74 (§31C.1 / bug #411): ground produce provenance; old saves infer
+    // Natural only from a producer's saved ids, leaving other origins Unknown.
+    // v76 (§144 / bug #409): saved completion target for bounded agent rest.
+    // v77 (§27.18A r3): bounded personal object-survey history.
+    public const int BlobVersion = 77;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -498,6 +502,21 @@ public static class WorldSaveSerializer
             owned.Sort(); w.Write(owned.Count);
             foreach (var id in owned) w.Write(id);
         }
+        if (version >= 75)
+        {
+            w.Write(world.AgentCommands.Count);
+            foreach (var pair in world.AgentCommands.OrderBy(p => p.Key))
+            {
+                w.Write(pair.Key); w.Write(pair.Value.HighestSequence); w.Write(pair.Value.ActiveSequence);
+                w.Write(pair.Value.Receipts.Count);
+                foreach (var receipt in pair.Value.Receipts)
+                {
+                    w.Write(receipt.Sequence); w.Write(receipt.Id); w.Write(receipt.Fingerprint);
+                    w.Write(receipt.Outcome); w.Write(receipt.Reason);
+                }
+                if (version >= 76) { w.Write(pair.Value.RestNeed); w.Write(pair.Value.RestTarget); }
+            }
+        }
         w.Write(EndMarker);
     }
 
@@ -705,6 +724,8 @@ public static class WorldSaveSerializer
             var obj = ReadObject(r, version);
             world.Entities.RegisterObject(obj);
         }
+
+        if (version < 74) MigrateProduceOrigins(world);
 
         world.Entities.Npcs.Clear();
         var npcCount = r.ReadInt32();
@@ -955,6 +976,42 @@ public static class WorldSaveSerializer
                 if (world.CreationConfig != null) world.PlayerControlledNpcs.Add(id);
             }
         }
+        world.AgentCommands.Clear();
+        if (version >= 75)
+        {
+            var ledgers = ReadBoundedCount(r, 100000, "agent command ledgers");
+            for (var i = 0; i < ledgers; i++)
+            {
+                var npcId = r.ReadInt32();
+                var ledger = new AgentCommandLedger { HighestSequence = r.ReadInt64(), ActiveSequence = r.ReadInt64() };
+                var receipts = ReadBoundedCount(r, AgentCommandLedger.Capacity, "agent command receipts");
+                long previous = 0;
+                for (var j = 0; j < receipts; j++)
+                {
+                    var receipt = new AgentCommandReceipt { Sequence = r.ReadInt64(), Id = r.ReadString(),
+                        Fingerprint = r.ReadString(), Outcome = r.ReadString(), Reason = r.ReadString() };
+                    if (receipt.Sequence <= previous || receipt.Sequence > ledger.HighestSequence ||
+                        receipt.Id.Length is 0 or > 96 || receipt.Fingerprint.Length != 64 ||
+                        receipt.Outcome is not ("accepted" or "completed" or "failed" or "unknown") || receipt.Reason.Length > 96)
+                        throw new InvalidDataException("Invalid agent command receipt");
+                    previous = receipt.Sequence; ledger.Receipts.Add(receipt);
+                }
+                if (version >= 76)
+                {
+                    ledger.RestNeed = r.ReadString(); ledger.RestTarget = r.ReadSingle();
+                    if (ledger.RestNeed is not ("" or "Energy" or "Stamina") ||
+                        !float.IsFinite(ledger.RestTarget) ||
+                        (ledger.RestNeed.Length == 0 ? ledger.RestTarget != 0 :
+                            ledger.ActiveSequence == 0 || ledger.RestTarget <= 0 || ledger.RestTarget > 1))
+                        throw new InvalidDataException("Invalid agent rest target");
+                }
+                if (npcId <= 0 || ledger.HighestSequence < 0 || ledger.ActiveSequence < 0 ||
+                    ledger.ActiveSequence > ledger.HighestSequence || world.AgentCommands.ContainsKey(npcId) ||
+                    ledger.ActiveSequence != 0 && !ledger.Receipts.Any(x => x.Sequence == ledger.ActiveSequence && x.Outcome == "accepted"))
+                    throw new InvalidDataException("Invalid agent command ledger");
+                world.AgentCommands.Add(npcId, ledger);
+            }
+        }
         if (r.ReadInt32() != EndMarker)
         {
             throw new InvalidDataException("Save blob end marker missing — truncated or corrupt save.");
@@ -1174,6 +1231,25 @@ public static class WorldSaveSerializer
         };
     }
 
+    // A saved producer-to-fruit link proves a natural drop. The absence of
+    // that link proves nothing: its palm may have been felled, or a colonist
+    // may have carried the fruit. Keep Unknown instead of inventing history.
+    private static void MigrateProduceOrigins(WorldState world)
+    {
+        foreach (var producer in world.Entities.Objects.Values)
+        {
+            if (!world.Content.ObjectDefinitions.TryGetValue(producer.DefinitionId, out var definition) ||
+                definition.Produce?.ProducedDefinitionId != ContentIds.Coconut)
+                continue;
+            foreach (var id in producer.ProducedItems)
+            {
+                if (world.Entities.Objects.TryGetValue(id, out var fruit) &&
+                    fruit.DefinitionId == ContentIds.Coconut)
+                    fruit.ProduceOrigin = ProduceOrigin.Natural;
+            }
+        }
+    }
+
     private static void WriteObject(BinaryWriter w, WorldObjectState obj, int version)
     {
         w.Write(obj.Id.Value);
@@ -1260,6 +1336,7 @@ public static class WorldSaveSerializer
 
         // v68 (§52 / bug #355): provenance of a loose physical vessel.
         if (version >= 68) w.Write((int)obj.WaterKind);
+        if (version >= 74) w.Write((byte)obj.ProduceOrigin);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1375,6 +1452,9 @@ public static class WorldSaveSerializer
         // очаги: здесь FactionHomes ещё может быть не тем, чем станет.
         obj.OwnerFaction = version >= 62 ? ReadNullableFaction(r) : null;
         obj.WaterKind = version >= 68 ? (WaterKind)r.ReadInt32() : WaterKind.None;
+        obj.ProduceOrigin = version >= 74 ? (ProduceOrigin)r.ReadByte() : ProduceOrigin.Unknown;
+        if (obj.ProduceOrigin > ProduceOrigin.Gathered)
+            throw new InvalidDataException("Invalid ground produce origin.");
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including
@@ -1992,6 +2072,16 @@ public static class WorldSaveSerializer
         {
             w.Write(npc.Plan.RequestedTalkTopic.HasValue);
             if (npc.Plan.RequestedTalkTopic.HasValue) w.Write((int)npc.Plan.RequestedTalkTopic.Value);
+        }
+
+        if (version >= 77)
+        {
+            w.Write(npc.Memory.SurveyedTiles.Count);
+            foreach (var pair in npc.Memory.SurveyedTiles.OrderBy(p => p.Key.Q).ThenBy(p => p.Key.R))
+            {
+                WriteTile(w, pair.Key);
+                w.Write(pair.Value);
+            }
         }
     }
 
@@ -2729,6 +2819,19 @@ public static class WorldSaveSerializer
             if (!TalkTopicRequest.IsAllowed(topic))
                 throw new InvalidDataException("Invalid requested Talk topic in save.");
             npc.Plan.RequestedTalkTopic = topic;
+        }
+
+        if (version >= 77)
+        {
+            var count = ReadBoundedCount(r, MemoryState.SurveyCapacity, "personal surveyed tiles");
+            for (var i = 0; i < count; i++)
+            {
+                var tile = ReadTile(r);
+                var tick = r.ReadInt32();
+                if (tick < 0 || npc.Memory.SurveyedTiles.ContainsKey(tile))
+                    throw new InvalidDataException("Invalid personal survey entry.");
+                npc.Memory.SurveyedTiles.Add(tile, tick);
+            }
         }
 
         // v66/v67 kept one global pair; v68's item state is authoritative.

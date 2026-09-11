@@ -1,0 +1,191 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "coconuts",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "gift",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "bed",
+      "passed": 1,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 166,
+      "commands": 263,
+      "failures": [
+        {
+          "fixture": 0,
+          "repetition": 0,
+          "status": "AssertionException:DecisionTurnLimitExceeded"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "resilience",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks.",
+  "sourceCommit": "c380dfcfde19b66920d5273c8f865393c0166c78",
+  "rawDirectory": "/private/tmp/hexlive-codex-astra-medium-c380",
+  "scopeNote": "Two first bed probes only:0/0 failed64 decisions while searching for the missing hammer;2/1 passed with an initially carried hammer. No other cases started. Native Explore is tested only in a new source/model matrix; these results are never imported.",
+  "cases": [
+    {
+      "fixture": 0,
+      "repetition": 0,
+      "status": "AssertionException:DecisionTurnLimitExceeded",
+      "passed": false,
+      "calls": 113,
+      "commands": 144,
+      "gameTicks": 9072,
+      "sawSleep": true,
+      "decisionTurns": 64
+    },
+    {
+      "fixture": 2,
+      "repetition": 1,
+      "status": "Completed",
+      "passed": true,
+      "calls": 53,
+      "commands": 119,
+      "gameTicks": 7696,
+      "sawSleep": true,
+      "decisionTurns": 34
+    }
+  ]
+}

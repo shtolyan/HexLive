@@ -18,6 +18,118 @@ namespace HexLive.Server.Tests.Mcp;
 public sealed class McpItemObservationTests
 {
     [Test]
+    public void CarriedCrownAdvertisesItsGroundProcessingWithoutInventingAWorldObjectId()
+    {
+        using var host = CreateHost();
+        var actorId = host.Read(world =>
+        {
+            var actor = Observer(world); actor.Inventory.Items.Clear();
+            actor.Inventory.Items.Add(new ItemInstance("resource.palm_crown"));
+            actor.Inventory.Items.Add(new ItemInstance(GearCatalog.Axe));
+            return actor.Id.Value;
+        });
+        using var body = Describe(host, actorId);
+        var crown = body.RootElement.GetProperty("inventoryItems")[0];
+        Assert.That(crown.TryGetProperty("objectId", out _), Is.False);
+        var process = crown.GetProperty("groundInteractions").EnumerateArray().First(i => i.GetProperty("type").GetString() == "Process");
+        Assert.That(process.GetProperty("yields").GetRawText(), Does.Contain("resource.palm_leaf"));
+        Assert.That(process.GetProperty("toolRequirementMet").GetBoolean(), Is.True);
+        Assert.That(host.Read(w => Observer(w).Inventory.Items.Count), Is.EqualTo(2));
+    }
+
+    [TestCase("tree.palm", "ChopWood", GearCatalog.Axe)]
+    [TestCase("rock.boulder", "Mine", GearCatalog.Pickaxe)]
+    [TestCase("plant.yucca", "Cut", GearCatalog.Knife)]
+    public void VisibleHarvestExplainsMissingToolAndUpdatesAfterAcquiringOne(string definitionId, string capability, string tool)
+    {
+        using var host = CreateHost();
+        var actorId = host.Read(world =>
+        {
+            var actor = Observer(world);
+            actor.Perception.Objects.Clear(); actor.Inventory.Items.Clear();
+            Add(world, actor, 900010, definitionId);
+            return actor.Id.Value;
+        });
+        using var before = Describe(host, actorId);
+        var harvest = before.RootElement.GetProperty("visibleItems")[0].GetProperty("interactions")
+            .EnumerateArray().First(i => i.GetProperty("type").GetString() == "Harvest");
+        Assert.That(harvest.GetProperty("toolRequirementMet").GetBoolean(), Is.False);
+        Assert.That(harvest.GetProperty("requiresAllCapabilityGroups").GetRawText(), Does.Contain(capability));
+        host.Read(world => { Observer(world).Inventory.Items.Add(new ItemInstance(tool)); return true; });
+        using var after = Describe(host, actorId);
+        harvest = after.RootElement.GetProperty("visibleItems")[0].GetProperty("interactions")
+            .EnumerateArray().First(i => i.GetProperty("type").GetString() == "Harvest");
+        Assert.That(harvest.GetProperty("toolRequirementMet").GetBoolean(), Is.True);
+        Assert.That(after.RootElement.GetProperty("inventoryItems")[0].GetProperty("capabilities").GetString(), Does.Contain(capability));
+    }
+
+    [Test]
+    public void VisibleSiteShowsItsActualBillAndCurrentStageWithoutRevealingRememberedSites()
+    {
+        using var host = CreateHost();
+        var id = host.Read(world =>
+        {
+            var actor = Observer(world); actor.Perception.Objects.Clear();
+            var site = Add(world, actor, 900001, ContentIds.BuildSite);
+            site.BuildProduct = ContentIds.BedBasic; site.BillLogs = 4; site.BillSticks = 5; site.BillRope = 10; site.BillLeaves = 50;
+            for (var i = 0; i < 6; i++) site.Contents.Add(new ItemInstance("resource.log"));
+            Add(world, actor, 900002, ContentIds.BuildSite).BuildProduct = ContentIds.BedBasic;
+            actor.Perception.Objects.Last().FromMemory = true;
+            return actor.Id.Value;
+        });
+        using var response = Describe(host, id);
+        var visible = response.RootElement.GetProperty("visibleItems");
+        Assert.That(visible.GetArrayLength(), Is.EqualTo(1));
+        var construction = visible[0].GetProperty("construction");
+        Assert.That(construction.GetProperty("needsHammer").GetBoolean(), Is.True);
+        Assert.That(construction.GetProperty("hammerRequiredFor").GetString(), Is.EqualTo("finishingWork"));
+        Assert.That(construction.GetProperty("materialDeliveryRequiresHammer").GetBoolean(), Is.False,
+            "The native finishing gate must not be described as a gate on delivering the bill.");
+        var materials = construction.GetProperty("materials").EnumerateArray().ToArray();
+        var logs = materials.Single(m => m.GetProperty("definitionId").GetString() == "resource.log");
+        Assert.That(logs.GetProperty("required").GetInt32(), Is.EqualTo(4));
+        Assert.That(logs.GetProperty("delivered").GetInt32(), Is.EqualTo(6));
+        Assert.That(logs.GetProperty("remaining").GetInt32(), Is.Zero);
+        var sticks = materials.Single(m => m.GetProperty("definitionId").GetString() == "resource.stick");
+        Assert.That(sticks.GetProperty("currentStageRemaining").GetInt32(), Is.EqualTo(5));
+        Assert.That(materials.Single(m => m.GetProperty("definitionId").GetString() == "resource.rope")
+            .GetProperty("currentStageRemaining").GetInt32(), Is.Zero);
+    }
+
+    [Test]
+    public void InventorySummaryDistinguishesPartialStacksFromEmptySlotsWithoutMutation()
+    {
+        using var host = CreateHost();
+        var id = host.Read(world =>
+        {
+            var npc = Observer(world);
+            npc.Inventory.Items.Clear(); npc.Inventory.HolsterSlotIds.Clear();
+            npc.Inventory.Capacity = 2;
+            for (var i = 0; i < 3; i++) npc.Inventory.Items.Add(new ItemInstance("resource.stick"));
+            npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+            return npc.Id.Value;
+        });
+        using var response = Describe(host, id);
+        var summary = response.RootElement.GetProperty("inventorySummary");
+        var sticks = summary.GetProperty("itemCapacity").EnumerateArray().Single(r => r.GetProperty("itemId").GetString() == "resource.stick");
+        Assert.Multiple(() =>
+        {
+            Assert.That(summary.GetProperty("itemCount").GetInt32(), Is.EqualTo(4));
+            Assert.That(summary.GetProperty("usedSlots").GetInt32(), Is.EqualTo(2));
+            Assert.That(summary.GetProperty("freeSlots").GetInt32(), Is.Zero);
+            Assert.That(sticks.GetProperty("additionalWithoutDropping").GetInt32(), Is.EqualTo(InventoryState.StackSizeFor("resource.stick") - 3));
+            Assert.That(sticks.GetProperty("canAcceptWithoutDropping").GetBoolean(), Is.True);
+            Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(id)].Inventory.Items.Count), Is.EqualTo(4));
+        });
+        host.Read(w => { w.Entities.Npcs[new EntityId(id)].Inventory.Items.RemoveAt(0); return true; });
+        using var afterOne = Describe(host, id);
+        Assert.That(afterOne.RootElement.GetProperty("inventorySummary").GetProperty("freeSlots").GetInt32(), Is.Zero);
+        host.Read(w => { w.Entities.Npcs[new EntityId(id)].Inventory.Items.RemoveAll(i => i.DefinitionId == "resource.stick"); return true; });
+        using var afterStack = Describe(host, id);
+        Assert.That(afterStack.RootElement.GetProperty("inventorySummary").GetProperty("freeSlots").GetInt32(), Is.EqualTo(1));
+    }
+
+    [Test]
     public void VisibleOwnershipUsesTheOwnerAndCampNeverTheCurrentUser()
     {
         using var host = CreateHost();

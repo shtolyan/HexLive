@@ -33,6 +33,10 @@ public sealed class AgentMemorySearch
             var files = _archive.Files("memory/archive", ".jsonl").Concat(_archive.Files("memory", ".md"))
                 .Concat(_archive.Files("imports", ".md"))
                 .Concat(new[] { "SOUL.md", "USER.md", "MEMORY.md" }.Select(_archive.SafePath).Where(File.Exists))
+                .Where(p => {
+                    var relative = Path.GetRelativePath(_archive.Root, p).Replace('\\', '/');
+                    return relative != "memory/legacy-self.md" && !relative.StartsWith("memory/legacy-soul/", StringComparison.Ordinal);
+                })
                 .Where(p => !Path.GetFileName(p).Equals("thoughts.md", StringComparison.OrdinalIgnoreCase)).Distinct().ToArray();
             var changed = false;
             foreach (var absent in _segments.Keys.Except(files).ToArray()) {

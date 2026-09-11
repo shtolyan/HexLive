@@ -30,6 +30,11 @@ public sealed class AgentFleetTests
             Assert.That((await fleet.SnapshotAsync()).All(x => x.State == AgentRunState.Running), Is.True);
             Assert.That(seen[masha.Id].Model, Is.EqualTo(masha.Model));
             Assert.That(seen[nika.Id].Voice, Is.EqualTo(nika.Voice));
+            sessions[masha.Id].DiagnosticsErrorCode = "DiagnosticsUnavailable";
+            var warning = (await fleet.SnapshotAsync()).Single(x => x.ProfileId == masha.Id);
+            Assert.That(warning.DiagnosticsErrorCode, Is.EqualTo("DiagnosticsUnavailable"));
+            Assert.That(warning.State, Is.EqualTo(AgentRunState.Running), "Lost diagnostics must not stop the agent");
+            Assert.That((await fleet.SnapshotAsync()).Single(x => x.ProfileId == nika.Id).DiagnosticsErrorCode, Is.Empty);
             Assert.ThrowsAsync<InvalidOperationException>(() => fleet.StartAsync(masha with { Model = nika.Model }, server));
             await fleet.StopAsync(masha.Id);
             Assert.That(sessions[masha.Id].Detached, Is.True);
@@ -44,9 +49,12 @@ public sealed class AgentFleetTests
         }
         finally { root.Delete(true); }
     }
-    private sealed class Session : IAgentSession
+    private sealed class Session : IAgentSession, IAgentSessionStatus
     {
         public bool Detached;
+        public AgentRunState State => AgentRunState.Running;
+        public string IntentSummary => "";
+        public string DiagnosticsErrorCode { get; set; } = "";
         public Task RunAsync(CancellationToken token) => Task.Delay(Timeout.Infinite, token);
         public Task DetachAsync(CancellationToken token) { Detached = true; return Task.CompletedTask; }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;

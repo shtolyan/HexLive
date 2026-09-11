@@ -128,6 +128,12 @@ public sealed class PerceptionSystem : ISimulationSystem
                 for (var dr = lo; dr <= hi; dr++)
                 {
                     var coord = new Common.TileCoord(npc.Tile.Q + dq, npc.Tile.R + dr);
+                    // Only the actor's real object-sensor area contributes. Shared
+                    // player exploration and hidden object positions never do.
+                    if (npc.Mind.ManualControl && npc.Health > 0f &&
+                        !npc.IsUnconscious(world.Tick) && npc.Mind.CurrentGoal != GoalType.Sleep &&
+                        world.Tiles.Items.ContainsKey(coord))
+                        npc.Memory.RememberSurvey(coord, world.Tick);
                     if (world.Caches.ObjectsByTile.TryGetValue(coord, out var onTile))
                     {
                         _visibleScratch.AddRange(onTile);

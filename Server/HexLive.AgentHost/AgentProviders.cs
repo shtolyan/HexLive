@@ -27,7 +27,7 @@ public sealed class AgentProviders : IAgentProviders
         "move_to", "interact", "craft_item", "stop", "talk_to", "aid_person",
         "treat_limbs", "self_action", "carry_person", "put_down_person",
         "put_person_in_bed", "manage_inventory", "attack_mob", "merge_camps", "request_item",
-        "query_known_objects"
+        "query_known_objects", "transfer_inventory", "rest_until"
     };
     public static bool IsAllowedTool(string name) => AllowedTools.Contains(name);
 
@@ -94,32 +94,40 @@ public sealed class AgentProviders : IAgentProviders
         }
 
         var system = AgentPromptBuilder.Build(_options.DialogueStyleId, memoryContext, transcript);
-        var lastPlayerMessage = AgentConversationLanguage.LastMessage(transcript, recentConversation, "");
 
         using var stateDocument = JsonDocument.Parse(stateJson);
         var user = JsonSerializer.Serialize(new
         {
             trigger,
             worldAndBody = stateDocument.RootElement,
-            playerSpeech = transcript,
-            lastPlayerMessageForLanguage = lastPlayerMessage,
-            recentConversation
+            hasNewPlayerMessage = trigger == "voice" && !string.IsNullOrWhiteSpace(transcript),
+            playerSpeech = trigger == "voice" ? transcript : "",
+            recentConversation = new { alreadyProcessed = true, messages = recentConversation }
         });
         if (_modelAdapter != null)
         {
+            var codexFormat = _modelSelection!.Provider == ModelProviderKind.Codex;
             var answer = await _modelAdapter.CompleteAsync(_modelSelection!,
-                new ModelRequest(system + "\nExact response contract:\n" + JsonSerializer.Serialize(DecisionResponseFormat()),
-                    memoryContext, user), cancellationToken);
+                new ModelRequest(system + "\nExact response contract:\n" + JsonSerializer.Serialize(DecisionResponseFormat()) +
+                    (codexFormat ? CodexDecisionFormat.Instructions : ""),
+                    memoryContext, user, codexFormat ? CodexDecisionFormat.Schema(DecisionSchemaJson()) : DecisionSchemaJson()), cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            return ParseDecision(answer.DecisionJson, trigger);
+            var decision = ParseDecision(codexFormat ? CodexDecisionFormat.Decode(answer.DecisionJson) : answer.DecisionJson, trigger);
+            decision.ModelUsage = new(_modelSelection!.Provider.ToString(), _modelSelection.ModelId,
+                answer.InputTokens is >= 0 ? answer.InputTokens : null,
+                answer.OutputTokens is >= 0 ? answer.OutputTokens : null);
+            return decision;
         }
         if (_options.LlmBackend == "codex")
         {
             var codexJson = await CodexDecisionRunner.DecideAsync(_options.CodexExecutable,
                 system + "\nDo not use tools. Return only the requested decision JSON.\n" +
                 "Exact response contract:\n" + JsonSerializer.Serialize(DecisionResponseFormat()) + "\n" +
-                "<memory>\n" + memoryContext + "\n</memory>\n" + user, cancellationToken);
-            return ParseDecision(codexJson, trigger);
+                "<memory>\n" + memoryContext + "\n</memory>\n" + user + CodexDecisionFormat.Instructions, cancellationToken,
+                responseSchema: CodexDecisionFormat.Schema(DecisionSchemaJson()));
+            var decision = ParseDecision(CodexDecisionFormat.Decode(codexJson), trigger);
+            decision.ModelUsage = new("Codex", CodexDecisionRunner.Model, null, null);
+            return decision;
         }
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.x.ai/v1/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.XaiKey);
@@ -142,7 +150,12 @@ public sealed class AgentProviders : IAgentProviders
         using var envelope = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var json = envelope.RootElement.GetProperty("choices")[0]
             .GetProperty("message").GetProperty("content").GetString() ?? "{}";
-        return ParseDecision(json, trigger);
+        var parsed = ParseDecision(json, trigger);
+        long? Count(string key) => envelope.RootElement.TryGetProperty("usage", out var usage) &&
+            usage.ValueKind == JsonValueKind.Object && usage.TryGetProperty(key, out var count) &&
+            count.ValueKind == JsonValueKind.Number && count.TryGetInt64(out var n) && n >= 0 ? n : null;
+        parsed.ModelUsage = new("Grok", _options.XaiModel, Count("prompt_tokens"), Count("completion_tokens"));
+        return parsed;
     }
 
     public static CompanionDecision ParseDecision(string json, string trigger)
@@ -152,9 +165,20 @@ public sealed class AgentProviders : IAgentProviders
         var decision = JsonSerializer.Deserialize<CompanionDecision>(json,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = false })
             ?? throw new InvalidDataException("Model returned an empty companion decision.");
-        Validate(decision, trigger);
+        try { Validate(decision, trigger); }
+        catch (InvalidDataException ex) when (json.Length <= 32768 && ex.Message is
+            "InvalidExecutionPlanUpdate" or "InvalidExecutionCondition")
+        {
+            // Final decision data only, for a bounded corrective model request.
+            // Diagnostics continue to record the code, never this raw payload.
+            ex.Data["decisionJson"] = json;
+            throw;
+        }
         return decision;
     }
+
+    public static string DecisionSchemaJson() => JsonSerializer.SerializeToElement(DecisionResponseFormat())
+        .GetProperty("json_schema").GetProperty("schema").GetRawText();
 
     private static object DecisionResponseFormat() => new
     {
@@ -170,7 +194,7 @@ public sealed class AgentProviders : IAgentProviders
                 properties = new
                 {
                     memoryRequests = new { type = "array", maxItems = 2, items = new { type = "object", additionalProperties = false,
-                        properties = new { operation = new { type = "string", @enum = new[] { "memory.search", "memory.read" } },
+                        properties = new { operation = new { type = "string", @enum = new[] { "memory.search", "memory.read", "spec.read", "skills.list", "skills.read", "recipes.read", "build.read", "inventory.drop.read" } },
                             arguments = new { type = "object", additionalProperties = true } }, required = new[] { "operation", "arguments" } } },
                     memorySources = new { type = "array", maxItems = 16, items = new { type = "string" } },
                     speech = new { type = "string", maxLength = 600 },
@@ -238,6 +262,30 @@ public sealed class AgentProviders : IAgentProviders
                             }
                         }
                     },
+                    executionPlanUpdate = new
+                    {
+                        anyOf = new object[] {
+                            new { type = "null" },
+                            new { type = "object", additionalProperties = false,
+                                properties = new {
+                                    operation = new { type = "string", @enum = new[] { "replace", "pause", "resume", "cancel" } },
+                                    reason = new { type = "string", minLength = 1, maxLength = 96, pattern = "^[A-Za-z0-9_.-]+$" },
+                                    steps = new { type = "array", maxItems = AgentExecutionPlanPolicy.MaxSteps,
+                                        items = new { type = "object", additionalProperties = false,
+                                            properties = new { id = new { type = "string", minLength = 1, maxLength = 96, pattern = "^[A-Za-z0-9_.-]+$" },
+                                                repeat = new { type = "integer", minimum = 1, maximum = 64 },
+                                                tool = new { type = "string", @enum = AllowedTools.Where(t => t != "query_known_objects").ToArray() },
+                                                arguments = new { type = "object", additionalProperties = true },
+                                                condition = new { type = new[] { "object", "null" }, additionalProperties = false,
+                                                    properties = new {
+                                                        path = new { type = "string", @enum = new[] { "inventorySummary.freeSlots", "bodyNeeds.energy.value", "bodyNeeds.stamina.value", "bodyNeeds.hunger", "bodyNeeds.thirst", "restReadiness.adrenalineTicksRemaining", "restReadiness.idleRestCooldownTicksRemaining" } },
+                                                        @operator = new { type = "string", @enum = new[] { "gte", "lte" } },
+                                                        value = new { type = "number" }, onFalseStepId = new { type = "string", maxLength = 96 } },
+                                                    required = new[] { "path", "operator", "value", "onFalseStepId" } } },
+                                            required = new[] { "id", "tool", "arguments" } } }
+                                }, required = new[] { "operation", "reason", "steps" } }
+                        }
+                    },
                     memoryUpserts = new
                     {
                         type = "array",
@@ -260,7 +308,7 @@ public sealed class AgentProviders : IAgentProviders
                 required = new[]
                 {
                     "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
-                    "memoryUpserts", "journalText", "memoryRequests", "memorySources", "objectiveUpdate"
+                    "memoryUpserts", "journalText", "memoryRequests", "memorySources", "objectiveUpdate", "executionPlanUpdate"
                 }
             }
         }
@@ -278,7 +326,7 @@ public sealed class AgentProviders : IAgentProviders
             "speech", "emotion", "action", "reaction", "relationshipAssessment", "intentSummary",
             "memoryUpserts"
         };
-        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText", "memoryRequests", "memorySources", "objectiveUpdate" };
+        var allowed = new HashSet<string>(required, StringComparer.Ordinal) { "journalText", "memoryRequests", "memorySources", "objectiveUpdate", "executionPlanUpdate" };
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in root.EnumerateObject())
         {
@@ -304,6 +352,26 @@ public sealed class AgentProviders : IAgentProviders
             });
 
         var assessment = root.GetProperty("relationshipAssessment");
+        if (root.TryGetProperty("executionPlanUpdate", out var planUpdate) && planUpdate.ValueKind != JsonValueKind.Null)
+        {
+            RequireExactObject(planUpdate, new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
+                { ["operation"] = JsonValueKind.String, ["reason"] = JsonValueKind.String, ["steps"] = JsonValueKind.Array });
+            foreach (var step in planUpdate.GetProperty("steps").EnumerateArray())
+            {
+                var fields = new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
+                    { ["id"] = JsonValueKind.String, ["tool"] = JsonValueKind.String, ["arguments"] = JsonValueKind.Object };
+                if (step.TryGetProperty("repeat", out _)) fields["repeat"] = JsonValueKind.Number;
+                if (step.TryGetProperty("condition", out var condition))
+                {
+                    fields["condition"] = condition.ValueKind == JsonValueKind.Null ? JsonValueKind.Null : JsonValueKind.Object;
+                    if (condition.ValueKind != JsonValueKind.Null)
+                        RequireExactObject(condition, new Dictionary<string, JsonValueKind>(StringComparer.Ordinal)
+                        { ["path"] = JsonValueKind.String, ["operator"] = JsonValueKind.String,
+                            ["value"] = JsonValueKind.Number, ["onFalseStepId"] = JsonValueKind.String });
+                }
+                RequireExactObject(step, fields);
+            }
+        }
         if (assessment.ValueKind != JsonValueKind.Null)
         {
             if (assessment.ValueKind != JsonValueKind.Object) throw new InvalidDataException("InvalidRelationshipAssessment");
@@ -427,15 +495,16 @@ public sealed class AgentProviders : IAgentProviders
         if (decision.MemoryRequests == null || decision.MemorySources == null || decision.MemoryRequests.Count > 2 || decision.MemorySources.Count > 16)
             throw new InvalidDataException("InvalidMemoryOperations");
         foreach (var request in decision.MemoryRequests)
-            if (request == null || request.Operation is not ("memory.search" or "memory.read") || request.Arguments.ValueKind != JsonValueKind.Object || request.Arguments.GetRawText().Length > 4000)
+            if (request == null || !(request.Operation is "memory.search" or "memory.read" || AgentReferenceReader.Allowed(request.Operation)) || request.Arguments.ValueKind != JsonValueKind.Object || request.Arguments.GetRawText().Length > 4000)
                 throw new InvalidDataException("InvalidMemoryOperation");
         if (decision.MemoryRequests.Count > 0)
         {
-            decision.ObjectiveUpdate = null; decision.Speech = ""; decision.Action = null; decision.RelationshipAssessment = null;
+            decision.ObjectiveUpdate = null; decision.ExecutionPlanUpdate = null; decision.Speech = ""; decision.Action = null; decision.RelationshipAssessment = null;
             decision.Reaction = "None"; decision.MemoryUpserts.Clear(); decision.JournalText = ""; decision.IntentSummary = "";
             return;
         }
         if (decision.ObjectiveUpdate != null) AgentObjectivePolicy.ValidateUpdate(decision.ObjectiveUpdate);
+        if (decision.ExecutionPlanUpdate != null) AgentExecutionPlanPolicy.ValidateUpdate(decision.ExecutionPlanUpdate);
         if (trigger == "voice" && decision.RelationshipAssessment == null)
             throw new InvalidDataException("VoiceRelationshipAssessmentRequired");
         if (trigger != "voice") decision.RelationshipAssessment = null;

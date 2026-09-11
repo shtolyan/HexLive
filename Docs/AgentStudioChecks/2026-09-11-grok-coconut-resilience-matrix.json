@@ -1,0 +1,110 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
+      "scenario": "coconuts",
+      "passed": 6,
+      "total": 6,
+      "missing": [],
+      "accepted": true,
+      "calls": 17,
+      "commands": 43,
+      "failures": []
+    },
+    {
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
+      "scenario": "gift",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
+      "scenario": "bed",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
+      "scenario": "resilience",
+      "passed": 5,
+      "total": 6,
+      "missing": [],
+      "accepted": true,
+      "calls": 18,
+      "commands": 41,
+      "failures": [
+        {
+          "fixture": 0,
+          "repetition": 1,
+          "status": "InvalidDataException:Incomplete"
+        }
+      ]
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks."
+}

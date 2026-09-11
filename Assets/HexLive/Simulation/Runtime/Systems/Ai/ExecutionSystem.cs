@@ -594,6 +594,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                             : hasChopTool;
                     if (!toolOk)
                     {
+                        AgentCommandLedger.Finish(world, npc, "failed", "MissingTool");
                         PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                         PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                             $"Cannot harvest {worldObject.DefinitionId} (missing tool)");
@@ -628,6 +629,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 if (interaction.RequiredCapabilities.Count > 0 &&
                     !DecisionSystem.HasAnyCapability(npc, interaction.RequiredCapabilities))
                 {
+                    AgentCommandLedger.Finish(world, npc, "failed", "MissingTool");
                     PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
                     PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                         $"Cannot {interaction.Id} on {worldObject.DefinitionId} " +
@@ -2571,6 +2573,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         dropped.WaterKind = item.WaterKind;
         dropped.Dirtiness = item.Dirtiness;
         dropped.Bloodiness = item.Bloodiness;
+        // §31C.1 / bug #411: both carried drops and harvested branch yields
+        // enter here. Their whole coconuts are stock, not untouched palm litter.
+        if (item.DefinitionId == ContentIds.Coconut)
+            dropped.ProduceOrigin = ProduceOrigin.Gathered;
         // §133: владение переживает границу «надето/лежит» — вещь на земле
         // помнит хозяйку, поэтому подруга спросит разрешение, а не наденет.
         dropped.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : null;

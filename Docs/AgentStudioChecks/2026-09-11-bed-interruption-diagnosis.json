@@ -1,0 +1,58 @@
+{
+  "providerName": "Replay",
+  "modelId": "recorded-decisions",
+  "scenario": "bed",
+  "fixture": 1,
+  "repetition": 0,
+  "calls": 12,
+  "status": "InvalidOperationException:Incomplete",
+  "commands": 6,
+  "gameTicks": 4611,
+  "sawSleep": true,
+  "receipts": [
+    {
+      "Sequence": 1,
+      "Id": "e7b8230f2f0e9fd76e014640aeea8fb5792a34213073fd7e52135182bbf01d24",
+      "Fingerprint": "217e8fa97f9c3ed50eed6fa5b605c96dbb5a834c0b768cc0674c6f712751b419",
+      "Outcome": "failed",
+      "Reason": "PlanInterrupted.SleepDanger"
+    },
+    {
+      "Sequence": 2,
+      "Id": "737410526a1bf8aaa59ee1798d473cf48d5ab38939d02e19da8e8221c2733b43",
+      "Fingerprint": "217e8fa97f9c3ed50eed6fa5b605c96dbb5a834c0b768cc0674c6f712751b419",
+      "Outcome": "failed",
+      "Reason": "SleepDanger"
+    },
+    {
+      "Sequence": 3,
+      "Id": "2e07eecf3e62c76dd2d207a7ce80db4bb8e778bce83c3e2c4b3885b38e80ea7a",
+      "Fingerprint": "246590a58d73496541ed518c046acf315b0a59f471143a9e0ab8bfb6185f215d",
+      "Outcome": "failed",
+      "Reason": "MissingTool"
+    },
+    {
+      "Sequence": 4,
+      "Id": "90b8bc90ced0072e5cfa2ef9895292521780ac4363061b3ad7f9099ceb9efe6a",
+      "Fingerprint": "246590a58d73496541ed518c046acf315b0a59f471143a9e0ab8bfb6185f215d",
+      "Outcome": "failed",
+      "Reason": "MissingTool"
+    },
+    {
+      "Sequence": 5,
+      "Id": "8d1c59c548a0dd090801813d1b63bab6cb03f860c2a3069bd631d8ac5e28ccb7",
+      "Fingerprint": "246590a58d73496541ed518c046acf315b0a59f471143a9e0ab8bfb6185f215d",
+      "Outcome": "failed",
+      "Reason": "MissingTool"
+    },
+    {
+      "Sequence": 6,
+      "Id": "d3a4f74451b7872e7cf84dbf7193621d213b4352fcc293106b2e19405fe8d1d9",
+      "Fingerprint": "246590a58d73496541ed518c046acf315b0a59f471143a9e0ab8bfb6185f215d",
+      "Outcome": "failed",
+      "Reason": "MissingTool"
+    }
+  ],
+  "classification": "diagnostic replay, not acceptance; recorded decisions exhausted",
+  "finding": "Old observation advertised boulder toolRequirementMet=true. Native Harvest needs Mine; replay now preserves MissingTool. Sleep interrupted with SleepDanger."
+}

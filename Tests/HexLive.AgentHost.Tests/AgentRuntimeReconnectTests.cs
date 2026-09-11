@@ -19,6 +19,7 @@ public sealed class AgentRuntimeReconnectTests
         Assert.That(fixture.Runtime.TerminalErrorCode, Is.Null);
         Assert.That(fixture.Providers.Decisions, Is.Zero);
         Assert.That(fixture.Transport.Actions, Is.Zero);
+        Assert.That(fixture.Transport.ResumeKeys.ToArray(), Is.EqualTo(new[] { "", "fixture-resume-key" }));
     }
 
     [Test]
@@ -122,6 +123,7 @@ public sealed class AgentRuntimeReconnectTests
         private bool _published, _failed;
         public int Initializations, Actions;
         public ConcurrentQueue<int> Attachments { get; } = new();
+        public ConcurrentQueue<string> ResumeKeys { get; } = new();
         public TaskCompletionSource HeartbeatEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
@@ -147,14 +149,18 @@ public sealed class AgentRuntimeReconnectTests
                     if (failure == Failure.Timeout) throw new TaskCanceledException("Synthetic HttpClient timeout; session token remains live");
                     return new(HttpStatusCode.Unauthorized);
                 }
-                if (name == "attach_agent") Attachments.Enqueue(parameters.GetProperty("arguments").GetProperty("npcId").GetInt32());
+                if (name == "attach_agent")
+                {
+                    ResumeKeys.Enqueue(parameters.GetProperty("arguments").GetProperty("inboxResumeKey").GetString()!);
+                    Attachments.Enqueue(parameters.GetProperty("arguments").GetProperty("npcId").GetInt32());
+                }
                 if (name == "publish_agent_phase") _published = true;
                 if (name is "move_to" or "interact" or "acquire_control") Interlocked.Increment(ref Actions);
                 object payload = name switch
                 {
                     "world_status" => new { worldId = _failed && failure == Failure.ChangedWorld ? "different" : "fixture", tick = 100, seed = 12345, paused = true },
                     "list_colonists" => new { colonists = new[] { new { npcId = 901, health = 1f } } },
-                    "attach_agent" => new { attachmentId = "attach-" + Attachments.Count, playerPresent = false, eventWatermark = 0L },
+                    "attach_agent" => new { attachmentId = "attach-" + Attachments.Count, inboxResumeKey = "fixture-resume-key", playerPresent = false, eventWatermark = 0L },
                     "describe_colonist" => new { stateSummary = "health=1; unconscious=false" },
                     _ => new { accepted = true },
                 };

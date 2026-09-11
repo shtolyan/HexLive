@@ -7,6 +7,7 @@ public sealed partial class AgentHostRuntime
     // One writer for snapshots, durable commits, control handoffs and speech
     // uploads. Inference/TTS never hold this gate. No second simulation owner.
     private readonly SemaphoreSlim _turnWriter = new(1, 1);
+    private readonly SemaphoreSlim _modelSlot = new(1, 1);
     private ScheduledTurn? _replyTurn, _autonomyTurn;
     private long _attachmentVersion, _controlVersion;
 
@@ -41,7 +42,14 @@ public sealed partial class AgentHostRuntime
             TurnId = id ?? Guid.NewGuid().ToString("N"),
             Stop = CancellationTokenSource.CreateLinkedTokenSource(attachmentToken),
         };
-        if (turn.IsReply) _replyTurn = turn; else _autonomyTurn = turn;
+        if (turn.IsReply)
+        {
+            // #408: a new question preempts unfinished autonomous reasoning.
+            // The accepted body's action has an attachment token and keeps running.
+            _autonomyTurn?.Stop.Cancel();
+            _replyTurn = turn;
+        }
+        else _autonomyTurn = turn;
         presence.BeginTurn(turn.Stop);
         turn.Worker = RunTurnAsync();
         return turn;
@@ -81,6 +89,7 @@ public sealed partial class AgentHostRuntime
         var retryReply = DateTimeOffset.MinValue;
         var failedReply = "";
         var critical = false;
+        var planDecision = false;
         try
         {
             while (!token.IsCancellationRequested)
@@ -93,9 +102,11 @@ public sealed partial class AgentHostRuntime
                 }
                 if (historyTask.IsFaulted) await historyTask.ConfigureAwait(false);
                 critical |= Interlocked.Exchange(ref _historyCritical, 0) != 0;
+                planDecision |= Interlocked.Exchange(ref _planNeedsDecision, 0) != 0;
                 await _turnWriter.WaitAsync(token).ConfigureAwait(false);
                 try
                 {
+                    await MaintainPlanLeaseAsync(mcp, npcId, presence.Value, token).ConfigureAwait(false);
                     if (_replyTurn is { } reply && reply.Completion.Task.IsCompleted)
                     {
                         _replyTurn = null;
@@ -168,15 +179,29 @@ public sealed partial class AgentHostRuntime
                             if (events.TryGetProperty("watermark", out var value)) eventWatermark = value.GetInt64();
                             _incidents.Observe(events);
                             critical |= ContainsCriticalEvent(events);
+                            if (critical && _executingPlan)
+                            {
+                                var runningPlan = (await _memory.SnapshotAsync(token).ConfigureAwait(false)).ExecutionPlan;
+                                if (runningPlan is { Status: "active" })
+                                    await _memory.PauseExecutionPlanAsync(runningPlan.Id, runningPlan.Revision, "CriticalEvent", token).ConfigureAwait(false);
+                                await StopActionAsync().ConfigureAwait(false);
+                            }
+                            await TryStartExecutionPlanAsync(mcp, npcId, token).ConfigureAwait(false);
                             nextEvents = now.AddSeconds(2);
                         }
-                        if (_autonomyTurn == null && now >= retryAutonomy)
+                        if (_executingPlan && now >= nextAutonomy)
                         {
-                            var trigger = critical || _incidents.HasPending ? "critical" :
-                                now >= nextAutonomy ? "heartbeat" : "";
+                            _diagnostics.Record("plan.heartbeat");
+                            nextAutonomy = now.Add(ModelHeartbeat);
+                        }
+                        if (_autonomyTurn == null && _replyTurn == null && now >= retryAutonomy)
+                        {
+                            var trigger = critical || planDecision || _incidents.HasPending ? "critical" :
+                                !_executingPlan && !_reconcilingPlan && now >= nextAutonomy ? "heartbeat" : "";
                             if (trigger.Length > 0)
                             {
                                 critical = false;
+                                planDecision = false;
                                 StartTurn(mcp, attachmentId, npcId, presence, token, trigger);
                             }
                         }

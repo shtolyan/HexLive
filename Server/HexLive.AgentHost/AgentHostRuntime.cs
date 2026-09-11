@@ -26,6 +26,8 @@ public sealed partial class AgentHostRuntime
     private readonly HttpMessageHandler? _mcpHandler;
     private readonly AgentTurnOutbox _outbox;
     private readonly AgentHostStatusStore _status;
+    private readonly AgentDiagnostics _diagnostics;
+    public string DiagnosticsErrorCode => _diagnostics.ErrorCode;
     public string CurrentPhase => _status.Phase;
     public string LastIntentSummary { get; private set; } = string.Empty;
     private readonly Dictionary<string, Queue<string>> _conversations = new(StringComparer.Ordinal);
@@ -44,6 +46,7 @@ public sealed partial class AgentHostRuntime
     private CancellationTokenSource? _actionStop;
     private Task _actionTask = Task.CompletedTask;
     private volatile bool _handoffActionLease;
+    private string _inboxResumeKey = "";
     private volatile bool _actionAwaitingContinuation;
     private string _actionContract = string.Empty;
     private AgentActionContract? _actionArguments;
@@ -60,6 +63,8 @@ public sealed partial class AgentHostRuntime
         _mcpHandler = mcpHandler;
         _outbox = new AgentTurnOutbox(options.OutboxPath);
         _status = new AgentHostStatusStore(options.StatusPath);
+        _diagnostics = new AgentDiagnostics(Path.Combine(options.StateDirectory, "diagnostics"), options.ProfileId);
+        _status.DiagnosticsError = () => _diagnostics.ErrorCode;
     }
 
     public static async Task DoctorAsync(AgentHostOptions options, CancellationToken cancellationToken)
@@ -87,6 +92,7 @@ public sealed partial class AgentHostRuntime
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         TerminalErrorCode = null;
+        _diagnostics.Record("session.start");
         _status.Write(true, "Starting", 0, false, false);
         var terminalError = false;
         try
@@ -112,6 +118,7 @@ public sealed partial class AgentHostRuntime
                     return;
                 }
                 _status.Write(true, "Reconnecting", 0, false, false, ex.GetType().Name);
+                _diagnostics.Record("session.reconnect", result: ex.GetType().Name);
                 Console.Error.WriteLine($"[agent] reconnecting after {ex.GetType().Name}");
                 await Task.Delay(RetryDelay, cancellationToken).ConfigureAwait(false);
             }
@@ -123,11 +130,13 @@ public sealed partial class AgentHostRuntime
             await StopActionAsync().ConfigureAwait(false);
             if (!terminalError) _status.Write(false, "Stopped", _pinnedNpcId ?? 0, false, false);
             _providers.Dispose();
+            _diagnostics.Record("session.stopped", result: terminalError ? "Error" : "Stopped");
         }
     }
 
     private async Task RunAttachedAsync(CancellationToken cancellationToken)
     {
+        _lastExecutionAttempt = "";
         using var mcp = new McpClient(_options.ProviderOptions, _mcpHandler);
         var worldStatus = await mcp.CallToolAsync("world_status", new { }, cancellationToken);
         PinWorld(worldStatus);
@@ -139,6 +148,7 @@ public sealed partial class AgentHostRuntime
                 (!n.TryGetProperty("health", out var health) || health.GetSingle() > 0)))
             throw new AgentTargetChangedException();
         _pinnedNpcId = npcId;
+        _diagnostics.Bind(_pinnedWorldId ?? _options.WorldId, npcId);
         var catalog = await mcp.ReadToolCatalogAsync(cancellationToken);
         _actionContract = BuildActionContract(catalog);
         _actionArguments = new AgentActionContract(catalog);
@@ -149,8 +159,11 @@ public sealed partial class AgentHostRuntime
             displayName = _options.DisplayName,
             capabilities = Capabilities,
             ttlSeconds = 45,
+            inboxResumeKey = _inboxResumeKey,
         }, cancellationToken);
         var attachmentId = RequiredString(attached, "attachmentId");
+        _inboxResumeKey = attached.TryGetProperty("inboxResumeKey", out var resume) && resume.ValueKind == JsonValueKind.String
+            ? resume.GetString() ?? "" : "";
         // §163: this gate means world execution permission, NOT player presence.
         var presence = new PresenceState(!IsWorldPaused(worldStatus));
         var playerPresent = attached.TryGetProperty("playerPresent", out var present) && present.GetBoolean();
@@ -176,6 +189,8 @@ public sealed partial class AgentHostRuntime
         finally
         {
             await StopActionAsync().ConfigureAwait(false);
+            try { await MaintainPlanLeaseAsync(mcp, npcId, false, CancellationToken.None).ConfigureAwait(false); }
+            catch { /* Session teardown and TTL remain the fallback. */ }
             heartbeatStop.Cancel();
             try { await historyTask.ConfigureAwait(false); }
             catch (OperationCanceledException) { }
@@ -188,10 +203,11 @@ public sealed partial class AgentHostRuntime
                 // An expired session cannot own this attachment. Do not create
                 // a fresh anonymous session merely to detach the old one.
                 if (mcp.HasEstablishedSession)
-                    await mcp.CallToolAsync("detach_agent", new { attachmentId }, CancellationToken.None)
+                    await mcp.CallToolAsync("detach_agent", new { attachmentId, preserveInbox = !cancellationToken.IsCancellationRequested }, CancellationToken.None)
                         .ConfigureAwait(false);
             }
             catch { /* attachment TTL is the hard fallback */ }
+            if (cancellationToken.IsCancellationRequested) _inboxResumeKey = "";
             _status.Write(!cancellationToken.IsCancellationRequested, "Detached", npcId,
                 false, false);
         }
@@ -290,6 +306,7 @@ public sealed partial class AgentHostRuntime
             _status.Write(true, "Thinking", npcId, true, true);
             var worldStatus = await mcp.CallToolAsync("world_status", new { }, cancellationToken);
             var state = await mcp.CallToolAsync("describe_colonist", PerceptionRequest(npcId), cancellationToken);
+            _diagnostics.Record("turn.observed", turnId, trigger, observation: AgentDiagnosticObservation.From(state));
             if (IsUnconscious(state))
             {
                 await StopActionAsync().ConfigureAwait(false);
@@ -331,7 +348,8 @@ public sealed partial class AgentHostRuntime
             var recall = playerText;
             var memoryContext = await _memory.BuildPromptContextAsync(world, "", cancellationToken)
                 .ConfigureAwait(false);
-            world = world with { ObjectiveRevision = memoryContext.ObjectiveRevision };
+            world = world with { ObjectiveRevision = memoryContext.ObjectiveRevision,
+                ExecutionPlanRevision = memoryContext.ExecutionPlanRevision, ExecutionPlanId = memoryContext.ExecutionPlanId };
             Console.Error.WriteLine(
                 $"[memory] promptChars={memoryContext.CharacterCount} recalled={memoryContext.RecalledFragments}");
             var incidentSnapshot = _incidents.Snapshot();
@@ -350,24 +368,42 @@ public sealed partial class AgentHostRuntime
             _turnWriter.Release(); ownsWriter = false;
             stage = "model";
             var modelStarted = latency.ElapsedMilliseconds;
-            var decision = await recallEngine.DecideAsync(playerText, world, memoryState,
-                (evidence, memoryToken) => _providers.DecideAsync(trigger, physicalState,
-                    requestContext + "\n" + evidence, playerText, recent, memoryToken),
-                cancellationToken).ConfigureAwait(false);
-            if (decision.Action?.Tool == KnownObjectTool)
-                decision = await ResolveObjectKnowledgeAsync(mcp, npcId,
-                    worldStatus.GetProperty("worldId").GetString() ?? "", decision, trigger,
-                    physicalState, requestContext, playerText, recent, scheduled, cancellationToken)
-                    .ConfigureAwait(false);
+            CompanionDecision decision;
+            await _modelSlot.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                EnsureCurrentTurn(scheduled, cancellationToken);
+                modelStarted = latency.ElapsedMilliseconds;
+                _diagnostics.Record("model.started", turnId, trigger);
+                var queriedObjects = false;
+                decision = await recallEngine.DecideAsync(playerText, world, memoryState,
+                    async (evidence, memoryToken) =>
+                    {
+                        var context = requestContext + "\n" + evidence +
+                            (queriedObjects ? "\n" + AgentPromptFiles.Read("object-knowledge.md") : "");
+                        var answer = await DecideWithDiagnosticsAsync(turnId, trigger, physicalState,
+                            context, playerText, recent, memoryToken).ConfigureAwait(false);
+                        if (answer.Action?.Tool != KnownObjectTool) return answer;
+                        if (queriedObjects) throw new AgentActionValidationException("KnowledgeQueryLimitReached");
+                        queriedObjects = true;
+                        return await ResolveObjectKnowledgeAsync(mcp, npcId,
+                            worldStatus.GetProperty("worldId").GetString() ?? "", answer, trigger,
+                            physicalState, context, playerText, recent, scheduled, memoryToken, turnId,
+                            enriched => physicalState = enriched).ConfigureAwait(false);
+                    },
+                    cancellationToken, async (operation, arguments, referenceToken) =>
+                    {
+                        var source = await new AgentReferenceReader(mcp, _options.MemoryDirectory, npcId).ReadAsync(operation, arguments, referenceToken).ConfigureAwait(false);
+                        _diagnostics.Record("reference.read", turnId, tool: operation, sourceIds: source.SourceIds);
+                        return source;
+                    }, (answer, validationToken) => _memory.ValidateObjectiveUpdateAsync(world, answer, validationToken)).ConfigureAwait(false);
+            }
+            finally { _modelSlot.Release(); }
             cancellationToken.ThrowIfCancellationRequested();
             var modelMs = latency.ElapsedMilliseconds - modelStarted;
+            _diagnostics.Record("model.completed", turnId, trigger, elapsedMs: modelMs);
             if (trigger != "voice" && string.Equals(decision.Speech.Trim(), previousSpeech,
                     StringComparison.OrdinalIgnoreCase)) decision.Speech = string.Empty;
-            stage = "tts";
-            var ttsStarted = latency.ElapsedMilliseconds;
-            var wav = decision.Speech.Length == 0 ? Array.Empty<byte>() :
-                await PrepareSpeechAsync(decision.Speech, cancellationToken).ConfigureAwait(false);
-            var ttsMs = latency.ElapsedMilliseconds - ttsStarted;
             if (scheduled != null)
             {
                 scheduled.ReadyToCommit = true;
@@ -385,6 +421,12 @@ public sealed partial class AgentHostRuntime
                 ownsWriter = true;
             }
             EnsureCurrentTurn(scheduled, cancellationToken);
+            var proposedAction = decision.Action?.Tool;
+            AgentExecutionPlanPolicy.NormalizeContinuation(decision,
+                await _memory.SnapshotAsync(cancellationToken).ConfigureAwait(false), world.WorldKey, npcId);
+            if (proposedAction != null && decision.Action == null)
+                _diagnostics.Record("decision.normalized", turnId, trigger, tool: proposedAction, result: "GoalContinuation");
+            await ValidateExecutionPlanAsync(mcp, npcId, decision, cancellationToken).ConfigureAwait(false);
             await _memory.ValidateObjectiveUpdateAsync(world, decision, cancellationToken).ConfigureAwait(false);
             _activeSpeakerKey = world.SpeakerKey;
             if (trigger != "voice" && string.Equals(decision.Speech.Trim(), _lastSpeech,
@@ -399,12 +441,12 @@ public sealed partial class AgentHostRuntime
                 }
             }
             if (scheduled is { IsReply: true } &&
-                (decision.ObjectiveUpdate != null || (decision.Action != null && CanStartActionTurn(trigger))))
+                (decision.ObjectiveUpdate != null || decision.ExecutionPlanUpdate != null || (decision.Action != null && CanStartActionTurn(trigger))))
             {
                 ++_controlVersion;
                 _autonomyTurn?.Stop.Cancel();
             }
-            Console.Error.WriteLine($"[latency] turn={ActionCorrelation(turnId)} lane={trigger} modelMs={modelMs} ttsMs={ttsMs} readyMs={latency.ElapsedMilliseconds}");
+            Console.Error.WriteLine($"[latency] turn={ActionCorrelation(turnId)} lane={trigger} modelMs={modelMs} readyMs={latency.ElapsedMilliseconds}");
 
             var pending = new PendingAgentTurn
             {
@@ -421,28 +463,24 @@ public sealed partial class AgentHostRuntime
                 _incidents.Consume(incidentSnapshot);
             }
             consumed = true; // durable result: never regenerate it because delivery failed
-            await _memory.CommitTurnAsync(world, turnId, trigger, decision, cancellationToken)
+            var localCommitted = await _memory.CommitTurnAsync(world, turnId, trigger, decision, cancellationToken)
                 .ConfigureAwait(false);
+            if (localCommitted && trigger == "voice" && decision.RelationshipAssessment is { } assessment)
+                _diagnostics.Record("relationship.committed", turnId, trigger,
+                    result: "Trust" + assessment.Trust + ".Sympathy" + assessment.Sympathy,
+                    committed: true, relationship: AgentDiagnosticRelationship.From(
+                        await _memory.SnapshotAsync(cancellationToken).ConfigureAwait(false), world.SpeakerKey));
             _outbox.MarkLocalCommitted(turnId);
             await CommitServerViewAsync(mcp, attachmentId, pending, cancellationToken)
                 .ConfigureAwait(false);
             _outbox.Remove(turnId);
             LastIntentSummary = decision.IntentSummary;
 
+            if (decision.ExecutionPlanUpdate != null ||
+                (_executingPlan && decision.ObjectiveUpdate?.Operation is "set" or "pause" or "clear" or "complete"))
+                await StopActionAsync(handoffLease: decision.Action != null || decision.ExecutionPlanUpdate?.Operation == "replace").ConfigureAwait(false);
+
             if (playerText.Length > 0) Remember(AgentPromptFiles.Text("AgentHostRuntime.08") + playerText);
-            if (decision.Speech.Length > 0)
-            {
-                stage = "speech";
-                Remember(_options.DisplayName + ": " + decision.Speech);
-                await PublishPhaseAsync(mcp, attachmentId, turnId, "Speaking", cancellationToken);
-                await UploadSpeechAsync(mcp, attachmentId, turnId, trigger, decision, wav,
-                    cancellationToken).ConfigureAwait(false);
-                _memory.History.Append(new() { Id = AgentMemoryArchive.Id("delivery:" + turnId), Kind = "delivery",
-                    Text = decision.Speech, Status = "delivered", Source = "agent", Episode = world.EpisodeId,
-                    Speaker = world.SpeakerKey, Group = world.SpeakerKey, OccurredUtc = DateTimeOffset.UtcNow,
-                    Tick = world.Tick, DayLengthTicks = world.DayLengthTicks });
-                _lastSpeech = decision.Speech.Trim();
-            }
             cancellationToken.ThrowIfCancellationRequested();
             if (decision.Action != null && CanStartActionTurn(trigger))
             {
@@ -459,13 +497,40 @@ public sealed partial class AgentHostRuntime
                 _actionStop = CancellationTokenSource.CreateLinkedTokenSource(attachmentCancellation);
                 _actionTask = PerformActionSafelyAsync(mcp, npcId, decision.Action, _actionStop.Token, turnId);
             }
+            // #408: a committed command starts before any TTS work. Release the
+            // writer while synthesizing so inbox/history/control renewal keep progressing.
+            _turnWriter.Release(); ownsWriter = false;
+            stage = "tts";
+            var ttsStarted = latency.ElapsedMilliseconds;
+            var wav = decision.Speech.Length == 0 ? Array.Empty<byte>() :
+                await PrepareSpeechAsync(decision.Speech, cancellationToken).ConfigureAwait(false);
+            _diagnostics.Record("speech.prepared", turnId, trigger, elapsedMs: latency.ElapsedMilliseconds - ttsStarted);
+            await _turnWriter.WaitAsync(cancellationToken).ConfigureAwait(false);
+            ownsWriter = true;
+            EnsureCurrentTurn(scheduled, cancellationToken);
+            _activeSpeakerKey = world.SpeakerKey;
+            if (decision.Speech.Length > 0)
+            {
+                stage = "speech";
+                Remember(_options.DisplayName + ": " + decision.Speech);
+                await PublishPhaseAsync(mcp, attachmentId, turnId, "Speaking", cancellationToken);
+                await UploadSpeechAsync(mcp, attachmentId, turnId, trigger, decision, wav,
+                    cancellationToken).ConfigureAwait(false);
+                _memory.History.Append(new() { Id = AgentMemoryArchive.Id("delivery:" + turnId), Kind = "delivery",
+                    Text = decision.Speech, Status = "delivered", Source = "agent", Episode = world.EpisodeId,
+                    Speaker = world.SpeakerKey, Group = world.SpeakerKey, OccurredUtc = DateTimeOffset.UtcNow,
+                    Tick = world.Tick, DayLengthTicks = world.DayLengthTicks });
+                _lastSpeech = decision.Speech.Trim();
+            }
             await PublishPhaseAsync(mcp, attachmentId, turnId, "Ready", cancellationToken);
             _status.Write(true, "Ready", npcId, true, true);
             Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} result=committed");
+            _diagnostics.Record("turn.committed", turnId, trigger, elapsedMs: latency.ElapsedMilliseconds, committed: true);
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            _diagnostics.Record("turn.cancelled", turnId, trigger, result: stage, committed: consumed);
             if (consumed) return true;
             throw;
         }
@@ -476,6 +541,7 @@ public sealed partial class AgentHostRuntime
         }
         catch (AgentObjectiveConflictException)
         {
+            _diagnostics.Record("turn.conflict", turnId, trigger, result: "ObjectiveChanged");
             Console.Error.WriteLine($"[turn] correlation={ActionCorrelation(turnId)} result=objective-conflict-retry");
             return false; // No durable write or inbox acknowledgement: regenerate from the new goal.
         }
@@ -491,6 +557,7 @@ public sealed partial class AgentHostRuntime
             }
             EnsureCurrentTurn(scheduled, cancellationToken);
             Console.Error.WriteLine($"[turn] id={turnId} correlation={ActionCorrelation(turnId)} trigger={trigger} stage={stage} consumed={consumed} error={ex.GetType().Name}");
+            _diagnostics.Record("turn.failed", turnId, trigger, result: AgentDiagnostics.FailureKind(ex), elapsedMs: latency.ElapsedMilliseconds, committed: consumed);
             _status.Write(true, "Error", npcId, true, true, ex.GetType().Name);
             try
             {
@@ -663,6 +730,7 @@ public sealed partial class AgentHostRuntime
             await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 },
                 cancellationToken).ConfigureAwait(false);
             acquired = true;
+            _holdingPlanLease = false; // The ordinary action now owns this session's lease.
             var outcome = new AgentActionOutcome(npcId,
                 await mcp.CallToolAsync("read_events", new { npcId }, cancellationToken).ConfigureAwait(false));
             var result = await mcp.CallToolAsync(action.Tool, arguments, cancellationToken).ConfigureAwait(false);
@@ -723,7 +791,19 @@ public sealed partial class AgentHostRuntime
         }
         finally
         {
-            if (acquired && !_handoffActionLease && mcp.HasEstablishedSession) try
+            if (acquired && !cancellationToken.IsCancellationRequested && !_handoffActionLease)
+            {
+                try
+                {
+                    var archive = await _memory.SnapshotAsync(CancellationToken.None).ConfigureAwait(false);
+                    _holdingPlanLease = archive.Objective is { Status: "active" } goal &&
+                        goal.AvatarNpcId == npcId && goal.WorldKey == _historyWorld?.WorldKey &&
+                        KeepGoalControl(archive.ExecutionPlan);
+                    if (_holdingPlanLease) _nextPlanLeaseRenewal = DateTimeOffset.UtcNow;
+                }
+                catch { _holdingPlanLease = false; }
+            }
+            if (acquired && !_holdingPlanLease && !_handoffActionLease && mcp.HasEstablishedSession) try
             {
                 await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None)
                     .ConfigureAwait(false);
@@ -764,6 +844,7 @@ public sealed partial class AgentHostRuntime
 
     private void ReportAction(string tool, string turnId, string code)
     {
+        _diagnostics.Action(turnId, tool, code);
         var world = _actionWorlds.GetValueOrDefault(turnId) ?? Volatile.Read(ref _historyWorld);
         if (code is not ("Accepted" or "AwaitingCarryContinuation")) _actionWorlds.TryRemove(turnId, out _);
         if (world != null) _memory.History.Append(new() { Id = AgentMemoryArchive.Id("action:" + turnId + ":" + code),

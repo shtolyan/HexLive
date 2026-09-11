@@ -60,8 +60,8 @@ public sealed class VoiceRelationship
         };
         Snapshot = new(
             Math.Clamp(Snapshot.Familiarity + (assessment.LearnedSomethingSignificant ? .02f : 0), 0, 1),
-            Math.Clamp(Snapshot.Trust + Delta(assessment.Trust, .03f, assessment.SeriousHarm ? .06f : .03f), 0, 1),
-            Math.Clamp(Snapshot.Sympathy + Delta(assessment.Sympathy, .02f, assessment.SeriousHarm ? .04f : .02f), -1, 1),
+            Math.Clamp(Snapshot.Trust + Delta(assessment.Trust, .03f, assessment.SeriousHarm ? .10f : .05f), 0, 1),
+            Math.Clamp(Snapshot.Sympathy + Delta(assessment.Sympathy, .02f, assessment.SeriousHarm ? .10f : .05f), -1, 1),
             name, now);
         foreach (var id in messageIds) { _messages.Add(id); _order.Enqueue(id); }
         while (_order.Count > DeduplicationCapacity) _messages.Remove(_order.Dequeue());

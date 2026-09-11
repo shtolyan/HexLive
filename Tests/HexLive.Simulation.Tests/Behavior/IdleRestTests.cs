@@ -48,6 +48,39 @@ public sealed class IdleRestTests
     }
 
     [Test]
+    public void ExplicitManualSitUsesIdleFallbackAndRemainsSeatedUntilInterrupted()
+    {
+        var (engine, npc) = Arena();
+        var world = engine.World;
+        npc.Mind.ManualControl = true;
+        npc.Mind.CurrentGoal = GoalType.Sit;
+        npc.Plan.Goal = GoalType.Sit;
+        npc.Mind.AdrenalineUntilTick = 0;
+        npc.Mind.RestCooldownUntilTick = 0;
+        new PlanningSystem().BuildIdleRestPlan(world, npc);
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Active));
+        Step(engine, npc, 4, holdIdle: false);
+        Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Rest));
+        Step(engine, npc, 30, holdIdle: false);
+        Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Rest), "Manual control must not abort its own explicit rest order.");
+        npc.Mind.AdrenalineUntilTick = world.Tick + 100;
+        engine.Step();
+        Assert.That(npc.Execution.CurrentInteraction, Is.Null, "A real threat must still interrupt explicit rest.");
+    }
+
+    [Test]
+    public void ManualControlStillForbidsUnrequestedIdleRest()
+    {
+        var (engine, npc) = Arena();
+        npc.Mind.ManualControl = true;
+        npc.Mind.CurrentGoal = GoalType.Idle;
+        npc.Mind.AdrenalineUntilTick = 0;
+        new PlanningSystem().BuildIdleRestPlan(engine.World, npc);
+        Assert.That(npc.Plan.Status, Is.Not.EqualTo(PlanStatus.Active));
+        Assert.That(npc.Execution.CurrentInteraction, Is.Null);
+    }
+
+    [Test]
     public void IdleColonistSitsDownWhereSheStands()
     {
         var (engine, npc) = Arena();

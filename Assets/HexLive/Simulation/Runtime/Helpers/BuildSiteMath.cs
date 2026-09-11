@@ -55,6 +55,16 @@ internal static class BuildSiteMath
              site.BuildProduct, out var definition) ||
          !definition.HasTag(ObjectTags.HandBuilt));
 
+    // §54: the same carried-or-at-site rule used by native construction.
+    public static bool HammerAvailable(WorldState world, NPCState npc, WorldObjectState site)
+    {
+        if (GearCatalog.HasCapability(npc.Inventory.Items, GearCapability.Hammer)) return true;
+        foreach (var item in world.Entities.Objects.Values)
+            if (GearCatalog.For(item.DefinitionId).Has(GearCapability.Hammer) &&
+                HexSpatialMath.HexDistance(item.Tile, site.Tile) <= 1) return true;
+        return false;
+    }
+
     public static int Delivered(WorldObjectState site, string materialId)
     {
         var n = 0;
@@ -148,14 +158,17 @@ internal static class BuildSiteMath
     };
 
     // The whole bill's shortfall, stage-blind (stocked checks, debug readouts).
-    public static int TotalRemaining(WorldObjectState site, string materialId) => materialId switch
+    public static int TotalRemaining(WorldObjectState site, string materialId) =>
+        System.Math.Max(0, Bill(site, materialId) - Delivered(site, materialId));
+
+    public static int Bill(WorldObjectState site, string materialId) => materialId switch
     {
-        MaterialLogs => System.Math.Max(0, site.BillLogs - Delivered(site, materialId)),
-        MaterialStones => System.Math.Max(0, site.BillStones - Delivered(site, materialId)),
-        MaterialLeaves => System.Math.Max(0, site.BillLeaves - Delivered(site, materialId)),
-        MaterialSticks => System.Math.Max(0, site.BillSticks - Delivered(site, materialId)),
-        MaterialRope => System.Math.Max(0, site.BillRope - Delivered(site, materialId)),
-        MaterialBoards => System.Math.Max(0, site.BillBoards - Delivered(site, materialId)),
+        MaterialLogs => site.BillLogs,
+        MaterialStones => site.BillStones,
+        MaterialLeaves => site.BillLeaves,
+        MaterialSticks => site.BillSticks,
+        MaterialRope => site.BillRope,
+        MaterialBoards => site.BillBoards,
         _ => 0
     };
 
@@ -325,6 +338,32 @@ internal static class BuildSiteMath
 /// </summary>
 public static class BuildSiteView
 {
+    // §163: read-only DTO over the same accounting used by execution.
+    public static (string DefinitionId, int Required, int Delivered, int Remaining, int CurrentStageRemaining)[]
+        Materials(WorldObjectState site)
+    {
+        var rows = new (string, int, int, int, int)[BuildSiteMath.AllMaterials.Length];
+        for (var i = 0; i < rows.Length; i++)
+        {
+            var id = BuildSiteMath.AllMaterials[i];
+            rows[i] = (id, BuildSiteMath.Bill(site, id), BuildSiteMath.Delivered(site, id),
+                BuildSiteMath.TotalRemaining(site, id), BuildSiteMath.Remaining(site, id));
+        }
+        return rows;
+    }
+
+    public static bool NeedsHammer(WorldState world, WorldObjectState site) => BuildSiteMath.NeedsHammer(world, site);
+
+    public static WorldObjectState FurnitureBillPreview(string catalogId)
+    {
+        if (!BuildCatalogDefinition.TryGet(catalogId, out var entry) || entry.PlacementKind != BuildCatalogPlacementKind.Furniture)
+            return null;
+        var product = Bootstrap.BuildingBootstrap.PlanFurnitureProduct(catalogId);
+        var scratch = new WorldObjectState { BuildProduct = product };
+        Bootstrap.BuildingBootstrap.ApplyFurnitureBill(scratch, product, catalogId == ContentIds.FurnitureHearth);
+        return scratch;
+    }
+
     public static bool IsSite(HexLive.Simulation.Debug.ObjectSnapshot obj) =>
         obj != null &&
         (Blueprints.FreeArchitectureRules.IsDemolitionSite(obj) ||

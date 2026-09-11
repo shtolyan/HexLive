@@ -1,0 +1,28 @@
+{
+  "sourceCommit": "90036ef2b744dd67b44bbdf154317abd4bb35fe5",
+  "provider": "Codex",
+  "model": "gpt-6-astra",
+  "reasoningEffort": "medium",
+  "providerComposition": "production-knowledge-v1",
+  "scope": "First successful bed0/0 on this source. One case, not full matrix acceptance. Original world/resources/fauna/limits; no initial hammer and no hidden item injection.",
+  "rawReport": "/private/tmp/hexlive-codex-astra-medium-90036/bed-0-0.json",
+  "rawReportSha256": "e48cf2c7b0b61c3332328e8a025a437b6d9edab165e6fe79659048a2a51849f8",
+  "case": {
+    "fixture": 0,
+    "repetition": 0,
+    "passed": true,
+    "status": "Completed",
+    "calls": 56,
+    "commands": 128,
+    "gameTicks": 10525,
+    "sawSleep": true
+  },
+  "decisionTurns": 42,
+  "initialInventory": [
+    "gear.backpack_riot"
+  ],
+  "firstHammerObservedCall": 55,
+  "declaredExploreOrders": 2,
+  "completionObservation": "Новая кровать построена: после завершающей работы видна готовая кровать 1282 вместо площадки 1145. Цель выполнена.",
+  "matrixAcceptance": "Pending remaining23 cases on identical source/model/reasoning/composition."
+}

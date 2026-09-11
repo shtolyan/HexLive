@@ -721,9 +721,8 @@ namespace HexLive.UnityPresentation.Input
                 // Клик мимо открытого меню только закрывает его. Клик по самому
                 // меню обрабатывает UI Toolkit; в обоих случаях этот physical
                 // press не имеет права стать началом выделения или приказа.
-                if (UI.ContextMenuPanel.IsOpen && !UI.ContextMenuPanel.PointerOverPanel)
+                if (UI.ContextMenuPanel.TryDismissOnOutsidePress(pointer))
                 {
-                    UI.ContextMenuPanel.Close();
                     _leftPressActive = false;
                     _selectionDragging = false;
                     return;
@@ -771,10 +770,7 @@ namespace HexLive.UnityPresentation.Input
         {
             if (mouse.rightButton.wasPressedThisFrame)
             {
-                if (UI.ContextMenuPanel.IsOpen && !UI.ContextMenuPanel.PointerOverPanel)
-                {
-                    UI.ContextMenuPanel.Close();
-                }
+                UI.ContextMenuPanel.TryDismissOnOutsidePress(pointer);
 
                 _rightPressActive = !PointerBlockedForWorld() &&
                     !_worldPointerBlockedLastFrame;

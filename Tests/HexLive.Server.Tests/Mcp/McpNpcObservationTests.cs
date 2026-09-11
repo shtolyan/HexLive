@@ -55,6 +55,7 @@ public sealed class McpNpcObservationTests
             Assert.That(dasha.TryGetProperty("needs", out _), Is.False);
             Assert.That(dasha.TryGetProperty("inventory", out _), Is.False);
             Assert.That(dasha.TryGetProperty("memory", out _), Is.False);
+            Assert.That(dasha.GetProperty("observerRelationship").ValueKind, Is.EqualTo(JsonValueKind.Null));
             Assert.That(response.RootElement.GetRawText(), Does.Not.Contain("private-pocket-sentinel"));
         });
         host.Read(world =>
@@ -62,6 +63,26 @@ public sealed class McpNpcObservationTests
             Assert.That(Observer(world).Social.Relationships.Count, Is.EqualTo(setup.Item3), "Observation must not create acquaintance");
             return true;
         });
+    }
+
+    [Test]
+    public void GiftRecipientSelectionSeesOnlyTheObserversOwnRelationship()
+    {
+        using var host = CreateHost();
+        var actorId = host.Read(world =>
+        {
+            var actor = Observer(world);
+            var target = world.Entities.Npcs.Values.First(n => n.Id != actor.Id);
+            ClearPerception(actor);
+            actor.Perception.Agents.Add(new PerceivedAgent { Id = target.Id, CanSee = true });
+            actor.Social.GetOrCreate(target.Id).Affinity = .8f;
+            target.Social.GetOrCreate(actor.Id).Affinity = -.7f;
+            return actor.Id.Value;
+        });
+        using var response = Describe(host, actorId);
+        var row = response.RootElement.GetProperty("visibleNpcs")[0];
+        Assert.That(row.GetProperty("observerRelationship").GetProperty("affinity").GetSingle(), Is.EqualTo(.8f));
+        Assert.That(row.GetRawText(), Does.Not.Contain("-0.7"));
     }
 
     [Test]

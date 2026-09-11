@@ -18,9 +18,11 @@ public sealed class CompanionAction
 
 public sealed class CompanionDecision
 {
+    [JsonIgnore] public AgentModelUsage? ModelUsage { get; set; }
     [JsonPropertyName("memoryRequests")] public List<MemoryRequest> MemoryRequests { get; set; } = new();
     [JsonPropertyName("memorySources")] public List<string> MemorySources { get; set; } = new();
     [JsonPropertyName("objectiveUpdate")] public AgentObjectiveUpdate? ObjectiveUpdate { get; set; }
+    [JsonPropertyName("executionPlanUpdate")] public AgentExecutionPlanUpdate? ExecutionPlanUpdate { get; set; }
     [JsonPropertyName("speech")] public string Speech { get; set; } = string.Empty;
     [JsonPropertyName("emotion")] public string Emotion { get; set; } = "neutral";
     [JsonPropertyName("action")] public CompanionAction? Action { get; set; }
@@ -30,6 +32,8 @@ public sealed class CompanionDecision
     [JsonPropertyName("memoryUpserts")] public List<MemoryUpdate> MemoryUpserts { get; set; } = new();
     [JsonPropertyName("journalText")] public string JournalText { get; set; } = string.Empty;
 }
+
+public sealed record AgentModelUsage(string Provider, string Model, long? InputTokens, long? OutputTokens);
 
 public sealed class MemoryRequest
 {

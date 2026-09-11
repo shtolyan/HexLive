@@ -131,6 +131,7 @@ public sealed class MobSystem : ISimulationSystem
 
         foreach (var dead in _deadDogs)
         {
+            AgentCommandLedger.FinishMobAttacks(world, dead.Id);
             world.Mobs.Remove(dead);
 
             // §57.9: зверь мёртв, а его жертву выручала подмога — спасение

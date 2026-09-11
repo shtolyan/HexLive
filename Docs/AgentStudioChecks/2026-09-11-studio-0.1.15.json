@@ -1,0 +1,21 @@
+{
+  "version": "0.1.15",
+  "packagedAtUtc": "2026-09-11T03:56:53.749610+00:00",
+  "kind": "framework-dependent-preview",
+  "requiresInstalledDotnet": "9",
+  "binarySource": "/private/tmp/hexlive-studio-release-b54/Build/dotnet/bin/HexLive.AgentStudio/Release/net9.0",
+  "compiledByThisTool": false,
+  "codeSignature": "certificate-verified",
+  "coreSha256": "860bc6464139b489a0334dcca964ffb5e31d6af6c37849ff6011a4054f197bc3",
+  "note": "Existing successful binary packaged with icon; not a completed Agent Studio release.",
+  "sourceCommit": "713e7e3d402b1d43152edf86dcf9127fc65ede5a",
+  "sourceManifest": "/private/tmp/hexlive-studio-release-b54/source-manifest.json",
+  "technicalChecks": {
+    "Host": 303,
+    "Core": 106,
+    "Server": 307,
+    "SimulationPassed": 1576,
+    "SimulationPreexistingSkipped": 6
+  },
+  "modelAcceptance": "Not complete; new-source bed cases 0/0 and 2/1 running separately from rejected source0e6e matrix. Grok blocked by HTTP403 balance/spending restriction."
+}

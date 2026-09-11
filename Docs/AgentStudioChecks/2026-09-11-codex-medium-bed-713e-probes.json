@@ -1,0 +1,44 @@
+{
+  "sourceCommit": "713e7e3d402b1d43152edf86dcf9127fc65ede5a",
+  "provider": "Codex",
+  "model": "gpt-5.6-terra",
+  "reasoningEffort": "medium",
+  "accepted": false,
+  "passed": 1,
+  "diagnosticStopped": 1,
+  "notStarted": 4,
+  "successfulCaseWallDuration": "32m33s",
+  "observedPlanningDefect": "Case2/1 planned Build on object1103 (station.water_collector) while naming bed1145 in intent; 11 leaves were delivered to the collector. Recovered and completed real new bed. Source48d adds retained Build target history.",
+  "cases": [
+    {
+      "scenario": "bed",
+      "fixture": 0,
+      "repetition": 0,
+      "passed": false,
+      "status": "DiagnosticStopped",
+      "calls": 123,
+      "commands": 118,
+      "gameTicks": 8578,
+      "sawSleep": true,
+      "emergencyActions": null,
+      "stopReason": "Repeated empty hammer searches and incorrect assumption that material delivery requires hammer are diagnosed. Source48d already addresses reference retention and delivery/finishing distinction; stopped old source without rewriting it as a completed failure or success.",
+      "rawReport": "/private/tmp/hexlive-codex-bed-medium-713e/bed-0-0.json",
+      "rawReportSha256": "511c2b4907df19792cd7b748b2f748293e0aa05ee8ba3c8a775d6c944bcc4913"
+    },
+    {
+      "scenario": "bed",
+      "fixture": 2,
+      "repetition": 1,
+      "passed": true,
+      "status": "Completed",
+      "calls": 115,
+      "commands": 122,
+      "gameTicks": 10182,
+      "sawSleep": true,
+      "emergencyActions": 0,
+      "stopReason": null,
+      "rawReport": "/private/tmp/hexlive-codex-bed-medium-713e/bed-2-1.json",
+      "rawReportSha256": "0d70f04c04cf317a13a4b04f3ef252c40e629c28314498fe1c1ea0ee0f698215"
+    }
+  ]
+}

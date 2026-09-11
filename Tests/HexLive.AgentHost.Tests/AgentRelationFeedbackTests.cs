@@ -42,7 +42,7 @@ public sealed class AgentRelationFeedbackTests
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
     }
 
-    [TestCase(RelationshipDirection.Decrease, -.03f, -.02f)]
+    [TestCase(RelationshipDirection.Decrease, -.05f, -.05f)]
     [TestCase(RelationshipDirection.Unchanged, 0f, 0f)]
     public async Task NegativeAndUnchangedAssessmentsKeepTheirOwnReasonAndActualChanges(RelationshipDirection direction, float trust, float affinity)
     {

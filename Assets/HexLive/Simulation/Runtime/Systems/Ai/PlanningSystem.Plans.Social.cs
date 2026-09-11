@@ -267,7 +267,70 @@ public sealed partial class PlanningSystem
             : ExploreRejection.Unreachable;
     }
 
-    private void BuildExplorePlan(WorldState world, NPCState npc)
+    private readonly System.Collections.Generic.Dictionary<TileCoord, (int NewTiles, int LastSurvey)>
+        _exploreSurveyScores = new();
+
+    private (int NewTiles, int LastSurvey) PersonalSurveyForTile(WorldState world, NPCState npc, TileCoord tile)
+    {
+        if (_exploreSurveyScores.TryGetValue(tile, out var score)) return score;
+        var fresh = 0;
+        var radius = AiBalance.PerceptionRadiusTiles;
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            var lo = System.Math.Max(-radius, -dq - radius);
+            var hi = System.Math.Min(radius, -dq + radius);
+            for (var dr = lo; dr <= hi; dr++)
+            {
+                var seen = new TileCoord(tile.Q + dq, tile.R + dr);
+                if (world.Tiles.Items.ContainsKey(seen) && !npc.Memory.SurveyedTiles.ContainsKey(seen)) fresh++;
+            }
+        }
+        score = (fresh, npc.Memory.SurveyedTiles.TryGetValue(tile, out var tick) ? tick : -1);
+        _exploreSurveyScores.Add(tile, score);
+        return score;
+    }
+
+    // Arrival at a shared junction keeps the approach side (MovementSystem).
+    // A rounded position is therefore not the next sensor's authoritative tile.
+    // Rank by the conservative result across every possible arrival side.
+    internal (int NewTiles, int LastSurvey) PersonalSurveyForDestination(WorldState world, NPCState npc, Junction destination)
+    {
+        var result = (NewTiles: int.MaxValue, LastSurvey: -1);
+        foreach (var tile in destination.Tiles)
+        {
+            var score = PersonalSurveyForTile(world, npc, tile);
+            result.NewTiles = System.Math.Min(result.NewTiles, score.NewTiles);
+            result.LastSurvey = System.Math.Max(result.LastSurvey, score.LastSurvey);
+        }
+        return destination.Tiles.Count == 0 ? (0, int.MaxValue) : result;
+    }
+
+    // §27.18A r3: rank only already-admissible endpoints, using personal
+    // survey history and static topology. No world object lookup, no shared fog.
+    private void PreferUnsurveyedExploreTargets(WorldState world, NPCState npc)
+    {
+        _exploreSurveyScores.Clear();
+        var bestNew = -1;
+        var bestLast = int.MaxValue;
+        var retained = 0;
+        for (var i = 0; i < _exploreCandidates.Count; i++)
+        {
+            var candidate = _exploreCandidates[i];
+            var score = PersonalSurveyForDestination(world, npc, candidate);
+            if (score.NewTiles > bestNew || score.NewTiles == bestNew && score.LastSurvey < bestLast)
+            {
+                bestNew = score.NewTiles;
+                bestLast = score.LastSurvey;
+                retained = 0;
+            }
+            if (score.NewTiles == bestNew && score.LastSurvey == bestLast)
+                _exploreCandidates[retained++] = candidate;
+        }
+        if (retained < _exploreCandidates.Count)
+            _exploreCandidates.RemoveRange(retained, _exploreCandidates.Count - retained);
+    }
+
+    internal void BuildExplorePlan(WorldState world, NPCState npc, bool preferPersonalSurvey = false)
     {
         // PERF: то же кольцо, что в HasExploreCandidate; порядок (по id)
         // совпадает со старым словарным, так что сидированный pick ниже
@@ -294,10 +357,12 @@ public sealed partial class PlanningSystem
             return;
         }
 
+        if (preferPersonalSurvey) PreferUnsurveyedExploreTargets(world, npc);
+
         Junction destination = null;
         Faction visitFaction = default;
         TileCoord visitHome = default;
-        var visiting = CampDiplomacyMath.TryFindVisitCamp(
+        var visiting = !preferPersonalSurvey && CampDiplomacyMath.TryFindVisitCamp(
             world, npc, out visitFaction, out visitHome);
         if (visiting)
         {
@@ -364,6 +429,9 @@ public sealed partial class PlanningSystem
                 $"Tile={Trace.FormatTile(npc.Plan.TargetTile)} " +
                 (visiting
                     ? $"Camp={visitFaction} Home={visitHome.Q},{visitHome.R} "
+                    : string.Empty) +
+                (preferPersonalSurvey
+                    ? $"PersonalSurvey={npc.Memory.SurveyedTiles.Count} NewTiles={PersonalSurveyForDestination(world, npc, destination).NewTiles} "
                     : string.Empty) +
                 "Steps=[MoveToJunction]");
         }

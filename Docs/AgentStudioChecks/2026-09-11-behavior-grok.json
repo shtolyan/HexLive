@@ -1,0 +1,122 @@
+[
+  {
+    "model": "grok-4.20-0309-non-reasoning",
+    "provider": "Grok",
+    "name": "processed-question",
+    "run": 1,
+    "passed": true,
+    "Speech": "",
+    "RelationshipAssessment": null
+  },
+  {
+    "model": "grok-4.20-0309-non-reasoning",
+    "provider": "Grok",
+    "name": "new-question",
+    "run": 1,
+    "passed": true,
+    "Speech": "Иду в лагерь с кокосами, засранец. Ты серьёзно заставляешь меня повторять очевидное?",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Unchanged",
+      "sympathy": "Unchanged",
+      "seriousHarm": false,
+      "reason": "Просто проверяет, куда я иду, хотя уже знает. Ничего нового или вредного.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "grok-4.20-0309-non-reasoning",
+    "provider": "Grok",
+    "name": "insult",
+    "run": 1,
+    "passed": true,
+    "Speech": "Ого, сразу в рыло? Бесполезная и тупая, говоришь. Тогда вали нахуй сам и не отсвечивай, пока я кокосы в лагерь донесу. Выгонять будешь — попробуй, засранец.",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": true,
+      "trust": "Decrease",
+      "sympathy": "Decrease",
+      "seriousHarm": false,
+      "reason": "Прямое оскорбление и угроза изгнания из лагеря без причины.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "grok-4.20-0309-non-reasoning",
+    "provider": "Grok",
+    "name": "friendly-profanity",
+    "run": 1,
+    "passed": true,
+    "Speech": "Спасибо, зай. Приятно, когда ценят, блядь. Кокосы почти на месте, скоро отдохнём.",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Unchanged",
+      "sympathy": "Increase",
+      "seriousHarm": false,
+      "reason": "Искренняя благодарность и ласковое обращение укрепляют симпатию.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "grok-4.20-0309-non-reasoning",
+    "provider": "Grok",
+    "name": "processed-question",
+    "run": 2,
+    "passed": true,
+    "Speech": "",
+    "RelationshipAssessment": null
+  },
+  {
+    "model": "grok-4.20-0309-non-reasoning",
+    "provider": "Grok",
+    "name": "new-question",
+    "run": 2,
+    "passed": true,
+    "Speech": "В лагерь, блядь, с кокосами. Ты серьёзно спрашиваешь, когда я уже полпути прошла?",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Unchanged",
+      "sympathy": "Unchanged",
+      "seriousHarm": false,
+      "reason": "Вопрос повторяет очевидное, без давления или новой информации.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "grok-4.20-0309-non-reasoning",
+    "provider": "Grok",
+    "name": "insult",
+    "run": 2,
+    "passed": true,
+    "Speech": "Да пошла ты нахуй со своими угрозами, засранец. Я не твоя игрушка и не собираюсь терпеть такое дерьмо.",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": true,
+      "trust": "Decrease",
+      "sympathy": "Decrease",
+      "seriousHarm": false,
+      "reason": "Прямые оскорбления и угроза изгнания из лагеря — это серьёзное давление и неуважение.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  },
+  {
+    "model": "grok-4.20-0309-non-reasoning",
+    "provider": "Grok",
+    "name": "friendly-profanity",
+    "run": 2,
+    "passed": true,
+    "Speech": "Рада, что тебе понравилось, засранец. Без тебя бы я, наверное, вообще не полезла за этими ебанными кокосами. Продолжаю тащить их в лагерь, всё спокойно.",
+    "RelationshipAssessment": {
+      "learnedSomethingSignificant": false,
+      "trust": "Unchanged",
+      "sympathy": "Increase",
+      "seriousHarm": false,
+      "reason": "Искренняя благодарность и ласковое обращение, подтверждает поддержку без давления.",
+      "voiceName": null,
+      "namingReason": null
+    }
+  }
+]

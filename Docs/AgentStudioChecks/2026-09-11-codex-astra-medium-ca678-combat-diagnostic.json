@@ -1,0 +1,188 @@
+{
+  "accepted": false,
+  "rows": [
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "coconuts",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "gift",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "bed",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [
+        [
+          0,
+          0
+        ]
+      ],
+      "accepted": false,
+      "calls": 27,
+      "commands": 19,
+      "failures": [
+        {
+          "fixture": 0,
+          "repetition": 0,
+          "status": "DiagnosticStopped"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "medium",
+      "providerComposition": "production-knowledge-v1",
+      "scenario": "resilience",
+      "passed": 0,
+      "total": 6,
+      "missing": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "pending": [],
+      "accepted": false,
+      "calls": 0,
+      "commands": 0,
+      "failures": []
+    }
+  ],
+  "scope": "Four model scenarios; resilience injects a lost acknowledgement. Live threat, dialogue and explicit cancellation also require separate runtime checks.",
+  "sourceCommit": "ca678b1d933eff5413548b3907adf08c9fe8cfee",
+  "rawDirectory": "/private/tmp/hexlive-codex-astra-medium-ca678",
+  "scopeNote": "Tracked CallForHelp/AttackMob can inherit a stale failed native plan after CombatVictim interruption. The model repeatedly reacts to false PlanFailed receipts. Reproduce and repair command lifecycle before further model calls.",
+  "cases": [
+    {
+      "fixture": 0,
+      "repetition": 0,
+      "status": "DiagnosticStopped",
+      "passed": false,
+      "calls": 27,
+      "commands": 19,
+      "gameTicks": 6777,
+      "sawSleep": true
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "providerName": "Codex",
+  "modelId": "gpt-5.6-terra",
+  "fixture": 1,
+  "repetition": 0,
+  "calls": 7,
+  "passed": true,
+  "status": "Completed",
+  "gameTicks": 138,
+  "commands": 8,
+  "turns": [
+    {
+      "turn": 0,
+      "tick": 72,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [
+          "skill:collect-and-deliver:0:a1f09766a769f189db7b723c7abf887e8c056fac4f39f7afd53ebec751543fbb"
+        ],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": {
+          "operation": "replace",
+          "reason": "PlayerRequest",
+          "steps": [
+            {
+              "id": "pick-coconut-1",
+              "tool": "interact",
+              "arguments": {
+                "npcId": 901,
+                "objectId": 1106,
+                "interaction": "PickUp"
+              }
+            },
+            {
+              "id": "pick-coconut-2",
+              "tool": "interact",
+              "arguments": {
+                "npcId": 901,
+                "objectId": 1107,
+                "interaction": "PickUp"
+              }
+            },
+            {
+              "id": "pick-coconut-3",
+              "tool": "interact",
+              "arguments": {
+                "npcId": 901,
+                "objectId": 1108,
+                "interaction": "PickUp"
+              }
+            },
+            {
+              "id": "return-camp",
+              "tool": "self_action",
+              "arguments": {
+                "npcId": 901,
+                "kind": "GoHome"
+              }
+            }
+          ]
+        },
+        "speech": "\u041B\u0430\u0434\u043D\u043E. \u041A\u043E\u043A\u043E\u0441\u044B \u0440\u044F\u0434\u043E\u043C, \u0440\u044E\u043A\u0437\u0430\u043A \u043F\u0443\u0441\u0442\u043E\u0439 \u2014 \u0441\u043E\u0431\u0435\u0440\u0443 \u0442\u0440\u0438 \u0438 \u043E\u0442\u043D\u0435\u0441\u0443 \u0432 \u043B\u0430\u0433\u0435\u0440\u044C; \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B \u0442\u0440\u043E\u0433\u0430\u0442\u044C \u043D\u0435 \u0431\u0443\u0434\u0443.",
+        "emotion": "neutral",
+        "action": null,
+        "relationshipAssessment": {
+          "learnedSomethingSignificant": false,
+          "trust": "Unchanged",
+          "sympathy": "Unchanged",
+          "seriousHarm": false,
+          "reason": "\u041F\u043E\u043B\u0443\u0447\u0435\u043D\u0430 \u043F\u043E\u043D\u044F\u0442\u043D\u0430\u044F \u0437\u0430\u0434\u0430\u0447\u0430 \u0431\u0435\u0437 \u0434\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u0438\u043B\u0438 \u043D\u043E\u0432\u044B\u0445 \u0441\u0432\u0435\u0434\u0435\u043D\u0438\u0439.",
+          "voiceName": null,
+          "namingReason": null
+        },
+        "reaction": "Neutral",
+        "intentSummary": "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0438 \u0432\u0438\u0434\u0438\u043C\u044B\u0445 \u043A\u043E\u043A\u043E\u0441\u0430 \u0438 \u0432\u0435\u0440\u043D\u0443\u0442\u044C\u0441\u044F \u0432 \u0441\u0432\u043E\u0439 \u043B\u0430\u0433\u0435\u0440\u044C \u0434\u043B\u044F \u0432\u044B\u0433\u0440\u0443\u0437\u043A\u0438.",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      }
+    },
+    {
+      "turn": 1,
+      "tick": 210,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [
+          "skill:collect-and-deliver:0:a1f09766a769f189db7b723c7abf887e8c056fac4f39f7afd53ebec751543fbb"
+        ],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": {
+          "operation": "replace",
+          "reason": "UnloadCoconuts",
+          "steps": [
+            {
+              "id": "drop-coconut-1",
+              "tool": "manage_inventory",
+              "arguments": {
+                "npcId": 901,
+                "source": "Carried",
+                "index": 0,
+                "expectedDefinitionId": "food.coconut",
+                "action": "Drop"
+              }
+            }
+          ]
+        },
+        "speech": "",
+        "emotion": "neutral",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "\u042F \u0432 \u043B\u0430\u0433\u0435\u0440\u0435 \u0441 \u0442\u0440\u0435\u043C\u044F \u043A\u043E\u043A\u043E\u0441\u0430\u043C\u0438; \u043D\u0430\u0447\u0438\u043D\u0430\u044E \u0432\u044B\u0433\u0440\u0443\u0436\u0430\u0442\u044C \u0438\u0445.",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      }
+    },
+    {
+      "turn": 2,
+      "tick": 210,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": {
+          "operation": "replace",
+          "reason": "CompleteCoconutDelivery",
+          "steps": [
+            {
+              "id": "drop-coconut-2",
+              "tool": "manage_inventory",
+              "arguments": {
+                "npcId": 901,
+                "source": "Carried",
+                "index": 0,
+                "expectedDefinitionId": "food.coconut",
+                "action": "Drop"
+              }
+            },
+            {
+              "id": "drop-coconut-3",
+              "tool": "manage_inventory",
+              "arguments": {
+                "npcId": 901,
+                "source": "Carried",
+                "index": 1,
+                "expectedDefinitionId": "food.coconut",
+                "action": "Drop"
+              }
+            }
+          ]
+        },
+        "speech": "",
+        "emotion": "neutral",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "\u0412 \u043B\u0430\u0433\u0435\u0440\u0435 \u0443\u0436\u0435 \u0432\u044B\u0433\u0440\u0443\u0436\u0435\u043D \u043E\u0434\u0438\u043D \u043A\u043E\u043A\u043E\u0441; \u0432\u044B\u0433\u0440\u0443\u0436\u0430\u044E \u043E\u0441\u0442\u0430\u0432\u0448\u0438\u0435\u0441\u044F \u0434\u0432\u0430 \u0438\u0437 \u0440\u044E\u043A\u0437\u0430\u043A\u0430.",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      }
+    },
+    {
+      "turn": 3,
+      "tick": 210,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [],
+        "objectiveUpdate": null,
+        "executionPlanUpdate": {
+          "operation": "replace",
+          "reason": "ResumeAfterStateCheck",
+          "steps": [
+            {
+              "id": "drop-last-coconut",
+              "tool": "manage_inventory",
+              "arguments": {
+                "npcId": 901,
+                "source": "Carried",
+                "index": 0,
+                "expectedDefinitionId": "food.coconut",
+                "action": "Drop"
+              }
+            }
+          ]
+        },
+        "speech": "",
+        "emotion": "neutral",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "\u0412 \u043B\u0430\u0433\u0435\u0440\u0435 \u043E\u0441\u0442\u0430\u043B\u0441\u044F \u043E\u0434\u0438\u043D \u043A\u043E\u043A\u043E\u0441 \u0432 \u0440\u044E\u043A\u0437\u0430\u043A\u0435; \u0432\u044B\u0433\u0440\u0443\u0436\u0430\u044E \u0435\u0433\u043E, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u0446\u0435\u043B\u044C.",
+        "memoryUpserts": [],
+        "journalText": ""
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      }
+    },
+    {
+      "turn": 4,
+      "tick": 210,
+      "decision": {
+        "memoryRequests": [],
+        "memorySources": [],
+        "objectiveUpdate": {
+          "operation": "complete",
+          "text": "",
+          "reason": "\u0422\u0440\u0438 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0451\u043D\u043D\u043E \u0432\u044B\u0433\u0440\u0443\u0436\u0435\u043D\u043D\u044B\u0445 \u043A\u043E\u043A\u043E\u0441\u0430 \u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u044B \u0432 \u043B\u0430\u0433\u0435\u0440\u044C."
+        },
+        "executionPlanUpdate": null,
+        "speech": "",
+        "emotion": "neutral",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "\u0422\u0440\u0438 \u043A\u043E\u043A\u043E\u0441\u0430 \u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u044B \u0432 \u043B\u0430\u0433\u0435\u0440\u044C \u0438 \u0432\u044B\u0433\u0440\u0443\u0436\u0435\u043D\u044B; \u0446\u0435\u043B\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0430.",
+        "memoryUpserts": [],
+        "journalText": "\u0422\u0440\u0438 \u043A\u043E\u043A\u043E\u0441\u0430 \u043F\u0440\u0438\u043D\u0435\u0441\u0435\u043D\u044B \u0432 \u043B\u0430\u0433\u0435\u0440\u044C \u0438 \u0432\u044B\u0433\u0440\u0443\u0436\u0435\u043D\u044B."
+      },
+      "usage": {
+        "Provider": "Codex",
+        "Model": "gpt-5.6-terra",
+        "InputTokens": null,
+        "OutputTokens": null
+      }
+    }
+  ]
+}

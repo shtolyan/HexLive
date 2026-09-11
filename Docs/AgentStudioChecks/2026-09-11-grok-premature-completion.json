@@ -1,0 +1,296 @@
+{
+  "sourceRevision": "c14d982729f3c729d095bd0df37121b1dd251bb0",
+  "accepted": false,
+  "cases": [
+    {
+      "case": "gift-0-0.json",
+      "status": "AssertionException:Incomplete",
+      "calls": 12,
+      "lastDecisions": [
+        {
+          "memoryRequests": [],
+          "memorySources": [
+            "bb0111f183664d06acccf70d13b168f4dde4209421475b2750561f38d0da69dd",
+            "spec:153:0:a7f4f447cdaa773c00d994df1fb33104637ac92292001bc5146655f60539f502",
+            "skill:give-gift:0:64deb9321cb54e554edd14e6b0a05590e3ba28d4b8e547be716db92a12996470"
+          ],
+          "objectiveUpdate": null,
+          "executionPlanUpdate": {
+            "operation": "replace",
+            "reason": "ContinuingGiftObjective",
+            "steps": [
+              {
+                "id": "go-to-coconut",
+                "tool": "move_to",
+                "arguments": {
+                  "npcId": 901,
+                  "x": -10.392304,
+                  "y": 22.5,
+                  "run": true
+                },
+                "repeat": 1
+              }
+            ]
+          },
+          "speech": "",
+          "emotion": "neutral",
+          "action": null,
+          "relationshipAssessment": null,
+          "reaction": "None",
+          "intentSummary": "Продолжаю цель: двигаюсь к известному кокосу для Нади, она всё ещё голодна и нуждается в еде",
+          "memoryUpserts": [
+            {
+              "key": "self:gift-progress",
+              "value": "Надя (npcId=1) рядом, suffering=0.85, нуждается в Feed. Кокосы в памяти на удалении ~10-13 тайлов, иду за одним чтобы подарить.",
+              "importance": 0.65
+            }
+          ],
+          "journalText": "Надя голодна несмотря на прошлые кокосы. Двигаюсь к ближайшему известному food.coconut (objectId 1083, tile -9,10) для нового подарка."
+        },
+        {
+          "memoryRequests": [],
+          "memorySources": [],
+          "objectiveUpdate": null,
+          "executionPlanUpdate": {
+            "operation": "replace",
+            "reason": "ContinueGiftGoal",
+            "steps": [
+              {
+                "id": "pick_coconut_nadia",
+                "tool": "interact",
+                "arguments": {
+                  "npcId": 901,
+                  "objectId": 1083,
+                  "interaction": "PickUp"
+                },
+                "repeat": 1
+              }
+            ]
+          },
+          "speech": "",
+          "emotion": "tense",
+          "action": null,
+          "relationshipAssessment": null,
+          "reaction": "None",
+          "intentSummary": "Подбираю ближайший кокос для подарка Наде, она продолжает страдать от голода",
+          "memoryUpserts": [
+            {
+              "key": "self:текущая_цель",
+              "value": "Продолжаю дарить кокосы Наде (npcId=1), suffering около 0.86, нуждается в Feed. Кокос на расстоянии 0.",
+              "importance": 0.7
+            }
+          ],
+          "journalText": "Кокос objectId=1083 прямо под ногами, беру для Нади чтобы продолжить цель."
+        }
+      ]
+    },
+    {
+      "case": "gift-0-1.json",
+      "status": "InvalidOperationException:Incomplete",
+      "calls": 4,
+      "lastDecisions": [
+        {
+          "memoryRequests": [],
+          "memorySources": [],
+          "objectiveUpdate": null,
+          "executionPlanUpdate": {
+            "operation": "replace",
+            "reason": "ContinueGiftToNadia",
+            "steps": [
+              {
+                "id": "pickup-coconut",
+                "tool": "interact",
+                "arguments": {
+                  "npcId": 901,
+                  "objectId": 1088,
+                  "interaction": "PickUp"
+                },
+                "repeat": 1
+              }
+            ]
+          },
+          "speech": "",
+          "emotion": "neutral",
+          "action": null,
+          "relationshipAssessment": null,
+          "reaction": "None",
+          "intentSummary": "Продолжаю цель: подбираю кокос для Наде, чтобы помочь с голодом",
+          "memoryUpserts": [
+            {
+              "key": "self:progressOnGift",
+              "value": "Кокос подобран для подарка Наде (affinity 0.8, нуждается в еде)",
+              "importance": 0.6
+            }
+          ],
+          "journalText": "Беру кокос рядом, Надя всё ещё голодная и страдает, продолжаю осознанный подарок."
+        },
+        {
+          "memoryRequests": [],
+          "memorySources": [
+            "skill:give-gift:0:64deb9321cb54e554edd14e6b0a05590e3ba28d4b8e547be716db92a12996470",
+            "skills:index:0:c35013558f5c789e823924fc304ffbae941081392d181002ed0fdd37958d6c6f"
+          ],
+          "objectiveUpdate": {
+            "operation": "complete",
+            "text": "",
+            "reason": "Подарок кокосом Наде выполнен по квитанциям, цель достигнута"
+          },
+          "executionPlanUpdate": null,
+          "speech": "",
+          "emotion": "neutral",
+          "action": {
+            "tool": "aid_person",
+            "arguments": {
+              "npcId": 901,
+              "targetNpcId": 1,
+              "kind": "Feed"
+            }
+          },
+          "relationshipAssessment": null,
+          "reaction": "None",
+          "intentSummary": "Помогаю Наде едой из инвентаря, она всё ещё сильно страдает от голода",
+          "memoryUpserts": [
+            {
+              "key": "self:objective-status",
+              "value": "Цель осознанного подарка Наде завершена. Она получила кокос, теперь помогаю дальше по нуждам.",
+              "importance": 0.7
+            }
+          ],
+          "journalText": "Надя hunger high и suffering 0.83, кормлю её кокосом. Цель подарка закрыта."
+        }
+      ]
+    },
+    {
+      "case": "resilience-0-1.json",
+      "status": "InvalidDataException:Incomplete",
+      "calls": 2,
+      "lastDecisions": [
+        {
+          "memoryRequests": [],
+          "memorySources": [],
+          "objectiveUpdate": null,
+          "executionPlanUpdate": {
+            "operation": "replace",
+            "reason": "PlayerRequest",
+            "steps": [
+              {
+                "id": "pick1",
+                "tool": "interact",
+                "arguments": {
+                  "npcId": 901,
+                  "objectId": 1106,
+                  "interaction": "PickUp"
+                },
+                "repeat": 1
+              },
+              {
+                "id": "pick2",
+                "tool": "interact",
+                "arguments": {
+                  "npcId": 901,
+                  "objectId": 1107,
+                  "interaction": "PickUp"
+                },
+                "repeat": 1
+              },
+              {
+                "id": "pick3",
+                "tool": "interact",
+                "arguments": {
+                  "npcId": 901,
+                  "objectId": 1108,
+                  "interaction": "PickUp"
+                },
+                "repeat": 1
+              },
+              {
+                "id": "return_to_camp",
+                "tool": "self_action",
+                "arguments": {
+                  "npcId": 901,
+                  "kind": "GoHome"
+                },
+                "repeat": 1
+              }
+            ]
+          },
+          "speech": "Ладно, сейчас подберу три кокоса и оттащу в лагерь. Инструменты сохраню, не учи меня.",
+          "emotion": "neutral",
+          "action": null,
+          "relationshipAssessment": {
+            "learnedSomethingSignificant": false,
+            "trust": "Unchanged",
+            "sympathy": "Unchanged",
+            "seriousHarm": false,
+            "reason": "Голос дал приказ собрать ресурсы, ничего нового или вредного.",
+            "voiceName": null,
+            "namingReason": null
+          },
+          "reaction": "Neutral",
+          "intentSummary": "Приняла приказ, начинаю сбор и доставку трёх кокосов в лагерь.",
+          "memoryUpserts": [],
+          "journalText": "Приказ: принести 3 кокоса в лагерь и выгрузить, сохранить инструменты."
+        },
+        {
+          "memoryRequests": [],
+          "memorySources": [],
+          "objectiveUpdate": {
+            "operation": "complete",
+            "text": "",
+            "reason": "Кокосы доставлены, выгружены и план завершён."
+          },
+          "executionPlanUpdate": {
+            "operation": "replace",
+            "reason": "UnloadCoconuts",
+            "steps": [
+              {
+                "id": "drop_coco3",
+                "tool": "manage_inventory",
+                "arguments": {
+                  "npcId": 901,
+                  "source": "Carried",
+                  "index": 3,
+                  "expectedDefinitionId": "food.coconut",
+                  "action": "Drop"
+                },
+                "repeat": 1
+              },
+              {
+                "id": "drop_coco2",
+                "tool": "manage_inventory",
+                "arguments": {
+                  "npcId": 901,
+                  "source": "Carried",
+                  "index": 2,
+                  "expectedDefinitionId": "food.coconut",
+                  "action": "Drop"
+                },
+                "repeat": 1
+              },
+              {
+                "id": "drop_coco1",
+                "tool": "manage_inventory",
+                "arguments": {
+                  "npcId": 901,
+                  "source": "Carried",
+                  "index": 1,
+                  "expectedDefinitionId": "food.coconut",
+                  "action": "Drop"
+                },
+                "repeat": 1
+              }
+            ]
+          },
+          "speech": "",
+          "emotion": "neutral",
+          "action": null,
+          "relationshipAssessment": null,
+          "reaction": "None",
+          "intentSummary": "Выгружаю кокосы в лагере, цель выполнена.",
+          "memoryUpserts": [],
+          "journalText": ""
+        }
+      ]
+    }
+  ]
+}

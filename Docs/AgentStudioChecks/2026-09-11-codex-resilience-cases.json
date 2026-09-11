@@ -1,0 +1,415 @@
+{
+  "sourceRevision": "187cacd7320a0e35010b02dc7e00ecf5bf2bac9a",
+  "cases": [
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "resilience",
+      "fixture": 0,
+      "repetition": 0,
+      "calls": 4,
+      "passed": true,
+      "status": "Completed",
+      "gameTicks": 162,
+      "commands": 7,
+      "reconciliations": 1,
+      "targetReplaced": false,
+      "restarted": false,
+      "receipts": [
+        {
+          "Sequence": 1,
+          "Id": "4fa29e01f443fb441064f252b5db3d8304e0277abbbff614ddf5d9314e6cc586",
+          "Fingerprint": "c36d1540fb5d4e3f9c2e8d16470367ac729e2d831a775668ec72fe1684a5c00c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 2,
+          "Id": "cfc2c8fa86296f6f2a05deb134db0ef82abc2b46452501912d3d69dbf9044812",
+          "Fingerprint": "d3d2a5c4d1f2c883276dd500cf6e122f8b22125cba8b60b3856a5d63b2b11a9c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 3,
+          "Id": "1415a20d369009252c05729552dc3dc9dbbbed18c9f7ac82934ffb756d3fb361",
+          "Fingerprint": "b2081921a9bc2b93489f301d6c2e9cffc065ff96e1fe06a2b6c600087fe34d80",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 4,
+          "Id": "28c8814c9c0ec94f4b7d28d7410dfdbf55f1e35054a5313ae2a3e0b7f5781884",
+          "Fingerprint": "a35e10013da601c5c82bb56431d9d2933d8c3b62313a43d630b947b780aec609",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 5,
+          "Id": "c53d02e61b9845dba7edef5d10d112a78a791ed08049e23d639b0532ee823428",
+          "Fingerprint": "3ecd4b19e9d22b2e054144f965ce21b26241ae1e865319117f0bcb64e13a9b01",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 6,
+          "Id": "95170462a5a3ecc1d9b4604692add0c15fffb453de5649080766b65ae977e668",
+          "Fingerprint": "a7940efeaf094f4f057e6e2cfc4c1e42f0683aae6599d77e9055d2735b8e6c23",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 7,
+          "Id": "385d17d3ef977e219a06757815959f31d00fd119d1401e59f329bbfc58878d24",
+          "Fingerprint": "4ff131dbed3faa455e5be5efe43af85bc7bbb6c5b94cd51630fcc4e1056083c3",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "resilience",
+      "fixture": 0,
+      "repetition": 1,
+      "calls": 4,
+      "passed": true,
+      "status": "Completed",
+      "gameTicks": 162,
+      "commands": 7,
+      "reconciliations": 1,
+      "targetReplaced": false,
+      "restarted": false,
+      "receipts": [
+        {
+          "Sequence": 1,
+          "Id": "e3ba756b75be901c0f12cf18820d9daa83858f5f6e6e6bc918bdabf0db2db902",
+          "Fingerprint": "c36d1540fb5d4e3f9c2e8d16470367ac729e2d831a775668ec72fe1684a5c00c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 2,
+          "Id": "6f1471a655edb5a07f5f11cc2ea1f993f179004a1e36fd884c12f5dd7e79973b",
+          "Fingerprint": "d3d2a5c4d1f2c883276dd500cf6e122f8b22125cba8b60b3856a5d63b2b11a9c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 3,
+          "Id": "6ff029c938a80696d922970023108eb152ddc7c02256075dce943636a95f7955",
+          "Fingerprint": "b2081921a9bc2b93489f301d6c2e9cffc065ff96e1fe06a2b6c600087fe34d80",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 4,
+          "Id": "3febb16bb534f7d141701cf2aed6cd672f2d210535e1b2386138b276213c3753",
+          "Fingerprint": "a35e10013da601c5c82bb56431d9d2933d8c3b62313a43d630b947b780aec609",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 5,
+          "Id": "4d0200fab35062a2efb2b4b46cb440f1278d562f87692d38e31a3e00c66e39ba",
+          "Fingerprint": "3ecd4b19e9d22b2e054144f965ce21b26241ae1e865319117f0bcb64e13a9b01",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 6,
+          "Id": "0bf8c81a77f865de328c562fb1da33d7800c01f6553b84b47c0a7f53c813e86c",
+          "Fingerprint": "a7940efeaf094f4f057e6e2cfc4c1e42f0683aae6599d77e9055d2735b8e6c23",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 7,
+          "Id": "943b5fc6c34ea2154b1c25ba6618a2cfa53ca0aa2829545c8064ed72405e9538",
+          "Fingerprint": "4ff131dbed3faa455e5be5efe43af85bc7bbb6c5b94cd51630fcc4e1056083c3",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "resilience",
+      "fixture": 1,
+      "repetition": 0,
+      "calls": 5,
+      "passed": true,
+      "status": "Completed",
+      "gameTicks": 166,
+      "commands": 8,
+      "reconciliations": 1,
+      "targetReplaced": true,
+      "restarted": false,
+      "receipts": [
+        {
+          "Sequence": 1,
+          "Id": "2a94b058b00e142f31617c06289db15469afc1a39e07b6641f5be1485f49ee7c",
+          "Fingerprint": "c36d1540fb5d4e3f9c2e8d16470367ac729e2d831a775668ec72fe1684a5c00c",
+          "Outcome": "failed",
+          "Reason": "TargetGone"
+        },
+        {
+          "Sequence": 2,
+          "Id": "0aaf02a72cc40d21625db04dc7a7f84f4bd01f25dd6ae182662c60f28a2d55a4",
+          "Fingerprint": "d3d2a5c4d1f2c883276dd500cf6e122f8b22125cba8b60b3856a5d63b2b11a9c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 3,
+          "Id": "818bcfe34a556e2bd55c7c9a2802e119359269c2ebbc6426356ba8a3560a163c",
+          "Fingerprint": "b2081921a9bc2b93489f301d6c2e9cffc065ff96e1fe06a2b6c600087fe34d80",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 4,
+          "Id": "cf986e317bd7b848f855a9eae2f608b033fb49ae9b63c5488e960ba290fc4b72",
+          "Fingerprint": "6f9c83c86c592be16a6b6d2047da8e092274b8f30a560a23175a655e37ac1452",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 5,
+          "Id": "d5e68454f20bfc46e31d22c57ed9589a745f3f024915200e32250e0984f1a729",
+          "Fingerprint": "a35e10013da601c5c82bb56431d9d2933d8c3b62313a43d630b947b780aec609",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 6,
+          "Id": "895e59604dfea41039f4027aeac2e2d896937763b14def1af02995f5611e722e",
+          "Fingerprint": "a7940efeaf094f4f057e6e2cfc4c1e42f0683aae6599d77e9055d2735b8e6c23",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 7,
+          "Id": "14ddd1513c3ff2545f107ad2c1171c9afc37b314c5a672e7f0adc8d11aa70dca",
+          "Fingerprint": "4ff131dbed3faa455e5be5efe43af85bc7bbb6c5b94cd51630fcc4e1056083c3",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 8,
+          "Id": "486043ab85f9da7047907c1fda814d94f63d0f11ad22248dfa93f88aea062b0a",
+          "Fingerprint": "ee8c188f7406c04dbb38d23310d4d10912ac921096385164de47dc886468e477",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "resilience",
+      "fixture": 1,
+      "repetition": 1,
+      "calls": 6,
+      "passed": true,
+      "status": "Completed",
+      "gameTicks": 174,
+      "commands": 8,
+      "reconciliations": 1,
+      "targetReplaced": true,
+      "restarted": false,
+      "receipts": [
+        {
+          "Sequence": 1,
+          "Id": "fb287b1095ec4843c3e6871d98baaec16a9d58f994c80260a24b1e91fade7267",
+          "Fingerprint": "c36d1540fb5d4e3f9c2e8d16470367ac729e2d831a775668ec72fe1684a5c00c",
+          "Outcome": "failed",
+          "Reason": "TargetGone"
+        },
+        {
+          "Sequence": 2,
+          "Id": "b745a708712da53b2cf34cf8998687bd3a735fc411b3b12e3192bdf0aa66c3ff",
+          "Fingerprint": "d3d2a5c4d1f2c883276dd500cf6e122f8b22125cba8b60b3856a5d63b2b11a9c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 3,
+          "Id": "2cf28522e09dca5fdf5ec7f11dc68e34c0ca0d7addc6d31c2747f3daa2ca79f8",
+          "Fingerprint": "b2081921a9bc2b93489f301d6c2e9cffc065ff96e1fe06a2b6c600087fe34d80",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 4,
+          "Id": "08286c9274d1d4bb99a8b76809b145b196887fb33aea951e07f0e8be8260ece7",
+          "Fingerprint": "6f9c83c86c592be16a6b6d2047da8e092274b8f30a560a23175a655e37ac1452",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 5,
+          "Id": "3b9c3b7cced9d0ea202ef8a6135e444a6f2dd75a790db825bfc9a0b1d8c635f9",
+          "Fingerprint": "a35e10013da601c5c82bb56431d9d2933d8c3b62313a43d630b947b780aec609",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 6,
+          "Id": "d7f5fbbf6c4b9e6adca87e229fdda22056851a016c8828471c156aa603ddfd09",
+          "Fingerprint": "a7940efeaf094f4f057e6e2cfc4c1e42f0683aae6599d77e9055d2735b8e6c23",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 7,
+          "Id": "5d23762a022ce7982cb38b55b25811dcc4a4453de6468e786f3dcd7e77f0ecfb",
+          "Fingerprint": "4ff131dbed3faa455e5be5efe43af85bc7bbb6c5b94cd51630fcc4e1056083c3",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 8,
+          "Id": "6ff09c2ba4bde791e73ee96d97763eb67f2dd7114ee97424a95874a47a432758",
+          "Fingerprint": "ee8c188f7406c04dbb38d23310d4d10912ac921096385164de47dc886468e477",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "resilience",
+      "fixture": 2,
+      "repetition": 0,
+      "calls": 4,
+      "passed": true,
+      "status": "Completed",
+      "gameTicks": 162,
+      "commands": 7,
+      "reconciliations": 1,
+      "targetReplaced": false,
+      "restarted": true,
+      "receipts": [
+        {
+          "Sequence": 1,
+          "Id": "dc23523f5d204841ee19439f4448945a2d038e50368164e6d3c512260c32265c",
+          "Fingerprint": "c36d1540fb5d4e3f9c2e8d16470367ac729e2d831a775668ec72fe1684a5c00c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 2,
+          "Id": "373f5aab2e360e711e9c1da8635a506de2e1210fbf34a8a66753fd46666ad506",
+          "Fingerprint": "d3d2a5c4d1f2c883276dd500cf6e122f8b22125cba8b60b3856a5d63b2b11a9c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 3,
+          "Id": "cf18b1e0608b18e28b4bf9f919617e582a39a4f3c739480cb1c4f90221df560f",
+          "Fingerprint": "b2081921a9bc2b93489f301d6c2e9cffc065ff96e1fe06a2b6c600087fe34d80",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 4,
+          "Id": "fb21759419b11309b712231beb073e1ca87773150a2606b72359126da085aed8",
+          "Fingerprint": "a35e10013da601c5c82bb56431d9d2933d8c3b62313a43d630b947b780aec609",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 5,
+          "Id": "5063914a8ae633cb8842098d6426aaabc8468e1b52a5f23a5e81d2156bdec4d5",
+          "Fingerprint": "c28e2846fde6ffc0f1f8ac79093ce560574d7726119542b263106ca13a122f3a",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 6,
+          "Id": "feb96c85c3dc569f093f925a6d8cd0e54c176694a8a9cd3fb28dd3cb798fc10c",
+          "Fingerprint": "3ecd4b19e9d22b2e054144f965ce21b26241ae1e865319117f0bcb64e13a9b01",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 7,
+          "Id": "c8ad90aab9c436ada35d82f092b4960f4aa99aa7d8903f78fd19174effd424d8",
+          "Fingerprint": "a7940efeaf094f4f057e6e2cfc4c1e42f0683aae6599d77e9055d2735b8e6c23",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        }
+      ]
+    },
+    {
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
+      "scenario": "resilience",
+      "fixture": 2,
+      "repetition": 1,
+      "calls": 4,
+      "passed": true,
+      "status": "Completed",
+      "gameTicks": 162,
+      "commands": 7,
+      "reconciliations": 1,
+      "targetReplaced": false,
+      "restarted": true,
+      "receipts": [
+        {
+          "Sequence": 1,
+          "Id": "46ebf1f81066f8b7455a45c73d60b794cb4bcfe49fa16b18c5bbaea9544f9364",
+          "Fingerprint": "c36d1540fb5d4e3f9c2e8d16470367ac729e2d831a775668ec72fe1684a5c00c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 2,
+          "Id": "e45cb60d12dbe8ecac2f6cb72666fde8593ffd9bb148ccb4bb7b5ef28a8e4c7d",
+          "Fingerprint": "d3d2a5c4d1f2c883276dd500cf6e122f8b22125cba8b60b3856a5d63b2b11a9c",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 3,
+          "Id": "0e6809fa6b67b8cfa3352decc673de37b4472e1edfb9e843f1a1505e39dfc8f0",
+          "Fingerprint": "b2081921a9bc2b93489f301d6c2e9cffc065ff96e1fe06a2b6c600087fe34d80",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 4,
+          "Id": "5efe178cd12c2a4f313ae9c91c81dd35136a9e9c56fa7a273ffa7bd008c7b9cd",
+          "Fingerprint": "a35e10013da601c5c82bb56431d9d2933d8c3b62313a43d630b947b780aec609",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 5,
+          "Id": "3f9d6a9aedfe5f4efd35239c993e7457af8ccb2b2277039b309a4730c4756f67",
+          "Fingerprint": "c28e2846fde6ffc0f1f8ac79093ce560574d7726119542b263106ca13a122f3a",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 6,
+          "Id": "e8e92a5604ef4fe3b7eef3095bc6776b4cec1a0b369f686fe397c9a4054883e7",
+          "Fingerprint": "3ecd4b19e9d22b2e054144f965ce21b26241ae1e865319117f0bcb64e13a9b01",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        },
+        {
+          "Sequence": 7,
+          "Id": "4a2b00adbeff603f18773dabb094913a07d1b5161a1280295d4c077a49e2e3c8",
+          "Fingerprint": "a7940efeaf094f4f057e6e2cfc4c1e42f0683aae6599d77e9055d2735b8e6c23",
+          "Outcome": "completed",
+          "Reason": "Completed"
+        }
+      ]
+    }
+  ]
+}

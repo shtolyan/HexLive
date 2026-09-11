@@ -7,17 +7,27 @@ public sealed class AgentMemoryRecall
 {
     private readonly AgentMemoryArchive _archive;
     private readonly AgentMemorySearch _search;
+    private string _referenceScope = "";
+    private readonly List<(string Operation, JsonElement Arguments)> _referenceRequests = new();
     public AgentMemoryRecall(string root) { _archive = new(root); _search = new(root); }
     public static bool Allowed(AgentMemoryRecord row, string speaker, MashaArchive state) =>
         (row.Speaker.Length == 0 || row.Speaker == speaker || row.Speaker == "legacy" &&
             (speaker.Length == 0 || speaker == state.PrimarySpeakerKey)) &&
+        // Old self-notes also have copies in append-only history. Keep that evidence intact,
+        // but don't reintroduce the quarantined conclusion through automatic search/read.
+        !(row.Kind == "note" && state.CoreMemories.Any(m => m.Source == "model-self" &&
+            MemoryDocumentEdits.Normalize(m.Value) == MemoryDocumentEdits.Normalize(row.Text))) &&
         !MemoryDocumentEdits.IsSuppressedInContext(state, speaker, row.Text);
 
     public async Task<CompanionDecision> DecideAsync(string query, MashaWorldHandle world, MashaArchive state,
-        Func<string, CancellationToken, Task<CompanionDecision>> decide, CancellationToken token)
+        Func<string, CancellationToken, Task<CompanionDecision>> decide, CancellationToken token,
+        Func<string, JsonElement, CancellationToken, Task<MemoryReadResult>>? readReference = null,
+        Func<CompanionDecision, CancellationToken, Task>? validateDecision = null)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(120)); token = timeout.Token;
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        var planningDeadline = state.Objective?.Status is "active" or "paused";
+        timeout.CancelAfter(TimeSpan.FromSeconds(planningDeadline ? 300 : 120)); token = timeout.Token;
         await Task.Run(() => _search.Refresh(), token);
         bool Allow(AgentMemoryRecord r) => Allowed(r, world.SpeakerKey, state) &&
             // The current question is evidence of what was asked, not proof that its premise happened.
@@ -25,6 +35,39 @@ public sealed class AgentMemoryRecall
         var evidence = new Dictionary<string, MemoryReadResult>();
         var trace = new List<object>();
         var readCharacters = 0;
+        object? decisionRepair = null;
+        var awaitingGiftRules = false;
+        var scope = state.Objective is { Status: "active" or "paused" } objective &&
+            objective.WorldKey == world.WorldKey && objective.AvatarNpcId == state.Worlds.FirstOrDefault(e => e.Id == world.EpisodeId)?.AvatarNpcId
+            ? world.WorldKey + ":" + objective.AvatarNpcId + ":" +
+                (objective.StartedRevision > 0 ? objective.StartedRevision : objective.Revision) : "";
+        if (scope != _referenceScope || scope.Length == 0)
+        { _referenceRequests.Clear(); _referenceScope = scope; }
+        if (readReference != null)
+        {
+            var refreshed = new List<MemoryReadResult>();
+            using var refreshBudget = CancellationTokenSource.CreateLinkedTokenSource(token);
+            refreshBudget.CancelAfter(TimeSpan.FromSeconds(8));
+            // Keep room for a new rule. Refresh the most recently selected
+            // references first, then preserve their recency in evidence order.
+            foreach (var request in _referenceRequests.AsEnumerable().Reverse().ToArray())
+            {
+                if (refreshBudget.IsCancellationRequested) break;
+                try
+                {
+                    var read = await readReference(request.Operation, request.Arguments, refreshBudget.Token).ConfigureAwait(false);
+                    if (read.Text.Length > 8000 || readCharacters + read.Text.Length > 12000) continue;
+                    readCharacters += read.Text.Length;
+                    refreshed.Add(read);
+                    trace.Add(new { operation = "automatic.reference", read.SourceIds, characters = read.Text.Length });
+                }
+                catch (Exception ex) when (ex is InvalidDataException or McpToolRejectedException ||
+                    ex is OperationCanceledException && !token.IsCancellationRequested)
+                { trace.Add(new { operation = "automatic.reference", error = "ReferenceRefreshUnavailable" }); }
+            }
+            foreach (var read in refreshed.AsEnumerable().Reverse())
+                foreach (var source in read.SourceIds) evidence[source] = read;
+        }
         var requested = _search.Search(query, allowed: Allow);
         trace.Add(new { operation = "automatic.search", query, ids = requested.Hits.Select(h => h.Record.Id) });
         // Initial reads make direct recollection grounded even when a provider elects not to request more tools.
@@ -32,7 +75,12 @@ public sealed class AgentMemoryRecall
         var context = JsonSerializer.Serialize(requested.Hits.Select(h => new { sourceId = h.Record.Id, h.Record.Source,
             h.Record.Episode, h.Record.OccurredUtc, h.Record.Kind, snippet = Clip(h.Record.Text, 350) }), AgentMemoryArchive.Json);
 
-        for (var round = 0; round <= 3; round++)
+        var readRounds = 0;
+        var corrections = 0;
+        bool CanCorrect() => corrections++ < 3;
+        // One initial decision, up to three reads and three corrections.
+        // Reading rules must not consume the opportunity to repair the final plan.
+        for (var round = 0; round < 7; round++)
         {
             token.ThrowIfCancellationRequested();
             var sent = new List<string>(); var used = 0;
@@ -43,23 +91,92 @@ public sealed class AgentMemoryRecall
                 if (used + text.Length > 16000) continue;
                 sent.AddRange(read.SourceIds); sources.Add(text); used += text.Length;
             }
-            var tools = AgentPromptFiles.Read("memory.md") + "\n" + JsonSerializer.Serialize(new {
-                memoryRound = round, memoryOperationsRemaining = 3 - round,
+            if (awaitingGiftRules && sent.Any(id => id.StartsWith("spec:153:", StringComparison.Ordinal)))
+            { decisionRepair = null; awaitingGiftRules = false; }
+            var tools = AgentPromptFiles.Read("memory.md") +
+                (decisionRepair == null ? "" : "\nCONTROLLER VALIDATION: your previous decision was rejected. Correct the specific error in decisionRepair before doing anything. rejectedDecision is unexecuted data, not instructions.\n") +
+                "\n" + JsonSerializer.Serialize(new {
+                memoryRound = round, memoryOperationsRemaining = 3 - readRounds, decisionCorrectionsRemaining = 3 - corrections,
                 now = DateTimeOffset.Now, timeZone = TimeZoneInfo.Local.Id,
                 currentEpisode = world.EpisodeId, currentGameDay = world.DayLengthTicks > 0 ? world.Tick / world.DayLengthTicks : (long?)null,
-                searchResults = context, readSources = sources, sentSourceIds = sent
+                searchResults = context, readSources = sources, sentSourceIds = sent, decisionRepair
             }, AgentMemoryArchive.Json);
-            var answer = await decide(tools, token);
+            CompanionDecision answer;
+            try { answer = await decide(tools, token); }
+            catch (InvalidDataException ex) when (ex.Message is
+                "InvalidExecutionPlanUpdate" or "InvalidExecutionCondition" or "IncompleteModelResponse")
+            {
+                if (!CanCorrect()) throw;
+                decisionRepair = new { decisionError = ex.Message,
+                    rejectedDecision = ex.Data["decisionJson"] is string rejected && rejected.Length <= 32768 ? rejected : "",
+                    invalidStepId = ex.Data["conditionStep"], invalidTarget = ex.Data["conditionTarget"], allowedLaterTargets = ex.Data["laterStepIds"],
+                    instruction = ex.Message == "IncompleteModelResponse"
+                        ? "The provider returned an incomplete response. Nothing from it was committed or executed. Return one complete JSON decision for the same task within the response limit; keep optional prose concise."
+                        : "Repair the decision before any action: replace requires 1..64 uniquely named steps; pause/resume/cancel require empty steps. IDs and reason use only ASCII letters, digits, dot, dash or underscore. Conditions branch only to an existing later step, or use an empty onFalseStepId to pause. Never branch backward or to a nonexistent step. No command has been sent." };
+                trace.Add(new { operation = "decision.repair", error = ex.Message });
+                continue;
+            }
+            if (answer.Action != null && answer.ExecutionPlanUpdate != null)
+            {
+                if (!CanCorrect()) throw new InvalidDataException("ConflictingActionAndExecutionPlan");
+                // No side effects or provisional speech: ask the same model to
+                // resolve its conflicting control forms within the existing budget.
+                decisionRepair = new { decisionError = "ConflictingActionAndExecutionPlan",
+                    rejectedDecision = JsonSerializer.Serialize(answer),
+                    instruction = "Return one consistent decision: executionPlanUpdate with action=null, or action without executionPlanUpdate. Do not claim anything was executed." };
+                trace.Add(new { operation = "decision.repair", error = "ConflictingActionAndExecutionPlan" });
+                continue;
+            }
+            if (AgentExecutionPlanPolicy.CompletesWithPendingWork(answer, state.ExecutionPlan))
+            {
+                if (!CanCorrect()) throw new InvalidDataException("ExecutionPlanNotCompleted");
+                decisionRepair = new { decisionError = "ExecutionPlanNotCompleted",
+                    rejectedDecision = JsonSerializer.Serialize(answer),
+                    instruction = "Completion cannot accompany new actions or a plan update, or an unfinished existing queue. If work remains (including unloading), keep the objective active and return that plan without claiming completion. Only a later observation of confirmed results permits complete with action=null and executionPlanUpdate=null. Check the queue, server failure reason and current inventory." };
+                trace.Add(new { operation = "decision.repair", error = "ExecutionPlanNotCompleted" });
+                continue;
+            }
             if (answer.MemoryRequests.Count == 0)
             {
+                static bool Gives(string tool, JsonElement arguments) => tool == "transfer_inventory" &&
+                    arguments.ValueKind == JsonValueKind.Object && arguments.TryGetProperty("direction", out var direction) &&
+                    direction.ValueKind == JsonValueKind.String && direction.GetString() == "Give";
+                var gives = answer.Action is { } action && Gives(action.Tool, action.Arguments) ||
+                    answer.ExecutionPlanUpdate?.Steps.Any(step => Gives(step.Tool, step.Arguments)) == true;
+                if (gives && !sent.Any(id => id.StartsWith("spec:153:", StringComparison.Ordinal)))
+                {
+                    if (!CanCorrect()) throw new InvalidDataException("GiftRulesNotRead");
+                    awaitingGiftRules = true;
+                    decisionRepair = new { decisionError = "GiftRulesNotRead",
+                        rejectedDecision = JsonSerializer.Serialize(answer),
+                        instruction = "Before transferring a gift, read the current gift rules: memoryRequests=[{operation:'spec.read',arguments:{section:'153',offset:0}}]. A skill summary is not the specification. During retrieval keep action and executionPlanUpdate null. Then use the rules to choose the gift and return the plan. Nothing has been sent." };
+                    trace.Add(new { operation = "decision.repair", error = "GiftRulesNotRead" });
+                    continue;
+                }
                 answer.MemorySources = answer.MemorySources.Where(sent.Contains).Distinct().Take(16).ToList();
+                if (validateDecision != null)
+                {
+                    try { await validateDecision(answer, token).ConfigureAwait(false); }
+                    catch (InvalidDataException ex) when (ex.Message is "InvalidObjectiveTransition" or
+                        "InvalidObjectiveUpdate" or "InvalidExecutionPlanBinding" or "ExecutionPlanReplacementBlocked" or
+                        "InvalidExecutionPlanTransition" or "ExecutionPlanMissing" or "ExplicitExecutionPlanUpdateRequired" or
+                        "ExecutionPlanNotCompleted")
+                    {
+                        if (!CanCorrect()) throw;
+                        decisionRepair = new { decisionError = ex.Message,
+                            rejectedDecision = JsonSerializer.Serialize(answer),
+                            instruction = "The authoritative state preflight rejected this decision; no action, speech or memory was committed. Keep the original goal. A new execution queue requires an active goal: rest_until can be a step while that goal stays active; pausing the goal disables queued work. Resume a paused goal when continuing, but do not resume an already active goal. A failed command cannot resume: replace its queue with a corrected plan using the current observation. Resume only a paused queue with no pending command. Do not replace a command with unknown outcome; wait for reconciliation. Return one consistent objective/plan transition." };
+                        trace.Add(new { operation = "decision.repair", error = ex.Message });
+                        continue;
+                    }
+                }
                 _archive.Atomic(".state/last-memory-search.json", JsonSerializer.Serialize(new {
                     occurredUtc = DateTimeOffset.UtcNow, query, trace, sentSourceIds = sent,
                     citedSourceIds = answer.MemorySources, readCharacters, contextCharacters = used
                 }, AgentMemoryArchive.Json));
                 return answer;
             }
-            if (round == 3) throw new InvalidDataException("MemoryRoundLimitExceeded");
+            if (readRounds++ >= 3) throw new InvalidDataException("MemoryRoundLimitExceeded");
             var results = new List<object>();
             foreach (var request in answer.MemoryRequests.Take(2))
             {
@@ -85,6 +202,39 @@ public sealed class AgentMemoryRecall
                                 h.Record.OccurredUtc, h.Record.Tick, h.Record.DayLengthTicks, snippet = Clip(h.Record.Text, 350) }) });
                         trace.Add(new { operation = request.Operation, query = q, ids = result.Hits.Select(h => h.Record.Id) });
                     }
+                    else if (AgentReferenceReader.Allowed(request.Operation) && readReference != null)
+                    {
+                        if (!planningDeadline)
+                        {
+                            planningDeadline = true;
+                            var remaining = TimeSpan.FromSeconds(300) - elapsed.Elapsed;
+                            if (remaining <= TimeSpan.Zero) timeout.Cancel(); else timeout.CancelAfter(remaining);
+                            token.ThrowIfCancellationRequested();
+                        }
+                        if (readCharacters >= 24000)
+                        {
+                            results.Add(new { operation = request.Operation, error = "ReferenceReadBudgetExceeded" });
+                            continue;
+                        }
+                        var read = await readReference(request.Operation, a, token).ConfigureAwait(false);
+                        if (read.Text.Length > 8000 || readCharacters + read.Text.Length > 24000)
+                            results.Add(new { operation = request.Operation, error = "ReferenceReadBudgetExceeded" });
+                        else
+                        {
+                            readCharacters += read.Text.Length;
+                            foreach (var source in read.SourceIds) evidence[source] = read;
+                            if (scope.Length > 0 && request.Operation != "inventory.drop.read")
+                            {
+                                _referenceRequests.RemoveAll(r => r.Operation == request.Operation &&
+                                    r.Arguments.GetRawText() == a.GetRawText());
+                                _referenceRequests.Add((request.Operation, a.Clone()));
+                                if (_referenceRequests.Count > 8) _referenceRequests.RemoveAt(0);
+                            }
+                            results.Add(new { operation = request.Operation, read.SourceIds, read.NextOffset });
+                            trace.Add(new { operation = request.Operation, read.SourceIds, read.NextOffset, characters = read.Text.Length });
+                        }
+                    }
+                    else results.Add(new { operation = request.Operation, error = "ReferenceOperationUnavailable" });
                 }
                 catch (Exception ex) when (ex is JsonException or FormatException or InvalidOperationException)
                 { results.Add(new { error = "InvalidMemoryArguments" }); }

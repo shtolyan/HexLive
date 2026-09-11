@@ -41,6 +41,8 @@ public sealed class McpTools
     private readonly ControlLeases _leases;
     private readonly AgentSessionRegistry _agents;
     private readonly SpecLibrary _spec;
+    private readonly System.Threading.AsyncLocal<AgentCommandRequest?> _trackedCommand = new();
+    private readonly System.Threading.AsyncLocal<AgentCommandResult?> _trackedResult = new();
 
     public McpTools(WorldHost host, ControlLeases leases, SpecLibrary? spec = null)
         : this(() => host, () => 0, leases, new AgentSessionRegistry(), spec)
@@ -77,6 +79,14 @@ public sealed class McpTools
             "Ничего не меняет.",
             Schema()),
 
+        new("read_agent_command", "Квитанция команды и последний принятый номер. unknown не означает разрешение повторить команду.",
+            Schema(("npcId", "integer", "исполнитель", true), ("sequence", "integer", "номер команды; 0 для чтения верхней границы", true),
+                ("commandId", "string", "ID команды; пусто при sequence=0", true))),
+        new("execute_agent_command", "Идемпотентная обёртка штатной команды: сохраняет номер и результат в том же мире. Требует control lease.",
+            Schema(("npcId", "integer", "исполнитель", true), ("sequence", "integer", "следующий номер из read_agent_command", true),
+                ("commandId", "string", "уникальный ID шага от контроллера", true), ("tool", "string", "штатный tool действия", true),
+                ("arguments", "object", "аргументы действия", true))),
+
         new("list_colonists",
             "Все колонистки: id, имя, фракция, тайл, здоровье, текущая цель, под ручным ли " +
             "управлением и кто держит лиз. С этого начинают.",
@@ -102,7 +112,7 @@ public sealed class McpTools
             "Пустой результат означает отсутствие знания, а не отсутствие предметов в мире.",
             Schema(("npcId", "integer", "id колонистки", true),
                    ("definitionPrefix", "string", "префикс definition id, до 128 символов; пустой — любые", false),
-                   ("interaction", "string", "имя InteractionType для фильтра по каталогу", false),
+                   ("interaction", "string", "имя InteractionType для фильтра по каталогу; пустой — любые", false),
                    ("limit", "integer", "1..64, по умолчанию 16", false))),
 
         new("attach_agent",
@@ -110,7 +120,8 @@ public sealed class McpTools
             Schema(("npcId", "integer", "id NPC", true),
                    ("displayName", "string", "имя агента для UI, до 48 символов", true),
                    ("capabilities", "array", "playerText/speech/worldActions/relationView/journal", true),
-                   ("ttlSeconds", "integer", "TTL attachment 15..120, по умолчанию 45", false))),
+                   ("ttlSeconds", "integer", "TTL attachment 15..120, по умолчанию 45", false),
+                   ("inboxResumeKey", "string", "закрытый ключ восстановления inbox после разрыва", false))),
 
         new("agent_heartbeat",
             "Продлить attachment и узнать playerPresent/phase без платного model call.",
@@ -172,7 +183,23 @@ public sealed class McpTools
 
         new("detach_agent",
             "Снять attachment, очистить временные данные и освободить action lease.",
-            Schema(("attachmentId", "string", "id attachment", true))),
+            Schema(("attachmentId", "string", "id attachment", true),
+                   ("preserveInbox", "boolean", "сохранить inbox для сетевого переподключения владельца", false))),
+
+        new("read_build_catalog",
+            "Каталог мебели и её ведомости из штатного сборщика площадок. Для продолжения используйте ведомость конкретной видимой стройки.",
+            Schema(("definitionId", "string", "id мебели, например bed.basic; без него — весь каталог мебели", false))),
+
+        new("read_recipes",
+            "Действующие рецепты: ингредиенты, результат, станция и работа. Без definitionId — список рецептов; с ним — рецепт предмета.",
+            Schema(("definitionId", "string", "id результата, например resource.rope", false))),
+
+        new("read_inventory_drop",
+            "Проверить место для одного carried-предмета по штатной геометрии Drop. При NoDropSpot ищет подход в радиусе approachRadiusTiles (по умолчанию 2, максимум 6). Не двигает NPC и не резервирует место; маршрут не проверен. После движения перечитать инвентарь и место.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                ("index", "integer", "актуальный физический sourceIndex carried-предмета", true),
+                ("expectedDefinitionId", "string", "definitionId выбранного экземпляра", true),
+                ("approachRadiusTiles", "integer", "радиус поиска подхода 1..6 тайлов; по умолчанию 2", false))),
 
         new("read_spec",
             "Спецификация мира — та же, по которой он написан. Начните с неё: правила, " +
@@ -287,10 +314,18 @@ public sealed class McpTools
             "TreatSelf (перевязаться), GroundSit/GroundSleep (сесть/лечь на землю), " +
             "Bathe/WashClothes (купание/стирка), EatFromPack/DrinkFromPack (из рюкзака), " +
             "GoHome (бежать в собственный домашний лагерь; координаты не нужны, " +
-            "маршрут выбирает симуляция; NoRouteToCamp означает отсутствие маршрута).",
+            "маршрут выбирает симуляция; NoRouteToCamp означает отсутствие маршрута). " +
+            "Explore — один разведывательный переход штатного планировщика без выдумывания координат; " +
+            "можно ограниченно повторять в очереди, затем query_known_objects. " +
+            "Не гарантирует находку или безопасность сна; NoExploreDestination — нет допустимой цели перехода.",
             Schema(("npcId", "integer", "id колонистки", true),
                    ("kind", "string",
                     "вид: " + string.Join("/", Enum.GetNames(typeof(SelfActionKind))), true))),
+
+        new("rest_until", "Ограниченный отдых только внутри execute_agent_command: Energy — сон на земле, Stamina — отдых сидя. Сервер сам завершит отдых при достижении target; прерывание считается сбоем.",
+            Schema(("npcId", "integer", "id колонистки", true),
+                ("need", "string", "Energy или Stamina", true),
+                ("target", "number", "целевой показатель больше 0 и не больше 1", true))),
 
         new("merge_camps",
             "Добровольно объединить два женских лагеря (§146.12), включая всех их жителей. " +
@@ -322,7 +357,9 @@ public sealed class McpTools
         new("manage_inventory",
             "Надеть/убрать/выбросить вещь из инвентаря (§52): source=Carried|Worn, index — " +
             "номер ячейки из describe_colonist, expectedDefinitionId защищает от протухшей " +
-            "картинки (id не совпал — приказ честно отклоняется).",
+            "картинки (id не совпал — приказ честно отклоняется). Удаление сдвигает следующие " +
+            "физические индексы. Для очереди Drop отдельных обычных предметов используй " +
+            "убывающие исходные индексы; после Wear/Stow/изменения контейнера перечитай инвентарь.",
             Schema(("npcId", "integer", "id колонистки", true),
                    ("source", "string", "Carried или Worn", true),
                    ("index", "integer", "номер ячейки", true),
@@ -330,9 +367,9 @@ public sealed class McpTools
                    ("action", "string", "Wear/Stow/Drop", true))),
 
         new("transfer_inventory",
-            "Обмен с лежащим человеком (§128): взять или отдать одну ячейку.",
+            "Give: подарить предмет живому человеку (§153); Take: взять у беспомощного по §128. Проверки цели и предмета выполняются при исполнении.",
             Schema(("npcId", "integer", "id колонистки", true),
-                   ("otherNpcId", "integer", "id второй стороны (лежащей)", true),
+                   ("otherNpcId", "integer", "id получателя подарка или цели обыска", true),
                    ("source", "string", "Carried или Worn — чья ячейка описывается", true),
                    ("index", "integer", "номер ячейки", true),
                    ("expectedDefinitionId", "string", "ожидаемый id предмета", true),
@@ -394,11 +431,24 @@ public sealed class McpTools
             }
             switch (name)
             {
+                case "read_agent_command": return Json(host.ReadAgentCommand(Int(arguments, "npcId"),
+                    OptionalLong(arguments, "sequence") ?? throw new McpArgumentException("Нужен параметр sequence"), Text(arguments, "commandId")));
+                case "execute_agent_command": return ExecuteAgentCommand(arguments, owner, out isError);
                 case "world_status": return WorldStatus(host);
                 case "list_colonists": return ListColonists(host, canAccessNpc);
                 case "list_leases": return ListLeases(canAccessNpc);
                 case "read_events": return ReadEvents(host, arguments);
                 case "read_spec": return ReadSpec(arguments, out isError);
+                case "read_recipes": return host.Read(_ => McpPlanningObservations.Recipes(OptionalText(arguments, "definitionId") ?? ""));
+                case "read_build_catalog": return host.Read(_ => McpPlanningObservations.BuildCatalog(OptionalText(arguments, "definitionId") ?? ""));
+                case "read_inventory_drop":
+                {
+                    var radius = OptionalInt(arguments, "approachRadiusTiles") ?? GroundItemPlacementPreview.ApproachRadiusTiles;
+                    if (radius < 1 || radius > GroundItemPlacementPreview.MaxApproachRadiusTiles)
+                        throw new McpArgumentException("InvalidDropSearchRadius");
+                    return host.Read(w => McpPlanningObservations.InventoryDrop(w,
+                        Int(arguments, "npcId"), Int(arguments, "index"), Text(arguments, "expectedDefinitionId"), radius));
+                }
                 case "query_known_objects": return QueryKnownObjects(host, arguments, out isError);
                 case "describe_colonist": return Describe(host, Int(arguments, "npcId"), out isError,
                     canAccessNpc != null, owner, OptionalText(arguments, "perceptionEpoch") ?? "",
@@ -457,6 +507,16 @@ public sealed class McpTools
                 }
 
                 case "self_action": return SelfAction(host, arguments, owner, out isError);
+                case "rest_until":
+                    var restNpc = Int(arguments, "npcId");
+                    var restNeed = Text(arguments, "need");
+                    var restTarget = Number(arguments, "target");
+                    if (_trackedCommand.Value is not { RestNeed.Length: > 0 } rest)
+                        throw new McpArgumentException("RestRequiresTrackedExecution");
+                    if (rest.RestNeed != restNeed || rest.RestTarget != restTarget)
+                        throw new McpArgumentException("RestTargetMismatch");
+                    return Submit(host, restNpc, owner,
+                        npc => new SelfActionCommand(npc, rest.RestNeed == "Energy" ? SelfActionKind.GroundSleep : SelfActionKind.GroundSit), out isError);
                 case "merge_camps":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));
@@ -644,7 +704,7 @@ public sealed class McpTools
 
     private bool IsWithinPlayerScope(string name, JsonElement arguments, string owner, Func<int, bool> allowed)
     {
-        if (name is "world_status" or "read_spec" or "list_colonists" or "list_leases") return true;
+        if (name is "world_status" or "read_spec" or "read_recipes" or "read_build_catalog" or "list_colonists" or "list_leases") return true;
         if (name is "agent_heartbeat" or "read_agent_inbox" or "ack_agent_inbox" or "publish_agent_phase" or
             "commit_agent_turn" or "begin_agent_utterance" or "append_agent_utterance" or
             "commit_agent_utterance" or "detach_agent")
@@ -765,8 +825,11 @@ public sealed class McpTools
                     if (prefix.Length > 128) return invalid;
                     break;
                 case "interaction":
-                    if (field.Value.ValueKind != JsonValueKind.String ||
-                        !Enum.TryParse<InteractionType>(field.Value.GetString(), true, out var parsed) ||
+                    if (field.Value.ValueKind != JsonValueKind.String) return invalid;
+                    // Optional filters emitted by structured model responses may be empty.
+                    // Only an empty string means no filter; unknown names still fail closed.
+                    if (field.Value.GetString()!.Length == 0) break;
+                    if (!Enum.TryParse<InteractionType>(field.Value.GetString(), true, out var parsed) ||
                         !string.Equals(Enum.GetName(parsed), field.Value.GetString(), StringComparison.OrdinalIgnoreCase)) return invalid;
                     interaction = parsed;
                     break;
@@ -823,6 +886,11 @@ public sealed class McpTools
                 // its local workspace; no generic turn writes these fields.
                 ["legacyAgentState"] = LegacyAgentState(npc),
                 ["stateSummary"] = context.StateSummary,
+                ["bodyNeeds"] = McpPlanningObservations.Needs(npc),
+                ["restReadiness"] = McpPlanningObservations.RestReadiness(world, npc),
+                ["inOwnCamp"] = ColonyQueries.InCamp(world, npc.Tile, npc.Faction),
+                ["execution"] = McpPlanningObservations.Execution(npc),
+                ["recentGiftResults"] = McpPlanningObservations.RecentGiftResults(world, npc.Id.Value),
                 ["effects"] = effects.Effects,
                 ["effectImpacts"] = effects.Impacts,
                 ["effectDefinitions"] = effects.Definitions,
@@ -830,6 +898,7 @@ public sealed class McpTools
                 ["perceptionSummary"] = context.PerceptionSummary,
                 ["memorySummary"] = context.MemorySummary,
                 ["inventory"] = Inventory(npc),
+                ["inventorySummary"] = McpInventoryObservations.Read(world, npc),
                 ["visibleItems"] = McpItemObservations.Visible(world, npc),
                 ["visibleNpcs"] = McpNpcObservations.Visible(world, npc),
                 ["recentPerception"] = McpPerceptionObservations.Recent(
@@ -957,7 +1026,7 @@ public sealed class McpTools
 
         var initialEventWatermark = host.ReadEvents(null, 1, npcId).Watermark;
         var accepted = _agents.TryAttach(npcId, owner, _currentWorldGeneration(), displayName,
-            capabilities, ttl, out var snapshot, out var reason);
+            capabilities, ttl, out var snapshot, out var reason, OptionalText(arguments, "inboxResumeKey"));
         if (accepted)
         {
             var observations = _agents.BindPerception(snapshot.AttachmentId, owner, _currentWorldGeneration());
@@ -983,7 +1052,8 @@ public sealed class McpTools
             });
         }
         isError = !accepted;
-        return accepted ? AttachmentJson(snapshot, initialEventWatermark) : reason;
+        return accepted ? AttachmentJson(snapshot, initialEventWatermark,
+            _agents.InboxResumeKey(snapshot.AttachmentId, owner, _currentWorldGeneration())) : reason;
     }
 
     private string AgentHeartbeat(JsonElement arguments, string owner, out bool isError)
@@ -1215,6 +1285,8 @@ public sealed class McpTools
 
     private string DetachAgent(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
+        if (arguments.TryGetProperty("preserveInbox", out var preserve) && preserve.ValueKind == JsonValueKind.True)
+            _agents.PreserveInbox(Text(arguments, "attachmentId"), owner, _currentWorldGeneration());
         var accepted = _agents.TryDetach(Text(arguments, "attachmentId"), owner,
             _currentWorldGeneration(), out var npcId, out var reason);
         if (!accepted)
@@ -1230,10 +1302,11 @@ public sealed class McpTools
         return Json(new { npcId, status = "Detached" });
     }
 
-    private static string AttachmentJson(AgentAttachmentSnapshot snapshot, long? eventWatermark = null) =>
+    private static string AttachmentJson(AgentAttachmentSnapshot snapshot, long? eventWatermark = null, string? inboxResumeKey = null) =>
         Json(new Dictionary<string, object?>
         {
             ["attachmentId"] = snapshot.AttachmentId,
+            ["inboxResumeKey"] = inboxResumeKey,
             ["eventWatermark"] = eventWatermark,
             ["npcId"] = snapshot.NpcId,
             ["displayName"] = snapshot.DisplayName,
@@ -1582,6 +1655,14 @@ public sealed class McpTools
                 : $"Колонисткой {npcId} владеет другой агент ({heldBy}).";
         }
 
+        if (_trackedCommand.Value is { } tracked)
+        {
+            if (tracked.NpcId != npcId) throw new McpArgumentException("TrackedActorMismatch");
+            var receipt = host.SubmitTrackedManualCommand(tracked, build(new EntityId(npcId)));
+            _trackedResult.Value = receipt;
+            isError = receipt.Outcome == "failed";
+            return Json(receipt);
+        }
         var admission = host.SubmitManualCommand(build(new EntityId(npcId)));
         isError = !admission.Accepted;
         return Json(new Dictionary<string, object?>
@@ -1597,6 +1678,51 @@ public sealed class McpTools
     {
         var holder = _leases.HolderOf(npcId);
         return holder.Length == 0 ? string.Empty : holder;
+    }
+
+    private string ExecuteAgentCommand(JsonElement args, string owner, out bool isError)
+    {
+        var npcId = Int(args, "npcId");
+        var sequence = OptionalLong(args, "sequence") ?? throw new McpArgumentException("Нужен параметр sequence");
+        var commandId = Text(args, "commandId");
+        var tool = Text(args, "tool");
+        if (!args.TryGetProperty("arguments", out var nested) || nested.ValueKind != JsonValueKind.Object || nested.GetRawText().Length > 8192)
+            throw new McpArgumentException("Нужен объект arguments до 8192 символов");
+        if (tool is not ("move_to" or "interact" or "craft_item" or "stop" or "talk_to" or
+            "aid_person" or "treat_limbs" or "self_action" or "carry_person" or "put_down_person" or
+            "put_person_in_bed" or "manage_inventory" or "attack_mob" or "merge_camps" or "request_item" or "transfer_inventory" or "rest_until"))
+            throw new McpArgumentException("TrackedToolUnavailable");
+        var properties = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var property in nested.EnumerateObject())
+            if (!properties.TryAdd(property.Name, property.Value.Clone())) throw new McpArgumentException("DuplicateArgument");
+        properties["npcId"] = JsonSerializer.SerializeToElement(npcId);
+        var bound = JsonSerializer.SerializeToElement(properties);
+        var fingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            Encoding.UTF8.GetBytes(tool + "\n" + bound.GetRawText()))).ToLowerInvariant();
+        var previous = _trackedCommand.Value;
+        var previousResult = _trackedResult.Value;
+        try
+        {
+            _trackedCommand.Value = new(npcId, sequence, commandId, fingerprint);
+            if (tool == "rest_until")
+            {
+                var need = Text(bound, "need"); var target = Number(bound, "target");
+                if (need is not ("Energy" or "Stamina") || !float.IsFinite(target) || target <= 0 || target > 1)
+                    throw new McpArgumentException("InvalidRestTarget");
+                _trackedCommand.Value = _trackedCommand.Value with { RestNeed = need, RestTarget = target };
+            }
+            _trackedResult.Value = null;
+            var result = Call(tool, bound, owner, out isError);
+            if (_trackedResult.Value is { } receipt)
+            {
+                // A recorded failure is a valid receipt, not an unknown transport
+                // error. Let the executor persist failed rather than lose its outcome.
+                isError = false;
+                return Json(receipt);
+            }
+            return result;
+        }
+        finally { _trackedCommand.Value = previous; _trackedResult.Value = previousResult; }
     }
 
     // ── аргументы и вывод ─────────────────────────────────────────────────

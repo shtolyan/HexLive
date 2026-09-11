@@ -220,6 +220,27 @@ public sealed class ContextMenuPanel : MonoBehaviour
         }
     }
 
+    /// <summary>Only a new press outside the current card dismisses it. A row
+    /// may replace the menu on MouseDown, before the camera sees that press;
+    /// its hover callbacks can still describe the old card (bug #255).</summary>
+    public static bool TryDismissOnOutsidePress(Vector2 screenPosition)
+    {
+        if (!IsOpen || _instance == null || _worldPointerSuppressed)
+        {
+            return false;
+        }
+
+        var panelPoint = RuntimePanelUtils.ScreenToPanel(_instance._root.panel,
+            new Vector2(screenPosition.x, Screen.height - screenPosition.y));
+        if (_instance._card.worldBound.Contains(panelPoint))
+        {
+            return false;
+        }
+
+        Close();
+        return true;
+    }
+
     private void OpenInternal(Vector2 screenPosition, string title, IReadOnlyList<ContextMenuEntry> entries)
     {
         _title.text = title;

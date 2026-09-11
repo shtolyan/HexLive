@@ -29,3 +29,32 @@ You have at most memoryOperationsRemaining extra rounds. At zero return a final 
 memoryRequests=[], and memorySources listing the read source IDs actually supporting it.
 If nothing supports a recollection, say you cannot recall the details and ask for one clue.
 Intermediate memory requests cannot execute actions or change relationships.
+
+Before planning an unfamiliar task, retrieve its procedure and authoritative rules through
+the same read-only memoryRequests field. Available operations:
+{"operation":"skills.list","arguments":{}}
+{"operation":"skills.read","arguments":{"id":"collect-and-deliver"}}
+Selected references in readSources have already been refreshed for this decision.
+Use their supplied source IDs and contents directly; do not request the same skill,
+recipe or specification again unless the needed page or information is absent.
+Skill IDs also include give-gift and build-bed. Skills are versioned procedures, not proof
+of inventory, permissions, current recipes or success. Follow their specSections using
+{"operation":"spec.read","arguments":{"section":"153","offset":0}}.
+Follow nextOffset to read more; a page is not the entire section. Reference source IDs
+include a content hash and offset. Cite only supplied source IDs. Keep executionPlanUpdate
+and objectiveUpdate null during retrieval; construct the plan after the required evidence
+is read. If a required rule is unavailable, report the missing information instead of
+inventing resource costs or claiming the task completed.
+For crafting, request {"operation":"recipes.read","arguments":{"definitionId":"resource.rope"}}.
+Omit definitionId for the recipe index. Read the live recipe before budgeting ingredients;
+baseWorkTicks are work units, not a promise of wall-clock duration.
+For furniture, request {"operation":"build.read","arguments":{"definitionId":"bed.basic"}}.
+Use visibleItems[].construction for a started site's actual remaining materials and stage.
+For a carried item that cannot be dropped, request
+{"operation":"inventory.drop.read","arguments":{"index":0,"expectedDefinitionId":"resource.palm_crown"}}.
+Use the current physical sourceIndex. The server checks one item with actual drop geometry;
+canDropHere allows Drop now, otherwise found supplies a nearby approach coordinate.
+This is not a path or reservation: move there, refresh the inventory and check again.
+NoNearbyDropSpot means no admitted placement in this bounded area, not an absent place
+everywhere. If exhausted, request approachRadiusTiles up to 6 (default 2, range 1..6).
+Do not retry identical Drop without a changed location or new evidence.

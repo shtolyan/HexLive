@@ -63,6 +63,7 @@ public sealed class AnimalCombatSystem : ISimulationSystem
 
         foreach (var dead in _deadDogs)
         {
+            AgentCommandLedger.FinishMobAttacks(world, dead.Id);
             world.Mobs.Remove(dead);
             // §57.9: зверь мёртв, его жертву выручала подмога — спасение
             // состоялось, обе запоминают друг друга. Награда стоит ПЕРЕД

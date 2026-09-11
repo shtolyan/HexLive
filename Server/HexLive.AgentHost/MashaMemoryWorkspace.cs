@@ -10,6 +10,8 @@ public sealed record MashaPromptContext(
     int RecalledFragments)
 {
     public long ObjectiveRevision { get; init; }
+    public long ExecutionPlanRevision { get; init; }
+    public string ExecutionPlanId { get; init; } = "";
 }
 
 /// <summary>
@@ -64,10 +66,12 @@ public sealed partial class MashaMemoryWorkspace
         var userPath = Path.Combine(_root, "USER.md");
         if (!File.Exists(soulPath)) WriteAtomic(soulPath, Soul(archive));
         else MigrateDefaultSoul(soulPath);
+        ArchiveLegacySoulNotes(soulPath);
         WriteGeneratedView(userPath, User(archive));
         var selfNotes = string.Join('\n', archive.CoreMemories.Where(x => x.Source == "model-self")
             .OrderByDescending(x => x.UpdatedAtUtc).Select(x => "- " + Clean(x.Value, 400)));
-        if (selfNotes.Length > 0) WriteGeneratedView(soulPath, AgentPromptFiles.Text("MashaMemoryWorkspace.26") + selfNotes);
+        if (selfNotes.Length > 0) WriteGeneratedView(Path.Combine(_memoryRoot, "legacy-self.md"),
+            AgentPromptFiles.Text("LegacySoulNotes") + selfNotes);
         WriteGeneratedView(Path.Combine(_root, "MEMORY.md"), LongTerm(archive));
 
         foreach (var world in archive.Worlds)
@@ -105,9 +109,8 @@ public sealed partial class MashaMemoryWorkspace
             .AppendLine(AgentPromptFiles.Text("MashaMemoryWorkspace.30"))
             .AppendLine();
         AppendSection(prompt, AgentPromptFiles.Text("MashaMemoryWorkspace.31"), ActiveDocument("SOUL.md", 720), 760);
-        AppendSection(prompt, AgentPromptFiles.Text("MashaMemoryWorkspace.32"), string.Join('\n',
-            archive.CoreMemories.Where(x => x.Source == "model-self").OrderByDescending(x => x.UpdatedAtUtc)
-                .Take(2).Select(x => Clean(x.Value, 160))), 340);
+        // Legacy self-notes remain in the browsable archive. Their world/validity was never
+        // recorded reliably, so they cannot be injected as personality or current facts.
         // Imported identity facts remain authoritative memories even when USER.md
         // already existed before the import. Never overwrite the user's document.
         AppendSection(prompt, AgentPromptFiles.Text("MashaMemoryWorkspace.33"), string.Join('\n',
@@ -160,12 +163,48 @@ public sealed partial class MashaMemoryWorkspace
             (bond.Affinity <= -.25f ? AgentPromptFiles.Text("MashaMemoryWorkspace.47") : bond.Affinity >= .75f ? AgentPromptFiles.Text("MashaMemoryWorkspace.48") : AgentPromptFiles.Text("MashaMemoryWorkspace.49")) +
             "\n" + AgentGameTime.Describe(bond, world ?? new(current.Id, current.WorldKey, current.LastTick, -1)) + "\n" +
             AgentObjectivePolicy.Describe(archive.Objective, current.WorldKey, current.AvatarNpcId) + "\n";
+        mandatory += DescribeExecutionPlan(archive, current.WorldKey, current.AvatarNpcId,
+            Math.Max(0, Math.Min(2200, MaxPromptCharacters - mandatory.Length)));
         var bounded = mandatory + AtLineBoundary(prompt.ToString(), Math.Min(MemoryBudgetCharacters, MaxPromptCharacters - mandatory.Length));
         return new MashaPromptContext(
             bounded,
             bounded.Length,
             (bounded.Length + 1) / 2,
-            recalled.Length) { ObjectiveRevision = archive.Objective?.Revision ?? 0 };
+            recalled.Length) { ObjectiveRevision = archive.Objective?.Revision ?? 0,
+                ExecutionPlanRevision = archive.ExecutionPlan?.Revision ?? 0, ExecutionPlanId = archive.ExecutionPlan?.Id ?? "" };
+    }
+
+    private static string DescribeExecutionPlan(MashaArchive archive, string worldKey, int npcId, int budget)
+    {
+        var plan = archive.ExecutionPlan;
+        if (plan == null || plan.WorldKey != worldKey || plan.NpcId != npcId) return "";
+        var text = new StringBuilder();
+        text.AppendLine($"Исполняемый план: {Clean(plan.Status, 16)}, позиция {plan.Cursor}/{plan.Steps.Length}, версия {plan.Revision}. " +
+            $"Причина: {Clean(plan.Reason, 96)}. Команда: {Clean(plan.Command?.Status ?? "none", 16)}.");
+        if (plan.Cursor < plan.Steps.Length && plan.Steps[plan.Cursor].Repeat > 1)
+            text.AppendLine($"Текущая итерация: {plan.Iteration + 1}/{plan.Steps[plan.Cursor].Repeat}.");
+        if (plan.Command?.Status == "failed")
+            text.AppendLine($"Отказ сервера: {Clean(plan.Command.Reason, 96)}. Измени подход; не повторяй тот же шаг без новых оснований.");
+        var buildTargets = AgentExecutionProgressView.BuildTargets(archive.ExecutionProgress
+            .Where(p => p.WorldKey == worldKey && p.NpcId == npcId));
+        if (buildTargets.Length > 0)
+        {
+            text.AppendLine("Площадки с подтверждёнными Build-командами этой цели (история, не готовность):");
+            foreach (var target in buildTargets.Reverse())
+                text.AppendLine($"objectId={AgentExecutionProgressView.BuildTarget(target)}, квитанция #{target.Sequence}");
+            text.AppendLine("Перед продолжением сверяй construction.product и ведомость. Ближайшая площадка может строить другой предмет.");
+        }
+        if (plan.Cursor < plan.Steps.Length)
+        {
+            text.AppendLine("Следующие шаги очереди (ещё не завершены):");
+            foreach (var step in plan.Steps.Skip(plan.Cursor).Take(3))
+                text.AppendLine($"{Clean(step.Id, 48)}: {Clean(step.Tool, 32)} {Clean(step.Arguments.GetRawText(), 220)}");
+        }
+        text.AppendLine("Подтверждённые completed квитанции этой цели (от новых к старым; уже выполнено, не повторять):");
+        foreach (var row in archive.ExecutionProgress.Where(p => p.WorldKey == worldKey && p.NpcId == npcId).TakeLast(8).Reverse())
+            text.AppendLine($"#{row.Sequence} {Clean(row.Step.Id, 48)}: {Clean(row.Step.Tool, 32)} {Clean(row.Step.Arguments.GetRawText(), 220)}");
+        text.AppendLine("Сопоставь квитанции со свежим миром: цель могла уже выполниться. Разговор не заменяет план; accepted не значит completed.");
+        return AtLineBoundary(text.ToString(), budget);
     }
 
     public string PreserveImport(string sourceRoot, string fingerprint, string label)

@@ -31,6 +31,26 @@ public sealed class AgentObjectKnowledgeTests
     }
 
     [Test]
+    public async Task QueryPreservesReferencesAndResolvesSubsequentReadRequestsBeforeCommit()
+    {
+        await using var fixture = new Fixture();
+        fixture.Providers.Decisions.Enqueue(new CompanionDecision { MemoryRequests =
+            [new() { Operation = "skills.read", Arguments = JsonSerializer.SerializeToElement(new { id = "build-bed" }) }] });
+        fixture.Providers.Decisions.Enqueue(Query());
+        fixture.Providers.Decisions.Enqueue(new CompanionDecision { MemoryRequests =
+            [new() { Operation = "skills.read", Arguments = JsonSerializer.SerializeToElement(new { id = "recover-and-resume" }) }] });
+        fixture.Providers.Decisions.Enqueue(new CompanionDecision { IntentSummary = "grounded-final" });
+        Assert.That(await fixture.Turn(), Is.True);
+        Assert.That(fixture.Transport.Queries, Is.EqualTo(1));
+        Assert.That(fixture.Providers.Contexts[2], Does.Contain("skill:build-bed:"));
+        Assert.That(fixture.Providers.Contexts.Last(), Does.Contain("skill:recover-and-resume:"));
+        Assert.That(fixture.Providers.States.Last(), Does.Contain("food.coconut"));
+        Assert.That(fixture.Transport.CommitBodies, Has.Count.EqualTo(1));
+        Assert.That(fixture.Transport.CommitBodies[0], Does.Contain("grounded-final"));
+        Assert.That(fixture.Transport.Acquires, Is.Zero);
+    }
+
+    [Test]
     public async Task RepeatedQueryIsBoundedToOneReadAndCannotBecomePhysicalAction()
     {
         await using var fixture = new Fixture();
@@ -218,12 +238,14 @@ public sealed class AgentObjectKnowledgeTests
     {
         public readonly Queue<CompanionDecision> Decisions = new();
         public readonly List<string> States = new();
+        public readonly List<string> Contexts = new();
         public Func<CompanionDecision> Fallback = () => new CompanionDecision();
         public Task<CompanionDecision> DecideAsync(string trigger, string stateJson, string context,
             string transcript, IReadOnlyList<string> recent, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             States.Add(stateJson);
+            Contexts.Add(context);
             return Task.FromResult(Decisions.Count > 0 ? Decisions.Dequeue() : Fallback());
         }
         public Task<VoiceArtifact> SynthesizeAsync(string text, CancellationToken token) =>

@@ -34,6 +34,71 @@ public sealed class ManualSelfActionTests
     }
 
     [Test]
+    public void ExploreOrderUsesNativePlannerCompletesAndDoesNotEnableAutonomousExploration()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = Colonists(world)[0];
+        TakeControl(engine, npc);
+        var start = npc.Position;
+        var admission = engine.ApplyManualCommand(new SelfActionCommand(npc.Id, SelfActionKind.Explore));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), admission.Reason);
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.Explore));
+        Assert.That(NpcControlPolicy.MayAuctionGoal(npc, GoalType.Explore), Is.False);
+        Assert.That(NpcControlPolicy.MayPlanGoal(npc, GoalType.Explore), Is.False);
+        var destination = npc.Plan.TargetJunctionId!.Value;
+        Assert.That(PlanningSystem.IsExploreCandidate(world, npc, world.Junctions.Items[destination]), Is.True);
+
+        // Optional technical snapshot for the calculated geometry diagram. It is
+        // never sent to a model, nor used to choose the command's destination.
+        var output = System.Environment.GetEnvironmentVariable("HEXLIVE_EXPLORE_DIAGNOSTIC");
+        if (!string.IsNullOrEmpty(output))
+            System.IO.File.WriteAllText(output, System.Text.Json.JsonSerializer.Serialize(new
+            {
+                hexRadius = HexSpatialMath.HexRadius,
+                start = new { x = start.X, y = start.Y },
+                destination = destination.Value,
+                nodes = world.Junctions.Items.Values.Where(j => j.Tiles.Any(t =>
+                    HexSpatialMath.HexDistance(npc.Tile, t) <= 9)).Select(j => new
+                    { id = j.Id.Value, x = j.WorldPosition.X, y = j.WorldPosition.Y,
+                      blocked = j.Blocked, candidate = PlanningSystem.IsExploreCandidate(world, npc, j) })
+            }));
+
+        var route = new System.Collections.Generic.List<object> { new { x = start.X, y = start.Y } };
+        for (var i = 0; i < 1200 && npc.Mind.CurrentGoal == GoalType.Explore; i++)
+        {
+            engine.Step();
+            if (!string.IsNullOrEmpty(output)) route.Add(new { x = npc.Position.X, y = npc.Position.Y });
+        }
+        if (!string.IsNullOrEmpty(output))
+        {
+            var snapshot = System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(output))!;
+            snapshot["route"] = System.Text.Json.JsonSerializer.SerializeToNode(route);
+            System.IO.File.WriteAllText(output, snapshot.ToJsonString());
+        }
+        Assert.That(npc.CurrentJunction, Is.EqualTo(destination), "The accepted exploration must actually arrive.");
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None), "A finite self-order must be swept after arrival.");
+        Assert.That(npc.Position, Is.Not.EqualTo(start));
+        Assert.That(npc.Mind.ManualControl, Is.True);
+        for (var i = 0; i < 12; i++) engine.Step();
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None), "No automatic second exploration leg.");
+    }
+
+    [Test]
+    public void ExploreWithoutDestinationRejectsAndLeavesNoStuckGoal()
+    {
+        var engine = TestWorld.CreateEngine();
+        var npc = Colonists(engine.World)[0];
+        TakeControl(engine, npc);
+        foreach (var junction in engine.World.Junctions.Items.Values) junction.Blocked = true;
+        var admission = engine.ApplyManualCommand(new SelfActionCommand(npc.Id, SelfActionKind.Explore));
+        Assert.That(admission.Status, Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+        Assert.That(admission.Reason, Is.EqualTo("NoExploreDestination"));
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.None));
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.None));
+    }
+
+    [Test]
     public void GoHomeOrderBuildsUrgentRouteIntoOwnCamp()
     {
         var engine = TestWorld.CreateEngine();

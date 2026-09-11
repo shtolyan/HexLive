@@ -114,7 +114,7 @@ public sealed class ManualMoveClickUiContractTests
                 "The suppression latch must survive the physical release frame.");
             Assert.That(camera, Does.Contain("UI.ContextMenuPanel.BlocksWorldPointer"));
             Assert.That(camera, Does.Contain(
-                "UI.ContextMenuPanel.IsOpen && !UI.ContextMenuPanel.PointerOverPanel"),
+                "UI.ContextMenuPanel.TryDismissOnOutsidePress(pointer)"),
                 "A click outside an open menu must close only the menu.");
             Assert.That(adapter, Does.Contain("ContextMenuPanel.BlocksWorldPointer"));
         });

@@ -1,0 +1,31 @@
+{
+  "change": "Command-specific completion for immediate inventory/help and deferred attack/needs; gameplay clock advances pending receipts without a movement plan.",
+  "focusedChecks": {
+    "ServerReceiptTestsPassed": 21,
+    "HostNativeQueueTestsPassed": 2
+  },
+  "regressions": {
+    "oldAttackWithoutPlan": "Incorrectly completed on admission",
+    "oldAttackAfterFailure": "Inherited PlanFailed",
+    "oldInventoryNeedAfterFailure": "Inherited PlanFailed",
+    "oldHelpCry": "Corrected valid fixture fails against original production classifier; real cry occurs but receipt is failed.",
+    "newCombatQueue": "Actual native combat kills a weak fixture mob before next step;2 commands,0 model calls.",
+    "attackApproach": "Internal approach retirement preserves attack receipt; explicit Stop fails it.",
+    "death": "Both native death sweep paths completeTargetDown; unverified disappearance remainsfailedTargetGone.",
+    "instantInventory": "Actual Wear completes and preserves previous body plan; duplicate receipt does not reapply."
+  },
+  "fullChecks": {
+    "SimulationPassed": 1578,
+    "SimulationPreexistingSkipped": 6,
+    "Server": 320,
+    "Host": 311,
+    "CoreUnchanged": 106
+  },
+  "modelAcceptance": "Astra5e400 bed0/0 failed after14calls/7decisions: entered exploration with no carried items, was attacked and became unconscious from blood loss. HelpCry now has a completed receipt; attack has the genuine PlanInterrupted.Dying. Full construction not accepted.",
+  "baselineProductionRevision": "a31e9035220749b5ffdfa7c8f4036b9f9d9f0e12",
+  "baselineHelpCryLog": "/private/tmp/hexlive-help-cry-baseline.log",
+  "receiptLog": "/private/tmp/hexlive-command-lifecycle-receipts.log",
+  "nativeQueueLog": "/private/tmp/hexlive-command-lifecycle-runtime.log",
+  "productionUpdated": false,
+  "sourceCommit": "5e400105b5cb5da4306a5e6fc84463233f67d8c5"
+}

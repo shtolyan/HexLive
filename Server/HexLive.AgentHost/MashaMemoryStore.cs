@@ -600,8 +600,11 @@ public sealed partial class MashaMemoryStore
             {
                 if (string.IsNullOrWhiteSpace(update.Key) || string.IsNullOrWhiteSpace(update.Value)) continue;
                 var scope = update.Key.StartsWith("user:", StringComparison.Ordinal) ? "model-user" :
-                    update.Key.StartsWith("self:", StringComparison.Ordinal) ? "model-self" :
                     update.Key.StartsWith("core:", StringComparison.Ordinal) ? "model-core" : "model";
+                // §163.3: legacy self: output is an observation in this episode, never personality.
+                // Preserve author deletions made in the old SOUL editor before the migration.
+                if (update.Key.StartsWith("self:", StringComparison.Ordinal) &&
+                    MemoryDocumentEdits.IsSuppressed(_archive, "model-self", world.SpeakerKey, Limit(update.Value, 400))) continue;
                 if (MemoryDocumentEdits.IsSuppressed(_archive, scope, world.SpeakerKey, Limit(update.Value, 400))) continue;
                 var destination = scope == "model-user" && world.SpeakerKey.Length > 0 ? GetSpeaker(world.SpeakerKey).Facts :
                     scope == "model" ? episode.Memories : _archive.CoreMemories;

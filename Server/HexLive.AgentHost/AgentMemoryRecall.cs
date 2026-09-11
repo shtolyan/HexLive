@@ -13,6 +13,10 @@ public sealed class AgentMemoryRecall
     public static bool Allowed(AgentMemoryRecord row, string speaker, MashaArchive state) =>
         (row.Speaker.Length == 0 || row.Speaker == speaker || row.Speaker == "legacy" &&
             (speaker.Length == 0 || speaker == state.PrimarySpeakerKey)) &&
+        // Old self-notes also have copies in append-only history. Keep that evidence intact,
+        // but don't reintroduce the quarantined conclusion through automatic search/read.
+        !(row.Kind == "note" && state.CoreMemories.Any(m => m.Source == "model-self" &&
+            MemoryDocumentEdits.Normalize(m.Value) == MemoryDocumentEdits.Normalize(row.Text))) &&
         !MemoryDocumentEdits.IsSuppressedInContext(state, speaker, row.Text);
 
     public async Task<CompanionDecision> DecideAsync(string query, MashaWorldHandle world, MashaArchive state,

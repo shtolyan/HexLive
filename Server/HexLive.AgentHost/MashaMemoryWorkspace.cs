@@ -66,10 +66,12 @@ public sealed partial class MashaMemoryWorkspace
         var userPath = Path.Combine(_root, "USER.md");
         if (!File.Exists(soulPath)) WriteAtomic(soulPath, Soul(archive));
         else MigrateDefaultSoul(soulPath);
+        ArchiveLegacySoulNotes(soulPath);
         WriteGeneratedView(userPath, User(archive));
         var selfNotes = string.Join('\n', archive.CoreMemories.Where(x => x.Source == "model-self")
             .OrderByDescending(x => x.UpdatedAtUtc).Select(x => "- " + Clean(x.Value, 400)));
-        if (selfNotes.Length > 0) WriteGeneratedView(soulPath, AgentPromptFiles.Text("MashaMemoryWorkspace.26") + selfNotes);
+        if (selfNotes.Length > 0) WriteGeneratedView(Path.Combine(_memoryRoot, "legacy-self.md"),
+            AgentPromptFiles.Text("LegacySoulNotes") + selfNotes);
         WriteGeneratedView(Path.Combine(_root, "MEMORY.md"), LongTerm(archive));
 
         foreach (var world in archive.Worlds)
@@ -107,9 +109,8 @@ public sealed partial class MashaMemoryWorkspace
             .AppendLine(AgentPromptFiles.Text("MashaMemoryWorkspace.30"))
             .AppendLine();
         AppendSection(prompt, AgentPromptFiles.Text("MashaMemoryWorkspace.31"), ActiveDocument("SOUL.md", 720), 760);
-        AppendSection(prompt, AgentPromptFiles.Text("MashaMemoryWorkspace.32"), string.Join('\n',
-            archive.CoreMemories.Where(x => x.Source == "model-self").OrderByDescending(x => x.UpdatedAtUtc)
-                .Take(2).Select(x => Clean(x.Value, 160))), 340);
+        // Legacy self-notes remain in the browsable archive. Their world/validity was never
+        // recorded reliably, so they cannot be injected as personality or current facts.
         // Imported identity facts remain authoritative memories even when USER.md
         // already existed before the import. Never overwrite the user's document.
         AppendSection(prompt, AgentPromptFiles.Text("MashaMemoryWorkspace.33"), string.Join('\n',

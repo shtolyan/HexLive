@@ -28,8 +28,8 @@ public sealed class AgentManagedMemoryTests
             Assert.That(await File.ReadAllTextAsync(Path.Combine(root.FullName, "SOUL.md")), Is.EqualTo(before));
             var reloaded = new MashaMemoryStore(root.FullName);
             var archive = await reloaded.SnapshotAsync(default);
-            Assert.That(archive.CoreMemories.Count(x => x.Source.StartsWith("model-")), Is.EqualTo(3));
-            foreach (var entry in new[] { ("USER.md", "User enjoys sailing"), ("MEMORY.md", "Remember rescuing Elsa"), ("SOUL.md", "Ask before borrowing tools") })
+            Assert.That(archive.CoreMemories.Count(x => x.Source.StartsWith("model-")), Is.EqualTo(2));
+            foreach (var entry in new[] { ("USER.md", "User enjoys sailing"), ("MEMORY.md", "Remember rescuing Elsa") })
             {
                 var text = await File.ReadAllTextAsync(Path.Combine(root.FullName, entry.Item1));
                 Assert.That(text, Does.Contain("Manual text: " + entry.Item1));
@@ -38,13 +38,16 @@ public sealed class AgentManagedMemoryTests
             var prompt = await reloaded.BuildPromptContextAsync(world, "sailing", default);
             Assert.That(prompt.Text, Does.Contain("User enjoys sailing"));
             Assert.That(prompt.Text, Does.Contain("Ask before borrowing tools"));
+            Assert.That(archive.Worlds.Single().Memories.Single(x => x.Key == "self:habit").Source, Is.EqualTo("model"));
+            Assert.That(before, Is.EqualTo("Manual text: SOUL.md\n"));
             var soulPath = Path.Combine(root.FullName, "SOUL.md");
-            await File.WriteAllTextAsync(soulPath, (await File.ReadAllTextAsync(soulPath)).Replace("Ask before borrowing tools", "Manual change inside managed notes"));
+            await File.WriteAllTextAsync(soulPath, "My revised personality\n");
             decision.MemoryUpserts[2].Value = "Return borrowed tools";
             await reloaded.CommitTurnAsync(world, "second", "heartbeat", decision, default);
             var edited = await File.ReadAllTextAsync(soulPath);
-            Assert.That(edited, Does.Contain("Manual change inside managed notes"));
-            Assert.That(edited, Does.Contain("Return borrowed tools"));
+            Assert.That(edited, Is.EqualTo("My revised personality\n"));
+            Assert.That((await reloaded.SnapshotAsync(default)).Worlds.Single().Memories.Single(x => x.Key == "self:habit").Value,
+                Is.EqualTo("Return borrowed tools"));
             _ = new MashaMemoryStore(root.FullName);
             Assert.That(await File.ReadAllTextAsync(soulPath), Is.EqualTo(edited));
             Assert.That(Directory.EnumerateFiles(Path.Combine(root.FullName, ".history"), "*.md", SearchOption.AllDirectories), Is.Not.Empty);

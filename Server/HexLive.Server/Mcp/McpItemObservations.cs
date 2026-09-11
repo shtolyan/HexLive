@@ -33,6 +33,20 @@ internal static class McpItemObservations
                     hammerRequiredFor = needsHammer ? "finishingWork" : "none", materialDeliveryRequiresHammer = false,
                     materials = McpPlanningObservations.BuildMaterials(item) };
             }
+            if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var fireDefinition) &&
+                fireDefinition.HasTag("Campfire"))
+            {
+                var burning = item.ResourceAmount > 0f;
+                var queuedFuel = CampfireReadiness.HasQueuedFuel(world, item);
+                var hasIgnitionTool = observer.Body.HasUsableHand &&
+                    GearCatalog.HasCapability(observer.Inventory.Items, GearCapability.Ignite);
+                row["fire"] = new { burning, canWarm = burning,
+                    queuedFuelAvailable = queuedFuel,
+                    carriedFuelAvailable = CampfireReadiness.HasCarriedFuel(world, observer),
+                    ignitionToolAvailable = hasIgnitionTool,
+                    ignitionPreconditionsMet = !burning && queuedFuel && hasIgnitionTool,
+                    fuelAction = "Fuel", ignitionAction = "Ignite", warmingAction = "Observe" };
+            }
             Clothing(row, world, observer, item.DefinitionId, item.Durability);
             if (item.DefinitionId == ContentIds.Bottle && WaterCollectorMath.IsParked(world, item))
             {

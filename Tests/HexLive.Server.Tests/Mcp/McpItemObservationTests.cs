@@ -17,6 +17,30 @@ namespace HexLive.Server.Tests.Mcp;
 
 public sealed class McpItemObservationTests
 {
+    [TestCase(false)]
+    [TestCase(true)]
+    public void VisibleFireReportsBurningAndTheSeparateIgnitionPrerequisites(bool burning)
+    {
+        using var host = CreateHost();
+        var actorId = host.Read(world =>
+        {
+            var actor = Observer(world); actor.Perception.Objects.Clear(); actor.Inventory.Items.Clear();
+            var fire = Add(world, actor, 900030, ContentIds.Campfire);
+            fire.ResourceAmount = burning ? 100 : 0;
+            Add(world, actor, 900031, ContentIds.Campfire);
+            actor.Perception.Objects.Last().FromMemory = true;
+            return actor.Id.Value;
+        });
+        using var response = Describe(host, actorId);
+        var items = response.RootElement.GetProperty("visibleItems");
+        Assert.That(items.GetArrayLength(), Is.EqualTo(1));
+        var state = items[0].GetProperty("fire");
+        Assert.That(state.GetProperty("burning").GetBoolean(), Is.EqualTo(burning));
+        Assert.That(state.GetProperty("canWarm").GetBoolean(), Is.EqualTo(burning));
+        Assert.That(state.GetProperty("ignitionPreconditionsMet").GetBoolean(), Is.False);
+        Assert.That(state.GetProperty("queuedFuelAvailable").GetBoolean(), Is.False);
+    }
+
     [Test]
     public void CarriedCrownAdvertisesItsGroundProcessingWithoutInventingAWorldObjectId()
     {

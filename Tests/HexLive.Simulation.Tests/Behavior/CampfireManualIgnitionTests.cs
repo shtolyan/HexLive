@@ -40,6 +40,27 @@ public sealed class CampfireManualIgnitionTests
         }
     }
 
+    [Test]
+    public void WarmingRejectsColdFireAndStopsIfItGoesOutDuringApproach()
+    {
+        var engine = TestWorld.CreateEngine(22801);
+        var world = engine.World; engine.Step();
+        var npc = Colonist(world); npc.Needs.Hunger = npc.Needs.Thirst = 0;
+        ManualCommandExecutor.Apply(world, new SetManualControlCommand(npc.Id, true));
+        var fire = SpawnColdFire(world, npc);
+        var cold = ManualCommandExecutor.Apply(world,
+            new InteractCommand(npc.Id, fire.Id, InteractionType.Observe));
+        Assert.That(cold.Status, Is.EqualTo(ManualCommandAdmissionStatus.Rejected));
+        Assert.That(cold.Reason, Is.EqualTo("FireNotLit"));
+        fire.ResourceAmount = 5000;
+        var warm = ManualCommandExecutor.Apply(world,
+            new InteractCommand(npc.Id, fire.Id, InteractionType.Observe));
+        Assert.That(warm.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), warm.Reason);
+        fire.ResourceAmount = 0;
+        StepUntil(engine, () => npc.Plan.Status != HexLive.Simulation.AI.PlanStatus.Active);
+        Assert.That(npc.Plan.Status, Is.EqualTo(HexLive.Simulation.AI.PlanStatus.Invalid));
+    }
+
     [TestCase(ContentIds.Stick, ContainerLootMath.FuelTicksPerStick)]
     [TestCase(ContentIds.Board, ContainerLootMath.FuelTicksPerStick)]
     [TestCase(ContentIds.Log, ContainerLootMath.FuelTicksPerStick * 4f)]

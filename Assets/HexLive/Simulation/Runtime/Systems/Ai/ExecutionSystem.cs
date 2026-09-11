@@ -684,6 +684,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     continue;
                 }
 
+                // Recheck after the approach: the fire can go out while walking.
+                if (interaction.Type == InteractionType.Observe && definition.HasTag("Campfire") &&
+                    worldObject.ResourceAmount <= 0f)
+                {
+                    AgentCommandLedger.Finish(world, npc, "failed", "FireNotLit");
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "FireNotLit");
+                    npc.Mind.CurrentGoal = GoalType.None;
+                    continue;
+                }
+
                 // Spec 29E.3: fueling needs a carried log; lighting a dead
                 // fire additionally needs the lighter — UNLESS she's cold
                 // enough to friction/hand-drill it (§45 r5).

@@ -2704,6 +2704,14 @@ internal static class ManualCommandExecutor
             return false;
         }
 
+        // §42 / #416: an unlit hearth is not a warming interaction.
+        if (interactionType == InteractionType.Observe && definition.HasTag("Campfire") &&
+            worldObject.ResourceAmount <= 0f)
+        {
+            Reject(world, npc.Id, verb, "FireNotLit", admission);
+            return false;
+        }
+
         if (interactionType == InteractionType.Ignite)
         {
             if (worldObject.ResourceAmount > 0f)

@@ -667,4 +667,13 @@ internal static class ContainerLootMath
     }
 }
 
+/// <summary>Read-only fire prerequisites for external observers (§42).</summary>
+public static class CampfireReadiness
+{
+    public static bool HasQueuedFuel(WorldState world, WorldObjectState fire) =>
+        ContainerLootMath.HasQueuedCampfireFuel(world, fire);
+    public static bool HasCarriedFuel(WorldState world, NPCState npc) =>
+        ContainerLootMath.FindCarriedCampfireFuel(world, npc) != null;
+}
+
 }

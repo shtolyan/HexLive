@@ -1,0 +1,37 @@
+{
+  "version": "0.1.17",
+  "packagedAtUtc": "2026-09-11T06:17:28.632610+00:00",
+  "kind": "framework-dependent-preview",
+  "requiresInstalledDotnet": "9",
+  "binarySource": "/private/tmp/hexlive-studio-release-c380/Build/dotnet/bin/HexLive.AgentStudio/Release/net9.0",
+  "compiledByThisTool": false,
+  "codeSignature": "certificate-verified",
+  "coreSha256": "e481ca4a232a35872d750fa5192bd3dff4fff94c6542ea32058cd72b17edf8d3",
+  "note": "Existing successful binary packaged with icon; not a completed Agent Studio release.",
+  "sourceCommit": "271ef983c24f9e9a9a3591d5b8d7f4b95cdf1788",
+  "runtimeSourceCommit": "c380dfcfde19b66920d5273c8f865393c0166c78",
+  "sourceManifest": "/private/tmp/hexlive-studio-release-c380/source-manifest.json",
+  "promptSha256": {
+    "README.md": "2651501edd5a997e7ed9681aa0c278ebaa2fcfb21fde13e1a61c6bbff2e14017",
+    "assessment.md": "76889628f8cbedc0a0ca51540376e72339ee01c1a5fd5c16bc7dc996c1aad72d",
+    "history-events.json": "70b3c4e1b612679d2325f903a56a6f89e4b8733aac4e7e13b006060cb33f480b",
+    "language.md": "928139a115c32df0c86c9cc577327fb388d131f2d848edf644a3a684c1ce7d27",
+    "masha-style.md": "6dfcd89f437f419ae03e4c328fba973cf029ab4d34fa15a32fb4d5c60a8ddb98",
+    "memory.md": "a0781fb8aca95529c4af09715e8e387e67210bbdbccd2129c6bb9562e7cd0812",
+    "object-knowledge.md": "c64b9c28a72eabfea511957e120b6536ef1a8d7f1e9e3f8c4f1575cbb280beba",
+    "rules.md": "73ee524660c14b44d0abcf9c96f09f5a91e8dd22851b92f8e25900217a3113c3",
+    "skills.json": "9911203fbda7aca18654b5e628356d37c4815db63eec0d3f2c422f8d99a69520",
+    "soul.md": "5d6ee49d11b965ab1a9b78df3fddc661d5c7cc0ff74fae701d0d251fb9555bf3",
+    "text.json": "0211ff26b02cb28bab21ba4a799a3e40d09b99d35b729ef376595655f17a63d8",
+    "world-guidance.md": "26a16901f2442b1041b68fac365d87c107e93a122af2bd2cf8a44ec612f17034"
+  },
+  "technicalChecks": {
+    "Host": 308,
+    "Core": 106,
+    "Server": 309,
+    "SimulationPassed": 1576,
+    "SimulationPreexistingSkipped": 6
+  },
+  "modelAcceptance": "Incomplete. Terra/medium c380 bed0/0 and2/1 failed at64 decisions; separate Astra/medium probes running. No cross-model/version aggregation. Grok requests stopped dueHTTP403 balance/spending restriction.",
+  "productionUpdated": false
+}

@@ -114,6 +114,20 @@ public sealed class AgentMemoryRecall
             }
             if (answer.MemoryRequests.Count == 0)
             {
+                static bool Gives(string tool, JsonElement arguments) => tool == "transfer_inventory" &&
+                    arguments.ValueKind == JsonValueKind.Object && arguments.TryGetProperty("direction", out var direction) &&
+                    direction.ValueKind == JsonValueKind.String && direction.GetString() == "Give";
+                var gives = answer.Action is { } action && Gives(action.Tool, action.Arguments) ||
+                    answer.ExecutionPlanUpdate?.Steps.Any(step => Gives(step.Tool, step.Arguments)) == true;
+                if (gives && !sent.Any(id => id.StartsWith("spec:153:", StringComparison.Ordinal)))
+                {
+                    if (round == 3) throw new InvalidDataException("GiftRulesNotRead");
+                    decisionRepair = new { decisionError = "GiftRulesNotRead",
+                        rejectedDecision = JsonSerializer.Serialize(answer),
+                        instruction = "Before transferring a gift, read the current gift rules: memoryRequests=[{operation:'spec.read',arguments:{section:'153',offset:0}}]. A skill summary is not the specification. During retrieval keep action and executionPlanUpdate null. Then use the rules to choose the gift and return the plan. Nothing has been sent." };
+                    trace.Add(new { operation = "decision.repair", error = "GiftRulesNotRead" });
+                    continue;
+                }
                 answer.MemorySources = answer.MemorySources.Where(sent.Contains).Distinct().Take(16).ToList();
                 _archive.Atomic(".state/last-memory-search.json", JsonSerializer.Serialize(new {
                     occurredUtc = DateTimeOffset.UtcNow, query, trace, sentSourceIds = sent,

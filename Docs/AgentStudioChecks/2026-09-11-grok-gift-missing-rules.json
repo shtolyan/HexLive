@@ -1,0 +1,107 @@
+{
+  "accepted": false,
+  "sourceRevision": "b7159c108a49a7fbea836ab2a2eaa1b164327af3",
+  "cases": [
+    {
+      "case": "gift-0-0.json",
+      "status": "AssertionException:MissingRuleConsultation",
+      "calls": 4,
+      "commands": 2,
+      "referenceReads": [
+        {
+          "operation": "skills.read",
+          "arguments": {
+            "id": "give-gift"
+          },
+          "SourceIds": [
+            "skill:give-gift:0:807b6e2a4595d65ca2d33b38291083ee6e564bca5f426b10aec84f1c7608c25f"
+          ]
+        },
+        {
+          "operation": "skills.read",
+          "arguments": {
+            "id": "give-gift"
+          },
+          "SourceIds": [
+            "skill:give-gift:0:807b6e2a4595d65ca2d33b38291083ee6e564bca5f426b10aec84f1c7608c25f"
+          ]
+        },
+        {
+          "operation": "skills.read",
+          "arguments": {
+            "id": "give-gift"
+          },
+          "SourceIds": [
+            "skill:give-gift:0:807b6e2a4595d65ca2d33b38291083ee6e564bca5f426b10aec84f1c7608c25f"
+          ]
+        }
+      ],
+      "lastDecision": {
+        "memoryRequests": [],
+        "memorySources": [
+          "skill:give-gift:0:807b6e2a4595d65ca2d33b38291083ee6e564bca5f426b10aec84f1c7608c25f"
+        ],
+        "objectiveUpdate": {
+          "operation": "complete",
+          "text": "",
+          "reason": "Подарок кокоса Наде подтверждён квитанциями и завершён"
+        },
+        "executionPlanUpdate": null,
+        "speech": "",
+        "emotion": "neutral",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "Завершаю цель осознанного подарка Наде кокосом",
+        "memoryUpserts": [
+          {
+            "key": "self:цель_подарка",
+            "value": "Цель завершена: выбранная Надя (npcId=1, affinity~0.8) получила кокос как еду по процедуре give-gift",
+            "importance": 0.8
+          },
+          {
+            "key": "core:nadia_gift",
+            "value": "Кокос передан, Надя всё ещё голодная (suffering 0.82, aid=Feed), но получение вещи завершает подарок",
+            "importance": 0.6
+          }
+        ],
+        "journalText": "Подарок Наде сделан и подтверждён. Она рядом, нуждается в кормлении, но цель выполнена."
+      }
+    },
+    {
+      "case": "gift-0-1.json",
+      "status": "AssertionException:MissingRuleConsultation",
+      "calls": 5,
+      "commands": 3,
+      "referenceReads": [],
+      "lastDecision": {
+        "memoryRequests": [],
+        "memorySources": [
+          "9ac85a2e5d660aecc7eac38718bc43b5b9e3cc8c094d7aa3f2a3ccbfc7651192",
+          "87ce83e7040c2dd970e62042ce4dbdaabd7ca6ca8d378726eb734c02320c9376",
+          "a3a1ca8cfe18bc15cf91e65cc6dacc98dc5f0bd1e695bfd59ca9ecdbb5758306"
+        ],
+        "objectiveUpdate": {
+          "operation": "complete",
+          "text": "",
+          "reason": "Кокос передан Наде согласно квитанциям и текущему инвентарю без него"
+        },
+        "executionPlanUpdate": null,
+        "speech": "",
+        "emotion": "happy",
+        "action": null,
+        "relationshipAssessment": null,
+        "reaction": "None",
+        "intentSummary": "Цель выполнена: кокос передан Наде",
+        "memoryUpserts": [
+          {
+            "key": "self:objective_status",
+            "value": "Цель 'Найди и подари что-нибудь девушке, которая нравится' завершена: выбрала Надю (affinity 0.8) и подарила кокос",
+            "importance": 0.75
+          }
+        ],
+        "journalText": "Подарок Наде вручен. Она всё ещё голодна, но моя осознанная цель выполнена."
+      }
+    }
+  ]
+}

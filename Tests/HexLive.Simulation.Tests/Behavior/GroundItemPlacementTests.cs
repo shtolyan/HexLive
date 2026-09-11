@@ -38,6 +38,7 @@ public sealed class GroundItemPlacementTests
         Assert.That(world.Entities.Objects.Count, Is.EqualTo(count));
         // Move only in the fixture to verify the spatial admission, not routing.
         var origin = world.Junctions.Items.Values.First(n => n.WorldPosition.Equals(approach));
+        if (!here) Assert.That(origin.Tiles, Has.Count.EqualTo(1), "Move must resolve to the same origin tile used by preview.");
         npc.Position = approach; npc.CurrentJunction = origin.Id;
         npc.Tile = origin.Tiles.OrderBy(t => HexSpatialMath.HexDistance(t, tile)).First();
         var dropped = ExecutionSystem.DropItemAtFeet(world, npc, item);

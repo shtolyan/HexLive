@@ -35,7 +35,11 @@ public static class GroundItemPlacementPreview
             foreach (var id in world.Tiles.Items[tile].Junctions)
             {
                 var node = world.Junctions.Items[id];
-                if (node.Fragment != npc.Fragment || !SpatialQueries.IsJunctionPassable(world, id) ||
+                // A shared boundary node can resolve to the other tile after
+                // move_to. That would change Drop's one-tile search ring and
+                // repeatedly suggest the same unusable coordinate.
+                if (node.Tiles.Count != 1 || !node.Tiles[0].Equals(tile) ||
+                    node.Fragment != npc.Fragment || !SpatialQueries.IsJunctionPassable(world, id) ||
                     !SpatialQueries.IsJunctionFree(world, id)) continue;
                 var dx = node.WorldPosition.X - npc.Position.X;
                 var dy = node.WorldPosition.Y - npc.Position.Y;

@@ -6,6 +6,56 @@ namespace HexLive.AgentHost.Tests;
 
 public sealed class AgentReferenceReaderTests
 {
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public async Task GiftDecisionMustReadActualRulesBeforeItLeavesRecall(bool queue, bool readsRules)
+    {
+        var root = Directory.CreateTempSubdirectory("gift-rules-").FullName;
+        try
+        {
+            var calls = 0; var reads = 0;
+            var run = new AgentMemoryRecall(root).DecideAsync("", new("world", "world", 0, 50), new(), (context, _) =>
+            {
+                calls++;
+                if (calls > 1) Assert.That(context, Does.Contain("GiftRulesNotRead"));
+                if (calls == 2 && readsRules)
+                    return Task.FromResult(new CompanionDecision { MemoryRequests =
+                        [new() { Operation = "spec.read", Arguments = JsonSerializer.SerializeToElement(new { section = "153" }) }] });
+                var arguments = JsonSerializer.SerializeToElement(new { otherNpcId = 902, direction = "Give" });
+                return Task.FromResult(new CompanionDecision
+                {
+                    MemorySources = ["spec:153:0:fixture"],
+                    Action = queue ? null : new() { Tool = "transfer_inventory", Arguments = arguments },
+                    ExecutionPlanUpdate = queue ? new() { Operation = "replace", Reason = "Gift",
+                        Steps = [new("give", "transfer_inventory", arguments)] } : null
+                });
+            }, default, (operation, arguments, _) =>
+            {
+                reads++;
+                Assert.That(operation, Is.EqualTo("spec.read"));
+                Assert.That(arguments.GetProperty("section").GetString(), Is.EqualTo("153"));
+                return Task.FromResult(new MemoryReadResult("actual-gift-rules", ["spec:153:0:fixture"], null));
+            });
+            if (readsRules)
+            {
+                var decision = await run;
+                Assert.That(decision.MemorySources, Does.Contain("spec:153:0:fixture"));
+                Assert.That(calls, Is.EqualTo(3));
+                Assert.That(reads, Is.EqualTo(1));
+            }
+            else
+            {
+                var error = Assert.ThrowsAsync<InvalidDataException>(async () => await run);
+                Assert.That(error!.Message, Is.EqualTo("GiftRulesNotRead"));
+                Assert.That(calls, Is.EqualTo(4));
+                Assert.That(reads, Is.Zero, "A made-up source citation is not a read.");
+            }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     [Test]
     public async Task DropReferenceUsesAttachedActorInsteadOfModelSuppliedNpc()
     {

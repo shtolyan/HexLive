@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="830" viewBox="0 0 900 830">
-<rect width="900" height="830" fill="#111820"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="860" viewBox="0 0 900 860">
+<rect width="900" height="860" fill="#111820"/>
 <g font-family="sans-serif" fill="#e9eef4"><text x="30" y="40" font-size="25">Проверка места выгрузки</text><text x="30" y="70" font-size="16">Штатный Drop проверяет текущий гекс и шесть соседних.</text>
 <polygon points="177.20,431.50 122.64,463.00 68.08,431.50 68.08,368.50 122.64,337.00 177.20,368.50" fill="#28303c" stroke="#708294" stroke-width="1"/><circle cx="122.64" cy="400.00" r="3" fill="#dce8f0"/><text x="122.64" y="422.00" text-anchor="middle" font-size="12">-3,0</text>
 <polygon points="231.76,526.00 177.20,557.50 122.64,526.00 122.64,463.00 177.20,431.50 231.76,463.00" fill="#28303c" stroke="#708294" stroke-width="1"/><circle cx="177.20" cy="494.50" r="3" fill="#dce8f0"/><text x="177.20" y="516.50" text-anchor="middle" font-size="12">-3,1</text>
@@ -41,4 +41,4 @@
 <text x="30" y="748" font-size="16">Синий + зелёный: до 19 начал поиска, радиус подходов 2 гекса.</text>
 <text x="30" y="773" font-size="16">Серый: внешнее кольцо Drop; общая область до 37 гексов (радиус 3).</text>
 <text x="30" y="798" font-size="14">R = 1.5 wu. Точки — центры; схема не утверждает проходимость или свободные места.</text>
-</g></svg>
+<text x="30" y="830" font-size="14">Подход — внутренний узел одного гекса; общий граничный узел не подходит.</text></g></svg>

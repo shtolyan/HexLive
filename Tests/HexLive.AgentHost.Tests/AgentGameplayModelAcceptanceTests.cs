@@ -295,7 +295,7 @@ public sealed partial class AgentExecutionRuntimeTests
                 {
                     var read = await reader.ReadAsync(operation, arguments, token);
                     referenceOperations.Add(operation);
-                    referenceReads.Add(new { operation, arguments, read.SourceIds });
+                    referenceReads.Add(new { operation, arguments, read.SourceIds, response = read.Text });
                     return read;
                 });
                 AgentExecutionPlanPolicy.NormalizeContinuation(decision, state, world.WorldKey, 901);

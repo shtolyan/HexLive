@@ -64,6 +64,10 @@ request/command/result; краткое решение, источники, до/
 
 ## Журнал выполнения
 
+- Drop-preview bed probes b7159 остановлены диагностически: Codex получил граничный approach (-6.4951906,4.125), движение отнесло тело к (-3,2); общий узел допускал другой origin при проверке. Подход теперь выбирается только из внутренних узлов одного тайла; Simulation33/33 PASS. Отчёт модельного harness теперь сохраняет ответы справочных чтений, чтобы подобную ошибку можно было восстановить без догадок по hash.
+
+- Полная регрессия b7159c108: Host278/278, Server300/300, Simulation1569 PASS +6skip. Grok gift снова остановлен диагностически после двух MissingRuleConsultation: передача прошла, но spec.read отсутствовал. Добавлен bounded repair GiftRulesNotRead перед Give; выдуманная citation не считается чтением. Focused Host43/43 PASS. Bed probes Codex/Grok продолжаются на неизменённых b7159c108 DLL.
+
 - Добавлен read_inventory_drop / inventory.drop.read: проверка одного carried-предмета через штатный GroundItemPlacement, до 19 начал поиска в радиусе двух тайлов; маршрут не проверяется и место не резервируется. Actor берётся из attachment, stale index отклоняется. Схема AgentStudioChecks/2026-09-11-drop-preview-area.svg. Focused Simulation 33/33, Server 22/22 и Host 19/19 PASS. Навык build-bed v11 использует проверку вместо слепых повторов Drop.
 
 - Полный Server после пустого фильтра: 299/299 PASS. Studio Release build PASS (два CS9057 предупреждения Avalonia), публикация ещё не выполнена.

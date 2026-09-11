@@ -22,8 +22,16 @@
     "positionRecords": 97,
     "svg": "2026-09-11-native-explore.svg"
   },
-  "fullChecks": "Running; allocation test WarmAllocatorWorkIsIndependentOfDistantObjectCount has reported1808B instead of0B. Requires isolated verification; not counted as passing.",
-  "modelAcceptance": "Not yet run with Explore. Frozen c380 Astra bed0/0 failed64 decisions; bed2/1 still running.",
+  "fullChecks": {
+    "SimulationPassed": 1578,
+    "SimulationPreexistingSkipped": 6,
+    "Server": 310,
+    "Host": 310,
+    "Core": 106
+  },
+  "modelAcceptance": "Astra/medium ca678 bed0/0 stopped diagnostically after false PlanFailed receipts on emergency commands; no model acceptance.",
   "hiddenObjectCoordinatesExposed": false,
-  "productionUpdated": false
+  "productionUpdated": false,
+  "sourceCommit": "ca678b1d933eff5413548b3907adf08c9fe8cfee",
+  "allocationCheckNote": "Initial full suite failed WarmAllocatorWorkIsIndependentOfDistantObjectCount:1808B versus0B. Isolated rerun and full rerun passed without code or test changes. Root cause of that intermittent allocation is not established."
 }

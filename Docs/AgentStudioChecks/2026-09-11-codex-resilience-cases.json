@@ -2,8 +2,8 @@
   "sourceRevision": "187cacd7320a0e35010b02dc7e00ecf5bf2bac9a",
   "cases": [
     {
-      "provider": null,
-      "model": null,
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
       "scenario": "resilience",
       "fixture": 0,
       "repetition": 0,
@@ -68,8 +68,8 @@
       ]
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
       "scenario": "resilience",
       "fixture": 0,
       "repetition": 1,
@@ -134,8 +134,8 @@
       ]
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
       "scenario": "resilience",
       "fixture": 1,
       "repetition": 0,
@@ -207,8 +207,8 @@
       ]
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
       "scenario": "resilience",
       "fixture": 1,
       "repetition": 1,
@@ -280,8 +280,8 @@
       ]
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
       "scenario": "resilience",
       "fixture": 2,
       "repetition": 0,
@@ -346,8 +346,8 @@
       ]
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Codex",
+      "model": "gpt-5.6-terra",
       "scenario": "resilience",
       "fixture": 2,
       "repetition": 1,

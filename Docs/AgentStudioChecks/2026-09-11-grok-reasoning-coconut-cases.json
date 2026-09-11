@@ -2,8 +2,8 @@
   "sourceRevision": "187cacd7320a0e35010b02dc7e00ecf5bf2bac9a",
   "cases": [
     {
-      "provider": null,
-      "model": null,
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
       "scenario": "coconuts",
       "fixture": 0,
       "repetition": 0,
@@ -15,8 +15,8 @@
       "reconciliations": 0
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
       "scenario": "coconuts",
       "fixture": 0,
       "repetition": 1,
@@ -28,8 +28,8 @@
       "reconciliations": 0
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
       "scenario": "coconuts",
       "fixture": 1,
       "repetition": 0,
@@ -41,8 +41,8 @@
       "reconciliations": 0
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
       "scenario": "coconuts",
       "fixture": 1,
       "repetition": 1,
@@ -54,8 +54,8 @@
       "reconciliations": 0
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
       "scenario": "coconuts",
       "fixture": 2,
       "repetition": 0,
@@ -67,8 +67,8 @@
       "reconciliations": 0
     },
     {
-      "provider": null,
-      "model": null,
+      "provider": "Grok",
+      "model": "grok-4.20-0309-reasoning",
       "scenario": "coconuts",
       "fixture": 2,
       "repetition": 1,

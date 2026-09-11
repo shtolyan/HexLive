@@ -1,0 +1,51 @@
+{
+  "bug": 412,
+  "version": "0.1.20",
+  "sourceCommit": "ab06ea16f3524aa4605f69fe78ed80e15a72403e",
+  "artifact": "/Users/shtolyan/hex-girls/AgentStudioReleases/v0.1.20/Agent Studio.app",
+  "coreSha256": "166f87b7cec6cef9aadcd1af7222bd4ebf4e9daccbc4dc622eebfd887e29970c",
+  "promptsSha256": {
+    "language.md": "928139a115c32df0c86c9cc577327fb388d131f2d848edf644a3a684c1ce7d27",
+    "history-events.json": "70b3c4e1b612679d2325f903a56a6f89e4b8733aac4e7e13b006060cb33f480b",
+    "world-guidance.md": "26a16901f2442b1041b68fac365d87c107e93a122af2bd2cf8a44ec612f17034",
+    "object-knowledge.md": "c64b9c28a72eabfea511957e120b6536ef1a8d7f1e9e3f8c4f1575cbb280beba",
+    "README.md": "2651501edd5a997e7ed9681aa0c278ebaa2fcfb21fde13e1a61c6bbff2e14017",
+    "memory.md": "a0781fb8aca95529c4af09715e8e387e67210bbdbccd2129c6bb9562e7cd0812",
+    "masha-style.md": "6dfcd89f437f419ae03e4c328fba973cf029ab4d34fa15a32fb4d5c60a8ddb98",
+    "assessment.md": "76889628f8cbedc0a0ca51540376e72339ee01c1a5fd5c16bc7dc996c1aad72d",
+    "rules.md": "39717e888ae3119844610baaf9b01d3370cb600c1b259e72f4183cb3f4f5d5e0",
+    "soul.md": "5d6ee49d11b965ab1a9b78df3fddc661d5c7cc0ff74fae701d0d251fb9555bf3",
+    "text.json": "684c6e6b6fe74b90ef1752400572d1bd485d1ca234ad70e224aa3ba33b522103",
+    "skills.json": "28fdfdd53ba655d0a2790f587b9a9292c0dbb97c79174170dbcf0a80331261a0",
+    "npc-names.json": "892044b2cfa919b8bc77ccfda2d21da1d5042a4dd8f8ddaa72500ca8f1aa2bbb"
+  },
+  "packageReport": {
+    "version": "0.1.20",
+    "packagedAtUtc": "2026-09-11T10:03:05.128325+00:00",
+    "kind": "framework-dependent-preview",
+    "requiresInstalledDotnet": "9",
+    "binarySource": "/private/tmp/hexlive-studio-release-ab06e/Build/dotnet/bin/HexLive.AgentStudio/Release/net9.0",
+    "compiledByThisTool": false,
+    "codeSignature": "certificate-verified",
+    "coreSha256": "166f87b7cec6cef9aadcd1af7222bd4ebf4e9daccbc4dc622eebfd887e29970c",
+    "note": "Existing successful binary packaged with icon; not a completed Agent Studio release."
+  },
+  "profileMigration": {
+    "testedOnCopy": true,
+    "notesPreserved": 5,
+    "authorTextExact": true,
+    "originalProfileModified": false
+  },
+  "checks": {
+    "AgentCore": 110,
+    "AgentHost": 311
+  },
+  "modelMatrixRerun": false,
+  "productionUpdated": false,
+  "applicationLaunched": false,
+  "verificationArchive": {
+    "path": "/Users/shtolyan/hex-girls/AgentStudioChecks/2026-09-11-soul-boundary-412.tar.gz",
+    "sha256": "7946fef4e699adede282110ab373c1584d427df172d0af5511a02d3eb27a00a5",
+    "fileCount": 8
+  }
+}

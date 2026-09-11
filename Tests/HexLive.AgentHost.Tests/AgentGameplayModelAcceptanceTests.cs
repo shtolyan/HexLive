@@ -64,6 +64,12 @@ public sealed partial class AgentExecutionRuntimeTests
     }
 
     // Real model, real native commands, isolated save and memory. Never connects to a game server.
+    [Explicit("Model-backed regression #415: camp stock implies unloading without an explicit unload instruction")]
+    [TestCase(0, 0)] [TestCase(0, 1)]
+    [TestCase(1, 0)] [TestCase(1, 1)]
+    [TestCase(2, 0)] [TestCase(2, 1)]
+    public Task RealModelCampStockImplicitUnloading(int fixture, int repetition) => RunGameplayModel("camp-stock", fixture, repetition);
+
     [Explicit("Paid/model-backed gameplay acceptance; needs explicit provider and output environment")]
     [TestCase(0, 0)] [TestCase(0, 1)]
     [TestCase(1, 0)] [TestCase(1, 1)]
@@ -90,10 +96,10 @@ public sealed partial class AgentExecutionRuntimeTests
 
     private async Task RunGameplayModel(string scenario, int fixture, int repetition)
     {
-        var delivery = scenario is "coconuts" or "resilience";
+        var delivery = scenario is "coconuts" or "resilience" or "camp-stock";
         var decisionTurnLimit = scenario == "bed" ? 64 : 8;
         const string executionWallBudgetPolicy = "max(90, 30 + 4 * declaredDispatches) seconds";
-        var task = delivery
+        var task = scenario == "camp-stock" ? "Запаси для лагеря три кокоса. Нужные инструменты сохрани." : delivery
             ? "Принеси три кокоса в свой лагерь и выгрузи их. Нужные инструменты сохрани."
             : scenario == "bed" ? "Полностью построй НОВУЮ кровать с нуля в своём лагере за три игровых дня. Уже существующие кровати не засчитываются. Материалы добудь сама, отдыхай и спи по необходимости."
             : "Найди и подари что-нибудь девушке, которая тебе нравится. Выбери подарок осознанно, нужные инструменты сохрани.";

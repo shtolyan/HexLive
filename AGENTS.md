@@ -4,6 +4,31 @@ The canonical project guide is `CLAUDE.md`; follow it for architecture,
 tooling, verification, and content-pipeline rules. The canonical behaviour
 spec is `Spec/<N>.md` — one file per section — and must stay in sync with code.
 
+## Production changes require exact authorization
+
+- Treat the requested layer as a hard scope boundary. A request to configure an
+  API key, SSH access, DNS, TLS, an environment file, a reverse proxy or one
+  service authorizes only that configuration change and its minimum necessary
+  service reload/restart. It does **not** authorize deploying a new game-server
+  binary, changing `/opt/hexlive/current`, replacing simdata or content, changing
+  the wire protocol, rebuilding a client, or publishing a client build.
+- Never infer a server deployment from “make it work”, “finish the setup”, access
+  to root, or the existence of a newer commit. Deploy/update/redeploy a game
+  server only when the player explicitly names that server and explicitly asks
+  to deploy or update its game-server version in the current task.
+- Singapore and New York are independent authorization targets. Permission to
+  change one never applies to the other, and permission for one deployment does
+  not remain open-ended for later turns.
+- If a requested configuration needs a newer server binary, stop before changing
+  production. Report the installed/new versions, the client-compatibility impact
+  and the exact deployment that would be required, then wait for explicit
+  approval. Never force an old client to require replacement as a side effect of
+  a configuration-only task.
+- Before any production mutation, state in commentary the exact server, layer
+  (`configuration`, `service`, `server binary`, `content`, or `client`) and the
+  service(s) that will restart. If that scope is broader than the player's words,
+  do not perform it.
+
 `§N` resolves to `Spec/N.md` mechanically: seeing `§105.14` in a C# comment,
 open `Spec/105.md` — no grep. Sub-points live inside their section's file.
 The root `spec.md` is a GENERATED index (`python3 Tools/spec_index.py`); read

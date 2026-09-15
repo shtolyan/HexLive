@@ -20,7 +20,8 @@ public sealed class McpTalkTopicTests
     {
         var schema = McpTools.Catalog.Single(t => t.Name == "talk_to").InputSchema;
         var topics = schema.GetProperty("properties").GetProperty("topic").GetProperty("enum").EnumerateArray().Select(x => x.GetString()).ToArray();
-        Assert.That(topics, Is.EquivalentTo(new[] { "SmallTalk", "Escape", "Dogs", "Weather", "Food", "Fire", "Home", "Gossip", "Flirt", "Joke", "Grumble" }));
+        Assert.That(topics, Is.EquivalentTo(new[] { "SmallTalk", "Escape", "Dogs", "Weather", "Food", "Fire", "Home", "Gossip", "Flirt", "Joke", "Grumble",
+            "AskBuild", "AskStockFood", "AskStockWater", "AskFirewood" })); // §167.2
         Assert.That(topics, Is.EquivalentTo(TalkTopicRequest.Allowed.Select(t => t.ToString())));
         Assert.That(schema.GetProperty("required").EnumerateArray().Select(x => x.GetString()), Is.EquivalentTo(new[] { "npcId", "targetNpcId" }));
         Assert.That(schema.GetProperty("additionalProperties").GetBoolean(), Is.False);

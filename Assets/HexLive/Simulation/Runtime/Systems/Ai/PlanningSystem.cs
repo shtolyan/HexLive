@@ -2074,6 +2074,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
                         BuildSiteMath.HangingMeat(spitSource, ContentIds.MeatCooked) > 0;
                 }
 
+                // §167.5 антипетля: стокерша, сама не голодная, не поднимает
+                // еду, уже лежащую в лагере, — иначе носила бы своё же по кругу.
+                if (DirectiveMath.Current(npc) == DirectiveKind.StockFood &&
+                    npc.Needs.Hunger < SimBalance.GetFoodHungerThreshold &&
+                    DirectiveMath.InCampStock(world, npc, perceived.Tile))
+                {
+                    return false;
+                }
+
                 return definition.HasTag("Food") &&
                     (!definition.HasTag("Coconut") || HasCoconutBlade(npc));
             case GoalType.GatherWood:
@@ -2247,6 +2256,14 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 // executor. Honour that memory here as well as in Drink's
                 // custom coconut picker, otherwise GetWater immediately picks
                 // the exact same failed object again.
+                // §167.5 антипетля — то же для воды.
+                if (DirectiveMath.Current(npc) == DirectiveKind.StockWater &&
+                    npc.Needs.Thirst < AiBalance.DrinkThirstThreshold &&
+                    DirectiveMath.InCampStock(world, npc, perceived.Tile))
+                {
+                    return false;
+                }
+
                 return HasCoconutBlade(npc) &&
                     perceived.DefinitionId == ContentIds.Coconut &&
                     !npc.Memory.IsShunned(perceived.Id, world.Tick);

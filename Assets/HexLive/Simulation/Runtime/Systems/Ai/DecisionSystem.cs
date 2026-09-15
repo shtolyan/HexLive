@@ -280,6 +280,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
             }
 
             var previousGoal = npc.Mind.CurrentGoal;
+            // §167.6: снять просроченное/выполненное указание и узнать живой
+            // вид — единственное место, где обещание читается до аукциона.
+            var directiveKind = DirectiveMath.Update(world, npc);
             npc.Mind.LastScores.Clear();
             npc.Mind.Cooldowns.RemoveAll(c => c.EndTick <= world.Tick);
             // The danger mark ages out on the same TTL as the rest of the
@@ -481,7 +484,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // or the ground stock never survives until the productionless night.
             var getFoodHungerThreshold = SimBalance.GetFoodHungerThreshold;
 
-            var eatAvail = hasFoodInInventory || hasCoconutMeal;
+            // §167.5: стокерша не съедает запас, пока сама не голодна по
+            // штатному порогу — выше него ест как все (сама бы пошла за едой).
+            var stockingFood = directiveKind == DirectiveKind.StockFood;
+            var eatAvail = (hasFoodInInventory || hasCoconutMeal) &&
+                !(stockingFood && npc.Needs.Hunger < getFoodHungerThreshold);
             // §53.7: split the "is there food to fetch at all" half out of the
             // gate — an aid errand fetches food for a STARVING HOUSEMATE, so
             // neither the helper's own (satisfied) hunger nor a coconut lying
@@ -494,8 +501,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             var foodSourceReachable =
                 HasReachableFoodForCurrentTools(npc, world) ||
                 (canUseToolsOrWeapons && KnowsReachableProducer(npc, world));
+            // §167.5: по указанию «запасись едой» берёт и НЕ голодной, пока
+            // в лагере меньше цели; руки должны быть свободны от нужд.
+            var stockFoodWanted = stockingFood && npc.Inventory.HasSpace &&
+                npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
+                npc.Needs.Energy > 0.35f &&
+                DirectiveMath.StockWanted(world, npc, DirectiveKind.StockFood);
             var getFoodAvail = !hasFoodInInventory && !hasCoconutMeal &&
-                npc.Needs.Hunger >= getFoodHungerThreshold && foodSourceReachable;
+                (npc.Needs.Hunger >= getFoodHungerThreshold || stockFoodWanted) && foodSourceReachable;
             var foodFetchPossible = !hasFoodInInventory &&
                 !HasInventoryCoconutMeal(npc) && foodSourceReachable;
             // Spec 29G: the land itself is furniture — a bed is better, but
@@ -739,6 +752,30 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 socializeAvail = false;
             }
 
+            // §167.7: «пойду попрошу» — разговор с темой-просьбой. Слушательница
+            // прошла те же фильтры, что и обычный партнёр, поэтому Socialize
+            // доступен; сам выбор партнёра/темы делает BuildTalkPlan по полям
+            // InitiativeAsk*. Выключатель выключен → false мгновенно и 0f тяги.
+            var initiativePull = 0f;
+            npc.Mind.InitiativeAskKind = DirectiveKind.None;
+            npc.Mind.InitiativeAskTarget = null;
+            var initiative = DirectiveMath.Initiative(world, npc, out var askKind, out var askListener);
+            if (initiative == DirectiveMath.AskDecision.Talk &&
+                npc.Mind.PendingTalkFrom is null && npc.Mind.PendingRomanceFrom is null)
+            {
+                npc.Mind.InitiativeAskKind = askKind;
+                npc.Mind.InitiativeAskTarget = askListener;
+                socializeAvail = true;
+                initiativePull = Spec167.InitiativePull;
+            }
+            else if (initiative == DirectiveMath.AskDecision.Shout)
+            {
+                // Все заняты — кричит с места; cooldown ставит сам Shout через Ask-путь
+                // не проходит, поэтому штампуем здесь.
+                npc.Mind.LastDirectiveAskTick = world.Tick;
+                DirectiveMath.Shout(world, npc, askKind);
+            }
+
             // An in-flight talk (walking to the target or already talking) keeps
             // its own goal available: the per-tick availability scan must not
             // zero out a plan that validates its target at arrival anyway.
@@ -786,7 +823,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 pendingRedress,
                 socializeAvail,
                 sleepEnvironmentBonus,
-                bestAffinity);
+                bestAffinity,
+                directiveKind,
+                initiativePull);
             ScoreGoals(world, npc, in ctx,
                 out var aidErrandGoal, out var aidErrandKindNow,
                 out var aidErrandTargetNow, out var aidErrandBid);
@@ -866,6 +905,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
     /// </summary>
     private readonly struct DecisionContext
     {
+        /// <summary>§167.4: живое указание (None — тяги нет).</summary>
+        public readonly DirectiveKind DirectiveKind;
+
+        /// <summary>§167.7: тяга к разговору-просьбе (0f — инициативы нет).</summary>
+        public readonly float InitiativePull;
+
         public DecisionContext(
             GoalType previousGoal,
             bool bleedingCrisis,
@@ -889,8 +934,12 @@ public sealed partial class DecisionSystem : ISimulationSystem
             bool pendingRedress,
             bool socializeAvail,
             float sleepEnvironmentBonus,
-            float? bestAffinity)
+            float? bestAffinity,
+            DirectiveKind directiveKind,
+            float initiativePull)
         {
+            DirectiveKind = directiveKind;
+            InitiativePull = initiativePull;
             PreviousGoal = previousGoal;
             BleedingCrisis = bleedingCrisis;
             EmergencyBoost = emergencyBoost;
@@ -995,7 +1044,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         aidErrandBid = 0f;
 
         AddGoalScore(npc, world.Tick, GoalType.Eat, npc.Needs.Hunger, ctx.EatAvail, ctx.EmergencyBoost);
-        AddGoalScore(npc, world.Tick, GoalType.GetFood, npc.Needs.Hunger, ctx.GetFoodAvail, ctx.EmergencyBoost);
+        AddGoalScore(npc, world.Tick, GoalType.GetFood, npc.Needs.Hunger, ctx.GetFoodAvail, ctx.EmergencyBoost,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.GetFood));
         AddGoalScore(npc, world.Tick, GoalType.Sleep, 1f - npc.Needs.Energy, ctx.SleepAvail,
             emergency: ctx.SleepUrgencyBoost, environment: ctx.SleepEnvironmentBonus);
         // Sitting anywhere is leisure, not survival: half-weight keeps it
@@ -1022,7 +1072,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // post-quarrel withdrawal.
         AddGoalScore(npc, world.Tick, GoalType.Socialize, 1f - npc.Needs.Social, ctx.SocializeAvail,
             social: (ctx.BestAffinity ?? 0f) * 0.1f - npc.Social.Embarrassment * 0.3f -
-                (ctx.IsGrieving ? 0.2f : 0f));
+                (ctx.IsGrieving ? 0.2f : 0f),
+            command: ctx.InitiativePull);
 
         ScoreCompassion(world, npc, in ctx,
             out var aidSelfOk, out var errandKind,
@@ -1255,7 +1306,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
             (ctx.HasCoconutBlade &&
              (HasReachableDefinitionWorthCarrying(npc, world, ContentIds.Coconut) ||
               (ctx.CanUseToolsOrWeapons && KnowsReachableProducer(npc, world))));
-        var getWaterAvail = npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold && !ctx.HasCoconutWater && !hasBottleWater &&
+        // §167.5: по указанию «запасись водой» несёт кокос и не хотя пить.
+        var stockWaterWanted = ctx.DirectiveKind == DirectiveKind.StockWater &&
+            npc.Inventory.HasSpace && npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
+            npc.Needs.Energy > 0.35f &&
+            DirectiveMath.StockWanted(world, npc, DirectiveKind.StockWater);
+        var getWaterAvail = (npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold || stockWaterWanted) &&
+            !ctx.HasCoconutWater && !hasBottleWater &&
             waterSourceReachable;
         // §53.7: the errand half — fetching water to CARRY to a parched
         // housemate cares only about what is in hand (bottle / pierced
@@ -1394,7 +1451,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var drinkNeedScore = npc.Needs.Thirst +
             (npc.Needs.Thirst >= npc.Needs.Hunger ? 0.05f : 0f);
         AddGoalScore(npc, world.Tick, GoalType.Drink, drinkNeedScore, drinkAvail, ctx.DrinkBoost);
-        AddGoalScore(npc, world.Tick, GoalType.GetWater, drinkNeedScore, getWaterAvail, ctx.DrinkBoost);
+        AddGoalScore(npc, world.Tick, GoalType.GetWater, drinkNeedScore, getWaterAvail, ctx.DrinkBoost,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.GetWater));
         // Spec 42: cold drives the WHOLE fire chain, not just the last
         // link — a freezing girl fetches the lighter and hauls wood with
         // fire-priority, otherwise the chain never outbids water/food and
@@ -1442,7 +1500,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             0.2f + 0.3f * npc.Needs.Thirst + coldChain +
             (raftWoodDemand ? 0.3f : 0f) + coconutToolBoost + bedStickPull +
             bedLogPull + nightFireChain + (woodenBoardShortfall > 0 ? 0.35f : 0f),
-            gatherWoodAvail, coconutEmergencyBoost);
+            gatherWoodAvail, coconutEmergencyBoost,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.GatherWood));
         // Spec 42: cold is the second reason to light the fire — a
         // freezing girl with wood and a lighter prioritizes the flame
         // over almost everything (this is THE way to warm up now).
@@ -1469,7 +1528,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var stowAvail = FindStowableCollector(npc, world) is not null;
         AddGoalScore(npc, world.Tick, GoalType.StowBottle,
             0.22f + 0.2f * npc.Needs.Thirst +
-            (world.Environment.IsRaining ? 0.15f : 0f), stowAvail);
+            (world.Environment.IsRaining ? 0.15f : 0f), stowAvail,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.StowBottle));
 
         // Spec 42: WarmUp — go stand by the burning fire until the chill
         // lifts. Available while genuinely cold and a lit fire is known;
@@ -2019,7 +2079,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // смещает действующую цель никогда. Копающий оставался копающим.
         AddGoalScore(npc, world.Tick, GoalType.GatherStone,
             (hearthUrgent ? 0.9f : 0.28f) + freeHands + coconutToolBoost + siteStonePull,
-            gatherStoneAvail, coconutEmergencyBoost);
+            gatherStoneAvail, coconutEmergencyBoost,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.GatherStone));
         AddGoalScore(npc, world.Tick, GoalType.CraftAxe, 0.3f + freeHands, craftAxeAvail);
         // §63 r2: a site drowning in stone demand (the 18-stone fire ring)
         // makes the PICKAXE the priority — without this pull the 0.55
@@ -2042,9 +2103,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // actually short (deficit + no leaves in hand).
         var bedChainPull = bedDeficit && carriedLeaves < 3 && canChop ? 0.25f : 0f;
         AddGoalScore(npc, world.Tick, GoalType.HarvestTree,
-            0.3f + freeHands + bedChainPull + bedLogPull + dreamPull, harvestTreeAvail);
+            0.3f + freeHands + bedChainPull + bedLogPull + dreamPull, harvestTreeAvail,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.HarvestTree));
         AddGoalScore(npc, world.Tick, GoalType.MineBoulder,
-            0.25f + freeHands + siteStonePull, mineBoulderAvail);
+            0.25f + freeHands + siteStonePull, mineBoulderAvail,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.MineBoulder));
 
         // Spec §54: split a ground log into sticks (the fuel/craft currency)
         // when short on sticks and there's stick demand — chiefly a dying
@@ -2075,7 +2138,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         AddGoalScore(npc, world.Tick, GoalType.SplitLog,
             (fuelLow ? 0.5f : 0.3f) + freeHands + bedStickPull + dreamPull + nightFireChain +
             (boardSawAvailable ? 0.35f : 0f),
-            splitLogAvail);
+            splitLogAvail,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.SplitLog));
 
         // Spec §54.2: chop a felled palm CROWN into loose leaves — when leaves
         // are wanted (a bed short, or a build/tent bill) and a crown lies
@@ -2095,12 +2159,14 @@ public sealed partial class DecisionSystem : ISimulationSystem
             (world.Environment.UvIndex > 0.4f && carriedLeaves < 4);
         var chopCrownAvail = wantsLeaves && canChop &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.ChopCrown);
-        AddGoalScore(npc, world.Tick, GoalType.ChopCrown, 0.3f + freeHands + bedLeafPull + dreamPull, chopCrownAvail);
+        AddGoalScore(npc, world.Tick, GoalType.ChopCrown, 0.3f + freeHands + bedLeafPull + dreamPull, chopCrownAvail,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.ChopCrown));
         // Spec §54.2: pick scattered palm leaves off the ground when wanted.
         var gatherLeavesAvail = wantsLeaves &&
             PlanningSystem.HasObjectCandidateForGoal(
                 world, npc, GoalType.GatherLeaves);
-        AddGoalScore(npc, world.Tick, GoalType.GatherLeaves, 0.28f + freeHands + bedLeafPull + dreamPull, gatherLeavesAvail);
+        AddGoalScore(npc, world.Tick, GoalType.GatherLeaves, 0.28f + freeHands + bedLeafPull + dreamPull, gatherLeavesAvail,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.GatherLeaves));
 
         // Spec §54: the cordage & knife chain. Rope is wanted for bowstrings
         // and bed-site lashings; cloth when a sun-shelter is due; the knife is
@@ -2166,8 +2232,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
               CraftPlaceOk(GoalType.CraftKnife)) ||
              CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftKnife));
         AddGoalScore(npc, world.Tick, GoalType.HarvestYucca, 0.26f + freeHands + bedRopePull, harvestYuccaAvail);
-        AddGoalScore(npc, world.Tick, GoalType.GatherFiber, 0.24f + freeHands + bedRopePull + dreamPull, gatherFiberAvail);
-        AddGoalScore(npc, world.Tick, GoalType.CraftRope, 0.28f + freeHands + bedRopePull + dreamPull, craftRopeAvail);
+        AddGoalScore(npc, world.Tick, GoalType.GatherFiber, 0.24f + freeHands + bedRopePull + dreamPull, gatherFiberAvail,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.GatherFiber));
+        AddGoalScore(npc, world.Tick, GoalType.CraftRope, 0.28f + freeHands + bedRopePull + dreamPull, craftRopeAvail,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.CraftRope));
         AddGoalScore(npc, world.Tick, GoalType.CraftCloth, 0.28f + freeHands, craftClothAvail);
         AddGoalScore(npc, world.Tick, GoalType.CraftKnife,
             0.34f + freeHands + coconutToolBoost, craftKnifeAvail, coconutEmergencyBoost);
@@ -2316,7 +2384,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             carriedLogs >= needNow.Logs && stoneCount >= needNow.Stones &&
             carriedLeaves >= needNow.Leaves && hasHammer &&
             HasReachableWithTag(npc, world, "BuildSite");
-        AddGoalScore(npc, world.Tick, GoalType.Build, 0.4f + freeHands, buildAvail);
+        AddGoalScore(npc, world.Tick, GoalType.Build, 0.4f + freeHands, buildAvail,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.Build));
 
         // Spec §52: haul a material to the furniture build-site, or raise it
         // with a hammer once stocked. Weighted like the retired CraftBed
@@ -2421,7 +2490,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             (siteIsHearth ? coldChain : 0f), buildFurnitureAvail,
             emergency: spitUrgent ? ctx.EmergencyBoost
                 : collectorUrgent ? ctx.DrinkBoost
-                : 0f);
+                : 0f,
+            command: DirectiveMath.Pull(ctx.DirectiveKind, GoalType.BuildFurniture));
 
         // Spec §52: free a slot by carrying a low-value item to the fireside
         // stockpile — but only in peace. Life-threatening pressure (a dog, a
@@ -2434,7 +2504,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
             haulVictim != null &&
             InventoryMath.Importance(world, haulVictim) <= 25 &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HaulToFire);
-        AddGoalScore(npc, world.Tick, GoalType.HaulToFire, 0.28f, haulToFireAvail);
+        // §167.5: СТОКОВЫЙ рукав — несёт запрошенный запас (еда/кокос/дрова)
+        // к очагу, не будучи под угрозой. Обычный рукав выше — про мусор
+        // важностью ≤25; еда (95) им никогда не носилась.
+        var stockHaulAvail = DirectiveMath.IsStocking(ctx.DirectiveKind) &&
+            !lifeThreatened && campfireSeen &&
+            DirectiveMath.CarriedStock(world, npc, ctx.DirectiveKind) is not null &&
+            PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HaulToFire);
+        AddGoalScore(npc, world.Tick, GoalType.HaulToFire, 0.28f, haulToFireAvail || stockHaulAvail,
+            command: stockHaulAvail ? DirectiveMath.Pull(ctx.DirectiveKind, GoalType.HaulToFire) : 0f);
 
         // §133: одежда не должна лежать по всей карте. Скучная фоновая работа
         // «подобрать своё и отнести домой» — ставка нарочно низкая: любое живое
@@ -3060,6 +3138,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     $"Soc={score.SocialModifier:F3} " +
                     $"Env={score.EnvironmentModifier:F3} " +
                     $"Emg={score.EmergencyModifier:F3} " +
+                    (score.CommandModifier != 0f ? $"Cmd={score.CommandModifier:F3} " : string.Empty) +
                     $"=> Final={score.FinalScore:F3}");
             }
 
@@ -3646,7 +3725,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
         }
     }
 
-    private static void AddGoalScore(NPCState npc, int currentTick, GoalType goal, float needValue, bool isAvailable, float emergency = 0f, float social = 0f, float environment = 0f)
+    // §167.4 / §23.12: `command` — слагаемое за принятое указание
+    // (DirectiveMath.Pull). Прибавляется ПОСЛЕДНИМ: `x + 0f` бит-в-бит равен
+    // `x`, поэтому каждое место без указания остаётся в золотом трейсе.
+    private static void AddGoalScore(NPCState npc, int currentTick, GoalType goal, float needValue, bool isAvailable, float emergency = 0f, float social = 0f, float environment = 0f, float command = 0f)
     {
         // Spec 23.10: goals on cooldown are hard-gated.
         var onCooldown = false;
@@ -3668,7 +3750,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             EmergencyModifier = emergency,
             SocialModifier = social,
             EnvironmentModifier = environment,
-            FinalScore = available ? 0.1f + needValue + emergency + social + environment : 0f
+            CommandModifier = command,
+            FinalScore = available ? 0.1f + needValue + emergency + social + environment + command : 0f
         };
 
         npc.Mind.LastScores.Add(score);

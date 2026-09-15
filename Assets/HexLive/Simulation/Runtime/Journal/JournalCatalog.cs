@@ -270,6 +270,22 @@ public static class JournalCatalog
             perspective: JournalPerspective.Received);
         r["ClothesStowed"] = new JournalRule(10, extra: JournalExtra.LeadingWord);
 
+        // §167: указания. Отказ помнят дольше согласия; выполненное
+        // обещание — заметная запись у исполнительницы.
+        r["DirectiveAsked"] = new JournalRule(30, JournalRole.FirstNpc,
+            extra: JournalExtra.Token, extraToken: "Kind=");
+        r["DirectiveAccepted"] = new JournalRule(44, JournalRole.FirstNpc, mirrorWeight: 32,
+            perspective: JournalPerspective.Received,
+            extra: JournalExtra.Token, extraToken: "Kind=");
+        r["DirectiveRefused"] = new JournalRule(58, JournalRole.FirstNpc, mirrorWeight: 26,
+            perspective: JournalPerspective.Received,
+            extra: JournalExtra.Token, extraToken: "Kind=");
+        r["DirectivePending"] = new JournalRule(0);
+        r["DirectiveShout"] = new JournalRule(34, extra: JournalExtra.Token, extraToken: "Kind=");
+        r["DirectiveDone"] = new JournalRule(40, JournalRole.FirstNpc,
+            extra: JournalExtra.Token, extraToken: "Kind=");
+        r["DirectiveExpired"] = new JournalRule(12, extra: JournalExtra.Token, extraToken: "Kind=");
+
         // ── тело и нужда ────────────────────────────────────────────────────
         r["StatusStarving"] = new JournalRule(64, perspective: JournalPerspective.Received);
         r["StatusDehydrated"] = new JournalRule(64, perspective: JournalPerspective.Received);

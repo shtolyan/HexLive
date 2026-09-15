@@ -1474,7 +1474,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             // Spec §52: set the low-value item down at the hearth (a
             // fireside stockpile) — the pack has room again, and the item
             // waits here to be reclaimed by normal pickup later.
-            var victim = InventoryMath.LowestImportanceDroppable(world, npc);
+            // §167.5: по стоковому указанию у очага выгружается ЗАПАС (еда,
+            // кокос, дрова), а не самая дешёвая вещь из карманов.
+            var directiveKind = DirectiveMath.Current(npc);
+            var victim = (DirectiveMath.IsStocking(directiveKind)
+                    ? DirectiveMath.CarriedStock(world, npc, directiveKind)
+                    : null) ??
+                InventoryMath.LowestImportanceDroppable(world, npc);
             if (victim is not null && InventoryMath.TryDropAutomatic(world, npc, victim) != null)
             {
                 InventoryMath.RemoveReference(npc.Inventory.Items, victim);

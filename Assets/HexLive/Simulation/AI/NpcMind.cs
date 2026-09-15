@@ -298,6 +298,24 @@ public sealed class NPCMind
 
     public int ProstheticAidRetryAfterTick { get; set; }
 
+    // §167.1: принятое указание — обещание другой колонистке (или игроку,
+    // FromId == null). Не приказ: смещает аукцион (§23.12) на срок UntilTick
+    // и снимается по истечении/выполнению/цензу запаса. ПЕРСИСТИТСЯ (v78):
+    // обещание переживает сейв. StopCommand его не трогает.
+    public Directive? Directive { get; set; }
+
+    // §167.8: просьба, ждущая ответа агента (§160.1). Транзит.
+    public PendingDirective? PendingDirective { get; set; }
+
+    // §167.7: когда сама в последний раз просила — cooldown инициативы.
+    public int LastDirectiveAskTick { get; set; } = int.MinValue / 2;
+
+    // §167.7: решение «пойду попрошу» — вид и кого. Пишется в преамбуле
+    // решений, читается построителем плана Socialize, транзит.
+    public DirectiveKind InitiativeAskKind { get; set; }
+
+    public HexLive.Simulation.Common.EntityId? InitiativeAskTarget { get; set; }
+
     // Reactive combat aid: when a fleeing victim calls for help, responders
     // get a short-lived Defend goal pointed at the attacker.
     public int LastHelpCryTick { get; set; } = -999999;
@@ -804,6 +822,11 @@ public sealed class GoalScore
     public float EnvironmentModifier { get; set; }
 
     public float EmergencyModifier { get; set; }
+
+    // §167.4 / §23.12: слагаемое за принятое указание (DirectiveMath.Pull).
+    // Вернулось, потому что теперь ПРИСВАИВАЕТСЯ — и печатается в трассу
+    // только когда не ноль, чтобы не трогать текст GoalScored без указаний.
+    public float CommandModifier { get; set; }
 
     public float FinalScore { get; set; }
 }

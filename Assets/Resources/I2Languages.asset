@@ -27903,6 +27903,358 @@ MonoBehaviour:
       - 'Сначала разожгите костёр, чтобы согреться'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.directive'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Ask ▸'
+      - 'Указание ▸'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.directive.all'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Directive to all ▸'
+      - 'Указание всем ▸'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.directive.build'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Work on building'
+      - 'Заняться стройкой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.directive.stock_food'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stock up food'
+      - 'Запастись едой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.directive.stock_water'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Stock up water'
+      - 'Запастись водой'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.directive.firewood'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Gather firewood'
+      - 'Заготовить дров'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.directive.not_ally'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Not one of ours'
+      - 'Не из наших'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.shout'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Shout ▸'
+      - 'Крикнуть ▸'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.shout.build'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Everyone, build!'
+      - 'Все на стройку!'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.shout.stock_food'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Everyone, gather food!'
+      - 'Все за едой!'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.shout.stock_water'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Everyone, gather water!'
+      - 'Все за водой!'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.shout.firewood'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Everyone, firewood!'
+      - 'Все за дровами!'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'directive.Build'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'building'
+      - 'стройка'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'directive.StockFood'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'stocking food'
+      - 'запас еды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'directive.StockWater'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'stocking water'
+      - 'запас воды'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'directive.Firewood'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'firewood'
+      - 'дрова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.directive.player'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Promised you: {0}'
+      - 'Обещала тебе: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.directive.from'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Promised {0}: {1}'
+      - 'Обещала {0}: {1}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'rel.authority'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Authority'
+      - 'Власть'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DirectiveAsked'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'asked for help'
+      - 'попросила'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DirectiveAccepted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'agreed'
+      - 'согласилась'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DirectiveRefused'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'refused'
+      - 'отказала'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DirectivePending'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'is deciding'
+      - 'думает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DirectiveShout'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'shouted'
+      - 'крикнула'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DirectiveDone'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'kept her word'
+      - 'сделала, как обещала'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.DirectiveExpired'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'forgot her promise'
+      - 'забыла обещание'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DirectiveAsked'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'asked: {0}'
+      - 'просьба: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DirectiveAccepted'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'agreed: {0}'
+      - 'согласилась: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DirectiveRefused'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'refused: {0}'
+      - 'отказала: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DirectiveShout'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'shouted: {0}'
+      - 'крик: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DirectiveDone'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'done: {0}'
+      - 'сделано: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'history.detail.DirectiveExpired'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'dropped: {0}'
+      - 'забыто: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveAsked.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I asked her to help with {0}.'
+      - 'Попросила её помочь: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveAsked.did.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Had to ask for a hand: {0}.'
+      - 'Пришлось просить о помощи: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveAccepted.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'She said yes: {0}.'
+      - 'Она согласилась: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveAccepted.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'I promised her: {0}. Let''s see.'
+      - 'Пообещала ей: {0}. Посмотрим.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveAccepted.did.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Said I would do it: {0}.'
+      - 'Сказала, что сделаю: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveRefused.got.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'She refused: {0}. Fine.'
+      - 'Она отказала: {0}. Ну и ладно.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveRefused.got.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Asked her about {0} — no.'
+      - 'Просила её: {0} — нет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveRefused.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Told her no: {0}. Not today.'
+      - 'Сказала ей нет: {0}. Не сегодня.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveShout.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Shouted to everyone: {0}!'
+      - 'Крикнула всем: {0}!'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveDone.did.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Kept my word: {0}.'
+      - 'Сдержала слово: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveDone.did.v1'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Done what I promised: {0}.'
+      - 'Сделала, что обещала: {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'journal.DirectiveExpired.v0'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Never got round to it: {0}.'
+      - 'Так и не дошли руки: {0}.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

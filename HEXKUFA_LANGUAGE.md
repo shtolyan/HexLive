@@ -199,6 +199,7 @@
 | `teracho` | ноет, тянет |
 | `nam` | надо, будем |
 | `haro` | хорошо |
+| `ne` | нет, не (отказ; §167 `refuse_directive`) |
 | `kaka` | плохо, гадость |
 
 ### 3.7 Звери и вода
@@ -821,6 +822,48 @@ Tired, Cold`) — значения едут в трейсах/снапшотах
 | `[calling out] Hooooo! Janeiko! Hoo!` | Эээй! Подруга! Эй! |
 | `[calling out] Kudou to?! Hoo!` | Ты где?! Эй! |
 | `[calling out] Gula mia! Hoo-hoo!` | Иди ко мне! Эй-эй! |
+
+#### D18 · `ask_build` · P1 — просьба «займись стройкой» (§167, `AskBuild`)
+| Реплика | Русский |
+|---|---|
+| `[asking] Kladka nam. Toi?` | Стройка нужна. Ты? |
+| `[asking] Doma kusner. Toi kladka?` | Дома нет. Ты построишь? |
+| `[hopeful] Molka dai. Doma nam` | Возьми молоток. Дом нужен |
+
+#### D19 · `ask_food` · P1 — просьба «запасись едой» (§167, `AskStockFood`)
+| Реплика | Русский |
+|---|---|
+| `[asking] Paku kusner. Dai!` | Еды нет. Принеси! |
+| `[asking] Koko nam. Gula, paku!` | Кокосы нужны. Иди, еда! |
+| `[worried] Paku mifo... toi nam` | Еды нет... ты нужна |
+
+#### D20 · `ask_water` · P1 — просьба «запасись водой» (§167, `AskStockWater`)
+| Реплика | Русский |
+|---|---|
+| `[asking] Sipa kusner. Bota dai!` | Воды нет. Принеси сосуд! |
+| `[asking] Sipa nam nip. Koko sipa!` | Вода нужна уже. Кокос с водой! |
+| `[worried] Bota kusner. Sipa!` | Бутылка пуста. Воды! |
+
+#### D21 · `ask_wood` · P2 — просьба «заготовь дров» (§167, `AskFirewood`)
+| Реплика | Русский |
+|---|---|
+| `[asking] Fugo mifo. Shepa dai!` | Огонь слабеет. Принеси палок! |
+| `[asking] Shepa nam fugo. Gula?` | Дрова нужны огню. Сходишь? |
+| `[worried] Shepa kusner. Mora!` | Дров нет. Беда! |
+
+#### D22 · `agree_directive` · P1 — «ладно, сделаю» (§167, `DirectiveYes`)
+| Реплика | Русский |
+|---|---|
+| `[agreeing] Haro, janeiko. Mo nam` | Ладно, подруга. Я сделаю |
+| `[agreeing] Aha, mo gula. Haro nip` | Ага, я пойду. Хорошо |
+| `[warm] Toi dumka — mo dai. Haro` | Твоя задумка — я принесу. Ладно |
+
+#### D23 · `refuse_directive` · P1 — «нет, не буду» (§167, `DirectiveNo`)
+| Реплика | Русский |
+|---|---|
+| `[refusing] Ne. Toi gula` | Нет. Сама иди |
+| `[grumbling] Ne-ne. Toi nam — toi dai` | Нет-нет. Тебе надо — ты и неси |
+| `[tired] Mo kusner... ne nip` | У меня пусто... нет уже |
 
 ### E. Забота (§53), мечты (§64), подарки (§63)
 

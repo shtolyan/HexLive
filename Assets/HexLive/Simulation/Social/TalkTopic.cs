@@ -49,7 +49,20 @@ public enum TalkTopic
     // circle hates him enough, this conversation becomes a pact — see
     // GroupHuntMath. Appended last for the same reason as the complaints:
     // values travel as ints in traces and snapshots.
-    Stranger
+    Stranger,
+
+    // §167.2: ПРОСЬБА. Общая тема, которую задаёт просящая (игрок, агент или
+    // сама колонистка): «займись стройкой», «запасись едой/водой/дровами».
+    // На старте разговора DirectiveMath.Ask решает согласие; слушательница
+    // отвечает своей темой DirectiveYes/DirectiveNo на весь разговор.
+    AskBuild,
+    AskStockFood,
+    AskStockWater,
+    AskFirewood,
+
+    // §167.2: ответ слушательницы — только её собственная тема, никогда общая.
+    DirectiveYes,
+    DirectiveNo
 }
 
 /// <summary>§28.15G: only shared conversation subjects may be requested by a command.</summary>
@@ -59,7 +72,9 @@ public static class TalkTopicRequest
     {
         TalkTopic.SmallTalk, TalkTopic.Escape, TalkTopic.Dogs, TalkTopic.Weather,
         TalkTopic.Food, TalkTopic.Fire, TalkTopic.Home, TalkTopic.Gossip,
-        TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble
+        TalkTopic.Flirt, TalkTopic.Joke, TalkTopic.Grumble,
+        // §167.2: просьбы — общие темы по определению (их задаёт просящая).
+        TalkTopic.AskBuild, TalkTopic.AskStockFood, TalkTopic.AskStockWater, TalkTopic.AskFirewood
     });
 
     public static bool IsAllowed(TalkTopic topic)

@@ -92,6 +92,15 @@ internal static class ManualCommandExecutor
             case RequestItemCommand requestItem:
                 ApplyRequestItem(world, requestItem, admission);
                 break;
+            case SetDirectiveCommand setDirective:
+                ApplySetDirective(world, setDirective, admission);
+                break;
+            case ShoutDirectiveCommand shout:
+                ApplyShoutDirective(world, shout, admission);
+                break;
+            case RespondDirectiveCommand respond:
+                ApplyRespondDirective(world, respond, admission);
+                break;
             case RomancePersonCommand romance:
                 ApplyRomancePerson(world, romance, admission);
                 break;
@@ -219,6 +228,9 @@ internal static class ManualCommandExecutor
         CraftItemCommand => "Craft",
         TalkToCommand => "TalkTo",
         RequestItemCommand => "RequestItem",
+        SetDirectiveCommand => "SetDirective",
+        ShoutDirectiveCommand => "ShoutDirective",
+        RespondDirectiveCommand => "RespondDirective",
         RomancePersonCommand c => c.Forced ? "ForceRomance" : "Romance",
         MergeCampsCommand => "MergeCamps",
         SetCampHomeCommand => "SetCampHome",
@@ -2010,6 +2022,90 @@ internal static class ManualCommandExecutor
 
         GroupResult(world, "MoveTo", command.Actors.Count, manual, accepted,
             actors.Count - accepted, incapacitated, ai);
+    }
+
+    // §167.3: указание своим — обещание без разговора. Не требует ручного
+    // режима: в ИИ-режиме оно и работает (аукцион смещается), а ручную
+    // клиент отпускает отдельной командой. Чужих (не своих) — молча мимо:
+    // на сервере их отсечёт PlayerCommandAssignment, локально — CanControl.
+    private static void ApplySetDirective(
+        WorldState world, SetDirectiveCommand command, AdmissionTracker admission)
+    {
+        if (!Spec167.Enabled || command.Kind == DirectiveKind.None ||
+            !System.Enum.IsDefined(typeof(DirectiveKind), command.Kind))
+        {
+            admission.Reject("InvalidKind");
+            return;
+        }
+
+        var accepted = 0;
+        var incapacitated = 0;
+        foreach (var id in command.Actors)
+        {
+            if (!PlayerAuthority.CanControl(world, id, out var npc) || npc.Health <= 0f)
+            {
+                continue;
+            }
+
+            if (npc.IsUnconscious(world.Tick))
+            {
+                incapacitated++;
+                continue;
+            }
+
+            DirectiveMath.Assign(world, npc, command.Kind);
+            accepted++;
+        }
+
+        GroupResult(world, "SetDirective", command.Actors.Count, 0, accepted, 0, incapacitated, 0);
+        if (accepted == 0)
+        {
+            admission.Reject("PersonNotAvailable");
+        }
+    }
+
+    // §167.2: крик — как TalkTo, требует своего ручного персонажа; сам
+    // приказ не занимает её (кричит и продолжает своё), поэтому план не
+    // сбрасывается.
+    private static void ApplyShoutDirective(
+        WorldState world, ShoutDirectiveCommand command, AdmissionTracker admission)
+    {
+        if (!Spec167.Enabled || command.Kind == DirectiveKind.None ||
+            !System.Enum.IsDefined(typeof(DirectiveKind), command.Kind))
+        {
+            Reject(world, command.Npc, "ShoutDirective", "InvalidKind", admission);
+            return;
+        }
+
+        if (!TryTakeOrder(world, command.Npc, "ShoutDirective", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "ShoutDirective", "Incapacitated", admission);
+            return;
+        }
+
+        DirectiveMath.Shout(world, npc, command.Kind);
+    }
+
+    // §167.8: ответ агента. Server-only; сюда попадает только через WorldHost.
+    private static void ApplyRespondDirective(
+        WorldState world, RespondDirectiveCommand command, AdmissionTracker admission)
+    {
+        if (!world.Entities.Npcs.TryGetValue(command.Npc, out var npc))
+        {
+            admission.Reject("NpcMissing");
+            return;
+        }
+
+        if (!DirectiveMath.Respond(world, npc, command.From, command.Kind, command.Accept, out var reason))
+        {
+            admission.Reject(reason);
+        }
     }
 
     private static void ApplyGroupStop(WorldState world, GroupStopCommand command)

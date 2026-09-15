@@ -174,7 +174,9 @@ public static class WorldSaveSerializer
     // Natural only from a producer's saved ids, leaving other origins Unknown.
     // v76 (§144 / bug #409): saved completion target for bounded agent rest.
     // v77 (§27.18A r3): bounded personal object-survey history.
-    public const int BlobVersion = 77;
+    // v78 (§167): accepted directive at the end of each NPC record and the
+    // Authority axis (§28.2) in every relationship record.
+    public const int BlobVersion = 78;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1842,6 +1844,7 @@ public static class WorldSaveSerializer
             w.Write(pair.Value.Familiarity);
             w.Write(pair.Value.Affinity);
             w.Write(pair.Value.LastInteractionTick);
+            if (version >= 78) w.Write(pair.Value.Authority);
         }
 
         w.Write(npc.Inventory.Capacity);
@@ -2081,6 +2084,22 @@ public static class WorldSaveSerializer
             {
                 WriteTile(w, pair.Key);
                 w.Write(pair.Value);
+            }
+        }
+
+        if (version >= 78)
+        {
+            // §167.1: the promise survives a save; PendingDirective (§167.8)
+            // is transient by design and is not written.
+            var directive = npc.Mind.Directive;
+            w.Write(directive is not null);
+            if (directive is not null)
+            {
+                w.Write((int)directive.Kind);
+                w.Write(directive.FromId.HasValue);
+                if (directive.FromId.HasValue) w.Write(directive.FromId.Value.Value);
+                w.Write(directive.IssuedTick);
+                w.Write(directive.UntilTick);
             }
         }
     }
@@ -2503,7 +2522,8 @@ public static class WorldSaveSerializer
                 Trust = r.ReadSingle(),
                 Familiarity = r.ReadSingle(),
                 Affinity = r.ReadSingle(),
-                LastInteractionTick = version >= 59 ? r.ReadInt32() : 0
+                LastInteractionTick = version >= 59 ? r.ReadInt32() : 0,
+                Authority = version >= 78 ? MathUtil.Clamp01(r.ReadSingle()) : 0f
             };
         }
 
@@ -2832,6 +2852,21 @@ public static class WorldSaveSerializer
                     throw new InvalidDataException("Invalid personal survey entry.");
                 npc.Memory.SurveyedTiles.Add(tile, tick);
             }
+        }
+
+        if (version >= 78 && r.ReadBoolean())
+        {
+            var kind = (DirectiveKind)r.ReadInt32();
+            if (kind == DirectiveKind.None || !Enum.IsDefined(typeof(DirectiveKind), kind))
+                throw new InvalidDataException("Invalid directive kind in save.");
+            EntityId? from = r.ReadBoolean() ? new EntityId(r.ReadInt32()) : null;
+            npc.Mind.Directive = new Directive
+            {
+                Kind = kind,
+                FromId = from,
+                IssuedTick = r.ReadInt32(),
+                UntilTick = r.ReadInt32()
+            };
         }
 
         // v66/v67 kept one global pair; v68's item state is authoritative.

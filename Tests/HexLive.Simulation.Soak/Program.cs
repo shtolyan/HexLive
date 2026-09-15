@@ -20,6 +20,10 @@ public static class Program
     public static int Main(string[] args)
     {
         var options = SoakOptions.Parse(args, out var error);
+        if (options != null && options.AutonomousAsk)
+        {
+            HexLive.Simulation.Runtime.Spec167.AutonomousAsk = true; // §167.7
+        }
         if (options == null)
         {
             Console.WriteLine(error);

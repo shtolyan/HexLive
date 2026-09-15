@@ -652,6 +652,58 @@ public sealed class GroupAttackMobCommand : GroupSimulationCommand
     public int MobId { get; }
 }
 
+/// <summary>§167.3: указание СВОИМ — без разговора и без готовности («свои
+/// принимают всегда»). Не приказ: пишет обещание с FromId=null и не требует
+/// ручного режима; исполнитель сам не отпускает в ИИ — это делает клиент
+/// отдельной SetGroupManualControlCommand(false).</summary>
+public sealed class SetDirectiveCommand : GroupSimulationCommand
+{
+    public SetDirectiveCommand(IEnumerable<EntityId> actors, DirectiveKind kind)
+        : base(actors) => Kind = kind;
+
+    public DirectiveKind Kind { get; }
+}
+
+/// <summary>§167.2: крикнуть указание всем своим в радиусе — каждая решает
+/// сама (DirectiveMath.Shout). Требует ручного режима, как TalkTo.</summary>
+public sealed class ShoutDirectiveCommand : ISimulationCommand
+{
+    public ShoutDirectiveCommand(EntityId npc, DirectiveKind kind)
+    {
+        Npc = npc;
+        Kind = kind;
+    }
+
+    public EntityId Npc { get; }
+
+    public DirectiveKind Kind { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
+/// <summary>§167.8: ответ внешнего разума (агента §160.1) на ожидающую
+/// просьбу. Server-only, как RecordAgentSocialCommand.</summary>
+public sealed class RespondDirectiveCommand : ISimulationCommand
+{
+    public RespondDirectiveCommand(EntityId npc, EntityId from, DirectiveKind kind, bool accept)
+    {
+        Npc = npc;
+        From = from;
+        Kind = kind;
+        Accept = accept;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId From { get; }
+
+    public DirectiveKind Kind { get; }
+
+    public bool Accept { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 public sealed class SetGroupManualControlCommand : GroupSimulationCommand
 {
     public SetGroupManualControlCommand(IEnumerable<EntityId> actors, bool enabled)

@@ -52,7 +52,11 @@ internal static class McpNpcObservations
                 ["aidKind"] = agent.AidKind.ToString(),
                 ["bodyObservation"] = BodyObservation(body),
                 ["observerRelationship"] = relationship == null ? null : new
-                { trust = relationship.Trust, familiarity = relationship.Familiarity, affinity = relationship.Affinity },
+                { trust = relationship.Trust, familiarity = relationship.Familiarity, affinity = relationship.Affinity,
+                  authority = relationship.Authority },
+                // §167: что она пообещала и кому — для координации дел.
+                ["holdsDirective"] = body.Mind.Directive is { } held ? new
+                { kind = held.Kind.ToString(), fromNpcId = held.FromId?.Value } : null,
             });
         }
         return rows;

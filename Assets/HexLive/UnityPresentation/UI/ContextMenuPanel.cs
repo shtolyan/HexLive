@@ -20,9 +20,24 @@ public sealed class ContextMenuEntry
         DisabledHint = disabledHint;
     }
 
+    /// <summary>§167.3: пункт-родитель — вместо действия раскрывает вложенный
+    /// список справа («Указание ▸»). Сам по клику ничего не делает.</summary>
+    public ContextMenuEntry(string label, IReadOnlyList<ContextMenuEntry> children,
+        bool enabled = true, string? disabledHint = null)
+    {
+        Label = label;
+        Activate = () => { };
+        Children = children;
+        Enabled = enabled;
+        DisabledHint = disabledHint;
+    }
+
     public string Label { get; }
 
     public Action Activate { get; }
+
+    /// <summary>Вложенные пункты; null — обычная строка.</summary>
+    public IReadOnlyList<ContextMenuEntry>? Children { get; }
 
     /// <summary>Ложь — пункт виден, но серый. ВИДЕН намеренно: «топором нельзя»
     /// — это сведение о мире, а исчезнувший пункт учит только тому, что меню
@@ -54,6 +69,13 @@ public sealed class ContextMenuPanel : MonoBehaviour
     private VisualElement _card = null!;
     private Label _title = null!;
     private VisualElement _items = null!;
+
+    // §167.3: вложенное подменю — вторая карточка справа от строки-родителя.
+    private VisualElement _subCard = null!;
+    private VisualElement _subItems = null!;
+    private VisualElement? _subOwnerRow;
+    private bool _overCard;
+    private bool _overSub;
 
     private static ContextMenuPanel? _instance;
 
@@ -177,8 +199,8 @@ public sealed class ContextMenuPanel : MonoBehaviour
         };
         SetRadius(_card, 8f);
         SetBorder(_card, Stroke, 1f);
-        _card.RegisterCallback<PointerEnterEvent>(_ => PointerOverPanel = true);
-        _card.RegisterCallback<PointerLeaveEvent>(_ => PointerOverPanel = false);
+        _card.RegisterCallback<PointerEnterEvent>(_ => { _overCard = true; PointerOverPanel = true; });
+        _card.RegisterCallback<PointerLeaveEvent>(_ => { _overCard = false; PointerOverPanel = _overSub; });
 
         _title = new Label
         {
@@ -198,6 +220,87 @@ public sealed class ContextMenuPanel : MonoBehaviour
         _card.Add(_items);
 
         _root.Add(_card);
+
+        _subCard = new VisualElement
+        {
+            style =
+            {
+                position = Position.Absolute,
+                minWidth = 170,
+                maxWidth = 320,
+                paddingTop = 6,
+                paddingBottom = 6,
+                paddingLeft = 6,
+                paddingRight = 6,
+                backgroundColor = Panel,
+                display = DisplayStyle.None,
+            }
+        };
+        SetRadius(_subCard, 8f);
+        SetBorder(_subCard, Stroke, 1f);
+        _subCard.RegisterCallback<PointerEnterEvent>(_ => { _overSub = true; PointerOverPanel = true; });
+        _subCard.RegisterCallback<PointerLeaveEvent>(_ => { _overSub = false; PointerOverPanel = _overCard; });
+        _subItems = new VisualElement();
+        _subCard.Add(_subItems);
+        _root.Add(_subCard);
+    }
+
+    // §167.3: раскрыть вложенный список у правого края строки-родителя.
+    private void OpenSub(VisualElement row, ContextMenuEntry parent)
+    {
+        if (parent.Children is not { Count: > 0 } children)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(_subOwnerRow, row) && _subCard.style.display == DisplayStyle.Flex)
+        {
+            return;
+        }
+
+        _subOwnerRow = row;
+        _subItems.Clear();
+        foreach (var child in children)
+        {
+            _subItems.Add(MakeItem(child));
+        }
+
+        var cardLeft = _card.style.left.value.value;
+        var cardTop = _card.style.top.value.value;
+        _subCard.style.left = cardLeft + _card.layout.width - 2f;
+        _subCard.style.top = cardTop + row.layout.y + _items.layout.y - 6f;
+        _subCard.style.display = DisplayStyle.Flex;
+        _subCard.RegisterCallback<GeometryChangedEvent>(ClampSubIntoPanel);
+    }
+
+    private void CloseSub()
+    {
+        _subOwnerRow = null;
+        _subCard.style.display = DisplayStyle.None;
+        _subItems.Clear();
+        _overSub = false;
+    }
+
+    private void ClampSubIntoPanel(GeometryChangedEvent evt)
+    {
+        _subCard.UnregisterCallback<GeometryChangedEvent>(ClampSubIntoPanel);
+        var panelSize = _root.layout.size;
+        var sub = _subCard.layout.size;
+        if (panelSize.x <= 0f || sub.x <= 0f)
+        {
+            return;
+        }
+
+        var left = _subCard.style.left.value.value;
+        // Справа не помещается — раскрываем слева от карточки.
+        if (left + sub.x > panelSize.x - 4f)
+        {
+            left = Mathf.Max(4f, _card.style.left.value.value - sub.x + 2f);
+        }
+
+        var top = Mathf.Clamp(_subCard.style.top.value.value, 4f, Mathf.Max(4f, panelSize.y - sub.y - 4f));
+        _subCard.style.left = left;
+        _subCard.style.top = top;
     }
 
     /// <summary>Открыть меню у точки экрана (в пикселях, начало — левый низ,
@@ -232,7 +335,9 @@ public sealed class ContextMenuPanel : MonoBehaviour
 
         var panelPoint = RuntimePanelUtils.ScreenToPanel(_instance._root.panel,
             new Vector2(screenPosition.x, Screen.height - screenPosition.y));
-        if (_instance._card.worldBound.Contains(panelPoint))
+        if (_instance._card.worldBound.Contains(panelPoint) ||
+            (_instance._subCard.style.display == DisplayStyle.Flex &&
+             _instance._subCard.worldBound.Contains(panelPoint)))
         {
             return false;
         }
@@ -245,6 +350,7 @@ public sealed class ContextMenuPanel : MonoBehaviour
     {
         _title.text = title;
         _items.Clear();
+        CloseSub();
 
         foreach (var entry in entries)
         {
@@ -314,13 +420,44 @@ public sealed class ContextMenuPanel : MonoBehaviour
         };
         row.Add(label);
 
+        var isParent = entry.Children is { Count: > 0 };
+        if (isParent)
+        {
+            // §167.3: стрелка справа — «здесь ещё список».
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.justifyContent = Justify.SpaceBetween;
+            var arrow = new Label("\u25B8")
+            {
+                style = { color = entry.Enabled ? TextMute : TextMute, fontSize = 13, marginLeft = 10 }
+            };
+            row.Add(arrow);
+        }
+
         if (entry.Enabled)
         {
-            row.RegisterCallback<PointerEnterEvent>(_ => row.style.backgroundColor = Raised);
+            row.RegisterCallback<PointerEnterEvent>(_ =>
+            {
+                row.style.backgroundColor = Raised;
+                if (isParent)
+                {
+                    OpenSub(row, entry);
+                }
+                else if (_items.Contains(row))
+                {
+                    // Наведение на соседний пункт верхнего уровня закрывает подменю.
+                    CloseSub();
+                }
+            });
             row.RegisterCallback<PointerLeaveEvent>(_ => row.style.backgroundColor = Color.clear);
             row.RegisterCallback<MouseDownEvent>(e =>
             {
                 e.StopPropagation();
+                if (isParent)
+                {
+                    OpenSub(row, entry);
+                    return;
+                }
+
                 var action = entry.Activate;
                 Hide();
                 action();
@@ -348,6 +485,8 @@ public sealed class ContextMenuPanel : MonoBehaviour
 
         _root.style.display = DisplayStyle.None;
         _items.Clear();
+        CloseSub();
+        _overCard = false;
         IsOpen = false;
         PointerOverPanel = false;
     }

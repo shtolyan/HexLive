@@ -59,6 +59,10 @@ public sealed class SoakOptions
     /// готовность, такт сцены. То, чего не видно ни в одном событии.</summary>
     public bool CombatFrames;
 
+    // §167.7: включить инициативу «сама просит» (Spec167.AutonomousAsk) на
+    // время прогона — сравнение соаков с флагом и без.
+    public bool AutonomousAsk;
+
     /// <summary>Все удары по таймлайну замаха (§104 r8), поверх simdata.</summary>
     public bool TimedMelee;
 
@@ -213,6 +217,9 @@ public sealed class SoakOptions
                     case "--journal":
                         options.Journal = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--autonomous-ask":
+                        options.AutonomousAsk = true;
+                        break;
                     case "--explain-stuck":
                         options.ExplainStuck = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
@@ -299,6 +306,7 @@ public sealed class SoakOptions
   --arena NAME            prototype (по умолчанию) | abuse — арена §91
   --mode NAME             feud | bigisland | hugeisland | maniac | islands — режим §146/§157
   --combat-frames         по-тиковая раскадровка боя: замах/попадание/готовность
+  --autonomous-ask        §167.7: включить инициативу «сама просит» на прогон
   --journal N             §136: напечатать дневник NPC N — что она сама
                           записала о своих днях. 12000 тиков = 12 записей
   --explain-stuck N       разобрать первые N застоев: печатает хвост событий

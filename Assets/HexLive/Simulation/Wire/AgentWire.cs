@@ -15,6 +15,8 @@ public enum AgentCapabilities : uint
     WorldActions = 1 << 2,
     RelationView = 1 << 3,
     Journal = 1 << 4,
+    /// <summary>§167.8: принимает текст от ДРУГОГО агента (send_agent_message). Явный opt-in.</summary>
+    AgentText = 1 << 5,
 }
 
 public enum AgentPhase : byte

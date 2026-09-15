@@ -140,6 +140,13 @@ public static class SpeechCatalog
         ["happy_topic_flirt"] = new("Flirt", Rank.Talk, 0f),
         ["happy_topic_joke"] = new("Joke", Rank.Talk, 0f),
         ["angry_topic_grumble"] = new("Grumble", Rank.Talk, 0f),
+        // §167.2: просьба и ответ на неё — темы разговора, как D-блок.
+        ["ask_build"] = new("Build", Rank.Talk, 0f),
+        ["ask_food"] = new("Food", Rank.Talk, 0f),
+        ["ask_water"] = new("Thirst", Rank.Talk, 0f),
+        ["ask_wood"] = new("Chop", Rank.Talk, 0f),
+        ["agree_directive"] = new("Agree", Rank.Talk, 0f),
+        ["refuse_directive"] = new("Fail", Rank.Talk, 0f),
         ["happy_laugh"] = new("Joke", Rank.Talk, 6f),
         ["happy_agree"] = new("Agree", Rank.Talk, 6f),
         ["happy_bond_plus"] = new("Flirt", Rank.Action, 6f),
@@ -221,6 +228,13 @@ public static class SpeechCatalog
             // снимок ещё не сделан. Своей группы реплик на хекскуфе пока нет —
             // берётся ворчание, заменится одной строкой.
             "Stranger" => "angry_topic_grumble",
+            // §167.2: просьба (общая тема просящей) и ответ (тема слушательницы).
+            "AskBuild" => "ask_build",
+            "AskStockFood" => "ask_food",
+            "AskStockWater" => "ask_water",
+            "AskFirewood" => "ask_wood",
+            "DirectiveYes" => "agree_directive",
+            "DirectiveNo" => "refuse_directive",
             "Hunger" => "sad_hunger",
             "Thirst" => "sad_thirst",
             "Pain" => "hurt_wound",
@@ -340,6 +354,15 @@ public static class SpeechCatalog
         ["GiftReceived:Neutral"] = new("Gift", null, Rank.Action),
         ["GiftReceived:Disliked"] = new("Grumble", "angry_topic_grumble"),
         ["GiftReceived"] = new("Gift", null, Rank.Action),
+
+        // ---- §167 указания ---------------------------------------------------
+        // Просьба/крик молчаливы (сама реплика идёт темой разговора), ответ
+        // озвучен; «сделала» — действие, как happy_done.
+        ["DirectiveAsk"] = new("Call", null, Rank.Talk),
+        ["DirectiveShout"] = new("Call", null, Rank.Action),
+        ["DirectiveYes"] = new("Agree", "agree_directive"),
+        ["DirectiveNo"] = new("Fail", "refuse_directive"),
+        ["DirectiveDone"] = new("Done", null, Rank.Action),
 
         // ---- разговор ------------------------------------------------------
         ["TalkRequest"] = new("SmallTalk", null, Rank.Talk),

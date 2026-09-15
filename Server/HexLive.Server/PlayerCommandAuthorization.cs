@@ -24,7 +24,7 @@ public static class PlayerCommandAuthorization
         // §159: only the authenticated local MCP bridge may write companion
         // memory. It calls WorldHost directly; a viewer must never smuggle this
         // metadata command through the ordinary player-command wire.
-        if (command is RecordCompanionTurnCommand or RecordAgentSocialCommand)
+        if (command is RecordCompanionTurnCommand or RecordAgentSocialCommand or RespondDirectiveCommand)
         {
             refusal = "ServerOnlyCommand";
             return false;
@@ -39,10 +39,13 @@ public static class PlayerCommandAuthorization
 
         // Инвентарь и одежда принадлежат игроку в обоих режимах. Эти команды
         // не захватывают и не продлевают manual-control lease.
+        // §167.3: указание своим — обещание, а не управление: оно должно
+        // работать именно в ИИ-режиме, поэтому lease не берёт и не продлевает.
         if (command is SetOutfitLockCommand or
             ManageInventoryCommand or
             TransferInventoryCommand or
-            TransferContainerCommand)
+            TransferContainerCommand or
+            SetDirectiveCommand)
         {
             return true;
         }

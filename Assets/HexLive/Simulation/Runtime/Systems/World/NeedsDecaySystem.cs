@@ -1025,6 +1025,12 @@ public sealed class NeedsDecaySystem : ISimulationSystem
                     ? Spec94.GrudgeDriftPerTick
                     : Spec94.WarmthDriftPerTick;
                 relationship.Affinity = MathUtil.MoveTowards(relationship.Affinity, 0f, driftRate);
+                // §167.1: власть остывает как дружба — лидерство подтверждают делом.
+                if (relationship.Authority > 0f)
+                {
+                    relationship.Authority = MathUtil.MoveTowards(
+                        relationship.Authority, 0f, Spec167.AuthorityDriftPerTick);
+                }
             }
 
             // §45 r5: emergency unload — the raft/hearth stockpile must never

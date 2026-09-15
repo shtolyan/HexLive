@@ -285,6 +285,33 @@ public sealed class McpTools
             "Необязательная topic выбирает общую тему и штатную реплику Hexkufa, без TTS.",
             TalkToSchema()),
 
+        new("shout_directive",
+            "§167.2: крикнуть всем своим в радиусе 8 тайлов просьбу о деле (Build / StockFood / StockWater / " +
+            "Firewood). Каждая слышащая решает сама по симпатии, доверию и власти; откликов не больше трёх; " +
+            "ручные и спящие не слышат. Личная просьба одной колонистке — talk_to с темой Ask*. " +
+            "Итог — события DirectiveAccepted / DirectiveRefused в read_events.",
+            DirectiveKindSchema()),
+
+        new("respond_directive",
+            "§167.8: ответить на просьбу колонистки, пришедшую в инбокс сообщением с полем directive. " +
+            "accept=true — обещание записано (Authority просившей растёт), false — отказ. Без ответа " +
+            "симуляция решит сама через ~90 тиков. Принятое обещание — твоя цель (§163.3b), тяги ИИ у тебя нет.",
+            Schema(("attachmentId", "string", "attachment твоей колонистки", true),
+                   ("fromNpcId", "integer", "кто просил (directive.fromNpcId)", true),
+                   ("kind", "string", "Build / StockFood / StockWater / Firewood", true),
+                   ("accept", "boolean", "согласиться или отказать", true))),
+
+        new("send_agent_message",
+            "§167.8: текст ДРУГОМУ агенту (LLM-колонистке) на естественном языке — попадает в её инбокс с " +
+            "senderId npc:<твой id>. Адресат должен быть attached с capability agentText и стоять не дальше " +
+            "8 тайлов (сначала подойди: talk_to / move_to). NPC без агента текст не поймёт — ей нужен talk_to " +
+            "с темой Ask* или shout_directive.",
+            Schema(("attachmentId", "string", "attachment твоей колонистки", true),
+                   ("targetNpcId", "integer", "id колонистки-адресата", true),
+                   ("language", "string", "язык текста (ru, en, …)", true),
+                   ("text", "string", "текст до 4096 символов", true),
+                   ("messageId", "string", "идемпотентный id сообщения; по умолчанию новый GUID", false))),
+
         new("request_item",
             "Попросить у конкретного NPC один предмет по definitionId (§153.4). Владелец добровольно " +
             "соглашается или отказывает. Сначала подойдите: радиус подарка 1.95 wu и проверка " +
@@ -498,6 +525,18 @@ public sealed class McpTools
                         npc => new TalkToCommand(npc, target, topic), out isError);
                 }
 
+                case "shout_directive":
+                {
+                    Int(arguments, "npcId"); // обязательные параметры читаются первыми (контрактный гейт)
+                    if (!TryEnum<DirectiveKind>(Text(arguments, "kind"), "kind", out var kind, out var kindError) ||
+                        kind == DirectiveKind.None)
+                        throw new McpArgumentException("InvalidKind: " + (kindError.Length == 0 ? "None" : kindError));
+                    return Simple(host, arguments, owner,
+                        npc => new ShoutDirectiveCommand(npc, kind), out isError);
+                }
+                case "respond_directive": return RespondDirective(host, arguments, owner, out isError);
+                case "send_agent_message": return SendAgentMessage(host, arguments, owner, out isError);
+
                 case "aid_person": return AidPerson(host, arguments, owner, out isError);
                 case "treat_limbs":
                 {
@@ -707,7 +746,7 @@ public sealed class McpTools
         if (name is "world_status" or "read_spec" or "read_recipes" or "read_build_catalog" or "list_colonists" or "list_leases") return true;
         if (name is "agent_heartbeat" or "read_agent_inbox" or "ack_agent_inbox" or "publish_agent_phase" or
             "commit_agent_turn" or "begin_agent_utterance" or "append_agent_utterance" or
-            "commit_agent_utterance" or "detach_agent")
+            "commit_agent_utterance" or "detach_agent" or "respond_directive" or "send_agent_message")
             return arguments.ValueKind == JsonValueKind.Object &&
                 arguments.TryGetProperty("attachmentId", out var attachment) && attachment.ValueKind == JsonValueKind.String &&
                 _agents.TryGetOwnedNpcId(attachment.GetString()!, owner, _currentWorldGeneration(), out var npc) && allowed(npc);
@@ -890,6 +929,30 @@ public sealed class McpTools
                 ["bodyNeeds"] = McpPlanningObservations.Needs(npc),
                 ["restReadiness"] = McpPlanningObservations.RestReadiness(world, npc),
                 ["inOwnCamp"] = ColonyQueries.InCamp(world, npc.Tile, npc.Faction),
+                // §167: обещание, ожидающая просьба и запас лагеря против целей.
+                ["directive"] = npc.Mind.Directive is { } directive ? new Dictionary<string, object?>
+                {
+                    ["kind"] = directive.Kind.ToString(),
+                    ["fromNpcId"] = directive.FromId?.Value,
+                    ["ticksLeft"] = Math.Max(0, directive.UntilTick - world.Tick),
+                } : null,
+                ["pendingDirective"] = npc.Mind.PendingDirective is { } pendingDirective ? new Dictionary<string, object?>
+                {
+                    ["kind"] = pendingDirective.Kind.ToString(),
+                    ["fromNpcId"] = pendingDirective.FromId.Value,
+                } : null,
+                ["campStock"] = new Dictionary<string, object?>
+                {
+                    ["food"] = ColonyQueries.CampStock(world, npc.Faction, DirectiveKind.StockFood),
+                    ["water"] = ColonyQueries.CampStock(world, npc.Faction, DirectiveKind.StockWater),
+                    ["wood"] = ColonyQueries.CampStock(world, npc.Faction, DirectiveKind.Firewood),
+                    ["targets"] = new Dictionary<string, object?>
+                    {
+                        ["food"] = Spec167.StockFoodTarget,
+                        ["water"] = Spec167.StockWaterTarget,
+                        ["wood"] = Spec167.StockWoodTarget,
+                    },
+                },
                 ["execution"] = McpPlanningObservations.Execution(npc),
                 ["recentGiftResults"] = McpPlanningObservations.RecentGiftResults(world, npc.Id.Value),
                 ["effects"] = effects.Effects,
@@ -1075,6 +1138,7 @@ public sealed class McpTools
             isError = true;
             return "sinceSeq должен быть >=0, limit — 1..16.";
         }
+        SyncPendingDirective(_currentHost(), Text(arguments, "attachmentId"), owner);
         if (!_agents.TryReadInbox(Text(arguments, "attachmentId"), owner,
                 _currentWorldGeneration(), since, limit, out var inbox, out var reason))
         {
@@ -1094,6 +1158,12 @@ public sealed class McpTools
                 ["language"] = message.Language,
                 ["text"] = message.Text,
                 ["createdUtc"] = message.CreatedUtc.ToString("O", CultureInfo.InvariantCulture),
+                // §167.8: просьба колонистки — отвечать respond_directive, не текстом.
+                ["directive"] = message.DirectiveKind.Length == 0 ? null : new Dictionary<string, object?>
+                {
+                    ["kind"] = message.DirectiveKind,
+                    ["fromNpcId"] = message.FromNpcId,
+                },
             });
         }
         isError = false;
@@ -1692,7 +1762,7 @@ public sealed class McpTools
             throw new McpArgumentException("Нужен объект arguments до 8192 символов");
         if (tool is not ("move_to" or "interact" or "craft_item" or "stop" or "talk_to" or
             "aid_person" or "treat_limbs" or "self_action" or "carry_person" or "put_down_person" or
-            "put_person_in_bed" or "manage_inventory" or "attack_mob" or "merge_camps" or "request_item" or "transfer_inventory" or "rest_until"))
+            "put_person_in_bed" or "manage_inventory" or "attack_mob" or "merge_camps" or "request_item" or "transfer_inventory" or "rest_until" or "shout_directive"))
             throw new McpArgumentException("TrackedToolUnavailable");
         var properties = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);
         foreach (var property in nested.EnumerateObject())
@@ -1870,6 +1940,128 @@ public sealed class McpTools
     private static string Json(object payload) =>
         JsonSerializer.Serialize(payload, McpJson.Options);
 
+    // §167.2: вид указания — явный enum без None.
+    private static JsonElement DirectiveKindSchema()
+    {
+        var kinds = new List<string>();
+        foreach (DirectiveKind kind in Enum.GetValues(typeof(DirectiveKind)))
+            if (kind != DirectiveKind.None) kinds.Add(kind.ToString());
+        return JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            additionalProperties = false,
+            properties = new
+            {
+                npcId = new { type = "integer", description = "id кричащей колонистки (нужен lease)" },
+                kind = new { type = "string", description = "вид просьбы", @enum = kinds },
+            },
+            required = new[] { "npcId", "kind" },
+        });
+    }
+
+    // §167.8: ответ агента на ожидающую просьбу — server-only команда, lease не нужен.
+    private string RespondDirective(WorldHost host, JsonElement arguments, string owner, out bool isError)
+    {
+        // Все обязательные параметры читаются ДО семантических проверок: отказ
+        // «нет параметра X» обязан прийти и без attachment (контрактный гейт).
+        var attachmentId = Text(arguments, "attachmentId");
+        var from = new EntityId(Int(arguments, "fromNpcId"));
+        var kindText = Text(arguments, "kind");
+        if (!arguments.TryGetProperty("accept", out var acceptValue) ||
+            acceptValue.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+        {
+            isError = true;
+            return "Нужен параметр accept (boolean).";
+        }
+        if (!_agents.TryGetOwnedNpcId(attachmentId, owner, _currentWorldGeneration(), out var npcId))
+        {
+            isError = true;
+            return "AttachmentMissing";
+        }
+        if (!TryEnum<DirectiveKind>(kindText, "kind", out var kind, out var kindError) ||
+            kind == DirectiveKind.None)
+        {
+            isError = true;
+            return kindError.Length == 0 ? "InvalidKind" : kindError;
+        }
+        var admission = host.SubmitManualCommand(new RespondDirectiveCommand(
+            new EntityId(npcId), from, kind, acceptValue.GetBoolean()));
+        isError = !admission.Accepted;
+        return isError ? admission.Reason : Json(new Dictionary<string, object?>
+        {
+            ["status"] = "Accepted",
+            ["npcId"] = npcId,
+            ["fromNpcId"] = from.Value,
+            ["kind"] = kind.ToString(),
+            ["accepted"] = acceptValue.GetBoolean(),
+        });
+    }
+
+    // §167.8: текст агента агенту. Адресат — attached с AgentText и в пределах слышимости.
+    private string SendAgentMessage(WorldHost host, JsonElement arguments, string owner, out bool isError)
+    {
+        var attachmentId = Text(arguments, "attachmentId");
+        var target = Int(arguments, "targetNpcId");
+        var language = Text(arguments, "language");
+        var text = Text(arguments, "text");
+        if (!_agents.TryGetOwnedNpcId(attachmentId, owner, _currentWorldGeneration(), out var npcId))
+        {
+            isError = true;
+            return "AttachmentMissing";
+        }
+        if (target == npcId || text.Length == 0 || text.Length > 4096 || language.Length is 0 or > 16)
+        {
+            isError = true;
+            return "targetNpcId должен быть другой колонисткой, text 1..4096, language 1..16.";
+        }
+        if (!_agents.HasAttachmentWith(target, AgentCapabilities.AgentText))
+        {
+            isError = true;
+            return "AgentNotListening";
+        }
+        var distance = host.Read(world =>
+            world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var me) && me.Health > 0f &&
+            world.Entities.Npcs.TryGetValue(new EntityId(target), out var her) && her.Health > 0f
+                ? HexSpatialMath.HexDistance(me.Tile, her.Tile)
+                : int.MaxValue);
+        if (distance > Spec167.ShoutRadiusTiles)
+        {
+            isError = true;
+            return distance == int.MaxValue ? "NpcMissing" : "TooFar";
+        }
+        var messageId = OptionalText(arguments, "messageId") ?? Guid.NewGuid().ToString("N");
+        if (!_agents.TryEnqueueText(target, messageId, language, text, out var reason,
+                "npc:" + npcId, null, AgentCapabilities.AgentText))
+        {
+            isError = true;
+            return reason;
+        }
+        isError = false;
+        return Json(new Dictionary<string, object?>
+        {
+            ["status"] = "Delivered",
+            ["targetNpcId"] = target,
+            ["messageId"] = messageId,
+        });
+    }
+
+    // §167.8: ожидающая просьба из мира → инбокс агента (идемпотентно по тику).
+    private void SyncPendingDirective(WorldHost host, string attachmentId, string owner)
+    {
+        if (!_agents.TryGetOwnedNpcId(attachmentId, owner, _currentWorldGeneration(), out var npcId)) return;
+        var pending = host.Read(world =>
+        {
+            if (!world.Entities.Npcs.TryGetValue(new EntityId(npcId), out var npc) ||
+                npc.Mind.PendingDirective is not { } p)
+                return ((int)0, string.Empty, DirectiveKind.None, 0);
+            var name = world.Entities.Npcs.TryGetValue(p.FromId, out var from) ? from.DisplayName ?? string.Empty : string.Empty;
+            return (p.FromId.Value, name, p.Kind, p.SinceTick);
+        });
+        if (pending.Item3 == DirectiveKind.None) return;
+        _agents.TryEnqueueDirective(npcId, pending.Item1, pending.Item2, pending.Item3, pending.Item4,
+            Spec167.PendingTimeoutTicks, out _);
+    }
+
     /// <summary>
     /// Схема инструмента. Пишется здесь руками и намеренно узкой: описание
     /// каждого параметра — это то единственное, что агент прочитает перед
@@ -1892,6 +2084,9 @@ public sealed class McpTools
                     type = "string",
                     description = "Общая тема (§28.15E): SmallTalk 💬, Escape ⛵, Dogs 🐕, Weather 🌧, " +
                         "Food 🥥, Fire 🔥, Home 🏠, Gossip 👀, Flirt 💗, Joke 😂, Grumble 😠. " +
+                        "§167.2 просьбы о деле: AskBuild 🔨, AskStockFood 🥥, AskStockWater 💧, AskFirewood 🪵 — " +
+                        "собеседница ответит DirectiveYes/DirectiveNo по симпатии, доверию и власти; " +
+                        "итог в read_events (DirectiveAccepted/DirectiveRefused). " +
                         "Без topic симуляция выбирает сама. Реальные жалобы участниц и исход разговора остаются штатными.",
                     @enum = topics,
                 },

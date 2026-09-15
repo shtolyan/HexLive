@@ -192,6 +192,13 @@ namespace HexLive.UnityPresentation.History
                 "TalkRequested" => F("history.detail.TalkRequested", Token(record.Message, "Affinity=")),
                 "TalkStarted" => F("history.detail.TalkStarted", TalkTopic(Token(record.Message, "Topic="))),
                 "TalkCompleted" => Loc.Get("history.detail.TalkCompleted"),
+                // §167: указания — вид просьбы словами.
+                "DirectiveAsked" => F("history.detail.DirectiveAsked", DirectiveKind(Token(record.Message, "Kind="))),
+                "DirectiveAccepted" => F("history.detail.DirectiveAccepted", DirectiveKind(Token(record.Message, "Kind="))),
+                "DirectiveRefused" => F("history.detail.DirectiveRefused", DirectiveKind(Token(record.Message, "Kind="))),
+                "DirectiveShout" => F("history.detail.DirectiveShout", DirectiveKind(Token(record.Message, "Kind="))),
+                "DirectiveDone" => F("history.detail.DirectiveDone", DirectiveKind(Token(record.Message, "Kind="))),
+                "DirectiveExpired" => F("history.detail.DirectiveExpired", DirectiveKind(Token(record.Message, "Kind="))),
                 "GiftGiven" => GiftDetail(record.Message),
                 "CampsMerged" => Loc.Get("history.detail.CampsMerged"),
                 "TalkQuarreled" => Loc.Get("history.detail.TalkQuarreled"),
@@ -391,6 +398,12 @@ namespace HexLive.UnityPresentation.History
         {
             // Неизвестный вид помощи остаётся сырым токеном (виден как баг).
             var key = "history.aid." + kind;
+            return Loc.Has(key) ? Loc.Get(key) : kind;
+        }
+
+        private static string DirectiveKind(string kind)
+        {
+            var key = "directive." + kind;
             return Loc.Has(key) ? Loc.Get(key) : kind;
         }
 

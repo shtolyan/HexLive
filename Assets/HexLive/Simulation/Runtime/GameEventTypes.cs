@@ -213,6 +213,16 @@ public static class GameEventTypes
         "WearPermissionRefused",
         "ClothesStowed",
 
+        // §167: указания. Просьба, ответ, крик и исход — сюжет колонии:
+        // «Нина попросила Марту запастись водой — та отказала».
+        "DirectiveAsked",
+        "DirectiveAccepted",
+        "DirectiveRefused",
+        "DirectivePending",
+        "DirectiveShout",
+        "DirectiveDone",
+        "DirectiveExpired",
+
         // §108: групповая охота на чужака. Вся дуга видима игроку — сговор,
         // первое столкновение, его бегство и исход; «кто держит строй» и
         // «почему сговор не сложился» остаются отладочными.

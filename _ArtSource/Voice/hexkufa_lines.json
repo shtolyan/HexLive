@@ -1262,6 +1262,126 @@
    ]
   },
   {
+   "code": "D18",
+   "id": "ask_build",
+   "priority": "P1",
+   "hook": "просьба «займись стройкой» (§167, `AskBuild`)",
+   "lines": [
+    {
+     "text": "[asking] Kladka nam. Toi?",
+     "ru": "Стройка нужна. Ты?"
+    },
+    {
+     "text": "[asking] Doma kusner. Toi kladka?",
+     "ru": "Дома нет. Ты построишь?"
+    },
+    {
+     "text": "[hopeful] Molka dai. Doma nam",
+     "ru": "Возьми молоток. Дом нужен"
+    }
+   ]
+  },
+  {
+   "code": "D19",
+   "id": "ask_food",
+   "priority": "P1",
+   "hook": "просьба «запасись едой» (§167, `AskStockFood`)",
+   "lines": [
+    {
+     "text": "[asking] Paku kusner. Dai!",
+     "ru": "Еды нет. Принеси!"
+    },
+    {
+     "text": "[asking] Koko nam. Gula, paku!",
+     "ru": "Кокосы нужны. Иди, еда!"
+    },
+    {
+     "text": "[worried] Paku mifo... toi nam",
+     "ru": "Еды нет... ты нужна"
+    }
+   ]
+  },
+  {
+   "code": "D20",
+   "id": "ask_water",
+   "priority": "P1",
+   "hook": "просьба «запасись водой» (§167, `AskStockWater`)",
+   "lines": [
+    {
+     "text": "[asking] Sipa kusner. Bota dai!",
+     "ru": "Воды нет. Принеси сосуд!"
+    },
+    {
+     "text": "[asking] Sipa nam nip. Koko sipa!",
+     "ru": "Вода нужна уже. Кокос с водой!"
+    },
+    {
+     "text": "[worried] Bota kusner. Sipa!",
+     "ru": "Бутылка пуста. Воды!"
+    }
+   ]
+  },
+  {
+   "code": "D21",
+   "id": "ask_wood",
+   "priority": "P2",
+   "hook": "просьба «заготовь дров» (§167, `AskFirewood`)",
+   "lines": [
+    {
+     "text": "[asking] Fugo mifo. Shepa dai!",
+     "ru": "Огонь слабеет. Принеси палок!"
+    },
+    {
+     "text": "[asking] Shepa nam fugo. Gula?",
+     "ru": "Дрова нужны огню. Сходишь?"
+    },
+    {
+     "text": "[worried] Shepa kusner. Mora!",
+     "ru": "Дров нет. Беда!"
+    }
+   ]
+  },
+  {
+   "code": "D22",
+   "id": "agree_directive",
+   "priority": "P1",
+   "hook": "«ладно, сделаю» (§167, `DirectiveYes`)",
+   "lines": [
+    {
+     "text": "[agreeing] Haro, janeiko. Mo nam",
+     "ru": "Ладно, подруга. Я сделаю"
+    },
+    {
+     "text": "[agreeing] Aha, mo gula. Haro nip",
+     "ru": "Ага, я пойду. Хорошо"
+    },
+    {
+     "text": "[warm] Toi dumka — mo dai. Haro",
+     "ru": "Твоя задумка — я принесу. Ладно"
+    }
+   ]
+  },
+  {
+   "code": "D23",
+   "id": "refuse_directive",
+   "priority": "P1",
+   "hook": "«нет, не буду» (§167, `DirectiveNo`)",
+   "lines": [
+    {
+     "text": "[refusing] Ne. Toi gula",
+     "ru": "Нет. Сама иди"
+    },
+    {
+     "text": "[grumbling] Ne-ne. Toi nam — toi dai",
+     "ru": "Нет-нет. Тебе надо — ты и неси"
+    },
+    {
+     "text": "[tired] Mo kusner... ne nip",
+     "ru": "У меня пусто... нет уже"
+    }
+   ]
+  },
+  {
    "code": "E1",
    "id": "happy_aid_give",
    "priority": "P1",

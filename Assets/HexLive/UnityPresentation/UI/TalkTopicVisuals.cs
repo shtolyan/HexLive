@@ -50,6 +50,12 @@ public static class TalkTopicVisuals
             case "Joke":    return new Topic("\U0001F602", Warm);  // 😂
             case "Grumble": return new Topic("\U0001F620", Danger);// 😠
             case "Stranger": return new Topic("\U0001F620", Danger);// 😠 §108: в пузыре его лицо
+            case "AskBuild": return new Topic("\U0001F528", Warm);   // 🔨 §167
+            case "AskStockFood": return new Topic("\U0001F965", Warm);// 🥥
+            case "AskStockWater": return new Topic("\U0001F4A7", Cool);// 💧
+            case "AskFirewood": return new Topic("\U0001FAB5", Warm); // 🪵
+            case "DirectiveYes": return new Topic("\U0001F44D", Warm);// 👍
+            case "DirectiveNo": return new Topic("\U0001F44E", Danger);// 👎
             case "SmallTalk":
             default:        return new Topic("\U0001F4AC", Neutral);// 💬
         }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Wire;
 
@@ -446,7 +447,40 @@ public sealed partial class AgentSessionRegistry
     }
 
     public bool TryEnqueuePlayerText(int npcId, string messageId, string language, string text,
-        out string reason, string senderId = "", string? expectedAttachmentId = null)
+        out string reason, string senderId = "", string? expectedAttachmentId = null) =>
+        TryEnqueueText(npcId, messageId, language, text, out reason, senderId, expectedAttachmentId,
+            AgentCapabilities.PlayerText);
+
+    /// <summary>
+    /// §167.8: просьба колонистки-NPC агенту. Идемпотентна по (from, kind, tick):
+    /// повторный опрос инбокса не плодит копий. Текст служебный (und) — модель
+    /// отвечает инструментом respond_directive, не репликой.
+    /// </summary>
+    public bool TryEnqueueDirective(int npcId, int fromNpcId, string fromName,
+        DirectiveKind kind, int sinceTick, int timeoutTicks, out string reason)
+    {
+        var text = $"[directive] {fromName} (NPC{fromNpcId}) asks you: {kind}. " +
+            $"Reply with respond_directive(fromNpcId={fromNpcId}, kind={kind}, accept=true|false) " +
+            $"within ~{timeoutTicks} ticks; otherwise the simulation decides for you.";
+        return TryEnqueueText(npcId, $"directive:{fromNpcId}:{kind}:{sinceTick}", "und", text,
+            out reason, "npc:" + fromNpcId, null, AgentCapabilities.PlayerText,
+            kind.ToString(), fromNpcId);
+    }
+
+    /// <summary>Есть ли у NPC живой attachment с этой способностью.</summary>
+    public bool HasAttachmentWith(int npcId, AgentCapabilities capability)
+    {
+        lock (_gate)
+        {
+            SweepLocked(null, int.MaxValue);
+            return _attachmentByNpc.TryGetValue(npcId, out var id) && _byId.TryGetValue(id, out var attachment) &&
+                (attachment.Capabilities & capability) == capability;
+        }
+    }
+
+    public bool TryEnqueueText(int npcId, string messageId, string language, string text,
+        out string reason, string senderId, string? expectedAttachmentId,
+        AgentCapabilities required, string directiveKind = "", int fromNpcId = 0)
     {
         lock (_gate)
         {
@@ -461,7 +495,7 @@ public sealed partial class AgentSessionRegistry
                 reason = "AttachmentChanged";
                 return false;
             }
-            if ((attachment.Capabilities & AgentCapabilities.PlayerText) == 0)
+            if ((attachment.Capabilities & required) != required)
             {
                 reason = "CapabilityUnavailable";
                 return false;
@@ -480,7 +514,7 @@ public sealed partial class AgentSessionRegistry
             }
             Remember(attachment.MessageIdSet, attachment.MessageIds, scopedMessageId, MaxInboxReceipts);
             attachment.Inbox.Add(new AgentInboxMessage(
-                ++_messageSequence, messageId, language, text, _now(), senderId));
+                ++_messageSequence, messageId, language, text, _now(), senderId, directiveKind, fromNpcId));
             reason = string.Empty;
             return true;
         }
@@ -740,7 +774,8 @@ public readonly struct AgentAttachmentSnapshot
 public readonly struct AgentInboxMessage
 {
     public AgentInboxMessage(long sequence, string messageId, string language,
-        string text, DateTimeOffset createdUtc, string senderId = "")
+        string text, DateTimeOffset createdUtc, string senderId = "",
+        string directiveKind = "", int fromNpcId = 0)
     {
         Sequence = sequence;
         MessageId = messageId;
@@ -748,7 +783,14 @@ public readonly struct AgentInboxMessage
         Text = text;
         CreatedUtc = createdUtc;
         SenderId = senderId;
+        DirectiveKind = directiveKind;
+        FromNpcId = fromNpcId;
     }
+
+    /// <summary>§167.8: непустой — это просьба колонистки (respond_directive), не реплика.</summary>
+    public string DirectiveKind { get; }
+
+    public int FromNpcId { get; }
     public long Sequence { get; }
     public string MessageId { get; }
     public string Language { get; }

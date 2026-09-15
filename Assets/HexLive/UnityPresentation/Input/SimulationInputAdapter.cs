@@ -1097,6 +1097,43 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
+        // §167.3: указание. Своей — прямое обещание (SetDirective) и отпуск в
+        // ИИ, чтобы смещение аукциона вообще работало; соседке — просьба
+        // темой разговора, решает её готовность; чужой — серый пункт.
+        if (!dead && !target.IsUnconscious)
+        {
+            var targetOwned = runner.CanControlNpc(new EntityId(npcId));
+            var manyOwnSelected = _selectedColonyIds.Count > 1 && _selectedColonyIds.Contains(npcId);
+            var directiveEnabled = targetOwned || (sameSide && canOrderSocial);
+            var directiveHint = targetOwned ? null
+                : !sameSide ? Loc.Get("menu.directive.not_ally")
+                : socialBlocked;
+            _entries.Add(new ContextMenuEntry(
+                Loc.Get(manyOwnSelected ? "menu.directive.all" : "menu.directive"),
+                BuildDirectiveEntries(kind =>
+                {
+                    if (manyOwnSelected)
+                    {
+                        var actors = OrderActors();
+                        runner.EnqueueCommand(new SetDirectiveCommand(actors, kind));
+                        runner.EnqueueCommand(new SetGroupManualControlCommand(actors, false));
+                    }
+                    else if (targetOwned)
+                    {
+                        var one = new[] { new EntityId(npcId) };
+                        runner.EnqueueCommand(new SetDirectiveCommand(one, kind));
+                        runner.EnqueueCommand(new SetGroupManualControlCommand(one, false));
+                    }
+                    else
+                    {
+                        EnqueueOrder(carrier!.Id.Value, new TalkToCommand(
+                            new EntityId(carrier.Id.Value), new EntityId(npcId),
+                            DirectiveMath.TopicOf(kind)));
+                    }
+                }),
+                directiveEnabled, directiveEnabled ? null : directiveHint));
+        }
+
         // §121.9 (тёмная фаза): необратимые акты — только через подменю
         // подтверждения, случайный клик не должен запускать ни охоту на
         // соседку (§56), ни сцену травли (§81).
@@ -1222,9 +1259,27 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         Add("menu.self.eat", SelfActionKind.EatFromPack);
         Add("menu.self.drink", SelfActionKind.DrinkFromPack);
         Add("menu.self.go_home", SelfActionKind.GoHome);
+        // §167.2: крикнуть всем своим в радиусе — каждая решает сама.
+        _entries.Add(new ContextMenuEntry(Loc.Get("menu.shout"),
+            BuildDirectiveEntries(
+                kind => EnqueueOrder(npcId, new ShoutDirectiveCommand(actor, kind)),
+                shout: true)));
         _entries.Add(new ContextMenuEntry(Loc.Get("menu.stop"),
             () => EnqueueOrder(npcId, new StopCommand(actor))));
         ContextMenuPanel.Open(mousePos, NpcTitle(npcId), _entries);
+    }
+
+    // §167.3: три вида указания v1 (дрова заложены в enum, но пункта пока нет).
+    private static List<ContextMenuEntry> BuildDirectiveEntries(
+        System.Action<DirectiveKind> issue, bool shout = false)
+    {
+        var prefix = shout ? "menu.shout." : "menu.directive.";
+        return new List<ContextMenuEntry>
+        {
+            new(Loc.Get(prefix + "build"), () => issue(DirectiveKind.Build)),
+            new(Loc.Get(prefix + "stock_food"), () => issue(DirectiveKind.StockFood)),
+            new(Loc.Get(prefix + "stock_water"), () => issue(DirectiveKind.StockWater)),
+        };
     }
 
     // §121.9: подтверждение необратимого приказа — второе меню из одного

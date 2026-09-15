@@ -218,6 +218,11 @@ public sealed class WorldState
 
     public int TagCensusTick { get; set; } = -1;
 
+    // §167.6: запас лагеря по (фракция, вид) — derived, не сериализуется.
+    public System.Collections.Generic.Dictionary<int, int> CampStockCensus { get; } = new();
+
+    public int CampStockCensusBucket { get; set; } = -1;
+
     // Spec 43: sun horizontal direction (world XZ) and elevation in degrees,
     // exported so the rendered light matches the sim's shadow math exactly.
     public Common.Float2 SunDirection { get; set; }

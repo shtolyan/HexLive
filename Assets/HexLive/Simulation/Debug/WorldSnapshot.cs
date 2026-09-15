@@ -778,6 +778,14 @@ public sealed class NpcSnapshot
     // she has nothing left to dream of.
     public string CurrentDream { get; set; } = string.Empty;
 
+    // §167.1: принятое указание — DirectiveKind name, "" когда нет; от кого
+    // (null — от игрока) и до какого тика.
+    public string DirectiveKind { get; set; } = string.Empty;
+
+    public int? DirectiveFromNpcId { get; set; }
+
+    public int DirectiveUntilTick { get; set; }
+
     public string PlanStatus { get; set; } = string.Empty;
 
     public string MovementStatus { get; set; } = string.Empty;
@@ -1115,6 +1123,9 @@ public sealed class RelationshipSnapshot
     public float Familiarity { get; set; }
 
     public float Affinity { get; set; }
+
+    // §167.1 / §28.2: насколько эта колонистка слушает ту.
+    public float Authority { get; set; }
 
     public int LastInteractionTick { get; set; }
 }

@@ -1,3 +1,4 @@
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -168,6 +169,60 @@ public static class ColonyQueries
         }
 
         return world.TagCensus.TryGetValue(tag, out var count) ? count : 0;
+    }
+
+    // §167.6: запас ЛАГЕРЯ — что лежит на земле в радиусе StockRadiusTiles от
+    // очага фракции. Кольца тайлов через ObjectsByTile (≈127 обращений), без
+    // обхода Objects.Values (§158). Кэш на CensusBucketTicks и на (фракция,
+    // вид); считается только пока кто-то держит указание — мир без указаний
+    // не платит ничего. Нет очага — запаса «нет» (0), указание снимется по
+    // времени.
+    public static int CampStock(WorldState world, Agents.Faction faction, DirectiveKind kind)
+    {
+        var bucket = world.Tick / Spec167.CensusBucketTicks;
+        var key = ((int)faction << 8) | (int)kind;
+        if (world.CampStockCensusBucket == bucket &&
+            world.CampStockCensus.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        if (world.CampStockCensusBucket != bucket)
+        {
+            world.CampStockCensus.Clear();
+            world.CampStockCensusBucket = bucket;
+        }
+
+        var count = 0;
+        if (Home(world, faction) is { } home)
+        {
+            var radius = Spec167.StockRadiusTiles;
+            for (var dq = -radius; dq <= radius; dq++)
+            {
+                var lo = System.Math.Max(-radius, -dq - radius);
+                var hi = System.Math.Min(radius, -dq + radius);
+                for (var dr = lo; dr <= hi; dr++)
+                {
+                    if (!world.Caches.ObjectsByTile.TryGetValue(
+                            new TileCoord(home.Q + dq, home.R + dr), out var ids))
+                    {
+                        continue;
+                    }
+
+                    foreach (var id in ids)
+                    {
+                        if (world.Entities.Objects.TryGetValue(id, out var obj) &&
+                            DirectiveMath.IsStockOf(world, obj.DefinitionId, kind))
+                        {
+                            count++;
+                        }
+                    }
+                }
+            }
+        }
+
+        world.CampStockCensus[key] = count;
+        return count;
     }
 }
 

@@ -1176,6 +1176,9 @@ public static class WorldSnapshotExporter
             RunByDefault = npc.Mind.RunByDefault, // §121.11
             OutfitLocked = npc.Mind.OutfitLocked, // §133.9
             CurrentDream = npc.Mind.CurrentDream.ToString(),
+            DirectiveKind = npc.Mind.Directive?.Kind.ToString() ?? string.Empty, // §167
+            DirectiveFromNpcId = npc.Mind.Directive?.FromId?.Value,
+            DirectiveUntilTick = npc.Mind.Directive?.UntilTick ?? 0,
             PlanStatus = npc.Plan.Status.ToString(),
             MovementStatus = npc.Movement.Status.ToString(),
             // §60 r3 (баг #8): подмена «кома от истощения = сон» убрана —
@@ -1578,6 +1581,7 @@ public static class WorldSnapshotExporter
                 Trust = relation.Value.Trust,
                 Familiarity = relation.Value.Familiarity,
                 Affinity = relation.Value.Affinity,
+                Authority = relation.Value.Authority,
                 LastInteractionTick = relation.Value.LastInteractionTick
             });
         }

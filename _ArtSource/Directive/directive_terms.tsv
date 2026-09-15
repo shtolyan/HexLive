@@ -1,0 +1,45 @@
+# §167 Указания и лидерство — термины I2 (ключ<TAB>English<TAB>Русский)
+menu.directive	Ask ▸	Указание ▸
+menu.directive.all	Directive to all ▸	Указание всем ▸
+menu.directive.build	Work on building	Заняться стройкой
+menu.directive.stock_food	Stock up food	Запастись едой
+menu.directive.stock_water	Stock up water	Запастись водой
+menu.directive.firewood	Gather firewood	Заготовить дров
+menu.directive.not_ally	Not one of ours	Не из наших
+menu.shout	Shout ▸	Крикнуть ▸
+menu.shout.build	Everyone, build!	Все на стройку!
+menu.shout.stock_food	Everyone, gather food!	Все за едой!
+menu.shout.stock_water	Everyone, gather water!	Все за водой!
+menu.shout.firewood	Everyone, firewood!	Все за дровами!
+directive.Build	building	стройка
+directive.StockFood	stocking food	запас еды
+directive.StockWater	stocking water	запас воды
+directive.Firewood	firewood	дрова
+panel.directive.player	Promised you: {0}	Обещала тебе: {0}
+panel.directive.from	Promised {0}: {1}	Обещала {0}: {1}
+rel.authority	Authority	Власть
+history.DirectiveAsked	asked for help	попросила
+history.DirectiveAccepted	agreed	согласилась
+history.DirectiveRefused	refused	отказала
+history.DirectivePending	is deciding	думает
+history.DirectiveShout	shouted	крикнула
+history.DirectiveDone	kept her word	сделала, как обещала
+history.DirectiveExpired	forgot her promise	забыла обещание
+history.detail.DirectiveAsked	asked: {0}	просьба: {0}
+history.detail.DirectiveAccepted	agreed: {0}	согласилась: {0}
+history.detail.DirectiveRefused	refused: {0}	отказала: {0}
+history.detail.DirectiveShout	shouted: {0}	крик: {0}
+history.detail.DirectiveDone	done: {0}	сделано: {0}
+history.detail.DirectiveExpired	dropped: {0}	забыто: {0}
+journal.DirectiveAsked.did.v0	I asked her to help with {0}.	Попросила её помочь: {0}.
+journal.DirectiveAsked.did.v1	Had to ask for a hand: {0}.	Пришлось просить о помощи: {0}.
+journal.DirectiveAccepted.got.v0	She said yes: {0}.	Она согласилась: {0}.
+journal.DirectiveAccepted.did.v0	I promised her: {0}. Let's see.	Пообещала ей: {0}. Посмотрим.
+journal.DirectiveAccepted.did.v1	Said I would do it: {0}.	Сказала, что сделаю: {0}.
+journal.DirectiveRefused.got.v0	She refused: {0}. Fine.	Она отказала: {0}. Ну и ладно.
+journal.DirectiveRefused.got.v1	Asked her about {0} — no.	Просила её: {0} — нет.
+journal.DirectiveRefused.did.v0	Told her no: {0}. Not today.	Сказала ей нет: {0}. Не сегодня.
+journal.DirectiveShout.v0	Shouted to everyone: {0}!	Крикнула всем: {0}!
+journal.DirectiveDone.did.v0	Kept my word: {0}.	Сдержала слово: {0}.
+journal.DirectiveDone.did.v1	Done what I promised: {0}.	Сделала, что обещала: {0}.
+journal.DirectiveExpired.v0	Never got round to it: {0}.	Так и не дошли руки: {0}.

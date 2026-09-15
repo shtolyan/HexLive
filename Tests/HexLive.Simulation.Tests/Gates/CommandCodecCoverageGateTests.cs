@@ -72,6 +72,9 @@ public sealed class CommandCodecCoverageGateTests
             new[] { new EntityId(25), new EntityId(26) },
             new Float2(-1.5f, 9.75f), run: true),
         new GroupStopCommand(new[] { new EntityId(27), new EntityId(28) }),
+        new SetDirectiveCommand(new[] { new EntityId(29), new EntityId(30) }, DirectiveKind.StockWater), // §167
+        new ShoutDirectiveCommand(new EntityId(31), DirectiveKind.Build),
+        new RespondDirectiveCommand(new EntityId(32), new EntityId(33), DirectiveKind.StockFood, true),
         new GroupAttackNpcCommand(
             new[] { new EntityId(29), new EntityId(30) }, new EntityId(93)),
         new GroupAttackMobCommand(

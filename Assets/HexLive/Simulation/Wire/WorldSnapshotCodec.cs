@@ -1186,7 +1186,13 @@ public static class WorldSnapshotCodec
             w.Write(rel.Familiarity);
             w.Write(rel.Affinity);
             w.Write(rel.LastInteractionTick);
+            w.Write(rel.Authority);
         }
+
+        // §167: указание — хвост группы Mind.
+        WireIo.WriteString(w, n.DirectiveKind);
+        WireIo.WriteNullableInt(w, n.DirectiveFromNpcId);
+        w.Write(n.DirectiveUntilTick);
     }
 
     /// <summary>
@@ -1550,8 +1556,12 @@ public static class WorldSnapshotCodec
             rel.Familiarity = r.ReadSingle();
             rel.Affinity = r.ReadSingle();
             rel.LastInteractionTick = r.ReadInt32();
+            rel.Authority = r.ReadSingle();
         }
 
+        n.DirectiveKind = r.ReadString();
+        n.DirectiveFromNpcId = WireIo.ReadNullableInt(r);
+        n.DirectiveUntilTick = r.ReadInt32();
     }
 
     private static void ReadNpcDebug(BinaryReader r, NpcSnapshot n)

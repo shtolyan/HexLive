@@ -96,6 +96,8 @@ namespace HexLive.UnityPresentation.UI
         // Spec §64: the dream pill (aspiration) — a sibling of the thought pill.
         private VisualElement _dream;
         private Label _dreamValue;
+        private VisualElement _directive; // §167
+        private Label _directiveValue;
 
         // Spec §48: status-effect chips (buff/debuff circles) + hover tooltip.
         private VisualElement _effectsRow;
@@ -870,6 +872,32 @@ namespace HexLive.UnityPresentation.UI
             if (hasDream)
             {
                 _dreamValue.text = Loc.Dream(npc.CurrentDream);
+            }
+
+            // §167.1: обещание. От игрока — «по твоему слову»; от соседки — её имя.
+            var hasDirective = !isDead && !string.IsNullOrEmpty(npc.DirectiveKind);
+            _directive.style.display = hasDirective ? DisplayStyle.Flex : DisplayStyle.None;
+            if (hasDirective)
+            {
+                var kindText = Loc.Get("directive." + npc.DirectiveKind);
+                string fromText = null;
+                if (npc.DirectiveFromNpcId is { } fromId)
+                {
+                    foreach (var other in snapshot.Npcs)
+                    {
+                        if (other.Id.Value == fromId)
+                        {
+                            fromText = string.IsNullOrEmpty(other.DisplayName)
+                                ? $"NPC #{fromId}"
+                                : Loc.NpcName(other.DisplayName);
+                            break;
+                        }
+                    }
+                }
+
+                _directiveValue.text = fromText is null
+                    ? string.Format(Loc.Get("panel.directive.player"), kindText)
+                    : string.Format(Loc.Get("panel.directive.from"), fromText, kindText);
             }
 
             if (_boundActorId != npc.Id.Value)
@@ -5303,6 +5331,7 @@ namespace HexLive.UnityPresentation.UI
                 Trust = r.Trust;
                 Familiarity = r.Familiarity;
                 Affinity = r.Affinity;
+                Authority = r.Authority;
                 LastInteractionTick = r.LastInteractionTick;
             }
 
@@ -5311,12 +5340,14 @@ namespace HexLive.UnityPresentation.UI
             public readonly float Trust;
             public readonly float Familiarity;
             public readonly float Affinity;
+            public readonly float Authority; // §167
             public readonly int LastInteractionTick;
 
             public bool Matches(RelationshipSnapshot r) =>
                 OtherId == r.OtherId && OtherName == r.OtherName &&
                 Trust == r.Trust && Familiarity == r.Familiarity &&
-                Affinity == r.Affinity && LastInteractionTick == r.LastInteractionTick;
+                Affinity == r.Affinity && Authority == r.Authority &&
+                LastInteractionTick == r.LastInteractionTick;
         }
 
         private readonly List<RelationSig> _relationSig = new();
@@ -5863,6 +5894,13 @@ namespace HexLive.UnityPresentation.UI
                 Loc.Get("rel.familiarity"), rel.Familiarity, Social, false));
             chip.Add(BuildRelationMetric(
                 Loc.Get("rel.trust"), rel.Trust, Good, false));
+            // §167.1: власть — «насколько я её слушаю»; рисуется только когда
+            // она есть, чтобы не засорять чип нулями у всех.
+            if (rel.Authority > 0.005f)
+            {
+                chip.Add(BuildRelationMetric(
+                    Loc.Get("rel.authority"), rel.Authority, Gold, false));
+            }
 
             var otherId = rel.OtherId;
             chip.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(chip, GoldDim));
@@ -6671,6 +6709,31 @@ namespace HexLive.UnityPresentation.UI
 
             _dream.Add(_dreamValue);
             _stage.Add(_dream);
+
+            // §167.1: обещание — «Обещала Нине: запастись водой». Та же полка,
+            // что и мечта, ниже неё; прячется, когда обещания нет.
+            _directive = new VisualElement();
+            _directive.style.flexDirection = FlexDirection.Row;
+            _directive.style.alignItems = Align.Center;
+            _directive.style.marginTop = 6f;
+            _directive.style.paddingLeft = 12f;
+            _directive.style.paddingRight = 12f;
+            _directive.style.paddingTop = 8f;
+            _directive.style.paddingBottom = 8f;
+            var directiveIcon = new VectorIcon(VectorIcon.Kind.Social, Gold);
+            directiveIcon.style.width = 18f;
+            directiveIcon.style.height = 18f;
+            directiveIcon.style.marginRight = 11f;
+            directiveIcon.style.flexShrink = 0f;
+            _directive.Add(directiveIcon);
+            _directiveValue = new Label();
+            _directiveValue.style.color = Text;
+            _directiveValue.style.fontSize = 15;
+            _directiveValue.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _directiveValue.style.whiteSpace = WhiteSpace.Normal;
+            _directiveValue.style.flexShrink = 1f;
+            _directive.Add(_directiveValue);
+            _stage.Add(_directive);
         }
 
         private VisualElement BuildIdentityColumn()

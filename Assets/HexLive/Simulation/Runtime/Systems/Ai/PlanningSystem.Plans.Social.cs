@@ -637,11 +637,24 @@ public sealed partial class PlanningSystem
             return;
         }
 
+        // §167.7: разговор-просьба идёт К ВЫБРАННОЙ слушательнице с темой
+        // указания; обычный выбор партнёра ниже — только когда инициативы нет.
+        var initiativeKind = npc.Mind.InitiativeAskKind;
+        var initiativeTarget = npc.Mind.InitiativeAskTarget;
+        npc.Mind.InitiativeAskKind = DirectiveKind.None;
+        npc.Mind.InitiativeAskTarget = null;
+
         // Spec 28.6 (iteration 8): prefer the most-liked available partner;
         // distance only breaks ties. Friendship self-selects.
         PerceivedAgent? target = null;
         foreach (var agent in npc.Perception.Agents)
         {
+            if (initiativeKind != DirectiveKind.None &&
+                initiativeTarget is { } wanted && !agent.Id.Equals(wanted))
+            {
+                continue;
+            }
+
             if (!agent.IsReachable || agent.IsBusy || agent.IsMoving ||
                 agent.IsUnconscious) // §60: never plan a chat with a body
             {
@@ -715,11 +728,18 @@ public sealed partial class PlanningSystem
             return;
         }
 
+        if (initiativeKind != DirectiveKind.None)
+        {
+            // §167.7: тема-просьба — как у TalkToCommand с темой (§28.15G).
+            npc.Plan.RequestedTalkTopic = DirectiveMath.TopicOf(initiativeKind);
+        }
+
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "PlanBuilt",
                 $"Goal=Socialize Target=NPC{target.Id.Value} " +
-                $"ApproachJunction={approachJunction.Value} Steps=[MoveToJunction,Talk]");
+                $"ApproachJunction={approachJunction.Value} Steps=[MoveToJunction,Talk]" +
+                (initiativeKind != DirectiveKind.None ? $" Ask={initiativeKind}" : string.Empty));
         }
     }
 

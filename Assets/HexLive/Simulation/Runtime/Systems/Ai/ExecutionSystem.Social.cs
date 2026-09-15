@@ -175,6 +175,13 @@ public sealed partial class ExecutionSystem
             // tells her housemate about it instead of chatting coconuts, so the
             // two bubbles differ and read as a real exchange.
             var topic = npc.Plan.RequestedTalkTopic ?? PickTalkTopic(world, npc, target);
+            // §167.2: просьба решается НА СТАРТЕ — до раздачи тем, чтобы ответ
+            // слушательницы («да»/«нет») висел над ней весь разговор.
+            if (Spec167.Enabled && DirectiveMath.KindOf(topic) is { } askKind)
+            {
+                DirectiveMath.Ask(world, npc, target, askKind);
+            }
+
             if (ApplySharedTopic(world, npc, target, topic))
             {
                 // §108: разговор о нём кончился сговором — обе уже идут бить,
@@ -1079,7 +1086,14 @@ public sealed partial class ExecutionSystem
             : null;
 
         SetTopic(npc, PickSpeakerTopic(world, npc, target, shared), stranger);
-        SetTopic(target, PickSpeakerTopic(world, target, npc, shared), stranger);
+        // §167.2: на просьбу слушательница отвечает СВОИМ «да»/«нет» (из
+        // состояния — повтор каждые 30 тиков даёт тот же ответ); личная
+        // жалоба всё равно может его перекрыть: «я голодна» — честный ответ
+        // на «запасись едой».
+        var listenerShared = DirectiveMath.KindOf(shared) is { } askKind
+            ? DirectiveMath.AnswerTopic(target, npc, askKind)
+            : shared;
+        SetTopic(target, PickSpeakerTopic(world, target, npc, listenerShared), stranger);
 
         if (stranger is null)
         {

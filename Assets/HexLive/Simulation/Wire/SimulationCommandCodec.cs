@@ -88,6 +88,9 @@ public static class SimulationCommandCodec
         RecordAgentSocial = 41,
         TalkToWithTopic = 42,
         RequestItem = 43,
+        SetDirective = 44, // §167
+        ShoutDirective = 45,
+        RespondDirective = 46,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -213,6 +216,23 @@ public static class SimulationCommandCodec
                 WriteEntity(w, c.Npc);
                 WriteEntity(w, c.Target);
                 WireIo.WriteString(w, c.DefinitionId);
+                break;
+            case SetDirectiveCommand c:
+                w.Write((ushort)CommandType.SetDirective);
+                WriteActors(w, c.Actors);
+                w.Write((int)c.Kind);
+                break;
+            case ShoutDirectiveCommand c:
+                w.Write((ushort)CommandType.ShoutDirective);
+                WriteEntity(w, c.Npc);
+                w.Write((int)c.Kind);
+                break;
+            case RespondDirectiveCommand c:
+                w.Write((ushort)CommandType.RespondDirective);
+                WriteEntity(w, c.Npc);
+                WriteEntity(w, c.From);
+                w.Write((int)c.Kind);
+                w.Write(c.Accept);
                 break;
             case AidPersonCommand c:
                 w.Write((ushort)CommandType.AidPerson);
@@ -438,6 +458,13 @@ public static class SimulationCommandCodec
                     ReadEntity(r), ReadEntity(r), r.ReadBoolean());
             case CommandType.RequestItem:
                 return new RequestItemCommand(ReadEntity(r), ReadEntity(r), r.ReadString());
+            case CommandType.SetDirective:
+                return new SetDirectiveCommand(ReadActors(r), (DirectiveKind)r.ReadInt32());
+            case CommandType.ShoutDirective:
+                return new ShoutDirectiveCommand(ReadEntity(r), (DirectiveKind)r.ReadInt32());
+            case CommandType.RespondDirective:
+                return new RespondDirectiveCommand(
+                    ReadEntity(r), ReadEntity(r), (DirectiveKind)r.ReadInt32(), r.ReadBoolean());
             case CommandType.AidPerson:
                 return new AidPersonCommand(
                     ReadEntity(r), ReadEntity(r), (AidKind)r.ReadInt32());

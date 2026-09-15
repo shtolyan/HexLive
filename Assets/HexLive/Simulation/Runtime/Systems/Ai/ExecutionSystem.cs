@@ -66,8 +66,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §167.5: стокерша несёт кокос ДЛЯ ЛАГЕРЯ — её полная бутылка не
+            // повод бросать поход; обрыв только когда кокос-запас уже в руках.
+            var stockingWater = DirectiveMath.Current(npc) == DirectiveKind.StockWater;
             if (npc.Mind.CurrentGoal == GoalType.GetWater &&
-                DecisionSystem.HasInventoryCoconutWater(npc))
+                (stockingWater
+                    ? DirectiveMath.CarriedStock(world, npc, DirectiveKind.StockWater) is not null
+                    : DecisionSystem.HasInventoryCoconutWater(npc)))
             {
                 PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Water already available in inventory");
                 npc.Mind.CurrentGoal = GoalType.None;

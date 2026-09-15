@@ -202,6 +202,11 @@ public static class Program
             CombatFrames.Report();
         }
 
+        if (options.AutonomousAsk && !options.Quiet)
+        {
+            PrintLeadership(world); // §167.7
+        }
+
         if (options.Journal >= 0 && !options.Quiet)
         {
             PrintJournal(world, options.Journal);
@@ -318,6 +323,30 @@ public static class Program
     /// состоянием и не выродились ли двое суток в сорок восемь «тихо».
     /// </para>
     /// </summary>
+    // §167.7: кого слушают — пары с наибольшей Authority и средняя симпатия/знакомство в лагере.
+    private static void PrintLeadership(WorldState world)
+    {
+        var rows = new List<(int Listener, int Leader, float Authority, float Affinity, float Familiarity)>();
+        var affinitySum = 0f; var familiaritySum = 0f; var pairs = 0;
+        foreach (var npc in world.Entities.Npcs.Values)
+        {
+            foreach (var pair in npc.Social.Relationships)
+            {
+                if (!world.Entities.Npcs.TryGetValue(pair.Key, out var other) || other.Faction != npc.Faction) continue;
+                pairs++; affinitySum += pair.Value.Affinity; familiaritySum += pair.Value.Familiarity;
+                if (pair.Value.Authority > 0.001f)
+                    rows.Add((npc.Id.Value, pair.Key.Value, pair.Value.Authority, pair.Value.Affinity, pair.Value.Familiarity));
+            }
+        }
+        rows.Sort((a, b) => b.Authority.CompareTo(a.Authority));
+        Console.WriteLine($"  лидерство          пар в лагерях {pairs}, средняя симпатия {(pairs > 0 ? affinitySum / pairs : 0):F2}, знакомство {(pairs > 0 ? familiaritySum / pairs : 0):F2}, пар с Authority>0: {rows.Count}");
+        for (var i = 0; i < Math.Min(5, rows.Count); i++)
+        {
+            var r = rows[i];
+            Console.WriteLine($"    NPC{r.Listener} слушает NPC{r.Leader}: Authority={r.Authority:F2} Affinity={r.Affinity:F2} Familiarity={r.Familiarity:F2}");
+        }
+    }
+
     private static void PrintJournal(WorldState world, int npcId)
     {
         var id = new HexLive.Simulation.Common.EntityId(npcId);

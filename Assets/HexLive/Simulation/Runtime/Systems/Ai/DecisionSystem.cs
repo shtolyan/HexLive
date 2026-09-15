@@ -503,12 +503,27 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 (canUseToolsOrWeapons && KnowsReachableProducer(npc, world));
             // §167.5: по указанию «запасись едой» берёт и НЕ голодной, пока
             // в лагере меньше цели; руки должны быть свободны от нужд.
+            // Пороги — те же, что у согласия (§167.3): обещание держится,
+            // пока она не на кромке голода/сна; freeHands-порог 0.55/0.35 в
+            // хронически усталом мире (§139) не открывался ни разу за 2400 тиков.
             var stockFoodWanted = stockingFood && npc.Inventory.HasSpace &&
-                npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
-                npc.Needs.Energy > 0.35f &&
+                npc.Needs.Hunger < Spec167.RefuseNeedThreshold && npc.Needs.Thirst < Spec167.RefuseNeedThreshold &&
+                npc.Needs.Energy > Spec167.RefuseEnergyThreshold &&
                 DirectiveMath.StockWanted(world, npc, DirectiveKind.StockFood);
             var getFoodAvail = !hasFoodInInventory && !hasCoconutMeal &&
                 (npc.Needs.Hunger >= getFoodHungerThreshold || stockFoodWanted) && foodSourceReachable;
+            // §167.9: почему стокерша сейчас НЕ носит — раз в 64 тика, чтобы
+            // «обещала и забыла» в соаке читалось причиной, а не тишиной.
+            if (SimTrace.Enabled && DirectiveMath.IsStocking(directiveKind) && world.Tick % 64 == 0)
+            {
+                Trace.Debug(world, npc.Id, "DirectiveStockGate",
+                    $"Kind={directiveKind} Space={npc.Inventory.HasSpace} H={npc.Needs.Hunger:F2} T={npc.Needs.Thirst:F2} " +
+                    $"E={npc.Needs.Energy:F2} Stock={ColonyQueries.CampStock(world, npc.Faction, directiveKind)} " +
+                    $"Carried={DirectiveMath.CarriedStock(world, npc, directiveKind)?.DefinitionId ?? "-"} " +
+                    $"FoodSrc={foodSourceReachable} Blade={hasCoconutBlade} " +
+                    $"Coco={HasReachableDefinitionWorthCarrying(npc, world, ContentIds.Coconut)} " +
+                    $"Palm={KnowsReachableProducer(npc, world)} Goal={npc.Mind.CurrentGoal}");
+            }
             var foodFetchPossible = !hasFoodInInventory &&
                 !HasInventoryCoconutMeal(npc) && foodSourceReachable;
             // Spec 29G: the land itself is furniture — a bed is better, but
@@ -1308,12 +1323,17 @@ public sealed partial class DecisionSystem : ISimulationSystem
               (ctx.CanUseToolsOrWeapons && KnowsReachableProducer(npc, world))));
         // §167.5: по указанию «запасись водой» несёт кокос и не хотя пить.
         var stockWaterWanted = ctx.DirectiveKind == DirectiveKind.StockWater &&
-            npc.Inventory.HasSpace && npc.Needs.Hunger < 0.55f && npc.Needs.Thirst < 0.55f &&
-            npc.Needs.Energy > 0.35f &&
+            npc.Inventory.HasSpace && npc.Needs.Hunger < Spec167.RefuseNeedThreshold &&
+            npc.Needs.Thirst < Spec167.RefuseNeedThreshold &&
+            npc.Needs.Energy > Spec167.RefuseEnergyThreshold &&
             DirectiveMath.StockWanted(world, npc, DirectiveKind.StockWater);
-        var getWaterAvail = (npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold || stockWaterWanted) &&
-            !ctx.HasCoconutWater && !hasBottleWater &&
-            waterSourceReachable;
+        // Стокерша с ПОЛНОЙ бутылкой всё равно идёт за кокосом: бутылка —
+        // её личная вода, запас лагеря — кокосы (§167.5, замер: с этим гейтом
+        // принятое «запасись водой» ни разу не дошло до GetWater).
+        var getWaterAvail = (npc.Needs.Thirst >= AiBalance.DrinkThirstThreshold &&
+                !ctx.HasCoconutWater && !hasBottleWater && waterSourceReachable) ||
+            (stockWaterWanted && waterSourceReachable &&
+             DirectiveMath.CarriedStock(world, npc, DirectiveKind.StockWater) is null);
         // §53.7: the errand half — fetching water to CARRY to a parched
         // housemate cares only about what is in hand (bottle / pierced
         // coconut), never about her own thirst or a nut on the ground.
@@ -2507,8 +2527,13 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // §167.5: СТОКОВЫЙ рукав — несёт запрошенный запас (еда/кокос/дрова)
         // к очагу, не будучи под угрозой. Обычный рукав выше — про мусор
         // важностью ≤25; еда (95) им никогда не носилась.
+        // Угроза для стоковой ходки — ПРЯМО СЕЙЧАС (как у StowClothes ниже), а
+        // не память о волке: Memory.Dangers живёт 2400 тиков и закрывала бы
+        // доставку почти всегда.
+        var stockThreatened = npc.IsFighting || npc.Perception.Hostiles.Count > 0 ||
+            npc.Health < 0.4f || npc.Needs.Hunger >= 0.6f || npc.Needs.Thirst >= 0.6f;
         var stockHaulAvail = DirectiveMath.IsStocking(ctx.DirectiveKind) &&
-            !lifeThreatened && campfireSeen &&
+            !stockThreatened && campfireSeen &&
             DirectiveMath.CarriedStock(world, npc, ctx.DirectiveKind) is not null &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.HaulToFire);
         AddGoalScore(npc, world.Tick, GoalType.HaulToFire, 0.28f, haulToFireAvail || stockHaulAvail,

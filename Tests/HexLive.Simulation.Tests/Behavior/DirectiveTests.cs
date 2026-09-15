@@ -67,8 +67,8 @@ public sealed class DirectiveTests
         var engine = Setup(out var actor, out var target);
         Warm(target, actor, affinity: 0.9f, trust: 0.9f);
         Ask(engine.World, actor, target, TalkTopic.AskStockWater);
-        // Hungry, but not starving: the talk starts, the promise is declined.
-        StartTalk(engine, actor, target, hungerOfTarget: 0.7f);
+        // Hungry (above RefuseNeedThreshold) but not starving: the talk starts, the promise is declined.
+        StartTalk(engine, actor, target, hungerOfTarget: 0.8f);
 
         Assert.Multiple(() =>
         {

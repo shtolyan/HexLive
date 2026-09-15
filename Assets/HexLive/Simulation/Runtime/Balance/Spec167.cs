@@ -33,16 +33,28 @@ public static class Spec167
     public const int DirectiveTicks = 2400;
 
     // ── Готовность (детерминизм, без броска; форма WearPermissionMath) ────
+    /// <summary>
+    /// Замер 10 дней × 6 миров (§167.9): с базой 0.35 согласий не было ни одного —
+    /// симпатия соседок по лагерю дрейфует к нулю (§94), и «нейтральная»
+    /// читалась как «не хочу». База 0.5 + знакомство: соседка, с которой
+    /// прожили неделю (Familiarity ≈ 0.5), соглашается уже при симпатии 0.
+    /// </summary>
     public const float WillingnessThreshold = 0.6f;
-    public const float WillingnessBase = 0.35f;
+    public const float WillingnessBase = 0.5f;
     public const float AffinityWeight = 0.4f;
     public const float TrustWeight = 0.2f;
     public const float AuthorityWeight = 0.3f;
+    public const float FamiliarityWeight = 0.2f;
     public const float IndustryWeight = 0.15f;
 
-    /// <summary>Своя нужда выше этого — «мне самой сейчас не до того», отказ без обиды.</summary>
-    public const float RefuseNeedThreshold = 0.55f;
-    public const float RefuseEnergyThreshold = 0.35f;
+    /// <summary>
+    /// Своя нужда выше этого — «мне самой сейчас не до того», отказ без обиды.
+    /// Порог у кромки голодания (0.85 = Starving): обещание — на день вперёд, а
+    /// действовать всё равно даёт только freeHands (§64), так что умеренно
+    /// голодная может согласиться и сначала поесть.
+    /// </summary>
+    public const float RefuseNeedThreshold = 0.75f;
+    public const float RefuseEnergyThreshold = 0.25f;
 
     // ── Запас лагеря ─────────────────────────────────────────────────────
     public const int StockFoodTarget = 4;
@@ -56,7 +68,8 @@ public static class Spec167
     public const int CensusBucketTicks = 16;
 
     // ── Крик ─────────────────────────────────────────────────────────────
-    public const int ShoutRadiusTiles = 8;
+    /// <summary>12 тайлов: с 8 на «Большом острове» крик с места не долетал ни до кого (9 криков, 1 отклик).</summary>
+    public const int ShoutRadiusTiles = 12;
     public const float ShoutPenalty = 0.1f;
     public const int MaxShoutResponders = 3;
 

@@ -167,6 +167,7 @@ public static class DirectiveMath
             Spec167.AffinityWeight * rel.Affinity +
             Spec167.TrustWeight * rel.Trust +
             Spec167.AuthorityWeight * rel.Authority +
+            Spec167.FamiliarityWeight * rel.Familiarity +
             Spec167.IndustryWeight * (TraitMath.IndustryMult(target) - 1f);
     }
 
@@ -330,12 +331,18 @@ public static class DirectiveMath
     public static bool IsStocking(DirectiveKind kind) =>
         kind is DirectiveKind.StockFood or DirectiveKind.StockWater or DirectiveKind.Firewood;
 
-    /// <summary>Несёт ли она в рюкзаке то, что просили запасти.</summary>
+    /// <summary>
+    /// Несёт ли она в рюкзаке то, что просили запасти. Для воды это ТОЛЬКО
+    /// целый кокос: проколотый/вскрытый в руке — её собственное питьё (замер:
+    /// стокерша носила свой проколотый кокос как «запас» и пила его).
+    /// </summary>
     public static ItemInstance? CarriedStock(WorldState world, NPCState npc, DirectiveKind kind)
     {
         foreach (var item in npc.Inventory.Items)
         {
-            if (IsStockOf(world, item.DefinitionId, kind))
+            if (kind == DirectiveKind.StockWater
+                    ? item.DefinitionId == ContentIds.Coconut
+                    : IsStockOf(world, item.DefinitionId, kind))
             {
                 return item;
             }
@@ -424,7 +431,8 @@ public static class DirectiveMath
             npc.Mind.Directive is not null ? "HoldsDirective" :
             npc.Mind.PendingTalkFrom is not null ? "TalkIncoming" :
             world.Tick - npc.Mind.LastDirectiveAskTick < Spec167.AskCooldownTicks ? "Cooldown" :
-            npc.Needs.Hunger >= 0.55f || npc.Needs.Thirst >= 0.55f || npc.Needs.Energy <= 0.35f ? "OwnNeed" :
+            npc.Needs.Hunger >= Spec167.RefuseNeedThreshold || npc.Needs.Thirst >= Spec167.RefuseNeedThreshold ||
+                npc.Needs.Energy <= Spec167.RefuseEnergyThreshold ? "OwnNeed" :
             npc.IsFighting ? "Fighting" :
             ManualControlMath.IsManual(npc) ? "Manual" :
             MathUtil.Hash01(world.Seed, npc.Id.Value, 167, 16701) >= Spec167.InitiativeShare ? "NotInitiative" :

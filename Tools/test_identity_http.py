@@ -79,7 +79,11 @@ def main():
             token = csrf()
             assert request("/issue", {"name": "unauthorized", "__RequestVerificationToken": token})[0] == 401
             assert request("/login", {"key": owner_key})[0] == 400
-            assert request("/login", {"key": owner_key, "__RequestVerificationToken": token})[0] == 302
+            status, body = request("/login", {"key": "invalid", "__RequestVerificationToken": token})
+            assert status == 401 and "role='alert'" in body and "Ключ не найден" in body
+            assert "action='/login'" in body
+            assert request("/login")[0] == 302
+            assert request("/login", {"key": " \r\n" + owner_key + "\t ", "__RequestVerificationToken": token})[0] == 302
             token = csrf()
             assert request("/issue", {"name": "no-csrf"})[0] == 401
             status, issued = request("/issue", {"name": "Local tester <script>", "permissions": ["game.play"], "__RequestVerificationToken": token})
@@ -101,6 +105,8 @@ def main():
             status, body = request("/api/identity/v1/validate", {}, replacement)
             assert status == 200 and json.loads(body)["accountId"] == account
             assert request("/logout", {"__RequestVerificationToken": token})[0] == 302
+            status, body = request("/login", {"key": replacement, "__RequestVerificationToken": csrf()})
+            assert status == 401 and "нет права keys.manage" in body and "action='/login'" in body
             assert request("/revoke", {"id": account, "__RequestVerificationToken": token})[0] == 401
             print("PASS: login, secure cookies, CSRF, HTML escaping, issue, validate, hash-only storage, revoke, rotate, logout")
         finally:

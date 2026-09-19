@@ -75,7 +75,14 @@ public static class Program
             try { await c.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync(c); return true; }
             catch (AntiforgeryValidationException) { return false; }
         }
-        static IResult Page(string body) => Results.Content("<!doctype html><html lang='ru'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>HexLive — ключи</title><style>body{background:#10171c;color:#edf2f4;font:17px system-ui;max-width:900px;margin:50px auto;padding:20px}input,button{font:inherit;padding:10px;margin:5px}button{cursor:pointer}article{border-top:1px solid #43535d;padding:15px 0}code{overflow-wrap:anywhere}a{color:#bcdf88}</style><h1>HexLive · ключи</h1>" + body + "</html>", "text/html; charset=utf-8");
+        static IResult Page(string body, int statusCode = 200) => Results.Content("<!doctype html><html lang='ru'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>HexLive — ключи</title><style>body{background:#10171c;color:#edf2f4;font:17px system-ui;max-width:900px;margin:50px auto;padding:20px}input,button{font:inherit;padding:10px;margin:5px}button{cursor:pointer}article{border-top:1px solid #43535d;padding:15px 0}code{overflow-wrap:anywhere}a{color:#bcdf88}</style><h1>HexLive · ключи</h1>" + body + "</html>", "text/html; charset=utf-8", statusCode: statusCode);
+
+        IResult LoginPage(HttpContext c, string? error = null, int statusCode = 200) => Page(
+            (error == null ? "" : "<p role='alert'>" + E(error) + "</p>") +
+            "<p>Введите единый ключ целиком, включая hexlive_. Для входа нужно право keys.manage.</p>" +
+            "<form method='post' action='/login'>" + Csrf(c) +
+            "<input name='key' type='password' autocomplete='current-password' aria-label='Ключ доступа' placeholder='Ключ доступа' required><button>Войти</button></form>", statusCode);
+        app.MapGet("/login", (HttpContext c) => Results.Redirect("/"));
 
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
         app.MapPost("/api/identity/v1/validate", (HttpContext c) => {
@@ -86,8 +93,7 @@ public static class Program
 
         app.MapGet("/", (HttpContext c) => {
             var csrf = Csrf(c);
-            if (!Signed(c)) return Page("<form method='post' action='/login'>" + csrf +
-                "<input name='key' type='password' autocomplete='current-password' placeholder='Ключ доступа' required><button>Войти</button></form>");
+            if (!Signed(c)) return LoginPage(c);
             var html = new StringBuilder("<form method='post' action='/issue'>" + csrf + "<input name='name' maxlength='100' placeholder='Имя' required>" + Checks(["game.play", "bugs.create"]) + "<select name='subjectType'><option value='player'>Игрок</option><option value='agent'>Агент</option></select><button>Выдать ключ</button></form>");
             foreach (var a in keys.List())
             {
@@ -102,12 +108,17 @@ public static class Program
         });
         app.MapGet("/audit", (HttpContext c) => Signed(c) ? Results.Json(keys.History()) : Results.Unauthorized());
         app.MapPost("/login", async (HttpContext c) => {
-            if (!await ValidPost(c)) return Results.BadRequest();
+            if (!await ValidPost(c)) return LoginPage(c, "Форма входа устарела. Повторите ввод ключа.", 400);
             var source = c.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            if (sessions.LockoutSeconds(source) > 0) return Results.StatusCode(429);
+            if (sessions.LockoutSeconds(source) > 0) return LoginPage(c, "Слишком много попыток. Подождите и попробуйте снова.", 429);
             var form = await c.Request.ReadFormAsync();
-            var identity = keys.Authenticate(form["key"].ToString());
-            if (identity?.Permissions?.Contains("keys.manage") != true) { sessions.RecordFailure(source); return Results.Unauthorized(); }
+            var identity = keys.Authenticate(form["key"].ToString().Trim());
+            if (identity?.Permissions?.Contains("keys.manage") != true) {
+                sessions.RecordFailure(source);
+                return LoginPage(c, identity == null
+                    ? "Ключ не найден или отозван. Скопируйте выданный ключ целиком и попробуйте снова."
+                    : "У этого ключа нет права keys.manage. Владелец должен выдать право управления ключами.", 401);
+            }
             sessions.RecordSuccess(source);
             var session = sessions.CreateSession(); subjects[session] = identity.KeyHash;
             c.Response.Cookies.Append("__Host-hexlive-identity", session, new CookieOptions {

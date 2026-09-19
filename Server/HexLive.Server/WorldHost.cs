@@ -401,6 +401,10 @@ public sealed partial class WorldHost : IDisposable
         }
     }
 
+    private double _recentTickMs;
+    /// <summary>§166: exponential moving average of recent step costs (~5 seconds at 4 Hz).</summary>
+    public double RecentTickMs => System.Threading.Volatile.Read(ref _recentTickMs);
+
     /// <summary>
     /// Ticks actually produced per real second, measured. The honest health
     /// check: the world is meant to run at 1/TickDeltaTime, and anything else
@@ -472,6 +476,9 @@ public sealed partial class WorldHost : IDisposable
                     _engine.Step();
                     watch.Stop();
                     _busyMs += watch.Elapsed.TotalMilliseconds;
+                    System.Threading.Volatile.Write(ref _recentTickMs,
+                        TicksRun == 0 ? watch.Elapsed.TotalMilliseconds :
+                        _recentTickMs * 0.9 + watch.Elapsed.TotalMilliseconds * 0.1);
                     Interlocked.Increment(ref _ticksRun);
                     stepped = true;
 

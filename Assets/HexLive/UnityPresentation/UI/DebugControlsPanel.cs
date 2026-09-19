@@ -62,6 +62,7 @@ namespace HexLive.UnityPresentation.UI
         private UIDocument _document;
         private Label _targetLabel;
         private Label _bugLabel;
+        private VisualElement _reportBugButton, _bugManagerButton;
         private float _nextBugLabelRefresh;
 
         // Collapsible like the bottom character bar: hidden by default, a small
@@ -100,6 +101,11 @@ namespace HexLive.UnityPresentation.UI
 
         private void Update()
         {
+            if (ClosedTestAccess.Enabled)
+            {
+                _reportBugButton?.SetEnabled(ClosedTestAccess.Can("bugs.create"));
+                _bugManagerButton?.SetEnabled(ClosedTestAccess.Can("bugs.read"));
+            }
             if (_runner == null)
             {
                 _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
@@ -235,11 +241,12 @@ namespace HexLive.UnityPresentation.UI
 
             var bugButton = MakeButton("Report bug", new Color(0.28f, 0.38f, 0.55f),
                 () => _bugReportPanel?.ToggleQuick());
+            _reportBugButton = bugButton;
             _bugLabel = (Label)bugButton[0];
             box.Add(bugButton);
 
-            box.Add(MakeButton("Bug manager", Raised,
-                () => _bugReportPanel?.ToggleManager()));
+            _bugManagerButton = MakeButton("Bug manager", Raised, () => _bugReportPanel?.ToggleManager());
+            box.Add(_bugManagerButton);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             box.Add(MakeButton(Loc.Get("console.debug_button"), Raised,

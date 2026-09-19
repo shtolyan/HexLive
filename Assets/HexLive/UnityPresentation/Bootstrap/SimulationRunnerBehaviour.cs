@@ -89,6 +89,7 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public bool IsReady => _backend?.IsReady ?? false;
 
     public SimulationLink Link => _backend?.Link ?? SimulationLink.Local;
+    public int RequiredProtocolVersion => (_backend as Remote.RemoteSocketBackend)?.RequiredProtocolVersion ?? 0;
 
     public bool IsCompleted => _backend?.IsCompleted ?? false;
 
@@ -666,6 +667,13 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
         _backend = CreateBackend(new LocalEngineBackend(engine, clock, settings));
         SimulationSource.Current = this;
         _lastLoggedSeq = 0;
+    }
+
+    public void CancelRemoteConnection()
+    {
+        if (_backend is not Remote.RemoteSocketBackend) return;
+        _backend.Shutdown();
+        _backend = null;
     }
 
     private bool TryBootstrapRemote()

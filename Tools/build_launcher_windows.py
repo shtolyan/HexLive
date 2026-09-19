@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""§156 publish the self-contained launcher without committing the player token."""
+"""§166 publish the self-contained launcher; keys are entered only in the game."""
 
 from __future__ import annotations
 
@@ -12,23 +12,18 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = ROOT / "Launcher" / "HexLive.Launcher" / "HexLive.Launcher.csproj"
-DEFAULT_TOKEN = Path.home() / ".config" / "hexlive" / "servers" / "62.146.235.120" / "player-token"
 DEFAULT_OUTPUT = Path.home() / "hex-girls" / "Launcher"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--token-file", type=Path, default=DEFAULT_TOKEN)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--sign-thumbprint", default=os.environ.get("HEXLIVE_SIGN_THUMBPRINT", ""))
     args = parser.parse_args()
-    token = args.token_file.expanduser().read_text(encoding="utf-8").strip()
-    if not token.startswith("hexplay_"):
-        raise RuntimeError("player token file is missing or malformed")
     output = args.output.expanduser().resolve()
     output.mkdir(parents=True, exist_ok=True)
     environment = os.environ.copy()
-    environment["HexLivePlayerToken"] = token
+    environment.pop("HexLivePlayerToken", None)
     command = ["dotnet", "publish", str(PROJECT), "-c", "Release", "-r", "win-x64",
                "--self-contained", "true", "--nologo", "-o", str(output)]
     completed = subprocess.run(command, cwd=ROOT, env=environment, check=False)

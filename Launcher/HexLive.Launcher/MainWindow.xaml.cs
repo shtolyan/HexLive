@@ -13,12 +13,22 @@ public partial class MainWindow : Window
     private RemoteRelease? _latest;
     private InstallState? _installed;
     private bool _busy;
+    private readonly UpdateRequest? _update;
 
-    public MainWindow()
+    public MainWindow(UpdateRequest? update = null)
     {
+        _update = update;
         InitializeComponent();
-        InstallPathText.Text = LauncherPaths.DefaultInstallRoot;
-        Loaded += async (_, _) => await RefreshAsync();
+        InstallPathText.Text = update == null ? LauncherPaths.DefaultInstallRoot : UpdateRequest.InstallRoot(Environment.ProcessPath!);
+        Loaded += async (_, _) => {
+            try
+            {
+                if (_update != null) { SetBusy(true, "Ожидаем закрытия игры…"); await _update.WaitForGameAsync(); }
+                await RefreshAsync();
+                if (_update != null && _latest != null) await InstallOrPlayAsync();
+            }
+            catch (Exception ex) { ErrorText.Text = ex.Message; SetBusy(false); }
+        };
     }
 
     private async Task RefreshAsync()
@@ -27,13 +37,16 @@ public partial class MainWindow : Window
         try
         {
             _installed = LauncherService.ReadInstallState(InstallPathText.Text);
-            _latest = await _service.GetLatestAsync();
+            _latest = null;
+            var latest = await _service.GetLatestAsync();
+            LauncherService.RequireProtocol(latest, _update?.RequiredProtocol ?? 0);
+            _latest = latest;
             PrimaryButton.Content = _installed is null ? "Установить" :
-                _installed.Version == _latest.Version ? "Играть" : "Обновить";
+                !LauncherService.NeedsUpdate(_installed, _latest) ? "Играть" : "Обновить";
             UninstallButton.Visibility = _installed is null ? Visibility.Collapsed : Visibility.Visible;
-            SetProgress(_installed?.Version == _latest.Version ? 1 : 0);
+            SetProgress(!LauncherService.NeedsUpdate(_installed, _latest) ? 1 : 0);
             StageText.Text = _installed is null ? $"Доступна HexLive {_latest.Version}" :
-                _installed.Version == _latest.Version ? "Игра готова" :
+                !LauncherService.NeedsUpdate(_installed, _latest) ? "Игра готова" :
                 $"Доступно обновление {_installed.Version} → {_latest.Version}";
             DetailText.Text = "Player и весь Windows-контент будут проверены перед запуском";
             ErrorText.Text = string.Empty;
@@ -51,11 +64,22 @@ public partial class MainWindow : Window
     {
         if (_busy) return;
         if (_latest is null) { await RefreshAsync(); return; }
-        if (_installed?.Version == _latest.Version) { _service.Launch(_installed); return; }
+        await InstallOrPlayAsync();
+    }
+
+    private async Task InstallOrPlayAsync()
+    {
+        if (_latest == null) return;
         SetBusy(true, _installed is null ? "Устанавливаем HexLive" : "Обновляем HexLive");
         ErrorText.Text = string.Empty;
         try
         {
+            if (!LauncherService.NeedsUpdate(_installed, _latest))
+            {
+                _service.Launch(_installed!);
+                if (_update != null) Close();
+                return;
+            }
             var progress = new Progress<InstallProgress>(value =>
             {
                 StageText.Text = value.Stage;
@@ -68,6 +92,7 @@ public partial class MainWindow : Window
             StageText.Text = "Игра и контент готовы";
             DetailText.Text = $"HexLive {_installed.Version}";
             SetProgress(1);
+            if (_update != null) { _service.Launch(_installed); Close(); }
         }
         catch (Exception ex)
         {

@@ -70,6 +70,15 @@ public static class SessionConfig
 
     public static event Action? ServerChanged;
 
+    public static void UseAccount(string accountId)
+    {
+        Resolve();
+        if (!Guid.TryParseExact(accountId, "N", out var id)) throw new ArgumentException(nameof(accountId));
+        _forcedClientId = id.ToString("N");
+        PlayerPrefs.SetString(ClientIdPref, _forcedClientId);
+        PlayerPrefs.Save();
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
@@ -137,7 +146,7 @@ public static class SessionConfig
             // в согласие, чтобы читатели реестра (Agent Studio) видели тот же id,
             // и играем именно за него. Это и есть «взять фиксированный id и
             // загрузиться», без зависимости от того, что лежит в реестре сейчас.
-            var forced = _forcedClientId ?? ReadClientIdFile();
+            var forced = _forcedClientId ?? (ClosedTestAccess.Enabled ? null : ReadClientIdFile());
             if (!string.IsNullOrEmpty(forced))
             {
                 if (!string.Equals(PlayerPrefs.GetString(ClientIdPref, string.Empty),
@@ -253,6 +262,7 @@ public static class SessionConfig
         }
 
         _resolved = true;
+        if (ClosedTestAccess.Enabled) return;
 
         string[] args;
         try

@@ -1,0 +1,28 @@
+.closed-test {
+    width: 440px;
+    padding: 28px;
+    background-color: rgba(14, 20, 25, 0.96);
+    border-radius: 18px;
+    color: rgb(237, 243, 246);
+    font-size: 18px;
+}
+.closed-test-title { font-size: 34px; -unity-font-style: bold; margin-bottom: 8px; }
+.closed-test Label { white-space: normal; margin-bottom: 12px; }
+.closed-test Button {
+    background-color: rgb(40, 53, 62);
+    color: rgb(237, 243, 246);
+    border-width: 1px;
+    border-color: rgb(80, 98, 111);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 8px;
+    white-space: normal;
+}
+.closed-test Button:hover { border-color: rgb(225, 239, 245); }
+.closed-test .server-choice.available { background-color: rgb(34, 92, 58); }
+.closed-test .server-choice.busy { background-color: rgb(114, 85, 27); }
+.closed-test .server-choice.unavailable { background-color: rgb(105, 40, 43); }
+.closed-test .server-choice:disabled { opacity: 0.8; }
+.closed-test TextField { margin-bottom: 12px; }
+.closed-test .unity-text-input { background-color: rgb(25, 35, 43); color: white; padding: 12px; }
+.closed-test-message { color: rgb(235, 201, 137); margin-top: 12px; }

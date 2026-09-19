@@ -102,6 +102,7 @@ namespace HexLive.UnityPresentation.UI
         /// </summary>
         public static bool CheckExternalChange()
         {
+            if (ClosedTestAccess.Enabled && !ClosedTestAccess.Can("bugs.read")) return false;
             if (_model == null)
             {
                 return false;
@@ -179,7 +180,7 @@ namespace HexLive.UnityPresentation.UI
             };
             var report = Send<Report>(HttpMethod.Post, "/reports", JsonUtility.ToJson(request), true);
             if (report == null) return null;
-            EnsureLoaded();
+            _model ??= new FileModel();
             _model.reports.Add(report);
             return report;
         }
@@ -358,7 +359,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             _model ??= new FileModel();
-            TryReloadFromServer();
+            if (!ClosedTestAccess.Enabled || ClosedTestAccess.Can("bugs.read")) TryReloadFromServer();
         }
 
         private static bool TryReloadFromServer()
@@ -386,6 +387,7 @@ namespace HexLive.UnityPresentation.UI
         }
 
         private static string CurrentToken() =>
+            ClosedTestAccess.Enabled ? ClosedTestAccess.ReadKey() :
             System.Environment.GetEnvironmentVariable("HEXLIVE_BUG_TOKEN") ??
             SessionConfig.ControlToken ?? ServerBook.LastToken;
 

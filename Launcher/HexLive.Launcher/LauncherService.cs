@@ -59,6 +59,7 @@ public sealed class RemoteRelease
 
 public sealed class PlayerRelease
 {
+    [JsonPropertyName("protocolVersion")] public int ProtocolVersion { get; set; }
     [JsonPropertyName("archiveSha256")] public string ArchiveSha256 { get; set; } = "";
     [JsonPropertyName("archiveSize")] public long ArchiveSize { get; set; }
     [JsonPropertyName("archiveFileName")] public string ArchiveFileName { get; set; } = "";
@@ -105,8 +106,22 @@ internal sealed class VerifiedStamp { public string Sha256 { get; set; } = ""; p
 public sealed class LauncherService
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
-    private readonly HttpClient _http = new(new SocketsHttpHandler { MaxConnectionsPerServer = 6 })
-        { Timeout = Timeout.InfiniteTimeSpan };
+    private readonly HttpClient _http;
+    public LauncherService(HttpMessageHandler? handler = null)
+    {
+        _http = new HttpClient(handler ?? new SocketsHttpHandler { MaxConnectionsPerServer = 6 })
+            { Timeout = Timeout.InfiniteTimeSpan };
+    }
+
+    public static bool NeedsUpdate(InstallState? installed, RemoteRelease release) =>
+        installed == null || installed.Version != release.Version ||
+        !string.Equals(installed.ArchiveSha256, release.PlayerRelease.ArchiveSha256, StringComparison.OrdinalIgnoreCase);
+
+    public static void RequireProtocol(RemoteRelease release, int required)
+    {
+        if (required > 0 && release.PlayerRelease.ProtocolVersion != required)
+            throw new InvalidDataException("Совместимое обновление ещё не опубликовано. Повторите проверку позже.");
+    }
 
     public async Task<RemoteRelease> GetLatestAsync(CancellationToken cancel = default)
     {
@@ -158,7 +173,8 @@ public sealed class LauncherService
             delta => Report("Скачиваем Player", delta, total), cancel);
 
         var versions = Path.Combine(installRoot, "versions"); Directory.CreateDirectory(versions);
-        var finalVersion = Path.Combine(versions, SafeSegment(release.Version));
+        // Keep the currently installed version intact until the new state is committed.
+        var finalVersion = Path.Combine(versions, SafeSegment(release.Version) + "-" + Guid.NewGuid().ToString("N"));
         var versionStaging = finalVersion + ".staging";
         if (Directory.Exists(versionStaging)) Directory.Delete(versionStaging, true);
         Directory.CreateDirectory(versionStaging);
@@ -167,11 +183,9 @@ public sealed class LauncherService
             release.PlayerRelease.Executable.Replace('/', Path.DirectorySeparatorChar)));
         EnsureUnder(versionStaging, executable);
         if (!File.Exists(executable)) throw new InvalidDataException("В Player archive нет HexLive.exe.");
-        if (Directory.Exists(finalVersion)) Directory.Delete(finalVersion, true);
         Directory.Move(versionStaging, finalVersion);
 
         await WarmCacheAsync(release.PlayerRelease, indexResult, needs, total, Report, cancel);
-        WriteToken();
         var installedLauncher = Path.Combine(installRoot, "HexLiveLauncher.exe");
         var current = Environment.ProcessPath!;
         if (!string.Equals(Path.GetFullPath(current), Path.GetFullPath(installedLauncher), StringComparison.OrdinalIgnoreCase))
@@ -196,9 +210,18 @@ public sealed class LauncherService
         response.EnsureSuccessStatusCode();
         await using var body = await response.Content.ReadAsStreamAsync(cancel);
         var index = await JsonSerializer.DeserializeAsync<ContentIndex>(body, Json, cancel) ?? throw new InvalidDataException("Пустой asset index.");
+        ValidateRuntimeContent(index);
+        return (index, response.Headers.ETag?.ToString());
+    }
+
+    internal static void ValidateRuntimeContent(ContentIndex index)
+    {
+        // §152.7: shared SFX, voices, music and FMOD banks are bundled in Player.
+        // Retired audio records can remain in older registries; they are not downloadable runtime content.
+        index.Objects.RemoveAll(o => o.Type == "audio");
+        index.PlatformMissing.RemoveAll(o => o.Type == "audio");
         if (index.PlatformMissing.Count != 0)
             throw new InvalidDataException($"Windows-контент неполон: отсутствует {index.PlatformMissing.Count} объектов.");
-        return (index, response.Headers.ETag?.ToString());
     }
 
     private async Task WarmCacheAsync(PlayerRelease release, (ContentIndex Index, string? ETag) result,
@@ -250,7 +273,7 @@ public sealed class LauncherService
         }, Json));
     }
 
-    private async Task DownloadVerifiedAsync(string url, string part, string sha, long size,
+    internal async Task DownloadVerifiedAsync(string url, string part, string sha, long size,
         Action<long> advanced, CancellationToken cancel)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(part)!);
@@ -266,19 +289,33 @@ public sealed class LauncherService
             try
             {
                 var offset = File.Exists(part) ? new FileInfo(part).Length : 0;
+                if (offset == size)
+                {
+                    if (string.Equals(await HashAsync(part, cancel), sha, StringComparison.OrdinalIgnoreCase)) return;
+                    File.Delete(part); offset = 0;
+                }
                 if (offset > size) { File.Delete(part); offset = 0; }
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 if (offset > 0) request.Headers.Range = new RangeHeaderValue(offset, null);
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancel);
                 if (offset > 0 && response.StatusCode == HttpStatusCode.OK) { File.Delete(part); offset = 0; }
                 response.EnsureSuccessStatusCode();
+                if (offset > 0 && (response.StatusCode != HttpStatusCode.PartialContent ||
+                    response.Content.Headers.ContentRange?.From != offset ||
+                    response.Content.Headers.ContentRange?.Length != size))
+                    throw new InvalidDataException("Сервер вернул неверный диапазон загрузки.");
                 await using var source = await response.Content.ReadAsStreamAsync(cancel);
-                await using var destination = new FileStream(part, offset == 0 ? FileMode.Create : FileMode.Append,
-                    FileAccess.Write, FileShare.None, 1024 * 128, true);
-                var buffer = new byte[1024 * 128]; int read;
-                while ((read = await source.ReadAsync(buffer, cancel)) > 0)
-                { await destination.WriteAsync(buffer.AsMemory(0, read), cancel); advanced(read); }
-                await destination.FlushAsync(cancel);
+                await using (var destination = new FileStream(part, offset == 0 ? FileMode.Create : FileMode.Append,
+                    FileAccess.Write, FileShare.None, 1024 * 128, true))
+                {
+                    var buffer = new byte[1024 * 128]; int read;
+                    while ((read = await source.ReadAsync(buffer, cancel)) > 0)
+                    {
+                        if (destination.Length + read > size) throw new InvalidDataException("Размер загрузки превышает манифест.");
+                        await destination.WriteAsync(buffer.AsMemory(0, read), cancel); advanced(read);
+                    }
+                    await destination.FlushAsync(cancel);
+                }
                 if (new FileInfo(part).Length != size || !string.Equals(await HashAsync(part, cancel), sha, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidDataException("Скачанный файл не прошёл SHA-256 проверку.");
                 return;
@@ -292,8 +329,7 @@ public sealed class LauncherService
         if (!File.Exists(state.Executable)) throw new FileNotFoundException("HexLive.exe не найден.", state.Executable);
         Process.Start(new ProcessStartInfo(state.Executable)
         {
-            WorkingDirectory = Path.GetDirectoryName(state.Executable)!, UseShellExecute = false,
-            ArgumentList = { "-hexlive-server", state.GameServer, "-hexlive-token", LauncherPaths.TokenPath }
+            WorkingDirectory = Path.GetDirectoryName(state.Executable)!, UseShellExecute = false
         });
     }
 
@@ -350,20 +386,6 @@ public sealed class LauncherService
     }
     private static void WriteAtomic(string path, string text)
     { Directory.CreateDirectory(Path.GetDirectoryName(path)!); var temp = path + ".tmp"; File.WriteAllText(temp, text); File.Move(temp, path, true); }
-
-    private static void WriteToken()
-    {
-        var token = Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
-            .FirstOrDefault(x => x.Key == "HexLivePlayerToken")?.Value?.Trim();
-        if (string.IsNullOrEmpty(token)) throw new InvalidOperationException("Launcher собран без HexLivePlayerToken.");
-        Directory.CreateDirectory(Path.GetDirectoryName(LauncherPaths.TokenPath)!);
-        File.WriteAllText(LauncherPaths.TokenPath, token + Environment.NewLine);
-        var security = new FileSecurity();
-        var sid = WindowsIdentity.GetCurrent().User ?? throw new InvalidOperationException("Нет Windows SID.");
-        security.SetOwner(sid); security.SetAccessRuleProtection(true, false);
-        security.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.FullControl, AccessControlType.Allow));
-        new FileInfo(LauncherPaths.TokenPath).SetAccessControl(security);
-    }
 
     private static void InstallShellIntegration(string launcher, string root)
     {

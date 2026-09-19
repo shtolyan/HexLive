@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../Server/HexLive.Server/HexLive.Server.csproj" />
+    <ProjectReference Include="../../Server/HexLive.Identity/HexLive.Identity.csproj" Aliases="IdentityService" />
   </ItemGroup>
 
 </Project>

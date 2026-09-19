@@ -388,6 +388,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
         }
     }
 
+    public int RequiredProtocolVersion { get; private set; }
     public void Connect() => _ = Task.Run(() => ConnectLoopAsync(_shutdown.Token));
 
     // ── socket thread ─────────────────────────────────────────────────────
@@ -651,6 +652,15 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                 using (var stream = new MemoryStream(payload))
                 using (var reader = new BinaryReader(stream, Encoding.UTF8))
                 {
+                    var protocol = reader.ReadInt32();
+                    stream.Position = 0;
+                    if (protocol != Handshake.ProtocolVersion)
+                    {
+                        RequiredProtocolVersion = protocol;
+                        Fail("ProtocolMismatch");
+                        _shutdown.Cancel();
+                        return;
+                    }
                     var handshake = Handshake.Read(reader);
                     lock (_inbox)
                     {

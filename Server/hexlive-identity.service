@@ -1,0 +1,22 @@
+[Unit]
+Description=HexLive identity and closed-test keys
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=hexlive
+Group=hexlive
+WorkingDirectory=/var/lib/hexlive-identity
+ExecStart=/opt/hexlive-identity/current/HexLive.Identity
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5130
+Environment=HEXLIVE_IDENTITY_DATA=/var/lib/hexlive-identity
+Restart=on-failure
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/hexlive-identity
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

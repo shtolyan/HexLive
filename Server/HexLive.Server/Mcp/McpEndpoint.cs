@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -39,7 +40,7 @@ public static class McpEndpoint
     public static void Map(WebApplication app, WorldSupervisor worlds, McpAccessToken token,
         ControlLeases leases, AgentSessionRegistry agentSessions, SpecLibrary? spec = null,
         McpPlayerAccess? playerAccess = null, Func<string, int, bool>? playerOwnsNpc = null,
-        Func<string, bool>? matchesGameToken = null)
+        Func<string, bool>? matchesGameToken = null, IdentityClient? identity = null)
     {
         if ((playerAccess == null) != (playerOwnsNpc == null))
             throw new ArgumentException("Player MCP authorization requires both grants and live assignments.");
@@ -63,11 +64,21 @@ public static class McpEndpoint
 
         app.MapPost("/mcp", async (HttpContext context) =>
         {
-            var administrator = Authorized(context, token);
+            var administrator = identity == null && Authorized(context, token);
             var credential = Bearer(context);
             var gamePlayer = administrator ? null : GamePlayer(context);
-            var playerGrant = administrator ? null : playerAccess?.Authorize(credential);
-            if (!administrator && playerGrant == null && gamePlayer == null && playerAccess == null)
+            if (!administrator && identity != null && credential.StartsWith("hexlive_", StringComparison.Ordinal))
+            {
+                try {
+                    var principal = await identity.AuthenticateAsync(credential, context.RequestAborted);
+                    administrator = principal?.Permissions.Contains("server.admin") == true;
+                    gamePlayer = principal?.Permissions.Contains("game.play") == true ? principal.AccountId : null;
+                }
+                catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or OperationCanceledException or JsonException)
+                { context.Response.StatusCode = 503; return; }
+            }
+            var playerGrant = administrator || identity != null ? null : playerAccess?.Authorize(credential);
+            if (!administrator && playerGrant == null && gamePlayer == null && (playerAccess == null || identity != null))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.Headers["WWW-Authenticate"] = "Bearer";

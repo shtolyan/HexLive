@@ -45,7 +45,7 @@ public sealed partial class MainWindow
         _characterSelection.SelectionChanged += ChooseCharacter;
         var codex = OperatingSystem.IsMacOS() ? "/Applications/ChatGPT.app/Contents/Resources/codex" : "codex.exe";
         var factory = new AgentSessionFactory(_secrets, codex);
-        _fleet = new((profile, server, token) => factory.ConnectAsync(profile, server, token));
+        _fleet = new((profile, server, token) => { OfficialGameAccess.RequireOfficial(server); return factory.ConnectAsync(profile, server, token); });
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         timer.Tick += async (_, _) =>
         {
@@ -166,6 +166,8 @@ public sealed partial class MainWindow
                 ? string.Format(Strings["CharacterSelected"], current)
                 : Strings[roster.Characters.Any(c => c.Available) ? "SelectCharacter" : "NoAvailableCharacters"]));
         }
+        catch (InvalidDataException ex) when (ex.Message == "ServerApiIncompatible")
+        { SetConfigurationStatus(Strings["ServerApiIncompatible"]); }
         catch (OperationCanceledException) { SetConfigurationStatus(Strings["ConnectionTimeout"]); }
         catch (HttpRequestException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
         { SetConfigurationStatus(Strings["ConnectionDenied"]); }

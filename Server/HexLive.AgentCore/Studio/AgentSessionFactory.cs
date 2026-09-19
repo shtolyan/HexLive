@@ -10,6 +10,7 @@ public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecut
         CancellationToken token, HttpMessageHandler? mcpHandler = null)
     {
         profile.Validate(); server.Validate();
+        if (server.CredentialId == OfficialGameAccess.CredentialId) OfficialGameAccess.RequireOfficial(server);
         if (profile.ServerId != server.Id) throw new InvalidDataException("ProfileServerMismatch");
         var credential = await RequireSecret(server.CredentialId, token);
         // Resolve every provider before attaching, including TTS before the first spoken reply.
@@ -30,6 +31,7 @@ public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecut
         // Read-only preflight before creating/modifying a workspace or attachment.
         using (var check = new McpClient(options.ProviderOptions, mcpHandler))
         {
+            if (server.CredentialId == OfficialGameAccess.CredentialId) await OfficialGameAccess.RequireCatalogAsync(check, token);
             var world = await check.CallToolAsync("world_status", new { }, token);
             if (!world.TryGetProperty("worldId", out var id) || id.GetString() != profile.WorldId)
                 throw new InvalidDataException("SelectedWorldChanged");

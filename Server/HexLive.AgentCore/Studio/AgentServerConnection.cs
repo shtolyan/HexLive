@@ -16,6 +16,7 @@ public sealed class AgentServerConnection(ISecretStore secrets, HttpMessageHandl
     public async Task<ServerRoster> ReadAsync(ServerProfile server, CancellationToken token)
     {
         server.Validate();
+        if (server.CredentialId == OfficialGameAccess.CredentialId) OfficialGameAccess.RequireOfficial(server);
         var credential = await secrets.ReadAsync(server.CredentialId, token) ?? throw new InvalidOperationException("MissingServerCredential");
         return await ReadWithCredentialAsync(server, credential, token);
     }
@@ -24,6 +25,7 @@ public sealed class AgentServerConnection(ISecretStore secrets, HttpMessageHandl
     public async Task ImportAdministratorAsync(ServerProfile server, string credential, CancellationToken token)
     {
         server.Validate();
+        if (server.CredentialId == OfficialGameAccess.CredentialId) OfficialGameAccess.RequireOfficial(server);
         credential = credential.Trim();
         if (!System.Text.RegularExpressions.Regex.IsMatch(credential, @"\Ahexmcp_[a-f0-9]{48}\z"))
             throw new InvalidDataException("InvalidAdministratorCredential");
@@ -34,7 +36,8 @@ public sealed class AgentServerConnection(ISecretStore secrets, HttpMessageHandl
 
     public async Task ImportServerTokenAsync(ServerProfile server, string credential, CancellationToken token)
     {
-        server.Validate(); credential = credential.Trim();
+        server.Validate();
+        if (server.CredentialId == OfficialGameAccess.CredentialId) OfficialGameAccess.RequireOfficial(server); credential = credential.Trim();
         if (credential.Length is < 16 or > 256 || credential.Any(char.IsControl)) throw new InvalidDataException("InvalidServerToken");
         await ReadWithCredentialAsync(server, credential, token);
         token.ThrowIfCancellationRequested();
@@ -44,8 +47,10 @@ public sealed class AgentServerConnection(ISecretStore secrets, HttpMessageHandl
     public async Task<ServerRoster> ReadWithCredentialAsync(ServerProfile server, string credential, CancellationToken token)
     {
         server.Validate();
+        if (server.CredentialId == OfficialGameAccess.CredentialId) OfficialGameAccess.RequireOfficial(server);
         using var mcp = new McpClient(new AgentProviderOptions { McpUri = server.McpEndpoint, McpToken = credential, PlayerClientId = server.PlayerClientId,
             XaiKey = "", ElevenLabsKey = "", XaiModel = "", ElevenLabsModel = "", ElevenLabsVoiceId = "" }, handler);
+        if (server.CredentialId == OfficialGameAccess.CredentialId) await OfficialGameAccess.RequireCatalogAsync(mcp, token);
         var world = await mcp.CallToolAsync("world_status", new { }, token);
         var roster = await mcp.CallToolAsync("list_colonists", new { }, token);
         return new(world.GetProperty("worldId").GetString()!, world.GetProperty("paused").GetBoolean(),
@@ -61,6 +66,7 @@ public sealed class AgentServerConnection(ISecretStore secrets, HttpMessageHandl
     public async Task CompletePairingAsync(ServerProfile server, PairingTicket ticket, CancellationToken token)
     {
         server.Validate();
+        if (server.CredentialId == OfficialGameAccess.CredentialId) OfficialGameAccess.RequireOfficial(server);
         while (DateTimeOffset.UtcNow < ticket.ExpiresUtc)
         {
             var result = await PairingCall(server.McpEndpoint, "poll_agent_pairing", new { pairingId = ticket.Id, pollSecret = ticket.PollSecret }, token);

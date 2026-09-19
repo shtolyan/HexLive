@@ -71,7 +71,7 @@
   "ConnectedCharacters": "Connected · available characters: {0}.",
   "ConnectionTimeout": "Connection timed out or was cancelled. Check the server address and try again.",
   "ConnectionCancelled": "Connection cancelled. No agent was started.",
-  "ConnectionDenied": "Connection rejected. Check the server token in Add / manage servers.",
+  "ConnectionDenied": "Access denied. The key may have been revoked or its permissions changed. Open Servers to change the key.",
   "Activity": "Activity",
   "Memory": "Memory",
   "Soul": "Soul and instructions",
@@ -175,5 +175,17 @@
   "MemoryKind_note": "Notes",
   "MemoryKind_import": "Imports",
   "MemoryKind_gap": "History gaps",
-  "MemoryGameDayFilter": "Game day (zero based)"
+  "MemoryGameDayFilter": "Game day (zero based)",
+  "UnifiedAccess": "HexLive access",
+  "AccessContinue": "Continue",
+  "ShowAccessKey": "Show key",
+  "UnifiedAccessHint": "Enter your HexLive key once. It is saved securely on this computer and also works in the game.",
+  "IdentityUnavailable": "Cannot verify the key. Check your connection and try again.",
+  "InvalidAccessKey": "The key is invalid or revoked. Check the pasted text or ask for a new key.",
+  "GamePermissionRequired": "This key has no game access. Ask the administrator to grant it.",
+  "OfficialServersHint": "Your saved key is used on official servers. New York is not enabled in this test. Changing the key stops running agents.",
+  "ChangeAccessKey": "Change access key",
+  "Singapore": "Singapore",
+  "NewYorkUnavailable": "New York · unavailable",
+  "ServerApiIncompatible": "The server API is incompatible. Update Agent Studio."
 }

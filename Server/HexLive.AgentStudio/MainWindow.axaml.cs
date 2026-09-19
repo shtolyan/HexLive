@@ -39,8 +39,11 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     ? p with { DialogueStyleId = HexLive.AgentHost.DialogueStyles.DetectAuthoredWorkspace(p.Workspace) } : p).ToArray();
                 if (!migrated.SequenceEqual(_configuration.Configuration.Agents))
                     _configuration = await _configurationStore.SaveAsync(_configuration, _configuration.Configuration with { Agents = migrated });
+                var officialConfiguration = OfficialGameAccess.Migrate(_configuration.Configuration);
+                if (!officialConfiguration.Servers.SequenceEqual(_configuration.Configuration.Servers))
+                    _configuration = await _configurationStore.SaveAsync(_configuration, officialConfiguration);
                 SetConfigurationStatus(Strings["InitializingCredentials"]);
-                var ids = _configuration.Configuration.Servers.Select(s => s.CredentialId)
+                var ids = new[] { OfficialGameAccess.CredentialId }
                     .Concat(_configuration.Configuration.Agents.Where(p => p.Model.Provider != ModelProviderKind.Codex)
                         .Select(p => p.Model.IntegrationId))
                     .Concat(_configuration.Configuration.Agents.Where(p => p.Voice != null).Select(p => p.Voice!.IntegrationId))
@@ -51,13 +54,34 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                 SetConfigurationStatus(accessReady ? "" : Strings[authenticationFailed
                     ? "KeychainAuthenticationFailed" : "CredentialAccessDenied"]);
                 foreach (var profile in _configuration.Configuration.Agents) Profiles.Add(profile);
-                foreach (var server in _configuration.Configuration.Servers) Servers.Add(server);
+                foreach (var server in _configuration.Configuration.Servers.Where(s => s.McpEndpoint == OfficialGameAccess.Singapore && s.CredentialId == OfficialGameAccess.CredentialId)) Servers.Add(server);
                 if (Profiles.Count > 0) this.FindControl<ListBox>("ProfilesList")!.SelectedItem = Profiles[0];
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Text.Json.JsonException or ArgumentException or InvalidOperationException)
             { SetConfigurationStatus(Strings["ConfigurationError"]); }
             finally { IsEnabled = true; }
+            if (_configuration != null) await EnsureAccessAsync();
         };
+    }
+    private async Task EnsureAccessAsync()
+    {
+        _operation = true;
+        try
+        {
+            var key = await _secrets.ReadAsync(OfficialGameAccess.CredentialId, default);
+            if (key != null)
+            {
+                try { await OfficialGameAccess.ValidateAsync(key, default); return; }
+                catch (InvalidDataException ex) when (ex.Message is "InvalidAccessKey" or "GamePermissionRequired")
+                { SetConfigurationStatus(Strings[ex.Message]); }
+            }
+            var server = Servers.FirstOrDefault();
+            var result = await new ServerPairingWindow(Strings, _secrets, server).ShowDialog<ServerProfile?>(this);
+            if (result != null) await SaveServer(result);
+        }
+        catch (CredentialStoreException) { SetConfigurationStatus(Strings["CredentialAccessDenied"]); }
+        catch { SetConfigurationStatus(Strings["IdentityUnavailable"]); }
+        finally { _operation = false; }
     }
     private void SelectProfile(object? sender, SelectionChangedEventArgs args)
     {
@@ -130,12 +154,20 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     }
     private async void ShowServers(object? sender, RoutedEventArgs args)
     {
-        if (_configuration == null || _configurationStore == null) return;
-        var owner = sender is Control control ? TopLevel.GetTopLevel(control) as Window : null;
-        await new ServersWindow(Strings, _secrets, Servers, SaveServer).ShowDialog(owner?.IsVisible == true ? owner : this);
+        if (_operation || _configuration == null || _configurationStore == null) return;
+        _operation = true;
+        try
+        {
+            var owner = sender is Control control ? TopLevel.GetTopLevel(control) as Window : null;
+            await new ServersWindow(Strings, _secrets, Servers, SaveServer, () => _fleet.StopAllAsync())
+                .ShowDialog(owner?.IsVisible == true ? owner : this);
+        }
+        catch { SetConfigurationStatus(Strings["ConfigurationError"]); }
+        finally { _operation = false; }
     }
     private async Task SaveServer(ServerProfile server)
     {
+        OfficialGameAccess.RequireOfficial(server);
         if (_configuration == null || _configurationStore == null) throw new IOException("ConfigurationUnavailable");
             _configuration = await _configurationStore.SaveAsync(_configuration,
                 _configuration.Configuration with { Servers = _configuration.Configuration.Servers.Where(x => x.Id != server.Id).Append(server).ToArray() });

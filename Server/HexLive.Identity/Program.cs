@@ -66,22 +66,14 @@ public static class Program
             return token != null && sessions.IsSignedIn(token) && subjects.TryGetValue(token, out var hash) ? keys.AuthenticateHash(hash) : null;
         }
         bool Signed(HttpContext c) => Subject(c)?.Permissions?.Contains("keys.manage") == true;
-        string Checks(string[] selected) => string.Join("", KeyStore.Permissions.Select(p => "<label><input type='checkbox' name='permissions' value='" + E(p) + "'" + (selected.Contains(p) ? " checked" : "") + ">" + E(p) + "</label>"));
-        static string E(string s) => WebUtility.HtmlEncode(s);
         string Csrf(HttpContext c) => "<input type='hidden' name='__RequestVerificationToken' value='" +
-            E(c.RequestServices.GetRequiredService<IAntiforgery>().GetAndStoreTokens(c).RequestToken!) + "'>";
+            AdminView.E(c.RequestServices.GetRequiredService<IAntiforgery>().GetAndStoreTokens(c).RequestToken!) + "'>";
         async Task<bool> ValidPost(HttpContext c)
         {
             try { await c.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync(c); return true; }
             catch (AntiforgeryValidationException) { return false; }
         }
-        static IResult Page(string body, int statusCode = 200) => Results.Content("<!doctype html><html lang='ru'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>HexLive — ключи</title><style>body{background:#10171c;color:#edf2f4;font:17px system-ui;max-width:900px;margin:50px auto;padding:20px}input,button{font:inherit;padding:10px;margin:5px}button{cursor:pointer}article{border-top:1px solid #43535d;padding:15px 0}code{overflow-wrap:anywhere}a{color:#bcdf88}</style><h1>HexLive · ключи</h1>" + body + "</html>", "text/html; charset=utf-8", statusCode: statusCode);
-
-        IResult LoginPage(HttpContext c, string? error = null, int statusCode = 200) => Page(
-            (error == null ? "" : "<p role='alert'>" + E(error) + "</p>") +
-            "<p>Введите единый ключ целиком, включая hexlive_. Для входа нужно право keys.manage.</p>" +
-            "<form method='post' action='/login'>" + Csrf(c) +
-            "<input name='key' type='password' autocomplete='current-password' aria-label='Ключ доступа' placeholder='Ключ доступа' required><button>Войти</button></form>", statusCode);
+        IResult LoginPage(HttpContext c, string? error = null, int statusCode = 200) => AdminView.Login(Csrf(c), error, statusCode);
         app.MapGet("/login", (HttpContext c) => Results.Redirect("/"));
 
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
@@ -94,17 +86,11 @@ public static class Program
         app.MapGet("/", (HttpContext c) => {
             var csrf = Csrf(c);
             if (!Signed(c)) return LoginPage(c);
-            var html = new StringBuilder("<form method='post' action='/issue'>" + csrf + "<input name='name' maxlength='100' placeholder='Имя' required>" + Checks(["game.play", "bugs.create"]) + "<select name='subjectType'><option value='player'>Игрок</option><option value='agent'>Агент</option></select><button>Выдать ключ</button></form>");
-            foreach (var a in keys.List())
-            {
-                var hidden = csrf + "<input type='hidden' name='id' value='" + E(a.Id) + "'><input type='hidden' name='expectedRevision' value='" + a.Revision + "'>";
-                html.Append("<article><strong>").Append(E(a.Name)).Append("</strong> · ").Append(a.Revoked ? "Отозван" : "Активен")
-                    .Append("<form method='post' action='/permissions'>").Append(hidden).Append(Checks(a.Permissions!)).Append("<button>Сохранить права</button></form>")
-                    .Append("<form method='post' action='/revoke'>").Append(hidden).Append("<button>Отозвать</button></form>")
-                    .Append("<form method='post' action='/issue'>").Append(hidden).Append("<input type='hidden' name='name' value='").Append(E(a.Name)).Append("'><button>Заменить ключ</button></form></article>");
-            }
-            html.Append("<form method='post' action='/logout'>").Append(csrf).Append("<button>Выйти</button></form>");
-            return Page(html.ToString());
+            var notice = c.Request.Query["done"].ToString() switch {
+                "permissions" => "Права сохранены. Участник продолжает пользоваться тем же ключом.",
+                "revoke" => "Ключ отозван. Доступ по нему закрыт.", _ => ""
+            };
+            return AdminView.Dashboard(keys.List(), csrf, Subject(c)!.Id, c.Request.Query["q"].ToString(), notice);
         });
         app.MapGet("/audit", (HttpContext c) => Signed(c) ? Results.Json(keys.History()) : Results.Unauthorized());
         app.MapPost("/login", async (HttpContext c) => {
@@ -128,30 +114,33 @@ public static class Program
         foreach (var action in new[] { "issue", "permissions", "revoke" })
         {
             app.MapPost("/" + action, async (HttpContext c) => {
-                if (!Signed(c) || !await ValidPost(c)) return Results.Unauthorized();
+                if (!Signed(c)) return LoginPage(c, "Сессия завершена. Войдите снова, чтобы управлять ключами.", 401);
+                if (!await ValidPost(c)) return AdminView.Error("Форма устарела. Вернитесь к списку и повторите действие.", 401);
                 var form = await c.Request.ReadFormAsync();
                 var actor = Subject(c);
-                if (actor?.Permissions?.Contains("keys.manage") != true) return Results.Unauthorized();
+                if (actor?.Permissions?.Contains("keys.manage") != true) return LoginPage(c, "Право управления ключами больше недоступно.", 401);
                 try {
                     var id = form["id"].ToString();
                     long? revision = long.TryParse(form["expectedRevision"], out var r) ? r : null;
-                    if (id.Length > 0 && revision == null) return Results.BadRequest();
+                    if (id.Length > 0 && revision == null) return AdminView.Error("Форма устарела или заполнена неверно. Вернитесь к списку и повторите действие.", 400);
                     if (action == "issue") {
                         var issued = keys.Issue(form["name"].ToString(), id.Length == 0 ? null : id,
                             id.Length == 0 ? form["permissions"].Select(p => p!).ToArray() : null, revision, actor.Id,
                             form["subjectType"].ToString() is "agent" ? "agent" : "player");
-                        return Page("<p>Скопируйте ключ для " + E(issued.Account.Name) + ". Он показывается один раз.</p><code>" + E(issued.Key) + "</code><p><a href='/'>К списку</a></p>");
+                        return AdminView.Issued(issued.Account.Name, issued.Key);
                     }
-                    if (revision == null) return Results.BadRequest();
+                    if (revision == null) return AdminView.Error("Форма устарела или заполнена неверно. Вернитесь к списку и повторите действие.", 400);
                     if (action == "permissions") keys.SetPermissions(id, form["permissions"].Select(p => p!).ToArray(), revision.Value, actor.Id);
                     else keys.Revoke(id, revision, actor.Id);
-                    return Results.Redirect("/");
-                } catch (KeyStore.ConflictException) { return Results.Conflict(new { error = "Данные изменились. Обновите страницу." }); }
-                catch (ArgumentException e) { return Results.BadRequest(new { error = e.Message }); }
+                    return Results.Redirect("/?done=" + action);
+                } catch (KeyStore.ConflictException) { return AdminView.Error("Права этого участника уже изменились. Вернитесь к списку и проверьте актуальные настройки.", 409); }
+                catch (ArgumentException e) { return AdminView.Error(e.Message == "Cannot remove the last key manager"
+                    ? "Нельзя отключить последнего администратора ключей. Сначала назначьте другого владельца."
+                    : "Не удалось сохранить изменения. Проверьте имя, права и актуальность карточки.", 400); }
             });
         }
         app.MapPost("/logout", async (HttpContext c) => {
-            if (!await ValidPost(c)) return Results.BadRequest();
+            if (!await ValidPost(c)) return AdminView.Error("Форма устарела или заполнена неверно. Вернитесь к списку и повторите действие.", 400);
             var token = c.Request.Cookies["__Host-hexlive-identity"];
             if (token != null) subjects.TryRemove(token, out _);
             sessions.SignOut(token);

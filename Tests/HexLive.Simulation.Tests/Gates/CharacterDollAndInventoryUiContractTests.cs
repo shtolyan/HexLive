@@ -21,7 +21,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void PointerGateMeasuresVisibleSurfacesNotTheFullWidthStage()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
 
         Assert.Multiple(() =>
         {
@@ -33,7 +33,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     }
 
     private static string ReadLocalization() => Regex.Replace(
-        File.ReadAllText(Path.Combine(
+        SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset")),
         @"\\u([0-9a-fA-F]{4})",
         match => ((char)Convert.ToInt32(match.Groups[1].Value, 16)).ToString());
@@ -47,9 +47,9 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void InventoryAndLootControlsDependOnAuthorityNotControlMode_Bug215()
     {
-        var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        var loot = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
-        var input = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
+        var panel = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
+        var loot = SourceText.Read(Presentation("UI", "LootTransferPanel.cs"));
+        var input = SourceText.Read(Presentation("Input", "SimulationInputAdapter.cs"));
         var refreshStart = panel.IndexOf(
             "private void RefreshInventory(WorldSnapshot snapshot, NpcSnapshot npc)",
             StringComparison.Ordinal);
@@ -78,7 +78,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void CharacterPanelUsesOneLargeFlatInventoryGridAndRelationWindow()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
 
         Assert.Multiple(() =>
         {
@@ -118,11 +118,11 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void ManualCraftingTabUsesAuthoritativeOptionsAndHasNoIngredientDragging()
     {
-        var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        var sourceApi = File.ReadAllText(Presentation("Bootstrap", "ISimulationSource.cs"));
-        var local = File.ReadAllText(Presentation("Bootstrap", "LocalEngineBackend.cs"));
-        var loopback = File.ReadAllText(Presentation("Bootstrap", "LoopbackBackend.cs"));
-        var remote = File.ReadAllText(Presentation(
+        var panel = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
+        var sourceApi = SourceText.Read(Presentation("Bootstrap", "ISimulationSource.cs"));
+        var local = SourceText.Read(Presentation("Bootstrap", "LocalEngineBackend.cs"));
+        var loopback = SourceText.Read(Presentation("Bootstrap", "LoopbackBackend.cs"));
+        var remote = SourceText.Read(Presentation(
             "Bootstrap", "Remote", "RemoteSocketBackend.cs"));
         var localization = ReadLocalization();
         var craftStart = panel.IndexOf(
@@ -170,7 +170,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void InventoryDetailRemainsSingleUnscrolledCard()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
         Assert.That(Regex.Matches(source, @"void\s+BuildInventoryDetail\s*\(").Count, Is.EqualTo(1));
         Assert.That(Regex.Matches(source, @"void\s+ShowItemDetail\s*\(").Count, Is.EqualTo(1));
         Assert.That(Regex.Matches(source, @"void\s+BuildItemStats\s*\(").Count, Is.EqualTo(1));
@@ -187,7 +187,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void FillButtonMirrorsPerBottleProvenanceRule_Bug355()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
         var start = source.IndexOf("private static bool CanFillVessel(",
             StringComparison.Ordinal);
         var end = source.IndexOf("private void EnqueueFillVessel", start,
@@ -207,7 +207,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void InventoryDetailDismissesOnEmptyClickButNotOnDragOrInsideClick()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
         var start = source.IndexOf(
             "private void KeepInventoryDetailOpen", StringComparison.Ordinal);
         var end = source.IndexOf(
@@ -239,7 +239,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void InventorySeparatesCarriedSlotsAndAuthoritativeWornItems()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
         var rebuildStart = source.IndexOf(
             "private void RebuildItemList", StringComparison.Ordinal);
         var signatureStart = source.IndexOf(
@@ -277,7 +277,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void ClothesTabUsesIconsAndPreservesTheWornSourceIndex()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
         var localization = ReadLocalization();
 
         Assert.Multiple(() =>
@@ -306,8 +306,8 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void ClothingCardShowsThePhysicalItemsLocalizedOwner()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        var localization = File.ReadAllText(Path.Combine(
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
+        var localization = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
 
         Assert.Multiple(() =>
@@ -326,8 +326,8 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void DroppingIsAnExplicitDetailActionWithoutBottomDragZone()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        var quantityPicker = File.ReadAllText(Presentation(
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
+        var quantityPicker = SourceText.Read(Presentation(
             "UI", "CharacterPanel.InventoryDropQuantity.cs"));
 
         Assert.Multiple(() =>
@@ -347,7 +347,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void DollHoverOpensTheExistingDetailAndClickIsSeparatedFromRotation()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var source = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
         var hoverStart = source.IndexOf(
             "private void HoverInventoryPreview", StringComparison.Ordinal);
         var toggleStart = source.IndexOf(
@@ -382,7 +382,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void DollPickingUsesFrozenMeshSurfacesBeforeBoundsFallback()
     {
-        var source = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var source = SourceText.Read(Presentation("UI", "CharacterDollStage.cs"));
         var pickStart = source.IndexOf(
             "public bool TryPickWorn", StringComparison.Ordinal);
         var zonesStart = source.IndexOf(
@@ -407,9 +407,9 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void InventoryLayerTabsFilterThePersistentCloneWithoutRebuildingIt()
     {
-        var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
-        var icons = File.ReadAllText(Presentation("UI", "VectorIcon.cs"));
+        var panel = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
+        var stage = SourceText.Read(Presentation("UI", "CharacterDollStage.cs"));
+        var icons = SourceText.Read(Presentation("UI", "VectorIcon.cs"));
         var localization = ReadLocalization();
         var selectStart = stage.IndexOf(
             "public void SetVisibleWearLayer", StringComparison.Ordinal);
@@ -461,7 +461,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
         Assert.That(File.Exists(Presentation("UI", "InventoryPreviewStage.cs")), Is.False);
         Assert.That(File.Exists(Presentation("UI", "HealthDollStage.cs")), Is.False);
 
-        var stage = File.ReadAllText(stagePath);
+        var stage = SourceText.Read(stagePath);
         var setModeStart = stage.IndexOf("public void SetMode", StringComparison.Ordinal);
         var setTargetStart = stage.IndexOf("public void SetTarget", setModeStart, StringComparison.Ordinal);
         var setMode = stage[setModeStart..setTargetStart];
@@ -493,7 +493,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
                      Presentation("WolfFightTest", "WolfFightTestBootstrap.cs")
                  })
         {
-            var source = File.ReadAllText(bootstrap);
+            var source = SourceText.Read(bootstrap);
             Assert.That(Regex.Matches(source, @"AddComponent<(?:UI\.)?CharacterDollStage>").Count,
                 Is.EqualTo(1), bootstrap);
             Assert.That(source, Does.Not.Contain("HealthDollStage"), bootstrap);
@@ -504,7 +504,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void DollCameraBakesTheIdleCloneInsteadOfUsingSourcePoseOrCullingMargins()
     {
-        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var stage = SourceText.Read(Presentation("UI", "CharacterDollStage.cs"));
         var frameStart = stage.IndexOf("private void FrameClone()", StringComparison.Ordinal);
         var signatureStart = stage.IndexOf(
             "private int SourceVisualSignature", frameStart, StringComparison.Ordinal);
@@ -549,7 +549,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void DollFrameIsAPhotoPointMeasuredOncePerActor()
     {
-        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var stage = SourceText.Read(Presentation("UI", "CharacterDollStage.cs"));
         var frameStart = stage.IndexOf("private void FrameClone()", StringComparison.Ordinal);
         var signatureStart = stage.IndexOf(
             "private int SourceVisualSignature", frameStart, StringComparison.Ordinal);
@@ -575,7 +575,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void DollStageRendersOnDemandAndFreezesItsClone()
     {
-        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var stage = SourceText.Read(Presentation("UI", "CharacterDollStage.cs"));
 
         Assert.Multiple(() =>
         {
@@ -601,9 +601,9 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void DollSynchronizesPaintedSurfaceWithoutRebuildingItsClone()
     {
-        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
-        var painter = File.ReadAllText(Presentation("Wearing", "SkinTexturePainter.cs"));
-        var garmentPainter = File.ReadAllText(
+        var stage = SourceText.Read(Presentation("UI", "CharacterDollStage.cs"));
+        var painter = SourceText.Read(Presentation("Wearing", "SkinTexturePainter.cs"));
+        var garmentPainter = SourceText.Read(
             Presentation("Wearing", "GarmentWearPainter.cs"));
         var syncStart = stage.IndexOf(
             "private void SynchronizeSurfaceState", StringComparison.Ordinal);
@@ -650,8 +650,8 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void BothDollWindowsContainThePortraitInsteadOfCroppingIt()
     {
-        var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-        var stage = File.ReadAllText(Presentation("UI", "CharacterDollStage.cs"));
+        var panel = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
+        var stage = SourceText.Read(Presentation("UI", "CharacterDollStage.cs"));
         var width = int.Parse(Regex.Match(stage, @"TextureWidth = (\d+)").Groups[1].Value);
         var height = int.Parse(Regex.Match(stage, @"TextureHeight = (\d+)").Groups[1].Value);
 
@@ -680,9 +680,9 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void ActorBodyFlowHasNoNamedDonorOrLegacySelectionFallback()
     {
-        var resolver = File.ReadAllText(Presentation("Wearing", "ActorBodyResolver.cs"));
-        var limbFactory = File.ReadAllText(Presentation("Wearing", "SeveredLimbFactory.cs"));
-        var actorView = File.ReadAllText(Presentation("Wearing", "NpcActorView.cs"));
+        var resolver = SourceText.Read(Presentation("Wearing", "ActorBodyResolver.cs"));
+        var limbFactory = SourceText.Read(Presentation("Wearing", "SeveredLimbFactory.cs"));
+        var actorView = SourceText.Read(Presentation("Wearing", "NpcActorView.cs"));
 
         Assert.Multiple(() =>
         {
@@ -699,11 +699,11 @@ public sealed class CharacterDollAndInventoryUiContractTests
     [Test]
     public void SeveredLimbUsesEvaluatedPoseCloneAtPersistedHexAnchor()
     {
-        var factory = File.ReadAllText(Presentation("Wearing", "SeveredLimbFactory.cs"));
-        var dropView = File.ReadAllText(Presentation("Wearing", "SeveredLimbDropView.cs"));
-        var actorView = File.ReadAllText(Presentation("Wearing", "NpcActorView.cs"));
-        var renderer = File.ReadAllText(Presentation("Rendering", "HexWorldRenderer.cs"));
-        var simulation = File.ReadAllText(Path.Combine(
+        var factory = SourceText.Read(Presentation("Wearing", "SeveredLimbFactory.cs"));
+        var dropView = SourceText.Read(Presentation("Wearing", "SeveredLimbDropView.cs"));
+        var actorView = SourceText.Read(Presentation("Wearing", "NpcActorView.cs"));
+        var renderer = SourceText.Read(Presentation("Rendering", "HexWorldRenderer.cs"));
+        var simulation = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "Simulation", "Runtime", "Helpers",
             "AmputateSystemHelpers.cs"));
 
@@ -731,7 +731,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
         var actors = Path.Combine(
             assets, "HexLiveContent", "RuntimeSource", "Actors");
         var metaByGuid = Directory.EnumerateFiles(assets, "*.fbx.meta", SearchOption.AllDirectories)
-            .Select(path => (path, match: Regex.Match(File.ReadAllText(path), @"(?m)^guid: (\w{32})$")))
+            .Select(path => (path, match: Regex.Match(SourceText.Read(path), @"(?m)^guid: (\w{32})$")))
             .Where(entry => entry.match.Success)
             .ToDictionary(entry => entry.match.Groups[1].Value, entry => entry.path);
 
@@ -745,7 +745,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
         var problems = new List<string>();
         foreach (var prefab in Directory.EnumerateFiles(actors, "*.prefab"))
         {
-            var yaml = File.ReadAllText(prefab);
+            var yaml = SourceText.Read(prefab);
             foreach (var legacy in legacyGuids)
             {
                 if (yaml.Contains(legacy, StringComparison.Ordinal))
@@ -767,7 +767,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
                 continue;
             }
             if (!fbxMetas.Any(path => Regex.IsMatch(
-                    File.ReadAllText(path), @"(?m)^\s+isReadable: 1$")))
+                    SourceText.Read(path), @"(?m)^\s+isReadable: 1$")))
             {
                 problems.Add($"{Path.GetFileName(prefab)} has no readable FBX dependency");
             }
@@ -781,7 +781,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
                 continue;
             }
 
-            var avatarYaml = File.ReadAllText(avatarMeta);
+            var avatarYaml = SourceText.Read(avatarMeta);
             if (!Regex.IsMatch(avatarYaml, @"(?m)^\s+animationType: 3$") ||
                 !Regex.IsMatch(avatarYaml, @"(?m)^\s+avatarSetup: 1$"))
             {

@@ -14,8 +14,8 @@ namespace HexLive.Simulation.Tests.Gates
         [Test]
         public void SelectionIsOrderedAndArrowKeysPanLikeWasd()
         {
-            var selection = File.ReadAllText(Presentation("Input", "NpcSelection.cs"));
-            var camera = File.ReadAllText(Presentation("Input", "RtsCameraController.cs"));
+            var selection = SourceText.Read(Presentation("Input", "NpcSelection.cs"));
+            var camera = SourceText.Read(Presentation("Input", "RtsCameraController.cs"));
             Assert.Multiple(() =>
             {
                 Assert.That(selection, Does.Contain("IReadOnlyList<int> SelectedIds"));
@@ -37,8 +37,8 @@ namespace HexLive.Simulation.Tests.Gates
         [Test]
         public void RosterGroupPanelAndReadOnlyOutsiderAreExplicitContracts()
         {
-            var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-            var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
+            var panel = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
+            var adapter = SourceText.Read(Presentation("Input", "SimulationInputAdapter.cs"));
             Assert.Multiple(() =>
             {
                 Assert.That(panel, Does.Contain("BuildRoster()"));
@@ -62,7 +62,7 @@ namespace HexLive.Simulation.Tests.Gates
         [Test]
         public void CameraHasFrameFollowDetachAndUiAwareFit()
         {
-            var camera = File.ReadAllText(Presentation("Input", "RtsCameraController.cs"));
+            var camera = SourceText.Read(Presentation("Input", "RtsCameraController.cs"));
             Assert.Multiple(() =>
             {
                 Assert.That(camera, Does.Contain("EnterOrbitSelection"));
@@ -99,10 +99,10 @@ namespace HexLive.Simulation.Tests.Gates
         [Test]
         public void EveryCharacterClickUsesSharedActivationAndSelectionDetachesFollow()
         {
-            var selection = File.ReadAllText(Presentation("Input", "NpcSelection.cs"));
-            var camera = File.ReadAllText(Presentation("Input", "RtsCameraController.cs"));
-            var panel = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
-            var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
+            var selection = SourceText.Read(Presentation("Input", "NpcSelection.cs"));
+            var camera = SourceText.Read(Presentation("Input", "RtsCameraController.cs"));
+            var panel = SourceText.Read(Presentation("UI", "CharacterPanel.cs"));
+            var adapter = SourceText.Read(Presentation("Input", "SimulationInputAdapter.cs"));
             Assert.Multiple(() =>
             {
                 Assert.That(selection, Does.Contain("NpcActivationPolicy.ShouldFocus"));

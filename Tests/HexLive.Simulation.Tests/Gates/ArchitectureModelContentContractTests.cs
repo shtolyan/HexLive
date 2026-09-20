@@ -29,7 +29,7 @@ public sealed class ArchitectureModelContentContractTests
     [Test]
     public void ArchitectureModelLoaderNeverMemoizesTheAsynchronousFirstNull()
     {
-        var source = File.ReadAllText(Path.Combine(RepoPaths.Root, "Assets", "HexLive",
+        var source = SourceText.Read(Path.Combine(RepoPaths.Root, "Assets", "HexLive",
             "UnityPresentation", "Environment", "BlueprintArchitectureFactory.cs"));
 
         Assert.Multiple(() =>
@@ -47,9 +47,9 @@ public sealed class ArchitectureModelContentContractTests
     [Test]
     public void PrewarmAsksForArchitectureModulesUnderTheirPublishedContentType()
     {
-        var source = File.ReadAllText(Path.Combine(RepoPaths.Root, "Assets", "HexLive",
+        var source = SourceText.Read(Path.Combine(RepoPaths.Root, "Assets", "HexLive",
             "UnityPresentation", "Wearing", "ScenePrewarm.cs"));
-        var loader = File.ReadAllText(Path.Combine(RepoPaths.Root, "Assets", "HexLive",
+        var loader = SourceText.Read(Path.Combine(RepoPaths.Root, "Assets", "HexLive",
             "UnityPresentation", "Content", "AtomicResources.cs"));
 
         Assert.Multiple(() =>

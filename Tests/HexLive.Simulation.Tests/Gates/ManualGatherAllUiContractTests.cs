@@ -11,7 +11,7 @@ namespace HexLive.Simulation.Tests.Gates;
 /// </summary>
 public sealed class ManualGatherAllUiContractTests
 {
-    private static string Adapter() => File.ReadAllText(Path.Combine(
+    private static string Adapter() => SourceText.Read(Path.Combine(
         RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Input",
         "SimulationInputAdapter.cs"));
 
@@ -58,7 +58,7 @@ public sealed class ManualGatherAllUiContractTests
     [Test]
     public void GatherAllTermIsLocalizedInBothLanguages()
     {
-        var asset = File.ReadAllText(Path.Combine(
+        var asset = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
 
         Assert.That(asset, Does.Match(

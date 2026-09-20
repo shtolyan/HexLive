@@ -13,7 +13,7 @@ namespace HexLive.Simulation.Tests.Gates;
 public sealed class FistAttackPresentationContractTests
 {
     private static string Source(params string[] parts) =>
-        File.ReadAllText(Path.Combine(new[] { RepoPaths.Root }.Concat(parts).ToArray()));
+        SourceText.Read(Path.Combine(new[] { RepoPaths.Root }.Concat(parts).ToArray()));
 
     private static string Method(string source, string signature, string nextSignature)
     {

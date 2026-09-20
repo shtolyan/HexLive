@@ -50,7 +50,7 @@ public sealed class WorldClickSuppressionContractTests
         });
     }
 
-    private static string Read(string folder, string file) => File.ReadAllText(
+    private static string Read(string folder, string file) => SourceText.Read(
         Path.Combine(RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
             folder, file));
 }

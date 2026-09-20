@@ -18,7 +18,7 @@ public sealed class ManualMoveClickUiContractTests
         var path = Path.Combine(
             new[] { RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
                 "Input", "SimulationInputAdapter.cs" });
-        var adapter = File.ReadAllText(path);
+        var adapter = SourceText.Read(path);
 
         Assert.Multiple(() =>
         {
@@ -42,10 +42,10 @@ public sealed class ManualMoveClickUiContractTests
     [Test]
     public void PaceIsACharacterSettingOwnedByTheSimulation()
     {
-        var panel = File.ReadAllText(Path.Combine(
+        var panel = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "UI",
             "CharacterPanel.cs"));
-        var executor = File.ReadAllText(Path.Combine(
+        var executor = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "Simulation", "Runtime",
             "Systems", "Ai", "ManualCommandExecutor.cs"));
 
@@ -77,7 +77,7 @@ public sealed class ManualMoveClickUiContractTests
     [Test]
     public void PaceToggleHasBothLocalizedTermsAndItsIcons()
     {
-        var loc = File.ReadAllText(Path.Combine(
+        var loc = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
 
         Assert.Multiple(() =>
@@ -101,9 +101,9 @@ public sealed class ManualMoveClickUiContractTests
     {
         var uiRoot = Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation");
-        var menu = File.ReadAllText(Path.Combine(uiRoot, "UI", "ContextMenuPanel.cs"));
-        var camera = File.ReadAllText(Path.Combine(uiRoot, "Input", "RtsCameraController.cs"));
-        var adapter = File.ReadAllText(Path.Combine(uiRoot, "Input", "SimulationInputAdapter.cs"));
+        var menu = SourceText.Read(Path.Combine(uiRoot, "UI", "ContextMenuPanel.cs"));
+        var camera = SourceText.Read(Path.Combine(uiRoot, "Input", "RtsCameraController.cs"));
+        var adapter = SourceText.Read(Path.Combine(uiRoot, "Input", "SimulationInputAdapter.cs"));
 
         Assert.Multiple(() =>
         {
@@ -123,7 +123,7 @@ public sealed class ManualMoveClickUiContractTests
     [Test]
     public void LyingWardCanBeTargetedThroughStationButNotThroughPortableItem()
     {
-        var adapter = File.ReadAllText(Path.Combine(
+        var adapter = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Input",
             "SimulationInputAdapter.cs"));
 

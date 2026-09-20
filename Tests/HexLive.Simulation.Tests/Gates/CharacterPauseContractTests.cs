@@ -9,7 +9,7 @@ public sealed class CharacterPauseContractTests
     [Test]
     public void RunnerPauseOwnsTheScaledPresentationClock()
     {
-        var source = File.ReadAllText(Path.Combine(
+        var source = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
             "Bootstrap", "SimulationRunnerBehaviour.cs"));
 
@@ -25,7 +25,7 @@ public sealed class CharacterPauseContractTests
     [Test]
     public void EscapeMenuPreservesAnExistingManualPause()
     {
-        var source = File.ReadAllText(Path.Combine(
+        var source = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
             "UI", "GameMenu.cs"));
 

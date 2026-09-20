@@ -13,7 +13,7 @@ public sealed class LocalizationCoverageContractTests
     [Test]
     public void EveryGoalHasEnglishAndRussianLocalization()
     {
-        var source = File.ReadAllText(Path.Combine(
+        var source = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
 
         foreach (var goal in Enum.GetNames<GoalType>())
@@ -35,7 +35,7 @@ public sealed class LocalizationCoverageContractTests
     [Test]
     public void EveryStatusEffectHasLocalizedTitleAndDescription()
     {
-        var source = File.ReadAllText(Path.Combine(
+        var source = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
 
         foreach (var effect in Enum.GetNames<EffectKind>())

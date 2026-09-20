@@ -7,7 +7,7 @@ namespace HexLive.Simulation.Tests.Gates;
 /// <summary>§50.5 / bug #345: Drink is one verb and therefore one clip in every posture.</summary>
 public sealed class DrinkAnimationPresentationContractTests
 {
-    private static string ActorSource() => File.ReadAllText(Path.Combine(
+    private static string ActorSource() => SourceText.Read(Path.Combine(
         RepoPaths.Root,
         "Assets", "HexLive", "UnityPresentation", "Wearing", "NpcActorView.cs"));
 

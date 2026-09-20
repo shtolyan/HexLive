@@ -8,7 +8,7 @@ public sealed class VegetationWindContractTests
     [Test]
     public void PalmsKeepStableRandomYawAndOneWindLoopMovesTreesAndGrass()
     {
-        var renderer = File.ReadAllText(Path.Combine(
+        var renderer = SourceText.Read(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
             "Rendering", "HexWorldRenderer.cs"));
 

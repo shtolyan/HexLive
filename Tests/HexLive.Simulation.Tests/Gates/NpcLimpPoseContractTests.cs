@@ -13,7 +13,7 @@ public sealed class NpcLimpPoseContractTests
         var path = Path.Combine(
             RepoPaths.Root,
             "Assets", "HexLive", "UnityPresentation", "Wearing", "NpcActorView.cs");
-        var source = File.ReadAllText(path);
+        var source = SourceText.Read(path);
         Assert.Multiple(() =>
         {
             Assert.That(source, Does.Contain(
@@ -33,7 +33,7 @@ public sealed class NpcLimpPoseContractTests
         var path = Path.Combine(
             RepoPaths.Root,
             "Assets", "HexLive", "UnityPresentation", "Wearing", "NpcActorView.cs");
-        var source = File.ReadAllText(path);
+        var source = SourceText.Read(path);
 
         Assert.Multiple(() =>
         {
@@ -64,12 +64,12 @@ public sealed class NpcLimpPoseContractTests
             "Assets", "HexLiveContent", "RuntimeSource", "NpcAnimSet.asset");
 
         var guidMatch = Regex.Match(
-            File.ReadAllText(clipMetaPath),
+            SourceText.Read(clipMetaPath),
             @"^guid:\s*([0-9a-f]+)\s*$",
             RegexOptions.Multiline);
         Assert.That(guidMatch.Success, Is.True, "Imported crawl clip must have a Unity GUID.");
 
-        var animSet = File.ReadAllText(animSetPath);
+        var animSet = SourceText.Read(animSetPath);
         Assert.That(animSet, Does.Match(
             @"(?m)^\s*crawl:\s*\{[^\r\n]*guid:\s*" + guidMatch.Groups[1].Value + @",[^\r\n]*\}\s*$"),
             "NpcAnimSet.crawl must reference X Bot@Crawling, not the legacy Zombie Crawl take.");

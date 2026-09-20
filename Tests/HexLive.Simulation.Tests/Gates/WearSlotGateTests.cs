@@ -276,7 +276,7 @@ public sealed class WearSlotGateTests
 
         foreach (var path in Directory.EnumerateFiles(assets, "*.asset", SearchOption.AllDirectories))
         {
-            var text = File.ReadAllText(path);
+            var text = SourceText.Read(path);
             var id = Regex.Match(text, @"^  id: (.+)$", RegexOptions.Multiline);
             var layer = Regex.Match(text, @"^  layer: (\d+)$", RegexOptions.Multiline);
             if (!id.Success || !layer.Success)

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Diagnostics;
 using HexLive.UnityPresentation.Localization;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -35,14 +34,14 @@ namespace HexLive.UnityPresentation.UI
                     var helper = Path.Combine(game, "HexLiveUpdater.exe");
                     if (!File.Exists(helper)) throw new FileNotFoundException();
                     // The updater is packaged with the Player; no server-controlled executable or shell.
-                    Process.Start(new ProcessStartInfo(helper) {
-                        UseShellExecute = false, WorkingDirectory = game,
-                        Arguments = "--update --wait-pid " + Process.GetCurrentProcess().Id +
-                            " --required-protocol " + protocol
-                    });
+                    WindowsUpdaterProcess.Start(helper, protocol);
                     Application.Quit();
                 }
-                catch (Exception) { error.text = Loc.Get("update.start.failed"); }
+                catch (Exception exception)
+                {
+                    UnityEngine.Debug.LogError("[Updater] Launch failed: " + exception);
+                    error.text = Loc.Get("update.start.failed") + "\n" + exception.Message;
+                }
             }) { text = Loc.Get("update.action") });
             Add(new Button(() => Application.Quit()) { text = Loc.Get("menu.quit") });
         }

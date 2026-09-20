@@ -13,6 +13,7 @@
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="../../Assets/HexLive/UnityPresentation/UI/WindowsUpdaterProcess.cs" Link="WindowsUpdaterProcess.cs" />
     <ProjectReference Include="../../Launcher/HexLive.Launcher/HexLive.Launcher.csproj" />
   </ItemGroup>
 </Project>

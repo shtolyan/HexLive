@@ -52,7 +52,7 @@ namespace HexLive.UnityPresentation.UI
                     var protocol = ProtocolUpdatePanel.ReadProtocol(request);
                     if (protocol > 0 && protocol != HexLive.Simulation.Wire.Handshake.ProtocolVersion)
                     {
-                        Clear(); Add(new ProtocolUpdatePanel(protocol)); yield break;
+                        Clear(); RemoveFromClassList("closed-test"); Add(new ProtocolUpdatePanel(protocol)); yield break;
                     }
                 }
             }
@@ -68,8 +68,35 @@ namespace HexLive.UnityPresentation.UI
         {
             ++_generation; _body.Clear();
             _body.Add(new Label(Loc.Get("closedtest.enter")));
-            var field = new TextField { isPasswordField = true, maxLength = 100, value = _key ?? "" };
+            var field = new TextField { isPasswordField = true, maskChar = '\u2022', maxLength = 100, value = _key ?? "" };
+            field.AddToClassList("closed-test-key");
             _body.Add(field);
+            var pasteMenu = new VisualElement();
+            pasteMenu.AddToClassList("closed-test-paste-menu");
+            pasteMenu.AddToClassList("closed-test-hidden");
+            void PasteKey()
+            {
+                field.value = (GUIUtility.systemCopyBuffer ?? "").Trim();
+                pasteMenu.AddToClassList("closed-test-hidden");
+                field.Focus();
+            }
+            pasteMenu.Add(new Button(PasteKey) { text = Loc.Get("closedtest.paste") });
+            _body.Add(pasteMenu);
+            field.RegisterCallback<PointerDownEvent>(evt => {
+                if (evt.button != 1) return;
+                pasteMenu.RemoveFromClassList("closed-test-hidden");
+                evt.StopImmediatePropagation();
+            }, TrickleDown.TrickleDown);
+            var controls = new VisualElement(); controls.AddToClassList("closed-test-key-controls");
+            controls.Add(new Button(PasteKey) { text = Loc.Get("closedtest.paste") });
+            var reveal = new Button();
+            reveal.text = Loc.Get("closedtest.showkey");
+            reveal.clicked += () => {
+                field.isPasswordField = !field.isPasswordField;
+                reveal.text = Loc.Get(field.isPasswordField ? "closedtest.showkey" : "closedtest.hidekey");
+                pasteMenu.AddToClassList("closed-test-hidden");
+            };
+            controls.Add(reveal); _body.Add(controls);
             var submit = new Button(() => _owner.StartCoroutine(Validate(field.value.Trim(), true))) {
                 text = Loc.Get("closedtest.activate") };
             _body.Add(submit);
@@ -135,7 +162,7 @@ namespace HexLive.UnityPresentation.UI
             yield return request.SendWebRequest();
             var protocol = ProtocolUpdatePanel.ReadProtocol(request);
             if (protocol > 0 && protocol != HexLive.Simulation.Wire.Handshake.ProtocolVersion)
-            { ++_generation; Clear(); Add(new ProtocolUpdatePanel(protocol)); yield break; }
+            { ++_generation; Clear(); RemoveFromClassList("closed-test"); Add(new ProtocolUpdatePanel(protocol)); yield break; }
             _body.SetEnabled(true);
             _connect(root.Replace("https://", "wss://") + "/watch", _key);
         }

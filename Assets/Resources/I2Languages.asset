@@ -42,6 +42,21 @@ MonoBehaviour:
       Languages: ["Closed test", "Закрытое тестирование"]
       Flags: 0101
       Languages_Touch: []
+    - Term: closedtest.paste
+      TermType: 0
+      Languages: ["Paste", "Вставить"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.showkey
+      TermType: 0
+      Languages: ["Show key", "Показать ключ"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.hidekey
+      TermType: 0
+      Languages: ["Hide key", "Скрыть ключ"]
+      Flags: 0101
+      Languages_Touch: []
     - Term: closedtest.enter
       TermType: 0
       Languages: ["Enter the key you received", "Введите выданный вам ключ"]

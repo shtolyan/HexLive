@@ -1,5 +1,7 @@
 .closed-test {
     width: 440px;
+    max-width: 94%;
+    flex-shrink: 0;
     padding: 28px;
     background-color: rgba(14, 20, 25, 0.96);
     border-radius: 18px;
@@ -26,3 +28,21 @@
 .closed-test TextField { margin-bottom: 12px; }
 .closed-test .unity-text-input { background-color: rgb(25, 35, 43); color: white; padding: 12px; }
 .closed-test-message { color: rgb(235, 201, 137); margin-top: 12px; }
+
+.closed-test .closed-test-key .unity-base-text-field__input,
+.closed-test .closed-test-key .unity-text-input {
+    background-color: rgb(242, 244, 247);
+    color: rgb(23, 27, 35);
+    border-width: 1px;
+    border-color: rgb(153, 162, 177);
+    border-radius: 8px;
+    min-height: 48px;
+    padding: 12px;
+    --unity-selection-color: rgb(178, 162, 255);
+    --unity-cursor-color: rgb(23, 27, 35);
+}
+.closed-test .closed-test-key .unity-text-element { color: rgb(23, 27, 35); }
+.closed-test-key-controls { flex-direction: row; margin-bottom: 10px; }
+.closed-test-key-controls Button { flex-grow: 1; font-size: 15px; padding: 10px; }
+.closed-test-paste-menu { padding: 6px; background-color: rgb(25, 31, 40); border-radius: 8px; }
+.closed-test .closed-test-hidden { display: none; }

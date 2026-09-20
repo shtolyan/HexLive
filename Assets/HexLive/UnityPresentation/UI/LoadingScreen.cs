@@ -409,6 +409,10 @@ namespace HexLive.UnityPresentation.UI
             if (ClosedTestAccess.Enabled)
             {
                 _menuBox.Clear();
+                _menuBox.style.left = 0; _menuBox.style.right = 0;
+                _menuBox.style.top = 0; _menuBox.style.bottom = 0;
+                _menuBox.style.alignItems = Align.Center;
+                _menuBox.style.justifyContent = Justify.Center;
                 _menuBox.Add(new ClosedTestMenu(this, (url, key) => {
                     SessionConfig.UseServer(url, key);
                     ServerBook.Remember(url);

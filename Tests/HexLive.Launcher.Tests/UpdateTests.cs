@@ -113,4 +113,24 @@ public sealed class UpdateTests
         Assert.Throws<ArgumentException>(() => UpdateRequest.Parse(new[] { "--update" }));
         Assert.Throws<ArgumentException>(() => UpdateRequest.Parse(new[] { "--update", "--wait-pid", "-1", "--required-protocol", "19" }));
     }
+
+    [Test]
+    public void NewLauncherCanReplaceRunningOldExecutable()
+    {
+        var target = Path.Combine(_root, "launcher.exe");
+        var next = Path.Combine(_root, "next.exe");
+        File.Copy(Path.Combine(Environment.SystemDirectory, "ping.exe"), target);
+        File.Copy(Path.Combine(Environment.SystemDirectory, "where.exe"), next);
+        using var child = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(target) {
+            Arguments = "-t 127.0.0.1", UseShellExecute = false, CreateNoWindow = true
+        })!;
+        try
+        {
+            Assert.That(child.HasExited, Is.False);
+            LauncherService.PromoteLauncher(next, target);
+            Assert.That(SHA256.HashData(File.ReadAllBytes(target)), Is.EqualTo(SHA256.HashData(File.ReadAllBytes(next))));
+            Assert.That(child.HasExited, Is.False);
+        }
+        finally { if (!child.HasExited) { child.Kill(); child.WaitForExit(); } }
+    }
 }

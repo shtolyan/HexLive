@@ -77,7 +77,7 @@ public partial class MainWindow : Window
             if (!LauncherService.NeedsUpdate(_installed, _latest))
             {
                 _service.Launch(_installed!);
-                if (_update != null) Close();
+                Close();
                 return;
             }
             var progress = new Progress<InstallProgress>(value =>

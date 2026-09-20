@@ -202,9 +202,10 @@ public sealed class LauncherService
 
         await WarmCacheAsync(release.PlayerRelease, indexResult, needs, stamps, total, Report, cancel);
         var installedLauncher = Path.Combine(installRoot, "HexLiveLauncher.exe");
-        var current = Environment.ProcessPath!;
-        if (!string.Equals(Path.GetFullPath(current), Path.GetFullPath(installedLauncher), StringComparison.OrdinalIgnoreCase))
-            File.Copy(current, installedLauncher, true);
+        var bundledLauncher = Path.Combine(finalVersion,
+            Path.GetDirectoryName(release.PlayerRelease.Executable)!, "HexLiveUpdater.exe");
+        EnsureUnder(finalVersion, bundledLauncher);
+        PromoteLauncher(bundledLauncher, installedLauncher);
         var state = new InstallState
         {
             Version = release.Version,
@@ -344,6 +345,36 @@ public sealed class LauncherService
         {
             WorkingDirectory = Path.GetDirectoryName(state.Executable)!, UseShellExecute = false
         });
+    }
+
+    internal static void PromoteLauncher(string source, string target)
+    {
+        // A running Windows executable can be renamed, but cannot be overwritten.
+        // Publish the newly bundled updater, never perpetuate the previous launcher.
+        var staging = target + ".new-" + Guid.NewGuid().ToString("N");
+        var previous = target + ".previous-" + Guid.NewGuid().ToString("N");
+        File.Copy(source, staging);
+        var movedPrevious = false;
+        try
+        {
+            if (File.Exists(target)) { File.Move(target, previous); movedPrevious = true; }
+            try { File.Move(staging, target); }
+            catch
+            {
+                if (movedPrevious) File.Move(previous, target);
+                throw;
+            }
+        }
+        finally
+        {
+            if (File.Exists(staging)) File.Delete(staging);
+        }
+        if (movedPrevious)
+        {
+            try { File.Delete(previous); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
     }
 
     public Task UninstallAsync(string root)

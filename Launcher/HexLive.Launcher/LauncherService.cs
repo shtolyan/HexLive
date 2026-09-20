@@ -155,11 +155,15 @@ public sealed class LauncherService
         Directory.CreateDirectory(stagingRoot);
         var archivePart = Path.Combine(stagingRoot, release.PlayerRelease.ArchiveSha256 + ".zip.part");
         var clock = Stopwatch.StartNew(); long completed = 0;
+        var progressLock = new object();
         void Report(string stage, long delta, long total)
         {
-            completed += delta;
-            progress.Report(new(stage, completed, total,
-                clock.Elapsed.TotalSeconds < .2 ? 0 : (long)(completed / clock.Elapsed.TotalSeconds)));
+            lock (progressLock)
+            {
+                completed += delta;
+                progress.Report(new(stage, completed, Math.Max(total, completed),
+                    clock.Elapsed.TotalSeconds < .2 ? 0 : (long)(completed / clock.Elapsed.TotalSeconds)));
+            }
         }
 
         var indexResult = await GetContentIndexAsync(release.PlayerRelease, cancel);
@@ -167,7 +171,18 @@ public sealed class LauncherService
             .SelectMany(x => new[] { new BlobNeed(x.Variant!.Sha256, x.Variant.Size) }
                 .Concat(x.Variant.Attachments.Select(a => new BlobNeed(a.Sha256, a.Size))))
             .GroupBy(x => x.Sha256, StringComparer.OrdinalIgnoreCase).Select(x => x.First()).ToList();
-        var total = release.PlayerRelease.ArchiveSize + needs.Sum(x => x.Size);
+        Report("Проверяем уже скачанные файлы…", 0, 0);
+        var stamps = ReadStamps(Path.Combine(LauncherPaths.CacheRoot, "verified-blobs.json"));
+        var total = await RemainingDownloadBytesAsync(archivePart, release.PlayerRelease.ArchiveSha256,
+            release.PlayerRelease.ArchiveSize, cancel);
+        foreach (var need in needs)
+        {
+            var target = Path.Combine(LauncherPaths.CacheRoot, "blobs", need.Sha256);
+            if (await VerifyCachedAsync(target, need, stamps, cancel)) continue;
+            total += await RemainingDownloadBytesAsync(Path.Combine(LauncherPaths.CacheRoot, "partial", need.Sha256 + ".part"),
+                need.Sha256, need.Size, cancel);
+        }
+        Report("Скачиваем обновление", 0, total);
         await DownloadVerifiedAsync(ReleaseBlobUrl(release.PlayerRelease.ArchiveSha256), archivePart,
             release.PlayerRelease.ArchiveSha256, release.PlayerRelease.ArchiveSize,
             delta => Report("Скачиваем Player", delta, total), cancel);
@@ -185,7 +200,7 @@ public sealed class LauncherService
         if (!File.Exists(executable)) throw new InvalidDataException("В Player archive нет HexLive.exe.");
         Directory.Move(versionStaging, finalVersion);
 
-        await WarmCacheAsync(release.PlayerRelease, indexResult, needs, total, Report, cancel);
+        await WarmCacheAsync(release.PlayerRelease, indexResult, needs, stamps, total, Report, cancel);
         var installedLauncher = Path.Combine(installRoot, "HexLiveLauncher.exe");
         var current = Environment.ProcessPath!;
         if (!string.Equals(Path.GetFullPath(current), Path.GetFullPath(installedLauncher), StringComparison.OrdinalIgnoreCase))
@@ -199,7 +214,7 @@ public sealed class LauncherService
         };
         WriteAtomic(Path.Combine(installRoot, "install-state.json"), JsonSerializer.Serialize(state, Json));
         InstallShellIntegration(installedLauncher, installRoot);
-        progress.Report(new("Готово", total, total, (long)(total / Math.Max(.2, clock.Elapsed.TotalSeconds))));
+        progress.Report(new("Готово", completed, completed, (long)(completed / Math.Max(.2, clock.Elapsed.TotalSeconds))));
         return state;
     }
 
@@ -225,12 +240,11 @@ public sealed class LauncherService
     }
 
     private async Task WarmCacheAsync(PlayerRelease release, (ContentIndex Index, string? ETag) result,
-        List<BlobNeed> needs, long total, Action<string, long, long> report, CancellationToken cancel)
+        List<BlobNeed> needs, Dictionary<string, VerifiedStamp> stamps, long total, Action<string, long, long> report, CancellationToken cancel)
     {
         var root = LauncherPaths.CacheRoot; var blobs = Path.Combine(root, "blobs");
         var partial = Path.Combine(root, "partial"); Directory.CreateDirectory(blobs); Directory.CreateDirectory(partial);
         var stampsPath = Path.Combine(root, "verified-blobs.json");
-        var stamps = ReadStamps(stampsPath);
         var gate = new SemaphoreSlim(6);
         await Task.WhenAll(needs.Select(async need =>
         {
@@ -238,7 +252,7 @@ public sealed class LauncherService
             try
             {
                 var target = Path.Combine(blobs, need.Sha256);
-                if (TrustStamp(target, need, stamps)) { report("Проверяем кэш", need.Size, total); return; }
+                if (TrustStamp(target, need, stamps)) { report("Проверяем кэш", 0, total); return; }
                 if (File.Exists(target) && !new FileInfo(target).Attributes.HasFlag(FileAttributes.ReparsePoint) &&
                     new FileInfo(target).Length == need.Size &&
                     string.Equals(await HashAsync(target, cancel), need.Sha256, StringComparison.OrdinalIgnoreCase))
@@ -246,7 +260,7 @@ public sealed class LauncherService
                     var verified = new FileInfo(target);
                     lock (stamps) stamps[need.Sha256] = new VerifiedStamp
                         { Sha256 = need.Sha256, Size = verified.Length, MtimeTicks = verified.LastWriteTimeUtc.Ticks };
-                    report("Проверяем кэш", need.Size, total);
+                    report("Проверяем кэш", 0, total);
                     return;
                 }
                 var part = Path.Combine(partial, need.Sha256 + ".part");
@@ -280,7 +294,6 @@ public sealed class LauncherService
         if (File.Exists(part) && new FileInfo(part).Length == size &&
             string.Equals(await HashAsync(part, cancel), sha, StringComparison.OrdinalIgnoreCase))
         {
-            advanced(size);
             return;
         }
         if (File.Exists(part) && new FileInfo(part).Length == size) File.Delete(part);
@@ -381,8 +394,30 @@ public sealed class LauncherService
     }
     private static bool TrustStamp(string path, BlobNeed need, Dictionary<string, VerifiedStamp> stamps)
     {
-        if (!File.Exists(path) || new FileInfo(path).Attributes.HasFlag(FileAttributes.ReparsePoint) || !stamps.TryGetValue(need.Sha256, out var stamp)) return false;
+        VerifiedStamp? stamp;
+        lock (stamps) stamps.TryGetValue(need.Sha256, out stamp);
+        if (!File.Exists(path) || new FileInfo(path).Attributes.HasFlag(FileAttributes.ReparsePoint) || stamp is null) return false;
         var info = new FileInfo(path); return info.Length == need.Size && stamp.Size == info.Length && stamp.MtimeTicks == info.LastWriteTimeUtc.Ticks;
+    }
+
+    internal static async Task<bool> VerifyCachedAsync(string path, BlobNeed need,
+        Dictionary<string, VerifiedStamp> stamps, CancellationToken cancel)
+    {
+        if (TrustStamp(path, need, stamps)) return true;
+        var info = new FileInfo(path);
+        if (!info.Exists || info.Attributes.HasFlag(FileAttributes.ReparsePoint) || info.Length != need.Size ||
+            !string.Equals(await HashAsync(path, cancel), need.Sha256, StringComparison.OrdinalIgnoreCase)) return false;
+        lock (stamps) stamps[need.Sha256] = new VerifiedStamp
+            { Sha256 = need.Sha256, Size = info.Length, MtimeTicks = info.LastWriteTimeUtc.Ticks };
+        return true;
+    }
+
+    internal static async Task<long> RemainingDownloadBytesAsync(string partial, string sha, long size, CancellationToken cancel)
+    {
+        var info = new FileInfo(partial);
+        if (!info.Exists || info.Attributes.HasFlag(FileAttributes.ReparsePoint) || info.Length > size) return size;
+        if (info.Length < size) return size - info.Length;
+        return string.Equals(await HashAsync(partial, cancel), sha, StringComparison.OrdinalIgnoreCase) ? 0 : size;
     }
     private static void WriteAtomic(string path, string text)
     { Directory.CreateDirectory(Path.GetDirectoryName(path)!); var temp = path + ".tmp"; File.WriteAllText(temp, text); File.Move(temp, path, true); }

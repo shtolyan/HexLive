@@ -52,6 +52,39 @@ public sealed class UpdateTests
     }
 
     [Test]
+    public async Task DownloadPlanExcludesVerifiedCacheAndResumedBytes()
+    {
+        var bytes = new byte[] { 1, 2, 3, 4 };
+        var sha = Convert.ToHexString(SHA256.HashData(bytes));
+        var cached = Path.Combine(_root, "cached");
+        var part = Path.Combine(_root, "partial");
+        var stamps = new Dictionary<string, VerifiedStamp>();
+        File.WriteAllBytes(cached, bytes);
+        Assert.That(await LauncherService.VerifyCachedAsync(cached, new(sha, 4), stamps, default), Is.True);
+        Assert.That(await LauncherService.RemainingDownloadBytesAsync(part, sha, 4, default), Is.EqualTo(4));
+        File.WriteAllBytes(part, bytes[..2]);
+        Assert.That(await LauncherService.RemainingDownloadBytesAsync(part, sha, 4, default), Is.EqualTo(2));
+        File.WriteAllBytes(part, bytes);
+        Assert.That(await LauncherService.RemainingDownloadBytesAsync(part, sha, 4, default), Is.Zero);
+        File.WriteAllBytes(part, new byte[] { 0, 0, 0, 0 });
+        Assert.That(await LauncherService.RemainingDownloadBytesAsync(part, sha, 4, default), Is.EqualTo(4));
+        File.WriteAllBytes(cached, new byte[] { 0 });
+        Assert.That(await LauncherService.VerifyCachedAsync(cached, new(sha, 4), stamps, default), Is.False);
+    }
+
+    [Test]
+    public async Task VerifiedArchiveDoesNotUseNetworkOrInflateDownloadedBytes()
+    {
+        var file = Path.Combine(_root, "complete.zip.part");
+        File.WriteAllBytes(file, new byte[] { 1, 2, 3 });
+        var sha = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(file)));
+        var service = new LauncherService(new Handler(_ => throw new AssertionException("Cache should avoid HTTP")));
+        long transferred = 0;
+        await service.DownloadVerifiedAsync("https://test/archive", file, sha, 3, n => transferred += n, default);
+        Assert.That(transferred, Is.Zero);
+    }
+
+    [Test]
     public void ResumeRejectsWrongContentRange()
     {
         var file = Path.Combine(_root, "bad-range.part"); File.WriteAllBytes(file, new byte[] { 1 });

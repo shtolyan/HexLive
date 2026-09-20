@@ -17,6 +17,21 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: update.installed
+      TermType: 0
+      Languages: ["Client {0}", "Клиент {0}"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: update.available
+      TermType: 0
+      Languages: ["Version {0} is available", "Доступна версия {0}"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: update.later
+      TermType: 0
+      Languages: ["Later", "Позже"]
+      Flags: 0101
+      Languages_Touch: []
     - Term: update.required.title
       TermType: 0
       Languages: ["Update required", "Внимание: протокол не совпадает"]

@@ -46,3 +46,12 @@
 .closed-test-key-controls Button { flex-grow: 1; font-size: 15px; padding: 10px; }
 .closed-test-paste-menu { padding: 6px; background-color: rgb(25, 31, 40); border-radius: 8px; }
 .closed-test .closed-test-hidden { display: none; }
+.closed-test-update {
+    border-width: 1px;
+    border-color: rgb(151, 133, 221);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    background-color: rgb(39, 33, 57);
+}

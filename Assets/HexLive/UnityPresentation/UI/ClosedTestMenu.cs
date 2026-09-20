@@ -16,6 +16,10 @@ namespace HexLive.UnityPresentation.UI
         private readonly Action<string, string> _connect;
         private readonly Label _message = new Label();
         private readonly VisualElement _body = new VisualElement();
+        private readonly VisualElement _updateBanner = new VisualElement();
+        private bool _active = true;
+        private bool _requiredUpdate;
+        private string _dismissedVersion;
         private string _key;
         private int _generation;
 
@@ -26,9 +30,12 @@ namespace HexLive.UnityPresentation.UI
             styleSheets.Add(Resources.Load<StyleSheet>("HexLive/UI/ClosedTestMenu"));
             var title = new Label("HEX LIVE"); title.AddToClassList("closed-test-title"); Add(title);
             Add(new Label(Loc.Get("closedtest.title")));
+            Add(new Label(string.Format(Loc.Get("update.installed"), Application.version)));
+            _updateBanner.AddToClassList("closed-test-update");
+            _updateBanner.AddToClassList("closed-test-hidden"); Add(_updateBanner);
             Add(_body); _message.AddToClassList("closed-test-message"); Add(_message);
             Add(new Button(() => Application.Quit()) { text = Loc.Get("menu.quit") });
-            RegisterCallback<DetachFromPanelEvent>(_ => ++_generation);
+            RegisterCallback<DetachFromPanelEvent>(_ => { ++_generation; _active = false; });
             _owner.StartCoroutine(CheckCompatibility());
         }
 
@@ -52,16 +59,52 @@ namespace HexLive.UnityPresentation.UI
                     var protocol = ProtocolUpdatePanel.ReadProtocol(request);
                     if (protocol > 0 && protocol != HexLive.Simulation.Wire.Handshake.ProtocolVersion)
                     {
+                        _requiredUpdate = true;
                         Clear(); RemoveFromClassList("closed-test"); Add(new ProtocolUpdatePanel(protocol)); yield break;
                     }
                 }
             }
             finally { foreach (var request in requests) request?.Dispose(); }
             _message.text = "";
+            if (Application.platform == RuntimePlatform.WindowsPlayer)
+                _owner.StartCoroutine(CheckReleases());
             try { _key = ClosedTestAccess.ReadKey(); }
             catch (Exception) { _message.text = Loc.Get("closedtest.storage"); }
             if (string.IsNullOrEmpty(_key)) ShowKey();
             else yield return Validate(_key, false);
+        }
+
+        private IEnumerator CheckReleases()
+        {
+            while (_active && !_requiredUpdate)
+            {
+                using (var request = UnityWebRequest.Get(ClosedTestAccess.Servers[0] + "/api/releases/v1/windows/latest"))
+                {
+                    request.timeout = 5; request.redirectLimit = 0;
+                    yield return request.SendWebRequest();
+                    if (!_active || _requiredUpdate) yield break;
+                    ClientReleaseOffer release = null;
+                    if (request.result == UnityWebRequest.Result.Success)
+                        try { release = JsonUtility.FromJson<ClientReleaseOffer>(request.downloadHandler.text); }
+                        catch (Exception) { }
+                    if (release != null && release.version != _dismissedVersion &&
+                        release.IsNewerCompatible(Application.version, HexLive.Simulation.Wire.Handshake.ProtocolVersion))
+                    {
+                        _updateBanner.Clear(); _updateBanner.RemoveFromClassList("closed-test-hidden");
+                        _updateBanner.Add(new Label(string.Format(Loc.Get("update.available"), release.version)));
+                        var error = new Label(); error.AddToClassList("closed-test-message");
+                        _updateBanner.Add(error);
+                        _updateBanner.Add(new Button(() => ProtocolUpdatePanel.StartUpdate(release.playerRelease.protocolVersion, error))
+                            { text = Loc.Get("update.action") });
+                        _updateBanner.Add(new Button(() => {
+                            _dismissedVersion = release.version; _updateBanner.AddToClassList("closed-test-hidden");
+                        }) { text = Loc.Get("update.later") });
+                    }
+                    else if (release != null && !release.IsNewerCompatible(Application.version, HexLive.Simulation.Wire.Handshake.ProtocolVersion))
+                        _updateBanner.AddToClassList("closed-test-hidden");
+                }
+                yield return new WaitForSecondsRealtime(60);
+            }
         }
 
         private void ShowKey()
@@ -162,7 +205,7 @@ namespace HexLive.UnityPresentation.UI
             yield return request.SendWebRequest();
             var protocol = ProtocolUpdatePanel.ReadProtocol(request);
             if (protocol > 0 && protocol != HexLive.Simulation.Wire.Handshake.ProtocolVersion)
-            { ++_generation; Clear(); RemoveFromClassList("closed-test"); Add(new ProtocolUpdatePanel(protocol)); yield break; }
+            { _requiredUpdate = true; ++_generation; Clear(); RemoveFromClassList("closed-test"); Add(new ProtocolUpdatePanel(protocol)); yield break; }
             _body.SetEnabled(true);
             _connect(root.Replace("https://", "wss://") + "/watch", _key);
         }

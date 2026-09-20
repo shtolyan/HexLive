@@ -48,7 +48,7 @@ public partial class MainWindow : Window
             StageText.Text = _installed is null ? $"Доступна HexLive {_latest.Version}" :
                 !LauncherService.NeedsUpdate(_installed, _latest) ? "Игра готова" :
                 $"Доступно обновление {_installed.Version} → {_latest.Version}";
-            DetailText.Text = "Player и весь Windows-контент будут проверены перед запуском";
+            DetailText.Text = "Скачаем клиент; проверенный контент используем из общего кэша";
             ErrorText.Text = string.Empty;
         }
         catch (Exception ex)
@@ -83,7 +83,9 @@ public partial class MainWindow : Window
             var progress = new Progress<InstallProgress>(value =>
             {
                 StageText.Text = value.Stage;
-                DetailText.Text = $"{Format(value.CompletedBytes)} / {Format(value.TotalBytes)}  ·  {Format(value.BytesPerSecond)}/с";
+                DetailText.Text = value.TotalBytes == 0 && value.Stage != "Готово" ?
+                    "Вычисляем объём загрузки; файлы из кэша повторно не скачиваются" :
+                    $"Загружено {Format(value.CompletedBytes)} / {Format(value.TotalBytes)}  ·  {Format(value.BytesPerSecond)}/с";
                 SetProgress(value.Fraction);
             });
             _installed = await _service.InstallAsync(_latest, InstallPathText.Text, progress);

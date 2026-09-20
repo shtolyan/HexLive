@@ -25,25 +25,28 @@ namespace HexLive.UnityPresentation.UI
             Add(new Label(Loc.Get("update.required.message")));
             var error = new Label(); error.AddToClassList("closed-test-message");
             Add(error);
-            Add(new Button(() => {
-                try
-                {
-                    if (Application.platform != RuntimePlatform.WindowsPlayer)
-                        throw new PlatformNotSupportedException();
-                    var game = Directory.GetParent(Application.dataPath).FullName;
-                    var helper = Path.Combine(game, "HexLiveUpdater.exe");
-                    if (!File.Exists(helper)) throw new FileNotFoundException();
-                    // The updater is packaged with the Player; no server-controlled executable or shell.
-                    WindowsUpdaterProcess.Start(helper, protocol);
-                    Application.Quit();
-                }
-                catch (Exception exception)
-                {
-                    UnityEngine.Debug.LogError("[Updater] Launch failed: " + exception);
-                    error.text = Loc.Get("update.start.failed") + "\n" + exception.Message;
-                }
-            }) { text = Loc.Get("update.action") });
+            Add(new Button(() => StartUpdate(protocol, error)) { text = Loc.Get("update.action") });
             Add(new Button(() => Application.Quit()) { text = Loc.Get("menu.quit") });
+        }
+
+        internal static void StartUpdate(int protocol, Label error)
+        {
+            try
+            {
+                if (Application.platform != RuntimePlatform.WindowsPlayer)
+                    throw new PlatformNotSupportedException();
+                var game = Directory.GetParent(Application.dataPath).FullName;
+                var helper = Path.Combine(game, "HexLiveUpdater.exe");
+                if (!File.Exists(helper)) throw new FileNotFoundException();
+                // The updater is packaged with the Player; no server-controlled executable or shell.
+                WindowsUpdaterProcess.Start(helper, protocol);
+                Application.Quit();
+            }
+            catch (Exception exception)
+            {
+                UnityEngine.Debug.LogError("[Updater] Launch failed: " + exception);
+                error.text = Loc.Get("update.start.failed") + "\n" + exception.Message;
+            }
         }
     }
 }

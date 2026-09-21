@@ -29,6 +29,8 @@ internal static class Connectivity
         WorldState world, JunctionId from, JunctionId anchor, bool canJump = true,
         WorldObjectState owner = null)
     {
+        if (CraftProjectMath.TryGetSupport(world, owner, out var station))
+            return Reachable(world, from, station.CraftJunction.Value, canJump);
         var anchorBlocked = !world.Junctions.Items.TryGetValue(anchor, out var junction) ||
             junction.Blocked || SpatialQueries.IsAllWaterJunction(world, anchor);
         if (!anchorBlocked)

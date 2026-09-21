@@ -18,6 +18,9 @@ public sealed class NPCPlanState
 
     public ObjectId? TargetObjectId { get; set; }
 
+    // An explicit resume pins the paid project, including while walking to it.
+    public ObjectId? CraftProjectTargetId { get; set; }
+
     public JunctionId? TargetJunctionId { get; set; }
 
     public TileCoord? TargetTile { get; set; }

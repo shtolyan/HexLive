@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="570" viewBox="0 0 880 570">
+<rect width="880" height="570" fill="#13191f"/>
+<g font-family="Arial" fill="#e6edf3"><text x="30" y="38" font-size="23">Верстак: получение своего результата (§119 / #422)</text>
+<circle cx="320" cy="285" r="111.6" fill="#8c453b" fill-opacity=".25" stroke="#cf7668"/>
+<circle cx="320" cy="285" r="10" fill="#b5ca85"/>
+<circle cx="320.00" cy="487.50" r="4" fill="#78818b"/>
+<circle cx="378.46" cy="453.75" r="4" fill="#78818b"/>
+<circle cx="436.91" cy="420.00" r="4" fill="#78818b"/>
+<circle cx="495.37" cy="386.25" r="4" fill="#78818b"/>
+<circle cx="261.54" cy="453.75" r="4" fill="#78818b"/>
+<circle cx="320.00" cy="420.00" r="4" fill="#78818b"/>
+<circle cx="378.46" cy="386.25" r="4" fill="#78818b"/>
+<circle cx="436.91" cy="352.50" r="4" fill="#78818b"/>
+<circle cx="495.37" cy="318.75" r="4" fill="#78818b"/>
+<circle cx="203.09" cy="420.00" r="4" fill="#78818b"/>
+<circle cx="261.54" cy="386.25" r="4" fill="#78818b"/>
+<circle cx="320.00" cy="352.50" r="4" fill="#d57468"/>
+<circle cx="378.46" cy="318.75" r="4" fill="#d57468"/>
+<circle cx="436.91" cy="285.00" r="4" fill="#78818b"/>
+<circle cx="495.37" cy="251.25" r="4" fill="#78818b"/>
+<circle cx="144.63" cy="386.25" r="4" fill="#78818b"/>
+<circle cx="203.09" cy="352.50" r="4" fill="#78818b"/>
+<circle cx="261.54" cy="318.75" r="4" fill="#d57468"/>
+<circle cx="320.00" cy="285.00" r="4" fill="#d57468"/>
+<circle cx="378.46" cy="251.25" r="4" fill="#d57468"/>
+<circle cx="436.91" cy="217.50" r="4" fill="#78818b"/>
+<circle cx="495.37" cy="183.75" r="4" fill="#78818b"/>
+<circle cx="144.63" cy="318.75" r="4" fill="#78818b"/>
+<circle cx="203.09" cy="285.00" r="4" fill="#78818b"/>
+<circle cx="261.54" cy="251.25" r="4" fill="#d57468"/>
+<circle cx="320.00" cy="217.50" r="4" fill="#d57468"/>
+<circle cx="378.46" cy="183.75" r="4" fill="#78818b"/>
+<circle cx="436.91" cy="150.00" r="4" fill="#78818b"/>
+<circle cx="144.63" cy="251.25" r="4" fill="#78818b"/>
+<circle cx="203.09" cy="217.50" r="4" fill="#78818b"/>
+<circle cx="261.54" cy="183.75" r="4" fill="#78818b"/>
+<circle cx="320.00" cy="150.00" r="4" fill="#78818b"/>
+<circle cx="378.46" cy="116.25" r="4" fill="#78818b"/>
+<circle cx="144.63" cy="183.75" r="4" fill="#78818b"/>
+<circle cx="203.09" cy="150.00" r="4" fill="#78818b"/>
+<circle cx="261.54" cy="116.25" r="4" fill="#78818b"/>
+<circle cx="320.00" cy="82.50" r="4" fill="#78818b"/>
+<circle cx="203.09" cy="285.00" r="10" fill="#70bfdf"/>
+<path d="M 215.09,285.00 L 304,285" stroke="#70bfdf" stroke-width="3"/>
+<path d="M 297,279 L 306,285 L 297,291" fill="none" stroke="#70bfdf" stroke-width="3"/>
+<text x="480" y="125" font-size="15">Синий: назначенная рабочая точка</text>
+<text x="480" y="154" font-size="15">Зелёный: выход проекта на столе</text>
+<text x="480" y="183" font-size="15">Красный: препятствие стола</text>
+<text x="480" y="212" font-size="15">Сетка: шаг 0.375 wu, 37 узлов</text>
+<text x="480" y="241" font-size="15">Заблокировано столом: 7 узлов</text>
+<text x="480" y="270" font-size="15">Радиус препятствия: 0.62 wu</text>
+<text x="480" y="299" font-size="15">Рабочая точка: (-0.6495; 0.0000)</text>
+<text x="480" y="328" font-size="15">Заданный отступ: 0.75 wu</text>
+<text x="480" y="357" font-size="15">Подбор разрешён через свою опору.</text>
+<text x="480" y="386" font-size="15">Чужие предметы и стены остаются преградой.</text>
+<text x="30" y="535" font-size="14">Геометрия: HexPointLayout + HexSpatialMath + Spec119; yaw=0°, свободная соседняя сетка.</text>
+</g></svg>

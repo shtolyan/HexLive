@@ -176,6 +176,8 @@ public static class WorldSnapshotExporter
             exported.CraftBatchCount = obj.CraftBatchCount;
             exported.CraftStationObjectId = obj.CraftStationObjectId?.Value;
             exported.CraftActive = obj.IsCraftProject && obj.IsOccupied;
+            exported.CraftCurrentWorkerId = exported.CraftActive ? obj.CurrentUser?.Value : null;
+            exported.CraftLastWorkerId = obj.CraftLastWorkerId?.Value;
             // Reset everything the code below only increments or appends —
             // a reused record still carries last tick's values here.
             exported.DeliveredLogs = 0;

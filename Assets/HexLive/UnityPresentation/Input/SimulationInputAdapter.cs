@@ -156,7 +156,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         TacticalMapPanel.PointerOverMap ||
         HexInspectorPanel.PointerOverPanel ||
         ContextMenuPanel.BlocksWorldPointer ||
-        LootTransferPanel.IsOpen ||
+        LootTransferPanel.IsOpen || CraftProjectDetailsPanel.BlocksWorldInput ||
         GameMenu.IsOpen || AdminVoicePanel.BlocksGameInput ||
         EndSummaryPanel.IsOpen ||
         // Bug #279: окно отчёта об ошибке блокирует мир своим флагом — общий
@@ -557,6 +557,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // Открытое меню закрывается кликом мимо себя — и на этом клик кончается:
         // иначе то же нажатие тут же отдало бы приказ идти под меню. Гейт режима
         // стоит НИЖЕ: меню могло остаться висеть после выключения 🎮.
+        if (CraftProjectDetailsPanel.BlocksWorldInput) return true;
+
         if (ContextMenuPanel.IsOpen)
         {
             ContextMenuPanel.Close();
@@ -696,6 +698,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// </summary>
     public bool TryHandleContextClick(Vector2 mousePos)
     {
+        if (CraftProjectDetailsPanel.BlocksWorldInput) return true;
         var runner = _runner;
         if (runner == null || _camera == null || !runner.SupportsNpcCommands ||
             _selectedColonyIds.Count == 0)
@@ -816,6 +819,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             // inventory panel; the old one-item interaction must not create a
             // duplicate identically named menu entry beside it.
             if (isContainer && interaction.Type == InteractionType.Loot) continue;
+            if (clicked != null && clicked.CraftWorkRequired > 0 &&
+                (interaction.Type == InteractionType.PickUp || interaction.Type == InteractionType.Craft)) continue;
 
             // §54.14 (bug #292): готовая постройка не предлагает строить себя.
             // У костра глагол Build стоит в каталоге ДВАЖДЫ (build.upgrade и
@@ -957,12 +962,57 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 () => LootTransferPanel.OpenContainer(actorId, containerId)));
         }
 
+        if (snapshot != null)
+        {
+            if (clicked != null && clicked.CraftWorkRequired > 0)
+                _entries.AddRange(CraftProjectEntries(clicked, actorId));
+            else
+                foreach (var project in snapshot.Objects)
+                {
+                    if (project.CraftWorkRequired <= 0 ||
+                        project.CraftStationObjectId != view.ContextObjectId) continue;
+                    var title = CraftProjectDetailsPanel.ItemName(runner, project.DefinitionId);
+                    _entries.Add(new ContextMenuEntry(title, CraftProjectEntries(project, actorId)));
+                }
+        }
+
         if (_entries.Count == 0)
         {
             return;
         }
 
         ContextMenuPanel.Open(mousePos, ObjectTitle(definition, view.ContextDefinitionId), _entries);
+    }
+
+    private List<ContextMenuEntry> CraftProjectEntries(ObjectSnapshot project, int actorId)
+    {
+        var projectId = project.Id.Value;
+        var entries = new List<ContextMenuEntry>();
+        var ready = project.CraftWorkDone >= project.CraftWorkRequired;
+        var actor = new EntityId(actorId);
+        if (ready)
+        {
+            string? pickUpId = null;
+            if (_runner != null && _runner.TryGetObjectDefinition(project.DefinitionId, out var definition) &&
+                definition != null)
+                foreach (var interaction in definition.Interactions)
+                    if (interaction.Type == InteractionType.PickUp) { pickUpId = interaction.Id; break; }
+            entries.Add(new ContextMenuEntry(Loc.Get("craft.project.take"),
+                () => EnqueueOrder(actorId, new InteractCommand(actor,
+                    new ObjectId(projectId), InteractionType.PickUp, pickUpId ?? string.Empty)), pickUpId != null));
+        }
+        else
+        {
+            entries.Add(new ContextMenuEntry(Loc.Get("craft.project.resume"),
+                () => EnqueueOrder(actorId, new InteractCommand(actor,
+                    new ObjectId(projectId), InteractionType.Craft, "craft.resume")),
+                !project.CraftActive, project.CraftActive ? Loc.Get("craft.project.active") : null));
+        }
+        entries.Add(new ContextMenuEntry(Loc.Get("craft.project.details"), () =>
+        {
+            if (_runner != null) CraftProjectDetailsPanel.Open(_runner, projectId, transform);
+        }));
+        return entries;
     }
 
     private static ObjectSnapshot? FindObject(WorldSnapshot? snapshot, int objectId)

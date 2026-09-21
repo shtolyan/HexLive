@@ -165,7 +165,8 @@ public sealed class Handshake
     // 18: §123.5/#397 — ManageInventory carries a required drop quantity.
     // 19: §167 — directive and Authority in NpcGroup.Mind.
     // 20: §55.5/#417 — snapshot v42 carries bottle liquid appearance and fill.
-    public const int ProtocolVersion = 20;
+    // 21: snapshot v43 — persistent craft current/last worker (§119, #422).
+    public const int ProtocolVersion = 21;
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

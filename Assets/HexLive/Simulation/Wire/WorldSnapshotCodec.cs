@@ -94,7 +94,8 @@ public static class WorldSnapshotCodec
     /// v39: §52/#355 per-instance vessel amount/provenance in object and slot rows.
     /// v40: §159 companion profile, authored appearance, Hexkufa and voice bond.
     // v42: per-vessel visual provenance and exact held-bottle fill (§55.5).
-    public const int WireVersion = 42;
+    // v43: persistent craft project current/last worker (§119, #422).
+    public const int WireVersion = 43;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -627,6 +628,10 @@ public static class WorldSnapshotCodec
             w.Write(o.CraftActive);
             w.Write(o.CraftStationObjectId.HasValue);
             if (o.CraftStationObjectId.HasValue) w.Write(o.CraftStationObjectId.Value);
+            w.Write(o.CraftCurrentWorkerId.HasValue);
+            if (o.CraftCurrentWorkerId.HasValue) w.Write(o.CraftCurrentWorkerId.Value);
+            w.Write(o.CraftLastWorkerId.HasValue);
+            if (o.CraftLastWorkerId.HasValue) w.Write(o.CraftLastWorkerId.Value);
             w.Write(o.CraftIngredients.Count);
             foreach (var ingredient in o.CraftIngredients) WireIo.WriteString(w, ingredient);
         }
@@ -770,6 +775,8 @@ public static class WorldSnapshotCodec
                 o.CraftBatchCount = r.ReadInt32();
                 o.CraftActive = r.ReadBoolean();
                 o.CraftStationObjectId = r.ReadBoolean() ? r.ReadInt32() : (int?)null;
+                o.CraftCurrentWorkerId = r.ReadBoolean() ? r.ReadInt32() : (int?)null;
+                o.CraftLastWorkerId = r.ReadBoolean() ? r.ReadInt32() : (int?)null;
                 var count = r.ReadInt32();
                 for (var i = 0; i < count; i++) o.CraftIngredients.Add(r.ReadString());
             }
@@ -780,6 +787,8 @@ public static class WorldSnapshotCodec
                 o.CraftBatchCount = 1;
                 o.CraftActive = false;
                 o.CraftStationObjectId = null;
+                o.CraftCurrentWorkerId = null;
+                o.CraftLastWorkerId = null;
             }
         }
     }

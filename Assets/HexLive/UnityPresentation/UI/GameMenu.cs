@@ -96,7 +96,7 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            if (AdminVoicePanel.BlocksGameInput) return;
+            if (AdminVoicePanel.BlocksGameInput || CraftProjectDetailsPanel.BlocksWorldInput) return;
             var keyboard = Keyboard.current;
             if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame)
             {

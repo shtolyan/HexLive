@@ -4189,7 +4189,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     }
 
     public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
-        float interactionSeconds = 0f, int lyingStationSlot = -1)
+        float interactionSeconds = 0f, int lyingStationSlot = -1, bool standingCraft = false)
     {
         if ((_legless || !_hasUsableHand) && IsToolOrWeapon(heldItemId))
         {
@@ -4244,7 +4244,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // там руки и правда работают.
         var praying = aidingOther && aidTargetLying && interaction == "ConsoleOther";
         // The solo craft always kneels; an aid kneels only over a lying ward.
-        var kneelingCraft = crafting || looting || butchering ||
+        var kneelingCraft = (crafting && !standingCraft) || looting || butchering ||
             (aidingOther && aidTargetLying && !praying);
         // §68/§53: ПЕРЕВЯЗКА. Раньше и своя (TreatSelf), и чужая над стоячей
         // не играли ничего вовсе — ActionFromInteraction возвращал на них
@@ -4257,7 +4257,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // подопечной перевязка тоже не сюда — там свой присед (kneelingCraft).
         var treating = !_legless && !_laying && _posture != "Crawl" &&
             !kneelingCraft && !praying &&
-            interaction is "TreatSelf" or "TreatOther" or "Splint" or "FitProsthetic";
+            (crafting && standingCraft ||
+             interaction is "TreatSelf" or "TreatOther" or "Splint" or "FitProsthetic");
         _wantsTalk = interaction == "Talk"; // the Talk bool is driven by turn-taking
         _sitting = interaction == "Sit";   // §78.5: LateUpdate nudges a male seat
         SyncHeelPoseTarget();

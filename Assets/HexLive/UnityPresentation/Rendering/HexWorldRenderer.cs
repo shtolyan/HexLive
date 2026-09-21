@@ -2176,6 +2176,17 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 }
             }
 
+            // A tabletop project shares its support's authored basis and floor
+            // height; character-forward yaw is not a second furniture converter.
+            if (worldObject.CraftWorkRequired > 0 && worldObject.CraftStationObjectId is { } supportId &&
+                _objectViews.TryGetValue(supportId, out var supportView) && supportView != null)
+            {
+                objectView.transform.rotation = supportView.transform.rotation;
+                var supportedPosition = objectView.transform.position;
+                supportedPosition.y = supportView.transform.position.y;
+                objectView.transform.position = supportedPosition;
+            }
+
             var objPos = GetObjectAnchorPosition(snapshot, worldObject);
 
             if (_currObjectPositions.TryGetValue(key, out var oldObjPos))
@@ -3229,10 +3240,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown,
-            npc.InteractionSeconds, npc.LyingStationSlot);
+            npc.InteractionSeconds, npc.LyingStationSlot,
+            standingCraft: npc.CurrentInteraction == "Craft" && snapshot.Objects.Exists(item =>
+                item.CraftStationObjectId.HasValue && item.CraftActive &&
+                item.CraftCurrentWorkerId == npc.Id.Value));
         actorView.SyncBottleLiquid(npc.HeldBottleFill, npc.HeldBottleAppearance);
-        // §119/#83: one progress indicator belongs to the working person, not
-        // to the table/project. Its component follows the animated head bone in
+        // §119: ground crafting retains the worker's indicator; tabletop
+        // projects own their persistent bar. The ground bar follows the head in
         // LateUpdate, so sitting and lying poses need no renderer-side offsets.
         var showWorldProgress = false;
         var worldProgress = 0f;
@@ -3241,7 +3255,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             foreach (var progressObject in snapshot.Objects)
             {
                 if (progressObject.Id.Value != progressTargetId ||
-                    progressObject.CraftWorkRequired <= 0)
+                    progressObject.CraftWorkRequired <= 0 || progressObject.CraftStationObjectId.HasValue)
                 {
                     continue;
                 }
@@ -4826,7 +4840,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             prostheticRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                 prostheticAnchor, GroundY(worldObject.Tile));
             prostheticRoot.AddComponent<ProstheticWorldDropView>()
-                .Construct(worldObject.DefinitionId, worldObject.Id.Value);
+                .Construct(worldObject.DefinitionId, worldObject.Id.Value,
+                    groundPose: !worldObject.CraftStationObjectId.HasValue);
             return prostheticRoot;
         }
 
@@ -4882,10 +4897,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var parkedBottle = worldObject.DefinitionId == "tool.bottle" &&
                     worldObject.Junctions.Count > 0 &&
                     _collectorJunctions.Contains(worldObject.Junctions[0]);
-                var groundPile = !parkedBottle && _groundPileRank.ContainsKey(worldObject.Id.Value) &&
+                var groundPile = worldObject.CraftWorkRequired <= 0 && !parkedBottle && _groundPileRank.ContainsKey(worldObject.Id.Value) &&
                     GroundPileCatalog.TryGet(worldObject.DefinitionId,false,out _);
                 FitObjectPrefab(instance, worldObject.DefinitionId, worldObject.Id.Value,
-                    scatter: !groundPile && !parkedBottle && worldObject.RotationDegrees == 0f, pile: groundPile);
+                    scatter: worldObject.CraftWorkRequired <= 0 && !groundPile && !parkedBottle && worldObject.RotationDegrees == 0f, pile: groundPile);
                 if (groundPile) AttachGroundPile(prefabRoot,instance,worldObject);
                 if (parkedBottle)
                 {

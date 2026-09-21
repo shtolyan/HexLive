@@ -17,6 +17,61 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: craft.project.take
+      TermType: 0
+      Languages: ["Take item", "Забрать предмет"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.resume
+      TermType: 0
+      Languages: ["Continue work", "Продолжить работу"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.details
+      TermType: 0
+      Languages: ["Details", "Подробности"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.ready
+      TermType: 0
+      Languages: ["Ready to collect", "Готово — можно забрать"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.active
+      TermType: 0
+      Languages: ["Work in progress", "Идёт работа"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.paused
+      TermType: 0
+      Languages: ["Work paused", "Работа приостановлена"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.current_worker
+      TermType: 0
+      Languages: ["Working now: {0}", "Сейчас работает: {0}"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.last_worker
+      TermType: 0
+      Languages: ["Last worked on by: {0}", "Последний раз работала: {0}"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.unknown_worker
+      TermType: 0
+      Languages: ["Unknown", "Неизвестно"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.remaining
+      TermType: 0
+      Languages: ["Work remaining: {0} of {1}", "Осталось работы: {0} из {1}"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: craft.project.close
+      TermType: 0
+      Languages: ["Close", "Закрыть"]
+      Flags: 0101
+      Languages_Touch: []
     - Term: update.required.title
       TermType: 0
       Languages: ["Update required", "Внимание: протокол не совпадает"]

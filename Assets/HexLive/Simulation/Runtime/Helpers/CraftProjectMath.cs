@@ -15,6 +15,38 @@ namespace HexLive.Simulation.Runtime
 /// </summary>
 internal static class CraftProjectMath
 {
+    internal const string ResumeInteractionId = "craft.resume";
+
+    internal static bool TryGetSupport(WorldState world, WorldObjectState output,
+        out WorldObjectState station)
+    {
+        station = null;
+        if (output == null || output.CraftWorkRequired <= 0 ||
+            output.CraftStationObjectId is not { } stationId ||
+            stationId == output.Id ||
+            !world.Entities.Objects.TryGetValue(stationId, out var candidate) ||
+            candidate.CraftWorkRequired > 0 ||
+            candidate.CraftJunction is not { } workPoint ||
+            !candidate.Fragment.Equals(output.Fragment) || !candidate.Tile.Equals(output.Tile) ||
+            candidate.Junctions.Count == 0 || output.Junctions.Count == 0 ||
+            !candidate.Junctions[0].Equals(output.Junctions[0]) ||
+            !world.Junctions.Items.ContainsKey(workPoint)) return false;
+        station = candidate;
+        return true;
+    }
+
+    internal static bool CanReachSupportedOutput(WorldState world, NPCState npc,
+        WorldObjectState output, out JunctionId point)
+    {
+        point = default;
+        if (!TryGetSupport(world, output, out var station) ||
+            !station.Fragment.Equals(npc.Fragment) || npc.CurrentJunction is not { } from ||
+            !world.Content.ObjectDefinitions.TryGetValue(station.DefinitionId, out var definition)) return false;
+        point = station.CraftJunction.Value;
+        return Connectivity.Reachable(world, from, point, npc.Body.CanJump) &&
+            SpatialQueries.CanTouchAcross(world, point, station.Junctions[0],
+                InteractionReach.ForObject(definition.ObstacleRadius), station, InteractionReach.RimMode);
+    }
     // §138.5 (#233/#234): §119.2 is an economy duplicate guard, not
     // crafting physics. Autonomous demand must pick up an available output;
     // an accepted manual craft order means the player explicitly asked for one
@@ -48,6 +80,8 @@ internal static class CraftProjectMath
         {
             return !project.IsOccupied || project.CurrentUser == npc.Id;
         }
+
+        if (PinnedProject(npc, goal).HasValue) return false;
 
         if (StationHasProject(world, station))
         {
@@ -187,6 +221,7 @@ internal static class CraftProjectMath
         var bestDistance = int.MaxValue;
         foreach (var candidate in world.Entities.Objects.Values)
         {
+            if (PinnedProject(npc, goal) is { } exact && candidate.Id != exact) continue;
             if (!candidate.IsCraftProject || candidate.DefinitionId != output ||
                 !candidate.Fragment.Equals(npc.Fragment) ||
                 (candidate.IsOccupied && candidate.CurrentUser != npc.Id))
@@ -237,6 +272,7 @@ internal static class CraftProjectMath
 
         if (!TryFindProject(world, npc, goal, station, requireNearby: true, out project))
         {
+            if (PinnedProject(npc, goal).HasValue) return false;
             if (StationHasProject(world, station))
             {
                 return false;
@@ -255,6 +291,7 @@ internal static class CraftProjectMath
 
         project.IsOccupied = true;
         project.CurrentUser = npc.Id;
+        project.CraftLastWorkerId = npc.Id;
         npc.Execution.CraftProjectId = project.Id;
         npc.Execution.CraftCycleStartWork = project.CraftWorkDone;
         if (SimTrace.Enabled)
@@ -351,10 +388,14 @@ internal static class CraftProjectMath
         List<ObjectId> orphaned = null;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.IsCraftProject && obj.CraftStationObjectId is { } stationId &&
-                !world.Entities.Objects.ContainsKey(stationId))
+            if (obj.CraftStationObjectId is { } stationId &&
+                (!world.Entities.Objects.TryGetValue(stationId, out var station) ||
+                 !station.Fragment.Equals(obj.Fragment) || !station.Tile.Equals(obj.Tile) ||
+                 station.Junctions.Count == 0 || obj.Junctions.Count == 0 ||
+                 station.Junctions[0] != obj.Junctions[0]))
             {
-                (orphaned ??= new List<ObjectId>()).Add(obj.Id);
+                if (obj.IsCraftProject) (orphaned ??= new List<ObjectId>()).Add(obj.Id);
+                else obj.CraftStationObjectId = null;
             }
         }
 
@@ -513,11 +554,15 @@ internal static class CraftProjectMath
         var bestDistance = int.MaxValue;
         foreach (var candidate in world.Entities.Objects.Values)
         {
+            if (PinnedProject(npc, goal) is { } exact && candidate.Id != exact) continue;
             if (!candidate.IsCraftProject || candidate.DefinitionId != output ||
                 !candidate.Fragment.Equals(npc.Fragment) ||
                 (candidate.IsOccupied && candidate.CurrentUser != npc.Id)) continue;
             var match = station is not null
-                ? candidate.CraftStationObjectId == station.Id
+                ? candidate.CraftStationObjectId == station.Id &&
+                  station.Fragment.Equals(candidate.Fragment) && station.Tile.Equals(candidate.Tile) &&
+                  station.Junctions.Count > 0 && candidate.Junctions.Count > 0 &&
+                  station.Junctions[0] == candidate.Junctions[0]
                 : !candidate.CraftStationObjectId.HasValue;
             if (!match) continue;
             var distance = HexSpatialMath.HexDistance(candidate.Tile, npc.Tile);
@@ -532,12 +577,16 @@ internal static class CraftProjectMath
         return project is not null;
     }
 
+    private static ObjectId? PinnedProject(NPCState npc, GoalType goal) =>
+        npc.Mind.ManualControl && npc.Plan.Goal == goal && npc.Plan.Status == PlanStatus.Active
+            ? npc.Plan.CraftProjectTargetId : null;
+
     private static bool StationHasProject(WorldState world, WorldObjectState station)
     {
         if (station is null) return false;
         foreach (var candidate in world.Entities.Objects.Values)
         {
-            if (candidate.IsCraftProject && candidate.CraftStationObjectId == station.Id)
+            if (candidate.CraftWorkRequired > 0 && candidate.CraftStationObjectId == station.Id)
             {
                 return true;
             }

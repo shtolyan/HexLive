@@ -367,7 +367,11 @@ namespace HexLive.UnityPresentation.Input
             var keyboard = Keyboard.current;
             if (!UI.AdminVoicePanel.BlocksGameInput && keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
-                if (UI.ContextMenuPanel.IsOpen)
+                if (UI.CraftProjectDetailsPanel.BlocksWorldInput)
+                {
+                    UI.CraftProjectDetailsPanel.Close();
+                }
+                else if (UI.ContextMenuPanel.IsOpen)
                 {
                     UI.ContextMenuPanel.Close();
                 }
@@ -385,6 +389,12 @@ namespace HexLive.UnityPresentation.Input
                 {
                     NpcSelection.Clear();
                 }
+            }
+
+            if (UI.CraftProjectDetailsPanel.BlocksWorldInput)
+            {
+                _worldPointerBlockedLastFrame = true;
+                return;
             }
 
             if (_mode == Mode.Orbit)
@@ -812,7 +822,7 @@ namespace HexLive.UnityPresentation.Input
         private static bool PointerBlockedForWorld() =>
             NpcSelection.PointerOverUi || UI.TacticalMapPanel.PointerOverMap ||
             UI.HexInspectorPanel.PointerOverPanel ||
-            UI.ContextMenuPanel.BlocksWorldPointer || UI.LootTransferPanel.IsOpen ||
+            UI.ContextMenuPanel.BlocksWorldPointer || UI.LootTransferPanel.IsOpen || UI.CraftProjectDetailsPanel.BlocksWorldInput ||
             UI.GameMenu.IsOpen || UI.AdminVoicePanel.BlocksGameInput ||
             UI.EndSummaryPanel.IsOpen ||
             // Bug #279: окно отчёта об ошибке держит мир закрытым само — его

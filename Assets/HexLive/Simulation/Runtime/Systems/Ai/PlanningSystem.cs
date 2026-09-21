@@ -199,6 +199,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
 
             npc.Plan.Steps.Clear();
             npc.Plan.TargetObjectId = null;
+            npc.Plan.CraftProjectTargetId = null;
             npc.Plan.TargetJunctionId = null;
             npc.Plan.TargetTile = null;
             npc.Plan.TargetItemDefinitionId = null;
@@ -1525,6 +1526,15 @@ public sealed partial class PlanningSystem : ISimulationSystem
         // crossed on the way to the rim. Null means "cross nothing".
         WorldObjectState owner = null)
     {
+        if (CraftProjectMath.TryGetSupport(world, owner, out _))
+        {
+            if (CraftProjectMath.CanReachSupportedOutput(world, npc, owner, out beside) &&
+                !PathfindingSystem.OtherActorJunctions(world, npc).Contains(beside) &&
+                SpatialMutations.TryReserveJunction(world, beside, npc.Id, world.Tick, durationTicks))
+                return true;
+            beside = default;
+            return false;
+        }
         var rimScratch = world.Caches.ObjectApproachJunctionsScratch;
         SpatialQueries.CollectStandableAround(world, anchorId, rimScratch, 96, maxBesideDist, owner,
             InteractionReach.RimMode);

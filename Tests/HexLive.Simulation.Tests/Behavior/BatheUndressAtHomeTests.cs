@@ -600,7 +600,8 @@ public sealed class BatheUndressAtHomeTests
             // 75 → 76: сохраняемый порог ограниченного агентского отдыха.
             // 76 → 77: личная ограниченная память обследования для Explore.
             // v78 adds directives; v79 adds per-vessel appearance.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(79));
+            // v80 adds craft last-worker and exact resume target, reads v79.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(80));
         });
     }
 

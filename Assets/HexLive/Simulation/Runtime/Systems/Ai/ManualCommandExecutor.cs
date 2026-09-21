@@ -516,6 +516,7 @@ internal static class ManualCommandExecutor
         AgentCommandLedger.Finish(world, npc, "failed", "PlanInterrupted.PlayerCommand");
         npc.Plan.Steps.Clear();
         npc.Plan.RunRequested = false;
+        npc.Plan.CraftProjectTargetId = null;
         npc.Plan.RequestedTalkTopic = null;
         npc.Mind.GoalLock = null;
         // §121.10: очередь «собрать всё» живёт ровно до следующего приказа —
@@ -2655,6 +2656,19 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        if (command.Interaction == InteractionType.Craft &&
+            command.InteractionId == CraftProjectMath.ResumeInteractionId)
+        {
+            if (!world.Entities.Objects.TryGetValue(command.Target, out var project))
+            {
+                Reject(world, npc.Id, "Craft", "TargetGone", admission);
+                return;
+            }
+            var option = CraftingOptions.ResolveExactProject(world, npc, project);
+            ApplyCraftOption(world, npc, option, admission, project.Id);
+            return;
+        }
+
         TryStartInteractOrder(
             world, npc, command.Target, command.Interaction, command.InteractionId,
             "Interact", admission);
@@ -2688,6 +2702,21 @@ internal static class ManualCommandExecutor
         if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
         {
             Reject(world, npc.Id, verb, "TargetGone", admission);
+            return false;
+        }
+
+        if (worldObject.IsCraftProject && interactionType != InteractionType.Craft)
+        {
+            Reject(world, npc.Id, verb, "UnfinishedProject", admission);
+            return false;
+        }
+
+        // The final visual frame can reach 100% before CompleteCycle releases
+        // the worker. Do not interrupt that transaction, even for its owner.
+        if (worldObject.CraftWorkRequired > 0 && worldObject.IsOccupied &&
+            interactionType == InteractionType.PickUp)
+        {
+            Reject(world, npc.Id, verb, "Occupied", admission);
             return false;
         }
 
@@ -3099,6 +3128,12 @@ internal static class ManualCommandExecutor
         }
 
         var option = CraftingOptions.Resolve(world, npc, command.RecipeGoal);
+        ApplyCraftOption(world, npc, option, admission);
+    }
+
+    private static void ApplyCraftOption(WorldState world, NPCState npc,
+        CraftRecipeOption option, AdmissionTracker admission, ObjectId? exactProject = null)
+    {
         if (!option.CanCraft)
         {
             Reject(world, npc.Id, "Craft", option.BlockReason.ToString(), admission);
@@ -3108,7 +3143,8 @@ internal static class ManualCommandExecutor
         ClearForNewOrder(world, npc, "Ручной заказ крафта");
         ClearAttackOrder(world, npc);
 
-        npc.Plan.Goal = command.RecipeGoal;
+        npc.Plan.Goal = option.Goal;
+        npc.Plan.CraftProjectTargetId = exactProject;
         npc.Plan.TargetTile = option.WorkTile;
         npc.Plan.TargetJunctionId = option.WorkJunction;
         npc.Plan.TargetObjectId = null;
@@ -3200,11 +3236,11 @@ internal static class ManualCommandExecutor
 
         npc.Plan.CurrentStepIndex = 0;
         npc.Plan.Status = PlanStatus.Active;
-        npc.Mind.CurrentGoal = command.RecipeGoal;
+        npc.Mind.CurrentGoal = option.Goal;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",
-                $"Order=Craft Goal={command.RecipeGoal} Output={option.OutputDefinitionId} " +
+                $"Order=Craft Goal={option.Goal} Output={option.OutputDefinitionId} " +
                 $"Station={option.StationObjectId?.Value.ToString() ?? "ground"} " +
                 $"Tile={option.WorkTile.Q},{option.WorkTile.R} Resume={(option.IsResume ? 1 : 0)}");
         }
@@ -3216,6 +3252,7 @@ internal static class ManualCommandExecutor
         npc.Plan.Status = PlanStatus.Failed;
         npc.Plan.Steps.Clear();
         npc.Plan.TargetObjectId = null;
+        npc.Plan.CraftProjectTargetId = null;
         npc.Plan.TargetJunctionId = null;
         npc.Plan.TargetTile = null;
         npc.Plan.TargetItemDefinitionId = null;

@@ -204,6 +204,8 @@ public sealed class WorldObjectState
 
     public ObjectId? CraftStationObjectId { get; set; }
 
+    public EntityId? CraftLastWorkerId { get; set; }
+
     public bool IsCraftProject => CraftWorkRequired > 0 && CraftWorkDone < CraftWorkRequired;
 
     // Spec §52: a garment is a container. When it is taken off (or torn), the

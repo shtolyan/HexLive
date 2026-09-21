@@ -172,7 +172,7 @@ public static class CraftingOptions
                 _stationsWithProjects = new HashSet<int>();
                 foreach (var obj in _world.Entities.Objects.Values)
                 {
-                    if (obj.IsCraftProject && obj.CraftStationObjectId is { } station)
+                    if (obj.CraftWorkRequired > 0 && obj.CraftStationObjectId is { } station)
                     {
                         _stationsWithProjects.Add(station.Value);
                     }
@@ -214,6 +214,39 @@ public static class CraftingOptions
     internal static CraftRecipeOption Resolve(
         WorldState world, NPCState npc, GoalType goal) =>
         Resolve(world, npc, goal, new GroundScan(world, npc));
+
+    internal static CraftRecipeOption ResolveExactProject(
+        WorldState world, NPCState npc, WorldObjectState project)
+    {
+        var option = new CraftRecipeOption { BlockReason = CraftBlockReason.InvalidRecipe };
+        if (!project.IsCraftProject || !project.Fragment.Equals(npc.Fragment)) return option;
+        foreach (var pair in RecipeCatalog.ByGoal)
+        {
+            if (RecipeCatalog.OutputOf(pair.Key) != project.DefinitionId ||
+                !RecipeCatalog.UsesPersistentProject(pair.Key)) continue;
+            var recipe = pair.Value;
+            option.Goal = pair.Key;
+            option.OutputDefinitionId = project.DefinitionId;
+            option.StationTag = recipe.Station;
+            if (project.CraftStationObjectId is { } id &&
+                (!world.Entities.Objects.TryGetValue(id, out var station) ||
+                 !station.Fragment.Equals(project.Fragment) ||
+                 !station.Tile.Equals(project.Tile) || station.Junctions.Count == 0 ||
+                 project.Junctions.Count == 0 || station.Junctions[0] != project.Junctions[0] ||
+                 station.IsOccupied && station.CurrentUser != npc.Id ||
+                 !world.Content.ObjectDefinitions.TryGetValue(station.DefinitionId, out var definition) ||
+                 !definition.HasTag(recipe.Station) || !StationGateOk(world, recipe, pair.Key, station))) return option;
+            ResolveProject(world, npc, recipe, project, option, new GroundScan(world, npc));
+            var block = ActorBlock(world, npc, pair.Key);
+            if (block != CraftBlockReason.None)
+            {
+                option.CanCraft = false;
+                option.BlockReason = block;
+            }
+            return option;
+        }
+        return option;
+    }
 
     private static CraftRecipeOption Resolve(
         WorldState world, NPCState npc, GoalType goal, GroundScan scan)

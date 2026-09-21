@@ -317,6 +317,7 @@ public static class PlanInterruption
         npc.Plan.Status = PlanStatus.Invalid;
         npc.Plan.Steps.Clear();
         npc.Plan.TargetObjectId = null;
+        npc.Plan.CraftProjectTargetId = null;
         npc.Plan.TargetJunctionId = null;
         npc.Plan.TargetTile = null;
         npc.Plan.TargetItemDefinitionId = null;

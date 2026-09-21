@@ -1,0 +1,32 @@
+{
+  "baselineCommit": "94e5e117822295827b7c44fd394235cf6db702e9",
+  "baselineBlob": "ed6b77307442b5b39a3d2fc0cd94a474cdef0d55",
+  "baselineCheckoutSha256": "f8971b4d7ba297810bc1765412150088b0131da9f38c8b92faa9a501fba32003",
+  "currentBytesSha256": "f6ccab5ccda3df4fa7873e9eeccefc4bb8f5ed86628982be9aaeabe30a830f7f",
+  "normalizedDiffSha256": "d404fca241c5e16021bad07326da8e901ffb524f38dbb2f3916b4bd429836a92",
+  "checks": {
+    "private static void GroundVisual(": {
+      "equal": true,
+      "normalizedSha256": "a21f98a63f43ec32d1485a6e4a1ffa213545edc6e08113c3702fc37270b4df09"
+    },
+    "ActorScale": {
+      "equal": true,
+      "expression": "public static float ActorScale =>\n        Spatial.SimulationUnityMapper.HexRadius * NpcHeightFactor * 2.4f / ActorSourceHeightMeters;",
+      "normalizedSha256": "f22f4ca642a136a065765d058373605dbddda5975089bf4d412ecf68fb820c59"
+    }
+  },
+  "scope": "Garment factory measurement equivalence only, NOT ordinary props/prosthetics and NOT a new Unity sweep",
+  "rawMeasurementUnmodified": true,
+  "sourceScan": {
+    "checked": 2177,
+    "unchanged": 2176,
+    "mismatches": [
+      {
+        "path": "Assets/HexLive/UnityPresentation/Rendering/HexWorldRenderer.cs",
+        "expected": "f8971b4d7ba297810bc1765412150088b0131da9f38c8b92faa9a501fba32003",
+        "actual": "f6ccab5ccda3df4fa7873e9eeccefc4bb8f5ed86628982be9aaeabe30a830f7f"
+      }
+    ],
+    "method": "Read every sources SHA256 and optional metaSha256 in GroundPileGarments.json; no writes to sources or raw measurement"
+  }
+}

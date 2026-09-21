@@ -13,7 +13,7 @@ public sealed class ManualGatherAllUiContractTests
 {
     private static string Adapter() => File.ReadAllText(Path.Combine(
         RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Input",
-        "SimulationInputAdapter.cs"));
+        "SimulationInputAdapter.cs")).Replace("\r\n", "\n");
 
     [Test]
     public void PickUpMenuOffersBothGatherAndGatherAllOnHex()
@@ -37,6 +37,40 @@ public sealed class ManualGatherAllUiContractTests
                 "new GatherAllOnHexCommand(\n                            actor, new ObjectId(objectId), type, interactionId)"),
                 "«Собрать все» обязано ехать своей командой — иначе по сети " +
                 "(и в -hexlive-loopback) пункт молча превратится в обычный подбор.");
+        });
+    }
+
+    [Test]
+    public void CraftProjectsUseExplicitResumeOrReadyPickupInsteadOfGenericGatherAll()
+    {
+        var adapter = Adapter();
+        var interactionLoop = adapter.Substring(adapter.IndexOf(
+            "foreach (var interaction in definition.Interactions)", System.StringComparison.Ordinal));
+        interactionLoop = interactionLoop.Substring(0, interactionLoop.IndexOf(
+            "// §124.1", System.StringComparison.Ordinal));
+        Assert.That(interactionLoop, Does.Match(
+            @"if \(clicked != null && clicked\.CraftWorkRequired > 0 &&\s*" +
+            @"\(interaction\.Type == InteractionType\.PickUp \|\| interaction\.Type == InteractionType\.Craft\)\) continue;"),
+            "Проекты исключены из обычного подбора и следующего за ним «Собрать все».");
+        Assert.That(interactionLoop.IndexOf("clicked.CraftWorkRequired", System.StringComparison.Ordinal),
+            Is.LessThan(interactionLoop.IndexOf("new InteractCommand", System.StringComparison.Ordinal)),
+            "Отсечение проектов должно выполняться до создания обычных пунктов меню.");
+
+        var projectEntries = adapter.Substring(adapter.IndexOf(
+            "private List<ContextMenuEntry> CraftProjectEntries", System.StringComparison.Ordinal));
+        projectEntries = projectEntries.Substring(0, projectEntries.IndexOf(
+            "private static ObjectSnapshot? FindObject", System.StringComparison.Ordinal));
+        Assert.Multiple(() =>
+        {
+            Assert.That(projectEntries, Does.Contain(
+                "var ready = project.CraftWorkDone >= project.CraftWorkRequired;"));
+            Assert.That(projectEntries, Does.Match(
+                @"(?s)if \(ready\).*?Loc\.Get\(""craft\.project\.take""\).*?" +
+                @"new ObjectId\(projectId\), InteractionType\.PickUp"),
+                "Готовый результат забирается по точному id, а не через общий сбор с гекса.");
+            Assert.That(projectEntries, Does.Match(
+                @"(?s)else\s*\{.*?Loc\.Get\(""craft\.project\.resume""\).*?""craft\.resume"""));
+            Assert.That(projectEntries, Does.Not.Contain("GatherAllOnHexCommand"));
         });
     }
 

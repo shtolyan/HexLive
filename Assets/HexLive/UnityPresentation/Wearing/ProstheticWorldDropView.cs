@@ -30,7 +30,7 @@ public sealed class ProstheticWorldDropView : MonoBehaviour
         definitionId is ContentIds.WoodenArm or ContentIds.WoodenLeg or
             ContentIds.MechanicalArm or ContentIds.MechanicalLeg;
 
-    public void Construct(string definitionId, int objectId)
+    public void Construct(string definitionId, int objectId, bool groundPose = true)
     {
         if (!ProstheticContent.TryDescribeWorldDrop(
                 definitionId, objectId, out var part, out var mechanical))
@@ -40,12 +40,12 @@ public sealed class ProstheticWorldDropView : MonoBehaviour
 
         var request = ++_requestVersion;
         ProstheticContent.Load(part, definitionId, mechanical,
-            prefab => Attach(request, definitionId, objectId, part, mechanical, prefab));
+            prefab => Attach(request, definitionId, objectId, part, mechanical, prefab, groundPose));
     }
 
     private void Attach(
         int request, string definitionId, int objectId, BodyPart part,
-        bool mechanical, GameObject? prefab)
+        bool mechanical, GameObject? prefab, bool groundPose)
     {
         // The cached content request may complete after the snapshot
         // removed/replaced this object. Never resurrect a stale world drop.
@@ -73,8 +73,9 @@ public sealed class ProstheticWorldDropView : MonoBehaviour
         // The asset's joint→end axis is +Y. A loose device lies on that axis,
         // with stable per-object yaw so rebuilding a snapshot never makes it pop.
         var yaw = ((uint)objectId * 2654435761u >> 8) / 16777216f * 360f;
-        instance.transform.localRotation =
-            Quaternion.Euler(90f, yaw, 0f) * instance.transform.localRotation;
+        if (groundPose)
+            instance.transform.localRotation =
+                Quaternion.Euler(90f, yaw, 0f) * instance.transform.localRotation;
 
         foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
         {

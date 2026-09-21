@@ -405,6 +405,10 @@ public sealed class ObjectSnapshot
 
     public bool CraftActive { get; set; }
 
+    public int? CraftCurrentWorkerId { get; set; }
+
+    public int? CraftLastWorkerId { get; set; }
+
     public List<string> CraftIngredients { get; } = new();
 
     // §54.14 (r2): meat hanging on the campfire's roasting spit — raw chunks

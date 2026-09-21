@@ -177,7 +177,7 @@ public static class WorldSaveSerializer
     // v78 (§167): accepted directive at the end of each NPC record and the
     // Authority axis (§28.2) in every relationship record.
     // v79 (§55.5 / #417): per-vessel appearance, independent of safe water kind.
-    public const int BlobVersion = 79;
+    public const int BlobVersion = 80;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1302,6 +1302,7 @@ public static class WorldSaveSerializer
         w.Write(obj.CraftWorkDone);
         w.Write(obj.CraftBatchCount);
         WriteNullableObject(w, obj.CraftStationObjectId);
+        if (version >= 80) WriteNullableEntity(w, obj.CraftLastWorkerId);
 
         w.Write(obj.ArchitectureElements.Count);
         foreach (var element in obj.ArchitectureElements)
@@ -1400,6 +1401,7 @@ public static class WorldSaveSerializer
             obj.CraftWorkDone = r.ReadInt32();
             obj.CraftBatchCount = r.ReadInt32();
             obj.CraftStationObjectId = ReadNullableObject(r);
+            obj.CraftLastWorkerId = version >= 80 ? ReadNullableEntity(r) : null;
         }
 
         if (version >= 32)
@@ -1695,6 +1697,7 @@ public static class WorldSaveSerializer
         w.Write(plan.CurrentStepIndex);
         w.Write((int)plan.Status);
         WriteNullableObject(w, plan.TargetObjectId);
+        if (version >= 80) WriteNullableObject(w, plan.CraftProjectTargetId);
         WriteNullableJunction(w, plan.TargetJunctionId);
         w.Write(plan.TargetTile.HasValue);
         if (plan.TargetTile is { } targetTile)
@@ -2368,6 +2371,7 @@ public static class WorldSaveSerializer
         plan.CurrentStepIndex = r.ReadInt32();
         plan.Status = (PlanStatus)r.ReadInt32();
         plan.TargetObjectId = ReadNullableObject(r);
+        plan.CraftProjectTargetId = version >= 80 ? ReadNullableObject(r) : null;
         plan.TargetJunctionId = ReadNullableJunction(r);
         plan.TargetTile = r.ReadBoolean() ? ReadTile(r) : null;
         plan.TargetItemDefinitionId = ReadNullableString(r);

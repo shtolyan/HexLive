@@ -276,6 +276,13 @@ internal static class InteractionReach
     public static bool CheckObjectStart(
         WorldState world, NPCState npc, WorldObjectState worldObject, float obstacleRadius)
     {
+        if (CraftProjectMath.TryGetSupport(world, worldObject, out var support))
+        {
+            return npc.CurrentJunction == support.CraftJunction &&
+                CraftProjectMath.CanReachSupportedOutput(world, npc, worldObject, out _) &&
+                CheckObjectStart(world, npc, support,
+                    world.Content.ObjectDefinitions[support.DefinitionId].ObstacleRadius);
+        }
         var what = worldObject.DefinitionId;
         var reach = ForObject(obstacleRadius);
 

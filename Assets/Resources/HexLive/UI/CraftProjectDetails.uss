@@ -1,0 +1,54 @@
+.craft-project-overlay {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.58);
+}
+.craft-project-card {
+    width: 420px;
+    max-width: 92%;
+    padding: 22px;
+    background-color: rgb(19, 24, 28);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.24);
+    border-radius: 10px;
+    color: rgb(231, 236, 239);
+}
+.craft-project-card Label {
+    white-space: normal;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+.craft-project-card .craft-project-title {
+    font-size: 21px;
+    -unity-font-style: bold;
+}
+.craft-project-card ProgressBar {
+    height: 28px;
+    margin-top: 4px;
+    margin-bottom: 14px;
+}
+.craft-project-card .unity-progress-bar__background {
+    background-color: rgb(12, 16, 19);
+}
+.craft-project-card .unity-progress-bar__progress {
+    background-color: rgb(152, 185, 98);
+}
+.craft-project-card .unity-progress-bar__title {
+    color: white;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: black;
+    margin-bottom: 0;
+}
+.craft-project-card Button {
+    min-height: 36px;
+    margin-top: 10px;
+    background-color: rgb(34, 42, 49);
+    color: rgb(231, 236, 239);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.24);
+    border-radius: 5px;
+    font-size: 15px;
+}
+.craft-project-card Button:hover { background-color: rgb(49, 59, 67); }

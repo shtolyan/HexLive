@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import struct
 import sys
 import wave
@@ -47,6 +48,11 @@ REPO = Path(__file__).resolve().parents[2]
 DEFAULT_PROFILE = Path(__file__).resolve().parent / "lipsync_profile.json"
 DEFAULT_LINES = Path(__file__).resolve().parent / "hexkufa_lines.json"
 DEFAULT_VOICES_DIR = REPO / "Assets/StreamingAssets/HexLive/Sfx/Voices"
+# §67.16: живые языки лежат отдельным деревом VoicesLoc/<lang>/<char>/ —
+# имена файлов те же, что у хекскуфы, язык читается из пути.
+DEFAULT_SPOKEN = Path(__file__).resolve().parent / "spoken_lines.json"
+LOCALIZED_VOICES_DIR = REPO / "Assets/StreamingAssets/HexLive/Sfx/VoicesLoc"
+SPOKEN_LANGS = ("ru", "en")
 
 MAGIC = b"HXLS"
 VERSION = 1
@@ -225,6 +231,45 @@ def _letter_map() -> tuple[dict, dict]:
 _VOWELS = frozenset({0, 1, 2, 3, 4})  # A I U E O
 
 
+# §67.16: живые языки приводятся к той же латинице, что читает таблица
+# букв хекскуфы, — рту важна форма губ, а не орфография.
+_CYRILLIC = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "o",
+    "ж": "zh", "з": "z", "и": "i", "й": "j", "к": "k", "л": "l", "м": "m",
+    "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+    "ф": "f", "х": "h", "ц": "ts", "ч": "ch", "ш": "sh", "щ": "sh",
+    "ъ": "", "ы": "i", "ь": "", "э": "e", "ю": "u", "я": "a",
+}
+# Английский — по буквам, но без самых грубых промахов орфографии: немые
+# буквы и диграфы, которые губами читаются иначе, чем пишутся.
+_ENGLISH_REWRITES = (
+    (r"igh", "ai"), (r"ph", "f"), (r"ck", "k"), (r"wh", "u"), (r"\bkn", "n"),
+    (r"\bwr", "r"), (r"ee|ea", "i"), (r"oo", "u"), (r"ou|ow", "au"),
+    (r"qu", "ku"), (r"x", "ks"), (r"w", "u"), (r"q", "k"),
+    (r"(?<=[a-z]{2}[^aeiou\W])e\b", ""),  # немая «e»: home, make, fire
+)
+
+
+def to_hexkufa_letters(text: str, lang: str) -> str:
+    """Текст живого языка → латиница таблицы letter_visemes.json."""
+    low = text.lower()
+    if lang == "ru":
+        return "".join(_CYRILLIC.get(ch, ch) for ch in low)
+    if lang == "en":
+        low = low.replace("'", "")
+        for pattern, repl in _ENGLISH_REWRITES:
+            low = re.sub(pattern, repl, low)
+    return low
+
+
+def language_of(wav: Path) -> str:
+    """VoicesLoc/<lang>/<char>/x.wav → lang; всё остальное — хекскуфа."""
+    parts = Path(wav).resolve().parts
+    if len(parts) >= 4 and parts[-4] == LOCALIZED_VOICES_DIR.name and parts[-3] in SPOKEN_LANGS:
+        return parts[-3]
+    return "hexkufa"
+
+
 def g2p_words(text: str,
               letter_map: tuple[dict, dict] | None = None
               ) -> list[list[tuple[int, bool]]]:
@@ -233,7 +278,6 @@ def g2p_words(text: str,
     manner-растяжки) помечается long — такому юниту не ограничиваем
     длительность. Поэтому точная строка синтеза (vowel_stretch,
     --fix-capped) не важна."""
-    import re
     letters, digraphs = letter_map if letter_map is not None else _letter_map()
     clean = re.sub(r"\[.*?\]", " ", text.lower())
     words: list[list[tuple[int, bool]]] = []
@@ -513,9 +557,24 @@ def bake_from_segments(samples: np.ndarray, dsp: LipSyncDsp,
 
 
 def load_line_texts(path: Path = DEFAULT_LINES) -> dict[str, list[str]]:
-    """hexkufa_lines.json → {group_id: [text варианта 0, 1, 2]}."""
+    """hexkufa_lines.json → {group_id: [text варианта 0, 1, 2]}.
+    §67.16: тексты живых языков едут в том же словаре под ключами "@ru" /
+    "@en" (id группы с «@» не бывает) — уже приведённые к латинице, так что
+    words_for_wav остаётся одной функцией для всех банков."""
     data = json.loads(Path(path).read_text())
-    return {g["id"]: [ln["text"] for ln in g["lines"]] for g in data["groups"]}
+    texts: dict = {g["id"]: [ln["text"] for ln in g["lines"]] for g in data["groups"]}
+    if DEFAULT_SPOKEN.exists():
+        spoken = json.loads(DEFAULT_SPOKEN.read_text(encoding="utf-8"))
+        for column, lang in enumerate(SPOKEN_LANGS, start=1):
+            texts["@" + lang] = {
+                gid: [to_hexkufa_letters(v[column], lang) for v in variants]
+                for gid, variants in spoken["groups"].items()}
+        # Бессловесные группы скопированы из банка хекскуфы — и текст их тот же.
+        for lang in SPOKEN_LANGS:
+            for gid in spoken.get("neutral", []):
+                if gid in texts:
+                    texts["@" + lang][gid] = texts[gid]
+    return texts
 
 
 def words_for_wav(wav: Path, texts: dict[str, list[str]]) -> list[list[int]] | None:
@@ -529,7 +588,8 @@ def words_for_wav(wav: Path, texts: dict[str, list[str]]) -> list[list[int]] | N
     group, _, variant = rest.rpartition("_")
     if not variant.isdigit():
         return None
-    lines = texts.get(group)
+    lang = language_of(wav)
+    lines = (texts if lang == "hexkufa" else texts.get("@" + lang, {})).get(group)
     if lines is None or int(variant) >= len(lines):
         return None
     words = g2p_words(lines[int(variant)])
@@ -759,7 +819,8 @@ def main() -> int:
     texts = load_line_texts() if args.algo == "align" else None
     overrides = load_overrides()
 
-    roots = args.paths or [DEFAULT_VOICES_DIR]
+    roots = args.paths or [DEFAULT_VOICES_DIR, LOCALIZED_VOICES_DIR]
+    roots = [r for r in roots if r.exists() or r in (args.paths or [])]
     wavs: list[Path] = []
     for root in roots:
         if root.is_dir():

@@ -137,6 +137,69 @@ namespace HexLive.UnityPresentation.Audio
         public const float VoicePlaybackBaseGain = 0.75f;
         private static readonly Def VoiceDef = new(VoicePlaybackBaseGain, 1.2f, 22f, 0.03f);
 
+        // ---- §67.16: язык озвучки = локаль игрока --------------------------
+        // Банки лежат параллельными деревьями с ОДИНАКОВЫМИ именами файлов, так
+        // что язык — это только корень скана; id реплик, SpeechCatalog и
+        // липсинк о нём не знают.
+        public enum VoiceBank { Hexkufa, Russian, English }
+
+        // Хекскуфа заморожена (решение игрока, 2026-09-21): банк и весь её
+        // пайплайн остаются в репозитории, но игра на ней не говорит, и
+        // включателя в интерфейсе нет. Разморозка — это поле (readonly, а не const: иначе CS0429).
+        private static readonly bool HexkufaFrozen = true;
+
+        public static VoiceBank CurrentVoiceBank => !HexkufaFrozen
+            ? VoiceBank.Hexkufa
+            : Localization.Loc.Current == Localization.Language.Russian
+                ? VoiceBank.Russian
+                : VoiceBank.English;
+
+        private static string VoiceRoot(VoiceBank bank)
+        {
+            var sfx = Path.Combine(Application.streamingAssetsPath, "HexLive", "Sfx");
+            return bank switch
+            {
+                VoiceBank.Russian => Path.Combine(sfx, "VoicesLoc", "ru"),
+                VoiceBank.English => Path.Combine(sfx, "VoicesLoc", "en"),
+                _ => Path.Combine(sfx, "Voices"),
+            };
+        }
+
+        private static VoiceBank _loadedVoiceBank;
+        // Группа, которой в банке нет, иначе пересканировала бы дерево на
+        // каждую реплику: EnsureVoiceGroup зовут с каждого Say.
+        private static readonly HashSet<string> MissingVoiceGroups = new(System.StringComparer.Ordinal);
+
+        /// <summary>Сменилась локаль — выгрузить реплики прежнего языка. Новые
+        /// откроются лениво, тем же EnsureVoiceGroup, уже из другого корня.
+        /// I2 шлёт событие и на перезагрузку источника, поэтому сверяем банк.</summary>
+        private static void OnLanguageChanged()
+        {
+            if (!_ready || CurrentVoiceBank == _loadedVoiceBank)
+            {
+                return;
+            }
+
+            _loadedVoiceBank = CurrentVoiceBank;
+            MissingVoiceGroups.Clear();
+            foreach (var id in Sounds.Keys
+                         .Where(id => id.StartsWith("voice_", System.StringComparison.Ordinal))
+                         .ToArray())
+            {
+                foreach (var sound in Sounds[id])
+                {
+                    sound.release(); // звучащая реплика обрывается — язык уже другой
+                }
+                foreach (var file in Paths[id])
+                {
+                    VisemePaths.Remove(file);
+                }
+                Sounds.Remove(id);
+                Paths.Remove(id);
+                LoadedDefs.Remove(id);
+            }
+        }
+
         private static readonly Dictionary<string, FMOD.Sound[]> Sounds = new();
         private static readonly Dictionary<string, string[]> Paths = new();
         private static readonly Dictionary<string, string> VisemePaths = new();
@@ -231,6 +294,9 @@ namespace HexLive.UnityPresentation.Audio
             Sounds.Clear();
             Paths.Clear();
             VisemePaths.Clear();
+            MissingVoiceGroups.Clear();
+            Localization.Loc.LanguageChanged -= OnLanguageChanged;
+            Localization.Loc.LanguageChanged += OnLanguageChanged;
             LoadedDefs.Clear();
             _ready = false;
             _failed = false;
@@ -291,8 +357,12 @@ namespace HexLive.UnityPresentation.Audio
                    extension.Equals(".mp3", System.StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool IsVoiceFile(string path) => path.Replace('\\', '/').Contains(
-            "/Voices/", System.StringComparison.Ordinal);
+        private static bool IsVoiceFile(string path)
+        {
+            var normalized = path.Replace('\\', '/');
+            return normalized.Contains("/Voices/", System.StringComparison.Ordinal) ||
+                   normalized.Contains("/VoicesLoc/", System.StringComparison.Ordinal);
+        }
 
         private static string GroupId(string path)
         {
@@ -334,6 +404,7 @@ namespace HexLive.UnityPresentation.Audio
                     OpenGroup(core, id, def, files);
                 }
 
+                _loadedVoiceBank = CurrentVoiceBank;
                 _ready = true;
                 _loading = false;
             }
@@ -399,9 +470,15 @@ namespace HexLive.UnityPresentation.Audio
                 return false;
             }
 
-            var root = Path.Combine(Application.streamingAssetsPath, "HexLive", "Sfx", "Voices");
+            if (MissingVoiceGroups.Contains(id))
+            {
+                return false;
+            }
+
+            var root = VoiceRoot(_loadedVoiceBank);
             if (!Directory.Exists(root))
             {
+                MissingVoiceGroups.Add(id);
                 return false;
             }
             var files = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
@@ -410,6 +487,7 @@ namespace HexLive.UnityPresentation.Audio
                 .ToArray();
             if (files.Length == 0)
             {
+                MissingVoiceGroups.Add(id);
                 return false;
             }
 

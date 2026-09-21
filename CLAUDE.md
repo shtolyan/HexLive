@@ -412,6 +412,27 @@ first. Two more traps found the hard way while chasing it:
   at timeline 0 with no errors, which looks exactly like a broken bank. Verify
   suspicions in a FRESH play session, or against the standalone bank probe.
 
+### ⭐ The girls speak the PLAYER'S LOCALE; hexkufa is FROZEN (spec §67.16)
+
+Russian UI → Russian lines, English UI → English lines. Hexkufa stays in the
+repo (language doc, catalog, WAV bank, pipeline) but the game does not play it
+and there is no switch for it — `FmodSfx.HexkufaFrozen` is the only thaw.
+
+- Banks are parallel trees with IDENTICAL file names: hexkufa in
+  `Sfx/Voices/<char>/`, live languages in `Sfx/VoicesLoc/<ru|en>/<char>/`.
+  The language is only the scan root (`FmodSfx.CurrentVoiceBank` ← `Loc.Current`);
+  speech ids, `SpeechCatalog`, bubbles, faces and lipsync never see it.
+- Texts live in `_ArtSource/Voice/spoken_lines.json` (group id → three
+  `[delivery tag, RU, EN]`). **A new group goes into BOTH catalogs** — the
+  hexkufa doc still owns the id set. No cross-language fallback: a group
+  missing from the locale bank is silent, never hexkufa.
+- `python3 _ArtSource/Voice/generate_voices.py --groups <id>` now means
+  `--lang ru,en`; add `--lang hexkufa` only for the frozen bank. Live speech
+  hits the 4.2 s cap far more often (~1 take in 5): ALWAYS follow with
+  `--fix-capped`. The ElevenLabs quota is per character and cannot be extended
+  on our plan — `--max-chars` bounds a run, and the group→language→character
+  order means a run cut short leaves whole groups voiced in both languages.
+
 ### ⭐ A NEW VOICE LINE NEEDS NO FMOD WORK AT ALL — AND NO UNITY EITHER
 
 **Do not touch FMOD Studio when adding hexkufa lines.** Voices never play

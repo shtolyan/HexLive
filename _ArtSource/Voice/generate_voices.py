@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""§67.10 — synthesise the hexkufa voice banks with ElevenLabs.
+"""§67.10/§67.16 — synthesise the colonists' voice banks with ElevenLabs.
+
+⭐ --lang picks the bank. The game speaks the player's locale (§67.16), so the
+default is the two live languages; hexkufa is FROZEN — still generable with
+`--lang hexkufa`, but the runtime does not play it.
+    ru / en  : spoken_lines.json  -> Sfx/VoicesLoc/<lang>/<char>/
+    hexkufa  : hexkufa_lines.json -> Sfx/Voices/<char>/
+File names are identical in every bank, so the runtime only swaps the root.
 
 Reads  : _ArtSource/Voice/hexkufa_lines.json   (built from HEXKUFA_LANGUAGE.md §7)
          _ArtSource/Voice/voices.json          (voice ids + per-character manner)
@@ -28,6 +35,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import struct
 import subprocess
 import sys
@@ -40,8 +48,26 @@ import bake_lipsync  # §67.7: рядом с каждым WAV печём .vis-т
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LINES = ROOT / "_ArtSource/Voice/hexkufa_lines.json"
+SPOKEN = ROOT / "_ArtSource/Voice/spoken_lines.json"
 VOICES = ROOT / "_ArtSource/Voice/voices.json"
 OUTDIR = ROOT / "Assets/StreamingAssets/HexLive/Sfx/Voices"
+LOCALIZED_OUTDIR = ROOT / "Assets/StreamingAssets/HexLive/Sfx/VoicesLoc"
+SPOKEN_COLUMN = {"ru": 1, "en": 2}
+
+
+def outdir_for(lang: str) -> pathlib.Path:
+    return OUTDIR if lang == "hexkufa" else LOCALIZED_OUTDIR / lang
+
+
+def lines_for(lang: str, group: dict, spoken: dict) -> list[dict] | None:
+    """The takes of one group in one language; None = copy from hexkufa
+    (wordless groups), [] = the language has no text for it yet."""
+    if lang == "hexkufa":
+        return group["lines"]
+    if group["id"] in spoken.get("neutral", []):
+        return None
+    column = SPOKEN_COLUMN[lang]
+    return [{"text": f"{v[0]} {v[column]}"} for v in spoken["groups"].get(group["id"], [])]
 
 RATE = 44100
 MAX_SECONDS = 4.2
@@ -248,6 +274,11 @@ def main() -> int:
     ap.add_argument("--priority", default=None, help="only groups of this priority (P1/P2/P3)")
     ap.add_argument("--chars", default=None, help="comma-separated subset of characters")
     ap.add_argument("--groups", default=None, help="comma-separated subset of group ids")
+    ap.add_argument("--lang", default="ru,en",
+                    help="comma-separated banks: ru, en, hexkufa (frozen, §67.16)")
+    ap.add_argument("--max-chars", type=int, default=0,
+                    help="stop queueing once this many characters are planned "
+                         "(the ElevenLabs quota is per character)")
     ap.add_argument("--force", action="store_true", help="re-generate existing files")
     ap.add_argument("--dry-run", action="store_true")
     # Starter tier allows 3 concurrent requests; 4 earns HTTP 429.
@@ -272,24 +303,61 @@ def main() -> int:
               if (not args.priority or g["priority"] == args.priority)
               and (not args.groups or g["id"] in args.groups.split(","))]
 
+    spoken = json.loads(SPOKEN.read_text(encoding="utf-8"))
+    langs = [x for x in args.lang.split(",") if x]
+    for lang in langs:
+        if lang != "hexkufa" and lang not in SPOKEN_COLUMN:
+            ap.error(f"unknown --lang {lang}")
+
+    # A group the hexkufa doc added but spoken_lines.json did not is SILENT in
+    # the game (§67.16: no cross-language fallback) — say so on every run.
+    unvoiced = [g["id"] for g in catalog["groups"]
+                if g["id"] not in spoken["groups"] and g["id"] not in spoken.get("neutral", [])]
+    if unvoiced and any(lang != "hexkufa" for lang in langs):
+        print(f"⚠ no RU/EN text in spoken_lines.json for: {', '.join(unvoiced)}", file=sys.stderr)
+
     jobs = []
     targets = []
-    for char, cfg in chars.items():
-        for g in groups:
-            for n, line in enumerate(g["lines"]):
-                path = OUTDIR / char / f"voice_{char}_{g['id']}_{n}.wav"
-                targets.append(path)
+    copied = 0
+    planned_chars = 0
+    # Group-major, so a run cut short by the quota leaves WHOLE groups voiced
+    # by everyone rather than one colonist fully voiced and five mute.
+    for lang, g, (char, cfg) in ((l, g, c) for g in groups for l in langs for c in chars.items()):
+            lines = lines_for(lang, g, spoken)
+            if lines is None:
+                # Wordless takes (sighs, sobs) are the same sound in any language.
+                for n in range(len(g["lines"])):
+                    name = f"voice_{char}_{g['id']}_{n}"
+                    src = OUTDIR / char / f"{name}.wav"
+                    dst = outdir_for(lang) / char / f"{name}.wav"
+                    if src.exists() and (args.force or not dst.exists()) and not args.dry_run:
+                        dst.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(src, dst)
+                        if src.with_suffix(".vis").exists():
+                            shutil.copyfile(src.with_suffix(".vis"), dst.with_suffix(".vis"))
+                        copied += 1
+                    if dst.exists():
+                        targets.append(dst)
+                continue
+            for n, line in enumerate(lines):
+                path = outdir_for(lang) / char / f"voice_{char}_{g['id']}_{n}.wav"
                 if args.fix_capped:
                     # Only the takes that ran into the cap — they end mid-word.
                     if not path.exists() or wav_seconds(path) < MAX_SECONDS - 0.01:
                         continue
                 elif path.exists() and not args.force:
+                    targets.append(path)
                     continue
-                jobs.append((char, cfg, g, n, line, path))
+                if args.max_chars and planned_chars + len(line["text"]) > args.max_chars:
+                    continue
+                planned_chars += len(line["text"])
+                targets.append(path)
+                jobs.append((char, cfg, g, n, line, path, lang))
 
-    print(f"characters={len(chars)} groups={len(groups)} files to make={len(jobs)}")
+    print(f"langs={','.join(langs)} characters={len(chars)} groups={len(groups)} "
+          f"files to make={len(jobs)} chars={planned_chars} copied={copied}")
     if args.dry_run:
-        for char, _cfg, g, n, line, path in jobs[:10]:
+        for char, _cfg, g, n, line, path, _lang in jobs[:10]:
             print(f"  {path.relative_to(ROOT)}  <-  {line['text']}")
         print("  …" if len(jobs) > 10 else "")
         return 0
@@ -302,8 +370,10 @@ def main() -> int:
     failures, made = [], []
 
     def run(job):
-        char, cfg, g, n, line, path = job
-        stretch = cfg.get("vowel_stretch", 1.0)
+        char, cfg, g, n, line, path, lang = job
+        # §5 manner is a HEXKUFA spelling trick (decorative vowel runs). A live
+        # language is read as written — the voice itself carries the manner.
+        stretch = cfg.get("vowel_stretch", 1.0) if lang == "hexkufa" else 1.0
         base_seed = cfg.get("seed", 1) + n
         # Escalating attempts: a plain take, then progressively faster delivery
         # with a fresh seed. Only used by --fix-capped; the first attempt IS the

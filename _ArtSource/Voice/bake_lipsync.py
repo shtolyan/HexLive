@@ -502,7 +502,12 @@ def load_overrides(path: Path = DEFAULT_OVERRIDES) -> dict:
 
 
 def override_key(wav: Path) -> str:
-    return f"{wav.parent.name}/{wav.name}"
+    # Ключ исторически оканчивается на .wav и переживает сжатие файла в .ogg.
+    # Банки живых языков (§67.16) носят те же имена файлов, что хекскуфа, —
+    # без префикса языка её ручная правка легла бы на чужую реплику.
+    lang = language_of(wav)
+    prefix = "" if lang == "hexkufa" else f"{lang}/"
+    return f"{prefix}{wav.parent.name}/{wav.stem}.wav"
 
 
 def _volume_curve(samples: np.ndarray, dsp: LipSyncDsp,
@@ -596,7 +601,38 @@ def words_for_wav(wav: Path, texts: dict[str, list[str]]) -> list[list[int]] | N
     return words or None
 
 
+# §67.17: в игре голоса лежат сжатыми (Ogg Vorbis) — сэмпл-в-сэмпл той же
+# длины, что исходный WAV, поэтому .vis от сжатия не устаревает.
+VOICE_SUFFIXES = (".wav", ".ogg")
+
+
+def voice_files(root: Path) -> list[Path]:
+    return sorted(p for p in root.rglob("voice_*") if p.suffix.lower() in VOICE_SUFFIXES)
+
+
+def ogg_frames(path: Path) -> int:
+    """Длина Ogg в сэмплах = granule position последней страницы."""
+    data = Path(path).read_bytes()[-65536:]
+    at = data.rfind(b"OggS")
+    if at < 0:
+        raise ValueError(f"{path.name}: не Ogg")
+    return struct.unpack_from("<q", data, at + 6)[0]
+
+
+def voice_frames(path: Path) -> int:
+    if Path(path).suffix.lower() == ".ogg":
+        return ogg_frames(path)
+    with wave.open(str(path), "rb") as w:
+        return w.getnframes()
+
+
 def read_wav_mono16(path: Path) -> np.ndarray:
+    if Path(path).suffix.lower() == ".ogg":
+        import subprocess
+        raw = subprocess.run(
+            ["oggdec", "-Q", "-R", "-b", "16", "-o", "-", str(path)],
+            capture_output=True, check=True).stdout
+        return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
     with wave.open(str(path), "rb") as w:
         if (w.getnchannels(), w.getsampwidth(), w.getframerate()) != (1, 2, 44100):
             raise ValueError(
@@ -714,9 +750,8 @@ def is_up_to_date(wav: Path, vis: Path) -> bool:
         with vis.open("rb") as f:
             head = f.read(14)
         magic, version, _, _, _, src_samples = struct.unpack("<4sHBBHI", head)
-        with wave.open(str(wav), "rb") as w:
-            return (magic == MAGIC and version == VERSION
-                    and src_samples == w.getnframes())
+        return (magic == MAGIC and version == VERSION
+                and src_samples == voice_frames(wav))
     except Exception:
         return False
 
@@ -824,8 +859,8 @@ def main() -> int:
     wavs: list[Path] = []
     for root in roots:
         if root.is_dir():
-            wavs += sorted(root.rglob("voice_*.wav"))
-        elif root.suffix.lower() == ".wav":
+            wavs += voice_files(root)
+        elif root.suffix.lower() in VOICE_SUFFIXES:
             wavs.append(root)
         else:
             ap.error(f"не WAV и не директория: {root}")

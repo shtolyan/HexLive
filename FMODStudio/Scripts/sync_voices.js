@@ -134,8 +134,8 @@ try {
         var skipped = 0;
         files.forEach(function (path) {
             var name = String(path).split("/").pop();
-            if (!/^voice_.*\.wav$/i.test(name)) { return; }
-            var id = name.replace(/\.wav$/i, "").replace(/_\d+$/, "");
+            if (!/^voice_.*\.(wav|ogg)$/i.test(name)) { return; }
+            var id = name.replace(/\.(wav|ogg)$/i, "").replace(/_\d+$/, "");
             // Событие этой группы уже собрано — не импортировать файл заново:
             // повторный импорт плодит дубли ассетов и переписывает пол-проекта.
             if (existing[id]) { skipped++; return; }

@@ -183,12 +183,34 @@ def post_process(pcm: bytes) -> bytes:
     return s.tobytes()
 
 
+OGG_QUALITY = "5"           # §67.17: ~80 kbit/s mono — transparent for speech
+
+
+def shipped(path: pathlib.Path) -> pathlib.Path:
+    """The file the game actually ships for this take: the bank is stored as
+    Ogg Vorbis (§67.17); a bare .wav only exists mid-generation."""
+    return path.with_suffix(".ogg")
+
+
 def wav_seconds(path: pathlib.Path) -> float:
     try:
-        with wave.open(str(path)) as w:
-            return w.getnframes() / float(w.getframerate())
+        return bake_lipsync.voice_frames(path) / float(RATE)
     except Exception:  # noqa: BLE001 - unreadable file counts as "regenerate"
         return 0.0
+
+
+def compress(wav: pathlib.Path) -> pathlib.Path:
+    """WAV -> Ogg Vorbis beside it, WAV removed. Vorbis keeps the exact sample
+    count, so the .vis baked from the WAV stays valid for the Ogg."""
+    ogg = shipped(wav)
+    subprocess.run(["oggenc", "-Q", "-q", OGG_QUALITY, "-o", str(ogg), str(wav)], check=True)
+    if bake_lipsync.voice_frames(ogg) != bake_lipsync.voice_frames(wav):
+        raise RuntimeError(f"{ogg.name}: length changed by the encoder")
+    wav.unlink()
+    wav_meta = pathlib.Path(str(wav) + ".meta")
+    if wav_meta.exists():
+        wav_meta.unlink()
+    return ogg
 
 
 def write_wav(path: pathlib.Path, pcm: bytes) -> float:
@@ -328,8 +350,8 @@ def main() -> int:
                 # Wordless takes (sighs, sobs) are the same sound in any language.
                 for n in range(len(g["lines"])):
                     name = f"voice_{char}_{g['id']}_{n}"
-                    src = OUTDIR / char / f"{name}.wav"
-                    dst = outdir_for(lang) / char / f"{name}.wav"
+                    src = OUTDIR / char / f"{name}.ogg"
+                    dst = outdir_for(lang) / char / f"{name}.ogg"
                     if src.exists() and (args.force or not dst.exists()) and not args.dry_run:
                         dst.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copyfile(src, dst)
@@ -343,9 +365,9 @@ def main() -> int:
                 path = outdir_for(lang) / char / f"voice_{char}_{g['id']}_{n}.wav"
                 if args.fix_capped:
                     # Only the takes that ran into the cap — they end mid-word.
-                    if not path.exists() or wav_seconds(path) < MAX_SECONDS - 0.01:
+                    if not shipped(path).exists() or wav_seconds(shipped(path)) < MAX_SECONDS - 0.01:
                         continue
-                elif path.exists() and not args.force:
+                elif shipped(path).exists() and not args.force:
                     targets.append(path)
                     continue
                 if args.max_chars and planned_chars + len(line["text"]) > args.max_chars:
@@ -413,6 +435,7 @@ def main() -> int:
         # Липсинк-таймлайн (.vis) обязан обновляться вместе с WAV — рантайм
         # сверяет sourceSamples и молча выключит губы при рассинхроне.
         bake_lipsync.bake_file(path)
+        compress(path)
         made.append((path, secs, best[2]))
         flag = " STILL CAPPED" if secs >= MAX_SECONDS - 0.01 else ""
         log(f"  ok {path.name} {secs:.2f}s [{best[2]}]{flag}")
@@ -421,7 +444,7 @@ def main() -> int:
         list(pool.map(run, jobs))
 
     for path in targets:
-        ensure_unity_meta(path)
+        ensure_unity_meta(shipped(path))
         ensure_unity_meta(path.with_suffix(".vis"))
 
     print(f"\nmade={len(made)} failed={len(failures)}")

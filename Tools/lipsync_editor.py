@@ -45,7 +45,7 @@ _lock = threading.Lock()  # запись overrides/letters + ре-бейк — �
 def clip_list() -> list[dict]:
     overrides = bl.load_overrides()
     clips = []
-    for wav in sorted(VOICES.rglob("voice_*.wav")):
+    for wav in bl.voice_files(VOICES):
         key = bl.override_key(wav)
         char = wav.parent.name
         stem = wav.stem
@@ -66,7 +66,8 @@ def wav_path(key: str) -> Path:
     p = (VOICES / key).resolve()
     if not p.is_relative_to(VOICES) or p.suffix != ".wav":
         raise ValueError(f"плохой ключ: {key}")
-    return p
+    # §67.17: банк сжат в Ogg; ключ пиано-ролла по-прежнему оканчивается на .wav.
+    return p if p.exists() or not p.with_suffix(".ogg").exists() else p.with_suffix(".ogg")
 
 
 def read_vis(vis: Path) -> tuple[int, int, int, np.ndarray]:
@@ -198,7 +199,7 @@ def save_letters(letters: dict, digraphs: dict) -> dict:
                     changed_lines.add((group, str(n)))
         overrides = bl.load_overrides()
         todo = []
-        for wav in sorted(VOICES.rglob("voice_*.wav")):
+        for wav in bl.voice_files(VOICES):
             char = wav.parent.name
             rest = wav.stem[len(f"voice_{char}_"):]
             group, _, variant = rest.rpartition("_")
@@ -331,7 +332,7 @@ def _analyze_one(key: str) -> dict:
 
 
 def run_analysis() -> dict:
-    keys = [bl.override_key(w) for w in sorted(VOICES.rglob("voice_*.wav"))]
+    keys = [bl.override_key(w) for w in bl.voice_files(VOICES)]
     with ProcessPoolExecutor() as pool:
         rows = list(pool.map(_analyze_one, keys, chunksize=16))
     rows.sort(key=lambda r: -r["score"])
@@ -384,9 +385,11 @@ class Handler(BaseHTTPRequestHandler):
             elif url.path == "/api/analysis":
                 self._json(cached_analysis())
             elif url.path == "/audio":
-                data = wav_path(q["key"][0]).read_bytes()
+                audio = wav_path(q["key"][0])
+                data = audio.read_bytes()
                 self.send_response(200)
-                self.send_header("Content-Type", "audio/wav")
+                self.send_header("Content-Type",
+                                 "audio/ogg" if audio.suffix == ".ogg" else "audio/wav")
                 self.send_header("Content-Length", str(len(data)))
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()

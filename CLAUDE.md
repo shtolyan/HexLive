@@ -433,6 +433,14 @@ and there is no switch for it — `FmodSfx.HexkufaFrozen` is the only thaw.
   on our plan — `--max-chars` bounds a run, and the group→language→character
   order means a run cut short leaves whole groups voiced in both languages.
 
+- **The banks ship as Ogg Vorbis, not WAV (spec §67.17)** — 888 MB → 114 MB.
+  The generator writes WAV → bakes `.vis` → `oggenc -q5` → deletes the WAV, so
+  there is nothing to do by hand; `compress_voices.py` is the one-off pass for
+  an older bank. Needs `brew install vorbis-tools` (our ffmpeg has no
+  libvorbis). Do NOT switch to mp3/opus: Vorbis keeps the exact sample count,
+  which is what keeps the `.vis` valid and the lipsync clock honest. Wherever
+  this file still says "WAV" about a voice line, read "Ogg".
+
 ### ⭐ A NEW VOICE LINE NEEDS NO FMOD WORK AT ALL — AND NO UNITY EITHER
 
 **Do not touch FMOD Studio when adding hexkufa lines.** Voices never play

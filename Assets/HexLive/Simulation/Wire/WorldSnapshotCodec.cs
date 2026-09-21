@@ -93,7 +93,8 @@ public static class WorldSnapshotCodec
     /// v38: §55.4/#347 typed bottle-water provenance in the inventory group.
     /// v39: §52/#355 per-instance vessel amount/provenance in object and slot rows.
     /// v40: §159 companion profile, authored appearance, Hexkufa and voice bond.
-    public const int WireVersion = 41;
+    // v42: per-vessel visual provenance and exact held-bottle fill (§55.5).
+    public const int WireVersion = 42;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -513,6 +514,7 @@ public static class WorldSnapshotCodec
         w.Write(o.RotationDegrees);
         w.Write(o.ResourceAmount);
         w.Write((byte)o.WaterKind);
+        w.Write((byte)o.LastAddedWaterKind);
         w.Write(o.Wetness);
         w.Write(o.Durability);
         w.Write(o.Dirtiness);
@@ -540,6 +542,7 @@ public static class WorldSnapshotCodec
             w.Write(slot.StackCount);
             w.Write(slot.ResourceAmount);
             w.Write((byte)slot.WaterKind);
+            w.Write((byte)slot.LastAddedWaterKind);
             // У мешка типизированных ячеек не бывает, и соблазн «не писать
             // заведомо пустое» здесь неверный: тип ячейки один на человека и на
             // вещь, а через провод тип едет ЦЕЛИКОМ или не едет никак. Пустая
@@ -651,6 +654,7 @@ public static class WorldSnapshotCodec
             o.RotationDegrees = r.ReadSingle();
             o.ResourceAmount = r.ReadSingle();
             o.WaterKind = (Agents.WaterKind)r.ReadByte();
+            o.LastAddedWaterKind = (Agents.WaterKind)r.ReadByte();
             o.Wetness = r.ReadSingle();
             o.Durability = r.ReadSingle();
             o.Dirtiness = r.ReadSingle();
@@ -672,6 +676,7 @@ public static class WorldSnapshotCodec
                     StackCount = r.ReadInt32(),
                     ResourceAmount = r.ReadSingle(),
                     WaterKind = (Agents.WaterKind)r.ReadByte(),
+                    LastAddedWaterKind = (Agents.WaterKind)r.ReadByte(),
                     AcceptedItemDefinitionId = r.ReadString()
                 });
             }
@@ -1053,6 +1058,8 @@ public static class WorldSnapshotCodec
         WireIo.WriteStrings(w, n.InventoryBloodiness);
         WireIo.WriteStrings(w, n.InventoryWater);
         w.Write((byte)n.BottleWaterKind);
+        w.Write(n.HeldBottleFill);
+        w.Write((byte)n.HeldBottleAppearance);
         w.Write(n.InventoryCapacity);
         WireIo.WriteString(w, n.FavoriteWeaponId);
         w.Write(n.InventoryContainers.Count);
@@ -1076,6 +1083,7 @@ public static class WorldSnapshotCodec
                 w.Write(slot.StackCount);
                 w.Write(slot.ResourceAmount);
                 w.Write((byte)slot.WaterKind);
+                w.Write((byte)slot.LastAddedWaterKind);
                 WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
             }
         }
@@ -1424,6 +1432,8 @@ public static class WorldSnapshotCodec
         WireIo.ReadStrings(r, n.InventoryBloodiness);
         WireIo.ReadStrings(r, n.InventoryWater);
         n.BottleWaterKind = (Agents.WaterKind)r.ReadByte();
+        n.HeldBottleFill = r.ReadSingle();
+        n.HeldBottleAppearance = (Agents.WaterKind)r.ReadByte();
         n.InventoryCapacity = r.ReadInt32();
         n.FavoriteWeaponId = r.ReadString();
         var inventoryContainerCount = r.ReadInt32();
@@ -1451,6 +1461,7 @@ public static class WorldSnapshotCodec
                 slot.StackCount = r.ReadInt32();
                 slot.ResourceAmount = r.ReadSingle();
                 slot.WaterKind = (Agents.WaterKind)r.ReadByte();
+                slot.LastAddedWaterKind = (Agents.WaterKind)r.ReadByte();
                 slot.AcceptedItemDefinitionId = r.ReadString();
             }
         }

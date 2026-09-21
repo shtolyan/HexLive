@@ -736,6 +736,7 @@ public sealed class NPCState
             var bottle = FirstBottle();
             if (bottle is null) return;
             bottle.WaterKind = value;
+            bottle.LastAddedWaterKind = value;
             if (value == WaterKind.None) bottle.ResourceAmount = 0f;
         }
     }
@@ -758,6 +759,7 @@ public sealed class NPCState
             if (clamped <= 0)
             {
                 bottle.WaterKind = WaterKind.None;
+                bottle.LastAddedWaterKind = WaterKind.None;
             }
             // Callers that set amount without a kind still get an empty vessel;
             // fabricating provenance would turn unknown water into a safe drink.

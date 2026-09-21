@@ -147,7 +147,7 @@ recovery address on file.</p>
 
     public static string Dashboard(WorldHost host, AdminAccount account, bool insecureTransport,
         string? notice, bool canSendMail, AssetCatalogOverview catalog,
-        long pinnedCatalogRevision)
+        long pinnedCatalogRevision, bool centralAccess = false)
     {
         var census = host.Census();
         var body = new StringBuilder();
@@ -159,7 +159,7 @@ recovery address on file.</p>
             body.Append("<div class='note'>").Append(Escape(notice)).Append("</div>");
         }
 
-        if (insecureTransport)
+        if (insecureTransport && !centralAccess)
         {
             // Said once, plainly, on the page where the password gets typed.
             body.Append("<div class='note alarm'><b>This page is served over plain HTTP.</b> " +
@@ -167,7 +167,7 @@ recovery address on file.</p>
                         "put this behind a reverse proxy with TLS (Caddy or nginx) before using it.</div>");
         }
 
-        if (account.SetupIncomplete)
+        if (account.SetupIncomplete && !centralAccess)
         {
             body.Append("<div class='note'><b>Finish setup.</b> ")
                 .Append(account.PasswordIsTemporary ? "Change the temporary password" : string.Empty)
@@ -221,6 +221,10 @@ recovery address on file.</p>
 through colony days for <em>everyone</em> watching and multiplies the stream every viewer receives.
 Connected clients cannot do it — only this panel can.</p></div>");
 
+        if (centralAccess)
+            body.Append("<h2>Access</h2><div class='card'><a href='https://keys.62-146-235-120.sslip.io/'>Ключи и права</a> · <a href='/admin/voice/history'>История команд</a></div>");
+        else
+        {
         body.Append("<h2>Account</h2><div class='card'>");
         body.Append("<p><a href='/admin/voice'>Voice administrator access and history</a></p>");
         body.Append("<form method='post' action='/admin/password'>")
@@ -247,6 +251,8 @@ Connected clients cannot do it — only this panel can.</p></div>");
         }
 
         body.Append("</div></form></div>");
+
+        }
 
         body.Append("<h2>Danger zone</h2><div class='card'>");
         body.Append(@"<form method='post' action='/admin/newworld' onsubmit=""return confirm(

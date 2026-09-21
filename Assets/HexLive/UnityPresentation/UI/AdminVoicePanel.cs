@@ -94,6 +94,8 @@ public sealed class AdminVoicePanel : MonoBehaviour
         if (_token.Length > 0) return true;
         try
         {
+            if (HexLive.UnityPresentation.Bootstrap.ClosedTestAccess.Enabled)
+            { _token = HexLive.UnityPresentation.Bootstrap.ClosedTestAccess.ReadKey(); return _token.Length > 0; }
             var secret = AdminCredentialStore.Read(_server, _source.AdminClientId);
             if (secret.Length == 0)
             {
@@ -127,7 +129,7 @@ public sealed class AdminVoicePanel : MonoBehaviour
         if (_message.Length > 0 && Time.unscaledTime >= _nextPoll)
         { _nextPoll = Time.unscaledTime + 1; Send("poll", new JObject { ["messageId"] = _message }); }
         if (_busy && Time.unscaledTime > _deadline) { _busy = false; _wav = null; Notify(L("timeout"), false); }
-        _request.EnableInClassList("admin-hidden", _approved);
+        _request.EnableInClassList("admin-hidden", _approved || HexLive.UnityPresentation.Bootstrap.ClosedTestAccess.Enabled);
         _request.SetEnabled(_accessState != "pending" && _source.Link.State == LinkState.Live);
         _send.SetEnabled(_approved && !_busy && _message.Length == 0); _sendRaw.SetEnabled(_approved && !_busy && _message.Length == 0);
     }

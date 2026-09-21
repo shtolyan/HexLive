@@ -20,6 +20,7 @@ public sealed class AdminAccess
         public List<Request> Requests { get; set; } = new();
     }
     public sealed record Status(bool Accepted, string State, string RequestId = "", DateTimeOffset? ExpiresUtc = null);
+    public Func<string, string, bool>? CentralAuthorize { get; set; }
     private readonly object _gate = new();
     private readonly string _path;
     private readonly Func<DateTimeOffset> _now;
@@ -40,6 +41,7 @@ public sealed class AdminAccess
     private string Effective(Request r) => r.State == "approved" && r.ExpiresUtc <= _now() ? "expired" : r.State;
     private Status GetStatus(string client, string token)
     {
+        if (CentralAuthorize != null) return CentralAuthorize(client, token) ? new(true, "approved") : new(false, "denied");
         if (!ValidSecret(token)) return new(false, "unrequested");
         var hash = Hash(token);
         if (_state.LegacyGrants.TryGetValue(client, out var legacy) && Equal(legacy, hash)) return new(true, "approved");
@@ -57,6 +59,7 @@ public sealed class AdminAccess
     }
     public Status RequestAccess(string client, string token)
     {
+        if (CentralAuthorize != null) return Check(client, token);
         if (!PlayerCharacterAssignments.TryNormalizePlayerId(client, out var canonical) || !ValidSecret(token)) return new(false, "invalid");
         lock (_gate)
         {

@@ -14,7 +14,7 @@ public static class AdminAccessEndpoints
 {
     public static void Map(WebApplication app, AdminAccess access, AdminSessions sessions, AdminCommandBus bus, WorldSupervisor worlds)
     {
-        bool Signed(HttpContext c) => sessions.IsSignedIn(c.Request.Cookies["hexlive_admin"] ?? "");
+        bool Signed(HttpContext c) => c.Items[CentralAdminAccess.Marker] is true || sessions.IsSignedIn(c.Request.Cookies["hexlive_admin"] ?? "");
         bool SameOrigin(HttpContext c) => Uri.TryCreate(c.Request.Headers.Origin.ToString(), UriKind.Absolute, out var origin)
             && origin.Authority == c.Request.Host.Value;
         string E(string? value) => WebUtility.HtmlEncode(value ?? "");

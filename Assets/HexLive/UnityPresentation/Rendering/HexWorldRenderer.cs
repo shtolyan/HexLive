@@ -1991,6 +1991,16 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     key, worldObject.DefinitionId, visible: !shouldHide);
             }
 
+            if (worldObject.DefinitionId == "tool.bottle")
+            {
+                var parked = worldObject.Junctions.Count > 0 &&
+                    _collectorJunctions.Contains(worldObject.Junctions[0]);
+                HexLive.UnityPresentation.Environment.BottleLiquidVisual.Sync(objectView,
+                    HexLive.Simulation.Runtime.BottleVisualMath.Fill(worldObject.ResourceAmount, parked),
+                    HexLive.Simulation.Runtime.BottleVisualMath.Appearance(
+                        worldObject.LastAddedWaterKind, worldObject.WaterKind));
+            }
+
             // Spec 29E.3: the campfire burns only while it has fuel.
             if (worldObject.DefinitionId == "campfire.spot")
             {
@@ -3220,6 +3230,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // playthrough of the work clip into it.
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown,
             npc.InteractionSeconds, npc.LyingStationSlot);
+        actorView.SyncBottleLiquid(npc.HeldBottleFill, npc.HeldBottleAppearance);
         // §119/#83: one progress indicator belongs to the working person, not
         // to the table/project. Its component follows the animated head bone in
         // LateUpdate, so sitting and lying poses need no renderer-side offsets.
@@ -7211,7 +7222,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
         if (pile)
         {
             // Fixed base pose precedes source seating. The outer slot owns yaw.
-            if (LiesFlatOnGround(definitionId)) instance.transform.localRotation = Quaternion.Euler(90f,0f,0f);
+            if (LiesFlatOnGround(definitionId))
+                instance.transform.localRotation = Quaternion.Euler(90f,0f,0f) * instance.transform.localRotation;
             // Preserve the imported root basis for resources, including leaf/stick.
         }
         else if (scatter)

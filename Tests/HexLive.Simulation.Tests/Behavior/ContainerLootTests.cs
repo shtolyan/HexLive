@@ -28,6 +28,7 @@ public sealed class ContainerLootTests
         var empty = new ItemInstance(ContentIds.Bottle);
         var filled = new ItemInstance(ContentIds.Bottle);
         BottleInventoryMath.SetContents(filled, WaterKind.Rain, 4);
+        filled.LastAddedWaterKind = WaterKind.Coconut;
         npc.Inventory.Items.Add(empty);
         npc.Inventory.Items.Add(filled);
 
@@ -38,6 +39,7 @@ public sealed class ContainerLootTests
             Assert.That(remains.Contents.Single(), Is.SameAs(filled));
             Assert.That(BottleInventoryMath.Charges(filled), Is.EqualTo(4));
             Assert.That(filled.WaterKind, Is.EqualTo(WaterKind.Rain));
+            Assert.That(filled.LastAddedWaterKind, Is.EqualTo(WaterKind.Coconut));
         });
 
         var otherEmpty = new ItemInstance(ContentIds.Bottle);
@@ -58,6 +60,7 @@ public sealed class ContainerLootTests
             Assert.That(npc.Inventory.Items.Last(), Is.SameAs(filled));
             Assert.That(BottleInventoryMath.Charges(filled), Is.EqualTo(4));
             Assert.That(filled.WaterKind, Is.EqualTo(WaterKind.Rain));
+            Assert.That(filled.LastAddedWaterKind, Is.EqualTo(WaterKind.Coconut));
         });
     }
 

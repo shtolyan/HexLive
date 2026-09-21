@@ -14,6 +14,7 @@ public partial class App : Application
             return;
         }
         base.OnStartup(e);
-        new MainWindow().Show();
+        try { new MainWindow(UpdateRequest.Parse(e.Args)).Show(); }
+        catch (Exception ex) { MessageBox.Show(ex.Message, "HexLive"); Shutdown(1); }
     }
 }

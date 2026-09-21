@@ -155,6 +155,7 @@ public static class WorldSnapshotExporter
             exported.RotationDegrees = obj.RotationDegrees; // §66: built pieces carry a yaw
             exported.ResourceAmount = obj.ResourceAmount;
             exported.WaterKind = obj.WaterKind;
+            exported.LastAddedWaterKind = obj.LastAddedWaterKind;
             exported.Wetness = obj.Wetness;
             exported.Durability = obj.Durability;
             exported.Dirtiness = obj.Dirtiness;
@@ -245,7 +246,8 @@ public static class WorldSnapshotExporter
                         ItemDefinitionId = itemId,
                         StackCount = count,
                         ResourceAmount = physical?.ResourceAmount ?? 0f,
-                        WaterKind = physical?.WaterKind ?? WaterKind.None
+                        WaterKind = physical?.WaterKind ?? WaterKind.None,
+                        LastAddedWaterKind = physical?.LastAddedWaterKind ?? WaterKind.None
                     });
                 }
             }
@@ -635,6 +637,20 @@ public static class WorldSnapshotExporter
     // Single source of truth for the ordinary hand prop. Simulation already knows
     // the active verb, goal, target inventory item and carried items; presentation
     // should not have to guess these from strings.
+    private static ItemInstance ResolveHeldBottle(NPCState npc)
+    {
+        var target = npc.Execution.TargetInventoryItem;
+        if (BottleInventoryMath.IsBottle(target) &&
+            InventoryMath.ContainsReference(npc.Inventory.Items, target)) return target;
+        return npc.Execution.CurrentInteraction switch
+        {
+            InteractionType.Drink or InteractionType.HydrateOther => BottleInventoryMath.FirstDrinkable(npc),
+            InteractionType.FillVessel => BottleInventoryMath.FirstWithRoomFor(npc, WaterKind.Coconut),
+            InteractionType.FillBottle or InteractionType.TakeVessel => BottleInventoryMath.FirstEmpty(npc),
+            _ => null
+        };
+    }
+
     private static string ResolveHeldItem(WorldState world, NPCState npc)
     {
         // §108 / bug #21: общий draw/holster-контур. Боевой intent принадлежит
@@ -1207,6 +1223,8 @@ public static class WorldSnapshotExporter
             IsStarving = npc.Mind.IsStarving,
             InventoryCapacity = npc.Inventory.Capacity,
             BottleWaterKind = BottleInventoryMath.FirstDrinkable(npc)?.WaterKind ?? WaterKind.None,
+            HeldBottleFill = BottleVisualMath.Fill(ResolveHeldBottle(npc)),
+            HeldBottleAppearance = BottleVisualMath.Appearance(ResolveHeldBottle(npc)),
             DeathAnimVariant = npc.DeathAnimVariant, // §28.15C v3
             InventoryUsedSlots = npc.Inventory.UsedSlots,
             GoalLockEndTick = npc.Mind.GoalLock is { } goalLock &&
@@ -1241,6 +1259,7 @@ public static class WorldSnapshotExporter
                     StackCount = sourceSlot.StackCount,
                     ResourceAmount = sourceSlot.ResourceAmount,
                     WaterKind = sourceSlot.WaterKind,
+                    LastAddedWaterKind = sourceSlot.LastAddedWaterKind,
                     AcceptedItemDefinitionId = sourceSlot.AcceptedItemDefinitionId
                 });
             }

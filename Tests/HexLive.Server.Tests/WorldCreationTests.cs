@@ -223,7 +223,9 @@ public sealed class WorldCreationTests
                 File.Move(pointer, pointer + ".backup"); Directory.CreateDirectory(pointer);
                 try
                 {
-                    Assert.Throws<IOException>(() => supervisor.CreateLibraryWorld(7, GameMode.Feud, retryConfig, retry));
+                    Assert.That(() => supervisor.CreateLibraryWorld(7, GameMode.Feud, retryConfig, retry),
+                        Throws.InstanceOf<IOException>().Or.InstanceOf<UnauthorizedAccessException>(),
+                        "Replacing a directory with a file fails with OS-specific filesystem errors.");
                     Assert.That(supervisor.Host.WorldId, Is.EqualTo(customId));
                     Assert.That(supervisor.Library.ActiveId, Is.EqualTo(customId));
                 }

@@ -125,3 +125,7 @@ _ArtSource/Voice/lipsync_analysis.json
 /hooks/post-commit
 /hooks/post-merge
 /hooks/pre-push
+
+# Local outputs of the standalone identity service.
+/Server/HexLive.Identity/bin/
+/Server/HexLive.Identity/obj/

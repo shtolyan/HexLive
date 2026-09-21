@@ -4182,6 +4182,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 31C.6: interaction poses — crouch while gathering/working, sit
     // on Sit, and hold the relevant item in the currently functional hand.
+    public void SyncBottleLiquid(float fill, HexLive.Simulation.Agents.WaterKind appearance)
+    {
+        if (_currentPropId == "tool.bottle" && _handProp != null)
+            HexLive.UnityPresentation.Environment.BottleLiquidVisual.Sync(_handProp, fill, appearance);
+    }
+
     public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
         float interactionSeconds = 0f, int lyingStationSlot = -1)
     {

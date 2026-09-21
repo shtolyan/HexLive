@@ -141,12 +141,93 @@ public sealed class GroundItemPlacementTests
 
     [TestCase(19,true)]
     [TestCase(20,false)]
-    public void ExactGroundStackCapacityMatchesInventorySlot(int existing,bool accepted)
+    public void ExactGroundStickCapacityIsEnforced(int existing,bool accepted)
     {
         var (world,npc)=Fixture(onlyOwnPoint:true);
         for(var i=0;i<existing;i++) Put(world,npc,new ItemInstance(ContentIds.Stick));
         Assert.That(GroundItemPlacement.TryFind(world,npc,new ItemInstance(ContentIds.Stick),out _,out _,out _),Is.EqualTo(accepted));
-        Assert.That(GroundPileCatalog.Capacity(ContentIds.Stick),Is.EqualTo(InventoryState.StackSizeFor(ContentIds.Stick)));
+        Assert.That(GroundPileCatalog.Capacity(ContentIds.Stick),Is.EqualTo(20));
+    }
+
+    [Test]
+    public void GroundPileBudgetsAreIndependentFromInventorySlots()
+    {
+        Assert.That(InventoryState.IsStackable("tool.knife"), Is.False);
+        Assert.That(GroundPileCatalog.Capacity("tool.knife"), Is.EqualTo(4));
+        Assert.That(GroundPileCatalog.Capacity("resource.cloth"), Is.EqualTo(20));
+        Assert.That(InventoryState.StackSizeFor("resource.cloth"), Is.EqualTo(20));
+        Assert.That(GroundPileCatalog.Capacity("tool.bottle"), Is.EqualTo(1));
+    }
+
+    [TestCase("tool.axe_stone")]
+    [TestCase("tool.bow")]
+    [TestCase("tool.hammer")]
+    [TestCase("tool.knife")]
+    [TestCase("tool.lighter")]
+    [TestCase("tool.machete")]
+    [TestCase("tool.pickaxe_stone")]
+    [TestCase("tool.saw")]
+    [TestCase("tool.spear")]
+    [TestCase("resource.cloth")]
+    [TestCase("item.pill")]
+    [TestCase("item.bandage")]
+    [TestCase("med.splint")]
+    public void AuthoredGroundRowsKeepAllInstancesSeparateAndInsideAdmissionFootprint(string id)
+    {
+        Assert.That(GroundPileCatalog.TryGet(id,false,out var profile),Is.True);
+        var capacity=GroundPileCatalog.Capacity(id);
+        for(var i=0;i<capacity;i++)
+        {
+            var a=profile.Single.At(profile.Slot(i,capacity));
+            Assert.That(a.MinX,Is.GreaterThanOrEqualTo(profile.FullBounds.MinX));
+            Assert.That(a.MaxX,Is.LessThanOrEqualTo(profile.FullBounds.MaxX));
+            Assert.That(a.MinZ,Is.GreaterThanOrEqualTo(profile.FullBounds.MinZ));
+            Assert.That(a.MaxZ,Is.LessThanOrEqualTo(profile.FullBounds.MaxZ));
+            for(var j=0;j<i;j++)
+            {
+                var b=profile.Single.At(profile.Slot(j,capacity));
+                Assert.That(a.OverlapsXZ(b,0) && a.MaxY>b.MinY && b.MaxY>a.MinY,
+                    Is.False,$"{id} slots {i}/{j} intersect");
+            }
+        }
+    }
+
+    [Test]
+    public void FourToolsShareGroundPointWithoutMergingTheirIndividualState()
+    {
+        var (world,npc)=Fixture(onlyOwnPoint:true);
+        for(var i=0;i<4;i++)
+        {
+            var item=new ItemInstance("tool.knife") { Durability=.2f+i*.1f,OwnerId=80000+i };
+            npc.Inventory.Items.Add(item);
+            Assert.That(PlayerInventoryCommandExecutor.TryApply(world,npc,
+                new InventoryItemRef(InventoryItemSource.Carried,npc.Inventory.Items.Count-1,item.DefinitionId),
+                InventoryAction.Drop,out var reason),Is.True,reason);
+            var dropped=world.Entities.Objects.Values.Single(o=>o.Owner?.Value==item.OwnerId);
+            Assert.That(dropped.Durability,Is.EqualTo(item.Durability));
+            Assert.That(dropped.Junctions[0],Is.EqualTo(npc.CurrentJunction.Value));
+            Assert.That(GroundItemPlacement.TryFind(world,npc,new ItemInstance("tool.hammer"),out _,out _,out _),
+                Is.False,"A different tool must not enter even a partially empty knife row");
+        }
+        Assert.That(world.Entities.Objects.Count,Is.EqualTo(4));
+        Assert.That(GroundItemPlacement.TryFind(world,npc,new ItemInstance("tool.knife"),out _,out _,out _),Is.False);
+        Assert.That(GroundItemPlacement.TryFind(world,npc,new ItemInstance("tool.hammer"),out _,out _,out _),Is.False);
+    }
+
+    [Test]
+    public void FullInventoryClothStackDropsThroughExistingQuantityCommandWithoutChangingSavedGroupBudget()
+    {
+        var (world,npc)=Fixture();
+        npc.Inventory.Items.Clear();
+        for(var i=0;i<20;i++) npc.Inventory.Items.Add(new ItemInstance("resource.cloth") {OwnerId=81000+i});
+        Assert.That(PlayerInventoryCommandExecutor.TryApply(world,npc,
+            new InventoryItemRef(InventoryItemSource.Carried,0,"resource.cloth"),InventoryAction.Drop,
+            out var reason,count:20),Is.True,reason);
+        Assert.That(npc.Inventory.Items,Is.Empty);
+        Assert.That(world.Entities.Objects.Count,Is.EqualTo(20));
+        Assert.That(world.Entities.Objects.Values.Select(o=>o.Owner?.Value).Distinct().Count(),Is.EqualTo(20));
+        Assert.That(world.Entities.Objects.Values.GroupBy(o=>o.Junctions[0]).Select(g=>g.Count()).OrderBy(n=>n),
+            Is.EqualTo(new[]{20}));
     }
 
     [TestCase(18,2,true)]

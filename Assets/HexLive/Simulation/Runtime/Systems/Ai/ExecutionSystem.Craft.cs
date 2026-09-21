@@ -475,6 +475,7 @@ public sealed partial class ExecutionSystem
                 Durability = crafted.Durability,
                 ResourceAmount = crafted.ResourceAmount,
                 WaterKind = crafted.WaterKind,
+                LastAddedWaterKind = crafted.LastAddedWaterKind,
                 Dirtiness = crafted.Dirtiness,
                 Bloodiness = crafted.Bloodiness
             });
@@ -497,6 +498,7 @@ public sealed partial class ExecutionSystem
             Durability = crafted.Durability,
             ResourceAmount = crafted.ResourceAmount,
             WaterKind = crafted.WaterKind,
+            LastAddedWaterKind = crafted.LastAddedWaterKind,
             Dirtiness = crafted.Dirtiness,
             Bloodiness = crafted.Bloodiness
         });

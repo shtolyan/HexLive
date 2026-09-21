@@ -328,6 +328,9 @@ public sealed class ObjectSnapshot
 
     public Agents.WaterKind WaterKind { get; set; } = Agents.WaterKind.None;
 
+    // §55.5 / #417: appearance only; never used to decide drink safety.
+    public Agents.WaterKind LastAddedWaterKind { get; set; } = Agents.WaterKind.None;
+
     public float Wetness { get; set; }
 
     public float Durability { get; set; } = 1f;
@@ -440,6 +443,9 @@ public sealed class InventorySlotSnapshot
     public float ResourceAmount { get; set; }
 
     public Agents.WaterKind WaterKind { get; set; } = Agents.WaterKind.None;
+
+    // §55.5 / #417: appearance only; never used to decide drink safety.
+    public Agents.WaterKind LastAddedWaterKind { get; set; } = Agents.WaterKind.None;
 
     // Empty for ordinary cells; a typed holster cell carries the one exact id
     // it accepts even while the cell itself is empty.
@@ -935,6 +941,9 @@ public sealed class NpcSnapshot
     // The authoritative provenance is per InventoryContainer slot/InventoryWater
     // row; this field mirrors the first drinkable physical bottle only.
     public Agents.WaterKind BottleWaterKind { get; set; } = Agents.WaterKind.None;
+
+    public float HeldBottleFill { get; set; }
+    public Agents.WaterKind HeldBottleAppearance { get; set; }
 
     public List<string> WornItems { get; } = new();
 

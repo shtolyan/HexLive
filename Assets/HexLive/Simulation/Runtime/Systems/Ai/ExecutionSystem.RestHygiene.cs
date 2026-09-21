@@ -1069,6 +1069,7 @@ public sealed partial class ExecutionSystem
                 Dirtiness = garment.Dirtiness,
                 Bloodiness = garment.Bloodiness,
                 WaterKind = garment.WaterKind,
+                LastAddedWaterKind = garment.LastAddedWaterKind,
                 // §133: она одевается обратно В СВОЮ одежду — владелец её же.
                 OwnerId = ClothingOwnership.ResolveOnTake(world, npc, garment)
             });
@@ -1495,6 +1496,7 @@ public sealed partial class ExecutionSystem
             Bloodiness = garment.Bloodiness,
             ResourceAmount = garment.ResourceAmount,
             WaterKind = garment.WaterKind,
+            LastAddedWaterKind = garment.LastAddedWaterKind,
             // §133: вещь в руках не теряет хозяйку — иначе постирать чужое
             // значило бы его присвоить.
             OwnerId = ClothingOwnership.OwnerIdOf(garment)

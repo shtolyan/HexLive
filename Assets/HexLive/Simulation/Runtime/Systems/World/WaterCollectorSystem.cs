@@ -64,6 +64,7 @@ public sealed class WaterCollectorSystem : ISimulationSystem
             if (vessel.ResourceAmount > 0f)
             {
                 vessel.WaterKind = WaterKind.Rain;
+                vessel.LastAddedWaterKind = WaterKind.Rain;
             }
             if (vessel.ResourceAmount >= 1f)
             {

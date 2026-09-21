@@ -1,0 +1,1402 @@
+[
+  {
+    "id": "tool.axe_stone",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.axe_stone.prefab",
+    "sha256": "c8386f9b53f77322431aafa61750e37cb2aac061e0b373a94d91335a01317791",
+    "capacity": 4,
+    "sourceHashes": {
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.axe_stone.prefab": "c8386f9b53f77322431aafa61750e37cb2aac061e0b373a94d91335a01317791",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.axe_stone.prefab.meta": "d8e9e38ba90f5c439cdec6aea2df535924ef8f6d2abdda051db07058b2a13442",
+      "Assets/_AiGen/StoneAxe_AI_albedo.png": "99d7a5ea04bec160d117caa27c632b381f7e710b5e7ea176dc81dee26941c051",
+      "Assets/_AiGen/StoneAxe_AI_albedo.png.meta": "c0dc5172c7a22aae57acebdd3bc4f2f3aaa0380f70d3268ec970accdfa1ea6dc",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs": "96ed27e15286cda1fdada6923e804887b6447a905b38360e0f5561f79cd0344c",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs.meta": "e7ec88783b56ae3a5adbe60d3ab71fd3b6fe269932af20218d4cc00eb3879868",
+      "Assets/_AiGen/StoneAxe_AI.mat": "609cef14df3fb217a1c865e5a8ad86ece473d29234cecd9fb84bf00025f0a1e7",
+      "Assets/_AiGen/StoneAxe_AI.mat.meta": "a72174975a872166035510c5662320f9754c6b28ea829b33c767ad2fa1ffb7d8",
+      "Assets/_AiGen/StoneAxe_AI_oriented.asset": "fc93c2eb241fbed58305ca288e2ab0f8747b5a0bc4740badb3dc92b9d1bb05a7",
+      "Assets/_AiGen/StoneAxe_AI_oriented.asset.meta": "c91bf8bf569400c08cb3f3a4b6df27c37a04b395a3f0b470f5b338d1fefd9556",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.135478213,
+      0.168665528,
+      0.324000061
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.2859891,
+          0.0,
+          -0.16200003
+        ],
+        "max": [
+          -0.150510877,
+          0.168665528,
+          0.16200003
+        ]
+      },
+      {
+        "min": [
+          -0.1404891,
+          0.0,
+          -0.16200003
+        ],
+        "max": [
+          -0.00501089543,
+          0.168665528,
+          0.16200003
+        ]
+      },
+      {
+        "min": [
+          0.00501089543,
+          0.0,
+          -0.16200003
+        ],
+        "max": [
+          0.1404891,
+          0.168665528,
+          0.16200003
+        ]
+      },
+      {
+        "min": [
+          0.150510877,
+          0.0,
+          -0.16200003
+        ],
+        "max": [
+          0.2859891,
+          0.168665528,
+          0.16200003
+        ]
+      }
+    ],
+    "orthoSize": 0.32023263,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "tool.bow",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.bow.fbx",
+    "sha256": "e22739fc3544e690c50ddd63a4df2166a2b1bf0c3126579760f8eeb6729e8ff7",
+    "capacity": 4,
+    "sourceHashes": {
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.bow.fbx": "e22739fc3544e690c50ddd63a4df2166a2b1bf0c3126579760f8eeb6729e8ff7",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.bow.fbx.meta": "85d929014a67da1d4386b425fe6903646ee98d62321adaf3959a87ac61c24f51"
+    },
+    "singleSize": [
+      0.3232993,
+      0.0188149586,
+      0.324000031
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.6616297,
+          9.313226E-10,
+          -0.162000015
+        ],
+        "max": [
+          -0.3383304,
+          0.0188149586,
+          0.162000015
+        ]
+      },
+      {
+        "min": [
+          -0.328309655,
+          9.313226E-10,
+          -0.162000015
+        ],
+        "max": [
+          -0.00501036644,
+          0.0188149586,
+          0.162000015
+        ]
+      },
+      {
+        "min": [
+          0.00501035154,
+          9.313226E-10,
+          -0.162000015
+        ],
+        "max": [
+          0.328309655,
+          0.0188149586,
+          0.162000015
+        ]
+      },
+      {
+        "min": [
+          0.338330328,
+          9.313226E-10,
+          -0.162000015
+        ],
+        "max": [
+          0.6616296,
+          0.0188149586,
+          0.162000015
+        ]
+      }
+    ],
+    "orthoSize": 0.573412359,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "tool.hammer",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.hammer.prefab",
+    "sha256": "44d87b0a73a7f46cdd585d10c558f61ab608eaafabaaf782fb1b97d10f62e481",
+    "capacity": 4,
+    "sourceHashes": {
+      "Assets/_AiGen/StoneHammer_AI_albedo.png": "4f8984927f30fa42faa335f974450ad689876e2492dda7f51ca8064b062c21ff",
+      "Assets/_AiGen/StoneHammer_AI_albedo.png.meta": "25afa404157508a99c75ef9f71d31acd9580953de0936177032288690cf615bb",
+      "Assets/_AiGen/StoneHammer_AI.mat": "5f5b95ffad56749dc21c7b2ff088a9dacc785fc533aed72596fc96b0210effb2",
+      "Assets/_AiGen/StoneHammer_AI.mat.meta": "21e951f82549a578ec7b8471d27c6b3102e381cf1ad13da3f6c5ec36b674defd",
+      "Assets/_AiGen/StoneHammer_AI_oriented.asset": "8ec1c25ef7f1dd1ac10f83571061ebe7e0768c45d09d17afc5093d3a989465a5",
+      "Assets/_AiGen/StoneHammer_AI_oriented.asset.meta": "99df0d10173feea918ca168475af29ce163834b3a0126c29fd020496b58b67dc",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs": "96ed27e15286cda1fdada6923e804887b6447a905b38360e0f5561f79cd0344c",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs.meta": "e7ec88783b56ae3a5adbe60d3ab71fd3b6fe269932af20218d4cc00eb3879868",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.hammer.prefab": "44d87b0a73a7f46cdd585d10c558f61ab608eaafabaaf782fb1b97d10f62e481",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.hammer.prefab.meta": "48b66ea0696dd9dd9ffb912247fe94bed9e319c55863ad38243a193d0d90112b",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.07099982,
+      0.07262452,
+      0.324000061
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.157029912,
+          0.0,
+          -0.16200003
+        ],
+        "max": [
+          -0.08603008,
+          0.07262452,
+          0.16200003
+        ]
+      },
+      {
+        "min": [
+          -0.0760099143,
+          0.0,
+          -0.16200003
+        ],
+        "max": [
+          -0.005010087,
+          0.07262452,
+          0.16200003
+        ]
+      },
+      {
+        "min": [
+          0.005010087,
+          0.0,
+          -0.16200003
+        ],
+        "max": [
+          0.0760099143,
+          0.07262452,
+          0.16200003
+        ]
+      },
+      {
+        "min": [
+          0.0860300958,
+          0.0,
+          -0.16200003
+        ],
+        "max": [
+          0.157029912,
+          0.07262452,
+          0.16200003
+        ]
+      }
+    ],
+    "orthoSize": 0.257805943,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "tool.knife",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.knife.prefab",
+    "sha256": "4645ea38bfc2dfc28508bed2640be6b72802703d357c12fb3ff5cd52794ceea1",
+    "capacity": 4,
+    "sourceHashes": {
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.knife.prefab": "4645ea38bfc2dfc28508bed2640be6b72802703d357c12fb3ff5cd52794ceea1",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.knife.prefab.meta": "f56c87ce35c7917f7b6db97c9243fec6e936f2efd4ca428689d7a90e0644b655",
+      "Assets/_AiGen/StoneKnife_AI_oriented.asset": "946aa447394d2cebb9fa79d53a0eb69d3a1284f5b5352afa557e5fd9fc486dec",
+      "Assets/_AiGen/StoneKnife_AI_oriented.asset.meta": "33f2588823440835ce835d13c6fde40790755c22d120d499d1536b4889087f7d",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs": "96ed27e15286cda1fdada6923e804887b6447a905b38360e0f5561f79cd0344c",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs.meta": "e7ec88783b56ae3a5adbe60d3ab71fd3b6fe269932af20218d4cc00eb3879868",
+      "Assets/_AiGen/StoneKnife_AI.mat": "3bd44dcbe73c9549826c69de0b6bc6bd7849913960553e9a87de137aa5a634ed",
+      "Assets/_AiGen/StoneKnife_AI.mat.meta": "d90cf82f569c42ceafa53cf950aeb09deb095f4951089ceb1fc92d0b0bcb49f7",
+      "Assets/_AiGen/StoneKnife_AI_albedo.png": "2b466b4f108a160e1be394993e0b1b3f887ebe49f1016b2e220f1d3f6f21ab21",
+      "Assets/_AiGen/StoneKnife_AI_albedo.png.meta": "638218484b1780567d65a9f8d214386f63f5944381b1e0b4ddf2a45c3af95f45",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.0551547743,
+      0.02115381,
+      0.324000031
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.125341386,
+          0.0,
+          -0.162000015
+        ],
+        "max": [
+          -0.070186615,
+          0.02115381,
+          0.162000015
+        ]
+      },
+      {
+        "min": [
+          -0.06016539,
+          0.0,
+          -0.162000015
+        ],
+        "max": [
+          -0.005010614,
+          0.02115381,
+          0.162000015
+        ]
+      },
+      {
+        "min": [
+          0.005010614,
+          0.0,
+          -0.162000015
+        ],
+        "max": [
+          0.06016539,
+          0.02115381,
+          0.162000015
+        ]
+      },
+      {
+        "min": [
+          0.070186615,
+          0.0,
+          -0.162000015
+        ],
+        "max": [
+          0.125341386,
+          0.02115381,
+          0.162000015
+        ]
+      }
+    ],
+    "orthoSize": 0.22434999,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "tool.lighter",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_lighter_native.fbx",
+    "sha256": "aa58aca309b635b23572d62d412f5b5654752bb5fff4d07dd354d874cac0c2dd",
+    "capacity": 4,
+    "sourceHashes": {
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_lighter_native.fbx": "aa58aca309b635b23572d62d412f5b5654752bb5fff4d07dd354d874cac0c2dd",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_lighter_native.fbx.meta": "c2973ec9cc10918dfc739915baa51920d714f0b94e8b90fd43a7d5f68df904f0",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.0375114568,
+      0.03441987,
+      0.108000018
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.09005373,
+          0.0,
+          -0.05400001
+        ],
+        "max": [
+          -0.0525422767,
+          0.03441987,
+          0.05400001
+        ]
+      },
+      {
+        "min": [
+          -0.04252173,
+          0.0,
+          -0.05400001
+        ],
+        "max": [
+          -0.00501027144,
+          0.03441987,
+          0.05400001
+        ]
+      },
+      {
+        "min": [
+          0.00501027144,
+          0.0,
+          -0.05400001
+        ],
+        "max": [
+          0.04252173,
+          0.03441987,
+          0.05400001
+        ]
+      },
+      {
+        "min": [
+          0.0525422767,
+          0.0,
+          -0.05400001
+        ],
+        "max": [
+          0.09005373,
+          0.03441987,
+          0.05400001
+        ]
+      }
+    ],
+    "orthoSize": 0.15,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "tool.machete",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_native.prefab",
+    "sha256": "5c743d8bd99c691c46256f5933bd7e4f936e68cf511c100eb5bdf5da04a9f3b4",
+    "capacity": 4,
+    "sourceHashes": {
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_native_mesh.fbx": "0cc33d7d6156c4c0f787509c7c8282e15e28e4feddb3549c144eb5482e45616e",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_native_mesh.fbx.meta": "4e80b5b2f9c8fa9d3ef7f40c86423b31d3432fbd81fc2e432ee71acbff814cd9",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs": "96ed27e15286cda1fdada6923e804887b6447a905b38360e0f5561f79cd0344c",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs.meta": "e7ec88783b56ae3a5adbe60d3ab71fd3b6fe269932af20218d4cc00eb3879868",
+      "Assets/HexLiveContent/RuntimeSource/Objects/MacheteTextured.mat": "43316532731039333fad7d1f1eecae5a63cd07368d9a66e78bf680233e634dbb",
+      "Assets/HexLiveContent/RuntimeSource/Objects/MacheteTextured.mat.meta": "07d9867bdfb2336c0186762ccb8caec673e454d30724fa3c537754aeb4e74e1a",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_albedo.png": "028150b3502e0d59c1c9bea8cbfe1c2d000db4bd18bccc26579ed9b3344ee3a5",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_albedo.png.meta": "78974af2d6b1a16257b1648f9a4fbbd27692760a39274e9ceaaf6d448992d75d",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_native.prefab": "5c743d8bd99c691c46256f5933bd7e4f936e68cf511c100eb5bdf5da04a9f3b4",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_native.prefab.meta": "aea973e6e74171429cbeb6b5b5184ab4c96241c4bf01af7b4b42dec43dbb6e65",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.0452181026,
+      0.02157104,
+      0.324
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.105469048,
+          0.0,
+          -0.162
+        ],
+        "max": [
+          -0.06025095,
+          0.02157104,
+          0.162
+        ]
+      },
+      {
+        "min": [
+          -0.05022905,
+          0.0,
+          -0.162
+        ],
+        "max": [
+          -0.00501094759,
+          0.02157104,
+          0.162
+        ]
+      },
+      {
+        "min": [
+          0.00501094759,
+          0.0,
+          -0.162
+        ],
+        "max": [
+          0.05022905,
+          0.02157104,
+          0.162
+        ]
+      },
+      {
+        "min": [
+          0.06025095,
+          0.0,
+          -0.162
+        ],
+        "max": [
+          0.105469048,
+          0.02157104,
+          0.162
+        ]
+      }
+    ],
+    "orthoSize": 0.224621162,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "tool.pickaxe_stone",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.pickaxe_stone.prefab",
+    "sha256": "939bce8039845da25afda32b2e76fbc49b2ced97472ee353393f091c2fee086c",
+    "capacity": 4,
+    "sourceHashes": {
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.pickaxe_stone.prefab": "939bce8039845da25afda32b2e76fbc49b2ced97472ee353393f091c2fee086c",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.pickaxe_stone.prefab.meta": "eebae4bf23439962e7c3119c101e0b52b3b9b1f75af8bb838cd3f57efbebf514",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs": "96ed27e15286cda1fdada6923e804887b6447a905b38360e0f5561f79cd0344c",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs.meta": "e7ec88783b56ae3a5adbe60d3ab71fd3b6fe269932af20218d4cc00eb3879868",
+      "Assets/_AiGen/StonePick_AI.mat": "f17fc5695d2bb179fef88b0da67e68fcd4d335b1fac93429cd438568c3a0269e",
+      "Assets/_AiGen/StonePick_AI.mat.meta": "9c4d1f2e8e820b538f4849230070f83a1c59c9b81f2385ef9c2adfa4f5437086",
+      "Assets/_AiGen/StonePick_AI_oriented.asset": "bdc453cc131f3c9e9c832590fbe9db376536f6a47259641cff76181d1229e148",
+      "Assets/_AiGen/StonePick_AI_oriented.asset.meta": "edb2093facc1568f1656bbc1d3b7276bff574301541c9801372d110c1f061abc",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008",
+      "Assets/_AiGen/StonePick_AI_albedo.png": "8ad921cbaf6d9c03202163f85ad3a371d91100ad6aa11d5df4b00aa7d2ca902b",
+      "Assets/_AiGen/StonePick_AI_albedo.png.meta": "8b35ae0c85e4ce52fe3b83161d52481b925f79478cbadaf9135cb5bc36aef753"
+    },
+    "singleSize": [
+      0.0262372158,
+      0.1428657,
+      0.3240001
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.0675056055,
+          0.0,
+          -0.162000045
+        ],
+        "max": [
+          -0.0412683934,
+          0.1428657,
+          0.162000045
+        ]
+      },
+      {
+        "min": [
+          -0.0312476065,
+          0.0,
+          -0.162000045
+        ],
+        "max": [
+          -0.00501039065,
+          0.1428657,
+          0.162000045
+        ]
+      },
+      {
+        "min": [
+          0.00501039065,
+          0.0,
+          -0.162000045
+        ],
+        "max": [
+          0.0312476065,
+          0.1428657,
+          0.162000045
+        ]
+      },
+      {
+        "min": [
+          0.0412683934,
+          0.0,
+          -0.162000045
+        ],
+        "max": [
+          0.0675056055,
+          0.1428657,
+          0.162000045
+        ]
+      }
+    ],
+    "orthoSize": 0.303462744,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "tool.saw",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_saw_native.fbx",
+    "sha256": "3ffa03b1ce552a1a46d545f73b83e232501f3d3ac40febf218fa9c1c3b64431c",
+    "capacity": 4,
+    "sourceHashes": {
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_saw_native.fbx": "3ffa03b1ce552a1a46d545f73b83e232501f3d3ac40febf218fa9c1c3b64431c",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool_saw_native.fbx.meta": "408158cde76f086d1d8073f0189ba208e2214a861ac1453779e9daf712c510e8",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.0189315043,
+      0.106481686,
+      0.32400012
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.05289375,
+          0.0,
+          -0.16200006
+        ],
+        "max": [
+          -0.03396225,
+          0.106481686,
+          0.16200006
+        ]
+      },
+      {
+        "min": [
+          -0.0239417516,
+          0.0,
+          -0.16200006
+        ],
+        "max": [
+          -0.005010248,
+          0.106481686,
+          0.16200006
+        ]
+      },
+      {
+        "min": [
+          0.005010248,
+          0.0,
+          -0.16200006
+        ],
+        "max": [
+          0.0239417516,
+          0.106481686,
+          0.16200006
+        ]
+      },
+      {
+        "min": [
+          0.03396225,
+          0.0,
+          -0.16200006
+        ],
+        "max": [
+          0.05289375,
+          0.106481686,
+          0.16200006
+        ]
+      }
+    ],
+    "orthoSize": 0.279813141,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "tool.spear",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.spear.prefab",
+    "sha256": "442cda1f0e75fc9186ab813c42824b98462778c239180d287f684f9d78f3a322",
+    "capacity": 4,
+    "sourceHashes": {
+      "Assets/_AiGen/StoneSpear_AI_oriented.asset": "264b975fccc292b7e1f96de1268c720bb9abc4858343279bcaa8ba5936604b2b",
+      "Assets/_AiGen/StoneSpear_AI_oriented.asset.meta": "3ba604c91d1937d907d2b99023280e2b10286265b067b5ca62943bfb6f6aba96",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.spear.prefab": "442cda1f0e75fc9186ab813c42824b98462778c239180d287f684f9d78f3a322",
+      "Assets/HexLiveContent/RuntimeSource/Objects/tool.spear.prefab.meta": "81f91437968acac8131cc9a04427ae419ff4143ea5bcee6dba671d442997c41e",
+      "Assets/_AiGen/StoneSpear_AI_albedo.png": "4c1a59d1e95f8a8e25d5dd288a8941c3ff1818cdf2f9e6c4a2321ab78a334e86",
+      "Assets/_AiGen/StoneSpear_AI_albedo.png.meta": "1d8ba33213ea1fb9e60510b38e6f5d6592580ae0de4f3177b862b997419a7456",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs": "96ed27e15286cda1fdada6923e804887b6447a905b38360e0f5561f79cd0344c",
+      "Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs.meta": "e7ec88783b56ae3a5adbe60d3ab71fd3b6fe269932af20218d4cc00eb3879868",
+      "Assets/_AiGen/StoneSpear_AI.mat": "d58046e6dfd5e314f678175fed9647a39bc55cc585f29e50f7189e2233a5d09d",
+      "Assets/_AiGen/StoneSpear_AI.mat.meta": "21f76f4cfbab48bfe8865747a92488fdabfff47296d4fe840251f6d93a5f62dc",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.06819868,
+      0.04759174,
+      1.35000014
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.151429325,
+          0.0,
+          -0.6750001
+        ],
+        "max": [
+          -0.08323065,
+          0.04759174,
+          0.6750001
+        ]
+      },
+      {
+        "min": [
+          -0.07320934,
+          0.0,
+          -0.6750001
+        ],
+        "max": [
+          -0.005010657,
+          0.04759174,
+          0.6750001
+        ]
+      },
+      {
+        "min": [
+          0.005010657,
+          0.0,
+          -0.6750001
+        ],
+        "max": [
+          0.07320934,
+          0.04759174,
+          0.6750001
+        ]
+      },
+      {
+        "min": [
+          0.08323065,
+          0.0,
+          -0.6750001
+        ],
+        "max": [
+          0.151429325,
+          0.04759174,
+          0.6750001
+        ]
+      }
+    ],
+    "orthoSize": 0.9084346,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "resource.cloth",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.cloth.fbx",
+    "sha256": "50f89454f2712d19aff1468e9b7d48e8e761ced9918a05af60c2ae8a09bf1de7",
+    "capacity": 20,
+    "sourceHashes": {
+      "Assets/HexLiveContent/RuntimeSource/Objects/resource.cloth.fbx": "50f89454f2712d19aff1468e9b7d48e8e761ced9918a05af60c2ae8a09bf1de7",
+      "Assets/HexLiveContent/RuntimeSource/Objects/resource.cloth.fbx.meta": "3e40cf9cfc4feb3cb287e7851896e97c1650a428b12e394527459663ab94e8ff",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.323999971,
+      0.131372154,
+      0.234530509
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.32900995,
+          0.0,
+          -0.239541262
+        ],
+        "max": [
+          -0.005010009,
+          0.131372154,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.0,
+          -0.239541262
+        ],
+        "max": [
+          0.32901,
+          0.131372154,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          -0.32900995,
+          0.0,
+          0.00501074642
+        ],
+        "max": [
+          -0.005010009,
+          0.131372154,
+          0.239541262
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.0,
+          0.00501074642
+        ],
+        "max": [
+          0.32901,
+          0.131372154,
+          0.239541262
+        ]
+      },
+      {
+        "min": [
+          -0.32900995,
+          0.133383,
+          -0.239541262
+        ],
+        "max": [
+          -0.005010009,
+          0.26475516,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.133383,
+          -0.239541262
+        ],
+        "max": [
+          0.32901,
+          0.26475516,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          -0.32900995,
+          0.133383,
+          0.00501074642
+        ],
+        "max": [
+          -0.005010009,
+          0.26475516,
+          0.239541262
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.133383,
+          0.00501074642
+        ],
+        "max": [
+          0.32901,
+          0.26475516,
+          0.239541262
+        ]
+      },
+      {
+        "min": [
+          -0.32900995,
+          0.266766,
+          -0.239541262
+        ],
+        "max": [
+          -0.005010009,
+          0.398138165,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.266766,
+          -0.239541262
+        ],
+        "max": [
+          0.32901,
+          0.398138165,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          -0.32900995,
+          0.266766,
+          0.00501074642
+        ],
+        "max": [
+          -0.005010009,
+          0.398138165,
+          0.239541262
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.266766,
+          0.00501074642
+        ],
+        "max": [
+          0.32901,
+          0.398138165,
+          0.239541262
+        ]
+      },
+      {
+        "min": [
+          -0.32900995,
+          0.400149047,
+          -0.239541262
+        ],
+        "max": [
+          -0.005010009,
+          0.531521142,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.400149047,
+          -0.239541262
+        ],
+        "max": [
+          0.32901,
+          0.531521142,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          -0.32900995,
+          0.400149047,
+          0.00501074642
+        ],
+        "max": [
+          -0.005010009,
+          0.531521142,
+          0.239541262
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.400149047,
+          0.00501074642
+        ],
+        "max": [
+          0.32901,
+          0.531521142,
+          0.239541262
+        ]
+      },
+      {
+        "min": [
+          -0.32900995,
+          0.533532,
+          -0.239541262
+        ],
+        "max": [
+          -0.005010009,
+          0.6649041,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.533532,
+          -0.239541262
+        ],
+        "max": [
+          0.32901,
+          0.6649041,
+          -0.005010754
+        ]
+      },
+      {
+        "min": [
+          -0.32900995,
+          0.533532,
+          0.00501074642
+        ],
+        "max": [
+          -0.005010009,
+          0.6649041,
+          0.239541262
+        ]
+      },
+      {
+        "min": [
+          0.00501002371,
+          0.533532,
+          0.00501074642
+        ],
+        "max": [
+          0.32901,
+          0.6649041,
+          0.239541262
+        ]
+      }
+    ],
+    "orthoSize": 0.7435913,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "item.pill",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/item.pill.fbx",
+    "sha256": "0ed0624e4bd3a79cf4cfdcadae4f86453cff182a93d7637d745ea72f86125c05",
+    "capacity": 10,
+    "sourceHashes": {
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008",
+      "Assets/HexLiveContent/RuntimeSource/Objects/item.pill.fbx": "0ed0624e4bd3a79cf4cfdcadae4f86453cff182a93d7637d745ea72f86125c05",
+      "Assets/HexLiveContent/RuntimeSource/Objects/item.pill.fbx.meta": "2a109322a85517971e6c43f86007e46a439d22e1398fbd465a9f8fefc0e4f6af"
+    },
+    "singleSize": [
+      0.179999992,
+      0.0435483977,
+      0.110322565
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.375030041,
+          0.0,
+          -0.17550528
+        ],
+        "max": [
+          -0.195029974,
+          0.0435483977,
+          -0.0651827157
+        ]
+      },
+      {
+        "min": [
+          -0.18501,
+          0.0,
+          -0.17550528
+        ],
+        "max": [
+          -0.005010009,
+          0.0435483977,
+          -0.0651827157
+        ]
+      },
+      {
+        "min": [
+          0.005010009,
+          0.0,
+          -0.17550528
+        ],
+        "max": [
+          0.18501,
+          0.0435483977,
+          -0.0651827157
+        ]
+      },
+      {
+        "min": [
+          0.19503,
+          0.0,
+          -0.17550528
+        ],
+        "max": [
+          0.37503,
+          0.0435483977,
+          -0.0651827157
+        ]
+      },
+      {
+        "min": [
+          -0.375030041,
+          0.0,
+          -0.0551612824
+        ],
+        "max": [
+          -0.195029974,
+          0.0435483977,
+          0.0551612824
+        ]
+      },
+      {
+        "min": [
+          -0.18501,
+          0.0,
+          -0.0551612824
+        ],
+        "max": [
+          -0.005010009,
+          0.0435483977,
+          0.0551612824
+        ]
+      },
+      {
+        "min": [
+          0.005010009,
+          0.0,
+          -0.0551612824
+        ],
+        "max": [
+          0.18501,
+          0.0435483977,
+          0.0551612824
+        ]
+      },
+      {
+        "min": [
+          0.19503,
+          0.0,
+          -0.0551612824
+        ],
+        "max": [
+          0.37503,
+          0.0435483977,
+          0.0551612824
+        ]
+      },
+      {
+        "min": [
+          -0.375030041,
+          0.0,
+          0.0651827157
+        ],
+        "max": [
+          -0.195029974,
+          0.0435483977,
+          0.17550528
+        ]
+      },
+      {
+        "min": [
+          -0.18501,
+          0.0,
+          0.0651827157
+        ],
+        "max": [
+          -0.005010009,
+          0.0435483977,
+          0.17550528
+        ]
+      }
+    ],
+    "orthoSize": 0.325026035,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "item.bandage",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/item_bandage_native.fbx",
+    "sha256": "abfdd2b2e423b6b0a1f34979fdeeaa64d24090b37b21d91803b181a217231d63",
+    "capacity": 10,
+    "sourceHashes": {
+      "Assets/HexLiveContent/RuntimeSource/Objects/item_bandage_native.fbx": "abfdd2b2e423b6b0a1f34979fdeeaa64d24090b37b21d91803b181a217231d63",
+      "Assets/HexLiveContent/RuntimeSource/Objects/item_bandage_native.fbx.meta": "eebe2907f0d66d636fa3a158a3c9dfcd4be6bb191475af83a67fa914b91bbe66",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.179999992,
+      0.140965372,
+      0.0985912755
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.37503,
+          0.0,
+          -0.157907635
+        ],
+        "max": [
+          -0.19503,
+          0.140965372,
+          -0.0593163632
+        ]
+      },
+      {
+        "min": [
+          -0.18501,
+          0.0,
+          -0.157907635
+        ],
+        "max": [
+          -0.005010009,
+          0.140965372,
+          -0.0593163632
+        ]
+      },
+      {
+        "min": [
+          0.005010009,
+          0.0,
+          -0.157907635
+        ],
+        "max": [
+          0.18501,
+          0.140965372,
+          -0.0593163632
+        ]
+      },
+      {
+        "min": [
+          0.19503,
+          0.0,
+          -0.157907635
+        ],
+        "max": [
+          0.37503,
+          0.140965372,
+          -0.0593163632
+        ]
+      },
+      {
+        "min": [
+          -0.37503,
+          0.0,
+          -0.0492956378
+        ],
+        "max": [
+          -0.19503,
+          0.140965372,
+          0.0492956378
+        ]
+      },
+      {
+        "min": [
+          -0.18501,
+          0.0,
+          -0.0492956378
+        ],
+        "max": [
+          -0.005010009,
+          0.140965372,
+          0.0492956378
+        ]
+      },
+      {
+        "min": [
+          0.005010009,
+          0.0,
+          -0.0492956378
+        ],
+        "max": [
+          0.18501,
+          0.140965372,
+          0.0492956378
+        ]
+      },
+      {
+        "min": [
+          0.19503,
+          0.0,
+          -0.0492956378
+        ],
+        "max": [
+          0.37503,
+          0.140965372,
+          0.0492956378
+        ]
+      },
+      {
+        "min": [
+          -0.37503,
+          0.0,
+          0.0593163632
+        ],
+        "max": [
+          -0.19503,
+          0.140965372,
+          0.157907635
+        ]
+      },
+      {
+        "min": [
+          -0.18501,
+          0.0,
+          0.0593163632
+        ],
+        "max": [
+          -0.005010009,
+          0.140965372,
+          0.157907635
+        ]
+      }
+    ],
+    "orthoSize": 0.325025976,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "med.splint",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/med.splint.fbx",
+    "sha256": "3c7c5e800f33066893d6ebbc59ba3c587dd2f1817f66a92ccf2961298f9c1eb1",
+    "capacity": 10,
+    "sourceHashes": {
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008",
+      "Assets/HexLiveContent/RuntimeSource/Objects/med.splint.fbx": "3c7c5e800f33066893d6ebbc59ba3c587dd2f1817f66a92ccf2961298f9c1eb1",
+      "Assets/HexLiveContent/RuntimeSource/Objects/med.splint.fbx.meta": "3daeb8062b342663705721d49ad6707434638687d8d2c486adad51ba13f1e295"
+    },
+    "singleSize": [
+      0.0461775847,
+      0.180000022,
+      0.0265226774
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.107385792,
+          0.0,
+          -0.0498053357
+        ],
+        "max": [
+          -0.06120821,
+          0.180000022,
+          -0.02328266
+        ]
+      },
+      {
+        "min": [
+          -0.05118779,
+          0.0,
+          -0.0498053357
+        ],
+        "max": [
+          -0.005010208,
+          0.180000022,
+          -0.02328266
+        ]
+      },
+      {
+        "min": [
+          0.005010208,
+          0.0,
+          -0.0498053357
+        ],
+        "max": [
+          0.05118779,
+          0.180000022,
+          -0.02328266
+        ]
+      },
+      {
+        "min": [
+          0.06120821,
+          0.0,
+          -0.0498053357
+        ],
+        "max": [
+          0.107385792,
+          0.180000022,
+          -0.02328266
+        ]
+      },
+      {
+        "min": [
+          -0.107385792,
+          0.0,
+          -0.0132613387
+        ],
+        "max": [
+          -0.06120821,
+          0.180000022,
+          0.0132613387
+        ]
+      },
+      {
+        "min": [
+          -0.05118779,
+          0.0,
+          -0.0132613387
+        ],
+        "max": [
+          -0.005010208,
+          0.180000022,
+          0.0132613387
+        ]
+      },
+      {
+        "min": [
+          0.005010208,
+          0.0,
+          -0.0132613387
+        ],
+        "max": [
+          0.05118779,
+          0.180000022,
+          0.0132613387
+        ]
+      },
+      {
+        "min": [
+          0.06120821,
+          0.0,
+          -0.0132613387
+        ],
+        "max": [
+          0.107385792,
+          0.180000022,
+          0.0132613387
+        ]
+      },
+      {
+        "min": [
+          -0.107385792,
+          0.0,
+          0.02328266
+        ],
+        "max": [
+          -0.06120821,
+          0.180000022,
+          0.0498053357
+        ]
+      },
+      {
+        "min": [
+          -0.05118779,
+          0.0,
+          0.02328266
+        ],
+        "max": [
+          -0.005010208,
+          0.180000022,
+          0.0498053357
+        ]
+      }
+    ],
+    "orthoSize": 0.181746945,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  },
+  {
+    "id": "item.plaster",
+    "source": "Assets/HexLiveContent/RuntimeSource/Objects/item.plaster.fbx",
+    "sha256": "f273b40c044a61c09992c5004d26f7cf4c464bb50e5c29a445fe3ca250580847",
+    "capacity": 1,
+    "sourceHashes": {
+      "Assets/HexLiveContent/RuntimeSource/Objects/item.plaster.fbx": "f273b40c044a61c09992c5004d26f7cf4c464bb50e5c29a445fe3ca250580847",
+      "Assets/HexLiveContent/RuntimeSource/Objects/item.plaster.fbx.meta": "c1b0133d0ff63ca622c99d75eac9ee8f47df4b12637ea5031e89fc6b216c6dd3",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader": "e081d792dffe8c5d94ddb681a61b7ab6474880e605ba97116f202ad6f5b3befd",
+      "Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader.meta": "f0db005307ffe5480c40a402ca5bfb0b3726259031a86e255e49626228ceb008"
+    },
+    "singleSize": [
+      0.179999992,
+      0.01786765,
+      0.0582352877
+    ],
+    "slots": [
+      {
+        "min": [
+          -0.0899999961,
+          0.0,
+          -0.0291176438
+        ],
+        "max": [
+          0.0899999961,
+          0.01786765,
+          0.0291176438
+        ]
+      }
+    ],
+    "orthoSize": 0.15,
+    "allSlotsContained": true,
+    "sourceDirtyUnchanged": true
+  }
+]

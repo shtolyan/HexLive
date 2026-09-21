@@ -33,6 +33,7 @@ public static class BottleInventoryMath
         bottle.ResourceAmount = clamped;
         bottle.WaterKind = clamped > 0 && kind != WaterKind.None ? kind : WaterKind.None;
         if (bottle.WaterKind == WaterKind.None) bottle.ResourceAmount = 0f;
+        bottle.LastAddedWaterKind = bottle.WaterKind;
     }
 
     public static ItemInstance FirstBottle(NPCState npc)
@@ -103,7 +104,9 @@ public static class BottleInventoryMath
         kind = bottle?.WaterKind ?? WaterKind.None;
         var charges = Charges(bottle);
         if (charges <= 0) return false;
+        var appearance = bottle.LastAddedWaterKind;
         SetContents(bottle, kind, charges - 1);
+        if (charges > 1) bottle.LastAddedWaterKind = appearance;
         return true;
     }
 

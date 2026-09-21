@@ -374,6 +374,7 @@ public sealed partial class ExecutionSystem
         hung.Bloodiness = garment.Bloodiness;
         hung.ResourceAmount = garment.ResourceAmount;
         hung.WaterKind = garment.WaterKind;
+        hung.LastAddedWaterKind = garment.LastAddedWaterKind;
         hung.Owner = garment.OwnerId != 0 ? new EntityId(garment.OwnerId) : npc.Id;
         if (_garmentSpillScratch.Count > 0)
         {

@@ -1,0 +1,67 @@
+// #417: execute with the Unity MCP lease, idle Editor. No asset/scene writes.
+if (UnityEngine.Application.productName != "HexLive") return "Wrong project";
+if (UnityEditor.EditorApplication.isCompiling || UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode)
+    return "Wait for idle EditMode";
+var path = (string)typeof(AtomicContentBatchBuild).GetMethod("FindObjectMain", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).Invoke(null, new object[] { "tool.bottle" });
+var source = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(path);
+if (source == null) return "No canonical bottle";
+var output = System.IO.Path.GetFullPath("Build/bug417-validation");
+System.IO.Directory.CreateDirectory(output);
+var measured = new Newtonsoft.Json.Linq.JArray();
+foreach (var filter in source.GetComponentsInChildren<UnityEngine.MeshFilter>())
+{
+    var bounds = filter.sharedMesh.bounds;
+    measured.Add(new Newtonsoft.Json.Linq.JObject {
+        ["mesh"] = filter.sharedMesh.name,
+        ["vertices"] = filter.sharedMesh.vertexCount,
+        ["center"] = bounds.center.ToString("F5"),
+        ["size"] = bounds.size.ToString("F5"),
+        ["rotation"] = filter.transform.localEulerAngles.ToString("F3") });
+}
+System.IO.File.WriteAllText(System.IO.Path.Combine(output, "source-bounds.json"), measured.ToString());
+var preview = new UnityEditor.PreviewRenderUtility();
+UnityEngine.Texture2D image = null;
+try
+{
+    var root = new UnityEngine.GameObject("Bottle #417 preview");
+    preview.AddSingleGO(root);
+    var worldRenderer = root.AddComponent<HexLive.UnityPresentation.Rendering.HexWorldRenderer>();
+    worldRenderer.enabled = false;
+    var fit = typeof(HexLive.UnityPresentation.Rendering.HexWorldRenderer).GetMethod("FitObjectPrefab", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+    var levels = new[] { 0f, .01f, .25f, .41f, .42f, .5f, 1f };
+    var have = false;
+    var all = new UnityEngine.Bounds();
+    for (var row = 0; row < 2; row++) for (var col = 0; col < levels.Length; col++)
+    {
+        var holder = new UnityEngine.GameObject("Bottle " + row + " " + levels[col]);
+        holder.transform.SetParent(root.transform, false);
+        var instance = UnityEngine.Object.Instantiate(source, holder.transform);
+        fit.Invoke(worldRenderer, new object[] { instance, "tool.bottle", col + 1, false, false });
+        holder.transform.localPosition = new UnityEngine.Vector3(col * .27f, 0, row * .48f);
+        HexLive.UnityPresentation.Environment.BottleLiquidVisual.Sync(holder, levels[col], row == 0 ? HexLive.Simulation.Agents.WaterKind.Rain : HexLive.Simulation.Agents.WaterKind.Coconut);
+        UnityEngine.Bounds bounds;
+        if (HexLive.UnityPresentation.ObjectFit.WorldBounds(holder, out bounds))
+        {
+            if (!have) { all = bounds; have = true; } else all.Encapsulate(bounds);
+        }
+    }
+    var camera = preview.camera;
+    camera.orthographic = true;
+    camera.aspect = 2f;
+    camera.orthographicSize = UnityEngine.Mathf.Max(all.size.x / 4f, (all.size.y + all.size.z) * .65f);
+    camera.transform.position = all.center + new UnityEngine.Vector3(0, 1.4f, -3f);
+    camera.transform.LookAt(all.center);
+    camera.nearClipPlane = .01f; camera.farClipPlane = 20;
+    camera.clearFlags = UnityEngine.CameraClearFlags.SolidColor;
+    camera.backgroundColor = new UnityEngine.Color(.14f, .16f, .19f);
+    preview.lights[0].intensity = 1.2f;
+    preview.lights[0].transform.rotation = UnityEngine.Quaternion.Euler(30, 140, 0);
+    preview.lights[1].intensity = .5f;
+    preview.lights[1].transform.rotation = UnityEngine.Quaternion.Euler(-15, -60, 0);
+    preview.BeginStaticPreview(new UnityEngine.Rect(0, 0, 1800, 900));
+    camera.Render();
+    image = preview.EndStaticPreview();
+    System.IO.File.WriteAllBytes(System.IO.Path.Combine(output, "levels.png"), UnityEngine.ImageConversion.EncodeToPNG(image));
+}
+finally { if (image != null) UnityEngine.Object.DestroyImmediate(image); preview.Cleanup(); }
+return "Bottle proof: " + output + "; " + measured.ToString();

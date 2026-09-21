@@ -102,6 +102,11 @@ namespace HexLive.UnityPresentation.UI
 
         private void Update()
         {
+            if (ClosedTestAccess.Enabled)
+            {
+                if (_quickVisible && !ClosedTestAccess.Can("bugs.create")) SetQuickVisible(false);
+                if (_managerVisible && !ClosedTestAccess.Can("bugs.read")) SetManagerVisible(false);
+            }
             if (!Visible || Time.unscaledTime < _nextExternalCheck)
             {
                 return;
@@ -123,6 +128,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void SetQuickVisible(bool visible)
         {
+            if (visible && ClosedTestAccess.Enabled && !ClosedTestAccess.Can("bugs.create")) return;
             _quickVisible = visible;
             if (visible)
             {
@@ -136,6 +142,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void SetManagerVisible(bool visible)
         {
+            if (visible && ClosedTestAccess.Enabled && !ClosedTestAccess.Can("bugs.read")) return;
             _managerVisible = visible;
             if (visible)
             {

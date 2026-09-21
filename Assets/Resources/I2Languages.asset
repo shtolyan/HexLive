@@ -17,6 +17,91 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: update.required.title
+      TermType: 0
+      Languages: ["Update required", "Внимание: протокол не совпадает"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: update.required.message
+      TermType: 0
+      Languages: ["The server uses an incompatible protocol. Please update the client to continue.", "Сервер использует несовместимую версию протокола. Вам нужно обновить клиент."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: update.action
+      TermType: 0
+      Languages: ["Update", "Обновить"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: update.start.failed
+      TermType: 0
+      Languages: ["Could not start the updater. Install the current client from the official distribution.", "Не удалось запустить обновление. Установите актуальный клиент из официального дистрибутива."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.title
+      TermType: 0
+      Languages: ["Closed test", "Закрытое тестирование"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.enter
+      TermType: 0
+      Languages: ["Enter the key you received", "Введите выданный вам ключ"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.activate
+      TermType: 0
+      Languages: ["Continue", "Продолжить"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.choose
+      TermType: 0
+      Languages: ["Choose a server", "Выберите сервер"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.nyc
+      TermType: 0
+      Languages: ["New York", "Нью-Йорк"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.singapore
+      TermType: 0
+      Languages: ["Singapore", "Сингапур"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.checking
+      TermType: 0
+      Languages: ["Checking…", "Проверка…"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.available
+      TermType: 0
+      Languages: ["Available", "Свободен"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.busy
+      TermType: 0
+      Languages: ["Under load", "Загружен"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.unavailable
+      TermType: 0
+      Languages: ["Unavailable. Please try again.", "Недоступен. Попробуйте ещё раз."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.invalid
+      TermType: 0
+      Languages: ["This key is invalid or has been revoked.", "Ключ неверен или отозван."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.storage
+      TermType: 0
+      Languages: ["Could not access secure key storage. Allow access and try again.", "Не удалось открыть защищённое хранилище ключа. Разрешите доступ и повторите."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: closedtest.change
+      TermType: 0
+      Languages: ["Change key", "Сменить ключ"]
+      Flags: 0101
+      Languages_Touch: []
     - Term: agent.pairing.title
       TermType: 0
       Languages: ["Agent Studio connection", "Подключение Agent Studio"]
@@ -27269,6 +27354,14 @@ MonoBehaviour:
       Languages:
       - 'Administrator access revoked. Request access again if needed.'
       - 'Права администратора отозваны. При необходимости отправь новый запрос.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'admin.voice.access.denied'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This key has no server administrator permission.'
+      - 'Для этого ключа не выдано право администратора сервера.'
       Flags: 0101
       Languages_Touch: []
     - Term: 'admin.voice.access.invalid'

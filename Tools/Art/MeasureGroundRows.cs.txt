@@ -1,0 +1,88 @@
+// #418. Execute through Unity MCP only while holding its lease, in idle EditMode.
+// Uses canonical object sources and production FitObjectPrefab + GroundPileLayout.
+// Preview-only: no scene, importer, prefab or material writes; no content publication.
+if(UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode || UnityEditor.EditorApplication.isCompiling || UnityEditor.EditorApplication.isUpdating)
+    return "FAIL: idle EditMode required";
+var output=System.IO.Path.GetFullPath("Build/bug418-validation");
+System.IO.Directory.CreateDirectory(output);
+var ids=new[]{"tool.axe_stone","tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.spear","resource.cloth","item.pill","item.bandage","med.splint","item.plaster"};
+var rows=new Newtonsoft.Json.Linq.JArray();
+var entryScene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+var entryDirty=entryScene.isDirty;
+var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;
+var find=typeof(AtomicContentBatchBuild).GetMethod("FindObjectMain",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
+var fit=typeof(HexLive.UnityPresentation.Rendering.HexWorldRenderer).GetMethod("FitObjectPrefab",flags);
+foreach(var id in ids)
+{
+    var preview=new UnityEditor.PreviewRenderUtility();
+    UnityEngine.GameObject root=null;
+    UnityEngine.Texture2D image=null;
+    try
+    {
+        root=new UnityEngine.GameObject("418 preview "+id);
+        preview.AddSingleGO(root);
+        var renderer=root.AddComponent<HexLive.UnityPresentation.Rendering.HexWorldRenderer>();
+        renderer.enabled=false;
+        var path=(string)find.Invoke(null,new object[]{id});
+        var source=UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(path);
+        if(source==null)throw new System.Exception("Missing canonical source "+id);
+        var originalDirty=UnityEditor.EditorUtility.IsDirty(source);
+        var instance=UnityEngine.Object.Instantiate(source,root.transform);
+        fit.Invoke(renderer,new object[]{instance,id,1,false,true});
+        UnityEngine.Bounds bounds;
+        if(!HexLive.UnityPresentation.ObjectFit.WorldBounds(instance,out bounds))throw new System.Exception("No render bounds "+id);
+        var singleSize=bounds.size;
+        HexLive.Simulation.Content.GroundPileProfile profile;
+        if(!HexLive.Simulation.Content.GroundPileCatalog.TryGet(id,false,out profile))throw new System.Exception("No profile "+id);
+        var capacity=HexLive.Simulation.Content.GroundPileCatalog.Capacity(id);
+        UnityEngine.Object.DestroyImmediate(instance);
+        var have=false;var all=new UnityEngine.Bounds();
+        var actual=new Newtonsoft.Json.Linq.JArray();
+        for(var i=0;i<capacity;i++)
+        {
+            var holder=new UnityEngine.GameObject("slot "+i);holder.transform.SetParent(root.transform,false);
+            instance=UnityEngine.Object.Instantiate(source,holder.transform);
+            fit.Invoke(renderer,new object[]{instance,id,i+1,false,true});
+            var adapter=holder.AddComponent<HexLive.UnityPresentation.Rendering.GroundPileLayout>();
+            adapter.Initialize(instance.transform,profile);adapter.Apply(i,capacity,i+1);
+            if(!HexLive.UnityPresentation.ObjectFit.WorldBounds(instance,out bounds))throw new System.Exception("No slot bounds");
+            var admitted=profile.Single.At(profile.Slot(i,capacity,i+1));
+            const float epsilon=.00005f;
+            if(bounds.min.x<admitted.MinX-epsilon || bounds.max.x>admitted.MaxX+epsilon ||
+               bounds.min.y<admitted.MinY-epsilon || bounds.max.y>admitted.MaxY+epsilon ||
+               bounds.min.z<admitted.MinZ-epsilon || bounds.max.z>admitted.MaxZ+epsilon)
+                throw new System.Exception("Actual model escapes ground admission bounds: "+id+" slot "+i);
+            if(!have){all=bounds;have=true;}else all.Encapsulate(bounds);
+            actual.Add(new Newtonsoft.Json.Linq.JObject{
+                ["min"]=new Newtonsoft.Json.Linq.JArray(bounds.min.x,bounds.min.y,bounds.min.z),
+                ["max"]=new Newtonsoft.Json.Linq.JArray(bounds.max.x,bounds.max.y,bounds.max.z)});
+        }
+        var camera=preview.camera;camera.orthographic=true;camera.aspect=1.5f;
+        camera.orthographicSize=UnityEngine.Mathf.Max(.15f,UnityEngine.Mathf.Max(all.size.x/1.5f,all.size.y+all.size.z)*.65f);
+        camera.transform.position=all.center+new UnityEngine.Vector3(0,3,-3);camera.transform.LookAt(all.center);
+        camera.nearClipPlane=.01f;camera.farClipPlane=50;camera.clearFlags=UnityEngine.CameraClearFlags.SolidColor;
+        camera.backgroundColor=new UnityEngine.Color(.12f,.14f,.16f);
+        preview.lights[0].intensity=1.15f;preview.lights[0].transform.rotation=UnityEngine.Quaternion.Euler(35,140,0);
+        preview.lights[1].intensity=.55f;preview.lights[1].transform.rotation=UnityEngine.Quaternion.Euler(-15,-60,0);
+        preview.BeginStaticPreview(new UnityEngine.Rect(0,0,900,600));camera.Render();image=preview.EndStaticPreview();
+        System.IO.File.WriteAllBytes(System.IO.Path.Combine(output,id+".png"),UnityEngine.ImageConversion.EncodeToPNG(image));
+        string hash;using(var sha=System.Security.Cryptography.SHA256.Create())hash=System.BitConverter.ToString(sha.ComputeHash(System.IO.File.ReadAllBytes(path))).Replace("-","").ToLowerInvariant();
+        var sourceHashes=new Newtonsoft.Json.Linq.JObject();
+        foreach(var dependency in UnityEditor.AssetDatabase.GetDependencies(path,true))
+        foreach(var file in new[]{dependency,dependency+".meta"})
+            if(System.IO.File.Exists(file))using(var sha=System.Security.Cryptography.SHA256.Create())
+                sourceHashes[file]=System.BitConverter.ToString(sha.ComputeHash(System.IO.File.ReadAllBytes(file))).Replace("-","").ToLowerInvariant();
+        rows.Add(new Newtonsoft.Json.Linq.JObject{["id"]=id,["source"]=path,["sha256"]=hash,["capacity"]=capacity,
+            ["sourceHashes"]=sourceHashes,
+            ["singleSize"]=new Newtonsoft.Json.Linq.JArray(singleSize.x,singleSize.y,singleSize.z),["slots"]=actual,
+            ["orthoSize"]=camera.orthographicSize,["allSlotsContained"]=true,
+            ["sourceDirtyUnchanged"]=originalDirty==UnityEditor.EditorUtility.IsDirty(source)});
+    }
+    finally{if(image!=null)UnityEngine.Object.DestroyImmediate(image);preview.Cleanup();}
+}
+System.IO.File.WriteAllText(System.IO.Path.Combine(output,"measured.json"),rows.ToString());
+if(UnityEngine.SceneManagement.SceneManager.GetActiveScene()!=entryScene || entryScene.isDirty!=entryDirty)
+    throw new System.Exception("Preview changed the editor scene state");
+foreach(Newtonsoft.Json.Linq.JObject row in rows)
+    if(!(bool)row["sourceDirtyUnchanged"])throw new System.Exception("Source dirty state changed");
+return "Measured and rendered "+rows.Count+" production ground profiles: "+output;

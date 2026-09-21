@@ -349,6 +349,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     dropped.Durability = item.Durability;
                     dropped.ResourceAmount = item.ResourceAmount;
                     dropped.WaterKind = item.WaterKind;
+                    dropped.LastAddedWaterKind = item.LastAddedWaterKind;
                     dropped.Dirtiness = item.Dirtiness;
                     dropped.Bloodiness = item.Bloodiness;
                     dropped.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : null;

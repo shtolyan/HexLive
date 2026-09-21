@@ -56,7 +56,7 @@ public static class AdminEndpoints
 
             return Html(AdminPages.Dashboard(
                 worlds.Host, account, IsInsecure(context), notice,
-                mailer.CanSendMail, overview, worlds.CatalogRegistryRevision));
+                mailer.CanSendMail, overview, worlds.CatalogRegistryRevision, context.Items[CentralAdminAccess.Marker] is true));
         });
 
 
@@ -413,7 +413,7 @@ public static class AdminEndpoints
         SignedIn(context, sessions) ? action() : Redirect("/admin");
 
     private static bool SignedIn(HttpContext context, AdminSessions sessions) =>
-        sessions.IsSignedIn(context.Request.Cookies[CookieName] ?? string.Empty);
+        context.Items[CentralAdminAccess.Marker] is true || sessions.IsSignedIn(context.Request.Cookies[CookieName] ?? string.Empty);
 
     private static void SetCookie(HttpContext context, string token) =>
         context.Response.Cookies.Append(CookieName, token, new CookieOptions

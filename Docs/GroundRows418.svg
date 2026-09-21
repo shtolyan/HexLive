@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="1760" viewBox="0 0 1020 1760"><rect width="100%" height="100%" fill="#131b21"/><g font-family="Arial,sans-serif" font-size="14"><text x="24" y="25" fill="white">#418 · Наземные укладки: реальные габариты штатных моделей, вид сверху</text><text x="24" y="49" fill="#b8ccd8">Сетка 0.375 wu · синий — junction · зелёный — AABB каждого экземпляра; слои ткани перекрываются в проекции</text><g transform="translate(0,65)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">tool.axe_stone · 4 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="149.670" y="70.000" width="45.159" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="198.170" y="70.000" width="45.159" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="70.000" width="45.159" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="295.170" y="70.000" width="45.159" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.572×0.324 wu; высота 0.169 wu</text>
+</g>
+<g transform="translate(510,65)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">tool.bow · 4 шт.</text>
+<path d="M 128.810 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 361.190 48 V 185" stroke="#3d484e"/>
+<rect x="40.000" y="73.806" width="100.171" height="100.388" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="143.276" y="73.806" width="100.171" height="100.388" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.552" y="73.806" width="100.171" height="100.388" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="349.829" y="73.806" width="100.171" height="100.388" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 1.323×0.324 wu; высота 0.019 wu</text>
+</g>
+<g transform="translate(0,305)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">tool.hammer · 4 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="192.657" y="70.000" width="23.667" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="219.663" y="70.000" width="23.667" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="70.000" width="23.667" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="273.677" y="70.000" width="23.667" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.314×0.324 wu; высота 0.073 wu</text>
+</g>
+<g transform="translate(510,305)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">tool.knife · 4 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="203.220" y="70.000" width="18.385" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="224.945" y="70.000" width="18.385" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="70.000" width="18.385" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="268.396" y="70.000" width="18.385" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.251×0.324 wu; высота 0.021 wu</text>
+</g>
+<g transform="translate(0,545)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">tool.lighter · 4 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="214.982" y="106.000" width="12.504" height="36.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="230.826" y="106.000" width="12.504" height="36.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="106.000" width="12.504" height="36.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="262.514" y="106.000" width="12.504" height="36.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.180×0.108 wu; высота 0.034 wu</text>
+</g>
+<g transform="translate(510,545)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">tool.machete · 4 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="209.844" y="70.000" width="15.073" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="228.257" y="70.000" width="15.073" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="70.000" width="15.073" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="265.084" y="70.000" width="15.073" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.211×0.324 wu; высота 0.022 wu</text>
+</g>
+<g transform="translate(0,785)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">tool.pickaxe_stone · 4 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="222.498" y="70.000" width="8.746" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="234.584" y="70.000" width="8.746" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="70.000" width="8.746" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="258.756" y="70.000" width="8.746" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.135×0.324 wu; высота 0.143 wu</text>
+</g>
+<g transform="translate(510,785)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">tool.saw · 4 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="227.369" y="70.000" width="6.311" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="237.019" y="70.000" width="6.311" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="70.000" width="6.311" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="256.321" y="70.000" width="6.311" height="108.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.106×0.324 wu; высота 0.106 wu</text>
+</g>
+<g transform="translate(0,1025)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">tool.spear · 4 шт.</text>
+<path d="M 36.667 48 V 185" stroke="#3d484e"/>
+<path d="M 71.389 48 V 185" stroke="#3d484e"/>
+<path d="M 106.111 48 V 185" stroke="#3d484e"/>
+<path d="M 140.833 48 V 185" stroke="#3d484e"/>
+<path d="M 175.556 48 V 185" stroke="#3d484e"/>
+<path d="M 210.278 48 V 185" stroke="#3d484e"/>
+<path d="M 30 89.278 H 460" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 279.722 48 V 185" stroke="#3d484e"/>
+<path d="M 30 158.722 H 460" stroke="#3d484e"/>
+<path d="M 314.444 48 V 185" stroke="#3d484e"/>
+<path d="M 349.167 48 V 185" stroke="#3d484e"/>
+<path d="M 383.889 48 V 185" stroke="#3d484e"/>
+<path d="M 418.611 48 V 185" stroke="#3d484e"/>
+<path d="M 453.333 48 V 185" stroke="#3d484e"/>
+<rect x="230.979" y="61.500" width="6.315" height="125.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="238.221" y="61.500" width="6.315" height="125.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="245.464" y="61.500" width="6.315" height="125.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="252.707" y="61.500" width="6.315" height="125.000" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.303×1.350 wu; высота 0.048 wu</text>
+</g>
+<g transform="translate(510,1025)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">resource.cloth · 20 шт.</text>
+<path d="M 49.313 48 V 185" stroke="#3d484e"/>
+<path d="M 147.157 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 342.843 48 V 185" stroke="#3d484e"/>
+<path d="M 440.687 48 V 185" stroke="#3d484e"/>
+<rect x="159.156" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="159.156" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="159.156" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="159.156" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="159.156" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="159.156" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="159.156" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="159.156" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="159.156" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="61.500" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="159.156" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.307" y="125.307" width="84.537" height="61.193" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.658×0.479 wu; высота 0.665 wu</text>
+</g>
+<g transform="translate(0,1265)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">item.pill · 10 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="119.990" y="65.498" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="183.330" y="65.498" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="65.498" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="310.010" y="65.498" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="119.990" y="105.613" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="183.330" y="105.613" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="105.613" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="310.010" y="105.613" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="119.990" y="145.728" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="183.330" y="145.728" width="60.000" height="36.774" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.750×0.351 wu; высота 0.044 wu</text>
+</g>
+<g transform="translate(510,1265)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">item.bandage · 10 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="119.990" y="71.364" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="183.330" y="71.364" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="71.364" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="310.010" y="71.364" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="119.990" y="107.568" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="183.330" y="107.568" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="107.568" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="310.010" y="107.568" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="119.990" y="143.772" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="183.330" y="143.772" width="60.000" height="32.864" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.750×0.316 wu; высота 0.141 wu</text>
+</g>
+<g transform="translate(0,1505)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">med.splint · 10 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="209.205" y="107.398" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="227.937" y="107.398" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="107.398" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="265.403" y="107.398" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="209.205" y="119.580" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="227.937" y="119.580" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="246.670" y="119.580" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="265.403" y="119.580" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="209.205" y="131.761" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<rect x="227.937" y="131.761" width="15.393" height="8.841" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.215×0.100 wu; высота 0.180 wu</text>
+</g>
+<g transform="translate(510,1505)"><rect x="8" y="4" width="494" height="230" rx="8" fill="#202b31"/>
+<text x="24" y="30" fill="white">item.plaster · 1 шт.</text>
+<path d="M 120.000 48 V 185" stroke="#3d484e"/>
+<path d="M 245.000 48 V 185" stroke="#3d484e"/>
+<path d="M 30 124.000 H 460" stroke="#3d484e"/>
+<path d="M 370.000 48 V 185" stroke="#3d484e"/>
+<rect x="215.000" y="114.294" width="60.000" height="19.412" fill="#91c873" fill-opacity=".16" stroke="#a8d58b" stroke-width="1"/>
+<circle cx="245" cy="124" r="3" fill="#65baff"/>
+<text x="24" y="207" fill="#d2e3ec">Габарит X×Z 0.180×0.058 wu; высота 0.018 wu</text>
+</g></g></svg>

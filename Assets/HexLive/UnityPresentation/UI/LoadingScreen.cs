@@ -406,6 +406,17 @@ namespace HexLive.UnityPresentation.UI
             card.Add(tagline);
 
             _menuBox.Add(card);
+            if (ClosedTestAccess.Enabled)
+            {
+                _menuBox.Clear();
+                _menuBox.Add(new ClosedTestMenu(this, (url, key) => {
+                    SessionConfig.UseServer(url, key);
+                    ServerBook.Remember(url);
+                    _connectChosen = true;
+                    _continueChosen = false;
+                    _menuChosen = true;
+                }));
+            }
             _root.Add(_menuBox);
             _root.Add(_worldLibraryBox);
             _root.Add(_newGameBox);
@@ -1630,6 +1641,15 @@ namespace HexLive.UnityPresentation.UI
                 var link = _runner.Link;
                 if (link.State == LinkState.Failed)
                 {
+                    if (_runner.RequiredProtocolVersion > 0)
+                    {
+                        var protocol = _runner.RequiredProtocolVersion;
+                        _runner.CancelRemoteConnection();
+                        _menuBox.Clear(); _menuBox.Add(new ProtocolUpdatePanel(protocol));
+                        _menuBox.style.display = DisplayStyle.Flex;
+                        _progressStrip.style.display = DisplayStyle.None;
+                        yield break;
+                    }
                     // Unrecoverable — a different build, or an address that will
                     // never resolve. Say why and go back to the menu rather than
                     // spinning on a bar that will never fill.
@@ -1638,6 +1658,12 @@ namespace HexLive.UnityPresentation.UI
                 }
 
                 waited += Time.unscaledDeltaTime;
+                if (ClosedTestAccess.Enabled && waited >= 25f)
+                {
+                    _runner.CancelRemoteConnection();
+                    ShowConnectFailure(Loc.Get("closedtest.unavailable"));
+                    yield break;
+                }
                 SetProgress(Mathf.Min(0.35f, 0.05f + waited * 0.05f),
                     link.State == LinkState.Reconnecting
                         ? Loc.Get("loading.reconnecting")

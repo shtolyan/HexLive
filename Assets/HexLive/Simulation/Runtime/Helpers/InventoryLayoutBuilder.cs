@@ -57,6 +57,9 @@ public sealed class InventorySlotLayout
 
     public WaterKind WaterKind { get; set; } = WaterKind.None;
 
+    // §55.5 / #417: appearance only; never used to decide drink safety.
+    public WaterKind LastAddedWaterKind { get; set; } = WaterKind.None;
+
     /// <summary>Non-empty only for a typed holster slot.</summary>
     public string AcceptedItemDefinitionId { get; set; } = string.Empty;
 }
@@ -113,6 +116,7 @@ public static class InventoryLayoutBuilder
         public int SourceIndex = -1;
         public float ResourceAmount;
         public WaterKind WaterKind;
+        public WaterKind LastAddedWaterKind;
     }
 
     public static InventoryLayout Build(WorldState world, NPCState npc)
@@ -294,6 +298,7 @@ public static class InventoryLayoutBuilder
                     StackCount = item is null ? 0 : 1,
                     ResourceAmount = item?.ResourceAmount ?? 0f,
                     WaterKind = item?.WaterKind ?? WaterKind.None,
+                    LastAddedWaterKind = item?.LastAddedWaterKind ?? WaterKind.None,
                     AcceptedItemDefinitionId = acceptedId
                 });
             }
@@ -431,7 +436,8 @@ public static class InventoryLayoutBuilder
                     Count = 1,
                     SourceIndex = i,
                     ResourceAmount = item.ResourceAmount,
-                    WaterKind = item.WaterKind
+                    WaterKind = item.WaterKind,
+                    LastAddedWaterKind = item.LastAddedWaterKind
                 });
                 continue;
             }
@@ -487,7 +493,8 @@ public static class InventoryLayoutBuilder
                     ItemDefinitionId = cell?.ItemId ?? string.Empty,
                     StackCount = cell?.Count ?? 0,
                     ResourceAmount = cell?.ResourceAmount ?? 0f,
-                    WaterKind = cell?.WaterKind ?? WaterKind.None
+                    WaterKind = cell?.WaterKind ?? WaterKind.None,
+                    LastAddedWaterKind = cell?.LastAddedWaterKind ?? WaterKind.None
                 });
             }
         }
@@ -510,7 +517,8 @@ public static class InventoryLayoutBuilder
                 ItemDefinitionId = cell.ItemId,
                 StackCount = cell.Count,
                 ResourceAmount = cell.ResourceAmount,
-                WaterKind = cell.WaterKind
+                WaterKind = cell.WaterKind,
+                LastAddedWaterKind = cell.LastAddedWaterKind
             });
             cellIndex++;
         }

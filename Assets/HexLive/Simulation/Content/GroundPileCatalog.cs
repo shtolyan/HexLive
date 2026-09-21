@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Spatial;
 
@@ -59,6 +58,23 @@ public sealed class GroundPileProfile
             var width=Single.MaxZ-Single.MinZ;var height=Single.MaxY-Single.MinY;
             var row=index/5;var column=index%5;
             return new(0,row*(height+gap),(column-2)*(width+gap)+(row%2)*.5f*(width+gap)-.25f*(width+gap));
+        }
+        if (_layout==4) // tools: one orderly row, every handle visible
+        {
+            var width=Single.MaxX-Single.MinX;var depth=Single.MaxZ-Single.MinZ;
+            var offset=(index-(capacity-1)*.5f)*(Math.Min(width,depth)+.01f);
+            return width<=depth?new(offset,0,0):new(0,0,offset);
+        }
+        if (_layout==5) // folded cloth: four low piles, five intact pieces each
+            return new((index%2-.5f)*(Single.MaxX-Single.MinX+.01f),
+                index/4*(Single.MaxY-Single.MinY+.002f),
+                (index/2%2-.5f)*(Single.MaxZ-Single.MinZ+.01f));
+        if (_layout==6) // small medicines: shallow tray, no floating cube layers
+        {
+            var trayColumns=(int)Math.Ceiling(Math.Sqrt(capacity));
+            var trayRows=(capacity+trayColumns-1)/trayColumns;
+            return new((index%trayColumns-(trayColumns-1)*.5f)*(Single.MaxX-Single.MinX+.01f),0,
+                (index/trayColumns-(trayRows-1)*.5f)*(Single.MaxZ-Single.MinZ+.01f));
         }
         var columns=_layout==3?4:(int)Math.Ceiling(Math.Pow(capacity,1d/3d));
         var rows=_layout==3?2:columns;
@@ -119,8 +135,27 @@ public static class GroundPileCatalog
         foreach(var id in new[] {"food.coconut_open","food.meat_raw","food.meat_cooked","item.bandage","item.pill","item.plaster","med.splint","resource.arrow","resource.board","resource.cloth","resource.fiber","resource.herb_leaf","resource.hide","resource.log","resource.mechanical_part","resource.rope","resource.stone","food.coconut","food.coconut_pierced","tool.axe_stone","tool.bottle","tool.bow","tool.hammer","tool.knife","tool.lighter","tool.machete","tool.pickaxe_stone","tool.saw","tool.spear"})
         {
             var target=TargetWorldSize(id);var extent=(float)Math.Sqrt(3d)*target;
-            Profiles[id]=new(id,new(-extent*.5f,0,-extent*.5f,extent*.5f,extent,extent*.5f),target,centerVisualXZ:true);
+            var layout=id=="resource.cloth"?5:id.StartsWith("tool.",StringComparison.Ordinal)?4:
+                id.StartsWith("item.",StringComparison.Ordinal)||id=="med.splint"?6:0;
+            Profiles[id]=new(id,new(-extent*.5f,0,-extent*.5f,extent*.5f,extent,extent*.5f),target,layout,centerVisualXZ:true);
         }
+        // #418: canonical FindObjectMain sources, fitted and seated by the real
+        // FitObjectPrefab path; MeasureGroundRows.cs.txt reproduces these bounds.
+        // 10 micrometre outward padding absorbs the measured float rounding.
+        Profiles["tool.axe_stone"]=new("tool.axe_stone",new(-0.067750f,0,-0.162011f,0.067750f,0.168676f,0.162011f),TargetWorldSize("tool.axe_stone"),4,centerVisualXZ:true);
+        Profiles["tool.bow"]=new("tool.bow",new(-0.161660f,0,-0.162011f,0.161660f,0.018825f,0.162011f),TargetWorldSize("tool.bow"),4,centerVisualXZ:true);
+        Profiles["tool.hammer"]=new("tool.hammer",new(-0.035510f,0,-0.162011f,0.035510f,0.072635f,0.162011f),TargetWorldSize("tool.hammer"),4,centerVisualXZ:true);
+        Profiles["tool.knife"]=new("tool.knife",new(-0.027588f,0,-0.162011f,0.027588f,0.021164f,0.162011f),TargetWorldSize("tool.knife"),4,centerVisualXZ:true);
+        Profiles["tool.lighter"]=new("tool.lighter",new(-0.018766f,0,-0.054011f,0.018766f,0.034430f,0.054011f),TargetWorldSize("tool.lighter"),4,centerVisualXZ:true);
+        Profiles["tool.machete"]=new("tool.machete",new(-0.022620f,0,-0.162011f,0.022620f,0.021582f,0.162011f),TargetWorldSize("tool.machete"),4,centerVisualXZ:true);
+        Profiles["tool.pickaxe_stone"]=new("tool.pickaxe_stone",new(-0.013129f,0,-0.162011f,0.013129f,0.142876f,0.162011f),TargetWorldSize("tool.pickaxe_stone"),4,centerVisualXZ:true);
+        Profiles["tool.saw"]=new("tool.saw",new(-0.009476f,0,-0.162011f,0.009476f,0.106492f,0.162011f),TargetWorldSize("tool.saw"),4,centerVisualXZ:true);
+        Profiles["tool.spear"]=new("tool.spear",new(-0.034110f,0,-0.675011f,0.034110f,0.047602f,0.675011f),TargetWorldSize("tool.spear"),4,centerVisualXZ:true);
+        Profiles["resource.cloth"]=new("resource.cloth",new(-0.162010f,0,-0.117276f,0.162010f,0.131383f,0.117276f),TargetWorldSize("resource.cloth"),5,centerVisualXZ:true);
+        Profiles["item.pill"]=new("item.pill",new(-0.090010f,0,-0.055172f,0.090010f,0.043559f,0.055172f),TargetWorldSize("item.pill"),6,centerVisualXZ:true);
+        Profiles["item.bandage"]=new("item.bandage",new(-0.090010f,0,-0.049306f,0.090010f,0.140976f,0.049306f),TargetWorldSize("item.bandage"),6,centerVisualXZ:true);
+        Profiles["med.splint"]=new("med.splint",new(-0.023099f,0,-0.013272f,0.023099f,0.180011f,0.013272f),TargetWorldSize("med.splint"),6,centerVisualXZ:true);
+        Profiles["item.plaster"]=new("item.plaster",new(-0.090010f,0,-0.029128f,0.090010f,0.017878f,0.029128f),TargetWorldSize("item.plaster"),6,centerVisualXZ:true);
         // Measured coconut half: source .248302788 diameter, .129195194 height,
         // fitted diameter .18. Preserve source importer basis, no yaw jitter.
         Profiles[ContentIds.CoconutOpen]=new(ContentIds.CoconutOpen,new(-.09f,0,-.09f,.09f,.09365636f,.09f),.18f,3,centerVisualXZ:true);
@@ -3210,7 +3245,25 @@ public static class GroundPileCatalog
         foreach(var profile in Garments.Values) MaximumRadiusXZ=Math.Max(MaximumRadiusXZ,profile.FullBounds.RadiusXZ);
     }
     public static bool IsGarment(string id) => GarmentPrototypes.ContainsKey(id);
-    public static int Capacity(string id) => InventoryState.IsStackable(id)?InventoryState.StackSizeFor(id):1;
+    // §54.20 / #418: ground presentation has its own budget. Never derive it
+    // from inventory slots: tools can share a ground point without becoming
+    // an inventory stack. Existing resource budgets preserve saved groups.
+    public static int Capacity(string id) => id switch
+    {
+        "resource.stick" => 20,
+        "resource.palm_leaf" => 60,
+        "resource.cloth" => 20,
+        "food.coconut_open" or "food.meat_raw" or "food.meat_cooked" => 8,
+        "item.bandage" or "item.pill" or "med.splint" => 10,
+        "resource.palm_crown" or "resource.palm_crown_small" or
+        "resource.arrow" or "resource.board" or "resource.fiber" or
+        "resource.herb_leaf" or "resource.hide" or "resource.log" or
+        "resource.mechanical_part" or "resource.rope" or "resource.stone" => 20,
+        "tool.axe_stone" or "tool.bow" or "tool.hammer" or "tool.knife" or
+        "tool.lighter" or "tool.machete" or "tool.pickaxe_stone" or
+        "tool.saw" or "tool.spear" => 4,
+        _ => 1 // clothes, individual containers and unknown definitions
+    };
     public static bool TryGet(string id,bool garment,out GroundPileProfile profile)
     {
         // These maps are built once by the type initializer, then only read.

@@ -94,6 +94,9 @@ public sealed class WorldObjectState
     // fill progress; ordinary ground bottles store whole drink charges.
     public Agents.WaterKind WaterKind { get; set; } = Agents.WaterKind.None;
 
+    // §55.5 / #417: appearance only; never used to decide drink safety.
+    public Agents.WaterKind LastAddedWaterKind { get; set; } = Agents.WaterKind.None;
+
     // Spec 35.5: ground items get rained on; wetness survives the
     // drop -> pickup -> dress round-trip.
     public float Wetness { get; set; }

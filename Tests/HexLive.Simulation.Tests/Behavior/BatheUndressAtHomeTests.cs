@@ -599,8 +599,8 @@ public sealed class BatheUndressAtHomeTests
             // 74 → 75 в §144/#409: квитанции команд сохраняются вместе с миром.
             // 75 → 76: сохраняемый порог ограниченного агентского отдыха.
             // 76 → 77: личная ограниченная память обследования для Explore.
-            // 77 → 78 в §167: принятое указание и ось Authority (DirectiveTests).
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(78));
+            // v78 adds directives; v79 adds per-vessel appearance.
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(79));
         });
     }
 

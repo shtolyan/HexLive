@@ -176,7 +176,8 @@ public static class WorldSaveSerializer
     // v77 (§27.18A r3): bounded personal object-survey history.
     // v78 (§167): accepted directive at the end of each NPC record and the
     // Authority axis (§28.2) in every relationship record.
-    public const int BlobVersion = 78;
+    // v79 (§55.5 / #417): per-vessel appearance, independent of safe water kind.
+    public const int BlobVersion = 79;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1339,6 +1340,7 @@ public static class WorldSaveSerializer
         // v68 (§52 / bug #355): provenance of a loose physical vessel.
         if (version >= 68) w.Write((int)obj.WaterKind);
         if (version >= 74) w.Write((byte)obj.ProduceOrigin);
+        if (version >= 79) w.Write((int)obj.LastAddedWaterKind);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1457,6 +1459,7 @@ public static class WorldSaveSerializer
         obj.ProduceOrigin = version >= 74 ? (ProduceOrigin)r.ReadByte() : ProduceOrigin.Unknown;
         if (obj.ProduceOrigin > ProduceOrigin.Gathered)
             throw new InvalidDataException("Invalid ground produce origin.");
+        obj.LastAddedWaterKind = version >= 79 ? (WaterKind)r.ReadInt32() : obj.WaterKind;
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including
@@ -3053,6 +3056,7 @@ public static class WorldSaveSerializer
             w.Write(item.Bloodiness);
             w.Write(item.OwnerId);
             if (version >= 68) w.Write((int)item.WaterKind);
+            if (version >= 79) w.Write((int)item.LastAddedWaterKind);
         }
     }
 
@@ -3071,6 +3075,7 @@ public static class WorldSaveSerializer
                 OwnerId = version >= 42 ? r.ReadInt32() : 0
             };
             item.WaterKind = version >= 68 ? (WaterKind)r.ReadInt32() : WaterKind.None;
+            item.LastAddedWaterKind = version >= 79 ? (WaterKind)r.ReadInt32() : item.WaterKind;
             if (item.WaterKind == WaterKind.None && item.DefinitionId == ContentIds.Bottle)
             {
                 // Before v68 ResourceAmount on a bottle was not water; fresh

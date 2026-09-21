@@ -1,0 +1,5 @@
+# Add this independent site to Singapore's existing Caddy config.
+# Keep the game, Flashback and release-download sites unchanged.
+keys.62-146-235-120.sslip.io {
+    reverse_proxy 127.0.0.1:5130
+}

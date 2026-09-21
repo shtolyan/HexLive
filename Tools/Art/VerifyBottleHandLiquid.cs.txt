@@ -1,0 +1,86 @@
+// #417: isolated hand-prop fixture. Same authored grip and NpcActorView fit/hook,
+// synthetic bone transform; this is NOT an end-to-end animated player session.
+if (UnityEngine.Application.productName != "HexLive") return "Wrong project";
+if (UnityEditor.EditorApplication.isCompiling || UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode)
+    return "Wait for idle EditMode";
+var path = (string)typeof(AtomicContentBatchBuild).GetMethod("FindObjectMain", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).Invoke(null, new object[] { "tool.bottle" });
+var source = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(path);
+var config = UnityEditor.AssetDatabase.LoadAssetAtPath<HexLive.UnityPresentation.Config.GearConfig>("Assets/HexLiveContent/RuntimeSource/Gear/bottle.asset");
+if (source == null || config == null) return "No canonical bottle/grip";
+var output = System.IO.Path.GetFullPath("Build/bug417-validation");
+System.IO.Directory.CreateDirectory(output);
+var proof = new Newtonsoft.Json.Linq.JArray();
+var preview = new UnityEditor.PreviewRenderUtility();
+UnityEngine.Texture2D image = null;
+try
+{
+    var root = new UnityEngine.GameObject("Bottle hand #417 preview");
+    preview.AddSingleGO(root);
+    var actorType = typeof(HexLive.UnityPresentation.Wearing.NpcActorView);
+    var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+    var fit = actorType.GetMethod("ApplyObjectFitScale", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+    var levels = new[] { 0f, .5f, 1f };
+    var have = false;
+    var all = new UnityEngine.Bounds();
+    for (var row = 0; row < 2; row++) for (var col = 0; col < levels.Length; col++)
+    {
+        var holder = new UnityEngine.GameObject((row == 0 ? "Right" : "Left") + " hand " + levels[col]);
+        holder.transform.SetParent(root.transform, false);
+        holder.transform.localPosition = new UnityEngine.Vector3(col * .5f, 0, row * .6f);
+        var actor = holder.AddComponent<HexLive.UnityPresentation.Wearing.NpcActorView>();
+        actor.enabled = false;
+        var instance = UnityEngine.Object.Instantiate(source, holder.transform);
+        var prefabRotation = instance.transform.localRotation;
+        var prefabScale = instance.transform.localScale;
+        var p = config.handLocalPosition;
+        var e = config.handLocalEuler;
+        if (row == 1) { p.x = -p.x; e.y = -e.y; e.z = -e.z; }
+        instance.transform.localPosition = p;
+        instance.transform.localRotation = UnityEngine.Quaternion.Euler(e) * prefabRotation;
+        fit.Invoke(null, new object[] { instance, "tool.bottle", prefabScale, config.handLocalScale });
+        var before = instance.transform.localScale;
+        actorType.GetField("_handProp", flags).SetValue(actor, instance);
+        actorType.GetField("_currentPropId", flags).SetValue(actor, "tool.bottle");
+        actor.SyncBottleLiquid(levels[col], row == 0 ? HexLive.Simulation.Agents.WaterKind.Rain : HexLive.Simulation.Agents.WaterKind.Coconut);
+        var liquid = instance.GetComponent<HexLive.UnityPresentation.Environment.BottleLiquidVisual>();
+        if (liquid == null || before != instance.transform.localScale) throw new System.Exception("Hand liquid changed fit or missing");
+        UnityEngine.Bounds bounds;
+        if (HexLive.UnityPresentation.ObjectFit.WorldBounds(instance, out bounds))
+        {
+            if (!have) { all = bounds; have = true; } else all.Encapsulate(bounds);
+        }
+        proof.Add(new Newtonsoft.Json.Linq.JObject { ["left"] = row == 1, ["fill"] = levels[col],
+            ["scale"] = before.ToString("F5"), ["gripEuler"] = e.ToString("F4"), ["fitUnchanged"] = true });
+    }
+    var camera = preview.camera;
+    camera.orthographic = true; camera.aspect = 2f;
+    camera.orthographicSize = UnityEngine.Mathf.Max(all.size.x / 4f, (all.size.y + all.size.z) * .65f);
+    camera.transform.position = all.center + new UnityEngine.Vector3(0, 3f, -.2f);
+    camera.transform.LookAt(all.center);
+    var font = UnityEngine.Resources.GetBuiltinResource<UnityEngine.Font>("LegacyRuntime.ttf");
+    for (var row = 0; row < 2; row++) for (var col = 0; col < levels.Length; col++)
+    {
+        var label = new UnityEngine.GameObject("Caption");
+        label.transform.SetParent(root.transform, false);
+        label.transform.localPosition = new UnityEngine.Vector3(col * .5f, .02f, row * .6f - .15f);
+        label.transform.rotation = camera.transform.rotation;
+        var text = label.AddComponent<UnityEngine.TextMesh>();
+        text.text = (row == 0 ? "Rain R " : "Coconut L ") + (levels[col] * 100).ToString("F0") + "%";
+        text.font = font; text.fontSize = 48; text.characterSize = .009f;
+        text.anchor = UnityEngine.TextAnchor.MiddleCenter;
+        label.GetComponent<UnityEngine.Renderer>().sharedMaterial = font.material;
+    }
+    camera.nearClipPlane = .01f; camera.farClipPlane = 20;
+    camera.clearFlags = UnityEngine.CameraClearFlags.SolidColor;
+    camera.backgroundColor = new UnityEngine.Color(.14f, .16f, .19f);
+    preview.lights[0].intensity = 1.2f;
+    preview.lights[0].transform.rotation = UnityEngine.Quaternion.Euler(30, 140, 0);
+    preview.lights[1].intensity = .5f;
+    preview.lights[1].transform.rotation = UnityEngine.Quaternion.Euler(-15, -60, 0);
+    preview.BeginStaticPreview(new UnityEngine.Rect(0, 0, 1600, 800));
+    camera.Render(); image = preview.EndStaticPreview();
+    System.IO.File.WriteAllBytes(System.IO.Path.Combine(output, "hand-levels.png"), UnityEngine.ImageConversion.EncodeToPNG(image));
+    System.IO.File.WriteAllText(System.IO.Path.Combine(output, "hand-proof.json"), proof.ToString());
+}
+finally { if (image != null) UnityEngine.Object.DestroyImmediate(image); preview.Cleanup(); }
+return "Hand-prop fixture: " + proof.Count + " samples, " + output;

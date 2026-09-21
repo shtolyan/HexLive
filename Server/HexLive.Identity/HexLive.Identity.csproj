@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../HexLive.Server/Admin/AdminAccount.cs" Link="AdminAccount.cs" />
+    <Compile Include="../HexLive.Server/Admin/AdminSessions.cs" Link="AdminSessions.cs" />
+  </ItemGroup>
+</Project>

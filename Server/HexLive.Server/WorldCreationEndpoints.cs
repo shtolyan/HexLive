@@ -45,6 +45,7 @@ public static class WorldCreationEndpoints
         var busy = new SemaphoreSlim(1, 1);
         bool SignedIn(HttpContext c)
         {
+            if (c.Items[CentralAdminAccess.Marker] is true) return true;
             var auth = c.Request.Headers.Authorization.ToString();
             return auth.StartsWith("Bearer ", StringComparison.Ordinal) && sessions.IsSignedIn(auth.Substring(7));
         }
@@ -158,7 +159,7 @@ public static class WorldCreationEndpoints
         app.MapPost(Root, async (HttpContext c, WorldCreateRequest request) =>
         {
             if (!SignedIn(c)) return Results.Unauthorized();
-            if (playerToken == null) return Results.Conflict(new { error = "controlDisabled" });
+            if (playerToken == null && c.Items[CentralAdminAccess.Marker] is not true) return Results.Conflict(new { error = "controlDisabled" });
             if (!Guid.TryParseExact(request.RequestId, "N", out _)) return Results.BadRequest();
             var requestText = System.Text.Json.JsonSerializer.Serialize(request.Config);
             if (operations.TryGetValue(request.RequestId, out var prior))

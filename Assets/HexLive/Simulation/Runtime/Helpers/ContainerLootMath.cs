@@ -502,6 +502,7 @@ internal static class ContainerLootMath
                     WaterCollectorMath.ChargesIn(source) > 0
             ? WaterKind.Rain
             : source.WaterKind,
+        LastAddedWaterKind = source.LastAddedWaterKind,
         OwnerId = source.Owner?.Value ?? 0
     };
 
@@ -647,6 +648,7 @@ internal static class ContainerLootMath
                         item.ResourceAmount / SimBalance.BottleCapacity, 0f, 1f)
                     : item.ResourceAmount;
                 stored.WaterKind = item.WaterKind;
+                stored.LastAddedWaterKind = item.LastAddedWaterKind;
                 stored.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : looter.Id;
             }
             else if (IsCampfire(world, obj))

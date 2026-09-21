@@ -163,7 +163,9 @@ public sealed class Handshake
     // 16: §160/#361 — bounded relation view includes assessment reason and actual deltas.
     // 17: §160/#357 — full player text and atomic expected attachment binding.
     // 18: §123.5/#397 — ManageInventory carries a required drop quantity.
-    public const int ProtocolVersion = 19; // §167: directive + Authority in NpcGroup.Mind
+    // 19: §167 — directive and Authority in NpcGroup.Mind.
+    // 20: §55.5/#417 — snapshot v42 carries bottle liquid appearance and fill.
+    public const int ProtocolVersion = 20;
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

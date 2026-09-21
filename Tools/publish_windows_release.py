@@ -11,7 +11,7 @@ import shlex
 import subprocess
 import sys
 
-DEFAULT_HOST = "hexlive-server"
+DEFAULT_HOST = "hexlive-singapore"
 REMOTE_ROOT = "/var/lib/hexlive/player-releases/windows"
 
 
@@ -40,6 +40,8 @@ def main() -> int:
     manifest_path = release / "build-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     info = manifest["playerRelease"]
+    if not isinstance(info.get("protocolVersion"), int) or info["protocolVersion"] <= 0:
+        raise RuntimeError("release must declare its compiled protocolVersion")
     archive = release / info["archiveFileName"]
     sha = info["archiveSha256"].lower()
     if archive.stat().st_size != int(info["archiveSize"]) or digest(archive) != sha:
@@ -51,7 +53,9 @@ def main() -> int:
     remote_archive = f"/tmp/hexlive-player-{sha}.part"
     remote_manifest = f"/tmp/hexlive-windows-latest-{sha}.json"
     run(["scp", str(archive), f"{args.host}:{remote_archive}"])
-    run(["scp", str(manifest_path), f"{args.host}:{remote_manifest}"])
+    public_manifest = release / "release-manifest.json"
+    public_manifest.write_text(json.dumps({"version": manifest["version"], "playerRelease": info}, indent=2) + "\n", encoding="utf-8")
+    run(["scp", str(public_manifest), f"{args.host}:{remote_manifest}"])
     q = shlex.quote
     command = (
         "set -eu; "

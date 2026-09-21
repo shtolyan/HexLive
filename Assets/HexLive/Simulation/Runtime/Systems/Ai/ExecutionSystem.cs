@@ -1658,6 +1658,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         vessel.Owner = npc.Id; // remembers whose bottle waits here
         vessel.ResourceAmount = 0f;
         vessel.WaterKind = WaterKind.None;
+        vessel.LastAddedWaterKind = WaterKind.None;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "VesselPlaced",
@@ -1689,12 +1690,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         var collectedKind = vessel.WaterKind == WaterKind.None
             ? WaterKind.Rain
             : vessel.WaterKind;
+        var collectedAppearance = vessel.LastAddedWaterKind;
         var bottle = BottleInventoryMath.FirstEmpty(npc);
         var pouredOver = bottle is not null;
         if (pouredOver)
         {
             vessel.ResourceAmount = 0f; // stays parked, keeps collecting
             vessel.WaterKind = WaterKind.None;
+            vessel.LastAddedWaterKind = WaterKind.None;
         }
         else
         {
@@ -1704,6 +1707,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
 
         BottleInventoryMath.SetContents(bottle, collectedKind, charges);
+        bottle.LastAddedWaterKind = collectedAppearance;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "VesselTaken",
@@ -1794,6 +1798,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         ? 0f
                         : worldObject.ResourceAmount,
                 WaterKind = worldObject.WaterKind,
+                LastAddedWaterKind = worldObject.LastAddedWaterKind,
                 Dirtiness = worldObject.Dirtiness,
                 Bloodiness = worldObject.Bloodiness,
                 // §133: поднятая вещь несёт владельца дальше — иначе одежда
@@ -1919,6 +1924,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             Durability = worldObject.Durability,
             ResourceAmount = worldObject.ResourceAmount,
             WaterKind = worldObject.WaterKind,
+            LastAddedWaterKind = worldObject.LastAddedWaterKind,
             Dirtiness = worldObject.Dirtiness,
             Bloodiness = worldObject.Bloodiness,
             // §133: ничейное и трофейное становится её собственным, вещь
@@ -2592,6 +2598,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         dropped.Durability = item.Durability;
         dropped.ResourceAmount = item.ResourceAmount;
         dropped.WaterKind = item.WaterKind;
+        dropped.LastAddedWaterKind = item.LastAddedWaterKind;
         dropped.Dirtiness = item.Dirtiness;
         dropped.Bloodiness = item.Bloodiness;
         // §31C.1 / bug #411: both carried drops and harvested branch yields

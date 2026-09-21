@@ -18,8 +18,149 @@ namespace HexLive.Simulation.Tests.Behavior
 /// <summary>§52 / bug #355: bottle contents belong to physical items.</summary>
 public sealed class BottleInstanceRegressionTests
 {
+    [TestCase(0.41f, 0.41f)]
+    [TestCase(0.42f, 0.42f)]
+    [TestCase(0.005f, 0.005f)]
+    [TestCase(1.5f, 1f)]
+    [TestCase(-0.1f, 0f)]
+    public void VisualFillPreservesCollectorPercentages(float fraction, float expected)
+    {
+        Assert.That(BottleVisualMath.Fill(fraction, true), Is.EqualTo(expected).Within(1e-6));
+        Assert.That(BottleVisualMath.Fill(fraction * SimBalance.BottleCapacity, false),
+            Is.EqualTo(expected).Within(1e-6));
+    }
+
+    [Test]
+    public void VisualAppearanceDoesNotLaunderRawWaterAndSurvivesDrinking()
+    {
+        var bottle = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(bottle, WaterKind.Raw, 2);
+        bottle.LastAddedWaterKind = WaterKind.Coconut;
+        Assert.That(BottleVisualMath.Appearance(bottle), Is.EqualTo(WaterKind.Coconut));
+        Assert.That(BottleInventoryMath.ConsumeOne(bottle, out var consumed), Is.True);
+        Assert.That(consumed, Is.EqualTo(WaterKind.Raw));
+        Assert.That(bottle.WaterKind, Is.EqualTo(WaterKind.Raw));
+        Assert.That(bottle.LastAddedWaterKind, Is.EqualTo(WaterKind.Coconut));
+        Assert.That(BottleInventoryMath.Add(bottle, WaterKind.Rain, 1), Is.Zero);
+        Assert.That(bottle.LastAddedWaterKind, Is.EqualTo(WaterKind.Coconut));
+        BottleInventoryMath.ConsumeOne(bottle, out _);
+        Assert.That(BottleVisualMath.Appearance(bottle), Is.EqualTo(WaterKind.None));
+        Assert.That(bottle.LastAddedWaterKind, Is.EqualTo(WaterKind.None));
+    }
+
+    [TestCase(77, WaterKind.Raw)]
+    [TestCase(78, WaterKind.Raw)]
+    [TestCase(79, WaterKind.Coconut)]
+    public void AppearanceSurvivesCurrentSaveAndMigratesLegacy(int version, WaterKind expected)
+    {
+        var world = TestWorld.CreateWorld(41701);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        var bottle = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(bottle, WaterKind.Raw, 3);
+        bottle.LastAddedWaterKind = WaterKind.Coconut;
+        npc.Inventory.Items.Add(bottle);
+        var anchor = world.Junctions.Items.Values.First(j => !j.Blocked);
+        var ground = WorldObjectMutations.SpawnObject(world, ContentIds.Bottle,
+            anchor.Fragment, anchor.Tiles[0], anchor.Id);
+        ground.ResourceAmount = 4.2f;
+        ground.WaterKind = WaterKind.Raw;
+        ground.LastAddedWaterKind = WaterKind.Coconut;
+        var loaded = RoundTrip(world, version);
+        Assert.That(Girl(loaded).Inventory.Items[0].LastAddedWaterKind, Is.EqualTo(expected));
+        Assert.That(Girl(loaded).Inventory.Items[0].WaterKind, Is.EqualTo(WaterKind.Raw));
+        Assert.That(loaded.Entities.Objects[ground.Id].LastAddedWaterKind, Is.EqualTo(expected));
+        Assert.That(loaded.Entities.Objects[ground.Id].ResourceAmount, Is.EqualTo(4.2f));
+    }
+
     private static NPCState Girl(WorldState world) =>
         world.Entities.Npcs.Values.OrderBy(n => n.Id.Value).First();
+
+    [Test]
+    public void HydrationAidShowsTheFirstDrinkablePhysicalBottle()
+    {
+        var world = TestWorld.CreateWorld(41704);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        npc.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+        var bottle = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(bottle, WaterKind.Rain, 7);
+        bottle.LastAddedWaterKind = WaterKind.Coconut;
+        npc.Inventory.Items.Add(bottle);
+        npc.Execution.CurrentInteraction = InteractionType.HydrateOther;
+        npc.Execution.TargetInventoryItem = null;
+        var snapshot = WorldSnapshotExporter.Export(world).Npcs.Single(n => n.Id.Equals(npc.Id));
+        Assert.That(snapshot.HeldItemId, Is.EqualTo(ContentIds.Bottle));
+        Assert.That(snapshot.HeldBottleFill, Is.EqualTo(0.7f).Within(1e-6));
+        Assert.That(snapshot.HeldBottleAppearance, Is.EqualTo(WaterKind.Coconut));
+    }
+
+    [Test]
+    public void PlayerDropKeepsBottleAppearanceAndExactAmount()
+    {
+        var world = TestWorld.CreateWorld(41703);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        PlaceAtOpenJunction(world, npc);
+        var bottle = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(bottle, WaterKind.Raw, 4);
+        bottle.LastAddedWaterKind = WaterKind.Coconut;
+        npc.Inventory.Items.Add(bottle);
+        var previousIds = world.Entities.Objects.Keys.ToHashSet();
+        Assert.That(PlayerInventoryCommandExecutor.TryApply(world, npc,
+            new InventoryItemRef(InventoryItemSource.Carried, 0, ContentIds.Bottle),
+            InventoryAction.Drop, out var reason), Is.True, reason);
+        var ground = world.Entities.Objects.Values.Single(o =>
+            !previousIds.Contains(o.Id) && o.DefinitionId == ContentIds.Bottle);
+        Assert.That(ground.ResourceAmount, Is.EqualTo(4f));
+        Assert.That(ground.WaterKind, Is.EqualTo(WaterKind.Raw));
+        Assert.That(ground.LastAddedWaterKind, Is.EqualTo(WaterKind.Coconut));
+    }
+
+    [Test]
+    public void NestedBottleSaveAndDeltaPreserveVisualOnlyChange()
+    {
+        var world = TestWorld.CreateWorld(41702);
+        var npc = Girl(world);
+        npc.Inventory.Items.Clear();
+        var bottle = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(bottle, WaterKind.Raw, 5);
+        bottle.LastAddedWaterKind = WaterKind.Coconut;
+        npc.Inventory.Items.Add(bottle);
+        npc.Execution.CurrentInteraction = InteractionType.Drink;
+        npc.Execution.TargetInventoryItem = bottle;
+        var anchor = world.Junctions.Items.Values.First(j => !j.Blocked);
+        var container = WorldObjectMutations.SpawnObject(world, ContentIds.Bottle,
+            anchor.Fragment, anchor.Tiles[0], anchor.Id);
+        var nested = new ItemInstance(ContentIds.Bottle);
+        BottleInventoryMath.SetContents(nested, WaterKind.Raw, 2);
+        nested.LastAddedWaterKind = WaterKind.Coconut;
+        container.Contents.Add(nested);
+        var loaded = RoundTrip(world, WorldSaveSerializer.BlobVersion);
+        Assert.That(loaded.Entities.Objects[container.Id].Contents[0].LastAddedWaterKind,
+            Is.EqualTo(WaterKind.Coconut));
+
+        var baseline = WorldSnapshotExporter.Export(world);
+        var mirror = RoundTrip(baseline);
+        var encoder = new SnapshotDeltaEncoder();
+        encoder.Encode(baseline, false);
+        var oldTick = mirror.Tick;
+        world.Tick++;
+        bottle.LastAddedWaterKind = WaterKind.Rain;
+        nested.LastAddedWaterKind = WaterKind.Rain;
+        using var stream = new MemoryStream(encoder.Encode(WorldSnapshotExporter.Export(world), false));
+        using var reader = new BinaryReader(stream);
+        SnapshotDeltaReader.Apply(reader, mirror, oldTick);
+        var received = mirror.Npcs.Single(n => n.Id.Equals(npc.Id));
+        Assert.That(received.HeldBottleFill, Is.EqualTo(0.5f));
+        Assert.That(received.HeldBottleAppearance, Is.EqualTo(WaterKind.Rain));
+        Assert.That(received.InventoryContainers.SelectMany(c => c.Slots)
+            .First(s => s.ItemDefinitionId == ContentIds.Bottle).LastAddedWaterKind,
+            Is.EqualTo(WaterKind.Rain));
+        Assert.That(mirror.Objects.Single(o => o.Id.Equals(container.Id)).Contents[0].LastAddedWaterKind,
+            Is.EqualTo(WaterKind.Rain));
+        Assert.That(bottle.WaterKind, Is.EqualTo(WaterKind.Raw));
+    }
 
     [Test]
     public void MultipleBottlesCanCarryDifferentLiquidsAndCharges()
@@ -136,6 +277,7 @@ public sealed class BottleInstanceRegressionTests
         var ground = WorldObjectMutations.SpawnObject(
             world, ContentIds.Bottle, npc.Fragment, tile, neighbor);
         ground.WaterKind = WaterKind.Rain;
+        ground.LastAddedWaterKind = WaterKind.Coconut;
         ground.ResourceAmount = 4f;
 
         var admission = ManualCommandExecutor.Apply(
@@ -156,6 +298,8 @@ public sealed class BottleInstanceRegressionTests
                 Is.EqualTo(2f));
             Assert.That(bottles.Single(b => b.WaterKind == WaterKind.Rain).ResourceAmount,
                 Is.EqualTo(4f));
+            Assert.That(bottles.Single(b => b.WaterKind == WaterKind.Rain).LastAddedWaterKind,
+                Is.EqualTo(WaterKind.Coconut));
         });
     }
 
@@ -241,6 +385,7 @@ public sealed class BottleInstanceRegressionTests
         var raw = new ItemInstance(ContentIds.Bottle);
         var rain = new ItemInstance(ContentIds.Bottle);
         BottleInventoryMath.SetContents(raw, WaterKind.Raw, 1);
+        raw.LastAddedWaterKind = WaterKind.Coconut;
         BottleInventoryMath.SetContents(rain, WaterKind.Rain, 6);
         npc.Inventory.Items.Add(raw);
         npc.Inventory.Items.Add(rain);
@@ -249,6 +394,7 @@ public sealed class BottleInstanceRegressionTests
         var ground = WorldObjectMutations.SpawnObject(
             world, ContentIds.Bottle, anchor.Fragment, anchor.Tiles[0], anchor.Id);
         ground.WaterKind = WaterKind.Boiled;
+        ground.LastAddedWaterKind = WaterKind.Rain;
         ground.ResourceAmount = 5f;
 
         var sent = WorldSnapshotExporter.Export(world);
@@ -264,10 +410,12 @@ public sealed class BottleInstanceRegressionTests
         {
             Assert.That(bottleSlots, Has.Length.EqualTo(2));
             Assert.That(bottleSlots[0].WaterKind, Is.EqualTo(WaterKind.Raw));
+            Assert.That(bottleSlots[0].LastAddedWaterKind, Is.EqualTo(WaterKind.Coconut));
             Assert.That(bottleSlots[0].ResourceAmount, Is.EqualTo(1f));
             Assert.That(bottleSlots[1].WaterKind, Is.EqualTo(WaterKind.Rain));
             Assert.That(bottleSlots[1].ResourceAmount, Is.EqualTo(6f));
             Assert.That(objectSnapshot.WaterKind, Is.EqualTo(WaterKind.Boiled));
+            Assert.That(objectSnapshot.LastAddedWaterKind, Is.EqualTo(WaterKind.Rain));
             Assert.That(objectSnapshot.ResourceAmount, Is.EqualTo(5f));
         });
     }

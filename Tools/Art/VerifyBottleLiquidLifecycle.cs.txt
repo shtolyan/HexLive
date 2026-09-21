@@ -1,0 +1,30 @@
+// #417: stable instance allocation, original asset/fit/cap, and separate component removal.
+if (UnityEngine.Application.productName != "HexLive") return "Wrong project";
+var path = (string)typeof(AtomicContentBatchBuild).GetMethod("FindObjectMain", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).Invoke(null, new object[] { "tool.bottle" });
+var source = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(path);
+var instance = UnityEngine.Object.Instantiate(source);
+try
+{
+    var filter = instance.GetComponent<UnityEngine.MeshFilter>();
+    var renderer = instance.GetComponent<UnityEngine.Renderer>();
+    var originalMesh = filter.sharedMesh;
+    var originalMaterial = renderer.sharedMaterial;
+    var originalAlpha = originalMaterial.GetColor("_BaseColor").a;
+    var originalScale = instance.transform.localScale;
+    HexLive.UnityPresentation.Environment.BottleLiquidVisual.Sync(instance, .5f, HexLive.Simulation.Agents.WaterKind.Coconut);
+    var cloneMesh = filter.sharedMesh;
+    var cloneMaterial = renderer.sharedMaterial;
+    var liquid = instance.GetComponent<HexLive.UnityPresentation.Environment.BottleLiquidVisual>();
+    if (renderer.sharedMaterials.Length != 2 || renderer.sharedMaterials[1] != originalMaterial) throw new System.Exception("Cap material changed");
+    for (var i = 0; i < 100; i++) HexLive.UnityPresentation.Environment.BottleLiquidVisual.Sync(instance, i / 100f, HexLive.Simulation.Agents.WaterKind.Rain);
+    if (filter.sharedMesh != cloneMesh || renderer.sharedMaterial != cloneMaterial || instance.transform.childCount != 1) throw new System.Exception("Repeated Sync reallocated");
+    if (cloneMesh.vertexCount != originalMesh.vertexCount || cloneMesh.bounds != originalMesh.bounds || instance.transform.localScale != originalScale) throw new System.Exception("Source shape or fit changed");
+    if (originalMaterial.GetColor("_BaseColor").a != originalAlpha) throw new System.Exception("Shared material mutated");
+    UnityEngine.Object.DestroyImmediate(liquid);
+    if (filter.sharedMesh != originalMesh || renderer.sharedMaterials.Length != 1 || renderer.sharedMaterial != originalMaterial || instance.transform.childCount != 0) throw new System.Exception("Component removal failed to restore source");
+    if (cloneMesh != null || cloneMaterial != null) throw new System.Exception("Instance resources leaked");
+    var report = "PASS: 100 Sync calls retain one mesh/material; cap and source unchanged; fit unchanged; component removal restores source and releases liquid/clones.";
+    System.IO.File.WriteAllText("Build/bug417-validation/lifecycle.txt", report);
+    return report;
+}
+finally { UnityEngine.Object.DestroyImmediate(instance); }

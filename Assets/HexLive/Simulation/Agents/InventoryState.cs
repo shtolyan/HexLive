@@ -35,6 +35,9 @@ public sealed class ItemInstance : System.IEquatable<ItemInstance>
     // bottles may carry Raw, Boiled, Rain or Coconut water.
     public WaterKind WaterKind { get; set; } = WaterKind.None;
 
+    // §55.5 / #417: appearance only; never used to decide drink safety.
+    public WaterKind LastAddedWaterKind { get; set; } = WaterKind.None;
+
     // §133: who this garment belongs to (NPC id; 0 = nobody's). Mirrors
     // WorldObjectState.Owner across the worn/ground boundary. Deliberately NOT
     // part of Equals/GetHashCode — recipe semantics stay by-definition.

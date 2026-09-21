@@ -90,6 +90,16 @@ public sealed class HandshakeCompressionGateTests
         Assert.Throws<InvalidDataException>(() => Decode(frame));
     }
 
+    [TestCase(18)]
+    [TestCase(19)]
+    public void PreBottleVisualProtocolIsRejectedBeforeReadingWorldState(int version)
+    {
+        using var stream = new MemoryStream(System.BitConverter.GetBytes(version));
+        using var reader = new BinaryReader(stream);
+        var error = Assert.Throws<InvalidDataException>(() => Handshake.Read(reader));
+        Assert.That(error!.Message, Does.Contain($"Handshake protocol version {version}, expected {Handshake.ProtocolVersion}"));
+    }
+
     private static byte[] Encode(Handshake handshake)
     {
         using var stream = new MemoryStream();

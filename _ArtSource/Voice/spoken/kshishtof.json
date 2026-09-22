@@ -1,0 +1,1297 @@
+{
+ "_comment": "§67.16 Кшиштоф: мужчина, чужак и налётчик (§72, §81, §108); хриплый, тяжёлый, цедит сквозь зубы, презирает и колонисток, и остров, жалуется только с руганью. Обращается «эй», «ты», «баба», без «подруг» и «девочек». Мужской род во всех глаголах. Вариант = [тег подачи eleven_v3, RU, EN].",
+ "groups": {
+  "sad_hunger": [
+   [
+    "[gruff]",
+    "Жрать. Со вчера ничего.",
+    "Food. Nothing since yesterday."
+   ],
+   [
+    "[gruff]",
+    "Брюхо к спине прилипло. Найду — сожру.",
+    "Belly's stuck to my spine. Whatever I find, I eat."
+   ],
+   [
+    "[weak]",
+    "Слабею. Надо пожрать. Хоть краба.",
+    "Getting weak. Need to eat. Even a crab."
+   ]
+  ],
+  "sad_thirst": [
+   [
+    "[gruff]",
+    "Пить. Глотка как наждак.",
+    "Water. Throat's like sandpaper."
+   ],
+   [
+    "[gruff]",
+    "Фляга пустая. Чёрт бы её.",
+    "Flask's empty. Damn it."
+   ],
+   [
+    "[hoarse]",
+    "Воды. Или сдохну прямо тут.",
+    "Water. Or I die right here."
+   ]
+  ],
+  "sad_cold": [
+   [
+    "[shivering]",
+    "Холод собачий. Огня.",
+    "Cold as a dog's grave. Fire."
+   ],
+   [
+    "[shivering]",
+    "Зуб на зуб. Где костёр.",
+    "Teeth rattling. Where's the fire."
+   ],
+   [
+    "[gruff]",
+    "Мёрзну, как пёс. Ненавижу.",
+    "Freezing like a dog. I hate it."
+   ]
+  ],
+  "sad_heat": [
+   [
+    "[tired]",
+    "Пекло. Башка трещит.",
+    "Scorching. Head's splitting."
+   ],
+   [
+    "[tired]",
+    "Солнце, чтоб тебя. В тень.",
+    "Sun, damn you. Shade."
+   ],
+   [
+    "[gruff]",
+    "Жарища. Даже злиться лень.",
+    "Heat. Too hot even to be angry."
+   ]
+  ],
+  "sleepy_tired": [
+   [
+    "[sleepy]",
+    "Вымотался. Лягу.",
+    "Worn out. Lying down."
+   ],
+   [
+    "[yawning]",
+    "Спать. Не трогать.",
+    "Sleep. Don't touch me."
+   ],
+   [
+    "[sleepy]",
+    "Ноги не держат. Всё.",
+    "Legs won't hold. That's it."
+   ]
+  ],
+  "sleepy_bed": [
+   [
+    "[sleepy]",
+    "Ложусь. Кто разбудит, пожалеет.",
+    "Lying down. Whoever wakes me will regret it."
+   ],
+   [
+    "[gruff]",
+    "Наконец. Отвалите все.",
+    "Finally. Everyone back off."
+   ],
+   [
+    "[whispering]",
+    "Тихо. Сплю.",
+    "Quiet. Sleeping."
+   ]
+  ],
+  "sleepy_wake": [
+   [
+    "[yawning]",
+    "Утро. Чтоб его.",
+    "Morning. Damn it."
+   ],
+   [
+    "[gruff]",
+    "Встал. Спина дрянь.",
+    "Up. Back's a wreck."
+   ],
+   [
+    "[gruff]",
+    "Проснулся. Не радуйтесь.",
+    "Awake. Don't get excited."
+   ]
+  ],
+  "hurt_wound": [
+   [
+    "[pain]",
+    "Чёрт! Кровь.",
+    "Damn! Blood."
+   ],
+   [
+    "[pain]",
+    "Порезался. Глубоко. Дрянь.",
+    "Cut myself. Deep. Crap."
+   ],
+   [
+    "[pain]",
+    "Ах ты. Больно, зараза.",
+    "Ah, you. That hurts, damn it."
+   ]
+  ],
+  "hurt_sick": [
+   [
+    "[weak]",
+    "Мутит. Что-то сожрал не то.",
+    "Queasy. Ate something bad."
+   ],
+   [
+    "[weak]",
+    "Жар. Заболел. Только этого не хватало.",
+    "Fever. I'm sick. Just what I needed."
+   ],
+   [
+    "[weak]",
+    "Плохо мне. Отвалите.",
+    "Feel like hell. Get lost."
+   ]
+  ],
+  "sad_dirty": [
+   [
+    "[gruff]",
+    "Грязный, как свинья. Плевать.",
+    "Filthy as a pig. Don't care."
+   ],
+   [
+    "[gruff]",
+    "Воняю. Пойду смою.",
+    "I stink. Going to wash it off."
+   ],
+   [
+    "[disgusted]",
+    "Песок везде. Зараза.",
+    "Sand everywhere. Damn it."
+   ]
+  ],
+  "sad_lonely": [
+   [
+    "[gruff]",
+    "Тихо. Один. Так и надо.",
+    "Quiet. Alone. As it should be."
+   ],
+   [
+    "[gruff]",
+    "Ни души. Ну и ладно.",
+    "Not a soul. Fine by me."
+   ],
+   [
+    "[sad]",
+    "Один. Хоть с кем бы поговорить. Нет, не надо.",
+    "Alone. Could use someone to talk to. No, forget it."
+   ]
+  ],
+  "happy_relief": [
+   [
+    "[relieved]",
+    "Ох. Отпустило.",
+    "Ah. It let go."
+   ],
+   [
+    "[gruff]",
+    "Вот. Теперь живой.",
+    "There. Alive now."
+   ],
+   [
+    "[relieved]",
+    "Тепло. Наконец-то.",
+    "Warm. About time."
+   ]
+  ],
+  "hurt_faint": [
+   [
+    "[fading]",
+    "Всё плывёт. Дрянь.",
+    "Everything's swimming. Crap."
+   ],
+   [
+    "[fading]",
+    "В глазах темно. Сяду.",
+    "Eyes going dark. Sitting."
+   ],
+   [
+    "[gasping]",
+    "Валюсь. Чёрт.",
+    "Going down. Damn."
+   ]
+  ],
+  "sad_wet": [
+   [
+    "[gruff]",
+    "Промок. Насквозь. Зараза.",
+    "Soaked. Through. Damn it."
+   ],
+   [
+    "[shivering]",
+    "Дождь. Ненавижу дождь.",
+    "Rain. I hate rain."
+   ],
+   [
+    "[gruff]",
+    "Мокрый и злой. Не подходи.",
+    "Wet and angry. Stay away."
+   ]
+  ],
+  "work_chop": [
+   [
+    "[effort]",
+    "На! Ещё! На!",
+    "There! Again! There!"
+   ],
+   [
+    "[effort]",
+    "Падай, зараза.",
+    "Fall, damn you."
+   ],
+   [
+    "[effort]",
+    "Хрясь. Пошло. Хрясь.",
+    "Crack. There it goes. Crack."
+   ]
+  ],
+  "work_haul": [
+   [
+    "[effort]",
+    "Тяжёлая дрянь. Дотащу.",
+    "Heavy crap. I'll drag it."
+   ],
+   [
+    "[effort]",
+    "Уф. Спина. Плевать.",
+    "Oof. Back. Whatever."
+   ],
+   [
+    "[effort]",
+    "С дороги. Тащу.",
+    "Out of the way. Hauling."
+   ]
+  ],
+  "work_build": [
+   [
+    "[effort]",
+    "Сюда. Так. Не развалится.",
+    "Here. There. Won't fall apart."
+   ],
+   [
+    "[effort]",
+    "Верёвку туже. Зараза, туже.",
+    "Rope tighter. Damn it, tighter."
+   ],
+   [
+    "[gruff]",
+    "Криво. Сойдёт.",
+    "Crooked. It'll do."
+   ]
+  ],
+  "happy_done": [
+   [
+    "[gruff]",
+    "Готово. Стоит.",
+    "Done. It stands."
+   ],
+   [
+    "[gruff]",
+    "Вот. Кто скажет, что плохо, тому в зубы.",
+    "There. Anyone says it's bad gets a fist."
+   ],
+   [
+    "[proud]",
+    "Сделал. Кто-нибудь против?",
+    "Made it. Anyone object?"
+   ]
+  ],
+  "happy_fire_lit": [
+   [
+    "[gruff]",
+    "Горит. Ну.",
+    "Burning. Well."
+   ],
+   [
+    "[relieved]",
+    "Есть огонь. Ночь переживу.",
+    "Got fire. I'll survive the night."
+   ],
+   [
+    "[gruff]",
+    "Занялось. Наконец, зараза.",
+    "Caught. About damn time."
+   ]
+  ],
+  "sad_fire_out": [
+   [
+    "[gruff]",
+    "Погас. Чёрт.",
+    "Out. Damn."
+   ],
+   [
+    "[worried]",
+    "Огня нет. Ночью сдохну.",
+    "No fire. I'll die tonight."
+   ],
+   [
+    "[gruff]",
+    "Угли. Заново, зараза.",
+    "Embers. Start over, damn it."
+   ]
+  ],
+  "happy_find_food": [
+   [
+    "[gruff]",
+    "Рыба. Есть жратва.",
+    "Fish. Got grub."
+   ],
+   [
+    "[gruff]",
+    "Кокос. Опять кокос. Сожру.",
+    "Coconut. Another coconut. I'll eat it."
+   ],
+   [
+    "[happy]",
+    "Мясо. Вот это я понимаю.",
+    "Meat. Now that's what I'm talking about."
+   ]
+  ],
+  "happy_water": [
+   [
+    "[gruff]",
+    "Набрал. Полная.",
+    "Filled it. Full."
+   ],
+   [
+    "[gruff]",
+    "Вода. Не солёная. Уже хорошо.",
+    "Water. Not salty. Good enough."
+   ],
+   [
+    "[gruff]",
+    "Дождь. Хоть польза.",
+    "Rain. At least it's useful."
+   ]
+  ],
+  "angry_fail": [
+   [
+    "[frustrated]",
+    "Чёрт! Мало.",
+    "Damn! Not enough."
+   ],
+   [
+    "[annoyed]",
+    "Не пройти. Зараза.",
+    "Can't get through. Damn it."
+   ],
+   [
+    "[frustrated]",
+    "Пусто. Зря ноги бил.",
+    "Nothing. Wore my legs out for nothing."
+   ]
+  ],
+  "happy_wash": [
+   [
+    "[gruff]",
+    "Смою грязь. Давно пора.",
+    "Washing the dirt off. About time."
+   ],
+   [
+    "[gruff]",
+    "Чистый. Ну, почти.",
+    "Clean. Well, almost."
+   ],
+   [
+    "[gruff]",
+    "Холодная, зараза. Терплю.",
+    "Cold, damn it. Bearing it."
+   ]
+  ],
+  "happy_eat": [
+   [
+    "[chewing]",
+    "Жру. Не мешать.",
+    "Eating. Don't bother me."
+   ],
+   [
+    "[gruff]",
+    "Сгодится. Брюхо полное.",
+    "It'll do. Belly's full."
+   ],
+   [
+    "[disgusted]",
+    "Горькое. Жру.",
+    "Bitter. Eating it."
+   ]
+  ],
+  "happy_drink": [
+   [
+    "[relieved]",
+    "Ох. Вода. Живой.",
+    "Ah. Water. Alive."
+   ],
+   [
+    "[relieved]",
+    "Ещё глоток. Так-то лучше.",
+    "Another sip. That's better."
+   ],
+   [
+    "[gruff]",
+    "Напился. Пошёл.",
+    "Had my fill. Moving."
+   ]
+  ],
+  "work_craft": [
+   [
+    "[focused]",
+    "Камень. Палка. Верёвка. Готово.",
+    "Stone. Stick. Rope. Done."
+   ],
+   [
+    "[focused]",
+    "Туже. Так. Держится.",
+    "Tighter. There. Holds."
+   ],
+   [
+    "[gruff]",
+    "Не мешать. Делаю.",
+    "Don't bother me. Working."
+   ]
+  ],
+  "happy_bed_done": [
+   [
+    "[gruff]",
+    "Лежанка. Своя. Наконец.",
+    "A bunk. My own. Finally."
+   ],
+   [
+    "[proud]",
+    "Крепкая. Выдержит.",
+    "Solid. It'll hold."
+   ],
+   [
+    "[gruff]",
+    "Вот. Теперь высплюсь.",
+    "There. Now I'll sleep."
+   ]
+  ],
+  "fear_wolf": [
+   [
+    "[tense]",
+    "Волк. Ну-ну.",
+    "Wolf. Well, well."
+   ],
+   [
+    "[whispering]",
+    "Не бежать. Стоять.",
+    "Don't run. Stand."
+   ],
+   [
+    "[angry]",
+    "Зверь. Ну иди сюда.",
+    "Beast. Come on, then."
+   ]
+  ],
+  "call_help": [
+   [
+    "[shouting]",
+    "Эй! Сюда! Зверь!",
+    "Hey! Over here! A beast!"
+   ],
+   [
+    "[shouting]",
+    "Помогите! Кто-нибудь!",
+    "Help! Anyone!"
+   ],
+   [
+    "[screaming]",
+    "Ааа! Сюда!",
+    "Aaah! Here!"
+   ]
+  ],
+  "angry_attack": [
+   [
+    "[angry]",
+    "Пошёл вон!",
+    "Get lost!"
+   ],
+   [
+    "[angry]",
+    "На! Получи!",
+    "Here! Take it!"
+   ],
+   [
+    "[angry]",
+    "Мало? Ещё дам.",
+    "Not enough? I've got more."
+   ]
+  ],
+  "hurt_bitten": [
+   [
+    "[screaming]",
+    "Ааа! Зараза! Рука!",
+    "Aaah! Damn it! My arm!"
+   ],
+   [
+    "[screaming]",
+    "Укусил! Отпусти, тварь!",
+    "It bit me! Let go, you beast!"
+   ],
+   [
+    "[screaming]",
+    "Нога! Чёрт! Отвали!",
+    "My leg! Damn! Get off!"
+   ]
+  ],
+  "happy_victory": [
+   [
+    "[panting]",
+    "Всё. Сдох.",
+    "Done. It's dead."
+   ],
+   [
+    "[panting]",
+    "Ох. Живой. Гад.",
+    "Oh. Alive. Bastard."
+   ],
+   [
+    "[triumphant]",
+    "Вот так. Лежи.",
+    "There. Stay down."
+   ]
+  ],
+  "fear_flee": [
+   [
+    "[panicked]",
+    "Бегу! Чёрт!",
+    "Running! Damn!"
+   ],
+   [
+    "[panicked]",
+    "Ходу. К огню.",
+    "Move it. To the fire."
+   ],
+   [
+    "[panicked]",
+    "Не оглядываться. Бежать.",
+    "Don't look back. Run."
+   ]
+  ],
+  "fear_shark": [
+   [
+    "[tense]",
+    "Акула. Из воды.",
+    "Shark. Out of the water."
+   ],
+   [
+    "[gruff]",
+    "Туда не полезу. Не дурак.",
+    "Not going in there. Not an idiot."
+   ],
+   [
+    "[whispering]",
+    "Плавник. Видел.",
+    "A fin. Saw it."
+   ]
+  ],
+  "hurt_death": [
+   [
+    "[dying]",
+    "Вот и всё. Чёрт.",
+    "That's it, then. Damn."
+   ],
+   [
+    "[gasping]",
+    "Не так. Не хотел так.",
+    "Not like this. Didn't want it like this."
+   ],
+   [
+    "[dying]",
+    "Ну. Всё.",
+    "Well. That's all."
+   ]
+  ],
+  "cry_corpse": [
+   [
+    "[gruff]",
+    "Мёртвый. Ну.",
+    "Dead. Well."
+   ],
+   [
+    "[sad]",
+    "Зачем. Дурак.",
+    "Why. You fool."
+   ],
+   [
+    "[crying]",
+    "Вставай. Вставай, слышишь.",
+    "Get up. Get up, you hear me."
+   ]
+  ],
+  "cry_bury": [
+   [
+    "[solemn]",
+    "Спи. Земля пухом.",
+    "Sleep. Rest easy."
+   ],
+   [
+    "[gruff]",
+    "Прощай. Всё.",
+    "Goodbye. That's all."
+   ],
+   [
+    "[solemn]",
+    "Не забуду. Не жди.",
+    "Won't forget. Don't expect me to."
+   ]
+  ],
+  "angry_defend": [
+   [
+    "[shouting]",
+    "Стой. Иду.",
+    "Wait. Coming."
+   ],
+   [
+    "[angry]",
+    "Отошёл. Живо.",
+    "Back off. Now."
+   ],
+   [
+    "[determined]",
+    "Никого не отдам.",
+    "I won't give anyone up."
+   ]
+  ],
+  "fear_dark_alone": [
+   [
+    "[whispering]",
+    "Темно. Огня нет.",
+    "Dark. No fire."
+   ],
+   [
+    "[whispering]",
+    "Кто тут? Отвечай, ну.",
+    "Who's there? Answer, come on."
+   ],
+   [
+    "[gruff]",
+    "Ладно. Досижу.",
+    "Fine. I'll sit it out."
+   ]
+  ],
+  "fear_stranger": [
+   [
+    "[tense]",
+    "Чужой. Кто такой.",
+    "A stranger. Who's that."
+   ],
+   [
+    "[whispering]",
+    "Не наш. Гляди в оба.",
+    "Not ours. Keep your eyes open."
+   ],
+   [
+    "[angry]",
+    "Эй. Ты кто. Отвечай.",
+    "Hey. Who are you. Answer."
+   ]
+  ],
+  "cry_breakdown": [
+   [
+    "[gruff]",
+    "Хватит. Не могу.",
+    "Enough. I can't."
+   ],
+   [
+    "[sad]",
+    "Устал. Просто устал.",
+    "Tired. Just tired."
+   ],
+   [
+    "[sobbing]",
+    "Домой. Чёрт. Домой.",
+    "Home. Damn. Home."
+   ]
+  ],
+  "cry_beaten": [
+   [
+    "[pain]",
+    "Больно. Ты пожалеешь.",
+    "It hurts. You'll regret that."
+   ],
+   [
+    "[angry]",
+    "Не трогай. Отошёл.",
+    "Don't touch me. Back off."
+   ],
+   [
+    "[gruff]",
+    "Ухожу. Ещё встретимся.",
+    "I'm leaving. We'll meet again."
+   ]
+  ],
+  "angry_expel": [
+   [
+    "[angry]",
+    "Вон отсюда. Моя земля.",
+    "Get out. My land."
+   ],
+   [
+    "[angry]",
+    "Уходи. Повторять не буду.",
+    "Leave. I won't say it twice."
+   ],
+   [
+    "[angry]",
+    "Пошёл. Считаю до трёх.",
+    "Go. I'm counting to three."
+   ]
+  ],
+  "help_answer": [
+   [
+    "[shouting]",
+    "Стой! Иду!",
+    "Hold it! Coming!"
+   ],
+   [
+    "[shouting]",
+    "Слышу. Бегу.",
+    "I hear you. Running."
+   ],
+   [
+    "[determined]",
+    "Не сдохни. Иду.",
+    "Don't die. Coming."
+   ]
+  ],
+  "hurt_moan": [
+   [
+    "[weak]",
+    "Эй. Кто-нибудь.",
+    "Hey. Anyone."
+   ],
+   [
+    "[weak]",
+    "Воды. Глоток.",
+    "Water. A sip."
+   ],
+   [
+    "[whispering]",
+    "Холодно. Чёрт.",
+    "Cold. Damn."
+   ]
+  ],
+  "happy_topic_smalltalk": [
+   [
+    "[gruff]",
+    "Ну. Что смотришь.",
+    "Well. What are you looking at."
+   ],
+   [
+    "[gruff]",
+    "Море как море. Ничего нового.",
+    "Sea's a sea. Nothing new."
+   ],
+   [
+    "[gruff]",
+    "Говори. Только коротко.",
+    "Talk. Keep it short."
+   ]
+  ],
+  "sad_topic_escape": [
+   [
+    "[gruff]",
+    "Плот. Брёвен мало. Достану.",
+    "A raft. Few logs. I'll get them."
+   ],
+   [
+    "[wistful]",
+    "Уплыть бы. Отсюда.",
+    "Sail away. From here."
+   ],
+   [
+    "[gruff]",
+    "Море большое. Утонем, скорей всего.",
+    "Sea's big. We'll probably drown."
+   ]
+  ],
+  "fear_topic_sharks": [
+   [
+    "[tense]",
+    "Акула. Видел вчера.",
+    "Shark. Saw it yesterday."
+   ],
+   [
+    "[gruff]",
+    "Далеко не плавай. Сожрёт.",
+    "Don't swim far. It'll eat you."
+   ],
+   [
+    "[tense]",
+    "По колено. Дальше — дура.",
+    "Knee-deep. Any further and you're a fool."
+   ]
+  ],
+  "angry_topic_dogs": [
+   [
+    "[serious]",
+    "Волки рядом. Не спи.",
+    "Wolves nearby. Don't sleep."
+   ],
+   [
+    "[angry]",
+    "Копья. Огонь. Иначе сожрут.",
+    "Spears. Fire. Or we get eaten."
+   ],
+   [
+    "[gruff]",
+    "Спи. Я покараулю.",
+    "Sleep. I'll stand guard."
+   ]
+  ],
+  "sad_topic_weather": [
+   [
+    "[tired]",
+    "Дождь. Третий день. Дрянь.",
+    "Rain. Third day. Crap."
+   ],
+   [
+    "[gruff]",
+    "Холодает. Крышу надо.",
+    "Getting cold. Need a roof."
+   ],
+   [
+    "[gruff]",
+    "Жарища. Не работа.",
+    "Heat. Can't work in this."
+   ]
+  ],
+  "happy_topic_food": [
+   [
+    "[gruff]",
+    "Кокосы есть. Пожрём.",
+    "Got coconuts. We'll eat."
+   ],
+   [
+    "[gruff]",
+    "Мясо на огонь. Сам пожарю.",
+    "Meat on the fire. I'll roast it myself."
+   ],
+   [
+    "[worried]",
+    "Жратвы мало. Идти надо.",
+    "Grub's low. Have to go."
+   ]
+  ],
+  "happy_topic_fire": [
+   [
+    "[gruff]",
+    "Огонь хороший. Держи.",
+    "Good fire. Keep it up."
+   ],
+   [
+    "[serious]",
+    "Подкинь. Погаснет — сам разжигай.",
+    "Add wood. If it dies, you light it."
+   ],
+   [
+    "[gruff]",
+    "У костра и жить можно.",
+    "By the fire a man can live."
+   ]
+  ],
+  "cry_topic_home": [
+   [
+    "[sad]",
+    "Дом. Чёрт знает где.",
+    "Home. God knows where."
+   ],
+   [
+    "[gruff]",
+    "Скучаю. Не твоё дело по кому.",
+    "I miss it. Who I miss is none of your business."
+   ],
+   [
+    "[sad]",
+    "Вернуться бы. Один раз.",
+    "Wish I could go back. One time."
+   ]
+  ],
+  "happy_topic_gossip": [
+   [
+    "[amused]",
+    "Видел её вчера? Цирк.",
+    "Saw her yesterday? A circus."
+   ],
+   [
+    "[gruff]",
+    "С ножом весь день. Дура.",
+    "Knife all day. Fool."
+   ],
+   [
+    "[whispering]",
+    "Тебе скажу. Остальным — нет.",
+    "I'll tell you. Not the others."
+   ]
+  ],
+  "happy_topic_flirt": [
+   [
+    "[gruff]",
+    "Ты ничего. Так и знай.",
+    "You're all right. Just so you know."
+   ],
+   [
+    "[gruff]",
+    "Сядь ближе. Холодно же.",
+    "Sit closer. It's cold."
+   ],
+   [
+    "[warm]",
+    "С тобой спокойно. Странно.",
+    "I'm calm around you. Strange."
+   ]
+  ],
+  "happy_topic_joke": [
+   [
+    "[laughing]",
+    "Кокосом по башке. Ха. Заслужила.",
+    "Coconut to the head. Ha. Deserved it."
+   ],
+   [
+    "[gruff]",
+    "Как краб ходишь. Смех.",
+    "You walk like a crab. Hilarious."
+   ],
+   [
+    "[laughing]",
+    "Ха. Ладно, смешно.",
+    "Ha. Fine, that's funny."
+   ]
+  ],
+  "angry_topic_grumble": [
+   [
+    "[annoyed]",
+    "Опять я. Конечно.",
+    "Me again. Of course."
+   ],
+   [
+    "[angry]",
+    "Хватит. Заткнись.",
+    "Enough. Shut it."
+   ],
+   [
+    "[grumbling]",
+    "Всё дрянь. Как всегда.",
+    "Everything's crap. As always."
+   ]
+  ],
+  "happy_laugh": [
+   [
+    "[laughing]",
+    "Хах. Ха.",
+    "Hah. Ha."
+   ],
+   [
+    "[gruff]",
+    "Хм. Ну ты даёшь.",
+    "Hm. You're something."
+   ],
+   [
+    "[laughing]",
+    "Хах. Ладно.",
+    "Hah. Fine."
+   ]
+  ],
+  "happy_agree": [
+   [
+    "[gruff]",
+    "Угу.",
+    "Yep."
+   ],
+   [
+    "[gruff]",
+    "Ладно. Быть по-твоему.",
+    "Fine. Have it your way."
+   ],
+   [
+    "[thoughtful]",
+    "Хм. Права.",
+    "Hm. You're right."
+   ]
+  ],
+  "happy_bond_plus": [
+   [
+    "[gruff]",
+    "Ты надёжная. Редкость.",
+    "You're reliable. Rare thing."
+   ],
+   [
+    "[warm]",
+    "С тобой можно. В разведку.",
+    "You'd do. For a raid."
+   ],
+   [
+    "[gruff]",
+    "Хорошая ты. Не спорь.",
+    "You're good. Don't argue."
+   ]
+  ],
+  "angry_bond_minus": [
+   [
+    "[angry]",
+    "Отвали. Не до тебя.",
+    "Get lost. Not now."
+   ],
+   [
+    "[cold]",
+    "Не разговариваю. Всё.",
+    "Not talking. That's all."
+   ],
+   [
+    "[gruff]",
+    "Обидно. Не ждал от тебя.",
+    "That hurt. Didn't expect it from you."
+   ]
+  ],
+  "call_name": [
+   [
+    "[calling]",
+    "Эй! Сюда, живо!",
+    "Hey! Over here, now!"
+   ],
+   [
+    "[calling]",
+    "Ты где? Отзовись.",
+    "Where are you? Answer."
+   ],
+   [
+    "[calling]",
+    "Иди сюда. Дело есть.",
+    "Come here. Got a job."
+   ]
+  ],
+  "ask_build": [
+   [
+    "[gruff]",
+    "Стройка на тебе. Справишься?",
+    "Building's on you. Can you handle it?"
+   ],
+   [
+    "[gruff]",
+    "Молоток возьми. Крыша нужна.",
+    "Take the hammer. We need a roof."
+   ],
+   [
+    "[gruff]",
+    "Построишь? У меня руки заняты.",
+    "Will you build? My hands are full."
+   ]
+  ],
+  "ask_food": [
+   [
+    "[gruff]",
+    "Сходи за жратвой. Я слежу за огнём.",
+    "Go get grub. I'm minding the fire."
+   ],
+   [
+    "[gruff]",
+    "Кокосов принеси. Штук пять.",
+    "Bring coconuts. Five or so."
+   ],
+   [
+    "[worried]",
+    "Жратвы нет. Сходишь?",
+    "No grub. Will you go?"
+   ]
+  ],
+  "ask_water": [
+   [
+    "[gruff]",
+    "Воды принеси. Фляга пустая.",
+    "Bring water. Flask's empty."
+   ],
+   [
+    "[gruff]",
+    "К ручью сходи. Быстро.",
+    "Go to the stream. Quick."
+   ],
+   [
+    "[worried]",
+    "Воды нет. Иди.",
+    "No water. Go."
+   ]
+  ],
+  "ask_wood": [
+   [
+    "[gruff]",
+    "Дров принеси. Костёр гаснет.",
+    "Bring wood. Fire's dying."
+   ],
+   [
+    "[gruff]",
+    "За палками сходи, пока светло.",
+    "Get sticks while it's light."
+   ],
+   [
+    "[worried]",
+    "Дров на ночь нет. Иди.",
+    "No wood for the night. Go."
+   ]
+  ],
+  "agree_directive": [
+   [
+    "[gruff]",
+    "Ладно. Схожу.",
+    "Fine. I'll go."
+   ],
+   [
+    "[gruff]",
+    "Сделаю. Не ной.",
+    "I'll do it. Quit whining."
+   ],
+   [
+    "[gruff]",
+    "Хорошо. Раз просишь.",
+    "All right. Since you're asking."
+   ]
+  ],
+  "refuse_directive": [
+   [
+    "[refusing]",
+    "Нет. Сама иди.",
+    "No. Go yourself."
+   ],
+   [
+    "[grumbling]",
+    "Не сейчас. Занят.",
+    "Not now. Busy."
+   ],
+   [
+    "[tired]",
+    "Не могу. Сил нет.",
+    "Can't. No strength."
+   ]
+  ],
+  "happy_aid_give": [
+   [
+    "[gruff]",
+    "Тихо. Я тут. Сейчас.",
+    "Quiet. I'm here. Hold on."
+   ],
+   [
+    "[gruff]",
+    "Ешь. Не спорь.",
+    "Eat. Don't argue."
+   ],
+   [
+    "[gruff]",
+    "Терпи. Перевяжу. Живучая.",
+    "Bear it. I'll bind it. You're tough."
+   ]
+  ],
+  "happy_console": [
+   [
+    "[gruff]",
+    "Хватит реветь. Я рядом.",
+    "Quit crying. I'm here."
+   ],
+   [
+    "[gruff]",
+    "Поплачь. Потом встанем.",
+    "Cry it out. Then we get up."
+   ],
+   [
+    "[gruff]",
+    "Пройдёт. Всё проходит.",
+    "It'll pass. Everything does."
+   ]
+  ],
+  "happy_aid_thanks": [
+   [
+    "[gruff]",
+    "Спасибо. Не забуду.",
+    "Thanks. Won't forget."
+   ],
+   [
+    "[gruff]",
+    "Выручила. Должен буду.",
+    "You saved me. I owe you."
+   ],
+   [
+    "[warm]",
+    "Хорошая ты. Спасибо.",
+    "You're good. Thank you."
+   ]
+  ],
+  "sad_aid_ask": [
+   [
+    "[weak]",
+    "Помоги. Сам не могу.",
+    "Help me. Can't do it myself."
+   ],
+   [
+    "[gruff]",
+    "Перевяжи. Кровь хлещет.",
+    "Bind it. Blood's pouring."
+   ],
+   [
+    "[weak]",
+    "Дай пожрать. Совсем ослаб.",
+    "Give me food. I'm too weak."
+   ]
+  ],
+  "sleepy_dream": [
+   [
+    "[dreamy]",
+    "Лежанка. Своя. Нормальная.",
+    "A bunk. My own. A proper one."
+   ],
+   [
+    "[dreamy]",
+    "Крыша. Стены. Дверь. Всё.",
+    "A roof. Walls. A door. That's all."
+   ],
+   [
+    "[dreamy]",
+    "Уплыть. Домой. Когда-нибудь.",
+    "Sail away. Home. Someday."
+   ]
+  ],
+  "happy_gift": [
+   [
+    "[gruff]",
+    "О. Прибило что-то.",
+    "Oh. Something washed up."
+   ],
+   [
+    "[gruff]",
+    "Море подкинуло. Моё.",
+    "Sea threw it in. Mine."
+   ],
+   [
+    "[gruff]",
+    "Что это? Ладно, заберу.",
+    "What's this? Fine, I'll take it."
+   ]
+  ],
+  "happy_dress": [
+   [
+    "[gruff]",
+    "Тепло. Другое дело.",
+    "Warm. That's better."
+   ],
+   [
+    "[gruff]",
+    "Оделся. Можно работать.",
+    "Dressed. Can work now."
+   ],
+   [
+    "[gruff]",
+    "Сухое. Хорошо.",
+    "Dry. Good."
+   ]
+  ]
+ }
+}

@@ -1,0 +1,1297 @@
+{
+ "_comment": "§67.16 Молли: мягкая, тянет слова, уменьшительные, чуть-чуть ноет, легко пугается и легко радуется; наивная, но не глупая. Растяжка гласной в письме — один раз на реплику, не больше. Вариант = [тег подачи eleven_v3, RU, EN].",
+ "groups": {
+  "sad_hunger": [
+   [
+    "[sad]",
+    "Кушать хочется. Прямо очень-очень.",
+    "I'm hungry. Really, really hungry."
+   ],
+   [
+    "[sad]",
+    "В животике пусто. Хоть бы кокосик.",
+    "My tummy's empty. Even a little coconut would do."
+   ],
+   [
+    "[weak]",
+    "Я без еды совсем слабенькая.",
+    "Without food I'm all weak and floppy."
+   ]
+  ],
+  "sad_thirst": [
+   [
+    "[sad]",
+    "Пить хочу. Водички бы.",
+    "I'm thirsty. Some water, please."
+   ],
+   [
+    "[sad]",
+    "Бутылочка пустая. Обидно.",
+    "The little bottle's empty. That's unfair."
+   ],
+   [
+    "[hoarse]",
+    "Горлышко сохнет. Пить.",
+    "My throat's all dry. Water."
+   ]
+  ],
+  "sad_cold": [
+   [
+    "[shivering]",
+    "Хо-олодно. Я вся дрожу.",
+    "So co-old. I'm shivering all over."
+   ],
+   [
+    "[shivering]",
+    "Костёрчик бы. Я замёрзла.",
+    "A little fire, please. I'm frozen."
+   ],
+   [
+    "[sad]",
+    "Ручки ледяные. Погрейте.",
+    "My hands are icy. Somebody warm them."
+   ]
+  ],
+  "sad_heat": [
+   [
+    "[tired]",
+    "Жа-арко. Голова кружится.",
+    "So ho-ot. My head's spinning."
+   ],
+   [
+    "[tired]",
+    "Солнышко, ты слишком жаркое.",
+    "Sun, you're way too hot."
+   ],
+   [
+    "[sad]",
+    "В тенёчек хочу. Ну пожалуйста.",
+    "I want some shade. Please."
+   ]
+  ],
+  "sleepy_tired": [
+   [
+    "[sleepy]",
+    "Спа-ать хочу. Глазки слипаются.",
+    "I want to sle-ep. My eyes are closing."
+   ],
+   [
+    "[yawning]",
+    "Ой, зеваю. Устала.",
+    "Oh, I'm yawning. I'm tired."
+   ],
+   [
+    "[sleepy]",
+    "Ножки не идут. Полежу немножко.",
+    "My legs won't go. I'll lie down a bit."
+   ]
+  ],
+  "sleepy_bed": [
+   [
+    "[sleepy]",
+    "Постелька. Мягонькая.",
+    "My little bed. So soft."
+   ],
+   [
+    "[content]",
+    "Мм. Тёпленько. Сплю.",
+    "Mm. Cozy. Sleeping."
+   ],
+   [
+    "[whispering]",
+    "Спокойной ночи. Всем-всем.",
+    "Good night. To everyone."
+   ]
+  ],
+  "sleepy_wake": [
+   [
+    "[yawning]",
+    "Уже утро? Ещё чуть-чуть.",
+    "Morning already? Just a little longer."
+   ],
+   [
+    "[sleepy]",
+    "Доброе утречко. Наверное.",
+    "Good morning. I think."
+   ],
+   [
+    "[sleepy]",
+    "Мне снился дом. Жалко, что сон.",
+    "I dreamt of home. Shame it was a dream."
+   ]
+  ],
+  "hurt_wound": [
+   [
+    "[pain]",
+    "Ай! Больно! Ай-ай!",
+    "Ow! It hurts! Ow-ow!"
+   ],
+   [
+    "[pain]",
+    "Кровь! Ой, мамочки, кровь!",
+    "Blood! Oh mommy, blood!"
+   ],
+   [
+    "[pain]",
+    "Порезалась. Ой, как щиплет.",
+    "I cut myself. Oh, it stings."
+   ]
+  ],
+  "hurt_sick": [
+   [
+    "[weak]",
+    "Мне плохо. Животик болит.",
+    "I feel sick. My tummy hurts."
+   ],
+   [
+    "[weak]",
+    "Я вся горячая. Заболела, да?",
+    "I'm all hot. I'm sick, aren't I?"
+   ],
+   [
+    "[weak]",
+    "Тошнит. Полежу, ладно?",
+    "I feel queasy. I'll lie down, okay?"
+   ]
+  ],
+  "sad_dirty": [
+   [
+    "[disgusted]",
+    "Фу, я вся грязненькая.",
+    "Ew, I'm all grubby."
+   ],
+   [
+    "[sad]",
+    "Помыться бы. Песок везде.",
+    "I need a wash. Sand everywhere."
+   ],
+   [
+    "[disgusted]",
+    "Волосики слиплись. Фу.",
+    "My hair's all stuck together. Ew."
+   ]
+  ],
+  "sad_lonely": [
+   [
+    "[sad]",
+    "Одиноко мне. Никого нет.",
+    "I'm lonely. There's nobody."
+   ],
+   [
+    "[sad]",
+    "Подружки, вы где? Ау.",
+    "Girls, where are you? Yoo-hoo."
+   ],
+   [
+    "[sad]",
+    "Скучно одной. И страшновато.",
+    "It's boring alone. And a bit scary."
+   ]
+  ],
+  "happy_relief": [
+   [
+    "[happy]",
+    "Ух, хорошо-то как!",
+    "Oh, that feels so good!"
+   ],
+   [
+    "[relieved]",
+    "Всё, мне лучше. Правда лучше.",
+    "There, I'm better. Really better."
+   ],
+   [
+    "[happy]",
+    "Тёпленько и сытно. Счастье.",
+    "Warm and full. Bliss."
+   ]
+  ],
+  "hurt_faint": [
+   [
+    "[fading]",
+    "Ой. Что-то мне. Ой.",
+    "Oh. Something's. Oh."
+   ],
+   [
+    "[fading]",
+    "Темно. Мне страшно.",
+    "It's dark. I'm scared."
+   ],
+   [
+    "[gasping]",
+    "Падаю. Поймайте.",
+    "I'm falling. Catch me."
+   ]
+  ],
+  "sad_wet": [
+   [
+    "[sad]",
+    "Дождик. Я вся мокрая.",
+    "Rain. I'm all wet."
+   ],
+   [
+    "[shivering]",
+    "Мокро и холодно. Бр-р.",
+    "Wet and cold. Brrr."
+   ],
+   [
+    "[sad]",
+    "Крышу бы. Маленькую.",
+    "A roof, please. A little one."
+   ]
+  ],
+  "work_chop": [
+   [
+    "[effort]",
+    "Ух! Тяжёлый топор.",
+    "Oof! Heavy axe."
+   ],
+   [
+    "[effort]",
+    "Ещё разик. Ещё.",
+    "One more time. Again."
+   ],
+   [
+    "[effort]",
+    "Падай, деревце. Ну пожалуйста.",
+    "Fall, little tree. Please."
+   ]
+  ],
+  "work_haul": [
+   [
+    "[effort]",
+    "Тяжело-о. Но я донесу.",
+    "It's hea-vy. But I'll carry it."
+   ],
+   [
+    "[effort]",
+    "Ручки устали. Чуть-чуть ещё.",
+    "My arms are tired. Just a bit more."
+   ],
+   [
+    "[effort]",
+    "Уф. Тащу. Не мешайте.",
+    "Oof. Hauling. Don't bother me."
+   ]
+  ],
+  "work_build": [
+   [
+    "[effort]",
+    "Тук-тук. Строю домик.",
+    "Tap-tap. Building a little house."
+   ],
+   [
+    "[effort]",
+    "Палочку сюда. И верёвочку.",
+    "A stick here. And a little rope."
+   ],
+   [
+    "[determined]",
+    "У меня получится. Я умею.",
+    "I can do this. I know how."
+   ]
+  ],
+  "happy_done": [
+   [
+    "[proud]",
+    "Готово! Я сама! Сама!",
+    "Done! All by myself! Myself!"
+   ],
+   [
+    "[happy]",
+    "Ой, получилось. Красиво, да?",
+    "Oh, it worked. Pretty, right?"
+   ],
+   [
+    "[proud]",
+    "Смотрите, что я сделала!",
+    "Look what I made!"
+   ]
+  ],
+  "happy_fire_lit": [
+   [
+    "[excited]",
+    "Огонёчек! Горит! Тёпленький!",
+    "A little flame! It's burning! Cozy!"
+   ],
+   [
+    "[happy]",
+    "Ура, костёрчик! Я его сделала!",
+    "Hooray, a fire! I made it!"
+   ],
+   [
+    "[excited]",
+    "Не гасни, миленький. Ну пожалуйста.",
+    "Don't go out, sweetie. Please."
+   ]
+  ],
+  "sad_fire_out": [
+   [
+    "[sad]",
+    "Ой. Погас. Обидно.",
+    "Oh. It's out. That's sad."
+   ],
+   [
+    "[worried]",
+    "Огня нет. Ночью будет холодно.",
+    "No fire. It'll be cold tonight."
+   ],
+   [
+    "[sad]",
+    "Костёрчик умер. Жалко.",
+    "The little fire died. Poor thing."
+   ]
+  ],
+  "happy_find_food": [
+   [
+    "[excited]",
+    "Рыбка! Я поймала рыбку!",
+    "A fish! I caught a fish!"
+   ],
+   [
+    "[happy]",
+    "Кокосик! Мой! Ням.",
+    "A coconut! Mine! Yum."
+   ],
+   [
+    "[happy]",
+    "Еда! Теперь покушаем.",
+    "Food! Now we can eat."
+   ]
+  ],
+  "happy_water": [
+   [
+    "[happy]",
+    "Бутылочка полная. Буль-буль.",
+    "The bottle's full. Glug-glug."
+   ],
+   [
+    "[happy]",
+    "Водичка чистенькая. Хорошо.",
+    "Nice clean water. Good."
+   ],
+   [
+    "[content]",
+    "Дождик водички налил. Спасибо.",
+    "The rain poured us water. Thank you."
+   ]
+  ],
+  "angry_fail": [
+   [
+    "[frustrated]",
+    "Ну вот. Не получилось.",
+    "Oh no. It didn't work."
+   ],
+   [
+    "[annoyed]",
+    "Не пройти. Обидно как.",
+    "Can't get through. So unfair."
+   ],
+   [
+    "[frustrated]",
+    "Ничего нет. Я зря ходила.",
+    "There's nothing. I went for nothing."
+   ]
+  ],
+  "happy_wash": [
+   [
+    "[content]",
+    "Водичка. Тёпленькая. Хорошо.",
+    "Water. Nice and warm. Good."
+   ],
+   [
+    "[happy]",
+    "Чистенькая! Наконец-то.",
+    "All clean! Finally."
+   ],
+   [
+    "[content]",
+    "Плескаюсь. Как рыбка.",
+    "Splashing about. Like a little fish."
+   ]
+  ],
+  "happy_eat": [
+   [
+    "[chewing]",
+    "Ням-ням. Вкусненько.",
+    "Nom-nom. Yummy."
+   ],
+   [
+    "[happy]",
+    "Кушаю. Мм. Хорошо.",
+    "Eating. Mm. Nice."
+   ],
+   [
+    "[disgusted]",
+    "Горькое. Но я кушаю.",
+    "It's bitter. But I'm eating it."
+   ]
+  ],
+  "happy_drink": [
+   [
+    "[relieved]",
+    "Ах. Водичка.",
+    "Ah. Water."
+   ],
+   [
+    "[relieved]",
+    "Глоточек. Ещё глоточек.",
+    "A sip. Another sip."
+   ],
+   [
+    "[content]",
+    "Напилась. Хорошо-о.",
+    "All done drinking. So go-od."
+   ]
+  ],
+  "work_craft": [
+   [
+    "[focused]",
+    "Палочка, камушек. Вот так.",
+    "A stick, a pebble. Like that."
+   ],
+   [
+    "[focused]",
+    "Узелочек. Ещё узелочек.",
+    "A little knot. Another little knot."
+   ],
+   [
+    "[focused]",
+    "Аккуратненько. Не спешу.",
+    "Nice and careful. No rush."
+   ]
+  ],
+  "happy_bed_done": [
+   [
+    "[excited]",
+    "Кроватка! Моя кроватка!",
+    "A bed! My own little bed!"
+   ],
+   [
+    "[proud]",
+    "Я сама сделала. Мягонькая.",
+    "I made it myself. So soft."
+   ],
+   [
+    "[happy]",
+    "Теперь буду сладко спать.",
+    "Now I'll sleep so sweetly."
+   ]
+  ],
+  "fear_wolf": [
+   [
+    "[frightened]",
+    "Ой! Волк! Мамочки!",
+    "Oh! A wolf! Mommy!"
+   ],
+   [
+    "[whispering]",
+    "Тихо. Он не заметил. Тихо.",
+    "Quiet. It hasn't noticed. Quiet."
+   ],
+   [
+    "[frightened]",
+    "Не подходи! Уходи, уходи!",
+    "Don't come near! Go away, go!"
+   ]
+  ],
+  "call_help": [
+   [
+    "[shouting]",
+    "Помогите! Помогите мне!",
+    "Help! Help me!"
+   ],
+   [
+    "[shouting]",
+    "Девочки! Сюда! Скорее!",
+    "Girls! Here! Hurry!"
+   ],
+   [
+    "[screaming]",
+    "Ааа! Спасите!",
+    "Aaah! Save me!"
+   ]
+  ],
+  "angry_attack": [
+   [
+    "[angry]",
+    "Уходи! Уходи, злой!",
+    "Go away! Go away, you meanie!"
+   ],
+   [
+    "[angry]",
+    "Вот тебе! Вот!",
+    "Take that! There!"
+   ],
+   [
+    "[angry]",
+    "Я не боюсь! Почти.",
+    "I'm not scared! Almost."
+   ]
+  ],
+  "hurt_bitten": [
+   [
+    "[screaming]",
+    "Ааа! Кусается! Больно!",
+    "Aaah! It's biting! It hurts!"
+   ],
+   [
+    "[screaming]",
+    "Ручка! Моя ручка!",
+    "My arm! My poor arm!"
+   ],
+   [
+    "[screaming]",
+    "Отпусти! Отпусти меня!",
+    "Let go! Let me go!"
+   ]
+  ],
+  "happy_victory": [
+   [
+    "[triumphant]",
+    "Всё. Он больше не встанет.",
+    "That's it. It won't get up."
+   ],
+   [
+    "[panting]",
+    "Ох. Я жива. Ой.",
+    "Oh. I'm alive. Oh."
+   ],
+   [
+    "[triumphant]",
+    "Я смогла! Я, маленькая!",
+    "I did it! Little me!"
+   ]
+  ],
+  "fear_flee": [
+   [
+    "[panicked]",
+    "Бегу! Бегу-бегу!",
+    "Running! Running-running!"
+   ],
+   [
+    "[panicked]",
+    "Ай! Не догоняй!",
+    "Ah! Don't chase me!"
+   ],
+   [
+    "[panicked]",
+    "К костру! Домой!",
+    "To the fire! Home!"
+   ]
+  ],
+  "fear_shark": [
+   [
+    "[frightened]",
+    "Акула! Там акула!",
+    "A shark! There's a shark!"
+   ],
+   [
+    "[frightened]",
+    "Я в водичку не пойду. Нет-нет.",
+    "I'm not going in the water. No, no."
+   ],
+   [
+    "[whispering]",
+    "Там кто-то большой. Страшно.",
+    "There's something big in there. Scary."
+   ]
+  ],
+  "hurt_death": [
+   [
+    "[dying]",
+    "Мамочка. Мне страшно.",
+    "Mommy. I'm scared."
+   ],
+   [
+    "[gasping]",
+    "Не хочу. Ещё чуть-чуть.",
+    "I don't want to. A little longer."
+   ],
+   [
+    "[dying]",
+    "Девочки. Прощайте.",
+    "Girls. Goodbye."
+   ]
+  ],
+  "cry_corpse": [
+   [
+    "[crying]",
+    "Нет. Проснись. Ну проснись.",
+    "No. Wake up. Please wake up."
+   ],
+   [
+    "[crying]",
+    "Она не дышит. Почему?",
+    "She's not breathing. Why?"
+   ],
+   [
+    "[sobbing]",
+    "Не уходи. Мне страшно без тебя.",
+    "Don't go. I'm scared without you."
+   ]
+  ],
+  "cry_bury": [
+   [
+    "[solemn]",
+    "Спи, миленькая. Спи.",
+    "Sleep, sweetheart. Sleep."
+   ],
+   [
+    "[crying]",
+    "Я буду помнить. Обещаю.",
+    "I'll remember. I promise."
+   ],
+   [
+    "[solemn]",
+    "Прощай. Ты хорошая была.",
+    "Goodbye. You were good."
+   ]
+  ],
+  "angry_defend": [
+   [
+    "[shouting]",
+    "Держись! Я иду!",
+    "Hold on! I'm coming!"
+   ],
+   [
+    "[angry]",
+    "Не трогай её! Не трогай!",
+    "Don't touch her! Don't!"
+   ],
+   [
+    "[determined]",
+    "Я маленькая, но я иду!",
+    "I'm little, but I'm coming!"
+   ]
+  ],
+  "fear_dark_alone": [
+   [
+    "[whispering]",
+    "Темно. Я боюсь темноты.",
+    "It's dark. I'm afraid of the dark."
+   ],
+   [
+    "[whispering]",
+    "Кто здесь? Не пугайте.",
+    "Who's there? Don't scare me."
+   ],
+   [
+    "[scared]",
+    "Мамочка. Скорее бы утро.",
+    "Mommy. I wish it were morning."
+   ]
+  ],
+  "fear_stranger": [
+   [
+    "[frightened]",
+    "Ой. Дядя чужой. Страшный.",
+    "Oh. A strange man. Scary."
+   ],
+   [
+    "[whispering]",
+    "Кто это? Я его не знаю.",
+    "Who's that? I don't know him."
+   ],
+   [
+    "[frightened]",
+    "Уходи! Не подходи ко мне!",
+    "Go away! Don't come near me!"
+   ]
+  ],
+  "cry_breakdown": [
+   [
+    "[sobbing]",
+    "Не могу. Не могу больше.",
+    "I can't. I can't anymore."
+   ],
+   [
+    "[crying]",
+    "Мне плохо. Всё плохо.",
+    "I feel awful. Everything's awful."
+   ],
+   [
+    "[sobbing]",
+    "Домой хочу. К маме.",
+    "I want to go home. To mommy."
+   ]
+  ],
+  "cry_beaten": [
+   [
+    "[crying]",
+    "Больно. Зачем ты так?",
+    "It hurts. Why would you?"
+   ],
+   [
+    "[sobbing]",
+    "Не трогай. Не надо.",
+    "Don't touch me. Don't."
+   ],
+   [
+    "[crying]",
+    "Я домой. Отпусти.",
+    "I'm going home. Let me go."
+   ]
+  ],
+  "angry_expel": [
+   [
+    "[angry]",
+    "Уходи! Это наш домик!",
+    "Go away! This is our home!"
+   ],
+   [
+    "[angry]",
+    "Тебя тут не ждали. Иди.",
+    "Nobody wanted you here. Go."
+   ],
+   [
+    "[angry]",
+    "Уйди. Ну уйди же!",
+    "Go away. Just go!"
+   ]
+  ],
+  "help_answer": [
+   [
+    "[shouting]",
+    "Бегу! Я бегу! Держись!",
+    "Running! I'm running! Hold on!"
+   ],
+   [
+    "[shouting]",
+    "Слышу! Я сейчас!",
+    "I hear you! I'm coming!"
+   ],
+   [
+    "[determined]",
+    "Не умирай. Я уже бегу.",
+    "Don't die. I'm already running."
+   ]
+  ],
+  "hurt_moan": [
+   [
+    "[weak]",
+    "Кто-нибудь. Помогите.",
+    "Somebody. Help."
+   ],
+   [
+    "[weak]",
+    "Водички. Капельку.",
+    "Water. A little drop."
+   ],
+   [
+    "[whispering]",
+    "Холодно. Девочки.",
+    "So cold. Girls."
+   ]
+  ],
+  "happy_topic_smalltalk": [
+   [
+    "[cheerful]",
+    "А я сегодня краба видела. Маленького.",
+    "I saw a crab today. A little one."
+   ],
+   [
+    "[casual]",
+    "Хороший денёк, да?",
+    "Nice day, isn't it?"
+   ],
+   [
+    "[casual]",
+    "Давай посидим. Поболтаем.",
+    "Let's sit. And chat."
+   ]
+  ],
+  "sad_topic_escape": [
+   [
+    "[wistful]",
+    "А нас найдут? Ты как думаешь?",
+    "Will they find us? What do you think?"
+   ],
+   [
+    "[hopeful]",
+    "Построим плотик и уплывём.",
+    "We'll build a little raft and sail away."
+   ],
+   [
+    "[wistful]",
+    "Море большое. А дом далеко.",
+    "The sea is big. And home is far."
+   ]
+  ],
+  "fear_topic_sharks": [
+   [
+    "[tense]",
+    "Там акула. Я боюсь.",
+    "There's a shark. I'm scared."
+   ],
+   [
+    "[tense]",
+    "Не плавай далеко, ладно?",
+    "Don't swim far, okay?"
+   ],
+   [
+    "[whispering]",
+    "Она под водой. Ждёт.",
+    "It's under the water. Waiting."
+   ]
+  ],
+  "angry_topic_dogs": [
+   [
+    "[serious]",
+    "Волки ночью выли. Я не спала.",
+    "Wolves howled at night. I didn't sleep."
+   ],
+   [
+    "[worried]",
+    "Копья бы. И огонь.",
+    "We need spears. And fire."
+   ],
+   [
+    "[serious]",
+    "Ты спи. Я посторожу. Постараюсь.",
+    "You sleep. I'll keep watch. I'll try."
+   ]
+  ],
+  "sad_topic_weather": [
+   [
+    "[tired]",
+    "Дождик всё идёт. Скучно.",
+    "It keeps raining. Boring."
+   ],
+   [
+    "[sad]",
+    "Холодает. Крышу бы.",
+    "It's getting cold. We need a roof."
+   ],
+   [
+    "[casual]",
+    "Жарко. Пойдём в тенёк?",
+    "It's hot. Let's go in the shade?"
+   ]
+  ],
+  "happy_topic_food": [
+   [
+    "[cheerful]",
+    "Кокосики! Покушаем!",
+    "Coconuts! Let's eat!"
+   ],
+   [
+    "[happy]",
+    "Мясо жарится. Вкусно пахнет.",
+    "Meat's roasting. Smells yummy."
+   ],
+   [
+    "[worried]",
+    "Еды мало. Я боюсь.",
+    "There's little food. I'm worried."
+   ]
+  ],
+  "happy_topic_fire": [
+   [
+    "[content]",
+    "Костёрчик тёпленький. Хорошо.",
+    "The little fire's cozy. Nice."
+   ],
+   [
+    "[serious]",
+    "Подкинь палочек. А то погаснет.",
+    "Add some sticks. Or it'll go out."
+   ],
+   [
+    "[happy]",
+    "Огонёчек трещит. Уютно.",
+    "The little flame's crackling. Cozy."
+   ]
+  ],
+  "cry_topic_home": [
+   [
+    "[wistful]",
+    "Дома мама пирожки пекла.",
+    "Back home mommy baked pies."
+   ],
+   [
+    "[sad]",
+    "Скучаю по дому. Очень.",
+    "I miss home. So much."
+   ],
+   [
+    "[crying]",
+    "Домой хочу. К маме.",
+    "I want to go home. To mommy."
+   ]
+  ],
+  "happy_topic_gossip": [
+   [
+    "[amused]",
+    "А ты видела, что она делала?",
+    "Did you see what she was doing?"
+   ],
+   [
+    "[gossipy]",
+    "Она с ножиком весь день ходит.",
+    "She's been carrying a knife all day."
+   ],
+   [
+    "[whispering]",
+    "Только никому. Это секретик.",
+    "Don't tell anyone. It's a little secret."
+   ]
+  ],
+  "happy_topic_flirt": [
+   [
+    "[warm]",
+    "Ты мне нравишься. Очень.",
+    "I like you. A lot."
+   ],
+   [
+    "[playful]",
+    "Посиди со мной. Мне тепло.",
+    "Sit with me. It's warm."
+   ],
+   [
+    "[affectionate]",
+    "Дай ручку. Пожалуйста.",
+    "Give me your hand. Please."
+   ]
+  ],
+  "happy_topic_joke": [
+   [
+    "[laughing]",
+    "А кокосик ей по головке! Хи-хи!",
+    "And the coconut bonked her head! Hee-hee!"
+   ],
+   [
+    "[playful]",
+    "Ты крабик. Боком ходишь.",
+    "You're a little crab. Walking sideways."
+   ],
+   [
+    "[laughing]",
+    "Хи-хи-хи. Смешно.",
+    "Hee-hee-hee. Funny."
+   ]
+  ],
+  "angry_topic_grumble": [
+   [
+    "[annoyed]",
+    "Почему я? Я маленькая.",
+    "Why me? I'm little."
+   ],
+   [
+    "[angry]",
+    "Не хочу с тобой говорить.",
+    "I don't want to talk to you."
+   ],
+   [
+    "[grumbling]",
+    "Всё плохо. Всё-всё.",
+    "Everything's bad. All of it."
+   ]
+  ],
+  "happy_laugh": [
+   [
+    "[laughing]",
+    "Хи-хи-хи! Ой!",
+    "Hee-hee-hee! Oh!"
+   ],
+   [
+    "[giggling]",
+    "Хи-хи. Ещё расскажи.",
+    "Hee-hee. Tell me more."
+   ],
+   [
+    "[laughing]",
+    "Ха-ха! Смешно как!",
+    "Ha-ha! So funny!"
+   ]
+  ],
+  "happy_agree": [
+   [
+    "[agreeing]",
+    "Ага. Ладно.",
+    "Uh-huh. Okay."
+   ],
+   [
+    "[agreeing]",
+    "Хорошо. Так и сделаем.",
+    "Okay. That's what we'll do."
+   ],
+   [
+    "[thoughtful]",
+    "Мм. Наверное, да.",
+    "Mm. Probably, yes."
+   ]
+  ],
+  "happy_bond_plus": [
+   [
+    "[warm]",
+    "Ты хорошая. Я тебя люблю.",
+    "You're good. I love you."
+   ],
+   [
+    "[happy]",
+    "Мы подружки! Правда?",
+    "We're friends! Right?"
+   ],
+   [
+    "[affectionate]",
+    "Обними меня. Пожалуйста.",
+    "Hug me. Please."
+   ]
+  ],
+  "angry_bond_minus": [
+   [
+    "[angry]",
+    "Уйди. Ты плохая.",
+    "Go away. You're mean."
+   ],
+   [
+    "[cold]",
+    "Не разговариваю с тобой.",
+    "I'm not talking to you."
+   ],
+   [
+    "[hurt]",
+    "Обидно. Мне обидно.",
+    "That hurts. It hurts my feelings."
+   ]
+  ],
+  "call_name": [
+   [
+    "[calling]",
+    "Ау! Ты где?",
+    "Yoo-hoo! Where are you?"
+   ],
+   [
+    "[calling]",
+    "Эй! Иди сюда!",
+    "Hey! Come here!"
+   ],
+   [
+    "[calling]",
+    "Подожди меня! Эй!",
+    "Wait for me! Hey!"
+   ]
+  ],
+  "ask_build": [
+   [
+    "[asking]",
+    "Построишь нам домик? Пожалуйста.",
+    "Will you build us a little house? Please."
+   ],
+   [
+    "[asking]",
+    "Ты умеешь строить. А я нет.",
+    "You know how to build. I don't."
+   ],
+   [
+    "[hopeful]",
+    "Крышу бы. Возьмёшься?",
+    "A roof would be nice. Will you?"
+   ]
+  ],
+  "ask_food": [
+   [
+    "[asking]",
+    "Сходи за едой, а? Я подожду.",
+    "Go get food, will you? I'll wait."
+   ],
+   [
+    "[asking]",
+    "Кокосиков принеси. Пожалуйста.",
+    "Bring some coconuts. Please."
+   ],
+   [
+    "[worried]",
+    "Еды нет. Мне страшно.",
+    "There's no food. I'm scared."
+   ]
+  ],
+  "ask_water": [
+   [
+    "[asking]",
+    "Принеси водички. Пожалуйста.",
+    "Bring some water. Please."
+   ],
+   [
+    "[asking]",
+    "Бутылочка пустая. Сходишь?",
+    "The bottle's empty. Will you go?"
+   ],
+   [
+    "[worried]",
+    "Воды нет совсем. Ну сходи.",
+    "There's no water at all. Please go."
+   ]
+  ],
+  "ask_wood": [
+   [
+    "[asking]",
+    "Палочек принеси. Костёрчик гаснет.",
+    "Bring some sticks. The little fire's dying."
+   ],
+   [
+    "[asking]",
+    "Сходи за дровами. Пожалуйста.",
+    "Go get firewood. Please."
+   ],
+   [
+    "[worried]",
+    "Дров нет. Ночью замёрзнем.",
+    "No wood. We'll freeze tonight."
+   ]
+  ],
+  "agree_directive": [
+   [
+    "[agreeing]",
+    "Хорошо. Я схожу.",
+    "Okay. I'll go."
+   ],
+   [
+    "[agreeing]",
+    "Ладно. Сделаю. Постараюсь.",
+    "All right. I'll do it. I'll try."
+   ],
+   [
+    "[warm]",
+    "Конечно. Для тебя схожу.",
+    "Of course. I'll go for you."
+   ]
+  ],
+  "refuse_directive": [
+   [
+    "[refusing]",
+    "Не хочу. Сама сходи.",
+    "I don't want to. Go yourself."
+   ],
+   [
+    "[grumbling]",
+    "Почему я? Я устала.",
+    "Why me? I'm tired."
+   ],
+   [
+    "[tired]",
+    "Не могу. Ножки не идут.",
+    "I can't. My legs won't go."
+   ]
+  ],
+  "happy_aid_give": [
+   [
+    "[caring]",
+    "Тихо, тихо. Я тут.",
+    "Hush, hush. I'm here."
+   ],
+   [
+    "[caring]",
+    "Вот, покушай. Тебе надо.",
+    "Here, eat. You need it."
+   ],
+   [
+    "[soothing]",
+    "Сейчас перевяжу. Потерпи.",
+    "I'll bandage it now. Hang on."
+   ]
+  ],
+  "happy_console": [
+   [
+    "[soothing]",
+    "Не плачь. Я с тобой.",
+    "Don't cry. I'm with you."
+   ],
+   [
+    "[caring]",
+    "Иди сюда. Обниму.",
+    "Come here. I'll hug you."
+   ],
+   [
+    "[soothing]",
+    "Всё пройдёт. Честно-честно.",
+    "It'll pass. Honest, honest."
+   ]
+  ],
+  "happy_aid_thanks": [
+   [
+    "[grateful]",
+    "Спасибо. Ты добрая.",
+    "Thank you. You're kind."
+   ],
+   [
+    "[grateful]",
+    "Ты меня спасла. Спасибо.",
+    "You saved me. Thank you."
+   ],
+   [
+    "[warm]",
+    "Я тебя люблю. Спасибо.",
+    "I love you. Thank you."
+   ]
+  ],
+  "sad_aid_ask": [
+   [
+    "[weak]",
+    "Помоги мне. Пожалуйста.",
+    "Help me. Please."
+   ],
+   [
+    "[sad]",
+    "Перевяжи. Я сама не умею.",
+    "Bandage it. I don't know how."
+   ],
+   [
+    "[weak]",
+    "Дай покушать. Я слабенькая.",
+    "Give me something to eat. I'm weak."
+   ]
+  ],
+  "sleepy_dream": [
+   [
+    "[dreamy]",
+    "А у меня будет кроватка. Мягонькая.",
+    "And I'll have a little bed. So soft."
+   ],
+   [
+    "[dreamy]",
+    "Домик. С окошком. И с дверкой.",
+    "A little house. With a window. And a door."
+   ],
+   [
+    "[dreamy]",
+    "Когда-нибудь я вернусь к маме.",
+    "Someday I'll go back to mommy."
+   ]
+  ],
+  "happy_gift": [
+   [
+    "[excited]",
+    "Ой! Подарочек! От моря!",
+    "Oh! A little present! From the sea!"
+   ],
+   [
+    "[happy]",
+    "Что это? Моё! Моё!",
+    "What's this? Mine! Mine!"
+   ],
+   [
+    "[surprised]",
+    "Ой, что-то прибило. Ура!",
+    "Oh, something washed up. Hooray!"
+   ]
+  ],
+  "happy_dress": [
+   [
+    "[content]",
+    "Тёпленько. Хорошо.",
+    "Cozy. Nice."
+   ],
+   [
+    "[happy]",
+    "Я красивая? Скажи, что да.",
+    "Am I pretty? Say yes."
+   ],
+   [
+    "[content]",
+    "Сухое. Мягкое. Моё.",
+    "Dry. Soft. Mine."
+   ]
+  ]
+ }
+}

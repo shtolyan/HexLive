@@ -1,0 +1,385 @@
+{
+ "_comment": "§67.16 Маша: язвит, шутит над собой и над обстоятельствами, самостоятельная, упрямая; под сарказмом тёплая. Никогда не ноет прямо — только через иронию. Вариант = [тег подачи eleven_v3, RU, EN].",
+ "groups": {
+  "sad_hunger": [
+   ["[wry]", "Если я съем ещё один кокос, я стану кокосом.", "One more coconut and I'll turn into one."],
+   ["[wry]", "Есть хочу так, что краб уже выглядит аппетитно.", "So hungry even that crab looks tasty."],
+   ["[weak]", "Ладно, признаю. Без еды я никакая.", "Fine, I admit it. Without food I'm useless."]
+  ],
+  "sad_thirst": [
+   ["[wry]", "Вода. Тёплая, солёная, любая. Нет, не любая.", "Water. Warm, salty, anything. No, not anything."],
+   ["[wry]", "Бутылка пустая. Классика.", "Bottle's empty. Classic."],
+   ["[hoarse]", "Голос сел. Тебе повезло.", "My voice is gone. Lucky you."]
+  ],
+  "sad_cold": [
+   ["[shivering]", "Холодно. Ну хоть не жарко.", "It's cold. Well, at least it's not hot."],
+   ["[shivering]", "Зубы стучат. Отбиваю ритм.", "My teeth are chattering. Keeping the beat."],
+   ["[wry]", "Замерзаю. Костёр, кажется, тоже.", "I'm freezing. So is the fire, apparently."]
+  ],
+  "sad_heat": [
+   ["[tired]", "Жарко. Я сейчас поджарюсь, как рыба.", "Hot. I'm about to roast like a fish."],
+   ["[tired]", "Солнце, ты перестарался. Серьёзно.", "Sun, you've overdone it. Seriously."],
+   ["[wry]", "Загар мне, конечно, к лицу. А обморок нет.", "The tan suits me, sure. Fainting doesn't."]
+  ],
+  "sleepy_tired": [
+   ["[sleepy]", "Устала. Кто бы мог подумать.", "Tired. Who would've guessed."],
+   ["[yawning]", "Зеваю. Это не про тебя, это про день.", "Yawning. Not at you, at the day."],
+   ["[sleepy]", "Всё, я выключаюсь. Не поднимать.", "That's it, I'm shutting down. Don't lift."]
+  ],
+  "sleepy_bed": [
+   ["[sleepy]", "Кровать. Лучшее изобретение человечества.", "Bed. Humanity's finest invention."],
+   ["[content]", "Всё. Меня нет. Спокойной ночи.", "Done. I'm gone. Good night."],
+   ["[whispering]", "Если что, я не сплю. Я думаю. Лёжа.", "If anyone asks, I'm not sleeping. I'm thinking. Lying down."]
+  ],
+  "sleepy_wake": [
+   ["[yawning]", "Утро. Опять этот остров.", "Morning. This island again."],
+   ["[sleepy]", "Проснулась. Могу и пожалеть.", "I'm awake. Might regret that."],
+   ["[sleepy]", "Кофе нет. Значит, будет день без кофе.", "No coffee. So it's a no-coffee day."]
+  ],
+  "hurt_wound": [
+   ["[pain]", "Ай! Ну отлично. Кровь.", "Ow! Oh, great. Blood."],
+   ["[pain]", "Порезалась. Красиво, глубоко.", "Cut myself. Nice and deep."],
+   ["[pain]", "Больно! Это я так, вслух.", "It hurts! Just saying it out loud."]
+  ],
+  "hurt_sick": [
+   ["[weak]", "Мутит. Зато не скучно.", "I'm queasy. At least it's not boring."],
+   ["[weak]", "Кажется, я заболела. Прекрасно.", "I think I'm sick. Wonderful."],
+   ["[weak]", "Полежу. Не потому что сдалась. Потому что тошнит.", "I'll lie down. Not giving up. Just nauseous."]
+  ],
+  "sad_dirty": [
+   ["[disgusted]", "Я пахну как костёр. Не в хорошем смысле.", "I smell like a campfire. Not in a good way."],
+   ["[wry]", "Помыться бы. Хотя кто тут оценит.", "I need a wash. Not that anyone here would notice."],
+   ["[disgusted]", "Песок везде. Прямо везде.", "Sand everywhere. And I mean everywhere."]
+  ],
+  "sad_lonely": [
+   ["[wry]", "Тихо. Даже поспорить не с кем.", "Quiet. No one even to argue with."],
+   ["[sad]", "Одна. Ладно, я и сама себе компания.", "Alone. Fine, I'm my own company."],
+   ["[sad]", "Хоть бы кто зашёл. Поругаться.", "Wish someone would drop by. To bicker."]
+  ],
+  "happy_relief": [
+   ["[relieved]", "Ох. Вот, теперь я человек.", "Oh. There, now I'm a person again."],
+   ["[happy]", "Жива. И даже довольна. Не привыкай.", "Alive. And even pleased. Don't get used to it."],
+   ["[content]", "Тепло, сытно. Остров, ты сегодня ничего.", "Warm, full. Island, you're all right today."]
+  ],
+  "hurt_faint": [
+   ["[fading]", "Ой. Что-то мне. Всё.", "Oh. Something's. That's it."],
+   ["[fading]", "Темнеет. Не вовремя.", "Going dark. Bad timing."],
+   ["[gasping]", "Падаю. Не смейтесь.", "Going down. Don't laugh."]
+  ],
+  "sad_wet": [
+   ["[wry]", "Дождь. Ну хоть помылась.", "Rain. Well, at least I've had a wash."],
+   ["[shivering]", "Мокрая насквозь. Отличный день.", "Soaked through. Great day."],
+   ["[wry]", "Крышу бы. Или зонтик. Или дом.", "A roof would be nice. Or an umbrella. Or a house."]
+  ],
+  "work_chop": [
+   ["[effort]", "Хек! Ну, дерево, кто кого.", "Hah! Come on, tree, let's see."],
+   ["[effort]", "Ещё раз. И ещё. Упрямое.", "Again. And again. Stubborn thing."],
+   ["[effort]", "Падай. Я не отстану.", "Fall. I won't let up."]
+  ],
+  "work_haul": [
+   ["[effort]", "Тяжёлое. Спасибо, я заметила.", "Heavy. Thanks, I noticed."],
+   ["[effort]", "Тащу. Спина потом выскажется.", "Hauling. My back will comment later."],
+   ["[effort]", "Уф. Кто вообще придумал брёвна.", "Oof. Whoever invented logs."]
+  ],
+  "work_build": [
+   ["[effort]", "Сюда палку. Сюда верёвку. Молюсь.", "Stick here. Rope there. Praying."],
+   ["[effort]", "Строю. Если упадёт, я не строила.", "Building. If it falls, I didn't build it."],
+   ["[determined]", "Криво, но моё.", "Crooked, but mine."]
+  ],
+  "happy_done": [
+   ["[proud]", "Готово. Можно аплодировать.", "Done. Applause is welcome."],
+   ["[happy]", "Получилось. Я и сама удивлена.", "It worked. I'm surprised myself."],
+   ["[proud]", "Вот. Не идеально, зато стоит.", "There. Not perfect, but it stands."]
+  ],
+  "happy_fire_lit": [
+   ["[excited]", "Горит! Я сделала огонь. Как пещерная.", "It's lit! I made fire. Like a cavewoman."],
+   ["[happy]", "Есть огонь. Ужин будет горячим. Наверное.", "We have fire. Dinner will be hot. Probably."],
+   ["[excited]", "Ну здравствуй, тепло. Долго же ты.", "Well hello, warmth. Took you long enough."]
+  ],
+  "sad_fire_out": [
+   ["[wry]", "Погас. Конечно, погас.", "It's out. Of course it's out."],
+   ["[worried]", "Огня нет. Ночь будет весёлой.", "No fire. Going to be a fun night."],
+   ["[wry]", "Одни угли. Это намёк, что пора за дровами.", "Just embers. A hint that it's firewood time."]
+  ],
+  "happy_find_food": [
+   ["[excited]", "Рыба! Попалась. Не убегай.", "A fish! Got you. Don't run."],
+   ["[happy]", "Кокос. Опять кокос. Ладно, спасибо.", "A coconut. Another coconut. Fine, thanks."],
+   ["[happy]", "Мясо! Вот это уже разговор.", "Meat! Now that's a conversation."]
+  ],
+  "happy_water": [
+   ["[happy]", "Полная бутылка. Богатство.", "A full bottle. Riches."],
+   ["[happy]", "Чистая вода. Даже не солёная.", "Clean water. Not even salty."],
+   ["[content]", "Дождик, спасибо. Ты хоть на что-то годен.", "Thanks, rain. You're good for something."]
+  ],
+  "angry_fail": [
+   ["[frustrated]", "Не хватило. Ну конечно.", "Not enough. Naturally."],
+   ["[annoyed]", "Не пройти. Остров, ты серьёзно?", "Can't get through. Island, seriously?"],
+   ["[frustrated]", "Пусто. Прекрасно сходила.", "Nothing. Great trip."]
+  ],
+  "happy_wash": [
+   ["[content]", "Смываю остров. Хотя бы с себя.", "Washing the island off. Off me, at least."],
+   ["[happy]", "Чистая. Почти цивилизация.", "Clean. Almost civilized."],
+   ["[content]", "Плаваю. Акулы, я невкусная.", "Swimming. Sharks, I taste terrible."]
+  ],
+  "happy_eat": [
+   ["[chewing]", "Ем. Не смотри, я некрасиво ем.", "Eating. Don't watch, I eat ugly."],
+   ["[happy]", "Мм. Съедобно. Даже вкусно.", "Mm. Edible. Even tasty."],
+   ["[disgusted]", "Горькое. Ем. Не спрашивай.", "Bitter. Eating it. Don't ask."]
+  ],
+  "happy_drink": [
+   ["[relieved]", "Ах. Вода. Помню тебя.", "Ah. Water. I remember you."],
+   ["[relieved]", "Глоток. Ещё глоток. Жизнь налаживается.", "A sip. Another. Life's looking up."],
+   ["[content]", "Напилась. Можно снова язвить.", "Had my fill. I can be snide again."]
+  ],
+  "work_craft": [
+   ["[focused]", "Палка, камень, верёвка. Инженерия.", "Stick, stone, rope. Engineering."],
+   ["[focused]", "Так. Узел. Если держится, я гений.", "Right. A knot. If it holds, I'm a genius."],
+   ["[focused]", "Не мешай. Я творю.", "Don't bother me. I'm creating."]
+  ],
+  "happy_bed_done": [
+   ["[excited]", "Кровать! Своя! Не лежать на песке!", "A bed! My own! No more sand!"],
+   ["[proud]", "Сама сделала. Кто молодец? Я молодец.", "Made it myself. Who's great? I'm great."],
+   ["[happy]", "Теперь буду спать как человек. Наконец.", "Now I'll sleep like a human. Finally."]
+  ],
+  "fear_wolf": [
+   ["[tense]", "Волк. Ну здравствуй.", "A wolf. Well, hello."],
+   ["[whispering]", "Тихо. Может, он вегетарианец.", "Quiet. Maybe it's a vegetarian."],
+   ["[frightened]", "Уходи! Я жёсткая и невкусная!", "Go away! I'm tough and taste awful!"]
+  ],
+  "call_help": [
+   ["[shouting]", "Помогите! Я серьёзно!", "Help! I mean it!"],
+   ["[shouting]", "Девочки! Сюда! Быстро!", "Girls! Here! Now!"],
+   ["[screaming]", "На помощь! Ааа!", "Help me! Aaah!"]
+  ],
+  "angry_attack": [
+   ["[angry]", "Пошёл вон! Я не шучу!", "Get out! I'm not joking!"],
+   ["[angry]", "На! Ещё хочешь?", "Take that! Want more?"],
+   ["[angry]", "Не боюсь я тебя. Почти.", "I'm not scared of you. Almost."]
+  ],
+  "hurt_bitten": [
+   ["[screaming]", "Ааа! Он меня укусил!", "Aaah! It bit me!"],
+   ["[screaming]", "Рука! Отпусти руку!", "My arm! Let go of my arm!"],
+   ["[screaming]", "Больно! Гад! Больно!", "It hurts! Bastard! It hurts!"]
+  ],
+  "happy_victory": [
+   ["[triumphant]", "Всё. Кто тут хищник? Я хищник.", "Done. Who's the predator here? I am."],
+   ["[panting]", "Ох. Жива. Приятно удивлена.", "Oh. Alive. Pleasantly surprised."],
+   ["[triumphant]", "Вот так. Больше не полезешь.", "There. You won't try that again."]
+  ],
+  "fear_flee": [
+   ["[panicked]", "Бежим! Обсудим потом!", "Run! We'll discuss it later!"],
+   ["[panicked]", "Ай! Не догоняй, я быстрая!", "Ah! Don't chase me, I'm fast!"],
+   ["[panicked]", "К костру! Живо!", "To the fire! Now!"]
+  ],
+  "fear_shark": [
+   ["[frightened]", "Акула! Все из воды!", "Shark! Everyone out of the water!"],
+   ["[wry]", "Туда я не поплыву. Я не закуска.", "Not swimming there. I'm not a snack."],
+   ["[whispering]", "Плавник. Видела. Не показалось.", "A fin. Saw it. Not imagining it."]
+  ],
+  "hurt_death": [
+   ["[dying]", "Вот и всё. Не смешно.", "That's it, then. Not funny."],
+   ["[gasping]", "Не так я это представляла.", "Not how I pictured it."],
+   ["[dying]", "Девочки. Держитесь.", "Girls. Hang in there."]
+  ],
+  "cry_corpse": [
+   ["[crying]", "Нет. Нет, нет, вставай.", "No. No, no, get up."],
+   ["[crying]", "Ну ты чего. Я же не всерьёз ругалась.", "Come on. I wasn't serious when I snapped at you."],
+   ["[sobbing]", "Кому я теперь буду язвить.", "Who am I going to be snide to now."]
+  ],
+  "cry_bury": [
+   ["[solemn]", "Спи. Мы справимся. Как-нибудь.", "Sleep. We'll manage. Somehow."],
+   ["[crying]", "Прощай. Ты была лучше меня.", "Goodbye. You were better than me."],
+   ["[solemn]", "Не забуду. Обещаю.", "I won't forget. I promise."]
+  ],
+  "angry_defend": [
+   ["[shouting]", "Держись! Иду!", "Hold on! Coming!"],
+   ["[angry]", "Отошёл от неё! Быстро!", "Get away from her! Now!"],
+   ["[determined]", "Своих не отдам. Никому.", "I don't give up my own. To anyone."]
+  ],
+  "fear_dark_alone": [
+   ["[whispering]", "Темно. И я одна. Прекрасно.", "Dark. And I'm alone. Wonderful."],
+   ["[whispering]", "Кто здесь? Если ты, то не смешно.", "Who's there? If it's you, it's not funny."],
+   ["[tense]", "Ладно. Досижу до утра.", "Fine. I'll sit it out till morning."]
+  ],
+  "fear_stranger": [
+   ["[tense]", "Чужой. Так, и кто ты такой?", "A stranger. So, who are you?"],
+   ["[whispering]", "Не наш. Держись подальше.", "Not one of ours. Keep your distance."],
+   ["[angry]", "Уходи. Тут не принимают.", "Leave. We're not taking visitors."]
+  ],
+  "cry_breakdown": [
+   ["[sobbing]", "Не могу. Всё, не могу.", "I can't. That's it, I can't."],
+   ["[crying]", "Устала быть сильной.", "I'm tired of being strong."],
+   ["[sobbing]", "Домой хочу. Просто домой.", "I want to go home. Just home."]
+  ],
+  "cry_beaten": [
+   ["[crying]", "Больно. Гад ты.", "It hurts. You bastard."],
+   ["[sobbing]", "Не трогай меня. Никогда.", "Don't touch me. Ever."],
+   ["[crying]", "Ухожу. Не ходи за мной.", "I'm leaving. Don't follow me."]
+  ],
+  "angry_expel": [
+   ["[angry]", "Вон отсюда. Это наш берег.", "Get out. This is our beach."],
+   ["[angry]", "Уходи. Второй раз просить не буду.", "Leave. I won't ask twice."],
+   ["[angry]", "Пошёл. Живо.", "Go. Now."]
+  ],
+  "help_answer": [
+   ["[shouting]", "Бегу! Держись!", "Coming! Hold on!"],
+   ["[shouting]", "Слышу! Сейчас буду!", "I hear you! Be right there!"],
+   ["[determined]", "Не смей умирать. Я бегу.", "Don't you dare die. I'm running."]
+  ],
+  "hurt_moan": [
+   ["[weak]", "Кто-нибудь. Пожалуйста.", "Somebody. Please."],
+   ["[weak]", "Воды. Хоть глоток.", "Water. Just a sip."],
+   ["[whispering]", "Холодно. Девочки. Где вы.", "Cold. Girls. Where are you."]
+  ],
+  "happy_topic_smalltalk": [
+   ["[casual]", "Ну что, как тебе наш курорт?", "So, how do you like our resort?"],
+   ["[casual]", "Море красивое. Жаль, что вокруг остров.", "The sea is pretty. Shame there's an island around it."],
+   ["[casual]", "Посидим. Пять минут ничего не делать.", "Let's sit. Five minutes of doing nothing."]
+  ],
+  "sad_topic_escape": [
+   ["[wistful]", "Уплыть бы. Хоть на бревне.", "Wish we could sail away. Even on a log."],
+   ["[wry]", "Плот. Брёвна, верёвка и вера в чудо.", "A raft. Logs, rope and faith in miracles."],
+   ["[wistful]", "Там, за морем, есть кофе. Я уверена.", "There's coffee beyond the sea. I'm sure of it."]
+  ],
+  "fear_topic_sharks": [
+   ["[tense]", "Акула. Видела вчера. Большая.", "A shark. Saw it yesterday. Big."],
+   ["[wry]", "Далеко не плавай. Ты ей понравишься.", "Don't swim far. It'll like you."],
+   ["[tense]", "В воду только по колено. Правило.", "Only knee-deep. That's the rule."]
+  ],
+  "angry_topic_dogs": [
+   ["[serious]", "Волки ночью близко. Не расслабляйся.", "Wolves came close at night. Don't relax."],
+   ["[angry]", "Копья. Огонь. И чтоб никто не спал у края.", "Spears. Fire. And nobody sleeps on the edge."],
+   ["[serious]", "Спи. Я посторожу. Я всё равно не сплю.", "Sleep. I'll watch. I don't sleep anyway."]
+  ],
+  "sad_topic_weather": [
+   ["[tired]", "Дождь третий день. Я уже прорастаю.", "Third day of rain. I'm sprouting."],
+   ["[sad]", "Холодает. Крыша нужна. Вчера.", "Getting cold. We need a roof. Yesterday."],
+   ["[wry]", "Жара. Хоть яичницу жарь. Если б были яйца.", "Heat. You could fry an egg. If we had eggs."]
+  ],
+  "happy_topic_food": [
+   ["[cheerful]", "Кокосы. Опять кокосы. Ладно, ужин.", "Coconuts. Coconuts again. Fine, dinner."],
+   ["[happy]", "Мясо на огне. Я почти счастлива.", "Meat on the fire. I'm almost happy."],
+   ["[worried]", "Еды мало. Кто-то должен сходить. Не я.", "Food's low. Someone has to go. Not me."]
+  ],
+  "happy_topic_fire": [
+   ["[content]", "Костёр. Единственное, что здесь работает.", "The fire. The one thing here that works."],
+   ["[serious]", "Подкинь палок, а то будем греться обидой.", "Add sticks, or we'll warm ourselves on grudges."],
+   ["[content]", "Хорошо у огня. Даже говорить не хочется.", "It's nice by the fire. Don't even want to talk."]
+  ],
+  "cry_topic_home": [
+   ["[wistful]", "Дома был душ. Горячий. Представляешь.", "Home had a shower. Hot. Imagine that."],
+   ["[sad]", "Скучаю. Не скажу по кому.", "I miss someone. Won't say who."],
+   ["[crying]", "Вернуться бы. Хоть на день.", "Wish I could go back. Even for a day."]
+  ],
+  "happy_topic_gossip": [
+   ["[amused]", "Ты видела её вчера? Я чуть не умерла.", "Did you see her yesterday? I nearly died."],
+   ["[gossipy]", "С ножом весь день. Я бы забеспокоилась.", "Knife all day. I'd be worried."],
+   ["[whispering]", "Только никому. Хотя кому тут.", "Don't tell anyone. Not that there's anyone."]
+  ],
+  "happy_topic_flirt": [
+   ["[warm]", "Ты мне нравишься. Не надо так удивляться.", "I like you. Don't look so surprised."],
+   ["[playful]", "Сядь ближе. Это не флирт, это холодно.", "Sit closer. It's not flirting, it's cold."],
+   ["[affectionate]", "С тобой я почти не язвлю. Заметила?", "Around you I'm almost not snide. Noticed?"]
+  ],
+  "happy_topic_joke": [
+   ["[laughing]", "И кокос ей прямо по макушке. Ха!", "And the coconut, right on her head. Ha!"],
+   ["[playful]", "Ты ходишь как краб. Это комплимент.", "You walk like a crab. That's a compliment."],
+   ["[laughing]", "Ха-ха! Ой, не могу.", "Ha-ha! Oh, I can't."]
+  ],
+  "angry_topic_grumble": [
+   ["[annoyed]", "Опять я? Конечно я. Кто же ещё.", "Me again? Of course. Who else."],
+   ["[angry]", "Хватит. Не хочу это слушать.", "Enough. I don't want to hear it."],
+   ["[grumbling]", "Всё плохо. Даже погода против.", "Everything's bad. Even the weather's against us."]
+  ],
+  "happy_laugh": [
+   ["[laughing]", "Ха-ха! Ладно, это смешно.", "Ha-ha! Okay, that's funny."],
+   ["[amused]", "Ха. Ну ты даёшь.", "Ha. You're something."],
+   ["[laughing]", "Ха-ха-ха! Всё, не могу.", "Ha-ha-ha! That's it, I can't."]
+  ],
+  "happy_agree": [
+   ["[agreeing]", "Ага. Редко, но соглашусь.", "Yeah. Rare, but I agree."],
+   ["[agreeing]", "Ладно. Так и сделаем.", "Fine. That's what we'll do."],
+   ["[thoughtful]", "Мм. Ты права. Не привыкай.", "Mm. You're right. Don't get used to it."]
+  ],
+  "happy_bond_plus": [
+   ["[warm]", "Ты ничего. Это высшая оценка.", "You're all right. That's my highest rating."],
+   ["[happy]", "С тобой можно и на острове. Терпимо.", "With you the island's bearable. Tolerable."],
+   ["[warm]", "Хорошая ты. Я не часто такое говорю.", "You're good. I don't say that often."]
+  ],
+  "angry_bond_minus": [
+   ["[angry]", "Уйди. Серьёзно, уйди.", "Go away. Seriously, go."],
+   ["[cold]", "Не разговариваю. Наслаждайся тишиной.", "Not talking. Enjoy the silence."],
+   ["[hurt]", "Обидно. Не думала, что ты так.", "That hurt. Didn't think you'd do that."]
+  ],
+  "call_name": [
+   ["[calling]", "Эй! Ты где? Не прячься.", "Hey! Where are you? Don't hide."],
+   ["[calling]", "Ау! Отзовись, я волнуюсь. Немного.", "Yoo-hoo! Answer me, I'm worried. A bit."],
+   ["[calling]", "Иди сюда! Дело есть.", "Come here! Got a job for you."]
+  ],
+  "ask_build": [
+   ["[asking]", "Построишь? У тебя руки из нужного места.", "Will you build? Your hands are the right way round."],
+   ["[asking]", "Возьми молоток. Дом сам себя не построит.", "Take the hammer. The house won't build itself."],
+   ["[asking]", "Крыша нужна. Ты справишься лучше меня.", "We need a roof. You'll do it better than me."]
+  ],
+  "ask_food": [
+   ["[asking]", "Сходи за едой. Я за огнём слежу. Честно.", "Go get food. I'm minding the fire. Honestly."],
+   ["[asking]", "Кокосов принеси. Штук пять. Или десять.", "Bring coconuts. Five. Or ten."],
+   ["[worried]", "Еды нет. Сходишь? Я бы сама, но.", "No food. Will you go? I would, but."]
+  ],
+  "ask_water": [
+   ["[asking]", "Воды принеси. Бутылка пустая. Опять.", "Bring water. Bottle's empty. Again."],
+   ["[asking]", "Сходи к ручью. Я тут посторожу пустоту.", "Go to the stream. I'll guard the nothing here."],
+   ["[worried]", "Воды нет совсем. Сходишь?", "No water at all. Will you go?"]
+  ],
+  "ask_wood": [
+   ["[asking]", "Дров принеси. Костёр намекает.", "Bring wood. The fire's hinting."],
+   ["[asking]", "Сходи за палками, пока светло. Пожалуйста.", "Get sticks while it's light. Please."],
+   ["[worried]", "На ночь дров нет. Замёрзнем красиво.", "No wood for the night. We'll freeze in style."]
+  ],
+  "agree_directive": [
+   ["[agreeing]", "Ладно. Схожу. Но я запомню.", "Fine. I'll go. But I'll remember this."],
+   ["[agreeing]", "Сделаю. Не потому что ты просишь. Ладно, поэтому.", "I'll do it. Not because you asked. Okay, because you asked."],
+   ["[warm]", "Хорошо. Для тебя схожу.", "All right. For you, I'll go."]
+  ],
+  "refuse_directive": [
+   ["[refusing]", "Нет. Сама сходи. У тебя ноги есть.", "No. Go yourself. You've got legs."],
+   ["[grumbling]", "Не сейчас. У меня важное дело. Сидеть.", "Not now. I've got important business. Sitting."],
+   ["[tired]", "Не могу. Правда не могу.", "I can't. Really can't."]
+  ],
+  "happy_aid_give": [
+   ["[caring]", "Тихо. Я тут. Не дёргайся.", "Quiet. I'm here. Don't fidget."],
+   ["[caring]", "Ешь. Не спорь, я упрямее.", "Eat. Don't argue, I'm more stubborn."],
+   ["[soothing]", "Перевяжу. Будет больно. Потом легче.", "I'll bind it. It'll hurt. Then it'll be better."]
+  ],
+  "happy_console": [
+   ["[soothing]", "Ну, хватит. Иди сюда.", "Come on, enough. Come here."],
+   ["[caring]", "Поплачь. Я никому не скажу.", "Cry it out. I won't tell anyone."],
+   ["[soothing]", "Всё пройдёт. Это я тебе как циник говорю.", "It'll pass. I'm telling you that as a cynic."]
+  ],
+  "happy_aid_thanks": [
+   ["[grateful]", "Спасибо. Я не забуду. Серьёзно.", "Thank you. I won't forget. Seriously."],
+   ["[grateful]", "Выручила. Должна буду.", "You saved me. I owe you."],
+   ["[warm]", "Хорошая ты. Всё, больше не скажу.", "You're good. There, I won't say it again."]
+  ],
+  "sad_aid_ask": [
+   ["[weak]", "Помоги. Не смеюсь, правда помоги.", "Help me. Not joking, really help."],
+   ["[sad]", "Перевяжи, а? Сама не дотянусь.", "Bandage it, will you? I can't reach."],
+   ["[weak]", "Дай поесть. Гордость потом.", "Give me food. Pride can wait."]
+  ],
+  "sleepy_dream": [
+   ["[dreamy]", "Кровать. Своя. Со стенами вокруг.", "A bed. My own. With walls around it."],
+   ["[dreamy]", "Дом. Дверь. И чтоб закрывалась.", "A house. A door. One that closes."],
+   ["[dreamy]", "Когда-нибудь уплыву. И выпью кофе.", "Someday I'll sail away. And drink coffee."]
+  ],
+  "happy_gift": [
+   ["[surprised]", "О. Море что-то принесло. Спасибо, море.", "Oh. The sea brought something. Thanks, sea."],
+   ["[happy]", "Подарок! Мне! Не отбирать.", "A present! For me! Hands off."],
+   ["[surprised]", "Что это? Ладно, пригодится.", "What's this? Fine, it'll come in handy."]
+  ],
+  "happy_dress": [
+   ["[content]", "Тепло. Одетая я нравлюсь себе больше.", "Warm. I like myself better dressed."],
+   ["[happy]", "Оделась. Почти как в городе.", "Dressed. Almost like in the city."],
+   ["[content]", "Сухое. Тёплое. Не отдам.", "Dry. Warm. Not giving it back."]
+  ]
+ }
+}

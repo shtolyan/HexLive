@@ -422,10 +422,17 @@ and there is no switch for it — `FmodSfx.HexkufaFrozen` is the only thaw.
   `Sfx/Voices/<char>/`, live languages in `Sfx/VoicesLoc/<ru|en>/<char>/`.
   The language is only the scan root (`FmodSfx.CurrentVoiceBank` ← `Loc.Current`);
   speech ids, `SpeechCatalog`, bubbles, faces and lipsync never see it.
-- Texts live in `_ArtSource/Voice/spoken_lines.json` (group id → three
-  `[delivery tag, RU, EN]`). **A new group goes into BOTH catalogs** — the
-  hexkufa doc still owns the id set. No cross-language fallback: a group
-  missing from the locale bank is silent, never hexkufa.
+- Texts are PER CHARACTER: `_ArtSource/Voice/spoken/<char>.json` (group id →
+  three `[delivery tag, RU, EN]`); `spoken_lines.json` holds only the shared
+  wordless-group list. Each of the six has her own words in her own manner
+  (Jolly patters and repeats, Marta clips, Molly coos, Masha snarks, Jana
+  hums, Kshishtof growls in the masculine). The first draft was one text for
+  everyone, calqued from the hexkufa gloss, and read like a stroke patient —
+  never write telegraphic "Еды нет. Принеси!" lines again; write what an adult
+  would actually say, three DIFFERENT lines per group, no line shared between
+  two characters. **A new group goes into the hexkufa catalog AND all six
+  files.** No cross-language fallback: a group missing from the locale bank is
+  silent, never hexkufa.
 - `python3 _ArtSource/Voice/generate_voices.py --groups <id>` now means
   `--lang ru,en`; add `--lang hexkufa` only for the frozen bank. Live speech
   hits the 4.2 s cap far more often (~1 take in 5): ALWAYS follow with

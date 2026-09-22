@@ -49,6 +49,7 @@ import bake_lipsync  # §67.7: рядом с каждым WAV печём .vis-т
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LINES = ROOT / "_ArtSource/Voice/hexkufa_lines.json"
 SPOKEN = ROOT / "_ArtSource/Voice/spoken_lines.json"
+SPOKEN_DIR = ROOT / "_ArtSource/Voice/spoken"     # <char>.json — own words per character
 VOICES = ROOT / "_ArtSource/Voice/voices.json"
 OUTDIR = ROOT / "Assets/StreamingAssets/HexLive/Sfx/Voices"
 LOCALIZED_OUTDIR = ROOT / "Assets/StreamingAssets/HexLive/Sfx/VoicesLoc"
@@ -59,15 +60,25 @@ def outdir_for(lang: str) -> pathlib.Path:
     return OUTDIR if lang == "hexkufa" else LOCALIZED_OUTDIR / lang
 
 
-def lines_for(lang: str, group: dict, spoken: dict) -> list[dict] | None:
-    """The takes of one group in one language; None = copy from hexkufa
-    (wordless groups), [] = the language has no text for it yet."""
+def load_spoken() -> dict:
+    """spoken_lines.json (shared: neutral groups) + spoken/<char>.json (words)."""
+    spoken = json.loads(SPOKEN.read_text(encoding="utf-8"))
+    spoken["characters"] = {
+        path.stem: json.loads(path.read_text(encoding="utf-8"))["groups"]
+        for path in sorted(SPOKEN_DIR.glob("*.json"))}
+    return spoken
+
+
+def lines_for(lang: str, char: str, group: dict, spoken: dict) -> list[dict] | None:
+    """The takes of one group for one character in one language; None = copy
+    from hexkufa (wordless groups), [] = no text for it yet."""
     if lang == "hexkufa":
         return group["lines"]
     if group["id"] in spoken.get("neutral", []):
         return None
     column = SPOKEN_COLUMN[lang]
-    return [{"text": f"{v[0]} {v[column]}"} for v in spoken["groups"].get(group["id"], [])]
+    variants = spoken["characters"].get(char, {}).get(group["id"], [])
+    return [{"text": f"{v[0]} {v[column]}"} for v in variants]
 
 RATE = 44100
 MAX_SECONDS = 4.2
@@ -325,7 +336,7 @@ def main() -> int:
               if (not args.priority or g["priority"] == args.priority)
               and (not args.groups or g["id"] in args.groups.split(","))]
 
-    spoken = json.loads(SPOKEN.read_text(encoding="utf-8"))
+    spoken = load_spoken()
     langs = [x for x in args.lang.split(",") if x]
     for lang in langs:
         if lang != "hexkufa" and lang not in SPOKEN_COLUMN:
@@ -333,10 +344,13 @@ def main() -> int:
 
     # A group the hexkufa doc added but spoken_lines.json did not is SILENT in
     # the game (§67.16: no cross-language fallback) — say so on every run.
-    unvoiced = [g["id"] for g in catalog["groups"]
-                if g["id"] not in spoken["groups"] and g["id"] not in spoken.get("neutral", [])]
-    if unvoiced and any(lang != "hexkufa" for lang in langs):
-        print(f"⚠ no RU/EN text in spoken_lines.json for: {', '.join(unvoiced)}", file=sys.stderr)
+    if any(lang != "hexkufa" for lang in langs):
+        for char in chars:
+            unvoiced = [g["id"] for g in catalog["groups"]
+                        if g["id"] not in spoken["characters"].get(char, {})
+                        and g["id"] not in spoken.get("neutral", [])]
+            if unvoiced:
+                print(f"⚠ spoken/{char}.json has no text for: {', '.join(unvoiced)}", file=sys.stderr)
 
     jobs = []
     targets = []
@@ -345,7 +359,7 @@ def main() -> int:
     # Group-major, so a run cut short by the quota leaves WHOLE groups voiced
     # by everyone rather than one colonist fully voiced and five mute.
     for lang, g, (char, cfg) in ((l, g, c) for g in groups for l in langs for c in chars.items()):
-            lines = lines_for(lang, g, spoken)
+            lines = lines_for(lang, char, g, spoken)
             if lines is None:
                 # Wordless takes (sighs, sobs) are the same sound in any language.
                 for n in range(len(g["lines"])):

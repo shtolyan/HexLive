@@ -51,6 +51,7 @@ DEFAULT_VOICES_DIR = REPO / "Assets/StreamingAssets/HexLive/Sfx/Voices"
 # §67.16: живые языки лежат отдельным деревом VoicesLoc/<lang>/<char>/ —
 # имена файлов те же, что у хекскуфы, язык читается из пути.
 DEFAULT_SPOKEN = Path(__file__).resolve().parent / "spoken_lines.json"
+DEFAULT_SPOKEN_DIR = Path(__file__).resolve().parent / "spoken"
 LOCALIZED_VOICES_DIR = REPO / "Assets/StreamingAssets/HexLive/Sfx/VoicesLoc"
 SPOKEN_LANGS = ("ru", "en")
 
@@ -563,22 +564,24 @@ def bake_from_segments(samples: np.ndarray, dsp: LipSyncDsp,
 
 def load_line_texts(path: Path = DEFAULT_LINES) -> dict[str, list[str]]:
     """hexkufa_lines.json → {group_id: [text варианта 0, 1, 2]}.
-    §67.16: тексты живых языков едут в том же словаре под ключами "@ru" /
-    "@en" (id группы с «@» не бывает) — уже приведённые к латинице, так что
+    §67.16: тексты живых языков едут в том же словаре под ключами
+    "@<lang>/<char>" (id группы с «@» не бывает) — у каждого персонажа свои
+    слова (spoken/<char>.json), уже приведённые к латинице, так что
     words_for_wav остаётся одной функцией для всех банков."""
     data = json.loads(Path(path).read_text())
     texts: dict = {g["id"]: [ln["text"] for ln in g["lines"]] for g in data["groups"]}
     if DEFAULT_SPOKEN.exists():
-        spoken = json.loads(DEFAULT_SPOKEN.read_text(encoding="utf-8"))
-        for column, lang in enumerate(SPOKEN_LANGS, start=1):
-            texts["@" + lang] = {
-                gid: [to_hexkufa_letters(v[column], lang) for v in variants]
-                for gid, variants in spoken["groups"].items()}
-        # Бессловесные группы скопированы из банка хекскуфы — и текст их тот же.
-        for lang in SPOKEN_LANGS:
-            for gid in spoken.get("neutral", []):
-                if gid in texts:
-                    texts["@" + lang][gid] = texts[gid]
+        neutral = json.loads(DEFAULT_SPOKEN.read_text(encoding="utf-8")).get("neutral", [])
+        for char_file in sorted(DEFAULT_SPOKEN_DIR.glob("*.json")):
+            groups = json.loads(char_file.read_text(encoding="utf-8"))["groups"]
+            for column, lang in enumerate(SPOKEN_LANGS, start=1):
+                per = {gid: [to_hexkufa_letters(v[column], lang) for v in variants]
+                       for gid, variants in groups.items()}
+                # Бессловесные группы скопированы из банка хекскуфы — текст тот же.
+                for gid in neutral:
+                    if gid in texts:
+                        per[gid] = texts[gid]
+                texts[f"@{lang}/{char_file.stem}"] = per
     return texts
 
 
@@ -594,7 +597,7 @@ def words_for_wav(wav: Path, texts: dict[str, list[str]]) -> list[list[int]] | N
     if not variant.isdigit():
         return None
     lang = language_of(wav)
-    lines = (texts if lang == "hexkufa" else texts.get("@" + lang, {})).get(group)
+    lines = (texts if lang == "hexkufa" else texts.get(f"@{lang}/{char}", {})).get(group)
     if lines is None or int(variant) >= len(lines):
         return None
     words = g2p_words(lines[int(variant)])

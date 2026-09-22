@@ -250,6 +250,10 @@ public static class PrototypeRuntimeBootstrap
         var linkLost = linkLostRoot.AddComponent<ConnectionLostDialog>();
         linkLost.SetRunner(runner);
 
+        var assignmentRoot = new GameObject("HexLive Character Introduction");
+        assignmentRoot.AddComponent<UIDocument>();
+        assignmentRoot.AddComponent<PlayerAssignmentDialog>().SetRunner(runner);
+
         // Victory/end-of-simulation summary — hidden until the raft launches.
         var endRoot = new GameObject("HexLive End Summary");
         endRoot.AddComponent<UIDocument>();

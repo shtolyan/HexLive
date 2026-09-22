@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Runtime;
+using HexLive.Simulation.Wire;
 
 namespace HexLive.Server
 {
@@ -93,7 +94,8 @@ public sealed class PlayerCharacterAssignments
         IEnumerable<int> retainableNpcIds,
         IEnumerable<int> assignableNpcIds,
         int characterLimit = DefaultCharacterLimit,
-        ISet<int>? priorityNpcIds = null)
+        ISet<int>? priorityNpcIds = null,
+        IReadOnlyDictionary<int, string>? names = null, ISet<int>? deadNpcIds = null)
     {
         if (!TryNormalizePlayerId(playerId, out var canonicalPlayerId))
         {
@@ -151,7 +153,8 @@ public sealed class PlayerCharacterAssignments
             }
 
             next.Sort();
-            if (!record.NpcIds.SequenceEqual(next))
+            var changed = UpdateNotices(record, next, names, deadNpcIds);
+            if (changed || !record.NpcIds.SequenceEqual(next))
             {
                 record.NpcIds = next;
                 Save();
@@ -174,17 +177,8 @@ public sealed class PlayerCharacterAssignments
             (world.CreationConfig.CreatorPlayerId == playerId
                 ? world.Entities.Npcs.Values.Where(n => world.PlayerControlledNpcs.Contains(n.Id.Value) && FactionRelations.IsGirlCamp(n.Faction)).Select(n => n.Id.Value).OrderBy(id => id).ToArray()
                 : Array.Empty<int>()));
-        if (custom != null)
-        {
-            if (worldLifetime.IsCancellationRequested) return Array.Empty<int>();
-            lock (_gate)
-            {
-                if (worldLifetime.IsCancellationRequested) return Array.Empty<int>();
-                var record = FindOrAdd(playerId);
-                if (!record.NpcIds.SequenceEqual(custom)) { record.NpcIds = custom.ToList(); Save(); }
-            }
-            return custom;
-        }
+        var isSpectator = host.Read(world => world.CreationConfig != null && world.CreationConfig.CreatorPlayerId != playerId);
+        if (isSpectator) return Array.Empty<int>();
         var roster = host.Read(world =>
         {
             var retainable = new List<int>();
@@ -219,7 +213,10 @@ public sealed class PlayerCharacterAssignments
                     authoredPriority.Contains(left));
                 return authored != 0 ? authored : left.CompareTo(right);
             });
-            return (retainable, assignable, authoredPriority);
+            var names = world.Entities.Npcs.Values.Concat(world.Entities.Corpses.Values)
+                .GroupBy(n => n.Id.Value).ToDictionary(g => g.Key, g => g.First().DisplayName);
+            var living = world.Entities.Npcs.Keys.Select(id => id.Value).ToHashSet();
+            return (retainable, assignable, authoredPriority, names, living);
         });
 
         if (worldLifetime.IsCancellationRequested)
@@ -250,9 +247,18 @@ public sealed class PlayerCharacterAssignments
                 _players.Clear();
             }
 
+            var record = FindOrAdd(playerId);
+            var dead = record.NpcIds.Where(id => !roster.living.Contains(id)).ToHashSet();
+            if (custom != null)
+            {
+                characterLimit = Math.Max(record.LobbyCharacterLimit, Math.Max(custom.Length, record.NpcIds.Count));
+                record.LobbyCharacterLimit = characterLimit;
+                roster.authoredPriority = custom.ToHashSet();
+                roster.assignable.AddRange(custom);
+            }
             var assigned = Reconcile(
                 playerId, roster.retainable, roster.assignable, characterLimit,
-                roster.authoredPriority);
+                roster.authoredPriority, roster.names, dead);
             union = AllAssignedIdsLocked();
             result = assigned;
         }
@@ -314,6 +320,51 @@ public sealed class PlayerCharacterAssignments
 
     internal bool StillAssigned(string playerId, int npcId)
     { lock (_gate) return _players.Any(p => p.PlayerId == playerId && p.NpcIds.Contains(npcId)); }
+
+    public PlayerAssignmentNotice[] PendingNotices(string playerId)
+    {
+        lock (_gate) return _players.FirstOrDefault(p => p.PlayerId == playerId)?.PendingNotices
+            .Select(n => new PlayerAssignmentNotice { Sequence = n.Sequence, NpcId = n.NpcId, Name = n.Name, Kind = n.Kind })
+            .Take(4096).ToArray() ?? Array.Empty<PlayerAssignmentNotice>();
+    }
+
+    public void AcknowledgeNotices(string playerId, long sequence)
+    {
+        lock (_gate)
+        {
+            var record = _players.FirstOrDefault(p => p.PlayerId == playerId);
+            if (record == null || sequence <= 0 || sequence > record.NoticeSequence) return;
+            if (record.PendingNotices.RemoveAll(n => n.Sequence <= sequence) > 0) Save();
+        }
+    }
+
+    private static bool UpdateNotices(PlayerRecord record, List<int> next,
+        IReadOnlyDictionary<int, string>? names, ISet<int>? deadNpcIds)
+    {
+        var changed = false;
+        string Name(int id) => names != null && names.TryGetValue(id, out var name) ? name
+            : record.KnownNames.TryGetValue(id, out var previous) ? previous : string.Empty;
+        void Add(int id, string kind)
+        {
+            record.PendingNotices.Add(new PlayerAssignmentNotice {
+                Sequence = ++record.NoticeSequence, NpcId = id, Name = Name(id), Kind = kind });
+            changed = true;
+        }
+        foreach (var id in record.NpcIds.Except(next))
+            Add(id, deadNpcIds?.Contains(id) == true ? "died" : "unavailable");
+        foreach (var id in next)
+        {
+            if (!record.IntroducedIds.Contains(id))
+            {
+                Add(id, "assigned");
+                record.IntroducedIds.Add(id);
+            }
+            var name = Name(id);
+            if (!record.KnownNames.TryGetValue(id, out var old) || old != name)
+            { record.KnownNames[id] = name; changed = true; }
+        }
+        return changed;
+    }
 
     public void SwitchWorld(int worldGeneration)
     {
@@ -409,7 +460,11 @@ public sealed class PlayerCharacterAssignments
                 .Distinct()
                 .OrderBy(id => id)
                 .ToList();
-            normalized.Add(new PlayerRecord { PlayerId = playerId, NpcIds = ids });
+            normalized.Add(new PlayerRecord {
+                PlayerId = playerId, NpcIds = ids,
+                IntroducedIds = source.IntroducedIds ?? new(), KnownNames = source.KnownNames ?? new(),
+                PendingNotices = source.PendingNotices ?? new(), NoticeSequence = source.NoticeSequence,
+                LobbyCharacterLimit = source.LobbyCharacterLimit });
         }
 
         return normalized;
@@ -462,6 +517,12 @@ public sealed class PlayerCharacterAssignments
     {
         public string PlayerId { get; set; } = string.Empty;
         public List<int> NpcIds { get; set; } = new();
+        public List<int> IntroducedIds { get; set; } = new();
+        public Dictionary<int, string> KnownNames { get; set; } = new();
+        public List<PlayerAssignmentNotice> PendingNotices { get; set; } = new();
+        public long NoticeSequence { get; set; }
+        public int LobbyCharacterLimit { get; set; }
+
     }
 }
 

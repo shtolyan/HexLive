@@ -119,6 +119,7 @@ public enum FrameKind : byte
     AdminResult = 23,
     AgentPairingInput = 24,
     AgentPairingResult = 25,
+    AssignmentNoticeAck = 26,
 }
 
 public enum CommandKind : byte
@@ -166,7 +167,8 @@ public sealed class Handshake
     // 19: §167 — directive and Authority in NpcGroup.Mind.
     // 20: §55.5/#417 — snapshot v42 carries bottle liquid appearance and fill.
     // 21: snapshot v43 — persistent craft current/last worker (§119, #422).
-    public const int ProtocolVersion = 21;
+    // 22: §149.6 — durable assignment notices and acknowledgement.
+    public const int ProtocolVersion = 22;
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;
@@ -216,6 +218,8 @@ public sealed class Handshake
     /// различаются.</summary>
     public List<int> AssignedNpcIds { get; } = new();
 
+    public List<PlayerAssignmentNotice> AssignmentNotices { get; } = new();
+
     public bool AgentIntegrationEnabled { get; set; }
 
     public bool SttAvailable { get; set; }
@@ -243,6 +247,8 @@ public sealed class Handshake
         w.Write(SttAvailable);
         w.Write(WorldId ?? string.Empty);
         WriteSimData(w, CreationConfig ?? string.Empty);
+        w.Write(AssignmentNotices.Count);
+        foreach (var notice in AssignmentNotices) notice.Write(w);
     }
 
     public static Handshake Read(BinaryReader r)
@@ -285,6 +291,9 @@ public sealed class Handshake
         handshake.SttAvailable = r.ReadBoolean();
         handshake.WorldId = r.ReadString();
         handshake.CreationConfig = ReadSimData(r);
+        var noticeCount = r.ReadInt32();
+        if (noticeCount < 0 || noticeCount > 4096) throw new InvalidDataException("Invalid assignment notice count.");
+        for (var i = 0; i < noticeCount; i++) handshake.AssignmentNotices.Add(PlayerAssignmentNotice.Read(r));
 
         return handshake;
     }

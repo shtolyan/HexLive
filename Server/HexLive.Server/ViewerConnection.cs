@@ -114,6 +114,8 @@ public sealed class ViewerConnection
     private bool ControlEnabled =>
         !string.IsNullOrWhiteSpace(_controlOwner) && _leases is not null && _assignedNpcIds is not null;
 
+    private long _sentNoticeSequence;
+
     public async Task RunAsync(CancellationToken cancel)
     {
         _eventSeq = _host.HighestEventSeq;
@@ -146,6 +148,10 @@ public sealed class ViewerConnection
             handshake.AssignedNpcIds.AddRange(_assignedNpcIds);
             handshake.AssignedNpcIds.Sort();
         }
+
+        if (ControlEnabled && _currentAssignments != null)
+            handshake.AssignmentNotices.AddRange(_currentAssignments.PendingNotices(_controlOwner!.Substring(3)));
+        _sentNoticeSequence = handshake.AssignmentNotices.Count == 0 ? 0 : handshake.AssignmentNotices[handshake.AssignmentNotices.Count - 1].Sequence;
 
         await SendAsync(Frame.Handshake(handshake), cancel).ConfigureAwait(false);
         await SendAgentUpdatesIfChangedAsync(cancel).ConfigureAwait(false);
@@ -347,6 +353,19 @@ public sealed class ViewerConnection
                 if (buffer[0] == (byte)FrameKind.NpcCommand)
                 {
                     await HandleNpcCommandAsync(buffer, result, cancel).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (buffer[0] == (byte)FrameKind.AssignmentNoticeAck)
+                {
+                    if (!result.EndOfMessage) { await DrainOversizedMessageAsync(buffer, cancel).ConfigureAwait(false); continue; }
+                    if (ControlEnabled && result.Count == 9 && TakeRateToken())
+                    {
+                        using var ackReader = new BinaryReader(new MemoryStream(buffer, 1, 8));
+                        var sequence = ackReader.ReadInt64();
+                        if (sequence <= _sentNoticeSequence)
+                            _currentAssignments?.AcknowledgeNotices(_controlOwner!.Substring(3), sequence);
+                    }
                     continue;
                 }
 

@@ -118,6 +118,12 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     public bool IsAssignedNpc(EntityId npc) => _backend is Remote.RemoteSocketBackend remote
         ? remote.IsAssignedNpc(npc) : CanControlNpc(npc);
 
+    public PlayerAssignmentNotice[] AssignmentNotices =>
+        (_backend as Remote.RemoteSocketBackend)?.AssignmentNotices ?? System.Array.Empty<PlayerAssignmentNotice>();
+    public string AssignmentWorldId => (_backend as Remote.RemoteSocketBackend)?.AssignmentWorldId ?? string.Empty;
+    public void AcknowledgeAssignmentNotices(string worldId, long sequence) =>
+        (_backend as Remote.RemoteSocketBackend)?.AcknowledgeAssignmentNotices(worldId, sequence);
+
     public bool SupportsAgentIntegration => _backend?.SupportsAgentIntegration ?? false;
 
     public bool SttAvailable => _backend?.SttAvailable ?? false;

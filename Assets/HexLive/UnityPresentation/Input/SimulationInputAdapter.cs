@@ -157,7 +157,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         HexInspectorPanel.PointerOverPanel ||
         ContextMenuPanel.BlocksWorldPointer ||
         LootTransferPanel.IsOpen || CraftProjectDetailsPanel.BlocksWorldInput ||
-        GameMenu.IsOpen || AdminVoicePanel.BlocksGameInput ||
+        GameMenu.IsOpen || PlayerAssignmentDialog.IsOpen || AdminVoicePanel.BlocksGameInput ||
         EndSummaryPanel.IsOpen ||
         // Bug #279: окно отчёта об ошибке блокирует мир своим флагом — общий
         // NpcSelection.PointerOverUi затирается CharacterPanel каждый кадр.

@@ -300,6 +300,30 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
             Send(AgentWire.SttTokenRequest(correlationId));
     }
 
+    private Handshake? _assignmentSnapshotHandshake;
+
+    public PlayerAssignmentNotice[] AssignmentNotices
+    {
+        get { lock (_inbox) return _ready && !_handshakeIsNew && ReferenceEquals(_assignmentSnapshotHandshake, _handshake)
+            ? _handshake?.AssignmentNotices.ToArray() ?? Array.Empty<PlayerAssignmentNotice>()
+            : Array.Empty<PlayerAssignmentNotice>(); }
+    }
+
+    public string AssignmentWorldId { get { lock (_inbox) return _handshake?.WorldId ?? string.Empty; } }
+
+    public void AcknowledgeAssignmentNotices(string worldId, long sequence)
+    {
+        lock (_inbox)
+        {
+            if (_handshake == null || _handshake.WorldId != worldId) return;
+            using var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
+            writer.Write(sequence);
+            Send(Frame.Wrap(FrameKind.AssignmentNoticeAck, stream.ToArray()));
+            _handshake.AssignmentNotices.RemoveAll(n => n.Sequence <= sequence);
+        }
+    }
+
     public bool TryTakeSttTokenResult(out SttTokenResultFrame result)
     {
         lock (_inbox)
@@ -1184,6 +1208,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
         for (var i = 0; i < 128; i++)
         {
             (bool keyframe, int tick, byte[] bytes) frame;
+            Handshake? frameHandshake;
             lock (_inbox)
             {
                 if (_snapshotFrames.Count == 0 ||
@@ -1193,6 +1218,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                 }
 
                 frame = _snapshotFrames.Dequeue();
+                frameHandshake = _handshake;
             }
 
             using var stream = new MemoryStream(frame.bytes);
@@ -1203,6 +1229,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                 try
                 {
                     WorldSnapshotCodec.Read(reader, _snapshot);
+                    lock (_inbox) _assignmentSnapshotHandshake = frameHandshake;
                     _needKeyframe = false;
                     _keyframeFailures = 0;
                 }

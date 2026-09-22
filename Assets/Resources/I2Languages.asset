@@ -17,6 +17,51 @@ MonoBehaviour:
     UserAgreesToHaveItInsideThePluginsFolder: 0
     GoogleLiveSyncIsUptoDate: 1
     mTerms:
+    - Term: assignment.traits
+      TermType: 0
+      Languages: ["Personality", "Характер"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: assignment.title
+      TermType: 0
+      Languages: ["Your character", "Ваш персонаж"]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: assignment.died
+      TermType: 0
+      Languages: ["Your character {0} has died.", "Ваш персонаж {0} умер."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: assignment.unavailable
+      TermType: 0
+      Languages: ["{0} is no longer assigned to you.", "Персонаж {0} больше не закреплён за вами."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: assignment.introduction
+      TermType: 0
+      Languages: ["Meet {0}. This is your character.", "Знакомьтесь: {0}. Теперь это ваш персонаж."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: assignment.replacement
+      TermType: 0
+      Languages: ["Your new character is {0}.", "Вам выдан новый персонаж: {0}."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: assignment.persistence
+      TermType: 0
+      Languages: ["This character is saved to your account in this world. You will return to them next time while they are alive. While you are away, they continue living on their own.", "Персонаж закреплён за вами в этом мире. При следующем входе вы вернётесь к нему, пока он жив. В ваше отсутствие он продолжает жить самостоятельно."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: assignment.waiting
+      TermType: 0
+      Languages: ["No free character is available yet. Connect again later to receive one.", "Свободного персонажа пока нет. Подключитесь позже, чтобы получить нового."]
+      Flags: 0101
+      Languages_Touch: []
+    - Term: assignment.ok
+      TermType: 0
+      Languages: ["Got it", "Понятно"]
+      Flags: 0101
+      Languages_Touch: []
     - Term: craft.project.take
       TermType: 0
       Languages: ["Take item", "Забрать предмет"]

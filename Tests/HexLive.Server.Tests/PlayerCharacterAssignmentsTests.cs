@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using HexLive.Simulation.Wire;
+using HexLive.Simulation.Agents;
 using System.Threading.Tasks;
 using HexLive.Server;
 using HexLive.Simulation.Bootstrap;
@@ -532,6 +535,99 @@ public sealed class PlayerCharacterAssignmentsTests
                     option.BlockReason == CraftBlockReason.NotManual),
                 "The server read model must observe the same manual-control state as admission.");
         });
+    }
+
+    [Test]
+    public void IntroductionSurvivesReconnectAndRestartUntilAcknowledged()
+    {
+        var store = PlayerCharacterAssignments.Load(_path, false);
+        var names = new Dictionary<int, string> { [1] = "masha" };
+        store.Reconcile(Id(1), new[] { 1 }, new[] { 1 }, names: names);
+        store = PlayerCharacterAssignments.Load(_path, true);
+        store.Reconcile(Id(1), new[] { 1 }, new[] { 1 }, names: names);
+        var notice = store.PendingNotices(Id(1)).Single();
+        Assert.That(notice.Name, Is.EqualTo("masha"));
+        Assert.That(notice.Kind, Is.EqualTo("assigned"));
+        store.AcknowledgeNotices(Id(2), notice.Sequence);
+        store.AcknowledgeNotices(Id(1), notice.Sequence + 1);
+        Assert.That(store.PendingNotices(Id(1)), Has.Length.EqualTo(1));
+        store.AcknowledgeNotices(Id(1), notice.Sequence);
+        store = PlayerCharacterAssignments.Load(_path, true);
+        store.Reconcile(Id(1), new[] { 1 }, new[] { 1 }, names: names);
+        Assert.That(store.PendingNotices(Id(1)), Is.Empty);
+    }
+
+    [Test]
+    public void OfflineDeathRetainsNameAndReplacementAcrossRestart()
+    {
+        using var host = CreateHost(GameMode.BigIsland, "notice-death.sav");
+        var store = PlayerCharacterAssignments.Load(_path, false);
+        var original = store.Reconcile(host, Id(1)).Single();
+        var name = store.PendingNotices(Id(1)).Single().Name;
+        store.AcknowledgeNotices(Id(1), 1);
+        // The body has already disappeared by the time the player returns.
+        host.Read(w => w.Entities.Npcs.Remove(new EntityId(original)));
+        store = PlayerCharacterAssignments.Load(_path, true);
+        var replacement = store.Reconcile(host, Id(1)).Single();
+        Assert.That(replacement, Is.Not.EqualTo(original));
+        store = PlayerCharacterAssignments.Load(_path, true);
+        var notices = store.PendingNotices(Id(1));
+        Assert.That(notices.Select(n => n.Kind), Is.EqualTo(new[] { "died", "assigned" }));
+        Assert.That(notices[0].Name, Is.EqualTo(name));
+        Assert.That(notices[1].NpcId, Is.EqualTo(replacement));
+        store.Reconcile(host, Id(1));
+        Assert.That(store.PendingNotices(Id(1)), Has.Length.EqualTo(2));
+    }
+
+    [Test]
+    public void DeathWithoutCandidateAndDyingRetentionAreDistinct()
+    {
+        var store = PlayerCharacterAssignments.Load(_path, false);
+        store.Reconcile(Id(1), new[] { 1 }, new[] { 1 });
+        store.AcknowledgeNotices(Id(1), 1);
+        store.Reconcile(Id(1), new[] { 1 }, Array.Empty<int>());
+        Assert.That(store.PendingNotices(Id(1)), Is.Empty, "Dying is not death.");
+        Assert.That(store.Reconcile(Id(1), Array.Empty<int>(), Array.Empty<int>(),
+            deadNpcIds: new HashSet<int> { 1 }), Is.Empty);
+        Assert.That(store.PendingNotices(Id(1)).Single().Kind, Is.EqualTo("died"));
+        store = PlayerCharacterAssignments.Load(_path, true);
+        store.Reconcile(Id(1), new[] { 2 }, new[] { 2 });
+        Assert.That(store.PendingNotices(Id(1)).Select(n => n.Kind), Is.EqualTo(new[] { "died", "assigned" }));
+    }
+
+    [Test]
+    public void LobbyReplacementVacancySurvivesEmptyRosterAndRestart()
+    {
+        var config = new WorldCreationConfig { CreatorPlayerId = Id(1), Seed = 12345, Name = "Introductions" };
+        config.Camps.Add(new CampCreationConfig { Faction = Faction.Colony });
+        config.Characters.Add(new CharacterCreationConfig { Id = 1, Name = "masha", Controlled = true });
+        config.Characters.Add(new CharacterCreationConfig { Id = 2, Name = "nika" });
+        using var host = new WorldHost(12345, GameMode.BigIsland, Path.Combine(_directory, "lobby.sav"),
+            FindRepoFile("SimData", "simdata.json"), false, creationConfig: config);
+        var store = PlayerCharacterAssignments.Load(_path, false);
+        Assert.That(store.Reconcile(host, Id(1)), Is.EqualTo(new[] { 1 }));
+        var reserve = host.Read(w => w.Entities.Npcs[new EntityId(2)]);
+        host.Read(w => { w.Entities.Npcs.Clear(); return true; });
+        Assert.That(store.Reconcile(host, Id(1)), Is.Empty);
+        store = PlayerCharacterAssignments.Load(_path, true);
+        host.Read(w => { w.Entities.Npcs.Add(reserve.Id, reserve); return true; });
+        Assert.That(store.Reconcile(host, Id(2)), Is.Empty, "Other lobby visitors stay spectators.");
+        Assert.That(store.Reconcile(host, Id(1)), Is.EqualTo(new[] { 2 }));
+        Assert.That(store.PendingNotices(Id(1)).Select(n => n.Kind), Is.EqualTo(new[] { "assigned", "died", "assigned" }));
+        Assert.That(store.Reconcile(host, Id(1)), Is.EqualTo(new[] { 2 }));
+    }
+
+    [Test]
+    public void AssignmentNoticeHandshakeRoundTrips()
+    {
+        var handshake = new Handshake();
+        handshake.AssignmentNotices.Add(new PlayerAssignmentNotice { Sequence = 19, NpcId = 901, Name = "Маша", Kind = "died" });
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true);
+        handshake.Write(writer);
+        stream.Position = 0;
+        var copy = Handshake.Read(new BinaryReader(stream)).AssignmentNotices.Single();
+        Assert.That((copy.Sequence, copy.NpcId, copy.Name, copy.Kind), Is.EqualTo((19L, 901, "Маша", "died")));
     }
 
     private WorldHost CreateHost(GameMode mode, string saveName) => new(

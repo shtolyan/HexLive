@@ -1,0 +1,31 @@
+.assignment-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+.assignment-card {
+    width: 90%;
+    max-width: 560px;
+    max-height: 85%;
+    padding: 22px;
+    background-color: rgb(16, 23, 27);
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgb(116, 139, 96);
+}
+.assignment-scroll { flex-shrink: 1; }
+.assignment-text {
+    color: rgb(230, 237, 233);
+    font-size: 14px;
+    white-space: normal;
+    margin-bottom: 7px;
+    flex-shrink: 0;
+}
+.assignment-title { font-size: 22px; -unity-font-style: bold; margin-bottom: 16px; }
+.assignment-name { font-size: 17px; color: rgb(193, 219, 141); margin-top: 12px; }
+.assignment-button { margin-top: 14px; min-height: 38px; font-size: 15px; }

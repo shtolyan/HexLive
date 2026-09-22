@@ -823,7 +823,7 @@ namespace HexLive.UnityPresentation.Input
             NpcSelection.PointerOverUi || UI.TacticalMapPanel.PointerOverMap ||
             UI.HexInspectorPanel.PointerOverPanel ||
             UI.ContextMenuPanel.BlocksWorldPointer || UI.LootTransferPanel.IsOpen || UI.CraftProjectDetailsPanel.BlocksWorldInput ||
-            UI.GameMenu.IsOpen || UI.AdminVoicePanel.BlocksGameInput ||
+            UI.GameMenu.IsOpen || UI.PlayerAssignmentDialog.IsOpen || UI.AdminVoicePanel.BlocksGameInput ||
             UI.EndSummaryPanel.IsOpen ||
             // Bug #279: окно отчёта об ошибке держит мир закрытым само — его
             // запись в NpcSelection.PointerOverUi каждый кадр затирает

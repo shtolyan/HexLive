@@ -1637,6 +1637,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             worldObject.Junctions.Count == 0 ||
             WaterCollectorMath.FindVessel(world, worldObject) is not null)
         {
+            PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
             PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                 "PlaceVessel: no empty bottle to park, or the slot is taken");
             npc.Mind.CurrentGoal = GoalType.None;
@@ -1674,6 +1675,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         var vessel = WaterCollectorMath.FindVessel(world, worldObject);
         if (vessel is null || !WaterCollectorMath.CanTake(world, npc, vessel))
         {
+            PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
             PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
                 "TakeVessel: nothing collected yet, or the bottle is spoken for");
             npc.Mind.CurrentGoal = GoalType.None;

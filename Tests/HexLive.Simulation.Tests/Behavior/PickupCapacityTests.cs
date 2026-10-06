@@ -2,6 +2,7 @@ using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Content;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 using NUnit.Framework;
@@ -59,11 +60,13 @@ public sealed class PickupCapacityTests
             "A full pack must not blacklist a perfectly reachable item after space is freed.");
     }
 
-    [Test]
-    public void FullSlotWithPartialHideStackStillAcceptsAnotherHide()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void FullSlotWithPartialHideStackStillAcceptsAnotherHide(bool dropRetryPending)
     {
         var (world, npc, item) = Pickup(ContentIds.Hide, ExecutionStatus.InProgress);
         npc.Inventory.Items.Add(ContentIds.Hide);
+        if (dropRetryPending) npc.Inventory.NextGroundDropRetryTick = world.Tick + 1000;
         Assert.That(npc.Inventory.HasSpace, Is.False);
 
         new ExecutionSystem().Run(world);
@@ -76,13 +79,15 @@ public sealed class PickupCapacityTests
         });
     }
 
-    [Test]
-    public void AutonomousGatherDoesNotRetryUntilSpaceActuallyBecomesAvailable()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void AutonomousGatherDoesNotRetryUntilSpaceActuallyBecomesAvailable(bool dropRetryPending)
     {
         var (world, npc, item) = Pickup(ContentIds.PickaxeStone, ExecutionStatus.InProgress);
         npc.Mind.ManualControl = false;
         npc.Mind.CurrentGoal = npc.Plan.Goal = GoalType.GatherTools;
-        npc.Inventory.Items.Add(ContentIds.Knife);
+        npc.Inventory.Items.Add(dropRetryPending ? ContentIds.Stick : ContentIds.Knife);
+        if (dropRetryPending) npc.Inventory.NextGroundDropRetryTick = world.Tick + 1000;
         npc.Perception.Objects.Clear();
         npc.Perception.Objects.Add(new PerceivedObject
         {
@@ -141,6 +146,56 @@ public sealed class PickupCapacityTests
                 $"Recent={string.Join(";", world.Events.Items.Where(e => e.EntityId == npc.Id.Value).TakeLast(12).Select(e => e.Type + ":" + e.Message))}");
             Assert.That(npc.Inventory.Items.Any(i => i.DefinitionId == item.DefinitionId), Is.True);
         });
+    }
+
+    [Test]
+    public void ReplacementIsUnavailableWhenTheVictimCannotBeDropped()
+    {
+        var (world, npc, item) = Pickup(ContentIds.PickaxeStone, ExecutionStatus.None);
+        var victim = new ItemInstance(ContentIds.Stick);
+        npc.Inventory.Items.Add(victim);
+        // Saturate drop space without modifying topology or the carried items.
+        foreach (var node in world.Junctions.Items.Values)
+            world.Occupancy.JunctionOwner[node.Id] = new EntityId(999999);
+        var objectCount = world.Entities.Objects.Count;
+        var eventSequence = world.Events.HighestSeq;
+        Assert.That(GroundItemPlacement.TryFind(world, npc, victim, out _, out _, out _), Is.False);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(InventoryMath.CanMakeRoomFor(world, npc, item.DefinitionId), Is.False);
+            Assert.That(InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GatherTools,
+                item.DefinitionId), Is.False);
+            Assert.That(world.Entities.Objects.Count, Is.EqualTo(objectCount));
+            Assert.That(world.Events.HighestSeq, Is.EqualTo(eventSequence));
+            Assert.That(npc.Inventory.Items.Single(), Is.SameAs(victim));
+            Assert.That(npc.Inventory.NextGroundDropRetryTick, Is.Zero,
+                "Availability checks must not mutate the automatic drop timer.");
+        });
+
+        world.Occupancy.JunctionOwner.Clear();
+        Assert.That(InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GatherTools,
+            item.DefinitionId), Is.True, "Available ground space must immediately restore admission.");
+        Assert.That(InventoryMath.MakeRoomForGoal(world, npc, GoalType.GatherTools,
+            item.DefinitionId), Is.True);
+        Assert.That(npc.Inventory.HasSpace, Is.True);
+    }
+
+    [Test]
+    public void DropRetryExpiryReenablesReplacementWithoutBlacklistingThePickup()
+    {
+        var (world, npc, item) = Pickup(ContentIds.PickaxeStone, ExecutionStatus.None);
+        npc.Inventory.Items.Add(ContentIds.Stick);
+        npc.Inventory.NextGroundDropRetryTick = world.Tick + 16;
+        Assert.That(InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GatherTools,
+            item.DefinitionId), Is.False);
+        world.Tick += 16;
+        Assert.That(InventoryMath.CanMakeRoomForGoal(world, npc, GoalType.GatherTools,
+            item.DefinitionId), Is.True);
+        Assert.That(InventoryMath.MakeRoomForGoal(world, npc, GoalType.GatherTools,
+            item.DefinitionId), Is.True);
+        Assert.That(npc.Inventory.HasSpace, Is.True);
+        Assert.That(npc.Memory.IsShunned(item.Id, world.Tick), Is.False);
     }
 
     private static (WorldState world, NPCState npc, WorldObjectState item) Pickup(

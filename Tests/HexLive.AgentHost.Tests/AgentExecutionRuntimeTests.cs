@@ -666,6 +666,58 @@ public sealed partial class AgentExecutionRuntimeTests
         Assert.That(providers.Calls, Is.Zero);
     }
 
+    [Test]
+    public async Task AnotherGirlsParkedBottleTriggersReplanningWithoutDispatchOrFalseCompletion()
+    {
+        using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        transport.ResponseFilter = (name, text) => name == "describe_colonist"
+            ? JsonSerializer.Serialize(new { visibleItems = new[] { new { objectId = 5958,
+                collector = new { vesselPresent = true, ownerNpcId = 1, drinkableSips = 0 } } } }) : text;
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("place", "interact", JsonSerializer.SerializeToElement(new { objectId = 5958, interaction = "PlaceVessel" }))]);
+        await Run(runtime, mcp, plan.Id, world);
+        var state = await store.SnapshotAsync(default);
+        Assert.That(state.ExecutionPlan!.Status, Is.EqualTo("paused"));
+        Assert.That(state.ExecutionPlan.Reason, Is.EqualTo("CollectorAlreadyHasVessel"));
+        Assert.That(state.ExecutionPlan.Command, Is.Null);
+        Assert.That(state.Objective!.Status, Is.EqualTo("active"), "An existing bottle is not proof of delivered drinking water.");
+        Assert.That(transport.Executions, Is.Zero);
+        Assert.That(typeof(AgentHostRuntime).GetField("_planNeedsDecision", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(runtime), Is.EqualTo(1));
+    }
+
+    [TestCase("Failed")]
+    [TestCase("Invalid")]
+    public async Task LegacyAcceptedReceiptWithFailedPhysicalPlanIsStoppedAndReconciled(string physicalStatus)
+    {
+        using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45)));
+        var stops = 0;
+        transport.BeforeToolCall = (name, _) => { if (name == "stop") stops++; };
+        transport.ResponseFilter = (name, text) =>
+        {
+            if (name != "describe_colonist" || transport.Executions == 0 || stops > 0) return text;
+            var observation = System.Text.Json.Nodes.JsonNode.Parse(text)!;
+            observation["execution"] = JsonSerializer.SerializeToNode(new { planStatus = physicalStatus, status = "InProgress" });
+            return observation.ToJsonString();
+        };
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp,
+            [new("sit", "self_action", JsonSerializer.SerializeToElement(new { kind = "GroundSit" })),
+             new("next", "stop", JsonSerializer.SerializeToElement(new { }))]);
+        await Run(runtime, mcp, plan.Id, world, 18);
+        var saved = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        Assert.That(stops, Is.EqualTo(1));
+        Assert.That(saved.Status, Is.EqualTo("paused"));
+        Assert.That(saved.Command!.Status, Is.EqualTo("failed"));
+        Assert.That(saved.Cursor, Is.Zero);
+        Assert.That(transport.Executions, Is.EqualTo(1), "Do not replay the uncertain command or dispatch the next step.");
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
     private static async Task<(MashaMemoryStore, MashaWorldHandle, AgentExecutionPlan)> Install(AgentHostRuntime runtime, McpClient mcp,
         AgentExecutionStep[]? steps = null)
     {
@@ -714,6 +766,7 @@ public sealed partial class AgentExecutionRuntimeTests
     private sealed class Transport(McpTools tools) : HttpMessageHandler
     {
         public Action<string, JsonElement>? BeforeToolCall;
+        public Func<string, string, string>? ResponseFilter;
         public bool LoseNextResponse;
         public bool UnknownCommandReads;
         public int CommandReads;
@@ -745,6 +798,7 @@ public sealed partial class AgentExecutionRuntimeTests
                     Executions++;
                     if (LoseNextResponse) { LoseNextResponse = false; throw new HttpRequestException("Lost response fixture"); }
                 }
+                if (ResponseFilter != null) text = ResponseFilter(name, text);
                 result = new { isError = error, content = new[] { new { type = "text", text } } };
             }
             var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new { jsonrpc = "2.0", result })) };

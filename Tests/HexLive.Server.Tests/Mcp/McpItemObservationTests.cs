@@ -225,6 +225,31 @@ public sealed class McpItemObservationTests
         });
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void EmptyCollectorReadinessIsOnlyReportedForCurrentSight(bool remembered)
+    {
+        using var host = CreateHost();
+        var id = host.Read(world =>
+        {
+            var actor = Observer(world); actor.Perception.Objects.Clear();
+            actor.Inventory.Items.Clear(); actor.Inventory.Items.Add(new ItemInstance(ContentIds.Bottle));
+            var collector = Add(world, actor, 902001, ContentIds.WaterCollector);
+            collector.Junctions.Add(world.Junctions.Items.Keys.First());
+            world.Caches.ObjectsByTile[actor.Tile] = new() { collector.Id };
+            actor.Perception.Objects[0].FromMemory = remembered;
+            return actor.Id.Value;
+        });
+        using var response = Describe(host, id);
+        var rows = response.RootElement.GetProperty("visibleItems");
+        if (remembered) { Assert.That(rows.GetArrayLength(), Is.Zero); return; }
+        var state = rows[0].GetProperty("collector");
+        Assert.That(state.GetProperty("vesselPresent").GetBoolean(), Is.False);
+        Assert.That(state.GetProperty("vesselObjectId").ValueKind, Is.EqualTo(JsonValueKind.Null));
+        Assert.That(state.GetProperty("canPlaceVessel").GetBoolean(), Is.True);
+        Assert.That(state.GetProperty("canTakeVessel").GetBoolean(), Is.False);
+    }
+
     [TestCase(0f, 0)]
     [TestCase(0.075f, 0)]
     [TestCase(0.3f, 3)]
@@ -256,6 +281,12 @@ public sealed class McpItemObservationTests
         Assert.Multiple(() =>
         {
             Assert.That(rows[0].TryGetProperty("waterSips", out _), Is.False, "The station is not itself the vessel");
+            var collector = rows[0].GetProperty("collector");
+            Assert.That(collector.GetProperty("vesselPresent").GetBoolean(), Is.True);
+            Assert.That(collector.GetProperty("vesselObjectId").GetInt32(), Is.EqualTo(902002));
+            Assert.That(collector.GetProperty("ownerNpcId").GetInt32(), Is.EqualTo(id));
+            Assert.That(collector.GetProperty("drinkableSips").GetInt32(), Is.EqualTo(drinkable));
+            Assert.That(collector.GetProperty("canPlaceVessel").GetBoolean(), Is.False);
             Assert.That(rows[1].GetProperty("waterSips").GetSingle(), Is.EqualTo(fill * SimBalance.BottleCapacity).Within(0.0001));
             Assert.That(rows[1].GetProperty("drinkableSips").GetInt32(), Is.EqualTo(drinkable));
             Assert.That(rows[1].GetProperty("capacitySips").GetInt32(), Is.EqualTo(SimBalance.BottleCapacity));

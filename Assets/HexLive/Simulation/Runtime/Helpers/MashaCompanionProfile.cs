@@ -13,6 +13,7 @@ public static class MashaCompanionProfile
 {
     public const string ProfileId = "masha";
     public const int ReservedNpcId = 901;
+    public const string AuthoredSkinSet = "Jolly";
     public const int AuthoredStarterOutfitVersion = 1;
 
     // §159.1: exact authored look approved in WardrobeTest. The ids are the
@@ -45,6 +46,7 @@ public static class MashaCompanionProfile
         if (world.Entities.Npcs.TryGetValue(reserved, out var live))
         {
             RequireMasha(live);
+            live.SkinSet = AuthoredSkinSet;
             UpgradeAuthoredStarterOutfit(world, live);
             world.MashaCompanionHasSpawned = true;
             world.SpawnedCharacterPresets.Add(ProfileId);
@@ -53,6 +55,7 @@ public static class MashaCompanionProfile
         if (world.Entities.Corpses.TryGetValue(reserved, out var corpse))
         {
             RequireMasha(corpse);
+            corpse.SkinSet = AuthoredSkinSet;
             world.MashaCompanionHasSpawned = true;
             world.SpawnedCharacterPresets.Add(ProfileId);
             return false;
@@ -89,7 +92,7 @@ public static class MashaCompanionProfile
             UseAuthoredAppearance = true,
             DisplayName = ProfileId,
             ActorMesh = "Jana",
-            SkinSet = "Marta",
+            SkinSet = AuthoredSkinSet,
             // Empty means the authored Jana prefab defaults, not a §74 roll.
             EyeColor = string.Empty,
             Hairstyle = string.Empty,

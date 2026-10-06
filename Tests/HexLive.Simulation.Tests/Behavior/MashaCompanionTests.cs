@@ -16,7 +16,7 @@ namespace HexLive.Simulation.Tests.Behavior
 public sealed class MashaCompanionTests
 {
     [Test]
-    public void SpawnIsIdempotentAndKeepsJanaMeshMartaSkinAndJanaAuthoredDetails()
+    public void SpawnIsIdempotentAndKeepsJanaMeshJollySkinAndJanaAuthoredDetails()
     {
         var world = TestWorld.CreateWorld(15901);
 
@@ -29,7 +29,7 @@ public sealed class MashaCompanionTests
         {
             Assert.That(masha.ProfileId, Is.EqualTo("masha"));
             Assert.That(masha.ActorMesh, Is.EqualTo("Jana"));
-            Assert.That(masha.SkinSet, Is.EqualTo("Marta"));
+            Assert.That(masha.SkinSet, Is.EqualTo("Jolly"));
             Assert.That(masha.EyeColor, Is.Empty,
                 "Пустое значение сохраняет глаза авторского префаба Яны.");
             Assert.That(masha.Hairstyle, Is.Empty,
@@ -51,6 +51,23 @@ public sealed class MashaCompanionTests
                 Is.False, "Дубликат рюкзака в карманах не создаётся.");
             Assert.That(world.Entities.Npcs.Values.Count(x => x.ProfileId == "masha"), Is.EqualTo(1));
         });
+    }
+
+    [Test]
+    public void ExistingMashaSkinChangesWithoutChangingHerBodyOrOutfit()
+    {
+        var world = TestWorld.CreateWorld(15901);
+        MashaCompanionProfile.EnsureSpawned(world);
+        var masha = world.Entities.Npcs[new EntityId(MashaCompanionProfile.ReservedNpcId)];
+        masha.ActorMesh = "Molly";
+        masha.SkinSet = "Marta";
+        masha.EyeColor = "blue";
+        var outfit = masha.WornItems.ToArray();
+        Assert.That(MashaCompanionProfile.EnsureSpawned(world), Is.False);
+        Assert.That(masha.SkinSet, Is.EqualTo("Jolly"));
+        Assert.That(masha.ActorMesh, Is.EqualTo("Molly"));
+        Assert.That(masha.EyeColor, Is.EqualTo("blue"));
+        Assert.That(masha.WornItems, Is.EqualTo(outfit));
     }
 
     [Test]
@@ -245,7 +262,7 @@ public sealed class MashaCompanionTests
         {
             Assert.That(masha.ProfileId, Is.EqualTo("masha"));
             Assert.That(masha.ActorMesh, Is.EqualTo("Jana"));
-            Assert.That(masha.SkinSet, Is.EqualTo("Marta"));
+            Assert.That(masha.SkinSet, Is.EqualTo("Jolly"));
             Assert.That(masha.EyeColor, Is.Empty);
             Assert.That(masha.Hairstyle, Is.Empty);
             Assert.That(masha.VoiceBank, Is.EqualTo("masha"));

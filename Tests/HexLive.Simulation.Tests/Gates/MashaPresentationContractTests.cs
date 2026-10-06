@@ -19,10 +19,10 @@ public sealed class MashaPresentationContractTests
             foreach (var slot in new[] { "Irises", "Sclera", "Pupils", "Cornea", "EyeMoisture" })
             {
                 Assert.That(source, Does.Contain($"string.Equals(materialName, \"{slot}\""),
-                    $"ApplySkinSet(Marta) может заменить авторский слот глаз Яны: {slot}.");
+                    $"ApplySkinSet(Jolly) может заменить авторский слот глаз Яны: {slot}.");
             }
             Assert.That(source, Does.Not.Contain("string.Equals(materialName, \"EyeSocket\""),
-                "EyeSocket — материал лица и должен следовать SkinSet Marta (§85).");
+                "EyeSocket — материал лица и должен следовать SkinSet Jolly (§85).");
         });
     }
 

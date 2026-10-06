@@ -259,6 +259,7 @@ public static class WorldCreation
             world.Occupancy.JunctionOwner[landing.Junction] = npc.Id;
             if (entry.ProfileId == MashaCompanionProfile.ProfileId)
             {
+                npc.SkinSet = MashaCompanionProfile.AuthoredSkinSet;
                 MashaCompanionProfile.InitializeStartingNeedsAndSupplies(npc);
                 npc.CharacterPresetVersion = MashaCompanionProfile.AuthoredStarterOutfitVersion;
                 world.MashaCompanionHasSpawned = true;

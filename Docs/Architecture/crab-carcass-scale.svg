@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="280" viewBox="0 0 800 280">
+<rect width="800" height="280" fill="#182126"/>
+<g fill="#edf4ed" font-family="sans-serif" text-anchor="middle">
+<text x="400" y="34" font-size="23">Краб после исправления: размер сохраняется</text>
+<text x="200" y="73" font-size="18">Живой</text><text x="600" y="73" font-size="18">Туша, пузом вверх</text>
+<g stroke="#b9d986" stroke-width="2" fill="none"><path d="M80 190h240m160 0h240"/><rect x="80" y="90" width="240" height="90"/><rect x="480" y="90" width="240" height="90"/></g>
+<text x="200" y="140" font-size="17">Границы всей модели</text><text x="600" y="140" font-size="17">Границы всей модели</text>
+<text x="200" y="218" font-size="19">0,24 wu</text><text x="600" y="218" font-size="19">0,24 wu</text>
+<text x="400" y="259" font-size="16">Длина: HexRadius × footprintFraction = 1,5 × 0,16 = 0,24 wu</text>
+</g></svg>

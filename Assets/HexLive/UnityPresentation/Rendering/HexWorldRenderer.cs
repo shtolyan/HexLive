@@ -4763,15 +4763,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 carcassRoot.transform.SetParent(_objectsRoot, false);
                 var deadMob = Instantiate(deadMobPrefab, carcassRoot.transform);
                 deadMob.name = "Body";
-                // Краб — статичный меш: масштаб меряется по ЛЮБОМУ рендереру,
-                // не только по скиннингу.
+                // §54.4: measure the whole model, as for a live mob. A static
+                // FBX may start with a tiny eye/leg mesh, not the whole body.
                 var deadSkinned = deadMob.GetComponentInChildren<SkinnedMeshRenderer>();
-                Renderer deadRenderer = deadSkinned != null
-                    ? deadSkinned
-                    : deadMob.GetComponentInChildren<Renderer>();
-                if (deadRenderer != null)
+                if (ObjectFit.WorldBounds(deadMob, out var deadBounds))
                 {
-                    var deadSize = deadRenderer.bounds.size;
+                    var deadSize = deadBounds.size;
                     var deadLength = Mathf.Max(deadSize.x, deadSize.z);
                     var footprint = deadMobConfig != null ? deadMobConfig.footprintFraction : 0.84f;
                     if (deadLength > 0.001f)
@@ -4814,12 +4811,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 carcassRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                     carcassAnchor, GroundY(worldObject.Tile));
 
-                if (!hasDeathState && deadRenderer != null)
+                if (!hasDeathState && ObjectFit.WorldBounds(deadMob, out var flippedBounds))
                 {
                     // Флип идёт вокруг пивота (он у ног живой модели), поэтому
                     // перевёрнутое тело оказывается под землёй — прижать
                     // панцирем к грунту по фактическим границам.
-                    var lift = carcassRoot.transform.position.y - deadRenderer.bounds.min.y;
+                    var lift = carcassRoot.transform.position.y - flippedBounds.min.y;
                     deadMob.transform.position += Vector3.up * lift;
                 }
                 return carcassRoot;

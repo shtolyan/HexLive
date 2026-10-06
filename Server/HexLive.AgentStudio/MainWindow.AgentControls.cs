@@ -43,7 +43,7 @@ public sealed partial class MainWindow
     {
         _serverSelection.ItemsSource = Servers;
         _characterSelection.SelectionChanged += ChooseCharacter;
-        var codex = OperatingSystem.IsMacOS() ? "/Applications/ChatGPT.app/Contents/Resources/codex" : "codex.exe";
+        var codex = CodexExecutable.Resolve();
         var factory = new AgentSessionFactory(_secrets, codex);
         _fleet = new((profile, server, token) => factory.ConnectAsync(profile, server, token));
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };

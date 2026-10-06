@@ -108,7 +108,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         if (_configuration == null || _configurationStore == null ||
             this.FindControl<ListBox>("ProfilesList")!.SelectedItem is not AgentProfile profile) return;
         if (await IsAgentActive(profile.Id)) { SetConfigurationStatus(Strings["StopBeforeEdit"]); return; }
-        var codex = OperatingSystem.IsMacOS() ? "/Applications/ChatGPT.app/Contents/Resources/codex" : "codex.exe";
+        var codex = CodexExecutable.Resolve();
         var updated = await new ProfileSettingsWindow(profile, Strings, _secrets, codex).ShowDialog<AgentProfile?>(this);
         if (updated == null) return;
         try

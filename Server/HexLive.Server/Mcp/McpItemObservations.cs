@@ -47,6 +47,19 @@ internal static class McpItemObservations
                     ignitionPreconditionsMet = !burning && queuedFuel && hasIgnitionTool,
                     fuelAction = "Fuel", ignitionAction = "Ignite", warmingAction = "Observe" };
             }
+            if (item.DefinitionId == WaterCollectorMath.CollectorId)
+            {
+                var vessel = WaterCollectorMath.FindVessel(world, item);
+                row["collector"] = new
+                {
+                    vesselPresent = vessel != null,
+                    vesselObjectId = vessel?.Id.Value,
+                    ownerNpcId = vessel?.Owner?.Value,
+                    drinkableSips = vessel == null ? 0 : WaterCollectorMath.ChargesIn(vessel),
+                    canPlaceVessel = vessel == null && item.Junctions.Count > 0 && BottleInventoryMath.FirstEmpty(observer) != null,
+                    canTakeVessel = vessel != null && WaterCollectorMath.CanTake(world, observer, vessel)
+                };
+            }
             Clothing(row, world, observer, item.DefinitionId, item.Durability);
             if (item.DefinitionId == ContentIds.Bottle && WaterCollectorMath.IsParked(world, item))
             {

@@ -69,11 +69,17 @@ public sealed class AgentCommandLedger
             }
             else receipt.Reason = "RestStopRejected";
         }
+        else if (npc.Plan.Status is PlanStatus.Failed or PlanStatus.Invalid)
+        {
+            // Old saves/failed completion paths can retain InProgress. Finalize
+            // the receipt before cleanup, whose Observe call would otherwise recurse.
+            Finish(world, npc, "failed", "PlanFailed");
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure, "Agent command plan failed");
+            npc.Mind.CurrentGoal = GoalType.None;
+        }
         else if (npc.Execution.Status != ExecutionStatus.InProgress)
         {
             if (npc.Plan.Status == PlanStatus.Completed) Finish(world, npc, "completed", "Completed");
-            else if (npc.Plan.Status == PlanStatus.Failed || npc.Plan.Status == PlanStatus.Invalid)
-                Finish(world, npc, "failed", "PlanFailed");
         }
     }
 

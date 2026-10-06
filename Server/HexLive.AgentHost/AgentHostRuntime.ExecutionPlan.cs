@@ -13,6 +13,11 @@ public sealed partial class AgentHostRuntime
     private volatile bool _holdingPlanLease;
     private DateTimeOffset _nextPlanLeaseRenewal;
 
+    // A player/critical pause retains its reason, but still has to settle the
+    // in-flight command. The reason controls resuming, never receipt recovery.
+    private static bool NeedsReceiptReconciliation(AgentExecutionPlan? plan) =>
+        plan is { Status: "paused", Command.Status: "sending" or "accepted" or "unknown" };
+
     private static bool KeepGoalControl(AgentExecutionPlan? plan) => plan is { Status: "active" or "completed" } ||
         plan is { Status: "paused", Command: null } or { Status: "paused", Command.Status: "failed" };
 
@@ -84,7 +89,7 @@ public sealed partial class AgentHostRuntime
             _holdingPlanLease = false; // Transfer the same session's lease to this queue.
             var initial = (await _memory.SnapshotAsync(token).ConfigureAwait(false)).ExecutionPlan;
             if (initial?.Id != planId) return;
-            reconcilingInitial = initial.Reason == "CommandOutcomeUnknown" && initial.Command != null;
+            reconcilingInitial = NeedsReceiptReconciliation(initial);
             if (initial.Status == "active")
             {
                 await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 }, token).ConfigureAwait(false);
@@ -214,8 +219,7 @@ public sealed partial class AgentHostRuntime
                     goal.WorldKey == world.WorldKey && goal.AvatarNpcId == npcId;
                 if (_holdingPlanLease) _nextPlanLeaseRenewal = DateTimeOffset.UtcNow;
                 needsDecision = saved?.Id == planId && saved.Status != "canceled";
-                retryReceipt = saved?.Id == planId && saved.Status == "paused" && saved.Reason == "CommandOutcomeUnknown" &&
-                    saved.Command is { Status: "sending" or "accepted" or "unknown" } && ++_reconciliationAttempts <= 3;
+                retryReceipt = saved?.Id == planId && NeedsReceiptReconciliation(saved) && ++_reconciliationAttempts <= 3;
                 if (retryReceipt)
                 {
                     _lastExecutionAttempt = "";

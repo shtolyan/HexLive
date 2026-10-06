@@ -666,6 +666,47 @@ public sealed partial class AgentExecutionRuntimeTests
         Assert.That(providers.Calls, Is.Zero);
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ExplicitPauseReconcilesInterruptedReceiptWithoutReplayingOrResuming(bool failed)
+    {
+        using var host = Host(); using var transport = new Transport(new McpTools(host, new ControlLeases(45))) { LoseNextResponse = true };
+        var options = Options(); using var providers = new NoModel();
+        var runtime = new AgentHostRuntime(options, providers);
+        using var mcp = new McpClient(options.ProviderOptions, transport);
+        var (store, world, plan) = await Install(runtime, mcp);
+        transport.BeforeToolCall = (name, _) =>
+        {
+            if (name != "execute_agent_command") return;
+            var current = store.SnapshotAsync(default).GetAwaiter().GetResult().ExecutionPlan!;
+            store.PauseExecutionPlanAsync(current.Id, current.Revision, "EmergencyHydrateVera", default).GetAwaiter().GetResult();
+        };
+        transport.ResponseFilter = (name, text) =>
+        {
+            if (!failed || name != "read_agent_command") return text;
+            var receipt = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(text)!;
+            receipt["outcome"] = JsonSerializer.SerializeToElement("failed");
+            receipt["reason"] = JsonSerializer.SerializeToElement("PlanInterrupted.PlayerCommand");
+            return JsonSerializer.Serialize(receipt);
+        };
+        await Run(runtime, mcp, plan.Id, world);
+        var pending = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        Assert.That(pending.Reason, Is.EqualTo("EmergencyHydrateVera"));
+        Assert.That(pending.Command!.Status, Is.EqualTo("unknown"));
+        typeof(AgentHostRuntime).GetField("_historyWorld", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(runtime, world);
+        typeof(AgentHostRuntime).GetField("_nextExecutionRetry", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(runtime, DateTimeOffset.MinValue);
+        await (Task)typeof(AgentHostRuntime).GetMethod("TryStartExecutionPlanAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(runtime, [mcp, 901, CancellationToken.None])!;
+        await ((Task)typeof(AgentHostRuntime).GetField("_actionTask", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(runtime)!).WaitAsync(TimeSpan.FromSeconds(10));
+        var saved = (await store.SnapshotAsync(default)).ExecutionPlan!;
+        Assert.That(transport.CommandReads, Is.EqualTo(1));
+        Assert.That(transport.Executions, Is.EqualTo(1), "Neither replay the old command nor run the next step of an explicit pause.");
+        Assert.That(saved.Status, Is.EqualTo("paused"));
+        if (failed) Assert.That(saved.Command!.Reason, Is.EqualTo("PlanInterrupted.PlayerCommand"));
+        else { Assert.That(saved.Command, Is.Null); Assert.That(saved.Cursor, Is.EqualTo(1)); Assert.That(saved.Reason, Is.EqualTo("EmergencyHydrateVera")); }
+        Assert.That(providers.Calls, Is.Zero);
+    }
+
     [Test]
     public async Task AnotherGirlsParkedBottleTriggersReplanningWithoutDispatchOrFalseCompletion()
     {

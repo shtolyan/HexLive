@@ -163,7 +163,7 @@
    [
     "[flat]",
     "Сажа, песок, пот. Пойду к воде.",
-    "Soot, sand, sweat. Going to the water."
+    "Soot, sand, sweat. Water, now."
    ],
    [
     "[disgusted]",
@@ -1188,7 +1188,7 @@
    [
     "[soothing]",
     "Терпи. Перевяжу. Жить будешь.",
-    "Bear it. I'll bind it. You'll live."
+    "Bear it. I'll bind it."
    ]
   ],
   "happy_console": [
@@ -1204,7 +1204,7 @@
    ],
    [
     "[soothing]",
-    "Пройдёт. Всё проходит. Проверено.",
+    "Пройдёт. Всё проходит.",
     "It'll pass. Everything does. I've checked."
    ]
   ],
@@ -1250,8 +1250,8 @@
    ],
    [
     "[dreamy]",
-    "Крыша. Стены. Дверь. Больше ничего.",
-    "A roof. Walls. A door. Nothing else."
+    "Крыша. Стены. Дверь.",
+    "A roof. Walls. A door."
    ],
    [
     "[dreamy]",

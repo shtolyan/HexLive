@@ -5,12 +5,12 @@
    [
     "[sad]",
     "Кушать хочется. Прямо очень-очень.",
-    "I'm hungry. Really, really hungry."
+    "I'm hungry. Really hungry."
    ],
    [
     "[sad]",
     "В животике пусто. Хоть бы кокосик.",
-    "My tummy's empty. Even a little coconut would do."
+    "My tummy's empty. A little coconut, maybe?"
    ],
    [
     "[weak]",
@@ -39,7 +39,7 @@
    [
     "[shivering]",
     "Хо-олодно. Я вся дрожу.",
-    "So co-old. I'm shivering all over."
+    "So co-old. I'm shivering."
    ],
    [
     "[shivering]",
@@ -49,7 +49,7 @@
    [
     "[sad]",
     "Ручки ледяные. Погрейте.",
-    "My hands are icy. Somebody warm them."
+    "My hands are icy. Warm them?"
    ]
   ],
   "sad_heat": [
@@ -73,7 +73,7 @@
    [
     "[sleepy]",
     "Спа-ать хочу. Глазки слипаются.",
-    "I want to sle-ep. My eyes are closing."
+    "I want to sle-ep. Eyes closing."
    ],
    [
     "[yawning]",
@@ -107,7 +107,7 @@
    [
     "[yawning]",
     "Уже утро? Ещё чуть-чуть.",
-    "Morning already? Just a little longer."
+    "Morning already? A little longer."
    ],
    [
     "[sleepy]",
@@ -117,7 +117,7 @@
    [
     "[sleepy]",
     "Мне снился дом. Жалко, что сон.",
-    "I dreamt of home. Shame it was a dream."
+    "I dreamt of home. Just a dream."
    ]
   ],
   "hurt_wound": [
@@ -265,7 +265,7 @@
    [
     "[effort]",
     "Ручки устали. Чуть-чуть ещё.",
-    "My arms are tired. Just a bit more."
+    "My arms are tired. A bit more."
    ],
    [
     "[effort]",
@@ -311,7 +311,7 @@
    [
     "[excited]",
     "Огонёчек! Горит! Тёпленький!",
-    "A little flame! It's burning! Cozy!"
+    "A little flame! Cozy!"
    ],
    [
     "[happy]",
@@ -396,7 +396,7 @@
    [
     "[content]",
     "Водичка. Тёпленькая. Хорошо.",
-    "Water. Nice and warm. Good."
+    "Water, nice and warm."
    ],
    [
     "[happy]",
@@ -605,7 +605,7 @@
    [
     "[gasping]",
     "Не хочу. Ещё чуть-чуть.",
-    "I don't want to. A little longer."
+    "I don't want to. Not yet."
    ],
    [
     "[dying]",
@@ -617,7 +617,7 @@
    [
     "[crying]",
     "Нет. Проснись. Ну проснись.",
-    "No. Wake up. Please wake up."
+    "No. Wake up, please."
    ],
    [
     "[crying]",
@@ -627,7 +627,7 @@
    [
     "[sobbing]",
     "Не уходи. Мне страшно без тебя.",
-    "Don't go. I'm scared without you."
+    "Don't go. I'm scared."
    ]
   ],
   "cry_bury": [
@@ -707,12 +707,12 @@
    [
     "[crying]",
     "Мне плохо. Всё плохо.",
-    "I feel awful. Everything's awful."
+    "I feel awful. All awful."
    ],
    [
     "[sobbing]",
     "Домой хочу. К маме.",
-    "I want to go home. To mommy."
+    "I want mommy. Home."
    ]
   ],
   "cry_beaten": [
@@ -729,7 +729,7 @@
    [
     "[crying]",
     "Я домой. Отпусти.",
-    "I'm going home. Let me go."
+    "I'm going home. Let go."
    ]
   ],
   "angry_expel": [
@@ -814,7 +814,7 @@
    [
     "[wistful]",
     "Море большое. А дом далеко.",
-    "The sea is big. And home is far."
+    "The sea is big, and home is far."
    ]
   ],
   "fear_topic_sharks": [
@@ -848,7 +848,7 @@
    [
     "[serious]",
     "Ты спи. Я посторожу. Постараюсь.",
-    "You sleep. I'll keep watch. I'll try."
+    "You sleep, I'll keep watch."
    ]
   ],
   "sad_topic_weather": [
@@ -916,7 +916,7 @@
    [
     "[crying]",
     "Домой хочу. К маме.",
-    "I want to go home. To mommy."
+    "I want to go home, to mommy."
    ]
   ],
   "happy_topic_gossip": [
@@ -1120,7 +1120,7 @@
    [
     "[worried]",
     "Воды нет совсем. Ну сходи.",
-    "There's no water at all. Please go."
+    "No water at all. Please go."
    ]
   ],
   "ask_wood": [
@@ -1246,12 +1246,12 @@
    [
     "[dreamy]",
     "А у меня будет кроватка. Мягонькая.",
-    "And I'll have a little bed. So soft."
+    "I'll have a little bed, so soft."
    ],
    [
     "[dreamy]",
     "Домик. С окошком. И с дверкой.",
-    "A little house. With a window. And a door."
+    "A little house, with a window."
    ],
    [
     "[dreamy]",

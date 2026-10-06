@@ -130,6 +130,14 @@ def shorten_delivery(text: str, level: int) -> str:
         # A two-word tag ("[sad, shivering]") makes v3 add breath and pauses;
         # keeping only the first word gives the same colour, faster.
         text = re.sub(r"^\[([^,\]]+)[^\]]*\]", r"[\1]", text)
+    if level >= 4:
+        # v3 holds a real beat on every full stop; a slow voice (Molly) can
+        # spend a second of a 4.2 s take on three of them. Inner sentence
+        # breaks become commas — same words, same colour, one breath less.
+        tag, _, body = text.partition("] ") if text.startswith("[") else ("", "", text)
+        body = re.sub(r"([.!?])\s+(\S)",
+                      lambda m: ", " + (m.group(2) if m.group(2) == "I" else m.group(2).lower()), body)
+        text = f"{tag}] {body}" if tag else body
     return text.strip()
 
 
@@ -218,6 +226,11 @@ def compress(wav: pathlib.Path) -> pathlib.Path:
     if bake_lipsync.voice_frames(ogg) != bake_lipsync.voice_frames(wav):
         raise RuntimeError(f"{ogg.name}: length changed by the encoder")
     wav.unlink()
+    # The .vis was baked from the WAV a moment ago; make it newer than the Ogg,
+    # or bake_lipsync's mtime check re-bakes the whole bank on its next run.
+    vis = wav.with_suffix(".vis")
+    if vis.exists():
+        os.utime(vis, None)
     wav_meta = pathlib.Path(str(wav) + ".meta")
     if wav_meta.exists():
         wav_meta.unlink()
@@ -419,6 +432,7 @@ def main() -> int:
             (shorten_delivery(line["text"], 1), stretch * 0.5, base_seed + 900),
             (shorten_delivery(line["text"], 2), 0.0, base_seed + 1300),
             (shorten_delivery(line["text"], 3), 0.0, base_seed + 1700),
+            (shorten_delivery(line["text"], 4), 0.0, base_seed + 2100),
         ]
 
         best = None

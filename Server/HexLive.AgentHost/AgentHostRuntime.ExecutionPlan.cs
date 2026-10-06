@@ -107,6 +107,12 @@ public sealed partial class AgentHostRuntime
                     }
                     var before = await mcp.CallToolAsync("describe_colonist", new { npcId }, token).ConfigureAwait(false);
                     _diagnostics.Record("step.before", turn, tool: step.Tool, observation: AgentDiagnosticObservation.From(before), execution: AgentDiagnosticExecution.From(plan));
+                    if (CollectorAlreadyHasVessel(step, before))
+                    {
+                        await _memory.PauseExecutionPlanAsync(plan.Id, plan.Revision,
+                            "CollectorAlreadyHasVessel", token).ConfigureAwait(false);
+                        break; // Replan from observed state; do not credit another actor's work.
+                    }
                     if (step.Condition is { } condition && !AgentExecutionPlanPolicy.ConditionSatisfied(condition, before))
                     {
                         plan = await _memory.BranchExecutionPlanAsync(plan.Id, plan.Revision, token).ConfigureAwait(false);
@@ -144,6 +150,20 @@ public sealed partial class AgentHostRuntime
                     if (acquired && DateTimeOffset.UtcNow >= renew)
                     {
                         await mcp.CallToolAsync("acquire_npc_control", new { npcId, ttlSeconds = 45 }, token).ConfigureAwait(false);
+                        // A legacy server may keep returning accepted after physical
+                        // execution failed. Stop through the normal lease-checked command,
+                        // then reconcile the SAME receipt; never invent completion/replay.
+                        var physical = await mcp.CallToolAsync("describe_colonist", new { npcId }, token).ConfigureAwait(false);
+                        if (plan.Command?.Status == "accepted" &&
+                            physical.TryGetProperty("execution", out var execution) &&
+                            execution.TryGetProperty("planStatus", out var status) &&
+                            status.GetString() is "Failed" or "Invalid")
+                        {
+                            await mcp.CallToolAsync("stop", new { npcId }, token).ConfigureAwait(false);
+                            receipt = await mcp.CallToolAsync("read_agent_command",
+                                new { npcId, sequence = command.Sequence, commandId = command.Id }, token).ConfigureAwait(false);
+                            plan = await ApplyExecutionReceiptAsync(plan, receipt, token).ConfigureAwait(false);
+                        }
                         renew = DateTimeOffset.UtcNow.AddSeconds(9);
                     }
                 }
@@ -214,6 +234,18 @@ public sealed partial class AgentHostRuntime
                 try { await mcp.CallToolAsync("release_control", new { npcId }, CancellationToken.None).ConfigureAwait(false); } catch { }
             if (needsDecision) Interlocked.Exchange(ref _planNeedsDecision, 1);
         }
+    }
+
+    private static bool CollectorAlreadyHasVessel(AgentExecutionStep step, JsonElement observation)
+    {
+        if (step.Tool != "interact" ||
+            !step.Arguments.TryGetProperty("interaction", out var interaction) || interaction.GetString() != "PlaceVessel" ||
+            !step.Arguments.TryGetProperty("objectId", out var target) || !target.TryGetInt32(out var targetId) ||
+            !observation.TryGetProperty("visibleItems", out var items) || items.ValueKind != JsonValueKind.Array) return false;
+        return items.EnumerateArray().Any(item =>
+            item.TryGetProperty("objectId", out var id) && id.TryGetInt32(out var objectId) && objectId == targetId &&
+            item.TryGetProperty("collector", out var collector) &&
+            collector.TryGetProperty("vesselPresent", out var present) && present.ValueKind == JsonValueKind.True);
     }
 
     private async Task<AgentExecutionPlan> ApplyExecutionReceiptAsync(AgentExecutionPlan plan, JsonElement response, CancellationToken token)

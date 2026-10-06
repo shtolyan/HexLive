@@ -346,6 +346,79 @@ public sealed class AgentCommandReceiptTests
         Assert.That(host.Read(w => w.AgentCommands.Count), Is.Zero);
     }
 
+    [TestCase("occupied")]
+    [TestCase("no-bottle")]
+    [TestCase("water-taken")]
+    [TestCase("success")]
+    public void CollectorCompletionRechecksTheWorldAndNeverLeavesAnAcceptedZombie(string scenario)
+    {
+        using var host = Host(); var tools = Tools(host);
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            var slot = w.Junctions.Items.Keys.First();
+            var collector = new HexLive.Simulation.Content.WorldObjectState
+            { Id = new ObjectId(990001), DefinitionId = WaterCollectorMath.CollectorId,
+              Tile = npc.Tile, IsOccupied = true, CurrentUser = npc.Id };
+            collector.Junctions.Add(slot);
+            w.Entities.Objects.Add(collector.Id, collector);
+            w.Caches.ObjectsByTile[npc.Tile] = new() { collector.Id };
+            npc.Inventory.Items.Clear();
+            if (scenario != "no-bottle") npc.Inventory.Items.Add(new HexLive.Simulation.Agents.ItemInstance("tool.bottle"));
+            // Another girl parks her bottle after our command has started.
+            if (scenario is "occupied" or "water-taken")
+            {
+                var other = w.Entities.Npcs.Keys.First(id => id != npc.Id);
+                var vessel = new HexLive.Simulation.Content.WorldObjectState
+                { Id = new ObjectId(990002), DefinitionId = WaterCollectorMath.VesselId, Tile = npc.Tile, Owner = other };
+                vessel.Junctions.Add(slot); w.Entities.Objects.Add(vessel.Id, vessel);
+                w.Caches.ObjectsByTile[npc.Tile].Add(vessel.Id);
+            }
+            var interaction = scenario == "water-taken" ? HexLive.Simulation.Content.InteractionType.TakeVessel : HexLive.Simulation.Content.InteractionType.PlaceVessel;
+            npc.Mind.CurrentGoal = GoalType.PlayerOrder;
+            npc.Plan.Goal = GoalType.PlayerOrder; npc.Plan.Status = PlanStatus.Active;
+            npc.Plan.TargetObjectId = collector.Id; npc.Plan.TargetJunctionId = null;
+            npc.Plan.Steps.Clear(); npc.Plan.Steps.Add(new() { Type = PlanStepType.Interact, TargetObject = collector.Id, Interaction = interaction });
+            npc.Movement.JunctionPath.Clear(); npc.Movement.Status = HexLive.Simulation.Navigation.MovementStatus.Arrived;
+            npc.Execution.Status = ExecutionStatus.InProgress; npc.Execution.CurrentInteraction = interaction;
+            npc.Execution.TargetObject = collector.Id; npc.Execution.EndTick = w.Tick;
+            var ledger = new AgentCommandLedger { HighestSequence = 1, ActiveSequence = 1 };
+            ledger.Receipts.Add(new() { Sequence = 1, Id = "command-1", Outcome = "accepted", Reason = "Accepted" });
+            w.AgentCommands[901] = ledger;
+            new ExecutionSystem().Run(w);
+            Assert.That(npc.Execution.Status, Is.Not.EqualTo(ExecutionStatus.InProgress), "Completion/denial must release physical execution before receipt polling.");
+            Assert.That(collector.IsOccupied, Is.False);
+            if (scenario == "occupied")
+            {
+                Assert.That(WaterCollectorMath.FindVessel(w, collector)!.Id.Value, Is.EqualTo(990002));
+                Assert.That(npc.Inventory.Items.Count, Is.EqualTo(1), "Do not consume our bottle or replace somebody else's.");
+            }
+            return true;
+        });
+        Assert.That(Read(tools, 1).GetProperty("outcome").GetString(), Is.EqualTo(scenario == "success" ? "completed" : "failed"));
+        Assert.That(Execute(tools, 2).GetProperty("outcome").GetString(), Is.EqualTo("completed"), "The next command must be admissible.");
+    }
+
+    [TestCase(PlanStatus.Failed)]
+    [TestCase(PlanStatus.Invalid)]
+    public void LegacyFailedPlanWithInProgressExecutionIsRecovered(PlanStatus status)
+    {
+        using var host = Host(); var tools = Tools(host);
+        host.Read(w =>
+        {
+            var npc = w.Entities.Npcs[new EntityId(901)];
+            npc.Plan.Status = status; npc.Execution.Status = ExecutionStatus.InProgress;
+            npc.Execution.CurrentInteraction = HexLive.Simulation.Content.InteractionType.PlaceVessel;
+            var ledger = new AgentCommandLedger { HighestSequence = 1, ActiveSequence = 1 };
+            ledger.Receipts.Add(new() { Sequence = 1, Id = "command-1", Outcome = "accepted" });
+            w.AgentCommands[901] = ledger; return true;
+        });
+        Assert.That(Read(tools, 1).GetProperty("outcome").GetString(), Is.EqualTo("failed"));
+        Assert.That(Read(tools, 1).GetProperty("reason").GetString(), Is.EqualTo("PlanFailed"));
+        Assert.That(host.Read(w => w.Entities.Npcs[new EntityId(901)].Execution.Status), Is.Not.EqualTo(ExecutionStatus.InProgress));
+        Assert.That(Execute(tools, 2).GetProperty("outcome").GetString(), Is.EqualTo("completed"));
+    }
+
     private WorldHost Host() => new(12345, GameMode.Feud, Path.Combine(_directory, "world.sav"),
         Path.Combine(Root(), "SimData", "simdata.json"), false, companionProfile: "masha");
     private static McpTools Tools(WorldHost host)

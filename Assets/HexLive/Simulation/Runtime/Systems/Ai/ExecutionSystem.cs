@@ -1657,19 +1657,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             worldObject.Junctions.Count == 0 ||
             WaterCollectorMath.FindVessel(world, worldObject) is not null)
         {
-            npc.Plan.Status = PlanStatus.Failed;
-            PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "ExecFailed",
-                    "PlaceVessel: no empty bottle to park, or the slot is taken");
-            }
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                "PlaceVessel: no empty bottle to park, or the slot is taken");
+            npc.Mind.CurrentGoal = GoalType.None;
             return false;
         }
 
         if (!InventoryMath.RemoveReference(npc.Inventory.Items, bottleItem))
         {
-            npc.Plan.Status = PlanStatus.Failed;
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                "PlaceVessel: bottle no longer carried");
+            npc.Mind.CurrentGoal = GoalType.None;
             return false;
         }
         var vessel = WorldObjectMutations.SpawnObject(
@@ -1696,13 +1694,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         var vessel = WaterCollectorMath.FindVessel(world, worldObject);
         if (vessel is null || !WaterCollectorMath.CanTake(world, npc, vessel))
         {
-            npc.Plan.Status = PlanStatus.Failed;
-            PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
-            if (SimTrace.Enabled)
-            {
-                Trace.Debug(world, npc.Id, "ExecFailed",
-                    "TakeVessel: nothing collected yet, or the bottle is spoken for");
-            }
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                "TakeVessel: nothing collected yet, or the bottle is spoken for");
+            npc.Mind.CurrentGoal = GoalType.None;
             return false;
         }
 

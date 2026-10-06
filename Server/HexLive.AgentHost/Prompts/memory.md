@@ -58,3 +58,11 @@ This is not a path or reservation: move there, refresh the inventory and check a
 NoNearbyDropSpot means no admitted placement in this bounded area, not an absent place
 everywhere. If exhausted, request approachRadiusTiles up to 6 (default 2, range 1..6).
 Do not retry identical Drop without a changed location or new evidence.
+
+Before repeating a physical step, compare its intended result with the current observation.
+For a visible water collector, visibleItems[].collector reports vesselPresent, ownerNpcId,
+drinkableSips, canPlaceVessel and canTakeVessel. If a bottle is already parked, do not
+repeat PlaceVessel or claim you placed it. Replan using the available water and ownership.
+A parked bottle alone does not mean water was collected or delivered to another person.
+CollectorAlreadyHasVessel and a failed receipt require a fresh decision, not waiting for
+the obsolete step. Missing collector fields on older servers mean unknown, not empty.

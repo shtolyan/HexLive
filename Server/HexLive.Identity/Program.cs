@@ -47,10 +47,14 @@ public static class Program
             o.KnownProxies.Add(IPAddress.Loopback);
             o.KnownProxies.Add(IPAddress.IPv6Loopback);
         });
-        builder.Services.AddRateLimiter(o => o.AddFixedWindowLimiter("identity", limiter => {
-            limiter.PermitLimit = 120; limiter.Window = TimeSpan.FromMinutes(1);
-            limiter.QueueLimit = 0;
-        }));
+        builder.Services.AddRateLimiter(o => {
+            o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            o.AddFixedWindowLimiter("identity", limiter => {
+                limiter.PermitLimit = 120; limiter.Window = TimeSpan.FromMinutes(1);
+                limiter.QueueLimit = 0;
+            });
+            IdentityValidation.Configure(o, keys);
+        });
         var app = builder.Build();
         app.UseForwardedHeaders();
         app.UseRateLimiter();
@@ -78,11 +82,7 @@ public static class Program
         static IResult Page(string body) => Results.Content("<!doctype html><html lang='ru'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>HexLive — ключи</title><style>body{background:#10171c;color:#edf2f4;font:17px system-ui;max-width:900px;margin:50px auto;padding:20px}input,button{font:inherit;padding:10px;margin:5px}button{cursor:pointer}article{border-top:1px solid #43535d;padding:15px 0}code{overflow-wrap:anywhere}a{color:#bcdf88}</style><h1>HexLive · ключи</h1>" + body + "</html>", "text/html; charset=utf-8");
 
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-        app.MapPost("/api/identity/v1/validate", (HttpContext c) => {
-            var header = c.Request.Headers.Authorization.ToString();
-            var identity = header.StartsWith("Bearer ", StringComparison.Ordinal) ? keys.Authenticate(header[7..]) : null;
-            return identity == null ? Results.Unauthorized() : Results.Ok(new { accountId = identity.Id, name = identity.Name, permissions = identity.Permissions, revision = identity.Revision, subjectType = identity.SubjectType });
-        }).RequireRateLimiting("identity");
+        IdentityValidation.Map(app, keys);
 
         app.MapGet("/", (HttpContext c) => {
             var csrf = Csrf(c);

@@ -95,7 +95,8 @@ public static class WorldSnapshotCodec
     /// v40: §159 companion profile, authored appearance, Hexkufa and voice bond.
     // v42: per-vessel visual provenance and exact held-bottle fill (§55.5).
     // v43: persistent craft project current/last worker (§119, #422).
-    public const int WireVersion = 43;
+    // v44: §54.21 / #429 distinguishes harvest scatter from inventory piles.
+    public const int WireVersion = 44;
 
     private const int EndMarker = unchecked((int)0x534E4150); // "SNAP"
 
@@ -513,6 +514,7 @@ public static class WorldSnapshotCodec
         WriteDefinitionId(w, o.DefinitionId);
         WireIo.WriteTile(w, o.Tile);
         w.Write(o.RotationDegrees);
+        w.Write(o.IsHarvestScatter);
         w.Write(o.ResourceAmount);
         w.Write((byte)o.WaterKind);
         w.Write((byte)o.LastAddedWaterKind);
@@ -657,6 +659,7 @@ public static class WorldSnapshotCodec
             o.DefinitionId = ReadDefinitionId(r);
             o.Tile = WireIo.ReadTile(r);
             o.RotationDegrees = r.ReadSingle();
+            o.IsHarvestScatter = r.ReadBoolean();
             o.ResourceAmount = r.ReadSingle();
             o.WaterKind = (Agents.WaterKind)r.ReadByte();
             o.LastAddedWaterKind = (Agents.WaterKind)r.ReadByte();

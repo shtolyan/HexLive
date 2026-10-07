@@ -16,8 +16,7 @@ namespace HexLive.UnityPresentation.Environment
             "bed.basic" => "bed_basic_final_native",
             "station.water_collector" => "water_collector_final_native",
             "tree.palm" => "palm_final_native",
-            // Crown ids are intentionally absent: PalmCrownFactory assembles
-            // them from the approved palm_frond_native leaf_final mirror.
+            // Crown ids resolve directly to their self-contained FBX owners.
             "resource.log" => "resource.log",
             "resource.stick" => "resource.stick",
             "resource.palm_leaf" => "palm_frond_native",

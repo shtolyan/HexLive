@@ -2039,8 +2039,10 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (parts.GroundPile != null && _groundPileRank.TryGetValue(key, out var groundSlot))
             {
-                if (_groundPileLegacy.Contains(worldObject.Junctions[0])) parts.GroundPile.ApplyLegacy(key);
+                if (worldObject.IsHarvestScatter) parts.GroundPile.ApplyScatter(key);
+                else if (_groundPileLegacy.Contains(worldObject.Junctions[0])) parts.GroundPile.ApplyLegacy(key);
                 else parts.GroundPile.Apply(groundSlot,GroundPileCatalog.Capacity(worldObject.DefinitionId),key);
+                AdjustGroundPileSupport(parts.GroundPile, worldObject);
             }
 
             var garmentCondition = parts.Garment;
@@ -4170,7 +4172,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     private float ObjectGroundY(ObjectSnapshot worldObject)
     {
-        var y = GroundY(worldObject.Tile);
+        var supportTile = worldObject.Tile;
+        if (GroundPileCatalog.TryGet(worldObject.DefinitionId, false, out _) &&
+            worldObject.Junctions.Count > 0 &&
+            _junctionPositions.TryGetValue(worldObject.Junctions[0].Value, out var anchor))
+        {
+            var under = HexSpatialMath.WorldToTile(anchor);
+            if (_tileElevations.ContainsKey(under)) supportTile = under;
+        }
+        var y = GroundY(supportTile);
         if (IsIntegratedHutBed(worldObject))
         {
             y += HexLive.UnityPresentation.Environment.HutFurnitureFactory.BedRootLift;
@@ -4179,7 +4189,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         {
             y += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
         }
-        else if (_floorTiles.Contains(worldObject.Tile) &&
+        else if (_floorTiles.Contains(supportTile) &&
                  !OwnsRaisedFloorGeometry(worldObject))
         {
             // §118.2: loose items in a hut stand on the authored top of its
@@ -4636,9 +4646,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return limbRoot;
         }
 
-        // Spec §54.2: a palm is ASSEMBLED from N trunk-segment logs + a crown, so
-        // it visibly matches the logs/crown that drop when it's felled. Already
-        // absolute-sized (each segment = a dropped log), so no FitObjectPrefab.
+        // Spec §54.2: approved standing palm at authored 1:1 world size.
+        // Its LeafGreen geometry is also the source of the fallen crown;
+        // neither owner goes through FitObjectPrefab.
         if (HexLive.UnityPresentation.Environment.PalmTreeFactory.IsPalm(worldObject.DefinitionId))
         {
             var palm = HexLive.UnityPresentation.Environment.PalmTreeFactory.Build(worldObject.DefinitionId);
@@ -4683,9 +4693,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return stumpRoot;
         }
 
-        // Spec §54.2: the dropped palm crown is a fluffy cluster of leaves — no
-        // trunk. Same builder the standing palm's top uses; the big palm's crown
-        // is fuller than the small one's (matching its leaf drop).
+        // Spec §54.2/§54.21: the fallen crown copies the standing palm LeafGreen
+        // geometry at 1:1 size, seated on the ground without its trunk.
         if (worldObject.DefinitionId == "resource.palm_crown" ||
             worldObject.DefinitionId == "resource.palm_crown_small")
         {
@@ -4703,7 +4712,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 AttachGroundPile(crownRoot,crown,worldObject);
                 var cAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 crownRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
-                    cAnchor, GroundY(worldObject.Tile));
+                    cAnchor, ObjectGroundY(worldObject));
                 return crownRoot;
             }
         }
@@ -4835,7 +4844,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             prostheticRoot.transform.SetParent(_objectsRoot, false);
             var prostheticAnchor = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             prostheticRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
-                prostheticAnchor, GroundY(worldObject.Tile));
+                prostheticAnchor, ObjectGroundY(worldObject));
             prostheticRoot.AddComponent<ProstheticWorldDropView>()
                 .Construct(worldObject.DefinitionId, worldObject.Id.Value,
                     groundPose: !worldObject.CraftStationObjectId.HasValue);
@@ -4911,7 +4920,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 }
                 var anchorPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 prefabRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
-                    anchorPos, GroundY(worldObject.Tile));
+                    anchorPos, ObjectGroundY(worldObject));
                 MaybeAttachCampfire(prefabRoot, worldObject.DefinitionId);
                 return prefabRoot;
             }
@@ -4999,7 +5008,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             SuppressSmallPropShadows(garment); // flat cloth on the ground — see above
             var garmentPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
             garmentRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
-                garmentPos, GroundY(worldObject.Tile));
+                garmentPos, ObjectGroundY(worldObject));
             AttachGarmentCondition(garmentRoot, garment, worldObject);
             return garmentRoot;
         }
@@ -5018,8 +5027,26 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var pile=root.AddComponent<GroundPileLayout>();
         pile.Initialize(visual.transform,profile);
         _groundPileRank.TryGetValue(item.Id.Value,out var rank);
-        if (item.Junctions.Count > 0 && _groundPileLegacy.Contains(item.Junctions[0])) pile.ApplyLegacy(item.Id.Value);
+        if (item.IsHarvestScatter) pile.ApplyScatter(item.Id.Value);
+        else if (item.Junctions.Count > 0 && _groundPileLegacy.Contains(item.Junctions[0])) pile.ApplyLegacy(item.Id.Value);
         else pile.Apply(rank,GroundPileCatalog.Capacity(item.DefinitionId),item.Id.Value);
+        AdjustGroundPileSupport(pile, item);
+    }
+
+    private void AdjustGroundPileSupport(GroundPileLayout pile, ObjectSnapshot item)
+    {
+        // §54.21: a wide inventory pile can cross a height step. Preserve its
+        // orderly XZ/stack layout, but seat each column on the terrain beneath
+        // that column. The simulation anchor remains at the original junction.
+        if (item.Junctions.Count == 0 ||
+            !_junctionPositions.TryGetValue(item.Junctions[0].Value, out var anchor)) return;
+        var slot = pile.SlotTransform.localPosition;
+        var support = HexSpatialMath.WorldToTile(new Float2(anchor.X + slot.x, anchor.Y + slot.z));
+        if (!_tileElevations.ContainsKey(support)) return;
+        var surface = GroundY(support);
+        if (_floorTiles.Contains(support)) surface += HexLive.UnityPresentation.Environment.HutAssembly.FloorSurfaceLift;
+        slot.y += surface - ObjectGroundY(item);
+        pile.SlotTransform.localPosition = slot;
     }
 
     private GameObject CreateHumanRemainsView(

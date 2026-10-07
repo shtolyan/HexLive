@@ -2450,7 +2450,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 var item = CreateYieldItem(world, drop.DefinitionId);
-                if (!TryDropYieldNear(world,npc,source,item,out _)) GiveOrDrop(world,npc,item);
+                if (!TryDropYieldNear(world,npc,source,item,out _, scatter:true)) GiveOrDrop(world,npc,item);
             }
         }
     }
@@ -2501,13 +2501,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     }
 
     private static bool TryDropYieldNear(WorldState world,NPCState npc,WorldObjectState source,
-        ItemInstance item,out WorldObjectState spawned)
+        ItemInstance item,out WorldObjectState spawned,bool scatter=false)
     {
         var position = source.Junctions.Count > 0 && world.Junctions.Items.TryGetValue(source.Junctions[0],out var anchor)
             ? anchor.WorldPosition : npc.Position;
-        if (GroundItemPlacement.TryFindNear(world,npc,item,source.Tile,position,out var tile,out var junction,out _))
+        if (GroundItemPlacement.TryFindNear(world,npc,item,source.Tile,position,out var tile,out var junction,out _,scatter))
         {
             spawned = SpawnDroppedItem(world,npc,item,tile,junction);
+            spawned.IsHarvestScatter = scatter;
             return true;
         }
         spawned = null;

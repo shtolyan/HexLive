@@ -427,6 +427,41 @@ def leaf_mesh(owner, name, base, tip, width, mat):
     return obj
 
 
+def standing_palm_crown(owner_name: str) -> None:
+    """Copy the standing palm's exact LeafGreen triangles, preserving 1:1 size.
+
+    Yield count is gameplay data, not the number of fronds in the visible crown.
+    The only geometric change is translation from tree height onto the ground.
+    """
+    owner = collection(owner_name)
+    source = import_mesh_source(OBJECTS / "palm_final_native.fbx")
+    pieces = []
+    for obj in source:
+        faces = [p for p in obj.data.polygons
+                 if obj.data.materials[p.material_index].name.split(".")[0] == "LeafGreen"]
+        if not faces:
+            continue
+        indices = sorted({i for face in faces for i in face.vertices})
+        mapping = {old: new for new, old in enumerate(indices)}
+        vertices = [obj.matrix_world @ obj.data.vertices[i].co for i in indices]
+        mesh = bpy.data.meshes.new(owner_name + ".mesh")
+        mesh.from_pydata(vertices, [], [[mapping[i] for i in face.vertices] for face in faces])
+        mesh.materials.append(obj.data.materials[faces[0].material_index])
+        mesh.update()
+        piece = bpy.data.objects.new("StandingPalmCrown", mesh)
+        owner.objects.link(piece)
+        pieces.append(piece)
+    if not pieces:
+        raise RuntimeError("Standing palm has no LeafGreen crown")
+    low, high = world_bounds(pieces)
+    translation = Matrix.Translation(Vector((-(low.x + high.x) / 2,
+                                             -(low.y + high.y) / 2, -low.z)))
+    for piece in pieces:
+        piece.data.transform(translation)
+    for obj in source:
+        bpy.data.objects.remove(obj, do_unlink=True)
+
+
 def crown(owner_name: str, fronds: int, length: float) -> None:
     """Bake the exact pre-§152 PalmCrownFactory assembly into one owner."""
     owner = collection(owner_name)
@@ -543,7 +578,7 @@ def main() -> None:
     if "--only-palm-drops" in sys.argv:
         clean_scene()
         stump()
-        crown("resource.palm_crown", fronds=42, length=1.275)
+        standing_palm_crown("resource.palm_crown")
         crown("resource.palm_crown_small", fronds=8, length=1.275)
         for asset_id in (
                 "stump.palm", "resource.palm_crown", "resource.palm_crown_small"):
@@ -568,7 +603,7 @@ def main() -> None:
     bow()
     arrow()
     stump()
-    crown("resource.palm_crown", fronds=42, length=1.275)
+    standing_palm_crown("resource.palm_crown")
     crown("resource.palm_crown_small", fronds=8, length=1.275)
     crab()
     for asset_id in (

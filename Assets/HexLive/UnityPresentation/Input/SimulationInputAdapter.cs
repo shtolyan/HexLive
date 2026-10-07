@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
@@ -943,7 +944,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // иначе он был бы обещанием без содержания.
         if (definition.HasTag(ObjectTags.Campfire))
         {
-            var hasRawMeat = carried.Contains(ContentIds.MeatRaw);
+            var hasRawMeat = carried.Any(HumanMeatCatalog.IsRaw);
             _entries.Add(new ContextMenuEntry(
                 Loc.Get("menu.cook_meat"),
                 () => EnqueueOrder(actorId,
@@ -1182,6 +1183,15 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     }
                 }),
                 directiveEnabled, directiveEnabled ? null : directiveHint));
+        }
+
+        if (dead || target.IsUnconscious)
+        {
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.butcher_person"),
+                () => OpenConfirmMenu(mousePos, NpcTitle(npcId), "menu.butcher_person.confirm",
+                    () => EnqueueOrder(carrier!.Id.Value, new ButcherPersonCommand(
+                        new EntityId(carrier.Id.Value), new EntityId(npcId)))),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
         // §121.9 (тёмная фаза): необратимые акты — только через подменю

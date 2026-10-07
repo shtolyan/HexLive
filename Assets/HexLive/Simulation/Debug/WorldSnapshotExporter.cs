@@ -214,8 +214,8 @@ public static class WorldSnapshotExporter
                     case ContentIds.Board: if (isDeliveredBuildMaterial) exported.DeliveredBoards++; break;
                     // §54.14 (r2): spit meat renders whether or not the
                     // upgrade bill is still open.
-                    case "food.meat_raw": exported.RoastingRaw++; break;
-                    case "food.meat_cooked": exported.RoastingCooked++; break;
+                    case var rawId when HumanMeatCatalog.IsRaw(rawId): exported.RoastingRaw++; break;
+                    case var cookedId when HumanMeatCatalog.IsCooked(cookedId): exported.RoastingCooked++; break;
                 }
 
                 if (obj.IsCraftProject)
@@ -825,10 +825,9 @@ public static class WorldSnapshotExporter
                     : string.Empty;
 
             case InteractionType.Craft:
-                if (npc.Mind.CurrentGoal == GoalType.CookMeat &&
-                    InventoryContains(npc, "food.meat_raw"))
+                if (npc.Mind.CurrentGoal == GoalType.CookMeat && HumanMeatCatalog.FirstRaw(npc) is { } raw)
                 {
-                    return "food.meat_raw";
+                    return raw.DefinitionId;
                 }
 
                 return InventoryContains(npc, "resource.stick") ? "resource.stick" : string.Empty;

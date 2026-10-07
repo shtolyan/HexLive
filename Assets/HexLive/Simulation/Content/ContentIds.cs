@@ -36,6 +36,7 @@ public static class ContentIds
     /// <summary>Вскрытый: мякоть, её едят.</summary>
     public const string CoconutOpen = "food.coconut_open";
 
+    public const string SeveredLimb = "body.limb_severed";
     public const string MeatRaw = "food.meat_raw";
     public const string MeatCooked = "food.meat_cooked";
 

@@ -2033,7 +2033,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var spitMeat = parts.SpitMeat;
                 if (spitMeat != null)
                 {
-                    spitMeat.Refresh(worldObject.RoastingRaw, worldObject.RoastingCooked);
+                    spitMeat.Refresh(worldObject.RoastingRaw, worldObject.RoastingCooked, worldObject.Contents);
                 }
             }
 
@@ -4573,7 +4573,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 // §54.14 (r2): the spit-meat view rides on the same root; the
                 // per-frame sync feeds it the hanging raw/cooked counts.
                 var spitView = fireGo.AddComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>();
-                spitView.Refresh(worldObject.RoastingRaw, worldObject.RoastingCooked);
+                spitView.Refresh(worldObject.RoastingRaw, worldObject.RoastingCooked, worldObject.Contents);
                 return fireGo;
             }
             return null;

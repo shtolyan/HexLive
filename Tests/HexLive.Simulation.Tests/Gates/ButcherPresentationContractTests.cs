@@ -24,7 +24,7 @@ public sealed class ButcherPresentationContractTests
             Assert.That(setInteraction,
                 Does.Contain("var butchering = !_legless && interaction == \"Butcher\";"));
             Assert.That(setInteraction,
-                Does.Contain("var kneelingCraft = crafting || looting || butchering ||"));
+                Does.Contain("var kneelingCraft = (crafting && !standingCraft) || looting || butchering ||"));
             Assert.That(setInteraction,
                 Does.Contain("SetHandProp(crafting || looting ? string.Empty"),
                 "Butcher нельзя добавлять в очистку hand prop: нож должен остаться в руке.");

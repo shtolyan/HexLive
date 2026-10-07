@@ -1,6 +1,12 @@
 {
     "schemaVersion": 2,
     "entries": [
+        {"id":"food.human_arm_cooked","source":"Tools/make_human_food_models.py","native":"food.human_arm_cooked.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["HumanCookedSkin","HumanCookedCut"],"alpha":"opaque"},
+        {"id":"food.human_arm_raw","source":"Tools/make_human_food_models.py","native":"food.human_arm_raw.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["HumanRawSkin","HumanRawCut"],"alpha":"opaque"},
+        {"id":"food.human_leg_cooked","source":"Tools/make_human_food_models.py","native":"food.human_leg_cooked.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["HumanCookedSkin","HumanCookedCut"],"alpha":"opaque"},
+        {"id":"food.human_leg_raw","source":"Tools/make_human_food_models.py","native":"food.human_leg_raw.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["HumanRawSkin","HumanRawCut"],"alpha":"opaque"},
+        {"id":"food.human_torso_cooked","source":"Tools/make_human_food_models.py","native":"food.human_torso_cooked.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["HumanCookedSkin","HumanCookedCut"],"alpha":"opaque"},
+        {"id":"food.human_torso_raw","source":"Tools/make_human_food_models.py","native":"food.human_torso_raw.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["HumanRawSkin","HumanRawCut"],"alpha":"opaque"},
         {"id":"tree.palm","source":"_AiGen/palm_final.glb","native":"palm_final_native.fbx","mode":"native","minRenderers":1,"materialSlots":["WoodBark","LeafGreen"],"alpha":"opaque-geometry"},
         {"id":"resource.palm_leaf","source":"_AiGen/leaf_final.glb","native":"palm_frond_native.fbx","mode":"native","minRenderers":1,"materialSlots":["LeafGreen"],"alpha":"opaque-geometry"},
         {"id":"rock.boulder","source":"_AiGen/rock_boulder.glb","native":"rock_boulder_native.fbx","mode":"native","minRenderers":5,"materialSlots":["StoneMid","StoneLight","StoneDark"],"alpha":"opaque"},

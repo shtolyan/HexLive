@@ -153,8 +153,8 @@ internal static class ContainerLootMath
     /// откуда готовый кусок можно снять, а сырой — повесить.</summary>
     public static bool IsSpitMeat(ItemInstance item) =>
         item is not null &&
-        (item.DefinitionId == ContentIds.MeatRaw ||
-         item.DefinitionId == ContentIds.MeatCooked);
+        (HumanMeatCatalog.IsRaw(item.DefinitionId) ||
+         HumanMeatCatalog.IsCooked(item.DefinitionId));
 
     public static bool IsQueuedCampfireFuel(
         WorldObjectState container, ItemInstance item) =>
@@ -568,7 +568,7 @@ internal static class ContainerLootMath
         {
             // Готовое мясо обратно на вертел не вешают: оно уже пожарено, и
             // второй круг над огнём для него ничего не значит.
-            if (item.DefinitionId == ContentIds.MeatRaw)
+            if (HumanMeatCatalog.IsRaw(item.DefinitionId))
             {
                 hooksUsed++;
                 if (!spitReady || hooksUsed > SimBalance.CampfireSpitCapacity)
@@ -656,7 +656,7 @@ internal static class ContainerLootMath
                 // §151.3: дерево встаёт в очередь топлива (метка), сырой кусок
                 // — на вертел с нулевым прогрессом прожарки; дальше его крутит
                 // FireSystem ровно так же, как повешенный самой колонисткой.
-                item.ResourceAmount = item.DefinitionId == ContentIds.MeatRaw
+                item.ResourceAmount = HumanMeatCatalog.IsRaw(item.DefinitionId)
                     ? 0f
                     : QueuedFuelMarker;
                 obj.Contents.Add(item);

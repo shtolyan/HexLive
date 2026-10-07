@@ -413,6 +413,11 @@ public sealed class McpTools
                    ("count", "integer", "сколько штук (по умолчанию 1)", false),
                    ("direction", "string", "Take или Give", true))),
 
+        new("butcher_person",
+            "Разделать бессознательного персонажа или свежее тело любой фракции. Нужен нож; для живого смертельно. Части остаются на земле, их можно подобрать и приготовить на костре.",
+            Schema(("npcId", "integer", "id исполнителя", true),
+                   ("targetNpcId", "integer", "id персонажа или тела", true))),
+
         new("prey_person",
             "«Тёмный» приказ §56 (за выключателем Spec121.ManualDarkOrdersEnabled): " +
             "выследить СОСЕДКУ ради мяса. Нужен разделочный нож. Необратимо и с полными " +
@@ -583,6 +588,12 @@ public sealed class McpTools
                 case "request_item": return RequestItem(host, arguments, owner, out isError);
                 case "transfer_inventory": return TransferInventory(host, arguments, owner, out isError);
                 case "transfer_container": return TransferContainer(host, arguments, owner, out isError);
+                case "butcher_person":
+                {
+                    var target = new EntityId(Int(arguments, "targetNpcId"));
+                    return Simple(host, arguments, owner,
+                        npc => new ButcherPersonCommand(npc, target), out isError);
+                }
                 case "prey_person":
                 {
                     var target = new EntityId(Int(arguments, "targetNpcId"));

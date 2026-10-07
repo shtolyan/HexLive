@@ -323,7 +323,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 {
                     foreach (var ing in inPlaceRecipe.Inputs)
                     {
-                        var missing = ing.Count - DecisionSystem.CountInventory(npc, ing.Id);
+                        var missing = ing.Count - (npc.Mind.CurrentGoal == GoalType.CookMeat ? HumanMeatCatalog.CountRaw(npc) : DecisionSystem.CountInventory(npc, ing.Id));
                         if (missing <= 0)
                         {
                             continue;

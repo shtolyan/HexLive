@@ -540,7 +540,7 @@ public static class CraftingOptions
         into.Clear();
         foreach (var ingredient in recipe.Inputs)
         {
-            var available = DecisionSystem.CountInventory(npc, ingredient.Id);
+            var available = recipe.Goal == GoalType.CookMeat ? HumanMeatCatalog.CountRaw(npc) : DecisionSystem.CountInventory(npc, ingredient.Id);
             if (includeGround)
             {
                 available += scan.CountAround(tile, ingredient.Id);

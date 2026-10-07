@@ -122,6 +122,9 @@ internal static class ManualCommandExecutor
             case SelfActionCommand selfAction:
                 ApplySelfAction(world, selfAction, admission);
                 break;
+            case ButcherPersonCommand butcher:
+                ApplyButcherPerson(world, butcher, admission);
+                break;
             case PreyPersonCommand prey:
                 ApplyPreyPerson(world, prey, admission);
                 break;
@@ -239,6 +242,7 @@ internal static class ManualCommandExecutor
         MedicalAidCommand => "MedicalAid",
         SelfActionCommand => "SelfAction",
         PreyPersonCommand => "Prey",
+        ButcherPersonCommand => "ButcherPerson",
         AbusePersonCommand => "Abuse",
         GroupMoveCommand => "GroupMove",
         GroupStopCommand => "GroupStop",
@@ -1731,6 +1735,17 @@ internal static class ManualCommandExecutor
     // остаются только физические: нож-разделочник и рабочие руки. Удары ведёт
     // штатная PredationSystem по смежной союзнице; погоню держит
     // ManualOrderSystem.KeepPreying, как у приказа атаки.
+    private static void ApplyButcherPerson(WorldState world, ButcherPersonCommand command, AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(world, command.Npc, "ButcherPerson", requireManual: true, admission, out var npc)) return;
+        var reason = HumanButchery.Validate(world, npc, command.Target);
+        if (reason != null) { Reject(world, npc.Id, "ButcherPerson", reason, admission); return; }
+        ClearForNewOrder(world, npc, "Разделать человека");
+        ClearAttackOrder(world, npc);
+        if (!HumanButchery.Start(world, npc, command.Target))
+            Reject(world, npc.Id, "ButcherPerson", "Unreachable", admission);
+    }
+
     private static void ApplyPreyPerson(
         WorldState world, PreyPersonCommand command, AdmissionTracker admission)
     {

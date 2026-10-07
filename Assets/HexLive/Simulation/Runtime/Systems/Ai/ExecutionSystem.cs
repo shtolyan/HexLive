@@ -225,6 +225,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (lastStep?.InteractionId == HumanMeatCatalog.ButcherPerson)
+            {
+                HumanButchery.Run(world, npc);
+                continue;
+            }
+
             if (lastStep is { Type: PlanStepType.PickUpPerson } &&
                 npc.Mind.CurrentGoal == GoalType.PlayerOrder)
             {
@@ -1233,11 +1239,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked) <
                 SimBalance.CampfireSpitCapacity)
             {
-                ConsumeRecipeInputs(npc, npc.Plan.Goal);
-                // ResourceAmount doubles as roast progress (ticks).
-                worldObject.Contents.Add(new ItemInstance(ContentIds.MeatRaw));
+                var raw = HumanMeatCatalog.FirstRaw(npc);
+                if (raw == null) return false;
+                InventoryMath.RemoveReference(npc.Inventory.Items, raw);
+                raw.ResourceAmount = 0f;
+                worldObject.Contents.Add(raw);
                 Trace.Emit(world, npc.Id, "MeatHungOnSpit",
-                    $"food.meat_raw on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
+                    $"{raw.DefinitionId} on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
                     $"hanging raw={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw)} " +
                     $"cooked={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked)}");
             }
@@ -1789,7 +1797,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
             // Item moves from world to inventory; the world object is gone,
             // so occupancy flags die with it (spec 29B.2).
-            var picked = new ItemInstance(worldObject.DefinitionId)
+            var picked = new ItemInstance(worldObject.DefinitionId == ContentIds.SeveredLimb
+                ? HumanMeatCatalog.FromLimb(worldObject.Variant) : worldObject.DefinitionId)
             {
                 Wetness = worldObject.Wetness,
                 Durability = worldObject.Durability,
@@ -2094,6 +2103,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // meat goes into the butcher's pack (hide still scatters); see the
         // yield declarations. Butchering a housemate costs comfort
         // (cannibalism).
+        if (definition.HasTag(ObjectTags.Corpse) && CorpseMath.BodyOf(world, worldObject) is { } human)
+        {
+            HumanButchery.Dismantle(world, npc, worldObject, human);
+            return true;
+        }
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
         var wasCorpse = definition.HasTag("Corpse");
         if (wasCorpse && SimBalance.CannibalismEnabled)

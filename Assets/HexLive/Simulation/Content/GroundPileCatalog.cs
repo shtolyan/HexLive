@@ -139,6 +139,13 @@ public static class GroundPileCatalog
                 id.StartsWith("item.",StringComparison.Ordinal)||id=="med.splint"?6:0;
             Profiles[id]=new(id,new(-extent*.5f,0,-extent*.5f,extent*.5f,extent,extent*.5f),target,layout,centerVisualXZ:true);
         }
+        foreach (var raw in HumanMeatCatalog.RawParts)
+        foreach (var id in new[] { raw, HumanMeatCatalog.Cooked(raw) })
+        {
+            var target = TargetWorldSize(id);
+            var extent = (float)Math.Sqrt(3d) * target;
+            Profiles[id] = new(id, new(-extent*.5f,0,-extent*.5f,extent*.5f,extent,extent*.5f), target, centerVisualXZ:true);
+        }
         // #418: canonical FindObjectMain sources, fitted and seated by the real
         // FitObjectPrefab path; MeasureGroundRows.cs.txt reproduces these bounds.
         // 10 micrometre outward padding absorbs the measured float rounding.
@@ -3277,6 +3284,9 @@ public static class GroundPileCatalog
         public static float TargetWorldSize(string definitionId)
         {
             var r = HexSpatialMath.HexRadius;
+            if (definitionId is HumanMeatCatalog.ArmRaw or HumanMeatCatalog.ArmCooked) return r * 0.4f;
+            if (definitionId is HumanMeatCatalog.LegRaw or HumanMeatCatalog.LegCooked) return r * 0.55f;
+            if (definitionId is HumanMeatCatalog.TorsoRaw or HumanMeatCatalog.TorsoCooked) return r * 0.6f;
             // §54.2: PalmTreeFactory returns before generic fitting; palm_final
             // keeps its authored 1:1 dimensions.
             if (definitionId.Contains("tree")) return r * 2.2f;

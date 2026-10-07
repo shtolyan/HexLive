@@ -346,8 +346,19 @@ public sealed class ManualOrderSystem : ISimulationSystem
             return;
         }
 
+        if (Spec121.ManualDarkOrdersEnabled && SimBalance.PredationEnabled &&
+            KenshiRescueMath.TryGetPerson(world, targetId, out var person, out var dead) &&
+            (dead || person.IsUnconscious(world.Tick)))
+        {
+            ClearAttackApproach(world, npc, "Начать разделку добычи");
+            ManualCommandExecutor.ClearAttackOrder(world, npc);
+            npc.IsFighting = false;
+            if (HumanButchery.Validate(world, npc, targetId) != null || !HumanButchery.Start(world, npc, targetId))
+                EndAttack(world, npc, "TargetUnavailable");
+            return;
+        }
         world.Entities.Npcs.TryGetValue(targetId, out var target);
-        if (!Spec121.ManualDarkOrdersEnabled || target is null || target.Health <= 0f)
+        if (!Spec121.ManualDarkOrdersEnabled || !SimBalance.PredationEnabled || target is null || target.Health <= 0f)
         {
             EndAttack(world, npc, target is null ? "TargetGone" : "TargetDown");
             return;

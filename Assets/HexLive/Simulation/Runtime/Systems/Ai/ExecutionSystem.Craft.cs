@@ -31,7 +31,7 @@ public sealed partial class ExecutionSystem
 
         foreach (var ing in recipe.Inputs)
         {
-            if (DecisionSystem.CountInventory(npc, ing.Id) < ing.Count)
+            if ((goal == GoalType.CookMeat ? HumanMeatCatalog.CountRaw(npc) : DecisionSystem.CountInventory(npc, ing.Id)) < ing.Count)
             {
                 return false;
             }
@@ -79,7 +79,7 @@ public sealed partial class ExecutionSystem
         for (var i = 0; i < fire.Contents.Count; i++)
         {
             var item = fire.Contents[i];
-            if (item.DefinitionId != ContentIds.MeatCooked)
+            if (!HumanMeatCatalog.IsCooked(item.DefinitionId))
             {
                 continue;
             }
@@ -96,7 +96,7 @@ public sealed partial class ExecutionSystem
             if (SimTrace.Enabled)
             {
                 Trace.Debug(world, npc.Id, "MeatTakenFromSpit",
-                    $"food.meat_cooked off the spit at Tile={fire.Tile.Q},{fire.Tile.R} " +
+                    $"{item.DefinitionId} off the spit at Tile={fire.Tile.Q},{fire.Tile.R} " +
                     $"left hanging={BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked)} " +
                     $"Inventory=[{string.Join(",", npc.Inventory.Items)}]");
             }

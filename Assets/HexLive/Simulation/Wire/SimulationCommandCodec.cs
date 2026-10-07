@@ -37,7 +37,7 @@ public static class SimulationCommandCodec
     // 6: §28.15G requested shared Talk topic, with legacy opcode 11 unchanged.
     // 7: §153.4 voluntary request for one carried item (opcode 43).
     // 8: §123.5 ManageInventory carries the authoritative drop quantity.
-    public const int WireVersion = 8;
+    public const int WireVersion = 9; // §56.7: append-only ButcherPerson (47).
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -91,6 +91,7 @@ public static class SimulationCommandCodec
         SetDirective = 44, // §167
         ShoutDirective = 45,
         RespondDirective = 46,
+        ButcherPerson = 47,
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -300,6 +301,11 @@ public static class SimulationCommandCodec
                 w.Write(c.Count);
                 w.Write((int)c.Direction);
                 break;
+            case ButcherPersonCommand c:
+                w.Write((ushort)CommandType.ButcherPerson);
+                WriteEntity(w, c.Npc);
+                WriteEntity(w, c.Target);
+                break;
             case PreyPersonCommand c:
                 w.Write((ushort)CommandType.PreyPerson);
                 WriteEntity(w, c.Npc);
@@ -496,6 +502,8 @@ public static class SimulationCommandCodec
                 return new TransferInventoryCommand(
                     ReadEntity(r), ReadEntity(r), ReadItemRef(r), r.ReadInt32(),
                     (InventoryTransferDirection)r.ReadInt32());
+            case CommandType.ButcherPerson:
+                return new ButcherPersonCommand(ReadEntity(r), ReadEntity(r));
             case CommandType.PreyPerson:
                 return new PreyPersonCommand(ReadEntity(r), ReadEntity(r));
             case CommandType.AbusePerson:

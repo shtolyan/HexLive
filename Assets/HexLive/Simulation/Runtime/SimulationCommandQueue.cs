@@ -559,6 +559,21 @@ public sealed class PreyPersonCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
+public sealed class ButcherPersonCommand : ISimulationCommand
+{
+    public ButcherPersonCommand(EntityId npc, EntityId target)
+    {
+        Npc = npc;
+        Target = target;
+    }
+
+    public EntityId Npc { get; }
+
+    public EntityId Target { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 /// <summary>§121.9 (тёмная фаза): затеять сцену травли §81 против чужака —
 /// отжать припас или «контакт». Родная цель Abuse: сцену ведёт штатный
 /// RunAbuse со всеми последствиями (свидетельницы, защитницы, урон доверию).</summary>

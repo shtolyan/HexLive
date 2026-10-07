@@ -642,7 +642,8 @@ public static class PrototypeContentCatalog
             {
                 Id = "body.limb_severed",
                 DisplayName = "Severed limb",
-                Tags = { "Decays", "Gore" }
+                Tags = { "Decays", "Gore" },
+                Interactions = { new InteractionDefinition { Id = "pickup.limb", Type = InteractionType.PickUp, DurationTicks = 4 } }
             },
             // Spec §50: a prepared amputation hazard — a reef/trap tile. Not an
             // Obstacle (she can step onto it); HazardSystem takes a leg on
@@ -1323,6 +1324,7 @@ public static class PrototypeContentCatalog
             });
             defs[ContentIds.LeatherPants] = leatherPants;
         }
+        HumanMeatCatalog.AppendDefinitions(defs);
         return defs;
     }
 }

@@ -159,6 +159,17 @@ namespace HexLive.UnityPresentation.Config
         [Tooltip("Рабочий клип (рубка/добыча/стройка) — подменяет базовый Chop-клип.")]
         public AnimationClip workClip;
 
+        [Header("Анимации отдельных действий (пусто = существующие клипы)")]
+        public ActionAnimation[] actionAnimations;
+
+        [System.Serializable]
+        public sealed class ActionAnimation
+        {
+            public InteractionType action;
+            public AnimationClip clip;
+        }
+
+
         [Header("§142 Двуручный хват — руки держат древко на ЛЮБОЙ походке")]
         [Tooltip("Предмет несут ДВУМЯ руками. Верхний слой аниматора (маска «только руки») " +
                  "кладёт на плечи позу удержания, а ноги продолжают шагать/бежать из базового " +

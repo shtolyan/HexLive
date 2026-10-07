@@ -10,7 +10,29 @@ public sealed class NPCExecutionState
 {
     public ExecutionStatus Status { get; set; } = ExecutionStatus.None;
 
-    public InteractionType? CurrentInteraction { get; set; }
+    private InteractionType? _currentInteraction;
+    public InteractionType? CurrentInteraction
+    {
+        get => _currentInteraction;
+        set
+        {
+            if (_currentInteraction != value)
+            {
+                ActionTool = null;
+                ActionSupply = null;
+                ActionItemsBound = false;
+                VesselSources.Clear();
+            }
+            _currentInteraction = value;
+        }
+    }
+
+    // §59.5: physical instances chosen once for a timed action. Never persisted
+    // as list indices; interrupted/reloaded actions must validate or rebind.
+    public ItemInstance ActionTool { get; set; }
+    public ItemInstance ActionSupply { get; set; }
+    public bool ActionItemsBound { get; set; }
+    public System.Collections.Generic.List<ItemInstance> VesselSources { get; } = new();
 
     public ObjectId? TargetObject { get; set; }
 

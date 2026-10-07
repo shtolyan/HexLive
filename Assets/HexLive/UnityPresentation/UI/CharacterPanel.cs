@@ -215,6 +215,7 @@ namespace HexLive.UnityPresentation.UI
         private Label _invReadOnlyLabel;
         private int _inventoryActorId = -1;
         private bool _inventoryMutable;
+        private bool _inventoryHasTwoHands;
         private string _invDraggedId;
         private bool _invDraggedWorn;
         private int _invDraggedSourceIndex = -1;
@@ -3741,6 +3742,7 @@ namespace HexLive.UnityPresentation.UI
                 _craftSig = null;
             }
             _inventoryActorId = npc.Id.Value;
+            _inventoryHasTwoHands = BodyPartFunctionSnapshotMath.HasTwoUsableHands(npc.BodyPartConditions);
             _inventoryMutable = _runner != null && _runner.SupportsNpcCommands &&
                 NpcSelection.Count == 1 &&
                 _runner.CanControlNpc(npc.Id) && npc.Health > 0f;
@@ -4237,6 +4239,8 @@ namespace HexLive.UnityPresentation.UI
             _invFillAction.style.display = _inventoryMutable &&
                 CanFillVessel(id, worn, water, sourceIndex)
                 ? DisplayStyle.Flex : DisplayStyle.None;
+            _invFillAction.SetEnabled(_inventoryHasTwoHands);
+            _invFillAction.tooltip = _inventoryHasTwoHands ? string.Empty : Loc.Get("menu.needs_two_hands");
             _invFillActionLabel.text = Loc.Get("inv.action.fill");
             _invReadOnlyLabel.style.display = !_inventoryMutable || outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;

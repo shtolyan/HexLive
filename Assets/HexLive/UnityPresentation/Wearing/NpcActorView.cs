@@ -2788,13 +2788,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return null;
         }
 
-        var part = _leftHanded ? BodyPart.ArmL : BodyPart.ArmR;
+        return HandPropAnchor(_leftHanded);
+    }
+
+    private Transform HandPropAnchor(bool leftHanded)
+    {
+        var part = leftHanded ? BodyPart.ArmL : BodyPart.ArmR;
         if (_prostheticVisuals.TryGetValue(part, out var prosthetic) && prosthetic.Grip != null)
         {
             return prosthetic.Grip;
         }
 
-        return _bodyBones?.GetBone(_leftHanded ? "lHand" : "rHand");
+        return _bodyBones?.GetBone(leftHanded ? "lHand" : "rHand");
     }
 
     private void RefreshLeglessPresentation()
@@ -3728,6 +3733,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _speechBubble?.HideIcon();
         Audio.FmodSfx.StopLoop(ref _voiceChannel);
         SetHandProp(null);
+        SetOffhandItem(null);
         SetHandGarment(null);
         ClearActionTarget();
         EndPortraitGaze();
@@ -4191,7 +4197,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
         float interactionSeconds = 0f, int lyingStationSlot = -1, bool standingCraft = false)
     {
-        if ((_legless || !_hasUsableHand) && IsToolOrWeapon(heldItemId))
+        if (!_hasUsableHand)
         {
             heldItemId = string.Empty;
         }
@@ -4209,12 +4215,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // this visual alias is all the scene needs.
         var looting = !_legless && interaction == "Loot";
         var crafting = !_legless && interaction == "Craft";
+        var pouring = !_legless && interaction == "FillVessel";
         // §54.7: разделка использует тот же planting-style CraftWork, что
         // крафт/поиск тела, но остаётся одноручной — нож не снимается.
         var butchering = !_legless && interaction == "Butcher";
         // §53: tending a suffering housemate — the helper holds the mediator
-        // item (feed → whole coconut, water → the pierced drink coconut;
-        // treat/medicate/console tend bare-handed). She kneels into the
+        // item selected by simulation (food, vessel or medicine). She kneels into the
         // planting-style CraftWork clip ONLY when the ward is LYING DOWN
         // (coma/faint/asleep/prone); over a STANDING ward she just stands and
         // shows the item, exactly as before.
@@ -4225,26 +4231,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             interaction is "FeedOther" or "HydrateOther" or
                            "TreatOther" or "MedicateOther" or "ConsoleOther" or
                            "Splint" or "FitProsthetic";
-        var aidPropId = interaction switch
-        {
-            "FeedOther" => "food.coconut",
-            "HydrateOther" => "food.coconut_pierced",
-            // §137.7 r2: unlike the other bare-handed aid verbs, treatment
-            // keeps the bandage exported by the simulation in the acting hand.
-            // ActingHandPropAnchor prefers the right hand and falls back to a
-            // functional left hand only when the right one is unusable.
-            "TreatOther" => heldItemId,
-            // #333: шина/протез — предмет из руки симуляции, как у перевязки.
-            "Splint" or "FitProsthetic" => heldItemId,
-            _ => string.Empty
-        };
         // §110: утешение над ЛЕЖАЩЕЙ — не крафтовый присед, а МОЛИТВА: она
         // опускается на колени рядом и просит за неё. Остальные виды помощи
         // (накормить, напоить, перевязать) остались на «садовничьем» приседе —
         // там руки и правда работают.
         var praying = aidingOther && aidTargetLying && interaction == "ConsoleOther";
         // The solo craft always kneels; an aid kneels only over a lying ward.
-        var kneelingCraft = (crafting && !standingCraft) || looting || butchering ||
+        var kneelingCraft = (crafting && !standingCraft) || pouring || looting || butchering ||
             (aidingOther && aidTargetLying && !praying);
         // §68/§53: ПЕРЕВЯЗКА. Раньше и своя (TreatSelf), и чужая над стоячей
         // не играли ничего вовсе — ActionFromInteraction возвращал на них
@@ -4280,6 +4273,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         if (_animator != null)
         {
+            if (_clipsByName.TryGetValue(CraftBaseClip, out var baseCraft)) OverrideClip(CraftBaseClip, baseCraft);
             _animator.SetBool(GatheringParam, gathering);
             _animator.SetBool(DrinkingParam, drinking);
             _animator.SetBool(WorkingParam, !_legless && _hasUsableHand && !chopping &&
@@ -4339,12 +4333,29 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _action = _legless || !_hasUsableHand || chopping || kneelingCraft || praying
             ? ActionKind.None
             : actionKind;
-        // A solo craft puts both hands to work (tool goes down). An aid keeps
-        // the mediator prop in hand (coconut to feed/water; empty to treat/
-        // console). Everything else holds whatever the sim says.
-        SetHandProp(crafting || looting ? string.Empty
-            : aidingOther ? aidPropId
+        // Keep the tool or supply selected by simulation in the working hand.
+        SetHandProp(looting ? string.Empty
             : heldItemId);
+        // Optional per-action take; existing gear workClip remains the default,
+        // including the player's current saw animation.
+        var actionClip = Config.GearLibrary.ActionClipFor(heldItemId, interaction);
+        if (chopping)
+        {
+            var chop = actionClip ?? Config.GearLibrary.WorkClipFor(heldItemId);
+            if (chop == null) _clipsByName.TryGetValue(ChopBaseClip, out chop);
+            if (chop != null) OverrideClip(ChopBaseClip, chop);
+        }
+        if (actionClip != null)
+        {
+            if (chopping) OverrideClip(ChopBaseClip, actionClip);
+            else if (kneelingCraft) OverrideClip(CraftBaseClip, actionClip);
+            else if (gathering) OverrideClip(GatherBaseClip, actionClip);
+            else if (drinking) OverrideClip("X Bot@Drinking", actionClip);
+            if (_animator != null && gathering)
+                _animator.SetFloat(ActionSpeedParam, FitClipSpeed(GatherBaseClip, interactionSeconds));
+            else if (_animator != null && kneelingCraft && !looting)
+                _animator.SetFloat(ActionSpeedParam, FitClipSpeed(CraftBaseClip, interactionSeconds));
+        }
     }
 
     // §Wardrobe-anim: drive the two-beat dress/undress sequence. Called every
@@ -5565,6 +5576,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _combatFighting = false;
             weaponId = null;
             SetHandProp(null);
+            SetOffhandItem(null);
         }
 
         if (!fighting)
@@ -5720,153 +5732,49 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     private void SetHandProp(string itemId)
     {
-        if ((_legless || !_hasUsableHand) && IsToolOrWeapon(itemId))
-        {
-            itemId = null;
-        }
-
+        if (!_hasUsableHand) itemId = null;
+        var hand = ActingHandPropAnchor();
         if (_currentPropId == itemId &&
-            (string.IsNullOrEmpty(itemId) || _handProp != null))
-        {
-            return;
-        }
-
+            (string.IsNullOrEmpty(itemId) || (_handProp != null && _handProp.transform.parent == hand))) return;
         UpdateArmedStance(itemId);
-        if (_currentPropId != itemId && _handProp != null)
-        {
-            Destroy(_handProp);
-            _handProp = null;
-        }
+        if (_handProp != null) { _handProp.SetActive(false); Destroy(_handProp); }
+        _handProp = null;
         _currentPropId = null;
         _handPropRenderers = new Renderer[0];
-
-        if (string.IsNullOrEmpty(itemId) || _bodyBones == null)
-        {
-            return;
-        }
-
-        var hand = ActingHandPropAnchor();
-        if (hand == null)
-        {
-            return;
-        }
-
-        // #243: model and grip live in two entries of one atomic object. Do not
-        // instantiate a known tool with a fallback grip during the short window
-        // in which `main` is ready but `gear-config` is not: _currentPropId
-        // would then make that wrong pose permanent for the whole interaction.
-        var gearConfig = Config.GearLibrary.ConfigFor(itemId);
-        if (Config.GearLibrary.RequiresAuthoredConfig(itemId) && gearConfig == null)
-        {
-            return;
-        }
-
-        // Runtime props have one source: object/<id>. A null is an asynchronous
-        // state, not permission to freeze a different mesh into this hand.
-        var model = Config.GearLibrary.LoadPrefab(itemId);
-        if (model == null)
-        {
-            return;
-        }
-
-        _handProp = Instantiate(model, hand);
-        if (!ObjectFit.HasRenderableGeometry(_handProp))
-        {
-            Destroy(_handProp);
-            _handProp = null;
-            return;
-        }
-
+        if (string.IsNullOrEmpty(itemId) || hand == null) return;
+        _handProp = HandPropVisual.Create(itemId, hand, _leftHanded);
+        if (_handProp == null) return;
         _currentPropId = itemId;
-        _handProp.name = $"HandProp {itemId}";
         _handPropRenderers = _handProp.GetComponentsInChildren<Renderer>();
-
-        // Some native mirrors keep the source-mesh axis correction on the
-        // prefab root. Applying the common grip used to overwrite that root
-        // rotation, making a correct ground model turn wrong only in hand.
-        var prefabAxisCorrection = _handProp.transform.localRotation;
-        var keepPrefabAxisCorrection = gearConfig?.preservePrefabRotationInHand == true;
-        var prefabLocalScale = _handProp.transform.localScale;
-
-        // Placement priority (each higher tier wins): the gear asset's tuned
-        // hand pose (edited live in the AxeChopTest scene) → an "AttachPoint"
-        // child authored into the model → a built-in default table → the
-        // automatic palm-fit below. All in the acting hand's local space.
-        if (Config.GearLibrary.TryGetHandPose(
-                itemId, _leftHanded, out var cfgPos, out var cfgRot, out var cfgScale))
-        {
-            _handProp.transform.localPosition = cfgPos;
-            _handProp.transform.localRotation = keepPrefabAxisCorrection
-                ? cfgRot * prefabAxisCorrection
-                : cfgRot;
-            // #136: Renderer.bounds is a world AABB. Under a non-uniformly
-            // scaled hand bone, rotating AFTER fitting changes its measured
-            // maximum dimension and makes the same spear grow in the hand.
-            // Pose first, normalize that final orientation second, then apply
-            // the GearConfig scale as a fine multiplier over the prefab scale.
-            ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, cfgScale);
-            return;
-        }
-
-        // §54.12: RESOURCES (stick / leaf / log / fiber / rope…) ride in hand
-        // 1:1 — the prefab's NATIVE scale, exactly the size of the same piece
-        // on the ground or in the assembled bed, no palm-fit enlargement. One
-        // shared grip transform for all of them (dialed in the inspector on
-        // the stick), mirrored for the off hand. Tools and weapons are NOT
-        // touched — they keep their tuned gear-asset placements above.
-        if (itemId.StartsWith("resource.", System.StringComparison.Ordinal))
-        {
-            var gripPos = new Vector3(0.069f, -0.063f, 0.007f);
-            var gripRot = Quaternion.Euler(0f, -95.855f, 0f);
-            if (_leftHanded)
-            {
-                gripPos.x = -gripPos.x;
-                var e = gripRot.eulerAngles;
-                gripRot = Quaternion.Euler(e.x, -e.y, -e.z);
-            }
-
-            _handProp.transform.localPosition = gripPos;
-            _handProp.transform.localRotation = gripRot;
-            // localScale stays as instantiated (the prefab/factory's own) — 1:1.
-            return;
-        }
-
-        if (TryAlignByAttachPoint(_handProp))
-        {
-            return;
-        }
-
-        // Hand-tuned placement for specific props (baked in code) wins over the
-        // automatic palm-fit — exact position/rotation/scale in the hand's space.
-        if (TryGetHandPropTransform(itemId, _leftHanded, out var tunedPos, out var tunedRot, out var tunedScale))
-        {
-            _handProp.transform.localPosition = tunedPos;
-            _handProp.transform.localRotation = tunedRot;
-            _handProp.transform.localScale = tunedScale;
-            return;
-        }
-
-        // No tuned placement: establish the final pose before measuring world
-        // bounds for exactly the same non-uniform-parent reason as above.
-        _handProp.transform.localPosition = Vector3.zero;
-        _handProp.transform.localRotation = Quaternion.identity;
-        ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, Vector3.one);
     }
 
-    /// <summary>#136: one multiply-contract for every fitted actor prop.
-    /// The caller must establish the final rotation first because ObjectFit
-    /// measures a world AABB under animated, potentially non-uniform bones.</summary>
-    private static void ApplyObjectFitScale(
-        GameObject prop, string itemId, Vector3 prefabLocalScale, Vector3 fineMultiplier)
+    private GameObject _offhandProp;
+    private string _offhandPropId;
+    private bool _hasTwoUsableHands = true;
+
+    public void SetOffhandItem(string itemId)
     {
-        var fit = ObjectFit.FitScaleFactor(prop, itemId);
-        prop.transform.localScale = Vector3.Scale(prefabLocalScale, fineMultiplier) * fit;
+        if (!_hasTwoUsableHands || !_hasUsableHand || _dead || _ragdollActive) itemId = null;
+        var hand = HandPropAnchor(!_leftHanded);
+        if (_offhandPropId == itemId &&
+            (string.IsNullOrEmpty(itemId) || (_offhandProp != null && _offhandProp.transform.parent == hand))) return;
+        if (_offhandProp != null) { _offhandProp.SetActive(false); Destroy(_offhandProp); }
+        _offhandProp = null;
+        _offhandPropId = null;
+        if (string.IsNullOrEmpty(itemId) || hand == null) return;
+        _offhandProp = HandPropVisual.Create(itemId, hand, !_leftHanded);
+        if (_offhandProp != null) _offhandPropId = itemId;
     }
+
+    private static void ApplyObjectFitScale(GameObject prop, string itemId,
+        Vector3 prefabLocalScale, Vector3 fineMultiplier) =>
+        HandPropVisual.ApplyObjectFitScale(prop, itemId, prefabLocalScale, fineMultiplier);
 
     private void SyncHandedness(IReadOnlyList<BodyPartConditionSnapshot> partConditions)
     {
         var hasUsableHand = BodyPartFunctionSnapshotMath.TryGetActingHand(
             partConditions, out var actingHand);
+        _hasTwoUsableHands = BodyPartFunctionSnapshotMath.HasTwoUsableHands(partConditions);
         SetHandedness(actingHand == BodyPart.ArmL, hasUsableHand);
     }
 
@@ -5899,102 +5807,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var heldGarment = _handGarmentId;
         _handGarmentId = null;
         SetHandGarment(heldGarment);
-    }
-
-    // Attach-point authoring: if the model carries a direct child transform
-    // named "AttachPoint", seat the prop so that point lands at the hand origin
-    // (identity). Author the AttachPoint at the item's hand scale — no palm-fit
-    // is applied on this path. Returns false when there is no such child.
-    private static bool TryAlignByAttachPoint(GameObject prop)
-    {
-        Transform attach = null;
-        foreach (Transform child in prop.transform)
-        {
-            if (child.name == "AttachPoint")
-            {
-                attach = child;
-                break;
-            }
-        }
-
-        if (attach == null)
-        {
-            return false;
-        }
-
-        var localPos = attach.localPosition;
-        var propRot = Quaternion.Inverse(attach.localRotation);
-        prop.transform.localScale = Vector3.one;
-        prop.transform.localRotation = propRot;
-        prop.transform.localPosition = -(propRot * localPos);
-        return true;
-    }
-
-    // Per-prop hand placement, tuned in the editor and baked here. Baked values
-    // are RIGHT-hand (rHand local space). For a left-handed hold we use a
-    // hand-tuned left override if one exists, else mirror the right-hand pose
-    // across the body's sagittal plane (negate local X + mirror the rotation).
-    private static bool TryGetHandPropTransform(string itemId, bool leftHanded,
-        out Vector3 localPosition, out Quaternion localRotation, out Vector3 localScale)
-    {
-        switch (itemId)
-        {
-            // tool.bottle used to bake an ABSOLUTE scale here, tuned against the
-            // old procedural bottle mesh; the AI plastic bottle is 2.3x taller,
-            // so that number was a lie. Its pose now lives in the gear asset
-            // (bottle.asset, «Хват в руке»), where the scale is a MULTIPLIER
-            // over ObjectFit and the model can change size freely.
-            case "food.coconut":
-                localPosition = new Vector3(0.061f, -0.142f, 0.001f);
-                localRotation = Quaternion.Euler(0.808f, 0f, 0f);
-                localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
-                break;
-            case "food.coconut_pierced":
-                localPosition = new Vector3(0.09f, -0.111f, -0.089f);
-                localRotation = Quaternion.Euler(-24.896f, 16.767f, 16.891f);
-                localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
-                break;
-            case "food.coconut_open":
-                localPosition = new Vector3(0.041f, -0.107f, -0.034f);
-                localRotation = Quaternion.Euler(1.22f, 5.477f, 32.526f);
-                localScale = new Vector3(0.7718072f, 0.9210232f, 0.7718072f);
-                break;
-            case "tool.spear":
-                localPosition = new Vector3(0.058f, -0.025f, -0.078f);
-                localRotation = Quaternion.Euler(-1.544f, -263.963f, 90.255f);
-                localScale = new Vector3(0.405947f, 0.405947f, 0.405947f);
-                break;
-            default:
-                localPosition = Vector3.zero;
-                localRotation = Quaternion.identity;
-                localScale = Vector3.one;
-                return false;
-        }
-
-        if (leftHanded && !TryGetLeftHandPropTransform(itemId, ref localPosition, ref localRotation))
-        {
-            localPosition = new Vector3(-localPosition.x, localPosition.y, localPosition.z);
-            var e = localRotation.eulerAngles;
-            localRotation = Quaternion.Euler(e.x, -e.y, -e.z);
-        }
-
-        return true;
-    }
-
-    // Hand-tuned LEFT-hand placements (lHand local space). Add a case here once a
-    // prop is tuned for the off hand; anything missing falls back to a mirror.
-    private static bool TryGetLeftHandPropTransform(string itemId,
-        ref Vector3 localPosition, ref Quaternion localRotation)
-    {
-        switch (itemId)
-        {
-            case "tool.bottle":
-                localPosition = new Vector3(-0.196f, -0.032f, -0.024f);
-                localRotation = Quaternion.Euler(91.974f, 0.001007f, -6.520996f);
-                return true;
-            default:
-                return false;
-        }
     }
 
     // Spec 33.1: mount a carried weapon on the upper back (slung diagonally),

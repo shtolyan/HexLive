@@ -3238,7 +3238,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 npc.Wounds, npc.BandagedZones, npc.SeveredParts, npc.BodyPartConditions);
             UnityEngine.Profiling.Profiler.EndSample();
         }
-        var heldItemId = IsProne(npc) && IsToolOrWeapon(npc.HeldItemId) ? string.Empty : npc.HeldItemId;
+        var heldItemId = npc.HeldItemId;
         // §77.5: the interaction window goes with the verb — the view fits one
         // playthrough of the work clip into it.
         actorView.SetInteraction(npc.CurrentInteraction, heldItemId, npc.AidTargetLyingDown,
@@ -3246,6 +3246,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             standingCraft: npc.CurrentInteraction == "Craft" && snapshot.Objects.Exists(item =>
                 item.CraftStationObjectId.HasValue && item.CraftActive &&
                 item.CraftCurrentWorkerId == npc.Id.Value));
+        actorView.SetOffhandItem(npc.OffhandItemId);
         actorView.SyncBottleLiquid(npc.HeldBottleFill, npc.HeldBottleAppearance);
         // §119: ground crafting retains the worker's indicator; tabletop
         // projects own their persistent bar. The ground bar follows the head in

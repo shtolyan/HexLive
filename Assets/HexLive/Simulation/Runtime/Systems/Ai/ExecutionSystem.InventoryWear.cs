@@ -1004,6 +1004,17 @@ public sealed partial class ExecutionSystem
 
             npc.Execution.Status = ExecutionStatus.InProgress;
             npc.Execution.CurrentInteraction = InteractionType.FillVessel;
+            npc.Execution.VesselSources.Clear();
+            var remainingRoom = VesselTransferMath.BottleRoom(targetBottle);
+            foreach (var source in npc.Inventory.Items)
+            {
+                if (source.DefinitionId != ContentIds.CoconutPierced || source.ResourceAmount < 1f) continue;
+                npc.Execution.VesselSources.Add(source);
+                remainingRoom -= (int)source.ResourceAmount;
+                if (remainingRoom <= 0) break;
+            }
+            npc.Execution.ActionSupply = npc.Execution.VesselSources[0];
+            npc.Execution.ActionItemsBound = true;
             npc.Execution.TargetObject = null;
             npc.Execution.TargetInventoryItem = targetBottle;
             npc.Execution.StartTick = world.Tick;
@@ -1023,12 +1034,26 @@ public sealed partial class ExecutionSystem
             return;
         }
 
+        if (!npc.Body.CanUseTwoHanded || npc.Execution.VesselSources.Count == 0 ||
+            npc.Execution.VesselSources.Exists(source =>
+                !InventoryMath.ContainsReference(npc.Inventory.Items, source) || source.ResourceAmount < 1f))
+        {
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                "FillVessel: source vessel or second hand unavailable");
+            return;
+        }
+        var elapsed = System.Math.Max(0, world.Tick - npc.Execution.StartTick);
+        var duration = System.Math.Max(1, npc.Execution.EndTick - npc.Execution.StartTick);
+        var sourcePhase = System.Math.Min(npc.Execution.VesselSources.Count - 1,
+            elapsed * npc.Execution.VesselSources.Count / duration);
+        npc.Execution.ActionSupply = npc.Execution.VesselSources[sourcePhase];
+
         if (npc.Execution.EndTick - world.Tick > 0)
         {
             return;
         }
 
-        var moved = VesselTransferMath.FillBottleFromCoconuts(npc, targetBottle);
+        var moved = VesselTransferMath.FillBottleFromSources(targetBottle, npc.Execution.VesselSources);
         if (moved > 0 && SimTrace.Enabled)
         {
             // Диагностика, не хроника: рядовой быт (как VesselPlaced/Taken).

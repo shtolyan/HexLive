@@ -2294,6 +2294,12 @@ internal static class ManualCommandExecutor
             return;
         }
 
+        if (!npc.Body.CanUseTwoHanded)
+        {
+            Reject(world, npc.Id, "FillVessel", "HandsBusy", admission);
+            return;
+        }
+
         var selectedBottle = items[command.Item.Index];
         if (!VesselTransferMath.CanFillBottle(npc, selectedBottle))
         {

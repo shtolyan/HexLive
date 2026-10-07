@@ -16,9 +16,9 @@ public enum InventoryContainerKind
     Garment,
     Holster,
 
-    // Defensive only: a valid simulation never exports this because overflow is
-    // spilled by InventoryMath. Keeping the cells visible makes a broken
-    // invariant diagnosable instead of silently hiding player-owned items.
+    // Normally defensive: InventoryMath spills excess cargo. Drawing a holstered
+    // tool can also temporarily displace a displayed hand cell here when all
+    // regular cells are occupied; the underlying inventory is never mutated.
     Overflow
 }
 
@@ -152,7 +152,64 @@ public static class InventoryLayoutBuilder
             result.Containers.Add(overflow);
         }
 
+        PinActionHands(world, npc, result);
         return result;
+    }
+
+    private static void PinActionHands(WorldState world, NPCState npc, InventoryLayout layout)
+    {
+        if (!npc.Body.HasUsableHand) return;
+        var right = npc.Body.LimbFunction(BodyPart.ArmR) >= BodyState.UsableHandFunctionThreshold;
+        Pin(ActionItemResolver.HeldInstance(world, npc), right ? "hand:right" : "hand:left");
+        if (!string.IsNullOrEmpty(ActionItemResolver.OffhandId(npc)))
+            Pin(npc.Execution.ActionSupply, right ? "hand:left" : "hand:right");
+
+        void Pin(ItemInstance item, string handId)
+        {
+            if (item is null) return;
+            var hand = layout.Containers.Find(container => container.Id == handId);
+            if (hand is null || hand.Slots.Count == 0) return;
+            foreach (var container in layout.Containers)
+            {
+                for (var i = 0; i < container.Slots.Count; i++)
+                {
+                    var slot = container.Slots[i];
+                    if (slot.SourceIndex < 0 || slot.ItemDefinitionId != item.DefinitionId) continue;
+                    var instances = new List<ItemInstance>();
+                    if (!TryCollectSlotInstances(npc.Inventory.Items, slot, instances) ||
+                        !ContainsReference(instances, item)) continue;
+                    if (container == hand) return;
+                    var displaced = hand.Slots[0];
+                    if (container.Kind == InventoryContainerKind.Holster && displaced.StackCount > 0)
+                    {
+                        var free = layout.Containers.Find(c => c.Kind != InventoryContainerKind.Holster &&
+                            c.Kind != InventoryContainerKind.HandLeft && c.Kind != InventoryContainerKind.HandRight &&
+                            c.Slots.Exists(cell => cell.StackCount == 0));
+                        if (free is null)
+                        {
+                            free = NewContainer("drawn-overflow", InventoryContainerKind.Overflow,
+                                string.Empty, InventoryBodyAnchor.None, 1);
+                            free.Slots.Add(new InventorySlotLayout());
+                            layout.Containers.Add(free);
+                        }
+                        var freeIndex = free.Slots.FindIndex(cell => cell.StackCount == 0);
+                        displaced.Index = freeIndex;
+                        free.Slots[freeIndex] = displaced;
+                        displaced = new InventorySlotLayout { AcceptedItemDefinitionId = slot.AcceptedItemDefinitionId };
+                    }
+                    if (container.Kind == InventoryContainerKind.Holster)
+                    {
+                        displaced.AcceptedItemDefinitionId = slot.AcceptedItemDefinitionId;
+                        slot.AcceptedItemDefinitionId = string.Empty;
+                    }
+                    displaced.Index = i;
+                    container.Slots[i] = displaced;
+                    slot.Index = 0;
+                    hand.Slots[0] = slot;
+                    return;
+                }
+            }
+        }
     }
 
     /// <summary>

@@ -637,20 +637,8 @@ public sealed partial class DecisionSystem
     internal static bool HasAnyCapability(
         NPCState npc, System.Collections.Generic.List<Content.GearCapability> capabilities)
     {
-        if (!npc.Body.HasUsableHand)
-        {
-            return false;
-        }
-
-        foreach (var capability in capabilities)
-        {
-            if (Content.GearCatalog.HasCapability(npc.Inventory.Items, capability))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return ActionRequirements.HasTool(
+            npc.Inventory.Items, capabilities, npc.Body.IntactHands);
     }
 
     // §gear-data: can the npc perform this object's interaction per its

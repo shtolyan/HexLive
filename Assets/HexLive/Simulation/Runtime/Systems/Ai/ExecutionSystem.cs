@@ -807,9 +807,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // longer), then her own hands (Strength/Wits + the learned
                 // trade). Both stages round instead of truncating, and at
                 // multiplier 1f both are exactly the authored number.
-                var toolSpeedMult = Content.GearCatalog.BestSpeedMultFor(
-                    npc.Inventory.Items,
-                    Content.GearCatalog.RequiredCapabilities(interaction, definition));
+                var actionTool = Content.GearCatalog.BestToolFor(npc.Inventory.Items,
+                    Content.GearCatalog.RequiredCapabilities(interaction, definition), npc.Body.IntactHands);
+                var toolSpeedMult = actionTool is null ? 1f
+                    : Content.GearCatalog.For(actionTool.DefinitionId).HarvestSpeedMult;
                 var authoredWorkTicks = RecipeCatalog.UsesPersistentProject(npc.Plan.Goal)
                     ? Spec119.CraftCycleWork
                     : npc.Plan.Goal == GoalType.CraftSplint
@@ -838,6 +839,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     npc.Execution.Status = ExecutionStatus.InProgress;
                     npc.Execution.CurrentInteraction = interaction.Type;
+                    npc.Execution.ActionTool = actionTool;
+                    npc.Execution.ActionItemsBound = true;
                     npc.Execution.TargetObject = worldObject.Id;
                     npc.Execution.StartTick = world.Tick;
                     npc.Execution.EndTick = world.Tick + workTicks;
@@ -876,6 +879,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
             if (npc.Execution.Status == ExecutionStatus.InProgress)
             {
+                if (npc.Execution.ActionTool is { } tool &&
+                    (!InventoryMath.ContainsReference(npc.Inventory.Items, tool) ||
+                     !npc.Body.HasUsableHand ||
+                     (GearCatalog.For(tool.DefinitionId).TwoHanded && !npc.Body.CanUseTwoHanded)))
+                {
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                        "Action tool disappeared or hands became unavailable");
+                    continue;
+                }
                 if (npc.Execution.CurrentInteraction == InteractionType.Craft &&
                     RecipeCatalog.UsesPersistentProject(npc.Plan.Goal))
                 {

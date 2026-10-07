@@ -28453,6 +28453,22 @@ MonoBehaviour:
       - 'Так и не дошли руки: {0}.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.needs_two_hands'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Two usable hands required'
+      - 'Нужны две рабочие руки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.needs_hand'
+      TermType: 0
+      Description:
+      Languages:
+      - 'A usable hand is required'
+      - 'Нужна рабочая рука'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

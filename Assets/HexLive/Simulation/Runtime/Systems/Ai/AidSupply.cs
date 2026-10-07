@@ -95,115 +95,92 @@ internal static class AidSupply
         return kind switch
         {
             AidKind.Feed => TrySpendFood(world, npc, out spend),
-            AidKind.Hydrate => TrySpendWater(npc, out spend),
-            AidKind.Treat => TrySpendBandage(npc, out spend),
-            AidKind.Medicate => TrySpendMedicine(npc, out spend),
+            AidKind.Hydrate => TrySpendWater(world, npc, out spend),
+            AidKind.Treat => TrySpendMedical(world, npc, kind, out spend),
+            AidKind.Medicate => TrySpendMedical(world, npc, kind, out spend),
             _ => true
         };
+    }
+
+    internal static ItemInstance SelectItem(WorldState world, NPCState npc, AidKind kind)
+    {
+        ItemInstance Find(string id) => npc.Inventory.Items.Find(item => item.DefinitionId == id);
+        if (!NeedsSupply(kind)) return null;
+        switch (kind)
+        {
+            case AidKind.Feed:
+                var food = FoodMath.BestFoodInInventory(world, npc);
+                return (food is null ? null : Find(food)) ?? Find(ContentIds.CoconutOpen) ??
+                    (DecisionSystem.HasCoconutBlade(npc)
+                        ? Find(ContentIds.CoconutPierced) ?? Find(ContentIds.Coconut) : null);
+            case AidKind.Hydrate:
+                return BottleInventoryMath.FirstDrinkable(npc) ??
+                    npc.Inventory.Items.Find(item => item.DefinitionId == ContentIds.CoconutPierced && item.ResourceAmount > 0f) ??
+                    (DecisionSystem.HasCoconutBlade(npc) ? Find(ContentIds.Coconut) : null);
+            case AidKind.Treat:
+                return npc.Inventory.Items.Find(item => item.DefinitionId == ContentIds.Bandage && item.ResourceAmount < 0.5f)
+                    ?? Find(ContentIds.Bandage);
+            case AidKind.Medicate:
+                return Find(ContentIds.Pill) ?? npc.Inventory.Items.Find(
+                    item => item.DefinitionId == ContentIds.Bandage && item.ResourceAmount >= 0.5f);
+            default: return null;
+        }
+    }
+
+    internal static void Bind(WorldState world, NPCState npc, AidKind kind)
+    {
+        npc.Execution.ActionSupply = SelectItem(world, npc, kind);
+        npc.Execution.ActionItemsBound = true;
+    }
+
+    private static ItemInstance Selected(WorldState world, NPCState npc, AidKind kind)
+    {
+        if (!npc.Execution.ActionItemsBound) return SelectItem(world, npc, kind);
+        var item = npc.Execution.ActionSupply;
+        return item is not null && InventoryMath.ContainsReference(npc.Inventory.Items, item) ? item : null;
     }
 
     private static bool TrySpendFood(WorldState world, NPCState npc, out Spend spend)
     {
         spend = new Spend(string.Empty, Spec53.FeedRelief, false);
-
-        // A ready-to-eat item feeds her by its OWN nutrition — sharing meat is
-        // worth more than sharing a scrap; §54.17: the BEST item, same rule
-        // the donor would use for herself.
-        if (FoodMath.BestFoodInInventory(world, npc) is { } foodId)
-        {
-            npc.Inventory.Items.Remove(foodId);
-            spend = new Spend(foodId, NutritionOf(world, foodId), false);
-            return true;
-        }
-
-        // Otherwise a coconut out of the pack: an open one is handed over as is,
-        // a whole/pierced one she splits with the blade she is carrying.
-        if (npc.Inventory.Items.Remove(ContentIds.CoconutOpen))
-        {
-            spend = new Spend(ContentIds.CoconutOpen, NutritionOf(world, ContentIds.CoconutOpen), false);
-            return true;
-        }
-
-        if (DecisionSystem.HasCoconutBlade(npc))
-        {
-            foreach (var id in new[] { ContentIds.CoconutPierced, ContentIds.Coconut })
-            {
-                if (npc.Inventory.Items.Remove(id))
-                {
-                    spend = new Spend(id, Spec53.FeedRelief, false);
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static bool TrySpendWater(NPCState npc, out Spend spend)
-    {
-        spend = new Spend(string.Empty, Spec53.HydrateRelief, false);
-
-        // One gulp out of the bottle (spec §52: the bottle empties on the last).
-        var bottle = BottleInventoryMath.FirstDrinkable(npc);
-        if (bottle is not null)
-        {
-            BottleInventoryMath.ConsumeOne(bottle, out _);
-
-            spend = new Spend(ContentIds.Bottle, Spec53.HydrateRelief, false);
-            return true;
-        }
-
-        // A pierced coconut she carries keeps its water like a canteen.
-        foreach (var item in npc.Inventory.Items)
-        {
-            if (item.DefinitionId == ContentIds.CoconutPierced && item.ResourceAmount > 0f)
-            {
-                item.ResourceAmount = System.MathF.Max(0f, item.ResourceAmount - 1f);
-                spend = new Spend(ContentIds.CoconutPierced, Spec53.HydrateRelief, false);
-                return true;
-            }
-        }
-
-        // Last: pierce a whole nut for her — the nut is gone either way.
-        if (DecisionSystem.HasCoconutBlade(npc) && npc.Inventory.Items.Remove(ContentIds.Coconut))
-        {
-            spend = new Spend(ContentIds.Coconut, Spec53.HydrateRelief, false);
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool TrySpendBandage(NPCState npc, out Spend spend)
-    {
-        spend = new Spend(string.Empty, 0f, false);
-        if (!MedicalSupplyMath.TrySpendBandage(npc, out var herbal))
-        {
-            return false;
-        }
-
-        // Spec 44 order: medkit dressings first, so the leaf-wrap decal always
-        // means someone actually went and gathered plantain.
-        spend = new Spend(herbal ? ContentIds.Bandage : ContentIds.Medkit, 0f, herbal);
+        var item = Selected(world, npc, AidKind.Feed);
+        if (item is null) return false;
+        var id = item.DefinitionId;
+        var needsBlade = id == ContentIds.Coconut || id == ContentIds.CoconutPierced;
+        if (needsBlade && !DecisionSystem.HasCoconutBlade(npc)) return false;
+        InventoryMath.RemoveReference(npc.Inventory.Items, item);
+        spend = new Spend(id, needsBlade ? Spec53.FeedRelief : NutritionOf(world, id), false);
         return true;
     }
 
-    private static bool TrySpendMedicine(NPCState npc, out Spend spend)
+    private static bool TrySpendWater(WorldState world, NPCState npc, out Spend spend)
+    {
+        spend = new Spend(string.Empty, Spec53.HydrateRelief, false);
+        var item = Selected(world, npc, AidKind.Hydrate);
+        if (item is null) return false;
+        if (item.DefinitionId == ContentIds.Bottle)
+        {
+            if (!BottleInventoryMath.ConsumeOne(item, out _)) return false;
+        }
+        else if (item.DefinitionId == ContentIds.CoconutPierced && item.ResourceAmount > 0f)
+            item.ResourceAmount = System.MathF.Max(0f, item.ResourceAmount - 1f);
+        else if (item.DefinitionId == ContentIds.Coconut && DecisionSystem.HasCoconutBlade(npc))
+            InventoryMath.RemoveReference(npc.Inventory.Items, item);
+        else return false;
+        spend = new Spend(item.DefinitionId, Spec53.HydrateRelief, false);
+        return true;
+    }
+
+    private static bool TrySpendMedical(WorldState world, NPCState npc, AidKind kind, out Spend spend)
     {
         spend = new Spend(string.Empty, 0f, false);
-        if (MedicalSupplyMath.TrySpendPill(npc))
-        {
-            spend = new Spend(ContentIds.Pill, 0f, false);
-            return true;
-        }
-
-        if (MedicalSupplyMath.TrySpendHerbalBandage(npc))
-        {
-            spend = new Spend(ContentIds.Bandage, 0f, true);
-            return true;
-        }
-
-        return false;
+        var item = Selected(world, npc, kind);
+        if (item is null) return false;
+        var herbal = item.DefinitionId == ContentIds.Bandage && item.ResourceAmount >= 0.5f;
+        if (kind == AidKind.Medicate && item.DefinitionId != ContentIds.Pill && !herbal) return false;
+        InventoryMath.RemoveReference(npc.Inventory.Items, item);
+        spend = new Spend(item.DefinitionId, 0f, herbal);
+        return true;
     }
 
     // §54.17: the shared item-nutrition rule lives in FoodMath now.

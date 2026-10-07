@@ -13,18 +13,18 @@ public sealed class WeaponFitOrderContractTests
     [Test]
     public void HandPosePrecedesFitAndConfigScaleRemainsAMultiplier()
     {
-        var source = File.ReadAllText(ActorPath);
-        var methodStart = source.IndexOf("private void SetHandProp(string itemId)", StringComparison.Ordinal);
-        var methodEnd = source.IndexOf("private void SyncHandedness", methodStart, StringComparison.Ordinal);
+        var source = File.ReadAllText(ActorPath.Replace("NpcActorView.cs", "HandPropVisual.cs"));
+        var methodStart = source.IndexOf("public static GameObject Create(", StringComparison.Ordinal);
+        var methodEnd = source.IndexOf("internal static void ApplyObjectFitScale", methodStart, StringComparison.Ordinal);
         var method = source[methodStart..methodEnd];
         var authoredStart = method.IndexOf(
             "if (Config.GearLibrary.TryGetHandPose", StringComparison.Ordinal);
         var authoredEnd = method.IndexOf("// §54.12", authoredStart, StringComparison.Ordinal);
         var authored = method[authoredStart..authoredEnd];
 
-        var rotation = authored.IndexOf("_handProp.transform.localRotation =", StringComparison.Ordinal);
+        var rotation = authored.IndexOf("prop.transform.localRotation =", StringComparison.Ordinal);
         var fit = authored.IndexOf(
-            "ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, cfgScale)",
+            "ApplyObjectFitScale(prop, itemId, prefabLocalScale, cfgScale)",
             StringComparison.Ordinal);
 
         Assert.Multiple(() =>
@@ -32,7 +32,7 @@ public sealed class WeaponFitOrderContractTests
             Assert.That(rotation, Is.GreaterThanOrEqualTo(0));
             Assert.That(fit, Is.GreaterThan(rotation),
                 "ObjectFit measured the hand prop before its final authored rotation.");
-            Assert.That(method, Does.Contain(
+            Assert.That(source, Does.Contain(
                 "Vector3.Scale(prefabLocalScale, fineMultiplier) * fit"),
                 "GearConfig scale must multiply the fitted prefab, not replace its authored scale.");
         });

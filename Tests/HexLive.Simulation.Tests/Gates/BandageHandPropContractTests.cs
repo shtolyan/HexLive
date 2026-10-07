@@ -144,10 +144,10 @@ public sealed class BandageHandPropContractTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(setInteraction, Does.Contain("\"TreatOther\" => heldItemId"),
+            Assert.That(setInteraction, Does.Contain(": heldItemId);"),
                 "TreatOther не должен выбрасывать HeldItemId перед SetHandProp.");
             Assert.That(anchor, Does.Contain(
-                "GetBone(_leftHanded ? \"lHand\" : \"rHand\")"),
+                "GetBone(leftHanded ? \"lHand\" : \"rHand\")"),
                 "Обычная рабочая рука должна оставаться правой; левая — только fallback.");
         });
     }

@@ -60,8 +60,7 @@ public sealed class DrinkAnimationPresentationContractTests
                 "OverrideClip(\"X Bot@Drinking\", Standing(_animSet.drink))"),
                 "Posture must not remap the drinking clip.");
             Assert.That(interaction, Does.Contain(
-                "SetHandProp(crafting || looting ? string.Empty\n" +
-                "            : aidingOther ? aidPropId\n" +
+                "SetHandProp(looting ? string.Empty\n" +
                 "            : heldItemId);"),
                 "The shared clip must not erase whether the sim exported a bottle or coconut.");
         });

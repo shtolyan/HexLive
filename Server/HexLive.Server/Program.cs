@@ -177,16 +177,14 @@ public static class Program
         // только открыта хоть одна дверь управления.
         ControlLeases? controlLeases = null;
         AccessTokenFile? playerToken = null;
-        var identityUrl = Environment.GetEnvironmentVariable("HEXLIVE_IDENTITY_URL");
-        using var identity = string.IsNullOrWhiteSpace(identityUrl) ? null : new IdentityClient(identityUrl);
         var agentSessions = new AgentSessionRegistry();
         using var deepgram = new DeepgramTokenBroker();
-        if (options.ControlEnabled || options.McpEnabled || identity != null)
+        if (options.ControlEnabled || options.McpEnabled)
         {
             controlLeases = new ControlLeases(options.McpLeaseSeconds);
         }
 
-        if (options.ControlEnabled && identity == null)
+        if (options.ControlEnabled)
         {
             playerToken = AccessTokenFile.LoadOrCreate(
                 options.PlayerTokenPath, "PLAYER CONTROL — first run", "hexplay_");
@@ -221,15 +219,10 @@ public static class Program
         var app = builder.Build();
         app.UseResponseCompression();
         app.UseWebSockets();
-        Releases.PlayerReleaseEndpoints.Map(app, new Releases.PlayerReleaseStore(
-            Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "player-releases")));
-        Releases.ClientCompatibilityEndpoints.Map(app);
         var playerMcpAccess = options.McpEnabled ? new Mcp.McpPlayerAccess(
             Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "hexlive-agent-access.json")) : null;
 
         var adminAccess = new GodMode.AdminAccess(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "hexlive-admin-clients.json"));
-        if (identity != null) adminAccess.CentralAuthorize = (client, key) => identity.Can(key, client, "server.admin");
-        if (identity != null) CentralAdminAccess.Use(app, identity);
         var adminBus = new GodMode.AdminCommandBus(worlds, adminAccess,
             Path.Combine(Path.GetDirectoryName(Path.GetFullPath(options.SavePath))!, "admin-receipts")) { Leases = controlLeases, Agents = agentSessions };
         var adminHub = new GodMode.AdminAgentHub(adminAccess, adminBus, worlds);
@@ -251,14 +244,6 @@ public static class Program
         }
         GodMode.AdminAccessEndpoints.Map(app, adminAccess, sessions, adminBus, worlds);
 
-        app.MapGet("/api/servers/v1/status", () => {
-            var host = worlds.Host;
-            var tickMs = host.RecentTickMs;
-            var budgetMs = host.TickDeltaTime * 1000 / Math.Max(0.1f, host.SpeedMultiplier);
-            return Results.Json(new { status = identity == null ? "unavailable" :
-                tickMs >= budgetMs * 0.8 ? "busy" : "available", tickMs, budgetMs });
-        });
-
         app.Map("/watch", async context =>
         {
             if (!context.WebSockets.IsWebSocketRequest)
@@ -278,24 +263,7 @@ public static class Program
             // это прежний анонимный зритель, ControlEnabled=false в рукопожатии.
             string? controlOwner = null;
             IReadOnlyList<int>? assignedNpcIds = null;
-            string? authenticatedPlayer = null;
-            var playerKey = context.Request.Headers.Authorization.ToString();
-            playerKey = playerKey.StartsWith("Bearer ", StringComparison.Ordinal) ? playerKey.Substring(7) : "";
-            if (identity != null)
-            {
-                try {
-                    var principal = await identity.AuthenticateAsync(playerKey, context.RequestAborted);
-                    if (principal != null && !principal.Permissions.Contains("game.play")) { context.Response.StatusCode = 403; return; }
-                    authenticatedPlayer = principal?.AccountId;
-                }
-                catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or OperationCanceledException or JsonException)
-                { context.Response.StatusCode = 503; return; }
-                if (authenticatedPlayer == null) { context.Response.StatusCode = 401; return; }
-                controlOwner = "ws:" + authenticatedPlayer;
-                assignedNpcIds = viewerSession.Assignments!.Reconcile(viewerSession.Host, authenticatedPlayer,
-                    options.PlayerCharacterLimit, viewerSession.Lifetime, viewerSession.WorldGeneration);
-            }
-            else if (playerToken is not null && controlLeases is not null)
+            if (playerToken is not null && controlLeases is not null)
             {
                 var authorization = context.Request.Headers.Authorization.ToString();
                 const string bearerPrefix = "Bearer ";
@@ -339,12 +307,9 @@ public static class Program
                 viewerSession.WorldGeneration,
                 controlOwner is null ? null : deepgram,
                 Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments, playerMcpAccess);
-            using var playerLifetime = CancellationTokenSource.CreateLinkedTokenSource(viewerSession.Lifetime, context.RequestAborted);
-            var identityMonitor = identity != null && authenticatedPlayer != null
-                ? identity.MonitorAsync(playerKey, authenticatedPlayer, playerLifetime) : Task.CompletedTask;
             try
             {
-                await viewer.RunAsync(playerLifetime.Token);
+                await viewer.RunAsync(viewerSession.Lifetime);
             }
             catch (OperationCanceledException)
             {
@@ -352,8 +317,6 @@ public static class Program
             }
             finally
             {
-                await playerLifetime.CancelAsync();
-                await identityMonitor;
                 viewer.Disconnect();
                 Console.WriteLine("[viewer] disconnected");
             }
@@ -382,7 +345,7 @@ public static class Program
 
             Mcp.McpEndpoint.Map(app, worlds, mcpToken, leases, agentSessions, spec, playerMcpAccess,
                 (playerId, npcId) => worlds.CaptureViewerSession().Assignments?.StillAssigned(playerId, npcId) == true,
-                playerToken == null ? null : value => playerToken.Matches(value), identity);
+                playerToken == null ? null : value => playerToken.Matches(value));
             Console.WriteLine(
                 $"[server] mcp control    http://localhost:{options.Port}/mcp " +
                 $"(токен в {options.McpTokenPath}, лиз {leases.TimeoutSeconds} с)");
@@ -428,6 +391,9 @@ public static class Program
 
         // A plain GET for eyeballing that the thing is alive.
         AssetEndpoints.Map(app, assetRegistry);
+        // §166: persistent cache is independent of game assets and saves.
+        Releases.ClientUpdateEndpoints.Map(app,
+            Environment.GetEnvironmentVariable("HEXLIVE_CLIENT_RELEASE_ROOT") ?? "/var/lib/hexlive/client-releases");
 
         app.MapGet("/", () =>
         {

@@ -129,3 +129,7 @@ _ArtSource/Voice/lipsync_analysis.json
 # Local outputs of the standalone identity service.
 /Server/HexLive.Identity/bin/
 /Server/HexLive.Identity/obj/
+
+# Standalone test build outputs.
+/Tests/**/bin/
+/Tests/**/obj/

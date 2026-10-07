@@ -293,6 +293,16 @@ internal static class MeleeSwing
         // которому вид синхронно даёт кровь, отбой тела и звук удара — см.
         // NPCState.HitStampTick.
         StampHit(world, target, weaponId, part, attacker.Position);
+        // §93.5: landed human attacks make hatred mutual, even from neutral
+        // relationships. Never soften an already stronger grudge.
+        var attackerRelation = attacker.Social.GetOrCreate(target.Id);
+        var targetRelation = target.Social.GetOrCreate(attacker.Id);
+        attackerRelation.Affinity = System.Math.Min(attackerRelation.Affinity,
+            CampDiplomacyMath.HatredAffinityThreshold);
+        targetRelation.Affinity = System.Math.Min(targetRelation.Affinity,
+            CampDiplomacyMath.HatredAffinityThreshold);
+        attacker.Social.MarkInteraction(target.Id, world.Tick);
+        target.Social.MarkInteraction(attacker.Id, world.Tick);
         var partArmor = EquipmentMath.ArmorForPart(world, target, part); // trace only
         var landed = EquipmentMath.Mitigate(world, target, part, damage);
 

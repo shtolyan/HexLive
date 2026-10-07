@@ -1,0 +1,21 @@
+[Unit]
+Description=HexLive verified Google Drive release cache
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hexlive
+Group=hexlive
+ExecStart=/opt/hexlive-release-sync/venv/bin/python /opt/hexlive-release-sync/Tools/updates/release.py sync --credentials /etc/hexlive/release-reader.json --public-key /opt/hexlive-release-sync/Tools/updates/release-public.pem --cache /var/lib/hexlive/client-releases
+Restart=on-failure
+RestartSec=30
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/hexlive/client-releases
+
+[Install]
+WantedBy=multi-user.target

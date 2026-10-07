@@ -65,6 +65,67 @@ public sealed class ConsciousCrawlerCombatTests
         });
     }
 
+    [TestCase(0f, 0f)]
+    [TestCase(0.8f, 0.6f)]
+    [TestCase(-0.9f, -0.7f)]
+    public void FirstLandedAttackMakesHatredMutualWithoutRetaliation(float outgoing, float incoming)
+    {
+        var (world, attacker, target) = Pair();
+        attacker.Social.GetOrCreate(target.Id).Affinity = outgoing;
+        target.Social.GetOrCreate(attacker.Id).Affinity = incoming;
+        var originalHit = target.HitStampTick;
+        var combat = new HumanCombatSystem();
+        for (var i = 0; i < 80 && target.HitStampTick == originalHit; i++)
+        {
+            world.Tick++;
+            combat.Run(world);
+            if (target.HitStampTick == originalHit)
+            {
+                Assert.That(attacker.Social.GetOrCreate(target.Id).Affinity, Is.EqualTo(outgoing));
+                Assert.That(target.Social.GetOrCreate(attacker.Id).Affinity, Is.EqualTo(incoming));
+            }
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(target.HitStampTick, Is.GreaterThan(originalHit));
+            Assert.That(target.Mind.CombatOpponentNpcId, Is.Null, "No retaliation is needed for mutual hatred.");
+            Assert.That(attacker.Social.GetOrCreate(target.Id).Affinity,
+                Is.EqualTo(System.Math.Min(outgoing, CampDiplomacyMath.HatredAffinityThreshold)));
+            Assert.That(target.Social.GetOrCreate(attacker.Id).Affinity,
+                Is.EqualTo(System.Math.Min(incoming, CampDiplomacyMath.HatredAffinityThreshold)));
+            Assert.That(attacker.Social.GetOrCreate(target.Id).LastInteractionTick, Is.EqualTo(world.Tick));
+            Assert.That(target.Social.GetOrCreate(attacker.Id).LastInteractionTick, Is.EqualTo(world.Tick));
+        });
+    }
+
+    [Test]
+    public void MissedAttackLeavesBothRelationshipsNeutral()
+    {
+        var (world, attacker, target) = Pair();
+        attacker.Social.GetOrCreate(target.Id).Affinity = 0f;
+        target.Social.GetOrCreate(attacker.Id).Affinity = 0f;
+        var originalHit = target.HitStampTick;
+        var combat = new HumanCombatSystem();
+        combat.Run(world);
+        Assert.That(attacker.StrikeLandsAtTick, Is.GreaterThan(world.Tick));
+        var escaped = world.Junctions.Items.Values.First(j =>
+            j.Tiles.Contains(target.Tile) && j.Id != attacker.CurrentJunction &&
+            !j.Neighbors.Contains(attacker.CurrentJunction.Value));
+        target.CurrentJunction = escaped.Id;
+        target.Position = escaped.WorldPosition;
+        Assert.That(InteractionReach.CanStrike(world, attacker, target), Is.False);
+        world.Tick = attacker.StrikeLandsAtTick;
+        combat.Run(world);
+        Assert.Multiple(() =>
+        {
+            Assert.That(attacker.StrikeLandsAtTick, Is.Zero, "The wind-up must have resolved.");
+            Assert.That(target.HitStampTick, Is.EqualTo(originalHit));
+            Assert.That(attacker.Social.GetOrCreate(target.Id).Affinity, Is.Zero);
+            Assert.That(target.Social.GetOrCreate(attacker.Id).Affinity, Is.Zero);
+        });
+    }
+
     [Test]
     public void ReplySelectionDoesNotDiscardConsciousCrawler()
     {

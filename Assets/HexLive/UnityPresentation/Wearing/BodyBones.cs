@@ -21,6 +21,7 @@ public sealed class BodyBones : MonoBehaviour
     private readonly Dictionary<string, Wear> _wears = new();
     private readonly Dictionary<VisualWearLayer, Dictionary<VisualWearSlot, Wear>> _byLayer = new();
     private readonly Dictionary<Wear, string> _wearKeys = new();
+    private readonly Dictionary<Wear, List<GameObject>> _peopleWearBones = new();
     private ActorName _actorMesh;
     private int _stablePaintOwnerId;
     private Wear _hairInstance;
@@ -50,6 +51,7 @@ public sealed class BodyBones : MonoBehaviour
         _bonesMap.Clear();
         _wears.Clear();
         _wearKeys.Clear();
+        _peopleWearBones.Clear();
         // По одному словарю на слой, перечислением — иначе новый слой пришлось
         // бы вспомнить дописать сюда, а забытый обрушил бы Equip на первой же
         // сумке (`_byLayer[layer]` без ключа — это исключение, а не пустота).
@@ -426,6 +428,19 @@ public sealed class BodyBones : MonoBehaviour
         var layerDict = _byLayer[wearPrefab.Layer];
         var underwear = _byLayer[VisualWearLayer.Underwear];
         var newWear = Instantiate(wearPrefab, wearTransform);
+        if (GetComponent<PeopleAppearance>() != null)
+        {
+            // §169: Construct moves garment bones out of the garment root.
+            // Remember ownership so repeated dressing cannot leave dead rigs.
+            foreach (var t in newWear.GetComponentsInChildren<Transform>(true))
+                if (t.name == "hip")
+                {
+                    var owned = new List<GameObject>();
+                    foreach (var bone in t.GetComponentsInChildren<Transform>(true)) owned.Add(bone.gameObject);
+                    _peopleWearBones.Add(newWear, owned);
+                    break;
+                }
+        }
         // §31B.4E: a variant is the prototype's mesh in its own materials. It
         // must be painted BEFORE Construct, which caches each slot's dry colour
         // and smoothness to restore after dirt and wet — cache the prototype's
@@ -555,6 +570,11 @@ public sealed class BodyBones : MonoBehaviour
             }
         }
 
+        if (_peopleWearBones.TryGetValue(wear, out var ownedBones))
+        {
+            foreach (var bone in ownedBones) if (bone != null) Destroy(bone);
+            _peopleWearBones.Remove(wear);
+        }
         Destroy(wear.gameObject);
         _wears.Remove(key);
         _wearKeys.Remove(wear);

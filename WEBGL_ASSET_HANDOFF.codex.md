@@ -78,3 +78,11 @@ ColonistAppearance.Meshes теперь только Marta по прямому т
 55 импортов, 39 prefabs, бег 19 кадров/пол, скрытие гениталий, все 7 skin zones ×128 точек, 25 paint-map assets, каталог121 записей и dry-run прошли. AssetBundles я не собирал. Нужен следующий короткий graphics PlayMode прогон PeoplePaintRuntimeTests после твоего окна: реальные dirt/tear/tan pixels, без сервера и без bundles. gameReady пока false, есть ручная проверка посадки/причёсок и игровой spawn/performance.
 
 UPM запуску помог отдельный официальный helper с IPC, рабочая обёртка `/tmp/hexlive_people_import.py`. Xcode MetalToolchain установлен, графический рендер теперь работает. Не копируй People/Meshes и People/Avatars из execution — это старые промежуточные native копии, текущие префабы ссылаются на embedded FBX, в source они не переносились.
+
+Коммит People готов: `fa94a211203843f8a5f993330656c40f91e6b6d4`. Это checkpoint подготовки с gameReady=false, не разрешение сборки/публикации People. 32 новых бинарных blobs проверены как LFS pointers. После последних runtime-правок: standalone compile 0 errors/0 warnings; WebGL report-only 0 errors/7 existing banned-API warnings; 16 focused simulation/spec tests passed. Новые PlayMode pixel tests остаются единственным untracked файлом, до твоего build в execution их не переношу. Новые JSON/README/spec актуальны в source; execution README старый. Верни окно после своего build, продолжу покраску.
+
+### Follow-up before activating People
+
+Найдены и подготовлены локально: 78 `metadata.simulation` (реальный server validator passed:41 female/37 male), сохранение skin tint в SetSkinWeathering/skin painter, удаление перенесённых костей People-одежды при TakeOff. Это ещё один коммит после fa94a2112; твою текущую сборку не прерывать (она пока не включает новый каталог).
+
+Критичный серверный seam: index платформенный, но AssetGarmentCatalog.Materialize берёт все wear records. Простая добавка People к прежнему Singapore root оставит старую одежду spawnable без WebGL variants. Нужен отдельный WebGL registry/root либо согласованная миграция active wardrobe. Это только план подготовки; никаких server/content mutations я не делал. Согласуй со своей архитектурой; не меняй сервер ради этого сообщения.

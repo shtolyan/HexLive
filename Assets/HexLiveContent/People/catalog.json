@@ -38,7 +38,22 @@
           "ForearmL",
           "WristR",
           "WristL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Arm Wraps",
+          "prototypeId": "clothing.armwraps_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.08,
+          "armor": 0.15,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "ArmL",
+            "ArmR"
+          ]
+        }
       }
     },
     {
@@ -55,7 +70,22 @@
           "ForearmL",
           "WristR",
           "WristL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Arm Wraps (Sleeve1)",
+          "prototypeId": "clothing.armwraps_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.08,
+          "armor": 0.15,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "ArmL",
+            "ArmR"
+          ]
+        }
       }
     },
     {
@@ -72,7 +102,22 @@
           "ForearmL",
           "WristR",
           "WristL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Arm Wraps (Sleeve2)",
+          "prototypeId": "clothing.armwraps_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.08,
+          "armor": 0.15,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "ArmL",
+            "ArmR"
+          ]
+        }
       }
     },
     {
@@ -89,7 +134,22 @@
           "ForearmL",
           "WristR",
           "WristL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Arm Wraps (Sleeve3)",
+          "prototypeId": "clothing.armwraps_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.08,
+          "armor": 0.15,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "ArmL",
+            "ArmR"
+          ]
+        }
       }
     },
     {
@@ -106,7 +166,22 @@
           "ForearmL",
           "WristR",
           "WristL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Arm Wraps",
+          "prototypeId": "clothing.armwraps_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.08,
+          "armor": 0.15,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "ArmL",
+            "ArmR"
+          ]
+        }
       }
     },
     {
@@ -123,7 +198,22 @@
           "ForearmL",
           "WristR",
           "WristL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Arm Wraps (Sleeve1)",
+          "prototypeId": "clothing.armwraps_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.08,
+          "armor": 0.15,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "ArmL",
+            "ArmR"
+          ]
+        }
       }
     },
     {
@@ -140,7 +230,22 @@
           "ForearmL",
           "WristR",
           "WristL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Arm Wraps (Sleeve2)",
+          "prototypeId": "clothing.armwraps_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.08,
+          "armor": 0.15,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "ArmL",
+            "ArmR"
+          ]
+        }
       }
     },
     {
@@ -157,7 +262,22 @@
           "ForearmL",
           "WristR",
           "WristL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Arm Wraps (Sleeve3)",
+          "prototypeId": "clothing.armwraps_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.08,
+          "armor": 0.15,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "ArmL",
+            "ArmR"
+          ]
+        }
       }
     },
     {
@@ -172,7 +292,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Briefs",
+          "prototypeId": "underwear.briefs_primal",
+          "layer": "Underwear",
+          "sex": "Female",
+          "warmth": 0.03,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -187,7 +322,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Briefs (Panty1)",
+          "prototypeId": "underwear.briefs_primal",
+          "layer": "Underwear",
+          "sex": "Female",
+          "warmth": 0.03,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -202,7 +352,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Briefs (Panty2)",
+          "prototypeId": "underwear.briefs_primal",
+          "layer": "Underwear",
+          "sex": "Female",
+          "warmth": 0.03,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -217,7 +382,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Briefs (Panty3)",
+          "prototypeId": "underwear.briefs_primal",
+          "layer": "Underwear",
+          "sex": "Female",
+          "warmth": 0.03,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -232,7 +412,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Briefs",
+          "prototypeId": "underwear.briefs_primal_male",
+          "layer": "Underwear",
+          "sex": "Male",
+          "warmth": 0.03,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -247,7 +442,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Briefs (Panty1)",
+          "prototypeId": "underwear.briefs_primal_male",
+          "layer": "Underwear",
+          "sex": "Male",
+          "warmth": 0.03,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -262,7 +472,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Briefs (Panty2)",
+          "prototypeId": "underwear.briefs_primal_male",
+          "layer": "Underwear",
+          "sex": "Male",
+          "warmth": 0.03,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -277,7 +502,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Briefs (Panty3)",
+          "prototypeId": "underwear.briefs_primal_male",
+          "layer": "Underwear",
+          "sex": "Male",
+          "warmth": 0.03,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 1,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -291,7 +531,21 @@
         "sex": "Female",
         "slots": [
           "Head"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Headband",
+          "prototypeId": "clothing.headband_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.04,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Head"
+          ]
+        }
       }
     },
     {
@@ -305,7 +559,21 @@
         "sex": "Female",
         "slots": [
           "Head"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Headband (2)",
+          "prototypeId": "clothing.headband_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.04,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Head"
+          ]
+        }
       }
     },
     {
@@ -319,7 +587,21 @@
         "sex": "Female",
         "slots": [
           "Head"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Headband (3)",
+          "prototypeId": "clothing.headband_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.04,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Head"
+          ]
+        }
       }
     },
     {
@@ -333,7 +615,21 @@
         "sex": "Female",
         "slots": [
           "Head"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Headband (4)",
+          "prototypeId": "clothing.headband_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.04,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Head"
+          ]
+        }
       }
     },
     {
@@ -347,7 +643,21 @@
         "sex": "Male",
         "slots": [
           "Head"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Headband",
+          "prototypeId": "clothing.headband_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.04,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Head"
+          ]
+        }
       }
     },
     {
@@ -361,7 +671,21 @@
         "sex": "Male",
         "slots": [
           "Head"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Headband (2)",
+          "prototypeId": "clothing.headband_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.04,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Head"
+          ]
+        }
       }
     },
     {
@@ -375,7 +699,21 @@
         "sex": "Male",
         "slots": [
           "Head"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Headband (3)",
+          "prototypeId": "clothing.headband_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.04,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Head"
+          ]
+        }
       }
     },
     {
@@ -389,7 +727,21 @@
         "sex": "Male",
         "slots": [
           "Head"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Headband (4)",
+          "prototypeId": "clothing.headband_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.04,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Head"
+          ]
+        }
       }
     },
     {
@@ -406,7 +758,22 @@
           "ShinL",
           "FootR",
           "FootL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Wrapped Boots",
+          "prototypeId": "clothing.wrapboots_primal",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.14,
+          "armor": 0.1,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -423,7 +790,22 @@
           "ShinL",
           "FootR",
           "FootL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Wrapped Boots (1)",
+          "prototypeId": "clothing.wrapboots_primal",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.14,
+          "armor": 0.1,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -440,7 +822,22 @@
           "ShinL",
           "FootR",
           "FootL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Wrapped Boots (2)",
+          "prototypeId": "clothing.wrapboots_primal",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.14,
+          "armor": 0.1,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -457,7 +854,22 @@
           "ShinL",
           "FootR",
           "FootL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Wrapped Boots (3)",
+          "prototypeId": "clothing.wrapboots_primal",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.14,
+          "armor": 0.1,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -474,7 +886,22 @@
           "ShinL",
           "FootR",
           "FootL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Wrapped Boots",
+          "prototypeId": "clothing.wrapboots_primal_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.14,
+          "armor": 0.1,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -491,7 +918,22 @@
           "ShinL",
           "FootR",
           "FootL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Wrapped Boots (1)",
+          "prototypeId": "clothing.wrapboots_primal_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.14,
+          "armor": 0.1,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -508,7 +950,22 @@
           "ShinL",
           "FootR",
           "FootL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Wrapped Boots (2)",
+          "prototypeId": "clothing.wrapboots_primal_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.14,
+          "armor": 0.1,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -525,7 +982,22 @@
           "ShinL",
           "FootR",
           "FootL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Wrapped Boots (3)",
+          "prototypeId": "clothing.wrapboots_primal_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.14,
+          "armor": 0.1,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -540,7 +1012,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Skirt",
+          "prototypeId": "clothing.skirt_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -555,7 +1042,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Skirt (1)",
+          "prototypeId": "clothing.skirt_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -570,7 +1072,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Skirt (2)",
+          "prototypeId": "clothing.skirt_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -585,7 +1102,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Skirt (3)",
+          "prototypeId": "clothing.skirt_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -600,7 +1132,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Skirt",
+          "prototypeId": "clothing.skirt_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -615,7 +1162,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Skirt (1)",
+          "prototypeId": "clothing.skirt_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -630,7 +1192,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Skirt (2)",
+          "prototypeId": "clothing.skirt_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -645,7 +1222,22 @@
         "slots": [
           "Belly",
           "Pelvis"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Skirt (3)",
+          "prototypeId": "clothing.skirt_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis"
+          ]
+        }
       }
     },
     {
@@ -659,7 +1251,21 @@
         "sex": "Female",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Wrap",
+          "prototypeId": "clothing.top_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.06,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -673,7 +1279,21 @@
         "sex": "Female",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Wrap (1)",
+          "prototypeId": "clothing.top_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.06,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -687,7 +1307,21 @@
         "sex": "Female",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Wrap (2)",
+          "prototypeId": "clothing.top_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.06,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -701,7 +1335,21 @@
         "sex": "Female",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Hide Wrap (3)",
+          "prototypeId": "clothing.top_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.06,
+          "armor": 0.02,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -719,7 +1367,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress",
+          "prototypeId": "clothing.dress_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -737,7 +1402,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color01)",
+          "prototypeId": "clothing.dress_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -755,7 +1437,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color02)",
+          "prototypeId": "clothing.dress_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -773,7 +1472,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color03)",
+          "prototypeId": "clothing.dress_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -791,7 +1507,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color04)",
+          "prototypeId": "clothing.dress_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -809,7 +1542,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color05)",
+          "prototypeId": "clothing.dress_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -827,7 +1577,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color06)",
+          "prototypeId": "clothing.dress_primal",
+          "layer": "Wear",
+          "sex": "Female",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -845,7 +1612,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress",
+          "prototypeId": "clothing.dress_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -863,7 +1647,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color01)",
+          "prototypeId": "clothing.dress_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -881,7 +1682,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color02)",
+          "prototypeId": "clothing.dress_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -899,7 +1717,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color03)",
+          "prototypeId": "clothing.dress_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -917,7 +1752,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color04)",
+          "prototypeId": "clothing.dress_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -935,7 +1787,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color05)",
+          "prototypeId": "clothing.dress_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -953,7 +1822,24 @@
           "Pelvis",
           "ThighR",
           "ThighL"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur-Trimmed Dress (color06)",
+          "prototypeId": "clothing.dress_primal_male",
+          "layer": "Wear",
+          "sex": "Male",
+          "warmth": 0.18,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 2,
+          "covers": [
+            "Torso",
+            "Pelvis",
+            "LegL",
+            "LegR"
+          ]
+        }
       }
     },
     {
@@ -968,7 +1854,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar",
+          "prototypeId": "clothing.collar_fur",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -983,7 +1883,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color01)",
+          "prototypeId": "clothing.collar_fur",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -998,7 +1912,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color02)",
+          "prototypeId": "clothing.collar_fur",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1013,7 +1941,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color03)",
+          "prototypeId": "clothing.collar_fur",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1028,7 +1970,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color04)",
+          "prototypeId": "clothing.collar_fur",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1043,7 +1999,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color05)",
+          "prototypeId": "clothing.collar_fur",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1058,7 +2028,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color06)",
+          "prototypeId": "clothing.collar_fur",
+          "layer": "Outerwear",
+          "sex": "Female",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1073,7 +2057,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar",
+          "prototypeId": "clothing.collar_fur_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1088,7 +2086,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color01)",
+          "prototypeId": "clothing.collar_fur_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1103,7 +2115,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color02)",
+          "prototypeId": "clothing.collar_fur_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1118,7 +2144,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color03)",
+          "prototypeId": "clothing.collar_fur_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1133,7 +2173,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color04)",
+          "prototypeId": "clothing.collar_fur_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1148,7 +2202,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color05)",
+          "prototypeId": "clothing.collar_fur_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1163,7 +2231,21 @@
         "slots": [
           "Chest",
           "Belly"
-        ]
+        ],
+        "simulation": {
+          "displayName": "Fur Collar (color06)",
+          "prototypeId": "clothing.collar_fur_male",
+          "layer": "Outerwear",
+          "sex": "Male",
+          "warmth": 0.07,
+          "armor": 0.01,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 0,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1337,7 +2419,21 @@
         "sex": "Female",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "PrimalGathererPack",
+          "prototypeId": "gear.backpack_primal_gatherer",
+          "layer": "Bags",
+          "sex": "Female",
+          "warmth": 0.0,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 9,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1351,7 +2447,21 @@
         "sex": "Female",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "PrimalHunterPack",
+          "prototypeId": "gear.backpack_primal_hunter",
+          "layer": "Bags",
+          "sex": "Female",
+          "warmth": 0.0,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 9,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1365,7 +2475,21 @@
         "sex": "Female",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "PrimalTrailPack",
+          "prototypeId": "gear.backpack_primal_trail",
+          "layer": "Bags",
+          "sex": "Female",
+          "warmth": 0.0,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 9,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1379,7 +2503,21 @@
         "sex": "Male",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "PrimalGathererPack",
+          "prototypeId": "gear.backpack_primal_gatherer_male",
+          "layer": "Bags",
+          "sex": "Male",
+          "warmth": 0.0,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 9,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1393,7 +2531,21 @@
         "sex": "Male",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "PrimalHunterPack",
+          "prototypeId": "gear.backpack_primal_hunter_male",
+          "layer": "Bags",
+          "sex": "Male",
+          "warmth": 0.0,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 9,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {
@@ -1407,7 +2559,21 @@
         "sex": "Male",
         "slots": [
           "Chest"
-        ]
+        ],
+        "simulation": {
+          "displayName": "PrimalTrailPack",
+          "prototypeId": "gear.backpack_primal_trail_male",
+          "layer": "Bags",
+          "sex": "Male",
+          "warmth": 0.0,
+          "armor": 0.0,
+          "thermalDelta": 0.0,
+          "dressDurationTicks": 8,
+          "capacity": 9,
+          "covers": [
+            "Torso"
+          ]
+        }
       }
     },
     {

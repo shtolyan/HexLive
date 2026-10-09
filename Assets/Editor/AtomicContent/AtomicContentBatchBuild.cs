@@ -69,6 +69,8 @@ public static class AtomicContentBatchBuild
             result.Warmth = def.warmth; result.Armor = def.armor; result.ThermalDelta = def.thermalDelta;
             result.DressDurationTicks = def.dressDurationTicks; result.Capacity = def.capacity;
             result.Sex = (string)meta["sex"];
+            // These are emitted from BuildInputs; avoid duplicate JSON keys.
+            meta.Remove("artId"); meta.Remove("sex"); meta.Remove("slots");
         }
         else result.Metadata = CreateGeneratedMetadata(type, id, meta);
         return ResolveOwnerIcon(type, id, result);

@@ -74,7 +74,14 @@ namespace HexLive.UnityPresentation.Wearing.Editor
                         ["type"] = "wear", ["id"] = recordId, ["main"] = main,
                         ["definition"] = definitionPath,
                         ["metadata"] = new JObject { ["peopleCatalog"] = PeopleIdMap.CatalogId,
-                            ["artId"] = artId, ["sex"] = def.sexOverride.ToString(), ["slots"] = slots } });
+                            ["artId"] = artId, ["sex"] = def.sexOverride.ToString(), ["slots"] = slots,
+                            // Server AssetGarmentCatalog consumes this block, not flat visual metadata.
+                            ["simulation"] = new JObject {
+                                ["displayName"] = def.displayName, ["prototypeId"] = artId,
+                                ["layer"] = def.layer.ToString(), ["sex"] = def.sexOverride.ToString(),
+                                ["warmth"] = def.warmth, ["armor"] = def.armor, ["thermalDelta"] = def.thermalDelta,
+                                ["dressDurationTicks"] = def.dressDurationTicks, ["capacity"] = def.capacity,
+                                ["covers"] = new JArray(def.covers.Select(c => c.ToString())) } } });
                 }
             }
             foreach (var guid in AssetDatabase.FindAssets("t:ScriptableObject", new[] { Root + "/PaintMaps" }))

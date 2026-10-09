@@ -547,6 +547,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     /// no pain flush) — a severed-limb drop bakes it into its material so the
     /// limb matches the body it came off.</summary>
     public Color SkinTint { get; private set; } = Color.white;
+    private Color _peopleSkinTone = Color.white;
 
     private static readonly string[] NonSkinMaterialHints =
     {
@@ -6309,7 +6310,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         //     up to 0.5 (was 0.35) to fully arrive, so a fresh tan barely reads;
         //   • the full-tan target is much LIGHTER (was 0.40,0.27,0.18 ≈ near
         //     black on skin) so a maxed tan reads "bronzed/weathered", not dark.
-        var tint = SkinWeatheringTone.Compose(tanLevel, sunburn, SimBalance.TanStrength);
+        var tint = SkinWeatheringTone.Compose(tanLevel, sunburn, SimBalance.TanStrength) * _peopleSkinTone;
         // Spec 40.6: grime — the filthier the skin (low hygiene), the more it
         // muddies toward a dull earthy brown. Applied before the injury flush so
         // wounds still read on a dirty body.
@@ -6399,8 +6400,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         if (!IsCreationPreview) throw new System.InvalidOperationException("Appearance editing requires a creation preview.");
         if (_previewSkin != skin || _previewEyes != eyes)
         {
-            ReplaceBodyMaterials(LoadSkinSet(_actorMesh.ToString()));
-            if (!string.IsNullOrEmpty(skin)) ReplaceBodyMaterials(LoadSkinSet(skin), preserveAuthoredEyes: true);
+            if (GetComponentInChildren<PeopleAppearance>(true) != null)
+                ApplySkinSet(string.IsNullOrEmpty(skin) ? _actorMesh.ToString() : skin, preserveAuthoredEyes: true);
+            else
+            {
+                ReplaceBodyMaterials(LoadSkinSet(_actorMesh.ToString()));
+                if (!string.IsNullOrEmpty(skin)) ReplaceBodyMaterials(LoadSkinSet(skin), preserveAuthoredEyes: true);
+            }
             ApplyEyeSet(eyes);
             _previewSkin = skin; _previewEyes = eyes;
         }
@@ -6504,14 +6510,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // the swap is a lookup BY NAME and never depends on submesh order.
     private void ApplySkinSet(string skinSet, bool preserveAuthoredEyes = false)
     {
-        if (string.IsNullOrEmpty(skinSet) || _bodySkins == null ||
-            string.Equals(skinSet, _actorMesh.ToString(), System.StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrEmpty(skinSet) || _bodySkins == null) return;
+        var people = GetComponentInChildren<PeopleAppearance>(true);
+        if (people != null)
         {
+            var materials = people.SkinMaterials(skinSet);
+            // Runtime weathering writes _BaseColor and the painter's base layer.
+            // Carry the selected atlas tint into both paths instead of losing it.
+            _peopleSkinTone = materials.Values.FirstOrDefault()?.GetColor(BaseColorId) ?? Color.white;
+            ReplaceBodyMaterials(materials, preserveAuthoredEyes);
             return;
         }
-
-        var people = GetComponentInChildren<PeopleAppearance>(true);
-        ReplaceBodyMaterials(people != null ? people.SkinMaterials(skinSet) : LoadSkinSet(skinSet), preserveAuthoredEyes);
+        if (string.Equals(skinSet, _actorMesh.ToString(), System.StringComparison.OrdinalIgnoreCase)) return;
+        ReplaceBodyMaterials(LoadSkinSet(skinSet), preserveAuthoredEyes);
     }
 
     // §85: the iris, split out of the skin set above.

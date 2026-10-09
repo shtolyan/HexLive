@@ -19,6 +19,7 @@ catalog. Do not physically move them. World content is outside this migration.
 - `Preview/PrimalRunning.unity`: local running pair, equipped through BodyBones,
   no server or bundle required. `Validation/Review/` contains outfit/face renders.
 - `catalog.json`: 121 records (2 actor, 16 hair, 78 wear, 25 map configs).
+  All 78 wear simulation blocks passed the server metadata validator locally.
   Dry-run and dependency audit passed; old body/wear/hair dependencies excluded.
   Enable future discovery only with `-content-people-catalog primal-v1`.
   Merely importing these files does not switch a live catalog.
@@ -62,3 +63,19 @@ The sole Blender source remains
 Source exports and verification tools are in
 `Assets/HexLive/UnityPresentation/Wearing/Editor/PeopleSourceTools/`.
 No native copies of the FBX Mesh/Avatar subassets belong in this catalog.
+
+## Server handoff for the future build command
+
+A platform-specific client index alone does not isolate the simulated wardrobe.
+`AssetGarmentCatalog.Materialize` uses every active wear record in its registry,
+including desktop-only items. Adding these records to the old Singapore registry
+would therefore leave old clothes spawnable but invisible to the WebGL client.
+Prepare a separate WebGL registry/content root, or obtain an explicit migration
+plan for the existing active wardrobe before publication. Preserve world content
+and do not retire desktop records as a side effect of this preparation.
+
+The 78 new wear records include `metadata.simulation` for the server's real
+validator; flat visual metadata is insufficient for new male/backpack IDs.
+`Validation/catalog-simulation.json` records its local result. Existing saved
+legacy clothing needs a declared migration/fallback when choosing the new root.
+No registry, server binary, simdata, service or live catalog was changed here.

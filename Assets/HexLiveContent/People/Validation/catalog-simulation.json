@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "records": 78,
+  "validator": "HexLive.Server.Assets.GarmentSimulationMetadata.Validate",
+  "sexCounts": {
+    "Female": 41,
+    "Male": 37
+  },
+  "serverStarted": false
+}

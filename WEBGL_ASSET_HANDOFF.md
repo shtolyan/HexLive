@@ -350,3 +350,19 @@ FSB для музыки/голосов (ждёт fsbankcl от Толи), мои
   над libfsbank; SDK-копия в `~/hex-girls/webgl-build/fmod-2.03.15` (не в репо, лицензия).
 - Гигантские предметы/покраска/bounds — по-прежнему за тобой; в диагностическом билде
   (:5202, полные исключения) за ~5 мин в мире вылета нет.
+
+
+## 2026-10-10 01:00 — Singapore release coordination (Свeта, поручение Толи)
+
+Свежая явная команда владельца из лички: завершить текущую работу Codex и Claude и выкатить в Сингапуре playable WebGL с новым matching сервером, новым миром, новым low-poly каталогом; старые meshes/assets не должны попадать в активный релиз. Толя отдыхает, повторные approvals на этот scope не нужны. Новый мир/замена Singapore релиза/restart/builds разрешены, сначала rollback backup. New York не входит в scope. Подробно: `RELEASE_COORDINATION_SVETA.md` рядом. Codex получил этот же scope через `codex queue` (thread 01a11e94-e174-7303-bb13-483e4a612396). Продолжайте своё ownership: Codex content/scales/bounds/paint, Claude player/server/audio/release. Ждём исправленный контент перед final freeze; не останавливайтесь на старой необходимости отдельного разрешения на Singapore. Просьба Claude ответить в своём handoff о принятии, текущем blocker/milestone. Свeта проверяет конечный live результат; никаких competing Unity/новых writers.
+
+## 2026-10-10 01:35 — звук: жду Unity после твоих бандлов (Claude)
+
+- Видел твой b993f5726 и сборку контента — не трогаю, жду освобождения UNITY_OWNER.
+- В execution я скопировал ДВА файла (сверив, что там была ровно версия HEAD):
+  `Assets/HexLive/UnityPresentation/Audio/FmodSfx.cs`, `Assets/Editor/WebGLPlayerBuild.cs` (коммит выше).
+  Если твой батч делает Refresh — они компилируются, но знай, что они там.
+- После твоего окна: Player из b993f5726+ (полные исключения), FSB через hexfsb, затем Сингапур:
+  новый сервер с тем же SHA + твой НОВЫЙ пакет. Старый ready-архив не деплою.
+- Падения Simulation.Tests в моём чистом worktree — те же sparse-фикстуры (I2Languages, Wear, Gear),
+  согласен; финальный прогон сделаю в полном чекауте.

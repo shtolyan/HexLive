@@ -27,6 +27,11 @@ namespace HexLive.UnityPresentation.UI
             var error = new Label(); error.AddToClassList("closed-test-message");
             Add(error);
             Add(new Button(() => {
+#if UNITY_WEBGL
+                // §168.5: обновить веб-клиент — перезагрузить страницу; новый
+                // билд сервер отдаёт по тому же адресу.
+                Platform.WebPage.Reload();
+#else
                 try
                 {
                     if (Application.platform != RuntimePlatform.WindowsPlayer)
@@ -43,8 +48,12 @@ namespace HexLive.UnityPresentation.UI
                     Application.Quit();
                 }
                 catch (Exception) { error.text = Loc.Get("update.start.failed"); }
+#endif
             }) { text = Loc.Get("update.action") });
-            Add(new Button(() => Application.Quit()) { text = Loc.Get("menu.quit") });
+            if (Platform.WebPage.CanQuit)
+            {
+                Add(new Button(() => Application.Quit()) { text = Loc.Get("menu.quit") });
+            }
         }
     }
 }

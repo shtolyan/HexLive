@@ -1,3 +1,5 @@
+// §168.5: панель живёт только рядом с ClientUpdateService — в вебе его нет.
+#if !UNITY_WEBGL
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.UI;
 using UnityEngine;
@@ -64,3 +66,4 @@ namespace HexLive.UnityPresentation.Updates
         }
     }
 }
+#endif

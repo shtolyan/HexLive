@@ -364,15 +364,19 @@ namespace HexLive.UnityPresentation.UI
             card.Add(MakeMenuRow("person", Loc.Get("menu.characters"),
                 primary: false, enabled: false, null));
 
-            card.Add(MakeMenuRow("exit", Loc.Get("menu.quit"),
-                primary: false, enabled: true, () =>
+            // §168.5: вкладку закрывает игрок, не страница.
+            if (Platform.WebPage.CanQuit)
             {
+                card.Add(MakeMenuRow("exit", Loc.Get("menu.quit"),
+                    primary: false, enabled: true, () =>
+                {
 #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false;
+                    UnityEditor.EditorApplication.isPlaying = false;
 #else
-                Application.Quit();
+                    Application.Quit();
 #endif
-            }));
+                }));
+            }
 
             var divider = new VisualElement
             {

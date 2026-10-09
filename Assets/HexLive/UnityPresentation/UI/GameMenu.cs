@@ -236,7 +236,11 @@ namespace HexLive.UnityPresentation.UI
             quitButton.RegisterCallback<MouseEnterEvent>(_ => quitButton.style.backgroundColor = Danger);
             quitButton.RegisterCallback<MouseLeaveEvent>(_ => quitButton.style.backgroundColor = Raised);
             quitButton.RegisterCallback<MouseDownEvent>(_ => Quit());
-            card.Add(quitButton);
+            // §168.5: вкладку закрывает игрок, не страница.
+            if (Platform.WebPage.CanQuit)
+            {
+                card.Add(quitButton);
+            }
         }
 
         private void AddSoundSlider(FmodSfx.VolumeCategory category)

@@ -1,3 +1,4 @@
+#if !UNITY_WEBGL
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -258,3 +259,23 @@ namespace HexLive.UnityPresentation.Updates
         private void OnDestroy() { _cancel?.Cancel(); _http.Dispose(); if (Instance == this) Instance = null; }
     }
 }
+#else
+namespace HexLive.UnityPresentation.Updates
+{
+    // §168.5: веб-клиент обновляется перезагрузкой страницы — качать архив,
+    // проверять подпись и запускать установщик в браузере некуда и нечем.
+    // Остаётся ровно та поверхность, которой пользуется LoadingScreen.
+    public static class ClientUpdateService
+    {
+        public static bool BlocksEntry => false;
+
+        public static void Ensure()
+        {
+        }
+
+        public static void AcknowledgeMenu()
+        {
+        }
+    }
+}
+#endif

@@ -27,7 +27,10 @@ namespace HexLive.UnityPresentation.UI
             var title = new Label("HEX LIVE"); title.AddToClassList("closed-test-title"); Add(title);
             Add(new Label(Loc.Get("closedtest.title")));
             Add(_body); _message.AddToClassList("closed-test-message"); Add(_message);
-            Add(new Button(() => Application.Quit()) { text = Loc.Get("menu.quit") });
+            if (Platform.WebPage.CanQuit) // §168.5
+            {
+                Add(new Button(() => Application.Quit()) { text = Loc.Get("menu.quit") });
+            }
             RegisterCallback<DetachFromPanelEvent>(_ => ++_generation);
             _owner.StartCoroutine(CheckCompatibility());
         }

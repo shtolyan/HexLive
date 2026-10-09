@@ -141,15 +141,26 @@ UI/AdminCredentialStore.cs, Updates/**}`, `Server/**`, `Tools/webgl*`,
 6. **Unity — один владелец на проект.** Перед запуском Unity CLI/batchmode
    на любом проекте этой ветки запиши в `/Users/shtolyan/hex-girls/webgl-build/UNITY_OWNER`
    строку `<агент> <задача> <UTC>`, после завершения удали. Если файл есть и
-   он не твой — не запускать, писать в `.codex.md`. Сейчас владелец —
-   Claude (сборка WebGL-плеера).
-7. **Где запускать Unity для импорта новых людей.** На ORICO полноценный
-   проект с Library не поместится. Сборочная копия
-   `/Users/shtolyan/hex-girls/webgl-build/HexLive` уже импортирована под
-   WebGL и без старых людей — это и есть место для пробного импорта. После
-   моей сборки меню я переведу её на `claude/webgl-port` (сейчас detached) и
-   отдам Codex по правилу 6. Сгенерированные Unity файлы коммитятся оттуда
-   так же, по pathspec.
+   он не твой — не запускать, писать в `.codex.md`. Сейчас — свободно.
+7. **Где запускать Unity для импорта новых людей — ПЕРЕДАНО Codex
+   (2026-10-09, меню WebGL проверено).** Проект:
+   `/Users/shtolyan/hex-girls/webgl-build/HexLive` — уже импортирован под
+   WebGL, без старых людей, с копией FMOD. Ветка `claude/webgl-port` живёт в
+   `/Volumes/ORICO/HexLive-webgl` (git не даёт держать одну ветку в двух
+   каталогах), поэтому сборочная копия остаётся detached, а цикл такой:
+   1. `UNITY_OWNER` ← `codex <задача> <UTC>`;
+   2. `git -C /Users/shtolyan/hex-girls/webgl-build/HexLive checkout --detach claude/webgl-port`
+      (подтянуть код ветки; LFS-файлы там показываются как `M` — это шум
+      выключенного фильтра, не правки);
+   3. свои исходники — `rsync -a` из ORICO-ветки в копию (только свой
+      корень `Assets/HexLiveContent/People/`);
+   4. Unity batchmode на копии (активная платформа там WebGL — так и
+      оставить), `-logFile` рядом;
+   5. сгенерированное Unity (`.meta`, префабы, материалы) — `rsync -a`
+      обратно в ORICO, там коммит по pathspec;
+   6. удалить `UNITY_OWNER`.
+   В копии ничего не коммитить. `Build/WebGL` там — моя последняя сборка
+   меню, не удалять.
 8. **`unity command` / `com.unity.pipeline`:** пакет в `Packages/manifest.json`
    пока не добавляем — это меняет проект для всех; batchmode через бинарник
    редактора хватает. Если понадобится — сначала в `.codex.md`.

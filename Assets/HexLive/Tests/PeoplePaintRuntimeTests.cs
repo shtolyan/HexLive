@@ -12,6 +12,8 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.Playables;
+using HexLive.UnityPresentation;
 using Object = UnityEngine.Object;
 
 namespace HexLive.Tests
@@ -175,6 +177,183 @@ public sealed class PeoplePaintRuntimeTests
         }
         Assert.That(tested, Is.EqualTo(78), "All catalog variants must be exercised");
     }
+
+    [Test]
+    public void LiveActorPainterSelectsBodyEvenWhenGenitalsAreFirst()
+    {
+        foreach (var actor in new[] { "Marta", "Kshishtof" })
+        {
+            var go = Actor(actor);
+            var view = go.AddComponent<NpcActorView>(); view.enabled = false;
+            SetPrivate(view, "_bodyRoot", go.transform);
+            SetPrivate(view, "_bodyBones", go.GetComponent<BodyBones>());
+            SetPrivate(view, "_bodySkins", go.GetComponentsInChildren<SkinnedMeshRenderer>(true));
+            SetPrivate(view, "_actorMesh", (ActorName)Enum.Parse(typeof(ActorName), actor));
+            InvokePrivate(view, "BuildSkinTintTargets");
+            InvokePrivate(view, "ConstructSkinPainter");
+            var painter = go.GetComponent<SkinTexturePainter>();
+            Assert.That(painter, Is.Not.Null);
+            Assert.That(GetPrivate(painter, "_body"), Is.SameAs(ActorBodyResolver.ResolveOrNull(go.transform)));
+            Assert.That(GetPrivate(painter, "_map"), Is.Not.Null, actor);
+            Assert.That(GetPrivate(painter, "_mapVertexCount"), Is.EqualTo(actor == "Marta" ? 4410 : 8957));
+        }
+    }
+
+    [UnityTest]
+    public IEnumerator DelayedGarmentMapPaintsBloodOnTheReadyTransition()
+    {
+        int tested = 0;
+        foreach (var actor in new[] { "Marta", "Kshishtof" })
+        {
+            var go = Actor(actor);
+            var bones = go.GetComponent<BodyBones>();
+            var catalog = JObject.Parse(File.ReadAllText(Root + "/catalog.json"));
+            foreach (var row in catalog["records"].Where(r => (string)r["type"] == "wear"))
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>((string)row["main"]);
+                if (!prefab.name.StartsWith(actor + "_", StringComparison.Ordinal)) continue;
+                var id = (string)row["id"];
+                var def = AssetDatabase.LoadAssetAtPath<GarmentDefinition>((string)row["definition"]);
+                bones.Equip(id, prefab.GetComponent<Wear>(), def.variantMaterials);
+                var wear = bones.WearTransform.GetComponentsInChildren<Wear>(true).Single(w => w.name == prefab.name + "(Clone)");
+                wear.SetErosion(.001f); // creates painter; below the first natural-hole threshold
+                var paint = wear.GetComponent<GarmentWearPainter>();
+                var renderer = wear.GetComponentInChildren<SkinnedMeshRenderer>();
+                var original = renderer.sharedMaterials.Select(m => m.GetTexture("_BaseMap")).ToArray();
+                // The first asynchronous call left no map on the painter. On
+                // this call Request returns Ready. Previously it still warned
+                // Missing and cached the input as handled without painting it.
+                SetPrivate(paint, "_map", null);
+                wear.SetGrime(0f, new[] { "Torso", "Pelvis", "LegL", "LegR", "ArmL", "ArmR", "Head" },
+                    new[] { .9f, .9f, .9f, .9f, .9f, .9f, .9f }, 7, .9f);
+                Assert.That(GetPrivate(paint, "_map"), Is.Not.Null, id);
+                Assert.That(((ICollection)GetPrivate(paint, "_bloodStains")).Count, Is.GreaterThan(0), id);
+                float until = Time.realtimeSinceStartup + 15f;
+                while (!paint.TryPaintPresentation() && Time.realtimeSinceStartup < until) yield return null;
+                Assert.That(renderer.sharedMaterials.Select((m, i) => (texture: m.GetTexture("_BaseMap"), clean: original[i]))
+                    .Any(v => v.texture is RenderTexture && v.clean != null && Difference(v.texture, v.clean) > .00001f),
+                    Is.True, id + " blood-only input did not change pixels");
+                bones.TakeOff(id); tested++; yield return null;
+            }
+        }
+        Assert.That(tested, Is.EqualTo(78));
+    }
+
+    [Test]
+    public void AllGarmentDropsPreserveMetreScaleAndVariants()
+    {
+        var cache = (IDictionary)typeof(ActorWardrobe).GetField("Cache", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+        var variants = (IDictionary)typeof(GarmentVariants).GetField("ById", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+        var catalog = JObject.Parse(File.ReadAllText(Root + "/catalog.json"));
+        int count = 0;
+        foreach (var row in catalog["records"].Where(r => (string)r["type"] == "wear"))
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>((string)row["main"]);
+            var source = prefab.GetComponentInChildren<SkinnedMeshRenderer>();
+            var id = (string)row["id"];
+            var def = AssetDatabase.LoadAssetAtPath<GarmentDefinition>((string)row["definition"]);
+            var saved = cache[id]; var savedDef = variants[id];
+            cache[id] = new List<Wear> { prefab.GetComponent<Wear>() }; variants[id] = def;
+            try
+            {
+                var sourceSize = Vector3.Scale(source.sharedMesh.bounds.size, source.transform.lossyScale);
+                var expected = Mathf.Max(sourceSize.x, sourceSize.y, sourceSize.z);
+                foreach (var hanging in new[] { false, true })
+                {
+                    var drop = hanging ? GarmentDropFactory.BuildHanging(id) : GarmentDropFactory.Build(id);
+                    Assert.That(drop, Is.Not.Null, id); _objects.Add(drop);
+                    Assert.That(ObjectFit.WorldBounds(drop, out var box), Is.True);
+                    var size = Mathf.Max(box.size.x, box.size.y, box.size.z);
+                    Assert.That(size, Is.LessThanOrEqualTo(expected * 1.15f), id + " grew when removed");
+                    Assert.That(size, Is.GreaterThan(expected * .20f), id + " shrank when removed");
+                    Assert.That(box.center.magnitude, Is.LessThan(.16f), id + " lost its drop pivot");
+                    var mats = drop.GetComponentInChildren<MeshRenderer>().sharedMaterials;
+                    for (int m = 0; m < def.variantMaterials.Length; m++)
+                        if (def.variantMaterials[m] != null) Assert.That(mats[m], Is.SameAs(def.variantMaterials[m]), id);
+                }
+                count++;
+            }
+            finally
+            {
+                if (saved == null) cache.Remove(id); else cache[id] = saved;
+                if (savedDef == null) variants.Remove(id); else variants[id] = savedDef;
+            }
+        }
+        Assert.That(count, Is.EqualTo(78));
+    }
+
+    [UnityTest]
+    public IEnumerator BodyBoundsFollowMovingActorsAndSurvivePoseModeChanges()
+    {
+        foreach (var actor in new[] { "Marta", "Kshishtof" })
+        {
+            var go = Actor(actor);
+            var view = go.AddComponent<NpcActorView>(); view.enabled = false;
+            var skins = go.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            SetPrivate(view, "_bodySkins", skins);
+            var animator = go.GetComponent<Animator>(); animator.enabled = true;
+            animator.runtimeAnimatorController = null; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            animator.Rebind();
+            var clip = AssetDatabase.LoadAllAssetsAtPath("Assets/ImportedActors/AnimLibrary/Male@Run.fbx")
+                .OfType<AnimationClip>().First(c => !c.name.StartsWith("__preview__"));
+            var graph = UnityEngine.Playables.PlayableGraph.Create("PeopleMovingBounds");
+            var play = UnityEngine.Animations.AnimationClipPlayable.Create(graph, clip);
+            UnityEngine.Animations.AnimationPlayableOutput.Create(graph, "run", animator).SetSourcePlayable(play);
+            graph.SetTimeUpdateMode(UnityEngine.Playables.DirectorUpdateMode.Manual); graph.Play();
+            try
+            {
+                for (int frame = 0; frame < 19; frame++)
+                {
+                    go.transform.SetPositionAndRotation(new Vector3(11 + frame, 2, -7 + frame), Quaternion.Euler(0, frame * 31, 0));
+                    go.transform.localScale = Vector3.one * .7764706f;
+                    play.SetTime(clip.length * frame / 18d); graph.Evaluate(0);
+                    SetPrivate(view, "_laying", frame % 3 == 0);
+                    InvokePrivate(view, "RefreshSkinBounds");
+                    // Unity updates skinned culling boxes during rendering, after
+                    // coroutine Update. Observe after a complete render frame.
+                    yield return null;
+                    yield return null;
+                    foreach (var skin in skins.Where(r => r.gameObject.activeInHierarchy))
+                    {
+                        var mesh = new Mesh(); skin.BakeMesh(mesh, true);
+                        var bounds = skin.bounds; bounds.Expand(.01f);
+                        var outside = mesh.vertices.Select(skin.transform.TransformPoint).Count(p => !bounds.Contains(p));
+                        Object.DestroyImmediate(mesh);
+                        Assert.That(outside, Is.EqualTo(0), actor + "/" + skin.name + " frame " + frame + " bounds=" + bounds);
+                    }
+                }
+            }
+            finally { graph.Destroy(); }
+        }
+    }
+
+    [Test]
+    public void BothHandAnchorsUseActorMetresForAuthoredGripOffsets()
+    {
+        foreach (var actor in new[] { "Marta", "Kshishtof" })
+        {
+            var go = Actor(actor); go.transform.localScale = Vector3.one * .7764706f;
+            var view = go.AddComponent<NpcActorView>(); view.enabled = false;
+            SetPrivate(view, "_bodyBones", go.GetComponent<BodyBones>());
+            foreach (var left in new[] { false, true })
+            {
+                var anchor = (Transform)typeof(NpcActorView).GetMethod("HandPropAnchor", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Invoke(view, new object[] { left });
+                var bone = go.GetComponent<BodyBones>().GetBone(left ? "lHand" : "rHand");
+                Assert.That(Vector3.Distance(anchor.position, bone.position), Is.LessThan(.0001f));
+                Assert.That(Vector3.Distance(anchor.lossyScale, go.transform.lossyScale), Is.LessThan(.0001f));
+                Assert.That(Vector3.Distance(anchor.TransformPoint(Vector3.right * .1f), anchor.position),
+                    Is.EqualTo(.07764706f).Within(.0001f));
+            }
+        }
+    }
+
+    private static void SetPrivate(object target, string field, object value) =>
+        target.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(target, value);
+    private static object GetPrivate(object target, string field) =>
+        target.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(target);
+    private static void InvokePrivate(object target, string method) =>
+        target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(target, null);
 
     private static Color[] Pixels(Texture texture)
     {

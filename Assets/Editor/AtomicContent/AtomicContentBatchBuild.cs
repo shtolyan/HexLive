@@ -468,6 +468,8 @@ public static class AtomicContentBatchBuild
         var contract = JObject.Parse(File.ReadAllText("Assets/HexLiveContent/People/Source/body-contract.json"));
         var retained = new List<AssetBundle>();
         var rows = new JArray();
+        var requiredMaps = new Dictionary<string, int>(StringComparer.Ordinal);
+        var actualMaps = new Dictionary<string, int>(StringComparer.Ordinal);
         try
         {
             foreach (var row in PeopleRecords())
@@ -486,6 +488,10 @@ public static class AtomicContentBatchBuild
                         var actor = main as GameObject;
                         if (!HexLive.UnityPresentation.Wearing.ActorBodyResolver.TryResolve(actor, out var body, out var error))
                             throw new InvalidOperationException(id + ": " + error);
+                        requiredMaps["HexLive/PaintMaps/skin_" + id] = body.sharedMesh.vertexCount;
+                        foreach (var skin in actor.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                            if (skin.localBounds.center.sqrMagnitude > .001f || skin.localBounds.extents.x <= 0f)
+                                throw new InvalidOperationException(id + ": missing repaired hip-relative culling envelope");
                         var names = Enumerable.Range(0, body.sharedMesh.blendShapeCount).Select(body.sharedMesh.GetBlendShapeName);
                         if (!names.SequenceEqual(contract[id]["blendShapes"].Values<string>()))
                             throw new InvalidOperationException(id + ": morph contract changed in bundle");
@@ -508,6 +514,8 @@ public static class AtomicContentBatchBuild
                     }
                     if (type == "wear")
                     {
+                        var mesh = ((GameObject)main).GetComponentInChildren<SkinnedMeshRenderer>(true).sharedMesh;
+                        requiredMaps[$"HexLive/PaintMaps/garment_{mesh.name}_{mesh.vertexCount}"] = mesh.vertexCount;
                         var definition = bundle.LoadAsset<GarmentDefinition>("metadata");
                         if (definition == null || definition.id != id || definition.variantMaterials == null ||
                             definition.variantMaterials.Length == 0 || definition.variantMaterials.Any(m => m == null))
@@ -519,15 +527,25 @@ public static class AtomicContentBatchBuild
                                 row["metadata"]["simulation"]["covers"].Values<string>()))
                             throw new InvalidOperationException(id + ": prefab, definition and server wardrobe disagree");
                     }
+                    if (main is HexLive.UnityPresentation.Wearing.PaintPointMap map)
+                    {
+                        var key = (string)row["metadata"]["legacyResourcePath"];
+                        if (string.IsNullOrEmpty(key) || !map.Zones.Any(z => z.Points.Any(p => p.Valid)))
+                            throw new InvalidOperationException(id + ": missing paint alias or valid anchors");
+                        actualMaps.Add(key, map.VertexCount);
+                    }
                     rows.Add(new JObject { ["type"] = type, ["id"] = id, ["passed"] = true });
                     if (keep) retained.Add(bundle);
                 }
                 finally { if (!retained.Contains(bundle)) bundle.Unload(true); }
             }
+            foreach (var map in requiredMaps)
+                if (!actualMaps.TryGetValue(map.Key, out var vertices) || vertices != map.Value)
+                    throw new InvalidOperationException("Serialized renderer cannot resolve its paint map: " + map.Key);
             File.WriteAllText(Path.Combine(output, "people-payload-validation.json"), new JObject
             {
                 ["passed"] = true, ["objects"] = rows, ["coexistingBundles"] = retained.Count,
-                ["browserRenderValidated"] = false
+                ["browserRenderValidated"] = false, ["rendererPaintMapContracts"] = requiredMaps.Count
             }.ToString(Formatting.Indented) + "\n");
             Debug.Log($"[AtomicContent] reopened {rows.Count} People payloads; {retained.Count} coexist; morph/rig/material references intact.");
         }

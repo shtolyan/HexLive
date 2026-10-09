@@ -598,20 +598,23 @@ namespace HexLive.UnityPresentation.Wearing
                     return false;
                 }
 
-                _bloodMapPending = false;
-                _pendingDamageZoneCount = 0;
-                // Missing/stale/failed map is an explicit terminal art-less
-                // state. Acknowledge only now, never on the async first miss.
-                _lastBloodInputHash = inputHash;
-                if (!_mapWarned)
+                if (_map == null)
                 {
-                    _mapWarned = true;
-                    Debug.LogWarning(
-                        $"[GarmentWear] '{name}': no PaintPointMap — zone blood soak skipped " +
-                        "(run HexLive ▸ Paint Maps ▸ Regenerate).", this);
-                }
+                    _bloodMapPending = false;
+                    _pendingDamageZoneCount = 0;
+                    // Missing/stale/failed map is an explicit terminal art-less
+                    // state. Acknowledge only now, never on the async first miss.
+                    _lastBloodInputHash = inputHash;
+                    if (!_mapWarned)
+                    {
+                        _mapWarned = true;
+                        Debug.LogWarning(
+                            $"[GarmentWear] '{name}': no PaintPointMap — zone blood soak skipped " +
+                            "(run HexLive ▸ Paint Maps ▸ Regenerate).", this);
+                    }
 
-                return false;
+                    return false;
+                }
             }
 
             _bloodMapPending = false;

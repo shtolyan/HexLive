@@ -394,7 +394,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
         Assert.Multiple(() =>
         {
             Assert.That(source, Does.Contain("BuildWornPickColliders()"));
-            Assert.That(source, Does.Contain("skin.BakeMesh(mesh, false)"));
+            Assert.That(source, Does.Contain("skin.BakeMesh(mesh, skin.GetComponentInParent<PeopleAppearance>(true) != null)"));
             Assert.That(picking, Does.Contain("collider.Raycast"));
             Assert.That(picking, Does.Contain("_wornPickColliders.ContainsKey(renderer)"));
             Assert.That(picking.IndexOf("collider.Raycast", StringComparison.Ordinal),
@@ -513,7 +513,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
         Assert.Multiple(() =>
         {
             Assert.That(framing, Does.Contain("TryGetStableVisualWorldBounds(renderer"));
-            Assert.That(framing, Does.Contain("skin.BakeMesh(bakedMesh, false)"));
+            Assert.That(framing, Does.Contain("skin.BakeMesh(bakedMesh, skin.GetComponentInParent<PeopleAppearance>(true) != null)"));
             Assert.That(framing, Does.Contain("renderer.localToWorldMatrix"));
             Assert.That(framing, Does.Contain("bounds.max.y + height * HeadroomFraction"),
                 "The head is kept in frame by explicit headroom, not by luck.");
@@ -710,7 +710,7 @@ public sealed class CharacterDollAndInventoryUiContractTests
         Assert.Multiple(() =>
         {
             Assert.That(factory, Does.Contain("BuildFromCurrentPose"));
-            Assert.That(factory, Does.Contain("BakeMesh(posedMesh, false)"));
+            Assert.That(factory, Does.Contain("BakeMesh(posedMesh, owner.GetComponentInChildren<PeopleAppearance>(true) != null)"));
             Assert.That(factory, Does.Contain("CloneChildren"));
             Assert.That(factory, Does.Contain("DestroyTransient(poseClone)"));
             Assert.That(factory, Does.Not.Contain("BuildFromMarta"));

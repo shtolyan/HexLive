@@ -21,7 +21,7 @@ public sealed class MedkitFloorPresentationContractTests
         var objectGroundY = renderer.Substring(methodStart, methodEnd - methodStart);
         Assert.Multiple(() =>
         {
-            Assert.That(objectGroundY, Does.Contain("_floorTiles.Contains(worldObject.Tile)"));
+            Assert.That(objectGroundY, Does.Contain("_floorTiles.Contains(supportTile)"));
             Assert.That(objectGroundY, Does.Contain("!OwnsRaisedFloorGeometry(worldObject)"));
             Assert.That(objectGroundY, Does.Contain("HutAssembly.FloorSurfaceLift"));
         });

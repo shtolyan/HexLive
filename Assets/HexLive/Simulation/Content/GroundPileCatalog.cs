@@ -3248,6 +3248,7 @@ public static class GroundPileCatalog
         GarmentPrototypes["underwear.top_vapor_10"] = "underwear.top_vapor";
         GarmentPrototypes["underwear.top_vapor_11"] = "underwear.top_vapor";
         GarmentPrototypes["underwear.top_vapor_12"] = "underwear.top_vapor";
+        PreparedPeopleGroundGeometry.Register(Garments, GarmentPrototypes, Profiles);
         foreach(var profile in Profiles.Values) MaximumRadiusXZ=Math.Max(MaximumRadiusXZ,profile.FullBounds.RadiusXZ);
         foreach(var profile in Garments.Values) MaximumRadiusXZ=Math.Max(MaximumRadiusXZ,profile.FullBounds.RadiusXZ);
     }

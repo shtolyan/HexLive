@@ -1,36 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
-<test-run id="2" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-09 12:57:30Z" end-time="2026-10-09 12:57:37Z" duration="7.2186819">
-  <test-suite type="TestSuite" id="1079" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="58" result="Passed" start-time="2026-10-09 12:57:30Z" end-time="2026-10-09 12:57:37Z" duration="7.218682" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+<test-run id="2" testcasecount="8" result="Passed" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-09 18:15:23Z" end-time="2026-10-09 18:15:32Z" duration="8.1092998">
+  <test-suite type="TestSuite" id="1084" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-10-09 18:15:23Z" end-time="2026-10-09 18:15:32Z" duration="8.109300" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
     <properties>
       <property name="platform" value="PlayMode" />
     </properties>
-    <test-suite type="Assembly" id="1073" name="HexLive.AgentIntegration.Tests.dll" fullname="/Users/shtolyan/hex-girls/webgl-build/HexLive/Library/ScriptAssemblies/HexLive.AgentIntegration.Tests.dll" runstate="Runnable" testcasecount="58" result="Passed" start-time="2026-10-09 12:57:30Z" end-time="2026-10-09 12:57:37Z" duration="7.186465" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <test-suite type="Assembly" id="1078" name="HexLive.AgentIntegration.Tests.dll" fullname="/Users/shtolyan/hex-girls/webgl-build/HexLive/Library/ScriptAssemblies/HexLive.AgentIntegration.Tests.dll" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-10-09 18:15:24Z" end-time="2026-10-09 18:15:32Z" duration="8.081167" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
       <properties>
-        <property name="_PID" value="66564" />
+        <property name="_PID" value="10039" />
         <property name="_APPDOMAIN" value="Unity Child Domain" />
         <property name="platform" value="PlayMode" />
         <property name="EditorOnly" value="False" />
       </properties>
-      <test-suite type="TestSuite" id="1074" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="58" result="Passed" start-time="2026-10-09 12:57:30Z" end-time="2026-10-09 12:57:37Z" duration="7.175601" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <test-suite type="TestSuite" id="1079" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-10-09 18:15:24Z" end-time="2026-10-09 18:15:32Z" duration="8.067132" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
         <properties />
-        <test-suite type="TestSuite" id="1075" name="Tests" fullname="HexLive.Tests" runstate="Runnable" testcasecount="58" result="Passed" start-time="2026-10-09 12:57:30Z" end-time="2026-10-09 12:57:37Z" duration="7.167521" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <test-suite type="TestSuite" id="1080" name="Tests" fullname="HexLive.Tests" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-10-09 18:15:24Z" end-time="2026-10-09 18:15:32Z" duration="8.060619" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
           <properties />
-          <test-suite type="TestFixture" id="1053" name="PeoplePaintRuntimeTests" fullname="HexLive.Tests.PeoplePaintRuntimeTests" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-09 12:57:30Z" end-time="2026-10-09 12:57:37Z" duration="7.151894" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <test-suite type="TestFixture" id="1053" name="PeoplePaintRuntimeTests" fullname="HexLive.Tests.PeoplePaintRuntimeTests" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-09 18:15:24Z" end-time="2026-10-09 18:15:32Z" duration="8.022615" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
             <properties />
-            <test-case id="1056" name="EveryGarmentVariantPaintsDirtAndTears" fullname="HexLive.Tests.PeoplePaintRuntimeTests.EveryGarmentVariantPaintsDirtAndTears" methodname="EveryGarmentVariantPaintsDirtAndTears" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="1465475530" result="Passed" start-time="2026-10-09 12:57:30Z" end-time="2026-10-09 12:57:36Z" duration="6.342630" asserts="0">
+            <test-case id="1059" name="AllGarmentDropsPreserveMetreScaleAndVariants" fullname="HexLive.Tests.PeoplePaintRuntimeTests.AllGarmentDropsPreserveMetreScaleAndVariants" methodname="AllGarmentDropsPreserveMetreScaleAndVariants" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="969964784" result="Passed" start-time="2026-10-09 18:15:24Z" end-time="2026-10-09 18:15:24Z" duration="0.651220" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1060" name="BodyBoundsFollowMovingActorsAndSurvivePoseModeChanges" fullname="HexLive.Tests.PeoplePaintRuntimeTests.BodyBoundsFollowMovingActorsAndSurvivePoseModeChanges" methodname="BodyBoundsFollowMovingActorsAndSurvivePoseModeChanges" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="479189046" result="Passed" start-time="2026-10-09 18:15:24Z" end-time="2026-10-09 18:15:26Z" duration="1.763061" asserts="0">
               <properties>
                 <property name="_JOINTYPE" value="UnityCombinatorial" />
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-case id="1054" name="SelectedSkinTintSurvivesWeatheringUpdates" fullname="HexLive.Tests.PeoplePaintRuntimeTests.SelectedSkinTintSurvivesWeatheringUpdates" methodname="SelectedSkinTintSurvivesWeatheringUpdates" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="808967311" result="Passed" start-time="2026-10-09 12:57:36Z" end-time="2026-10-09 12:57:36Z" duration="0.066521" asserts="0">
+            <test-case id="1061" name="BothHandAnchorsUseActorMetresForAuthoredGripOffsets" fullname="HexLive.Tests.PeoplePaintRuntimeTests.BothHandAnchorsUseActorMetresForAuthoredGripOffsets" methodname="BothHandAnchorsUseActorMetresForAuthoredGripOffsets" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="722300403" result="Passed" start-time="2026-10-09 18:15:26Z" end-time="2026-10-09 18:15:26Z" duration="0.041997" asserts="0">
               <properties>
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-case id="1055" name="SkinToneAndBloodReachNewAtlasWithoutPaintingEyesOrTeeth" fullname="HexLive.Tests.PeoplePaintRuntimeTests.SkinToneAndBloodReachNewAtlasWithoutPaintingEyesOrTeeth" methodname="SkinToneAndBloodReachNewAtlasWithoutPaintingEyesOrTeeth" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="721846104" result="Passed" start-time="2026-10-09 12:57:36Z" end-time="2026-10-09 12:57:37Z" duration="0.678790" asserts="0">
+            <test-case id="1058" name="DelayedGarmentMapPaintsBloodOnTheReadyTransition" fullname="HexLive.Tests.PeoplePaintRuntimeTests.DelayedGarmentMapPaintsBloodOnTheReadyTransition" methodname="DelayedGarmentMapPaintsBloodOnTheReadyTransition" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="1281095491" result="Passed" start-time="2026-10-09 18:15:26Z" end-time="2026-10-09 18:15:28Z" duration="2.411458" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1056" name="EveryGarmentVariantPaintsDirtAndTears" fullname="HexLive.Tests.PeoplePaintRuntimeTests.EveryGarmentVariantPaintsDirtAndTears" methodname="EveryGarmentVariantPaintsDirtAndTears" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="1312313766" result="Passed" start-time="2026-10-09 18:15:28Z" end-time="2026-10-09 18:15:31Z" duration="2.166292" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1057" name="LiveActorPainterSelectsBodyEvenWhenGenitalsAreFirst" fullname="HexLive.Tests.PeoplePaintRuntimeTests.LiveActorPainterSelectsBodyEvenWhenGenitalsAreFirst" methodname="LiveActorPainterSelectsBodyEvenWhenGenitalsAreFirst" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="1584076012" result="Passed" start-time="2026-10-09 18:15:31Z" end-time="2026-10-09 18:15:31Z" duration="0.111984" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1054" name="SelectedSkinTintSurvivesWeatheringUpdates" fullname="HexLive.Tests.PeoplePaintRuntimeTests.SelectedSkinTintSurvivesWeatheringUpdates" methodname="SelectedSkinTintSurvivesWeatheringUpdates" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="1409867842" result="Passed" start-time="2026-10-09 18:15:31Z" end-time="2026-10-09 18:15:31Z" duration="0.143804" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1055" name="SkinToneAndBloodReachNewAtlasWithoutPaintingEyesOrTeeth" fullname="HexLive.Tests.PeoplePaintRuntimeTests.SkinToneAndBloodReachNewAtlasWithoutPaintingEyesOrTeeth" methodname="SkinToneAndBloodReachNewAtlasWithoutPaintingEyesOrTeeth" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="1260648314" result="Passed" start-time="2026-10-09 18:15:31Z" end-time="2026-10-09 18:15:32Z" duration="0.677188" asserts="0">
               <properties>
                 <property name="_JOINTYPE" value="UnityCombinatorial" />
                 <property name="retryIteration" value="0" />

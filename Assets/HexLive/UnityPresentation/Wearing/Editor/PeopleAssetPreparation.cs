@@ -476,6 +476,7 @@ public static class PeopleAssetPreparation
                     ConfigureActorAnimator(go, actor);
                     ConfigureActorIK(go);
                     ConfigureAppearance(go, actor);
+                    ConfigureActorBounds(go);
                     var bones = go.AddComponent<BodyBones>();
                     var wearRoot = new GameObject("Wear");
                     wearRoot.transform.SetParent(go.transform, false);
@@ -667,6 +668,33 @@ public static class PeopleAssetPreparation
         animator.applyRootMotion = false;
         animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/HexLive/UnityPresentation/Actors/HexNpcLocomotion.controller");
         if (animator.runtimeAnimatorController == null) throw new InvalidOperationException("Missing locomotion controller");
+    }
+
+    // Bounds follow the hip in its own coordinate system, not mesh space.
+    // A spherical reach envelope also remains valid when the hip turns and
+    // locomotion is imported separately from the body FBX.
+    internal static void ConfigureActorBounds(GameObject go)
+    {
+        foreach (var skin in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+        {
+            var root = skin.rootBone != null ? skin.rootBone : skin.transform;
+            var toRoot = root.worldToLocalMatrix * skin.transform.localToWorldMatrix;
+            var radius = skin.sharedMesh.vertices.Max(v => toRoot.MultiplyPoint3x4(v).magnitude);
+            skin.localBounds = new Bounds(Vector3.zero, Vector3.one * (radius * 2.3f));
+            skin.updateWhenOffscreen = false;
+        }
+    }
+
+    public static void RepairPreparedBounds()
+    {
+        foreach (var actor in new[] { "Marta", "Kshishtof" })
+        {
+            var path = Root + "/Prefabs/Actors/" + actor + ".prefab";
+            var go = PrefabUtility.LoadPrefabContents(path);
+            try { ConfigureActorBounds(go); PrefabUtility.SaveAsPrefabAsset(go, path); }
+            finally { PrefabUtility.UnloadPrefabContents(go); }
+        }
+        AssetDatabase.SaveAssets();
     }
 
     private static void ConfigureAppearance(GameObject go, string actor)

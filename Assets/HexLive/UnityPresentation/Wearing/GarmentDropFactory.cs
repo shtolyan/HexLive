@@ -85,16 +85,23 @@ public static class GarmentDropFactory
             // but revert to the character-wide T-pose after a reload.
             // Baking supplies one readable, renderer-local mesh contract for
             // every variant without changing the source asset.
+            // Keep the imported mesh-to-garment basis. FBX vertices can be
+            // centimetres below a .01 transform; extracting just sharedMesh
+            // discarded that conversion and made ground items 100 times larger.
+            var meshBasis = wear.transform.worldToLocalMatrix * source.transform.localToWorldMatrix;
+            var meshRotation = meshBasis.rotation;
+            var meshScale = meshBasis.lossyScale;
             var bakedGloveMesh = hangingGloves;
             if (hangingGloves)
             {
                 mesh = new Mesh { name = $"{mesh.name} hanging copy" };
-                source.BakeMesh(mesh);
+                source.BakeMesh(mesh, true);
+                TransformGeneratedMesh(mesh, meshBasis);
             }
             if (hangingGloves && TryCreateHangingGlovePair(
                     root.transform, mesh, source, definitionId, pieces, widths))
             {
-                if (bakedGloveMesh) Object.Destroy(mesh);
+                if (bakedGloveMesh) DestroyOwned(mesh);
                 continue;
             }
 
@@ -117,9 +124,11 @@ public static class GarmentDropFactory
 
             var view = new GameObject("Mesh");
             view.transform.SetParent(piece.transform, false);
-            view.transform.localRotation = lieFlat;
-            // Recentre: the mesh's bounds centre lands on the piece pivot.
-            view.transform.localPosition = -(lieFlat * mesh.bounds.center);
+            view.transform.localRotation = lieFlat * (hangingGloves ? Quaternion.identity : meshRotation);
+            view.transform.localScale = hangingGloves ? Vector3.one : meshScale;
+            // Centre after applying the authored basis, before the cloth squash.
+            view.transform.localPosition = -(view.transform.localRotation *
+                Vector3.Scale(mesh.bounds.center, view.transform.localScale));
             view.AddComponent<MeshFilter>().sharedMesh = mesh;
             // §31B.4E: a ground/rack item keeps its ITEM id even though it
             // loads the prototype's art. Use that id here too: otherwise a
@@ -129,12 +138,13 @@ public static class GarmentDropFactory
             if (bakedGloveMesh || bakedSleeves) TrackGeneratedMesh(root, mesh);
 
             pieces.Add(piece.transform);
-            widths.Add(mesh.bounds.size.x);
+            var size = Vector3.Scale(mesh.bounds.size, view.transform.localScale);
+            widths.Add(Mathf.Abs(size.x));
         }
 
         if (pieces.Count == 0)
         {
-            Object.Destroy(root);
+            DestroyOwned(root);
             return null;
         }
 
@@ -194,7 +204,7 @@ public static class GarmentDropFactory
     /// </summary>
     private static bool TryBakeLoweredSleeves(SkinnedMeshRenderer source, ref Mesh mesh)
     {
-        if (mesh == null || mesh.bounds.extents.x < SleeveHalfWidthThreshold)
+        if (mesh == null || mesh.bounds.extents.x * Mathf.Abs(source.transform.lossyScale.x) < SleeveHalfWidthThreshold)
         {
             return false;
         }
@@ -224,7 +234,7 @@ public static class GarmentDropFactory
             LowerShoulder(left, forward, centerX);
             LowerShoulder(right, forward, centerX);
             var baked = new Mesh { name = $"{mesh.name} sleeves-down" };
-            source.BakeMesh(baked);
+            source.BakeMesh(baked, true);
             mesh = baked;
             return true;
         }
@@ -363,6 +373,24 @@ public static class GarmentDropFactory
         return result;
     }
 
+    private static void TransformGeneratedMesh(Mesh mesh, Matrix4x4 matrix)
+    {
+        var vertices = mesh.vertices;
+        var normals = mesh.normals;
+        var normalMatrix = matrix.inverse.transpose;
+        for (var i = 0; i < vertices.Length; i++) vertices[i] = matrix.MultiplyPoint3x4(vertices[i]);
+        for (var i = 0; i < normals.Length; i++) normals[i] = normalMatrix.MultiplyVector(normals[i]).normalized;
+        mesh.vertices = vertices;
+        mesh.normals = normals;
+        mesh.RecalculateBounds();
+    }
+
+    private static void DestroyOwned(Object value)
+    {
+        if (Application.isPlaying) Object.Destroy(value);
+        else Object.DestroyImmediate(value);
+    }
+
     private static void TrackGeneratedMesh(GameObject root, Mesh mesh)
     {
         var owner = root.GetComponent<GeneratedMeshOwner>();
@@ -379,7 +407,7 @@ public static class GarmentDropFactory
         private void OnDestroy()
         {
             foreach (var mesh in _meshes)
-                if (mesh != null) Object.Destroy(mesh);
+                if (mesh != null) DestroyOwned(mesh);
             _meshes.Clear();
         }
     }

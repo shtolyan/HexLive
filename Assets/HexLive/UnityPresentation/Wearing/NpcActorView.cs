@@ -1143,6 +1143,35 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             : UnityEngine.AnimatorCullingMode.CullUpdateTransforms;
     }
 
+    // Shared by initial actor construction and the real-painter regression.
+    private void ConstructSkinPainter()
+    {
+        // Use the same complete-skeleton contract as maps and amputations.
+        // Separate genital skin can appear first in the hierarchy.
+        var bodyRenderer = ActorBodyResolver.ResolveOrNull(_bodyRoot);
+        var slotScratch = new List<int>();
+        foreach (var (renderer, index) in _skinTintTargets)
+        {
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            if (ReferenceEquals(renderer, bodyRenderer))
+            {
+                slotScratch.Add(index);
+            }
+        }
+
+        if (bodyRenderer != null)
+        {
+            _skinPainter = gameObject.AddComponent<SkinTexturePainter>();
+            _skinPainter.Construct(bodyRenderer, slotScratch, _bodyBones,
+                _bodyRoot != null ? _bodyRoot : transform, _npcId,
+                _actorMesh.ToString());
+        }
+    }
+
     // Лежачие позы выходят за стоячие authored bounds. Труп теперь
     // всегда идёт через общий SetFallen/FallenIdle, но после подтверждения позы
     // его Animator выключен; поэтому он сохраняет updateWhenOffscreen по флагу _dead.
@@ -1158,7 +1187,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             if (skin != null)
             {
+                var wasDynamic = skin.updateWhenOffscreen;
                 skin.updateWhenOffscreen = perFrameBounds;
+                if (wasDynamic && !perFrameBounds)
+                    skin.GetComponentInParent<PeopleAppearance>(true)?.RestoreLocomotionBounds(skin);
             }
         }
     }
@@ -2064,33 +2096,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // time precisely so no custom skin shader is needed.
             if (PaintWoundsIntoTexture && !IsCreationPreview && _bodyBones != null)
             {
-                SkinnedMeshRenderer bodyRenderer = null;
-                var slotScratch = new List<int>();
-                foreach (var (renderer, index) in _skinTintTargets)
-                {
-                    if (renderer == null)
-                    {
-                        continue;
-                    }
-
-                    if (bodyRenderer == null)
-                    {
-                        bodyRenderer = renderer;
-                    }
-
-                    if (ReferenceEquals(renderer, bodyRenderer))
-                    {
-                        slotScratch.Add(index);
-                    }
-                }
-
-                if (bodyRenderer != null)
-                {
-                    _skinPainter = gameObject.AddComponent<SkinTexturePainter>();
-                    _skinPainter.Construct(bodyRenderer, slotScratch, _bodyBones,
-                        _bodyRoot != null ? _bodyRoot : transform, _npcId,
-                        _actorMesh.ToString());
-                }
+                ConstructSkinPainter();
             }
 
             // Face life: blinking + mood-driven expression on the blend shapes.
@@ -2804,7 +2810,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return prosthetic.Grip;
         }
 
-        return _bodyBones?.GetBone(leftHanded ? "lHand" : "rHand");
+        var bone = _bodyBones?.GetBone(leftHanded ? "lHand" : "rHand");
+        var people = _bodyBones != null ? _bodyBones.GetComponent<PeopleAppearance>() : null;
+        return people != null ? people.PropAnchor(bone) : bone;
     }
 
     private void RefreshLeglessPresentation()

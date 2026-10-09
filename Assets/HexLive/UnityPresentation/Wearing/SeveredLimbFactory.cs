@@ -39,9 +39,22 @@ public static class SeveredLimbFactory
         }
 
         var limbMesh = SliceMesh(source, source, vertexInLimb);
-        return limbMesh != null
-            ? BuildVisual(limbMesh, variant, owner.SkinTint, recenter: true)
-            : null;
+        if (limbMesh == null) return null;
+        // Reference drops are later scaled by the actor's world scale. Convert
+        // imported centimetres to actor-local metres before that shared step.
+        if (skin.GetComponentInParent<PeopleAppearance>(true) != null)
+        {
+            var basis = owner.SeveredLimbPoseRoot.worldToLocalMatrix * skin.transform.localToWorldMatrix;
+            var vertices = limbMesh.vertices;
+            var normals = limbMesh.normals;
+            var normalBasis = basis.inverse.transpose;
+            for (int i = 0; i < vertices.Length; i++) vertices[i] = basis.MultiplyPoint3x4(vertices[i]);
+            for (int i = 0; i < normals.Length; i++) normals[i] = normalBasis.MultiplyVector(normals[i]).normalized;
+            limbMesh.vertices = vertices;
+            limbMesh.normals = normals;
+            limbMesh.RecalculateBounds();
+        }
+        return BuildVisual(limbMesh, variant, owner.SkinTint, recenter: true);
     }
 
     // Captures the owner's final animated/procedural pose. The returned object

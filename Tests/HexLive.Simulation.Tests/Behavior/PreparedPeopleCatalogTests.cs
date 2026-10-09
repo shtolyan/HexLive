@@ -9,6 +9,30 @@ namespace HexLive.Simulation.Tests.Behavior;
 public sealed class PreparedPeopleCatalogTests
 {
     [Test]
+    public void EveryPreparedVariantHasMeasuredGroundGeometry()
+    {
+        var audit = JsonNode.Parse(File.ReadAllText(Path.Combine(RepoPaths.Root,
+            "Assets/HexLiveContent/People/Validation/scale-audit.json")));
+        Assert.That(audit["passed"].GetValue<bool>(), Is.True);
+        var rows = audit["rows"].AsArray().Where(r => r["type"].GetValue<string>() == "wear" && !r["hanging"].GetValue<bool>()).ToArray();
+        Assert.That(rows.Length, Is.EqualTo(78));
+        foreach (var row in rows)
+        {
+            string id = row["id"].GetValue<string>();
+            Assert.That(GroundPileCatalog.TryGet(id, true, out var profile), Is.True, id);
+            Assert.That(GroundPileCatalog.Capacity(id), Is.EqualTo(1), id);
+            var min = row["bounds"]["min"].AsArray(); var max = row["bounds"]["max"].AsArray();
+            Assert.That(profile.Single.MinX, Is.LessThanOrEqualTo(min[0].GetValue<float>()), id);
+            Assert.That(profile.Single.MinZ, Is.LessThanOrEqualTo(min[2].GetValue<float>()), id);
+            Assert.That(profile.Single.MaxX, Is.GreaterThanOrEqualTo(max[0].GetValue<float>()), id);
+            Assert.That(profile.Single.MaxY, Is.GreaterThanOrEqualTo(max[1].GetValue<float>()), id);
+            Assert.That(profile.Single.MaxZ, Is.GreaterThanOrEqualTo(max[2].GetValue<float>()), id);
+            Assert.That(profile.Single.RadiusXZ, Is.LessThan(1f), id);
+        }
+        Assert.That(GroundPileCatalog.TryGet(ContentIds.SeveredLimb, false, out _), Is.True);
+    }
+
+    [Test]
     public void PreparedMetadataLoadsThroughSimDataWithOnlyPrimalItemsAndCorrectSex()
     {
         var original = GarmentLibrary.Active.ToArray();

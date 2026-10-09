@@ -1,0 +1,4328 @@
+{
+  "passed": true,
+  "actorScale": 0.7764706,
+  "rows": [
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal",
+      "prototypeId": "clothing.armwraps_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.13155669,
+          0.0,
+          -0.0420028754
+        ],
+        "max": [
+          0.131556749,
+          0.0160775762,
+          0.0420031138
+        ],
+        "size": [
+          0.263113439,
+          0.0160775762,
+          0.08400599
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal",
+      "prototypeId": "clothing.armwraps_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.09599156,
+          -7.450581E-09,
+          -0.0504877344
+        ],
+        "max": [
+          0.11188551,
+          0.145004869,
+          0.0504877344
+        ],
+        "size": [
+          0.20787707,
+          0.145004869,
+          0.100975469
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_sleeve1",
+      "prototypeId": "clothing.armwraps_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.13155669,
+          0.0,
+          -0.0420028754
+        ],
+        "max": [
+          0.131556749,
+          0.0160775762,
+          0.0420031138
+        ],
+        "size": [
+          0.263113439,
+          0.0160775762,
+          0.08400599
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_sleeve1",
+      "prototypeId": "clothing.armwraps_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.09599156,
+          -7.450581E-09,
+          -0.0504877344
+        ],
+        "max": [
+          0.11188551,
+          0.145004869,
+          0.0504877344
+        ],
+        "size": [
+          0.20787707,
+          0.145004869,
+          0.100975469
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_sleeve2",
+      "prototypeId": "clothing.armwraps_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.13155669,
+          0.0,
+          -0.0420028754
+        ],
+        "max": [
+          0.131556749,
+          0.0160775762,
+          0.0420031138
+        ],
+        "size": [
+          0.263113439,
+          0.0160775762,
+          0.08400599
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_sleeve2",
+      "prototypeId": "clothing.armwraps_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.09599156,
+          -7.450581E-09,
+          -0.0504877344
+        ],
+        "max": [
+          0.11188551,
+          0.145004869,
+          0.0504877344
+        ],
+        "size": [
+          0.20787707,
+          0.145004869,
+          0.100975469
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_sleeve3",
+      "prototypeId": "clothing.armwraps_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.13155669,
+          0.0,
+          -0.0420028754
+        ],
+        "max": [
+          0.131556749,
+          0.0160775762,
+          0.0420031138
+        ],
+        "size": [
+          0.263113439,
+          0.0160775762,
+          0.08400599
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_sleeve3",
+      "prototypeId": "clothing.armwraps_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.09599156,
+          -7.450581E-09,
+          -0.0504877344
+        ],
+        "max": [
+          0.11188551,
+          0.145004869,
+          0.0504877344
+        ],
+        "size": [
+          0.20787707,
+          0.145004869,
+          0.100975469
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male",
+      "prototypeId": "clothing.armwraps_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.146461919,
+          0.0,
+          -0.05026196
+        ],
+        "max": [
+          0.146462038,
+          0.0186803676,
+          0.05026196
+        ],
+        "size": [
+          0.292923957,
+          0.0186803676,
+          0.100523919
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male",
+      "prototypeId": "clothing.armwraps_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.146461919,
+          1.49011612E-08,
+          -0.009340184
+        ],
+        "max": [
+          0.146462038,
+          0.100523934,
+          0.009340184
+        ],
+        "size": [
+          0.292923957,
+          0.100523919,
+          0.0186803676
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male_sleeve1",
+      "prototypeId": "clothing.armwraps_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.146461919,
+          0.0,
+          -0.05026196
+        ],
+        "max": [
+          0.146462038,
+          0.0186803676,
+          0.05026196
+        ],
+        "size": [
+          0.292923957,
+          0.0186803676,
+          0.100523919
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male_sleeve1",
+      "prototypeId": "clothing.armwraps_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.146461919,
+          1.49011612E-08,
+          -0.009340184
+        ],
+        "max": [
+          0.146462038,
+          0.100523934,
+          0.009340184
+        ],
+        "size": [
+          0.292923957,
+          0.100523919,
+          0.0186803676
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male_sleeve2",
+      "prototypeId": "clothing.armwraps_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.146461919,
+          0.0,
+          -0.05026196
+        ],
+        "max": [
+          0.146462038,
+          0.0186803676,
+          0.05026196
+        ],
+        "size": [
+          0.292923957,
+          0.0186803676,
+          0.100523919
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male_sleeve2",
+      "prototypeId": "clothing.armwraps_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.146461919,
+          1.49011612E-08,
+          -0.009340184
+        ],
+        "max": [
+          0.146462038,
+          0.100523934,
+          0.009340184
+        ],
+        "size": [
+          0.292923957,
+          0.100523919,
+          0.0186803676
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male_sleeve3",
+      "prototypeId": "clothing.armwraps_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.146461919,
+          0.0,
+          -0.05026196
+        ],
+        "max": [
+          0.146462038,
+          0.0186803676,
+          0.05026196
+        ],
+        "size": [
+          0.292923957,
+          0.0186803676,
+          0.100523919
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male_sleeve3",
+      "prototypeId": "clothing.armwraps_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.146461919,
+          1.49011612E-08,
+          -0.009340184
+        ],
+        "max": [
+          0.146462038,
+          0.100523934,
+          0.009340184
+        ],
+        "size": [
+          0.292923957,
+          0.100523919,
+          0.0186803676
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal",
+      "prototypeId": "underwear.briefs_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.128700331,
+          0.0,
+          -0.07652661
+        ],
+        "max": [
+          0.128700331,
+          0.0231850632,
+          0.07652673
+        ],
+        "size": [
+          0.257400662,
+          0.0231850632,
+          0.153053343
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal",
+      "prototypeId": "underwear.briefs_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.128700331,
+          1.49011612E-08,
+          -0.0115925325
+        ],
+        "max": [
+          0.128700331,
+          0.153053388,
+          0.0115925325
+        ],
+        "size": [
+          0.257400662,
+          0.153053373,
+          0.023185065
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_panty1",
+      "prototypeId": "underwear.briefs_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.128700331,
+          0.0,
+          -0.07652661
+        ],
+        "max": [
+          0.128700331,
+          0.0231850632,
+          0.07652673
+        ],
+        "size": [
+          0.257400662,
+          0.0231850632,
+          0.153053343
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_panty1",
+      "prototypeId": "underwear.briefs_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.128700331,
+          1.49011612E-08,
+          -0.0115925325
+        ],
+        "max": [
+          0.128700331,
+          0.153053388,
+          0.0115925325
+        ],
+        "size": [
+          0.257400662,
+          0.153053373,
+          0.023185065
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_panty2",
+      "prototypeId": "underwear.briefs_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.128700331,
+          0.0,
+          -0.07652661
+        ],
+        "max": [
+          0.128700331,
+          0.0231850632,
+          0.07652673
+        ],
+        "size": [
+          0.257400662,
+          0.0231850632,
+          0.153053343
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_panty2",
+      "prototypeId": "underwear.briefs_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.128700331,
+          1.49011612E-08,
+          -0.0115925325
+        ],
+        "max": [
+          0.128700331,
+          0.153053388,
+          0.0115925325
+        ],
+        "size": [
+          0.257400662,
+          0.153053373,
+          0.023185065
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_panty3",
+      "prototypeId": "underwear.briefs_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.128700331,
+          0.0,
+          -0.07652661
+        ],
+        "max": [
+          0.128700331,
+          0.0231850632,
+          0.07652673
+        ],
+        "size": [
+          0.257400662,
+          0.0231850632,
+          0.153053343
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_panty3",
+      "prototypeId": "underwear.briefs_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.128700331,
+          1.49011612E-08,
+          -0.0115925325
+        ],
+        "max": [
+          0.128700331,
+          0.153053388,
+          0.0115925325
+        ],
+        "size": [
+          0.257400662,
+          0.153053373,
+          0.023185065
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male",
+      "prototypeId": "underwear.briefs_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.1261788,
+          0.0,
+          -0.08467005
+        ],
+        "max": [
+          0.1261788,
+          0.0260032956,
+          0.08467005
+        ],
+        "size": [
+          0.2523576,
+          0.0260032956,
+          0.1693401
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male",
+      "prototypeId": "underwear.briefs_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.1261788,
+          1.49011612E-08,
+          -0.0130016478
+        ],
+        "max": [
+          0.1261788,
+          0.169340119,
+          0.0130016478
+        ],
+        "size": [
+          0.2523576,
+          0.1693401,
+          0.0260032956
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male_panty1",
+      "prototypeId": "underwear.briefs_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.1261788,
+          0.0,
+          -0.08467005
+        ],
+        "max": [
+          0.1261788,
+          0.0260032956,
+          0.08467005
+        ],
+        "size": [
+          0.2523576,
+          0.0260032956,
+          0.1693401
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male_panty1",
+      "prototypeId": "underwear.briefs_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.1261788,
+          1.49011612E-08,
+          -0.0130016478
+        ],
+        "max": [
+          0.1261788,
+          0.169340119,
+          0.0130016478
+        ],
+        "size": [
+          0.2523576,
+          0.1693401,
+          0.0260032956
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male_panty2",
+      "prototypeId": "underwear.briefs_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.1261788,
+          0.0,
+          -0.08467005
+        ],
+        "max": [
+          0.1261788,
+          0.0260032956,
+          0.08467005
+        ],
+        "size": [
+          0.2523576,
+          0.0260032956,
+          0.1693401
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male_panty2",
+      "prototypeId": "underwear.briefs_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.1261788,
+          1.49011612E-08,
+          -0.0130016478
+        ],
+        "max": [
+          0.1261788,
+          0.169340119,
+          0.0130016478
+        ],
+        "size": [
+          0.2523576,
+          0.1693401,
+          0.0260032956
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male_panty3",
+      "prototypeId": "underwear.briefs_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.1261788,
+          0.0,
+          -0.08467005
+        ],
+        "max": [
+          0.1261788,
+          0.0260032956,
+          0.08467005
+        ],
+        "size": [
+          0.2523576,
+          0.0260032956,
+          0.1693401
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male_panty3",
+      "prototypeId": "underwear.briefs_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.1261788,
+          1.49011612E-08,
+          -0.0130016478
+        ],
+        "max": [
+          0.1261788,
+          0.169340119,
+          0.0130016478
+        ],
+        "size": [
+          0.2523576,
+          0.1693401,
+          0.0260032956
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal",
+      "prototypeId": "clothing.headband_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.06910936,
+          -3.7252903E-08,
+          -0.08259359
+        ],
+        "max": [
+          0.06910936,
+          0.114662923,
+          0.08259359
+        ],
+        "size": [
+          0.138218716,
+          0.11466296,
+          0.16518718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal",
+      "prototypeId": "clothing.headband_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.06910936,
+          -3.7252903E-08,
+          -0.08259359
+        ],
+        "max": [
+          0.06910936,
+          0.114662923,
+          0.08259359
+        ],
+        "size": [
+          0.138218716,
+          0.11466296,
+          0.16518718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_2",
+      "prototypeId": "clothing.headband_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.06910936,
+          -3.7252903E-08,
+          -0.08259359
+        ],
+        "max": [
+          0.06910936,
+          0.114662923,
+          0.08259359
+        ],
+        "size": [
+          0.138218716,
+          0.11466296,
+          0.16518718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_2",
+      "prototypeId": "clothing.headband_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.06910936,
+          -3.7252903E-08,
+          -0.08259359
+        ],
+        "max": [
+          0.06910936,
+          0.114662923,
+          0.08259359
+        ],
+        "size": [
+          0.138218716,
+          0.11466296,
+          0.16518718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_3",
+      "prototypeId": "clothing.headband_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.06910936,
+          -3.7252903E-08,
+          -0.08259359
+        ],
+        "max": [
+          0.06910936,
+          0.114662923,
+          0.08259359
+        ],
+        "size": [
+          0.138218716,
+          0.11466296,
+          0.16518718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_3",
+      "prototypeId": "clothing.headband_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.06910936,
+          -3.7252903E-08,
+          -0.08259359
+        ],
+        "max": [
+          0.06910936,
+          0.114662923,
+          0.08259359
+        ],
+        "size": [
+          0.138218716,
+          0.11466296,
+          0.16518718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_4",
+      "prototypeId": "clothing.headband_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.06910936,
+          -3.7252903E-08,
+          -0.08259359
+        ],
+        "max": [
+          0.06910936,
+          0.114662923,
+          0.08259359
+        ],
+        "size": [
+          0.138218716,
+          0.11466296,
+          0.16518718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_4",
+      "prototypeId": "clothing.headband_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.06910936,
+          -3.7252903E-08,
+          -0.08259359
+        ],
+        "max": [
+          0.06910936,
+          0.114662923,
+          0.08259359
+        ],
+        "size": [
+          0.138218716,
+          0.11466296,
+          0.16518718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male",
+      "prototypeId": "clothing.headband_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.06999073,
+          0.0,
+          -0.0570417345
+        ],
+        "max": [
+          0.06999073,
+          0.0193535052,
+          0.0570417345
+        ],
+        "size": [
+          0.139981464,
+          0.0193535052,
+          0.114083469
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male",
+      "prototypeId": "clothing.headband_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.06999073,
+          2.23517418E-08,
+          -0.009676753
+        ],
+        "max": [
+          0.06999073,
+          0.114083506,
+          0.009676753
+        ],
+        "size": [
+          0.139981464,
+          0.114083484,
+          0.0193535052
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male_2",
+      "prototypeId": "clothing.headband_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.06999073,
+          0.0,
+          -0.0570417345
+        ],
+        "max": [
+          0.06999073,
+          0.0193535052,
+          0.0570417345
+        ],
+        "size": [
+          0.139981464,
+          0.0193535052,
+          0.114083469
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male_2",
+      "prototypeId": "clothing.headband_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.06999073,
+          2.23517418E-08,
+          -0.009676753
+        ],
+        "max": [
+          0.06999073,
+          0.114083506,
+          0.009676753
+        ],
+        "size": [
+          0.139981464,
+          0.114083484,
+          0.0193535052
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male_3",
+      "prototypeId": "clothing.headband_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.06999073,
+          0.0,
+          -0.0570417345
+        ],
+        "max": [
+          0.06999073,
+          0.0193535052,
+          0.0570417345
+        ],
+        "size": [
+          0.139981464,
+          0.0193535052,
+          0.114083469
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male_3",
+      "prototypeId": "clothing.headband_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.06999073,
+          2.23517418E-08,
+          -0.009676753
+        ],
+        "max": [
+          0.06999073,
+          0.114083506,
+          0.009676753
+        ],
+        "size": [
+          0.139981464,
+          0.114083484,
+          0.0193535052
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male_4",
+      "prototypeId": "clothing.headband_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.06999073,
+          0.0,
+          -0.0570417345
+        ],
+        "max": [
+          0.06999073,
+          0.0193535052,
+          0.0570417345
+        ],
+        "size": [
+          0.139981464,
+          0.0193535052,
+          0.114083469
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male_4",
+      "prototypeId": "clothing.headband_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.06999073,
+          2.23517418E-08,
+          -0.009676753
+        ],
+        "max": [
+          0.06999073,
+          0.114083506,
+          0.009676753
+        ],
+        "size": [
+          0.139981464,
+          0.114083484,
+          0.0193535052
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal",
+      "prototypeId": "clothing.wrapboots_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.151652664,
+          0.0,
+          -0.0996913
+        ],
+        "max": [
+          0.151652664,
+          0.403758854,
+          0.0996913
+        ],
+        "size": [
+          0.303305328,
+          0.403758854,
+          0.1993826
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal",
+      "prototypeId": "clothing.wrapboots_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.151652664,
+          0.0,
+          -0.0996913
+        ],
+        "max": [
+          0.151652664,
+          0.403758854,
+          0.0996913
+        ],
+        "size": [
+          0.303305328,
+          0.403758854,
+          0.1993826
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_1",
+      "prototypeId": "clothing.wrapboots_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.151652664,
+          0.0,
+          -0.0996913
+        ],
+        "max": [
+          0.151652664,
+          0.403758854,
+          0.0996913
+        ],
+        "size": [
+          0.303305328,
+          0.403758854,
+          0.1993826
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_1",
+      "prototypeId": "clothing.wrapboots_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.151652664,
+          0.0,
+          -0.0996913
+        ],
+        "max": [
+          0.151652664,
+          0.403758854,
+          0.0996913
+        ],
+        "size": [
+          0.303305328,
+          0.403758854,
+          0.1993826
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_2",
+      "prototypeId": "clothing.wrapboots_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.151652664,
+          0.0,
+          -0.0996913
+        ],
+        "max": [
+          0.151652664,
+          0.403758854,
+          0.0996913
+        ],
+        "size": [
+          0.303305328,
+          0.403758854,
+          0.1993826
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_2",
+      "prototypeId": "clothing.wrapboots_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.151652664,
+          0.0,
+          -0.0996913
+        ],
+        "max": [
+          0.151652664,
+          0.403758854,
+          0.0996913
+        ],
+        "size": [
+          0.303305328,
+          0.403758854,
+          0.1993826
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_3",
+      "prototypeId": "clothing.wrapboots_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.151652664,
+          0.0,
+          -0.0996913
+        ],
+        "max": [
+          0.151652664,
+          0.403758854,
+          0.0996913
+        ],
+        "size": [
+          0.303305328,
+          0.403758854,
+          0.1993826
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_3",
+      "prototypeId": "clothing.wrapboots_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.151652664,
+          0.0,
+          -0.0996913
+        ],
+        "max": [
+          0.151652664,
+          0.403758854,
+          0.0996913
+        ],
+        "size": [
+          0.303305328,
+          0.403758854,
+          0.1993826
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male",
+      "prototypeId": "clothing.wrapboots_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.163888857,
+          0.0,
+          -0.209527761
+        ],
+        "max": [
+          0.163888857,
+          0.0262260288,
+          0.209527731
+        ],
+        "size": [
+          0.3277777,
+          0.0262260288,
+          0.4190555
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male",
+      "prototypeId": "clothing.wrapboots_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.163888857,
+          0.0,
+          -0.0131130135
+        ],
+        "max": [
+          0.163888857,
+          0.419055521,
+          0.0131130135
+        ],
+        "size": [
+          0.3277777,
+          0.419055521,
+          0.0262260269
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male_1",
+      "prototypeId": "clothing.wrapboots_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.163888857,
+          0.0,
+          -0.209527761
+        ],
+        "max": [
+          0.163888857,
+          0.0262260288,
+          0.209527731
+        ],
+        "size": [
+          0.3277777,
+          0.0262260288,
+          0.4190555
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male_1",
+      "prototypeId": "clothing.wrapboots_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.163888857,
+          0.0,
+          -0.0131130135
+        ],
+        "max": [
+          0.163888857,
+          0.419055521,
+          0.0131130135
+        ],
+        "size": [
+          0.3277777,
+          0.419055521,
+          0.0262260269
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male_2",
+      "prototypeId": "clothing.wrapboots_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.163888857,
+          0.0,
+          -0.209527761
+        ],
+        "max": [
+          0.163888857,
+          0.0262260288,
+          0.209527731
+        ],
+        "size": [
+          0.3277777,
+          0.0262260288,
+          0.4190555
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male_2",
+      "prototypeId": "clothing.wrapboots_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.163888857,
+          0.0,
+          -0.0131130135
+        ],
+        "max": [
+          0.163888857,
+          0.419055521,
+          0.0131130135
+        ],
+        "size": [
+          0.3277777,
+          0.419055521,
+          0.0262260269
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male_3",
+      "prototypeId": "clothing.wrapboots_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.163888857,
+          0.0,
+          -0.209527761
+        ],
+        "max": [
+          0.163888857,
+          0.0262260288,
+          0.209527731
+        ],
+        "size": [
+          0.3277777,
+          0.0262260288,
+          0.4190555
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male_3",
+      "prototypeId": "clothing.wrapboots_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.163888857,
+          0.0,
+          -0.0131130135
+        ],
+        "max": [
+          0.163888857,
+          0.419055521,
+          0.0131130135
+        ],
+        "size": [
+          0.3277777,
+          0.419055521,
+          0.0262260269
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal",
+      "prototypeId": "clothing.skirt_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.14363493,
+          0.0,
+          -0.09295774
+        ],
+        "max": [
+          0.14363493,
+          0.0250864178,
+          0.09295786
+        ],
+        "size": [
+          0.287269861,
+          0.0250864178,
+          0.1859156
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal",
+      "prototypeId": "clothing.skirt_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.14363493,
+          -7.450581E-09,
+          -0.01254321
+        ],
+        "max": [
+          0.14363493,
+          0.185915589,
+          0.01254321
+        ],
+        "size": [
+          0.287269861,
+          0.1859156,
+          0.02508642
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_1",
+      "prototypeId": "clothing.skirt_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.14363493,
+          0.0,
+          -0.09295774
+        ],
+        "max": [
+          0.14363493,
+          0.0250864178,
+          0.09295786
+        ],
+        "size": [
+          0.287269861,
+          0.0250864178,
+          0.1859156
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_1",
+      "prototypeId": "clothing.skirt_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.14363493,
+          -7.450581E-09,
+          -0.01254321
+        ],
+        "max": [
+          0.14363493,
+          0.185915589,
+          0.01254321
+        ],
+        "size": [
+          0.287269861,
+          0.1859156,
+          0.02508642
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_2",
+      "prototypeId": "clothing.skirt_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.14363493,
+          0.0,
+          -0.09295774
+        ],
+        "max": [
+          0.14363493,
+          0.0250864178,
+          0.09295786
+        ],
+        "size": [
+          0.287269861,
+          0.0250864178,
+          0.1859156
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_2",
+      "prototypeId": "clothing.skirt_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.14363493,
+          -7.450581E-09,
+          -0.01254321
+        ],
+        "max": [
+          0.14363493,
+          0.185915589,
+          0.01254321
+        ],
+        "size": [
+          0.287269861,
+          0.1859156,
+          0.02508642
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_3",
+      "prototypeId": "clothing.skirt_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.14363493,
+          0.0,
+          -0.09295774
+        ],
+        "max": [
+          0.14363493,
+          0.0250864178,
+          0.09295786
+        ],
+        "size": [
+          0.287269861,
+          0.0250864178,
+          0.1859156
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_3",
+      "prototypeId": "clothing.skirt_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.14363493,
+          -7.450581E-09,
+          -0.01254321
+        ],
+        "max": [
+          0.14363493,
+          0.185915589,
+          0.01254321
+        ],
+        "size": [
+          0.287269861,
+          0.1859156,
+          0.02508642
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male",
+      "prototypeId": "clothing.skirt_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.142907724,
+          0.0,
+          -0.09158811
+        ],
+        "max": [
+          0.142907724,
+          0.0264307633,
+          0.09158823
+        ],
+        "size": [
+          0.285815448,
+          0.0264307633,
+          0.183176339
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male",
+      "prototypeId": "clothing.skirt_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.142907724,
+          2.23517418E-08,
+          -0.0132153826
+        ],
+        "max": [
+          0.142907724,
+          0.183176368,
+          0.0132153826
+        ],
+        "size": [
+          0.285815448,
+          0.183176354,
+          0.0264307652
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male_1",
+      "prototypeId": "clothing.skirt_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.142907724,
+          0.0,
+          -0.09158811
+        ],
+        "max": [
+          0.142907724,
+          0.0264307633,
+          0.09158823
+        ],
+        "size": [
+          0.285815448,
+          0.0264307633,
+          0.183176339
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male_1",
+      "prototypeId": "clothing.skirt_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.142907724,
+          2.23517418E-08,
+          -0.0132153826
+        ],
+        "max": [
+          0.142907724,
+          0.183176368,
+          0.0132153826
+        ],
+        "size": [
+          0.285815448,
+          0.183176354,
+          0.0264307652
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male_2",
+      "prototypeId": "clothing.skirt_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.142907724,
+          0.0,
+          -0.09158811
+        ],
+        "max": [
+          0.142907724,
+          0.0264307633,
+          0.09158823
+        ],
+        "size": [
+          0.285815448,
+          0.0264307633,
+          0.183176339
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male_2",
+      "prototypeId": "clothing.skirt_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.142907724,
+          2.23517418E-08,
+          -0.0132153826
+        ],
+        "max": [
+          0.142907724,
+          0.183176368,
+          0.0132153826
+        ],
+        "size": [
+          0.285815448,
+          0.183176354,
+          0.0264307652
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male_3",
+      "prototypeId": "clothing.skirt_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.142907724,
+          0.0,
+          -0.09158811
+        ],
+        "max": [
+          0.142907724,
+          0.0264307633,
+          0.09158823
+        ],
+        "size": [
+          0.285815448,
+          0.0264307633,
+          0.183176339
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male_3",
+      "prototypeId": "clothing.skirt_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.142907724,
+          2.23517418E-08,
+          -0.0132153826
+        ],
+        "max": [
+          0.142907724,
+          0.183176368,
+          0.0132153826
+        ],
+        "size": [
+          0.285815448,
+          0.183176354,
+          0.0264307652
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal",
+      "prototypeId": "clothing.top_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.118951239,
+          0.0,
+          -0.12662819
+        ],
+        "max": [
+          0.118951239,
+          0.02170181,
+          0.12662819
+        ],
+        "size": [
+          0.237902477,
+          0.02170181,
+          0.253256381
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal",
+      "prototypeId": "clothing.top_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.118951239,
+          1.49011612E-08,
+          -0.0108509054
+        ],
+        "max": [
+          0.118951239,
+          0.25325644,
+          0.0108509054
+        ],
+        "size": [
+          0.237902477,
+          0.2532564,
+          0.02170181
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal_1",
+      "prototypeId": "clothing.top_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.118951239,
+          0.0,
+          -0.12662819
+        ],
+        "max": [
+          0.118951239,
+          0.02170181,
+          0.12662819
+        ],
+        "size": [
+          0.237902477,
+          0.02170181,
+          0.253256381
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal_1",
+      "prototypeId": "clothing.top_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.118951239,
+          1.49011612E-08,
+          -0.0108509054
+        ],
+        "max": [
+          0.118951239,
+          0.25325644,
+          0.0108509054
+        ],
+        "size": [
+          0.237902477,
+          0.2532564,
+          0.02170181
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal_2",
+      "prototypeId": "clothing.top_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.118951239,
+          0.0,
+          -0.12662819
+        ],
+        "max": [
+          0.118951239,
+          0.02170181,
+          0.12662819
+        ],
+        "size": [
+          0.237902477,
+          0.02170181,
+          0.253256381
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal_2",
+      "prototypeId": "clothing.top_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.118951239,
+          1.49011612E-08,
+          -0.0108509054
+        ],
+        "max": [
+          0.118951239,
+          0.25325644,
+          0.0108509054
+        ],
+        "size": [
+          0.237902477,
+          0.2532564,
+          0.02170181
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal_3",
+      "prototypeId": "clothing.top_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.118951239,
+          0.0,
+          -0.12662819
+        ],
+        "max": [
+          0.118951239,
+          0.02170181,
+          0.12662819
+        ],
+        "size": [
+          0.237902477,
+          0.02170181,
+          0.253256381
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal_3",
+      "prototypeId": "clothing.top_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.118951239,
+          1.49011612E-08,
+          -0.0108509054
+        ],
+        "max": [
+          0.118951239,
+          0.25325644,
+          0.0108509054
+        ],
+        "size": [
+          0.237902477,
+          0.2532564,
+          0.02170181
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.32645306
+        ],
+        "max": [
+          0.15941447,
+          0.0300511122,
+          0.32645306
+        ],
+        "size": [
+          0.31882894,
+          0.0300511122,
+          0.6529061
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.0150255561
+        ],
+        "max": [
+          0.15941447,
+          0.6529062,
+          0.0150255561
+        ],
+        "size": [
+          0.31882894,
+          0.6529062,
+          0.0300511122
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color01",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.32645306
+        ],
+        "max": [
+          0.15941447,
+          0.0300511122,
+          0.32645306
+        ],
+        "size": [
+          0.31882894,
+          0.0300511122,
+          0.6529061
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color01",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.0150255561
+        ],
+        "max": [
+          0.15941447,
+          0.6529062,
+          0.0150255561
+        ],
+        "size": [
+          0.31882894,
+          0.6529062,
+          0.0300511122
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color02",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.32645306
+        ],
+        "max": [
+          0.15941447,
+          0.0300511122,
+          0.32645306
+        ],
+        "size": [
+          0.31882894,
+          0.0300511122,
+          0.6529061
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color02",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.0150255561
+        ],
+        "max": [
+          0.15941447,
+          0.6529062,
+          0.0150255561
+        ],
+        "size": [
+          0.31882894,
+          0.6529062,
+          0.0300511122
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color03",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.32645306
+        ],
+        "max": [
+          0.15941447,
+          0.0300511122,
+          0.32645306
+        ],
+        "size": [
+          0.31882894,
+          0.0300511122,
+          0.6529061
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color03",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.0150255561
+        ],
+        "max": [
+          0.15941447,
+          0.6529062,
+          0.0150255561
+        ],
+        "size": [
+          0.31882894,
+          0.6529062,
+          0.0300511122
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color04",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.32645306
+        ],
+        "max": [
+          0.15941447,
+          0.0300511122,
+          0.32645306
+        ],
+        "size": [
+          0.31882894,
+          0.0300511122,
+          0.6529061
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color04",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.0150255561
+        ],
+        "max": [
+          0.15941447,
+          0.6529062,
+          0.0150255561
+        ],
+        "size": [
+          0.31882894,
+          0.6529062,
+          0.0300511122
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color05",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.32645306
+        ],
+        "max": [
+          0.15941447,
+          0.0300511122,
+          0.32645306
+        ],
+        "size": [
+          0.31882894,
+          0.0300511122,
+          0.6529061
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color05",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.0150255561
+        ],
+        "max": [
+          0.15941447,
+          0.6529062,
+          0.0150255561
+        ],
+        "size": [
+          0.31882894,
+          0.6529062,
+          0.0300511122
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color06",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.32645306
+        ],
+        "max": [
+          0.15941447,
+          0.0300511122,
+          0.32645306
+        ],
+        "size": [
+          0.31882894,
+          0.0300511122,
+          0.6529061
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color06",
+      "prototypeId": "clothing.dress_primal",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.15941447,
+          0.0,
+          -0.0150255561
+        ],
+        "max": [
+          0.15941447,
+          0.6529062,
+          0.0150255561
+        ],
+        "size": [
+          0.31882894,
+          0.6529062,
+          0.0300511122
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          0.0,
+          -0.350935966
+        ],
+        "max": [
+          0.159369856,
+          0.0299129169,
+          0.350935847
+        ],
+        "size": [
+          0.3187397,
+          0.0299129169,
+          0.7018718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          2.98023224E-08,
+          -0.0149564585
+        ],
+        "max": [
+          0.159369856,
+          0.701872,
+          0.0149564585
+        ],
+        "size": [
+          0.3187397,
+          0.701871932,
+          0.0299129169
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color01",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          0.0,
+          -0.350935966
+        ],
+        "max": [
+          0.159369856,
+          0.0299129169,
+          0.350935847
+        ],
+        "size": [
+          0.3187397,
+          0.0299129169,
+          0.7018718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color01",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          2.98023224E-08,
+          -0.0149564585
+        ],
+        "max": [
+          0.159369856,
+          0.701872,
+          0.0149564585
+        ],
+        "size": [
+          0.3187397,
+          0.701871932,
+          0.0299129169
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color02",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          0.0,
+          -0.350935966
+        ],
+        "max": [
+          0.159369856,
+          0.0299129169,
+          0.350935847
+        ],
+        "size": [
+          0.3187397,
+          0.0299129169,
+          0.7018718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color02",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          2.98023224E-08,
+          -0.0149564585
+        ],
+        "max": [
+          0.159369856,
+          0.701872,
+          0.0149564585
+        ],
+        "size": [
+          0.3187397,
+          0.701871932,
+          0.0299129169
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color03",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          0.0,
+          -0.350935966
+        ],
+        "max": [
+          0.159369856,
+          0.0299129169,
+          0.350935847
+        ],
+        "size": [
+          0.3187397,
+          0.0299129169,
+          0.7018718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color03",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          2.98023224E-08,
+          -0.0149564585
+        ],
+        "max": [
+          0.159369856,
+          0.701872,
+          0.0149564585
+        ],
+        "size": [
+          0.3187397,
+          0.701871932,
+          0.0299129169
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color04",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          0.0,
+          -0.350935966
+        ],
+        "max": [
+          0.159369856,
+          0.0299129169,
+          0.350935847
+        ],
+        "size": [
+          0.3187397,
+          0.0299129169,
+          0.7018718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color04",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          2.98023224E-08,
+          -0.0149564585
+        ],
+        "max": [
+          0.159369856,
+          0.701872,
+          0.0149564585
+        ],
+        "size": [
+          0.3187397,
+          0.701871932,
+          0.0299129169
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color05",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          0.0,
+          -0.350935966
+        ],
+        "max": [
+          0.159369856,
+          0.0299129169,
+          0.350935847
+        ],
+        "size": [
+          0.3187397,
+          0.0299129169,
+          0.7018718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color05",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          2.98023224E-08,
+          -0.0149564585
+        ],
+        "max": [
+          0.159369856,
+          0.701872,
+          0.0149564585
+        ],
+        "size": [
+          0.3187397,
+          0.701871932,
+          0.0299129169
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color06",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          0.0,
+          -0.350935966
+        ],
+        "max": [
+          0.159369856,
+          0.0299129169,
+          0.350935847
+        ],
+        "size": [
+          0.3187397,
+          0.0299129169,
+          0.7018718
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color06",
+      "prototypeId": "clothing.dress_primal_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.159369856,
+          2.98023224E-08,
+          -0.0149564585
+        ],
+        "max": [
+          0.159369856,
+          0.701872,
+          0.0149564585
+        ],
+        "size": [
+          0.3187397,
+          0.701871932,
+          0.0299129169
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          0.0,
+          -0.18906948
+        ],
+        "max": [
+          0.0497394837,
+          0.03157202,
+          0.18906948
+        ],
+        "size": [
+          0.09947895,
+          0.03157202,
+          0.378138959
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          2.98023224E-08,
+          -0.01578601
+        ],
+        "max": [
+          0.0497394837,
+          0.378139,
+          0.01578601
+        ],
+        "size": [
+          0.09947895,
+          0.378138959,
+          0.03157202
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color01",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          0.0,
+          -0.18906948
+        ],
+        "max": [
+          0.0497394837,
+          0.03157202,
+          0.18906948
+        ],
+        "size": [
+          0.09947895,
+          0.03157202,
+          0.378138959
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color01",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          2.98023224E-08,
+          -0.01578601
+        ],
+        "max": [
+          0.0497394837,
+          0.378139,
+          0.01578601
+        ],
+        "size": [
+          0.09947895,
+          0.378138959,
+          0.03157202
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color02",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          0.0,
+          -0.18906948
+        ],
+        "max": [
+          0.0497394837,
+          0.03157202,
+          0.18906948
+        ],
+        "size": [
+          0.09947895,
+          0.03157202,
+          0.378138959
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color02",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          2.98023224E-08,
+          -0.01578601
+        ],
+        "max": [
+          0.0497394837,
+          0.378139,
+          0.01578601
+        ],
+        "size": [
+          0.09947895,
+          0.378138959,
+          0.03157202
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color03",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          0.0,
+          -0.18906948
+        ],
+        "max": [
+          0.0497394837,
+          0.03157202,
+          0.18906948
+        ],
+        "size": [
+          0.09947895,
+          0.03157202,
+          0.378138959
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color03",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          2.98023224E-08,
+          -0.01578601
+        ],
+        "max": [
+          0.0497394837,
+          0.378139,
+          0.01578601
+        ],
+        "size": [
+          0.09947895,
+          0.378138959,
+          0.03157202
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color04",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          0.0,
+          -0.18906948
+        ],
+        "max": [
+          0.0497394837,
+          0.03157202,
+          0.18906948
+        ],
+        "size": [
+          0.09947895,
+          0.03157202,
+          0.378138959
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color04",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          2.98023224E-08,
+          -0.01578601
+        ],
+        "max": [
+          0.0497394837,
+          0.378139,
+          0.01578601
+        ],
+        "size": [
+          0.09947895,
+          0.378138959,
+          0.03157202
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color05",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          0.0,
+          -0.18906948
+        ],
+        "max": [
+          0.0497394837,
+          0.03157202,
+          0.18906948
+        ],
+        "size": [
+          0.09947895,
+          0.03157202,
+          0.378138959
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color05",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          2.98023224E-08,
+          -0.01578601
+        ],
+        "max": [
+          0.0497394837,
+          0.378139,
+          0.01578601
+        ],
+        "size": [
+          0.09947895,
+          0.378138959,
+          0.03157202
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color06",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          0.0,
+          -0.18906948
+        ],
+        "max": [
+          0.0497394837,
+          0.03157202,
+          0.18906948
+        ],
+        "size": [
+          0.09947895,
+          0.03157202,
+          0.378138959
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color06",
+      "prototypeId": "clothing.collar_fur",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.04973947,
+          2.98023224E-08,
+          -0.01578601
+        ],
+        "max": [
+          0.0497394837,
+          0.378139,
+          0.01578601
+        ],
+        "size": [
+          0.09947895,
+          0.378138959,
+          0.03157202
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          0.0,
+          -0.215327337
+        ],
+        "max": [
+          0.04886416,
+          0.03070743,
+          0.215327337
+        ],
+        "size": [
+          0.0977283046,
+          0.03070743,
+          0.430654675
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          2.98023224E-08,
+          -0.015353716
+        ],
+        "max": [
+          0.04886416,
+          0.430654734,
+          0.015353716
+        ],
+        "size": [
+          0.0977283046,
+          0.4306547,
+          0.030707432
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color01",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          0.0,
+          -0.215327337
+        ],
+        "max": [
+          0.04886416,
+          0.03070743,
+          0.215327337
+        ],
+        "size": [
+          0.0977283046,
+          0.03070743,
+          0.430654675
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color01",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          2.98023224E-08,
+          -0.015353716
+        ],
+        "max": [
+          0.04886416,
+          0.430654734,
+          0.015353716
+        ],
+        "size": [
+          0.0977283046,
+          0.4306547,
+          0.030707432
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color02",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          0.0,
+          -0.215327337
+        ],
+        "max": [
+          0.04886416,
+          0.03070743,
+          0.215327337
+        ],
+        "size": [
+          0.0977283046,
+          0.03070743,
+          0.430654675
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color02",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          2.98023224E-08,
+          -0.015353716
+        ],
+        "max": [
+          0.04886416,
+          0.430654734,
+          0.015353716
+        ],
+        "size": [
+          0.0977283046,
+          0.4306547,
+          0.030707432
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color03",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          0.0,
+          -0.215327337
+        ],
+        "max": [
+          0.04886416,
+          0.03070743,
+          0.215327337
+        ],
+        "size": [
+          0.0977283046,
+          0.03070743,
+          0.430654675
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color03",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          2.98023224E-08,
+          -0.015353716
+        ],
+        "max": [
+          0.04886416,
+          0.430654734,
+          0.015353716
+        ],
+        "size": [
+          0.0977283046,
+          0.4306547,
+          0.030707432
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color04",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          0.0,
+          -0.215327337
+        ],
+        "max": [
+          0.04886416,
+          0.03070743,
+          0.215327337
+        ],
+        "size": [
+          0.0977283046,
+          0.03070743,
+          0.430654675
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color04",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          2.98023224E-08,
+          -0.015353716
+        ],
+        "max": [
+          0.04886416,
+          0.430654734,
+          0.015353716
+        ],
+        "size": [
+          0.0977283046,
+          0.4306547,
+          0.030707432
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color05",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          0.0,
+          -0.215327337
+        ],
+        "max": [
+          0.04886416,
+          0.03070743,
+          0.215327337
+        ],
+        "size": [
+          0.0977283046,
+          0.03070743,
+          0.430654675
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color05",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          2.98023224E-08,
+          -0.015353716
+        ],
+        "max": [
+          0.04886416,
+          0.430654734,
+          0.015353716
+        ],
+        "size": [
+          0.0977283046,
+          0.4306547,
+          0.030707432
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color06",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          0.0,
+          -0.215327337
+        ],
+        "max": [
+          0.04886416,
+          0.03070743,
+          0.215327337
+        ],
+        "size": [
+          0.0977283046,
+          0.03070743,
+          0.430654675
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color06",
+      "prototypeId": "clothing.collar_fur_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.0488641448,
+          2.98023224E-08,
+          -0.015353716
+        ],
+        "max": [
+          0.04886416,
+          0.430654734,
+          0.015353716
+        ],
+        "size": [
+          0.0977283046,
+          0.4306547,
+          0.030707432
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_gatherer",
+      "prototypeId": "gear.backpack_primal_gatherer",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.123099662,
+          -9.313226E-10,
+          -0.169143915
+        ],
+        "max": [
+          0.123099662,
+          0.02816008,
+          0.169143915
+        ],
+        "size": [
+          0.246199325,
+          0.02816008,
+          0.33828783
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalGathererPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_gatherer",
+      "prototypeId": "gear.backpack_primal_gatherer",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.123099662,
+          -1.49011612E-08,
+          -0.014080042
+        ],
+        "max": [
+          0.123099662,
+          0.33828783,
+          0.01408004
+        ],
+        "size": [
+          0.246199325,
+          0.33828786,
+          0.0281600822
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalGathererPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_hunter",
+      "prototypeId": "gear.backpack_primal_hunter",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.123099662,
+          9.313226E-10,
+          -0.169143915
+        ],
+        "max": [
+          0.123099662,
+          0.02832647,
+          0.169143915
+        ],
+        "size": [
+          0.246199325,
+          0.0283264685,
+          0.33828783
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHunterPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_hunter",
+      "prototypeId": "gear.backpack_primal_hunter",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.123099662,
+          -1.49011612E-08,
+          -0.0141632352
+        ],
+        "max": [
+          0.123099662,
+          0.33828783,
+          0.0141632352
+        ],
+        "size": [
+          0.246199325,
+          0.33828786,
+          0.02832647
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHunterPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_trail",
+      "prototypeId": "gear.backpack_primal_trail",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.135629043,
+          0.0,
+          -0.1242353
+        ],
+        "max": [
+          0.135629043,
+          0.0374533646,
+          0.124235541
+        ],
+        "size": [
+          0.2712581,
+          0.0374533646,
+          0.248470843
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTrailPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_trail",
+      "prototypeId": "gear.backpack_primal_trail",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.135629043,
+          2.23517418E-08,
+          -0.0187266842
+        ],
+        "max": [
+          0.135629043,
+          0.248470873,
+          0.0187266842
+        ],
+        "size": [
+          0.2712581,
+          0.248470858,
+          0.03745337
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTrailPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_gatherer_male",
+      "prototypeId": "gear.backpack_primal_gatherer_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.143084243,
+          0.0,
+          -0.189062268
+        ],
+        "max": [
+          0.143084243,
+          0.03113911,
+          0.189062268
+        ],
+        "size": [
+          0.2861685,
+          0.03113911,
+          0.378124535
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalGathererPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_gatherer_male",
+      "prototypeId": "gear.backpack_primal_gatherer_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.143084243,
+          -2.98023224E-08,
+          -0.0155695546
+        ],
+        "max": [
+          0.143084243,
+          0.3781245,
+          0.0155695565
+        ],
+        "size": [
+          0.2861685,
+          0.378124535,
+          0.0311391111
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalGathererPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_hunter_male",
+      "prototypeId": "gear.backpack_primal_hunter_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.143084243,
+          0.0,
+          -0.189062268
+        ],
+        "max": [
+          0.143084243,
+          0.0313055,
+          0.189062268
+        ],
+        "size": [
+          0.2861685,
+          0.0313055,
+          0.378124535
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHunterPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_hunter_male",
+      "prototypeId": "gear.backpack_primal_hunter_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.143084243,
+          -2.98023224E-08,
+          -0.01565275
+        ],
+        "max": [
+          0.143084243,
+          0.3781245,
+          0.01565275
+        ],
+        "size": [
+          0.2861685,
+          0.378124535,
+          0.0313055
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHunterPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_trail_male",
+      "prototypeId": "gear.backpack_primal_trail_male",
+      "hanging": false,
+      "bounds": {
+        "min": [
+          -0.136026114,
+          -1.86264515E-09,
+          -0.130307466
+        ],
+        "max": [
+          0.136026114,
+          0.039123185,
+          0.1303077
+        ],
+        "size": [
+          0.272052228,
+          0.03912319,
+          0.26061517
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalTrailPack.prefab"
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_trail_male",
+      "prototypeId": "gear.backpack_primal_trail_male",
+      "hanging": true,
+      "bounds": {
+        "min": [
+          -0.136026114,
+          1.49011612E-08,
+          -0.0195615925
+        ],
+        "max": [
+          0.136026114,
+          0.26061523,
+          0.0195615925
+        ],
+        "size": [
+          0.272052228,
+          0.2606152,
+          0.039123185
+        ]
+      },
+      "source": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalTrailPack.prefab"
+    },
+    {
+      "type": "limb",
+      "id": "Marta/ArmL",
+      "bounds": {
+        "min": [
+          -0.160597652,
+          -0.03286825,
+          -0.07593943
+        ],
+        "max": [
+          0.160597652,
+          0.03286825,
+          0.07593943
+        ],
+        "size": [
+          0.3211953,
+          0.0657365,
+          0.151878864
+        ]
+      }
+    },
+    {
+      "type": "limb",
+      "id": "Marta/ArmR",
+      "bounds": {
+        "min": [
+          -0.16592446,
+          -0.0328681134,
+          -0.07591724
+        ],
+        "max": [
+          0.16592446,
+          0.0328681134,
+          0.07591724
+        ],
+        "size": [
+          0.331848919,
+          0.06573623,
+          0.151834473
+        ]
+      }
+    },
+    {
+      "type": "limb",
+      "id": "Marta/LegL",
+      "bounds": {
+        "min": [
+          -0.0583457537,
+          -0.2083196,
+          -0.09895419
+        ],
+        "max": [
+          0.0583457537,
+          0.2083196,
+          0.09895419
+        ],
+        "size": [
+          0.116691507,
+          0.4166392,
+          0.197908387
+        ]
+      }
+    },
+    {
+      "type": "limb",
+      "id": "Marta/LegR",
+      "bounds": {
+        "min": [
+          -0.0587064,
+          -0.211746857,
+          -0.09897443
+        ],
+        "max": [
+          0.0587064,
+          0.211746857,
+          0.09897443
+        ],
+        "size": [
+          0.1174128,
+          0.4234937,
+          0.197948858
+        ]
+      }
+    },
+    {
+      "type": "limb",
+      "id": "Kshishtof/ArmL",
+      "bounds": {
+        "min": [
+          -0.1835403,
+          -0.0432895869,
+          -0.0944891647
+        ],
+        "max": [
+          0.1835403,
+          0.0432895869,
+          0.0944891647
+        ],
+        "size": [
+          0.3670806,
+          0.0865791738,
+          0.188978329
+        ]
+      }
+    },
+    {
+      "type": "limb",
+      "id": "Kshishtof/ArmR",
+      "bounds": {
+        "min": [
+          -0.184590951,
+          -0.0437467061,
+          -0.09023973
+        ],
+        "max": [
+          0.184590951,
+          0.0437467061,
+          0.09023973
+        ],
+        "size": [
+          0.3691819,
+          0.08749341,
+          0.180479467
+        ]
+      }
+    },
+    {
+      "type": "limb",
+      "id": "Kshishtof/LegL",
+      "bounds": {
+        "min": [
+          -0.06432189,
+          -0.215501487,
+          -0.114010513
+        ],
+        "max": [
+          0.06432189,
+          0.215501487,
+          0.114010513
+        ],
+        "size": [
+          0.128643781,
+          0.431002975,
+          0.228021026
+        ]
+      }
+    },
+    {
+      "type": "limb",
+      "id": "Kshishtof/LegR",
+      "bounds": {
+        "min": [
+          -0.06311285,
+          -0.212291718,
+          -0.114038594
+        ],
+        "max": [
+          0.06311285,
+          0.212291718,
+          0.114038594
+        ],
+        "size": [
+          0.1262257,
+          0.424583435,
+          0.228077188
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "id": "bed.basic",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/bed_basic_final_native.fbx",
+      "target": 1.425,
+      "groundFitted": 1.425
+    },
+    {
+      "type": "object",
+      "id": "campfire.spot",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/campfire_final_native.fbx",
+      "target": 0.825000048,
+      "groundFitted": 0.825000048
+    },
+    {
+      "type": "object",
+      "id": "construction.site",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/construction.site.fbx",
+      "target": 1.05,
+      "groundFitted": 1.05
+    },
+    {
+      "type": "object",
+      "id": "food.coconut",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.coconut.fbx",
+      "target": 0.179999992,
+      "groundFitted": 0.18
+    },
+    {
+      "type": "object",
+      "id": "food.coconut_open",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.coconut_open.fbx",
+      "target": 0.179999992,
+      "groundFitted": 0.18
+    },
+    {
+      "type": "object",
+      "id": "food.coconut_pierced",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.coconut_pierced.fbx",
+      "target": 0.179999992,
+      "groundFitted": 0.179999992
+    },
+    {
+      "type": "object",
+      "id": "food.human_arm_cooked",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.human_arm_cooked.fbx",
+      "target": 0.6,
+      "groundFitted": 0.599999964
+    },
+    {
+      "type": "object",
+      "id": "food.human_arm_raw",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.human_arm_raw.fbx",
+      "target": 0.6,
+      "groundFitted": 0.599999964
+    },
+    {
+      "type": "object",
+      "id": "food.human_leg_cooked",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.human_leg_cooked.fbx",
+      "target": 0.825000048,
+      "groundFitted": 0.8250002
+    },
+    {
+      "type": "object",
+      "id": "food.human_leg_raw",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.human_leg_raw.fbx",
+      "target": 0.825000048,
+      "groundFitted": 0.8250002
+    },
+    {
+      "type": "object",
+      "id": "food.human_torso_cooked",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.human_torso_cooked.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.9
+    },
+    {
+      "type": "object",
+      "id": "food.human_torso_raw",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.human_torso_raw.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.9
+    },
+    {
+      "type": "object",
+      "id": "food.meat_cooked",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food_meat_cooked_native.fbx",
+      "target": 0.27,
+      "groundFitted": 0.270000041
+    },
+    {
+      "type": "object",
+      "id": "food.meat_raw",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food_meat_raw_native.fbx",
+      "target": 0.27,
+      "groundFitted": 0.270000041
+    },
+    {
+      "type": "object",
+      "id": "forest.deadfall",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/forest.deadfall.fbx",
+      "target": 1.05,
+      "groundFitted": 1.05
+    },
+    {
+      "type": "object",
+      "id": "furniture.hearth",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.hearth.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.9
+    },
+    {
+      "type": "object",
+      "id": "furniture.wardrobe",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.wardrobe.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.8999999
+    },
+    {
+      "type": "object",
+      "id": "grave.npc",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/grave.npc.fbx",
+      "target": 0.525,
+      "groundFitted": 0.525
+    },
+    {
+      "type": "object",
+      "id": "herb.bush",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/herb.bush.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.9000001
+    },
+    {
+      "type": "object",
+      "id": "item.bandage",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/item_bandage_native.fbx",
+      "target": 0.179999992,
+      "groundFitted": 0.179999992
+    },
+    {
+      "type": "object",
+      "id": "item.medkit",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/item.medkit.prefab",
+      "target": 0.179999992,
+      "groundFitted": 0.179999992
+    },
+    {
+      "type": "object",
+      "id": "item.pill",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/item.pill.fbx",
+      "target": 0.179999992,
+      "groundFitted": 0.179999992
+    },
+    {
+      "type": "object",
+      "id": "item.plaster",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/item.plaster.fbx",
+      "target": 0.179999992,
+      "groundFitted": 0.179999992
+    },
+    {
+      "type": "object",
+      "id": "med.splint",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/med.splint.fbx",
+      "target": 0.179999992,
+      "groundFitted": 0.179999977
+    },
+    {
+      "type": "object",
+      "id": "palm.coconut_branch",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/palm.coconut_branch.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.900000155
+    },
+    {
+      "type": "object",
+      "id": "plant.yucca",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/plant.yucca.prefab",
+      "target": 0.900000036,
+      "groundFitted": 0.900000036
+    },
+    {
+      "type": "object",
+      "id": "resource.arrow",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.arrow.fbx",
+      "target": 0.324,
+      "groundFitted": 0.323999941
+    },
+    {
+      "type": "object",
+      "id": "resource.board",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.board.fbx",
+      "target": 0.75,
+      "groundFitted": 0.7499999
+    },
+    {
+      "type": "object",
+      "id": "resource.cloth",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.cloth.fbx",
+      "target": 0.324,
+      "groundFitted": 0.324
+    },
+    {
+      "type": "object",
+      "id": "resource.fiber",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.fiber.fbx",
+      "target": 0.324,
+      "groundFitted": 0.324
+    },
+    {
+      "type": "object",
+      "id": "resource.herb_leaf",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.herb_leaf.fbx",
+      "target": 0.324,
+      "groundFitted": 0.324
+    },
+    {
+      "type": "object",
+      "id": "resource.hide",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource_hide_native.fbx",
+      "target": 0.324,
+      "groundFitted": 0.323999971
+    },
+    {
+      "type": "object",
+      "id": "resource.log",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.log.fbx",
+      "target": 1.05,
+      "groundFitted": 1.04999983
+    },
+    {
+      "type": "object",
+      "id": "resource.mechanical_part",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.mechanical_part.fbx",
+      "target": 0.324,
+      "groundFitted": 0.323999971
+    },
+    {
+      "type": "object",
+      "id": "resource.palm_crown",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.palm_crown.fbx",
+      "target": 1.05,
+      "groundFitted": 1.04999971
+    },
+    {
+      "type": "object",
+      "id": "resource.palm_crown_small",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.palm_crown_small.fbx",
+      "target": 0.324,
+      "groundFitted": 0.323999941
+    },
+    {
+      "type": "object",
+      "id": "resource.palm_leaf",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/palm_frond_native.fbx",
+      "target": 0.825000048,
+      "groundFitted": 0.8249999
+    },
+    {
+      "type": "object",
+      "id": "resource.rope",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.rope.prefab",
+      "target": 0.15,
+      "groundFitted": 0.15
+    },
+    {
+      "type": "object",
+      "id": "resource.stick",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.stick.fbx",
+      "target": 1.05,
+      "groundFitted": 1.05
+    },
+    {
+      "type": "object",
+      "id": "resource.stone",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/stone_single_native.fbx",
+      "target": 0.324,
+      "groundFitted": 0.323999971
+    },
+    {
+      "type": "object",
+      "id": "rock.boulder",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/rock_boulder_native.fbx",
+      "target": 0.674999952,
+      "groundFitted": 0.674999952
+    },
+    {
+      "type": "object",
+      "id": "shelter.tent",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/shelter.tent.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.900000036
+    },
+    {
+      "type": "object",
+      "id": "station.drying_rack",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/station.drying_rack.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.8999998
+    },
+    {
+      "type": "object",
+      "id": "station.water_collector",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/water_collector_final_native.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.9
+    },
+    {
+      "type": "object",
+      "id": "station.workbench",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/station.workbench.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.9
+    },
+    {
+      "type": "object",
+      "id": "stump.palm",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/stump.palm.fbx",
+      "target": 0.900000036,
+      "groundFitted": 0.9000001
+    },
+    {
+      "type": "object",
+      "id": "tool.axe_stone",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.axe_stone.prefab",
+      "target": 0.324,
+      "groundFitted": 0.324,
+      "handFitted": 0.324000031
+    },
+    {
+      "type": "object",
+      "id": "tool.bottle",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_bottle_native.prefab",
+      "target": 0.27,
+      "groundFitted": 0.269999951,
+      "handFitted": 0.270000041
+    },
+    {
+      "type": "object",
+      "id": "tool.bow",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.bow.fbx",
+      "target": 0.324,
+      "groundFitted": 0.324,
+      "handFitted": 0.3239999
+    },
+    {
+      "type": "object",
+      "id": "tool.hammer",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.hammer.prefab",
+      "target": 0.324,
+      "groundFitted": 0.324,
+      "handFitted": 0.324
+    },
+    {
+      "type": "object",
+      "id": "tool.knife",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.knife.prefab",
+      "target": 0.324,
+      "groundFitted": 0.323999971,
+      "handFitted": 0.324
+    },
+    {
+      "type": "object",
+      "id": "tool.lighter",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_lighter_native.fbx",
+      "target": 0.107999995,
+      "groundFitted": 0.107999973,
+      "handFitted": 0.108000033
+    },
+    {
+      "type": "object",
+      "id": "tool.machete",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_native.prefab",
+      "target": 0.324,
+      "groundFitted": 0.324000061,
+      "handFitted": 0.324000031
+    },
+    {
+      "type": "object",
+      "id": "tool.pickaxe_stone",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.pickaxe_stone.prefab",
+      "target": 0.324,
+      "groundFitted": 0.324,
+      "handFitted": 0.324
+    },
+    {
+      "type": "object",
+      "id": "tool.saw",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_saw_native.fbx",
+      "target": 0.324,
+      "groundFitted": 0.323999971,
+      "handFitted": 0.324000031
+    },
+    {
+      "type": "object",
+      "id": "tool.spear",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.spear.prefab",
+      "target": 1.3499999,
+      "groundFitted": 1.3499999,
+      "handFitted": 1.35
+    },
+    {
+      "type": "object",
+      "id": "tree.palm",
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/palm_final_native.fbx",
+      "target": 3.30000019,
+      "groundFitted": 3.29999971
+    }
+  ],
+  "errors": []
+}

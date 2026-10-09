@@ -31,6 +31,12 @@ namespace HexLive.UnityPresentation.Bootstrap
                 return;
             }
 
+#if UNITY_WEBGL
+            // §168.8: в браузере размер холста задаёт страница, а полный экран
+            // разрешён только по жесту игрока; ExclusiveFullScreen там нет.
+            return;
+#endif
+
             if (HasArgument(NativeResolutionArgument))
             {
                 var display = Display.main;

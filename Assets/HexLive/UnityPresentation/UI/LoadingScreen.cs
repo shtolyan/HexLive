@@ -299,6 +299,11 @@ namespace HexLive.UnityPresentation.UI
             // resume winds the offline days forward, a server resume winds
             // nothing, because the colony never stopped.
             var resumeServer = ServerBook.LastSessionWasRemote ? ServerBook.LastUrl : null;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.1: у веб-клиента «продолжить» — это всегда сервер; по
+            // умолчанию тот, что раздал саму страницу.
+            resumeServer ??= Platform.WebPage.PageServerUrl;
+#endif
             var continueLabel = resumeServer != null
                 ? Loc.Get("menu.continue") + "  ·  " + ServerBook.ShortLabel(resumeServer)
                 : Loc.Get("menu.continue");
@@ -316,6 +321,10 @@ namespace HexLive.UnityPresentation.UI
                 _menuChosen = true;
             }));
 
+            // §168.1: локальные миры (заново, библиотека, новая игра) — не для
+            // веба; там только сервер.
+            if (!Platform.WebPage.IsWeb)
+            {
             // Restart: the SAME island (the save's seed) from day 1 — only
             // meaningful while a save exists, greyed out otherwise.
             card.Add(MakeMenuRow("restart", Loc.Get("menu.restart"),
@@ -337,6 +346,7 @@ namespace HexLive.UnityPresentation.UI
             card.Add(MakeMenuRow("plus", Loc.Get("menu.newgame"),
                 primary: false, enabled: true, () => ToggleNewGameBox()));
             _newGameBox = BuildNewGameBox();
+            }
             card.Add(MakeMenuRow("plus", Loc.Get("lobby.title"),
                 primary: false, enabled: true, () => new ServerWorldLobby(_root, this, (url, token) =>
                 {
@@ -540,7 +550,7 @@ namespace HexLive.UnityPresentation.UI
             _serverField = new TextField
             {
                 // Falls back to a local server — what anyone trying this first will want.
-                value = ServerBook.LastUrl ?? ServerBook.DefaultUrl,
+                value = ServerBook.LastUrl ?? Platform.WebPage.PageServerUrl ?? ServerBook.DefaultUrl,
                 style =
                 {
                     marginLeft = 0, marginRight = 0, marginTop = 6, marginBottom = 8,
@@ -1211,6 +1221,13 @@ namespace HexLive.UnityPresentation.UI
                 yield break;
             }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.1: локального мира в вебе нет — ни worldgen на воркере, ни
+            // намотки офлайна, ни сейва. Меню сюда не ведёт; на всякий случай
+            // честно говорим, а не висим на шторке.
+            Debug.LogError("[HexLive] Local world requested in a web build (§168.1).");
+            yield break;
+#else
             // A previous session may have been remote. Any local choice —
             // Continue, Restart or New Game — must switch the backend back to
             // Local before Configure creates it (§41.8).
@@ -1602,6 +1619,7 @@ namespace HexLive.UnityPresentation.UI
 
             _runner.AutosaveEnabled = true;
             Destroy(gameObject);
+#endif
         }
 
         /// <summary>

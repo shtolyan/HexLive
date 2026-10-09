@@ -8,13 +8,17 @@ using UnityEngine;
 
 namespace HexLive.UnityPresentation.UI
 {
-/// <summary>§161 OS-protected admin credentials. No PlayerPrefs or plaintext fallback.</summary>
+/// <summary>§161 OS-protected admin credentials. No PlayerPrefs or plaintext fallback.
+/// §168.8: в браузере ОС-хранилища нет, а запасной вариант §161 запрещает —
+/// поэтому в вебе ключ живёт только в памяти вкладки (SessionValues) и
+/// спрашивается заново после перезагрузки страницы.</summary>
 internal static class AdminCredentialStore
 {
     private static readonly Dictionary<string, string> SessionValues = new();
     private static readonly HashSet<string> SessionDenied = new();
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetSession() { SessionValues.Clear(); SessionDenied.Clear(); }
+#if !(UNITY_WEBGL && !UNITY_EDITOR)
     private const string Security = "/System/Library/Frameworks/Security.framework/Security";
     [DllImport(Security)] private static extern int SecKeychainFindGenericPassword(IntPtr keychain, uint serviceLength, byte[] service,
         uint accountLength, byte[] account, out uint passwordLength, out IntPtr password, out IntPtr item);
@@ -29,6 +33,7 @@ internal static class AdminCredentialStore
     [DllImport("crypt32.dll", SetLastError = true)] private static extern bool CryptUnprotectData(ref Blob input, IntPtr description,
         IntPtr entropy, IntPtr reserved, IntPtr prompt, uint flags, out Blob output);
     [DllImport("kernel32.dll")] private static extern IntPtr LocalFree(IntPtr pointer);
+#endif
     private static string Key(string server, string client)
     { using var sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(server + "\n" + client))).Replace("-", ""); }
     public static string Read(string server, string client)
@@ -41,6 +46,9 @@ internal static class AdminCredentialStore
     }
     private static string ReadNative(string server, string client)
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return string.Empty; // §168.8: только память вкладки
+#else
         var account = Encoding.UTF8.GetBytes(Key(server, client)); var service = Encoding.UTF8.GetBytes("HexLiveAdmin");
         if (Application.platform == RuntimePlatform.OSXPlayer || Application.platform == RuntimePlatform.OSXEditor)
         {
@@ -57,6 +65,7 @@ internal static class AdminCredentialStore
             return File.Exists(path) ? Encoding.UTF8.GetString(Protect(File.ReadAllBytes(path), false)) : string.Empty;
         }
         throw new PlatformNotSupportedException("CredentialStoreUnavailable");
+#endif
     }
     public static void Write(string server, string client, string secret)
     {
@@ -67,6 +76,9 @@ internal static class AdminCredentialStore
     }
     private static void WriteNative(string server, string client, string secret)
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // §168.8: Write кладёт значение в SessionValues — больше некуда.
+#else
         var account = Encoding.UTF8.GetBytes(Key(server, client)); var service = Encoding.UTF8.GetBytes("HexLiveAdmin"); var bytes = Encoding.UTF8.GetBytes(secret);
         if (Application.platform == RuntimePlatform.OSXPlayer || Application.platform == RuntimePlatform.OSXEditor)
         {
@@ -90,7 +102,9 @@ internal static class AdminCredentialStore
         if (Application.platform == RuntimePlatform.WindowsPlayer || Application.platform == RuntimePlatform.WindowsEditor)
         { File.WriteAllBytes(Path.Combine(Application.persistentDataPath, "admin-" + Key(server, client)), Protect(bytes, true)); return; }
         throw new PlatformNotSupportedException("CredentialStoreUnavailable");
+#endif
     }
+#if !(UNITY_WEBGL && !UNITY_EDITOR)
     private static byte[] Protect(byte[] bytes, bool encrypt)
     {
         var input = new Blob { Length = bytes.Length, Data = Marshal.AllocHGlobal(bytes.Length) }; Blob output;
@@ -105,5 +119,6 @@ internal static class AdminCredentialStore
         }
         finally { Marshal.FreeHGlobal(input.Data); }
     }
+#endif
 }
 }

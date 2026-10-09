@@ -30,6 +30,37 @@ public static class WebPage
     [DllImport("__Internal")] private static extern void HexPageReload();
 #endif
 
+    /// <summary>
+    /// §168.10: the game server of the page itself — the web build is served
+    /// by the same host as <c>/watch</c>, so <c>https://host/play/</c> means
+    /// <c>wss://host/watch</c>. Null outside the browser or for a page opened
+    /// from disk.
+    /// </summary>
+    public static string? PageServerUrl
+    {
+        get
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!System.Uri.TryCreate(UnityEngine.Application.absoluteURL, System.UriKind.Absolute, out var page) ||
+                (page.Scheme != "https" && page.Scheme != "http"))
+            {
+                return null;
+            }
+
+            var socket = new System.UriBuilder(page)
+            {
+                Scheme = page.Scheme == "https" ? "wss" : "ws",
+                Path = "/watch",
+                Query = string.Empty,
+                Fragment = string.Empty,
+            };
+            return socket.Uri.AbsoluteUri;
+#else
+            return null;
+#endif
+        }
+    }
+
     /// <summary>Updating a web client IS reloading the page (§168.5).</summary>
     public static void Reload()
     {

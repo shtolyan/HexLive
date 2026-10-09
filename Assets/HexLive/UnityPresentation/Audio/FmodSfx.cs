@@ -1044,7 +1044,14 @@ namespace HexLive.UnityPresentation.Audio
 #endif
 
             foreach (var path in AudioFiles("Music", false)
-                         .Where(IsAudioFile))
+                         .Where(IsAudioFile)
+#if UNITY_WEBGL && !UNITY_EDITOR
+                         // §168.6: в FMOD для браузера нет MP3-декодера
+                         // (ERR_FORMAT, замер 9.10.2026). Веб-сборка кладёт
+                         // рядом Ogg-копию трека — берём её; mp3 без пары молчит.
+                         .Where(path => Path.GetExtension(path).Equals(".ogg", System.StringComparison.OrdinalIgnoreCase))
+#endif
+                         )
             {
                 MusicPaths[Path.GetFileNameWithoutExtension(path)] = path;
             }
@@ -1128,7 +1135,12 @@ namespace HexLive.UnityPresentation.Audio
                 // extension. Tell FMOD the codec explicitly instead of making
                 // it guess from the cache path (the macOS runtime otherwise
                 // probes OGG/MOD/etc. and rejects a valid MP3 payload).
-                if (CreateSound(core, path, mode, FMOD.SOUND_TYPE.MPEG, out var sound) != FMOD.RESULT.OK)
+                // Имя кэша — SHA без расширения (см. выше), поэтому тип
+                // подсказывается явно; Ogg-трек веба — своим кодеком.
+                var codec = Path.GetExtension(path).Equals(".ogg", System.StringComparison.OrdinalIgnoreCase)
+                    ? FMOD.SOUND_TYPE.OGGVORBIS
+                    : FMOD.SOUND_TYPE.MPEG;
+                if (CreateSound(core, path, mode, codec, out var sound) != FMOD.RESULT.OK)
                 {
                     Debug.LogWarning($"[FmodSfx] music '{id}' failed to open: {path}");
                     return false;

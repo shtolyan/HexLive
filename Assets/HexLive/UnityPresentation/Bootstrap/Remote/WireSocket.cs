@@ -83,6 +83,33 @@ public interface IWireSocket : IDisposable
     void Abort();
 }
 
+/// <summary>
+/// §168.4: where an <c>await</c> in the wire code resumes. Desktop keeps
+/// <c>ConfigureAwait(false)</c> — the socket loop lives on the thread pool and
+/// must not hop to Unity's main thread. In the browser that same call is a
+/// trap: on Unity's main thread the continuation of a <c>ConfigureAwait(false)</c>
+/// await is queued to the thread pool, and the web has no thread pool, so the
+/// loop never resumes. Measured 9.10.2026: the browser received 78 frames
+/// while <c>ConnectAsync</c> never returned. In the web build it resumes
+/// through Unity's synchronization context instead.
+/// </summary>
+public static class WireAwait
+{
+#if UNITY_WEBGL && !UNITY_EDITOR
+    private const bool StayOnContext = true;
+#else
+    private const bool StayOnContext = false;
+#endif
+
+#pragma warning disable RS0030 // the one sanctioned ConfigureAwait in wire code (§168.4)
+    public static System.Runtime.CompilerServices.ConfiguredTaskAwaitable OnWire(this Task task) =>
+        task.ConfigureAwait(StayOnContext);
+
+    public static System.Runtime.CompilerServices.ConfiguredTaskAwaitable<T> OnWire<T>(this Task<T> task) =>
+        task.ConfigureAwait(StayOnContext);
+#pragma warning restore RS0030
+}
+
 public static class WireSocket
 {
     public static IWireSocket Create(WireSocketIdentity identity)

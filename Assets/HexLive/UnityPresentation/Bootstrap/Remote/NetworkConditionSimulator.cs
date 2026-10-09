@@ -60,7 +60,7 @@ public sealed class NetworkConditionSimulator
         var wait = release - now;
         if (wait > 0.0005)
         {
-            await WireSocket.Delay(TimeSpan.FromSeconds(wait), cancel).ConfigureAwait(false);
+            await WireSocket.Delay(TimeSpan.FromSeconds(wait), cancel).OnWire();
         }
     }
 }

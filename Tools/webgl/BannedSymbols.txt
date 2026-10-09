@@ -32,3 +32,5 @@ M:System.Runtime.CompilerServices.TaskAwaiter.GetResult;§168.4: .GetAwaiter().G
 M:System.Runtime.CompilerServices.TaskAwaiter`1.GetResult;§168.4: .GetAwaiter().GetResult() — блокирующее ожидание
 T:System.Diagnostics.Process;§168.5: процессов в браузере нет
 P:UnityEngine.Application.streamingAssetsPath;§168.6: в вебе это URL, а не папка — только через WebAudioFiles (§168.6)
+M:System.Threading.Tasks.Task.ConfigureAwait(System.Boolean);§168.4: ConfigureAwait(false) на главном потоке Unity уводит продолжение в пул потоков, которого в вебе нет — только .OnWire() (WireAwait)
+M:System.Threading.Tasks.Task`1.ConfigureAwait(System.Boolean);§168.4: ConfigureAwait(false) на главном потоке Unity уводит продолжение в пул потоков, которого в вебе нет — только .OnWire() (WireAwait)

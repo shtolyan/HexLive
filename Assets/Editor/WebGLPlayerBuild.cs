@@ -51,6 +51,7 @@ public static class HexLiveWebGLPlayerBuild
                 .Where(scene => scene.enabled)
                 .Select(scene => scene.path)
                 .ToArray();
+            var webMusic = WriteWebMusic();
             WriteAudioManifest();
             BuildReport report;
             try
@@ -68,6 +69,10 @@ public static class HexLiveWebGLPlayerBuild
                 // Генерируется на каждую сборку из того, что реально лежит в
                 // StreamingAssets, — в репозитории ему не место (устареет).
                 AssetDatabase.DeleteAsset(AudioManifest);
+                foreach (var generated in webMusic)
+                {
+                    AssetDatabase.DeleteAsset(generated);
+                }
             }
 
             var summary = report.summary;
@@ -125,6 +130,53 @@ public static class HexLiveWebGLPlayerBuild
         File.WriteAllText(AudioManifest, json.ToString(), new UTF8Encoding(false));
         AssetDatabase.ImportAsset(AudioManifest);
         Debug.Log($"[WebGLBuild] audio manifest: {files.Count} files");
+    }
+
+    /// <summary>
+    /// §168.6: в FMOD для браузера нет MP3-декодера (ERR_FORMAT). Каждый
+    /// mp3-трек на время веб-сборки получает Ogg-соседа (ffmpeg → oggenc -q4);
+    /// веб играет его, десктоп по-прежнему mp3. В репозитории копий нет:
+    /// «новый трек = новый mp3» остаётся правилом.
+    /// </summary>
+    private static List<string> WriteWebMusic()
+    {
+        var generated = new List<string>();
+        var root = Path.Combine(AudioRoot, "Music");
+        if (!Directory.Exists(root))
+        {
+            return generated;
+        }
+
+        foreach (var mp3 in Directory.GetFiles(root, "*.mp3"))
+        {
+            var ogg = Path.ChangeExtension(mp3, ".ogg");
+            if (File.Exists(ogg))
+            {
+                continue; // авторский Ogg главнее
+            }
+
+            var command = $"/opt/homebrew/bin/ffmpeg -v error -i '{mp3}' -f wav - | " +
+                          $"/opt/homebrew/bin/oggenc -Q -q 4 -o '{ogg}' -";
+            using var process = System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo("/bin/sh", $"-c \"{command}\"")
+                {
+                    UseShellExecute = false,
+                    RedirectStandardError = true,
+                });
+            var error = process!.StandardError.ReadToEnd();
+            process.WaitForExit();
+            if (process.ExitCode != 0 || !File.Exists(ogg))
+            {
+                Debug.LogError($"[WebGLBuild] web music conversion failed for {mp3}: {error}");
+                continue;
+            }
+
+            AssetDatabase.ImportAsset(ogg.Replace('\\', '/'));
+            generated.Add(ogg.Replace('\\', '/'));
+        }
+
+        Debug.Log($"[WebGLBuild] web music: {generated.Count} Ogg track(s) for the browser");
+        return generated;
     }
 
     private static string Value(string[] arguments, string name)

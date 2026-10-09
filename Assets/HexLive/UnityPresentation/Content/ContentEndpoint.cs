@@ -25,6 +25,16 @@ public static class ContentEndpoint
                 return EditorFriendly(FromGameServer(server));
             }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.10: в браузере реестр живёт на том же host'е, что раздал
+            // страницу. Прод-адрес по умолчанию тут — чужой origin: браузер
+            // режет запрос по CORS, и Unity отдаёт его как «HTTP 500 Unknown
+            // Error» (замер 9.10.2026: меню ходило в Нью-Йорк с localhost).
+            if (Platform.WebPage.PageServerUrl is { } page)
+            {
+                return FromGameServer(page);
+            }
+#endif
             // Registry/music start while the main menu is still open, before
             // the player has selected a simulation server. Content is not a
             // localhost build sidecar: the normal bootstrap source is prod.

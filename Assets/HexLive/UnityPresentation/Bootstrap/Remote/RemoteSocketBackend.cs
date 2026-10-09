@@ -457,7 +457,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                     connectAttempt.CancelAfter(
                         TimeSpan.FromSeconds(ConnectAttemptTimeoutSeconds));
                     await socket.ConnectAsync(new Uri(_url), connectAttempt.Token)
-                        .ConfigureAwait(false);
+                        .OnWire();
                 }
 
                 lock (_inbox)
@@ -478,7 +478,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                 Debug.Log($"[Remote] socket open: {_url}");
 #endif
 
-                await PumpAsync(socket, connectionLifetime.Token).ConfigureAwait(false);
+                await PumpAsync(socket, connectionLifetime.Token).OnWire();
             }
             catch (OperationCanceledException)
             {
@@ -551,7 +551,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
 
             try
             {
-                await WireSocket.Delay(TimeSpan.FromSeconds(delay), cancel).ConfigureAwait(false);
+                await WireSocket.Delay(TimeSpan.FromSeconds(delay), cancel).OnWire();
             }
             catch (OperationCanceledException)
             {
@@ -586,7 +586,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                 var bytes = await socket.ReceiveMessageAsync(
                         () => Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp()),
                         cancel)
-                    .ConfigureAwait(false);
+                    .OnWire();
                 if (bytes is null)
                 {
                     return;
@@ -614,7 +614,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                 // never reorders.
                 if (_netsim != null)
                 {
-                    await _netsim.DelayAsync(cancel).ConfigureAwait(false);
+                    await _netsim.DelayAsync(cancel).OnWire();
                 }
 
                 Dispatch((FrameKind)bytes[0], payload);
@@ -625,7 +625,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
             pumpLifetime.Cancel();
             try
             {
-                await pinger.ConfigureAwait(false);
+                await pinger.OnWire();
             }
             catch (OperationCanceledException)
             {
@@ -1037,7 +1037,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
         {
             while (!cancel.IsCancellationRequested && socket.IsOpen)
             {
-                await WireSocket.Delay(TimeSpan.FromSeconds(PingIntervalSeconds), cancel).ConfigureAwait(false);
+                await WireSocket.Delay(TimeSpan.FromSeconds(PingIntervalSeconds), cancel).OnWire();
                 if (!socket.IsOpen)
                 {
                     return;
@@ -1082,7 +1082,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                 if (!waiting)
                 {
                     await SendSerializedAsync(socket, Frame.Ping(Stopwatch.GetTimestamp()), cancel)
-                        .ConfigureAwait(false);
+                        .OnWire();
                 }
 
                 // Frames should be arriving four times a second. If they are not,
@@ -1640,7 +1640,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
     {
         try
         {
-            await _sendGate.WaitAsync(connectionCancel).ConfigureAwait(false);
+            await _sendGate.WaitAsync(connectionCancel).OnWire();
         }
         catch (Exception)
         {
@@ -1649,7 +1649,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
 
         try
         {
-            await socket.SendAsync(frame, connectionCancel).ConfigureAwait(false);
+            await socket.SendAsync(frame, connectionCancel).OnWire();
         }
         catch (Exception)
         {

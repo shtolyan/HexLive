@@ -136,11 +136,14 @@ namespace HexLive.UnityPresentation.Environment
                 frame * BlueprintArchitectureFactory.ModuleRotation(_definitionId, element.LocalYaw));
             if (wrapper == null)
             {
+                var availability = Content.AtomicResources.Request<GameObject>(
+                    "HexLive/Objects/" + _definitionId, out _);
+                if (availability == Content.AtomicResources.Availability.Loading) return;
                 if (MissingModels.Add(_definitionId))
                 {
                     UnityEngine.Debug.LogWarning(
                         $"§120: no model for architecture module '{_definitionId}' " +
-                        "(expected Resources/HexLive/Objects/<id>) — it will not be drawn.");
+                        "(atomic content request finished without a prefab) — it will not be drawn.");
                 }
 
                 return;

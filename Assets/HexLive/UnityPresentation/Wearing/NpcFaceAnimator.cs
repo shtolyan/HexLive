@@ -176,9 +176,10 @@ public sealed class NpcFaceAnimator : MonoBehaviour
     private int _currentIndex = -1;
     private float _level;            // 0..100
 
-    // Индексы часто нужных выражений, разрешённые один раз в Construct.
+    // Индексы обновляются после асинхронного прихода каталога выражений.
     private int _idxPain, _idxCry, _idxAngry, _idxSurprise, _idxCamera;
     private int _idxMoodSmile, _idxMoodSad, _idxRomanceHappy, _idxFear;
+    private int _catalogExpressionCount = -1;
 
     public void Construct(SkinnedMeshRenderer[] bodySkins)
     {
@@ -219,18 +220,30 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         // Липсинк живёт на том же GameObject (NpcActorView вешает его раньше);
         // у примитивных капсул его нет — тогда рот всегда у эмоции.
         _lipSync = GetComponent<Audio.NpcVoiceLipSync>();
-        _idxPain = SharedCatalog.FindIndex("x_pain");
-        _idxCry = SharedCatalog.FindIndex("x_cry");
-        _idxAngry = SharedCatalog.FindIndex("x_angry");
-        _idxSurprise = SharedCatalog.FindIndex("03");
-        _idxCamera = SharedCatalog.FindIndex("04");
-        _idxMoodSmile = SharedCatalog.FindIndex("05");
-        _idxMoodSad = SharedCatalog.FindIndex("x_sad");
-        _idxRomanceHappy = SharedCatalog.FindIndex("06");
-        _idxFear = SharedCatalog.FindIndex("x_fear");
+        RefreshExpressionIndices();
 
         _blinkTimer = Random.Range(BlinkInterval.x, BlinkInterval.y);
         enabled = _eyeTargets.Count > 0 || _rig.Count > 0;
+    }
+
+    private void RefreshExpressionIndices()
+    {
+        var catalog = SharedCatalog;
+        if (_catalogExpressionCount == catalog.Expressions.Count) return;
+        _catalogExpressionCount = catalog.Expressions.Count;
+        _idxPain = catalog.FindIndex("x_pain");
+        _idxCry = catalog.FindIndex("x_cry");
+        _idxAngry = catalog.FindIndex("x_angry");
+        _idxSurprise = catalog.FindIndex("03");
+        _idxCamera = catalog.FindIndex("04");
+        _idxMoodSmile = catalog.FindIndex("05");
+        _idxMoodSad = catalog.FindIndex("x_sad");
+        _idxRomanceHappy = catalog.FindIndex("06");
+        _idxFear = catalog.FindIndex("x_fear");
+        if (_topicIndex < 0 && TopicVariants.TryGetValue(_topic, out var variants))
+        {
+            _topicIndex = Pick(variants);
+        }
     }
 
     // wellbeing: 0..1 aggregate of the NPC's needs; fighting switches the
@@ -375,6 +388,8 @@ public sealed class NpcFaceAnimator : MonoBehaviour
 
     private void LateUpdate()
     {
+        // The shared remote recipe pack may arrive after this actor was built.
+        RefreshExpressionIndices();
         var dt = Time.deltaTime;
         _surprisePulse = Mathf.MoveTowards(_surprisePulse, 0f, dt * 1.6f);
 

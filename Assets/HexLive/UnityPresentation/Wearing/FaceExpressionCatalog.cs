@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using HexLive.UnityPresentation.Content;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Wearing
@@ -47,18 +49,43 @@ public sealed class FaceExpressionCatalog
     public static FaceExpressionCatalog Load(string resourcePath = "HexLive/FaceExpressions/CuteFun")
     {
         var catalog = new FaceExpressionCatalog();
-        var asset = HexLive.UnityPresentation.Content.AtomicResources.Load<TextAsset>(resourcePath);
+        var status = AtomicResources.Request<TextAsset>(resourcePath, out var asset);
+        if (status == AtomicResources.Availability.Loading)
+        {
+            ContentCoroutines.Run(catalog.LoadWhenReady(resourcePath));
+        }
+        else
+        {
+            catalog.ReadAsset(resourcePath, asset);
+        }
+        return catalog;
+    }
+
+    public bool IsReady { get; private set; }
+
+    private IEnumerator LoadWhenReady(string resourcePath)
+    {
+        TextAsset asset;
+        while (AtomicResources.Request(resourcePath, out asset) == AtomicResources.Availability.Loading)
+        {
+            yield return null;
+        }
+        ReadAsset(resourcePath, asset);
+    }
+
+    private void ReadAsset(string resourcePath, TextAsset asset)
+    {
         if (asset == null)
         {
-            Debug.LogWarning($"[FaceExpressionCatalog] '{resourcePath}' not found in Resources");
-            return catalog;
+            Debug.LogWarning($"[FaceExpressionCatalog] '{resourcePath}' failed to load from atomic content");
+            return;
         }
 
         var parsed = JsonUtility.FromJson<CatalogJson>(asset.text);
         if (parsed?.expressions == null)
         {
             Debug.LogWarning($"[FaceExpressionCatalog] '{resourcePath}' is empty or malformed");
-            return catalog;
+            return;
         }
 
         foreach (var entry in parsed.expressions)
@@ -69,7 +96,7 @@ public sealed class FaceExpressionCatalog
                 shapes[i] = (entry.shapes[i].shape, entry.shapes[i].weight);
             }
 
-            catalog._expressions.Add(new Expression
+            _expressions.Add(new Expression
             {
                 Name = entry.name,
                 Label = entry.label ?? "",
@@ -77,7 +104,7 @@ public sealed class FaceExpressionCatalog
             });
         }
 
-        return catalog;
+        IsReady = true;
     }
 
     public int IndexOf(string name)
@@ -115,8 +142,8 @@ public sealed class FaceExpressionCatalog
     }
 
     // Кастомный рецепт в том же формате, что выражения пака — для эмоций,
-    // которых в паке нет (злость, плач, боль…). Добавлять ДО создания ригов:
-    // FaceExpressionRig кэширует резолв по индексу.
+    // которых в паке нет (злость, плач, боль…). Только дополнять список: уже созданные
+    // FaceExpressionRig кэшируют резолв по стабильному индексу.
     public void AddCustom(string name, string label, (string shape, float weight)[] shapes)
     {
         _expressions.Add(new Expression { Name = name, Label = label, Shapes = shapes });

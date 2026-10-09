@@ -1,0 +1,6655 @@
+{
+  "schemaVersion": 1,
+  "state": "source-exported-awaiting-unity-validation",
+  "unityValidated": false,
+  "bundleBuildAuthorized": false,
+  "models": [
+    {
+      "kind": "actor",
+      "id": "Marta",
+      "actor": "Marta",
+      "path": "Models/Marta.fbx",
+      "bytes": 1038028,
+      "sha256": "0ab372b7ae69118b2b048138231c7df2adee55a5ccfd180dd8e3a7be9aac27b2",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "lThighTwist",
+        "lShin",
+        "lFoot",
+        "lMetatarsals",
+        "lToe",
+        "lSmallToe4",
+        "lSmallToe4_2",
+        "lSmallToe3",
+        "lSmallToe3_2",
+        "lSmallToe2",
+        "lSmallToe2_2",
+        "lSmallToe1",
+        "lSmallToe1_2",
+        "lBigToe",
+        "lBigToe_2",
+        "lHeel",
+        "rThighBend",
+        "rThighTwist",
+        "rShin",
+        "rFoot",
+        "rMetatarsals",
+        "rToe",
+        "rSmallToe4",
+        "rSmallToe4_2",
+        "rSmallToe3",
+        "rSmallToe3_2",
+        "rSmallToe2",
+        "rSmallToe2_2",
+        "rSmallToe1",
+        "rSmallToe1_2",
+        "rBigToe",
+        "rBigToe_2",
+        "rHeel",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "lShldrTwist",
+        "lForearmBend",
+        "lForearmTwist",
+        "lHand",
+        "lThumb1",
+        "lThumb2",
+        "lThumb3",
+        "lCarpal1",
+        "lIndex1",
+        "lIndex2",
+        "lIndex3",
+        "lCarpal2",
+        "lMid1",
+        "lMid2",
+        "lMid3",
+        "lCarpal3",
+        "lRing1",
+        "lRing2",
+        "lRing3",
+        "lCarpal4",
+        "lPinky1",
+        "lPinky2",
+        "lPinky3",
+        "rCollar",
+        "rShldrBend",
+        "rShldrTwist",
+        "rForearmBend",
+        "rForearmTwist",
+        "rHand",
+        "rThumb1",
+        "rThumb2",
+        "rThumb3",
+        "rCarpal1",
+        "rIndex1",
+        "rIndex2",
+        "rIndex3",
+        "rCarpal2",
+        "rMid1",
+        "rMid2",
+        "rMid3",
+        "rCarpal3",
+        "rRing1",
+        "rRing2",
+        "rRing3",
+        "rCarpal4",
+        "rPinky1",
+        "rPinky2",
+        "rPinky3",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "upperTeeth",
+        "lowerJaw",
+        "lowerTeeth",
+        "tongue01",
+        "tongue02",
+        "tongue03",
+        "tongue04",
+        "lowerFaceRig",
+        "lNasolabialLower",
+        "rNasolabialLower",
+        "lNasolabialMouthCorner",
+        "rNasolabialMouthCorner",
+        "lLipCorner",
+        "lLipLowerOuter",
+        "lLipLowerInner",
+        "LipLowerMiddle",
+        "rLipLowerInner",
+        "rLipLowerOuter",
+        "rLipCorner",
+        "LipBelow",
+        "Chin",
+        "lCheekLower",
+        "rCheekLower",
+        "BelowJaw",
+        "lJawClench",
+        "rJawClench",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "MidNoseBridge",
+        "lEyelidInner",
+        "lEyelidUpperInner",
+        "lEyelidUpper",
+        "lEyelidUpperOuter",
+        "lEyelidOuter",
+        "lEyelidLowerOuter",
+        "lEyelidLower",
+        "lEyelidLowerInner",
+        "rEyelidInner",
+        "rEyelidUpperInner",
+        "rEyelidUpper",
+        "rEyelidUpperOuter",
+        "rEyelidOuter",
+        "rEyelidLowerOuter",
+        "rEyelidLower",
+        "rEyelidLowerInner",
+        "lSquintInner",
+        "lSquintOuter",
+        "rSquintInner",
+        "rSquintOuter",
+        "lCheekUpper",
+        "rCheekUpper",
+        "Nose",
+        "lNostril",
+        "rNostril",
+        "lLipBelowNose",
+        "rLipBelowNose",
+        "lLipUpperOuter",
+        "lLipUpperInner",
+        "LipUpperMiddle",
+        "rLipUpperInner",
+        "rLipUpperOuter",
+        "lLipNasolabialCrease",
+        "rLipNasolabialCrease",
+        "lNasolabialUpper",
+        "rNasolabialUpper",
+        "lNasolabialMiddle",
+        "rNasolabialMiddle",
+        "lEye",
+        "rEye",
+        "lEar",
+        "rEar",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_LOD0",
+          "vertices": 3762,
+          "triangles": 7192,
+          "blendShapes": [
+            "Genesis3Female__CTRLCheeksDimpleCreaseHD",
+            "Genesis3Female__eCTRLSurprised",
+            "Genesis3Female__eCTRLSmile",
+            "Genesis3Female__eCTRLFrown",
+            "Genesis3Female__eCTRLFlirting",
+            "Genesis3Female__eCTRLAngry",
+            "Genesis3Female__eCTRLvW",
+            "Genesis3Female__eCTRLvUW",
+            "Genesis3Female__eCTRLvTH",
+            "Genesis3Female__eCTRLvT",
+            "Genesis3Female__eCTRLvSH",
+            "Genesis3Female__eCTRLvS",
+            "Genesis3Female__eCTRLvOW",
+            "Genesis3Female__eCTRLvM",
+            "Genesis3Female__eCTRLvL",
+            "Genesis3Female__eCTRLvK",
+            "Genesis3Female__eCTRLvIY",
+            "Genesis3Female__eCTRLvIH",
+            "Genesis3Female__eCTRLvF",
+            "Genesis3Female__eCTRLvER",
+            "Genesis3Female__eCTRLvEH",
+            "Genesis3Female__eCTRLvEE",
+            "Genesis3Female__eCTRLvAA",
+            "Genesis3Female__eCTRLTongueUp-Down",
+            "Genesis3Female__eCTRLTongueSide-Side",
+            "Genesis3Female__eCTRLTongueRaise-Lower",
+            "Genesis3Female__eCTRLTongueNarrow-Wide",
+            "Genesis3Female__eCTRLTongueIn-Out",
+            "Genesis3Female__eCTRLTongueBendTip",
+            "Genesis3Female__eCTRLTongue Curl",
+            "Genesis3Female__eCTRLNostrilsFlare",
+            "Genesis3Female__eCTRLNoseWrinkle",
+            "Genesis3Female__eCTRLNoseScrunch",
+            "Genesis3Female__eCTRLMouthSmileSimpleR",
+            "Genesis3Female__eCTRLMouthSmileSimpleL",
+            "Genesis3Female__eCTRLMouthSmileSimple",
+            "Genesis3Female__eCTRLMouthSmileOpen",
+            "Genesis3Female__eCTRLMouthSmile",
+            "Genesis3Female__eCTRLMouthSide-SideR",
+            "Genesis3Female__eCTRLMouthSide-SideL",
+            "Genesis3Female__eCTRLMouthSide-Side",
+            "Genesis3Female__eCTRLMouthOpenWide",
+            "Genesis3Female__eCTRLMouthOpen",
+            "Genesis3Female__eCTRLMouthNarrowR",
+            "Genesis3Female__eCTRLMouthNarrowL",
+            "Genesis3Female__eCTRLMouthNarrow",
+            "Genesis3Female__eCTRLMouthFrown",
+            "Genesis3Female__eCTRLMouthCornerUp-Down",
+            "Genesis3Female__eCTRLMouthCornerBackR",
+            "Genesis3Female__eCTRLMouthCornerBackL",
+            "Genesis3Female__eCTRLMouthCornerBack",
+            "Genesis3Female__eCTRLLipTopUp-DownR",
+            "Genesis3Female__eCTRLLipTopUp-DownL",
+            "Genesis3Female__eCTRLLipTopUp-Down",
+            "Genesis3Female__eCTRLLipTopIn-OutR",
+            "Genesis3Female__eCTRLLipTopIn-OutL",
+            "Genesis3Female__eCTRLLipTopIn-Out",
+            "Genesis3Female__eCTRLLipsPuckerWide",
+            "Genesis3Female__eCTRLLipsPucker",
+            "Genesis3Female__eCTRLLipsPartCenter",
+            "Genesis3Female__eCTRLLipsPart",
+            "Genesis3Female__eCTRLLipBottomUp-DownR",
+            "Genesis3Female__eCTRLLipBottomUp-DownL",
+            "Genesis3Female__eCTRLLipBottomUp-Down",
+            "Genesis3Female__eCTRLLipBottomIn-OutR",
+            "Genesis3Female__eCTRLLipBottomIn-OutL",
+            "Genesis3Female__eCTRLLipBottomIn-Out",
+            "Genesis3Female__eCTRLJawSide-Side",
+            "Genesis3Female__eCTRLJawOut-In",
+            "Genesis3Female__eCTRLEyesUpDown",
+            "Genesis3Female__eCTRLEyesSquintR",
+            "Genesis3Female__eCTRLEyesSquintL",
+            "Genesis3Female__eCTRLEyesSquint",
+            "Genesis3Female__eCTRLEyesSideSide",
+            "Genesis3Female__eCTRLEyesCrossed",
+            "Genesis3Female__eCTRLEyesClosedR",
+            "Genesis3Female__eCTRLEyesClosedL",
+            "Genesis3Female__eCTRLEyesClosed",
+            "Genesis3Female__eCTRLEyelidsUpperDownUpR",
+            "Genesis3Female__eCTRLEyelidsUpperDownUpL",
+            "Genesis3Female__eCTRLEyelidsUpperDownUp",
+            "Genesis3Female__eCTRLEyelidsLowerUpDownR",
+            "Genesis3Female__eCTRLEyelidsLowerUpDownL",
+            "Genesis3Female__eCTRLEyelidsLowerUpDown",
+            "Genesis3Female__eCTRLCheeksBalloonPucker",
+            "Genesis3Female__eCTRLCheeksBalloon",
+            "Genesis3Female__eCTRLCheekFlexR",
+            "Genesis3Female__eCTRLCheekFlexL",
+            "Genesis3Female__eCTRLCheekFlex",
+            "Genesis3Female__eCTRLCheekEyeFlexR",
+            "Genesis3Female__eCTRLCheekEyeFlexL",
+            "Genesis3Female__eCTRLCheekEyeFlex",
+            "Genesis3Female__eCTRLCheekCrease",
+            "Genesis3Female__eCTRLBrowUp-DownR",
+            "Genesis3Female__eCTRLBrowUp-DownL",
+            "Genesis3Female__eCTRLBrowUp-Down",
+            "Genesis3Female__eCTRLBrowSqueeze",
+            "Genesis3Female__eCTRLBrowOuterUp-DownR",
+            "Genesis3Female__eCTRLBrowOuterUp-DownL",
+            "Genesis3Female__eCTRLBrowOuterUp-Down",
+            "Genesis3Female__eCTRLBrowInnerUp-DownR",
+            "Genesis3Female__eCTRLBrowInnerUp-DownL",
+            "Genesis3Female__eCTRLBrowInnerUp-Down",
+            "Genesis3Female__PHMNoseCompressionHD",
+            "Genesis3Female__PHMCheeksDimpleCreaseHDR",
+            "Genesis3Female__PHMCheeksDimpleCreaseHDL",
+            "Genesis3Female__PHMBrowCompressionHD",
+            "Genesis3Female__ePHMCheekCreaseR",
+            "Genesis3Female__ePHMCheekCreaseL"
+          ],
+          "materials": [
+            "Marta_Atlas"
+          ],
+          "uvLayers": [
+            "Model_UV"
+          ],
+          "maxBoneWeights": 11
+        }
+      ]
+    },
+    {
+      "kind": "actor",
+      "id": "Kshishtof",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof.fbx",
+      "bytes": 2250348,
+      "sha256": "e740185bf22d8d7248dfc1cb33723680df6a4ab580919fed0bca8aca2559d5ab",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "lThighTwist",
+        "lShin",
+        "lFoot",
+        "lMetatarsals",
+        "lToe",
+        "lSmallToe4",
+        "lSmallToe4_2",
+        "lSmallToe3",
+        "lSmallToe3_2",
+        "lSmallToe2",
+        "lSmallToe2_2",
+        "lSmallToe1",
+        "lSmallToe1_2",
+        "lBigToe",
+        "lBigToe_2",
+        "lHeel",
+        "rThighBend",
+        "rThighTwist",
+        "rShin",
+        "rFoot",
+        "rMetatarsals",
+        "rToe",
+        "rSmallToe4",
+        "rSmallToe4_2",
+        "rSmallToe3",
+        "rSmallToe3_2",
+        "rSmallToe2",
+        "rSmallToe2_2",
+        "rSmallToe1",
+        "rSmallToe1_2",
+        "rBigToe",
+        "rBigToe_2",
+        "rHeel",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "lShldrTwist",
+        "lForearmBend",
+        "lForearmTwist",
+        "lHand",
+        "lThumb1",
+        "lThumb2",
+        "lThumb3",
+        "lCarpal1",
+        "lIndex1",
+        "lIndex2",
+        "lIndex3",
+        "lCarpal2",
+        "lMid1",
+        "lMid2",
+        "lMid3",
+        "lCarpal3",
+        "lRing1",
+        "lRing2",
+        "lRing3",
+        "lCarpal4",
+        "lPinky1",
+        "lPinky2",
+        "lPinky3",
+        "rCollar",
+        "rShldrBend",
+        "rShldrTwist",
+        "rForearmBend",
+        "rForearmTwist",
+        "rHand",
+        "rThumb1",
+        "rThumb2",
+        "rThumb3",
+        "rCarpal1",
+        "rIndex1",
+        "rIndex2",
+        "rIndex3",
+        "rCarpal2",
+        "rMid1",
+        "rMid2",
+        "rMid3",
+        "rCarpal3",
+        "rRing1",
+        "rRing2",
+        "rRing3",
+        "rCarpal4",
+        "rPinky1",
+        "rPinky2",
+        "rPinky3",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "upperTeeth",
+        "lowerJaw",
+        "lowerTeeth",
+        "tongue01",
+        "tongue02",
+        "tongue03",
+        "tongue04",
+        "lowerFaceRig",
+        "lNasolabialLower",
+        "rNasolabialLower",
+        "lNasolabialMouthCorner",
+        "rNasolabialMouthCorner",
+        "lLipCorner",
+        "lLipLowerOuter",
+        "lLipLowerInner",
+        "LipLowerMiddle",
+        "rLipLowerInner",
+        "rLipLowerOuter",
+        "rLipCorner",
+        "LipBelow",
+        "Chin",
+        "lCheekLower",
+        "rCheekLower",
+        "BelowJaw",
+        "lJawClench",
+        "rJawClench",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "MidNoseBridge",
+        "lEyelidInner",
+        "lEyelidUpperInner",
+        "lEyelidUpper",
+        "lEyelidUpperOuter",
+        "lEyelidOuter",
+        "lEyelidLowerOuter",
+        "lEyelidLower",
+        "lEyelidLowerInner",
+        "rEyelidInner",
+        "rEyelidUpperInner",
+        "rEyelidUpper",
+        "rEyelidUpperOuter",
+        "rEyelidOuter",
+        "rEyelidLowerOuter",
+        "rEyelidLower",
+        "rEyelidLowerInner",
+        "lSquintInner",
+        "lSquintOuter",
+        "rSquintInner",
+        "rSquintOuter",
+        "lCheekUpper",
+        "rCheekUpper",
+        "Nose",
+        "lNostril",
+        "rNostril",
+        "lLipBelowNose",
+        "rLipBelowNose",
+        "lLipUpperOuter",
+        "lLipUpperInner",
+        "LipUpperMiddle",
+        "rLipUpperInner",
+        "rLipUpperOuter",
+        "lLipNasolabialCrease",
+        "rLipNasolabialCrease",
+        "lNasolabialUpper",
+        "rNasolabialUpper",
+        "lNasolabialMiddle",
+        "rNasolabialMiddle",
+        "lEye",
+        "rEye",
+        "lEar",
+        "rEar",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_LOD0",
+          "vertices": 8052,
+          "triangles": 15500,
+          "blendShapes": [
+            "Genesis3Male__CTRLCheeksDimpleCreaseHD",
+            "Genesis3Male__eCTRLSurprised",
+            "Genesis3Male__eCTRLSmile",
+            "Genesis3Male__eCTRLFrown",
+            "Genesis3Male__eCTRLFlirting",
+            "Genesis3Male__eCTRLAngry",
+            "Genesis3Male__eCTRLvW",
+            "Genesis3Male__eCTRLvUW",
+            "Genesis3Male__eCTRLvTH",
+            "Genesis3Male__eCTRLvT",
+            "Genesis3Male__eCTRLvSH",
+            "Genesis3Male__eCTRLvS",
+            "Genesis3Male__eCTRLvOW",
+            "Genesis3Male__eCTRLvM",
+            "Genesis3Male__eCTRLvL",
+            "Genesis3Male__eCTRLvK",
+            "Genesis3Male__eCTRLvIY",
+            "Genesis3Male__eCTRLvIH",
+            "Genesis3Male__eCTRLvF",
+            "Genesis3Male__eCTRLvER",
+            "Genesis3Male__eCTRLvEH",
+            "Genesis3Male__eCTRLvEE",
+            "Genesis3Male__eCTRLvAA",
+            "Genesis3Male__eCTRLTongueUp-Down",
+            "Genesis3Male__eCTRLTongueSide-Side",
+            "Genesis3Male__eCTRLTongueRaise-Lower",
+            "Genesis3Male__eCTRLTongueNarrow-Wide",
+            "Genesis3Male__eCTRLTongueIn-Out",
+            "Genesis3Male__eCTRLTongueBendTip",
+            "Genesis3Male__eCTRLTongue Curl",
+            "Genesis3Male__eCTRLNostrilsFlare",
+            "Genesis3Male__eCTRLNoseWrinkle",
+            "Genesis3Male__eCTRLNoseScrunch",
+            "Genesis3Male__eCTRLMouthSmileSimpleR",
+            "Genesis3Male__eCTRLMouthSmileSimpleL",
+            "Genesis3Male__eCTRLMouthSmileSimple",
+            "Genesis3Male__eCTRLMouthSmileOpen",
+            "Genesis3Male__eCTRLMouthSmile",
+            "Genesis3Male__eCTRLMouthSide-SideR",
+            "Genesis3Male__eCTRLMouthSide-SideL",
+            "Genesis3Male__eCTRLMouthSide-Side",
+            "Genesis3Male__eCTRLMouthOpenWide",
+            "Genesis3Male__eCTRLMouthOpen",
+            "Genesis3Male__eCTRLMouthNarrowR",
+            "Genesis3Male__eCTRLMouthNarrowL",
+            "Genesis3Male__eCTRLMouthNarrow",
+            "Genesis3Male__eCTRLMouthFrown",
+            "Genesis3Male__eCTRLMouthCornerUp-Down",
+            "Genesis3Male__eCTRLMouthCornerBackR",
+            "Genesis3Male__eCTRLMouthCornerBackL",
+            "Genesis3Male__eCTRLMouthCornerBack",
+            "Genesis3Male__eCTRLLipTopUp-DownR",
+            "Genesis3Male__eCTRLLipTopUp-DownL",
+            "Genesis3Male__eCTRLLipTopUp-Down",
+            "Genesis3Male__eCTRLLipTopIn-OutR",
+            "Genesis3Male__eCTRLLipTopIn-OutL",
+            "Genesis3Male__eCTRLLipTopIn-Out",
+            "Genesis3Male__eCTRLLipsPuckerWide",
+            "Genesis3Male__eCTRLLipsPucker",
+            "Genesis3Male__eCTRLLipsPartCenter",
+            "Genesis3Male__eCTRLLipsPart",
+            "Genesis3Male__eCTRLLipBottomUp-DownR",
+            "Genesis3Male__eCTRLLipBottomUp-DownL",
+            "Genesis3Male__eCTRLLipBottomUp-Down",
+            "Genesis3Male__eCTRLLipBottomIn-OutR",
+            "Genesis3Male__eCTRLLipBottomIn-OutL",
+            "Genesis3Male__eCTRLLipBottomIn-Out",
+            "Genesis3Male__eCTRLJawSide-Side",
+            "Genesis3Male__eCTRLJawOut-In",
+            "Genesis3Male__eCTRLEyesUpDown",
+            "Genesis3Male__eCTRLEyesSquintR",
+            "Genesis3Male__eCTRLEyesSquintL",
+            "Genesis3Male__eCTRLEyesSquint",
+            "Genesis3Male__eCTRLEyesSideSide",
+            "Genesis3Male__eCTRLEyesCrossed",
+            "Genesis3Male__eCTRLEyesClosedR",
+            "Genesis3Male__eCTRLEyesClosedL",
+            "Genesis3Male__eCTRLEyesClosed",
+            "Genesis3Male__eCTRLEyelidsUpperDownUpR",
+            "Genesis3Male__eCTRLEyelidsUpperDownUpL",
+            "Genesis3Male__eCTRLEyelidsUpperDownUp",
+            "Genesis3Male__eCTRLEyelidsLowerUpDownR",
+            "Genesis3Male__eCTRLEyelidsLowerUpDownL",
+            "Genesis3Male__eCTRLEyelidsLowerUpDown",
+            "Genesis3Male__eCTRLCheeksBalloonPucker",
+            "Genesis3Male__eCTRLCheeksBalloon",
+            "Genesis3Male__eCTRLCheekFlexR",
+            "Genesis3Male__eCTRLCheekFlexL",
+            "Genesis3Male__eCTRLCheekFlex",
+            "Genesis3Male__eCTRLCheekEyeFlexR",
+            "Genesis3Male__eCTRLCheekEyeFlexL",
+            "Genesis3Male__eCTRLCheekEyeFlex",
+            "Genesis3Male__eCTRLCheekCrease",
+            "Genesis3Male__eCTRLBrowUp-DownR",
+            "Genesis3Male__eCTRLBrowUp-DownL",
+            "Genesis3Male__eCTRLBrowUp-Down",
+            "Genesis3Male__eCTRLBrowSqueeze",
+            "Genesis3Male__eCTRLBrowOuterUp-DownR",
+            "Genesis3Male__eCTRLBrowOuterUp-DownL",
+            "Genesis3Male__eCTRLBrowOuterUp-Down",
+            "Genesis3Male__eCTRLBrowInnerUp-DownR",
+            "Genesis3Male__eCTRLBrowInnerUp-DownL",
+            "Genesis3Male__eCTRLBrowInnerUp-Down",
+            "Genesis3Male__PHMNoseCompressionHD",
+            "Genesis3Male__PHMCheeksDimpleCreaseHDR",
+            "Genesis3Male__PHMCheeksDimpleCreaseHDL",
+            "Genesis3Male__PHMBrowCompressionHD",
+            "Genesis3Male__ePHMCheekCreaseR",
+            "Genesis3Male__ePHMCheekCreaseL"
+          ],
+          "materials": [
+            "Kshishtof_Atlas"
+          ],
+          "uvLayers": [
+            "Model_UV"
+          ],
+          "maxBoneWeights": 10
+        },
+        {
+          "name": "Kshishtof_Genitals",
+          "vertices": 50,
+          "triangles": 96,
+          "blendShapes": [],
+          "materials": [
+            "Kshishtof_Atlas"
+          ],
+          "uvLayers": [
+            "Model_UV"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalArmWraps",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalArmWraps.fbx",
+      "bytes": 149948,
+      "sha256": "7de4223a59eb75419c1515fea2aae58d35602b641729164992a1bb7653b59232",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "lShldrTwist",
+        "lForearmBend",
+        "lForearmTwist",
+        "lHand",
+        "lThumb1",
+        "lThumb2",
+        "lCarpal1",
+        "lIndex1",
+        "lIndex2",
+        "lCarpal2",
+        "lMid1",
+        "lMid2",
+        "lCarpal3",
+        "lRing1",
+        "lCarpal4",
+        "lPinky1"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalArmWraps",
+          "vertices": 1093,
+          "triangles": 1999,
+          "blendShapes": [],
+          "materials": [
+            "Marta_PrimalArmWraps_Wear / Sleeve",
+            "Marta_PrimalArmWraps_Wear / Cord"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 6
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalArmWraps",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalArmWraps.fbx",
+      "bytes": 149708,
+      "sha256": "758f64257862a47967efb5024fc6b6aaa329ba08f09ba197d171d5198374f225",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "lShldrTwist",
+        "lForearmBend",
+        "lForearmTwist",
+        "lHand",
+        "lThumb1",
+        "lThumb2",
+        "lCarpal1",
+        "lIndex1",
+        "lIndex2",
+        "lCarpal2",
+        "lMid1",
+        "lMid2",
+        "lCarpal3",
+        "lRing1",
+        "lCarpal4",
+        "lPinky1"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalArmWraps",
+          "vertices": 1095,
+          "triangles": 2000,
+          "blendShapes": [],
+          "materials": [
+            "Kshishtof_PrimalArmWraps_Wear / Sleeve",
+            "Kshishtof_PrimalArmWraps_Wear / Cord"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 6
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalBriefs",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalBriefs.fbx",
+      "bytes": 99084,
+      "sha256": "92768e05f86fac00471f984a2e5efebb7df5b77dccf52a9f7c616aad193279c9",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "lThighTwist",
+        "rThighBend",
+        "rThighTwist",
+        "abdomenLower"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalBriefs",
+          "vertices": 923,
+          "triangles": 1373,
+          "blendShapes": [],
+          "materials": [
+            "Marta_PrimalBriefs_Wear / Panty",
+            "Marta_PrimalBriefs_Wear / Stitches"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 5
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalBriefs",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalBriefs.fbx",
+      "bytes": 101548,
+      "sha256": "d4791d2cb326935476d42661dcbf71bd64c81aa3727f6dcbe97228bc2915d59d",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "lThighTwist",
+        "rThighBend",
+        "rThighTwist",
+        "abdomenLower"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalBriefs",
+          "vertices": 943,
+          "triangles": 1414,
+          "blendShapes": [],
+          "materials": [
+            "Kshishtof_PrimalBriefs_Wear / Panty",
+            "Kshishtof_PrimalBriefs_Wear / Stitches"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 5
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalHeadband",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalHeadband.fbx",
+      "bytes": 86588,
+      "sha256": "f1e8a774f1f9caa2eeb566f92a72a8400be2b5be7cd228d113b1e6cc22b9755d",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "rCheekUpper",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalHeadband",
+          "vertices": 458,
+          "triangles": 900,
+          "blendShapes": [],
+          "materials": [
+            "Marta_PrimalHeadband_Wear / Knot",
+            "Marta_PrimalHeadband_Wear / Wrap"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 5
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalHeadband",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalHeadband.fbx",
+      "bytes": 86748,
+      "sha256": "6e2d10ee7e27404a995a8ed087ace3e0d81a84c742da68e14fd394d2296c6a69",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "rCheekUpper",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalHeadband",
+          "vertices": 458,
+          "triangles": 899,
+          "blendShapes": [],
+          "materials": [
+            "Kshishtof_PrimalHeadband_Wear / Knot",
+            "Kshishtof_PrimalHeadband_Wear / Wrap"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 5
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalWrapBoots",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalWrapBoots.fbx",
+      "bytes": 231964,
+      "sha256": "e73eecd3db01a5280f57d9c5ba238a430002a8661c03f04aae0d0c8dfdc8a159",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "lThighTwist",
+        "lShin",
+        "lFoot",
+        "lMetatarsals",
+        "lSmallToe4",
+        "lSmallToe3",
+        "lSmallToe2",
+        "lSmallToe1",
+        "lBigToe",
+        "lHeel",
+        "rThighBend",
+        "rThighTwist",
+        "rShin",
+        "rFoot",
+        "rMetatarsals",
+        "rSmallToe4",
+        "rSmallToe3",
+        "rSmallToe2",
+        "rSmallToe1",
+        "rBigToe",
+        "rHeel"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalWrapBoots",
+          "vertices": 2026,
+          "triangles": 3649,
+          "blendShapes": [],
+          "materials": [
+            "Marta_PrimalWrapBoots_Wear / Stitches",
+            "Marta_PrimalWrapBoots_Wear / Cord",
+            "Marta_PrimalWrapBoots_Wear / LegWrap"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 9
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalWrapBoots",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalWrapBoots.fbx",
+      "bytes": 229196,
+      "sha256": "9b7aa92c558c6b659d07f4af431793446e053f49523515fd16fc7980ee923c83",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "lThighTwist",
+        "lShin",
+        "lFoot",
+        "lMetatarsals",
+        "lSmallToe4",
+        "lSmallToe3",
+        "lSmallToe2",
+        "lSmallToe1",
+        "lBigToe",
+        "lHeel",
+        "rThighBend",
+        "rThighTwist",
+        "rShin",
+        "rFoot",
+        "rMetatarsals",
+        "rSmallToe4",
+        "rSmallToe3",
+        "rSmallToe2",
+        "rSmallToe1",
+        "rBigToe",
+        "rHeel"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalWrapBoots",
+          "vertices": 2032,
+          "triangles": 3650,
+          "blendShapes": [],
+          "materials": [
+            "Kshishtof_PrimalWrapBoots_Wear / Stitches",
+            "Kshishtof_PrimalWrapBoots_Wear / Cord",
+            "Kshishtof_PrimalWrapBoots_Wear / LegWrap"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 8
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalSkirt",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalSkirt.fbx",
+      "bytes": 165788,
+      "sha256": "79a21b3e6554bd2accb0597f4186232c23b152f174732225b760b57901866c5f",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "rThighBend",
+        "abdomenLower"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalSkirt",
+          "vertices": 1670,
+          "triangles": 2897,
+          "blendShapes": [],
+          "materials": [
+            "Marta_PrimalSkirt_Wear / Tie",
+            "Marta_PrimalSkirt_Wear / Stitches",
+            "Marta_PrimalSkirt_Wear / Skirt",
+            "Marta_PrimalSkirt_Wear / Overhang"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalSkirt",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalSkirt.fbx",
+      "bytes": 166508,
+      "sha256": "ce5dd2862861542b1d2c3ac2d4014dc0a65ede1b774104b41b1a6b47ddc02d73",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "rThighBend",
+        "abdomenLower"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalSkirt",
+          "vertices": 1670,
+          "triangles": 2896,
+          "blendShapes": [],
+          "materials": [
+            "Kshishtof_PrimalSkirt_Wear / Tie",
+            "Kshishtof_PrimalSkirt_Wear / Stitches",
+            "Kshishtof_PrimalSkirt_Wear / Skirt",
+            "Kshishtof_PrimalSkirt_Wear / Overhang"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalTop",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalTop.fbx",
+      "bytes": 142652,
+      "sha256": "5ebbb988eed89740840d6c6416771b8d01f725abb355957c8b21e4dcabe4b4d8",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "rCollar",
+        "rShldrBend",
+        "neckLower",
+        "neckUpper",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalTop",
+          "vertices": 1225,
+          "triangles": 2049,
+          "blendShapes": [],
+          "materials": [
+            "Marta_PrimalTop_Wear / Tie",
+            "Marta_PrimalTop_Wear / Top",
+            "Marta_PrimalTop_Wear / Fringe"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 5
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalDress",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalDress.fbx",
+      "bytes": 952332,
+      "sha256": "c7256fd0837574cffa3cc3e6609f53a08d85a3cbd26a48401fd4fcd37918e3f0",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "rThighBend",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "rCollar",
+        "rShldrBend",
+        "rShldrTwist",
+        "neckLower",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalDress",
+          "vertices": 17612,
+          "triangles": 9790,
+          "blendShapes": [],
+          "materials": [
+            "Marta_PrimalDress_Wear / fur_plain",
+            "Marta_PrimalDress_Wear / dress"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 6
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalDress",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalDress.fbx",
+      "bytes": 945948,
+      "sha256": "8e68914ca1bbe7cadabe7294556d5ce0b3fa18ae03abbb0d99ce3ba22002f919",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "rThighBend",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "rCollar",
+        "rShldrBend",
+        "rShldrTwist",
+        "neckLower",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalDress",
+          "vertices": 17554,
+          "triangles": 9673,
+          "blendShapes": [],
+          "materials": [
+            "Kshishtof_PrimalDress_Wear / fur_plain",
+            "Kshishtof_PrimalDress_Wear / dress"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 6
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalCollar",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalCollar.fbx",
+      "bytes": 247004,
+      "sha256": "74bad75f86474f5f5538edb73e55d0700bb1ff5d1a84a753d822357085067807",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "lThighTwist",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "lShldrTwist",
+        "neckLower",
+        "lPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalCollar",
+          "vertices": 3293,
+          "triangles": 2771,
+          "blendShapes": [],
+          "materials": [
+            "Marta_PrimalCollar_Wear / dress.001",
+            "Marta_PrimalCollar_Wear / fur_plain.001"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 5
+        }
+      ]
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalCollar",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalCollar.fbx",
+      "bytes": 246796,
+      "sha256": "3e5b942a2c51ae9d295cb3d14ae7d28e3d5cb751e33e81f081ef7ef02987f167",
+      "bones": [
+        "hip",
+        "pelvis",
+        "lThighBend",
+        "lThighTwist",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "lShldrTwist",
+        "neckLower",
+        "lPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalCollar",
+          "vertices": 3292,
+          "triangles": 2771,
+          "blendShapes": [],
+          "materials": [
+            "Kshishtof_PrimalCollar_Wear / dress.001",
+            "Kshishtof_PrimalCollar_Wear / fur_plain.001"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 5
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "AdellHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/AdellHair_LOD0.fbx",
+      "bytes": 264508,
+      "sha256": "6e50815a79a5dd0b8d2fb7a594b0be4d9dde31dc26c48f6d4e1377a0f65cff5a",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "AdellHair_LOD0",
+          "vertices": 3371,
+          "triangles": 2400,
+          "blendShapes": [],
+          "materials": [
+            "AdellHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "AdellHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/AdellHair_LOD1.fbx",
+      "bytes": 140092,
+      "sha256": "9b6c30a6fd28a31b8441358e6276b7466107ff7e67706c46db7c2a5211738c8e",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "AdellHair_LOD1",
+          "vertices": 1469,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "AdellHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "AsukaHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/AsukaHair_LOD0.fbx",
+      "bytes": 248620,
+      "sha256": "b0383e404cb6b91bc30d5fe7474b14fc35e5ba68645b9c79bc8c0ab57655b540",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "AsukaHair_LOD0",
+          "vertices": 3238,
+          "triangles": 2399,
+          "blendShapes": [],
+          "materials": [
+            "AsukaHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "AsukaHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/AsukaHair_LOD1.fbx",
+      "bytes": 128476,
+      "sha256": "a4bb978b96a8c0a182b6d3b6e4b62aaeddb7541340ac63d49e70979db10b06f7",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "AsukaHair_LOD1",
+          "vertices": 1254,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "AsukaHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "BendineHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/BendineHair_LOD0.fbx",
+      "bytes": 282444,
+      "sha256": "748622382b9f8f3c262c721b99885f0833dcfe9d9123b5432d5c71c031a840ce",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "BendineHair_LOD0",
+          "vertices": 4215,
+          "triangles": 2398,
+          "blendShapes": [],
+          "materials": [
+            "BendineHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "BendineHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/BendineHair_LOD1.fbx",
+      "bytes": 131980,
+      "sha256": "73bcceb2a290a133b9f6f8b202a3edb87cd4476990354e6cab7cb4c1c7c8a483",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "BendineHair_LOD1",
+          "vertices": 1825,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "BendineHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "Bob3Hair_LOD0",
+      "actor": "Marta",
+      "path": "Models/Bob3Hair_LOD0.fbx",
+      "bytes": 265612,
+      "sha256": "a87ced6de1532cb0ac33c20476bfd673355be20e76b6a3c7daf2e1323e573705",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "Bob3Hair_LOD0",
+          "vertices": 3586,
+          "triangles": 2400,
+          "blendShapes": [],
+          "materials": [
+            "Bob3Hair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "Bob3Hair_LOD1",
+      "actor": "Marta",
+      "path": "Models/Bob3Hair_LOD1.fbx",
+      "bytes": 137084,
+      "sha256": "35c4247be45e5edefa9648363aa027880e632b6b3be351dff4ebae897e854a40",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "Bob3Hair_LOD1",
+          "vertices": 1417,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "Bob3Hair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "ChunkyHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/ChunkyHair_LOD0.fbx",
+      "bytes": 216076,
+      "sha256": "e085b31596f105c509b98f03fe601740cea65e1acfa5d7e3aa56e3bd9cfb6916",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "ChunkyHair_LOD0",
+          "vertices": 3468,
+          "triangles": 2399,
+          "blendShapes": [],
+          "materials": [
+            "ChunkyHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "ChunkyHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/ChunkyHair_LOD1.fbx",
+      "bytes": 83276,
+      "sha256": "5e2b4cf910a484ffd2154647889bae52d19f63c399fa06664ab1ce9b1452b65f",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "ChunkyHair_LOD1",
+          "vertices": 794,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "ChunkyHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "EilisHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/EilisHair_LOD0.fbx",
+      "bytes": 280492,
+      "sha256": "771ab0b6d52b3c07717e4031f84e0a1685055961c07dd950e8bf43fab7580933",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "EilisHair_LOD0",
+          "vertices": 4048,
+          "triangles": 2399,
+          "blendShapes": [],
+          "materials": [
+            "EilisHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 3
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "EilisHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/EilisHair_LOD1.fbx",
+      "bytes": 117708,
+      "sha256": "9e0738eaeb76a4261222045a2c532ff9444f9e6b4b9fc67232f5232e60d1c167",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "EilisHair_LOD1",
+          "vertices": 1434,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "EilisHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 3
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "Hair07_LOD0",
+      "actor": "Marta",
+      "path": "Models/Hair07_LOD0.fbx",
+      "bytes": 222956,
+      "sha256": "82be0c648ee3ef41545a78a80c4fc298b3cda351767a0f8b993fd82ba719b2a8",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "Hair07_LOD0",
+          "vertices": 2770,
+          "triangles": 2398,
+          "blendShapes": [],
+          "materials": [
+            "Hair07_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "Hair07_LOD1",
+      "actor": "Marta",
+      "path": "Models/Hair07_LOD1.fbx",
+      "bytes": 108588,
+      "sha256": "9b1175e4c82564d063453f76b450757ea51a48b242e408448cf5c80f9b493b6e",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "Hair07_LOD1",
+          "vertices": 791,
+          "triangles": 950,
+          "blendShapes": [],
+          "materials": [
+            "Hair07_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "JelikaHair_32434_LOD0",
+      "actor": "Marta",
+      "path": "Models/JelikaHair_32434_LOD0.fbx",
+      "bytes": 217980,
+      "sha256": "2cc5552fa536caa95005fd808710e237545967892576b7caa17c4d2909a0a755",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "JelikaHair_32434_LOD0",
+          "vertices": 2271,
+          "triangles": 2399,
+          "blendShapes": [],
+          "materials": [
+            "JelikaHair_32434_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "JelikaHair_32434_LOD1",
+      "actor": "Marta",
+      "path": "Models/JelikaHair_32434_LOD1.fbx",
+      "bytes": 120220,
+      "sha256": "7675d75ff14d5dbf0726038f5b7a66a99991da2805891085f2c48b6d845627ad",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "JelikaHair_32434_LOD1",
+          "vertices": 914,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "JelikaHair_32434_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "JenniferHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/JenniferHair_LOD0.fbx",
+      "bytes": 261324,
+      "sha256": "d8f8a0ae95de0f46e79f116e4677754c7b2e45fc4903387376e46b2c53ddd4af",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "lowerFaceRig",
+        "lCheekLower",
+        "rCheekLower",
+        "BelowJaw",
+        "lJawClench",
+        "rJawClench",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "JenniferHair_LOD0",
+          "vertices": 3536,
+          "triangles": 2400,
+          "blendShapes": [],
+          "materials": [
+            "JenniferHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "JenniferHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/JenniferHair_LOD1.fbx",
+      "bytes": 133404,
+      "sha256": "a1130abca37e0db4033bebdaf31c03d96779fac7e17b2eedcbd36501ebd81d3d",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "lowerFaceRig",
+        "lCheekLower",
+        "rCheekLower",
+        "BelowJaw",
+        "lJawClench",
+        "rJawClench",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "JenniferHair_LOD1",
+          "vertices": 1241,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "JenniferHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "LeonyPonytail_LOD0",
+      "actor": "Marta",
+      "path": "Models/LeonyPonytail_LOD0.fbx",
+      "bytes": 301964,
+      "sha256": "02ceaad87555ed94ddf490b33883376d281e4a8ff429b731cdd5bcdae1ff7f2c",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "rCollar",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "lowerFaceRig",
+        "lNasolabialMouthCorner",
+        "lCheekLower",
+        "rCheekLower",
+        "BelowJaw",
+        "lJawClench",
+        "rJawClench",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lEyelidUpperOuter",
+        "lEyelidOuter",
+        "lEyelidLowerOuter",
+        "lEyelidLower",
+        "rEyelidUpperOuter",
+        "rEyelidOuter",
+        "rEyelidLowerOuter",
+        "rSquintOuter",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lLipNasolabialCrease",
+        "lNasolabialMiddle",
+        "rNasolabialMiddle",
+        "lEar",
+        "rEar",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "LeonyPonytail_LOD0",
+          "vertices": 3491,
+          "triangles": 2400,
+          "blendShapes": [],
+          "materials": [
+            "LeonyPonytail_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "LeonyPonytail_LOD1",
+      "actor": "Marta",
+      "path": "Models/LeonyPonytail_LOD1.fbx",
+      "bytes": 171628,
+      "sha256": "c570c55864a7a8a7a2b2fbdb37802aded7b7d4b802c12060b0ec642026a02ee1",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "rCollar",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "lowerFaceRig",
+        "lNasolabialMouthCorner",
+        "lCheekLower",
+        "rCheekLower",
+        "BelowJaw",
+        "lJawClench",
+        "rJawClench",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lEyelidUpperOuter",
+        "lEyelidOuter",
+        "lEyelidLowerOuter",
+        "lEyelidLower",
+        "rEyelidUpperOuter",
+        "rEyelidOuter",
+        "rEyelidLowerOuter",
+        "rSquintOuter",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lLipNasolabialCrease",
+        "lNasolabialMiddle",
+        "rNasolabialMiddle",
+        "lEar",
+        "rEar",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "LeonyPonytail_LOD1",
+          "vertices": 1361,
+          "triangles": 800,
+          "blendShapes": [],
+          "materials": [
+            "LeonyPonytail_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "LoonaHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/LoonaHair_LOD0.fbx",
+      "bytes": 237836,
+      "sha256": "769bf12c2c9cc24a5f96552415166aae089a34a1313ad8bf797c5fbd3b826310",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "LoonaHair_LOD0",
+          "vertices": 2941,
+          "triangles": 2399,
+          "blendShapes": [],
+          "materials": [
+            "LoonaHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "LoonaHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/LoonaHair_LOD1.fbx",
+      "bytes": 121580,
+      "sha256": "068a58be638c2d1ea321e3c42b2634d0d3529f8a13cf9ae1baac45f8bc9c2d3f",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "LoonaHair_LOD1",
+          "vertices": 1242,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "LoonaHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "LowPonytail_LOD0",
+      "actor": "Marta",
+      "path": "Models/LowPonytail_LOD0.fbx",
+      "bytes": 266028,
+      "sha256": "97dd9a558090f9028e2bc8da3e02ea5ff31089cd41e86ce3849bf25fead5f21f",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "rCollar",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "LowPonytail_LOD0",
+          "vertices": 3853,
+          "triangles": 2399,
+          "blendShapes": [],
+          "materials": [
+            "LowPonytail_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "LowPonytail_LOD1",
+      "actor": "Marta",
+      "path": "Models/LowPonytail_LOD1.fbx",
+      "bytes": 127612,
+      "sha256": "05c44969975b5f0d85741cd89ce0e89cfdb66b7f56a402dc7b3c33737d52bcef",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "rCollar",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "LowPonytail_LOD1",
+          "vertices": 1711,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "LowPonytail_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "Neu09Hair_LOD0",
+      "actor": "Marta",
+      "path": "Models/Neu09Hair_LOD0.fbx",
+      "bytes": 252348,
+      "sha256": "9b0018b927dd811f7acc80560c40be8ed7004d9c0fc7a2031d3ea76c4e89118c",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "Neu09Hair_LOD0",
+          "vertices": 3299,
+          "triangles": 2396,
+          "blendShapes": [],
+          "materials": [
+            "Neu09Hair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "Neu09Hair_LOD1",
+      "actor": "Marta",
+      "path": "Models/Neu09Hair_LOD1.fbx",
+      "bytes": 124076,
+      "sha256": "4ca98325c30009bb33cdc1031b807799cf9eea52fbda3c3a063a90e3d75dd4ef",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "Neu09Hair_LOD1",
+          "vertices": 1155,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "Neu09Hair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "OnyxHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/OnyxHair_LOD0.fbx",
+      "bytes": 237036,
+      "sha256": "f83c807ab974270c0cc7a5371566b0802f5e21703f9d8cf9082bc01da756fb37",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "OnyxHair_LOD0",
+          "vertices": 4528,
+          "triangles": 2398,
+          "blendShapes": [],
+          "materials": [
+            "OnyxHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 1
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "OnyxHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/OnyxHair_LOD1.fbx",
+      "bytes": 95484,
+      "sha256": "6f05f870c4ff7016c3cd39baf3e2acfc2e9199b913339fe7d83adb20b5670299",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "meshes": [
+        {
+          "name": "OnyxHair_LOD1",
+          "vertices": 1272,
+          "triangles": 799,
+          "blendShapes": [],
+          "materials": [
+            "OnyxHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 1
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "ShilohHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/ShilohHair_LOD0.fbx",
+      "bytes": 257404,
+      "sha256": "5dc4d3b79d2ca448ddbed35277006034a37c33cc9c4935850f743496dffed0cc",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "ShilohHair_LOD0",
+          "vertices": 3103,
+          "triangles": 2398,
+          "blendShapes": [],
+          "materials": [
+            "ShilohHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "ShilohHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/ShilohHair_LOD1.fbx",
+      "bytes": 118028,
+      "sha256": "3aeca6bd0d1c07841494bece981cd9413ca7208b578e277fa2b19c36b9e7136d",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "ShilohHair_LOD1",
+          "vertices": 1167,
+          "triangles": 800,
+          "blendShapes": [],
+          "materials": [
+            "ShilohHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "TootsieRollHair_LOD0",
+      "actor": "Marta",
+      "path": "Models/TootsieRollHair_LOD0.fbx",
+      "bytes": 225276,
+      "sha256": "36e93da3ba53943db7b1efcb70d13f18613e26abbcb41a830caa66bd9dcd38d9",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "TootsieRollHair_LOD0",
+          "vertices": 2273,
+          "triangles": 2400,
+          "blendShapes": [],
+          "materials": [
+            "TootsieRollHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "hair",
+      "id": "TootsieRollHair_LOD1",
+      "actor": "Marta",
+      "path": "Models/TootsieRollHair_LOD1.fbx",
+      "bytes": 113820,
+      "sha256": "69a92cc8b308fed9d263b63d632d27551dab9cf9bf37067eac4bfd13e883b23a",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "meshes": [
+        {
+          "name": "TootsieRollHair_LOD1",
+          "vertices": 559,
+          "triangles": 950,
+          "blendShapes": [],
+          "materials": [
+            "TootsieRollHair_WebGL"
+          ],
+          "uvLayers": [
+            "WebAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalGathererPack",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalGathererPack.fbx",
+      "bytes": 123020,
+      "sha256": "5dd7de9e2b16047d3252d3c17589a9df3b3c28da84f794eb54f28ba5375c929c",
+      "bones": [
+        "hip",
+        "pelvis",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "rCollar",
+        "rShldrBend",
+        "neckLower",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalGathererPack",
+          "vertices": 971,
+          "triangles": 1840,
+          "blendShapes": [],
+          "materials": [
+            "PrimalGathererPack_Primal"
+          ],
+          "uvLayers": [
+            "PackAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalHunterPack",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalHunterPack.fbx",
+      "bytes": 126204,
+      "sha256": "75a4bdb8b7afd6a28b3bdcfef3737fa30071434e7e2164d14a9919cd72ea8f25",
+      "bones": [
+        "hip",
+        "pelvis",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "rCollar",
+        "rShldrBend",
+        "neckLower",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalHunterPack",
+          "vertices": 1018,
+          "triangles": 1936,
+          "blendShapes": [],
+          "materials": [
+            "PrimalHunterPack_Primal"
+          ],
+          "uvLayers": [
+            "PackAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalTrailPack",
+      "actor": "Marta",
+      "path": "Models/Marta_PrimalTrailPack.fbx",
+      "bytes": 110268,
+      "sha256": "78f81c7865b98f0e3d55f542348bf8c0a01daac788011656796a7e1e6fe24525",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper"
+      ],
+      "meshes": [
+        {
+          "name": "Marta_PrimalTrailPack",
+          "vertices": 1218,
+          "triangles": 2126,
+          "blendShapes": [],
+          "materials": [
+            "PrimalTrailPack_Primal.001"
+          ],
+          "uvLayers": [
+            "PackAtlas"
+          ],
+          "maxBoneWeights": 2
+        }
+      ]
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalGathererPack",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalGathererPack.fbx",
+      "bytes": 123148,
+      "sha256": "9d3f6091ded6ba7709a86387cdcc4781a2ede7c5860e1b09f4f09c1c5ea17802",
+      "bones": [
+        "hip",
+        "pelvis",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "rCollar",
+        "rShldrBend",
+        "neckLower",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalGathererPack",
+          "vertices": 971,
+          "triangles": 1840,
+          "blendShapes": [],
+          "materials": [
+            "PrimalGathererPack_Primal"
+          ],
+          "uvLayers": [
+            "PackAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalHunterPack",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalHunterPack.fbx",
+      "bytes": 126348,
+      "sha256": "ea3e6d963f06e2ed94c91ec93c772be864554d7043e0230a263eab598e82c22c",
+      "bones": [
+        "hip",
+        "pelvis",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "rCollar",
+        "rShldrBend",
+        "neckLower",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalHunterPack",
+          "vertices": 1018,
+          "triangles": 1936,
+          "blendShapes": [],
+          "materials": [
+            "PrimalHunterPack_Primal"
+          ],
+          "uvLayers": [
+            "PackAtlas"
+          ],
+          "maxBoneWeights": 4
+        }
+      ]
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalTrailPack",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalTrailPack.fbx",
+      "bytes": 110652,
+      "sha256": "eac1e04599add233a587887d2715be3855d1d7cb32e7eda156ac6c545140cadd",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalTrailPack",
+          "vertices": 1218,
+          "triangles": 2126,
+          "blendShapes": [],
+          "materials": [
+            "PrimalTrailPack_Primal.001"
+          ],
+          "uvLayers": [
+            "PackAtlas"
+          ],
+          "maxBoneWeights": 2
+        }
+      ]
+    }
+  ],
+  "materials": {
+    "Marta_Atlas": {
+      "name": "Marta_Atlas",
+      "sourceSlot": "Marta_Atlas",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/Marta_BaseColor_2048_0b51d48c5148.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.699999988079071,
+        0.5,
+        0.4000000059604645,
+        1.0
+      ],
+      "roughness": 0.7799999713897705,
+      "metallic": 0.0
+    },
+    "Kshishtof_Atlas": {
+      "name": "Kshishtof_Atlas",
+      "sourceSlot": "Kshishtof_Atlas",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/Kshishtof_BaseColor_2048_e32e5c0944e4.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.699999988079071,
+        0.5,
+        0.4000000059604645,
+        1.0
+      ],
+      "roughness": 0.7799999713897705,
+      "metallic": 0.0
+    },
+    "Marta_PrimalArmWraps_Wear / Sleeve": {
+      "name": "Marta_PrimalArmWraps_Wear / Sleeve",
+      "sourceSlot": "Sleeve",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Sleeve_21e5882a1ecb.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve1",
+          "image": "Textures/Primal_Sleeve1_805876a1a3a0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve2",
+          "image": "Textures/Primal_Sleeve2_d90b470a68ac.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve3",
+          "image": "Textures/Primal_Sleeve3_1707eab9c9f7.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "Sleeve1",
+        "Sleeve2",
+        "Sleeve3"
+      ]
+    },
+    "Marta_PrimalArmWraps_Wear / Cord": {
+      "name": "Marta_PrimalArmWraps_Wear / Cord",
+      "sourceSlot": "Cord",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Sleeve_21e5882a1ecb.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve1",
+          "image": "Textures/Primal_Sleeve1_805876a1a3a0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve2",
+          "image": "Textures/Primal_Sleeve2_d90b470a68ac.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve3",
+          "image": "Textures/Primal_Sleeve3_1707eab9c9f7.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "Sleeve1",
+        "Sleeve2",
+        "Sleeve3"
+      ]
+    },
+    "Kshishtof_PrimalArmWraps_Wear / Sleeve": {
+      "name": "Kshishtof_PrimalArmWraps_Wear / Sleeve",
+      "sourceSlot": "Sleeve",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Sleeve_21e5882a1ecb.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve1",
+          "image": "Textures/Primal_Sleeve1_805876a1a3a0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve2",
+          "image": "Textures/Primal_Sleeve2_d90b470a68ac.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve3",
+          "image": "Textures/Primal_Sleeve3_1707eab9c9f7.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "Sleeve1",
+        "Sleeve2",
+        "Sleeve3"
+      ]
+    },
+    "Kshishtof_PrimalArmWraps_Wear / Cord": {
+      "name": "Kshishtof_PrimalArmWraps_Wear / Cord",
+      "sourceSlot": "Cord",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Sleeve_21e5882a1ecb.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve1",
+          "image": "Textures/Primal_Sleeve1_805876a1a3a0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve2",
+          "image": "Textures/Primal_Sleeve2_d90b470a68ac.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Sleeve3",
+          "image": "Textures/Primal_Sleeve3_1707eab9c9f7.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Sleeve3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "Sleeve1",
+        "Sleeve2",
+        "Sleeve3"
+      ]
+    },
+    "Marta_PrimalBriefs_Wear / Panty": {
+      "name": "Marta_PrimalBriefs_Wear / Panty",
+      "sourceSlot": "Panty",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Panty.jpg_ab977aa206a7.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "Panty1",
+          "image": "Textures/Primal_Panty1_f726f30de9a8.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Panty2",
+          "image": "Textures/Primal_Panty2_9891b43a00c6.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Panty3",
+          "image": "Textures/Primal_Panty3_7844991dfd59.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "Panty1",
+        "Panty2",
+        "Panty3"
+      ]
+    },
+    "Marta_PrimalBriefs_Wear / Stitches": {
+      "name": "Marta_PrimalBriefs_Wear / Stitches",
+      "sourceSlot": "Stitches",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Panty.jpg_ab977aa206a7.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "Panty1",
+          "image": "Textures/Primal_Panty1_f726f30de9a8.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Panty2",
+          "image": "Textures/Primal_Panty2_9891b43a00c6.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Panty3",
+          "image": "Textures/Primal_Panty3_7844991dfd59.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "Panty1",
+        "Panty2",
+        "Panty3"
+      ]
+    },
+    "Kshishtof_PrimalBriefs_Wear / Panty": {
+      "name": "Kshishtof_PrimalBriefs_Wear / Panty",
+      "sourceSlot": "Panty",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Panty.jpg_ab977aa206a7.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "Panty1",
+          "image": "Textures/Primal_Panty1_f726f30de9a8.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Panty2",
+          "image": "Textures/Primal_Panty2_9891b43a00c6.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Panty3",
+          "image": "Textures/Primal_Panty3_7844991dfd59.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "Panty1",
+        "Panty2",
+        "Panty3"
+      ]
+    },
+    "Kshishtof_PrimalBriefs_Wear / Stitches": {
+      "name": "Kshishtof_PrimalBriefs_Wear / Stitches",
+      "sourceSlot": "Stitches",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Panty.jpg_ab977aa206a7.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "Panty1",
+          "image": "Textures/Primal_Panty1_f726f30de9a8.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Panty2",
+          "image": "Textures/Primal_Panty2_9891b43a00c6.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Panty3",
+          "image": "Textures/Primal_Panty3_7844991dfd59.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant Panty3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "Panty1",
+        "Panty2",
+        "Panty3"
+      ]
+    },
+    "Marta_PrimalHeadband_Wear / Knot": {
+      "name": "Marta_PrimalHeadband_Wear / Knot",
+      "sourceSlot": "Knot",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Leather1_053ede959ba9.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Leather2_261dc96586a9.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Leather3_8d4ac69dd4ae.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "4",
+          "image": "Textures/Primal_Leather4_0ca33a174b44.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 4",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "Marta_PrimalHeadband_Wear / Wrap": {
+      "name": "Marta_PrimalHeadband_Wear / Wrap",
+      "sourceSlot": "Wrap",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Leather1_053ede959ba9.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Leather2_261dc96586a9.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Leather3_8d4ac69dd4ae.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "4",
+          "image": "Textures/Primal_Leather4_0ca33a174b44.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 4",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "Kshishtof_PrimalHeadband_Wear / Knot": {
+      "name": "Kshishtof_PrimalHeadband_Wear / Knot",
+      "sourceSlot": "Knot",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Leather1_053ede959ba9.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Leather2_261dc96586a9.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Leather3_8d4ac69dd4ae.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "4",
+          "image": "Textures/Primal_Leather4_0ca33a174b44.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 4",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "Kshishtof_PrimalHeadband_Wear / Wrap": {
+      "name": "Kshishtof_PrimalHeadband_Wear / Wrap",
+      "sourceSlot": "Wrap",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Leather1_053ede959ba9.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Leather2_261dc96586a9.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Leather3_8d4ac69dd4ae.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "4",
+          "image": "Textures/Primal_Leather4_0ca33a174b44.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 4",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "Marta_PrimalWrapBoots_Wear / Stitches": {
+      "name": "Marta_PrimalWrapBoots_Wear / Stitches",
+      "sourceSlot": "Stitches",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Moccasins_f1ab8060aca0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Moccasins1_436778cf2d1a.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Moccasins2_75fe145167d4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Moccasins3_e4c16c633a72.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalWrapBoots_Wear / Cord": {
+      "name": "Marta_PrimalWrapBoots_Wear / Cord",
+      "sourceSlot": "Cord",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Moccasins_f1ab8060aca0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Moccasins1_436778cf2d1a.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Moccasins2_75fe145167d4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Moccasins3_e4c16c633a72.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalWrapBoots_Wear / LegWrap": {
+      "name": "Marta_PrimalWrapBoots_Wear / LegWrap",
+      "sourceSlot": "LegWrap",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Moccasins_f1ab8060aca0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Moccasins1_436778cf2d1a.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Moccasins2_75fe145167d4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Moccasins3_e4c16c633a72.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Kshishtof_PrimalWrapBoots_Wear / Stitches": {
+      "name": "Kshishtof_PrimalWrapBoots_Wear / Stitches",
+      "sourceSlot": "Stitches",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Moccasins_f1ab8060aca0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Moccasins1_436778cf2d1a.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Moccasins2_75fe145167d4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Moccasins3_e4c16c633a72.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Kshishtof_PrimalWrapBoots_Wear / Cord": {
+      "name": "Kshishtof_PrimalWrapBoots_Wear / Cord",
+      "sourceSlot": "Cord",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Moccasins_f1ab8060aca0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Moccasins1_436778cf2d1a.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Moccasins2_75fe145167d4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Moccasins3_e4c16c633a72.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Kshishtof_PrimalWrapBoots_Wear / LegWrap": {
+      "name": "Kshishtof_PrimalWrapBoots_Wear / LegWrap",
+      "sourceSlot": "LegWrap",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Moccasins_f1ab8060aca0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Moccasins1_436778cf2d1a.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Moccasins2_75fe145167d4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Moccasins3_e4c16c633a72.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalSkirt_Wear / Tie": {
+      "name": "Marta_PrimalSkirt_Wear / Tie",
+      "sourceSlot": "Tie",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Skirt_d55013ddf7b4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Skirt2_c44c1c39a633.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Skirt3_ad304e1b682f.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalSkirt_Wear / Stitches": {
+      "name": "Marta_PrimalSkirt_Wear / Stitches",
+      "sourceSlot": "Stitches",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Skirt_d55013ddf7b4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Skirt2_c44c1c39a633.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Skirt3_ad304e1b682f.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalSkirt_Wear / Skirt": {
+      "name": "Marta_PrimalSkirt_Wear / Skirt",
+      "sourceSlot": "Skirt",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Skirt_d55013ddf7b4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Skirt2_c44c1c39a633.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Skirt3_ad304e1b682f.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalSkirt_Wear / Overhang": {
+      "name": "Marta_PrimalSkirt_Wear / Overhang",
+      "sourceSlot": "Overhang",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Skirt_d55013ddf7b4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Skirt2_c44c1c39a633.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Skirt3_ad304e1b682f.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Kshishtof_PrimalSkirt_Wear / Tie": {
+      "name": "Kshishtof_PrimalSkirt_Wear / Tie",
+      "sourceSlot": "Tie",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Skirt_d55013ddf7b4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Skirt2_c44c1c39a633.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Skirt3_ad304e1b682f.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Kshishtof_PrimalSkirt_Wear / Stitches": {
+      "name": "Kshishtof_PrimalSkirt_Wear / Stitches",
+      "sourceSlot": "Stitches",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Skirt_d55013ddf7b4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Skirt2_c44c1c39a633.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Skirt3_ad304e1b682f.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Kshishtof_PrimalSkirt_Wear / Skirt": {
+      "name": "Kshishtof_PrimalSkirt_Wear / Skirt",
+      "sourceSlot": "Skirt",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Skirt_d55013ddf7b4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Skirt2_c44c1c39a633.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Skirt3_ad304e1b682f.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Kshishtof_PrimalSkirt_Wear / Overhang": {
+      "name": "Kshishtof_PrimalSkirt_Wear / Overhang",
+      "sourceSlot": "Overhang",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Skirt_d55013ddf7b4.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Skirt2_c44c1c39a633.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Skirt3_ad304e1b682f.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalTop_Wear / Tie": {
+      "name": "Marta_PrimalTop_Wear / Tie",
+      "sourceSlot": "Tie",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Top.jpg_720f2239d150.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Top1_a330b11721b5.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Top2_28cb6f8c6840.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Top3_9e47aab56bc3.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalTop_Wear / Top": {
+      "name": "Marta_PrimalTop_Wear / Top",
+      "sourceSlot": "Top",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Top.jpg_720f2239d150.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Top1_a330b11721b5.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Top2_28cb6f8c6840.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Top3_9e47aab56bc3.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalTop_Wear / Fringe": {
+      "name": "Marta_PrimalTop_Wear / Fringe",
+      "sourceSlot": "Fringe",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/Primal_Top.jpg_720f2239d150.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "1",
+          "image": "Textures/Primal_Top1_a330b11721b5.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 1",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "2",
+          "image": "Textures/Primal_Top2_28cb6f8c6840.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 2",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "3",
+          "image": "Textures/Primal_Top3_9e47aab56bc3.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant 3",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "Marta_PrimalDress_Wear / fur_plain": {
+      "name": "Marta_PrimalDress_Wear / fur_plain",
+      "sourceSlot": "fur_plain",
+      "doubleSided": true,
+      "alphaMode": "CLIP",
+      "alphaCutoff": 0.30000001192092896,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/PrDr_fur_PrDr_furTR_88aa560741fe.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color1"
+            },
+            {
+              "output": "Alpha",
+              "toNode": "Principled BSDF",
+              "toSocket": "Alpha"
+            }
+          ]
+        },
+        {
+          "node": "color01",
+          "image": "Textures/PrDr_fur_307124267c42.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color02",
+          "image": "Textures/PrDr_fur2_834bb4bcb0d5.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color02",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color03",
+          "image": "Textures/PrDr_fur3_7a02bd80254e.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color03",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color04",
+          "image": "Textures/PrDr_fur4_97094194fb00.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color04",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color05",
+          "image": "Textures/PrDr_fur5_99593a31fc2b.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color05",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color06",
+          "image": "Textures/PrDr_fur6_c5665eb78b09.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color06",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "color01",
+        "color02",
+        "color03",
+        "color04",
+        "color05",
+        "color06"
+      ]
+    },
+    "Marta_PrimalDress_Wear / dress": {
+      "name": "Marta_PrimalDress_Wear / dress",
+      "sourceSlot": "dress",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/PrDr_fur_307124267c42.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "color01",
+          "image": "Textures/PrDr_fur_307124267c42.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color02",
+          "image": "Textures/PrDr_fur2_834bb4bcb0d5.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color02",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color03",
+          "image": "Textures/PrDr_fur3_7a02bd80254e.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color03",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color04",
+          "image": "Textures/PrDr_fur4_97094194fb00.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color04",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color05",
+          "image": "Textures/PrDr_fur5_99593a31fc2b.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color05",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color06",
+          "image": "Textures/PrDr_fur6_c5665eb78b09.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color06",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Image Texture",
+          "image": "Textures/PrDr_furNO_7674ceefeda6.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Normal Map",
+              "toSocket": "Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "color01",
+        "color02",
+        "color03",
+        "color04",
+        "color05",
+        "color06"
+      ]
+    },
+    "Kshishtof_PrimalDress_Wear / fur_plain": {
+      "name": "Kshishtof_PrimalDress_Wear / fur_plain",
+      "sourceSlot": "fur_plain",
+      "doubleSided": true,
+      "alphaMode": "CLIP",
+      "alphaCutoff": 0.30000001192092896,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/PrDr_fur_PrDr_furTR_88aa560741fe.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color1"
+            },
+            {
+              "output": "Alpha",
+              "toNode": "Principled BSDF",
+              "toSocket": "Alpha"
+            }
+          ]
+        },
+        {
+          "node": "color01",
+          "image": "Textures/PrDr_fur_307124267c42.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color02",
+          "image": "Textures/PrDr_fur2_834bb4bcb0d5.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color02",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color03",
+          "image": "Textures/PrDr_fur3_7a02bd80254e.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color03",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color04",
+          "image": "Textures/PrDr_fur4_97094194fb00.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color04",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color05",
+          "image": "Textures/PrDr_fur5_99593a31fc2b.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color05",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color06",
+          "image": "Textures/PrDr_fur6_c5665eb78b09.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color06",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "color01",
+        "color02",
+        "color03",
+        "color04",
+        "color05",
+        "color06"
+      ]
+    },
+    "Kshishtof_PrimalDress_Wear / dress": {
+      "name": "Kshishtof_PrimalDress_Wear / dress",
+      "sourceSlot": "dress",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/PrDr_fur_307124267c42.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "color01",
+          "image": "Textures/PrDr_fur_307124267c42.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color02",
+          "image": "Textures/PrDr_fur2_834bb4bcb0d5.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color02",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color03",
+          "image": "Textures/PrDr_fur3_7a02bd80254e.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color03",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color04",
+          "image": "Textures/PrDr_fur4_97094194fb00.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color04",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color05",
+          "image": "Textures/PrDr_fur5_99593a31fc2b.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color05",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color06",
+          "image": "Textures/PrDr_fur6_c5665eb78b09.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color06",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Image Texture",
+          "image": "Textures/PrDr_furNO_7674ceefeda6.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Normal Map",
+              "toSocket": "Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "color01",
+        "color02",
+        "color03",
+        "color04",
+        "color05",
+        "color06"
+      ]
+    },
+    "Marta_PrimalCollar_Wear / dress.001": {
+      "name": "Marta_PrimalCollar_Wear / dress.001",
+      "sourceSlot": "dress",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/PrDr_fur.jpg_6881b998c326.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "color01",
+          "image": "Textures/PrDr_fur.jpg_6881b998c326.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color02",
+          "image": "Textures/PrDr_fur2.jpg_f97ae9a294e8.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color02",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color03",
+          "image": "Textures/PrDr_fur3.jpg_f99610b36046.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color03",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color04",
+          "image": "Textures/PrDr_fur4.jpg_d704a40f955a.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color04",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color05",
+          "image": "Textures/PrDr_fur5.jpg_eb8ea63041a7.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color05",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color06",
+          "image": "Textures/PrDr_fur6.jpg_6fcd1272cdf2.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color06",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Image Texture",
+          "image": "Textures/PrDr_furNO.jpg_7674ceefeda6.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Normal Map",
+              "toSocket": "Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "color01",
+        "color02",
+        "color03",
+        "color04",
+        "color05",
+        "color06"
+      ]
+    },
+    "Marta_PrimalCollar_Wear / fur_plain.001": {
+      "name": "Marta_PrimalCollar_Wear / fur_plain.001",
+      "sourceSlot": "fur_plain",
+      "doubleSided": true,
+      "alphaMode": "CLIP",
+      "alphaCutoff": 0.30000001192092896,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/PrDr_fur_PrDr_furTR.png_c7f743011191.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color1"
+            },
+            {
+              "output": "Alpha",
+              "toNode": "Principled BSDF",
+              "toSocket": "Alpha"
+            }
+          ]
+        },
+        {
+          "node": "color01",
+          "image": "Textures/PrDr_fur.jpg_6881b998c326.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color02",
+          "image": "Textures/PrDr_fur2.jpg_f97ae9a294e8.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color02",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color03",
+          "image": "Textures/PrDr_fur3.jpg_f99610b36046.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color03",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color04",
+          "image": "Textures/PrDr_fur4.jpg_d704a40f955a.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color04",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color05",
+          "image": "Textures/PrDr_fur5.jpg_eb8ea63041a7.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color05",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color06",
+          "image": "Textures/PrDr_fur6.jpg_6fcd1272cdf2.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color06",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "color01",
+        "color02",
+        "color03",
+        "color04",
+        "color05",
+        "color06"
+      ]
+    },
+    "Kshishtof_PrimalCollar_Wear / dress.001": {
+      "name": "Kshishtof_PrimalCollar_Wear / dress.001",
+      "sourceSlot": "dress",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/PrDr_fur.jpg_6881b998c326.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color1"
+            }
+          ]
+        },
+        {
+          "node": "color01",
+          "image": "Textures/PrDr_fur.jpg_6881b998c326.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color02",
+          "image": "Textures/PrDr_fur2.jpg_f97ae9a294e8.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color02",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color03",
+          "image": "Textures/PrDr_fur3.jpg_f99610b36046.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color03",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color04",
+          "image": "Textures/PrDr_fur4.jpg_d704a40f955a.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color04",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color05",
+          "image": "Textures/PrDr_fur5.jpg_eb8ea63041a7.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color05",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color06",
+          "image": "Textures/PrDr_fur6.jpg_6fcd1272cdf2.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color06",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "Image Texture",
+          "image": "Textures/PrDr_furNO.jpg_7674ceefeda6.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Normal Map",
+              "toSocket": "Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "color01",
+        "color02",
+        "color03",
+        "color04",
+        "color05",
+        "color06"
+      ]
+    },
+    "Kshishtof_PrimalCollar_Wear / fur_plain.001": {
+      "name": "Kshishtof_PrimalCollar_Wear / fur_plain.001",
+      "sourceSlot": "fur_plain",
+      "doubleSided": true,
+      "alphaMode": "CLIP",
+      "alphaCutoff": 0.30000001192092896,
+      "images": [
+        {
+          "node": "Base",
+          "image": "Textures/PrDr_fur_PrDr_furTR.png_c7f743011191.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color1"
+            },
+            {
+              "output": "Alpha",
+              "toNode": "Principled BSDF",
+              "toSocket": "Alpha"
+            }
+          ]
+        },
+        {
+          "node": "color01",
+          "image": "Textures/PrDr_fur.jpg_6881b998c326.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color01",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color02",
+          "image": "Textures/PrDr_fur2.jpg_f97ae9a294e8.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color02",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color03",
+          "image": "Textures/PrDr_fur3.jpg_f99610b36046.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color03",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color04",
+          "image": "Textures/PrDr_fur4.jpg_d704a40f955a.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color04",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color05",
+          "image": "Textures/PrDr_fur5.jpg_eb8ea63041a7.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color05",
+              "toSocket": "Color2"
+            }
+          ]
+        },
+        {
+          "node": "color06",
+          "image": "Textures/PrDr_fur6.jpg_6fcd1272cdf2.jpg",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Variant color06",
+              "toSocket": "Color2"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "variants": [
+        "Base",
+        "color01",
+        "color02",
+        "color03",
+        "color04",
+        "color05",
+        "color06"
+      ]
+    },
+    "AdellHair_WebGL": {
+      "name": "AdellHair_WebGL",
+      "sourceSlot": "AdellHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/AdellHair_Atlas512_82a7af678aff.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "AsukaHair_WebGL": {
+      "name": "AsukaHair_WebGL",
+      "sourceSlot": "AsukaHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/AsukaHair_Atlas512_35694a567ae2.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "BendineHair_WebGL": {
+      "name": "BendineHair_WebGL",
+      "sourceSlot": "BendineHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/BendineHair_Atlas512_10e55e65e082.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "Bob3Hair_WebGL": {
+      "name": "Bob3Hair_WebGL",
+      "sourceSlot": "Bob3Hair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/Bob3Hair_Atlas512_62add78736d5.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "ChunkyHair_WebGL": {
+      "name": "ChunkyHair_WebGL",
+      "sourceSlot": "ChunkyHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/ChunkyHair_Atlas512_be3a7a7b0cf1.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "EilisHair_WebGL": {
+      "name": "EilisHair_WebGL",
+      "sourceSlot": "EilisHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/EilisHair_Atlas512_a1f7f894e2a9.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "Hair07_WebGL": {
+      "name": "Hair07_WebGL",
+      "sourceSlot": "Hair07_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/Hair07_Atlas512_2f47cfaca693.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "JelikaHair_32434_WebGL": {
+      "name": "JelikaHair_32434_WebGL",
+      "sourceSlot": "JelikaHair_32434_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/JelikaHair_32434_Atlas512_3edacaa3bbcb.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "JenniferHair_WebGL": {
+      "name": "JenniferHair_WebGL",
+      "sourceSlot": "JenniferHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/JenniferHair_Atlas512_ef5e35b39a3e.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "LeonyPonytail_WebGL": {
+      "name": "LeonyPonytail_WebGL",
+      "sourceSlot": "LeonyPonytail_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/LeonyPonytail_Atlas512_84a659da97d2.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "LoonaHair_WebGL": {
+      "name": "LoonaHair_WebGL",
+      "sourceSlot": "LoonaHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/LoonaHair_Atlas512_fb01b21b8fbf.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "LowPonytail_WebGL": {
+      "name": "LowPonytail_WebGL",
+      "sourceSlot": "LowPonytail_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/LowPonytail_Atlas512_d029a899bbb7.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "Neu09Hair_WebGL": {
+      "name": "Neu09Hair_WebGL",
+      "sourceSlot": "Neu09Hair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/Neu09Hair_Atlas512_4647a65cc5cd.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "OnyxHair_WebGL": {
+      "name": "OnyxHair_WebGL",
+      "sourceSlot": "OnyxHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/OnyxHair_Atlas512_9e39a613960c.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "ShilohHair_WebGL": {
+      "name": "ShilohHair_WebGL",
+      "sourceSlot": "ShilohHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/ShilohHair_Atlas512_6953fa6f6809.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "TootsieRollHair_WebGL": {
+      "name": "TootsieRollHair_WebGL",
+      "sourceSlot": "TootsieRollHair_WebGL",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/TootsieRollHair_Atlas512_d71da977845f.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "PrimalGathererPack_Primal": {
+      "name": "PrimalGathererPack_Primal",
+      "sourceSlot": "PrimalGathererPack_Primal",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/PrimalGathererPack_Atlas512_03554fc398f0.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "PrimalHunterPack_Primal": {
+      "name": "PrimalHunterPack_Primal",
+      "sourceSlot": "PrimalHunterPack_Primal",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/PrimalHunterPack_Atlas512_77e924bd67bc.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    },
+    "PrimalTrailPack_Primal.001": {
+      "name": "PrimalTrailPack_Primal.001",
+      "sourceSlot": "PrimalTrailPack_Primal.001",
+      "doubleSided": true,
+      "alphaMode": "OPAQUE",
+      "alphaCutoff": 0.5,
+      "images": [
+        {
+          "node": "Image Texture",
+          "image": "Textures/PrimalTrailPack_Atlas512_4c8e6851e0be.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Principled BSDF",
+              "toSocket": "Base Color"
+            }
+          ]
+        }
+      ],
+      "baseColor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0
+    }
+  },
+  "textures": {
+    "Marta_BaseColor_2048": {
+      "path": "Textures/Marta_BaseColor_2048_0b51d48c5148.jpg",
+      "sha256": "0b51d48c5148236330efaa27aa18203811d79ff86a63319af03ff7a6981c0cd7",
+      "width": 2048,
+      "height": 2048,
+      "colorSpace": "sRGB"
+    },
+    "Kshishtof_BaseColor_2048": {
+      "path": "Textures/Kshishtof_BaseColor_2048_e32e5c0944e4.jpg",
+      "sha256": "e32e5c0944e42078e0bf427eed5ffb91b0d2138c9513fb54b3a0cb409a088096",
+      "width": 2048,
+      "height": 2048,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Sleeve.jpg": {
+      "path": "Textures/Primal_Sleeve_21e5882a1ecb.png",
+      "sha256": "21e5882a1ecbd5800c68f9b8e3e3ab8206e626a9156101c1f68910cd7b39f6af",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Sleeve1.jpg": {
+      "path": "Textures/Primal_Sleeve1_805876a1a3a0.png",
+      "sha256": "805876a1a3a07ed6425c09e9cb4065b7102b0fde7221129b55d0bac675cdd7a6",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Sleeve2.jpg": {
+      "path": "Textures/Primal_Sleeve2_d90b470a68ac.png",
+      "sha256": "d90b470a68acd4ed3e51dffe2bccf87b0903dfa78f791d68317f4cf8ceecb99a",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Sleeve3.jpg": {
+      "path": "Textures/Primal_Sleeve3_1707eab9c9f7.png",
+      "sha256": "1707eab9c9f72f9419edf1b2583526008fec1d3165b9eb7ac2cef3bb4f491cf0",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Panty.jpg.001": {
+      "path": "Textures/Primal_Panty.jpg_ab977aa206a7.png",
+      "sha256": "ab977aa206a77b972a2e292336d097942b98514ab5c7bb84eeddfa7414253242",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Panty1.jpg": {
+      "path": "Textures/Primal_Panty1_f726f30de9a8.png",
+      "sha256": "f726f30de9a87f04fd487b8026b611b3bcbe1ce452d78350449bbdcd6a687d2c",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Panty2.jpg": {
+      "path": "Textures/Primal_Panty2_9891b43a00c6.png",
+      "sha256": "9891b43a00c67b297ad7c52a4bb516858a1a527a0d7f3b7afaf322045ea8e830",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Panty3.jpg": {
+      "path": "Textures/Primal_Panty3_7844991dfd59.png",
+      "sha256": "7844991dfd59b58158ccbf3532ba12a0ca8f67d80572dd0cde5a50f471c26faa",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Leather1.jpg": {
+      "path": "Textures/Primal_Leather1_053ede959ba9.jpg",
+      "sha256": "053ede959ba9b41f7e4dc56ae36783d53c356dc361cb710d8a5251f3917fa351",
+      "width": 500,
+      "height": 500,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Leather2.jpg": {
+      "path": "Textures/Primal_Leather2_261dc96586a9.jpg",
+      "sha256": "261dc96586a9ad653870a7a93d46c6aef2918dc9479ed993c607f7655832c7f5",
+      "width": 500,
+      "height": 500,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Leather3.jpg": {
+      "path": "Textures/Primal_Leather3_8d4ac69dd4ae.jpg",
+      "sha256": "8d4ac69dd4ae182f4a1a7ae2ae509dc3ad4d7382ba30fab3dcd6b0b5a7b0f8fd",
+      "width": 500,
+      "height": 500,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Leather4.jpg": {
+      "path": "Textures/Primal_Leather4_0ca33a174b44.jpg",
+      "sha256": "0ca33a174b443dd7e58b71747120e147113bcb010700c6d16b4c9a4fefc3991a",
+      "width": 500,
+      "height": 500,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Moccasins.jpg": {
+      "path": "Textures/Primal_Moccasins_f1ab8060aca0.png",
+      "sha256": "f1ab8060aca0eb85e62178f09d8524dbcbc57bd980c0c8cda840421987796772",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Moccasins1.jpg": {
+      "path": "Textures/Primal_Moccasins1_436778cf2d1a.png",
+      "sha256": "436778cf2d1a0e9a25855230b4a461e7887ea3117d8c4eff7d8e9a43c18bd654",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Moccasins2.jpg": {
+      "path": "Textures/Primal_Moccasins2_75fe145167d4.png",
+      "sha256": "75fe145167d462c31c687fa80989774f2529992999c67f46ebecd9ff843bb798",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Moccasins3.jpg": {
+      "path": "Textures/Primal_Moccasins3_e4c16c633a72.png",
+      "sha256": "e4c16c633a7284b8343561c98dd3d4d8060a0e6e50ee709783f21eeab0100a51",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Skirt.jpg": {
+      "path": "Textures/Primal_Skirt_d55013ddf7b4.png",
+      "sha256": "d55013ddf7b47b3b81c92567add01863eee2d22fabe64b1ecdfe2e2b7ea3bba5",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Skirt1.jpg": {
+      "path": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
+      "sha256": "8ef7ecbdcb4c42dfa4f79fcd5a16afe37829e582dea7532318db704778f2ff7a",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Skirt2.jpg": {
+      "path": "Textures/Primal_Skirt2_c44c1c39a633.png",
+      "sha256": "c44c1c39a6339d756c14dd0d730dd9e126b741c93dba59c3329722724f57b625",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Skirt3.jpg": {
+      "path": "Textures/Primal_Skirt3_ad304e1b682f.png",
+      "sha256": "ad304e1b682f1b502560b18ba9fdc4a47a2c96887906ad45e60e46001c15ad58",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Top.jpg.001": {
+      "path": "Textures/Primal_Top.jpg_720f2239d150.png",
+      "sha256": "720f2239d150154a5dc0e8f7a78cd6ccfe3b789f61e16d567e7944b94f72d938",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Top1.jpg": {
+      "path": "Textures/Primal_Top1_a330b11721b5.png",
+      "sha256": "a330b11721b525f7559371656dcefb9dec0b9c594ee3c3af65adcfc3619303ec",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Top2.jpg": {
+      "path": "Textures/Primal_Top2_28cb6f8c6840.png",
+      "sha256": "28cb6f8c6840355f5024d31c807fb1f184274282f84a39a7e3f5bb680d542235",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "Primal_Top3.jpg": {
+      "path": "Textures/Primal_Top3_9e47aab56bc3.png",
+      "sha256": "9e47aab56bc30cbc7c32fd450801dabd22031c44c2588ca331ab93dd0ec921b6",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur_PrDr_furTR.png": {
+      "path": "Textures/PrDr_fur_PrDr_furTR_88aa560741fe.png",
+      "sha256": "88aa560741fe70c1e4c712ee720779176b4eeac862ce14685880cb3b51a59c62",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur.jpg": {
+      "path": "Textures/PrDr_fur_307124267c42.png",
+      "sha256": "307124267c42f7e3f8b14fcfe81bfe1bf0ce8000c4d380c1df5b2c3a0b466c3c",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur2.jpg": {
+      "path": "Textures/PrDr_fur2_834bb4bcb0d5.png",
+      "sha256": "834bb4bcb0d54642e14f08e4f69aa215bf68cb59da8eac99585eb5dc1b372d1f",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur3.jpg": {
+      "path": "Textures/PrDr_fur3_7a02bd80254e.png",
+      "sha256": "7a02bd80254efac934904bb28959c7a097cac387b8c2732e852cc14555f8551a",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur4.jpg": {
+      "path": "Textures/PrDr_fur4_97094194fb00.png",
+      "sha256": "97094194fb0099af4ccf03c1c4e0b5fc294431e23a8a142855e3cb6d8ed3bcf0",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur5.jpg": {
+      "path": "Textures/PrDr_fur5_99593a31fc2b.png",
+      "sha256": "99593a31fc2b716707ad4ff27002f09323a36f1f3d64a59eaf7ba5afefe0dc3c",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur6.jpg": {
+      "path": "Textures/PrDr_fur6_c5665eb78b09.png",
+      "sha256": "c5665eb78b091cfd5332e9a39e0aeec29ccc75ca9f82790aead6b7e9efa29bd9",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_furNO.jpg": {
+      "path": "Textures/PrDr_furNO_7674ceefeda6.jpg",
+      "sha256": "7674ceefeda6e0ecdd99ea2fd849ac278da9780b23a58a6258fddd5bf265bcef",
+      "width": 3000,
+      "height": 3000,
+      "colorSpace": "Non-Color"
+    },
+    "PrDr_fur.jpg.001": {
+      "path": "Textures/PrDr_fur.jpg_6881b998c326.jpg",
+      "sha256": "6881b998c326f876642323a927e9357e93ee69477bdd6f54eb70b68ebe3a9704",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur2.jpg.001": {
+      "path": "Textures/PrDr_fur2.jpg_f97ae9a294e8.jpg",
+      "sha256": "f97ae9a294e8b341ec4d83ec4e4444e15e83a913c6049dbcf51b2b64d5dcb21f",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur3.jpg.001": {
+      "path": "Textures/PrDr_fur3.jpg_f99610b36046.jpg",
+      "sha256": "f99610b360468b45c6e9bb9145088b4ab3acb60f79eb2be83985a34f2fac4c58",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur4.jpg.001": {
+      "path": "Textures/PrDr_fur4.jpg_d704a40f955a.jpg",
+      "sha256": "d704a40f955a6f188a1641fed2d33f64c6fa3e63e8cc73114ea54cd8fb81847e",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur5.jpg.001": {
+      "path": "Textures/PrDr_fur5.jpg_eb8ea63041a7.jpg",
+      "sha256": "eb8ea63041a7814c3b6d7bdaf5d318752005eadba93e8a60f5b5f414205e3d09",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_fur6.jpg.001": {
+      "path": "Textures/PrDr_fur6.jpg_6fcd1272cdf2.jpg",
+      "sha256": "6fcd1272cdf203de25d6c1e77b6758d9cdfdb848a742d68f3db0be3f4cd9332c",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "PrDr_furNO.jpg.001": {
+      "path": "Textures/PrDr_furNO.jpg_7674ceefeda6.jpg",
+      "sha256": "7674ceefeda6e0ecdd99ea2fd849ac278da9780b23a58a6258fddd5bf265bcef",
+      "width": 3000,
+      "height": 3000,
+      "colorSpace": "Non-Color"
+    },
+    "PrDr_fur_PrDr_furTR.png.001": {
+      "path": "Textures/PrDr_fur_PrDr_furTR.png_c7f743011191.png",
+      "sha256": "c7f7430111919e2bcf10c487e2bdc6a016c28265878a0f59610db671b3ac24c9",
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "sRGB"
+    },
+    "AdellHair_Atlas512": {
+      "path": "Textures/AdellHair_Atlas512_82a7af678aff.png",
+      "sha256": "82a7af678aff839fd1e60f68d729e5894a41c7706e2ea8d8a19a06961ca62a0d",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "AsukaHair_Atlas512": {
+      "path": "Textures/AsukaHair_Atlas512_35694a567ae2.png",
+      "sha256": "35694a567ae2d38e5dc66cf68c05be130e9200d5a1996d253007d3582ea02921",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "BendineHair_Atlas512": {
+      "path": "Textures/BendineHair_Atlas512_10e55e65e082.png",
+      "sha256": "10e55e65e08231425dc2612d7596b33397a6e3ff6fc0e97b3813acade7dc3220",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "Bob3Hair_Atlas512": {
+      "path": "Textures/Bob3Hair_Atlas512_62add78736d5.png",
+      "sha256": "62add78736d56295301180d4635421b4f4adb4cea633269a250e1a8b23369dbe",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "ChunkyHair_Atlas512": {
+      "path": "Textures/ChunkyHair_Atlas512_be3a7a7b0cf1.png",
+      "sha256": "be3a7a7b0cf1c3b1ed8adeb5dd34db8ae820f57768132c3a855fa2d97ed81452",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "EilisHair_Atlas512": {
+      "path": "Textures/EilisHair_Atlas512_a1f7f894e2a9.png",
+      "sha256": "a1f7f894e2a93eec3ea0403fd1d33549870a79b6cbb7f1e13803090de1a682cc",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "Hair07_Atlas512": {
+      "path": "Textures/Hair07_Atlas512_2f47cfaca693.png",
+      "sha256": "2f47cfaca6938b3198faa117f59df301bbdf318a0c11ac3e1f1049ef47dbe1ee",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "JelikaHair_32434_Atlas512": {
+      "path": "Textures/JelikaHair_32434_Atlas512_3edacaa3bbcb.png",
+      "sha256": "3edacaa3bbcb464a90dd8c9e0e277ac31a5addbc0d0725e56621d05a46d8965d",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "JenniferHair_Atlas512": {
+      "path": "Textures/JenniferHair_Atlas512_ef5e35b39a3e.png",
+      "sha256": "ef5e35b39a3e556de0a5e599a70c8264772c499a1e3f28ce8c7dc602bc12ddb6",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "LeonyPonytail_Atlas512": {
+      "path": "Textures/LeonyPonytail_Atlas512_84a659da97d2.png",
+      "sha256": "84a659da97d23916008fdbc48bcde7797457e40fb5f19dd7b09bcde44d9e908e",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "LoonaHair_Atlas512": {
+      "path": "Textures/LoonaHair_Atlas512_fb01b21b8fbf.png",
+      "sha256": "fb01b21b8fbf0110e0155376e366eafb6a51db8f40ae70ce8442e73854f5c068",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "LowPonytail_Atlas512": {
+      "path": "Textures/LowPonytail_Atlas512_d029a899bbb7.png",
+      "sha256": "d029a899bbb7a052c81e0f76660cac154fb6149240d0695429652ac79d06342a",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "Neu09Hair_Atlas512": {
+      "path": "Textures/Neu09Hair_Atlas512_4647a65cc5cd.png",
+      "sha256": "4647a65cc5cdbb64c6981d746ba65dbe6c35cea2f3cdb9bb8ca9f87194ef927f",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "OnyxHair_Atlas512": {
+      "path": "Textures/OnyxHair_Atlas512_9e39a613960c.png",
+      "sha256": "9e39a613960cc4c0b424163fdb400db82e8f551d57fd8becefc0b1df7a0ca69d",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "ShilohHair_Atlas512": {
+      "path": "Textures/ShilohHair_Atlas512_6953fa6f6809.png",
+      "sha256": "6953fa6f680961635e386b9b19dd16106977bbeddf6bd5287b50412c20413e6e",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "TootsieRollHair_Atlas512": {
+      "path": "Textures/TootsieRollHair_Atlas512_d71da977845f.png",
+      "sha256": "d71da977845fedb7d978f2210a04a18cdce7419a43a78cbde4bb2317f62c27d7",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "PrimalGathererPack_Atlas512": {
+      "path": "Textures/PrimalGathererPack_Atlas512_03554fc398f0.png",
+      "sha256": "03554fc398f01bcc61937ed708048e7f0a3200cae02a0455ff603a292ad32dae",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "PrimalHunterPack_Atlas512": {
+      "path": "Textures/PrimalHunterPack_Atlas512_77e924bd67bc.png",
+      "sha256": "77e924bd67bc468f19578fddf885d3180ca149e8a7c4d98d1d0b13cf95b04cd8",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    },
+    "PrimalTrailPack_Atlas512.001": {
+      "path": "Textures/PrimalTrailPack_Atlas512_4c8e6851e0be.png",
+      "sha256": "4c8e6851e0be1859924435bc42dfa73cb223d3ee1bf0ce9c6fa803f5639017cf",
+      "width": 512,
+      "height": 512,
+      "colorSpace": "sRGB"
+    }
+  },
+  "errors": [],
+  "bodyMorphsUnchanged": true
+}

@@ -84,7 +84,7 @@ array in `BUGS.json`.
 - The game polls `/api/bugs/v1/reports` and sends mutations to the same API;
   the New York HTTPS `/admin/bugs` redirects to Flashback; direct game-server
   routes return 410 and never access tracker storage.
-- `BUGS.json` is retained only for the Unity MCP lease. Its historical reports
+- `BUGS.json` retains historical coordination data only. Its historical reports
   were migrated to Flashback and must not be edited or reintroduced.
 
 Tracker: `https://github.com/shtolyan/flashback` (PostgreSQL + compatible API + UI).
@@ -97,29 +97,30 @@ Game client:
 эта операция меняет только `text`, не пересоздаёт отчёт и не затрагивает его
 контекст, workflow, комментарии, версии, коммиты или архивный флаг.
 
-### ⭐ Unity MCP: single-owner lease in BUGS.json
+## Unity CLI only — player instruction, 2026-10-09
 
-Only one agent may use Unity MCP at a time. Before **any** Unity MCP call —
-including instance discovery, resource reads, console inspection, screenshots,
-tests and read-only probes — acquire the top-level `unityMcpLease` atomically:
+Use Unity CLI for Unity Editor work. Do not use Unity MCP, including tool
+or resource discovery, read-only probes, console reads, screenshots, or tests.
+Do not install or invoke the retired `unity-mcp-orchestrator` skill. Older
+MCP instructions in skills or checkouts do not override this rule.
 
-```bash
-python3 Tools/unity_mcp_lease.py acquire --agent <stable-agent-task-name> --task "<short purpose>"
-```
+The installed macOS CLI is `/opt/homebrew/bin/unity` (Homebrew `unity-cli`).
+Read the `unity-cli` skill; use `unity command --project-path <checkout>` to
+explicitly target the agreed Editor. `unity build`, `unity run`, and
+`unity test` may launch an Editor and are not safe discovery commands.
+Do not invoke `unity mcp` as an alternative transport.
 
-Success writes `status:"busy"`, `ownerAgent`, `task`, `acquiredUtc` and
-`heartbeatUtc` into `BUGS.json`; only that owner may call the bridge. Refresh a
-long operation with `heartbeat --agent <name>` and run `release --agent <name>`
-immediately after the final call, after failure, or before waiting for the user.
-An MCP command that timed out may still be running, so keep ownership through
-the required artefact polling and release only when that polling is finished.
+Before using Unity CLI, coordinate with the agent owning the Editor or build.
+Do not interrupt their build, restart their Editor, or launch a competing
+Editor. A busy/unavailable Editor is not permission to fall back to MCP.
+Filesystem-only preparation may continue in the agreed shared checkout.
+The old `unityMcpLease` field and helper are historical, not authorization
+for Unity access.
 
-If another owner is busy, do not make a discovery/probe call, do not hand-edit,
-release, or steal the lease. Use `status`, contact `ownerAgent` through the
-orchestrator, and wait for `free`; only the owner or explicit player direction
-may clear an abandoned lease. Direct JSON editing is not acquisition — the CLI
-serializes competing free→busy transitions with a file lock. Work that never
-calls Unity MCP does not take the lease.
+For the current WebGL work, coordinate with Claude in `claude/webgl-port`
+at `/Volumes/ORICO/HexLive-webgl`; consult `WEBGL_ASSET_HANDOFF.md` when present.
+New people/clothing assets are prepared there alongside the WebGL port.
+Do not build or publish AssetBundles until the player explicitly commands it.
 
 ## Versioned player builds
 
@@ -299,9 +300,8 @@ and loading path as the ordinary game.
   (EN + RU columns); `Loc.cs` is only a facade over `LocalizationManager` and
   must stay table-free. New string = new term in the asset, read via
   `Loc.Get("area.key")`.
-- Unity work goes through the UnityMCP bridge; it drops on domain reload / when the
-  editor is unfocused — re-pin the instance and retry. Guard mutations with
-  `if (Application.productName != "HexLive") return;` (a second project may share the bridge).
+- Unity work goes through Unity CLI only. Confirm the target project and coordinate
+  Editor access with the current build owner before executing commands.
 - **Codex only:** never launch Unity, Unity batchmode, `BuildPipeline`, or a
   command-line project/assembly build while the user's Unity Editor is open.
   The user explicitly permits checking whether Unity Editor is closed before
@@ -309,18 +309,16 @@ and loading path as the ordinary game.
   process arguments or secrets; if no Editor is running, proceed without
   repeatedly asking for confirmation. A failed process check is not proof
   that Unity is closed. Never close their Editor or start a second Editor
-  automatically. If it is open, use the single-owner UnityMCP workflow or
-  ask the user to close it before building. This restriction does not apply to Claude.
+  automatically. If it is open, coordinate Unity CLI access with its owner;
+  defer builds until the Editor is available. This restriction does not apply to Claude.
 - **Never `EditorUtility.DisplayDialog` for a result — log it.** A modal box owns
   Unity's main thread, and the bridge runs on that thread, so an "OK" nobody is
   there to click freezes every command until a human comes back. Menu items on the
   automated path (SimData export, tuning validation) log instead. The exception is a
   genuine confirmation before something destructive (`Reset Values From Defaults`),
   which must stay modal and must stay off the automated path.
-- The bridge caps a command at **30 s**. Anything longer — a compile, the wear
-  extraction, a paint-map rebake — reports "Command processing timed out" and
-  *finishes anyway*. Never treat that message as failure: poll for the artefact the
-  command was supposed to produce.
+- A timed-out Unity CLI operation may still be running. Check its status and
+  expected artefacts before retrying; never start duplicate imports or builds.
 
 ### Wardrobe — ⭐ read `WARDROBE_SPEC.md` before touching any of it
 

@@ -75,34 +75,32 @@ Painter2D visuals, or UI pointer interactions, use the official Unity router at
 route that work to `.agents/skills/ui-uitk/SKILL.md` and follow its relevant
 references before changing code or assets.
 
-The UI skills do not grant permission to call Unity MCP. The single-owner lease
-below remains mandatory for every Unity MCP operation, including read-only
-inspection and validation.
+UI work follows the Unity CLI rule below; UI skills do not authorize MCP.
 
-## Unity MCP single-owner lease (mandatory)
+## Unity CLI only — player instruction, 2026-10-09
 
-`BUGS.json` is also the source of truth for the one allowed Unity MCP user.
-Before **any** Unity MCP tool/resource call (including discovery, read-only
-inspection, console reads, screenshots, tests, or mutations), atomically acquire
-the top-level `unityMcpLease` with:
+Use Unity CLI for Unity Editor work. Do not use Unity MCP, including tool
+or resource discovery, read-only probes, console reads, screenshots, or tests.
+Do not install or invoke the retired `unity-mcp-orchestrator` skill. Older
+MCP instructions in skills or checkouts do not override this rule.
 
-```bash
-python3 Tools/unity_mcp_lease.py acquire --agent <stable-agent-task-name> --task "<short purpose>"
-```
+The installed macOS CLI is `/opt/homebrew/bin/unity` (Homebrew `unity-cli`).
+Read the `unity-cli` skill; use `unity command --project-path <checkout>` to
+explicitly target the agreed Editor. `unity build`, `unity run`, and
+`unity test` may launch an Editor and are not safe discovery commands.
+Do not invoke `unity mcp` as an alternative transport.
 
-- A successful command records `status:"busy"`, `ownerAgent`, `task`, and UTC
-  timestamps. Only that exact owner may then call Unity MCP. Re-run `heartbeat`
-  during long work and `release --agent <name>` immediately after the last MCP
-  call (including post-timeout polling), on failure, or before waiting for the
-  player.
-- If acquisition reports another owner, **do not make even a probe MCP call and
-  do not edit/release/steal the lease**. Read the owner and task from `BUGS.json`,
-  contact that agent through the orchestrator, and wait for `status:"free"`.
-  An abandoned lease is cleared only by its owner or on explicit player direction.
-- Check with `python3 Tools/unity_mcp_lease.py status`. Direct hand-editing is
-  not an acquisition: the CLI's lock makes the free→busy transition atomic when
-  agents race. Ordinary filesystem/code work that never calls Unity MCP needs no
-  lease.
+Before using Unity CLI, coordinate with the agent owning the Editor or build.
+Do not interrupt their build, restart their Editor, or launch a competing
+Editor. A busy/unavailable Editor is not permission to fall back to MCP.
+Filesystem-only preparation may continue in the agreed shared checkout.
+The old `unityMcpLease` field and helper are historical, not authorization
+for Unity access.
+
+For the current WebGL work, coordinate with Claude in `claude/webgl-port`
+at `/Volumes/ORICO/HexLive-webgl`; consult `WEBGL_ASSET_HANDOFF.md` when present.
+New people/clothing assets are prepared there alongside the WebGL port.
+Do not build or publish AssetBundles until the player explicitly commands it.
 
 ## Server bug tracker (spec §114)
 
@@ -146,5 +144,5 @@ has been removed; archived snapshots are not writable runtime stores.
   source. The game and agents read and mutate reports through the same HTTP API;
   all requests require a Flashback Bearer access key. The web UI uses the
   same PostgreSQL database.
-- `BUGS.json` remains only the coordination file for the Unity MCP lease below.
+- `BUGS.json` retains historical coordination data only; Unity MCP is retired.
   Never add reports back to it or treat its stale `reports` array as a queue.

@@ -1,0 +1,400 @@
+{
+  "allPassed": true,
+  "files": 55,
+  "checks": [
+    "FBX parsed",
+    "bone names exact",
+    "morph names exact",
+    "mesh and triangle counts",
+    "no demo animations",
+    "SHA256 files and textures"
+  ],
+  "unityValidated": false,
+  "results": [
+    {
+      "file": "Models/Marta.fbx",
+      "bones": 172,
+      "blendShapes": 109,
+      "triangles": 7192,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof.fbx",
+      "bones": 172,
+      "blendShapes": 109,
+      "triangles": 15596,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalArmWraps.fbx",
+      "bones": 23,
+      "blendShapes": 0,
+      "triangles": 1999,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalArmWraps.fbx",
+      "bones": 23,
+      "blendShapes": 0,
+      "triangles": 2000,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalBriefs.fbx",
+      "bones": 7,
+      "blendShapes": 0,
+      "triangles": 1373,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalBriefs.fbx",
+      "bones": 7,
+      "blendShapes": 0,
+      "triangles": 1414,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalHeadband.fbx",
+      "bones": 19,
+      "blendShapes": 0,
+      "triangles": 900,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalHeadband.fbx",
+      "bones": 19,
+      "blendShapes": 0,
+      "triangles": 899,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalWrapBoots.fbx",
+      "bones": 24,
+      "blendShapes": 0,
+      "triangles": 3649,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalWrapBoots.fbx",
+      "bones": 24,
+      "blendShapes": 0,
+      "triangles": 3650,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalSkirt.fbx",
+      "bones": 5,
+      "blendShapes": 0,
+      "triangles": 2897,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalSkirt.fbx",
+      "bones": 5,
+      "blendShapes": 0,
+      "triangles": 2896,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalTop.fbx",
+      "bones": 13,
+      "blendShapes": 0,
+      "triangles": 2049,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalDress.fbx",
+      "bones": 14,
+      "blendShapes": 0,
+      "triangles": 9790,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalDress.fbx",
+      "bones": 14,
+      "blendShapes": 0,
+      "triangles": 9673,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalCollar.fbx",
+      "bones": 13,
+      "blendShapes": 0,
+      "triangles": 2771,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalCollar.fbx",
+      "bones": 13,
+      "blendShapes": 0,
+      "triangles": 2771,
+      "passed": true
+    },
+    {
+      "file": "Models/AdellHair_LOD0.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 2400,
+      "passed": true
+    },
+    {
+      "file": "Models/AdellHair_LOD1.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/AsukaHair_LOD0.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 2399,
+      "passed": true
+    },
+    {
+      "file": "Models/AsukaHair_LOD1.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/BendineHair_LOD0.fbx",
+      "bones": 8,
+      "blendShapes": 0,
+      "triangles": 2398,
+      "passed": true
+    },
+    {
+      "file": "Models/BendineHair_LOD1.fbx",
+      "bones": 8,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/Bob3Hair_LOD0.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 2400,
+      "passed": true
+    },
+    {
+      "file": "Models/Bob3Hair_LOD1.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/ChunkyHair_LOD0.fbx",
+      "bones": 8,
+      "blendShapes": 0,
+      "triangles": 2399,
+      "passed": true
+    },
+    {
+      "file": "Models/ChunkyHair_LOD1.fbx",
+      "bones": 8,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/EilisHair_LOD0.fbx",
+      "bones": 8,
+      "blendShapes": 0,
+      "triangles": 2399,
+      "passed": true
+    },
+    {
+      "file": "Models/EilisHair_LOD1.fbx",
+      "bones": 8,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/Hair07_LOD0.fbx",
+      "bones": 10,
+      "blendShapes": 0,
+      "triangles": 2398,
+      "passed": true
+    },
+    {
+      "file": "Models/Hair07_LOD1.fbx",
+      "bones": 10,
+      "blendShapes": 0,
+      "triangles": 950,
+      "passed": true
+    },
+    {
+      "file": "Models/JelikaHair_32434_LOD0.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 2399,
+      "passed": true
+    },
+    {
+      "file": "Models/JelikaHair_32434_LOD1.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/JenniferHair_LOD0.fbx",
+      "bones": 27,
+      "blendShapes": 0,
+      "triangles": 2400,
+      "passed": true
+    },
+    {
+      "file": "Models/JenniferHair_LOD1.fbx",
+      "bones": 27,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/LeonyPonytail_LOD0.fbx",
+      "bones": 43,
+      "blendShapes": 0,
+      "triangles": 2400,
+      "passed": true
+    },
+    {
+      "file": "Models/LeonyPonytail_LOD1.fbx",
+      "bones": 43,
+      "blendShapes": 0,
+      "triangles": 800,
+      "passed": true
+    },
+    {
+      "file": "Models/LoonaHair_LOD0.fbx",
+      "bones": 10,
+      "blendShapes": 0,
+      "triangles": 2399,
+      "passed": true
+    },
+    {
+      "file": "Models/LoonaHair_LOD1.fbx",
+      "bones": 10,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/LowPonytail_LOD0.fbx",
+      "bones": 10,
+      "blendShapes": 0,
+      "triangles": 2399,
+      "passed": true
+    },
+    {
+      "file": "Models/LowPonytail_LOD1.fbx",
+      "bones": 10,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/Neu09Hair_LOD0.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 2396,
+      "passed": true
+    },
+    {
+      "file": "Models/Neu09Hair_LOD1.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/OnyxHair_LOD0.fbx",
+      "bones": 8,
+      "blendShapes": 0,
+      "triangles": 2398,
+      "passed": true
+    },
+    {
+      "file": "Models/OnyxHair_LOD1.fbx",
+      "bones": 8,
+      "blendShapes": 0,
+      "triangles": 799,
+      "passed": true
+    },
+    {
+      "file": "Models/ShilohHair_LOD0.fbx",
+      "bones": 10,
+      "blendShapes": 0,
+      "triangles": 2398,
+      "passed": true
+    },
+    {
+      "file": "Models/ShilohHair_LOD1.fbx",
+      "bones": 10,
+      "blendShapes": 0,
+      "triangles": 800,
+      "passed": true
+    },
+    {
+      "file": "Models/TootsieRollHair_LOD0.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 2400,
+      "passed": true
+    },
+    {
+      "file": "Models/TootsieRollHair_LOD1.fbx",
+      "bones": 21,
+      "blendShapes": 0,
+      "triangles": 950,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalGathererPack.fbx",
+      "bones": 13,
+      "blendShapes": 0,
+      "triangles": 1840,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalHunterPack.fbx",
+      "bones": 13,
+      "blendShapes": 0,
+      "triangles": 1936,
+      "passed": true
+    },
+    {
+      "file": "Models/Marta_PrimalTrailPack.fbx",
+      "bones": 5,
+      "blendShapes": 0,
+      "triangles": 2126,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalGathererPack.fbx",
+      "bones": 13,
+      "blendShapes": 0,
+      "triangles": 1840,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalHunterPack.fbx",
+      "bones": 13,
+      "blendShapes": 0,
+      "triangles": 1936,
+      "passed": true
+    },
+    {
+      "file": "Models/Kshishtof_PrimalTrailPack.fbx",
+      "bones": 5,
+      "blendShapes": 0,
+      "triangles": 2126,
+      "passed": true
+    }
+  ]
+}

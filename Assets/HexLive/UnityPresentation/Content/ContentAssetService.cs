@@ -110,6 +110,9 @@ public sealed class ContentAssetService
     private int _activeBlobDownloads;
     private bool _refreshStarted;
     private bool _registryReady;
+    private bool _registryRetryScheduled;
+    private int _registryRetryVersion;
+    private int _registryFailures;
     private string _registryEndpoint = string.Empty;
 
     // Персистентный стат-кэш верификации: sha -> (size, mtimeTicks) файла,
@@ -241,6 +244,13 @@ public sealed class ContentAssetService
         }
 
         var endpoint = ContentEndpoint.Current;
+        if (_registryRetryScheduled && string.Equals(
+                _registryEndpoint, endpoint, StringComparison.OrdinalIgnoreCase))
+        {
+            return; // One recovery timer, even when many renderers are waiting.
+        }
+        _registryRetryScheduled = false;
+        ++_registryRetryVersion;
         if (!string.IsNullOrEmpty(_registryEndpoint) &&
             !string.Equals(_registryEndpoint, endpoint, StringComparison.OrdinalIgnoreCase))
         {
@@ -619,7 +629,7 @@ public sealed class ContentAssetService
             HttpMethod.Get,
             null,
             _state.etag,
-            10);
+            30);
         while (!request.IsCompleted)
         {
             yield return null;
@@ -650,8 +660,7 @@ public sealed class ContentAssetService
         {
             LastError = $"Реестр недоступен: {result.Error}";
             Debug.LogWarning($"[AtomicContent] {LastError}; используем проверенный локальный кэш.");
-            PinOfflineRecords();
-            CompleteRegistry();
+            RecoverRegistry(endpoint);
             yield break;
         }
 
@@ -668,8 +677,7 @@ public sealed class ContentAssetService
         {
             LastError = $"Реестр повреждён: {exception.Message}";
             Debug.LogError($"[AtomicContent] {LastError}; используем локальный кэш.");
-            PinOfflineRecords();
-            CompleteRegistry();
+            RecoverRegistry(endpoint);
             yield break;
         }
 
@@ -696,10 +704,52 @@ public sealed class ContentAssetService
         UpdatePreviouslyCachedInBackground();
     }
 
+    private void RecoverRegistry(string endpoint)
+    {
+        if (!_registryRetryScheduled)
+        {
+            _registryRetryScheduled = true;
+            var version = ++_registryRetryVersion;
+            var delay = Mathf.Min(30f, Mathf.Pow(2f, Mathf.Min(++_registryFailures, 5)));
+            ContentCoroutines.Run(RetryRegistry(endpoint, version, delay));
+        }
+        PinOfflineRecords();
+        if (_pinned.Count > 0)
+        {
+            CompleteRegistry();
+        }
+        else
+        {
+            // A cold failed index is not an authoritative empty catalogue.
+            // Keep queued loads pending until a successful retry can classify IDs.
+            _registryReady = false;
+            _refreshStarted = false;
+            Status = LastError;
+            ContentQueue.End(ContentQueue.Kind.Registry);
+        }
+
+    }
+
+    private IEnumerator RetryRegistry(string endpoint, int version, float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        if (version != _registryRetryVersion || !ReferenceEquals(_instance, this))
+        {
+            yield break;
+        }
+        _registryRetryScheduled = false;
+        if (LastError.Length != 0 && string.Equals(
+                endpoint, ContentEndpoint.Current, StringComparison.OrdinalIgnoreCase))
+        {
+            RefreshRegistry();
+        }
+    }
+
     private void CompleteRegistry()
     {
         _registryReady = true;
         _refreshStarted = false;
+        if (LastError.Length == 0) _registryFailures = 0;
         Status = LastError.Length == 0 ? "Реестр контента готов" : LastError;
         ContentQueue.End(ContentQueue.Kind.Registry);
         var callbacks = _registryWaiters.ToArray();
@@ -737,10 +787,12 @@ public sealed class ContentAssetService
                 continue;
             }
 
-            if (_verified.TryGetValue(pair.Key, out var verified))
-            {
-                _pinned[pair.Key] = verified;
-            }
+            // Registry metadata and verified payloads are different states.
+            // Losing the index connection must not erase known, in-flight IDs.
+            // Their downloads still pass the ordinary SHA/size verification.
+            _pinned[pair.Key] = _verified.TryGetValue(pair.Key, out var verified)
+                ? verified
+                : pair.Value;
         }
 
         // A cache created before registry-state existed still remains usable.

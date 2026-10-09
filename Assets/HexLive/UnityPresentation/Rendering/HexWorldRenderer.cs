@@ -4879,7 +4879,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // One logical owner, one request. Garment discovery itself is async;
         // consult the live record too so a not-yet-loaded wear definition can
         // never be misrouted to object/<wear-id> and terminally cached missing.
-        var isGarment = GarmentDropFactory.IsGarment(worldObject.DefinitionId) ||
+        if (!HexLive.UnityPresentation.Content.ContentAssetService.Instance.RegistryReady)
+        {
+            return null;
+        }
+        var isGarment = GroundPileCatalog.IsGarment(worldObject.DefinitionId) ||
+            GarmentDropFactory.IsGarment(worldObject.DefinitionId) ||
             HexLive.UnityPresentation.Content.ContentAssetService.Instance.TryGetRecord(
                 "wear",
                 HexLive.UnityPresentation.Wearing.WearArtAliases.ArtId(

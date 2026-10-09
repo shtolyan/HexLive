@@ -147,6 +147,16 @@ public static class ContentPrefabCache
             return terminal;
         }
 
+        var service = ContentAssetService.Instance;
+        if (!service.RegistryReady ||
+            (service.LastError.Length != 0 && !service.TryGetRecord(type, id, out _)))
+        {
+            // A degraded/unknown catalogue cannot prove that an ID is absent.
+            // The service owns the bounded recovery timer; do not cache Missing.
+            service.RefreshRegistry();
+            return Availability.Loading;
+        }
+
         if (!Loading.Add(key))
         {
             return Availability.Loading;

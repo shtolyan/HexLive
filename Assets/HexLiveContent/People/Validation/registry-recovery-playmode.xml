@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='utf-8'?>
+<test-run id="2" testcasecount="8" result="Passed" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-09 19:29:12Z" end-time="2026-10-09 19:29:13Z" duration="0.5690011">
+  <test-suite type="TestSuite" id="1094" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="71" result="Passed" start-time="2026-10-09 19:29:12Z" end-time="2026-10-09 19:29:13Z" duration="0.569001" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1088" name="HexLive.AgentIntegration.Tests.dll" fullname="/Users/shtolyan/hex-girls/webgl-build/HexLive/Library/ScriptAssemblies/HexLive.AgentIntegration.Tests.dll" runstate="Runnable" testcasecount="71" result="Passed" start-time="2026-10-09 19:29:12Z" end-time="2026-10-09 19:29:13Z" duration="0.402067" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="25173" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1089" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="71" result="Passed" start-time="2026-10-09 19:29:12Z" end-time="2026-10-09 19:29:13Z" duration="0.394589" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1090" name="Tests" fullname="HexLive.Tests" runstate="Runnable" testcasecount="71" result="Passed" start-time="2026-10-09 19:29:12Z" end-time="2026-10-09 19:29:13Z" duration="0.384623" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1019" name="ContentRegistryRecoveryRuntimeTests" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-09 19:29:12Z" end-time="2026-10-09 19:29:13Z" duration="0.364517" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1023" name="ColdFailureKeepsLoadsPendingAndSchedulesOnlyOneRecovery" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests.ColdFailureKeepsLoadsPendingAndSchedulesOnlyOneRecovery" methodname="ColdFailureKeepsLoadsPendingAndSchedulesOnlyOneRecovery" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" seed="1827514350" result="Passed" start-time="2026-10-09 19:29:12Z" end-time="2026-10-09 19:29:12Z" duration="0.045573" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1028" name="ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests.ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-09 19:29:12Z" end-time="2026-10-09 19:29:13Z" duration="0.169870" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1025" name="ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives(&quot;clothing.skirt_primal_1&quot;)" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests.ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives(&quot;clothing.skirt_primal_1&quot;)" methodname="ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" seed="2094154318" result="Passed" start-time="2026-10-09 19:29:12Z" end-time="2026-10-09 19:29:13Z" duration="0.141562" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1026" name="ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives(&quot;clothing.dress_primal_color05&quot;)" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests.ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives(&quot;clothing.dress_primal_color05&quot;)" methodname="ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" seed="2106399592" result="Passed" start-time="2026-10-09 19:29:13Z" end-time="2026-10-09 19:29:13Z" duration="0.000400" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1027" name="ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives(&quot;underwear.briefs_primal_male_panty3&quot;)" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests.ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives(&quot;underwear.briefs_primal_male_panty3&quot;)" methodname="ReportedGroundWearCanBeClassifiedBeforeItsPayloadArrives" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" seed="699332354" result="Passed" start-time="2026-10-09 19:29:13Z" end-time="2026-10-09 19:29:13Z" duration="0.000257" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-case id="1022" name="RetiredRecordsNeverReenterActiveDiscovery" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests.RetiredRecordsNeverReenterActiveDiscovery" methodname="RetiredRecordsNeverReenterActiveDiscovery" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" seed="124544923" result="Passed" start-time="2026-10-09 19:29:13Z" end-time="2026-10-09 19:29:13Z" duration="0.000945" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1024" name="SupersededRecoveryTimerCannotRefreshAnotherEndpoint" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests.SupersededRecoveryTimerCannotRefreshAnotherEndpoint" methodname="SupersededRecoveryTimerCannotRefreshAnotherEndpoint" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" seed="1068922478" result="Passed" start-time="2026-10-09 19:29:13Z" end-time="2026-10-09 19:29:13Z" duration="0.005689" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1020" name="TimeoutRetainsKnownUncachedAndInflightWearAndProps" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests.TimeoutRetainsKnownUncachedAndInflightWearAndProps" methodname="TimeoutRetainsKnownUncachedAndInflightWearAndProps" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" seed="1400671130" result="Passed" start-time="2026-10-09 19:29:13Z" end-time="2026-10-09 19:29:13Z" duration="0.003208" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1021" name="VerifiedOlderRevisionRemainsOfflineFallback" fullname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests.VerifiedOlderRevisionRemainsOfflineFallback" methodname="VerifiedOlderRevisionRemainsOfflineFallback" classname="HexLive.Tests.ContentRegistryRecoveryRuntimeTests" runstate="Runnable" seed="892260250" result="Passed" start-time="2026-10-09 19:29:13Z" end-time="2026-10-09 19:29:13Z" duration="0.000658" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output>&lt;b&gt;&lt;color=#2EA3FF&gt;MCP-FOR-UNITY&lt;/color&gt;&lt;/b&gt;: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/shtolyan/Library/Application Support/JuicyLove/HexLive/TestResults.xml
+</output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

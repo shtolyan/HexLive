@@ -176,7 +176,7 @@ public static class WorldCreation
             if (!string.IsNullOrEmpty(npc.ProfileId) && (!CharacterPresetRegistry.ProfileIds.Contains(npc.ProfileId) || npc.Id != (npc.ProfileId == NikaCharacterProfile.ProfileId ? NikaCharacterProfile.ReservedNpcId : MashaCompanionProfile.ReservedNpcId))) Error(path + ".profileId", "invalid");
             if (npc.Controlled && npc.Camp != config.PlayerCamp) Error(path + ".controlled", "otherCamp");
             if (string.IsNullOrWhiteSpace(npc.Name) || npc.Name.Length > 64 || npc.Name.Any(char.IsControl)) Error(path + ".name", "length");
-            if (!ColonistAppearance.Meshes.Contains(npc.Body) && npc.Body != "Kshishtof" && npc.Body != "Tonny") Error(path + ".body", "unknown");
+            if (!ColonistAppearance.AuthoredBodies.Contains(npc.Body) && !ColonistAppearance.Meshes.Contains(npc.Body)) Error(path + ".body", "unknown");
             ValidateValues<AttributeKind>(npc.Attributes, path + ".attributes", Error);
             ValidateValues<SkillKind>(npc.Skills, path + ".skills", Error);
             if (npc.Traits == null || npc.Traits.Any(t => !Enum.TryParse<TraitKind>(t, out var k) || !Enum.IsDefined(typeof(TraitKind), k))) Error(path + ".traits", "unknown");

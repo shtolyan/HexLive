@@ -29,6 +29,13 @@ public static class ColonistAppearance
     // Existing saves and authored characters keep their IDs, resolved by the active people catalog.
     public static readonly string[] Meshes = { "Marta" };
 
+    // Body ids an authored character (§146 world creation) may name: the
+    // rolled pool plus the actors saves and presets already carry, female and
+    // male. Narrowing Meshes changes what new colonists roll, never which
+    // authored bodies are valid — `CharacterCreationConfig.Body` defaults to
+    // "Molly", so validating against Meshes alone refused every default.
+    public static readonly string[] AuthoredBodies = { "Marta", "Molly", "Jana", "Jolly", "Kshishtof", "Tonny" };
+
     // The donor whose 17 body materials (skin/eyes/lashes/nails) get mapped
     // onto the mesh by material NAME. Same four actresses: they all carry the
     // same slot names, which is what makes the swap a pure rename (§31B.1a

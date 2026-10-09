@@ -154,9 +154,37 @@ namespace HexLive.UnityPresentation.Audio
                 ? VoiceBank.Russian
                 : VoiceBank.English;
 
+        /// <summary>
+        /// Корень аудио-дерева Player. На десктопе — папка StreamingAssets;
+        /// в вебе (§168.6) — каталог в памяти вкладки, куда
+        /// <see cref="WebAudioFiles"/> скачивает файлы по манифесту. Остальной
+        /// код видит обычные пути в обоих случаях.
+        /// </summary>
+        private static string AudioRoot =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WebAudioFiles.LocalRoot;
+#else
+            Path.Combine(Application.streamingAssetsPath, "HexLive");
+#endif
+
+        /// <summary>Файлы каталога <paramref name="relative"/> под <see cref="AudioRoot"/>:
+        /// на десктопе — обход папки, в вебе — строки манифеста (скачанные или нет).</summary>
+        private static IEnumerable<string> AudioFiles(string relative, bool recursive)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WebAudioFiles.List(relative, recursive);
+#else
+            var root = Path.Combine(AudioRoot, relative.Replace('/', Path.DirectorySeparatorChar));
+            return Directory.Exists(root)
+                ? Directory.EnumerateFiles(root, "*",
+                    recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
+                : System.Array.Empty<string>();
+#endif
+        }
+
         private static string VoiceRoot(VoiceBank bank)
         {
-            var sfx = Path.Combine(Application.streamingAssetsPath, "HexLive", "Sfx");
+            var sfx = Path.Combine(AudioRoot, "Sfx");
             return bank switch
             {
                 VoiceBank.Russian => Path.Combine(sfx, "VoicesLoc", "ru"),
@@ -324,7 +352,18 @@ namespace HexLive.UnityPresentation.Audio
                 return;
             }
 
-            var root = Path.Combine(Application.streamingAssetsPath, "HexLive", "Sfx");
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.6: сначала манифест, потом скачать все НЕ-голосовые звуки
+            // (~14 МБ Ogg) и только тогда открыть группы — тем же OpenSounds.
+            _loading = true;
+            WebAudioFiles.WhenReady(() =>
+            {
+                var files = AudioFiles("Sfx", true)
+                    .Where(IsAudioFile).Where(path => !IsVoiceFile(path)).ToList();
+                WebAudioFiles.EnsureLocal(files, _ => OpenSounds(GroupFiles(files)));
+            });
+#else
+            var root = Path.Combine(AudioRoot, "Sfx");
             if (!Directory.Exists(root))
             {
                 Debug.LogError($"[FmodSfx] Player audio directory is missing: {root}");
@@ -333,10 +372,16 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             _loading = true;
+            OpenSounds(GroupFiles(AudioFiles("Sfx", true)
+                .Where(IsAudioFile)
+                .Where(path => !IsVoiceFile(path))));
+#endif
+        }
+
+        private static Dictionary<string, List<string>> GroupFiles(IEnumerable<string> files)
+        {
             var groups = new Dictionary<string, List<string>>(System.StringComparer.Ordinal);
-            foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
-                         .Where(IsAudioFile)
-                         .Where(path => !IsVoiceFile(path)))
+            foreach (var path in files)
             {
                 var group = GroupId(path);
                 if (!groups.TryGetValue(group, out var paths))
@@ -346,7 +391,7 @@ namespace HexLive.UnityPresentation.Audio
                 }
                 paths.Add(path);
             }
-            OpenSounds(groups);
+            return groups;
         }
 
         private static bool IsAudioFile(string path)
@@ -424,12 +469,12 @@ namespace HexLive.UnityPresentation.Audio
             var pathList = new List<string>(files.Length);
             foreach (var file in files)
             {
-                var mode = FMOD.MODE.CREATESAMPLE
+                var mode = SampleMode
                     | (def.Loop ? FMOD.MODE.LOOP_NORMAL : FMOD.MODE.LOOP_OFF)
                     | (def.Spatial
                         ? FMOD.MODE._3D | FMOD.MODE._3D_LINEARSQUAREROLLOFF
                         : FMOD.MODE._2D);
-                if (core.createSound(file, mode, out var sound) != FMOD.RESULT.OK)
+                if (CreateSound(core, file, mode, default, out var sound) != FMOD.RESULT.OK)
                 {
                     continue;
                 }
@@ -459,6 +504,68 @@ namespace HexLive.UnityPresentation.Audio
             return true;
         }
 
+        /// <summary>
+        /// Как держать сэмпл в памяти. Десктоп раскрывает Ogg в PCM заранее
+        /// (без декодирования на воспроизведении). В вебе (§168.6, §168.12) так
+        /// нельзя — 14 МБ Ogg стали бы сотней МБ PCM в куче вкладки, поэтому
+        /// сэмпл остаётся сжатым и декодируется при проигрывании.
+        /// </summary>
+        private const FMOD.MODE SampleMode =
+#if UNITY_WEBGL && !UNITY_EDITOR
+            FMOD.MODE.CREATECOMPRESSEDSAMPLE;
+#else
+            FMOD.MODE.CREATESAMPLE;
+#endif
+
+        /// <summary>
+        /// Открыть файл как звук FMOD. На десктопе — по пути, как всегда. В вебе
+        /// (§168.6) — из байтов (<c>OPENMEMORY</c>, FMOD копирует их себе): так
+        /// не надо полагаться на то, что сборка FMOD для браузера видит файловую
+        /// систему страницы.
+        /// </summary>
+        private static FMOD.RESULT CreateSound(FMOD.System core, string file, FMOD.MODE mode,
+            FMOD.SOUND_TYPE suggested, out FMOD.Sound sound)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            byte[] bytes;
+            try
+            {
+                bytes = File.ReadAllBytes(file);
+            }
+            catch (System.Exception)
+            {
+                sound = default;
+                return FMOD.RESULT.ERR_FILE_NOTFOUND;
+            }
+
+            var exInfo = new FMOD.CREATESOUNDEXINFO
+            {
+                cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
+                length = (uint)bytes.Length,
+                suggestedsoundtype = suggested,
+            };
+            return core.createSound(bytes, mode | FMOD.MODE.OPENMEMORY, ref exInfo, out sound);
+#else
+            if (suggested == default)
+            {
+                return core.createSound(file, mode, out sound);
+            }
+
+            var exInfo = new FMOD.CREATESOUNDEXINFO
+            {
+                cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
+                suggestedsoundtype = suggested,
+            };
+            return core.createSound(file, mode, ref exInfo, out sound);
+#endif
+        }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // Группы голосов, которые сейчас качаются: повторный Say не ставит их
+        // в очередь второй раз и не помечает отсутствующими.
+        private static readonly HashSet<string> FetchingVoiceGroups = new(System.StringComparer.Ordinal);
+#endif
+
         private static bool EnsureVoiceGroup(string id)
         {
             if (Sounds.ContainsKey(id))
@@ -475,13 +582,16 @@ namespace HexLive.UnityPresentation.Audio
                 return false;
             }
 
-            var root = VoiceRoot(_loadedVoiceBank);
-            if (!Directory.Exists(root))
+            var relativeRoot = VoiceRoot(_loadedVoiceBank).Substring(AudioRoot.Length + 1)
+                .Replace(Path.DirectorySeparatorChar, '/');
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!WebAudioFiles.Ready)
             {
-                MissingVoiceGroups.Add(id);
+                WebAudioFiles.WhenReady(() => { });
                 return false;
             }
-            var files = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+#endif
+            var files = AudioFiles(relativeRoot, true)
                 .Where(IsAudioFile)
                 .Where(path => string.Equals(GroupId(path), id, System.StringComparison.Ordinal))
                 .ToArray();
@@ -490,6 +600,29 @@ namespace HexLive.UnityPresentation.Audio
                 MissingVoiceGroups.Add(id);
                 return false;
             }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.6: голоса качаются по первой просьбе группы вместе с .vis;
+            // эта реплика молчит, следующая уже играет.
+            if (files.Any(file => !WebAudioFiles.IsLocal(file)))
+            {
+                if (FetchingVoiceGroups.Add(id))
+                {
+                    var known = new HashSet<string>(AudioFiles(relativeRoot, true), System.StringComparer.Ordinal);
+                    var wanted = files.ToList();
+                    foreach (var file in files)
+                    {
+                        var viseme = Path.ChangeExtension(file, ".vis");
+                        if (known.Contains(viseme))
+                        {
+                            wanted.Add(viseme);
+                        }
+                    }
+                    WebAudioFiles.EnsureLocal(wanted, _ => FetchingVoiceGroups.Remove(id));
+                }
+                return false;
+            }
+#endif
 
             LoadedDefs[id] = VoiceDef;
             return OpenGroup(FMODUnity.RuntimeManager.CoreSystem, id, VoiceDef, files);
@@ -624,7 +757,7 @@ namespace HexLive.UnityPresentation.Audio
                        (listenerRelative
                            ? FMOD.MODE._2D
                            : FMOD.MODE._3D | FMOD.MODE._3D_LINEARSQUAREROLLOFF);
-            if (core.createSound(wavPath, mode, out var sound) != FMOD.RESULT.OK)
+            if (CreateSound(core, wavPath, mode, default, out var sound) != FMOD.RESULT.OK)
             {
                 return default;
             }
@@ -849,14 +982,29 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             _musicScanned = true;
-            var root = Path.Combine(Application.streamingAssetsPath, "HexLive", "Music");
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.6: список треков — из манифеста, который ещё едет. Когда
+            // приедет, сканируем заново и зовём MusicTracksChanged — директор
+            // музыки от этого сразу назначает первый трек.
+            if (!WebAudioFiles.Ready)
+            {
+                WebAudioFiles.WhenReady(() =>
+                {
+                    _musicScanned = false;
+                    ScanMusic();
+                });
+                return;
+            }
+#else
+            var root = Path.Combine(AudioRoot, "Music");
             if (!Directory.Exists(root))
             {
                 Debug.LogWarning($"[FmodSfx] Player music directory is missing: {root}");
                 return;
             }
+#endif
 
-            foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.TopDirectoryOnly)
+            foreach (var path in AudioFiles("Music", false)
                          .Where(IsAudioFile))
             {
                 MusicPaths[Path.GetFileNameWithoutExtension(path)] = path;
@@ -909,6 +1057,17 @@ namespace HexLive.UnityPresentation.Audio
                 return false;
             }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.6: трек сначала скачивается целиком (стрима по URL у FMOD
+            // в браузере нет), потом MusicTracksChanged — и директор пробует
+            // снова через долю секунды.
+            if (!WebAudioFiles.IsLocal(path))
+            {
+                WebAudioFiles.EnsureLocal(new[] { path }, _ => MusicTracksChanged?.Invoke());
+                return false;
+            }
+#endif
+
             try
             {
                 var core = FMODUnity.RuntimeManager.CoreSystem;
@@ -922,12 +1081,7 @@ namespace HexLive.UnityPresentation.Audio
                 // extension. Tell FMOD the codec explicitly instead of making
                 // it guess from the cache path (the macOS runtime otherwise
                 // probes OGG/MOD/etc. and rejects a valid MP3 payload).
-                var exInfo = new FMOD.CREATESOUNDEXINFO
-                {
-                    cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
-                    suggestedsoundtype = FMOD.SOUND_TYPE.MPEG,
-                };
-                if (core.createStream(path, mode, ref exInfo, out var sound) != FMOD.RESULT.OK)
+                if (CreateSound(core, path, mode, FMOD.SOUND_TYPE.MPEG, out var sound) != FMOD.RESULT.OK)
                 {
                     Debug.LogWarning($"[FmodSfx] music '{id}' failed to open: {path}");
                     return false;

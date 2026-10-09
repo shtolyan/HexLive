@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -22,6 +24,9 @@ using UnityEngine;
 /// </summary>
 public static class HexLiveWebGLPlayerBuild
 {
+    private const string AudioRoot = "Assets/StreamingAssets/HexLive";
+    private const string AudioManifest = AudioRoot + "/web-audio-manifest.json";
+
     public static void Build()
     {
         var succeeded = false;
@@ -46,13 +51,24 @@ public static class HexLiveWebGLPlayerBuild
                 .Where(scene => scene.enabled)
                 .Select(scene => scene.path)
                 .ToArray();
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            WriteAudioManifest();
+            BuildReport report;
+            try
             {
-                scenes = scenes,
-                locationPathName = output,
-                target = BuildTarget.WebGL,
-                options = development ? BuildOptions.Development : BuildOptions.None,
-            });
+                report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = scenes,
+                    locationPathName = output,
+                    target = BuildTarget.WebGL,
+                    options = development ? BuildOptions.Development : BuildOptions.None,
+                });
+            }
+            finally
+            {
+                // Генерируется на каждую сборку из того, что реально лежит в
+                // StreamingAssets, — в репозитории ему не место (устареет).
+                AssetDatabase.DeleteAsset(AudioManifest);
+            }
 
             var summary = report.summary;
             Debug.Log($"[WebGLBuild] {summary.result}: {summary.totalSize / (1024 * 1024)} MB, " +
@@ -71,6 +87,44 @@ public static class HexLiveWebGLPlayerBuild
                 EditorApplication.Exit(succeeded ? 0 : 1);
             }
         }
+    }
+
+    /// <summary>
+    /// §168.6: в браузере StreamingAssets — URL, обойти его нельзя. Список
+    /// аудио-дерева (звуки, голоса с .vis, музыка) едет рядом с ним и
+    /// читается WebAudioFiles.
+    /// </summary>
+    private static void WriteAudioManifest()
+    {
+        var files = new List<string>();
+        foreach (var directory in new[] { "Sfx", "Music" })
+        {
+            var root = Path.Combine(AudioRoot, directory);
+            if (!Directory.Exists(root))
+            {
+                continue;
+            }
+            foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+            {
+                if (file.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                files.Add(Path.GetRelativePath(AudioRoot, file).Replace('\\', '/'));
+            }
+        }
+        files.Sort(StringComparer.Ordinal);
+
+        var json = new StringBuilder("{\"files\":[");
+        for (var i = 0; i < files.Count; i++)
+        {
+            json.Append(i == 0 ? "\n" : ",\n").Append('"')
+                .Append(files[i].Replace("\\", "\\\\").Replace("\"", "\\\"")).Append('"');
+        }
+        json.Append("\n]}\n");
+        File.WriteAllText(AudioManifest, json.ToString(), new UTF8Encoding(false));
+        AssetDatabase.ImportAsset(AudioManifest);
+        Debug.Log($"[WebGLBuild] audio manifest: {files.Count} files");
     }
 
     private static string Value(string[] arguments, string name)

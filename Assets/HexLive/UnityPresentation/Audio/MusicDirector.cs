@@ -98,8 +98,42 @@ namespace HexLive.UnityPresentation.Audio
             }
         }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // §168.6: браузер не даёт звучать странице, пока игрок с ней ничего не
+        // сделал, — AudioContext FMOD рождается «suspended». Интеграция FMOD
+        // для WebGL сама его не будит, поэтому на первом клике/клавише делаем
+        // то, что FMOD велит для HTML5: mixerSuspend → mixerResume. Chrome
+        // засчитывает уже случившееся действие игрока и в следующем кадре.
+        private static bool _webAudioUnlocked;
+
+        private static void UnlockWebAudioOnFirstGesture()
+        {
+            if (_webAudioUnlocked || !FMODUnity.RuntimeManager.IsInitialized)
+            {
+                return;
+            }
+
+            var pressed =
+                UnityEngine.InputSystem.Pointer.current?.press.wasPressedThisFrame == true ||
+                UnityEngine.InputSystem.Keyboard.current?.anyKey.wasPressedThisFrame == true;
+            if (!pressed)
+            {
+                return;
+            }
+
+            var core = FMODUnity.RuntimeManager.CoreSystem;
+            core.mixerSuspend();
+            core.mixerResume();
+            _webAudioUnlocked = true;
+            Debug.Log("[Music] web audio resumed after the first player gesture");
+        }
+#endif
+
         private void Update()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            UnlockWebAudioOnFirstGesture();
+#endif
             // Режим определяем в ПЕРВОМ Update, а не в Awake: загрузочная
             // шторка создаётся тем же Boot(), и на момент нашего Awake её
             // IsActive может ещё не подняться — стартовали бы в игровом режиме

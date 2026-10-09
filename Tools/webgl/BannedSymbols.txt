@@ -31,4 +31,4 @@ P:System.Threading.Tasks.Task`1.Result;§168.4: блокирующее ожид�
 M:System.Runtime.CompilerServices.TaskAwaiter.GetResult;§168.4: .GetAwaiter().GetResult() — блокирующее ожидание
 M:System.Runtime.CompilerServices.TaskAwaiter`1.GetResult;§168.4: .GetAwaiter().GetResult() — блокирующее ожидание
 T:System.Diagnostics.Process;§168.5: процессов в браузере нет
-P:UnityEngine.Application.streamingAssetsPath;§168.6: в вебе это URL, а не папка — только через WebContentPaths
+P:UnityEngine.Application.streamingAssetsPath;§168.6: в вебе это URL, а не папка — только через WebAudioFiles (§168.6)

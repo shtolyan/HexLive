@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca870d0dfe9f4e30b8eb283ae6dcbfb, type: 3}
+  m_Name: garment_Kshishtof_PrimalWrapBoots_2549
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.PaintPointMap
+  MeshName: Kshishtof_PrimalWrapBoots
+  VertexCount: 2549
+  Version: 0
+  MeshHeight: 1.7
+  TSamples: 1
+  AzimuthSamples: 1
+  TMin: 0
+  TMax: 1
+  Zones:
+  - Zone: Head
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Torso
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: Pelvis
+    Points:
+    - Slot: 2
+      Uv: {x: 0.17283487, y: 0.7538872}
+      BindPerU: 106.32697
+      BindPerV: 47.01057
+      Valid: 1
+      BindPos: {x: -7.72999, y: 52.716167, z: -8.316877}
+      BindNormal: {x: 0.3463504, y: 0.65709955, z: -0.6695234}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmL
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: ArmR
+    Points: []
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegL
+    Points:
+    - Slot: 2
+      Uv: {x: 0.30022117, y: 0.77479774}
+      BindPerU: 99.355194
+      BindPerV: 19.327927
+      Valid: 1
+      BindPos: {x: -5.530031, y: 49.589687, z: 1.2153138}
+      BindNormal: {x: 0.7066246, y: 0.011758668, z: 0.7074908}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}
+  - Zone: LegR
+    Points:
+    - Slot: 2
+      Uv: {x: 0.29922688, y: 0.7736099}
+      BindPerU: 152.45154
+      BindPerV: 134.53539
+      Valid: 1
+      BindPos: {x: 5.5400805, y: 49.633533, z: 1.1687566}
+      BindNormal: {x: -0.45640975, y: 0.2498003, z: 0.8539848}
+      UvEdgeDistance: 0
+    BindAxisDir: {x: 0, y: 0, z: 0}

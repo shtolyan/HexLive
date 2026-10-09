@@ -1,0 +1,551 @@
+{
+  "gameReady": false,
+  "bundleBuildAuthorized": false,
+  "prefabs": [
+    {
+      "kind": "actor",
+      "id": "Marta",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Actors/Marta.prefab"
+    },
+    {
+      "kind": "actor",
+      "id": "Kshishtof",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Actors/Kshishtof.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalArmWraps",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalArmWraps",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalBriefs",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalBriefs",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalHeadband",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalHeadband",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalWrapBoots",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalWrapBoots",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalSkirt",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalSkirt",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalTop",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalDress",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalDress",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalCollar",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalCollar",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "AdellHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/AdellHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "AsukaHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/AsukaHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "BendineHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/BendineHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "Bob3Hair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/Bob3Hair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "ChunkyHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/ChunkyHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "EilisHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/EilisHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "Hair07_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/Hair07.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "JelikaHair_32434_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/JelikaHair_32434.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "JenniferHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/JenniferHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "LeonyPonytail_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/LeonyPonytail.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "LoonaHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/LoonaHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "LowPonytail_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/LowPonytail.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "Neu09Hair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/Neu09Hair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "OnyxHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/OnyxHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "ShilohHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/ShilohHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "TootsieRollHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/TootsieRollHair.prefab"
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalGathererPack",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalGathererPack.prefab"
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalHunterPack",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHunterPack.prefab"
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalTrailPack",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTrailPack.prefab"
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalGathererPack",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalGathererPack.prefab"
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalHunterPack",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHunterPack.prefab"
+    },
+    {
+      "kind": "backpack",
+      "id": "PrimalTrailPack",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalTrailPack.prefab"
+    }
+  ],
+  "materialVariants": {
+    "Marta_Atlas": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_Atlas__Base.mat"
+    },
+    "Kshishtof_Atlas": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_Atlas__Base.mat"
+    },
+    "Marta_PrimalArmWraps_Wear / Sleeve": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalArmWraps_Wear___Sleeve__Base.mat",
+      "Sleeve1": "Assets/HexLiveContent/People/Materials/Marta_PrimalArmWraps_Wear___Sleeve__Sleeve1.mat",
+      "Sleeve2": "Assets/HexLiveContent/People/Materials/Marta_PrimalArmWraps_Wear___Sleeve__Sleeve2.mat",
+      "Sleeve3": "Assets/HexLiveContent/People/Materials/Marta_PrimalArmWraps_Wear___Sleeve__Sleeve3.mat"
+    },
+    "Marta_PrimalArmWraps_Wear / Cord": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalArmWraps_Wear___Cord__Base.mat",
+      "Sleeve1": "Assets/HexLiveContent/People/Materials/Marta_PrimalArmWraps_Wear___Cord__Sleeve1.mat",
+      "Sleeve2": "Assets/HexLiveContent/People/Materials/Marta_PrimalArmWraps_Wear___Cord__Sleeve2.mat",
+      "Sleeve3": "Assets/HexLiveContent/People/Materials/Marta_PrimalArmWraps_Wear___Cord__Sleeve3.mat"
+    },
+    "Kshishtof_PrimalArmWraps_Wear / Sleeve": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalArmWraps_Wear___Sleeve__Base.mat",
+      "Sleeve1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalArmWraps_Wear___Sleeve__Sleeve1.mat",
+      "Sleeve2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalArmWraps_Wear___Sleeve__Sleeve2.mat",
+      "Sleeve3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalArmWraps_Wear___Sleeve__Sleeve3.mat"
+    },
+    "Kshishtof_PrimalArmWraps_Wear / Cord": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalArmWraps_Wear___Cord__Base.mat",
+      "Sleeve1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalArmWraps_Wear___Cord__Sleeve1.mat",
+      "Sleeve2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalArmWraps_Wear___Cord__Sleeve2.mat",
+      "Sleeve3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalArmWraps_Wear___Cord__Sleeve3.mat"
+    },
+    "Marta_PrimalBriefs_Wear / Panty": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Panty__Base.mat",
+      "Panty1": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Panty__Panty1.mat",
+      "Panty2": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Panty__Panty2.mat",
+      "Panty3": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Panty__Panty3.mat"
+    },
+    "Marta_PrimalBriefs_Wear / Stitches": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Stitches__Base.mat",
+      "Panty1": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Stitches__Panty1.mat",
+      "Panty2": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Stitches__Panty2.mat",
+      "Panty3": "Assets/HexLiveContent/People/Materials/Marta_PrimalBriefs_Wear___Stitches__Panty3.mat"
+    },
+    "Kshishtof_PrimalBriefs_Wear / Panty": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalBriefs_Wear___Panty__Base.mat",
+      "Panty1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalBriefs_Wear___Panty__Panty1.mat",
+      "Panty2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalBriefs_Wear___Panty__Panty2.mat",
+      "Panty3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalBriefs_Wear___Panty__Panty3.mat"
+    },
+    "Kshishtof_PrimalBriefs_Wear / Stitches": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalBriefs_Wear___Stitches__Base.mat",
+      "Panty1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalBriefs_Wear___Stitches__Panty1.mat",
+      "Panty2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalBriefs_Wear___Stitches__Panty2.mat",
+      "Panty3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalBriefs_Wear___Stitches__Panty3.mat"
+    },
+    "Marta_PrimalHeadband_Wear / Knot": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalHeadband_Wear___Knot__Base.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalHeadband_Wear___Knot__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalHeadband_Wear___Knot__3.mat",
+      "4": "Assets/HexLiveContent/People/Materials/Marta_PrimalHeadband_Wear___Knot__4.mat"
+    },
+    "Marta_PrimalHeadband_Wear / Wrap": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalHeadband_Wear___Wrap__Base.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalHeadband_Wear___Wrap__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalHeadband_Wear___Wrap__3.mat",
+      "4": "Assets/HexLiveContent/People/Materials/Marta_PrimalHeadband_Wear___Wrap__4.mat"
+    },
+    "Kshishtof_PrimalHeadband_Wear / Knot": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalHeadband_Wear___Knot__Base.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalHeadband_Wear___Knot__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalHeadband_Wear___Knot__3.mat",
+      "4": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalHeadband_Wear___Knot__4.mat"
+    },
+    "Kshishtof_PrimalHeadband_Wear / Wrap": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalHeadband_Wear___Wrap__Base.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalHeadband_Wear___Wrap__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalHeadband_Wear___Wrap__3.mat",
+      "4": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalHeadband_Wear___Wrap__4.mat"
+    },
+    "Marta_PrimalWrapBoots_Wear / Stitches": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___Stitches__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___Stitches__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___Stitches__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___Stitches__3.mat"
+    },
+    "Marta_PrimalWrapBoots_Wear / Cord": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___Cord__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___Cord__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___Cord__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___Cord__3.mat"
+    },
+    "Marta_PrimalWrapBoots_Wear / LegWrap": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___LegWrap__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___LegWrap__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___LegWrap__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalWrapBoots_Wear___LegWrap__3.mat"
+    },
+    "Kshishtof_PrimalWrapBoots_Wear / Stitches": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___Stitches__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___Stitches__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___Stitches__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___Stitches__3.mat"
+    },
+    "Kshishtof_PrimalWrapBoots_Wear / Cord": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___Cord__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___Cord__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___Cord__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___Cord__3.mat"
+    },
+    "Kshishtof_PrimalWrapBoots_Wear / LegWrap": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___LegWrap__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___LegWrap__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___LegWrap__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalWrapBoots_Wear___LegWrap__3.mat"
+    },
+    "Marta_PrimalSkirt_Wear / Tie": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Tie__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Tie__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Tie__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Tie__3.mat"
+    },
+    "Marta_PrimalSkirt_Wear / Stitches": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Stitches__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Stitches__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Stitches__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Stitches__3.mat"
+    },
+    "Marta_PrimalSkirt_Wear / Skirt": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Skirt__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Skirt__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Skirt__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Skirt__3.mat"
+    },
+    "Marta_PrimalSkirt_Wear / Overhang": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Overhang__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Overhang__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Overhang__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalSkirt_Wear___Overhang__3.mat"
+    },
+    "Kshishtof_PrimalSkirt_Wear / Tie": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Tie__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Tie__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Tie__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Tie__3.mat"
+    },
+    "Kshishtof_PrimalSkirt_Wear / Stitches": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Stitches__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Stitches__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Stitches__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Stitches__3.mat"
+    },
+    "Kshishtof_PrimalSkirt_Wear / Skirt": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Skirt__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Skirt__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Skirt__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Skirt__3.mat"
+    },
+    "Kshishtof_PrimalSkirt_Wear / Overhang": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Overhang__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Overhang__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Overhang__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalSkirt_Wear___Overhang__3.mat"
+    },
+    "Marta_PrimalTop_Wear / Tie": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Tie__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Tie__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Tie__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Tie__3.mat"
+    },
+    "Marta_PrimalTop_Wear / Top": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Top__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Top__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Top__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Top__3.mat"
+    },
+    "Marta_PrimalTop_Wear / Fringe": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Fringe__Base.mat",
+      "1": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Fringe__1.mat",
+      "2": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Fringe__2.mat",
+      "3": "Assets/HexLiveContent/People/Materials/Marta_PrimalTop_Wear___Fringe__3.mat"
+    },
+    "Marta_PrimalDress_Wear / fur_plain": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___fur_plain__Base.mat",
+      "color01": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___fur_plain__color01.mat",
+      "color02": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___fur_plain__color02.mat",
+      "color03": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___fur_plain__color03.mat",
+      "color04": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___fur_plain__color04.mat",
+      "color05": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___fur_plain__color05.mat",
+      "color06": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___fur_plain__color06.mat"
+    },
+    "Marta_PrimalDress_Wear / dress": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___dress__Base.mat",
+      "color01": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___dress__color01.mat",
+      "color02": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___dress__color02.mat",
+      "color03": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___dress__color03.mat",
+      "color04": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___dress__color04.mat",
+      "color05": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___dress__color05.mat",
+      "color06": "Assets/HexLiveContent/People/Materials/Marta_PrimalDress_Wear___dress__color06.mat"
+    },
+    "Kshishtof_PrimalDress_Wear / fur_plain": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___fur_plain__Base.mat",
+      "color01": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___fur_plain__color01.mat",
+      "color02": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___fur_plain__color02.mat",
+      "color03": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___fur_plain__color03.mat",
+      "color04": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___fur_plain__color04.mat",
+      "color05": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___fur_plain__color05.mat",
+      "color06": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___fur_plain__color06.mat"
+    },
+    "Kshishtof_PrimalDress_Wear / dress": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___dress__Base.mat",
+      "color01": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___dress__color01.mat",
+      "color02": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___dress__color02.mat",
+      "color03": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___dress__color03.mat",
+      "color04": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___dress__color04.mat",
+      "color05": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___dress__color05.mat",
+      "color06": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalDress_Wear___dress__color06.mat"
+    },
+    "Marta_PrimalCollar_Wear / dress.001": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___dress_001__Base.mat",
+      "color01": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___dress_001__color01.mat",
+      "color02": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___dress_001__color02.mat",
+      "color03": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___dress_001__color03.mat",
+      "color04": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___dress_001__color04.mat",
+      "color05": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___dress_001__color05.mat",
+      "color06": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___dress_001__color06.mat"
+    },
+    "Marta_PrimalCollar_Wear / fur_plain.001": {
+      "Base": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___fur_plain_001__Base.mat",
+      "color01": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___fur_plain_001__color01.mat",
+      "color02": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___fur_plain_001__color02.mat",
+      "color03": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___fur_plain_001__color03.mat",
+      "color04": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___fur_plain_001__color04.mat",
+      "color05": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___fur_plain_001__color05.mat",
+      "color06": "Assets/HexLiveContent/People/Materials/Marta_PrimalCollar_Wear___fur_plain_001__color06.mat"
+    },
+    "Kshishtof_PrimalCollar_Wear / dress.001": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___dress_001__Base.mat",
+      "color01": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___dress_001__color01.mat",
+      "color02": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___dress_001__color02.mat",
+      "color03": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___dress_001__color03.mat",
+      "color04": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___dress_001__color04.mat",
+      "color05": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___dress_001__color05.mat",
+      "color06": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___dress_001__color06.mat"
+    },
+    "Kshishtof_PrimalCollar_Wear / fur_plain.001": {
+      "Base": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___fur_plain_001__Base.mat",
+      "color01": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___fur_plain_001__color01.mat",
+      "color02": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___fur_plain_001__color02.mat",
+      "color03": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___fur_plain_001__color03.mat",
+      "color04": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___fur_plain_001__color04.mat",
+      "color05": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___fur_plain_001__color05.mat",
+      "color06": "Assets/HexLiveContent/People/Materials/Kshishtof_PrimalCollar_Wear___fur_plain_001__color06.mat"
+    },
+    "AdellHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/AdellHair_WebGL__Base.mat"
+    },
+    "AsukaHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_WebGL__Base.mat"
+    },
+    "BendineHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/BendineHair_WebGL__Base.mat"
+    },
+    "Bob3Hair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/Bob3Hair_WebGL__Base.mat"
+    },
+    "ChunkyHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/ChunkyHair_WebGL__Base.mat"
+    },
+    "EilisHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/EilisHair_WebGL__Base.mat"
+    },
+    "Hair07_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/Hair07_WebGL__Base.mat"
+    },
+    "JelikaHair_32434_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_WebGL__Base.mat"
+    },
+    "JenniferHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_WebGL__Base.mat"
+    },
+    "LeonyPonytail_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_WebGL__Base.mat"
+    },
+    "LoonaHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/LoonaHair_WebGL__Base.mat"
+    },
+    "LowPonytail_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_WebGL__Base.mat"
+    },
+    "Neu09Hair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_WebGL__Base.mat"
+    },
+    "OnyxHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_WebGL__Base.mat"
+    },
+    "ShilohHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/ShilohHair_WebGL__Base.mat"
+    },
+    "TootsieRollHair_WebGL": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_WebGL__Base.mat"
+    },
+    "PrimalGathererPack_Primal": {
+      "Base": "Assets/HexLiveContent/People/Materials/PrimalGathererPack_Primal__Base.mat"
+    },
+    "PrimalHunterPack_Primal": {
+      "Base": "Assets/HexLiveContent/People/Materials/PrimalHunterPack_Primal__Base.mat"
+    },
+    "PrimalTrailPack_Primal.001": {
+      "Base": "Assets/HexLiveContent/People/Materials/PrimalTrailPack_Primal_001__Base.mat"
+    }
+  }
+}

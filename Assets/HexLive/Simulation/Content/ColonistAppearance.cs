@@ -25,7 +25,9 @@ public static class ColonistAppearance
 {
     // Actor prefabs under Resources/HexLive/Actors/. Female only — the §72
     // outsider's male body is authored explicitly and never rolled.
-    public static readonly string[] Meshes = { "Marta", "Molly", "Jana", "Jolly" };
+    // §169: new random colonists share Marta geometry; appearance still rolls independently.
+    // Existing saves and authored characters keep their IDs, resolved by the active people catalog.
+    public static readonly string[] Meshes = { "Marta" };
 
     // The donor whose 17 body materials (skin/eyes/lashes/nails) get mapped
     // onto the mesh by material NAME. Same four actresses: they all carry the

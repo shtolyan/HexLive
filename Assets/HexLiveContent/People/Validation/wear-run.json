@@ -1,0 +1,207 @@
+{
+  "passed": true,
+  "visualClippingReviewed": false,
+  "results": [
+    {
+      "actor": "Marta",
+      "item": "PrimalArmWraps",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalBriefs",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalHeadband",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalWrapBoots",
+      "restBindingMaxErrorMetres": 2.23517418E-08
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalSkirt",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalTop",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalDress",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalCollar",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "AdellHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "AsukaHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "BendineHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "Bob3Hair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "ChunkyHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "EilisHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "Hair07_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "JelikaHair_32434_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "JenniferHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "LeonyPonytail_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "LoonaHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "LowPonytail_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "Neu09Hair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "OnyxHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "ShilohHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "TootsieRollHair_LOD0",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalGathererPack",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalHunterPack",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "item": "PrimalTrailPack",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Marta",
+      "runSampleFrames": 19,
+      "footMotionMetres": 0.67960453,
+      "maxRendererSpanMetres": 2.238024
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalArmWraps",
+      "restBindingMaxErrorMetres": 2.38418579E-07
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalBriefs",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalHeadband",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalWrapBoots",
+      "restBindingMaxErrorMetres": 2.23517418E-08
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalSkirt",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalDress",
+      "restBindingMaxErrorMetres": 3.57627869E-07
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalCollar",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalGathererPack",
+      "restBindingMaxErrorMetres": 3.57627869E-07
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalHunterPack",
+      "restBindingMaxErrorMetres": 3.57627869E-07
+    },
+    {
+      "actor": "Kshishtof",
+      "item": "PrimalTrailPack",
+      "restBindingMaxErrorMetres": 0.0
+    },
+    {
+      "actor": "Kshishtof",
+      "genitalsHiddenByBriefs": true
+    },
+    {
+      "actor": "Kshishtof",
+      "runSampleFrames": 19,
+      "footMotionMetres": 0.7166186,
+      "maxRendererSpanMetres": 2.3872447
+    }
+  ]
+}

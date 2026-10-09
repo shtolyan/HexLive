@@ -72,7 +72,7 @@ public static class SeveredLimbFactory
             }
 
             posedMesh = new Mesh { name = $"{source.name}_{variant}_posed" };
-            clonedSkin.BakeMesh(posedMesh, false);
+            clonedSkin.BakeMesh(posedMesh, owner.GetComponentInChildren<PeopleAppearance>(true) != null);
             if (posedMesh.vertexCount != source.vertexCount)
             {
                 return null;

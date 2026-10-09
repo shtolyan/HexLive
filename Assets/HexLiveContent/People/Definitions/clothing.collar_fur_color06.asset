@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing.collar_fur_color06
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.collar_fur_color06
+  prototypeId: clothing.collar_fur
+  displayName: Fur Collar (color06)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 1
+  category: 9
+  variantMaterials:
+  - {fileID: 2100000, guid: 9968aba039e4340d6b9f16c0fbefe2b2, type: 2}
+  - {fileID: 2100000, guid: 05c995987bd334c389aaa89b166666b7, type: 2}
+  layer: 2
+  covers: 01000000
+  warmth: 0.07
+  armor: 0.01
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

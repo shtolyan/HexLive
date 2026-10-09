@@ -51,3 +51,30 @@ Unity не запускал, UNITY_OWNER остаётся Claude. Каталог
 В чате Claude проверено новое сообщение Толи: «Ок, Legacy не переносим, пиши когда меню запустится». Оно заменяет прежнее требование физического переноса. Мой предыдущий абзац о переносе в WebGL-ветке отменён: старые файлы остаются на месте, новый каталог и проверка зависимостей исключат их. Жду передачи Unity после проверки меню; подготовленные 55 FBX не считаю готовыми игровыми префабами.
 
 Исходники и инструкции зафиксированы общим коммитом `5dd6edc4f` (все FBX/PNG/JPG в LFS, не сырые Git blobs). Дополнительная проверка заголовков изображений уточнила размеры 7 меховых карт: packed bytes были 2048 при canvas 1024. Manifest теперь отражает размер фактического файла; один дубликат normal texture объединён. Это source-only commit, без prefab/catalog switch/build.
+
+## Unity ownership taken — import in progress
+
+Codex взял UNITY_OWNER после передачи и последнего сообщения Толи. Checkout execution copy обновлён на общую ветку без force, исходники People скопированы. Два запуска через unity run завершились UPM IPC timeout (30 s). Пробный -noUpm подтвердил, что этот обход здесь не подходит: пакеты не подключаются и компиляция I2/Magica примеров падает. Package manifest не меняю; восстанавливаю обычный UPM запуск. Build/WebGL не трогал. Готовлю PeopleAssetPreparation и §169, пока gameReady=false.
+
+UPM удалось поднять отдельным локальным helper и передать его IPC через unity run; пакеты подключились, полная компиляция прошла без ошибок (~15 мин после неудачного noUpm). Далее Editor застрял на ReloadAllShaders: Xcode 26.6 сообщает missing Metal Toolchain. Запущена штатная загрузка xcodebuild -downloadComponent MetalToolchain для визуальной проверки. Владелец Unity пока Codex. Генератор карт расширен отдельным GenerateWebGLPeople, вывод только в People/PaintMaps, старые карты не перезаписывает.
+
+Первый реальный импорт: 55/55 FBX прошли morph-name/order + bone hierarchy + triangle checks. В Editor Mesh память неприемлема: Marta 72,760,137 B / 16,405 vertices; Kshishtof 115,218,396 B / 25,496 vertices. Исходные плоские нормали раздробили вершины (source 3,762 / 8,052); 109 морфов размножили память. Сохранил baseline. Исправляю импорт тел: сглаженные нормали, позиционные морфы без нормальных дельт, weld; проверю визуально. optimizeBones должен сократить bone palette отдельного genital renderer (первый импорт дал ему все 172, что нарушает single-body resolver). Все 172 Transform-имени по-прежнему проверяются. Для соблюдения ActorBodyFbxGate глаза/рот отделяются в FBX postprocess, Avatar тоже остаётся embedded FBX; native Mesh/Avatar-копии использовать не буду. Metal Toolchain установлен и metal --version проходит.
+
+
+## Import / integration checkpoint
+
+Последний импорт Metal: Marta 4,410 vertices / 1,730,146 B Mesh; Kshishtof 8,957 / 4,833,945 B. 55/55 model checks pass, 109 morph names/order and 172 transform bones retained. Genitals palette pruned to 4 bones (50 vertices), prefab resolver now sees exactly one body. 39 prefabs generated; rest binding checks passed. Run fixture is being repaired for Animator culling and BakeMesh scale compensation; not game-ready yet.
+
+Взятые seam-файлы дополнены ContentResidency.AddKit (тот же PeopleIdMap, чтобы alias соседки не выгрузил общую Marta). PeopleAppearance ищется у дочернего actor prefab, поскольку NpcActorView стоит на внешнем NPC-root. Карты получат legacyResourcePaths aliases старых актрис. CharacterDollStage — только две BakeMesh-строки для новых People-prefabs, чтобы FBX scale .01 не применялся дважды; старый путь unchanged. SeveredLimbFactory аналогично. UI layout/Server/Remote не меняю.
+
+ColonistAppearance.Meshes теперь только Marta по прямому требованию Толи: новые случайные персонажи различаются skin/hair/voice, старые сейвы и authored Jana/Masha сохраняют IDs. Это изменение генерации в общей WebGL-ветке, не автоматический деплой сервера. Фокусные 10 sim tests прошли (single-body randomizer + authored Nika/Masha round-trip). Player compile checks: Standalone 0 errors; WebGL report-only 0 errors, прежние 10 banned-API warnings в UI/Audio/LLM.
+
+Новый people-catalog будет включаться в AtomicContentBatchBuild ТОЛЬКО явным `-content-people-catalog primal-v1`. Подготовка и AuditPeopleCatalog не вызывают build; old people maps/eyes исключаются при этом opt-in, mob maps и world discovery сохранены. Твой hextuning single-object build без флага продолжает старый discovery. UNITY_OWNER пока Codex, сообщу после завершения текущего прогона.
+
+## UNITY свободен — 2026-10-09 10:32 UTC
+
+Все мои unity run завершились, UNITY_OWNER удалён. Можно брать твоё окно player/hextuning. Сгенерированное скопировано в общий ORICO checkout; пока готовлю свой коммит. Мой runtime/editor-код компилировался Unity успешно; новые PeoplePaintRuntimeTests пока только в source checkout, ещё НЕ копировались в execution. Не теряй мои незакоммиченные изменения: в execution мои C# + все People assets. Если для твоего build нужен чистый detached snapshot, сначала дождись моего коммита или сохрани эти изменения адресно; force/reset запрещены.
+
+55 импортов, 39 prefabs, бег 19 кадров/пол, скрытие гениталий, все 7 skin zones ×128 точек, 25 paint-map assets, каталог121 записей и dry-run прошли. AssetBundles я не собирал. Нужен следующий короткий graphics PlayMode прогон PeoplePaintRuntimeTests после твоего окна: реальные dirt/tear/tan pixels, без сервера и без bundles. gameReady пока false, есть ручная проверка посадки/причёсок и игровой spawn/performance.
+
+UPM запуску помог отдельный официальный helper с IPC, рабочая обёртка `/tmp/hexlive_people_import.py`. Xcode MetalToolchain установлен, графический рендер теперь работает. Не копируй People/Meshes и People/Avatars из execution — это старые промежуточные native копии, текущие префабы ссылаются на embedded FBX, в source они не переносились.

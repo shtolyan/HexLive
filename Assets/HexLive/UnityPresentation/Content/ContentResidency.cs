@@ -285,6 +285,7 @@ public static class ContentResidency
 
     private static void AddKit(string kit)
     {
+        kit = Wearing.PeopleIdMap.Kit(kit);
         if (!KitScratch.Contains(kit))
         {
             KitScratch.Add(kit);

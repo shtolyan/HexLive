@@ -1,0 +1,89 @@
+{
+  "passed": true,
+  "zones": [
+    {
+      "actor": "Marta",
+      "zone": "Head",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Marta",
+      "zone": "Torso",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Marta",
+      "zone": "Pelvis",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Marta",
+      "zone": "ArmL",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Marta",
+      "zone": "ArmR",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Marta",
+      "zone": "LegL",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Marta",
+      "zone": "LegR",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Kshishtof",
+      "zone": "Head",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Kshishtof",
+      "zone": "Torso",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Kshishtof",
+      "zone": "Pelvis",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Kshishtof",
+      "zone": "ArmL",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Kshishtof",
+      "zone": "ArmR",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Kshishtof",
+      "zone": "LegL",
+      "valid": 128,
+      "total": 128
+    },
+    {
+      "actor": "Kshishtof",
+      "zone": "LegR",
+      "valid": 128,
+      "total": 128
+    }
+  ]
+}

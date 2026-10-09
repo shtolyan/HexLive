@@ -1290,7 +1290,7 @@ namespace HexLive.UnityPresentation.UI
                     ownsMesh = true;
                     try
                     {
-                        skin.BakeMesh(mesh, false);
+                        skin.BakeMesh(mesh, skin.GetComponentInParent<PeopleAppearance>(true) != null);
                     }
                     catch (Exception exception)
                     {
@@ -1618,7 +1618,7 @@ namespace HexLive.UnityPresentation.UI
             if (renderer is SkinnedMeshRenderer skin && skin.sharedMesh != null)
             {
                 bakedMesh = new Mesh { name = "CharacterDollFraming" };
-                skin.BakeMesh(bakedMesh, false);
+                skin.BakeMesh(bakedMesh, skin.GetComponentInParent<PeopleAppearance>(true) != null);
                 local = bakedMesh.bounds;
             }
             else

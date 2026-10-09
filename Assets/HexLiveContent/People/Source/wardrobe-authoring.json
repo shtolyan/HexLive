@@ -1,0 +1,1148 @@
+[
+  {
+    "sourceKey": "Sleeve_19793",
+    "folder": "PrimalArmWraps",
+    "name": "PrimalArmWraps",
+    "simId": "clothing.armwraps_primal",
+    "layer": "Wear",
+    "slots": [
+      "ForearmR",
+      "ForearmL",
+      "WristR",
+      "WristL"
+    ],
+    "noHide": [],
+    "materials": [
+      {
+        "source": "Sleeve",
+        "texture": "Primal_Sleeve.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "Cord",
+        "texture": "Primal_Sleeve.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      }
+    ],
+    "_measured": {
+      "verts": 19793,
+      "polys": 19688,
+      "bbox": [
+        44.5,
+        78.3,
+        140.1,
+        150.2,
+        -8.2,
+        7.7
+      ],
+      "zones": {
+        "Forearm": 0.728,
+        "Wrist": 0.27,
+        "Hand": 0.001
+      },
+      "heelCm": 0.0
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Hide Arm Wraps",
+      "nameRu": "\u041a\u043e\u0436\u0430\u043d\u044b\u0435 \u043e\u0431\u043c\u043e\u0442\u043a\u0438",
+      "descEn": "Strips of hide bound from wrist to elbow. Warm, and they take a scrape.",
+      "descRu": "\u041f\u043e\u043b\u043e\u0441\u044b \u043a\u043e\u0436\u0438 \u043e\u0442 \u0437\u0430\u043f\u044f\u0441\u0442\u044c\u044f \u0434\u043e \u043b\u043e\u043a\u0442\u044f. \u0422\u0435\u043f\u043b\u043e, \u0438 \u0441\u0441\u0430\u0434\u0438\u043d\u0443 \u043f\u0440\u0438\u043c\u0443\u0442 \u043d\u0430 \u0441\u0435\u0431\u044f.",
+      "warmth": 0.06,
+      "armor": 0.05,
+      "thermalDelta": 0.0,
+      "capacity": 0,
+      "covers": [
+        "ArmL",
+        "ArmR"
+      ]
+    },
+    "variants": [
+      {
+        "name": "Sleeve1",
+        "from": "Primal Arm Wrap",
+        "textures": [
+          {
+            "source": "Cord",
+            "texture": "Primal_Sleeve1.jpg"
+          },
+          {
+            "source": "Sleeve",
+            "texture": "Primal_Sleeve1.jpg"
+          }
+        ]
+      },
+      {
+        "name": "Sleeve2",
+        "from": "Primal Arm Wrap",
+        "textures": [
+          {
+            "source": "Cord",
+            "texture": "Primal_Sleeve2.jpg"
+          },
+          {
+            "source": "Sleeve",
+            "texture": "Primal_Sleeve2.jpg"
+          }
+        ]
+      },
+      {
+        "name": "Sleeve3",
+        "from": "Primal Arm Wrap",
+        "textures": [
+          {
+            "source": "Cord",
+            "texture": "Primal_Sleeve3.jpg"
+          },
+          {
+            "source": "Sleeve",
+            "texture": "Primal_Sleeve3.jpg"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sourceKey": "Panty_11571",
+    "folder": "PrimalBriefs",
+    "name": "PrimalBriefs",
+    "simId": "underwear.briefs_primal",
+    "layer": "Underwear",
+    "slots": [
+      "Belly",
+      "Pelvis"
+    ],
+    "noHide": [],
+    "materials": [
+      {
+        "source": "Panty",
+        "texture": "Primal_Panty.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "Stitches",
+        "texture": "Primal_Panty.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      }
+    ],
+    "_measured": {
+      "verts": 11571,
+      "polys": 11187,
+      "bbox": [
+        -15.9,
+        15.9,
+        87.6,
+        106.6,
+        -12.5,
+        10.8
+      ],
+      "zones": {
+        "Belly": 0.804,
+        "Pelvis": 0.196
+      },
+      "heelCm": 0.0
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Hide Briefs",
+      "nameRu": "\u041a\u043e\u0436\u0430\u043d\u0430\u044f \u043d\u0430\u0431\u0435\u0434\u0440\u0435\u043d\u043d\u0430\u044f \u043f\u043e\u0432\u044f\u0437\u043a\u0430",
+      "descEn": "Soft hide, tied at the hip. The oldest thing anyone wears.",
+      "descRu": "\u041c\u044f\u0433\u043a\u0430\u044f \u043a\u043e\u0436\u0430, \u0437\u0430\u0432\u044f\u0437\u0430\u043d\u0430 \u043d\u0430 \u0431\u0435\u0434\u0440\u0435. \u0414\u0440\u0435\u0432\u043d\u0435\u0439\u0448\u0435\u0435, \u0447\u0442\u043e \u0432\u043e\u043e\u0431\u0449\u0435 \u043d\u043e\u0441\u044f\u0442.",
+      "warmth": 0.03,
+      "armor": 0.0,
+      "thermalDelta": 0.0,
+      "capacity": 0,
+      "covers": [
+        "Torso",
+        "Pelvis"
+      ]
+    },
+    "variants": [
+      {
+        "name": "Panty1",
+        "from": "Primal Bottom",
+        "textures": [
+          {
+            "source": "Panty",
+            "texture": "Primal_Panty1.jpg"
+          },
+          {
+            "source": "Stitches",
+            "texture": "Primal_Panty1.jpg"
+          }
+        ]
+      },
+      {
+        "name": "Panty2",
+        "from": "Primal Bottom",
+        "textures": [
+          {
+            "source": "Panty",
+            "texture": "Primal_Panty2.jpg"
+          },
+          {
+            "source": "Stitches",
+            "texture": "Primal_Panty2.jpg"
+          }
+        ]
+      },
+      {
+        "name": "Panty3",
+        "from": "Primal Bottom",
+        "textures": [
+          {
+            "source": "Panty",
+            "texture": "Primal_Panty3.jpg"
+          },
+          {
+            "source": "Stitches",
+            "texture": "Primal_Panty3.jpg"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sourceKey": "HeadWrap_6844",
+    "folder": "PrimalHeadband",
+    "name": "PrimalHeadband",
+    "simId": "clothing.headband_primal",
+    "layer": "Wear",
+    "slots": [
+      "Head"
+    ],
+    "noHide": [],
+    "materials": [
+      {
+        "source": "Knot",
+        "texture": "Primal_Leather1.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "Wrap",
+        "texture": "Primal_Leather1.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      }
+    ],
+    "_measured": {
+      "verts": 6844,
+      "polys": 6820,
+      "bbox": [
+        -9.1,
+        8.0,
+        160.1,
+        174.0,
+        -10.7,
+        9.5
+      ],
+      "zones": {
+        "Head": 1.0
+      },
+      "heelCm": 0.0
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Hide Headband",
+      "nameRu": "\u041a\u043e\u0436\u0430\u043d\u0430\u044f \u043f\u043e\u0432\u044f\u0437\u043a\u0430",
+      "descEn": "A band across the brow. Keeps sweat and hair out of her eyes.",
+      "descRu": "\u041f\u043e\u043b\u043e\u0441\u0430 \u043f\u043e \u043b\u0431\u0443. \u0423\u0431\u0438\u0440\u0430\u0435\u0442 \u0438\u0437 \u0433\u043b\u0430\u0437 \u043f\u043e\u0442 \u0438 \u0432\u043e\u043b\u043e\u0441\u044b.",
+      "warmth": 0.02,
+      "armor": 0.0,
+      "thermalDelta": 0.0,
+      "capacity": 0,
+      "covers": [
+        "Head"
+      ]
+    },
+    "variants": [
+      {
+        "name": "2",
+        "from": "Primal Headband",
+        "textures": [
+          {
+            "source": "Knot",
+            "texture": "Primal_Leather2.jpg"
+          },
+          {
+            "source": "Wrap",
+            "texture": "Primal_Leather2.jpg"
+          }
+        ]
+      },
+      {
+        "name": "3",
+        "from": "Primal Headband",
+        "textures": [
+          {
+            "source": "Knot",
+            "texture": "Primal_Leather3.jpg"
+          },
+          {
+            "source": "Wrap",
+            "texture": "Primal_Leather3.jpg"
+          }
+        ]
+      },
+      {
+        "name": "4",
+        "from": "Primal Headband",
+        "textures": [
+          {
+            "source": "Knot",
+            "texture": "Primal_Leather4.jpg"
+          },
+          {
+            "source": "Wrap",
+            "texture": "Primal_Leather4.jpg"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sourceKey": "wrapboots_83416",
+    "folder": "PrimalWrapBoots",
+    "name": "PrimalWrapBoots",
+    "simId": "clothing.wrapboots_primal",
+    "layer": "Outerwear",
+    "slots": [
+      "ShinR",
+      "ShinL",
+      "FootR",
+      "FootL"
+    ],
+    "noHide": [],
+    "materials": [
+      {
+        "source": "Stitches",
+        "texture": "Primal_Moccasins.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "Cord",
+        "texture": "Primal_Moccasins.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "LegWrap",
+        "texture": "Primal_Moccasins.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      }
+    ],
+    "_measured": {
+      "verts": 83416,
+      "polys": 82904,
+      "bbox": [
+        -19.2,
+        19.2,
+        -0.7,
+        50.9,
+        -11.8,
+        13.5
+      ],
+      "zones": {
+        "Foot": 0.521,
+        "Shin": 0.461,
+        "Thigh": 0.018
+      },
+      "heelCm": 0.66
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Wrapped Boots",
+      "nameRu": "\u041e\u0431\u043c\u043e\u0442\u0430\u043d\u043d\u044b\u0435 \u0441\u0430\u043f\u043e\u0433\u0438",
+      "descEn": "Hide bound around foot and shin with cord. Quiet on anything.",
+      "descRu": "\u041a\u043e\u0436\u0430, \u043f\u0440\u0438\u043c\u043e\u0442\u0430\u043d\u043d\u0430\u044f \u0448\u043d\u0443\u0440\u043e\u043c \u043a \u0441\u0442\u0443\u043f\u043d\u0435 \u0438 \u0433\u043e\u043b\u0435\u043d\u0438. \u0422\u0438\u0445\u0438\u0435 \u043f\u043e \u043b\u044e\u0431\u043e\u043c\u0443 \u0433\u0440\u0443\u043d\u0442\u0443.",
+      "warmth": 0.11,
+      "armor": 0.07,
+      "thermalDelta": 0.0,
+      "capacity": 0,
+      "covers": [
+        "LegL",
+        "LegR"
+      ]
+    },
+    "variants": [
+      {
+        "name": "1",
+        "from": "Primal Moccasins",
+        "textures": [
+          {
+            "source": "Cord",
+            "texture": "Primal_Moccasins1.jpg"
+          },
+          {
+            "source": "LegWrap",
+            "texture": "Primal_Moccasins1.jpg"
+          },
+          {
+            "source": "Stitches",
+            "texture": "Primal_Moccasins1.jpg"
+          }
+        ]
+      },
+      {
+        "name": "2",
+        "from": "Primal Moccasins",
+        "textures": [
+          {
+            "source": "Cord",
+            "texture": "Primal_Moccasins2.jpg"
+          },
+          {
+            "source": "LegWrap",
+            "texture": "Primal_Moccasins2.jpg"
+          },
+          {
+            "source": "Stitches",
+            "texture": "Primal_Moccasins2.jpg"
+          }
+        ]
+      },
+      {
+        "name": "3",
+        "from": "Primal Moccasins",
+        "textures": [
+          {
+            "source": "Cord",
+            "texture": "Primal_Moccasins3.jpg"
+          },
+          {
+            "source": "LegWrap",
+            "texture": "Primal_Moccasins3.jpg"
+          },
+          {
+            "source": "Stitches",
+            "texture": "Primal_Moccasins3.jpg"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sourceKey": "Skirt_29046",
+    "folder": "PrimalSkirt",
+    "name": "PrimalSkirt",
+    "simId": "clothing.skirt_primal",
+    "layer": "Wear",
+    "slots": [
+      "Belly",
+      "Pelvis"
+    ],
+    "noHide": [],
+    "materials": [
+      {
+        "source": "Tie",
+        "texture": "Primal_Skirt.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "Stitches",
+        "texture": "Primal_Skirt.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "Skirt",
+        "texture": "Primal_Skirt.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "Overhang",
+        "texture": "Primal_Skirt.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      }
+    ],
+    "_measured": {
+      "verts": 29046,
+      "polys": 28472,
+      "bbox": [
+        -16.8,
+        19.2,
+        83.3,
+        107.1,
+        -14.3,
+        11.9
+      ],
+      "zones": {
+        "Belly": 0.592,
+        "Pelvis": 0.405,
+        "Thigh": 0.002
+      },
+      "heelCm": 0.0
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Hide Skirt",
+      "nameRu": "\u041a\u043e\u0436\u0430\u043d\u0430\u044f \u044e\u0431\u043a\u0430",
+      "descEn": "Cut short and left ragged. Moves without asking.",
+      "descRu": "\u041e\u0431\u0440\u0435\u0437\u0430\u043d\u0430 \u043a\u043e\u0440\u043e\u0442\u043a\u043e \u0438 \u043e\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u0430 \u0440\u0432\u0430\u043d\u043e\u0439. \u0414\u0432\u0438\u0433\u0430\u0435\u0442\u0441\u044f \u043d\u0435 \u0441\u043f\u0440\u0430\u0448\u0438\u0432\u0430\u044f.",
+      "warmth": 0.07,
+      "armor": 0.02,
+      "thermalDelta": 0.0,
+      "capacity": 1,
+      "covers": [
+        "Torso",
+        "Pelvis"
+      ]
+    },
+    "variants": [
+      {
+        "name": "1",
+        "from": "Primal Skirt",
+        "textures": [
+          {
+            "source": "Overhang",
+            "texture": "Primal_Skirt1.jpg"
+          },
+          {
+            "source": "Skirt",
+            "texture": "Primal_Skirt1.jpg"
+          },
+          {
+            "source": "Stitches",
+            "texture": "Primal_Skirt1.jpg"
+          },
+          {
+            "source": "Tie",
+            "texture": "Primal_Skirt1.jpg"
+          }
+        ]
+      },
+      {
+        "name": "2",
+        "from": "Primal Skirt",
+        "textures": [
+          {
+            "source": "Overhang",
+            "texture": "Primal_Skirt2.jpg"
+          },
+          {
+            "source": "Skirt",
+            "texture": "Primal_Skirt2.jpg"
+          },
+          {
+            "source": "Stitches",
+            "texture": "Primal_Skirt2.jpg"
+          },
+          {
+            "source": "Tie",
+            "texture": "Primal_Skirt2.jpg"
+          }
+        ]
+      },
+      {
+        "name": "3",
+        "from": "Primal Skirt",
+        "textures": [
+          {
+            "source": "Overhang",
+            "texture": "Primal_Skirt3.jpg"
+          },
+          {
+            "source": "Skirt",
+            "texture": "Primal_Skirt3.jpg"
+          },
+          {
+            "source": "Stitches",
+            "texture": "Primal_Skirt3.jpg"
+          },
+          {
+            "source": "Tie",
+            "texture": "Primal_Skirt3.jpg"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sourceKey": "Top_11696",
+    "folder": "PrimalTop",
+    "name": "PrimalTop",
+    "simId": "clothing.top_primal",
+    "layer": "Wear",
+    "slots": [
+      "Chest"
+    ],
+    "noHide": [],
+    "materials": [
+      {
+        "source": "Tie",
+        "texture": "Primal_Top.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "Top",
+        "texture": "Primal_Top.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "Fringe",
+        "texture": "Primal_Top.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      }
+    ],
+    "_measured": {
+      "verts": 11696,
+      "polys": 11480,
+      "bbox": [
+        -15.0,
+        15.0,
+        123.5,
+        155.3,
+        -8.6,
+        14.1
+      ],
+      "zones": {
+        "Chest": 0.925,
+        "Neck": 0.075
+      },
+      "heelCm": 0.0
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Hide Wrap",
+      "nameRu": "\u041a\u043e\u0436\u0430\u043d\u0430\u044f \u043f\u043e\u0432\u044f\u0437\u043a\u0430 \u043d\u0430 \u0433\u0440\u0443\u0434\u044c",
+      "descEn": "One piece of hide and a knot. Nothing to catch on a branch.",
+      "descRu": "\u041e\u0434\u0438\u043d \u043a\u0443\u0441\u043e\u043a \u043a\u043e\u0436\u0438 \u0438 \u0443\u0437\u0435\u043b. \u041d\u0435 \u0437\u0430 \u0447\u0442\u043e \u0437\u0430\u0446\u0435\u043f\u0438\u0442\u044c\u0441\u044f \u0432\u0435\u0442\u043a\u043e\u0439.",
+      "warmth": 0.05,
+      "armor": 0.02,
+      "thermalDelta": 0.0,
+      "capacity": 0,
+      "covers": [
+        "Torso"
+      ]
+    },
+    "variants": [
+      {
+        "name": "1",
+        "from": "Primal Top",
+        "textures": [
+          {
+            "source": "Fringe",
+            "texture": "Primal_Top1.jpg"
+          },
+          {
+            "source": "Tie",
+            "texture": "Primal_Top1.jpg"
+          },
+          {
+            "source": "Top",
+            "texture": "Primal_Top1.jpg"
+          }
+        ]
+      },
+      {
+        "name": "2",
+        "from": "Primal Top",
+        "textures": [
+          {
+            "source": "Fringe",
+            "texture": "Primal_Top2.jpg"
+          },
+          {
+            "source": "Tie",
+            "texture": "Primal_Top2.jpg"
+          },
+          {
+            "source": "Top",
+            "texture": "Primal_Top2.jpg"
+          }
+        ]
+      },
+      {
+        "name": "3",
+        "from": "Primal Top",
+        "textures": [
+          {
+            "source": "Fringe",
+            "texture": "Primal_Top3.jpg"
+          },
+          {
+            "source": "Tie",
+            "texture": "Primal_Top3.jpg"
+          },
+          {
+            "source": "Top",
+            "texture": "Primal_Top3.jpg"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sourceKey": "PriDre_plain_fur_dress_116570",
+    "folder": "PrimalDress",
+    "name": "PrimalDress",
+    "simId": "clothing.dress_primal",
+    "layer": "Wear",
+    "slots": [
+      "Chest",
+      "Belly",
+      "Pelvis",
+      "ThighR",
+      "ThighL"
+    ],
+    "noHide": [
+      "Pelvis"
+    ],
+    "materials": [
+      {
+        "source": "fur_plain",
+        "texture": "PrDr_fur_PrDr_furTR.png",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": true
+      },
+      {
+        "source": "dress",
+        "texture": "PrDr_fur.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false,
+        "normal": "PrDr_furNO.jpg"
+      }
+    ],
+    "_measured": {
+      "verts": 116570,
+      "polys": 103832,
+      "bbox": [
+        -19.5,
+        19.9,
+        70.7,
+        154.2,
+        -15.1,
+        16.5
+      ],
+      "zones": {
+        "Pelvis": 0.364,
+        "Chest": 0.236,
+        "Belly": 0.206,
+        "Thigh": 0.194,
+        "Neck": 0.0
+      },
+      "heelCm": 0.0
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Fur-Trimmed Dress",
+      "nameRu": "\u041f\u043b\u0430\u0442\u044c\u0435 \u0441 \u043c\u0435\u0445\u043e\u043c",
+      "descEn": "Long, with fur at the shoulders. Someone dressed for a colder place.",
+      "descRu": "\u0414\u043b\u0438\u043d\u043d\u043e\u0435, \u0441 \u043c\u0435\u0445\u043e\u043c \u043d\u0430 \u043f\u043b\u0435\u0447\u0430\u0445. \u041a\u0442\u043e-\u0442\u043e \u043e\u0434\u0435\u0432\u0430\u043b\u0441\u044f \u0434\u043b\u044f \u043c\u0435\u0441\u0442\u0430 \u043f\u043e\u0445\u043e\u043b\u043e\u0434\u043d\u0435\u0435.",
+      "warmth": 0.18,
+      "armor": 0.0,
+      "thermalDelta": 0.0,
+      "capacity": 0,
+      "covers": [
+        "Torso",
+        "Pelvis",
+        "LegL",
+        "LegR"
+      ]
+    },
+    "variants": [
+      {
+        "name": "color01",
+        "from": "Dress",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color02",
+        "from": "Dress",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur2.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur2.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color03",
+        "from": "Dress",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur3.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur3.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color04",
+        "from": "Dress",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur4.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur4.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color05",
+        "from": "Dress",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur5.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur5.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color06",
+        "from": "Dress",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur6.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur6.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sourceKey": "PriDre_plain_fur_collar_20825",
+    "folder": "PrimalCollar",
+    "name": "PrimalCollar",
+    "simId": "clothing.collar_fur",
+    "layer": "Outerwear",
+    "slots": [
+      "Chest",
+      "Belly"
+    ],
+    "noHide": [],
+    "materials": [
+      {
+        "source": "dress",
+        "texture": "PrDr_fur.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false,
+        "normal": "PrDr_furNO.jpg"
+      },
+      {
+        "source": "fur_plain",
+        "texture": "PrDr_fur_PrDr_furTR.png",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": true
+      }
+    ],
+    "_measured": {
+      "verts": 20825,
+      "polys": 19936,
+      "bbox": [
+        2.8,
+        17.1,
+        104.5,
+        155.0,
+        -17.1,
+        18.4
+      ],
+      "zones": {
+        "Chest": 0.824,
+        "Belly": 0.155,
+        "Neck": 0.022
+      },
+      "heelCm": 0.0
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Fur Collar",
+      "nameRu": "\u041c\u0435\u0445\u043e\u0432\u043e\u0439 \u0432\u043e\u0440\u043e\u0442\u043d\u0438\u043a",
+      "descEn": "A fur collar on its own. Warms the neck and nothing else.",
+      "descRu": "\u041c\u0435\u0445\u043e\u0432\u043e\u0439 \u0432\u043e\u0440\u043e\u0442\u043d\u0438\u043a \u0441\u0430\u043c \u043f\u043e \u0441\u0435\u0431\u0435. \u0413\u0440\u0435\u0435\u0442 \u0448\u0435\u044e \u0438 \u0431\u043e\u043b\u044c\u0448\u0435 \u043d\u0438\u0447\u0435\u0433\u043e.",
+      "warmth": 0.07,
+      "armor": 0.0,
+      "thermalDelta": 0.0,
+      "capacity": 0,
+      "covers": [
+        "Torso"
+      ]
+    },
+    "variants": [
+      {
+        "name": "color01",
+        "from": "Collar",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color02",
+        "from": "Collar",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur2.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur2.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color03",
+        "from": "Collar",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur3.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur3.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color04",
+        "from": "Collar",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur4.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur4.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color05",
+        "from": "Collar",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur5.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur5.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      },
+      {
+        "name": "color06",
+        "from": "Collar",
+        "textures": [
+          {
+            "source": "dress",
+            "texture": "PrDr_fur6.jpg"
+          },
+          {
+            "source": "fur_plain",
+            "texture": "PrDr_fur6.jpg"
+          }
+        ],
+        "colors": [
+          {
+            "source": "dress",
+            "color": "#FFFFFF"
+          },
+          {
+            "source": "fur_plain",
+            "color": "#FFFFFF"
+          }
+        ]
+      }
+    ]
+  }
+]

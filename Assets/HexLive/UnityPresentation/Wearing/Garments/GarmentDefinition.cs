@@ -32,6 +32,10 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                  "но исключается из всех выдач, создающих новый предмет.")]
         public bool retired;
 
+        // §169: new fitted catalogs declare sex explicitly; old assets retain DefaultSex.
+        public bool hasSexOverride;
+        public GarmentSex sexOverride = GarmentSex.Any;
+
         [Header("Категория хранения")]
         [Tooltip("Смысловая категория вещи: обувь — полка, перчатки — парный подвес. Не путать со слоем одежды.")]
         public GarmentCategory category = GarmentCategory.Unclassified;
@@ -81,7 +85,7 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 thermalDelta,
                 dressDurationTicks,
                 capacity,
-                GarmentLibrary.DefaultSex(id),
+                hasSexOverride ? sexOverride : GarmentLibrary.DefaultSex(id),
                 parts)
             {
                 PrototypeId = ArtId,

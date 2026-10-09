@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d652bfbc61d442af8040c02805466ac, type: 3}
+  m_Name: clothing.wrapboots_primal_3
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
+  id: clothing.wrapboots_primal_3
+  prototypeId: clothing.wrapboots_primal
+  displayName: Wrapped Boots (3)
+  retired: 0
+  hasSexOverride: 1
+  sexOverride: 1
+  category: 6
+  variantMaterials:
+  - {fileID: 2100000, guid: 0685889a014a74b56bbcd392960c2b37, type: 2}
+  - {fileID: 2100000, guid: bbc57e3ebf3554ba9b2882b5e369c73c, type: 2}
+  - {fileID: 2100000, guid: 7589aa4f4287747eb995ad9b009db59d, type: 2}
+  layer: 2
+  covers: 0500000006000000
+  warmth: 0.14
+  armor: 0.1
+  thermalDelta: 0
+  dressDurationTicks: 8
+  capacity: 0

@@ -10,7 +10,7 @@
     "SHA256 files and textures",
     "texture file dimensions"
   ],
-  "unityValidated": false,
+  "unityValidated": true,
   "results": [
     {
       "file": "Models/Marta.fbx",
@@ -397,5 +397,7 @@
       "triangles": 2126,
       "passed": true
     }
-  ]
+  ],
+  "unityReport": "../Validation/unity-import.json",
+  "gameReady": false
 }

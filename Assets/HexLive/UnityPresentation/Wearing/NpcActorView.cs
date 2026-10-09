@@ -1976,6 +1976,10 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         ApplySleepPose();
 
+        // Voice above retains the saved identity; rig/paint-map keys follow this prefab.
+        var people = GetComponentInChildren<PeopleAppearance>(true);
+        if (people != null) actorMeshName = people.BodyId;
+
         if (System.Enum.TryParse(actorMeshName, out ActorName parsed) == false)
         {
             Debug.LogError($"Unknown actor mesh '{actorMeshName}'. Actor construction aborted: " +
@@ -6506,7 +6510,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
-        ReplaceBodyMaterials(LoadSkinSet(skinSet), preserveAuthoredEyes);
+        var people = GetComponentInChildren<PeopleAppearance>(true);
+        ReplaceBodyMaterials(people != null ? people.SkinMaterials(skinSet) : LoadSkinSet(skinSet), preserveAuthoredEyes);
     }
 
     // §85: the iris, split out of the skin set above.
@@ -6529,6 +6534,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             return;
         }
 
+        // The new atlas has authored eyes; legacy iris maps have incompatible UVs.
+        if (GetComponentInChildren<PeopleAppearance>(true) != null) return;
         ReplaceBodyMaterials(LoadEyeSet(eyeColor));
     }
 
@@ -6640,6 +6647,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // instantiating it, and the map is built once per donor for the whole run.
     private static Dictionary<string, Material> LoadSkinSet(string actor)
     {
+        if (PeopleIdMap.Active)
+        {
+            var body = ContentPrefabCache.GetOrRequest("actor", actor);
+            var appearance = body != null ? body.GetComponentInChildren<PeopleAppearance>(true) : null;
+            if (appearance != null) return appearance.SkinMaterials(actor);
+        }
         if (_skinSets.TryGetValue(actor, out var cached))
         {
             return cached;

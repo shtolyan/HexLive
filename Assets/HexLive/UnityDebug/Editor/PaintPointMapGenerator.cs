@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using HexLive.UnityPresentation.Wearing;
 using UnityEditor;
 using UnityEngine;
@@ -27,7 +28,7 @@ namespace HexLive.UnityDebug.Editor
     /// </summary>
     public static class PaintPointMapGenerator
     {
-        private const string OutputFolder = "Assets/Resources/HexLive/PaintMaps";
+        private static string OutputFolder = "Assets/Resources/HexLive/PaintMaps";
         private const string ActorsFolder = "Assets/Resources/HexLive/Actors";
         private const string WearResources = "HexLive/Wear";
 
@@ -89,6 +90,46 @@ namespace HexLive.UnityDebug.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log($"[PaintPointMap] regenerated {written} maps into {OutputFolder}");
+        }
+
+        // §169: prepare only the new people, without replacing legacy maps or building bundles.
+        public static void GenerateWebGLPeople()
+        {
+            const string root = "Assets/HexLiveContent/People";
+            var previousOutput = OutputFolder;
+            OutputFolder = root + "/PaintMaps";
+            try
+            {
+                System.IO.Directory.CreateDirectory(OutputFolder);
+                AssetDatabase.Refresh();
+                int actors = 0, garments = 0;
+                foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { root + "/Prefabs/Actors" }))
+                {
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+                    if (!ActorBodyResolver.TryResolve(prefab, out var body, out var error)) throw new System.InvalidOperationException(error);
+                    var geo = MeshGeometry.From(body.sharedMesh, body, skinSlotsOnly: true);
+                    var map = BuildSkinMap(prefab.name, body, geo);
+                    if (map == null || !BuildPositionMapSet(prefab.name, body, geo)) throw new System.InvalidOperationException("Cannot bake " + prefab.name);
+                    SaveMap(map, "skin_" + prefab.name);
+                    actors++;
+                }
+                foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { root + "/Prefabs/Wear" }))
+                {
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+                    var smr = prefab.GetComponentInChildren<SkinnedMeshRenderer>(true);
+                    if (smr == null) throw new System.InvalidOperationException("No garment mesh: " + prefab.name);
+                    // FBX meshes use centimetres beneath a .01 root; the search radius is in rig metres.
+                    var radius = GarmentAnchorRadius / Mathf.Max(.00001f, Mathf.Abs(smr.transform.lossyScale.x));
+                    var map = BuildGarmentMap(prefab.name, smr.sharedMesh, smr, radius);
+                    if (map == null || !map.Zones.Any(z => z.Points.Any(p => p.Valid))) throw new System.InvalidOperationException("Cannot bake valid garment points: " + prefab.name);
+                    SaveMap(map, $"garment_{smr.sharedMesh.name}_{smr.sharedMesh.vertexCount}");
+                    garments++;
+                }
+                if (actors != 2 || garments != 21) throw new System.InvalidOperationException($"Incomplete people maps: {actors} actors, {garments} garments");
+                AssetDatabase.SaveAssets();
+                Debug.Log($"PEOPLE_PAINT_MAPS: {actors} actors, {garments} garments");
+            }
+            finally { OutputFolder = previousOutput; }
         }
 
         // ---- skin maps (one per actor prefab) ----
@@ -926,7 +967,7 @@ namespace HexLive.UnityDebug.Editor
         }
 
         private static PaintPointMap BuildGarmentMap(string prefabName, Mesh mesh,
-            SkinnedMeshRenderer smr)
+            SkinnedMeshRenderer smr, float anchorRadius = GarmentAnchorRadius)
         {
             var geo = MeshGeometry.From(mesh, smr, skinSlotsOnly: false);
             if (geo == null)
@@ -947,7 +988,7 @@ namespace HexLive.UnityDebug.Editor
                 var points = System.Array.Empty<PaintPointMap.Point>();
                 if (geo.TryGetBonePosition(pair.Value, out var anchor))
                 {
-                    var point = geo.PointNearest(anchor, GarmentAnchorRadius);
+                    var point = geo.PointNearest(anchor, anchorRadius);
                     if (point.Valid)
                     {
                         points = new[] { point };

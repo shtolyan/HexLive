@@ -1,0 +1,1709 @@
+{
+  "schemaVersion": 1,
+  "peopleCatalog": "primal-v1",
+  "gameReady": false,
+  "bundleBuildAuthorized": false,
+  "records": [
+    {
+      "type": "actor",
+      "id": "Marta",
+      "main": "Assets/HexLiveContent/People/Prefabs/Actors/Marta.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Actors/Marta",
+        "colours": []
+      }
+    },
+    {
+      "type": "actor",
+      "id": "Kshishtof",
+      "main": "Assets/HexLiveContent/People/Prefabs/Actors/Kshishtof.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Actors/Kshishtof",
+        "colours": []
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.armwraps_primal.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.armwraps_primal",
+        "sex": "Female",
+        "slots": [
+          "ForearmR",
+          "ForearmL",
+          "WristR",
+          "WristL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_sleeve1",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.armwraps_primal_sleeve1.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.armwraps_primal",
+        "sex": "Female",
+        "slots": [
+          "ForearmR",
+          "ForearmL",
+          "WristR",
+          "WristL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_sleeve2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.armwraps_primal_sleeve2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.armwraps_primal",
+        "sex": "Female",
+        "slots": [
+          "ForearmR",
+          "ForearmL",
+          "WristR",
+          "WristL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_sleeve3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalArmWraps.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.armwraps_primal_sleeve3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.armwraps_primal",
+        "sex": "Female",
+        "slots": [
+          "ForearmR",
+          "ForearmL",
+          "WristR",
+          "WristL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.armwraps_primal_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.armwraps_primal_male",
+        "sex": "Male",
+        "slots": [
+          "ForearmR",
+          "ForearmL",
+          "WristR",
+          "WristL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male_sleeve1",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.armwraps_primal_male_sleeve1.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.armwraps_primal_male",
+        "sex": "Male",
+        "slots": [
+          "ForearmR",
+          "ForearmL",
+          "WristR",
+          "WristL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male_sleeve2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.armwraps_primal_male_sleeve2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.armwraps_primal_male",
+        "sex": "Male",
+        "slots": [
+          "ForearmR",
+          "ForearmL",
+          "WristR",
+          "WristL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.armwraps_primal_male_sleeve3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalArmWraps.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.armwraps_primal_male_sleeve3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.armwraps_primal_male",
+        "sex": "Male",
+        "slots": [
+          "ForearmR",
+          "ForearmL",
+          "WristR",
+          "WristL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/underwear.briefs_primal.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "underwear.briefs_primal",
+        "sex": "Female",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_panty1",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/underwear.briefs_primal_panty1.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "underwear.briefs_primal",
+        "sex": "Female",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_panty2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/underwear.briefs_primal_panty2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "underwear.briefs_primal",
+        "sex": "Female",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_panty3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalBriefs.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/underwear.briefs_primal_panty3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "underwear.briefs_primal",
+        "sex": "Female",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/underwear.briefs_primal_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "underwear.briefs_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male_panty1",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/underwear.briefs_primal_male_panty1.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "underwear.briefs_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male_panty2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/underwear.briefs_primal_male_panty2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "underwear.briefs_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "underwear.briefs_primal_male_panty3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalBriefs.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/underwear.briefs_primal_male_panty3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "underwear.briefs_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.headband_primal.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.headband_primal",
+        "sex": "Female",
+        "slots": [
+          "Head"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.headband_primal_2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.headband_primal",
+        "sex": "Female",
+        "slots": [
+          "Head"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.headband_primal_3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.headband_primal",
+        "sex": "Female",
+        "slots": [
+          "Head"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_4",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHeadband.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.headband_primal_4.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.headband_primal",
+        "sex": "Female",
+        "slots": [
+          "Head"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.headband_primal_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.headband_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Head"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male_2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.headband_primal_male_2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.headband_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Head"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male_3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.headband_primal_male_3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.headband_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Head"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.headband_primal_male_4",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHeadband.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.headband_primal_male_4.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.headband_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Head"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.wrapboots_primal.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.wrapboots_primal",
+        "sex": "Female",
+        "slots": [
+          "ShinR",
+          "ShinL",
+          "FootR",
+          "FootL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_1",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.wrapboots_primal_1.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.wrapboots_primal",
+        "sex": "Female",
+        "slots": [
+          "ShinR",
+          "ShinL",
+          "FootR",
+          "FootL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.wrapboots_primal_2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.wrapboots_primal",
+        "sex": "Female",
+        "slots": [
+          "ShinR",
+          "ShinL",
+          "FootR",
+          "FootL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.wrapboots_primal_3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.wrapboots_primal",
+        "sex": "Female",
+        "slots": [
+          "ShinR",
+          "ShinL",
+          "FootR",
+          "FootL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.wrapboots_primal_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.wrapboots_primal_male",
+        "sex": "Male",
+        "slots": [
+          "ShinR",
+          "ShinL",
+          "FootR",
+          "FootL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male_1",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.wrapboots_primal_male_1.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.wrapboots_primal_male",
+        "sex": "Male",
+        "slots": [
+          "ShinR",
+          "ShinL",
+          "FootR",
+          "FootL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male_2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.wrapboots_primal_male_2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.wrapboots_primal_male",
+        "sex": "Male",
+        "slots": [
+          "ShinR",
+          "ShinL",
+          "FootR",
+          "FootL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.wrapboots_primal_male_3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalWrapBoots.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.wrapboots_primal_male_3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.wrapboots_primal_male",
+        "sex": "Male",
+        "slots": [
+          "ShinR",
+          "ShinL",
+          "FootR",
+          "FootL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.skirt_primal.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.skirt_primal",
+        "sex": "Female",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_1",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.skirt_primal_1.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.skirt_primal",
+        "sex": "Female",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.skirt_primal_2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.skirt_primal",
+        "sex": "Female",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalSkirt.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.skirt_primal_3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.skirt_primal",
+        "sex": "Female",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.skirt_primal_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.skirt_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male_1",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.skirt_primal_male_1.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.skirt_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male_2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.skirt_primal_male_2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.skirt_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.skirt_primal_male_3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalSkirt.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.skirt_primal_male_3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.skirt_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Belly",
+          "Pelvis"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.top_primal.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.top_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal_1",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.top_primal_1.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.top_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal_2",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.top_primal_2.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.top_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.top_primal_3",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTop.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.top_primal_3.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.top_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color01",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_color01.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color02",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_color02.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color03",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_color03.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color04",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_color04.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color05",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_color05.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_color06",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_color06.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color01",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_male_color01.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color02",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_male_color02.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color03",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_male_color03.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color04",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_male_color04.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color05",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_male_color05.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.dress_primal_male_color06",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalDress.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.dress_primal_male_color06.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.dress_primal_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly",
+          "Pelvis",
+          "ThighR",
+          "ThighL"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color01",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_color01.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color02",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_color02.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color03",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_color03.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color04",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_color04.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color05",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_color05.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_color06",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_color06.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur",
+        "sex": "Female",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color01",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_male_color01.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color02",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_male_color02.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color03",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_male_color03.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color04",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_male_color04.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color05",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_male_color05.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "clothing.collar_fur_male_color06",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalCollar.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/clothing.collar_fur_male_color06.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "clothing.collar_fur_male",
+        "sex": "Male",
+        "slots": [
+          "Chest",
+          "Belly"
+        ]
+      }
+    },
+    {
+      "type": "hair",
+      "id": "AdellHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/AdellHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/AdellHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "AsukaHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/AsukaHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/AsukaHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "BendineHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/BendineHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/BendineHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "Bob3Hair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/Bob3Hair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/Bob3Hair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "ChunkyHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/ChunkyHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/ChunkyHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "EilisHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/EilisHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/EilisHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "Hair07",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/Hair07.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/Hair07",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "JelikaHair_32434",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/JelikaHair_32434.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/JelikaHair_32434",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "JenniferHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/JenniferHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/JenniferHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "LeonyPonytail",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/LeonyPonytail.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/LeonyPonytail",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "LoonaHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/LoonaHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/LoonaHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "LowPonytail",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/LowPonytail.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/LowPonytail",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "Neu09Hair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/Neu09Hair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/Neu09Hair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "OnyxHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/OnyxHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/OnyxHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "ShilohHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/ShilohHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/ShilohHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "hair",
+      "id": "TootsieRollHair",
+      "main": "Assets/HexLiveContent/People/Prefabs/Hair/TootsieRollHair.prefab",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/Hair/TootsieRollHair",
+        "colours": []
+      }
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_gatherer",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalGathererPack.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/gear.backpack_primal_gatherer.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "gear.backpack_primal_gatherer",
+        "sex": "Female",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_hunter",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalHunterPack.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/gear.backpack_primal_hunter.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "gear.backpack_primal_hunter",
+        "sex": "Female",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_trail",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalTrailPack.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/gear.backpack_primal_trail.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "gear.backpack_primal_trail",
+        "sex": "Female",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_gatherer_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalGathererPack.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/gear.backpack_primal_gatherer_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "gear.backpack_primal_gatherer_male",
+        "sex": "Male",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_hunter_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalHunterPack.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/gear.backpack_primal_hunter_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "gear.backpack_primal_hunter_male",
+        "sex": "Male",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "wear",
+      "id": "gear.backpack_primal_trail_male",
+      "main": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalTrailPack.prefab",
+      "definition": "Assets/HexLiveContent/People/Definitions/gear.backpack_primal_trail_male.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "artId": "gear.backpack_primal_trail_male",
+        "sex": "Male",
+        "slots": [
+          "Chest"
+        ]
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primalarmwraps_1294",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalArmWraps_1294.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalArmWraps_1294",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primalbriefs_1243",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalBriefs_1243.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalBriefs_1243",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primalcollar_4174",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalCollar_4174.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalCollar_4174",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primaldress_14501",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalDress_14501.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalDress_14501",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primalgathererpack_2414",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalGathererPack_2414.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalGathererPack_2414",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primalheadband_624",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalHeadband_624.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalHeadband_624",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primalhunterpack_2589",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalHunterPack_2589.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalHunterPack_2589",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primalskirt_1789",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalSkirt_1789.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalSkirt_1789",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primaltrailpack_2514",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalTrailPack_2514.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalTrailPack_2514",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_kshishtof_primalwrapboots_2549",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Kshishtof_PrimalWrapBoots_2549.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Kshishtof_PrimalWrapBoots_2549",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primalarmwraps_1290",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalArmWraps_1290.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalArmWraps_1290",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primalbriefs_1180",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalBriefs_1180.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalBriefs_1180",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primalcollar_4176",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalCollar_4176.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalCollar_4176",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primaldress_14748",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalDress_14748.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalDress_14748",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primalgathererpack_2414",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalGathererPack_2414.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalGathererPack_2414",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primalheadband_618",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalHeadband_618.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalHeadband_618",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primalhunterpack_2589",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalHunterPack_2589.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalHunterPack_2589",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primalskirt_1791",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalSkirt_1791.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalSkirt_1791",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primaltop_1278",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalTop_1278.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalTop_1278",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primaltrailpack_2514",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalTrailPack_2514.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalTrailPack_2514",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.garment_marta_primalwrapboots_2522",
+      "main": "Assets/HexLiveContent/People/PaintMaps/garment_Marta_PrimalWrapBoots_2522.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/garment_Marta_PrimalWrapBoots_2522",
+        "legacyResourcePaths": [],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.skin_kshishtof",
+      "main": "Assets/HexLiveContent/People/PaintMaps/skin_Kshishtof.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/skin_Kshishtof",
+        "legacyResourcePaths": [
+          "HexLive/PaintMaps/skin_Tonny",
+          "HexLive/PaintMaps/skin_Kshishtof"
+        ],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.skin_marta",
+      "main": "Assets/HexLiveContent/People/PaintMaps/skin_Marta.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/skin_Marta",
+        "legacyResourcePaths": [
+          "HexLive/PaintMaps/skin_Molly",
+          "HexLive/PaintMaps/skin_Jolly",
+          "HexLive/PaintMaps/skin_Marta",
+          "HexLive/PaintMaps/skin_Jana",
+          "HexLive/PaintMaps/skin_Masha",
+          "HexLive/PaintMaps/skin_Rita"
+        ],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.skinpos_kshishtof",
+      "main": "Assets/HexLiveContent/People/PaintMaps/skinpos_Kshishtof.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/skinpos_Kshishtof",
+        "legacyResourcePaths": [
+          "HexLive/PaintMaps/skinpos_Tonny",
+          "HexLive/PaintMaps/skinpos_Kshishtof"
+        ],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    },
+    {
+      "type": "config",
+      "id": "paintmaps.skinpos_marta",
+      "main": "Assets/HexLiveContent/People/PaintMaps/skinpos_Marta.asset",
+      "metadata": {
+        "peopleCatalog": "primal-v1",
+        "legacyResourcePath": "HexLive/PaintMaps/skinpos_Marta",
+        "legacyResourcePaths": [
+          "HexLive/PaintMaps/skinpos_Molly",
+          "HexLive/PaintMaps/skinpos_Jolly",
+          "HexLive/PaintMaps/skinpos_Marta",
+          "HexLive/PaintMaps/skinpos_Jana",
+          "HexLive/PaintMaps/skinpos_Masha",
+          "HexLive/PaintMaps/skinpos_Rita"
+        ],
+        "legacyResourceFolder": "HexLive/PaintMaps"
+      }
+    }
+  ]
+}

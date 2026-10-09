@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HexLive.UnityPresentation.Wearing.Garments;
+using HexLive.UnityPresentation.Wearing;
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Content
@@ -96,6 +97,7 @@ public static class ContentPrefabCache
             return true;
         }
 
+        id = PeopleIdMap.ContentId(type, id);
         var key = type + "/" + id;
         if (Loading.Contains(key))
         {
@@ -132,6 +134,7 @@ public static class ContentPrefabCache
         }
 
         EnsureRegistrySubscription();
+        id = PeopleIdMap.ContentId(type, id);
         var key = type + "/" + id;
         if (Handles.TryGetValue(key, out var ready))
         {

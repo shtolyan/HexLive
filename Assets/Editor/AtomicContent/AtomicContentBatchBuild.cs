@@ -30,6 +30,65 @@ public static class AtomicContentBatchBuild
     private const string GeneratedMetadataRoot = "Assets/AtomicContent/Generated";
     private const string RuntimeSourceRoot = "Assets/HexLiveContent/RuntimeSource";
     private static string _temporaryMetadata;
+    private const string PeopleCatalogPath = "Assets/HexLiveContent/People/catalog.json";
+    // Explicit authoring opt-in. Merely importing new people never switches a live catalog.
+    private static bool UsePeopleCatalog => string.Equals(
+        Optional(Environment.GetCommandLineArgs(), "-content-people-catalog"), "primal-v1", StringComparison.Ordinal);
+
+    private static JArray PeopleRecords()
+    {
+        var catalog = JObject.Parse(File.ReadAllText(PeopleCatalogPath));
+        if ((string)catalog["peopleCatalog"] != "primal-v1") throw new InvalidOperationException("Unsupported people catalog");
+        return (JArray)catalog["records"];
+    }
+
+    private static bool IsLegacyPeopleMap(string path)
+    {
+        if (!path.Contains("/PaintMaps/", StringComparison.Ordinal)) return false;
+        var name = Path.GetFileNameWithoutExtension(path);
+        if (name.StartsWith("garment_", StringComparison.Ordinal)) return true;
+        return Enum.GetNames(typeof(HexLive.UnityPresentation.Wearing.ActorName)).Any(actor =>
+            name.StartsWith("skin_" + actor, StringComparison.Ordinal) ||
+            name.StartsWith("skinpos_" + actor, StringComparison.Ordinal));
+    }
+
+    private static BuildInputs ResolvePeople(JToken row)
+    {
+        string type = (string)row["type"], id = (string)row["id"];
+        var meta = (JObject)row["metadata"].DeepClone();
+        var result = new BuildInputs { Main = (string)row["main"], DisplayName = id, ExtraMetadata = meta };
+        if (type == "wear")
+        {
+            result.Metadata = (string)row["definition"];
+            var def = AssetDatabase.LoadAssetAtPath<GarmentDefinition>(result.Metadata);
+            if (def == null) throw new InvalidOperationException("Missing people garment: " + id);
+            result.DisplayName = def.displayName; result.ArtId = def.ArtId;
+            result.Category = def.category.ToString(); result.IsWear = true;
+            result.Layer = def.layer.ToString(); result.Covers = def.covers.Select(p => p.ToString()).ToArray();
+            result.Slots = meta["slots"].Values<string>().ToArray();
+            result.Warmth = def.warmth; result.Armor = def.armor; result.ThermalDelta = def.thermalDelta;
+            result.DressDurationTicks = def.dressDurationTicks; result.Capacity = def.capacity;
+            result.Sex = (string)meta["sex"];
+        }
+        else result.Metadata = CreateGeneratedMetadata(type, id, meta);
+        return ResolveOwnerIcon(type, id, result);
+    }
+
+    // Preparation/dry run only. Does not invoke BuildObject or BuildPipeline.
+    public static void AuditPeopleCatalog()
+    {
+        var rows = PeopleRecords();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in rows)
+        {
+            string key = (string)row["type"] + "/" + (string)row["id"];
+            if (!seen.Add(key)) throw new InvalidOperationException("Duplicate people record " + key);
+            ValidateAsset((string)row["main"], key);
+            if (row["definition"] != null) ValidateAsset((string)row["definition"], key + " metadata");
+        }
+        Debug.Log("PEOPLE_CATALOG_DRY_RUN: " + rows.Count + " records; no bundles built");
+    }
+
 
     private static readonly HashSet<string> Types = new(StringComparer.Ordinal)
     {
@@ -430,6 +489,16 @@ public static class AtomicContentBatchBuild
             }
         }
 
+        if (UsePeopleCatalog)
+        {
+            foreach (var row in PeopleRecords())
+            {
+                var entry = row;
+                Add((string)entry["type"], (string)entry["id"], () => ResolvePeople(entry));
+            }
+        }
+        else
+        {
         // The simulation defaults are the active authoring inventory. The asset
         // tree also contains unfinished extracted variants which deliberately
         // have no art/icon yet; publishing those would expose broken records.
@@ -467,6 +536,8 @@ public static class AtomicContentBatchBuild
             {
                 Add("hair", id, () => ResolveOwnerIcon("hair", id, ResolveHair(id)));
             }
+        }
+
         }
 
         const string prostheticRoot = "Assets/HexLiveContent/Prosthetics";
@@ -631,7 +702,9 @@ public static class AtomicContentBatchBuild
         foreach (var guid in AssetDatabase.FindAssets(string.Empty, new[] { RuntimeSourceRoot }))
         {
             var path = AssetDatabase.GUIDToAssetPath(guid);
-            if (authoringOnly.Contains(path) ||
+            if ((UsePeopleCatalog && (IsLegacyPeopleMap(path) ||
+                    path.Contains("/Eyes/", StringComparison.Ordinal))) ||
+                authoringOnly.Contains(path) ||
                 skipped.Any(value => path.Contains(value, StringComparison.Ordinal)) ||
                 !allowed.Contains(Path.GetExtension(path)) ||
                 AssetDatabase.IsValidFolder(path))
@@ -824,6 +897,13 @@ public static class AtomicContentBatchBuild
         }
 
         BuildInputs resolved;
+        if (UsePeopleCatalog)
+        {
+            var entry = PeopleRecords().FirstOrDefault(r => (string)r["type"] == type && (string)r["id"] == id);
+            if (entry != null) { resolved = ResolvePeople(entry); goto resolved_input; }
+            if (type is "actor" or "wear" or "hair")
+                throw new InvalidOperationException("Object is outside the new people catalog: " + type + "/" + id);
+        }
         if (type == "wear")
         {
             resolved = ResolveWear(id);

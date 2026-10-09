@@ -410,6 +410,14 @@ public sealed class BodyBones : MonoBehaviour
     // visual garments, each equipped under its own key).
     public void Equip(string key, Wear wearPrefab)
     {
+        if (_wears.ContainsKey(key)) return;
+        Equip(key, wearPrefab, Garments.GarmentVariants.MaterialsOf(KeyToDefinitionId(key)));
+    }
+
+    // Authored previews already own their materials and must not start a remote catalog request.
+    // Both paths use the same fitting, layer, genital visibility and shadow logic below.
+    public void Equip(string key, Wear wearPrefab, Material[] preparedMaterials)
+    {
         if (_wears.ContainsKey(key))
         {
             return;
@@ -422,7 +430,7 @@ public sealed class BodyBones : MonoBehaviour
         // must be painted BEFORE Construct, which caches each slot's dry colour
         // and smoothness to restore after dirt and wet — cache the prototype's
         // and the variant would wash back to the wrong colour.
-        newWear.ApplyVariant(Garments.GarmentVariants.MaterialsOf(KeyToDefinitionId(key)));
+        newWear.ApplyVariant(preparedMaterials);
         newWear.Construct(_actorMesh, this, key);
         SuppressGarmentShadows(newWear);
 

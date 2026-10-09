@@ -57,3 +57,30 @@ QA follow-up19:13Z: more missing-record errors: object/clothing.dress_primal_col
 - Live browser (Claude): menu, connect 1.9 s, world tick ~1600, new People + male outsider render, 0 errors.
 - Known limits: first load ~3–4 min on a ~250 KB/s path (57 MB player + ~130 content objects); repeat loads revalidate.
   Audio quality after a559 (PCM SFX, FMOD 2×2048) not yet confirmed by ear.
+
+### Root-cause evidence update19:17Z (Sveta, read-only code/log audit)
+FIRST relevant warning at19:12:23.117Z: `[AtomicContent] Реестр недоступен: HTTP 500 Request timeout; используем проверенный локальный кэш.` ALL missing-record errors occur AFTER this warning (first clothing at19:12:26; palm_leaf/axe19:13:22; resource.cloth19:14:53). ContentAssetService.RefreshRegistryRoutine uses 10s SendTextAsync timeout; failure calls PinOfflineRecords, which clears _pinned and keeps only _verified entries. ContentPrefabCache.Request then caches terminal Missing based on TryGetRecord; it only forgives on a later healthy registry refresh. Please investigate recovery/automatic retry and preserving legitimate in-flight/known metadata across transient timeout; public230 manifest itself is correct and reachable. Avoid blindly adding aliases based on earlier symptom. Potential garment generic-fallback is secondary while registry degraded. Raw log timestamps substantiate sequence; current cloud Chrome main-thread/GPU is busy, so callback scheduling may contribute to timeout. Need successful fresh-world load + no permanent missing models after transient registry failure.
+
+## Claude — live QA: audio measured, player-command limit (2026-10-10 ~02:25 +07)
+Freeze: deployed server/site `88ee8821b55206cdd66f1d7bcf5d8dcb6cc7d069`, content `b993f5726`; branch head at write `c9403cd45fa23280dd845e3c02a5999ce2f5949c`.
+Screenshot: `/Users/shtolyan/hex-girls/webgl-build/release-evidence/20261010-singapore/live-world-claude.jpg` (public play host, in world, tick ~4200, no secrets on screen).
+
+**Audio — objective, not by ear.** Before Unity started, the page's `AudioNode.prototype.connect` was wrapped so that
+every node connected to `AudioDestinationNode` also feeds an `AnalyserNode` (fftSize 2048); RMS/peak read every 40 ms.
+- Before gesture: 0 taps (AudioContext suspended, expected). After one click: log
+  `[Music] web audio resumed after the first player gesture`, context `running`, 44100 Hz, 1 tap.
+- Menu, 10 s: 224 windows, **0 silent**, RMS p10 0.050 / median 0.066 (music), page 60 fps, max frame gap 21 ms.
+- In world, 15 s: 324 windows, **0 silent**, RMS p10 0.020 / median 0.032; FMOD/ERR_FORMAT errors 0.
+- In world the pane became HIDDEN (Electron throttles rAF to ~1 Hz although visibilityState=visible): the signal still had
+  no gaps at 1 fps — the AudioWorklet mixer is independent of the frame, i.e. the a559 change behaves as intended.
+- Limits: proves non-silent continuous output and absence of dropouts at window resolution (~46 ms); does NOT judge
+  timbre, mix balance, 3D panning by ear, voice-line lipsync or footstep doubling (listener fix verified in code, not by ear).
+  In-world FPS on a visible pane not measured in this run (menu: 60 fps).
+
+**Player command — NOT done, honestly.** This browser session is anonymous: log `стартовый выбор: npc=1 ЧУЖАЯ/нет прав;
+приказы запрещены`. No existing authorized session exists here; entering a player token/closed-test key into a production
+page is outside what I may do, and auth was not weakened. Needs Tolya (or a session he authorizes himself).
+
+**Sveta's registry-timeout blocker:** not reproduced in this session (no `[AtomicContent]`/registry warnings; registry
+answered in time) — intermittent, consistent with her root cause. Codex owns the ContentAssetService fix; I do not touch
+those files and will rebuild the Player only from Codex's SHA.

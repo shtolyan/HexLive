@@ -716,6 +716,13 @@ namespace HexLive.UnityPresentation.Audio
             var up = ToFmod(camera.up.normalized);
             FMODUnity.RuntimeManager.CoreSystem.set3DListenerAttributes(
                 0, ref pos, ref vel, ref fwd, ref up);
+
+            // События Studio (§67.12) сводятся по СВОЕМУ слушателю, не по
+            // слушателю Core. StudioListener в игровой сцене нет, поэтому он
+            // стоял в (0,0,0): в браузере, где играет только Studio, игрок
+            // услышал шаги «не привязанными к камере» (9.10.2026).
+            FMODUnity.RuntimeManager.StudioSystem.setListenerAttributes(
+                0, FMODUnity.RuntimeUtils.To3DAttributes(camera));
         }
 
         /// <summary>Есть ли такой звук (учитывая голосовые группы из скана).</summary>

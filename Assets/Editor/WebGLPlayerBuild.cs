@@ -46,6 +46,16 @@ public static class HexLiveWebGLPlayerBuild
 
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
             PlayerSettings.WebGL.decompressionFallback = false;
+            // -webgl-exceptions full: в режиме «только явные исключения»
+            // обычный NullReferenceException в wasm выглядит как
+            // «RuntimeError: table index is out of bounds» и роняет страницу
+            // без стека (замер 9.10.2026). Для отладки — полные исключения со
+            // стеком: медленнее и тяжелее, в выпуск не идёт.
+            var fullExceptions = string.Equals(
+                Value(arguments, "-webgl-exceptions"), "full", StringComparison.Ordinal);
+            PlayerSettings.WebGL.exceptionSupport = fullExceptions
+                ? WebGLExceptionSupport.FullWithStacktrace
+                : WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
 
             var scenes = EditorBuildSettings.scenes
                 .Where(scene => scene.enabled)

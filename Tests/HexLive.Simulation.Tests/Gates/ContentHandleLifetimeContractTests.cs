@@ -142,7 +142,17 @@ public sealed class ContentHandleLifetimeContractTests
     [Test]
     public void NetworkTransportStreamsThroughHttpClientAndKeepsResumeSafety()
     {
-        var source = Presentation(Path.Combine("Content", "ContentAssetService.cs"));
+        // §168.12: в веб-сборке UnityWebRequest — единственный транспорт
+        // (System.Net в браузере нет). Правило «без зависшего Unity transport»
+        // относится к ДЕСКТОПНОМУ пути, поэтому веб-ветки вырезаются, а сами
+        // они проверяются отдельно: HttpClient в них быть не может.
+        var full = Presentation(Path.Combine("Content", "ContentAssetService.cs"));
+        var source = WithoutWebOnlyBlocks(full, out var web);
+
+        Assert.That(web, Does.Contain("UnityWebRequestAssetBundle.GetAssetBundle"),
+            "веб-ветка обязана качать бандлы через UnityWebRequestAssetBundle");
+        Assert.That(web, Does.Not.Contain("new HttpClient").And.Not.Contain("Http.SendAsync"),
+            "в браузере HttpClient нет — веб-ветка без него");
 
         Assert.Multiple(() =>
         {
@@ -160,6 +170,37 @@ public sealed class ContentHandleLifetimeContractTests
             Assert.That(source, Does.Not.Contain("DownloadHandlerFile"));
             Assert.That(source, Does.Not.Contain("UnityEngine.Networking"));
         });
+    }
+
+    /// <summary>Text outside every <c>#if UNITY_WEBGL &amp;&amp; !UNITY_EDITOR</c>
+    /// branch (its <c>#else</c> half is kept); the web halves go to <paramref name="web"/>.</summary>
+    private static string WithoutWebOnlyBlocks(string source, out string web)
+    {
+        var kept = new System.Text.StringBuilder();
+        var webText = new System.Text.StringBuilder();
+        var inWeb = false;
+        var depth = 0;
+        foreach (var line in source.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (!inWeb && trimmed == "#if UNITY_WEBGL && !UNITY_EDITOR")
+            {
+                inWeb = true;
+                depth = 0;
+                continue;
+            }
+            if (inWeb)
+            {
+                if (trimmed.StartsWith("#if", System.StringComparison.Ordinal)) depth++;
+                else if (depth == 0 && trimmed == "#else") { inWeb = false; continue; }
+                else if (trimmed == "#endif") { if (depth == 0) { inWeb = false; continue; } depth--; }
+                webText.AppendLine(line);
+                continue;
+            }
+            kept.AppendLine(line);
+        }
+        web = webText.ToString();
+        return kept.ToString();
     }
 
     /// <summary>

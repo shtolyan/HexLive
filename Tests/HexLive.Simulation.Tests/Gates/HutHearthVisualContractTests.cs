@@ -51,8 +51,11 @@ public sealed class HutHearthVisualContractTests
                 "[Sfx.LoopFire] = new Def(0.85f, 1.2f, 28f, 0f, loop: true)"));
             // §152: звук едет в Player внутри StreamingAssets, не через
             // atomic-реестр — иначе костёр молчит до прихода каталога.
+            // §168.6: корень один — AudioRoot (десктоп — StreamingAssets/HexLive,
+            // веб — его копия в памяти вкладки по манифесту той же сборки).
             Assert.That(audio, Does.Contain(
-                "Path.Combine(Application.streamingAssetsPath, \"HexLive\", \"Sfx\")"));
+                "Path.Combine(Application.streamingAssetsPath, \"HexLive\")"));
+            Assert.That(audio, Does.Contain("Path.Combine(AudioRoot, \"Sfx\")"));
             Assert.That(File.Exists(sample), Is.True,
                 "Crackle-сэмпл обязан лежать в StreamingAssets рядом с Player.");
             Assert.That(new FileInfo(sample).Length, Is.GreaterThan(44),

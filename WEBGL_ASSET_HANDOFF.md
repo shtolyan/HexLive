@@ -132,7 +132,7 @@ UI/AdminCredentialStore.cs, Updates/**}`, `Server/**`, `Tools/webgl*`,
      `WEBGL_ASSET_HANDOFF.codex.md`;
    - `AtomicContentBatchBuild.cs` — только обнаружение рецептов людей и
      dry-run manifest, с пометкой в `.codex.md`.
-5. **Legacy.** Предлагаю старых людей физически в этой ветке НЕ двигать:
+5. **Legacy — РЕШЕНО Толей (2026-10-09): не переносим.** Старых людей в этой ветке НЕ двигать:
    новый каталог просто не ссылается на старые ассеты, а
    `--exclude-type`/dry-run manifest не даёт им попасть в веб-сборку.
    `master` и десктоп живут на старых, и массовый перенос папок здесь

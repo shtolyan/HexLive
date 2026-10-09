@@ -100,3 +100,29 @@ content, and packages candidates with relative payload paths and SHA-256 checks.
 The output excludes legacy clothes, bodies, hair, eye maps and helmet source art.
 `verify --package <directory>` checks a transferred copy without Unity or a server.
 It does not publish, change a server, or turn a preparation report into visual acceptance.
+
+### Локальная сборка WebGL — 2026-10-09
+
+Готов переносимый пакет `webgl-primal-v1-ready.tar.gz`: **230 записей**,
+266 130 479 байт payload; архив 241 663 324 байт. Состав: 2 тела, 16 причёсок,
+78 вариантов одежды/рюкзаков, 7 построек, 57 объектов, 2 животных, 8 протезов,
+15 VFX и 45 конфигураций (включая simdata). Сборка на `b0804c8cc8cca2f76ebe39bd589bb106e5586548`.
+Полный исходный прогон: 250/250, ошибок 0; 21 неиспользуемая legacy normal-карта
+исключена из пакета после проверки всех зависимостей.
+
+Проверки: 10/10 simulation, 3/3 graphics PlayMode, 7/7 упаковщик; повторно
+открыты все 121 People payload, 5 удерживались одновременно. Проверены
+морфы, Avatar/controller, кости, материалы, слой и covers. Изменение места
+пакета прошло проверку SHA-256. Локальный сервер принял 230/230 записей,
+HTTP index вернул 230 и platformMissing=0; 6 скачанных HTTP payload совпали
+по SHA-256. Архив повторно прочитан и проверены все 230 payload.
+
+SHA-256 архива: `e5b3b0388078c3a7af3c9508461fccc8180f5f6fff6c0e53654fc24fc90e6304`.
+Архив и `.sha256` находятся в `/Users/shtolyan/hex-girls/webgl-build/packages/`.
+Внутри пакета — inventory, manifest, исходный build summary и отчёты
+`people-payload-validation.json` / `local-registry-validation.json`.
+
+На production ничего не опубликовано. `gameReady=false` сохраняет ограничение:
+полный браузерный рендер/производительность ещё предстоит проверить с плеером Claude.
+Не смешивать новый гардероб с активной legacy выдачей старого server registry;
+для теста использован отдельный локальный root только с WebGL-контентом.

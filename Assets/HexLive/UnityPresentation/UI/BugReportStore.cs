@@ -56,7 +56,13 @@ namespace HexLive.UnityPresentation.UI
         }
 
         private static FileModel _model;
+#if !(UNITY_WEBGL && !UNITY_EDITOR)
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(6) };
+#else
+        // §168.3: в браузере мутации уходят асинхронно; ответ правит модель,
+        // а панель узнаёт об этом тем же опросом CheckExternalChange.
+        private static bool _webChanged;
+#endif
 
         public static IReadOnlyList<Report> Reports
         {
@@ -108,6 +114,14 @@ namespace HexLive.UnityPresentation.UI
                 return false;
             }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_webChanged)
+            {
+                _webChanged = false;
+                return true;
+            }
+#endif
+
             if (_refresh == null)
             {
                 // Токен и endpoint читаются ЗДЕСЬ, на главном потоке —
@@ -124,7 +138,7 @@ namespace HexLive.UnityPresentation.UI
             string json = null;
             if (_refresh.Status == System.Threading.Tasks.TaskStatus.RanToCompletion)
             {
-                json = _refresh.Result;
+                json = Platform.CompletedTask.Result(_refresh);
             }
             _refresh = null;
             if (string.IsNullOrEmpty(json) || json == _lastServerJson)
@@ -144,6 +158,54 @@ namespace HexLive.UnityPresentation.UI
             return true;
         }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        private static System.Threading.Tasks.Task<string> FetchReportsTextAsync(
+            string endpoint, string token)
+        {
+            var completion = new System.Threading.Tasks.TaskCompletionSource<string>();
+            SendWeb("GET", endpoint + "/reports", null, token, text => completion.SetResult(text));
+            return completion.Task;
+        }
+
+        /// <summary>
+        /// §168.3: one request through UnityWebRequest; <paramref name="done"/>
+        /// gets the body on success and null on any failure (the tracker being
+        /// down is not an event worth more than the warning below).
+        /// </summary>
+        private static void SendWeb(string method, string url, string json, string token,
+            Action<string> done)
+        {
+            var request = new UnityEngine.Networking.UnityWebRequest(url, method)
+            {
+                downloadHandler = new UnityEngine.Networking.DownloadHandlerBuffer(),
+                timeout = 6,
+            };
+            if (json != null)
+            {
+                request.uploadHandler = new UnityEngine.Networking.UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
+                request.SetRequestHeader("Content-Type", "application/json");
+            }
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.SetRequestHeader("Authorization", "Bearer " + token);
+            }
+
+            request.SendWebRequest().completed += _ =>
+            {
+                string body = null;
+                if (request.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+                {
+                    body = request.downloadHandler.text;
+                }
+                else
+                {
+                    Debug.LogWarning($"Bug tracker API unavailable: {request.error}");
+                }
+                request.Dispose();
+                done(body);
+            };
+        }
+#else
         private static async System.Threading.Tasks.Task<string> FetchReportsTextAsync(
             string endpoint, string token)
         {
@@ -169,6 +231,7 @@ namespace HexLive.UnityPresentation.UI
                 return null;
             }
         }
+#endif
 
         public static Report Add(string text, string context)
         {
@@ -364,6 +427,12 @@ namespace HexLive.UnityPresentation.UI
 
         private static bool TryReloadFromServer()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.3: синхронной загрузки в браузере нет — список приедет
+            // ближайшим опросом CheckExternalChange.
+            _refresh ??= FetchReportsTextAsync(ApiEndpoint(), CurrentToken());
+            return false;
+#else
             try
             {
                 var json = SendText(HttpMethod.Get, "/reports", null, true);
@@ -384,6 +453,7 @@ namespace HexLive.UnityPresentation.UI
                 Debug.LogWarning($"Bug tracker API unavailable: {e.Message}");
                 return false;
             }
+#endif
         }
 
         private static string CurrentToken() =>
@@ -393,9 +463,33 @@ namespace HexLive.UnityPresentation.UI
 
         private static T Send<T>(HttpMethod method, string path, string json, bool authenticated) where T : class
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.3: ответа синхронно нет — вызывающий получает null (его
+            // никто не использует), а пришедший отчёт ложится в модель сам.
+            SendWeb(method.Method, ApiEndpoint() + path, json, authenticated ? CurrentToken() : null,
+                text =>
+                {
+                    if (string.IsNullOrEmpty(text) || typeof(T) != typeof(Report))
+                    {
+                        return;
+                    }
+                    var report = JsonUtility.FromJson<Report>(text);
+                    if (report == null)
+                    {
+                        return;
+                    }
+                    _model ??= new FileModel();
+                    Replace(report);
+                    _webChanged = true;
+                });
+            return null;
+#else
             var text = SendText(method, path, json, authenticated);
             return string.IsNullOrEmpty(text) ? null : JsonUtility.FromJson<T>(text);
+#endif
         }
+
+#if !(UNITY_WEBGL && !UNITY_EDITOR)
 
         private static string SendText(HttpMethod method, string path, string json, bool authenticated)
         {
@@ -413,6 +507,7 @@ namespace HexLive.UnityPresentation.UI
                 throw new IOException($"HTTP {(int)response.StatusCode}: {body}");
             return body;
         }
+#endif
 
         private static string ApiEndpoint()
         {

@@ -2540,7 +2540,16 @@ namespace HexLive.UnityPresentation.Wearing
             var slots = _paintSlots;
 
             System.Threading.Interlocked.Increment(ref _pendingPlacements);
-            System.Threading.Tasks.Task.Run(() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.4: пула потоков в браузере нет — та же работа сразу, на
+            // главном потоке; кадр укуса платит её сам. Флаг и счётчик ниже
+            // ведут себя так же, LateUpdate подберёт результат как обычно.
+            Place();
+#else
+            System.Threading.Tasks.Task.Run(Place);
+#endif
+
+            void Place()
             {
                 try
                 {
@@ -2558,7 +2567,7 @@ namespace HexLive.UnityPresentation.Wearing
                     _geometryArrived = true;
                     System.Threading.Interlocked.Decrement(ref _pendingPlacements);
                 }
-            });
+            }
         }
 
         private static void ResolveGeometry(Stamp stamp, SkinPositionMapSet maps, int[] skinSlots,

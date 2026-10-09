@@ -46,16 +46,25 @@ public static class HexLiveWebGLPlayerBuild
 
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
             PlayerSettings.WebGL.decompressionFallback = false;
-            // -webgl-exceptions full: в режиме «только явные исключения»
-            // обычный NullReferenceException в wasm выглядит как
-            // «RuntimeError: table index is out of bounds» и роняет страницу
-            // без стека (замер 9.10.2026). Для отладки — полные исключения со
-            // стеком: медленнее и тяжелее, в выпуск не идёт.
-            var fullExceptions = string.Equals(
-                Value(arguments, "-webgl-exceptions"), "full", StringComparison.Ordinal);
-            PlayerSettings.WebGL.exceptionSupport = fullExceptions
-                ? WebGLExceptionSupport.FullWithStacktrace
-                : WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
+            // §168.11 скорость wasm (замер 10.10.2026: ~120 мс CPU на кадр в мире).
+            // Исключения: «только явные» превращают NullReferenceException в
+            // «table index is out of bounds» и роняют страницу (9.10.2026), а
+            // «полные со стеком» оборачивали почти каждый вызов JS-трамплином
+            // invoke_* (509 против 176) — основная цена кадра. По умолчанию —
+            // полные БЕЗ стека поверх нативных исключений WebAssembly 2023:
+            // NRE ловится, а трамплинов нет. -webgl-exceptions full — со стеком
+            // для отладки, explicit — минимальные.
+            var exceptions = Value(arguments, "-webgl-exceptions");
+            PlayerSettings.WebGL.exceptionSupport = exceptions switch
+            {
+                "full" => WebGLExceptionSupport.FullWithStacktrace,
+                "explicit" => WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly,
+                _ => WebGLExceptionSupport.FullWithoutStacktrace,
+            };
+            // WebAssembly 2023: нативные исключения, SIMD, BigInt — Chrome 95+,
+            // Firefox 100+, Safari 15.2+.
+            PlayerSettings.WebGL.wasm2023 = true;
+            ConfigureCodeOptimization("RuntimeSpeedLTO");
 
             ConfigureWebAudioBuffer();
             // В браузере каждая строка лога со стеком дорогая (стек собирается
@@ -102,6 +111,10 @@ public static class HexLiveWebGLPlayerBuild
                       $"{summary.totalErrors} errors, {summary.totalWarnings} warnings, " +
                       $"{summary.totalTime.TotalMinutes:0.0} min -> {output}");
             succeeded = summary.result == BuildResult.Succeeded;
+            if (succeeded)
+            {
+                CapDevicePixelRatio(Path.Combine(output, "index.html"));
+            }
         }
         catch (Exception ex)
         {
@@ -141,11 +154,80 @@ public static class HexLiveWebGLPlayerBuild
             property.Value = value;
             property.HasValue = true;
         }
+        // 4 × 2048 ≈ 186 мс при 44.1 кГц: в вебе FMOD подкачивает микшер с
+        // главного потока, и кадр дольше буфера (2 × 2048 = 93 мс) давал
+        // «дребезг» (жалоба 10.10.2026). Задержка эффектов терпима.
         Set("DSPBufferLength", 2048);
-        Set("DSPBufferCount", 2);
+        Set("DSPBufferCount", 4);
         EditorUtility.SetDirty(settings);
         AssetDatabase.SaveAssets();
-        Debug.Log("[WebGLBuild] FMOD WebGL DSP buffer: 2 x 2048");
+        Debug.Log("[WebGLBuild] FMOD WebGL DSP buffer: 4 x 2048");
+    }
+
+    /// <summary>
+    /// §168.11: на Retina стандартный шаблон рендерит в devicePixelRatio (2×2 =
+    /// 4 раза больше пикселей). Его строка «config.devicePixelRatio = 1» стоит
+    /// только в ветке для телефонов — на Mac она не действовала (замер 10.10.2026:
+    /// холст 1920×1200 под окном 960×600). Ставим для всех платформ.
+    /// </summary>
+    private static void CapDevicePixelRatio(string indexPath)
+    {
+        const string anchor = "document.querySelector(\"#unity-loading-bar\").style.display = \"block\";";
+        var html = File.ReadAllText(indexPath);
+        if (html.Contains("§168.11"))
+        {
+            return;
+        }
+        var at = html.IndexOf(anchor, StringComparison.Ordinal);
+        if (at < 0)
+        {
+            throw new InvalidOperationException($"WebGL template changed: no loading-bar line in {indexPath}.");
+        }
+        html = html.Insert(at, "// §168.11: Retina — рендер в CSS-пикселях.\n      config.devicePixelRatio = 1;\n      ");
+        File.WriteAllText(indexPath, html, new UTF8Encoding(false));
+        Debug.Log("[WebGLBuild] devicePixelRatio capped at 1");
+    }
+
+    /// <summary>
+    /// §168.11: оптимизация wasm под скорость, а не под размер. Сборочный профиль
+    /// WebGL стоял на DiskSizeLTO (-Oz). Свойство живёт в
+    /// UnityEditor.WebGL.Extensions (модуль платформы), прямой ссылки на сборку
+    /// у Assembly-CSharp-Editor нет — поэтому отражение; не нашли — падаем.
+    /// </summary>
+    private static void ConfigureCodeOptimization(string value)
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            foreach (var type in SafeTypes(assembly))
+            {
+                if (type.Namespace != "UnityEditor.WebGL")
+                {
+                    continue;
+                }
+                var property = type.GetProperty("codeOptimization",
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+                if (property == null || !property.CanWrite || !property.PropertyType.IsEnum)
+                {
+                    continue;
+                }
+                property.SetValue(null, Enum.Parse(property.PropertyType, value));
+                Debug.Log($"[WebGLBuild] code optimization: {property.GetValue(null)} ({type.FullName})");
+                return;
+            }
+        }
+        throw new InvalidOperationException("UnityEditor.WebGL codeOptimization property not found.");
+    }
+
+    private static Type[] SafeTypes(System.Reflection.Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (System.Reflection.ReflectionTypeLoadException ex)
+        {
+            return ex.Types.Where(type => type != null).ToArray();
+        }
     }
 
     /// <summary>

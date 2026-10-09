@@ -25,3 +25,35 @@ Direct user authorization received in this Codex chat. Singapore release/new mat
 Content frozen at `b993f572673387f4dc7d098ae1d8eaf7cfc36a8a`; test correction `3c8c35be2`; complete handoff `cecfc6f8d`. Package `/Users/shtolyan/hex-girls/webgl-build/packages/webgl-primal-scale-b993f5726.tar.gz`, 241658756 bytes, SHA256 `82e2605f3335ffbd2eaf812a399b17ad0c114a1ece7986b66a4d83a4b92ab58d`. 230/230 HTTP blobs locally verified; 121 People payloads reopened, 23 map contracts passed. Content blocker: none. Release is NOT complete until live browser checks.
 
 Next milestone: Claude finishes matching player/server, records backup and Singapore publication receipts/live URL; Codex verifies actual new-world movement, body/clothing scale, loading/console and post-gesture audio through browser. No competing Unity or execution-file writes.
+
+## Coordinator QA gate — 2026-10-10
+Owner delegated all testing and Singapore release completion while resting: do NOT wait for the owner to test a local link or approve the already-authorized deploy. Sveta has an independent Chromium/WebGL2+WebAudio probe and the verified expected 230-record manifest; will test public live render/world/catalog/sounds without touching your browser. Important: anonymous /watch only proves viewing. Before declaring playable, use your EXISTING authenticated browser session to exercise an actual player control/command and preserve sanitized success receipt/screenshot (no tokens/keys/logged auth) so Sveta can independently inspect the evidence. Do not share/extract credentials or disable auth. Backup old world/release first; Singapore only.
+
+Coordinator preservation check: Singapore also hosts Flashback on port4310 (https://flashback.62-146-235-120.sslip.io). Baseline HTTPS200 verified at18:45:54Z. Owner says GAME unused, not that unrelated services may be removed. Preserve existing Flashback/Caddy routes and identity service; back up Caddy config before any scoped route edits, validate/reload safely. Do not replace whole host config with only game rules.
+
+## Codex public content proof — 2026-10-09T19:10:04Z
+Public HTTPS registry230 = corrected package exactly, no platformMissing; only Marta/Kshishtof actor records. All230 active server blobs SHA256 verified read-only (266130433 bytes), `/var/lib/hexlive/assets-webgl`. Receipt: `/Users/shtolyan/hex-girls/webgl-build/singapore-live-verification/content-registry-and-server-hashes.json`. Active server release observed:88ee8821b55206cdd66f1d7bcf5d8dcb6cc7d069. Backup observed at `/var/lib/hexlive-archive/20261010-pre-webgl` (old worlds, simdata, config, previous-current). Live gameplay gate remains open: IAB and Claude browser both initially paused at Unity loader near90%; Claude investigating delivery.
+
+## RELEASE QA BLOCKER — Sveta independent PUBLIC browser 2026-10-09 19:12:26Z
+Observed real console ERROR at https://play.62-146-235-120.sslip.io/: `[AtomicContent] Нет active record для object/clothing.skirt_primal_1; визуальный fallback запрещён.` Stack: ContentPrefabCache.Request/GetOrRequest -> WorldPropResources.Load -> HexWorldRenderer.CreateObjectView/RenderSnapshot. The exact verified 230-entry manifest HAS `wear/clothing.skirt_primal_1` and has NO `object/clothing.skirt_primal_1` (by design). Possibly an incorrect generic-prop fallback while garment async load is pending, NOT just network slowness. Please Codex TRIAGE and own this client routing defect; coordinate any edit/build with Claude, avoid duplicate fixes. Determine whether transient or blocks visible ground garments; fix misleading missing-record fallback too before final no-missing-assets acceptance. Do not add old assets or weaken manifest expectations merely to hide error. Current viewer has live WSS frames but still loading content. Sveta raw evidence on VPS artifacts/hexlive-singapore-release-20261010/browser-events.jsonl. Owner already authorizes in-scope fixes/rebuild/deploy; no owner prompt needed.
+
+QA follow-up19:13Z: more missing-record errors: object/clothing.dress_primal_color05, object/underwear.briefs_primal_male_panty3, AND object/resource.palm_leaf and object/tool.axe_stone. IMPORTANT the latter two DO exist under exactly those object keys in the verified public manifest. So investigate catalog readiness/async race/cache as well as wear classification; do not assume manifest genuinely lacks them. My Chrome is Linux headless SwiftShader: also saw RenderPass 'Attachment0 created with1 samples but2 requested' and EndRenderPass errors (could be software-GPU-specific; compare your hardware Chrome). Own browser AudioContext running after click but current RMS0 while loading; no sound pass claimed yet. No HTTP404 observed. Raw sources and230 IDs/hashes match expected.
+
+## Claude — Singapore release receipt (2026-10-10 ~02:10 +07)
+- Server 62.146.235.120 (`hexlive-server`). Release `/opt/hexlive/releases/88ee8821b55206cdd66f1d7bcf5d8dcb6cc7d069`
+  (archive SHA-256 575c90ea…aac16); previous `55e2152ed…` kept as rollback.
+- Tests: server 374/374 (clean worktree, Release); full Simulation.Tests in complete checkout per Codex cecfc6f8d.
+- Backup/archive: `/var/lib/hexlive-archive/20261010-pre-webgl` — old `worlds/`, legacy `world.sav` + 27 backups,
+  players.json, simdata, systemd drop-ins, Caddyfile, previous-current.txt; admin/player/mcp secret hashes unchanged.
+- New world: fresh Feud, seed 12345, 4 colonists, NO legacy nika/masha presets (their legacy clothes are not in the
+  WebGL catalog). Drop-in `zzz-webgl.conf`; no `--start-paused` (fresh world runs).
+- Content: new root `/var/lib/hexlive/assets-webgl`, package `webgl-primal-scale-b993f5726` (SHA 82e2605f…ab58d),
+  230/230 published, coverage WebGL 230/230. Old `/var/lib/hexlive/assets` untouched.
+- Client: `/var/lib/hexlive-web/releases/88ee8821b…` → `current` (player from execution b993f5726 + a559cdb0d audio,
+  full exceptions, FSB audio via hexfsb, 172 MB).
+- Caddy: appended `Server/Caddy/singapore-webgl.caddy`, validated, reload. Existing vmi3529459 / flashback / keys intact.
+- URLs: game https://play.62-146-235-120.sslip.io/ · admin https://admin.62-146-235-120.sslip.io/ (play host /admin → 404).
+- External checks: site 200, wasm br 200, .fsb 200, asset index 200, /watch 101, flashback 200, keys 200.
+- Live browser (Claude): menu, connect 1.9 s, world tick ~1600, new People + male outsider render, 0 errors.
+- Known limits: first load ~3–4 min on a ~250 KB/s path (57 MB player + ~130 content objects); repeat loads revalidate.
+  Audio quality after a559 (PCM SFX, FMOD 2×2048) not yet confirmed by ear.

@@ -473,7 +473,7 @@ namespace HexLive.UnityPresentation.Audio
             var pathList = new List<string>(files.Length);
             foreach (var file in files)
             {
-                var mode = SampleMode
+                var mode = SampleModeFor(id)
                     | (def.Loop ? FMOD.MODE.LOOP_NORMAL : FMOD.MODE.LOOP_OFF)
                     | (def.Spatial
                         ? FMOD.MODE._3D | FMOD.MODE._3D_LINEARSQUAREROLLOFF
@@ -510,16 +510,23 @@ namespace HexLive.UnityPresentation.Audio
 
         /// <summary>
         /// Как держать сэмпл в памяти. Десктоп раскрывает Ogg в PCM заранее
-        /// (без декодирования на воспроизведении). В вебе (§168.6, §168.12) так
-        /// нельзя — 14 МБ Ogg стали бы сотней МБ PCM в куче вкладки, поэтому
-        /// сэмпл остаётся сжатым и декодируется при проигрывании.
+        /// (без декодирования на воспроизведении). В вебе (§168.6) так же — для
+        /// эффектов: все 73 файла Sfx в PCM16 — 17.7 МБ, а Vorbis, который
+        /// декодируется на каждом проигрывании, в wasm-микшере давал заикание
+        /// звука на просадках FPS (жалоба игрока 10.10.2026). Голоса в вебе
+        /// остаются сжатыми: их сотни групп, они грузятся по требованию и
+        /// звучат по одному, PCM всех сказанных за сессию раздул бы кучу вкладки.
         /// </summary>
-        private const FMOD.MODE SampleMode =
+        private static FMOD.MODE SampleModeFor(string id)
+        {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            FMOD.MODE.CREATECOMPRESSEDSAMPLE;
-#else
-            FMOD.MODE.CREATESAMPLE;
+            if (id.StartsWith("voice_", System.StringComparison.Ordinal))
+            {
+                return FMOD.MODE.CREATECOMPRESSEDSAMPLE;
+            }
 #endif
+            return FMOD.MODE.CREATESAMPLE;
+        }
 
         /// <summary>
         /// Открыть файл как звук FMOD. На десктопе — по пути, как всегда. В вебе

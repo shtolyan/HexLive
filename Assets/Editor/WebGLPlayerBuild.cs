@@ -57,6 +57,16 @@ public static class HexLiveWebGLPlayerBuild
                 ? WebGLExceptionSupport.FullWithStacktrace
                 : WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
 
+            ConfigureWebAudioBuffer();
+            // В браузере каждая строка лога со стеком дорогая (стек собирается
+            // в wasm, текст уходит в консоль JS): журнал событий сима — сотни
+            // строк — съедал кадр, а с ним и микшер FMOD. Ошибки и исключения
+            // стек сохраняют. PlayerSettings общие для проекта — восстанавливаем.
+            var logTrace = PlayerSettings.GetStackTraceLogType(LogType.Log);
+            var warningTrace = PlayerSettings.GetStackTraceLogType(LogType.Warning);
+            PlayerSettings.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+            PlayerSettings.SetStackTraceLogType(LogType.Warning, StackTraceLogType.None);
+
             var scenes = EditorBuildSettings.scenes
                 .Where(scene => scene.enabled)
                 .Select(scene => scene.path)
@@ -78,6 +88,8 @@ public static class HexLiveWebGLPlayerBuild
             {
                 // Генерируется на каждую сборку из того, что реально лежит в
                 // StreamingAssets, — в репозитории ему не место (устареет).
+                PlayerSettings.SetStackTraceLogType(LogType.Log, logTrace);
+                PlayerSettings.SetStackTraceLogType(LogType.Warning, warningTrace);
                 AssetDatabase.DeleteAsset(AudioManifest);
                 foreach (var generated in webMusic)
                 {
@@ -102,6 +114,38 @@ public static class HexLiveWebGLPlayerBuild
                 EditorApplication.Exit(succeeded ? 0 : 1);
             }
         }
+    }
+
+    /// <summary>
+    /// §168.6: буфер микшера FMOD для браузера. По умолчанию 4 блока по 1024
+    /// сэмпла; в вебе микшер живёт рядом с кадром, и на просадках FPS звук
+    /// рвётся — документация FMOD (HTML5, «Audio Stability») прямо советует
+    /// 2 блока по 2048. Настройки FMOD лежат вне git (Assets/Plugins/FMOD),
+    /// поэтому ставим их здесь, на каждой веб-сборке. Поля защищённые —
+    /// отражение; если FMOD их переименует, сборка падает, а не молчит.
+    /// </summary>
+    private static void ConfigureWebAudioBuffer()
+    {
+        var settings = FMODUnity.Settings.Instance;
+        var platform = settings.Platforms.FirstOrDefault(p => p.GetType().Name == "PlatformWebGL") ??
+                       throw new InvalidOperationException("FMOD settings have no PlatformWebGL entry.");
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Public;
+        var properties = typeof(FMODUnity.Platform).GetField("Properties", flags)?.GetValue(platform) ??
+                         throw new InvalidOperationException("FMOD Platform.Properties not found.");
+        void Set(string name, int value)
+        {
+            var property = properties.GetType().GetField(name, flags)?.GetValue(properties) as
+                               FMODUnity.Platform.Property<int> ??
+                           throw new InvalidOperationException($"FMOD property {name} not found.");
+            property.Value = value;
+            property.HasValue = true;
+        }
+        Set("DSPBufferLength", 2048);
+        Set("DSPBufferCount", 2);
+        EditorUtility.SetDirty(settings);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[WebGLBuild] FMOD WebGL DSP buffer: 2 x 2048");
     }
 
     /// <summary>

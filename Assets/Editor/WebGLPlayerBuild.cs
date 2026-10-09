@@ -64,7 +64,10 @@ public static class HexLiveWebGLPlayerBuild
             // WebAssembly 2023: нативные исключения, SIMD, BigInt — Chrome 95+,
             // Firefox 100+, Safari 15.2+.
             PlayerSettings.WebGL.wasm2023 = true;
-            ConfigureCodeOptimization("RuntimeSpeedLTO");
+            // RuntimeSpeedLTO линкуется больше часа (wasm-ld, замер v5 10.10.2026)
+            // ради нескольких процентов; по умолчанию RuntimeSpeed, LTO — флагом
+            // -webgl-lto для финальных выпусков.
+            ConfigureCodeOptimization(arguments.Contains("-webgl-lto") ? "RuntimeSpeedLTO" : "RuntimeSpeed");
 
             ConfigureWebAudioBuffer();
             // В браузере каждая строка лога со стеком дорогая (стек собирается

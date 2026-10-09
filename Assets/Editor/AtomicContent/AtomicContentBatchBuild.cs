@@ -175,6 +175,7 @@ public static class AtomicContentBatchBuild
         Directory.CreateDirectory(output);
         var rows = new JArray();
         var errors = new JArray();
+        var checkedFiles = new HashSet<string>(StringComparer.Ordinal);
         try
         {
             foreach (var recipe in DiscoverAllRecipes())
@@ -189,6 +190,17 @@ public static class AtomicContentBatchBuild
                     roots.AddRange(inputs.Entries.Select(e => e.asset));
                     foreach (var root in roots) ValidateAsset(root, recipe.Id);
                     var dependencies = AssetDatabase.GetDependencies(roots.ToArray(), true);
+                    foreach (var path in dependencies)
+                    {
+                        if (!File.Exists(path) || checkedFiles.Contains(path)) continue;
+                        using var file = File.OpenRead(path);
+                        var prefix = new byte[43];
+                        int count = file.Read(prefix, 0, prefix.Length);
+                        if (Encoding.ASCII.GetString(prefix, 0, count).StartsWith(
+                                "version https://git-lfs.github.com/spec/v1", StringComparison.Ordinal))
+                            throw new InvalidOperationException("Git LFS pointer instead of source bytes: " + path);
+                        checkedFiles.Add(path);
+                    }
                     if (UsePeopleCatalog)
                     {
                         var legacy = dependencies.FirstOrDefault(p =>

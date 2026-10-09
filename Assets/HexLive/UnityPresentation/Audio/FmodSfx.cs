@@ -335,6 +335,9 @@ namespace HexLive.UnityPresentation.Audio
             MusicPaths.Clear();
             _musicIds = System.Array.Empty<string>();
             _musicScanned = false;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            _musicDownloading = false;
+#endif
             _musicOpen = false;
             _musicGroupReady = false;
             _musicChannel = default;
@@ -544,7 +547,24 @@ namespace HexLive.UnityPresentation.Audio
                 length = (uint)bytes.Length,
                 suggestedsoundtype = suggested,
             };
-            return core.createSound(bytes, mode | FMOD.MODE.OPENMEMORY, ref exInfo, out sound);
+            var result = core.createSound(bytes, mode | FMOD.MODE.OPENMEMORY, ref exInfo, out sound);
+            if (result == FMOD.RESULT.OK)
+            {
+                return result;
+            }
+
+            // §168.6: сборка FMOD для браузера умеет не всё, что десктоп
+            // (сжатые сэмплы — только для части кодеков, подсказка типа может
+            // не совпасть). Пробуем проще и пишем в лог, ЧТО именно не прошло —
+            // без кода ошибки причину в браузере не найти.
+            var fallbackMode = (mode & FMOD.MODE.CREATECOMPRESSEDSAMPLE) != 0
+                ? (mode & ~FMOD.MODE.CREATECOMPRESSEDSAMPLE) | FMOD.MODE.CREATESAMPLE
+                : mode;
+            exInfo.suggestedsoundtype = FMOD.SOUND_TYPE.UNKNOWN;
+            var retry = core.createSound(bytes, fallbackMode | FMOD.MODE.OPENMEMORY, ref exInfo, out sound);
+            Debug.LogWarning($"[FmodSfx] web open {Path.GetFileName(file)}: {result} " +
+                             $"(mode {mode}, type {suggested}) → retry {retry} (mode {fallbackMode})");
+            return retry;
 #else
             if (suggested == default)
             {
@@ -970,9 +990,28 @@ namespace HexLive.UnityPresentation.Audio
             get
             {
                 ScanMusic();
+#if UNITY_WEBGL && !UNITY_EDITOR
+                // §168.6: трек в браузере сначала скачивается целиком. Пока
+                // хоть один уже здесь — выбираем из скачанных, иначе директор
+                // на каждом повторе тянул бы новый случайный трек (замер:
+                // три mp3 по ~6 МБ за одну загрузку меню).
+                var local = _musicIds.Where(id => WebAudioFiles.IsLocal(MusicPaths[id])).ToArray();
+                if (local.Length > 0)
+                {
+                    return local;
+                }
+                if (_musicDownloading)
+                {
+                    return System.Array.Empty<string>();
+                }
+#endif
                 return _musicIds;
             }
         }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        private static bool _musicDownloading;
+#endif
 
         private static void ScanMusic()
         {
@@ -1063,7 +1102,15 @@ namespace HexLive.UnityPresentation.Audio
             // снова через долю секунды.
             if (!WebAudioFiles.IsLocal(path))
             {
-                WebAudioFiles.EnsureLocal(new[] { path }, _ => MusicTracksChanged?.Invoke());
+                if (!_musicDownloading)
+                {
+                    _musicDownloading = true;
+                    WebAudioFiles.EnsureLocal(new[] { path }, _ =>
+                    {
+                        _musicDownloading = false;
+                        MusicTracksChanged?.Invoke();
+                    });
+                }
                 return false;
             }
 #endif

@@ -474,6 +474,9 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                 }
 
                 Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
+#if UNITY_WEBGL && !UNITY_EDITOR
+                Debug.Log($"[Remote] socket open: {_url}");
+#endif
 
                 await PumpAsync(socket, connectionLifetime.Token).ConfigureAwait(false);
             }
@@ -495,6 +498,10 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
             }
             catch (Exception ex)
             {
+#if UNITY_WEBGL && !UNITY_EDITOR
+                // §168: в браузере это единственный след причины — консоль.
+                Debug.LogWarning($"[Remote] connection dropped: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+#endif
                 SetState(LinkState.Reconnecting, ex.Message);
             }
             finally
@@ -553,6 +560,10 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
         }
     }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+    private int _webMessagesLogged;
+#endif
+
     private async Task PumpAsync(IWireSocket socket, CancellationToken cancel)
     {
         using var pumpLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancel);
@@ -585,6 +596,13 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                 {
                     continue;
                 }
+#if UNITY_WEBGL && !UNITY_EDITOR
+                if (_webMessagesLogged < 3)
+                {
+                    _webMessagesLogged++;
+                    Debug.Log($"[Remote] message {_webMessagesLogged}: kind {(FrameKind)bytes[0]}, {bytes.Length} bytes");
+                }
+#endif
 
                 var payload = new byte[bytes.Length - 1];
                 Buffer.BlockCopy(bytes, 1, payload, 0, payload.Length);
@@ -676,6 +694,9 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
                         return;
                     }
                     var handshake = Handshake.Read(reader);
+#if UNITY_WEBGL && !UNITY_EDITOR
+                    Debug.Log($"[Remote] handshake decoded: seed {handshake.Seed}, tick {handshake.Tick}");
+#endif
                     lock (_inbox)
                     {
                         // A TCP/WebSocket upgrade is not a successful reconnect:

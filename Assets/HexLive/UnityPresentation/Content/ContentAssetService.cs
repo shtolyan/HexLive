@@ -1261,10 +1261,11 @@ public sealed class ContentAssetService
             request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
             request.SetRequestHeader("Content-Type", "application/json");
         }
-        if (!string.IsNullOrEmpty(etag))
-        {
-            request.SetRequestHeader("If-None-Match", etag);
-        }
+        // Без If-None-Match: в браузере UnityWebRequest сам ходит через кэш
+        // страницы (UnityCache) и перепроверяет ответ; ручной заголовок сбивал
+        // его — живой 304 сервера доходил до нас как «HTTP 500 Unknown Error»
+        // (замер 9.10.2026). Реестр мал, полный ответ дешевле путаницы.
+        _ = etag;
 
         request.SendWebRequest().completed += _ =>
         {

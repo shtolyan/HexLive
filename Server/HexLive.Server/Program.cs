@@ -261,16 +261,20 @@ public static class Program
             // §145.3: токен игрока — заголовками HTTP-upgrade, ДО принятия
             // сокета. Неверный или отсутствующий токен не рвёт соединение:
             // это прежний анонимный зритель, ControlEnabled=false в рукопожатии.
+            // §168.2: браузер заголовков не ставит — у веб-клиента то же самое
+            // едет subprotocol'ами; заголовок, если есть, главнее.
+            var upgrade = ViewerUpgradeIdentity.Resolve(
+                context.Request.Headers.Authorization.ToString(),
+                context.Request.Headers["X-HexLive-Client-Id"].ToString(),
+                context.Request.Headers["X-HexLive-Accepts"].ToString(),
+                context.WebSockets.WebSocketRequestedProtocols);
             string? controlOwner = null;
             IReadOnlyList<int>? assignedNpcIds = null;
             if (playerToken is not null && controlLeases is not null)
             {
-                var authorization = context.Request.Headers.Authorization.ToString();
-                const string bearerPrefix = "Bearer ";
-                if (authorization.StartsWith(bearerPrefix, StringComparison.Ordinal) &&
-                    playerToken.Matches(authorization.Substring(bearerPrefix.Length).Trim()))
+                if (upgrade.Token is not null && playerToken.Matches(upgrade.Token))
                 {
-                    var clientId = context.Request.Headers["X-HexLive-Client-Id"].ToString().Trim();
+                    var clientId = upgrade.ClientId ?? string.Empty;
                     if (PlayerCharacterAssignments.TryNormalizePlayerId(
                             clientId, out var playerId))
                     {
@@ -287,14 +291,24 @@ public static class Program
             // §83.4: сжатие больших кадров — только клиенту, который его
             // объявил. Отсутствие заголовка = старый клиент = прежние сырые
             // кадры; ProtocolVersion поэтому не бампался.
-            var acceptsGzip = context.Request.Headers["X-HexLive-Accepts"]
-                .ToString().Contains("gzip", StringComparison.OrdinalIgnoreCase);
+            var acceptsGzip = upgrade.AcceptsGzip;
 
-            using var socket = await context.WebSockets.AcceptWebSocketAsync();
+            // §168.2: веб-клиент предложил hexlive.v1 — его надо выбрать в
+            // ответе, иначе браузер закроет сокет. Ему же permessage-deflate:
+            // gzip-кадры §83.4 он не объявляет, сжимает сам WebSocket.
+            // Десктоп deflate не предлагает, его путь не меняется ни байтом.
+            using var socket = upgrade.WebProtocol
+                ? await context.WebSockets.AcceptWebSocketAsync(new WebSocketAcceptContext
+                {
+                    SubProtocol = ViewerUpgradeIdentity.ProtocolMarker,
+                    DangerousEnableCompression = true,
+                })
+                : await context.WebSockets.AcceptWebSocketAsync();
             Console.WriteLine(
                 $"[viewer] connected from {context.Connection.RemoteIpAddress}" +
                 (controlOwner is null ? string.Empty : $" as {controlOwner}") +
-                (acceptsGzip ? " (gzip)" : string.Empty));
+                (acceptsGzip ? " (gzip)" : string.Empty) +
+                (upgrade.WebProtocol ? " (web)" : string.Empty));
             // Host, simdata AND lifetime all come from the supervisor at accept
             // time: an admin "new world" swaps the host, refreshes the simdata
             // and cancels this token, closing the connection so the client

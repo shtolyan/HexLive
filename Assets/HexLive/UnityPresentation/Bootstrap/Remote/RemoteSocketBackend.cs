@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -16,6 +15,7 @@ using HexLive.Simulation.Core;
 using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.Simulation.Wire;
+using HexLive.UnityPresentation.Platform;
 using UnityEngine;
 using EntityId = HexLive.Simulation.Common.EntityId;
 // `using System.Diagnostics` above (Stopwatch) collides with UnityEngine over
@@ -123,7 +123,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
     private readonly string _clientId;
     private readonly CancellationTokenSource _shutdown = new();
 
-    private ClientWebSocket? _socket;
+    private IWireSocket? _socket;
     private CancellationToken _connectionCancel;
 
     // §121.9: корреляция приказ→вердикт и локально синтезированные события
@@ -413,7 +413,17 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
     }
 
     public int RequiredProtocolVersion { get; private set; }
-    public void Connect() => _ = Task.Run(() => ConnectLoopAsync(_shutdown.Token));
+    public void Connect()
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // §168.4: no thread to hand this to. The loop starts here on the main
+        // thread and every await inside it resumes there (BrowserWireSocket
+        // polls per frame, WireSocket.Delay is an Awaitable).
+        _ = ConnectLoopAsync(_shutdown.Token);
+#else
+        _ = Task.Run(() => ConnectLoopAsync(_shutdown.Token));
+#endif
+    }
 
     // ── socket thread ─────────────────────────────────────────────────────
 
@@ -429,23 +439,18 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
             SetState(_attempt == 0 ? LinkState.Connecting : LinkState.Reconnecting, null);
 
             using var connectionLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancel);
-            using var socket = new ClientWebSocket();
+            // §121.9/§83.4: токен, id клиента и «умею gzip» — заголовками
+            // upgrade на десктопе, subprotocol'ами в браузере (§168.2). Веб
+            // gzip не объявляет: кадры ему сжимает permessage-deflate.
+#if UNITY_WEBGL && !UNITY_EDITOR
+            const bool acceptsGzip = false;
+#else
+            const bool acceptsGzip = true;
+#endif
+            using var socket = WireSocket.Create(
+                new WireSocketIdentity(_controlToken, _clientId, acceptsGzip));
             try
             {
-                // §121.9: токен и стабильный id клиента едут заголовками
-                // HTTP-upgrade — не в query string, где они текли бы в логи.
-                if (_controlToken is not null)
-                {
-                    socket.Options.SetRequestHeader(
-                        "Authorization", "Bearer " + _controlToken);
-                    socket.Options.SetRequestHeader("X-HexLive-Client-Id", _clientId);
-                }
-
-                // §83.4: этот клиент умеет кадры FrameKind.Compressed. Старый
-                // сервер заголовка не знает и шлёт как раньше — совместимо в
-                // обе стороны без бампа ProtocolVersion.
-                socket.Options.SetRequestHeader("X-HexLive-Accepts", "gzip");
-
                 using (var connectAttempt =
                        CancellationTokenSource.CreateLinkedTokenSource(connectionLifetime.Token))
                 {
@@ -539,7 +544,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
 
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(delay), cancel).ConfigureAwait(false);
+                await WireSocket.Delay(TimeSpan.FromSeconds(delay), cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -548,49 +553,34 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
         }
     }
 
-    private async Task PumpAsync(ClientWebSocket socket, CancellationToken cancel)
+    private async Task PumpAsync(IWireSocket socket, CancellationToken cancel)
     {
-        var chunk = new byte[64 * 1024];
-        using var message = new MemoryStream();
         using var pumpLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancel);
 
         var pinger = PingLoopAsync(socket, pumpLifetime.Token);
         try
         {
-            while (!cancel.IsCancellationRequested && socket.State == WebSocketState.Open)
+            while (!cancel.IsCancellationRequested && socket.IsOpen)
             {
-                message.SetLength(0);
-                while (true)
+                // Cancelling this token intentionally aborts only the current
+                // connection. A receive timeout still belongs to PingLoop,
+                // but a replacement socket must be able to retire this pump.
+                //
+                // Живость меряется ПРИХОДЯЩИМИ БАЙТАМИ, не только понгом:
+                // понг едет тем же TCP-потоком и на медленном канале
+                // застревает ПОЗАДИ большого кейфрейма. Считать такую
+                // паузу смертью сокета — значит рвать живое соединение на
+                // середине загрузки и никогда не докачать её (ровно та
+                // 12-секундная петля реконнекта, что показал прод).
+                var bytes = await socket.ReceiveMessageAsync(
+                        () => Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp()),
+                        cancel)
+                    .ConfigureAwait(false);
+                if (bytes is null)
                 {
-                    // Cancelling this token intentionally aborts only the current
-                    // connection. A receive timeout still belongs to PingLoop,
-                    // but a replacement socket must be able to retire this pump.
-                    var result = await socket.ReceiveAsync(new ArraySegment<byte>(chunk), cancel)
-                        .ConfigureAwait(false);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        return;
-                    }
-
-                    // Живость меряется ПРИХОДЯЩИМИ БАЙТАМИ, не только понгом:
-                    // понг едет тем же TCP-потоком и на медленном канале
-                    // застревает ПОЗАДИ большого кейфрейма. Считать такую
-                    // паузу смертью сокета — значит рвать живое соединение на
-                    // середине загрузки и никогда не докачать её (ровно та
-                    // 12-секундная петля реконнекта, что показал прод).
-                    if (result.Count > 0)
-                    {
-                        Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
-                    }
-
-                    message.Write(chunk, 0, result.Count);
-                    if (result.EndOfMessage)
-                    {
-                        break;
-                    }
+                    return;
                 }
 
-                var bytes = message.ToArray();
                 if (bytes.Length < 1)
                 {
                     continue;
@@ -1018,16 +1008,16 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
     /// where the OS still reports Open — into a reconnect instead of a world
     /// that quietly stops moving.
     /// </summary>
-    private async Task PingLoopAsync(ClientWebSocket socket, CancellationToken cancel)
+    private async Task PingLoopAsync(IWireSocket socket, CancellationToken cancel)
     {
         var unanswered = Stopwatch.StartNew();
         var waitingForHandshake = Stopwatch.StartNew();
         try
         {
-            while (!cancel.IsCancellationRequested && socket.State == WebSocketState.Open)
+            while (!cancel.IsCancellationRequested && socket.IsOpen)
             {
-                await Task.Delay(TimeSpan.FromSeconds(PingIntervalSeconds), cancel).ConfigureAwait(false);
-                if (socket.State != WebSocketState.Open)
+                await WireSocket.Delay(TimeSpan.FromSeconds(PingIntervalSeconds), cancel).ConfigureAwait(false);
+                if (!socket.IsOpen)
                 {
                     return;
                 }
@@ -1353,8 +1343,23 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
             return;
         }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // §168.4: no worker in the browser. The build runs here, behind the
+        // loading curtain, and the frame stalls for its duration; Tick adopts
+        // the finished task exactly as it adopts a worker's.
+        Debug.Log($"[HexLive] Building seed {handshake.Seed} topology on the main thread.");
+        try
+        {
+            _initialWorldBuild = Task.FromResult(BuildInitialWorld(handshake));
+        }
+        catch (Exception ex)
+        {
+            _initialWorldBuild = Task.FromException<InitialWorldBuild>(ex);
+        }
+#else
         Debug.Log($"[HexLive] Building seed {handshake.Seed} topology on a worker.");
         _initialWorldBuild = Task.Run(() => BuildInitialWorld(handshake));
+#endif
     }
 
     private static InitialWorldBuild BuildInitialWorld(Handshake handshake)
@@ -1426,7 +1431,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
             return true;
         }
 
-        var result = task.Result;
+        var result = CompletedTask.Result(task);
         lock (_inbox)
         {
             if (!ReferenceEquals(_handshake, result.Handshake))
@@ -1588,7 +1593,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
 
     private void Send(byte[] frame)
     {
-        ClientWebSocket? socket;
+        IWireSocket? socket;
         CancellationToken connectionCancel;
         lock (_inbox)
         {
@@ -1596,7 +1601,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
             connectionCancel = _connectionCancel;
         }
 
-        if (socket == null || socket.State != WebSocketState.Open ||
+        if (socket == null || !socket.IsOpen ||
             connectionCancel.IsCancellationRequested)
         {
             return;
@@ -1608,7 +1613,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
     }
 
     private async Task SendSerializedAsync(
-        WebSocket socket,
+        IWireSocket socket,
         byte[] frame,
         CancellationToken connectionCancel)
     {
@@ -1623,8 +1628,7 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
 
         try
         {
-            await socket.SendAsync(new ArraySegment<byte>(frame), WebSocketMessageType.Binary, true,
-                connectionCancel).ConfigureAwait(false);
+            await socket.SendAsync(frame, connectionCancel).ConfigureAwait(false);
         }
         catch (Exception)
         {

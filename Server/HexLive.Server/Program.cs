@@ -30,6 +30,7 @@ namespace HexLive.Server
 ///   --simdata PATH  exported catalogs (default &lt;repo&gt;/SimData/simdata.json)
 ///   --asset-root PATH persistent atomic content (default /var/lib/hexlive/assets)
 ///   --admin-icon-root PATH direct PNG previews for the authenticated catalog
+///   --web-root PATH serve the WebGL client at /play/ (§168.10)
 ///   --autosave N    seconds between saves (default 60)
 ///   --debug-details include the per-NPC debug dumps in every frame
 /// </summary>
@@ -170,6 +171,7 @@ public static class Program
 
         Console.WriteLine($"[server] asset root    {assetRegistry.RootPath}");
         Console.WriteLine($"[server] admin icons  {options.AdminIconRoot ?? "disabled"}");
+        Console.WriteLine($"[server] web client   {(options.WebRoot is null ? "disabled" : options.WebRoot + " at " + WebClientEndpoints.Prefix + "/")}");
         LogAssetCoverage(assetRegistry);
 
         // §145.4: ОДИН реестр лиз на процесс — MCP-агенты и сетевые игроки
@@ -341,6 +343,10 @@ public static class Program
             options.AdminIconRoot);
         WorldCreationEndpoints.Map(app, worlds, account, sessions, assetRegistry, options.CompanionProfile, playerToken);
         RetiredBugTracker.Map(app);
+        if (options.WebRoot is not null)
+        {
+            WebClientEndpoints.Map(app, options.WebRoot);
+        }
 
         if (options.McpEnabled)
         {
@@ -654,6 +660,9 @@ public sealed class ServerOptions
             : Path.GetFullPath(value);
     }
 
+    /// <summary>§168.10: WebGL client served at /play/ by this same origin; null = off.</summary>
+    public string? WebRoot { get; private set; }
+
     /// <summary>Administrative one-shot mode, reachable only from the process CLI.</summary>
     public string? PublishCandidatePath { get; private set; }
 
@@ -811,6 +820,9 @@ public sealed class ServerOptions
                 case "--admin-icon-root" when i + 1 < args.Length:
                     options.AdminIconRoot = args[++i];
                     break;
+                case "--web-root" when i + 1 < args.Length:
+                    options.WebRoot = Path.GetFullPath(args[++i]);
+                    break;
                 case "--publish-candidate" when i + 1 < args.Length:
                     options.PublishCandidatePath = args[++i];
                     break;
@@ -887,6 +899,7 @@ public sealed class ServerOptions
                         "  --simdata PATH   exported catalogs (default SimData/simdata.json)\n" +
                         "  --asset-root PATH persistent atomic content (default /var/lib/hexlive/assets)\n" +
                         "  --admin-icon-root PATH direct PNG previews for authenticated catalog\n" +
+                        "  --web-root PATH  serve the WebGL client at /play/ (same origin as /watch)\n" +
                         "  --publish-candidate PATH  validate/promote one staged object, then exit\n" +
                         "  --publish-candidates DIR  promote sorted candidate JSON files, then exit\n" +
                         "  --retain-current-asset-variants  add a platform without dropping verified existing variants\n" +

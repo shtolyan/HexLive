@@ -241,7 +241,7 @@ MonoBehaviour:
   slots: 04000000
   noHideUnderwearSlots: 
   hideWearSlots: 
-  layer: 1
+  layer: 0
   gender: 1
   heel:
     footDegrees: 0

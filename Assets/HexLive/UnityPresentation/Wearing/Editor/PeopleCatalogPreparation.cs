@@ -40,6 +40,17 @@ namespace HexLive.UnityPresentation.Wearing.Editor
                             ["colours"] = new JArray() } });
                     continue;
                 }
+                // §169: PrimalTop is the separate starter chest cover, not an outer shirt.
+                if (id == "PrimalTop")
+                {
+                    var contents = PrefabUtility.LoadPrefabContents(main);
+                    try
+                    {
+                        contents.GetComponent<Wear>().SetLayer(VisualWearLayer.Underwear);
+                        PrefabUtility.SaveAsPrefabAsset(contents, main);
+                    }
+                    finally { PrefabUtility.UnloadPrefabContents(contents); }
+                }
                 var item = wardrobe.FirstOrDefault(w => (string)w["name"] == id);
                 string baseId = item != null ? (string)item["simId"] : "gear.backpack_primal_" + id.Replace("Primal", "").Replace("Pack", "").ToLowerInvariant();
                 string artId = baseId + (actor == "Kshishtof" ? "_male" : "");
@@ -61,6 +72,12 @@ namespace HexLive.UnityPresentation.Wearing.Editor
                     def.capacity = old?.Capacity ?? 9; def.dressDurationTicks = old?.DressDurationTicks ?? 8;
                     def.covers = old?.Covers.ToList() ?? new List<BodyPart> { BodyPart.Torso };
                     def.category = old?.Category ?? GarmentCategory.Bag;
+                    if (baseId == "underwear.briefs_primal")
+                        def.covers = new List<BodyPart> { BodyPart.Pelvis };
+                    if (baseId == "clothing.top_primal")
+                    {
+                        def.layer = WearLayer.Underwear;
+                    }
                     def.hasSexOverride = true;
                     def.sexOverride = actor == "Kshishtof" ? GarmentSex.Male : GarmentSex.Female;
                     def.variantMaterials = materialKeys.Select(key => {

@@ -180,7 +180,18 @@ public sealed class WorldStateFactory
             {
                 foreach (var piece in outsiderKit)
                 {
-                    npc.WornItems.Add(piece);
+                    if (GarmentLibrary.IsSpawnable(piece) && GarmentLibrary.FitsSex(npc.Sex, piece))
+                        npc.WornItems.Add(piece);
+                }
+                // §169: a replacement catalog may not ship the legacy tactical kit.
+                // Use its authored starter pools instead of spawning invisible old gear.
+                if (npc.WornItems.Count == 0)
+                {
+                    Wear(npc, startBriefs, MathUtil.Hash01(world.Seed, id, 11, 4201));
+                    Wear(npc, startBras, MathUtil.Hash01(world.Seed, id, 13, 4203));
+                    Wear(npc, startArmGuards, MathUtil.Hash01(world.Seed, id, 16, 4206));
+                    Wear(npc, startLegGuards, MathUtil.Hash01(world.Seed, id, 17, 4207));
+                    Wear(npc, startBackpacks, MathUtil.Hash01(world.Seed, id, 18, 4208));
                 }
 
                 Runtime.EquipmentMath.StripConflictingWorn(world, npc);
@@ -673,6 +684,7 @@ public sealed class WorldStateFactory
     // зона останется голой, остальные оденутся.
     private static void Wear(NPCState npc, string[] pool, float roll)
     {
+        pool = Array.FindAll(pool, id => GarmentLibrary.FitsSex(npc.Sex, id));
         if (pool.Length == 0)
         {
             return;
@@ -691,7 +703,7 @@ public sealed class WorldStateFactory
         var pool = new List<string>();
         foreach (var garment in GarmentLibrary.Spawnable)
         {
-            if (garment == null || garment.Sex == GarmentSex.Male || !keep(garment))
+            if (garment == null || !keep(garment))
             {
                 continue;
             }

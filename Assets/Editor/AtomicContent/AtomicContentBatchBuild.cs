@@ -511,6 +511,12 @@ public static class AtomicContentBatchBuild
                         if (definition == null || definition.id != id || definition.variantMaterials == null ||
                             definition.variantMaterials.Length == 0 || definition.variantMaterials.Any(m => m == null))
                             throw new InvalidOperationException(id + ": variant metadata/materials lost");
+                        var wear = (main as GameObject)?.GetComponent<HexLive.UnityPresentation.Wearing.Wear>();
+                        if (wear == null || wear.Layer.ToString() != definition.layer.ToString() ||
+                            definition.layer.ToString() != (string)row["metadata"]["simulation"]["layer"] ||
+                            !definition.covers.Select(c => c.ToString()).SequenceEqual(
+                                row["metadata"]["simulation"]["covers"].Values<string>()))
+                            throw new InvalidOperationException(id + ": prefab, definition and server wardrobe disagree");
                     }
                     rows.Add(new JObject { ["type"] = type, ["id"] = id, ["passed"] = true });
                     if (keep) retained.Add(bundle);

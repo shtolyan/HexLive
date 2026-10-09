@@ -304,7 +304,6 @@
           "dressDurationTicks": 8,
           "capacity": 1,
           "covers": [
-            "Torso",
             "Pelvis"
           ]
         }
@@ -334,7 +333,6 @@
           "dressDurationTicks": 8,
           "capacity": 1,
           "covers": [
-            "Torso",
             "Pelvis"
           ]
         }
@@ -364,7 +362,6 @@
           "dressDurationTicks": 8,
           "capacity": 1,
           "covers": [
-            "Torso",
             "Pelvis"
           ]
         }
@@ -394,7 +391,6 @@
           "dressDurationTicks": 8,
           "capacity": 1,
           "covers": [
-            "Torso",
             "Pelvis"
           ]
         }
@@ -424,7 +420,6 @@
           "dressDurationTicks": 8,
           "capacity": 1,
           "covers": [
-            "Torso",
             "Pelvis"
           ]
         }
@@ -454,7 +449,6 @@
           "dressDurationTicks": 8,
           "capacity": 1,
           "covers": [
-            "Torso",
             "Pelvis"
           ]
         }
@@ -484,7 +478,6 @@
           "dressDurationTicks": 8,
           "capacity": 1,
           "covers": [
-            "Torso",
             "Pelvis"
           ]
         }
@@ -514,7 +507,6 @@
           "dressDurationTicks": 8,
           "capacity": 1,
           "covers": [
-            "Torso",
             "Pelvis"
           ]
         }
@@ -1255,7 +1247,7 @@
         "simulation": {
           "displayName": "Hide Wrap",
           "prototypeId": "clothing.top_primal",
-          "layer": "Wear",
+          "layer": "Underwear",
           "sex": "Female",
           "warmth": 0.06,
           "armor": 0.02,
@@ -1283,7 +1275,7 @@
         "simulation": {
           "displayName": "Hide Wrap (1)",
           "prototypeId": "clothing.top_primal",
-          "layer": "Wear",
+          "layer": "Underwear",
           "sex": "Female",
           "warmth": 0.06,
           "armor": 0.02,
@@ -1311,7 +1303,7 @@
         "simulation": {
           "displayName": "Hide Wrap (2)",
           "prototypeId": "clothing.top_primal",
-          "layer": "Wear",
+          "layer": "Underwear",
           "sex": "Female",
           "warmth": 0.06,
           "armor": 0.02,
@@ -1339,7 +1331,7 @@
         "simulation": {
           "displayName": "Hide Wrap (3)",
           "prototypeId": "clothing.top_primal",
-          "layer": "Wear",
+          "layer": "Underwear",
           "sex": "Female",
           "warmth": 0.06,
           "armor": 0.02,

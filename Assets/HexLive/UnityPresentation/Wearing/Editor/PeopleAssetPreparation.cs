@@ -506,6 +506,7 @@ public static class PeopleAssetPreparation
                         SetSlots(so.FindProperty("slots"), new[] { "Chest" });
                     }
                     so.ApplyModifiedPropertiesWithoutUndo();
+                    if (id == "PrimalTop") wear.SetLayer(VisualWearLayer.Underwear);
                 }
                 var folder = kind == "actor" ? "Actors" : kind == "hair" ? "Hair" : "Wear";
                 var path = Root + "/Prefabs/" + folder + "/" + go.name + ".prefab";

@@ -183,3 +183,28 @@ Validation: **Unity graphics PlayMode5/5**; actual released inventory **40 porta
 No content/server/world rebuild needed. Existing content tar SHA256 stays `82e2605f3335ffbd2eaf812a399b17ad0c114a1ece7986b66a4d83a4b92ab58d`. Live https://play.62-146-235-120.sslip.io/ does **not yet contain this Player fix**. Next milestone is Claude combined perf/audio+attachment Player package, Singapore client rollout and live verification. Existing scope authorizes it with rollback; New York excluded. Release DoD remains open until live verification; local checks are not live acceptance.
 
 Other observation for Claude: Unity runner scene teardown logs existing `PlayerAssignmentDialog.OnDisable` line43 NullReferenceException after a successful test report; no attachment test errors. Native resource hand scales intentionally retain §54.12 authoring (including large palm crowns); all10 tools use ObjectFit targets exactly. No geometry/catalog entries altered.
+
+## Sveta coordinator: release gate for backpack correction
+Received Codex report and independently read CURRENT OVERRIDE in both shared documents. Claude: before publishing the combined player, acknowledge d42be421673599ceb719728fa6dd357d6802f8a7, sync the corrected files ONLY after the current Unity build finishes, rerun the affected tests and rebuild. Do not publish the superseded backpack-clearance behavior. Preserve metre anchor and other fixes. Please record ACK and final source/execution revision in this document; file delivery is not proof of consumption. No request to interrupt Unity or touch production from this message.
+
+## Codex — wardrobe + requested backpack correction VERIFIED, Unity released (2026-10-09 22:37Z)
+Production fixes: **59ee2c4e9979314be1f59e71de136008a5ef8ac7** (wardrobe), **d42be421673599ceb719728fa6dd357d6802f8a7** (preserve backpack/tool overlap). Unity CLI graphics PlayMode **3/3 wardrobe + 5/5 attachment** PASSED, both CLI exit0; final test interval22:34:31–22:36:10Z. Exact public WebGL wardrobe payload loaded/unloaded twice, six yaws and both real footwear models checked, including translated/scaled parent and repeated shelf sync. Source gate3/3 and offline binary audit passed. Before/after renders reviewed: hangers vertical; boots on board. Corrected attachment render reviewed: pack overlap remains. Old attachment-comparison montage remains obsolete; individually refreshed attachment-*.png files show the corrected behavior.
+
+Reports (sanitized; command-line/environment removed): `Assets/HexLiveContent/People/Validation/wardrobe-bundle-playmode.xml`, `prop-attachment-playmode.xml`; review `Review/wardrobe-before.png`, `wardrobe-after.png`. Existing PlayerAssignmentDialog.OnDisable teardown NRE occurs AFTER test report, separately handed to Claude; not a test failure and not concealed.
+
+Five production files copied/compiled and SHA256-equal source/execution: Environment/{WardrobeAssembly,WardrobeHangerFactory,WardrobeHangers}.cs + Wearing/{NpcActorView,BodyBones}.cs. UNITY_OWNER removed only after both CLI processes exited. Codex has STOPPED execution writes: Claude may freeze/build v6 with current shared HEAD. No content/server/world changes required; exact wardrobe payload SHA `dc7afbd3d5c873fe68107c164b07a9f0727651eb2fc57aa680a37b5188288f01`, existing content package SHA `82e2605f3335ffbd2eaf812a399b17ad0c114a1ece7986b66a4d83a4b92ab58d` unchanged. Live https://play.62-146-235-120.sslip.io/ still needs new Player; local regression is not live acceptance. Next milestone: Claude v6 package/deploy/live receipt; New York untouched.
+
+## Claude — client v6 published: performance (2026-10-10 ~06:15 +07)
+- Client `webgl-site-4c60d5a4abe6d5088d1124f8ccd62c8364495705.tar.gz`, **SHA-256 `94555127f11df4b755f98369f5df027ae9f60d3169027244741d5693df64abf8`**, 157432806 bytes. Includes Codex d42be4216 (backpack overlap restored,
+  NOT the rejected clearance) + 59ee2c4e9 (wardrobe hangers/boots), and perf 2a5cfaa0d/40bb336af/750962bb1.
+  Unity 15.1 min, 0 errors; v5 (LTO, contained rejected clearance) was stopped and never published.
+  `current` → `releases/4c60d5a4abe6d5088d1124f8ccd62c8364495705`; previous `9e1a9215c…-dpr1` (v4 + live DPR patch) kept. Server/world/content unchanged.
+- Build facts: code optimization RuntimeSpeed (was DiskSizeLTO / -Oz); WebAssembly 2023 on; exceptions FullWithoutStacktrace
+  → JS `invoke_*` wrappers 509 → **0**; wasm.br 17.5 → 13.8 MB; devicePixelRatio 1 baked into index.html; FMOD 4×2048.
+- **Measured live, same Apple M1 / Claude app pane, visible:** in world 20 s — **59.9 fps**, rAF median 17 ms / p95 21 ms,
+  long tasks (>50 ms) **0** (v4: median 105 ms, p90 196 ms per frame of main-thread CPU). Audio: running, 430 windows,
+  0 silent. Console errors/AtomicContent/ERR_: 0. Load: server connected 0.5 s, curtain ~15 s after Continue (warm cache).
+- Observation for Codex (not investigated, did not touch the live session): Tessa rendered without clothes on day 3 at 35 °C;
+  loader said bodies ready, inventory clothes tab empty — likely sim-side undress, please confirm. Roster shows initials.
+- Screenshot: `/Users/shtolyan/hex-girls/webgl-build/release-evidence/20261010-singapore/live-world-v6-claude.jpg`.
+- Player command still unverified (guest session).

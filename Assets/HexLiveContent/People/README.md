@@ -3,7 +3,10 @@
 New content lives here; old people assets remain at their original paths by the
 player's latest decision. They are legacy references, excluded from this opt-in
 catalog. Do not physically move them. World content is outside this migration.
-**No AssetBundles or server publication without the player's separate command.**
+**2026-10-09: the player authorized the local WebGL AssetBundle build.**
+Singapore publication and changes to its active registry remain separate.
+The earlier preparation reports retain their historical authorization flags;
+the actual build receipt records the newly authorized local build.
 
 ## Prepared
 
@@ -88,3 +91,12 @@ validator; flat visual metadata is insufficient for new male/backpack IDs.
 `Validation/catalog-simulation.json` records its local result. Existing saved
 legacy clothing needs a declared migration/fallback when choosing the new root.
 No registry, server binary, simdata, service or live catalog was changed here.
+
+## Authorized local WebGL build
+
+`Tools/build_webgl_content.py build` uses Unity CLI after ownership handoff,
+runs the full dependency/prefab/material preflight, builds primal-v1 plus world
+content, and packages candidates with relative payload paths and SHA-256 checks.
+The output excludes legacy clothes, bodies, hair, eye maps and helmet source art.
+`verify --package <directory>` checks a transferred copy without Unity or a server.
+It does not publish, change a server, or turn a preparation report into visual acceptance.

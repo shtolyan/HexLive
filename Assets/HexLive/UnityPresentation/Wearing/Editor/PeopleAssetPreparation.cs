@@ -435,8 +435,10 @@ public static class PeopleAssetPreparation
                 mat.SetFloat("_Smoothness", 1f - (float)row["roughness"]);
                 mat.SetFloat("_Metallic", (float)row["metallic"]);
                 mat.SetFloat("_Cull", (bool)row["doubleSided"] ? 0f : 2f);
+                mat.doubleSidedGI = (bool)row["doubleSided"];
                 bool clip = (string)row["alphaMode"] == "CLIP";
                 mat.SetFloat("_AlphaClip", clip ? 1f : 0f);
+                mat.SetFloat("_AlphaToMask", clip ? 1f : 0f);
                 mat.SetFloat("_Cutoff", (float)row["alphaCutoff"]);
                 if (clip) mat.EnableKeyword("_ALPHATEST_ON"); else mat.DisableKeyword("_ALPHATEST_ON");
                 mat.renderQueue = clip ? 2450 : 2000;
@@ -448,6 +450,7 @@ public static class PeopleAssetPreparation
                     mat.EnableKeyword("_NORMALMAP");
                 }
                 if (hairMaterials.Contains(property.Name)) ApplyLowPolyHairMaterial(mat);
+                mat.SetColor("_Color", mat.GetColor("_BaseColor"));
                 EditorUtility.SetDirty(mat);
                 if (variant == "Base") materials[property.Name] = mat;
                 paths[variant] = path;
@@ -681,6 +684,7 @@ public static class PeopleAssetPreparation
             if (mat == null) { mat = new Material(skin.sharedMaterial); AssetDatabase.CreateAsset(mat, path); }
             mat.name = skin.sharedMaterial.name;
             mat.SetColor("_BaseColor", actor == "Marta" ? tones[i % tones.Length] : Color.white);
+            mat.SetColor("_Color", mat.GetColor("_BaseColor"));
             EditorUtility.SetDirty(mat);
             entries.GetArrayElementAtIndex(i).FindPropertyRelative("id").stringValue = ids[i];
             entries.GetArrayElementAtIndex(i).FindPropertyRelative("material").objectReferenceValue = mat;

@@ -158,6 +158,80 @@ public static class AtomicContentBatchBuild
         Run(buildAll: true);
     }
 
+    public static void BuildPreparedWebGL()
+    {
+        if (!UsePeopleCatalog) throw new InvalidOperationException("Prepared WebGL build requires primal-v1");
+        ValidateTarget("WebGL");
+        AuditAll();
+        BuildAll();
+    }
+
+    // Resolve the complete inventory before spending time on any bundle.
+    // This also leaves an exact receipt for completeness checks after the build.
+    public static void AuditAll()
+    {
+        var arguments = Environment.GetCommandLineArgs();
+        var output = Path.GetFullPath(Required(arguments, "-content-output"));
+        Directory.CreateDirectory(output);
+        var rows = new JArray();
+        var errors = new JArray();
+        try
+        {
+            foreach (var recipe in DiscoverAllRecipes())
+            {
+                try
+                {
+                    var inputs = recipe.Inputs();
+                    ValidateAsset(inputs.Main, recipe.Type + "/" + recipe.Id);
+                    ValidateAsset(inputs.Metadata, "metadata");
+                    var roots = new List<string> { inputs.Main, inputs.Metadata };
+                    if (!string.IsNullOrEmpty(inputs.Icon)) roots.Add(inputs.Icon);
+                    roots.AddRange(inputs.Entries.Select(e => e.asset));
+                    foreach (var root in roots) ValidateAsset(root, recipe.Id);
+                    var dependencies = AssetDatabase.GetDependencies(roots.ToArray(), true);
+                    if (UsePeopleCatalog)
+                    {
+                        var legacy = dependencies.FirstOrDefault(p =>
+                            p.StartsWith(RuntimeSourceRoot + "/Actors/", StringComparison.Ordinal) ||
+                            p.StartsWith(RuntimeSourceRoot + "/Wear/", StringComparison.Ordinal) ||
+                            p.StartsWith(RuntimeSourceRoot + "/Helmets/", StringComparison.Ordinal) ||
+                            p.StartsWith("Assets/HexLiveContent/Wear/", StringComparison.Ordinal) ||
+                            p.StartsWith("Assets/ImportedActors/Wear/", StringComparison.Ordinal) ||
+                            p.StartsWith("Assets/ImportedActors/Hair/", StringComparison.Ordinal));
+                        if (legacy != null) throw new InvalidOperationException("Legacy people dependency: " + legacy);
+                    }
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(inputs.Main);
+                    if (IconBearingTypes.Contains(recipe.Type) &&
+                        (prefab == null || !HexLive.UnityPresentation.ObjectFit.HasRenderableGeometry(prefab)))
+                        throw new InvalidOperationException("Missing renderable main prefab");
+                    if (prefab != null && prefab.GetComponentsInChildren<MonoBehaviour>(true).Any(c => c == null))
+                        throw new InvalidOperationException("Missing prefab script");
+                    foreach (var path in dependencies.Where(p => p.EndsWith(".mat", StringComparison.Ordinal)))
+                    {
+                        var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+                        if (material == null || material.shader == null || material.shader.name == "Hidden/InternalErrorShader")
+                            throw new InvalidOperationException("Missing material shader: " + path);
+                    }
+                    rows.Add(new JObject { ["type"] = recipe.Type, ["id"] = recipe.Id,
+                        ["main"] = inputs.Main, ["dependencies"] = new JArray(dependencies) });
+                }
+                catch (Exception error)
+                {
+                    errors.Add(new JObject { ["type"] = recipe.Type, ["id"] = recipe.Id, ["error"] = error.Message });
+                }
+                finally { CleanupGeneratedMetadata(); }
+            }
+            File.WriteAllText(Path.Combine(output, "inventory.json"), new JObject
+            {
+                ["passed"] = errors.Count == 0, ["peopleCatalog"] = UsePeopleCatalog ? "primal-v1" : "legacy",
+                ["records"] = rows, ["errors"] = errors
+            }.ToString(Formatting.Indented) + "\n");
+            if (errors.Count != 0) throw new InvalidOperationException("Content preflight failed: " + errors);
+            Debug.Log($"[AtomicContent] preflight passed: {rows.Count} objects, no bundles built.");
+        }
+        finally { CleanupGeneratedMetadata(); }
+    }
+
     /// <summary>
     /// Builds one candidate inside the already open editor. This is the fast
     /// iteration path used for staging verification: it does not start a second
@@ -705,7 +779,8 @@ public static class AtomicContentBatchBuild
         {
             var path = AssetDatabase.GUIDToAssetPath(guid);
             if ((UsePeopleCatalog && (IsLegacyPeopleMap(path) ||
-                    path.Contains("/Eyes/", StringComparison.Ordinal))) ||
+                    path.Contains("/Eyes/", StringComparison.Ordinal) ||
+                    path.Contains("/Helmets/", StringComparison.Ordinal))) ||
                 authoringOnly.Contains(path) ||
                 skipped.Any(value => path.Contains(value, StringComparison.Ordinal)) ||
                 !allowed.Contains(Path.GetExtension(path)) ||

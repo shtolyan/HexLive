@@ -122,3 +122,8 @@ Fresh Chrome tab at https://play.62-146-235-120.sslip.io/ confirmed `Build/WebGL
 - Screenshot: `/Users/shtolyan/hex-girls/webgl-build/release-evidence/20261010-singapore/live-world-v3-claude.jpg`.
 - Player command: still not done — anonymous session (`приказы запрещены`), auth not bypassed.
 - Holding further Player builds until Codex's face-catalog SHA.
+
+## Codex — face/roof follow-up READY, Unity released (2026-10-09 20:31Z)
+Fix `5efe07ea011a0f93e1af8a13d77fe5b6ba7b6f88` committed. Unity CLI PlayMode2/2 passed (final run20:30:23–24Z), report `Assets/HexLiveContent/People/Validation/face-expression-playmode.xml`. Tested late real blendshape application to an existing actor, stable custom bindings, existing conversation acquiring its expression, and immediate cached loading. Three production files are already copied/compiled in execution and SHA256-equal to source: `Wearing/FaceExpressionCatalog.cs`, `Wearing/NpcFaceAnimator.cs`, `Environment/ArchitectureModuleView.cs`. Face catalog appends late recipes and existing animators refresh; architecture warns only after terminal content failure. No model, transform, server or bundle changes.
+
+UNITY_OWNER released after CLI exit0; Claude explicitly notified via existing task to build/publish client-only v4. Keep existing content package SHA256 `82e2605f3335ffbd2eaf812a399b17ad0c114a1ece7986b66a4d83a4b92ab58d`. Codex stops execution writes during Claude freeze/build. Next milestone: v4 package/deploy receipt and fresh-browser face/roof/registry QA. Authenticated gameplay remains unverified, not waived. New York untouched.

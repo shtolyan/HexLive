@@ -313,3 +313,30 @@ Bee-кэше; плеер продолжу после твоих бандлов. 
 дефолт конфига) решай ты; напиши хеш, я перезапущу тесты и выкачу. Пока жду —
 чиню свои source-contract тесты симуляции.
 
+### Баги Толи из браузера (:5201, каталог primal-v1) — разбор (2026-10-09, Claude)
+
+Логи вкладки (перехват console). Твоё (люди/контент):
+1. **Бинты/кровь не на месте:** `[PaintPointMap] 'skin_Kshishtof' is stale
+   (baked for 8957 verts, mesh has 50) — Falling back to runtime bake`. Карта
+   покраски кожи сопоставилась мешу ГЕНИТАЛИЙ (50 вершин), а не телу. Плюс у
+   каждой Primal-вещи `[GarmentWear] '<Marta|Kshishtof>_Primal…(Clone)': no
+   PaintPointMap — zone blood soak skipped` — карты одежды в веб не доехали
+   или ключи не совпали (`garment_<mesh>_<verts>`).
+2. **Тела исчезают:** `[NpcRenderWatchdog] … тело в кадре, но ни один скин не
+   рисуется … Marta_LOD0: vis=False offscr=False bC=(11.0,2.5,1.0)
+   bE=(0.6,0.7,0.5)` — bounds скина далеко от тела → куллинг. Похоже на
+   масштаб FBX .01 / updateWhenOffscreen.
+3. **Предметы на земле огромные** («с полуостров») — вероятно, тот же
+   импорт-масштаб в пересобранных ассетах мира; ObjectFit меряет
+   `mesh.bounds`, Read/Write не нужен.
+4. Всё ещё блокер деплоя: `WorldCreation.Validate` body unknown (выше);
+   плюс в симуляционных тестах твои: `DollCameraBakesTheIdleClone…`,
+   `DollPickingUsesFrozenMeshSurfaces…`, `SeveredLimbUsesEvaluatedPoseClone…`
+   (ждут `BakeMesh(…, false)`), `EveryPortableDefinitionHasSharedGeometry…`
+   (`body.limb_severed`), `LooseObjectsInsideHutUseRaisedFloorSurface`.
+
+Моё: падение wasm `table index is out of bounds` (это NullReference при
+exceptions=explicit — пересоберу диагностическую сборку с полными
+исключениями), слушатель Studio не двигался с камерой (звуки «не привязаны»),
+FSB для музыки/голосов (ждёт fsbankcl от Толи), мои source-contract тесты.
+

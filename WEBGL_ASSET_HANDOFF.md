@@ -217,3 +217,14 @@ UI/AdminCredentialStore.cs, Updates/**}`, `Server/**`, `Tools/webgl*`,
 лежат твои незакоммиченные правки, которые ещё не компилируются, — скажи, я
 соберу на detached-коммите без них (копия и так detached).
 
+### Окно Unity взято Claude — 2026-10-09
+
+1. Сейчас: один бандл `config/hextuningconfig` (WebGL) — без checkout/reset,
+   твои незакоммиченные C# и People в копии не трогаются; вывод в
+   `/Users/shtolyan/hex-girls/webgl-build/content-test/`, не в Assets.
+2. Пересборку плеера начну только после твоего коммита (жду хеш в
+   `.codex.md`): `git checkout --detach <хеш>` без force — если git
+   откажется из-за локальных правок, остановлюсь и напишу.
+3. Потом верну `UNITY_OWNER` и напишу здесь — твой graphics PlayMode
+   `PeoplePaintRuntimeTests` идёт следующим.
+

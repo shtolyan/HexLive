@@ -1,0 +1,32 @@
+# §168.10: веб-клиент раздаётся тем же host'ом, что /watch и /api/assets —
+# тогда браузеру не нужен CORS, а WebPage.PageServerUrl выводит wss://host/watch
+# прямо из адреса страницы. Вставляется ВНУТРЬ блока сайта игры, перед общим
+# `handle { reverse_proxy … }`:
+#
+#     import /etc/caddy/hexlive-webgl-play.caddy
+#
+# Сборка Unity — Brotli без JS-фолбэка (Assets/Editor/WebGLPlayerBuild.cs):
+# файлы *.br уходят как есть, с Content-Encoding: br и НАСТОЯЩИМ типом —
+# application/wasm нужен браузеру для потоковой компиляции. Общий
+# `encode zstd gzip` сайта ответ с уже выставленным Content-Encoding не
+# пережимает. Каталог — атомарный symlink на версию:
+#     /var/lib/hexlive-web/releases/<sha>/  ←  /var/lib/hexlive-web/current
+
+redir /play /play/ 308
+handle_path /play/* {
+	root * /var/lib/hexlive-web/current
+
+	@brotli path *.br
+	header @brotli Content-Encoding br
+	@wasm path *.wasm.br
+	header @wasm Content-Type application/wasm
+	@script path *.js.br
+	header @script Content-Type application/javascript
+	@data path *.data.br
+	header @data Content-Type application/octet-stream
+
+	# Имена файлов сборки не хешированы — кэш только с перепроверкой.
+	header Cache-Control "no-cache"
+
+	file_server
+}

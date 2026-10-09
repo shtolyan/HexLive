@@ -302,6 +302,11 @@ public sealed class BodyBones : MonoBehaviour
     private static bool ExactlyEqual(Vector3 a, Vector3 b) =>
         a.x == b.x && a.y == b.y && a.z == b.z;
 
+    // §169: the back sling must clear the currently worn chest bag. Read the
+    // live slot map so asynchronous equip/removal invalidates the attachment.
+    public Wear TorsoBag => _byLayer.TryGetValue(VisualWearLayer.Bags, out var bags) &&
+        bags.TryGetValue(VisualWearSlot.Chest, out var bag) ? bag : null;
+
     public bool IsEquipped(string key)
     {
         return _wears.ContainsKey(key);

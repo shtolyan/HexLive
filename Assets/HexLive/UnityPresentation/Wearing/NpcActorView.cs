@@ -4445,12 +4445,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             garmentId = null;
         }
 
-        if (_handGarmentId == garmentId)
+        if (_handGarmentId == garmentId &&
+            (string.IsNullOrEmpty(garmentId) || _handGarment != null))
         {
             return;
         }
 
-        _handGarmentId = garmentId;
+        _handGarmentId = null;
         if (_handGarment != null)
         {
             Destroy(_handGarment);
@@ -4477,6 +4478,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
         built.transform.SetParent(hand, false);
         _handGarment = built;
+        _handGarmentId = garmentId;
         _handGarment.name = $"HandGarment {garmentId}";
 
         // Normalize to a palm-sized folded bundle regardless of the mesh size.
@@ -5824,26 +5826,32 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 33.1: mount a carried weapon on the upper back (slung diagonally),
     // hidden while it is in the hand (fighting/hunting) so it isn't doubled.
+    private Wear _backPropBag;
+
     public void SetBackWeapon(string itemId)
     {
-        // Don't sling what's already in the hand.
-        if (!string.IsNullOrEmpty(_currentPropId) && itemId == _currentPropId)
+        // Don't duplicate a weapon already held in either hand.
+        if (!string.IsNullOrEmpty(itemId) &&
+            (itemId == _currentPropId || itemId == _offhandPropId))
         {
             itemId = null;
         }
 
-        if (_currentBackId == itemId &&
+        var bag = _bodyBones != null ? _bodyBones.TorsoBag : null;
+        if (_currentBackId == itemId && ReferenceEquals(_backPropBag, bag) &&
             (string.IsNullOrEmpty(itemId) || _backProp != null))
         {
             return;
         }
 
-        if (_currentBackId != itemId && _backProp != null)
+        if (_backProp != null)
         {
+            _backProp.SetActive(false);
             Destroy(_backProp);
             _backProp = null;
         }
         _currentBackId = null;
+        _backPropBag = bag;
 
         if (string.IsNullOrEmpty(itemId) || _bodyBones == null)
         {
@@ -5854,6 +5862,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         var back = _bodyBones.GetBone("chestUpper") ?? _bodyBones.GetBone("chestLower")
             ?? _bodyBones.GetBone("spine2") ?? _bodyBones.GetBone("abdomenUpper");
         if (back == null)
+        {
+            return;
+        }
+
+        // §169: offsets are actor metres, not the imported skeleton's
+        // centimetres. Raw chestUpper collapsed the back gap by 100x.
+        var people = _bodyBones.GetComponent<PeopleAppearance>();
+        if (people != null) back = people.PropAnchor(back);
+
+        // As in the hands, wait for the companion config before caching a
+        // permanent pose (one/two-handed orientation comes from this entry).
+        var config = Config.GearLibrary.ConfigFor(itemId);
+        if (Config.GearLibrary.RequiresAuthoredConfig(itemId) && config == null)
         {
             return;
         }
@@ -5898,7 +5919,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             new Vector3(-0.09f, 0.15f, -0.03f);
         var renderers = _backProp.GetComponentsInChildren<Renderer>(true);
         var slotRotation = Quaternion.Euler(-3.335f, -0.358f, 18.524f);
-        var config = Config.GearLibrary.ConfigFor(itemId);
         var twoHanded = config != null
             ? config.twoHanded
             : GearCatalog.For(itemId).TwoHanded;
@@ -5948,6 +5968,39 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         var boundsCentreLocal = back.InverseTransformPoint(combined.center);
+        // Measure the bag only when item/equipment changes, never per frame.
+        // Use baked vertices in the same chest frame: a world AABB changes
+        // with actor yaw and can otherwise push the tool far off the back.
+        if (bag != null)
+        {
+            var bagRear = float.PositiveInfinity;
+            var baked = new Mesh();
+            foreach (var skin in bag.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (!skin.enabled || skin.sharedMesh == null) continue;
+                skin.BakeMesh(baked, true);
+                foreach (var vertex in baked.vertices)
+                    bagRear = Mathf.Min(bagRear, back.InverseTransformPoint(skin.transform.TransformPoint(vertex)).z);
+            }
+            Destroy(baked);
+            if (float.IsFinite(bagRear))
+            {
+                var frontExtent = 0f;
+                foreach (var filter in _backProp.GetComponentsInChildren<MeshFilter>())
+                {
+                    if (filter.sharedMesh == null) continue;
+                    var box = filter.sharedMesh.bounds;
+                    for (int corner = 0; corner < 8; corner++)
+                    {
+                        var point = box.center + Vector3.Scale(box.extents, new Vector3(
+                            (corner & 1) == 0 ? -1 : 1, (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1));
+                        frontExtent = Mathf.Max(frontExtent,
+                            back.InverseTransformPoint(filter.transform.TransformPoint(point)).z - boundsCentreLocal.z);
+                    }
+                }
+                slotLocal.z = Mathf.Min(slotLocal.z, bagRear - frontExtent - .015f);
+            }
+        }
         _backProp.transform.localPosition = slotLocal - boundsCentreLocal;
     }
 

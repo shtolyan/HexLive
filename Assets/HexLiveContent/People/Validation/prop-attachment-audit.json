@@ -1,0 +1,5665 @@
+{
+  "portableIds": 40,
+  "measurements": [
+    {
+      "actor": "Marta",
+      "id": "food.coconut",
+      "slot": "right",
+      "boundsSize": [
+        0.101693958,
+        0.10311795,
+        0.103117943
+      ],
+      "measuredSize": 0.10169398,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.04736471,
+        -0.110258818,
+        0.0007764511
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut",
+      "slot": "left",
+      "boundsSize": [
+        0.101693958,
+        0.103117958,
+        0.103117943
+      ],
+      "measuredSize": 0.10169398,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.04736471,
+        -0.110258818,
+        0.0007764511
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut",
+      "slot": "left",
+      "boundsSize": [
+        0.101693958,
+        0.103117958,
+        0.103117943
+      ],
+      "measuredSize": 0.10169398,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.04736471,
+        -0.110258818,
+        0.0007764511
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut",
+      "slot": "right",
+      "boundsSize": [
+        0.101693958,
+        0.10311795,
+        0.103117943
+      ],
+      "measuredSize": 0.10169398,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.04736471,
+        -0.110258818,
+        0.0007764511
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut_open",
+      "slot": "right",
+      "boundsSize": [
+        0.227179736,
+        0.231326208,
+        0.0996194
+      ],
+      "measuredSize": 0.177573115,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0318353176,
+        -0.08308244,
+        -0.0264000148
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut_open",
+      "slot": "left",
+      "boundsSize": [
+        0.227179736,
+        0.2313262,
+        0.0996194
+      ],
+      "measuredSize": 0.177573115,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.0318353176,
+        -0.08308244,
+        -0.0264000148
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut_open",
+      "slot": "left",
+      "boundsSize": [
+        0.227179736,
+        0.2313262,
+        0.0996194
+      ],
+      "measuredSize": 0.177573115,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.0318353176,
+        -0.08308244,
+        -0.0264000148
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut_open",
+      "slot": "right",
+      "boundsSize": [
+        0.227179736,
+        0.231326208,
+        0.0996194
+      ],
+      "measuredSize": 0.177573115,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0318353176,
+        -0.08308244,
+        -0.0264000148
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut_pierced",
+      "slot": "right",
+      "boundsSize": [
+        0.2401481,
+        0.256083459,
+        0.241438374
+      ],
+      "measuredSize": 0.177642643,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.06988233,
+        -0.08618832,
+        -0.0691059
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut_pierced",
+      "slot": "left",
+      "boundsSize": [
+        0.2401481,
+        0.256083459,
+        0.2414384
+      ],
+      "measuredSize": 0.177642629,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.06988233,
+        -0.08618832,
+        -0.0691059
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut_pierced",
+      "slot": "left",
+      "boundsSize": [
+        0.2401481,
+        0.256083459,
+        0.2414384
+      ],
+      "measuredSize": 0.177642629,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.06988233,
+        -0.08618832,
+        -0.0691059
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.coconut_pierced",
+      "slot": "right",
+      "boundsSize": [
+        0.2401481,
+        0.256083459,
+        0.241438374
+      ],
+      "measuredSize": 0.177642643,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.06988233,
+        -0.08618832,
+        -0.0691059
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_arm_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_arm_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_arm_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_arm_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_arm_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_arm_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_arm_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_arm_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_leg_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_leg_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_leg_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_leg_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_leg_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_leg_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_leg_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_leg_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_torso_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_torso_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_torso_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_torso_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_torso_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_torso_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_torso_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.human_torso_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.meat_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.meat_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.meat_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.meat_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.meat_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.meat_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.meat_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "food.meat_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.bandage",
+      "slot": "right",
+      "boundsSize": [
+        0.179999992,
+        0.0985913,
+        0.140965372
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.bandage",
+      "slot": "left",
+      "boundsSize": [
+        0.179999992,
+        0.0985913,
+        0.140965372
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.bandage",
+      "slot": "left",
+      "boundsSize": [
+        0.179999992,
+        0.0985913,
+        0.140965372
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.bandage",
+      "slot": "right",
+      "boundsSize": [
+        0.179999992,
+        0.0985913,
+        0.140965372
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.medkit",
+      "slot": "right",
+      "boundsSize": [
+        0.179999977,
+        0.14220643,
+        0.152326792
+      ],
+      "measuredSize": 0.179999977,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.medkit",
+      "slot": "left",
+      "boundsSize": [
+        0.179999977,
+        0.14220643,
+        0.152326792
+      ],
+      "measuredSize": 0.179999977,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.medkit",
+      "slot": "left",
+      "boundsSize": [
+        0.179999977,
+        0.14220643,
+        0.152326792
+      ],
+      "measuredSize": 0.179999977,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.medkit",
+      "slot": "right",
+      "boundsSize": [
+        0.179999977,
+        0.14220643,
+        0.152326792
+      ],
+      "measuredSize": 0.179999977,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.pill",
+      "slot": "right",
+      "boundsSize": [
+        0.179999948,
+        0.0435482264,
+        0.110322557
+      ],
+      "measuredSize": 0.179999962,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.pill",
+      "slot": "left",
+      "boundsSize": [
+        0.179999948,
+        0.0435482264,
+        0.110322557
+      ],
+      "measuredSize": 0.179999962,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.pill",
+      "slot": "left",
+      "boundsSize": [
+        0.179999948,
+        0.0435482264,
+        0.110322557
+      ],
+      "measuredSize": 0.179999962,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.pill",
+      "slot": "right",
+      "boundsSize": [
+        0.179999948,
+        0.0435482264,
+        0.110322557
+      ],
+      "measuredSize": 0.179999962,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.plaster",
+      "slot": "right",
+      "boundsSize": [
+        0.179999948,
+        0.0178675652,
+        0.0582352877
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.plaster",
+      "slot": "left",
+      "boundsSize": [
+        0.179999948,
+        0.0178675652,
+        0.0582352877
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.plaster",
+      "slot": "left",
+      "boundsSize": [
+        0.179999948,
+        0.0178675652,
+        0.0582352877
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "item.plaster",
+      "slot": "right",
+      "boundsSize": [
+        0.179999948,
+        0.0178675652,
+        0.0582352877
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "med.splint",
+      "slot": "right",
+      "boundsSize": [
+        0.04617757,
+        0.02652268,
+        0.179999977
+      ],
+      "measuredSize": 0.179999948,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "med.splint",
+      "slot": "left",
+      "boundsSize": [
+        0.04617757,
+        0.02652268,
+        0.179999977
+      ],
+      "measuredSize": 0.179999948,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "med.splint",
+      "slot": "left",
+      "boundsSize": [
+        0.04617757,
+        0.02652268,
+        0.179999977
+      ],
+      "measuredSize": 0.179999948,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "med.splint",
+      "slot": "right",
+      "boundsSize": [
+        0.04617757,
+        0.02652268,
+        0.179999977
+      ],
+      "measuredSize": 0.179999948,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.arrow",
+      "slot": "right",
+      "boundsSize": [
+        0.148064375,
+        1.09482336,
+        0.193301708
+      ],
+      "measuredSize": 1.09482336,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.arrow",
+      "slot": "left",
+      "boundsSize": [
+        0.148064256,
+        1.09482336,
+        0.193301678
+      ],
+      "measuredSize": 1.09482336,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.arrow",
+      "slot": "left",
+      "boundsSize": [
+        0.148064256,
+        1.09482336,
+        0.193301678
+      ],
+      "measuredSize": 1.09482336,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.arrow",
+      "slot": "right",
+      "boundsSize": [
+        0.148064375,
+        1.09482336,
+        0.193301708
+      ],
+      "measuredSize": 1.09482336,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.board",
+      "slot": "right",
+      "boundsSize": [
+        0.122502923,
+        0.145466134,
+        0.7572935
+      ],
+      "measuredSize": 0.756593,
+      "groundTarget": 0.75,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.board",
+      "slot": "left",
+      "boundsSize": [
+        0.122502744,
+        0.145466134,
+        0.757293463
+      ],
+      "measuredSize": 0.7565927,
+      "groundTarget": 0.75,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.board",
+      "slot": "left",
+      "boundsSize": [
+        0.122502744,
+        0.145466134,
+        0.757293463
+      ],
+      "measuredSize": 0.7565927,
+      "groundTarget": 0.75,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.board",
+      "slot": "right",
+      "boundsSize": [
+        0.122502923,
+        0.145466134,
+        0.7572935
+      ],
+      "measuredSize": 0.756593,
+      "groundTarget": 0.75,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.cloth",
+      "slot": "right",
+      "boundsSize": [
+        0.41078043,
+        0.2026031,
+        0.5339655
+      ],
+      "measuredSize": 0.499675184,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.cloth",
+      "slot": "left",
+      "boundsSize": [
+        0.410780281,
+        0.2026031,
+        0.533965468
+      ],
+      "measuredSize": 0.499675065,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.cloth",
+      "slot": "left",
+      "boundsSize": [
+        0.410780281,
+        0.2026031,
+        0.533965468
+      ],
+      "measuredSize": 0.499675065,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.cloth",
+      "slot": "right",
+      "boundsSize": [
+        0.41078043,
+        0.2026031,
+        0.5339655
+      ],
+      "measuredSize": 0.499675184,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.fiber",
+      "slot": "right",
+      "boundsSize": [
+        0.24879694,
+        0.4849968,
+        0.281647682
+      ],
+      "measuredSize": 0.484996766,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.fiber",
+      "slot": "left",
+      "boundsSize": [
+        0.239534616,
+        0.4849968,
+        0.284163356
+      ],
+      "measuredSize": 0.484996825,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.fiber",
+      "slot": "left",
+      "boundsSize": [
+        0.239534616,
+        0.4849968,
+        0.284163356
+      ],
+      "measuredSize": 0.484996825,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.fiber",
+      "slot": "right",
+      "boundsSize": [
+        0.24879694,
+        0.4849968,
+        0.281647682
+      ],
+      "measuredSize": 0.484996766,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.herb_leaf",
+      "slot": "right",
+      "boundsSize": [
+        0.114550017,
+        0.05857506,
+        0.297205031
+      ],
+      "measuredSize": 0.290004969,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.herb_leaf",
+      "slot": "left",
+      "boundsSize": [
+        0.11454995,
+        0.05857506,
+        0.297205
+      ],
+      "measuredSize": 0.290004879,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.herb_leaf",
+      "slot": "left",
+      "boundsSize": [
+        0.11454995,
+        0.05857506,
+        0.297205
+      ],
+      "measuredSize": 0.290004879,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.herb_leaf",
+      "slot": "right",
+      "boundsSize": [
+        0.114550017,
+        0.05857506,
+        0.297205031
+      ],
+      "measuredSize": 0.290004969,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.hide",
+      "slot": "right",
+      "boundsSize": [
+        0.175953984,
+        0.8332427,
+        1.14195228
+      ],
+      "measuredSize": 1.1418097,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.hide",
+      "slot": "left",
+      "boundsSize": [
+        0.175953716,
+        0.8332427,
+        1.14195228
+      ],
+      "measuredSize": 1.14180934,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.hide",
+      "slot": "left",
+      "boundsSize": [
+        0.175953716,
+        0.8332427,
+        1.14195228
+      ],
+      "measuredSize": 1.14180934,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.hide",
+      "slot": "right",
+      "boundsSize": [
+        0.175953984,
+        0.8332427,
+        1.14195228
+      ],
+      "measuredSize": 1.1418097,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.log",
+      "slot": "right",
+      "boundsSize": [
+        0.2804408,
+        0.214761868,
+        0.7742097
+      ],
+      "measuredSize": 0.7573246,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.log",
+      "slot": "left",
+      "boundsSize": [
+        0.280440629,
+        0.214761868,
+        0.7742096
+      ],
+      "measuredSize": 0.7573244,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.log",
+      "slot": "left",
+      "boundsSize": [
+        0.280440629,
+        0.214761868,
+        0.7742096
+      ],
+      "measuredSize": 0.7573244,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.log",
+      "slot": "right",
+      "boundsSize": [
+        0.2804408,
+        0.214761868,
+        0.7742097
+      ],
+      "measuredSize": 0.7573246,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.mechanical_part",
+      "slot": "right",
+      "boundsSize": [
+        0.698335648,
+        0.115694523,
+        0.6983357
+      ],
+      "measuredSize": 0.636705935,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.mechanical_part",
+      "slot": "left",
+      "boundsSize": [
+        0.698335469,
+        0.115694523,
+        0.6983355
+      ],
+      "measuredSize": 0.6367058,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.mechanical_part",
+      "slot": "left",
+      "boundsSize": [
+        0.698335469,
+        0.115694523,
+        0.6983355
+      ],
+      "measuredSize": 0.6367058,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.mechanical_part",
+      "slot": "right",
+      "boundsSize": [
+        0.698335648,
+        0.115694523,
+        0.6983357
+      ],
+      "measuredSize": 0.636705935,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_crown",
+      "slot": "right",
+      "boundsSize": [
+        1.16377342,
+        3.184788,
+        3.20657325
+      ],
+      "measuredSize": 3.184787,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_crown",
+      "slot": "left",
+      "boundsSize": [
+        1.1637727,
+        3.184788,
+        3.206573
+      ],
+      "measuredSize": 3.184787,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_crown",
+      "slot": "left",
+      "boundsSize": [
+        1.1637727,
+        3.184788,
+        3.206573
+      ],
+      "measuredSize": 3.184787,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_crown",
+      "slot": "right",
+      "boundsSize": [
+        1.16377342,
+        3.184788,
+        3.20657325
+      ],
+      "measuredSize": 3.184787,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_crown_small",
+      "slot": "right",
+      "boundsSize": [
+        1.65854645,
+        2.32597923,
+        2.247663
+      ],
+      "measuredSize": 2.32597876,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_crown_small",
+      "slot": "left",
+      "boundsSize": [
+        1.658546,
+        2.32597923,
+        2.24766278
+      ],
+      "measuredSize": 2.32597876,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_crown_small",
+      "slot": "left",
+      "boundsSize": [
+        1.658546,
+        2.32597923,
+        2.24766278
+      ],
+      "measuredSize": 2.32597876,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_crown_small",
+      "slot": "right",
+      "boundsSize": [
+        1.65854645,
+        2.32597923,
+        2.247663
+      ],
+      "measuredSize": 2.32597876,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_leaf",
+      "slot": "right",
+      "boundsSize": [
+        0.242594987,
+        0.4239531,
+        0.8395705
+      ],
+      "measuredSize": 0.827669144,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_leaf",
+      "slot": "left",
+      "boundsSize": [
+        0.2425948,
+        0.4239531,
+        0.839570463
+      ],
+      "measuredSize": 0.827668965,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_leaf",
+      "slot": "left",
+      "boundsSize": [
+        0.2425948,
+        0.4239531,
+        0.839570463
+      ],
+      "measuredSize": 0.827668965,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.palm_leaf",
+      "slot": "right",
+      "boundsSize": [
+        0.242594987,
+        0.4239531,
+        0.8395705
+      ],
+      "measuredSize": 0.827669144,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.rope",
+      "slot": "right",
+      "boundsSize": [
+        0.3654675,
+        0.0479931161,
+        0.389495462
+      ],
+      "measuredSize": 0.357624829,
+      "groundTarget": 0.15,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.rope",
+      "slot": "left",
+      "boundsSize": [
+        0.3654674,
+        0.0479931161,
+        0.3894954
+      ],
+      "measuredSize": 0.357624769,
+      "groundTarget": 0.15,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.rope",
+      "slot": "left",
+      "boundsSize": [
+        0.3654674,
+        0.0479931161,
+        0.3894954
+      ],
+      "measuredSize": 0.357624769,
+      "groundTarget": 0.15,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.rope",
+      "slot": "right",
+      "boundsSize": [
+        0.3654675,
+        0.0479931161,
+        0.389495462
+      ],
+      "measuredSize": 0.357624829,
+      "groundTarget": 0.15,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.stick",
+      "slot": "right",
+      "boundsSize": [
+        0.134460747,
+        0.05608989,
+        0.7589784
+      ],
+      "measuredSize": 0.757058859,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.stick",
+      "slot": "left",
+      "boundsSize": [
+        0.134460568,
+        0.05608989,
+        0.758978367
+      ],
+      "measuredSize": 0.7570587,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.stick",
+      "slot": "left",
+      "boundsSize": [
+        0.134460568,
+        0.05608989,
+        0.758978367
+      ],
+      "measuredSize": 0.7570587,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.stick",
+      "slot": "right",
+      "boundsSize": [
+        0.134460747,
+        0.05608989,
+        0.7589784
+      ],
+      "measuredSize": 0.757058859,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.stone",
+      "slot": "right",
+      "boundsSize": [
+        0.198070735,
+        0.214642,
+        0.280018181
+      ],
+      "measuredSize": 0.263843149,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.stone",
+      "slot": "left",
+      "boundsSize": [
+        0.19807066,
+        0.214642,
+        0.280018151
+      ],
+      "measuredSize": 0.263843119,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.stone",
+      "slot": "left",
+      "boundsSize": [
+        0.19807066,
+        0.214642,
+        0.280018151
+      ],
+      "measuredSize": 0.263843119,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "resource.stone",
+      "slot": "right",
+      "boundsSize": [
+        0.198070735,
+        0.214642,
+        0.280018181
+      ],
+      "measuredSize": 0.263843149,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357647,
+        -0.04891777,
+        0.005435286
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.axe_stone",
+      "slot": "right",
+      "boundsSize": [
+        0.247119546,
+        0.210471213,
+        0.343775
+      ],
+      "measuredSize": 0.324000061,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.axe_stone",
+      "slot": "left",
+      "boundsSize": [
+        0.247119546,
+        0.210471213,
+        0.343775
+      ],
+      "measuredSize": 0.324000061,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.axe_stone",
+      "slot": "left",
+      "boundsSize": [
+        0.247119546,
+        0.210471213,
+        0.343775
+      ],
+      "measuredSize": 0.324000061,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.axe_stone",
+      "slot": "right",
+      "boundsSize": [
+        0.247119546,
+        0.210471213,
+        0.343775
+      ],
+      "measuredSize": 0.324000061,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.axe_stone",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470605,
+        -0.0388236046,
+        -0.08385885
+      ],
+      "measuredSize": 0.323999971
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bottle",
+      "slot": "right",
+      "boundsSize": [
+        0.113714226,
+        0.09274618,
+        0.2804489
+      ],
+      "measuredSize": 0.2699999,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.04216236,
+        -0.0183247328,
+        -0.0396
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bottle",
+      "slot": "left",
+      "boundsSize": [
+        0.113714226,
+        0.09274618,
+        0.2804489
+      ],
+      "measuredSize": 0.2699999,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        -0.04216236,
+        -0.0183247328,
+        -0.0396
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bottle",
+      "slot": "left",
+      "boundsSize": [
+        0.113714226,
+        0.09274618,
+        0.2804489
+      ],
+      "measuredSize": 0.2699999,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        -0.04216236,
+        -0.0183247328,
+        -0.0396
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bottle",
+      "slot": "right",
+      "boundsSize": [
+        0.113714226,
+        0.09274618,
+        0.2804489
+      ],
+      "measuredSize": 0.2699999,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.04216236,
+        -0.0183247328,
+        -0.0396
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bottle",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470568,
+        -0.0388236046,
+        -0.08385883
+      ],
+      "measuredSize": 0.27000007
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bow",
+      "slot": "right",
+      "boundsSize": [
+        0.3232994,
+        0.32400012,
+        0.0188149624
+      ],
+      "measuredSize": 0.324,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bow",
+      "slot": "left",
+      "boundsSize": [
+        0.3232994,
+        0.32400012,
+        0.0188149624
+      ],
+      "measuredSize": 0.324,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bow",
+      "slot": "left",
+      "boundsSize": [
+        0.3232994,
+        0.32400012,
+        0.0188149624
+      ],
+      "measuredSize": 0.324,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bow",
+      "slot": "right",
+      "boundsSize": [
+        0.3232994,
+        0.32400012,
+        0.0188149624
+      ],
+      "measuredSize": 0.324,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.bow",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470605,
+        -0.0388234854,
+        -0.08385883
+      ],
+      "measuredSize": 0.324000061
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.hammer",
+      "slot": "right",
+      "boundsSize": [
+        0.132774562,
+        0.108822614,
+        0.3314731
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.hammer",
+      "slot": "left",
+      "boundsSize": [
+        0.132774562,
+        0.108822614,
+        0.3314731
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.hammer",
+      "slot": "left",
+      "boundsSize": [
+        0.132774562,
+        0.108822614,
+        0.3314731
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.hammer",
+      "slot": "right",
+      "boundsSize": [
+        0.132774562,
+        0.108822614,
+        0.3314731
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.hammer",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470568,
+        -0.0388236046,
+        -0.08385885
+      ],
+      "measuredSize": 0.324
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.knife",
+      "slot": "right",
+      "boundsSize": [
+        0.08020438,
+        0.0709026158,
+        0.325222
+      ],
+      "measuredSize": 0.3240001,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.knife",
+      "slot": "left",
+      "boundsSize": [
+        0.08020438,
+        0.0709026158,
+        0.325222
+      ],
+      "measuredSize": 0.3240001,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.knife",
+      "slot": "left",
+      "boundsSize": [
+        0.08020438,
+        0.0709026158,
+        0.325222
+      ],
+      "measuredSize": 0.3240001,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.knife",
+      "slot": "right",
+      "boundsSize": [
+        0.08020438,
+        0.0709026158,
+        0.325222
+      ],
+      "measuredSize": 0.3240001,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.knife",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470568,
+        -0.0388237238,
+        -0.08385885
+      ],
+      "measuredSize": 0.324
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.lighter",
+      "slot": "right",
+      "boundsSize": [
+        0.037511453,
+        0.03441987,
+        0.10800001
+      ],
+      "measuredSize": 0.10800001,
+      "groundTarget": 0.107999995,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.lighter",
+      "slot": "left",
+      "boundsSize": [
+        0.037511453,
+        0.03441987,
+        0.10800001
+      ],
+      "measuredSize": 0.10800001,
+      "groundTarget": 0.107999995,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.lighter",
+      "slot": "left",
+      "boundsSize": [
+        0.037511453,
+        0.03441987,
+        0.10800001
+      ],
+      "measuredSize": 0.10800001,
+      "groundTarget": 0.107999995,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.lighter",
+      "slot": "right",
+      "boundsSize": [
+        0.037511453,
+        0.03441987,
+        0.10800001
+      ],
+      "measuredSize": 0.10800001,
+      "groundTarget": 0.107999995,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.lighter",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470531,
+        -0.0388236046,
+        -0.08385885
+      ],
+      "measuredSize": 0.107999995
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.machete",
+      "slot": "right",
+      "boundsSize": [
+        0.0759450942,
+        0.062303938,
+        0.325088918
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.machete",
+      "slot": "left",
+      "boundsSize": [
+        0.0759450942,
+        0.06230393,
+        0.325088918
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.machete",
+      "slot": "left",
+      "boundsSize": [
+        0.0759450942,
+        0.06230393,
+        0.325088918
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.machete",
+      "slot": "right",
+      "boundsSize": [
+        0.0759450942,
+        0.062303938,
+        0.325088918
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.machete",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470605,
+        -0.0388236046,
+        -0.08385885
+      ],
+      "measuredSize": 0.32400012
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.pickaxe_stone",
+      "slot": "right",
+      "boundsSize": [
+        0.173612311,
+        0.101829626,
+        0.338792056
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.pickaxe_stone",
+      "slot": "left",
+      "boundsSize": [
+        0.173612311,
+        0.101829626,
+        0.338792056
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.pickaxe_stone",
+      "slot": "left",
+      "boundsSize": [
+        0.173612311,
+        0.101829626,
+        0.338792056
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.pickaxe_stone",
+      "slot": "right",
+      "boundsSize": [
+        0.173612311,
+        0.101829626,
+        0.338792056
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.pickaxe_stone",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470531,
+        -0.0388236046,
+        -0.08385885
+      ],
+      "measuredSize": 0.3240001
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.saw",
+      "slot": "right",
+      "boundsSize": [
+        0.0189314988,
+        0.106481664,
+        0.324000031
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.saw",
+      "slot": "left",
+      "boundsSize": [
+        0.0189314988,
+        0.106481664,
+        0.324000031
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.saw",
+      "slot": "left",
+      "boundsSize": [
+        0.0189314988,
+        0.106481664,
+        0.324000031
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.saw",
+      "slot": "right",
+      "boundsSize": [
+        0.0189314988,
+        0.106481664,
+        0.324000031
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.saw",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470568,
+        -0.0388236046,
+        -0.08385883
+      ],
+      "measuredSize": 0.323999971
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.spear",
+      "slot": "right",
+      "boundsSize": [
+        0.128983289,
+        0.389847666,
+        1.33103859
+      ],
+      "measuredSize": 1.34999955,
+      "groundTarget": 1.3499999,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.spear",
+      "slot": "left",
+      "boundsSize": [
+        0.128983289,
+        0.389847666,
+        1.33103859
+      ],
+      "measuredSize": 1.34999955,
+      "groundTarget": 1.3499999,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.spear",
+      "slot": "left",
+      "boundsSize": [
+        0.128983289,
+        0.389847666,
+        1.33103859
+      ],
+      "measuredSize": 1.34999955,
+      "groundTarget": 1.3499999,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.spear",
+      "slot": "right",
+      "boundsSize": [
+        0.128983289,
+        0.389847666,
+        1.33103859
+      ],
+      "measuredSize": 1.34999955,
+      "groundTarget": 1.3499999,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562368,
+        -0.0590117648
+      ]
+    },
+    {
+      "actor": "Marta",
+      "id": "tool.spear",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470456,
+        -0.0388236046,
+        -0.08385883
+      ],
+      "measuredSize": 1.35
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut",
+      "slot": "right",
+      "boundsSize": [
+        0.101693958,
+        0.103117928,
+        0.103117943
+      ],
+      "measuredSize": 0.10169398,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.04736483,
+        -0.110258818,
+        0.000776447356
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut",
+      "slot": "left",
+      "boundsSize": [
+        0.101693958,
+        0.103117958,
+        0.103117943
+      ],
+      "measuredSize": 0.10169398,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.04736471,
+        -0.110258818,
+        0.000776441768
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut",
+      "slot": "left",
+      "boundsSize": [
+        0.101693958,
+        0.103117958,
+        0.103117943
+      ],
+      "measuredSize": 0.10169398,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.04736471,
+        -0.110258818,
+        0.000776441768
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut",
+      "slot": "right",
+      "boundsSize": [
+        0.101693958,
+        0.103117928,
+        0.103117943
+      ],
+      "measuredSize": 0.10169398,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.04736483,
+        -0.110258818,
+        0.000776447356
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut_open",
+      "slot": "right",
+      "boundsSize": [
+        0.227179736,
+        0.231326163,
+        0.0996194
+      ],
+      "measuredSize": 0.17757307,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0318353176,
+        -0.08308232,
+        -0.0264000148
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut_open",
+      "slot": "left",
+      "boundsSize": [
+        0.227179736,
+        0.2313262,
+        0.0996194
+      ],
+      "measuredSize": 0.177573115,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.0318353176,
+        -0.08308232,
+        -0.0264000241
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut_open",
+      "slot": "left",
+      "boundsSize": [
+        0.227179736,
+        0.2313262,
+        0.0996194
+      ],
+      "measuredSize": 0.177573115,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.0318353176,
+        -0.08308232,
+        -0.0264000241
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut_open",
+      "slot": "right",
+      "boundsSize": [
+        0.227179736,
+        0.231326163,
+        0.0996194
+      ],
+      "measuredSize": 0.17757307,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0318353176,
+        -0.08308232,
+        -0.0264000148
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut_pierced",
+      "slot": "right",
+      "boundsSize": [
+        0.2401481,
+        0.256083429,
+        0.241438374
+      ],
+      "measuredSize": 0.177642629,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.06988239,
+        -0.08618832,
+        -0.06910589
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut_pierced",
+      "slot": "left",
+      "boundsSize": [
+        0.2401481,
+        0.256083459,
+        0.2414384
+      ],
+      "measuredSize": 0.177642629,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.06988239,
+        -0.08618832,
+        -0.06910591
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut_pierced",
+      "slot": "left",
+      "boundsSize": [
+        0.2401481,
+        0.256083459,
+        0.2414384
+      ],
+      "measuredSize": 0.177642629,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        -0.06988239,
+        -0.08618832,
+        -0.06910591
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.coconut_pierced",
+      "slot": "right",
+      "boundsSize": [
+        0.2401481,
+        0.256083429,
+        0.241438374
+      ],
+      "measuredSize": 0.177642629,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.06988239,
+        -0.08618832,
+        -0.06910589
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_arm_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.131318048,
+        0.115776405,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_arm_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_arm_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_arm_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.131318048,
+        0.115776405,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_arm_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.131318048,
+        0.115776405,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_arm_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_arm_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.131318048,
+        0.115776412,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_arm_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.131318048,
+        0.115776405,
+        0.600000143
+      ],
+      "measuredSize": 0.600000143,
+      "groundTarget": 0.6,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_leg_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.207187861,
+        0.207188,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_leg_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_leg_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_leg_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.207187861,
+        0.207188,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_leg_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.207187861,
+        0.207188,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_leg_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_leg_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.207187861,
+        0.207188025,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_leg_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.207187861,
+        0.207188,
+        0.825000167
+      ],
+      "measuredSize": 0.8250001,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_torso_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.371162921,
+        0.9000004,
+        0.195349038
+      ],
+      "measuredSize": 0.900000036,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_torso_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_torso_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_torso_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.371162921,
+        0.9000004,
+        0.195349038
+      ],
+      "measuredSize": 0.900000036,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_torso_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.371162921,
+        0.9000004,
+        0.195349038
+      ],
+      "measuredSize": 0.900000036,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_torso_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_torso_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.371162832,
+        0.900000155,
+        0.195349
+      ],
+      "measuredSize": 0.9,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.human_torso_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.371162921,
+        0.9000004,
+        0.195349038
+      ],
+      "measuredSize": 0.900000036,
+      "groundTarget": 0.900000036,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.meat_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.270000041,
+        0.137068659,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.meat_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.meat_cooked",
+      "slot": "left",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.meat_cooked",
+      "slot": "right",
+      "boundsSize": [
+        0.270000041,
+        0.137068659,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.meat_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.270000041,
+        0.137068659,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.meat_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.meat_raw",
+      "slot": "left",
+      "boundsSize": [
+        0.270000041,
+        0.137068674,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "food.meat_raw",
+      "slot": "right",
+      "boundsSize": [
+        0.270000041,
+        0.137068659,
+        0.130976737
+      ],
+      "measuredSize": 0.270000041,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.bandage",
+      "slot": "right",
+      "boundsSize": [
+        0.179999992,
+        0.09859129,
+        0.140965372
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.bandage",
+      "slot": "left",
+      "boundsSize": [
+        0.179999992,
+        0.0985913,
+        0.140965372
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.bandage",
+      "slot": "left",
+      "boundsSize": [
+        0.179999992,
+        0.0985913,
+        0.140965372
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.bandage",
+      "slot": "right",
+      "boundsSize": [
+        0.179999992,
+        0.09859129,
+        0.140965372
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.medkit",
+      "slot": "right",
+      "boundsSize": [
+        0.179999977,
+        0.14220643,
+        0.152326792
+      ],
+      "measuredSize": 0.179999977,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.medkit",
+      "slot": "left",
+      "boundsSize": [
+        0.179999977,
+        0.14220643,
+        0.152326792
+      ],
+      "measuredSize": 0.179999977,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.medkit",
+      "slot": "left",
+      "boundsSize": [
+        0.179999977,
+        0.14220643,
+        0.152326792
+      ],
+      "measuredSize": 0.179999977,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.medkit",
+      "slot": "right",
+      "boundsSize": [
+        0.179999977,
+        0.14220643,
+        0.152326792
+      ],
+      "measuredSize": 0.179999977,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.pill",
+      "slot": "right",
+      "boundsSize": [
+        0.179999948,
+        0.0435483456,
+        0.110322557
+      ],
+      "measuredSize": 0.179999962,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.pill",
+      "slot": "left",
+      "boundsSize": [
+        0.179999948,
+        0.0435483456,
+        0.11032255
+      ],
+      "measuredSize": 0.179999962,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.pill",
+      "slot": "left",
+      "boundsSize": [
+        0.179999948,
+        0.0435483456,
+        0.11032255
+      ],
+      "measuredSize": 0.179999962,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.pill",
+      "slot": "right",
+      "boundsSize": [
+        0.179999948,
+        0.0435483456,
+        0.110322557
+      ],
+      "measuredSize": 0.179999962,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.plaster",
+      "slot": "right",
+      "boundsSize": [
+        0.179999948,
+        0.0178676844,
+        0.0582352877
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.plaster",
+      "slot": "left",
+      "boundsSize": [
+        0.179999948,
+        0.0178676844,
+        0.0582352877
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.plaster",
+      "slot": "left",
+      "boundsSize": [
+        0.179999948,
+        0.0178676844,
+        0.0582352877
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "item.plaster",
+      "slot": "right",
+      "boundsSize": [
+        0.179999948,
+        0.0178676844,
+        0.0582352877
+      ],
+      "measuredSize": 0.179999992,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "med.splint",
+      "slot": "right",
+      "boundsSize": [
+        0.04617757,
+        0.0265226774,
+        0.179999977
+      ],
+      "measuredSize": 0.179999948,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "med.splint",
+      "slot": "left",
+      "boundsSize": [
+        0.04617757,
+        0.02652268,
+        0.179999977
+      ],
+      "measuredSize": 0.179999948,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "med.splint",
+      "slot": "left",
+      "boundsSize": [
+        0.04617757,
+        0.02652268,
+        0.179999977
+      ],
+      "measuredSize": 0.179999948,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "med.splint",
+      "slot": "right",
+      "boundsSize": [
+        0.04617757,
+        0.0265226774,
+        0.179999977
+      ],
+      "measuredSize": 0.179999948,
+      "groundTarget": 0.179999992,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.arrow",
+      "slot": "right",
+      "boundsSize": [
+        0.148064375,
+        1.09482336,
+        0.1933017
+      ],
+      "measuredSize": 1.09482348,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.arrow",
+      "slot": "left",
+      "boundsSize": [
+        0.148064256,
+        1.0948236,
+        0.193301678
+      ],
+      "measuredSize": 1.09482348,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.arrow",
+      "slot": "left",
+      "boundsSize": [
+        0.148064256,
+        1.0948236,
+        0.193301678
+      ],
+      "measuredSize": 1.09482348,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.arrow",
+      "slot": "right",
+      "boundsSize": [
+        0.148064375,
+        1.09482336,
+        0.1933017
+      ],
+      "measuredSize": 1.09482348,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.board",
+      "slot": "right",
+      "boundsSize": [
+        0.122502923,
+        0.145466119,
+        0.7572935
+      ],
+      "measuredSize": 0.756593,
+      "groundTarget": 0.75,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.board",
+      "slot": "left",
+      "boundsSize": [
+        0.122502744,
+        0.145466134,
+        0.757293463
+      ],
+      "measuredSize": 0.7565927,
+      "groundTarget": 0.75,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.board",
+      "slot": "left",
+      "boundsSize": [
+        0.122502744,
+        0.145466134,
+        0.757293463
+      ],
+      "measuredSize": 0.7565927,
+      "groundTarget": 0.75,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.board",
+      "slot": "right",
+      "boundsSize": [
+        0.122502923,
+        0.145466119,
+        0.7572935
+      ],
+      "measuredSize": 0.756593,
+      "groundTarget": 0.75,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.cloth",
+      "slot": "right",
+      "boundsSize": [
+        0.4107804,
+        0.20260334,
+        0.5339655
+      ],
+      "measuredSize": 0.499675184,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.cloth",
+      "slot": "left",
+      "boundsSize": [
+        0.410780221,
+        0.2026031,
+        0.533965468
+      ],
+      "measuredSize": 0.499675065,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.cloth",
+      "slot": "left",
+      "boundsSize": [
+        0.410780221,
+        0.2026031,
+        0.533965468
+      ],
+      "measuredSize": 0.499675065,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.cloth",
+      "slot": "right",
+      "boundsSize": [
+        0.4107804,
+        0.20260334,
+        0.5339655
+      ],
+      "measuredSize": 0.499675184,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.fiber",
+      "slot": "right",
+      "boundsSize": [
+        0.248797059,
+        0.4849968,
+        0.281647682
+      ],
+      "measuredSize": 0.484996736,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.fiber",
+      "slot": "left",
+      "boundsSize": [
+        0.239534736,
+        0.4849968,
+        0.284163356
+      ],
+      "measuredSize": 0.484996825,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.fiber",
+      "slot": "left",
+      "boundsSize": [
+        0.239534736,
+        0.4849968,
+        0.284163356
+      ],
+      "measuredSize": 0.484996825,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.fiber",
+      "slot": "right",
+      "boundsSize": [
+        0.248797059,
+        0.4849968,
+        0.281647682
+      ],
+      "measuredSize": 0.484996736,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.herb_leaf",
+      "slot": "right",
+      "boundsSize": [
+        0.114550017,
+        0.05857506,
+        0.297205031
+      ],
+      "measuredSize": 0.290004969,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.herb_leaf",
+      "slot": "left",
+      "boundsSize": [
+        0.11454995,
+        0.05857506,
+        0.297205
+      ],
+      "measuredSize": 0.290004879,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.herb_leaf",
+      "slot": "left",
+      "boundsSize": [
+        0.11454995,
+        0.05857506,
+        0.297205
+      ],
+      "measuredSize": 0.290004879,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.herb_leaf",
+      "slot": "right",
+      "boundsSize": [
+        0.114550017,
+        0.05857506,
+        0.297205031
+      ],
+      "measuredSize": 0.290004969,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.hide",
+      "slot": "right",
+      "boundsSize": [
+        0.175953984,
+        0.833242655,
+        1.14195228
+      ],
+      "measuredSize": 1.1418097,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.hide",
+      "slot": "left",
+      "boundsSize": [
+        0.175953716,
+        0.8332427,
+        1.14195228
+      ],
+      "measuredSize": 1.14180923,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.hide",
+      "slot": "left",
+      "boundsSize": [
+        0.175953716,
+        0.8332427,
+        1.14195228
+      ],
+      "measuredSize": 1.14180923,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.hide",
+      "slot": "right",
+      "boundsSize": [
+        0.175953984,
+        0.833242655,
+        1.14195228
+      ],
+      "measuredSize": 1.1418097,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.log",
+      "slot": "right",
+      "boundsSize": [
+        0.2804408,
+        0.214761868,
+        0.7742097
+      ],
+      "measuredSize": 0.7573246,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.log",
+      "slot": "left",
+      "boundsSize": [
+        0.280440629,
+        0.214761868,
+        0.7742096
+      ],
+      "measuredSize": 0.7573244,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.log",
+      "slot": "left",
+      "boundsSize": [
+        0.280440629,
+        0.214761868,
+        0.7742096
+      ],
+      "measuredSize": 0.7573244,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.log",
+      "slot": "right",
+      "boundsSize": [
+        0.2804408,
+        0.214761868,
+        0.7742097
+      ],
+      "measuredSize": 0.7573246,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.mechanical_part",
+      "slot": "right",
+      "boundsSize": [
+        0.698335648,
+        0.115694046,
+        0.6983357
+      ],
+      "measuredSize": 0.636705935,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.mechanical_part",
+      "slot": "left",
+      "boundsSize": [
+        0.698335469,
+        0.115694523,
+        0.6983355
+      ],
+      "measuredSize": 0.6367058,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.mechanical_part",
+      "slot": "left",
+      "boundsSize": [
+        0.698335469,
+        0.115694523,
+        0.6983355
+      ],
+      "measuredSize": 0.6367058,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.mechanical_part",
+      "slot": "right",
+      "boundsSize": [
+        0.698335648,
+        0.115694046,
+        0.6983357
+      ],
+      "measuredSize": 0.636705935,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_crown",
+      "slot": "right",
+      "boundsSize": [
+        1.16377342,
+        3.184788,
+        3.20657325
+      ],
+      "measuredSize": 3.184787,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_crown",
+      "slot": "left",
+      "boundsSize": [
+        1.1637727,
+        3.184788,
+        3.206573
+      ],
+      "measuredSize": 3.184787,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_crown",
+      "slot": "left",
+      "boundsSize": [
+        1.1637727,
+        3.184788,
+        3.206573
+      ],
+      "measuredSize": 3.184787,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_crown",
+      "slot": "right",
+      "boundsSize": [
+        1.16377342,
+        3.184788,
+        3.20657325
+      ],
+      "measuredSize": 3.184787,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_crown_small",
+      "slot": "right",
+      "boundsSize": [
+        1.65854645,
+        2.32597923,
+        2.247663
+      ],
+      "measuredSize": 2.32597876,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_crown_small",
+      "slot": "left",
+      "boundsSize": [
+        1.658546,
+        2.32597923,
+        2.24766278
+      ],
+      "measuredSize": 2.32597876,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_crown_small",
+      "slot": "left",
+      "boundsSize": [
+        1.658546,
+        2.32597923,
+        2.24766278
+      ],
+      "measuredSize": 2.32597876,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_crown_small",
+      "slot": "right",
+      "boundsSize": [
+        1.65854645,
+        2.32597923,
+        2.247663
+      ],
+      "measuredSize": 2.32597876,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_leaf",
+      "slot": "right",
+      "boundsSize": [
+        0.242594987,
+        0.4239531,
+        0.8395705
+      ],
+      "measuredSize": 0.827669144,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_leaf",
+      "slot": "left",
+      "boundsSize": [
+        0.2425948,
+        0.4239531,
+        0.839570463
+      ],
+      "measuredSize": 0.827668965,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_leaf",
+      "slot": "left",
+      "boundsSize": [
+        0.2425948,
+        0.4239531,
+        0.839570463
+      ],
+      "measuredSize": 0.827668965,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.palm_leaf",
+      "slot": "right",
+      "boundsSize": [
+        0.242594987,
+        0.4239531,
+        0.8395705
+      ],
+      "measuredSize": 0.827669144,
+      "groundTarget": 0.825000048,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.rope",
+      "slot": "right",
+      "boundsSize": [
+        0.3654675,
+        0.0479931161,
+        0.389495462
+      ],
+      "measuredSize": 0.357624829,
+      "groundTarget": 0.15,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.rope",
+      "slot": "left",
+      "boundsSize": [
+        0.3654674,
+        0.0479931161,
+        0.3894954
+      ],
+      "measuredSize": 0.357624769,
+      "groundTarget": 0.15,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.rope",
+      "slot": "left",
+      "boundsSize": [
+        0.3654674,
+        0.0479931161,
+        0.3894954
+      ],
+      "measuredSize": 0.357624769,
+      "groundTarget": 0.15,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.rope",
+      "slot": "right",
+      "boundsSize": [
+        0.3654675,
+        0.0479931161,
+        0.389495462
+      ],
+      "measuredSize": 0.357624829,
+      "groundTarget": 0.15,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.stick",
+      "slot": "right",
+      "boundsSize": [
+        0.134460747,
+        0.05608989,
+        0.7589784
+      ],
+      "measuredSize": 0.757058859,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.stick",
+      "slot": "left",
+      "boundsSize": [
+        0.134460568,
+        0.05608989,
+        0.758978367
+      ],
+      "measuredSize": 0.7570587,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.stick",
+      "slot": "left",
+      "boundsSize": [
+        0.134460568,
+        0.05608989,
+        0.758978367
+      ],
+      "measuredSize": 0.7570587,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.stick",
+      "slot": "right",
+      "boundsSize": [
+        0.134460747,
+        0.05608989,
+        0.7589784
+      ],
+      "measuredSize": 0.757058859,
+      "groundTarget": 1.05,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.stone",
+      "slot": "right",
+      "boundsSize": [
+        0.198070735,
+        0.214642,
+        0.280018181
+      ],
+      "measuredSize": 0.263843149,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.stone",
+      "slot": "left",
+      "boundsSize": [
+        0.19807066,
+        0.214642,
+        0.280018151
+      ],
+      "measuredSize": 0.263843119,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.stone",
+      "slot": "left",
+      "boundsSize": [
+        0.19807066,
+        0.214642,
+        0.280018151
+      ],
+      "measuredSize": 0.263843119,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.05357647,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "resource.stone",
+      "slot": "right",
+      "boundsSize": [
+        0.198070735,
+        0.214642,
+        0.280018181
+      ],
+      "measuredSize": 0.263843149,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.05357653,
+        -0.04891765,
+        0.00543527864
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.axe_stone",
+      "slot": "right",
+      "boundsSize": [
+        0.2471195,
+        0.210471153,
+        0.3437749
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.axe_stone",
+      "slot": "left",
+      "boundsSize": [
+        0.247119546,
+        0.210471213,
+        0.343775
+      ],
+      "measuredSize": 0.324000031,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.axe_stone",
+      "slot": "left",
+      "boundsSize": [
+        0.247119546,
+        0.210471213,
+        0.343775
+      ],
+      "measuredSize": 0.324000031,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.axe_stone",
+      "slot": "right",
+      "boundsSize": [
+        0.2471195,
+        0.210471153,
+        0.3437749
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.axe_stone",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.011647068,
+        -0.0388234854,
+        -0.08385883
+      ],
+      "measuredSize": 0.3240001
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bottle",
+      "slot": "right",
+      "boundsSize": [
+        0.113714226,
+        0.09274618,
+        0.2804489
+      ],
+      "measuredSize": 0.2699999,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.04216236,
+        -0.0183246136,
+        -0.0396000035
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bottle",
+      "slot": "left",
+      "boundsSize": [
+        0.113714248,
+        0.09274621,
+        0.280449
+      ],
+      "measuredSize": 0.27,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        -0.04216236,
+        -0.0183247328,
+        -0.03960001
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bottle",
+      "slot": "left",
+      "boundsSize": [
+        0.113714248,
+        0.09274621,
+        0.280449
+      ],
+      "measuredSize": 0.27,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        -0.04216236,
+        -0.0183247328,
+        -0.03960001
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bottle",
+      "slot": "right",
+      "boundsSize": [
+        0.113714226,
+        0.09274618,
+        0.2804489
+      ],
+      "measuredSize": 0.2699999,
+      "groundTarget": 0.27,
+      "gripOffsetWorld": [
+        0.04216236,
+        -0.0183246136,
+        -0.0396000035
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bottle",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470642,
+        -0.0388234854,
+        -0.08385882
+      ],
+      "measuredSize": 0.27
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bow",
+      "slot": "right",
+      "boundsSize": [
+        0.3232994,
+        0.32400012,
+        0.0188149624
+      ],
+      "measuredSize": 0.324,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bow",
+      "slot": "left",
+      "boundsSize": [
+        0.3232993,
+        0.323999882,
+        0.0188149586
+      ],
+      "measuredSize": 0.324,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bow",
+      "slot": "left",
+      "boundsSize": [
+        0.3232993,
+        0.323999882,
+        0.0188149586
+      ],
+      "measuredSize": 0.324,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bow",
+      "slot": "right",
+      "boundsSize": [
+        0.3232994,
+        0.32400012,
+        0.0188149624
+      ],
+      "measuredSize": 0.324,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.bow",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470605,
+        -0.0388234854,
+        -0.08385883
+      ],
+      "measuredSize": 0.324
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.hammer",
+      "slot": "right",
+      "boundsSize": [
+        0.132774562,
+        0.108822584,
+        0.3314731
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.hammer",
+      "slot": "left",
+      "boundsSize": [
+        0.132774562,
+        0.108822614,
+        0.3314731
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.hammer",
+      "slot": "left",
+      "boundsSize": [
+        0.132774562,
+        0.108822614,
+        0.3314731
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.hammer",
+      "slot": "right",
+      "boundsSize": [
+        0.132774562,
+        0.108822584,
+        0.3314731
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.hammer",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470642,
+        -0.0388234854,
+        -0.0838588253
+      ],
+      "measuredSize": 0.324
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.knife",
+      "slot": "right",
+      "boundsSize": [
+        0.08020437,
+        0.07090261,
+        0.325221866
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.knife",
+      "slot": "left",
+      "boundsSize": [
+        0.08020437,
+        0.0709026158,
+        0.325221866
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.knife",
+      "slot": "left",
+      "boundsSize": [
+        0.08020437,
+        0.0709026158,
+        0.325221866
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.knife",
+      "slot": "right",
+      "boundsSize": [
+        0.08020437,
+        0.07090261,
+        0.325221866
+      ],
+      "measuredSize": 0.3239999,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.knife",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470642,
+        -0.0388236046,
+        -0.0838588253
+      ],
+      "measuredSize": 0.324000031
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.lighter",
+      "slot": "right",
+      "boundsSize": [
+        0.037511453,
+        0.0344198644,
+        0.10800001
+      ],
+      "measuredSize": 0.108,
+      "groundTarget": 0.107999995,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.lighter",
+      "slot": "left",
+      "boundsSize": [
+        0.037511453,
+        0.03441987,
+        0.10800001
+      ],
+      "measuredSize": 0.107999995,
+      "groundTarget": 0.107999995,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.lighter",
+      "slot": "left",
+      "boundsSize": [
+        0.037511453,
+        0.03441987,
+        0.10800001
+      ],
+      "measuredSize": 0.107999995,
+      "groundTarget": 0.107999995,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.lighter",
+      "slot": "right",
+      "boundsSize": [
+        0.037511453,
+        0.0344198644,
+        0.10800001
+      ],
+      "measuredSize": 0.108,
+      "groundTarget": 0.107999995,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.lighter",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470549,
+        -0.0388234854,
+        -0.0838588253
+      ],
+      "measuredSize": 0.108000025
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.machete",
+      "slot": "right",
+      "boundsSize": [
+        0.0759450942,
+        0.0623039268,
+        0.325088918
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.machete",
+      "slot": "left",
+      "boundsSize": [
+        0.0759450942,
+        0.06230393,
+        0.325088918
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.machete",
+      "slot": "left",
+      "boundsSize": [
+        0.0759450942,
+        0.06230393,
+        0.325088918
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.machete",
+      "slot": "right",
+      "boundsSize": [
+        0.0759450942,
+        0.0623039268,
+        0.325088918
+      ],
+      "measuredSize": 0.323999971,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.machete",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470642,
+        -0.0388234854,
+        -0.08385883
+      ],
+      "measuredSize": 0.324
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.pickaxe_stone",
+      "slot": "right",
+      "boundsSize": [
+        0.173612282,
+        0.101829588,
+        0.338792026
+      ],
+      "measuredSize": 0.323999882,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.pickaxe_stone",
+      "slot": "left",
+      "boundsSize": [
+        0.173612311,
+        0.101829626,
+        0.338792056
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.pickaxe_stone",
+      "slot": "left",
+      "boundsSize": [
+        0.173612311,
+        0.101829626,
+        0.338792056
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.pickaxe_stone",
+      "slot": "right",
+      "boundsSize": [
+        0.173612282,
+        0.101829588,
+        0.338792026
+      ],
+      "measuredSize": 0.323999882,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.pickaxe_stone",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470642,
+        -0.0388234854,
+        -0.08385884
+      ],
+      "measuredSize": 0.323999971
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.saw",
+      "slot": "right",
+      "boundsSize": [
+        0.0189314988,
+        0.106481656,
+        0.324000031
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.saw",
+      "slot": "left",
+      "boundsSize": [
+        0.0189314988,
+        0.106481664,
+        0.324000031
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.saw",
+      "slot": "left",
+      "boundsSize": [
+        0.0189314988,
+        0.106481664,
+        0.324000031
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.saw",
+      "slot": "right",
+      "boundsSize": [
+        0.0189314988,
+        0.106481656,
+        0.324000031
+      ],
+      "measuredSize": 0.323999941,
+      "groundTarget": 0.324,
+      "gripOffsetWorld": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.saw",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470642,
+        -0.0388236046,
+        -0.08385883
+      ],
+      "measuredSize": 0.324000031
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.spear",
+      "slot": "right",
+      "boundsSize": [
+        0.128983289,
+        0.389847636,
+        1.33103859
+      ],
+      "measuredSize": 1.34999955,
+      "groundTarget": 1.3499999,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.spear",
+      "slot": "left",
+      "boundsSize": [
+        0.1289833,
+        0.389847666,
+        1.33103871
+      ],
+      "measuredSize": 1.34999967,
+      "groundTarget": 1.3499999,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.spear",
+      "slot": "left",
+      "boundsSize": [
+        0.1289833,
+        0.389847666,
+        1.33103871
+      ],
+      "measuredSize": 1.34999967,
+      "groundTarget": 1.3499999,
+      "gripOffsetWorld": [
+        -0.0419294238,
+        -0.02562356,
+        -0.05901178
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.spear",
+      "slot": "right",
+      "boundsSize": [
+        0.128983289,
+        0.389847636,
+        1.33103859
+      ],
+      "measuredSize": 1.34999955,
+      "groundTarget": 1.3499999,
+      "gripOffsetWorld": [
+        0.0419294238,
+        -0.02562356,
+        -0.0590117723
+      ]
+    },
+    {
+      "actor": "Kshishtof",
+      "id": "tool.spear",
+      "slot": "back",
+      "centreOffsetWorld": [
+        0.0116470158,
+        -0.0388233662,
+        -0.0838588253
+      ],
+      "measuredSize": 1.3499999
+    }
+  ]
+}

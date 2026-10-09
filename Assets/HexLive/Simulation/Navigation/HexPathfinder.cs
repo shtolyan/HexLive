@@ -8,6 +8,17 @@ namespace HexLive.Simulation.Navigation
 
 public static class HexPathfinder
 {
+    /// <summary>
+    /// §170.6: счётчики поисков — для профиля hexsoak, не для игры. Говорят,
+    /// сколько поисков было, сколько узлов они развернули и сколько раз
+    /// упёрлись в бюджет (ответ «дороги нет» за полную цену бюджета): именно
+    /// последние и есть вся дорогая часть проверок подхода при ста колонистках.
+    /// </summary>
+    public static long StatSearches;
+    public static long StatExpansions;
+    public static long StatBudgetHits;
+    public static long StatFallbacks;
+
     public static List<JunctionId> FindPath(WorldState world, JunctionId start, JunctionId goal)
     {
         return FindPath(world, start, goal, null, true);
@@ -136,8 +147,8 @@ public static class HexPathfinder
     /// </summary>
     public static bool IsWaterExit(WorldState world, JunctionId fromId, JunctionId toId)
     {
-        if (!world.Junctions.Items.TryGetValue(fromId, out var from) ||
-            !world.Junctions.Items.TryGetValue(toId, out var to))
+        if (!world.Junctions.TryGet(fromId, out var from) ||
+            !world.Junctions.TryGet(toId, out var to))
         {
             return false;
         }
@@ -228,12 +239,10 @@ public static class HexPathfinder
         // one can now win, and that shows up as a golden-trace diff.
         const long priorityScale = 100_000_000L;
         var startSlide = IsStrandedSeam(world, start); // bug #338 r2
-        var scratch = SearchScratch.Rent();
+        var scratch = SearchScratch.Rent(world.Junctions.Items.Count + 1);
+        StatSearches++;
         try
         {
-            var closed = scratch.Closed;
-            var cameFrom = scratch.CameFrom;
-            var gScore = scratch.GScore;
             var seq = 0L;
             var expansions = 0;
             var budgetHit = false;
@@ -243,22 +252,22 @@ public static class HexPathfinder
             var heuristicScale = goalJunction is null ? 0f : 1f / LongestEdge(world);
 
             scratch.Push(0L, start);
-            cameFrom[start] = null;
-            gScore[start] = 0L;
+            scratch.Open(start.Value, 0L, -1);
 
         while (scratch.TryPop(out var current))
         {
-            if (closed.Contains(current))
+            if (scratch.IsClosed(current.Value))
             {
                 continue; // устаревшая запись улучшенного узла — он уже закрыт
             }
 
-            closed.Add(current);
+            scratch.Close(current.Value);
             if (current.Equals(goal))
             {
                 break;
             }
 
+            StatExpansions++;
             if (maxExpansions > 0 && ++expansions > maxExpansions)
             {
                 // §135.5: бюджет узлов. Недостижимая цель разворачивала ВЕСЬ
@@ -270,7 +279,7 @@ public static class HexPathfinder
                 break;
             }
 
-            if (!world.Junctions.Items.TryGetValue(current, out var junction))
+            if (!world.Junctions.TryGet(current, out var junction))
             {
                 continue;
             }
@@ -280,12 +289,12 @@ public static class HexPathfinder
             for (var n = 0; n < junction.Neighbors.Count; n++)
             {
                 var neighborId = junction.Neighbors[n];
-                if (closed.Contains(neighborId))
+                if (scratch.IsClosed(neighborId.Value))
                 {
                     continue;
                 }
 
-                if (!world.Junctions.Items.TryGetValue(neighborId, out var neighbor))
+                if (!world.Junctions.TryGet(neighborId, out var neighbor))
                 {
                     continue;
                 }
@@ -333,20 +342,19 @@ public static class HexPathfinder
                     continue;
                 }
 
-                var cost = gScore[current] +
+                var cost = scratch.G(current.Value) +
                     ClimbCost(world, neighborId, stepDelta, weightClimb);
                 if (danger is not null && danger.Contains(neighborId))
                 {
                     cost += dangerCost;
                 }
 
-                if (gScore.TryGetValue(neighborId, out var known) && cost >= known)
+                if (scratch.TryGetG(neighborId.Value, out var known) && cost >= known)
                 {
                     continue; // no improvement — keep the cheaper parent
                 }
 
-                gScore[neighborId] = cost;
-                cameFrom[neighborId] = current;
+                scratch.Open(neighborId.Value, cost, current.Value);
                 // A* (§135.5): очередь ведёт ОЦЕНКА полного пути g + h. При
                 // h = 0 это ровно прежняя равноценная Дейкстра — свойство,
                 // на которое опирается запасной путь без цели-узла.
@@ -355,8 +363,17 @@ public static class HexPathfinder
             }
         }
 
-        if (budgetHit || !cameFrom.ContainsKey(goal))
+        if (budgetHit || !scratch.IsOpen(goal.Value))
         {
+            if (budgetHit)
+            {
+                StatBudgetHits++;
+            }
+            else if (avoid is not null)
+            {
+                StatFallbacks++;
+            }
+
             // Fully enclosed by standing housemates: take the direct path.
             // hardAvoid stays — terrain bans are walls, not courtesies.
             // Бюджет узлов повторной попытки НЕ получает: она стоила бы ровно
@@ -368,17 +385,17 @@ public static class HexPathfinder
         }
 
         var path = new List<JunctionId>();
-        var step = goal;
+        var step = goal.Value;
         while (true)
         {
-            path.Add(step);
-            var previous = cameFrom[step];
-            if (previous is null)
+            path.Add(new JunctionId(step));
+            var previous = scratch.Parent(step);
+            if (previous < 0)
             {
                 break;
             }
 
-            step = previous.Value;
+            step = previous;
         }
 
         path.Reverse();
@@ -460,45 +477,119 @@ public static class HexPathfinder
     /// </summary>
     private sealed class SearchScratch
     {
+        // §170.5: пул на поток — СПИСОК, а не один экземпляр. Запасной проход
+        // без avoid вкладывается в основной и раньше брал свежий буфер на
+        // каждый вызов; с массивами по размеру мира это были 8 МБ нулей на
+        // каждый неудавшийся поиск в толпе (Buffer.ZeroMemory 8% CPU, LOH).
         [System.ThreadStatic]
-        private static SearchScratch _pooled;
+        private static List<SearchScratch> _pooled;
 
         private long[] _keys = new long[256];
         private JunctionId[] _values = new JunctionId[256];
         private int _count;
         private bool _rented;
 
-        public HashSet<JunctionId> Closed { get; } = new();
+        // §170.5: closed/cameFrom/gScore — массивы ПО ID УЗЛА со штампом
+        // поколения, а не хеш-таблицы. Id узлов плотные (worldgen нумерует с
+        // единицы подряд), так что индекс — это сам id. Поиск стоит прямых
+        // обращений в массив вместо трёх хеш-поисков на ребро, а «очистка»
+        // перед следующим поиском — это `_generation++`: раньше Clear()
+        // словаря стоил O(ёмкости), и один поиск, развернувший сотни тысяч
+        // узлов, заставлял КАЖДЫЙ последующий обнулять мегабайты (7.7% CPU в
+        // Buffer.ZeroMemory на 103 колонистках). Память — 20 байт на узел
+        // мира на поток: 8 МБ на «Огромном острове».
+        private int[] _closedStamp = new int[1024];
+        private int[] _openStamp = new int[1024];
+        private long[] _g = new long[1024];
+        private int[] _parent = new int[1024];
+        private int _generation;
 
-        public Dictionary<JunctionId, JunctionId?> CameFrom { get; } = new();
-
-        public Dictionary<JunctionId, long> GScore { get; } = new();
-
-        public static SearchScratch Rent()
+        public static SearchScratch Rent(int capacityHint)
         {
-            var pooled = _pooled;
+            var pool = _pooled ??= new List<SearchScratch>(2);
+            SearchScratch pooled = null;
+            for (var i = 0; i < pool.Count; i++)
+            {
+                if (!pool[i]._rented)
+                {
+                    pooled = pool[i];
+                    break;
+                }
+            }
+
             if (pooled is null)
             {
-                _pooled = pooled = new SearchScratch();
-            }
-            else if (pooled._rented)
-            {
-                pooled = new SearchScratch(); // вложенный поиск — свой буфер
+                pooled = new SearchScratch(); // вложенный поиск — свой буфер, один раз
+                pool.Add(pooled);
             }
 
             pooled._rented = true;
             pooled._count = 0;
-            pooled.Closed.Clear();
-            pooled.CameFrom.Clear();
-            pooled.GScore.Clear();
+            pooled.EnsureCapacity(capacityHint);
+            pooled._generation++;
+            if (pooled._generation == int.MaxValue)
+            {
+                System.Array.Clear(pooled._closedStamp, 0, pooled._closedStamp.Length);
+                System.Array.Clear(pooled._openStamp, 0, pooled._openStamp.Length);
+                pooled._generation = 1;
+            }
+
             return pooled;
         }
 
         public void Return()
         {
             _rented = false;
-            // Содержимое не чистим здесь: Rent сделает это перед следующим
-            // поиском, а держать ссылки до тех пор дешевле, чем чистить дважды.
+        }
+
+        private void EnsureCapacity(int size)
+        {
+            if (size <= _closedStamp.Length)
+            {
+                return;
+            }
+
+            var grown = System.Math.Max(size, _closedStamp.Length * 2);
+            // Resize сохраняет старые штампы; новые ячейки — 0, а поколение ≥ 1.
+            System.Array.Resize(ref _closedStamp, grown);
+            System.Array.Resize(ref _openStamp, grown);
+            System.Array.Resize(ref _g, grown);
+            System.Array.Resize(ref _parent, grown);
+        }
+
+        public bool IsClosed(int id) => (uint)id < (uint)_closedStamp.Length && _closedStamp[id] == _generation;
+
+        public void Close(int id)
+        {
+            EnsureCapacity(id + 1);
+            _closedStamp[id] = _generation;
+        }
+
+        public bool IsOpen(int id) => (uint)id < (uint)_openStamp.Length && _openStamp[id] == _generation;
+
+        public bool TryGetG(int id, out long g)
+        {
+            if (IsOpen(id))
+            {
+                g = _g[id];
+                return true;
+            }
+
+            g = 0L;
+            return false;
+        }
+
+        /// <summary>g узла, который заведомо открыт (извлечён из фронтира).</summary>
+        public long G(int id) => _g[id];
+
+        public int Parent(int id) => _parent[id];
+
+        public void Open(int id, long g, int parent)
+        {
+            EnsureCapacity(id + 1);
+            _openStamp[id] = _generation;
+            _g[id] = g;
+            _parent[id] = parent;
         }
 
         public void Push(long key, JunctionId value)

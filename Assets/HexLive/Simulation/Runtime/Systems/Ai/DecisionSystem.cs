@@ -36,6 +36,11 @@ public sealed partial class DecisionSystem : ISimulationSystem
     // Spec 28.8/28.15A: how long an invited NPC waits for the initiator.
     private static int TalkWaitTimeoutTicks => AiBalance.TalkWaitTimeoutTicks;
 
+    // §170.4: кандидатки в собеседницы одного прохода, по убыванию симпатии,
+    // и страдающие соседки по убыванию страдания.
+    private readonly System.Collections.Generic.List<PerceivedAgent> _talkCandidatesScratch = new();
+    private static readonly System.Collections.Generic.List<PerceivedAgent> _aidCandidatesScratch = new();
+
     public void Run(WorldState world)
     {
         foreach (var npc in world.Entities.Npcs.Values)
@@ -719,8 +724,18 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
             // Spec 28.6 / 28.15A: Socialize needs a reachable non-busy agent;
             // affinity toward the best target feeds the score back positively.
+            //
+            // §170.4: скорингу нужны ровно два ответа — «есть ли к кому
+            // подойти» и «лучшая симпатия среди тех, к кому можно». Раньше
+            // проверка подхода (A* с бюджетом 1500 узлов) делалась для КАЖДОЙ
+            // видимой соседки, то есть O(лагерь²) поисков на средний тик: в
+            // лагере на 11 девушек это ~110 поисков на тик, 16% всего CPU
+            // при 68 колонистках. Теперь кандидатки идут по убыванию симпатии
+            // (ничья — по id), и первая, к кой есть подход, и есть ответ на
+            // оба вопроса; остальные поиски не меняли бы результат.
             var socializeAvail = false;
             float? bestAffinity = null;
+            _talkCandidatesScratch.Clear();
             foreach (var agent in npc.Perception.Agents)
             {
                 if (!agent.IsReachable || agent.IsBusy || agent.IsMoving ||
@@ -729,10 +744,38 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     continue;
                 }
 
-                if (agent.Junction is not { } talkJunction ||
+                // §170.6 (а): соседка за полострова — не собеседница. Тот же
+                // фильтр стоит в BuildTalkPlan, иначе план падал бы на цели,
+                // которую скоринг не считал.
+                if (HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec170.SocializeApproachMaxTiles)
+                {
+                    continue;
+                }
+
+                if (agent.Junction is null ||
                     !world.Entities.Npcs.TryGetValue(agent.Id, out var talkTarget) ||
                     (talkTarget.Mind.PendingTalkFrom is { } talkClaim &&
-                     !talkClaim.Equals(npc.Id)) ||
+                     !talkClaim.Equals(npc.Id)))
+                {
+                    continue;
+                }
+
+                _talkCandidatesScratch.Add(agent);
+            }
+
+            if (_talkCandidatesScratch.Count > 1)
+            {
+                _talkCandidatesScratch.Sort(static (a, b) =>
+                {
+                    var byAffinity = b.Relationship.Affinity.CompareTo(a.Relationship.Affinity);
+                    return byAffinity != 0 ? byAffinity : a.Id.Value.CompareTo(b.Id.Value);
+                });
+            }
+
+            foreach (var agent in _talkCandidatesScratch)
+            {
+                if (agent.Junction is not { } talkJunction ||
+                    !world.Entities.Npcs.TryGetValue(agent.Id, out var talkTarget) ||
                     !PlanningSystem.HasAvailableArmsLengthApproach(
                         world, npc, talkTarget, talkJunction))
                 {
@@ -740,10 +783,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 }
 
                 socializeAvail = true;
-                if (bestAffinity is null || agent.Relationship.Affinity > bestAffinity)
-                {
-                    bestAffinity = agent.Relationship.Affinity;
-                }
+                bestAffinity = agent.Relationship.Affinity;
+                break;
             }
 
             // Spec §49: don't START a chat on an empty stomach or a dry throat.
@@ -2779,7 +2820,9 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // разрешает прогулку доступность. Поэтому гейт здесь, а не в весе.
         var fitToWander = !npc.Body.IsCrawling &&
             npc.Health >= AiBalance.ExploreHealthFloor;
-        var exploreAvail = PlanningSystem.HasExploreCandidate(world, npc) && fitToWander;
+        // §170.7: сначала дешёвый гейт — кольцо разведки (до ~26 тыс. узлов)
+        // не сканируется для той, кому гулять всё равно нельзя. Результат тот же.
+        var exploreAvail = fitToWander && PlanningSystem.HasExploreCandidate(world, npc);
         // §146.12: loneliness turns ordinary 3..8-tile exploration into a
         // multi-leg visit toward a camp whose member she has already met.
         var campVisitBonus = CampDiplomacyMath.VisitScoreBonus(world, npc);
@@ -2928,6 +2971,15 @@ public sealed partial class DecisionSystem : ISimulationSystem
         aidSelfOk = selfOk;
         if (selfOk)
         {
+            // §170.4: нужны две победительницы — самая страдающая, кому есть
+            // чем помочь (Aid), и самая страдающая, ради кого идти за
+            // припасом (errand). Проверка подхода — A* на каждую, и раньше она
+            // делалась для КАЖДОЙ страдающей соседки (в лагере на 17 человек
+            // голодны почти все). Кандидатки идут по убыванию страдания (ничья
+            // — по id, как давал прежний обход со строгим «>»), класс
+            // определяется ДО проверки подхода, и в каждом классе проверяется
+            // только до первой, к кому подход есть. Результат тот же.
+            _aidCandidatesScratch.Clear();
             foreach (var agent in npc.Perception.Agents)
             {
                 // §53.8: идущая мимо соседка — не цель, а вот КРИТИЧЕСКАЯ
@@ -2943,10 +2995,46 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     continue;
                 }
 
-                if (agent.Junction is not { } aidJunction ||
+                if (agent.Junction is null ||
                     !world.Entities.Npcs.TryGetValue(agent.Id, out var aidTarget) ||
                     (aidTarget.Mind.PendingAidFrom is { } claimedBy &&
-                     !claimedBy.Equals(npc.Id)) ||
+                     !claimedBy.Equals(npc.Id)))
+                {
+                    continue;
+                }
+
+                // §170.6 (а): далёкая страдающая — не кандидатка, кроме умирающей.
+                // Тот же фильтр стоит в BuildAidPlan.
+                if (!agent.IsDying &&
+                    HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec170.AidApproachMaxTiles)
+                {
+                    continue;
+                }
+
+                _aidCandidatesScratch.Add(agent);
+            }
+
+            if (_aidCandidatesScratch.Count > 1)
+            {
+                _aidCandidatesScratch.Sort(static (a, b) =>
+                {
+                    var bySuffering = b.Suffering.CompareTo(a.Suffering);
+                    return bySuffering != 0 ? bySuffering : a.Id.Value.CompareTo(b.Id.Value);
+                });
+            }
+
+            foreach (var agent in _aidCandidatesScratch)
+            {
+                var hasSupply = AidSupply.Has(world, npc, agent.AidKind);
+                // Класс уже решён победительницей с не меньшим страданием —
+                // прежний обход тоже не сменил бы её (строгое «>»).
+                if (hasSupply ? aidAvail : errandTarget is not null)
+                {
+                    continue;
+                }
+
+                if (agent.Junction is not { } aidJunction ||
+                    !world.Entities.Npcs.TryGetValue(agent.Id, out var aidTarget) ||
                     !PlanningSystem.HasAvailableArmsLengthApproach(
                         world, npc, aidTarget, aidJunction))
                 {
@@ -2955,7 +3043,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
                 // Nothing to give? She still WANTS to help — remember
                 // her as the errand and go and get it (§53.7).
-                if (!AidSupply.Has(world, npc, agent.AidKind))
+                if (!hasSupply)
                 {
                     if (agent.Suffering > errandSuffering)
                     {
@@ -3284,6 +3372,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             Reason = $"Selected {best.Goal} at tick {world.Tick}"
         };
 
+        // §170.4: список растёт с нуля на каждое решение — задать ёмкость сразу.
+        npc.Mind.LastDecision.Scores.Capacity = npc.Mind.LastScores.Count;
         foreach (var score in npc.Mind.LastScores)
         {
             npc.Mind.LastDecision.Scores.Add(score);

@@ -86,10 +86,18 @@ public sealed partial class PlanningSystem
         // сортировать их ради «есть ли хоть один» стоило ~5 мс на вызов).
         // Обходим тайлы кольца и отвечаем на первом же годном узле; узел,
         // повторившийся у соседнего тайла, просто отвергнется ещё раз.
-        for (var dq = -ExploreRingCollectRadius; dq <= ExploreRingCollectRadius; dq++)
+        //
+        // §170.7: радиус обхода — тот, что принимает сам фильтр
+        // (ExploreRejectionFor: обычная прогулка ≤ 8 тайлов, критический поиск
+        // ≤ 12), а не полные 13 ExploreRingCollectRadius: кольца дальше
+        // отвергались бы по Distance все до одного, а площадь растёт
+        // квадратом — для обычной прогулки это 169 → 64 тайла. Ответ тот же.
+        var scanRadius = System.Math.Min(ExploreRingCollectRadius,
+            ExploreMustAvoidDeepWater(npc) ? 12 : 8);
+        for (var dq = -scanRadius; dq <= scanRadius; dq++)
         {
-            var lo = System.Math.Max(-ExploreRingCollectRadius, -dq - ExploreRingCollectRadius);
-            var hi = System.Math.Min(ExploreRingCollectRadius, -dq + ExploreRingCollectRadius);
+            var lo = System.Math.Max(-scanRadius, -dq - scanRadius);
+            var hi = System.Math.Min(scanRadius, -dq + scanRadius);
             for (var dr = lo; dr <= hi; dr++)
             {
                 var coord = new TileCoord(npc.Tile.Q + dq, npc.Tile.R + dr);
@@ -661,6 +669,15 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
+            // §170.6 (а): тот же кап дистанции, что в скоринге Socialize.
+            // Слушательница инициативы §167.7 выбрана DirectiveMath и под кап
+            // не попадает (ветка initiativeTarget выше уже отсеяла остальных).
+            if (initiativeKind == DirectiveKind.None &&
+                HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec170.SocializeApproachMaxTiles)
+            {
+                continue;
+            }
+
             if (agent.Junction is not { } candidateJunction ||
                 !world.Entities.Npcs.TryGetValue(agent.Id, out var candidatePartner) ||
                 !HasAvailableArmsLengthApproach(
@@ -820,9 +837,18 @@ public sealed partial class PlanningSystem
             return false;
         }
 
+        // §170.4: карта компонент отвечает «дороги нет» за O(1) там, где A*
+        // узнал бы это, исчерпав бюджет. Ответ тот же: hardAvoid и обход
+        // людей только сужают множество путей, которое карта считает полным.
+        var canJump = CanUseRoutineTraversal(npc);
+        if (!Connectivity.Reachable(world, from, candidate, canJump))
+        {
+            return false;
+        }
+
         var route = HexPathfinder.FindPath(
             world, from, candidate, occupiedByActor,
-            weightClimb: true, canJump: CanUseRoutineTraversal(npc),
+            weightClimb: true, canJump: canJump,
             danger: null, dangerCost: 0L,
             hardAvoid: DoorTopology.ForbiddenFor(world, npc.Faction),
             maxExpansions: AidApproachExpansionBudget);
@@ -1285,6 +1311,13 @@ public sealed partial class PlanningSystem
                 !agent.IsReachable || (agent.IsBusy && !agent.IsDying) ||
                 (agent.IsMoving && !agent.IsDying &&
                  agent.Suffering < Spec53.HeavyAidSuffering))
+            {
+                continue;
+            }
+
+            // §170.6 (а): тот же кап дистанции, что в ставке Aid (умирающая — без капа).
+            if (!agent.IsDying &&
+                HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec170.AidApproachMaxTiles)
             {
                 continue;
             }

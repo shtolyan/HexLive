@@ -28,6 +28,31 @@ public sealed class PathfindingSystem : ISimulationSystem
         WorldState world, NPCState self)
     {
         var avoidScratch = world.Caches.OtherActorJunctionsScratch;
+
+        // §170.4: мемо. Множество зависит только от того, кто где стоит, что
+        // держит (эпоха ActorOccupancy), сколько людей в мире и сколько зверей
+        // живо; совпало всё — набор тот же, собирать заново незачем. При ста
+        // колонистках его просили сотни раз за средний тик, и каждый раз это
+        // были Clear() на O(ёмкости) плюс тысяча добавлений (8% всего CPU).
+        var caches = world.Caches;
+        var aliveMobs = 0;
+        foreach (var mob in world.Mobs)
+        {
+            if (mob.Health > 0f)
+            {
+                aliveMobs++;
+            }
+        }
+
+        if (caches.OtherActorMemoTick == world.Tick &&
+            caches.OtherActorMemoSelf == self.Id.Value &&
+            caches.OtherActorMemoEpoch == ActorOccupancy.Epoch &&
+            caches.OtherActorMemoNpcCount == world.Entities.Npcs.Count &&
+            caches.OtherActorMemoAliveMobs == aliveMobs)
+        {
+            return avoidScratch;
+        }
+
         avoidScratch.Clear();
         foreach (var other in world.Entities.Npcs.Values)
         {
@@ -55,6 +80,11 @@ public sealed class PathfindingSystem : ISimulationSystem
             }
         }
 
+        caches.OtherActorMemoTick = world.Tick;
+        caches.OtherActorMemoSelf = self.Id.Value;
+        caches.OtherActorMemoEpoch = ActorOccupancy.Epoch;
+        caches.OtherActorMemoNpcCount = world.Entities.Npcs.Count;
+        caches.OtherActorMemoAliveMobs = aliveMobs;
         return avoidScratch;
     }
 

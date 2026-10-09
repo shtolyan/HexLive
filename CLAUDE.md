@@ -646,6 +646,13 @@ the tail survive, since the colony-wide ring only holds ~11 ticks.
 `TopologyVersion` догоняют журнал через `WorldTopology.CatchUp`, кандидаты
 ищутся через `LocalSearch` кольцами тайлов.
 
+⭐ **Нагрузка и профиль (spec §170):** `--girls-per-camp N` строит «Огромный
+остров» с N девушками в каждом из шести лагерей (17 ≈ 103 NPC), `--profile`
+печатает время по системам, перцентили шага, память, аллокации и счётчики
+поиска пути (сколько упёрлось в бюджет). Замер времени — только
+последовательно и без параллельных сборок; «кто зовёт горячий метод» — через
+`dotnet-trace collect --profile dotnet-sampled-thread-time`.
+
 `-h` lists the rest. It reports the spec §30.16 metrics: goal churn per NPC-day
 (both raw field changes and "dropped one job for another", which is the number
 §35.4a means), median/mean goal dwell, plan-failure rate, and **stuck NPC-ticks** —

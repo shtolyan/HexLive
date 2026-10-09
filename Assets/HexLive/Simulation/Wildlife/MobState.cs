@@ -18,7 +18,17 @@ public sealed class MobState
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
-    public JunctionId Junction { get; set; }
+    private JunctionId _junction;
+
+    public JunctionId Junction
+    {
+        get => _junction;
+        set
+        {
+            _junction = value;
+            Common.ActorOccupancy.Epoch++; // §170.4
+        }
+    }
 
     // The RENDERED position. MobSystem moves the dog by junction (logical),
     // but Position now glides toward TargetPosition a little each fast tick

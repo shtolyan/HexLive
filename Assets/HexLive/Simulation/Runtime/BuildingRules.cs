@@ -335,9 +335,62 @@ public static class BuildingRules
         _ => BuildingElementKind.Wall
     };
 
+    // §170.4: функция чистая (сид площадки + четыре счётчика + продукт), а
+    // зовётся из скоринга стройки КАЖДОЙ колонисткой на каждый средний тик —
+    // при ста девушках это сотни одинаковых вызовов с четырьмя аллокациями
+    // в каждом (3.5% CPU на 103 NPC). Результат читается только через
+    // IReadOnlyList, поэтому один экземпляр на ключ безопасен. Кэш маленький
+    // и сбрасывается целиком, когда переполнится: ключей за тик — по числу
+    // живых площадок, а не по числу девушек.
+    private readonly struct HutElementsKey : System.IEquatable<HutElementsKey>
+    {
+        public readonly int SiteSeed, Sticks, Boards, Rope, Leaves;
+        public readonly string Product;
+
+        public HutElementsKey(int siteSeed, int sticks, int boards, int rope, int leaves, string product)
+        {
+            SiteSeed = siteSeed; Sticks = sticks; Boards = boards; Rope = rope; Leaves = leaves; Product = product;
+        }
+
+        public bool Equals(HutElementsKey other) =>
+            SiteSeed == other.SiteSeed && Sticks == other.Sticks && Boards == other.Boards &&
+            Rope == other.Rope && Leaves == other.Leaves && string.Equals(Product, other.Product, System.StringComparison.Ordinal);
+
+        public override bool Equals(object obj) => obj is HutElementsKey other && Equals(other);
+
+        public override int GetHashCode() =>
+            System.HashCode.Combine(SiteSeed, Sticks, Boards, Rope, Leaves,
+                Product is null ? 0 : System.StringComparer.Ordinal.GetHashCode(Product));
+    }
+
+    private const int HutElementsMemoLimit = 256;
+
+    private static readonly Dictionary<HutElementsKey, IReadOnlyList<BuildingElementProgress>> _hutElementsMemo =
+        new Dictionary<HutElementsKey, IReadOnlyList<BuildingElementProgress>>();
+
     public static IReadOnlyList<BuildingElementProgress> ResolveHutElements(
         int siteSeed, int sticks, int boards, int rope, int leaves,
         string buildProduct = null)
+    {
+        var key = new HutElementsKey(siteSeed, sticks, boards, rope, leaves, buildProduct);
+        if (_hutElementsMemo.TryGetValue(key, out var memo))
+        {
+            return memo;
+        }
+
+        if (_hutElementsMemo.Count >= HutElementsMemoLimit)
+        {
+            _hutElementsMemo.Clear();
+        }
+
+        var resolved = ResolveHutElementsUncached(siteSeed, sticks, boards, rope, leaves, buildProduct);
+        _hutElementsMemo[key] = resolved;
+        return resolved;
+    }
+
+    private static IReadOnlyList<BuildingElementProgress> ResolveHutElementsUncached(
+        int siteSeed, int sticks, int boards, int rope, int leaves,
+        string buildProduct)
     {
         var definitions = DefinitionsFor(buildProduct);
         var nonRoof = new List<Definition>();

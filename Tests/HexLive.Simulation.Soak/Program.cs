@@ -19,6 +19,9 @@ public static class Program
 {
     public static int Main(string[] args)
     {
+        // Отчёт на русском; при перенаправлении в файл Windows иначе подставит
+        // OEM-кодировку и превратит каждую букву в «?».
+        Console.OutputEncoding = Encoding.UTF8;
         var options = SoakOptions.Parse(args, out var error);
         if (options != null && options.AutonomousAsk)
         {
@@ -104,14 +107,20 @@ public static class Program
         // мир по-своему, меряет не ту игру.
         // Арена абьюза строится ТЕМ ЖЕ классом, что и сцена в Unity: иначе
         // мы смотрим на два разных мира и спорим о показаниях.
+        var worldgenWatch = Stopwatch.StartNew();
         var definition = options.Arena == "abuse"
             ? HexLive.UnityPresentation.AbuseTest.AbuseTestWorld.Build(seed)
             // §156.9: растянутый остров — мир для ЗАМЕРА, а не режим игры: у
             // него нет ни идентичности в сейве, ни пункта меню.
             : options.Scale > 1
                 ? PrototypeWorldDefinitionFactory.CreateScaledHugeIsland(seed, options.Scale)
-                : PrototypeWorldDefinitionFactory.Create(seed, options.Mode);
+                : options.GirlsPerCamp > 0
+                    ? PrototypeWorldDefinitionFactory.CreateHugeIslandWithPopulation(seed, options.GirlsPerCamp)
+                    : PrototypeWorldDefinitionFactory.Create(seed, options.Mode);
         var world = new WorldStateFactory().Create(definition);
+        worldgenWatch.Stop();
+        var profile = options.Profile ? new SoakProfile() : null;
+        profile?.AfterWorldgen(world, worldgenWatch.Elapsed.TotalSeconds);
 
         if (options.Arena == "abuse")
         {
@@ -132,6 +141,10 @@ public static class Program
 
         var engine = new SimulationEngine(world, settings, clock);
         SimulationSystemRegistry.RegisterDefaults(engine);
+        if (profile != null)
+        {
+            engine.SystemProfiler = profile.OnSystemRun;
+        }
         DefinitionIdTable.Build(world.Content);
 
         // §30.14: в headless-прогоне самописец включён всегда — здесь он ничего
@@ -179,6 +192,7 @@ public static class Program
             engine.Step();
             stepWatch.Stop();
             metrics.SampleStep(world.Tick - 1, stepWatch.Elapsed.TotalMilliseconds);
+            profile?.OnStep(stepWatch.Elapsed.TotalMilliseconds, world);
             watermark = Drain(world, watermark, metrics, trace, options.TraceTypes,
                 options, ref explained, ref explainedLoops, ref explainedDeaths);
             metrics.SampleTick(world);
@@ -196,6 +210,11 @@ public static class Program
 
         stopwatch.Stop();
         trace?.Dispose();
+
+        if (profile != null && !options.Quiet)
+        {
+            Console.Write(profile.Report(world));
+        }
 
         if (options.CombatFrames)
         {

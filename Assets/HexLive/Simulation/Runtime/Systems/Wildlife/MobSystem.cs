@@ -1335,6 +1335,15 @@ public sealed class MobSystem : ISimulationSystem
     // по попыткам, здесь по узлам одного поиска).
     private const int ChasePathNodeBudget = 1500;
 
+    // §170.3: потолок развёрнутых узлов на ОДИН поиск пути к убежищу. Укрытие
+    // лежит не дальше 48 тайлов (§158.4), то есть честный маршрут — сотни
+    // узлов, и A* с эвристикой разворачивает их порядка тысяч. Без потолка
+    // недостижимое укрытие (например, на уступе, куда она без прыжка не
+    // поднимется) разворачивало ВСЮ плоскую компоненту — на «Огромном острове»
+    // это до 390 000 узлов, и на 24 кандидата уходило 3–5 секунд одного тика
+    // (замер с 68 колонистками: MobSystem — 35% всего CPU, худший шаг 5.0 с).
+    private const int FleePathNodeBudget = 6000;
+
     private static bool TryReserveReachableFleeTarget(
         WorldState world,
         NPCState npc,
@@ -1343,6 +1352,7 @@ public sealed class MobSystem : ISimulationSystem
         out JunctionId refuge)
     {
         var avoid = PathfindingSystem.OtherActorJunctions(world, npc);
+        var canJump = PlanningSystem.CanUseCriticalTraversal(npc);
         var searches = 0;
         foreach (var candidate in candidates)
         {
@@ -1351,13 +1361,23 @@ public sealed class MobSystem : ISimulationSystem
                 break;
             }
 
+            // §170.3: карта компонент отвечает «дороги нет» за O(1) там, где
+            // поиск пути узнал бы это, развернув всю компоненту. Карта строится
+            // по тем же правилам прыжка/спуска (§50/§57.11), так что ответ тот
+            // же; обходить людей (avoid) она не умеет — это остаётся поиску.
+            if (!Connectivity.Reachable(world, start, candidate.Id, canJump))
+            {
+                continue;
+            }
+
             // This is the exact physical contract PathfindingSystem will use
             // on the following fast tick. Connectivity alone is insufficient:
             // it ignores elevation jumps.
             var path = HexPathfinder.FindPath(
                 world, start, candidate.Id, avoid,
                 weightClimb: false,
-                canJump: PlanningSystem.CanUseCriticalTraversal(npc));
+                canJump: canJump,
+                maxExpansions: FleePathNodeBudget);
             if (path.Count == 0 ||
                 !SpatialMutations.TryReserveJunction(
                     world, candidate.Id, npc.Id, world.Tick, 48))

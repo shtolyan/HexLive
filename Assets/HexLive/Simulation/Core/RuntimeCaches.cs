@@ -140,6 +140,14 @@ public sealed class RuntimeCaches
     // reuse another island's danger/hostile ring at an equal simulation tick.
     public HashSet<JunctionId> OtherActorJunctionsScratch { get; } = new();
 
+    // §170.4: ключ мемо OtherActorJunctionsScratch — для кого и при какой
+    // эпохе занятости/составе живых он был собран.
+    public int OtherActorMemoTick = -1;
+    public int OtherActorMemoSelf;
+    public int OtherActorMemoEpoch;
+    public int OtherActorMemoNpcCount;
+    public int OtherActorMemoAliveMobs;
+
     public HashSet<JunctionId> DangerRingJunctions { get; } = new();
 
     public Queue<JunctionId> DangerRingQueue { get; } = new();

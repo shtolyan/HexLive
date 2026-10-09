@@ -2692,6 +2692,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     // collision, including the supported part protruding onto a level neighbour.
     internal static void ClaimLyingFootprint(WorldState world, NPCState npc)
     {
+        ActorOccupancy.Epoch++; // §170.4
         npc.ClaimedJunctions.Clear();
         var padding = HexSpatialMath.HexRadius / HexPointLayout.BoundaryRadius * 0.5f;
         for (var i = -1; i < HexDirection.All.Length; i++)
@@ -2724,6 +2725,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
     internal static void ReleaseClaims(WorldState world, NPCState npc)
     {
+        ActorOccupancy.Epoch++; // §170.4
         npc.ClaimedJunctions.Clear();
     }
 

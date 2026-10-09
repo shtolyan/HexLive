@@ -11,10 +11,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Platform;
 using HexLive.UnityPresentation.Wearing;
 using HexLive.UnityPresentation.Wearing.Garments;
 using Newtonsoft.Json;
 using UnityEngine;
+#if UNITY_WEBGL && !UNITY_EDITOR
+using UnityEngine.Networking;
+#endif
 
 namespace HexLive.UnityPresentation.Content
 {
@@ -81,7 +85,9 @@ public sealed class ContentAssetService
     }
 
     private static ContentAssetService _instance;
+#if !(UNITY_WEBGL && !UNITY_EDITOR)
     private static readonly HttpClient Http = CreateHttpClient();
+#endif
 
     private readonly Dictionary<string, ContentRecord> _known = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ContentRecord> _pinned = new(StringComparer.Ordinal);
@@ -750,6 +756,12 @@ public sealed class ContentAssetService
 
     private void UpdatePreviouslyCachedInBackground()
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // §168.12: в вебе нет дискового кэша, который стоило бы освежить, —
+        // «фоновая» загрузка тут значила бы держать в куче вкладки бандлы,
+        // которые никто не просил. Новая ревизия скачается, когда её откроют.
+        return;
+#else
         foreach (var pair in _verified.ToArray())
         {
             if (!_known.TryGetValue(pair.Key, out var target) || !target.IsActive ||
@@ -766,6 +778,7 @@ public sealed class ContentAssetService
                 }
             });
         }
+#endif
     }
 
     private void LoadBundleWithFallback(
@@ -814,6 +827,13 @@ public sealed class ContentAssetService
             return;
         }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // §168.12: обычно бандл уже открыт очередью (EnsureBlob → DownloadBlob
+        // скачивает и открывает его там). Сюда приходят только мимо очереди —
+        // качаем напрямую тем же путём.
+        ContentCoroutines.Run(FetchBundleWeb(sha256, -1, null, null));
+        return;
+#else
         state.Loading = true;
         var request = AssetBundle.LoadFromFileAsync(BlobPath(sha256));
         request.completed += _ =>
@@ -833,6 +853,7 @@ public sealed class ContentAssetService
                 waiter(state.Bundle);
             }
         };
+#endif
     }
 
     private void Retain(string sha256)
@@ -1068,6 +1089,204 @@ public sealed class ContentAssetService
         }
     }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+    /// <summary>
+    /// §168.12: веб-вариант загрузки. Дискового кэша нет — его роль играет
+    /// HTTP-кэш браузера (blob адресован SHA и отдаётся immutable). Бандл
+    /// качается и ОТКРЫВАЕТСЯ прямо здесь, внутри шестислотовой очереди, —
+    /// это тот же дозатор, что на десктопе держал открытия по шесть за раз.
+    /// SHA бандла не пересчитывается: копия байтов ради хеша удвоила бы пик
+    /// кучи вкладки, а целостность даёт HTTPS плюс контент-адресованный URL.
+    /// Сырые файлы (config) малы — их SHA проверяется как обычно.
+    /// </summary>
+    private IEnumerator DownloadBlob(
+        ContentRecord record, string sha256, long size, string label, Action<bool> completed)
+    {
+        if (record.variant.payloadType != "file")
+        {
+            var opened = false;
+            yield return FetchBundleWeb(sha256, size, $"{record.type}/{record.id} ({label})",
+                success => opened = success);
+            completed(opened);
+            yield break;
+        }
+
+        if (_verifiedHashes.Contains(sha256) && TryFileLength(BlobPath(sha256)) == size)
+        {
+            yield return null;
+            _settledBlobs.Add(sha256);
+            completed(true);
+            yield break;
+        }
+
+        Status = $"Загружаем {record.type}/{record.id} ({label})";
+        DownloadTotalBytes = size;
+        using var request = UnityWebRequest.Get($"{ContentEndpoint.Current}/blobs/{sha256}");
+        request.timeout = 120;
+        var operation = request.SendWebRequest();
+        while (!operation.isDone)
+        {
+            DownloadedBytes = request.downloadedBytes;
+            yield return null;
+        }
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            LastError = $"{record.type}/{record.id}: {request.error}";
+            completed(false);
+            yield break;
+        }
+
+        var bytes = request.downloadHandler.data;
+        if (bytes == null || bytes.LongLength != size || !string.Equals(
+                Sha256Hex(bytes), sha256, StringComparison.Ordinal))
+        {
+            LastError = $"{record.type}/{record.id}: размер или SHA-256 не совпадает";
+            completed(false);
+            yield break;
+        }
+
+        try
+        {
+            // MEMFS: файл живёт в куче вкладки, поэтому сюда идут только
+            // мелкие сырые payload'ы — бандлы обходят файловую систему.
+            File.WriteAllBytes(BlobPath(sha256), bytes);
+        }
+        catch (Exception exception)
+        {
+            LastError = $"{record.type}/{record.id}: {exception.Message}";
+            completed(false);
+            yield break;
+        }
+
+        _verifiedHashes.Add(sha256);
+        _settledBlobs.Add(sha256);
+        completed(true);
+    }
+
+    private IEnumerator FetchBundleWeb(string sha256, long size, string label, Action<bool> completed)
+    {
+        if (!_bundles.TryGetValue(sha256, out var state))
+        {
+            state = new BundleState();
+            _bundles[sha256] = state;
+        }
+
+        if (state.Bundle != null)
+        {
+            yield return null;
+            completed?.Invoke(true);
+            yield break;
+        }
+
+        if (state.Loading)
+        {
+            while (state.Loading)
+            {
+                yield return null;
+            }
+            completed?.Invoke(state.Bundle != null);
+            yield break;
+        }
+
+        state.Loading = true;
+        if (label != null)
+        {
+            Status = $"Загружаем {label}";
+        }
+        if (size > 0)
+        {
+            DownloadTotalBytes = size;
+        }
+
+        using var request = UnityWebRequestAssetBundle.GetAssetBundle(
+            $"{ContentEndpoint.Current}/blobs/{sha256}");
+        request.timeout = 120;
+        var operation = request.SendWebRequest();
+        while (!operation.isDone)
+        {
+            DownloadedBytes = request.downloadedBytes;
+            yield return null;
+        }
+
+        state.Loading = false;
+        state.Bundle = request.result == UnityWebRequest.Result.Success
+            ? DownloadHandlerAssetBundle.GetContent(request)
+            : null;
+        var waiters = state.Waiters.ToArray();
+        state.Waiters.Clear();
+        if (state.Bundle == null)
+        {
+            LastError = $"Bundle {sha256} не открывается: {request.error}";
+            Debug.LogWarning($"[AtomicContent] {LastError}");
+            _bundles.Remove(sha256);
+        }
+        else
+        {
+            _settledBlobs.Add(sha256);
+        }
+
+        foreach (var waiter in waiters)
+        {
+            waiter(state.Bundle);
+        }
+        completed?.Invoke(state.Bundle != null);
+    }
+
+    private static string Sha256Hex(byte[] bytes)
+    {
+        using var hash = SHA256.Create();
+        return BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", string.Empty)
+            .ToLowerInvariant();
+    }
+
+    private static Task<HttpTextResponse> SendTextAsync(
+        string url,
+        HttpMethod method,
+        string json,
+        string etag,
+        int timeoutSeconds)
+    {
+        // §168.3: UnityWebRequest вместо HttpClient. Ответ отдаёт колбэк
+        // операции на главном потоке; корутины-вызыватели и так опрашивают
+        // IsCompleted раз в кадр.
+        var completion = new TaskCompletionSource<HttpTextResponse>();
+        var request = new UnityWebRequest(url, method.Method)
+        {
+            downloadHandler = new DownloadHandlerBuffer(),
+            timeout = timeoutSeconds,
+        };
+        if (json != null)
+        {
+            request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
+            request.SetRequestHeader("Content-Type", "application/json");
+        }
+        if (!string.IsNullOrEmpty(etag))
+        {
+            request.SetRequestHeader("If-None-Match", etag);
+        }
+
+        request.SendWebRequest().completed += _ =>
+        {
+            var status = (int)request.responseCode;
+            var success = status >= 200 && status < 300;
+            completion.SetResult(new HttpTextResponse
+            {
+                StatusCode = (HttpStatusCode)status,
+                Success = success,
+                Text = request.downloadHandler?.text ?? string.Empty,
+                ETag = request.GetResponseHeader("ETag") ?? string.Empty,
+                Error = success
+                    ? string.Empty
+                    : status == 0
+                        ? request.error ?? "request failed"
+                        : $"HTTP {status} {request.error}",
+            });
+            request.Dispose();
+        };
+        return completion.Task;
+    }
+#else
     private IEnumerator DownloadBlob(
         ContentRecord record, string sha256, long size, string label, Action<bool> completed)
     {
@@ -1245,6 +1464,7 @@ public sealed class ContentAssetService
             return new HttpTextResponse { Error = exception.Message };
         }
     }
+#endif
 
     private static HttpTextResponse CompletedTextResponse(Task<HttpTextResponse> task)
     {
@@ -1259,9 +1479,10 @@ public sealed class ContentAssetService
                 Error = task.Exception?.GetBaseException().Message ?? "request failed",
             };
         }
-        return task.Result;
+        return CompletedTask.Result(task);
     }
 
+#if !(UNITY_WEBGL && !UNITY_EDITOR)
     private static async Task<BlobHttpResponse> DownloadToPartialAsync(
         string url,
         string partial,
@@ -1363,8 +1584,9 @@ public sealed class ContentAssetService
                 Error = task.Exception?.GetBaseException().Message ?? "download failed",
             };
         }
-        return task.Result;
+        return CompletedTask.Result(task);
     }
+#endif
 
     private bool PromotePartial(string partial, string sha256)
     {
@@ -1863,6 +2085,9 @@ public sealed class ContentAssetService
     {
         return Application.platform switch
         {
+            // §168.12: бандлы платформенные; редактор на WebGL-платформе
+            // остаётся на десктопных — WebGL-шейдеры он не отрисует.
+            RuntimePlatform.WebGLPlayer => "WebGL",
             RuntimePlatform.WindowsPlayer => "StandaloneWindows64",
             RuntimePlatform.WindowsEditor => "StandaloneWindows64",
             _ => "StandaloneOSX",

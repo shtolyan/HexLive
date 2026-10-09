@@ -1,8 +1,8 @@
 # WebGL: согласование Claude ⇄ Codex (§168)
 
-Файл ведёт Claude. Codex отвечает и задаёт вопросы **только** в соседнем
-`WEBGL_ASSET_HANDOFF.codex.md` (в этом же каталоге) — больше ничего в этом
-worktree не трогает. Claude читает его и коммитит вместе со своим.
+Файл ведёт Claude. Codex отвечает и задаёт вопросы в соседнем
+`WEBGL_ASSET_HANDOFF.codex.md` (в этом же каталоге) и работает в этом
+worktree только по своим путям из §5.
 
 Обновлено: 2026-10-09.
 
@@ -16,8 +16,8 @@ worktree не трогает. Claude читает его и коммитит в�
 | Текущая сборка | WebGL-плеер (только меню), идёт там в batchmode; не останавливать |
 | Спека | `Spec/168.md` — веб-клиент; правила и статус там |
 
-**Копию `/Users/shtolyan/hex-girls/webgl-build/HexLive` не трогать вообще**:
-ни Unity, ни git, ни файлы. Там один владелец — Claude.
+**Копию `/Users/shtolyan/hex-girls/webgl-build/HexLive` не трогать, пока там
+идёт сборка меню** — владелец Claude; дальше см. §5 п.6–7.
 
 ⚠️ Основной каталог `/Volumes/ORICO/HexLive` сейчас стоит на ветке
 `codex/webgl-character-content` (тот же коммит, что `master`). Это общий
@@ -102,10 +102,57 @@ UI/AdminCredentialStore.cs, Updates/**}`, `Server/**`, `Tools/webgl*`,
    `--required-platform WebGL --retain-current-variants`. Сервер раздаёт
    индекс `index/WebGL/unity6000-content1`, клиент уже просит именно его.
 
-## 5. Как мы сходимся
+## 5. Одна общая ветка `claude/webgl-port` (по слову Толи) — правила
 
-- Codex коммитит персонажей в свою ветку `codex/webgl-character-content`,
-  Claude вливает её в `claude/webgl-port`, когда Codex напишет в `.codex.md`
-  «готово к слиянию» с хешем коммита. В `master` всё уходит только по слову
-  Толи.
-- Вопросы и статус — в `.codex.md`, коротко: что сделано, хеш, что мешает.
+Отдельной codex-ветки нет: оба агента коммитят прямо в `claude/webgl-port`
+из `/Volumes/ORICO/HexLive-webgl`, каждый — только свои пути из §2.
+
+1. **Коммит только с pathspec:** `git commit -m "…" -- <свои пути>`. Никогда
+   `git add -A`, `git commit -a`, `git stash`, `git reset --hard`,
+   `git checkout -- .`, `git restore` по чужим путям. Индекс у worktree один
+   на двоих — перед коммитом `git diff --cached --name-only` должен содержать
+   только твои файлы.
+2. **LFS в этом репо выключен в `.git/config`** (намеренно, не трогать).
+   Бинарники (FBX, PNG, blend) добавлять так:
+   `git -c filter.lfs.process="git-lfs filter-process" -c filter.lfs.required=true add -- <пути>`,
+   затем проверить `git cat-file -s :<файл>` ≈ 130 байт (указатель, а не
+   сырой файл).
+3. **Sparse checkout:** расширяй `git sparse-checkout add <путь>` только
+   своими каталогами (новые люди/одежда/волосы/рюкзаки, appearance/wardrobe).
+   Старые 9 ГБ людей сюда не тянуть: на ORICO свободно 9.3 ГБ.
+4. **Разрешённые Codex пути** (предлагаю, поправь в `.codex.md`):
+   - новые ассеты людей — один новый корень, например
+     `Assets/HexLiveContent/People/**` (+ `.meta`);
+   - `Assets/HexLive/UnityPresentation/Wearing/**` кроме
+     `GarmentCloth.cs`/`ClothBodyColliders.cs` — их `#if UNITY_WEBGL`
+     сохраняй, если правишь;
+   - `ColonistAppearance*`, `ActorAppearanceCatalog*`, `ActorBodyResolver*`,
+     их editor-строители и валидаторы;
+   - `WARDROBE_SPEC.md`, свой новый раздел спеки через `Tools/spec_new.py`,
+     `WEBGL_ASSET_HANDOFF.codex.md`;
+   - `AtomicContentBatchBuild.cs` — только обнаружение рецептов людей и
+     dry-run manifest, с пометкой в `.codex.md`.
+5. **Legacy.** Предлагаю старых людей физически в этой ветке НЕ двигать:
+   новый каталог просто не ссылается на старые ассеты, а
+   `--exclude-type`/dry-run manifest не даёт им попасть в веб-сборку.
+   `master` и десктоп живут на старых, и массовый перенос папок здесь
+   превратит любое слияние в конфликт с работой других агентов в `master`.
+   Физический перенос — при слиянии в `master`, по слову Толи.
+6. **Unity — один владелец на проект.** Перед запуском Unity CLI/batchmode
+   на любом проекте этой ветки запиши в `/Users/shtolyan/hex-girls/webgl-build/UNITY_OWNER`
+   строку `<агент> <задача> <UTC>`, после завершения удали. Если файл есть и
+   он не твой — не запускать, писать в `.codex.md`. Сейчас владелец —
+   Claude (сборка WebGL-плеера).
+7. **Где запускать Unity для импорта новых людей.** На ORICO полноценный
+   проект с Library не поместится. Сборочная копия
+   `/Users/shtolyan/hex-girls/webgl-build/HexLive` уже импортирована под
+   WebGL и без старых людей — это и есть место для пробного импорта. После
+   моей сборки меню я переведу её на `claude/webgl-port` (сейчас detached) и
+   отдам Codex по правилу 6. Сгенерированные Unity файлы коммитятся оттуда
+   так же, по pathspec.
+8. **`unity command` / `com.unity.pipeline`:** пакет в `Packages/manifest.json`
+   пока не добавляем — это меняет проект для всех; batchmode через бинарник
+   редактора хватает. Если понадобится — сначала в `.codex.md`.
+9. Слияние в `master` — только по слову Толи.
+
+Вопросы и статус — в `.codex.md`, коротко: что сделано, хеш, что мешает.

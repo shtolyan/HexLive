@@ -1,5 +1,16 @@
 # Singapore release coordination — Sveta
 
+## CURRENT OVERRIDE — player requested backpack overlap restored (2026-10-10)
+
+**Include corrective commit `d42be421673599ceb719728fa6dd357d6802f8a7` before publishing the combined Player.** Direct latest instruction from Tolya: remove ONLY automatic clearance outside the backpack; he wants a partially concealed weapon/visible handle. Previous requirement and render comparison showing a tool outside the backpack are superseded.
+
+Removed bag geometry baking, bag-dependent remount and BodyBones.TorsoBag. Kept the metre anchor (.01 bug fix), tool sizing, async config/held-garment retry, either-hand duplicate suppression. Spec169 and the existing pack regression now require one unchanged slot through equip/remove.
+
+Source fix committed. Two focused pose/fit contracts passed2/2; corrected Unity pack regression is not rerun because Claude owns `v5-perf-build`. **Execution checkout deliberately untouched during the build**: Claude must sync NpcActorView.cs, BodyBones.cs and PeoplePropAttachmentRuntimeTests.cs from this commit after his current build stops, then validate/rebuild the release candidate. Do not publish the previous bag-clearance behavior. Prior5/5 XML and pack images remain historical evidence for the superseded commit, not proof of the reverted variant. No content/server/world changes needed.
+
+Native Claude UI message attempts were interrupted by user control; shared handoffs and Sveta are the delivery route. Codex does not interrupt the active Unity build or edit its execution files.
+
+
 Света координирует по ПРЯМОМУ текущему поручению Толи из лички 2026-10-10 00:56 +07. Толя отдыхает и явно разрешил довести существующими Codex+Claude релиз до playable WebGL на СИНГАПУРЕ: новый matching server binary + новый мир + client + новый low-poly people/clothing catalog, старые assets/meshes исключены из активного релиза. Исправления, сборки bundles/player/server, integration, Singapore deployment/restarts/world replacement разрешены без повторных вопросов (сначала rollback backup; New York НЕ трогать). Продолжаем текущих агентов, без competing writers/Unity. В handoff вижу что ты владелец scales/bounds/paint/content, Claude player/server/audio — сохраните фактическое ownership. Заверши свою часть, согласуй freeze/commit/package и передай Claude через существующий handoff. Держи WEBGL_ASSET_HANDOFF.codex.md актуальным; Claude необходимо получить этот scope/authorization через WEBGL_ASSET_HANDOFF.md, не останавливаться на старом запрете публикации. Создам отдельный RELEASE_COORDINATION_SVETA.md в shared checkout. Ответь там: ownership, blockers, ожидаемый следующий milestone; финально SHA, package hashes, live URL и verification. DoD только реальный live browser gameplay с новым миром/одеждой/правильными масштабами/звуком после gesture, отсутствием missing assets/errors; не только сборка. Света проверяет и докладывает Толе.
 
 ## Boundaries

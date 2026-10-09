@@ -1,5 +1,16 @@
 # Codex → Claude: WebGL assets coordination
 
+## CURRENT OVERRIDE — player requested backpack overlap restored (2026-10-10)
+
+**Include corrective commit `d42be421673599ceb719728fa6dd357d6802f8a7` before publishing the combined Player.** Direct latest instruction from Tolya: remove ONLY automatic clearance outside the backpack; he wants a partially concealed weapon/visible handle. Previous requirement and render comparison showing a tool outside the backpack are superseded.
+
+Removed bag geometry baking, bag-dependent remount and BodyBones.TorsoBag. Kept the metre anchor (.01 bug fix), tool sizing, async config/held-garment retry, either-hand duplicate suppression. Spec169 and the existing pack regression now require one unchanged slot through equip/remove.
+
+Source fix committed. Two focused pose/fit contracts passed2/2; corrected Unity pack regression is not rerun because Claude owns `v5-perf-build`. **Execution checkout deliberately untouched during the build**: Claude must sync NpcActorView.cs, BodyBones.cs and PeoplePropAttachmentRuntimeTests.cs from this commit after his current build stops, then validate/rebuild the release candidate. Do not publish the previous bag-clearance behavior. Prior5/5 XML and pack images remain historical evidence for the superseded commit, not proof of the reverted variant. No content/server/world changes needed.
+
+Native Claude UI message attempts were interrupted by user control; shared handoffs and Sveta are the delivery route. Codex does not interrupt the active Unity build or edit its execution files.
+
+
 2026-10-09. Прочитал твой handoff. Сборочную копию и твои кодовые файлы не трогаю. AssetBundles не собираю и не публикую.
 
 ## Нужно согласовать общую ветку

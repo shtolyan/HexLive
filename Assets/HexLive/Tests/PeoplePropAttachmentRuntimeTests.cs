@@ -243,37 +243,22 @@ public sealed class PeoplePropAttachmentRuntimeTests
         finally { foreach (var m in meshes) Object.DestroyImmediate(m); preview.Cleanup(); }
     }
     [Test]
-    public void EquippingAndRemovingBagReseatsExistingWeaponOutsideItsMesh()
+    public void EquippingAndRemovingBagPreservesWeaponSlotAndAllowsOverlap()
     {
         foreach (var actor in new[] { "Marta", "Kshishtof" })
         foreach (var pack in new[] { "PrimalGathererPack", "PrimalHunterPack", "PrimalTrailPack" })
         {
             var view = Actor(actor); var bones = view.GetComponent<BodyBones>();
             view.SetBackWeapon("tool.axe_stone");
-            var old = Get<GameObject>(view, "_backProp");
-            var barePosition = old.transform.localPosition;
+            var prop = Get<GameObject>(view, "_backProp");
+            var position = prop.transform.localPosition;
             bones.Equip(pack, AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/Wear/" + actor + "_" + pack + ".prefab").GetComponent<Wear>(), null);
             view.SetBackWeapon("tool.axe_stone");
-            var prop = Get<GameObject>(view, "_backProp");
-            Assert.That(prop, Is.Not.SameAs(old), "An arriving backpack must refresh the existing mount");
-            var frame = prop.transform.parent;
-            var rear = float.PositiveInfinity;
-            var mesh = new Mesh();
-            foreach (var skin in bones.TorsoBag.GetComponentsInChildren<SkinnedMeshRenderer>())
-            {
-                skin.BakeMesh(mesh, true);
-                foreach (var v in mesh.vertices) rear = Mathf.Min(rear, frame.InverseTransformPoint(skin.transform.TransformPoint(v)).z);
-            }
-            Object.DestroyImmediate(mesh);
-            Assert.That(rear, Is.LessThan(-.1f), actor + "/" + pack + " bag must retain its imported scale");
-            var front = float.NegativeInfinity;
-            foreach (var f in prop.GetComponentsInChildren<MeshFilter>())
-                foreach (var v in f.sharedMesh.vertices) front = Mathf.Max(front, frame.InverseTransformPoint(f.transform.TransformPoint(v)).z);
-            Assert.That(front, Is.LessThanOrEqualTo(rear - .014f), actor + "/" + pack);
-            var oldBagObject = bones.TorsoBag.gameObject;
-            bones.TakeOff(pack); Object.DestroyImmediate(oldBagObject);
-            view.SetBackWeapon("tool.axe_stone");
-            Assert.That(Vector3.Distance(Get<GameObject>(view, "_backProp").transform.localPosition, barePosition), Is.LessThan(.0001f));
+            Assert.That(Get<GameObject>(view, "_backProp"), Is.SameAs(prop));
+            Assert.That(prop.transform.localPosition, Is.EqualTo(position));
+            bones.TakeOff(pack); view.SetBackWeapon("tool.axe_stone");
+            Assert.That(Get<GameObject>(view, "_backProp"), Is.SameAs(prop));
+            Assert.That(prop.transform.localPosition, Is.EqualTo(position));
             Object.DestroyImmediate(view.gameObject);
         }
     }

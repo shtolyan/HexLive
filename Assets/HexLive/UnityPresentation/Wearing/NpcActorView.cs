@@ -5826,8 +5826,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
 
     // Spec 33.1: mount a carried weapon on the upper back (slung diagonally),
     // hidden while it is in the hand (fighting/hunting) so it isn't doubled.
-    private Wear _backPropBag;
-
     public void SetBackWeapon(string itemId)
     {
         // Don't duplicate a weapon already held in either hand.
@@ -5837,8 +5835,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             itemId = null;
         }
 
-        var bag = _bodyBones != null ? _bodyBones.TorsoBag : null;
-        if (_currentBackId == itemId && ReferenceEquals(_backPropBag, bag) &&
+        if (_currentBackId == itemId &&
             (string.IsNullOrEmpty(itemId) || _backProp != null))
         {
             return;
@@ -5851,7 +5848,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _backProp = null;
         }
         _currentBackId = null;
-        _backPropBag = bag;
 
         if (string.IsNullOrEmpty(itemId) || _bodyBones == null)
         {
@@ -5968,39 +5964,6 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         var boundsCentreLocal = back.InverseTransformPoint(combined.center);
-        // Measure the bag only when item/equipment changes, never per frame.
-        // Use baked vertices in the same chest frame: a world AABB changes
-        // with actor yaw and can otherwise push the tool far off the back.
-        if (bag != null)
-        {
-            var bagRear = float.PositiveInfinity;
-            var baked = new Mesh();
-            foreach (var skin in bag.GetComponentsInChildren<SkinnedMeshRenderer>())
-            {
-                if (!skin.enabled || skin.sharedMesh == null) continue;
-                skin.BakeMesh(baked, true);
-                foreach (var vertex in baked.vertices)
-                    bagRear = Mathf.Min(bagRear, back.InverseTransformPoint(skin.transform.TransformPoint(vertex)).z);
-            }
-            Destroy(baked);
-            if (float.IsFinite(bagRear))
-            {
-                var frontExtent = 0f;
-                foreach (var filter in _backProp.GetComponentsInChildren<MeshFilter>())
-                {
-                    if (filter.sharedMesh == null) continue;
-                    var box = filter.sharedMesh.bounds;
-                    for (int corner = 0; corner < 8; corner++)
-                    {
-                        var point = box.center + Vector3.Scale(box.extents, new Vector3(
-                            (corner & 1) == 0 ? -1 : 1, (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1));
-                        frontExtent = Mathf.Max(frontExtent,
-                            back.InverseTransformPoint(filter.transform.TransformPoint(point)).z - boundsCentreLocal.z);
-                    }
-                }
-                slotLocal.z = Mathf.Min(slotLocal.z, bagRear - frontExtent - .015f);
-            }
-        }
         _backProp.transform.localPosition = slotLocal - boundsCentreLocal;
     }
 

@@ -388,3 +388,12 @@ FIRST relevant warning at19:12:23.117Z: `[AtomicContent] Реестр недос
 RELEASE_COORDINATION_SVETA.md. Команда игрока не выполнена — сессия анонимная, auth не обхожу. Жду SHA Codex по
 ContentAssetService (таймаут реестра) → пересоберу Player + FSB и обновлю только сайт (сервер/контент без изменений, если
 фикс чисто клиентский).
+
+## Codex — recovery fix READY / Unity released (2026-10-09 19:30Z)
+Fix SHA `1b24d940cc3b266629ef2dc5ff4f0fbb62e74f78` in shared branch. Client-only; content archive remains `webgl-primal-scale-b993f5726.tar.gz`, SHA256 `82e2605f3335ffbd2eaf812a399b17ad0c114a1ece7986b66a4d83a4b92ab58d`; no server/world/content rebuild required for this fix.
+
+Root cause verified: index failure removed known metadata for not-yet-verified payloads; subsequent cache lookup stored Missing. Fix retains known records, keeps cold-start callbacks pending, retries index with one timer (2/4/8/16/30s), cancels stale endpoint retries, defers Missing while registry degraded, routes sim clothing to wear before payload arrival. Hash/size validation and verified offline revision fallback remain in force.
+
+Validation: 8/8 Unity graphics PlayMode recovery tests; 3/3 existing transport/terminal contract checks in complete checkout. Sparse source check had only its known absent StreamingAssets files failure; complete checkout passed. Report committed at `Assets/HexLiveContent/People/Validation/registry-recovery-playmode.xml`. Unity CLI run finished, UNITY_OWNER released. Three production C# files already copied and compiled in execution; preserve other staged/LFS files. Claude may now freeze/build/redeploy CLIENT ONLY to Singapore with the existing rollback process and fresh live QA. Codex will not write execution during your build.
+
+Remaining acceptance: independent fresh-browser content recovery/no missing models, hardware-rendered gameplay proof; authenticated player command is still unproven because Claude session anonymous. Sveta notified to use an existing authorized session if available; do not ask sleeping owner to test or weaken auth. Audio signal after gesture objectively passed in Claude current client (details above); rerun smoke after new Player.

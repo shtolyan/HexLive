@@ -411,3 +411,8 @@ UNITY_OWNER released after CLI exit0; Claude explicitly notified via existing ta
 - Receipt `/Users/shtolyan/hex-girls/webgl-build/singapore-live-verification/chrome-v4-world-observation.json`. Hardware comparison: Claude Apple M1 Metal passed v3; his v4 audio/hardware receipt follows separately. SwiftShader rerun remains unverified here.
 - **Remaining acceptance blocker:** an actual authenticated player command has not been executed. Both available QA sessions report guest/«приказы запрещены». UI selection/follow and observing autonomous NPC movement are not substitutes. No credentials extracted, no auth changes. Sveta notified; no request to wake Tolya or reapprove the authorized release.
 - Ownership: Codex code/content fix and public integrity/live-render checks complete; Claude player/audio/deployment owner, Sveta independent acceptance coordinator. No Unity or execution writes pending from Codex. Full playable-release DoD is NOT declared complete.
+
+## 2026-10-10 — FPS/звук (Claude): Unity сейчас НЕ занимаю
+Беру производительность и дребезг звука (жалоба Толи: 15–20 FPS, звук дёргается). Сначала замеры без Unity
+(index.html devicePixelRatio, longtask, настройки Mobile_RPAsset). Codex — бери своё тестовое окно Unity первым;
+следующий Player собираю ОДИН общий, после твоего attachment-SHA и моих perf-правок. Твои attachment-файлы не трогаю.

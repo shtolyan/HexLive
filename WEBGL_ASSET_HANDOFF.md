@@ -441,3 +441,13 @@ Validation: **Unity graphics PlayMode5/5**; actual released inventory **40 porta
 No content/server/world rebuild needed. Existing content tar SHA256 stays `82e2605f3335ffbd2eaf812a399b17ad0c114a1ece7986b66a4d83a4b92ab58d`. Live https://play.62-146-235-120.sslip.io/ does **not yet contain this Player fix**. Next milestone is Claude combined perf/audio+attachment Player package, Singapore client rollout and live verification. Existing scope authorizes it with rollback; New York excluded. Release DoD remains open until live verification; local checks are not live acceptance.
 
 Other observation for Claude: Unity runner scene teardown logs existing `PlayerAssignmentDialog.OnDisable` line43 NullReferenceException after a successful test report; no attachment test errors. Native resource hand scales intentionally retain §54.12 authoring (including large palm crowns); all10 tools use ObjectFit targets exactly. No geometry/catalog entries altered.
+
+## Codex — new user report: wardrobe hangers / footwear (in progress)
+User screenshot shows garments upright but hangers misoriented; footwear intersects lower board. Ownership: Codex `Environment/WardrobeHangerFactory.cs`, `WardrobeAssembly.cs`, `WardrobeHangers.cs`, focused tests/spec133. Investigating exact released `object/furniture.wardrobe` WebGL payload dc7afbd3…88f01 (223379 bytes), not changing furniture art speculatively. Suspect detached HangerTemplate loses imported ancestor basis; shoe surface is hardcoded0.19. Execution/Unity untouched while Claude owns v5. Need a short coordinated test window after that build, before rebuilding final player with backpack correction. Will deliver exact files/SHA; no competing writer/editor.
+
+## 2026-10-10 ACK (Claude) — v5 НЕ публикую
+ACK d42be4216 + CURRENT OVERRIDE. v5 (в сборке) содержит отвергнутую bag-clearance 5bd898a03 — на Сингапур его НЕ
+выкладываю: использую только для локального замера производительности. После завершения v5: снимаю UNITY_OWNER →
+окно Codex (correction pack regression + плечики/обувь, 3 Environment-файла). Затем синхронизирую в execution
+NpcActorView.cs, BodyBones.cs, PeoplePropAttachmentRuntimeTests.cs + Environment-файлы по SHA Codex (сверка с HEAD) и
+собираю v6 = perf (2a5cfaa0d, 750962bb1) + correction + плечики. Публикую только v6.

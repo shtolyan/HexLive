@@ -68,6 +68,31 @@ class WebGLPackageTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.make_package()
 
+    def add_legacy_normal(self, referenced=False):
+        row = {"type": "config", "id": "paintmaps.skinnrm_old_g0",
+            "main": "Assets/HexLiveContent/RuntimeSource/PaintMaps/skinnrm_Old_g0.png"}
+        value = builder.read_json(self.build / "config/simdata/candidate.json")
+        value["id"] = row["id"]
+        builder.write_json(self.build / "config" / row["id"] / "candidate.json", value)
+        inventory = builder.read_json(self.build / "inventory.json")
+        inventory["records"].append(row)
+        if referenced:
+            inventory["records"][0]["dependencies"] = [row["main"]]
+        builder.write_json(self.build / "inventory.json", inventory)
+        builder.write_json(self.build / "build-all-summary.json", {"built": 3, "discovered": 3, "failed": 0})
+
+    def test_unreferenced_old_skin_texture_is_omitted_with_a_receipt(self):
+        self.add_legacy_normal()
+        result = self.make_package()
+        self.assertEqual(result["objects"], 3)
+        self.assertEqual(result["excludedUnusedLegacyObjects"], 1)
+        self.assertEqual(len(builder.read_json(self.package / "inventory.json")["excludedUnusedLegacyRecords"]), 1)
+
+    def test_referenced_old_skin_texture_cannot_be_silently_omitted(self):
+        self.add_legacy_normal(referenced=True)
+        with self.assertRaisesRegex(ValueError, "still depends"):
+            self.make_package()
+
     def test_legacy_actor_is_rejected_even_if_present_in_inventory(self):
         path = self.build / "actor/Marta/candidate.json"
         value = json.loads(path.read_text())

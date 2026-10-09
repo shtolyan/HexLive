@@ -151,6 +151,24 @@ def package(build_root: Path, destination: Path, people_catalog: Path):
     for family in ("actor", "wear", "hair"):
         if {k for k in seen if k[0] == family} != {k for k in people_ids if k[0] == family}:
             raise ValueError(f"Legacy {family} leaked into WebGL package")
+    # Older discovery included standalone normal textures of retired body meshes.
+    # They are safe to omit only when no retained object depends on them. Check the
+    # whole source build above before filtering; never disguise a partial build.
+    excluded = [r for r in inventory["records"] if r["type"] == "config"
+        and r["id"].startswith("paintmaps.skinnrm_")
+        and r.get("main", "").startswith("Assets/HexLiveContent/RuntimeSource/PaintMaps/")]
+    excluded_keys = {(r["type"], r["id"]) for r in excluded}
+    excluded_paths = {r["main"] for r in excluded}
+    for row in inventory["records"]:
+        if (row["type"], row["id"]) not in excluded_keys and excluded_paths.intersection(row.get("dependencies", [])):
+            raise ValueError("Retained content still depends on legacy skin normal maps")
+    if excluded_keys & people_ids:
+        raise ValueError("Cannot exclude a current People record")
+    candidates = [v for v in candidates if (v["type"], v["id"]) not in excluded_keys]
+    seen -= excluded_keys
+    packaged_inventory = {**inventory,
+        "records": [r for r in inventory["records"] if (r["type"], r["id"]) not in excluded_keys],
+        "excludedUnusedLegacyRecords": [{"type": r["type"], "id": r["id"], "main": r["main"]} for r in excluded]}
     if destination.exists():
         raise FileExistsError(destination)
     (destination / "payloads").mkdir(parents=True)
@@ -169,16 +187,20 @@ def package(build_root: Path, destination: Path, people_catalog: Path):
     manifest = {**receipt, "objects": len(candidates), "counts": dict(sorted(Counter(v["type"] for v in candidates).items())),
         "uniqueBlobs": len(blobs), "payloadBytes": sum(blobs.values()), "blobs": blobs,
         "objectKeys": sorted(t + "/" + i for t, i in seen),
+        "excludedUnusedLegacyObjects": len(excluded),
+        "packagerSha256": content.hash_file(Path(__file__))[0],
         "productionReady": False, "deploymentDecisionRequired": "Choose Singapore WebGL asset-root and legacy-save wardrobe policy before publication"}
     write_json(destination / "manifest.json", manifest)
-    shutil.copyfile(build_root / "inventory.json", destination / "inventory.json")
+    write_json(destination / "inventory.json", packaged_inventory)
     shutil.copyfile(build_root / "build-all-summary.json", destination / "build-all-summary.json")
     shutil.copyfile(build_root / "people-payload-validation.json", destination / "people-payload-validation.json")
     (destination / "README.md").write_text(
         "# WebGL Primal content — staged, not published\n\n"
         "Each candidate is an independent content object for WebGL/unity6000-content1.\n"
         "This is not a Player or server binary. Audio remains with the WebGL Player.\n"
-        "No logs or credentials are included. Existing production roots were not changed.\n\n"
+        "No logs or credentials are included. Existing production roots were not changed.\n"
+        "inventory.json lists any unreferenced legacy skin textures omitted from an older full build.\n"
+        "build-all-summary.json retains the original build counts; manifest.json describes this package.\n\n"
         "Verify with Tools/build_webgl_content.py verify --package <this-directory>.\n"
         "After separate publication approval, extract under the chosen asset-root/staging,\n"
         "change working directory to this package, and use the canonical server CLI\n"

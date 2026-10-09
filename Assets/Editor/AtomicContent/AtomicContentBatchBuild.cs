@@ -49,7 +49,8 @@ public static class AtomicContentBatchBuild
         if (name.StartsWith("garment_", StringComparison.Ordinal)) return true;
         return Enum.GetNames(typeof(HexLive.UnityPresentation.Wearing.ActorName)).Any(actor =>
             name.StartsWith("skin_" + actor, StringComparison.Ordinal) ||
-            name.StartsWith("skinpos_" + actor, StringComparison.Ordinal));
+            name.StartsWith("skinpos_" + actor, StringComparison.Ordinal) ||
+            name.StartsWith("skinnrm_" + actor, StringComparison.Ordinal));
     }
 
     private static BuildInputs ResolvePeople(JToken row)

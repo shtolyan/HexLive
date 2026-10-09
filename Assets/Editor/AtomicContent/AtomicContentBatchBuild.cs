@@ -201,7 +201,17 @@ public static class AtomicContentBatchBuild
             }
             else
             {
-                var recipes = DiscoverAllRecipes();
+                // §168.12: веб-набор собирается по частям — персонажи, одежда и
+                // волосы переезжают на облегчённые модели и в общий прогон не
+                // идут, пока их нет. Исключённый тип не открывается вовсе.
+                var excludedTypes = new HashSet<string>(
+                    (Optional(arguments, "-content-exclude-types") ?? string.Empty)
+                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(value => value.Trim()),
+                    StringComparer.Ordinal);
+                var recipes = DiscoverAllRecipes()
+                    .Where(recipe => !excludedTypes.Contains(recipe.Type))
+                    .ToList();
                 var duplicateBuildName = recipes
                     .GroupBy(recipe => BundleBuildName(recipe.Type, recipe.Id),
                         StringComparer.Ordinal)
@@ -248,6 +258,7 @@ public static class AtomicContentBatchBuild
                     ["platform"] = platform,
                     ["runtimeProfile"] = runtimeProfile,
                     ["discovered"] = recipes.Count,
+                    ["excludedTypes"] = new JArray(excludedTypes.OrderBy(value => value, StringComparer.Ordinal)),
                     ["built"] = builtCount,
                     ["failed"] = failures.Count,
                     ["failures"] = failures,
@@ -288,10 +299,11 @@ public static class AtomicContentBatchBuild
     private static BuildTarget ValidateTarget(string platform)
     {
         if (!Enum.TryParse(platform, out BuildTarget target) ||
-            target is not (BuildTarget.StandaloneOSX or BuildTarget.StandaloneWindows64))
+            target is not (BuildTarget.StandaloneOSX or BuildTarget.StandaloneWindows64 or
+                BuildTarget.WebGL))
         {
             throw new InvalidOperationException(
-                $"Unsupported platform '{platform}'; use StandaloneOSX or StandaloneWindows64.");
+                $"Unsupported platform '{platform}'; use StandaloneOSX, StandaloneWindows64 or WebGL.");
         }
         if (EditorUserBuildSettings.activeBuildTarget != target)
         {
@@ -443,7 +455,10 @@ public static class AtomicContentBatchBuild
         }
 
         const string hairRoot = "Assets/ImportedActors/Hair";
-        foreach (var directory in Directory.GetDirectories(hairRoot)
+        // A content-only checkout (§168.12) may not carry the hair at all.
+        foreach (var directory in (Directory.Exists(hairRoot)
+                         ? Directory.GetDirectories(hairRoot)
+                         : Array.Empty<string>())
                      .OrderBy(value => value, StringComparer.Ordinal))
         {
             var id = Path.GetFileName(directory);
@@ -455,7 +470,9 @@ public static class AtomicContentBatchBuild
         }
 
         const string prostheticRoot = "Assets/HexLiveContent/Prosthetics";
-        foreach (var path in Directory.GetFiles(prostheticRoot, "prosthetic_*.fbx")
+        foreach (var path in (Directory.Exists(prostheticRoot)
+                         ? Directory.GetFiles(prostheticRoot, "prosthetic_*.fbx")
+                         : Array.Empty<string>())
                      .Select(value => value.Replace('\\', '/'))
                      .OrderBy(value => value, StringComparer.Ordinal))
         {

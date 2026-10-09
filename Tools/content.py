@@ -19,7 +19,11 @@ import uuid
 
 REPO = Path(__file__).resolve().parents[1]
 RUNTIME_PROFILE = "unity6000-content1"
-PLATFORMS = ("StandaloneOSX", "StandaloneWindows64")
+PLATFORMS = ("StandaloneOSX", "StandaloneWindows64", "WebGL")
+# §168.12: WebGL is an additional variant, published on its own with
+# --required-platform WebGL --retain-current-variants. Requiring it by default
+# would refuse every ordinary desktop publish until the web set exists.
+DEFAULT_REQUIRED_PLATFORMS = ("StandaloneOSX", "StandaloneWindows64")
 TYPES = {
     "wear", "actor", "hair", "prosthetic", "object", "building",
     "mob", "vfx", "audio", "config",
@@ -53,6 +57,9 @@ def parser() -> argparse.ArgumentParser:
     build_all.add_argument("--runtime-profile", default=RUNTIME_PROFILE)
     build_all.add_argument("--output", type=Path)
     build_all.add_argument("--unity", type=Path, help="Unity executable; normally auto-detected")
+    build_all.add_argument(
+        "--exclude-type", action="append", default=[], choices=sorted(TYPES),
+        help="skip a content type entirely, e.g. --exclude-type wear (repeatable)")
 
     raw = commands.add_parser("file", help="make a candidate for one raw file payload")
     identity(raw)
@@ -235,6 +242,8 @@ def build_all(args: argparse.Namespace) -> int:
         "-content-output", str(output),
         "-logFile", str(log),
     ]
+    if args.exclude_type:
+        command.extend(("-content-exclude-types", ",".join(sorted(set(args.exclude_type)))))
     print(f"[content] independently building the full authored inventory for {args.platform}")
     result = subprocess.run(command, cwd=REPO, check=False)
     summary = output / "build-all-summary.json"
@@ -408,7 +417,7 @@ def merge_candidates(paths: list[Path], required_platforms: list[str] | None) ->
             seen.add(key)
             merged["variants"].append(variant)
 
-    required = required_platforms or list(PLATFORMS)
+    required = required_platforms or list(DEFAULT_REQUIRED_PLATFORMS)
     if merged["state"] == "active":
         profiles = {variant["runtimeProfile"] for variant in merged["variants"]}
         for profile in profiles:

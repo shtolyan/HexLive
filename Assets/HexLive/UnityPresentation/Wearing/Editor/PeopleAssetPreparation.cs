@@ -237,6 +237,29 @@ public static class PeopleAssetPreparation
         File.WriteAllText(Root + "/Validation/paint-map-coverage.json", new JObject { ["passed"] = true, ["zones"] = rows }.ToString());
     }
 
+    public static void FinalizePreparedData()
+    {
+        PeopleCatalogPreparation.Prepare();
+        AuditPaintMaps();
+        var builder = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AtomicContentBatchBuild")).First(t => t != null);
+        builder.GetMethod("AuditPeopleCatalog").Invoke(null, null);
+        // Earlier experiments made native copies before the FBX postprocessor.
+        // Only remove those disposable copies when no catalog entry uses them.
+        var catalog = JObject.Parse(File.ReadAllText(Root + "/catalog.json"));
+        var roots = catalog["records"].SelectMany(r => new[] { (string)r["main"], (string)r["definition"] })
+            .Where(p => !string.IsNullOrEmpty(p)).ToArray();
+        var dependencies = new HashSet<string>(AssetDatabase.GetDependencies(roots, true));
+        foreach (var folder in new[] { Root + "/Meshes", Root + "/Avatars" })
+        {
+            if (!AssetDatabase.IsValidFolder(folder)) continue;
+            if (dependencies.Any(p => p.StartsWith(folder + "/", StringComparison.Ordinal)))
+                throw new InvalidOperationException("Obsolete native copy is still referenced: " + folder);
+            if (!AssetDatabase.DeleteAsset(folder)) throw new InvalidOperationException("Cannot remove obsolete copies: " + folder);
+        }
+        AssetDatabase.Refresh();
+        Debug.Log("PEOPLE_DATA_FINALIZED: catalog/maps audited, obsolete native copies removed; no bundles built");
+    }
+
     public static void RenderFaces()
     {
         foreach (string actor in new[] { "Marta", "Kshishtof" })

@@ -86,3 +86,15 @@ UPM запуску помог отдельный официальный helper �
 Найдены и подготовлены локально: 78 `metadata.simulation` (реальный server validator passed:41 female/37 male), сохранение skin tint в SetSkinWeathering/skin painter, удаление перенесённых костей People-одежды при TakeOff. Это ещё один коммит после fa94a2112; твою текущую сборку не прерывать (она пока не включает новый каталог).
 
 Критичный серверный seam: index платформенный, но AssetGarmentCatalog.Materialize берёт все wear records. Простая добавка People к прежнему Singapore root оставит старую одежду spawnable без WebGL variants. Нужен отдельный WebGL registry/root либо согласованная миграция active wardrobe. Это только план подготовки; никаких server/content mutations я не делал. Согласуй со своей архитектурой; не меняй сервер ради этого сообщения.
+
+## Unity taken again for final paint checks
+
+Claude released after player build; Codex owns UNITY_OWNER for FinalizePreparedData and graphics PlayMode. Only b08696098 own Assets changes plus test/finalizer copied into execution. Build/WebGL and Claude audio/server paths untouched. Execution has pre-existing LFS staged noise; no commit/staging there. Will release after tests and provide next source commit.
+
+FinalizePreparedData succeeded (121 dry-run records, maps, native copy cleanup); PlayMode fixture in progress. First unity test caused a full compilation of test-enabled package dependencies, longer than my estimate. No errors so far; not hung (compiler processes advance). UNITY_OWNER remains Codex until process exits.
+
+First PlayMode run hit CLI 900s launch timeout after two successful complete script compiles; reached runtime bootstrap, no test XML yet. Retrying with warm cache and longer timeout. Still Codex-owned, no bundles/Build.WebGL changes.
+
+## UNITY released — 2026-10-09 11:37 UTC
+
+Graphics PlayMode passed 3/3 (14.98 s test execution): all 78 garment variants dirt/tear pixels + wet restore + bone-count cleanup; both bodies skin tone/blood pixels, eye/teeth isolation; skin tint survives weathering. Full initial test compile exceeded 900s; warm-cache retry passed. FinalizePreparedData passed and deleted obsolete unreferenced People/Meshes + Avatars in execution. No bundles built. UNITY_OWNER removed after Editor exited. Preparing own final source commit now; wait for hash before snapshot checkout. Execution has b086 own changes + finalizer/test; do not discard.

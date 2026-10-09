@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-09 11:36:27Z" end-time="2026-10-09 11:36:42Z" duration="14.976398">
+  <test-suite type="TestSuite" id="1079" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="58" result="Passed" start-time="2026-10-09 11:36:27Z" end-time="2026-10-09 11:36:42Z" duration="14.976398" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1073" name="HexLive.AgentIntegration.Tests.dll" fullname="/Users/shtolyan/hex-girls/webgl-build/HexLive/Library/ScriptAssemblies/HexLive.AgentIntegration.Tests.dll" runstate="Runnable" testcasecount="58" result="Passed" start-time="2026-10-09 11:36:27Z" end-time="2026-10-09 11:36:42Z" duration="14.951219" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="55220" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1074" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="58" result="Passed" start-time="2026-10-09 11:36:27Z" end-time="2026-10-09 11:36:42Z" duration="14.942219" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1075" name="Tests" fullname="HexLive.Tests" runstate="Runnable" testcasecount="58" result="Passed" start-time="2026-10-09 11:36:27Z" end-time="2026-10-09 11:36:42Z" duration="14.927041" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1053" name="PeoplePaintRuntimeTests" fullname="HexLive.Tests.PeoplePaintRuntimeTests" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-09 11:36:27Z" end-time="2026-10-09 11:36:42Z" duration="14.905063" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1056" name="EveryGarmentVariantPaintsDirtAndTears" fullname="HexLive.Tests.PeoplePaintRuntimeTests.EveryGarmentVariantPaintsDirtAndTears" methodname="EveryGarmentVariantPaintsDirtAndTears" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="1386108167" result="Passed" start-time="2026-10-09 11:36:27Z" end-time="2026-10-09 11:36:34Z" duration="7.515490" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1054" name="SelectedSkinTintSurvivesWeatheringUpdates" fullname="HexLive.Tests.PeoplePaintRuntimeTests.SelectedSkinTintSurvivesWeatheringUpdates" methodname="SelectedSkinTintSurvivesWeatheringUpdates" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="501517993" result="Passed" start-time="2026-10-09 11:36:34Z" end-time="2026-10-09 11:36:34Z" duration="0.070159" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1055" name="SkinToneAndBloodReachNewAtlasWithoutPaintingEyesOrTeeth" fullname="HexLive.Tests.PeoplePaintRuntimeTests.SkinToneAndBloodReachNewAtlasWithoutPaintingEyesOrTeeth" methodname="SkinToneAndBloodReachNewAtlasWithoutPaintingEyesOrTeeth" classname="HexLive.Tests.PeoplePaintRuntimeTests" runstate="Runnable" seed="1897392991" result="Passed" start-time="2026-10-09 11:36:34Z" end-time="2026-10-09 11:36:42Z" duration="7.233937" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/shtolyan/Library/Application Support/JuicyLove/HexLive/TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

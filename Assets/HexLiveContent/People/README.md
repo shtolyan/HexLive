@@ -37,8 +37,15 @@ samples per body stayed finite and moved the feet. Underwear hid male genitals.
 `paint-map-coverage.json` and `catalog-dependencies.json` are separate checks.
 Source weights are preserved (up to 11/10 influences), not silently capped.
 
-**gameReady remains false.** Real PlayMode dirt/tear/tan pixel checks, gameplay
-spawn/portrait/lipsync and browser performance still need validation. Fit and all
+`Validation/paint-playmode.xml`: graphics PlayMode passed 3/3 tests. All 78
+wear variants changed dirt pixels and generated additional tear holes; drying
+restored material values, removal restored the original skeleton count. Both
+bodies passed skin-tone/blood pixel checks with eyes/teeth unchanged. Selected
+skin tint survived weathering updates. These tests load the new assets directly;
+they do not validate remote bundle loading.
+
+**gameReady remains false.** Gameplay spawn/portrait/lipsync through the live
+catalog and browser performance still need validation. Fit and all
 16 hair silhouettes need final visual review; automated bounds checks cannot
 prove absence of clothing intersections. Icons follow the human wardrobe review.
 No browser performance or bundle-loading result is claimed from Editor renders.
@@ -55,6 +62,8 @@ imports/audits sources, generates prefabs, validates run/fit and bakes maps.
 `ValidatePrepared` regenerates maps/catalog/preview after an existing import.
 `FinishVisualReview` produces outfit/face images, verifies map coverage and calls
 `AtomicContentBatchBuild.AuditPeopleCatalog` (dry run, no BuildPipeline).
+`FinalizePreparedData` audits the catalog/maps and removes obsolete native
+Mesh/Avatar copies only when the catalog has no dependencies on them.
 `PeoplePaintRuntimeTests` is a graphics PlayMode fixture for local paint assets;
 it is not a server/bundle integration test.
 

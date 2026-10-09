@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "referenceEdges": 929,
+  "missing": [],
+  "duplicateGUIDs": [],
+  "resolvedExternal": {
+    "83e1a6a61910c4ab4ad9dc3265780b2c": "Assets/ImportedActors/AnimLibrary/Male@Run.fbx (tracked, sparse checkout)",
+    "776adaaacdc5c4e8ab0395120a6e972b": "Assets/RootMotion/FinalIK/IK Components/LookAtIK.cs (tracked, sparse checkout)",
+    "a70e525c82ce9413fa4d940ad7fcf1db": "Assets/RootMotion/FinalIK/IK Components/FullBodyBipedIK.cs (tracked, sparse checkout)",
+    "d0353a89b1f911e48b9e16bdc9f2e058": "Library/PackageCache/com.unity.render-pipelines.universal@4d008a28541a/Editor/AssetVersion.cs (installed URP package)",
+    "933532a4fcc9baf4fa0491de14d08ed7": "Library/PackageCache/com.unity.render-pipelines.universal@4d008a28541a/Shaders/Lit.shader (installed URP package)"
+  }
+}

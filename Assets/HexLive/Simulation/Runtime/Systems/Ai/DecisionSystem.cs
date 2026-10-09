@@ -36,7 +36,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
     // Spec 28.8/28.15A: how long an invited NPC waits for the initiator.
     private static int TalkWaitTimeoutTicks => AiBalance.TalkWaitTimeoutTicks;
 
-    // §168.4: кандидатки в собеседницы одного прохода, по убыванию симпатии,
+    // §170.4: кандидатки в собеседницы одного прохода, по убыванию симпатии,
     // и страдающие соседки по убыванию страдания.
     private readonly System.Collections.Generic.List<PerceivedAgent> _talkCandidatesScratch = new();
     private static readonly System.Collections.Generic.List<PerceivedAgent> _aidCandidatesScratch = new();
@@ -725,7 +725,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             // Spec 28.6 / 28.15A: Socialize needs a reachable non-busy agent;
             // affinity toward the best target feeds the score back positively.
             //
-            // §168.4: скорингу нужны ровно два ответа — «есть ли к кому
+            // §170.4: скорингу нужны ровно два ответа — «есть ли к кому
             // подойти» и «лучшая симпатия среди тех, к кому можно». Раньше
             // проверка подхода (A* с бюджетом 1500 узлов) делалась для КАЖДОЙ
             // видимой соседки, то есть O(лагерь²) поисков на средний тик: в
@@ -744,10 +744,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     continue;
                 }
 
-                // §168.6 (а): соседка за полострова — не собеседница. Тот же
+                // §170.6 (а): соседка за полострова — не собеседница. Тот же
                 // фильтр стоит в BuildTalkPlan, иначе план падал бы на цели,
                 // которую скоринг не считал.
-                if (HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec168.SocializeApproachMaxTiles)
+                if (HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec170.SocializeApproachMaxTiles)
                 {
                     continue;
                 }
@@ -2820,7 +2820,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // разрешает прогулку доступность. Поэтому гейт здесь, а не в весе.
         var fitToWander = !npc.Body.IsCrawling &&
             npc.Health >= AiBalance.ExploreHealthFloor;
-        // §168.7: сначала дешёвый гейт — кольцо разведки (до ~26 тыс. узлов)
+        // §170.7: сначала дешёвый гейт — кольцо разведки (до ~26 тыс. узлов)
         // не сканируется для той, кому гулять всё равно нельзя. Результат тот же.
         var exploreAvail = fitToWander && PlanningSystem.HasExploreCandidate(world, npc);
         // §146.12: loneliness turns ordinary 3..8-tile exploration into a
@@ -2971,7 +2971,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         aidSelfOk = selfOk;
         if (selfOk)
         {
-            // §168.4: нужны две победительницы — самая страдающая, кому есть
+            // §170.4: нужны две победительницы — самая страдающая, кому есть
             // чем помочь (Aid), и самая страдающая, ради кого идти за
             // припасом (errand). Проверка подхода — A* на каждую, и раньше она
             // делалась для КАЖДОЙ страдающей соседки (в лагере на 17 человек
@@ -3003,10 +3003,10 @@ public sealed partial class DecisionSystem : ISimulationSystem
                     continue;
                 }
 
-                // §168.6 (а): далёкая страдающая — не кандидатка, кроме умирающей.
+                // §170.6 (а): далёкая страдающая — не кандидатка, кроме умирающей.
                 // Тот же фильтр стоит в BuildAidPlan.
                 if (!agent.IsDying &&
-                    HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec168.AidApproachMaxTiles)
+                    HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec170.AidApproachMaxTiles)
                 {
                     continue;
                 }
@@ -3372,7 +3372,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
             Reason = $"Selected {best.Goal} at tick {world.Tick}"
         };
 
-        // §168.4: список растёт с нуля на каждое решение — задать ёмкость сразу.
+        // §170.4: список растёт с нуля на каждое решение — задать ёмкость сразу.
         npc.Mind.LastDecision.Scores.Capacity = npc.Mind.LastScores.Count;
         foreach (var score in npc.Mind.LastScores)
         {

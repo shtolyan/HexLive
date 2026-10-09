@@ -1,7 +1,7 @@
 namespace HexLive.Simulation.Common
 {
     /// <summary>
-    /// §168.4: эпоха «кто где стоит и что держит». Растёт на каждую запись
+    /// §170.4: эпоха «кто где стоит и что держит». Растёт на каждую запись
     /// <c>NPCState.CurrentJunction</c>, <c>MobState.Junction</c> и на каждое
     /// изменение <c>ClaimedJunctions</c> (оба места — в ExecutionSystem).
     /// Единственный потребитель — мемо <c>PathfindingSystem.OtherActorJunctions</c>:

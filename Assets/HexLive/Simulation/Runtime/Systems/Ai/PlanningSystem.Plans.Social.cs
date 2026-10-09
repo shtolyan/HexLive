@@ -87,7 +87,7 @@ public sealed partial class PlanningSystem
         // Обходим тайлы кольца и отвечаем на первом же годном узле; узел,
         // повторившийся у соседнего тайла, просто отвергнется ещё раз.
         //
-        // §168.7: радиус обхода — тот, что принимает сам фильтр
+        // §170.7: радиус обхода — тот, что принимает сам фильтр
         // (ExploreRejectionFor: обычная прогулка ≤ 8 тайлов, критический поиск
         // ≤ 12), а не полные 13 ExploreRingCollectRadius: кольца дальше
         // отвергались бы по Distance все до одного, а площадь растёт
@@ -669,11 +669,11 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
-            // §168.6 (а): тот же кап дистанции, что в скоринге Socialize.
+            // §170.6 (а): тот же кап дистанции, что в скоринге Socialize.
             // Слушательница инициативы §167.7 выбрана DirectiveMath и под кап
             // не попадает (ветка initiativeTarget выше уже отсеяла остальных).
             if (initiativeKind == DirectiveKind.None &&
-                HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec168.SocializeApproachMaxTiles)
+                HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec170.SocializeApproachMaxTiles)
             {
                 continue;
             }
@@ -837,7 +837,7 @@ public sealed partial class PlanningSystem
             return false;
         }
 
-        // §168.4: карта компонент отвечает «дороги нет» за O(1) там, где A*
+        // §170.4: карта компонент отвечает «дороги нет» за O(1) там, где A*
         // узнал бы это, исчерпав бюджет. Ответ тот же: hardAvoid и обход
         // людей только сужают множество путей, которое карта считает полным.
         var canJump = CanUseRoutineTraversal(npc);
@@ -1315,9 +1315,9 @@ public sealed partial class PlanningSystem
                 continue;
             }
 
-            // §168.6 (а): тот же кап дистанции, что в ставке Aid (умирающая — без капа).
+            // §170.6 (а): тот же кап дистанции, что в ставке Aid (умирающая — без капа).
             if (!agent.IsDying &&
-                HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec168.AidApproachMaxTiles)
+                HexSpatialMath.HexDistance(npc.Tile, agent.Tile) > Spec170.AidApproachMaxTiles)
             {
                 continue;
             }

@@ -26,7 +26,7 @@ public sealed class MobState
         set
         {
             _junction = value;
-            Common.ActorOccupancy.Epoch++; // §168.4
+            Common.ActorOccupancy.Epoch++; // §170.4
         }
     }
 

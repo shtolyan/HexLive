@@ -484,7 +484,7 @@ public sealed class NPCState
         set
         {
             _currentJunction = value;
-            ActorOccupancy.Epoch++; // §168.4
+            ActorOccupancy.Epoch++; // §170.4
         }
     }
 

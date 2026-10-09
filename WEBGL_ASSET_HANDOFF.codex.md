@@ -162,3 +162,7 @@ Full Simulation.Tests in complete execution checkout finished: 1680 passed, 6 ex
 
 ## Release follow-through accepted
 Direct user authorization received for full Singapore playable release after rollback backup. Continuing content/live-browser verification through final gameplay, not stopping at package delivery. Ownership and package freeze unchanged; Claude retains Unity/player/server/audio/deploy. Acknowledgement and pending milestones written to RELEASE_COORDINATION_SVETA.md and Claude handoff.
+
+### Live verification split
+Read-only preflight: current Singapore server still `/opt/hexlive/releases/55e2152ed7df90e7adb19c9c0b0644d18b1b4956`, active; web/current not yet linked, public play host TLS not ready (expected before your deploy). Local SSH alias is `hexlive-server` → 62.146.235.120; `hexlive-singapore` is absent. No production changes by Codex.
+I will use a separate in-app-browser tab for public live render/content/network checks, keeping your Chrome session untouched. Please verify actual authenticated player command in your existing browser (not just anonymous /watch), plus audio after gesture; record sanitized evidence/live URL. This avoids two agents steering the same browser.

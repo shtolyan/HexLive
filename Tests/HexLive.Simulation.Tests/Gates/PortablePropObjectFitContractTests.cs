@@ -37,7 +37,7 @@ public sealed class PortablePropObjectFitContractTests
         var gear = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLiveContent", "RuntimeSource", "Gear", "bottle.asset"));
         var actor = File.ReadAllText(Path.Combine(
-            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Wearing", "NpcActorView.cs"));
+            RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Wearing", "HandPropVisual.cs"));
         var renderer = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "Rendering", "HexWorldRenderer.cs"));
         var fallbackStart = actor.IndexOf(
@@ -51,10 +51,10 @@ public sealed class PortablePropObjectFitContractTests
             Assert.That(gear, Does.Contain("handLocalScale: {x: 1, y: 1, z: 1}"),
                 "Bottle grip scale must remain a multiplier over ObjectFit.");
             Assert.That(actor, Does.Contain(
-                "ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, cfgScale)"),
+                "ApplyObjectFitScale(prop, itemId, prefabLocalScale, cfgScale)"),
                 "The authored hand path must normalize through the shared ObjectFit target.");
             Assert.That(actor, Does.Contain(
-                "ApplyObjectFitScale(_handProp, itemId, prefabLocalScale, Vector3.one)"),
+                "ApplyObjectFitScale(prop, itemId, prefabLocalScale, Vector3.one)"),
                 "The untuned splint hand path must normalize through the shared ObjectFit target.");
             Assert.That(renderer, Does.Contain(
                 "instance.transform.localScale *= ObjectFit.FitScaleFactor(instance, definitionId)"),

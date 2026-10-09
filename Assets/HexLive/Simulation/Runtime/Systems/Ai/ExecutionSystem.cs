@@ -225,6 +225,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            if (lastStep?.InteractionId == HumanMeatCatalog.ButcherPerson)
+            {
+                HumanButchery.Run(world, npc);
+                continue;
+            }
+
             if (lastStep is { Type: PlanStepType.PickUpPerson } &&
                 npc.Mind.CurrentGoal == GoalType.PlayerOrder)
             {
@@ -801,9 +807,10 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // longer), then her own hands (Strength/Wits + the learned
                 // trade). Both stages round instead of truncating, and at
                 // multiplier 1f both are exactly the authored number.
-                var toolSpeedMult = Content.GearCatalog.BestSpeedMultFor(
-                    npc.Inventory.Items,
-                    Content.GearCatalog.RequiredCapabilities(interaction, definition));
+                var actionTool = Content.GearCatalog.BestToolFor(npc.Inventory.Items,
+                    Content.GearCatalog.RequiredCapabilities(interaction, definition), npc.Body.IntactHands);
+                var toolSpeedMult = actionTool is null ? 1f
+                    : Content.GearCatalog.For(actionTool.DefinitionId).HarvestSpeedMult;
                 var authoredWorkTicks = RecipeCatalog.UsesPersistentProject(npc.Plan.Goal)
                     ? Spec119.CraftCycleWork
                     : npc.Plan.Goal == GoalType.CraftSplint
@@ -832,6 +839,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 {
                     npc.Execution.Status = ExecutionStatus.InProgress;
                     npc.Execution.CurrentInteraction = interaction.Type;
+                    npc.Execution.ActionTool = actionTool;
+                    npc.Execution.ActionItemsBound = true;
                     npc.Execution.TargetObject = worldObject.Id;
                     npc.Execution.StartTick = world.Tick;
                     npc.Execution.EndTick = world.Tick + workTicks;
@@ -870,6 +879,15 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
             if (npc.Execution.Status == ExecutionStatus.InProgress)
             {
+                if (npc.Execution.ActionTool is { } tool &&
+                    (!InventoryMath.ContainsReference(npc.Inventory.Items, tool) ||
+                     !npc.Body.HasUsableHand ||
+                     (GearCatalog.For(tool.DefinitionId).TwoHanded && !npc.Body.CanUseTwoHanded)))
+                {
+                    PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                        "Action tool disappeared or hands became unavailable");
+                    continue;
+                }
                 if (npc.Execution.CurrentInteraction == InteractionType.Craft &&
                     RecipeCatalog.UsesPersistentProject(npc.Plan.Goal))
                 {
@@ -1233,11 +1251,13 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked) <
                 SimBalance.CampfireSpitCapacity)
             {
-                ConsumeRecipeInputs(npc, npc.Plan.Goal);
-                // ResourceAmount doubles as roast progress (ticks).
-                worldObject.Contents.Add(new ItemInstance(ContentIds.MeatRaw));
+                var raw = HumanMeatCatalog.FirstRaw(npc);
+                if (raw == null) return false;
+                InventoryMath.RemoveReference(npc.Inventory.Items, raw);
+                raw.ResourceAmount = 0f;
+                worldObject.Contents.Add(raw);
                 Trace.Emit(world, npc.Id, "MeatHungOnSpit",
-                    $"food.meat_raw on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
+                    $"{raw.DefinitionId} on the spit at Tile={worldObject.Tile.Q},{worldObject.Tile.R} " +
                     $"hanging raw={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatRaw)} " +
                     $"cooked={BuildSiteMath.HangingMeat(worldObject, ContentIds.MeatCooked)}");
             }
@@ -1789,7 +1809,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
             // Item moves from world to inventory; the world object is gone,
             // so occupancy flags die with it (spec 29B.2).
-            var picked = new ItemInstance(worldObject.DefinitionId)
+            var picked = new ItemInstance(worldObject.DefinitionId == ContentIds.SeveredLimb
+                ? HumanMeatCatalog.FromLimb(worldObject.Variant) : worldObject.DefinitionId)
             {
                 Wetness = worldObject.Wetness,
                 Durability = worldObject.Durability,
@@ -2094,6 +2115,11 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // meat goes into the butcher's pack (hide still scatters); see the
         // yield declarations. Butchering a housemate costs comfort
         // (cannibalism).
+        if (definition.HasTag(ObjectTags.Corpse) && CorpseMath.BodyOf(world, worldObject) is { } human)
+        {
+            HumanButchery.Dismantle(world, npc, worldObject, human);
+            return true;
+        }
         ApplyHarvestYields(world, npc, worldObject, completedInteraction.Yields);
         var wasCorpse = definition.HasTag("Corpse");
         if (wasCorpse && SimBalance.CannibalismEnabled)
@@ -2436,7 +2462,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 }
 
                 var item = CreateYieldItem(world, drop.DefinitionId);
-                if (!TryDropYieldNear(world,npc,source,item,out _)) GiveOrDrop(world,npc,item);
+                if (!TryDropYieldNear(world,npc,source,item,out _, scatter:true)) GiveOrDrop(world,npc,item);
             }
         }
     }
@@ -2487,13 +2513,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     }
 
     private static bool TryDropYieldNear(WorldState world,NPCState npc,WorldObjectState source,
-        ItemInstance item,out WorldObjectState spawned)
+        ItemInstance item,out WorldObjectState spawned,bool scatter=false)
     {
         var position = source.Junctions.Count > 0 && world.Junctions.Items.TryGetValue(source.Junctions[0],out var anchor)
             ? anchor.WorldPosition : npc.Position;
-        if (GroundItemPlacement.TryFindNear(world,npc,item,source.Tile,position,out var tile,out var junction,out _))
+        if (GroundItemPlacement.TryFindNear(world,npc,item,source.Tile,position,out var tile,out var junction,out _,scatter))
         {
             spawned = SpawnDroppedItem(world,npc,item,tile,junction);
+            spawned.IsHarvestScatter = scatter;
             return true;
         }
         spawned = null;

@@ -1,0 +1,7 @@
+.update-root { position: absolute; right: 18px; top: 18px; width: 390px; max-width: 90%; }
+.update-panel { background-color: rgb(19, 24, 28); color: rgb(231, 236, 239); padding: 16px; border-radius: 8px; border-width: 1px; border-color: rgb(70, 82, 90); }
+.update-panel Label { white-space: normal; margin-bottom: 8px; }
+.update-panel Button { background-color: rgb(240, 180, 92); color: rgb(15, 22, 26); min-height: 32px; margin-top: 6px; border-width: 0; border-radius: 4px; }
+.update-panel Button:disabled { opacity: 0.45; }
+.update-panel .update-secondary { background-color: rgb(34, 42, 49); color: rgb(231, 236, 239); }
+.update-hidden { display: none; }

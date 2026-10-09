@@ -421,30 +421,31 @@ namespace HexLive.Simulation.Content
             System.Collections.Generic.IEnumerable<Agents.ItemInstance> items,
             GearCapability anyOf)
         {
-            if (anyOf == GearCapability.None)
-            {
-                return 1f;
-            }
+            var tool = BestToolFor(items, anyOf);
+            return tool is null ? 1f : (For(tool.DefinitionId).HarvestSpeedMult > 0f ? For(tool.DefinitionId).HarvestSpeedMult : 1f);
+        }
 
-            var best = 0f;
+        /// <summary>§59.5: the same physical tool supplies speed and hand visual.
+        /// Equal speeds retain inventory order for deterministic selection.</summary>
+        public static Agents.ItemInstance BestToolFor(
+            System.Collections.Generic.IEnumerable<Agents.ItemInstance> items,
+            GearCapability anyOf, int usableHands = 2)
+        {
+            if (anyOf == GearCapability.None || usableHands <= 0) return null;
+            Agents.ItemInstance best = null;
+            var speed = float.NegativeInfinity;
             foreach (var item in items)
             {
                 var stats = For(item.DefinitionId);
-                if (stats.Id != item.DefinitionId ||   // fist-fallback cache ≠ real gear
-                    (stats.Capabilities & anyOf) == 0)
+                if (stats.Id != item.DefinitionId || (stats.Capabilities & anyOf) == 0 ||
+                    (stats.TwoHanded && usableHands < 2)) continue;
+                if (stats.HarvestSpeedMult > speed)
                 {
-                    continue;
-                }
-
-                if (stats.HarvestSpeedMult > best)
-                {
-                    best = stats.HarvestSpeedMult;
+                    best = item;
+                    speed = stats.HarvestSpeedMult;
                 }
             }
-
-            // Nothing in the pack does this job (bare-handed work, or a gate
-            // that let her through some other way) — authored pace.
-            return best > 0f ? best : 1f;
+            return best;
         }
 
         /// <summary>The capabilities a job accepts: the content's declared
@@ -480,7 +481,7 @@ namespace HexLive.Simulation.Content
                     }
 
                     // Spec §54: yucca is cut with a blade, trees are felled.
-                    return tags != null && tags.Contains("Yucca")
+                    return tags != null && (tags.Contains("Yucca") || tags.Contains("HerbBush"))
                         ? GearCapability.Cut
                         : GearCapability.ChopWood;
                 case InteractionType.Process:

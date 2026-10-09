@@ -1,0 +1,16 @@
+update.check	Check for updates	Проверить обновления
+update.checking	Checking for updates…	Проверяем обновления…
+update.current	You have the latest version	Установлена актуальная версия
+update.available	A new version is available	Доступна новая версия
+update.required	Update required before entering a world	Для входа в мир необходимо обновление
+update.downloading	Downloading update…	Скачиваем обновление…
+update.ready	Update ready to install	Обновление готово к установке
+update.preparing	Preparing installation…	Подготавливаем установку…
+update.cancelled	Download paused. You can resume it.	Загрузка остановлена. Можно продолжить.
+update.error	Update failed. Your installed game is preserved. Try again.	Не удалось обновиться. Установленная игра сохранена. Повторите попытку.
+update.unconfigured	Updates are not configured for this build	Для этой сборки обновления не настроены
+update.download	Download	Скачать
+update.install	Update and restart	Обновить и перезапустить
+update.cancel	Cancel download	Отменить загрузку
+update.later	Later	Позже
+update.permissions	The installation folder is read-only. Reinstall HexLive into a folder owned by your user.	Папка установки недоступна для записи. Переустановите HexLive в папку вашего пользователя.

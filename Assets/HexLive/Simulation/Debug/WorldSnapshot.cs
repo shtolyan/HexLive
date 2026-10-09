@@ -323,6 +323,8 @@ public sealed class ObjectSnapshot
     // +X). The view maps it through SimulationUnityMapper.ToUnityYawDegrees.
     public float RotationDegrees { get; set; }
 
+    public bool IsHarvestScatter { get; set; }
+
     // Spec 29E.3: fuel ticks. For a campfire, > 0 means lit/burning.
     public float ResourceAmount { get; set; }
 

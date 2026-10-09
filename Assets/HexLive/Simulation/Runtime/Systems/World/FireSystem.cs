@@ -119,7 +119,7 @@ public sealed class FireSystem : ISimulationSystem
         for (var i = 0; i < fire.Contents.Count; i++)
         {
             var item = fire.Contents[i];
-            if (item.DefinitionId != ContentIds.MeatRaw)
+            if (!HumanMeatCatalog.IsRaw(item.DefinitionId))
             {
                 continue;
             }
@@ -130,9 +130,9 @@ public sealed class FireSystem : ISimulationSystem
                 continue;
             }
 
-            fire.Contents[i] = new ItemInstance(ContentIds.MeatCooked);
+            fire.Contents[i] = new ItemInstance(HumanMeatCatalog.Cooked(item.DefinitionId));
             Trace.EmitSystem(world, "MeatRoasted",
-                $"food.meat_raw -> food.meat_cooked on the spit at " +
+                $"{item.DefinitionId} -> {HumanMeatCatalog.Cooked(item.DefinitionId)} on the spit at " +
                 $"Tile={fire.Tile.Q},{fire.Tile.R} " +
                 $"(hanging cooked={BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked)})");
         }

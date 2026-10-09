@@ -177,7 +177,8 @@ public static class WorldSaveSerializer
     // v78 (§167): accepted directive at the end of each NPC record and the
     // Authority axis (§28.2) in every relationship record.
     // v79 (§55.5 / #417): per-vessel appearance, independent of safe water kind.
-    public const int BlobVersion = 80;
+    // v81 (§54.21 / #429): ground harvest scatter; old objects remain orderly.
+    public const int BlobVersion = 81;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1342,6 +1343,7 @@ public static class WorldSaveSerializer
         if (version >= 68) w.Write((int)obj.WaterKind);
         if (version >= 74) w.Write((byte)obj.ProduceOrigin);
         if (version >= 79) w.Write((int)obj.LastAddedWaterKind);
+        if (version >= 81) w.Write(obj.IsHarvestScatter);
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1462,6 +1464,7 @@ public static class WorldSaveSerializer
         if (obj.ProduceOrigin > ProduceOrigin.Gathered)
             throw new InvalidDataException("Invalid ground produce origin.");
         obj.LastAddedWaterKind = version >= 79 ? (WaterKind)r.ReadInt32() : obj.WaterKind;
+        obj.IsHarvestScatter = version >= 81 && r.ReadBoolean();
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including

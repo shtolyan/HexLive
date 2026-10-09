@@ -741,6 +741,7 @@ public sealed partial class ExecutionSystem
                 AidKind.Medicate => InteractionType.MedicateOther,
                 _ => InteractionType.ConsoleOther
             };
+            AidSupply.Bind(world, npc, kindNow);
             npc.Execution.TargetObject = null;
             npc.Execution.StartTick = world.Tick;
             var aidDuration = Spec118.Enabled && kindNow == AidKind.Treat

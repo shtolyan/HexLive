@@ -179,6 +179,15 @@ namespace HexLive.UnityPresentation.Config
 
         public static AnimationClip WorkClipFor(string gearId) => ConfigFor(gearId)?.workClip;
 
+        public static AnimationClip ActionClipFor(string gearId, string action)
+        {
+            var config = ConfigFor(gearId);
+            if (config?.actionAnimations != null)
+                foreach (var row in config.actionAnimations)
+                    if (row != null && row.clip != null && row.action.ToString() == action) return row.clip;
+            return null;
+        }
+
         /// <summary>§142: does this item ride in BOTH hands? Drives the upper-body
         /// carry layer and the off-hand IK; everything else stays one-handed.</summary>
         public static bool TwoHandedCarry(string gearId) => ConfigFor(gearId)?.twoHandedCarry == true;

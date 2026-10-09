@@ -116,8 +116,16 @@ internal static class InventoryMath
             return true;
         }
 
-        return ReplacementVictim(world, npc, incomingDefinitionId) is not null;
+        return CanDropReplacement(world, npc,
+            ReplacementVictim(world, npc, incomingDefinitionId));
     }
+
+    // §52.3 / #378: a lower-priority item is not free capacity until it can
+    // actually leave the pack. Match TryDropAutomatic's backoff and the real
+    // drop admission without spawning items or changing the retry timer.
+    private static bool CanDropReplacement(WorldState world, NPCState npc, ItemInstance victim) =>
+        victim is not null && world.Tick >= npc.Inventory.NextGroundDropRetryTick &&
+        GroundItemPlacement.TryFind(world, npc, victim, out _, out _, out _);
 
     /// <summary>A physical instance can enter without displacing anything.
     /// Used by completion paths which must distinguish a truly full pack from
@@ -144,13 +152,16 @@ internal static class InventoryMath
             return false;
         }
 
-        if (CanMakeRoomFor(world, npc, incomingDefinitionId))
+        if (FitsWithoutEviction(world, npc, incomingDefinitionId))
         {
             return true;
         }
 
-        return SurvivalKnifeMaterialVictim(
-            world, npc, goal, incomingDefinitionId) is not null;
+        // MakeRoomForGoal uses the ordinary victim first. Do not promise a
+        // different emergency victim when the ordinary one cannot be dropped.
+        var victim = ReplacementVictim(world, npc, incomingDefinitionId) ??
+            SurvivalKnifeMaterialVictim(world, npc, goal, incomingDefinitionId);
+        return CanDropReplacement(world, npc, victim);
     }
 
     public static bool MakeRoomFor(WorldState world, NPCState npc, string incomingDefinitionId)

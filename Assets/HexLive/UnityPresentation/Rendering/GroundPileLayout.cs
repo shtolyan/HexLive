@@ -27,6 +27,20 @@ public sealed class GroundPileLayout : MonoBehaviour
         }
     }
 
+    public void ApplyScatter(int objectId)
+    {
+        SlotIndex = 0; Capacity = 1;
+        SlotTransform.localPosition = Vector3.zero;
+        SlotTransform.localRotation = Quaternion.Euler(0f, ScatterYaw(objectId), 0f);
+    }
+
+    public static float ScatterYaw(int objectId)
+    {
+        uint state = unchecked((uint)objectId * 2654435761u);
+        state = unchecked(state * 1664525u + 1013904223u);
+        return (state >> 8) / 16777216f * 360f;
+    }
+
     public void ApplyLegacy(int objectId)
     {
         SlotIndex = -1; Capacity = 0;

@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.AI;
 using HexLive.Simulation.Agents;
@@ -835,7 +836,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                 buildOffered = true;
             }
 
-            var ok = HasEveryTool(carried, interaction);
+            var actingNpc = snapshot?.Npcs.Find(candidate => candidate.Id.Value == actorId);
+            var usableHands = actingNpc is null ? 0
+                : (BodyPartFunctionSnapshotMath.LimbFunction(actingNpc.BodyPartConditions, BodyPart.ArmR) >= BodyState.UsableHandFunctionThreshold ? 1 : 0)
+                + (BodyPartFunctionSnapshotMath.LimbFunction(actingNpc.BodyPartConditions, BodyPart.ArmL) >= BodyState.UsableHandFunctionThreshold ? 1 : 0);
+            var ok = ActionRequirements.HasTool(carried, interaction.RequiredCapabilities, usableHands);
             var objectId = view.ContextObjectId;
             var type = interaction.Type;
             var interactionId = interaction.Id;
@@ -850,7 +855,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     new InteractCommand(
                         actor, new ObjectId(objectId), type, interactionId)),
                 ok,
-                ok ? null : Loc.Get("menu.missing_tool"))
+                ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool"))
             { Danger = theft });
 
             // §121.10 (баг #270): рядом с «Подобрать» — «Собрать все». Собрать
@@ -869,7 +874,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                         new GatherAllOnHexCommand(
                             actor, new ObjectId(objectId), type, interactionId)),
                     ok,
-                    ok ? null : Loc.Get("menu.missing_tool"))
+                    ok ? null : Loc.Get(usableHands == 0 ? "menu.needs_hand" : "menu.missing_tool"))
                 { Danger = theft });
             }
         }
@@ -943,7 +948,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // иначе он был бы обещанием без содержания.
         if (definition.HasTag(ObjectTags.Campfire))
         {
-            var hasRawMeat = carried.Contains(ContentIds.MeatRaw);
+            var hasRawMeat = carried.Any(HumanMeatCatalog.IsRaw);
             _entries.Add(new ContextMenuEntry(
                 Loc.Get("menu.cook_meat"),
                 () => EnqueueOrder(actorId,
@@ -1182,6 +1187,15 @@ public sealed class SimulationInputAdapter : MonoBehaviour
                     }
                 }),
                 directiveEnabled, directiveEnabled ? null : directiveHint));
+        }
+
+        if (dead || target.IsUnconscious)
+        {
+            _entries.Add(new ContextMenuEntry(Loc.Get("menu.butcher_person"),
+                () => OpenConfirmMenu(mousePos, NpcTitle(npcId), "menu.butcher_person.confirm",
+                    () => EnqueueOrder(carrier!.Id.Value, new ButcherPersonCommand(
+                        new EntityId(carrier.Id.Value), new EntityId(npcId)))),
+                canOrderSocial, canOrderSocial ? null : socialBlocked));
         }
 
         // §121.9 (тёмная фаза): необратимые акты — только через подменю
@@ -1529,33 +1543,6 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         return items;
     }
 
-    /// <summary>
-    /// ЛЮБОЙ из перечисленных инструментов — это ANY-OF, ровно как гейт на
-    /// входе в ExecutionSystem: полено колется топором ИЛИ ножом. Серость
-    /// пункта обязана совпадать с тем, что скажет симуляция, иначе игрок
-    /// кликает по доступному на вид действию и получает отказ.
-    /// </summary>
-    private static bool HasEveryTool(List<string> carried, InteractionDefinition interaction)
-    {
-        if (interaction.RequiredCapabilities.Count == 0)
-        {
-            return true;
-        }
-
-        foreach (var capability in interaction.RequiredCapabilities)
-        {
-            for (var i = 0; i < carried.Count; i++)
-            {
-                if (GearCatalog.For(carried[i]).Has(capability))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     // Bug #312: тот же предикат кражи, что применит симуляция (TheftMath),
     // посчитанный по снапшоту: вещь на приватной земле НЕсоюзного лагеря
     // (5 гексов от его якоря), и владелец вещи — не союзник.
@@ -1598,10 +1585,10 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
     private static string InteractionVerb(InteractionDefinition interaction)
     {
-        var actionKey = $"interaction.{interaction.Id}.verb";
+        var actionKey = ActionRequirements.LabelKey(interaction);
         var localized = Loc.Get(actionKey);
         return localized == actionKey
-            ? Loc.Get($"interaction.{interaction.Type}.verb")
+            ? Loc.Get(ActionRequirements.FallbackLabelKey(interaction))
             : localized;
     }
 

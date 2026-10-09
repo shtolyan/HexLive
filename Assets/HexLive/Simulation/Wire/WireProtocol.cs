@@ -168,7 +168,7 @@ public sealed class Handshake
     // 20: §55.5/#417 — snapshot v42 carries bottle liquid appearance and fill.
     // 21: snapshot v43 — persistent craft current/last worker (§119, #422).
     // 22: §149.6 — durable assignment notices and acknowledgement.
-    public const int ProtocolVersion = 22;
+    public const int ProtocolVersion = 23; // §56.7: ButcherPerson command and human food definitions.
 
     public string WorldId { get; set; } = string.Empty;
     public string CreationConfig { get; set; } = string.Empty;

@@ -298,9 +298,10 @@ public void RegisteredConsumedProcessSourceReleasesItsOnlyGroundPointForYields()
     var method=typeof(ExecutionSystem).GetMethod("CompleteProcess",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
     Assert.That(method.Invoke(null,new object[]{world,npc,source,world.Content.ObjectDefinitions[source.DefinitionId],interaction,""}),Is.EqualTo(true));
     Assert.That(world.Entities.Objects.ContainsKey(source.Id),Is.False);
-    Assert.That(world.Entities.Objects.Count,Is.EqualTo(3));
-    Assert.That(world.Entities.Objects.Values.All(o=>o.DefinitionId==ContentIds.Stick && o.Junctions.Single()==npc.CurrentJunction.Value),Is.True);
-    Assert.That(npc.Inventory.Items,Is.Empty,"Consumed source must not force scatter yields into retained cargo");
+    Assert.That(world.Entities.Objects.Count,Is.EqualTo(1));
+    Assert.That(world.Entities.Objects.Values.Single().IsHarvestScatter,Is.True);
+    Assert.That(world.Entities.Objects.Values.Single().Junctions.Single(),Is.EqualTo(npc.CurrentJunction.Value));
+    Assert.That(npc.Inventory.Items.Count(i=>i.DefinitionId==ContentIds.Stick),Is.EqualTo(2),"No space: retain remaining loot without stacking it on the first piece");
 }
 
 [TestCase(PersonalCarePhase.Bathing)]
@@ -586,7 +587,7 @@ public void LegacyOverflowStowsFirst64ExactVictimsThenSpillsRemainderAfterGarmen
         Assert.That(result,Is.EqualTo(true),"A full ground must not retry the entire paid-yield completion");
         Assert.That(world.Entities.Corpses.ContainsKey(body.Id),Is.False);
         Assert.That(world.Entities.Objects.ContainsKey(corpse.Id),Is.False);
-        Assert.That(npc.Inventory.Items.Count(i=>i.DefinitionId==ContentIds.Stick),Is.EqualTo(3));
+        Assert.That(npc.Inventory.Items.Count(i=>HumanMeatCatalog.IsHumanPart(i.DefinitionId)),Is.EqualTo(5));
         Assert.That(npc.Inventory.Items.Any(i=>ReferenceEquals(i,retained)),Is.True);
         Assert.That(npc.Inventory.Items.Any(i=>ReferenceEquals(i,first)),Is.False);
         var dropped=world.Entities.Objects.Values.Single(o=>o.DefinitionId=="clothing.jacket_biker");
@@ -642,6 +643,54 @@ public void LegacyOverflowStowsFirst64ExactVictimsThenSpillsRemainderAfterGarmen
             return(metrics.ObjectsInspected,metrics.CandidatesChecked,allocated,
                 (Stopwatch.GetTimestamp()-started)*1000d/Stopwatch.Frequency);
         }
+    }
+
+    [TestCase(ContentIds.Log, 3)]
+    [TestCase(ContentIds.PalmLeaf, 42)]
+    public void HarvestScattersDistinctGroundObjectsAndRedropReturnsToOrderlyPlacement(string id, int count)
+    {
+        var (world,npc)=Fixture();
+        // Interior of the island: enough walkable ground for the real 42-leaf yield.
+        var node=world.Junctions.Items.Values.First(j=>j.Fragment==npc.Fragment&&!j.Blocked &&
+            j.Tiles.Count==1 && j.Tiles[0].Equals(TileCoord.Zero));
+        npc.CurrentJunction=node.Id; npc.Position=node.WorldPosition; npc.Tile=node.Tiles[0];
+        var source=new WorldObjectState { Tile=npc.Tile, Fragment=npc.Fragment };
+        source.Junctions.Add(node.Id);
+        ExecutionSystem.ApplyHarvestYields(world,npc,source,new[]{new HarvestDrop
+            {DefinitionId=id,Count=count,Scatter=true}});
+        var loot=world.Entities.Objects.Values.Where(o=>o.DefinitionId==id).ToArray();
+        Assert.That(loot.Length,Is.EqualTo(count));
+        Assert.That(loot.All(o=>o.IsHarvestScatter),Is.True);
+        Assert.That(loot.Select(o=>o.Junctions[0]).Distinct().Count(),Is.EqualTo(count));
+        Assert.That(GroundPileCatalog.TryGet(id,false,out var profile),Is.True);
+        var radius=profile.Single.RadiusXZ;
+        for(var i=0;i<loot.Length;i++) for(var j=i+1;j<loot.Length;j++)
+        {
+            var a=world.Junctions.Items[loot[i].Junctions[0]].WorldPosition;
+            var b=world.Junctions.Items[loot[j].Junctions[0]].WorldPosition;
+            Assert.That(Math.Abs(a.X-b.X)>=2*radius+.009f || Math.Abs(a.Y-b.Y)>=2*radius+.009f,Is.True);
+        }
+        using var bytes=new MemoryStream();
+        using(var writer=new BinaryWriter(bytes,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.Write(world,writer);
+        bytes.Position=0;var restored=TestWorld.CreateWorld();
+        using(var reader=new BinaryReader(bytes,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.Read(restored,reader);
+        foreach(var obj in loot) Assert.That(restored.Entities.Objects[obj.Id].IsHarvestScatter,Is.True);
+        var snapshot=HexLive.Simulation.Debug.WorldSnapshotExporter.Export(restored);
+        foreach(var obj in loot) Assert.That(snapshot.Objects.Single(o=>o.Id==obj.Id).IsHarvestScatter,Is.True);
+        // Existing v80 saves still load without guessing where their loose items came from.
+        using(var legacy=new MemoryStream())
+        {
+            using(var writer=new BinaryWriter(legacy,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.WriteAtVersion(world,writer,80);
+            legacy.Position=0;var oldWorld=TestWorld.CreateWorld();
+            using(var reader=new BinaryReader(legacy,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.Read(oldWorld,reader);
+            foreach(var obj in loot) Assert.That(oldWorld.Entities.Objects[obj.Id].IsHarvestScatter,Is.False);
+        }
+        // Picking up consumes the world object; the item never inherits placement provenance.
+        WorldObjectMutations.DespawnObject(world,loot[0].Id);
+        var redrop=ExecutionSystem.DropItemAtFeet(world,npc,new ItemInstance(id));
+        Assert.That(redrop,Is.Not.Null);
+        Assert.That(redrop!.IsHarvestScatter,Is.False);
+        Assert.That(loot.Skip(1).All(o=>o.Junctions[0]!=redrop.Junctions[0]),Is.True);
     }
 
     private static (WorldState,NPCState) Fixture(bool onlyOwnPoint=false)

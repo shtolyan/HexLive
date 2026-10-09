@@ -50,6 +50,8 @@ public static class VesselTransferMath
         CanFillBottle(npc, BottleInventoryMath.FirstWithRoomFor(npc, WaterKind.Coconut));
 
     public static bool CanFillBottle(NPCState npc, ItemInstance bottle) =>
+        npc.Body.CanUseTwoHanded &&
+        bottle is not null && InventoryMath.ContainsReference(npc.Inventory.Items, bottle) &&
         BottleRoom(bottle) > 0 &&
         (BottleInventoryMath.Charges(bottle) == 0 || bottle.WaterKind == WaterKind.Coconut) &&
         CoconutSips(npc) > 0;
@@ -61,7 +63,11 @@ public static class VesselTransferMath
         FillBottleFromCoconuts(
             npc, BottleInventoryMath.FirstWithRoomFor(npc, WaterKind.Coconut));
 
-    public static int FillBottleFromCoconuts(NPCState npc, ItemInstance bottle)
+    public static int FillBottleFromCoconuts(NPCState npc, ItemInstance bottle) =>
+        FillBottleFromSources(bottle, npc.Inventory.Items);
+
+    internal static int FillBottleFromSources(ItemInstance bottle,
+        System.Collections.Generic.IEnumerable<ItemInstance> sources)
     {
         var room = BottleRoom(bottle);
         if (room <= 0 || bottle is null ||
@@ -71,7 +77,7 @@ public static class VesselTransferMath
         }
 
         var moved = 0;
-        foreach (var item in npc.Inventory.Items)
+        foreach (var item in sources)
         {
             if (room <= 0)
             {

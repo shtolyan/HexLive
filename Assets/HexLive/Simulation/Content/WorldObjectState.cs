@@ -33,6 +33,9 @@ public sealed class WorldObjectState
     // (StructurePlacement wraps a real facing into (0, 360], never 0).
     public float RotationDegrees { get; set; }
 
+    // §54.20: destruction loot rests singly on the ground; inventory drops form piles.
+    public bool IsHarvestScatter { get; set; }
+
     private bool _isOccupied;
     private EntityId? _currentUser;
     private HashSet<WorldObjectState> _reservationIndex;

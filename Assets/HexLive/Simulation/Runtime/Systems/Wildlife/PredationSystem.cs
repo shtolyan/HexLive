@@ -52,7 +52,8 @@ public sealed class PredationSystem : ISimulationSystem
             NPCState? victim = null;
             foreach (var other in world.Entities.Npcs.Values)
             {
-                if (other.Id == predator.Id || other.Health <= 0f ||
+                if ((predator.Mind.ManualControl && (predator.Mind.ManualAttackNpcId != other.Id || other.IsUnconscious(world.Tick))) ||
+                    other.Id == predator.Id || other.Health <= 0f ||
                     // §72: Prey is the STARVATION cannibalism of §56 — eating
                     // your own housemate. Hunting the other faction is the Raid
                     // goal and its own resolver; keep the two from bleeding
@@ -422,7 +423,7 @@ public sealed class PredationSystem : ISimulationSystem
     // §56: killing to eat is a colony trauma — a heavy comfort hit on the killer
     // and a sharp relationship collapse toward them from every witness. (Grief on
     // witnesses is already triggered by the shared death sweep, RemoveDeadNpc.)
-    private static void ApplyKillConsequences(WorldState world, NPCState killer, NPCState victim)
+    internal static void ApplyKillConsequences(WorldState world, NPCState killer, NPCState victim)
     {
         killer.Needs.Comfort = MathUtil.Clamp(
             killer.Needs.Comfort - SimBalance.PredationComfortPenalty, 0f, 1f);

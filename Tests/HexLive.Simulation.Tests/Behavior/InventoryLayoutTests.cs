@@ -345,8 +345,9 @@ public sealed class InventoryLayoutTests
         });
     }
 
-    [Test]
-    public void CoconutEmergency_KnifeStickMayDisplaceOrdinaryTool()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void CoconutEmergency_KnifeStickMayDisplaceOrdinaryTool(bool dropRetryPending)
     {
         var (world, npc) = CleanNpc();
         MakeCoconutVisible(world, npc);
@@ -357,6 +358,14 @@ public sealed class InventoryLayoutTests
         npc.Inventory.Items.Add(GearCatalog.Hammer);
         npc.Inventory.Items.Add(ContentIds.Stone);
         npc.Needs.Thirst = 0.9f;
+        if (dropRetryPending)
+        {
+            npc.Inventory.NextGroundDropRetryTick = world.Tick + 16;
+            Assert.That(InventoryMath.CanMakeRoomForGoal(
+                world, npc, GoalType.GatherWood, ContentIds.Stick), Is.False,
+                "Emergency replacement must obey the same drop backoff as execution.");
+            world.Tick += 16;
+        }
 
         Assert.That(InventoryMath.CanMakeRoomForGoal(
             world, npc, GoalType.GatherWood, ContentIds.Stick), Is.True);

@@ -53,6 +53,10 @@ public static class BodyPartFunctionSnapshotMath
     /// Right is the default acting hand. Left takes over only when right is
     /// unusable; false means neither arm reaches the functional threshold.
     /// </summary>
+    public static bool HasTwoUsableHands(IReadOnlyList<BodyPartConditionSnapshot> conditions) =>
+        LimbFunction(conditions, BodyPart.ArmR) >= BodyState.UsableHandFunctionThreshold &&
+        LimbFunction(conditions, BodyPart.ArmL) >= BodyState.UsableHandFunctionThreshold;
+
     public static bool TryGetActingHand(
         IReadOnlyList<BodyPartConditionSnapshot> conditions, out BodyPart hand)
     {

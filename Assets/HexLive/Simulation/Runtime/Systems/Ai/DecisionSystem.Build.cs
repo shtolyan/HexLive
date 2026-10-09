@@ -251,7 +251,7 @@ public sealed partial class DecisionSystem
         // A fresh carcass is a perishable survival opportunity: if someone is
         // already carrying raw meat, finish the hearth's spit before the
         // collector queue so the butchered calories do not stall in a pack.
-        var needsSpitNow = npc.Inventory.Items.Contains(ContentIds.MeatRaw);
+        var needsSpitNow = (HumanMeatCatalog.CountRaw(npc) > 0);
         return needsSpitNow && hearthUpgrade != null
             ? hearthUpgrade
             : demolitionSite ?? collectorSite ?? houseSite ?? dreamSite ?? hearthUpgrade ?? furnitureSite ??

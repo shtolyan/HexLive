@@ -1220,7 +1220,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // the hungry owner has no legal cooking action.
         var spitUrgent = buildSite?.DefinitionId == ContentIds.Campfire &&
             !BuildSiteMath.CampfireSpitComplete(buildSite) &&
-            npc.Inventory.Items.Contains(ContentIds.MeatRaw) && !freshDanger;
+            (HumanMeatCatalog.CountRaw(npc) > 0) && !freshDanger;
         var buildWindow = buildPeacetime || hearthUrgent || collectorUrgent || spitUrgent;
         // The collector is survival infrastructure with five sequential
         // visual stages. Waiting for each stage to open before even gathering
@@ -1804,7 +1804,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
 
         // Spec 29F: hunting & crafting.
         var hasSpear = npc.Inventory.Items.Contains(ContentIds.Spear);
-        var hasRawMeat = npc.Inventory.Items.Contains(ContentIds.MeatRaw);
+        var hasRawMeat = (HumanMeatCatalog.CountRaw(npc) > 0);
         var hideCount = CountInventory(npc, ContentIds.Hide);
         // Spec 35.6: ranged hunters need no spear.
         var hasBow = npc.Inventory.Items.Contains(ContentIds.Bow);

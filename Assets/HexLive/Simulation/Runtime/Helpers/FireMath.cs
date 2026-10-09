@@ -123,7 +123,7 @@ internal static class FireMath
         for (var i = 0; i < fire.Contents.Count; i++)
         {
             var item = fire.Contents[i];
-            if (item.DefinitionId != ContentIds.MeatRaw)
+            if (!HumanMeatCatalog.IsRaw(item.DefinitionId))
             {
                 continue;
             }
@@ -133,7 +133,7 @@ internal static class FireMath
             {
                 // Готовое мясо ВИСИТ дальше и не портится на вертеле (§54.14),
                 // так что пересидевший кусок ничем не хуже вовремя снятого.
-                fire.Contents[i] = new Agents.ItemInstance(ContentIds.MeatCooked);
+                fire.Contents[i] = new Agents.ItemInstance(HumanMeatCatalog.Cooked(item.DefinitionId));
             }
         }
     }

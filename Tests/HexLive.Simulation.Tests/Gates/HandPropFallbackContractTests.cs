@@ -12,10 +12,10 @@ public sealed class HandPropFallbackContractTests
     {
         var actor = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
-            "Wearing", "NpcActorView.cs"));
+            "Wearing", "HandPropVisual.cs"));
         var start = actor.IndexOf(
-            "private void SetHandProp(string itemId)", StringComparison.Ordinal);
-        var end = actor.IndexOf("private void SyncHandedness", start, StringComparison.Ordinal);
+            "public static GameObject Create(", StringComparison.Ordinal);
+        var end = actor.IndexOf("internal static void ApplyObjectFitScale", start, StringComparison.Ordinal);
         var method = actor[start..end];
         var request = method.IndexOf("Config.GearLibrary.ConfigFor(itemId)",
             StringComparison.Ordinal);
@@ -46,15 +46,15 @@ public sealed class HandPropFallbackContractTests
     {
         var source = File.ReadAllText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
-            "Wearing", "NpcActorView.cs"));
+            "Wearing", "HandPropVisual.cs"));
         var start = source.IndexOf(
-            "private void SetHandProp(string itemId)", StringComparison.Ordinal);
-        var end = source.IndexOf("private void SyncHandedness", start, StringComparison.Ordinal);
+            "public static GameObject Create(", StringComparison.Ordinal);
+        var end = source.IndexOf("internal static void ApplyObjectFitScale", start, StringComparison.Ordinal);
         var method = source[start..end];
 
         var load = method.IndexOf("Config.GearLibrary.LoadPrefab(itemId)",
             StringComparison.Ordinal);
-        var validate = method.IndexOf("ObjectFit.HasRenderableGeometry(_handProp)",
+        var validate = method.IndexOf("ObjectFit.HasRenderableGeometry(prop)",
             StringComparison.Ordinal);
 
         Assert.Multiple(() =>

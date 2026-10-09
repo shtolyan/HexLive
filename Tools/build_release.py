@@ -730,6 +730,12 @@ def main() -> int:
         if isinstance(report.get("id"), int)
     }
     bugs_at_end = require_successful_version_finalize(version, included_bug_ids)
+    # §166: install updater before final certificate signing. Detect the actual Player slice.
+    slices = subprocess.check_output(["/usr/bin/lipo", "-archs", str(app_path / "Contents/MacOS/HexLive")], text=True).strip().split()
+    if not slices or any(value not in ("arm64", "x86_64") for value in slices):
+        raise RuntimeError("Unsupported macOS Player architecture")
+    subprocess.run([sys.executable, str(ROOT / "Tools/updates/package_helper.py"), str(app_path),
+                    "--platform", "macos", "--architecture", "universal" if len(slices) == 2 else "arm64" if slices[0] == "arm64" else "x64"], check=True)
     configure_microphone_permission(app_path)
     signature = ensure_development_signature(app_path, args.release)
 

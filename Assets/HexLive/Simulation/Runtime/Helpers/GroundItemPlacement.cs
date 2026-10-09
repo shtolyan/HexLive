@@ -140,14 +140,14 @@ internal static class GroundItemPlacement
         finally { Return(world,scratch); }
     }
     internal static bool TryFindNear(WorldState world,NPCState npc,ItemInstance item,TileCoord origin,Float2 position,
-        out TileCoord tile,out JunctionId junction,out string reason)
+        out TileCoord tile,out JunctionId junction,out string reason,bool scatter=false)
     {
         var scratch=Rent(world);
-        try { return Find(world,npc,item,origin,position,scratch,out tile,out junction,out _,out reason); }
+        try { return Find(world,npc,item,origin,position,scratch,out tile,out junction,out _,out reason,scatter); }
         finally { Return(world,scratch); }
     }
     private static bool Find(WorldState world,NPCState npc,ItemInstance item,TileCoord origin,Float2 position,
-        Scratch scratch,out TileCoord tile,out JunctionId junction,out GroundPileBounds resultBounds,out string reason)
+        Scratch scratch,out TileCoord tile,out JunctionId junction,out GroundPileBounds resultBounds,out string reason,bool scatter=false)
     {
         tile=origin;junction=default;resultBounds=default;reason="";
         scratch.ObjectsInspected=0;scratch.CandidatesChecked=0;
@@ -155,12 +155,13 @@ internal static class GroundItemPlacement
             !GroundPileCatalog.TryGet(item.DefinitionId,incomingDefinition.Layer!=null,out var profile))
         {reason="UnknownGroundGeometry:"+item.DefinitionId;return false;}
         reason="NoDropSpot";
-        var capacity=GroundPileCatalog.Capacity(item.DefinitionId);
-        var footprint=Footprint(profile,capacity);
+        var capacity=scatter?1:GroundPileCatalog.Capacity(item.DefinitionId);
+        var footprint=Footprint(profile,capacity,scatter);
         scratch.Candidates.Clear();scratch.Objects.Clear();scratch.SeenJunctions.Clear();
         scratch.SeenObjects.Clear();scratch.Sockets.Clear();scratch.ObjectsInspected=0;
-        // Candidate ring is the existing harvest/drop search radius (one tile).
-        for(var dq=-1;dq<=1;dq++) for(var dr=Math.Max(-1,-dq-1);dr<=Math.Min(1,-dq+1);dr++)
+        // Inventory placement stays local; large harvests need room for individual ground pieces.
+        var searchRadius=scatter?3:1;
+        for(var dq=-searchRadius;dq<=searchRadius;dq++) for(var dr=Math.Max(-searchRadius,-dq-searchRadius);dr<=Math.Min(searchRadius,-dq+searchRadius);dr++)
         {
             var coord=new TileCoord(origin.Q+dq,origin.R+dr);
             if(!world.Tiles.Items.TryGetValue(coord,out var cell) ||
@@ -171,13 +172,15 @@ internal static class GroundItemPlacement
                     node.Fragment!=npc.Fragment || !SpatialQueries.IsJunctionPassable(world,id)) continue;
                 if(world.Occupancy.JunctionOwner.TryGetValue(id,out var owner) && owner!=null && owner!=npc.Id) continue;
                 var dx=node.WorldPosition.X-position.X;var dz=node.WorldPosition.Y-position.Y;
-                scratch.Candidates.Add(new(id,coord,node.WorldPosition,dx*dx+dz*dz));
+                var support=scatter?HexSpatialMath.WorldToTile(node.WorldPosition):coord;
+                if(scatter && !SpatialQueries.IsTileWalkable(world,support)) continue;
+                scratch.Candidates.Add(new(id,support,node.WorldPosition,dx*dx+dz*dz));
             }
         }
         scratch.Candidates.Sort(CompareCandidates);
         // Pad the fixed candidate ring by both shared geometry extents. This
         // includes a wide neighbouring pile whose anchor lies outside that ring.
-        var rings=2+(int)Math.Ceiling((footprint.RadiusXZ+GroundPileCatalog.MaximumRadiusXZ)/
+        var rings=searchRadius+1+(int)Math.Ceiling((footprint.RadiusXZ+GroundPileCatalog.MaximumRadiusXZ)/
             (HexSpatialMath.HexRadius*HexSpatialMath.HexRowStepFactor));
         for(var dq=-rings;dq<=rings;dq++) for(var dr=Math.Max(-rings,-dq-rings);dr<=Math.Min(rings,-dq+rings);dr++)
         {
@@ -203,11 +206,11 @@ internal static class GroundItemPlacement
                 if(!GroundPileCatalog.TryGet(obj.DefinitionId,def.Layer!=null,out var neighbourProfile)) {reason="UnknownGroundGeometry:"+obj.DefinitionId;return false;}
                 if(obj.Junctions[0]==candidate.Id)
                 {
-                    if(capacity==1 || !Compatible(item,obj) || ++count>=capacity) {valid=false;break;}
+                    if(capacity==1 || obj.IsHarvestScatter || !Compatible(item,obj) || ++count>=capacity) {valid=false;break;}
                     continue;
                 }
                 if(!world.Junctions.Items.TryGetValue(obj.Junctions[0],out var anchor)) continue;
-                var neighbour=Footprint(neighbourProfile,GroundPileCatalog.Capacity(obj.DefinitionId))
+                var neighbour=Footprint(neighbourProfile,GroundPileCatalog.Capacity(obj.DefinitionId),obj.IsHarvestScatter)
                     .At(new(anchor.WorldPosition.X,0,anchor.WorldPosition.Y));
                 if(bounds.OverlapsXZ(neighbour)) {valid=false;break;}
             }
@@ -225,11 +228,11 @@ internal static class GroundItemPlacement
         }
         return false;
     }
-    private static GroundPileBounds Footprint(GroundPileProfile profile,int capacity)
+    private static GroundPileBounds Footprint(GroundPileProfile profile,int capacity,bool scatter=false)
     {
-        var bound=profile.FullBounds;
-        if(!profile.Garment) return bound;
-        // Any existing deterministic garment yaw fits this measured circle.
+        var bound=scatter?profile.Single:profile.FullBounds;
+        if(!profile.Garment && !scatter) return bound;
+        // Deterministic garment/scatter yaw fits this measured circle.
         var radius=bound.RadiusXZ;
         return new(-radius,bound.MinY,-radius,radius,bound.MaxY,radius);
     }

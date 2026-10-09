@@ -304,7 +304,9 @@ internal static class BuildSiteMath
         var n = 0;
         foreach (var item in fire.Contents)
         {
-            if (item.DefinitionId == definitionId)
+            if (item.DefinitionId == definitionId ||
+                (definitionId == ContentIds.MeatRaw && HumanMeatCatalog.IsRaw(item.DefinitionId)) ||
+                (definitionId == ContentIds.MeatCooked && HumanMeatCatalog.IsCooked(item.DefinitionId)))
             {
                 n++;
             }

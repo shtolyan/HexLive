@@ -5,6 +5,7 @@ namespace HexLive.UnityPresentation.Environment
 {
     /// <summary>
     /// Spec §54.2/§152: each felled crown is one self-contained owner bundle.
+    /// The big crown copies the standing palm foliage exactly, translated to ground.
     /// Fronds and their materials are duplicated intentionally: loading a crown
     /// must never require object/resource.palm_leaf or the standing tree.
     /// </summary>

@@ -1,5 +1,8 @@
 #nullable enable
 using UnityEngine;
+using System.Collections.Generic;
+using HexLive.Simulation.Content;
+using HexLive.Simulation.Debug;
 
 namespace HexLive.UnityPresentation.Environment
 {
@@ -27,22 +30,37 @@ namespace HexLive.UnityPresentation.Environment
         private int _signature = -1;
         private Transform? _meatRoot;
         private bool _contentPending;
+        private readonly List<string> _items = new();
 
-        public void Refresh(int raw, int cooked)
+        public void Refresh(int raw, int cooked, IReadOnlyList<InventorySlotSnapshot>? contents = null)
         {
-            var signature = raw * 31 + cooked;
+            _items.Clear();
+            if (contents != null)
+            {
+                foreach (var cell in contents)
+                    if (HumanMeatCatalog.IsRaw(cell.ItemDefinitionId) || HumanMeatCatalog.IsCooked(cell.ItemDefinitionId))
+                        for (var n = 0; n < cell.StackCount; n++) _items.Add(cell.ItemDefinitionId);
+            }
+            else
+            {
+                for (var n = 0; n < raw; n++) _items.Add(ContentIds.MeatRaw);
+                for (var n = 0; n < cooked; n++) _items.Add(ContentIds.MeatCooked);
+            }
+            var signature = 17;
+            foreach (var id in _items) signature = unchecked(signature * 31 + id.GetHashCode());
             if (signature == _signature && !_contentPending)
             {
                 return;
             }
 
             _signature = signature;
-            var rawPrefab = raw > 0 ? WorldPropResources.Load("food.meat_raw") : null;
-            var cookedPrefab = cooked > 0 ? WorldPropResources.Load("food.meat_cooked") : null;
-            if ((raw > 0 && rawPrefab == null) || (cooked > 0 && cookedPrefab == null))
+            foreach (var id in _items)
             {
-                _contentPending = true;
-                return;
+                if (WorldPropResources.Load(id) == null)
+                {
+                    _contentPending = true;
+                    return;
+                }
             }
             _contentPending = false;
             // Own container: this component shares the campfire_final root with
@@ -59,11 +77,11 @@ namespace HexLive.UnityPresentation.Environment
                 Object.Destroy(_meatRoot.GetChild(i).gameObject);
             }
 
-            var total = raw + cooked;
+            var total = _items.Count;
             for (var i = 0; i < total; i++)
             {
-                var id = i < raw ? "food.meat_raw" : "food.meat_cooked";
-                var prefab = i < raw ? rawPrefab : cookedPrefab;
+                var id = _items[i];
+                var prefab = WorldPropResources.Load(id);
                 var piece = prefab != null ? Object.Instantiate(prefab) : null;
                 if (piece == null)
                 {

@@ -105,6 +105,7 @@ public sealed class CommandCodecCoverageGateTests
         new TransferContainerCommand(
             new EntityId(37), new ObjectId(73), 5, "underwear.bra", 1,
             InventoryTransferDirection.TakeAndWear),
+        new ButcherPersonCommand(new EntityId(38), new EntityId(83)),
         new PreyPersonCommand(new EntityId(38), new EntityId(83)),
         new AbusePersonCommand(new EntityId(39), new EntityId(84)),
         new PlaceBuildingPlanCommand(new TileCoord(4, -6), rotationDegrees: 120f),

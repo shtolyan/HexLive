@@ -32,7 +32,6 @@ import urllib.request
 from urllib.parse import urlsplit
 from typing import Any
 from bug_credentials import configure_build_bug_token
-from windows_update_package import package_update
 
 # Отчёты и план печатаются по-русски, а консоль на этой машине бывает в cp1251
 # (Git Bash) — тогда обычный print падает на UnicodeEncodeError ещё до запуска
@@ -812,6 +811,9 @@ def main() -> int:
     }
     bugs_at_end = require_successful_version_finalize(version, included_bug_ids)
 
+    # §166: updater and trust configuration travel with this Player.
+    subprocess.run([sys.executable, str(ROOT / "Tools/updates/package_helper.py"), str(staging / "HexLive"),
+                    "--platform", "windows", "--architecture", "x64"], check=True)
     manifest = write_reports(
         staging,
         final_dir,
@@ -822,7 +824,6 @@ def main() -> int:
         bugs_at_end,
         unity_summary,
     )
-    package_update(ROOT, staging, manifest)
     publish_staging(staging, final_dir)
     write_last_success(releases, manifest)
 

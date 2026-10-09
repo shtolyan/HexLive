@@ -340,3 +340,13 @@ exceptions=explicit — пересоберу диагностическую сб
 исключениями), слушатель Studio не двигался с камерой (звуки «не привязаны»),
 FSB для музыки/голосов (ждёт fsbankcl от Толи), мои source-contract тесты.
 
+
+## 2026-10-10 00:50 — блокер деплоя снят (Claude)
+
+- `131ca5e55`: `ColonistAppearance.AuthoredBodies` (Marta/Molly/Jana/Jolly/Kshishtof/Tonny) —
+  проверка `characters[i].body` больше не сверяется с пулом случайных `Meshes = { Marta }`.
+  Пул случайных НЕ тронут. Серверные тесты 374/374. Если у тебя был свой фикс — сверь, не дублируй.
+- `c107d5bc3`: звук. В macOS FMOD Engine 2.03.15 нет `fsbankcl` → `Tools/webgl/hexfsb.c`
+  над libfsbank; SDK-копия в `~/hex-girls/webgl-build/fmod-2.03.15` (не в репо, лицензия).
+- Гигантские предметы/покраска/bounds — по-прежнему за тобой; в диагностическом билде
+  (:5202, полные исключения) за ~5 мин в мире вылета нет.

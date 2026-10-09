@@ -5330,7 +5330,7 @@
         },
         {
           "node": "Image Texture",
-          "image": "Textures/PrDr_furNO.jpg_7674ceefeda6.jpg",
+          "image": "Textures/PrDr_furNO_7674ceefeda6.jpg",
           "links": [
             {
               "output": "Color",
@@ -5552,7 +5552,7 @@
         },
         {
           "node": "Image Texture",
-          "image": "Textures/PrDr_furNO.jpg_7674ceefeda6.jpg",
+          "image": "Textures/PrDr_furNO_7674ceefeda6.jpg",
           "links": [
             {
               "output": "Color",
@@ -6227,427 +6227,549 @@
       "sha256": "0b51d48c5148236330efaa27aa18203811d79ff86a63319af03ff7a6981c0cd7",
       "width": 2048,
       "height": 2048,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 2048,
+      "sourceCanvasHeight": 2048
     },
     "Kshishtof_BaseColor_2048": {
       "path": "Textures/Kshishtof_BaseColor_2048_e32e5c0944e4.jpg",
       "sha256": "e32e5c0944e42078e0bf427eed5ffb91b0d2138c9513fb54b3a0cb409a088096",
       "width": 2048,
       "height": 2048,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 2048,
+      "sourceCanvasHeight": 2048
     },
     "Primal_Sleeve.jpg": {
       "path": "Textures/Primal_Sleeve_21e5882a1ecb.png",
       "sha256": "21e5882a1ecbd5800c68f9b8e3e3ab8206e626a9156101c1f68910cd7b39f6af",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Sleeve1.jpg": {
       "path": "Textures/Primal_Sleeve1_805876a1a3a0.png",
       "sha256": "805876a1a3a07ed6425c09e9cb4065b7102b0fde7221129b55d0bac675cdd7a6",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Sleeve2.jpg": {
       "path": "Textures/Primal_Sleeve2_d90b470a68ac.png",
       "sha256": "d90b470a68acd4ed3e51dffe2bccf87b0903dfa78f791d68317f4cf8ceecb99a",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Sleeve3.jpg": {
       "path": "Textures/Primal_Sleeve3_1707eab9c9f7.png",
       "sha256": "1707eab9c9f72f9419edf1b2583526008fec1d3165b9eb7ac2cef3bb4f491cf0",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Panty.jpg.001": {
       "path": "Textures/Primal_Panty.jpg_ab977aa206a7.png",
       "sha256": "ab977aa206a77b972a2e292336d097942b98514ab5c7bb84eeddfa7414253242",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Panty1.jpg": {
       "path": "Textures/Primal_Panty1_f726f30de9a8.png",
       "sha256": "f726f30de9a87f04fd487b8026b611b3bcbe1ce452d78350449bbdcd6a687d2c",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Panty2.jpg": {
       "path": "Textures/Primal_Panty2_9891b43a00c6.png",
       "sha256": "9891b43a00c67b297ad7c52a4bb516858a1a527a0d7f3b7afaf322045ea8e830",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Panty3.jpg": {
       "path": "Textures/Primal_Panty3_7844991dfd59.png",
       "sha256": "7844991dfd59b58158ccbf3532ba12a0ca8f67d80572dd0cde5a50f471c26faa",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Leather1.jpg": {
       "path": "Textures/Primal_Leather1_053ede959ba9.jpg",
       "sha256": "053ede959ba9b41f7e4dc56ae36783d53c356dc361cb710d8a5251f3917fa351",
       "width": 500,
       "height": 500,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 500,
+      "sourceCanvasHeight": 500
     },
     "Primal_Leather2.jpg": {
       "path": "Textures/Primal_Leather2_261dc96586a9.jpg",
       "sha256": "261dc96586a9ad653870a7a93d46c6aef2918dc9479ed993c607f7655832c7f5",
       "width": 500,
       "height": 500,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 500,
+      "sourceCanvasHeight": 500
     },
     "Primal_Leather3.jpg": {
       "path": "Textures/Primal_Leather3_8d4ac69dd4ae.jpg",
       "sha256": "8d4ac69dd4ae182f4a1a7ae2ae509dc3ad4d7382ba30fab3dcd6b0b5a7b0f8fd",
       "width": 500,
       "height": 500,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 500,
+      "sourceCanvasHeight": 500
     },
     "Primal_Leather4.jpg": {
       "path": "Textures/Primal_Leather4_0ca33a174b44.jpg",
       "sha256": "0ca33a174b443dd7e58b71747120e147113bcb010700c6d16b4c9a4fefc3991a",
       "width": 500,
       "height": 500,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 500,
+      "sourceCanvasHeight": 500
     },
     "Primal_Moccasins.jpg": {
       "path": "Textures/Primal_Moccasins_f1ab8060aca0.png",
       "sha256": "f1ab8060aca0eb85e62178f09d8524dbcbc57bd980c0c8cda840421987796772",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Moccasins1.jpg": {
       "path": "Textures/Primal_Moccasins1_436778cf2d1a.png",
       "sha256": "436778cf2d1a0e9a25855230b4a461e7887ea3117d8c4eff7d8e9a43c18bd654",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Moccasins2.jpg": {
       "path": "Textures/Primal_Moccasins2_75fe145167d4.png",
       "sha256": "75fe145167d462c31c687fa80989774f2529992999c67f46ebecd9ff843bb798",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Moccasins3.jpg": {
       "path": "Textures/Primal_Moccasins3_e4c16c633a72.png",
       "sha256": "e4c16c633a7284b8343561c98dd3d4d8060a0e6e50ee709783f21eeab0100a51",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Skirt.jpg": {
       "path": "Textures/Primal_Skirt_d55013ddf7b4.png",
       "sha256": "d55013ddf7b47b3b81c92567add01863eee2d22fabe64b1ecdfe2e2b7ea3bba5",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Skirt1.jpg": {
       "path": "Textures/Primal_Skirt1_8ef7ecbdcb4c.png",
       "sha256": "8ef7ecbdcb4c42dfa4f79fcd5a16afe37829e582dea7532318db704778f2ff7a",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Skirt2.jpg": {
       "path": "Textures/Primal_Skirt2_c44c1c39a633.png",
       "sha256": "c44c1c39a6339d756c14dd0d730dd9e126b741c93dba59c3329722724f57b625",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Skirt3.jpg": {
       "path": "Textures/Primal_Skirt3_ad304e1b682f.png",
       "sha256": "ad304e1b682f1b502560b18ba9fdc4a47a2c96887906ad45e60e46001c15ad58",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Top.jpg.001": {
       "path": "Textures/Primal_Top.jpg_720f2239d150.png",
       "sha256": "720f2239d150154a5dc0e8f7a78cd6ccfe3b789f61e16d567e7944b94f72d938",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Top1.jpg": {
       "path": "Textures/Primal_Top1_a330b11721b5.png",
       "sha256": "a330b11721b525f7559371656dcefb9dec0b9c594ee3c3af65adcfc3619303ec",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Top2.jpg": {
       "path": "Textures/Primal_Top2_28cb6f8c6840.png",
       "sha256": "28cb6f8c6840355f5024d31c807fb1f184274282f84a39a7e3f5bb680d542235",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "Primal_Top3.jpg": {
       "path": "Textures/Primal_Top3_9e47aab56bc3.png",
       "sha256": "9e47aab56bc30cbc7c32fd450801dabd22031c44c2588ca331ab93dd0ec921b6",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur_PrDr_furTR.png": {
       "path": "Textures/PrDr_fur_PrDr_furTR_88aa560741fe.png",
       "sha256": "88aa560741fe70c1e4c712ee720779176b4eeac862ce14685880cb3b51a59c62",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur.jpg": {
       "path": "Textures/PrDr_fur_307124267c42.png",
       "sha256": "307124267c42f7e3f8b14fcfe81bfe1bf0ce8000c4d380c1df5b2c3a0b466c3c",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur2.jpg": {
       "path": "Textures/PrDr_fur2_834bb4bcb0d5.png",
       "sha256": "834bb4bcb0d54642e14f08e4f69aa215bf68cb59da8eac99585eb5dc1b372d1f",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur3.jpg": {
       "path": "Textures/PrDr_fur3_7a02bd80254e.png",
       "sha256": "7a02bd80254efac934904bb28959c7a097cac387b8c2732e852cc14555f8551a",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur4.jpg": {
       "path": "Textures/PrDr_fur4_97094194fb00.png",
       "sha256": "97094194fb0099af4ccf03c1c4e0b5fc294431e23a8a142855e3cb6d8ed3bcf0",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur5.jpg": {
       "path": "Textures/PrDr_fur5_99593a31fc2b.png",
       "sha256": "99593a31fc2b716707ad4ff27002f09323a36f1f3d64a59eaf7ba5afefe0dc3c",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur6.jpg": {
       "path": "Textures/PrDr_fur6_c5665eb78b09.png",
       "sha256": "c5665eb78b091cfd5332e9a39e0aeec29ccc75ca9f82790aead6b7e9efa29bd9",
       "width": 1024,
       "height": 1024,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_furNO.jpg": {
       "path": "Textures/PrDr_furNO_7674ceefeda6.jpg",
       "sha256": "7674ceefeda6e0ecdd99ea2fd849ac278da9780b23a58a6258fddd5bf265bcef",
       "width": 3000,
       "height": 3000,
-      "colorSpace": "Non-Color"
+      "colorSpace": "Non-Color",
+      "sourceCanvasWidth": 3000,
+      "sourceCanvasHeight": 3000
     },
     "PrDr_fur.jpg.001": {
       "path": "Textures/PrDr_fur.jpg_6881b998c326.jpg",
       "sha256": "6881b998c326f876642323a927e9357e93ee69477bdd6f54eb70b68ebe3a9704",
-      "width": 1024,
-      "height": 1024,
-      "colorSpace": "sRGB"
+      "width": 2048,
+      "height": 2048,
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur2.jpg.001": {
       "path": "Textures/PrDr_fur2.jpg_f97ae9a294e8.jpg",
       "sha256": "f97ae9a294e8b341ec4d83ec4e4444e15e83a913c6049dbcf51b2b64d5dcb21f",
-      "width": 1024,
-      "height": 1024,
-      "colorSpace": "sRGB"
+      "width": 2048,
+      "height": 2048,
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur3.jpg.001": {
       "path": "Textures/PrDr_fur3.jpg_f99610b36046.jpg",
       "sha256": "f99610b360468b45c6e9bb9145088b4ab3acb60f79eb2be83985a34f2fac4c58",
-      "width": 1024,
-      "height": 1024,
-      "colorSpace": "sRGB"
+      "width": 2048,
+      "height": 2048,
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur4.jpg.001": {
       "path": "Textures/PrDr_fur4.jpg_d704a40f955a.jpg",
       "sha256": "d704a40f955a6f188a1641fed2d33f64c6fa3e63e8cc73114ea54cd8fb81847e",
-      "width": 1024,
-      "height": 1024,
-      "colorSpace": "sRGB"
+      "width": 2048,
+      "height": 2048,
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur5.jpg.001": {
       "path": "Textures/PrDr_fur5.jpg_eb8ea63041a7.jpg",
       "sha256": "eb8ea63041a7814c3b6d7bdaf5d318752005eadba93e8a60f5b5f414205e3d09",
-      "width": 1024,
-      "height": 1024,
-      "colorSpace": "sRGB"
+      "width": 2048,
+      "height": 2048,
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_fur6.jpg.001": {
       "path": "Textures/PrDr_fur6.jpg_6fcd1272cdf2.jpg",
       "sha256": "6fcd1272cdf203de25d6c1e77b6758d9cdfdb848a742d68f3db0be3f4cd9332c",
-      "width": 1024,
-      "height": 1024,
-      "colorSpace": "sRGB"
+      "width": 2048,
+      "height": 2048,
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "PrDr_furNO.jpg.001": {
-      "path": "Textures/PrDr_furNO.jpg_7674ceefeda6.jpg",
+      "path": "Textures/PrDr_furNO_7674ceefeda6.jpg",
       "sha256": "7674ceefeda6e0ecdd99ea2fd849ac278da9780b23a58a6258fddd5bf265bcef",
       "width": 3000,
       "height": 3000,
-      "colorSpace": "Non-Color"
+      "colorSpace": "Non-Color",
+      "sourceCanvasWidth": 3000,
+      "sourceCanvasHeight": 3000
     },
     "PrDr_fur_PrDr_furTR.png.001": {
       "path": "Textures/PrDr_fur_PrDr_furTR.png_c7f743011191.png",
       "sha256": "c7f7430111919e2bcf10c487e2bdc6a016c28265878a0f59610db671b3ac24c9",
-      "width": 1024,
-      "height": 1024,
-      "colorSpace": "sRGB"
+      "width": 2048,
+      "height": 2048,
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 1024,
+      "sourceCanvasHeight": 1024
     },
     "AdellHair_Atlas512": {
       "path": "Textures/AdellHair_Atlas512_82a7af678aff.png",
       "sha256": "82a7af678aff839fd1e60f68d729e5894a41c7706e2ea8d8a19a06961ca62a0d",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "AsukaHair_Atlas512": {
       "path": "Textures/AsukaHair_Atlas512_35694a567ae2.png",
       "sha256": "35694a567ae2d38e5dc66cf68c05be130e9200d5a1996d253007d3582ea02921",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "BendineHair_Atlas512": {
       "path": "Textures/BendineHair_Atlas512_10e55e65e082.png",
       "sha256": "10e55e65e08231425dc2612d7596b33397a6e3ff6fc0e97b3813acade7dc3220",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "Bob3Hair_Atlas512": {
       "path": "Textures/Bob3Hair_Atlas512_62add78736d5.png",
       "sha256": "62add78736d56295301180d4635421b4f4adb4cea633269a250e1a8b23369dbe",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "ChunkyHair_Atlas512": {
       "path": "Textures/ChunkyHair_Atlas512_be3a7a7b0cf1.png",
       "sha256": "be3a7a7b0cf1c3b1ed8adeb5dd34db8ae820f57768132c3a855fa2d97ed81452",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "EilisHair_Atlas512": {
       "path": "Textures/EilisHair_Atlas512_a1f7f894e2a9.png",
       "sha256": "a1f7f894e2a93eec3ea0403fd1d33549870a79b6cbb7f1e13803090de1a682cc",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "Hair07_Atlas512": {
       "path": "Textures/Hair07_Atlas512_2f47cfaca693.png",
       "sha256": "2f47cfaca6938b3198faa117f59df301bbdf318a0c11ac3e1f1049ef47dbe1ee",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "JelikaHair_32434_Atlas512": {
       "path": "Textures/JelikaHair_32434_Atlas512_3edacaa3bbcb.png",
       "sha256": "3edacaa3bbcb464a90dd8c9e0e277ac31a5addbc0d0725e56621d05a46d8965d",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "JenniferHair_Atlas512": {
       "path": "Textures/JenniferHair_Atlas512_ef5e35b39a3e.png",
       "sha256": "ef5e35b39a3e556de0a5e599a70c8264772c499a1e3f28ce8c7dc602bc12ddb6",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "LeonyPonytail_Atlas512": {
       "path": "Textures/LeonyPonytail_Atlas512_84a659da97d2.png",
       "sha256": "84a659da97d23916008fdbc48bcde7797457e40fb5f19dd7b09bcde44d9e908e",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "LoonaHair_Atlas512": {
       "path": "Textures/LoonaHair_Atlas512_fb01b21b8fbf.png",
       "sha256": "fb01b21b8fbf0110e0155376e366eafb6a51db8f40ae70ce8442e73854f5c068",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "LowPonytail_Atlas512": {
       "path": "Textures/LowPonytail_Atlas512_d029a899bbb7.png",
       "sha256": "d029a899bbb7a052c81e0f76660cac154fb6149240d0695429652ac79d06342a",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "Neu09Hair_Atlas512": {
       "path": "Textures/Neu09Hair_Atlas512_4647a65cc5cd.png",
       "sha256": "4647a65cc5cdbb64c6981d746ba65dbe6c35cea2f3cdb9bb8ca9f87194ef927f",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "OnyxHair_Atlas512": {
       "path": "Textures/OnyxHair_Atlas512_9e39a613960c.png",
       "sha256": "9e39a613960cc4c0b424163fdb400db82e8f551d57fd8becefc0b1df7a0ca69d",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "ShilohHair_Atlas512": {
       "path": "Textures/ShilohHair_Atlas512_6953fa6f6809.png",
       "sha256": "6953fa6f680961635e386b9b19dd16106977bbeddf6bd5287b50412c20413e6e",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "TootsieRollHair_Atlas512": {
       "path": "Textures/TootsieRollHair_Atlas512_d71da977845f.png",
       "sha256": "d71da977845fedb7d978f2210a04a18cdce7419a43a78cbde4bb2317f62c27d7",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "PrimalGathererPack_Atlas512": {
       "path": "Textures/PrimalGathererPack_Atlas512_03554fc398f0.png",
       "sha256": "03554fc398f01bcc61937ed708048e7f0a3200cae02a0455ff603a292ad32dae",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "PrimalHunterPack_Atlas512": {
       "path": "Textures/PrimalHunterPack_Atlas512_77e924bd67bc.png",
       "sha256": "77e924bd67bc468f19578fddf885d3180ca149e8a7c4d98d1d0b13cf95b04cd8",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     },
     "PrimalTrailPack_Atlas512.001": {
       "path": "Textures/PrimalTrailPack_Atlas512_4c8e6851e0be.png",
       "sha256": "4c8e6851e0be1859924435bc42dfa73cb223d3ee1bf0ce9c6fa803f5639017cf",
       "width": 512,
       "height": 512,
-      "colorSpace": "sRGB"
+      "colorSpace": "sRGB",
+      "sourceCanvasWidth": 512,
+      "sourceCanvasHeight": 512
     }
   },
   "errors": [],

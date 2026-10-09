@@ -1,5 +1,6 @@
 """Inspect actual binary FBX output using Blender's parser, without importing it."""
 import hashlib
+import bpy
 import json
 from pathlib import Path
 from io_scene_fbx import parse_fbx
@@ -40,8 +41,12 @@ for model in manifest['models']:
                     'triangles':triangles,'passed':True})
 for texture in manifest['textures'].values():
     assert hashlib.sha256((root/texture['path']).read_bytes()).hexdigest()==texture['sha256']
+    probe=bpy.data.images.load(str(root/texture['path']),check_existing=False)
+    size=tuple(probe.size)
+    bpy.data.images.remove(probe)
+    assert size==(texture['width'],texture['height']),texture['path']
 report={'allPassed':True,'files':len(results),'checks':['FBX parsed','bone names exact',
-        'morph names exact','mesh and triangle counts','no demo animations','SHA256 files and textures'],
+        'morph names exact','mesh and triangle counts','no demo animations','SHA256 files and textures','texture file dimensions'],
         'unityValidated':False,'results':results}
 (root/'fbx-verification.json').write_text(json.dumps(report,indent=2))
 print(json.dumps({'allPassed':True,'files':len(results),'unityValidated':False}))

@@ -80,10 +80,17 @@ def image_entry(image):
     else: raise ValueError('Unsupported packed image encoding: ' + image.name)
     digest = hashlib.sha256(data).hexdigest()
     filename = safe_name(Path(image.name).stem)[:80] + '_' + digest[:12] + ext
-    relative = 'Textures/' + filename
+    relative = next((t['path'] for t in manifest['textures'].values()
+                     if t['sha256'] == digest), 'Textures/' + filename)
     (OUTPUT / relative).write_bytes(data)
+    # Resizing a Blender image does not rewrite its packed original bytes.
+    # Record the dimensions of the delivered file, not the current canvas.
+    probe = bpy.data.images.load(str(OUTPUT / relative), check_existing=False)
+    width, height = probe.size[:]
+    bpy.data.images.remove(probe)
     manifest['textures'][image.name] = {'path': relative, 'sha256': digest,
-        'width': image.size[0], 'height': image.size[1], 'colorSpace': image.colorspace_settings.name}
+        'width': width, 'height': height, 'sourceCanvasWidth': image.size[0],
+        'sourceCanvasHeight': image.size[1], 'colorSpace': image.colorspace_settings.name}
     return relative
 
 

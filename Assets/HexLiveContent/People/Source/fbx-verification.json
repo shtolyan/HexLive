@@ -7,7 +7,8 @@
     "morph names exact",
     "mesh and triangle counts",
     "no demo animations",
-    "SHA256 files and textures"
+    "SHA256 files and textures",
+    "texture file dimensions"
   ],
   "unityValidated": false,
   "results": [

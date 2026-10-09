@@ -289,6 +289,23 @@ namespace HexLive.Simulation.Bootstrap
             return CreateLargeIsland(seed, settings);
         }
 
+        /// <summary>
+        /// Замер нагрузки по НАСЕЛЕНИЮ: рецепт «Огромного острова» как есть, но
+        /// в каждом из шести лагерей <paramref name="girlsPerCamp"/> девушек
+        /// вместо одной. Мир для замера, как и <see cref="CreateScaledHugeIsland"/>:
+        /// ни идентичности в сейве, ни пункта меню. Из харнесса —
+        /// <c>hexsoak --girls-per-camp N</c>.
+        /// </summary>
+        public static WorldBootstrapDefinition CreateHugeIslandWithPopulation(int seed, int girlsPerCamp)
+        {
+            var settings = new LargeIslandSettings(
+                GameMode.HugeIsland, HugeMinQ, HugeMaxQ, HugeMinR, HugeMaxR,
+                HugeCampCount, HugeCampMinSeparationTiles, System.Math.Max(1, girlsPerCamp),
+                HugePalmTarget, 48, 720, 190, 440, 48, 36,
+                hasCentralOutsiderCamp: true);
+            return CreateLargeIsland(seed, settings);
+        }
+
         private static WorldBootstrapDefinition CreateLargeIsland(
             int seed, LargeIslandSettings settings)
         {
@@ -1378,6 +1395,15 @@ namespace HexLive.Simulation.Bootstrap
         private static void AddBigColonists(
             WorldBootstrapDefinition definition, List<TileCoord> anchors, int girlsPerCamp)
         {
+            var landByCoord = new Dictionary<(int, int), TileBootstrap>();
+            if (girlsPerCamp > 7)
+            {
+                foreach (var tile in definition.Fragments[0].Tiles)
+                {
+                    landByCoord[(tile.Q, tile.R)] = tile;
+                }
+            }
+
             for (var campIndex = 0; campIndex < anchors.Count; campIndex++)
             {
                 var anchor = anchors[campIndex];
@@ -1387,6 +1413,34 @@ namespace HexLive.Simulation.Bootstrap
                     seats.Add(new TileCoord(anchor.Q + dir.DQ, anchor.R + dir.DR));
                 }
 
+                // Больше семи на лагерь бывает только у мира для замера
+                // (CreateHugeIslandWithPopulation): дальше садим по второму и
+                // третьему кольцу. Первые семь мест — прежние, байт в байт.
+                for (var ring = 2; seats.Count < girlsPerCamp && ring <= 6; ring++)
+                {
+                    for (var dq = -ring; dq <= ring; dq++)
+                    {
+                        for (var dr = System.Math.Max(-ring, -dq - ring);
+                             dr <= System.Math.Min(ring, -dq + ring); dr++)
+                        {
+                            if (System.Math.Max(System.Math.Abs(dq),
+                                    System.Math.Max(System.Math.Abs(dr), System.Math.Abs(dq + dr))) != ring)
+                            {
+                                continue;
+                            }
+
+                            var coord = new TileCoord(anchor.Q + dq, anchor.R + dr);
+                            // Дальние кольца сажаем только на сушу: берег лагеря
+                            // может быть в двух гексах, а девушка в море — не замер.
+                            if (landByCoord.TryGetValue((coord.Q, coord.R), out var land) &&
+                                land.Walkable && !land.Water && !land.Blocked && land.Elevation >= 1)
+                            {
+                                seats.Add(coord);
+                            }
+                        }
+                    }
+                }
+
                 for (var j = 0; j < girlsPerCamp; j++)
                 {
                     var i = campIndex * girlsPerCamp + j;
@@ -1394,11 +1448,16 @@ namespace HexLive.Simulation.Bootstrap
                     {
                         // 1,2 / 11,12 / 21,22 — десятка на лагерь: прибытия и
                         // чужие id (101+, 1000+, 2000+) не пересекаются никогда.
-                        Id = campIndex * 10 + j + 1,
+                        // Мир для замера (§168) с лагерями больше десятки уходит
+                        // в свой диапазон 10001+, иначе лагеря перезаписывали
+                        // бы друг друга в словаре NPC (замечено: 17×6 дали 67).
+                        Id = girlsPerCamp > 9
+                            ? 10000 + campIndex * 100 + j + 1
+                            : campIndex * 10 + j + 1,
                         Faction = CampFaction(campIndex),
                         FragmentId = 1,
-                        TileQ = seats[j].Q,
-                        TileR = seats[j].R,
+                        TileQ = seats[j % seats.Count].Q,
+                        TileR = seats[j % seats.Count].R,
                         Hunger = 0.70f - 0.10f * (i % 4),
                         Thirst = 0.40f + 0.07f * (i % 3),
                         Energy = 0.45f + 0.10f * (i % 4),

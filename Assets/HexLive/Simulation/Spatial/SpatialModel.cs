@@ -17,6 +17,56 @@ public sealed class TileMap
 public sealed class JunctionMap
 {
     public Dictionary<JunctionId, Junction> Items { get; } = new();
+
+    private Junction[] _byId;
+    private int _byIdCount = -1;
+
+    /// <summary>
+    /// §168.5: узел по id через плотный массив, а не хеш-поиск. Id узлов
+    /// нумеруются worldgen'ом подряд с единицы, так что индекс — это сам id;
+    /// поиск пути делает такой поиск на каждое ребро, и на «Огромном острове»
+    /// (393 тыс. узлов) хеш-таблица стоила заметную долю всего A*. Массив
+    /// строится лениво и перестраивается, если число узлов изменилось —
+    /// после worldgen оно не меняется.
+    /// </summary>
+    public bool TryGet(JunctionId id, out Junction junction)
+    {
+        var byId = _byIdCount == Items.Count && _byId != null ? _byId : RebuildById();
+        var value = id.Value;
+        if ((uint)value < (uint)byId.Length)
+        {
+            junction = byId[value];
+            return junction != null;
+        }
+
+        junction = null;
+        return false;
+    }
+
+    private Junction[] RebuildById()
+    {
+        var max = 0;
+        foreach (var id in Items.Keys)
+        {
+            if (id.Value > max)
+            {
+                max = id.Value;
+            }
+        }
+
+        var byId = new Junction[max + 1];
+        foreach (var pair in Items)
+        {
+            if (pair.Key.Value >= 0)
+            {
+                byId[pair.Key.Value] = pair.Value;
+            }
+        }
+
+        _byId = byId;
+        _byIdCount = Items.Count;
+        return byId;
+    }
 }
 
 public sealed class Fragment

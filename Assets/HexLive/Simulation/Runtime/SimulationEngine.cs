@@ -34,6 +34,14 @@ public sealed class SimulationEngine
     public void Register(ISimulationSystem system) => _systems.Add(system);
 
     /// <summary>
+    /// Профилировщик систем: вызывается после каждого <c>Run</c> с системой и
+    /// её длительностью в тактах <see cref="System.Diagnostics.Stopwatch"/>.
+    /// Инструмент замера (hexsoak --profile), не часть игры: в игре и на
+    /// сервере null, и стоимость — одна проверка на систему на тик.
+    /// </summary>
+    public System.Action<ISimulationSystem, long> SystemProfiler;
+
+    /// <summary>
     /// Applies one manual-control command through the authoritative validation
     /// boundary and returns its immediate admission result. The caller owns
     /// scheduling: Unity uses <see cref="Commands"/> on its main thread, while a
@@ -124,7 +132,15 @@ public sealed class SimulationEngine
                 continue;
             }
 
+            if (SystemProfiler == null)
+            {
+                system.Run(World);
+                continue;
+            }
+
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
             system.Run(World);
+            SystemProfiler(system, System.Diagnostics.Stopwatch.GetTimestamp() - started);
         }
     }
 }

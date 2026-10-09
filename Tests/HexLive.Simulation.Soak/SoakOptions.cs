@@ -78,6 +78,18 @@ public sealed class SoakOptions
     public int Scale = 1;
 
     /// <summary>
+    /// Замер по НАСЕЛЕНИЮ: рецепт «Огромного острова» с N девушками в каждом из
+    /// шести лагерей (0 = обычный мир режима). 3 → 18 + чужак, 17 → 102 + чужак.
+    /// </summary>
+    public int GirlsPerCamp;
+
+    /// <summary>
+    /// Профиль производительности: время по системам, распределение шага,
+    /// память и аллокации. Ответ на «что в тике дорого», а не «что в мире не так».
+    /// </summary>
+    public bool Profile;
+
+    /// <summary>
     /// §122 фаза 2: автовыход из петель, поверх simdata. null — как в экспорте.
     /// Существует ради A/B: §35.6 помнит, как вариант abort-on-Blocked выглядел
     /// логично и дал 466 пустых отмен стирки с тройным churn. Отличить лечение
@@ -226,6 +238,12 @@ public sealed class SoakOptions
                     case "--scale":
                         options.Scale = int.Parse(Next(arg), CultureInfo.InvariantCulture);
                         break;
+                    case "--girls-per-camp":
+                        options.GirlsPerCamp = int.Parse(Next(arg), CultureInfo.InvariantCulture);
+                        break;
+                    case "--profile":
+                        options.Profile = true;
+                        break;
                     case "--chunk-sleep":
                         options.ChunkSleep = Next(arg) == "on";
                         break;
@@ -319,6 +337,9 @@ public sealed class SoakOptions
   --scale N               §156.9: «Огромный остров», растянутый в N раз по
                           площади (6 лагерей по одной девушке). x10 = 81719
                           тайлов, ~22 с worldgen, ~830 МБ
+  --girls-per-camp N      замер по населению: «Огромный остров» с N девушками в
+                          каждом из шести лагерей (17 ≈ 100 NPC)
+  --profile               время по системам, перцентили шага, память, аллокации
   --loop-escape on|off    §122: автовыход из петель поверх simdata (A/B-ключ)
   --loop-max-rung N       §122: докуда поднимать лестницу (0 доклад .. 3 глушение)
   --quiet                 без человекочитаемого вывода

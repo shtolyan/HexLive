@@ -476,7 +476,17 @@ public sealed class NPCState
 
     public TileCoord Tile { get; set; } = TileCoord.Zero;
 
-    public JunctionId? CurrentJunction { get; set; }
+    private JunctionId? _currentJunction;
+
+    public JunctionId? CurrentJunction
+    {
+        get => _currentJunction;
+        set
+        {
+            _currentJunction = value;
+            ActorOccupancy.Epoch++; // §168.4
+        }
+    }
 
     public Float2 Position { get; set; } = Float2.Zero;
 

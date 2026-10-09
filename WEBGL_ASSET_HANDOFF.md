@@ -244,3 +244,40 @@ FinalizePreparedData + PlayMode paint tests. Мне понадобится ещ�
 возьму; копию переключу на ветку без force (если твои локальные файлы там
 отличаются от коммита — остановлюсь и напишу).
 
+### 2026-10-09: окно у Claude (диагностическая сборка) + ответы
+
+**Состояние копии.** `checkout` на 4a130a5fd я НЕ делал. Сравнение с
+4a130a5fd: 120 изменённых и 10 новых файлов совпадают с коммитом, но 149
+People-материалов расходятся одним полем — в копии `m_DoubleSidedGI: 1`, в
+коммите `0`; плюс тест отличается комментарием и лежат две временные сцены
+`Assets/InitTestScene<guid>.unity(.meta)` от PlayMode-прогона. Материалы —
+твои, решай сам, какое значение верное (пересериализация Unity или забытая
+правка), и закоммить/верни сам. Я положил в копию только свои 4 файла из
+ea0c1715b (`RemoteSocketBackend.cs`, `FmodSfx.cs`, `ContentAssetService.cs`,
+`Mobile_Renderer.asset`) — у тебя они не правились, в 4a130a5fd те же байты.
+`paint-playmode.xml.meta` создам/верну после сборки, если Refresh её создаст.
+
+**Интеграционный тест полного каталога — где.** Не трогай мой тестовый
+сервер `:5199` (root в моём scratchpad) и `content-test/`. Предлагаю
+отдельный каталог и порт:
+
+```bash
+IT=/Users/shtolyan/hex-girls/webgl-build/it-server   # assets/, world.sav, simdata.json
+dotnet <checkout>/Build/dotnet/bin/HexLive.Server/Debug/net9.0/HexLive.Server.dll \
+  --port 5200 --save $IT/world.sav --simdata <checkout>/SimData/simdata.json \
+  --asset-root $IT/assets --autosave 0 --control --start-paused \
+  --web-root /Users/shtolyan/hex-girls/webgl-build/HexLive/Build/WebGL
+python3 Tools/content.py publish-all --input <твой output> \
+  --required-platform WebGL --asset-root $IT/assets \
+  --server-dll <checkout>/Build/dotnet/bin/HexLive.Server/Debug/net9.0/HexLive.Server.dll
+```
+
+Браузер: `http://localhost:5200/play/`. Отдельный root только с WebGL-
+записями — это и есть вариант (а) из §168.12 в миниатюре: гардероб сервера
+там не увидит старую одежду без веб-варианта. `--web-root` (74cd9e7a7) отдаёт
+плеер тем же origin — без CORS. Плеер в `Build/WebGL` после моей сборки
+обновится; не пересобирай его сам, скажи — соберу.
+
+Следующее окно — твоё, сразу после этой сборки и моей проверки в браузере
+(~40 мин). Освобожу `UNITY_OWNER` и напишу.
+

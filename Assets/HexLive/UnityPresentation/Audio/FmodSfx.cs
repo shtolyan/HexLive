@@ -216,7 +216,7 @@ namespace HexLive.UnityPresentation.Audio
             {
                 foreach (var sound in Sounds[id])
                 {
-                    sound.release(); // звучащая реплика обрывается — язык уже другой
+                    ReleaseSound(sound); // звучащая реплика обрывается — язык уже другой
                 }
                 foreach (var file in Paths[id])
                 {
@@ -402,7 +402,8 @@ namespace HexLive.UnityPresentation.Audio
             var extension = Path.GetExtension(path);
             return extension.Equals(".wav", System.StringComparison.OrdinalIgnoreCase) ||
                    extension.Equals(".ogg", System.StringComparison.OrdinalIgnoreCase) ||
-                   extension.Equals(".mp3", System.StringComparison.OrdinalIgnoreCase);
+                   extension.Equals(".mp3", System.StringComparison.OrdinalIgnoreCase) ||
+                   extension.Equals(".fsb", System.StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsVoiceFile(string path)
@@ -526,6 +527,25 @@ namespace HexLive.UnityPresentation.Audio
         /// не надо полагаться на то, что сборка FMOD для браузера видит файловую
         /// систему страницы.
         /// </summary>
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // Подзвук FSB → его контейнер: освобождать надо контейнер (§168.6).
+        private static readonly Dictionary<System.IntPtr, FMOD.Sound> FsbContainers = new();
+#endif
+
+        /// <summary>Отпустить звук, открытый <see cref="CreateSound"/>. В вебе
+        /// это подзвук FSB — освобождается его контейнер.</summary>
+        private static void ReleaseSound(FMOD.Sound sound)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (FsbContainers.Remove(sound.handle, out var container))
+            {
+                container.release();
+                return;
+            }
+#endif
+            sound.release();
+        }
+
         private static FMOD.RESULT CreateSound(FMOD.System core, string file, FMOD.MODE mode,
             FMOD.SOUND_TYPE suggested, out FMOD.Sound sound)
         {
@@ -539,6 +559,40 @@ namespace HexLive.UnityPresentation.Audio
             {
                 sound = default;
                 return FMOD.RESULT.ERR_FILE_NOTFOUND;
+            }
+
+            // §168.6: облегчённая сборка FMOD для браузера читает ТОЛЬКО FSB
+            // (mp3/ogg/wav из файлов — ERR_FORMAT, замер 9.10.2026). Веб-сборка
+            // перекладывает каждый файл в FSB с одним подзвуком
+            // (Tools/webgl_audio_fsb.py): открываем контейнер, играем подзвук 0,
+            // контейнер держим до ReleaseSound.
+            if (file.EndsWith(".fsb", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var fsbInfo = new FMOD.CREATESOUNDEXINFO
+                {
+                    cbsize = System.Runtime.InteropServices.Marshal.SizeOf<FMOD.CREATESOUNDEXINFO>(),
+                    length = (uint)bytes.Length,
+                    suggestedsoundtype = FMOD.SOUND_TYPE.FSB,
+                };
+                var opened = core.createSound(bytes, mode | FMOD.MODE.OPENMEMORY, ref fsbInfo, out var container);
+                if (opened != FMOD.RESULT.OK)
+                {
+                    Debug.LogWarning($"[FmodSfx] web FSB {Path.GetFileName(file)}: {opened} (mode {mode})");
+                    sound = default;
+                    return opened;
+                }
+
+                var sub = container.getSubSound(0, out sound);
+                if (sub != FMOD.RESULT.OK)
+                {
+                    Debug.LogWarning($"[FmodSfx] web FSB {Path.GetFileName(file)}: no subsound ({sub})");
+                    container.release();
+                    sound = default;
+                    return sub;
+                }
+
+                FsbContainers[sound.handle] = container;
+                return FMOD.RESULT.OK;
             }
 
             var exInfo = new FMOD.CREATESOUNDEXINFO
@@ -785,7 +839,7 @@ namespace HexLive.UnityPresentation.Audio
                 sound.set3DMinMaxDistance(VoiceDef.MinDist, VoiceDef.MaxDist);
             if (core.playSound(sound, _agentVoicesGroup, true, out var channel) != FMOD.RESULT.OK)
             {
-                sound.release();
+                ReleaseSound(sound);
                 return default;
             }
 
@@ -851,7 +905,7 @@ namespace HexLive.UnityPresentation.Audio
             var res = handle.Channel.isPlaying(out var playing);
             if (res != FMOD.RESULT.OK || !playing)
             {
-                if (handle.OwnsSound) handle.OwnedSound.release();
+                if (handle.OwnsSound) ReleaseSound(handle.OwnedSound);
                 handle = default;
                 return false;
             }
@@ -961,7 +1015,7 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             loop.Channel.stop();
-            if (loop.OwnsSound) loop.OwnedSound.release();
+            if (loop.OwnsSound) ReleaseSound(loop.OwnedSound);
             loop = default;
         }
 
@@ -1046,10 +1100,9 @@ namespace HexLive.UnityPresentation.Audio
             foreach (var path in AudioFiles("Music", false)
                          .Where(IsAudioFile)
 #if UNITY_WEBGL && !UNITY_EDITOR
-                         // §168.6: в FMOD для браузера нет MP3-декодера
-                         // (ERR_FORMAT, замер 9.10.2026). Веб-сборка кладёт
-                         // рядом Ogg-копию трека — берём её; mp3 без пары молчит.
-                         .Where(path => Path.GetExtension(path).Equals(".ogg", System.StringComparison.OrdinalIgnoreCase))
+                         // §168.6: FMOD для браузера читает только FSB —
+                         // веб-сборка кладёт трек в FSB (webgl_audio_fsb.py).
+                         .Where(path => Path.GetExtension(path).Equals(".fsb", System.StringComparison.OrdinalIgnoreCase))
 #endif
                          )
             {
@@ -1148,7 +1201,7 @@ namespace HexLive.UnityPresentation.Audio
 
                 if (core.playSound(sound, _musicGroup, true, out var channel) != FMOD.RESULT.OK)
                 {
-                    sound.release();
+                    ReleaseSound(sound);
                     return false;
                 }
 
@@ -1225,7 +1278,7 @@ namespace HexLive.UnityPresentation.Audio
 
             if (sound.hasHandle())
             {
-                sound.release(); // стрим держит открытый файл — отпускаем
+                ReleaseSound(sound); // стрим держит открытый файл — отпускаем
             }
         }
 

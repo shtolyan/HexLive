@@ -418,6 +418,7 @@ public static class AtomicContentBatchBuild
                     throw new InvalidOperationException(
                         $"Full atomic build failed for {failures.Count}/{recipes.Count} objects.");
                 }
+                if (UsePeopleCatalog) ValidatePeoplePayloads(output, platform);
             }
             succeeded = true;
         }
@@ -459,6 +460,71 @@ public static class AtomicContentBatchBuild
                 "Pass the matching -buildTarget before -executeMethod.");
         }
         return target;
+    }
+
+    private static void ValidatePeoplePayloads(string output, string platform)
+    {
+        var contract = JObject.Parse(File.ReadAllText("Assets/HexLiveContent/People/Source/body-contract.json"));
+        var retained = new List<AssetBundle>();
+        var rows = new JArray();
+        try
+        {
+            foreach (var row in PeopleRecords())
+            {
+                string type = (string)row["type"], id = (string)row["id"];
+                string payload = Path.Combine(output, type, id, platform, PayloadName);
+                var bundle = AssetBundle.LoadFromFile(payload);
+                if (bundle == null) throw new InvalidOperationException("Cannot reopen or coexist: " + type + "/" + id);
+                bool keep = type == "actor" || (type == "wear" && retained.Count < 5);
+                try
+                {
+                    var main = bundle.LoadAsset<UnityEngine.Object>("main");
+                    if (main == null) throw new InvalidOperationException("Missing main after serialization: " + id);
+                    if (type == "actor")
+                    {
+                        var actor = main as GameObject;
+                        if (!HexLive.UnityPresentation.Wearing.ActorBodyResolver.TryResolve(actor, out var body, out var error))
+                            throw new InvalidOperationException(id + ": " + error);
+                        var names = Enumerable.Range(0, body.sharedMesh.blendShapeCount).Select(body.sharedMesh.GetBlendShapeName);
+                        if (!names.SequenceEqual(contract[id]["blendShapes"].Values<string>()))
+                            throw new InvalidOperationException(id + ": morph contract changed in bundle");
+                        var animator = actor.GetComponent<Animator>();
+                        if (animator == null || animator.avatar == null || !animator.avatar.isHuman ||
+                            !animator.avatar.isValid || animator.runtimeAnimatorController == null)
+                            throw new InvalidOperationException(id + ": humanoid animation references lost");
+                        if (actor.GetComponent<HexLive.UnityPresentation.Wearing.PeopleAppearance>() == null)
+                            throw new InvalidOperationException(id + ": skin configuration lost");
+                    }
+                    if (main is GameObject prefab)
+                    {
+                        if (prefab.GetComponentsInChildren<MonoBehaviour>(true).Any(c => c == null))
+                            throw new InvalidOperationException(id + ": serialized script missing");
+                        foreach (var renderer in prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                            if (renderer.sharedMesh == null || renderer.bones.Any(b => b == null) ||
+                                renderer.bones.Length != renderer.sharedMesh.bindposes.Length ||
+                                renderer.sharedMaterials.Any(m => m == null || m.shader == null))
+                                throw new InvalidOperationException(id + ": serialized skin binding/material invalid");
+                    }
+                    if (type == "wear")
+                    {
+                        var definition = bundle.LoadAsset<GarmentDefinition>("metadata");
+                        if (definition == null || definition.id != id || definition.variantMaterials == null ||
+                            definition.variantMaterials.Length == 0 || definition.variantMaterials.Any(m => m == null))
+                            throw new InvalidOperationException(id + ": variant metadata/materials lost");
+                    }
+                    rows.Add(new JObject { ["type"] = type, ["id"] = id, ["passed"] = true });
+                    if (keep) retained.Add(bundle);
+                }
+                finally { if (!retained.Contains(bundle)) bundle.Unload(true); }
+            }
+            File.WriteAllText(Path.Combine(output, "people-payload-validation.json"), new JObject
+            {
+                ["passed"] = true, ["objects"] = rows, ["coexistingBundles"] = retained.Count,
+                ["browserRenderValidated"] = false
+            }.ToString(Formatting.Indented) + "\n");
+            Debug.Log($"[AtomicContent] reopened {rows.Count} People payloads; {retained.Count} coexist; morph/rig/material references intact.");
+        }
+        finally { foreach (var bundle in retained) bundle.Unload(true); }
     }
 
     private static void BuildObject(

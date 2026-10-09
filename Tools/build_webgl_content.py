@@ -144,6 +144,10 @@ def package(build_root: Path, destination: Path, people_catalog: Path):
     people_ids = {(r["type"], r["id"]) for r in people}
     if not people_ids <= seen:
         raise ValueError("Incomplete People inventory")
+    payload_validation = read_json(build_root / "people-payload-validation.json")
+    validated = {(r["type"], r["id"]) for r in payload_validation["objects"] if r.get("passed")}
+    if not payload_validation["passed"] or validated != people_ids or payload_validation["coexistingBundles"] < 2:
+        raise ValueError("Serialized People payloads have not passed validation")
     for family in ("actor", "wear", "hair"):
         if {k for k in seen if k[0] == family} != {k for k in people_ids if k[0] == family}:
             raise ValueError(f"Legacy {family} leaked into WebGL package")
@@ -169,6 +173,7 @@ def package(build_root: Path, destination: Path, people_catalog: Path):
     write_json(destination / "manifest.json", manifest)
     shutil.copyfile(build_root / "inventory.json", destination / "inventory.json")
     shutil.copyfile(build_root / "build-all-summary.json", destination / "build-all-summary.json")
+    shutil.copyfile(build_root / "people-payload-validation.json", destination / "people-payload-validation.json")
     (destination / "README.md").write_text(
         "# WebGL Primal content — staged, not published\n\n"
         "Each candidate is an independent content object for WebGL/unity6000-content1.\n"

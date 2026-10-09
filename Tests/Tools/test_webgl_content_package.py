@@ -27,6 +27,8 @@ class WebGLPackageTests(unittest.TestCase):
         builder.write_json(self.build / "inventory.json", {"passed": True, "records": rows})
         builder.write_json(self.build / "build-all-summary.json", {"built": 2, "discovered": 2, "failed": 0})
         builder.write_json(self.build / "build-receipt.json", {"editorExitCode": 0, "platform": "WebGL"})
+        builder.write_json(self.build / "people-payload-validation.json", {"passed": True,
+            "objects": [{**r, "passed": True} for r in rows], "coexistingBundles": 2})
         for row in rows + [{"type": "config", "id": "simdata"}]:
             data = (row["type"] + row["id"]).encode()
             folder = self.build / row["type"] / row["id"]

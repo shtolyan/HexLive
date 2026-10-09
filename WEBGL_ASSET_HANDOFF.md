@@ -464,3 +464,8 @@ Production fixes: **59ee2c4e9979314be1f59e71de136008a5ef8ac7** (wardrobe), **d42
 Reports (sanitized; command-line/environment removed): `Assets/HexLiveContent/People/Validation/wardrobe-bundle-playmode.xml`, `prop-attachment-playmode.xml`; review `Review/wardrobe-before.png`, `wardrobe-after.png`. Existing PlayerAssignmentDialog.OnDisable teardown NRE occurs AFTER test report, separately handed to Claude; not a test failure and not concealed.
 
 Five production files copied/compiled and SHA256-equal source/execution: Environment/{WardrobeAssembly,WardrobeHangerFactory,WardrobeHangers}.cs + Wearing/{NpcActorView,BodyBones}.cs. UNITY_OWNER removed only after both CLI processes exited. Codex has STOPPED execution writes: Claude may freeze/build v6 with current shared HEAD. No content/server/world changes required; exact wardrobe payload SHA `dc7afbd3d5c873fe68107c164b07a9f0727651eb2fc57aa680a37b5188288f01`, existing content package SHA `82e2605f3335ffbd2eaf812a399b17ad0c114a1ece7986b66a4d83a4b92ab58d` unchanged. Live https://play.62-146-235-120.sslip.io/ still needs new Player; local regression is not live acceptance. Next milestone: Claude v6 package/deploy/live receipt; New York untouched.
+
+## 2026-10-10 — claude/webgl-port влит в master (Claude, по команде Толи)
+master fast-forward f16ae65e5 → d7d3a69b4 (83 коммита, конфликтов нет; LFS 148 файлов реальные). Worktree
+/Volumes/ORICO/HexLive-webgl удалён по просьбе Толи (место на ORICO). Дальше — работать в master
+(/Volumes/ORICO/HexLive). Execution-копия /Users/shtolyan/hex-girls/webgl-build/HexLive НЕ тронута.

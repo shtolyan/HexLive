@@ -53,6 +53,8 @@ namespace HexLive.UnityPresentation.UI
         private int _lastTick = int.MinValue;
         private int _lastSeed = int.MinValue;
         private float _nextPresentationRefreshAt;
+        private float _nextFullRebuildAt;
+        private const float WebFullRebuildSeconds = 1f;
         private bool _miniCollapsed;
 
         public static bool PointerOverMap { get; private set; }
@@ -200,7 +202,16 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            if (snapshot.Tick == _lastTick)
+            // §168.11: в браузере тесселяция секторов идёт на главном потоке
+            // (на десктопе — в джобах), а новый тик приходит 4 раза в секунду.
+            // Полная пересборка карты там — не чаще раза в секунду; люди, мобы и
+            // рамка камеры по-прежнему обновляются ветвью ниже на 4 Гц.
+#if UNITY_WEBGL && !UNITY_EDITOR
+            var holdFullRebuild = Time.unscaledTime < _nextFullRebuildAt;
+#else
+            const bool holdFullRebuild = false;
+#endif
+            if (snapshot.Tick == _lastTick || holdFullRebuild)
             {
                 // Selection and the camera keep moving while the simulation is
                 // paused. Repaint their state at 4 Hz rather than rebuilding
@@ -227,6 +238,7 @@ namespace HexLive.UnityPresentation.UI
 
             _lastTick = snapshot.Tick;
             _nextPresentationRefreshAt = Time.unscaledTime + PresentationRefreshSeconds;
+            _nextFullRebuildAt = Time.unscaledTime + WebFullRebuildSeconds;
             if (_lastSeed != snapshot.Seed)
             {
                 _lastSeed = snapshot.Seed;

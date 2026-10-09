@@ -27,6 +27,10 @@ namespace HexLive.UnityPresentation.UI
         private const float SubjectViewportX = 108f / 396f;
         private const float FaceDistanceMeters = 0.72f;
         private const float EyeLiftMeters = 0.03f;
+#if UNITY_WEBGL && !UNITY_EDITOR
+        private const float WebRenderIntervalSeconds = 1f / 6f;
+        private float _nextWebRenderAt;
+#endif
         private const float NeonSetDepth = 20f;
         private const float NeonSetOverscan = 1.04f;
         private const string NeonGridShaderPath = "HexLive/UI/PortraitNeonGrid";
@@ -66,7 +70,11 @@ namespace HexLive.UnityPresentation.UI
                 TextureWidth, TextureHeight, 16, RenderTextureFormat.ARGB32)
             {
                 name = "NpcIdentityPortrait",
+#if UNITY_WEBGL && !UNITY_EDITOR
+                antiAliasing = 1, // §168.11: портрет 512×368 — MSAA в вебе не окупается
+#else
                 antiAliasing = 2,
+#endif
                 wrapMode = TextureWrapMode.Clamp
             };
             _texture.Create();
@@ -132,6 +140,18 @@ namespace HexLive.UnityPresentation.UI
                 _camera.enabled = false;
                 return;
             }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // §168.11: включённая камера портрета — второй полный проход сцены
+            // каждый кадр. В браузере (один поток) живой портрет обновляется
+            // ~6 раз в секунду; между проходами текстура держит прошлый кадр.
+            if (Time.unscaledTime < _nextWebRenderAt)
+            {
+                _camera.enabled = false;
+                return;
+            }
+            _nextWebRenderAt = Time.unscaledTime + WebRenderIntervalSeconds;
+#endif
 
             if (_worldRenderer == null)
             {

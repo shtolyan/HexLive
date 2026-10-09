@@ -20,8 +20,12 @@ namespace HexLive.UnityPresentation.Environment
             var model = Object.Instantiate(template.gameObject, root.transform);
             model.name = "HangerTemplate (authored instance)";
             model.transform.localPosition = Vector3.zero;
-            model.transform.localRotation = Quaternion.identity;
-            model.transform.localScale = Vector3.one;
+            // The template is clean in Blender's wardrobe basis, but its
+            // imported ancestors still own the FBX axis/scale conversion.
+            // Preserve that authored basis when detaching it, just as the
+            // complete model under WardrobeAssembly's identity wrapper does.
+            model.transform.localRotation = template.rotation;
+            model.transform.localScale = template.lossyScale;
             model.SetActive(true);
             foreach (var collider in model.GetComponentsInChildren<Collider>(true))
             {

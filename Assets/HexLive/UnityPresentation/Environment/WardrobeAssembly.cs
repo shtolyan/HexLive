@@ -10,6 +10,8 @@ namespace HexLive.UnityPresentation.Environment
         public const string ResourcePath = "HexLive/Objects/furniture.wardrobe";
         private static readonly Dictionary<int, Vector3> ClothingSlots = new();
         private static bool _clothingSlotsResolved;
+        private static float _shoeShelfSurface;
+        private static bool _shoeShelfResolved;
 
         /// <summary>
         /// Returns the authored garment socket in the imported model's local
@@ -24,6 +26,13 @@ namespace HexLive.UnityPresentation.Environment
             var slotIndex = ((index % WardrobeHangers.SlotCount) + WardrobeHangers.SlotCount) %
                 WardrobeHangers.SlotCount;
             return ClothingSlots.TryGetValue(slotIndex, out localPosition);
+        }
+
+        public static bool TryGetShoeShelfSurfaceLocal(out float surface)
+        {
+            ResolveClothingSlots();
+            surface = _shoeShelfSurface;
+            return _shoeShelfResolved;
         }
 
         private static void ResolveClothingSlots()
@@ -51,6 +60,26 @@ namespace HexLive.UnityPresentation.Environment
                 if (slot != null)
                     ClothingSlots[i] = wrapper.transform.InverseTransformPoint(slot.position);
             }
+
+            // The actual lower boards own the support height. Their imported
+            // meshes/ancestors come from the same bundle as the rail sockets.
+            // A fixed 0.19 placed soles 0.075 below the shipped board top.
+            var top = float.NegativeInfinity;
+            foreach (var filter in model.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (!filter.name.StartsWith("Wardrobe_ShoeShelf_", System.StringComparison.Ordinal) ||
+                    filter.sharedMesh == null) continue;
+                var bounds = filter.sharedMesh.bounds;
+                for (int corner = 0; corner < 8; corner++)
+                {
+                    var point = bounds.center + Vector3.Scale(bounds.extents, new Vector3(
+                        (corner & 1) == 0 ? -1 : 1, (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1));
+                    top = Mathf.Max(top, wrapper.transform.InverseTransformPoint(
+                        filter.transform.TransformPoint(point)).y);
+                }
+            }
+            _shoeShelfResolved = float.IsFinite(top);
+            if (_shoeShelfResolved) _shoeShelfSurface = top;
 
             if (Application.isPlaying) Object.Destroy(wrapper);
             else Object.DestroyImmediate(wrapper);

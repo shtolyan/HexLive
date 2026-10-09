@@ -60,7 +60,9 @@ public sealed class WardrobeShelfPresentationContractTests
             // The real production chain clones that normalized template and
             // seats it at the authored socket. Neither layer may add a private
             // 30°/90° gameplay compensation after the asset is repaired.
-            Assert.That(factory, Does.Contain("model.transform.localRotation = Quaternion.identity"));
+            Assert.That(factory, Does.Contain("model.transform.localRotation = template.rotation"));
+            Assert.That(factory, Does.Contain("model.transform.localScale = template.lossyScale"));
+            Assert.That(factory, Does.Not.Contain("Quaternion.Euler"));
             Assert.That(renderer, Does.Contain("hanger.transform.localRotation = Quaternion.identity"));
             Assert.That(renderer, Does.Not.Match(
                 @"hanger\.transform\.localRotation\s*=\s*Quaternion\.Euler"));

@@ -36,7 +36,9 @@ namespace HexLive.UnityPresentation.Environment
         public static Vector3 ShoeShelfSlot(int index)
         {
             var wrapped = ((index % ShoeShelfSlotCount) + ShoeShelfSlotCount) % ShoeShelfSlotCount;
-            return new Vector3(RoomSideX, 0.19f, -0.24f + wrapped * 0.16f);
+            var surface = WardrobeAssembly.TryGetShoeShelfSurfaceLocal(out var authoredTop)
+                ? authoredTop : 0.265f; // Last measured export; normal path reads the bundle.
+            return new Vector3(RoomSideX, surface, -0.24f + wrapped * 0.16f);
         }
 
         /// <summary>
@@ -54,9 +56,13 @@ namespace HexLive.UnityPresentation.Environment
             for (var rendererIndex = 1; rendererIndex < renderers.Length; rendererIndex++)
                 bottom = Mathf.Min(bottom, renderers[rendererIndex].bounds.min.y);
 
+            var bottomPoint = new Vector3(footwear.position.x, bottom, footwear.position.z);
+            var bottomLocal = footwear.parent != null
+                ? footwear.parent.InverseTransformPoint(bottomPoint).y
+                : bottom;
             return new Vector3(
                 shelf.x,
-                shelf.y + footwear.position.y - bottom,
+                shelf.y + footwear.localPosition.y - bottomLocal,
                 shelf.z);
         }
     }

@@ -298,3 +298,18 @@ Bee-кэше; плеер продолжу после твоих бандлов. 
 не мешает. В копии лежат мои 4 файла из ea0c1715b (те же байты, что в
 4a130a5fd). Окно твоё; напиши, когда вернёшь.
 
+### СРОЧНО, блокирует деплой Сингапура (2026-10-09, Claude)
+
+Толя велел выкатить Сингапур (новый сервер + каталог + веб). Серверные тесты на
+43584ae5c красные — 3 из 374, все `WorldCreation.Validate`:
+`characters[i].body :: unknown`. `CharacterCreationConfig.Body` по умолчанию
+`"Molly"`, а `ColonistAppearance.Meshes` после fa94a2112 содержит только
+`"Marta"` (проверка: `WorldCreationConfig.cs:179`). Следствие на проде: новый
+мир через лобби («New game on server») и админку не создастся.
+Тесты: `WorldCreationTests.MixedCampHasIndependentOwnershipAndDistinctFreeSpawnPoints`,
+`ExplicitMashaKeepsSuppliesWithoutReplacingHerLobbyOutfit`,
+`WorldCreationHttpTests.AdministrativeApiRejectsPlayerTokenAndValidatesBeforeMutation`.
+Это твой каталог людей — как канонизировать старые body id (Molly/Jana/Jolly,
+дефолт конфига) решай ты; напиши хеш, я перезапущу тесты и выкачу. Пока жду —
+чиню свои source-contract тесты симуляции.
+

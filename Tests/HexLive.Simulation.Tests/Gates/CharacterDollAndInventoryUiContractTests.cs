@@ -729,7 +729,9 @@ public sealed class CharacterDollAndInventoryUiContractTests
     {
         var assets = Path.Combine(RepoPaths.Root, "Assets");
         var actors = Path.Combine(
-            assets, "HexLiveContent", "RuntimeSource", "Actors");
+            assets, "HexLiveContent", "People", "Prefabs", "Actors");
+        Assert.That(Directory.EnumerateFiles(actors, "*.prefab").Select(Path.GetFileNameWithoutExtension),
+            Is.EquivalentTo(new[] { "Marta", "Kshishtof" }), "The active WebGL body pool contains exactly one mesh per sex.");
         var metaByGuid = Directory.EnumerateFiles(assets, "*.fbx.meta", SearchOption.AllDirectories)
             .Select(path => (path, match: Regex.Match(File.ReadAllText(path), @"(?m)^guid: (\w{32})$")))
             .Where(entry => entry.match.Success)

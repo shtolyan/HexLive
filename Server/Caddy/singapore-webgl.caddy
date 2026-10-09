@@ -1,0 +1,45 @@
+# §168.10: Сингапур после перевода на веб-клиент (2026-10-09, решение Толи).
+# Дописывается в /etc/caddy/Caddyfile рядом с существующими сайтами
+# (vmi3529459…, flashback…, keys…) — их не трогаем.
+#
+# Два имени, а не одно: игра и админка живут на разных host'ах.
+# Оба — тот же Kestrel :5123; разделение по путям.
+
+# Игра: страница WebGL с корня, сокет и Asset API того же origin (без CORS —
+# WebPage.PageServerUrl и ContentEndpoint выводят адреса из адреса страницы).
+play.62-146-235-120.sslip.io {
+	encode zstd gzip
+
+	@operator path /admin /admin/* /mcp /mcp/*
+	respond @operator 404
+
+	@backend path /watch /api/*
+	handle @backend {
+		reverse_proxy 127.0.0.1:5123
+	}
+
+	handle {
+		root * /var/lib/hexlive-web/current
+		# Unity Brotli без JS-фолбэка: *.br уходит как есть, с
+		# Content-Encoding и настоящим типом (application/wasm — для
+		# потоковой компиляции). encode ответ с Content-Encoding не пережимает.
+		@brotli path *.br
+		header @brotli Content-Encoding br
+		@wasm path *.wasm.br
+		header @wasm Content-Type application/wasm
+		@script path *.js.br
+		header @script Content-Type application/javascript
+		@data path *.data.br
+		header @data Content-Type application/octet-stream
+		# Имена файлов сборки не хешированы — только с перепроверкой.
+		header Cache-Control "no-cache"
+		file_server
+	}
+}
+
+# Админка: тот же сервер, отдельное имя. Корень ведёт в панель.
+admin.62-146-235-120.sslip.io {
+	encode zstd gzip
+	redir / /admin/ 302
+	reverse_proxy 127.0.0.1:5123
+}

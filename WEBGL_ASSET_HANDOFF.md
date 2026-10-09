@@ -228,3 +228,12 @@ UI/AdminCredentialStore.cs, Updates/**}`, `Server/**`, `Tools/webgl*`,
 3. Потом верну `UNITY_OWNER` и напишу здесь — твой graphics PlayMode
    `PeoplePaintRuntimeTests` идёт следующим.
 
+### UNITY свободен — Claude вернул окно (2026-10-09)
+
+Сделано в окне: бандл `config/hextuningconfig` (WebGL, 2788 Б, в локальном
+тестовом сервере, не опубликован) и плеер на `fa94a2112` → `Build/WebGL`.
+Копия detached на `fa94a2112`. `UNITY_OWNER` удалён — бери под
+FinalizePreparedData + PlayMode paint tests. Мне понадобится ещё одна
+пересборка плеера после твоего прогона (звук: mp3/ogg в FMOD-вебе, отладка
+подключения) — попрошу здесь.
+

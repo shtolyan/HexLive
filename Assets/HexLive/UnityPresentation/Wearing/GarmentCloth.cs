@@ -1,4 +1,6 @@
+#if !UNITY_WEBGL
 using MagicaCloth2;
+#endif
 using UnityEngine;
 
 namespace HexLive.UnityPresentation.Wearing
@@ -60,6 +62,16 @@ public sealed class GarmentCloth : MonoBehaviour
     [Header("Culling")]
     [SerializeField] private float distanceCullingLength = 25f;
 
+#if UNITY_WEBGL
+    // §168.7: MagicaCloth2 в вебе не живёт (Burst/Jobs без потоков), его
+    // сборка исключена из WebGL. Подол остаётся на обычном скиннинге — тот же
+    // откат, что при неудачном BuildAndRun ниже; настройки в префабе целы.
+    public bool IsBuilt => false;
+
+    public void Build(BodyBones bodyBones, SkinnedMeshRenderer meshRenderer)
+    {
+    }
+#else
     private MagicaCloth _cloth;
 
     public bool IsBuilt => _cloth != null;
@@ -149,6 +161,7 @@ public sealed class GarmentCloth : MonoBehaviour
             _cloth = null;
         }
     }
+#endif
 }
 
 }

@@ -1,0 +1,34 @@
+T:System.Net.WebSockets.ClientWebSocket;§168.2: в браузере нет System.Net — сокет только через IWireSocket (WebWireSocket.jslib)
+T:System.Net.Http.HttpClient;§168.3: в браузере нет System.Net — HTTP только через UnityWebRequest
+T:System.Net.Http.HttpClientHandler;§168.3: в браузере нет System.Net — HTTP только через UnityWebRequest
+T:System.Net.HttpWebRequest;§168.3: в браузере нет System.Net — HTTP только через UnityWebRequest
+T:System.Net.WebClient;§168.3: в браузере нет System.Net — HTTP только через UnityWebRequest
+T:System.Net.Sockets.Socket;§168.2: в браузере нет сокетов
+T:System.Net.Sockets.TcpClient;§168.2: в браузере нет сокетов
+T:System.Net.Sockets.UdpClient;§168.2: в браузере нет сокетов
+T:System.Threading.Thread;§168.4: C#-потоков в вебе нет
+T:System.Threading.ThreadPool;§168.4: C#-потоков в вебе нет
+T:System.Threading.Timer;§168.4: таймеры пула потоков в вебе не тикают
+T:System.Threading.Tasks.Parallel;§168.4: C#-потоков в вебе нет
+M:System.Threading.Tasks.Task.Run(System.Action);§168.4: Task.Run в вебе не выполнится — работа на главном потоке порциями
+M:System.Threading.Tasks.Task.Run(System.Action,System.Threading.CancellationToken);§168.4: Task.Run в вебе не выполнится
+M:System.Threading.Tasks.Task.Run(System.Func{System.Threading.Tasks.Task});§168.4: Task.Run в вебе не выполнится
+M:System.Threading.Tasks.Task.Run(System.Func{System.Threading.Tasks.Task},System.Threading.CancellationToken);§168.4: Task.Run в вебе не выполнится
+M:System.Threading.Tasks.Task.Run``1(System.Func{``0});§168.4: Task.Run в вебе не выполнится
+M:System.Threading.Tasks.Task.Run``1(System.Func{``0},System.Threading.CancellationToken);§168.4: Task.Run в вебе не выполнится
+M:System.Threading.Tasks.Task.Run``1(System.Func{System.Threading.Tasks.Task{``0}});§168.4: Task.Run в вебе не выполнится
+M:System.Threading.Tasks.Task.Run``1(System.Func{System.Threading.Tasks.Task{``0}},System.Threading.CancellationToken);§168.4: Task.Run в вебе не выполнится
+M:System.Threading.Tasks.Task.Delay(System.Int32);§168.4: Task.Delay стоит на таймере пула — в вебе Awaitable.WaitForSecondsAsync
+M:System.Threading.Tasks.Task.Delay(System.Int32,System.Threading.CancellationToken);§168.4: Task.Delay в вебе не тикает
+M:System.Threading.Tasks.Task.Delay(System.TimeSpan);§168.4: Task.Delay в вебе не тикает
+M:System.Threading.Tasks.Task.Delay(System.TimeSpan,System.Threading.CancellationToken);§168.4: Task.Delay в вебе не тикает
+M:System.Threading.Tasks.Task.Wait;§168.4: блокирующее ожидание на единственном потоке — вечное зависание
+M:System.Threading.Tasks.Task.Wait(System.Int32);§168.4: блокирующее ожидание на единственном потоке
+M:System.Threading.Tasks.Task.Wait(System.TimeSpan);§168.4: блокирующее ожидание на единственном потоке
+M:System.Threading.Tasks.Task.Wait(System.Threading.CancellationToken);§168.4: блокирующее ожидание на единственном потоке
+M:System.Threading.Tasks.Task.Wait(System.Int32,System.Threading.CancellationToken);§168.4: блокирующее ожидание на единственном потоке
+P:System.Threading.Tasks.Task`1.Result;§168.4: блокирующее ожидание на единственном потоке
+M:System.Runtime.CompilerServices.TaskAwaiter.GetResult;§168.4: .GetAwaiter().GetResult() — блокирующее ожидание
+M:System.Runtime.CompilerServices.TaskAwaiter`1.GetResult;§168.4: .GetAwaiter().GetResult() — блокирующее ожидание
+T:System.Diagnostics.Process;§168.5: процессов в браузере нет
+P:UnityEngine.Application.streamingAssetsPath;§168.6: в вебе это URL, а не папка — только через WebContentPaths

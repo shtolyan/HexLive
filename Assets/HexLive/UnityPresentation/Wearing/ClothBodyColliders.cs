@@ -1,3 +1,5 @@
+// §168.7: только вместе с GarmentCloth, а та в вебе ткань не строит.
+#if !UNITY_WEBGL
 using System.Collections.Generic;
 using MagicaCloth2;
 using UnityEngine;
@@ -184,3 +186,4 @@ public sealed class ClothBodyColliders : MonoBehaviour
 }
 
 }
+#endif

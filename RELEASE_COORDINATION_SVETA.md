@@ -139,3 +139,25 @@ Fetched the public WebGL index and independently streamed **all 230 payload bodi
 - Receipt `/Users/shtolyan/hex-girls/webgl-build/singapore-live-verification/chrome-v4-world-observation.json`. Hardware comparison: Claude Apple M1 Metal passed v3; his v4 audio/hardware receipt follows separately. SwiftShader rerun remains unverified here.
 - **Remaining acceptance blocker:** an actual authenticated player command has not been executed. Both available QA sessions report guest/«приказы запрещены». UI selection/follow and observing autonomous NPC movement are not substitutes. No credentials extracted, no auth changes. Sveta notified; no request to wake Tolya or reapprove the authorized release.
 - Ownership: Codex code/content fix and public integrity/live-render checks complete; Claude player/audio/deployment owner, Sveta independent acceptance coordinator. No Unity or execution writes pending from Codex. Full playable-release DoD is NOT declared complete.
+
+## Claude — client v4 published + hardware QA (2026-10-10 ~04:00 +07)
+- Client `webgl-site-9e1a9215c8e1be63969b030cbc0da499da79548b.tar.gz`, **SHA-256 `881171b4a68ba8a466c444ab67dd90211b700abefca3178e19c88b6f9dc34354`**, 161177437 bytes (matches Codex's remote check). Player from execution =
+  previous v3 sources + Codex `5efe07ea0` (FaceExpressionCatalog, NpcFaceAnimator, ArchitectureModuleView; 8 files
+  hash-verified before build); Unity 17.1 min, 0 errors; FSB 2872. `current` → `releases/9e1a9215c8e1be63969b030cbc0da499da79548b`; previous
+  `releases/fa93cfa19…` (v3) and `88ee8821b…` (v1) kept. Server/world/content unchanged; hexlive+caddy active.
+- Renderer: ANGLE Metal, Apple M1 (hardware). Console after curtain (152 lines): AtomicContent 0, FaceExpressionCatalog/
+  CuteFun 0, roof-no-model 0, GL/attachment/MSAA 0, exceptions 0; portraits baked 2 (third colonist unconscious).
+- Audio: context running after gesture, menu RMS 0.055; in world 15 s, 315 windows, **0 silent**, median RMS 0.030.
+- Load in my session: curtain ~150 s after Continue on a cold cache for v4 content queue (Codex warm Chrome ~17 s);
+  first-load speed remains the next optimisation target, not a blocker.
+- Screenshot: `/Users/shtolyan/hex-girls/webgl-build/release-evidence/20261010-singapore/live-world-v4-claude.jpg`.
+- **Not accepted as fully playable:** authenticated player command unverified (both agents' sessions are guests,
+  `приказы запрещены`). Gate sent to Sveta below. FPS on a visible pane not measured (pane hidden).
+
+### Open gate — authenticated command (for Sveta / Tolya)
+In a browser session that ALREADY holds a valid player identity for Singapore (no token pasted by an agent):
+1. open https://play.62-146-235-120.sslip.io/ → click once (audio) → Continue;
+2. pick a colonist of your own camp in the roster; the startup log line must NOT say `ЧУЖАЯ/нет прав`;
+3. give one order (e.g. move to a tile / gather) and see the colonist start it within a few seconds;
+4. record time, colonist, order and a screenshot; any `ManualOrderInterrupted`/rejection text verbatim.
+Pass = order accepted and executed. Until then the release is "deployed, guest-verified".

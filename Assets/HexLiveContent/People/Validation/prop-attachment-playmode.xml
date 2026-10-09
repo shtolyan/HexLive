@@ -1,47 +1,47 @@
 <?xml version='1.0' encoding='utf-8'?>
-<test-run id="2" testcasecount="5" result="Passed" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-09 21:20:16Z" end-time="2026-10-09 21:20:21Z" duration="5.1978936">
-  <test-suite type="TestSuite" id="1103" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="78" result="Passed" start-time="2026-10-09 21:20:16Z" end-time="2026-10-09 21:20:21Z" duration="5.197894" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+<test-run id="2" testcasecount="5" result="Passed" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-09 22:34:31Z" end-time="2026-10-09 22:34:37Z" duration="6.5081547">
+  <test-suite type="TestSuite" id="1107" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="81" result="Passed" start-time="2026-10-09 22:34:31Z" end-time="2026-10-09 22:34:37Z" duration="6.508155" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
     <properties>
       <property name="platform" value="PlayMode" />
     </properties>
-    <test-suite type="Assembly" id="1097" name="HexLive.AgentIntegration.Tests.dll" fullname="/Users/shtolyan/hex-girls/webgl-build/HexLive/Library/ScriptAssemblies/HexLive.AgentIntegration.Tests.dll" runstate="Runnable" testcasecount="78" result="Passed" start-time="2026-10-09 21:20:16Z" end-time="2026-10-09 21:20:21Z" duration="5.173760" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <test-suite type="Assembly" id="1101" name="HexLive.AgentIntegration.Tests.dll" fullname="/Users/shtolyan/hex-girls/webgl-build/HexLive/Library/ScriptAssemblies/HexLive.AgentIntegration.Tests.dll" runstate="Runnable" testcasecount="81" result="Passed" start-time="2026-10-09 22:34:31Z" end-time="2026-10-09 22:34:37Z" duration="6.480827" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
       <properties>
-        <property name="_PID" value="46694" />
+        <property name="_PID" value="60383" />
         <property name="_APPDOMAIN" value="Unity Child Domain" />
         <property name="platform" value="PlayMode" />
         <property name="EditorOnly" value="False" />
       </properties>
-      <test-suite type="TestSuite" id="1098" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="78" result="Passed" start-time="2026-10-09 21:20:16Z" end-time="2026-10-09 21:20:21Z" duration="5.168609" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <test-suite type="TestSuite" id="1102" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="81" result="Passed" start-time="2026-10-09 22:34:31Z" end-time="2026-10-09 22:34:37Z" duration="6.472110" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
         <properties />
-        <test-suite type="TestSuite" id="1099" name="Tests" fullname="HexLive.Tests" runstate="Runnable" testcasecount="78" result="Passed" start-time="2026-10-09 21:20:16Z" end-time="2026-10-09 21:20:21Z" duration="5.160596" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <test-suite type="TestSuite" id="1103" name="Tests" fullname="HexLive.Tests" runstate="Runnable" testcasecount="81" result="Passed" start-time="2026-10-09 22:34:31Z" end-time="2026-10-09 22:34:37Z" duration="6.453197" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
           <properties />
-          <test-suite type="TestFixture" id="1075" name="PeoplePropAttachmentRuntimeTests" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-10-09 21:20:16Z" end-time="2026-10-09 21:20:21Z" duration="5.146915" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <test-suite type="TestFixture" id="1075" name="PeoplePropAttachmentRuntimeTests" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-10-09 22:34:31Z" end-time="2026-10-09 22:34:37Z" duration="6.437061" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
             <properties />
-            <test-case id="1078" name="EquippingAndRemovingBagReseatsExistingWeaponOutsideItsMesh" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.EquippingAndRemovingBagReseatsExistingWeaponOutsideItsMesh" methodname="EquippingAndRemovingBagReseatsExistingWeaponOutsideItsMesh" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="151785399" result="Passed" start-time="2026-10-09 21:20:16Z" end-time="2026-10-09 21:20:17Z" duration="1.172230" asserts="0">
+            <test-case id="1078" name="EquippingAndRemovingBagPreservesWeaponSlotAndAllowsOverlap" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.EquippingAndRemovingBagPreservesWeaponSlotAndAllowsOverlap" methodname="EquippingAndRemovingBagPreservesWeaponSlotAndAllowsOverlap" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="1254993663" result="Passed" start-time="2026-10-09 22:34:31Z" end-time="2026-10-09 22:34:32Z" duration="1.498314" asserts="0">
               <properties>
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-case id="1080" name="LateGarmentAndBackConfigRetryWithoutRespawningActor" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.LateGarmentAndBackConfigRetryWithoutRespawningActor" methodname="LateGarmentAndBackConfigRetryWithoutRespawningActor" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="2120829151" result="Passed" start-time="2026-10-09 21:20:17Z" end-time="2026-10-09 21:20:17Z" duration="0.133505" asserts="0">
+            <test-case id="1080" name="LateGarmentAndBackConfigRetryWithoutRespawningActor" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.LateGarmentAndBackConfigRetryWithoutRespawningActor" methodname="LateGarmentAndBackConfigRetryWithoutRespawningActor" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="1276852921" result="Passed" start-time="2026-10-09 22:34:32Z" end-time="2026-10-09 22:34:32Z" duration="0.169253" asserts="0">
               <properties>
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-case id="1076" name="ReleasedPortablePropsKeepGripAndBackOffsetsOnBothAnimatedBodies" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.ReleasedPortablePropsKeepGripAndBackOffsetsOnBothAnimatedBodies" methodname="ReleasedPortablePropsKeepGripAndBackOffsetsOnBothAnimatedBodies" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="1372462274" result="Passed" start-time="2026-10-09 21:20:17Z" end-time="2026-10-09 21:20:17Z" duration="0.312306" asserts="0">
+            <test-case id="1076" name="ReleasedPortablePropsKeepGripAndBackOffsetsOnBothAnimatedBodies" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.ReleasedPortablePropsKeepGripAndBackOffsetsOnBothAnimatedBodies" methodname="ReleasedPortablePropsKeepGripAndBackOffsetsOnBothAnimatedBodies" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="1002644036" result="Passed" start-time="2026-10-09 22:34:32Z" end-time="2026-10-09 22:34:33Z" duration="0.733400" asserts="0">
               <properties>
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-case id="1077" name="RenderProductionBackAndHandAttachmentsWithEveryPack" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.RenderProductionBackAndHandAttachmentsWithEveryPack" methodname="RenderProductionBackAndHandAttachmentsWithEveryPack" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="1497706287" result="Passed" start-time="2026-10-09 21:20:17Z" end-time="2026-10-09 21:20:21Z" duration="3.255537" asserts="0">
+            <test-case id="1077" name="RenderProductionBackAndHandAttachmentsWithEveryPack" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.RenderProductionBackAndHandAttachmentsWithEveryPack" methodname="RenderProductionBackAndHandAttachmentsWithEveryPack" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="1532708024" result="Passed" start-time="2026-10-09 22:34:33Z" end-time="2026-10-09 22:34:37Z" duration="3.911932" asserts="0">
               <properties>
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-case id="1079" name="WeaponInEitherHandIsNotAlsoMountedOnBack" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.WeaponInEitherHandIsNotAlsoMountedOnBack" methodname="WeaponInEitherHandIsNotAlsoMountedOnBack" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="614101396" result="Passed" start-time="2026-10-09 21:20:21Z" end-time="2026-10-09 21:20:21Z" duration="0.233714" asserts="0">
+            <test-case id="1079" name="WeaponInEitherHandIsNotAlsoMountedOnBack" fullname="HexLive.Tests.PeoplePropAttachmentRuntimeTests.WeaponInEitherHandIsNotAlsoMountedOnBack" methodname="WeaponInEitherHandIsNotAlsoMountedOnBack" classname="HexLive.Tests.PeoplePropAttachmentRuntimeTests" runstate="Runnable" seed="614084281" result="Passed" start-time="2026-10-09 22:34:37Z" end-time="2026-10-09 22:34:37Z" duration="0.064259" asserts="0">
               <properties>
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />

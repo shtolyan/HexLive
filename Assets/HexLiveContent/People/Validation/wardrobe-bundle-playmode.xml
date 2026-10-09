@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<test-run id="2" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-09 22:36:07Z" end-time="2026-10-09 22:36:10Z" duration="2.2901436">
+  <test-suite type="TestSuite" id="1107" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="81" result="Passed" start-time="2026-10-09 22:36:07Z" end-time="2026-10-09 22:36:10Z" duration="2.290144" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1101" name="HexLive.AgentIntegration.Tests.dll" fullname="/Users/shtolyan/hex-girls/webgl-build/HexLive/Library/ScriptAssemblies/HexLive.AgentIntegration.Tests.dll" runstate="Runnable" testcasecount="81" result="Passed" start-time="2026-10-09 22:36:08Z" end-time="2026-10-09 22:36:10Z" duration="2.179220" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="61161" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1102" name="HexLive" fullname="HexLive" runstate="Runnable" testcasecount="81" result="Passed" start-time="2026-10-09 22:36:08Z" end-time="2026-10-09 22:36:10Z" duration="2.172692" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1103" name="Tests" fullname="HexLive.Tests" runstate="Runnable" testcasecount="81" result="Passed" start-time="2026-10-09 22:36:08Z" end-time="2026-10-09 22:36:10Z" duration="2.159674" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1097" name="WardrobeBundlePlacementRuntimeTests" fullname="HexLive.Tests.WardrobeBundlePlacementRuntimeTests" classname="HexLive.Tests.WardrobeBundlePlacementRuntimeTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-09 22:36:08Z" end-time="2026-10-09 22:36:10Z" duration="2.145187" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1099" name="ImportedSourceUsesTheSameProductionFactories" fullname="HexLive.Tests.WardrobeBundlePlacementRuntimeTests.ImportedSourceUsesTheSameProductionFactories" methodname="ImportedSourceUsesTheSameProductionFactories" classname="HexLive.Tests.WardrobeBundlePlacementRuntimeTests" runstate="Runnable" seed="1965157908" result="Passed" start-time="2026-10-09 22:36:08Z" end-time="2026-10-09 22:36:08Z" duration="0.180979" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1100" name="RenderImportedWardrobeWithProductionHangersAndBoots" fullname="HexLive.Tests.WardrobeBundlePlacementRuntimeTests.RenderImportedWardrobeWithProductionHangersAndBoots" methodname="RenderImportedWardrobeWithProductionHangersAndBoots" classname="HexLive.Tests.WardrobeBundlePlacementRuntimeTests" runstate="Runnable" seed="811612057" result="Passed" start-time="2026-10-09 22:36:08Z" end-time="2026-10-09 22:36:10Z" duration="1.761928" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1098" name="SerializedWebGlOwnerPreservesHangerAxesAndShelfAcrossReloadAndSixYaws" fullname="HexLive.Tests.WardrobeBundlePlacementRuntimeTests.SerializedWebGlOwnerPreservesHangerAxesAndShelfAcrossReloadAndSixYaws" methodname="SerializedWebGlOwnerPreservesHangerAxesAndShelfAcrossReloadAndSixYaws" classname="HexLive.Tests.WardrobeBundlePlacementRuntimeTests" runstate="Runnable" seed="1709259987" result="Passed" start-time="2026-10-09 22:36:10Z" end-time="2026-10-09 22:36:10Z" duration="0.153279" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output>&lt;b&gt;&lt;color=#2EA3FF&gt;MCP-FOR-UNITY&lt;/color&gt;&lt;/b&gt;: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: /Users/shtolyan/Library/Application Support/JuicyLove/HexLive/TestResults.xml
+</output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

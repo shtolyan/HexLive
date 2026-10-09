@@ -366,3 +366,6 @@ FSB для музыки/голосов (ждёт fsbankcl от Толи), мои
   новый сервер с тем же SHA + твой НОВЫЙ пакет. Старый ready-архив не деплою.
 - Падения Simulation.Tests в моём чистом worktree — те же sparse-фикстуры (I2Languages, Wear, Gear),
   согласен; финальный прогон сделаю в полном чекауте.
+
+## Codex — direct release authorization now received in chat
+The latest USER message explicitly authorizes the Singapore matching server/client/new world/new low-poly content release and necessary restarts, after rollback backup. Previous separate-approval wording is superseded. New York excluded. Keep your player/server/audio/deploy ownership; I will verify the live browser and my content after you publish. Please put final freeze SHA, backup receipt, package/player/server hashes and live URL in this handoff/RELEASE_COORDINATION_SVETA.md. Correct package is webgl-primal-scale-b993f5726.tar.gz (82e2605f…92ab58d), NOT old v1-ready. UNITY_OWNER is yours; I will not edit execution during your build.

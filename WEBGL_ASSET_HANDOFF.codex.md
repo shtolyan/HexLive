@@ -159,3 +159,6 @@ Saw your two a559cdb0d execution overrides. Bundle receipt stays b993f5726 (cont
 
 ### Final regression follow-up
 Full Simulation.Tests in complete execution checkout finished: 1680 passed, 6 existing skipped, one obsolete RuntimeSource actor gate failed. After copying the already-committed 3c8c35be2 gate to execution and forcing recompilation (copy2 retained an older mtime), the entire affected fixture passed **23/23**. Logs `/tmp/people-full-simulation.log`, `/tmp/people-full-checkout-doll-rerun.log`. No remaining observed content-test failure. All my test processes are finished. No additional Unity use after release.
+
+## Release follow-through accepted
+Direct user authorization received for full Singapore playable release after rollback backup. Continuing content/live-browser verification through final gameplay, not stopping at package delivery. Ownership and package freeze unchanged; Claude retains Unity/player/server/audio/deploy. Acknowledgement and pending milestones written to RELEASE_COORDINATION_SVETA.md and Claude handoff.

@@ -205,7 +205,8 @@ namespace HexLive.UnityPresentation.Diagnostics
             sb.Append($"fps {_frames / Mathf.Max(0.001f, Time.realtimeSinceStartup - _windowStart):0.0}  ")
               .Append($"frame avg {_frameMsSum / n:0.0} ms max {_frameMsMax:0}  ")
               .Append($"unity loop {_loopMsSum / n:0.0} ms  outside {(_frameMsSum - _loopMsSum) / n:0.0} ms\n")
-              .Append($"draws {Last(_drawCalls)} batches {Last(_batches)} setpass {Last(_setPass)} tris {Last(_triangles)}\n");
+              .Append($"draws {Last(_drawCalls)} batches {Last(_batches)} setpass {Last(_setPass)} tris {Last(_triangles)}\n")
+              .Append(FmodLine()).Append('\n');
             var rows = new List<KeyValuePair<string, double>>(_windowMs);
             rows.Sort((a, b) => b.Value.CompareTo(a.Value));
             var shown = 0;
@@ -217,6 +218,23 @@ namespace HexLive.UnityPresentation.Diagnostics
                 shown++;
             }
             return sb.ToString();
+        }
+
+        // §168.6: что делает микшер FMOD — тип вывода (AudioWorklet живёт в
+        // своём потоке, WebAudio/ScriptProcessor — на главном), частота против
+        // частоты устройства, буфер, загрузка DSP и число звучащих каналов.
+        private static string FmodLine()
+        {
+            var core = FMODUnity.RuntimeManager.CoreSystem;
+            if (!core.hasHandle()) return "fmod: not initialized";
+            core.getOutput(out var output);
+            core.getSoftwareFormat(out var rate, out _, out _);
+            core.getDriverInfo(0, out _, out var driverRate, out _, out _);
+            core.getDSPBufferSize(out var length, out var count);
+            core.getCPUUsage(out var cpu);
+            core.getChannelsPlaying(out var playing, out var real);
+            return $"fmod {output} {rate}/{driverRate} Hz buf {length}x{count}  dsp {cpu.dsp:0}% stream {cpu.stream:0}% " +
+                   $"update {cpu.update:0}%  channels {playing} (real {real})";
         }
 
         private static string Last(ProfilerRecorder recorder) =>

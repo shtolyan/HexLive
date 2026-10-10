@@ -147,6 +147,18 @@ public static class HexLiveWebGLPlayerBuild
                        throw new InvalidOperationException("FMOD settings have no PlatformWebGL entry.");
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic |
                     System.Reflection.BindingFlags.Public;
+        // Выключенная в настройках FMOD платформа (active: 0) берёт ВСЕ свойства
+        // у родителя (десктопа): v3–v8 уходили в браузер с буфером 1024×4 и без
+        // обработчика старта, хотя скрипт их «ставил» (замер ?perf=1, 11.10.2026).
+        // AffirmProperties включает платформу; свойства читаем ПОСЛЕ него.
+        var active = (bool)(typeof(FMODUnity.Platform).GetProperty("Active", flags)?.GetValue(platform) ??
+                            throw new InvalidOperationException("FMOD Platform.Active not found."));
+        if (!active)
+        {
+            (typeof(FMODUnity.Platform).GetMethod("AffirmProperties", flags) ??
+             throw new InvalidOperationException("FMOD Platform.AffirmProperties not found.")).Invoke(platform, null);
+            Debug.Log("[WebGLBuild] FMOD WebGL platform was inactive — activated");
+        }
         var properties = typeof(FMODUnity.Platform).GetField("Properties", flags)?.GetValue(platform) ??
                          throw new InvalidOperationException("FMOD Platform.Properties not found.");
         void Set(string name, int value)

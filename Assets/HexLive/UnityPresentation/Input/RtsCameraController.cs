@@ -351,7 +351,15 @@ namespace HexLive.UnityPresentation.Input
             _pendingFrameSelection = true;
         }
 
+        // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
         private void LateUpdate()
+        {
+            var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+            LateUpdateCore();
+            HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.CameraLateUpdate, perfStart);
+        }
+
+        private void LateUpdateCore()
         {
             if (_runner == null)
             {

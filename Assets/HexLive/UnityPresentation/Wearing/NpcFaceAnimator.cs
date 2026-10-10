@@ -386,7 +386,15 @@ public sealed class NpcFaceAnimator : MonoBehaviour
         return index;
     }
 
+    // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
     private void LateUpdate()
+    {
+        var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+        LateUpdateCore();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.FaceLateUpdate, perfStart);
+    }
+
+    private void LateUpdateCore()
     {
         // The shared remote recipe pack may arrive after this actor was built.
         RefreshExpressionIndices();

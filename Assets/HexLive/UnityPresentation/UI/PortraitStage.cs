@@ -119,7 +119,15 @@ namespace HexLive.UnityPresentation.UI
         }
 
         // After the world renderer has interpolated actor transforms for the frame.
+        // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
         private void LateUpdate()
+        {
+            var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+            LateUpdateCore();
+            HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.PortraitLateUpdate, perfStart);
+        }
+
+        private void LateUpdateCore()
         {
             if (_camera == null)
             {

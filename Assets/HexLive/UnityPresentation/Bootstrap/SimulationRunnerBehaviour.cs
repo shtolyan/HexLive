@@ -255,7 +255,15 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     private float _unconfiguredTimer;
     private bool _unconfiguredReported;
 
+    // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
     private void Update()
+    {
+        var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+        UpdateCore();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.RunnerUpdate, perfStart);
+    }
+
+    private void UpdateCore()
     {
         if (_backend is null)
         {
@@ -314,7 +322,15 @@ public sealed class SimulationRunnerBehaviour : MonoBehaviour, ISimulationSource
     // stay frozen behind a dead curtain — resume once the loader is gone.
     private float _loaderWatchdog;
 
+    // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
     private void LateUpdate()
+    {
+        var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+        LateUpdateCore();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.RunnerLateUpdate, perfStart);
+    }
+
+    private void LateUpdateCore()
     {
         if (_backend is null || !_backend.IsPaused || AutosaveEnabled || AutosaveSuppressed)
         {

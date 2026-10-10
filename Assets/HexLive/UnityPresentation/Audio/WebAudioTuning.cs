@@ -42,8 +42,13 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             core.getSoftwareFormat(out var rate, out var speakers, out var rawSpeakers);
-            var driverRate = 0;
-            core.getDriverInfo(0, out _, out driverRate, out _, out _);
+            // Before init FMOD's driver info is a default (44100 on a 48 kHz Mac,
+            // measured 11.10.2026); the page's own AudioContext knows the truth.
+            var driverRate = HexLive.UnityPresentation.Platform.WebPage.AudioSampleRate;
+            if (driverRate <= 0)
+            {
+                core.getDriverInfo(0, out _, out driverRate, out _, out _);
+            }
             var rateParam = Param(url, "fmodrate");
             var wanted = int.TryParse(rateParam, out var forced) && forced >= 8000 ? forced : driverRate;
             if (wanted > 0 && wanted != rate)

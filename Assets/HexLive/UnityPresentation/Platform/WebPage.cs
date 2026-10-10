@@ -28,7 +28,21 @@ public static class WebPage
 
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")] private static extern void HexPageReload();
+    [DllImport("__Internal")] private static extern int HexAudioSampleRate();
 #endif
+
+    /// <summary>§168.6: the browser's real audio output rate; 0 when unknown or off the web.</summary>
+    public static int AudioSampleRate
+    {
+        get
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return HexAudioSampleRate();
+#else
+            return 0;
+#endif
+        }
+    }
 
     /// <summary>
     /// §168.10: the game server of the page itself — the web build is served

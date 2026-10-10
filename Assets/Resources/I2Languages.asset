@@ -3781,6 +3781,14 @@ MonoBehaviour:
       - "\u0414\u0435\u043b\u0430\u0435\u0442 \u0434\u0435\u0440\u0435\u0432\u044f\u043d\u043d\u0443\u044e \u043d\u043e\u0433\u0443"
       Flags: 0101
       Languages_Touch: []
+    - Term: goal.CraftItem
+      TermType: 0
+      Description:
+      Languages:
+      - Crafting an item
+      - "\u0418\u0437\u0433\u043e\u0442\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 \u043f\u0440\u0435\u0434\u043c\u0435\u0442"
+      Flags: 0101
+      Languages_Touch: []
     - Term: goal.PlayerInventory
       TermType: 0
       Description:

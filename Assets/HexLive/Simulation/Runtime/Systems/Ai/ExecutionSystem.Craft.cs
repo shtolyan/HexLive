@@ -19,7 +19,7 @@ public sealed partial class ExecutionSystem
     // catalog entry — preserving the old switch's `_ => false` default.
     private static bool CraftGateOk(WorldState world, NPCState npc, WorldObjectState worldObject, GoalType goal)
     {
-        if (!Content.RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe))
+        if (!Content.RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe))
         {
             return false;
         }
@@ -57,7 +57,7 @@ public sealed partial class ExecutionSystem
     // Remove-per-ingredient the effect switch used to do inline.
     private static void ConsumeRecipeInputs(NPCState npc, GoalType goal)
     {
-        if (!Content.RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe))
+        if (!Content.RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe))
         {
             return;
         }
@@ -215,7 +215,11 @@ public sealed partial class ExecutionSystem
                 GiveOrDrop(world, npc, ContentIds.WoodenLeg);
                 return true;
             default:
-                return false;
+                // §138.6: ordinary outputs need no per-item C# adapter.
+                if (!RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe) ||
+                    string.IsNullOrEmpty(recipe.OutputDefinitionId)) return false;
+                GiveOrDrop(world, npc, CreateCraftYieldItem(world, recipe.OutputDefinitionId));
+                return true;
         }
     }
 
@@ -337,7 +341,7 @@ public sealed partial class ExecutionSystem
     {
         var goal = npc.Plan.Goal != GoalType.None ? npc.Plan.Goal : npc.Mind.CurrentGoal;
         if (!RecipeCatalog.UsesPersistentProject(goal) ||
-            !RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe) ||
+            !RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe) ||
             !string.IsNullOrEmpty(recipe.Station))
         {
             RunLegacyCraftInPlace(world, npc);
@@ -596,7 +600,7 @@ public sealed partial class ExecutionSystem
     private static void RunLegacyCraftInPlace(WorldState world, NPCState npc)
     {
         var goal = npc.Plan.Goal != GoalType.None ? npc.Plan.Goal : npc.Mind.CurrentGoal;
-        if (!Content.RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe))
+        if (!Content.RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe))
         {
             npc.Plan.Status = PlanStatus.Failed;
             if (SimTrace.Enabled)

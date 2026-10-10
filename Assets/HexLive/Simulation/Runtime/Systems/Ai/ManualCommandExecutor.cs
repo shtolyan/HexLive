@@ -83,8 +83,11 @@ internal static class ManualCommandExecutor
             case StopCommand stop:
                 ApplyStop(world, stop, admission);
                 break;
+            case CraftByOutputCommand craft:
+                ApplyCraft(world, craft.Npc, GoalType.None, craft.OutputDefinitionId, admission);
+                break;
             case CraftItemCommand craft:
-                ApplyCraft(world, craft, admission);
+                ApplyCraft(world, craft.Npc, craft.RecipeGoal, null, admission);
                 break;
             case TalkToCommand talkTo:
                 ApplyTalkTo(world, talkTo, admission);
@@ -229,6 +232,7 @@ internal static class ManualCommandExecutor
         AttackMobCommand => "AttackMob",
         StopCommand => "Stop",
         CraftItemCommand => "Craft",
+        CraftByOutputCommand => "Craft",
         TalkToCommand => "TalkTo",
         RequestItemCommand => "RequestItem",
         SetDirectiveCommand => "SetDirective",
@@ -3134,9 +3138,9 @@ internal static class ManualCommandExecutor
     }
 
     private static void ApplyCraft(
-        WorldState world, CraftItemCommand command, AdmissionTracker admission)
+        WorldState world, EntityId npcId, GoalType goal, string outputId, AdmissionTracker admission)
     {
-        if (!TryTakeOrder(world, command.Npc, "Craft", requireManual: true,
+        if (!TryTakeOrder(world, npcId, "Craft", requireManual: true,
                 admission, out var npc))
         {
             return;
@@ -3148,7 +3152,8 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        var option = CraftingOptions.Resolve(world, npc, command.RecipeGoal);
+        var option = outputId == null ? CraftingOptions.Resolve(world, npc, goal)
+            : CraftingOptions.Resolve(world, npc, outputId);
         ApplyCraftOption(world, npc, option, admission);
     }
 

@@ -259,10 +259,11 @@ public sealed class McpTools
                    ("interaction", "string", "глагол взаимодействия, например PickUp/Drink/Sleep", true))),
 
         new("craft_item",
-            "Заказать крафт по цели рецепта (§138), например CookMeat или CraftCloth. " +
-            "Список целей — в ошибке при неверном значении.",
+            "Заказать крафт по outputId из read_recipes (§138.6). " +
+            "Старый recipeGoal также поддерживается; укажите ровно один из них.",
             Schema(("npcId", "integer", "id колонистки", true),
-                   ("recipeGoal", "string", "цель рецепта", true))),
+                   ("outputId", "string", "definition id результата из read_recipes", false),
+                   ("recipeGoal", "string", "старая цель рецепта", false))),
 
         new("attack_npc",
             "Напасть на человека.",
@@ -1549,6 +1550,18 @@ public sealed class McpTools
     private string Craft(WorldHost host, JsonElement arguments, string owner, out bool isError)
     {
         var npcId = Int(arguments, "npcId");
+        var outputId = OptionalText(arguments, "outputId");
+        if (arguments.TryGetProperty("outputId", out _))
+        {
+            if (arguments.TryGetProperty("recipeGoal", out _) ||
+                !RecipeCatalog.ByOutput.ContainsKey(outputId))
+            {
+                isError = true;
+                return "Укажите один известный outputId из read_recipes либо старый recipeGoal.";
+            }
+            return Submit(host, npcId, owner,
+                npc => new CraftByOutputCommand(npc, outputId), out isError);
+        }
         var goalName = Text(arguments, "recipeGoal");
         if (!Enum.TryParse<GoalType>(goalName, ignoreCase: true, out var goal) ||
             !RecipeCatalog.ByGoal.ContainsKey(goal))

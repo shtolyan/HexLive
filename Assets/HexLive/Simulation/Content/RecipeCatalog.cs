@@ -76,40 +76,55 @@ public static class RecipeCatalog
     // section (ingredients + станция), the tunings push it here via Override,
     // and the code table below is only the engine-free default/fallback.
     private static Dictionary<GoalType, Recipe> _byGoal;
+    private static Dictionary<string, Recipe> _byOutput;
+
+    // §138.6: item identity is data; ByGoal remains the legacy/AI adapter.
+    public static IReadOnlyDictionary<string, Recipe> ByOutput
+    {
+        get
+        {
+            if (_byOutput == null)
+            {
+                _byOutput = new Dictionary<string, Recipe>(System.StringComparer.Ordinal);
+                foreach (var recipe in ByGoal.Values)
+                    if (!string.IsNullOrEmpty(recipe.OutputDefinitionId))
+                        _byOutput.Add(recipe.OutputDefinitionId, recipe);
+            }
+            return _byOutput;
+        }
+    }
+
+    public static bool TryGet(GoalType goal, string outputId, out Recipe recipe)
+    {
+        if (goal == GoalType.CraftItem)
+            return ByOutput.TryGetValue(outputId ?? "", out recipe);
+        return ByGoal.TryGetValue(goal, out recipe);
+    }
+
+    public static string OutputOf(GoalType goal, string outputId) =>
+        TryGet(goal, outputId, out var recipe) ? recipe.OutputDefinitionId : "";
 
     public static IReadOnlyDictionary<GoalType, Recipe> ByGoal => _byGoal ??= Build();
 
-    /// <summary>Asset-driven recipe for an output item: replaces the default's
-    /// inputs/fire flag (RequiresNoRack is preserved). Unknown output ids are
-    /// ignored — a craft needs its goal-layer verb to exist.</summary>
+    /// <summary>§138.6: register or replace an item recipe, retaining any
+    /// legacy goal and its specialized completion adapter.</summary>
     public static void Override(string outputId, RecipeIngredient[] inputs, bool needsLitFire,
         string station = "Campfire", int baseWorkTicks = 0)
     {
-        if (string.IsNullOrEmpty(outputId) || inputs == null)
-        {
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(outputId) || inputs == null)
+            throw new System.ArgumentException("A recipe requires an output id and inputs.");
+        var ids = new HashSet<string>(System.StringComparer.Ordinal);
+        foreach (var input in inputs)
+            if (input == null || string.IsNullOrWhiteSpace(input.Id) || input.Count <= 0 || !ids.Add(input.Id))
+                throw new System.ArgumentException("Recipe ingredients require unique ids and positive counts.");
 
-        _byGoal ??= Build();
-        Recipe existing = null;
-        foreach (var candidate in _byGoal.Values)
-        {
-            if (candidate.OutputDefinitionId == outputId)
-            {
-                existing = candidate;
-                break;
-            }
-        }
-        if (existing is null)
-        {
-            return; // a craft still needs its authored goal-layer verb
-        }
-
-        var goal = existing.Goal;
-        var noRack = existing.RequiresNoRack;
-        var work = baseWorkTicks > 0 ? baseWorkTicks : existing.BaseWorkTicks;
-        _byGoal[goal] = new Recipe(
-            goal, inputs, needsLitFire, noRack, station, work, outputId);
+        ByOutput.TryGetValue(outputId, out var existing);
+        var goal = existing?.Goal ?? GoalType.CraftItem;
+        var work = baseWorkTicks > 0 ? baseWorkTicks : existing?.BaseWorkTicks ?? Spec119.DefaultItemCraftWork;
+        var recipe = new Recipe(goal, (RecipeIngredient[])inputs.Clone(), needsLitFire,
+            existing?.RequiresNoRack ?? false, station, work, outputId);
+        _byOutput[outputId] = recipe;
+        if (goal != GoalType.CraftItem) _byGoal[goal] = recipe;
     }
 
     /// <summary>The craft's station tag; "" = craft in place, anywhere.</summary>
@@ -128,8 +143,9 @@ public static class RecipeCatalog
     /// asset can re-home/re-price); placed-object crafts (bed/tent/rack) are
     /// station-bound by nature.</summary>
     public static bool IsItemOutputGoal(GoalType goal) =>
-        ByGoal.TryGetValue(goal, out var recipe) &&
-        !string.IsNullOrEmpty(recipe.OutputDefinitionId);
+        goal == GoalType.CraftItem ||
+        (ByGoal.TryGetValue(goal, out var recipe) &&
+         !string.IsNullOrEmpty(recipe.OutputDefinitionId));
 
     /// <summary>Crafts represented by a persistent 0..100% output object.
     /// Cooking is deliberately excluded: its raw-meat object already lives on
@@ -137,21 +153,14 @@ public static class RecipeCatalog
     public static bool UsesPersistentProject(GoalType goal) =>
         goal != GoalType.CookMeat && IsItemOutputGoal(goal);
 
-    public static void ResetToDefaults() => _byGoal = Build();
-
-    /// <summary>Every item-output recipe with its output id — read by the
-    /// SimData exporter (placed-object crafts stay code-owned).</summary>
-    public static IEnumerable<KeyValuePair<string, Recipe>> ItemRecipes()
+    public static void ResetToDefaults()
     {
-        foreach (var recipe in ByGoal.Values)
-        {
-            if (!string.IsNullOrEmpty(recipe.OutputDefinitionId))
-            {
-                yield return new KeyValuePair<string, Recipe>(
-                    recipe.OutputDefinitionId, recipe);
-            }
-        }
+        _byGoal = Build();
+        _byOutput = null;
     }
+
+    /// <summary>§138.6: includes data-only items, not placed-object crafts.</summary>
+    public static IEnumerable<KeyValuePair<string, Recipe>> ItemRecipes() => ByOutput;
 
     /// <summary>How much of one ingredient this craft costs (0 if none) — the
     /// decision layer reads THIS, not balance constants, so asset-tuned
@@ -209,12 +218,8 @@ public static class RecipeCatalog
         // hunting rework (craft avails are hard-false in the decision layer).
         Add(GoalType.CraftBandage, new[] { I("resource.herb_leaf", 2) },
             output: ContentIds.Bandage);
-        // TODO §118.2: пластырь (ContentIds.Plaster) — рецепт из 1 листа травы,
-        // вдвое дешевле бинта. Ждёт своего GoalType.CraftPlaster вместе со
-        // скорингом и назначением: GoalTypeCoverageGate не терпит цель, которую
-        // никто не считает и никто не берёт, а полутора-проводная цель хуже
-        // отсутствующей. Сама механика пластыря (WoundMath.PlasterMostDangerous)
-        // уже есть и работает от готового предмета.
+        // §138.6: plaster can receive a data recipe; its actual bill remains
+        // a separate content decision. No recipe is added by this foundation.
         // Spec §54: cordage & cloth from fiber; the knife from a stick + stone.
         Add(GoalType.CraftRope, new[] { I("resource.fiber", SimBalance.RopeFiberCost) },
             output: ContentIds.Rope);

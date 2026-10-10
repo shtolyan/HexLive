@@ -8,10 +8,8 @@ namespace HexLive.UnityPresentation.Audio
     /// has applied the platform settings and right before Studio::initialize, so
     /// it is the last word on the mixer format.
     /// <para>
-    /// Default: mix at the browser's own output rate. FMOD mixes at 48 kHz unless
-    /// told otherwise; a 44.1 kHz AudioContext then needs a resampler, which
-    /// costs CPU on the one thread the game also runs on (FMOD HTML5 docs,
-    /// «CPU Overhead»).
+    /// Default: FMOD's own 48 kHz mix and the build's DSP buffer (2048×4). The
+    /// rate is NOT matched to the page: see the comment at setSoftwareFormat.
     /// </para>
     /// <para>
     /// Field tuning without a rebuild, from the page URL (player report
@@ -41,19 +39,17 @@ namespace HexLive.UnityPresentation.Audio
                 reportResult(core.setOutput(output), "FMOD.System.setOutput (url)");
             }
 
+            // Mixer rate: leave FMOD's own 48 kHz. Its AudioWorklet output runs
+            // at that rate whatever the device is (measured 11.10.2026: a 44.1 kHz
+            // page context, FMOD driver 48000 after init), and the browser
+            // converts to the device on the audio thread. Matching the page's
+            // 44.1 kHz instead made FMOD itself resample 44.1→48 — the opposite
+            // of the intent. Only an explicit fmodrate= changes it.
             core.getSoftwareFormat(out var rate, out var speakers, out var rawSpeakers);
-            // Before init FMOD's driver info is a default (44100 on a 48 kHz Mac,
-            // measured 11.10.2026); the page's own AudioContext knows the truth.
             var driverRate = HexLive.UnityPresentation.Platform.WebPage.AudioSampleRate;
-            if (driverRate <= 0)
+            if (int.TryParse(Param(url, "fmodrate"), out var forced) && forced >= 8000 && forced != rate)
             {
-                core.getDriverInfo(0, out _, out driverRate, out _, out _);
-            }
-            var rateParam = Param(url, "fmodrate");
-            var wanted = int.TryParse(rateParam, out var forced) && forced >= 8000 ? forced : driverRate;
-            if (wanted > 0 && wanted != rate)
-            {
-                reportResult(core.setSoftwareFormat(wanted, speakers, rawSpeakers), "FMOD.System.setSoftwareFormat (web)");
+                reportResult(core.setSoftwareFormat(forced, speakers, rawSpeakers), "FMOD.System.setSoftwareFormat (url)");
             }
 
             var buffer = Param(url, "fmodbuf");
@@ -76,7 +72,7 @@ namespace HexLive.UnityPresentation.Audio
             core.getSoftwareFormat(out var finalRate, out _, out _);
             core.getDSPBufferSize(out var finalLength, out var finalCount);
             core.getSoftwareChannels(out var finalChannels);
-            Debug.Log($"[FmodWeb] output {finalOutput}, mix {finalRate} Hz (driver {driverRate}), " +
+            Debug.Log($"[FmodWeb] output {finalOutput}, mix {finalRate} Hz (page context {driverRate}), " +
                       $"buffer {finalLength}x{finalCount}, real channels {finalChannels}");
 #endif
         }

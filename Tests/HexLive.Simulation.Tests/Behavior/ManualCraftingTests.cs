@@ -868,7 +868,7 @@ public sealed class ManualCraftingTests
     }
 
     [Test]
-    public void RequestJournalNeverEvictsAnOldKeyAndRejectsMalformedIds()
+    public void RequestJournalKeepsTheNewestWindowAndRejectsMalformedIds()
     {
         var world = TestWorld.CreateWorld(138612);
         var npc = PrepareManual(world);
@@ -883,10 +883,17 @@ public sealed class ManualCraftingTests
             if (i == 0) first = result;
         }
         Assert.That(first.Reason, Is.EqualTo("InvalidRecipe"));
+        Assert.That(ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "unknown", "key-0")), Is.EqualTo(first),
+            "inside the window a retry is answered from the journal");
+        // A full journal never stops a NEW key: the oldest receipt makes room.
         Assert.That(ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "unknown", "overflow")).Reason,
-            Is.EqualTo("CraftRequestJournalFull"));
-        Assert.That(ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "unknown", "key-0")), Is.EqualTo(first));
-        Assert.That(world.CraftRequests[npc.Id.Value].Receipts.Count, Is.EqualTo(CraftRequestLedger.Capacity));
+            Is.EqualTo("InvalidRecipe"));
+        var receipts = world.CraftRequests[npc.Id.Value].Receipts;
+        Assert.That(receipts.Count, Is.EqualTo(CraftRequestLedger.Capacity));
+        Assert.That(receipts.Select(r => r.RequestId), Does.Not.Contain("key-0").And.Contain("key-1").And.Contain("overflow"));
+        // A retry of a key still in the window keeps its stored outcome after eviction of others.
+        Assert.That(ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "other", "key-1")).Reason,
+            Is.EqualTo("CraftRequestConflict"));
     }
 
     [TestCase(81)]

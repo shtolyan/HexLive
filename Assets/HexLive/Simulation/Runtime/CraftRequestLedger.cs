@@ -52,9 +52,11 @@ public sealed class CraftRequestLedger
         if (!world.Entities.Npcs.ContainsKey(command.Npc)) return Reject("NpcMissing");
         if (ledger == null)
             world.CraftRequests.Add(command.Npc.Value, ledger = new CraftRequestLedger());
-        // No eviction: arbitrary keys have no high-water mark. Forgetting a key
-        // would let a late retry pay again; fail closed when the bound is reached.
-        if (ledger.Receipts.Count >= Capacity) return Reject("CraftRequestJournalFull");
+        // §138.6.1: a sliding window of the newest receipts. Failing closed at the
+        // bound would end keyed crafting for this NPC forever — a long-lived server
+        // character reaches 1024 crafts. Retries arrive within seconds; only a key
+        // older than the last 1024 requests could be replayed, and that one pays again.
+        if (ledger.Receipts.Count >= Capacity) ledger.Receipts.RemoveAt(0);
         var receipt = new CraftRequestReceipt { Owner = owner, RequestId = command.RequestId,
             OutputId = command.OutputDefinitionId, Reason = "CraftRequestInterrupted" };
         ledger.Receipts.Add(receipt); // reserve before applying, including exceptional exits

@@ -49,6 +49,8 @@ public sealed class AccountHttpTests
                 var session = (await created.Content.ReadFromJsonAsync<GameSession>())!;
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.SessionToken);
                 client.DefaultRequestHeaders.Add("X-HexLive-Client-Id", Guid.NewGuid().ToString("N"));
+                // Existing §171.9 assignments survive the opt-in explicit-creation policy.
+                worlds.Assignments.AdminAssign(session.PlayerId, worlds.Host.Read(w => w.Entities.Npcs.Values.First(n => FactionRelations.IsGirlCamp(n.Faction)).Id.Value));
                 var me = await client.GetFromJsonAsync<JsonElement>(AccountEndpoints.Prefix + "/me");
                 Assert.That(me.GetProperty("playerId").GetString(), Is.EqualTo(session.PlayerId));
                 Assert.That(me.GetProperty("provider").GetString(), Is.EqualTo("google.com"));
@@ -148,6 +150,8 @@ public sealed class AccountHttpTests
             config.Characters.Add(new CharacterCreationConfig { Id = 2, Name = "nika", Controlled = true });
             using var host = new WorldHost(12345, GameMode.BigIsland, Path.Combine(directory.FullName, "world.sav"), RepoFile("SimData/simdata.json"), false, creationConfig: config);
             var assignments = PlayerCharacterAssignments.Load(Path.Combine(directory.FullName, "players.json"), false);
+            Assert.That(assignments.Reconcile(host, id, 8, accountCharacter: true), Is.Empty);
+            assignments.AdminAssign(id, 1);
             Assert.That(assignments.Reconcile(host, id, 8, accountCharacter: true), Has.Count.EqualTo(1));
             Assert.That(assignments.Reconcile(host, id, 8), Has.Count.EqualTo(1), "persistent account policy cannot be expanded by a legacy caller");
         }

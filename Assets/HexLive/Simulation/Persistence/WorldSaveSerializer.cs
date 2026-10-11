@@ -179,7 +179,8 @@ public static class WorldSaveSerializer
     // v79 (§55.5 / #417): per-vessel appearance, independent of safe water kind.
     // v81 (§54.21 / #429): ground harvest scatter; old objects remain orderly.
     // v82 (§138.6.1): bounded craft request admission receipts, appended per world.
-    public const int BlobVersion = 82;
+    // v83 (§171.10): account character creation receipts and ownership recovery.
+    public const int BlobVersion = 83;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -533,6 +534,15 @@ public static class WorldSaveSerializer
                     w.Write(receipt.Owner); w.Write(receipt.RequestId); w.Write(receipt.OutputId);
                     w.Write(receipt.Accepted); w.Write(receipt.Reason);
                 }
+            }
+        }
+        if (version >= 83)
+        {
+            w.Write(world.PlayerCharacterCreations.Count);
+            foreach (var receipt in world.PlayerCharacterCreations)
+            {
+                w.Write(receipt.PlayerId); w.Write(receipt.RequestId); w.Write(receipt.NpcId);
+                w.Write(receipt.Name); w.Write((int)receipt.Camp);
             }
         }
         w.Write(EndMarker);
@@ -1057,6 +1067,28 @@ public static class WorldSaveSerializer
                     ledger.Receipts.Add(receipt);
                 }
                 world.CraftRequests.Add(npcId, ledger);
+            }
+        }
+        world.PlayerCharacterCreations.Clear();
+        if (version >= 83)
+        {
+            var count = ReadBoundedCount(r, Bootstrap.PlayerCharacterCreation.ReceiptCapacity, "player creation receipts");
+            var keys = new HashSet<(string, string)>();
+            var ids = new HashSet<int>();
+            for (var i = 0; i < count; i++)
+            {
+                var receipt = new Bootstrap.PlayerCharacterCreationReceipt {
+                    PlayerId = r.ReadString(), RequestId = r.ReadString(), NpcId = r.ReadInt32(),
+                    Name = r.ReadString(), Camp = (Agents.Faction)r.ReadInt32() };
+                if (!System.Guid.TryParseExact(receipt.PlayerId, "N", out _) ||
+                    !System.Guid.TryParseExact(receipt.RequestId, "N", out _) ||
+                    receipt.NpcId < Bootstrap.PlayerCharacterCreation.FirstNpcId ||
+                    string.IsNullOrWhiteSpace(receipt.Name) || receipt.Name.Length > 64 ||
+                    !Runtime.FactionRelations.IsGirlCamp(receipt.Camp) ||
+                    !keys.Add((receipt.PlayerId, receipt.RequestId)) || !ids.Add(receipt.NpcId))
+                    throw new InvalidDataException("Invalid player creation receipt");
+                world.PlayerCharacterCreations.Add(receipt);
+                if (world.Entities.Npcs.ContainsKey(new EntityId(receipt.NpcId))) world.PlayerControlledNpcs.Add(receipt.NpcId);
             }
         }
         if (r.ReadInt32() != EndMarker)

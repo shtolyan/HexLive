@@ -114,27 +114,9 @@ public static class WorldCreationEndpoints
             var errors = WorldCreation.Validate(config, PrototypeWorldDefinitionFactory.Create(config.Seed, config.Mode));
             if (config.CatalogRevision != worlds.CatalogRegistryRevision) errors.Add(new() { Path = "config", Code = "catalogChanged" });
             if (errors.Count > 0) return errors;
-            var actors = registry.ReadCurrentRecords("actor").Where(r => r.State == "active").Select(r => r.Id).ToHashSet();
-            var hairs = registry.ReadCurrentRecords("hair").Where(r => r.State == "active").ToDictionary(r => r.Id);
+            var records = registry.ReadCurrentRecords();
             for (var i = 0; i < config.Characters.Count; i++)
-            {
-                var n = config.Characters[i]; var p = "characters[" + i + "]";
-                var male = n.Body is "Kshishtof" or "Tonny";
-                if (!actors.Contains(n.Body)) errors.Add(new() { Path = p + ".body", Code = "unknown" });
-                if (!string.IsNullOrEmpty(n.Skin) && !actors.Contains(n.Skin)) errors.Add(new() { Path = p + ".skin", Code = "unknown" });
-                if (male && (!string.IsNullOrEmpty(n.Hair) && n.Hair != "none" || !string.IsNullOrEmpty(n.Eyes)))
-                    errors.Add(new() { Path = p + ".body", Code = "incompatible" });
-                if (!string.IsNullOrEmpty(n.Skin) && !(male ? n.Skin == n.Body : ColonistAppearance.SkinSets.Contains(n.Skin))) errors.Add(new() { Path = p + ".skin", Code = "incompatible" });
-                if (!string.IsNullOrEmpty(n.Eyes) && !ColonistAppearance.EyeColors.Contains(n.Eyes)) errors.Add(new() { Path = p + ".eyes", Code = "unknown" });
-                if (!string.IsNullOrEmpty(n.Voice) && !ColonistAppearance.VoiceBanks.Contains(n.Voice) && n.Voice != "kshishtof" && n.Voice != "masha") errors.Add(new() { Path = p + ".voice", Code = "unknown" });
-                if (!string.IsNullOrEmpty(n.Hair) && n.Hair != "none" && !hairs.ContainsKey(n.Hair)) errors.Add(new() { Path = p + ".hair", Code = "unknown" });
-                if (!string.IsNullOrEmpty(n.HairColour) && n.HairColour != "prototype")
-                {
-                    var valid = hairs.TryGetValue(n.Hair, out var record) && record.Metadata.TryGetValue("colours", out var colours) && colours.ValueKind == System.Text.Json.JsonValueKind.Array &&
-                        colours.EnumerateArray().Any(v => v.TryGetProperty("id", out var id) && id.GetString() == n.HairColour);
-                    if (!valid) errors.Add(new() { Path = p + ".hairColour", Code = "unknown" });
-                }
-            }
+                CharacterAppearanceValidation.Validate(config.Characters[i], "characters[" + i + "]", records, errors);
             if (errors.Count == 0)
             {
                 try { _ = new WorldStateFactory().Create(WorldCreation.Definition(config)); }

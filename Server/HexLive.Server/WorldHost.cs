@@ -776,6 +776,8 @@ public sealed partial class WorldHost : IDisposable
                 saveWriter.Write(tick);
                 saveWriter.Write(blob.Length);
                 saveWriter.Write(blob);
+                saveWriter.Flush();
+                file.Flush(flushToDisk: true);
             }
 
             File.Move(temp, _savePath, overwrite: true);

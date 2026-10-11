@@ -192,6 +192,8 @@ public sealed class WorldSupervisor : IDisposable
         }
     }
 
+    internal System.Collections.Generic.IReadOnlyList<ContentObjectRecord> AppearanceRecords() => _catalog.AppearanceRecords();
+
     public T WithCatalog<T>(Func<T> read)
     {
         lock (_swap) return read();

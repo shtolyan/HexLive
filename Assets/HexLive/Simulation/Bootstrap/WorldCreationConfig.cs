@@ -184,26 +184,7 @@ public static class WorldCreation
             if (!available.Contains(npc.Camp)) Error(path + ".camp", "unknown");
             if (!string.IsNullOrEmpty(npc.ProfileId) && (!CharacterPresetRegistry.ProfileIds.Contains(npc.ProfileId) || npc.Id != (npc.ProfileId == NikaCharacterProfile.ProfileId ? NikaCharacterProfile.ReservedNpcId : MashaCompanionProfile.ReservedNpcId))) Error(path + ".profileId", "invalid");
             if (npc.Controlled && npc.Camp != config.PlayerCamp) Error(path + ".controlled", "otherCamp");
-            if (string.IsNullOrWhiteSpace(npc.Name) || npc.Name.Length > 64 || npc.Name.Any(char.IsControl)) Error(path + ".name", "length");
-            if (!ColonistAppearance.AuthoredBodies.Contains(npc.Body) && !ColonistAppearance.Meshes.Contains(npc.Body)) Error(path + ".body", "unknown");
-            ValidateValues<AttributeKind>(npc.Attributes, path + ".attributes", Error);
-            ValidateValues<SkillKind>(npc.Skills, path + ".skills", Error);
-            ValidateBudget(npc.Attributes, config.AttributeBudget, AttributeSet.All.Length, path + ".attributes", Error);
-            ValidateBudget(npc.Skills, config.SkillBudget, SkillSet.All.Length, path + ".skills", Error);
-            if (npc.Traits == null || npc.Traits.Any(t => !Enum.TryParse<TraitKind>(t, out var k) || !Enum.IsDefined(typeof(TraitKind), k))) Error(path + ".traits", "unknown");
-            if (npc.Clothing == null || npc.Clothing.Count > 64) { Error(path + ".clothing", "capacity"); continue; }
-            var definitions = new Dictionary<string, ObjectDefinition>();
-            GarmentLibrary.AppendDefinitions(definitions);
-            var worn = new List<ObjectDefinition>();
-            foreach (var id in npc.Clothing)
-            {
-                var garment = GarmentLibrary.Spawnable.FirstOrDefault(g => g.Id == id);
-                var sex = npc.Body is "Kshishtof" or "Tonny" ? GarmentSex.Male : GarmentSex.Female;
-                if (garment == null || !GarmentLibrary.FitsSex(sex, id)) { Error(path + ".clothing", "incompatible"); continue; }
-                var definition = definitions[id];
-                if (worn.Any(existing => WearSlotCatalog.Occupies(definition, existing))) Error(path + ".clothing", "slotConflict");
-                worn.Add(definition);
-            }
+            ValidateCharacter(npc, config.AttributeBudget, config.SkillBudget, path, Error);
         }
         var active = config.Characters.Where(c => c != null && c.Enabled && config.Camp(c.Camp)?.Enabled == true).ToList();
         if (!active.Any(c => c.Controlled && c.Camp == config.PlayerCamp)) Error("characters", "noControlledCharacter");
@@ -211,6 +192,31 @@ public static class WorldCreation
         foreach (var camp in config.Camps.Where(c => c != null))
             if (active.Count(c => c.Camp == camp.Faction) > camp.PopulationLimit) Error("camps." + camp.Faction, "capacity");
         return errors;
+    }
+    // Shared by the administrative lobby and account arrivals (§171.10).
+    public static void ValidateCharacter(CharacterCreationConfig npc, float attributeBudget, float skillBudget,
+        string path, Action<string, string> Error)
+    {
+        if (string.IsNullOrWhiteSpace(npc.Name) || npc.Name.Length > 64 || npc.Name.Any(char.IsControl)) Error(path + ".name", "length");
+        if (!ColonistAppearance.AuthoredBodies.Contains(npc.Body) && !ColonistAppearance.Meshes.Contains(npc.Body)) Error(path + ".body", "unknown");
+        ValidateValues<AttributeKind>(npc.Attributes, path + ".attributes", Error);
+        ValidateValues<SkillKind>(npc.Skills, path + ".skills", Error);
+        ValidateBudget(npc.Attributes, attributeBudget, AttributeSet.All.Length, path + ".attributes", Error);
+        ValidateBudget(npc.Skills, skillBudget, SkillSet.All.Length, path + ".skills", Error);
+        if (npc.Traits == null || npc.Traits.Any(t => !Enum.TryParse<TraitKind>(t, out var k) || !Enum.IsDefined(typeof(TraitKind), k))) Error(path + ".traits", "unknown");
+        if (npc.Clothing == null || npc.Clothing.Count > 64) { Error(path + ".clothing", "capacity"); return; }
+        var definitions = new Dictionary<string, ObjectDefinition>();
+        GarmentLibrary.AppendDefinitions(definitions);
+        var worn = new List<ObjectDefinition>();
+        foreach (var id in npc.Clothing)
+        {
+            var garment = GarmentLibrary.Spawnable.FirstOrDefault(g => g.Id == id);
+            var sex = npc.Body is "Kshishtof" or "Tonny" ? GarmentSex.Male : GarmentSex.Female;
+            if (garment == null || !GarmentLibrary.FitsSex(sex, id)) { Error(path + ".clothing", "incompatible"); continue; }
+            var definition = definitions[id];
+            if (worn.Any(existing => WearSlotCatalog.Occupies(definition, existing))) Error(path + ".clothing", "slotConflict");
+            worn.Add(definition);
+        }
     }
     // §162.3 / §76.2: the shipped roll spends exactly Count × (Mean + Bonus) on every body.
     public static float DefaultAttributeBudget => AttributeSet.All.Length * (Spec76.AttributeMean + Spec76.AttributeBonus);
@@ -227,10 +233,10 @@ public static class WorldCreation
     }
     private static void ValidateValues<T>(List<CreationValue> values, string path, Action<string, string> error) where T : struct
     {
-        var ids = new HashSet<string>();
+        var ids = new HashSet<T>();
         if (values == null || values.Count > 32) { error(path, "capacity"); return; }
         foreach (var v in values)
-            if (v == null || !Enum.TryParse<T>(v.Id, out var key) || !Enum.IsDefined(typeof(T), key) || !ids.Add(v.Id) ||
+            if (v == null || !Enum.TryParse<T>(v.Id, out var key) || !Enum.IsDefined(typeof(T), key) || !ids.Add(key) ||
                 float.IsNaN(v.Value) || float.IsInfinity(v.Value) || v.Value < 0 || v.Value > 1) error(path, "range");
     }
 

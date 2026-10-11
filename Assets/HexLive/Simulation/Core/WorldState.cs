@@ -9,6 +9,8 @@ namespace HexLive.Simulation.Core
 
 public sealed class WorldState
 {
+    // §171.10: creation and ownership recovery journal, private to the host/save.
+    public System.Collections.Generic.List<Bootstrap.PlayerCharacterCreationReceipt> PlayerCharacterCreations { get; } = new();
     public Bootstrap.WorldCreationConfig CreationConfig { get; set; }
     /// <summary>
     /// Runtime-only monotonic clock. The engine replaces the default instance

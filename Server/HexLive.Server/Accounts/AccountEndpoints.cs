@@ -19,6 +19,7 @@ public static class AccountEndpoints
         WorldSupervisor worlds, SessionRateLimit? limiter = null)
     {
         if (accounts == null || verifier == null) return;
+        CharacterEndpoints.Map(app, accounts, worlds);
         limiter ??= new SessionRateLimit();
         app.MapPost(Prefix + "/session", async (HttpContext context) => {
             context.Response.Headers.CacheControl = "no-store";
@@ -77,7 +78,7 @@ public static class AccountEndpoints
     }
 
     private static IResult Error(string code, int status) => Results.Json(new { error = code }, statusCode: status);
-    private static string? Bearer(HttpContext context)
+    internal static string? Bearer(HttpContext context)
     {
         var value = context.Request.Headers.Authorization.ToString();
         return value.StartsWith("Bearer ", StringComparison.Ordinal) ? value[7..].Trim() : null;

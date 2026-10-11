@@ -232,3 +232,43 @@ Next: local bundle build/validation; obtain exact current client source/build
 receipt and Mac publisher ACK through Sveta; staged rollout with rollback, public
 hash verification and live visual/performance QA. The denied 29MB evidence archive
 is still excluded. Heartbeat stays disabled. No new worker/worktree/checkout.
+
+### MSI bundle result — 2026-10-11, source dabccb70
+
+Unity 6000.4.5f1 completed the WebGL content build at 10:55:27 UTC with exit 0:
+229/229 bundles, no failures. The canonical validator reopened 121 People objects,
+held five bundles together and checked 23 renderer/paint-map contracts. Including
+raw simdata, the validated package has 230 objects/blobs and 306,968,282 payload
+bytes. Browser rendering is explicitly not yet validated.
+
+- Source commit: `dabccb70c7ad5bf480e2e40fc633a46be114f6b1`; the build receipt also
+  records 189 preserved dirty tracked inputs. Unity additionally registered
+  `SENTIS_ANALYTICS_ENABLED;MAGICACLOTH2` for WebGL in ProjectSettings; prior
+  version changes remain intact. Other pre-existing dirty hashes were unchanged.
+- Package manifest SHA256:
+  `38a87018e11abaad905a0388edcecc7aae4daf985fd5727628922c48c634583d`.
+- Game package archive: 277,733,863 bytes, SHA256
+  `635f69561941865aa4b6846755f349ffc860a58e3f3c55f6856026bb041fae69`.
+- Local plan has 215 changed objects. Keep identical blobs and the current
+  simdata revision: old/new simdata JSON is semantically identical. Object IDs,
+  metadata and states match the 230-object live baseline.
+- Hair transfer size increased from 7,515,069 to 46,986,612 bytes. This is not a
+  GPU memory or frame-time measurement; multiple-actor WebGL QA remains required.
+- Singapore staging:
+  `/var/lib/hexlive/assets-webgl/staging/msi-release-20261011-1704-dabccb70`.
+  Rollback candidates preserve all 230 old records and verified payloads. Roll
+  back through the installed publisher with new revisions, never by restoring
+  an old registry cursor. Upload exited 0; server verification at 11:08:12 UTC
+  matched the archive/verifier/manifest hashes and all 230 payloads. The prepared
+  `activation-candidates/` contains only the 215 planned changes and does not
+  publish them. Revalidate current registry and payloads before using it.
+- No activation: live registry remains 230 and the current Player is v11, whose
+  source SHA is unverified. Sveta confirms Claude has not acknowledged a matching
+  Player or single-publisher handoff; MSI Player build ownership is not agreed.
+  Matching Player needs SkinTexturePainter/SkinBandageAtlas plus two atlas assets
+  and 24 textures under Resources/HexLive/Decals/BodyAtlases.
+
+Eight focused package tests pass, including same-size blob corruption rejection.
+The canonical hash validator required no code change. Local receipts and the
+activation plan are under `Build/MSIRelease/20261011-1704/`. Worlds, saves, server
+binary, New York, Flashback and Coil are not release mutation targets.

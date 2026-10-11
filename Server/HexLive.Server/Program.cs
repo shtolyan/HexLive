@@ -254,6 +254,7 @@ public static class Program
         GodMode.AdminAccessEndpoints.Map(app, adminAccess, sessions, adminBus, worlds);
         // §171.9: disabled means no routes and no account store/network access.
         AccountEndpoints.Map(app, playerAccounts, firebaseVerifier, worlds);
+        AccountLoginPage.Map(app, options);
 
         app.Map("/watch", async context =>
         {
@@ -779,6 +780,10 @@ public sealed class ServerOptions
 
     /// <summary>§171.9: opt-in Firebase project; credentials live beside the world library.</summary>
     public string? FirebaseProject { get; private set; }
+    public string FirebaseApiKey { get; private set; } = "";
+    private string? _firebaseAuthDomain;
+    public string? FirebaseAuthDomain => _firebaseAuthDomain ?? (FirebaseProject is null ? null : FirebaseProject + ".firebaseapp.com");
+    public string[] FirebaseProviders { get; private set; } = new[] { "google", "password" };
     public string AccountsPath =>
         Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath))!, "hexlive-accounts.json");
 
@@ -830,6 +835,23 @@ public sealed class ServerOptions
                         project.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '-')))
                         throw new ArgumentException("Invalid Firebase project id.");
                     options.FirebaseProject = project;
+                    break;
+                case "--firebase-api-key" when i + 1 < args.Length:
+                    options.FirebaseApiKey = args[++i];
+                    break;
+                case "--firebase-auth-domain" when i + 1 < args.Length:
+                    var domain = args[++i];
+                    // This host is also placed in CSP: no schemes, ports, paths or directives.
+                    if (domain.Length > 253 || Uri.CheckHostName(domain) != UriHostNameType.Dns ||
+                        domain.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '.' or '-')))
+                        throw new ArgumentException("Invalid Firebase auth domain.");
+                    options._firebaseAuthDomain = domain.ToLowerInvariant();
+                    break;
+                case "--firebase-providers" when i + 1 < args.Length:
+                    var providers = args[++i].Split(',', StringSplitOptions.TrimEntries);
+                    if (providers.Any(p => p is not ("google" or "password" or "apple")))
+                        throw new ArgumentException("Firebase providers must be google,password[,apple].");
+                    options.FirebaseProviders = providers.Distinct(StringComparer.Ordinal).ToArray();
                     break;
                 case "--seed" when i + 1 < args.Length:
                     options.Seed = int.Parse(args[++i]);
@@ -950,6 +972,9 @@ public sealed class ServerOptions
                         "  --companion masha  deprecated alias for --character-preset masha\n" +
                         "  --control        allow player NPC control over /watch (token in hexlive-player.txt)\n" +
                         "  --firebase-project ID  enable Firebase accounts and session-based player control (§171.9)\n" +
+                        "  --firebase-api-key KEY  public Firebase web API key for /login (§171.12)\n" +
+                        "  --firebase-auth-domain HOST  default <project>.firebaseapp.com\n" +
+                        "  --firebase-providers LIST  google,password (default), optionally apple\n" +
                         "  --mcp-lease N    seconds a control lease survives without commands (default 120)\n" +
                         "  --spec-dir PATH  spec served to MCP agents (default: Spec/ beside the binary)\n" +
                         "  --llm-endpoint URL  enable host-side HTTP LLM provider endpoint\n" +

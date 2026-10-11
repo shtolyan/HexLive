@@ -36,6 +36,13 @@ public sealed class AccountWatchTests
             var second = store.CreateSession(new("other-player", "apple.com"));
             await CharacterCreationTests.PublishPeople(Path.Combine(directory.FullName, "assets"));
             await using var server = await RunningServer.Start(directory.FullName, true, legacy: !browser);
+            using (var login = await server.Client.GetAsync("/login/"))
+            {
+                Assert.That(login.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(login.Headers.Contains("Content-Security-Policy"), Is.True);
+            }
+            var publicConfig = await server.Client.GetFromJsonAsync<JsonElement>(AccountEndpoints.Prefix + "/client-config");
+            Assert.That(publicConfig.GetProperty("providers").EnumerateArray().Select(p => p.GetString()), Is.EqualTo(new[] { "google", "password" }));
             using (var beforeCreation = await Open(server.Address, session.SessionToken, second.PlayerId, browser))
                 Assert.That((await ReadHandshake(beforeCreation)).AssignedNpcIds, Is.Empty);
             server.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.SessionToken);
@@ -87,6 +94,8 @@ public sealed class AccountWatchTests
         try
         {
             await using var server = await RunningServer.Start(directory.FullName, false);
+            foreach (var route in new[] { "/login", "/login/", AccountEndpoints.Prefix + "/client-config" })
+                Assert.That((await server.Client.GetAsync(route)).StatusCode, Is.EqualTo(HttpStatusCode.NotFound), route);
             Assert.That((await server.Client.GetAsync(AccountEndpoints.Prefix + "/me")).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
             Assert.That((await server.Client.PostAsync(AccountEndpoints.Prefix + "/session", new StringContent("{}"))).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
             Assert.That((await server.Client.DeleteAsync(AccountEndpoints.Prefix + "/session")).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));

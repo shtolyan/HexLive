@@ -65,16 +65,18 @@ namespace HexLive.UnityDebug.Editor
             // so the face (set via reflection) goes in AFTER, or it reverts to zero size.
             so.ApplyModifiedPropertiesWithoutUndo();
             SetFaceInfo(sprites, face);
-            var shader = Shader.Find("Text/Sprite") ?? Shader.Find("TextCore/Sprite") ?? Shader.Find("TextMeshPro/Sprite");
-            if (shader != null)
+            // TextCore builds a MaterialReference from the sprite asset's material for every
+            // emoji it draws: without one, each emoji label threw a NullReferenceException
+            // every frame and broke the whole panel (WebGL, d2fbfe043). Refuse to build instead.
+            var shader = Shader.Find("Hidden/TextCore/Sprite") ?? Shader.Find("TextMeshPro/Sprite")
+                ?? throw new InvalidOperationException("TextCore sprite shader not found: emoji would render with no material");
+            var material = sprites.material != null ? sprites.material : new Material(shader) { name = "EmojiSpriteAsset Material" };
+            material.shader = shader;
+            material.mainTexture = atlas;
+            if (sprites.material == null)
             {
-                var material = sprites.material != null ? sprites.material : new Material(shader) { name = "EmojiSpriteAsset Material" };
-                material.mainTexture = atlas;
-                if (sprites.material == null)
-                {
-                    AssetDatabase.AddObjectToAsset(material, sprites);
-                    sprites.material = material;
-                }
+                AssetDatabase.AddObjectToAsset(material, sprites);
+                sprites.material = material;
             }
             sprites.UpdateLookupTables();
             EditorUtility.SetDirty(sprites);
@@ -100,7 +102,8 @@ namespace HexLive.UnityDebug.Editor
 
             var missing = manifest.sprites.Where(e => SpriteAsset.SearchForSpriteByUnicode(sprites, e.unicode, false, out _) == null).ToArray();
             Debug.Log($"[Emoji] sprite asset: {manifest.sprites.Length} emoji from {AtlasPath}; " +
-                      $"lookup misses: {missing.Length}; panel text settings: {(panel != null ? panel.textSettings?.name : "no panel")}");
+                      $"lookup misses: {missing.Length}; material: {sprites.material?.shader?.name ?? "NONE"}; " +
+                      $"panel text settings: {(panel != null ? panel.textSettings?.name : "no panel")}");
         }
 
         private static void ConfigureAtlasImport()

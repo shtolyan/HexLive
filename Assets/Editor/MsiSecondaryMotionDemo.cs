@@ -16,7 +16,13 @@ using Object = UnityEngine.Object;
 public static class MsiSecondaryMotionDemo
 {
     const string Root="Assets/HexLiveContent/People";
-    const string Output="Build/MSIVisualAudit/SecondaryMotion";
+    static string Output => seamAudit ? "Build/MSIVisualAudit/SeamAudit" : "Build/MSIVisualAudit/SecondaryMotion";
+    static bool seamAudit;
+    public static void AuditSeams()
+    {
+        SessionState.SetBool("MsiSeamAudit",true);
+        Begin();
+    }
     const int Count=420, Fps=30;
     sealed class Actor
     {
@@ -56,6 +62,9 @@ public static class MsiSecondaryMotionDemo
         EditorApplication.playModeStateChanged-=Enter;
         try
         {
+            seamAudit=SessionState.GetBool("MsiSeamAudit",false);
+            SessionState.EraseBool("MsiSeamAudit");
+            if(seamAudit)MsiBodyAtlasAudit.Capture();
             ShaderUtil.allowAsyncCompilation=false;
             Directory.CreateDirectory(Output+"/frames");
             actors=new[]{CreateActor(false),CreateActor(true)};
@@ -97,6 +106,10 @@ public static class MsiSecondaryMotionDemo
             if(component!=null && component.GetType().Namespace?.StartsWith("RootMotion.FinalIK")==true)
                 component.enabled=false;
         var bones=a.root.GetComponent<BodyBones>();bones.Construct(ActorName.Marta,physics?912:911);
+        if(seamAudit && !physics && ActorBodyResolver.TryResolve(a.root,out var candidateBody,out _))
+        {
+            candidateBody.material.SetTexture("_BaseMap",MsiBodyAtlasAudit.Original(ActorName.Marta));
+        }
         a.foot=bones.GetBone("lFoot");
         foreach(var item in new[]{"PrimalBriefs","PrimalTop"})
             bones.Equip("motion_"+item,AssetDatabase.LoadAssetAtPath<GameObject>(Root+"/Prefabs/Wear/Marta_"+item+".prefab").GetComponent<Wear>(),null);
@@ -169,7 +182,7 @@ public static class MsiSecondaryMotionDemo
         try
         {
             if(++warmup<30)return;
-            float t=frame/(float)Fps;
+            float t=(seamAudit?Mathf.Min(frame,280):frame)/(float)Fps;
             bool jump=t>=4&&t<6;
             float runWeight=t<4?1:t<6?0:t<11?1:Mathf.Clamp01((11.3f-t)/.3f);
             float jumpWeight=jump?Mathf.Clamp01(Mathf.Min((t-4)/.15f,(6-t)/.15f)):0;
@@ -177,13 +190,24 @@ public static class MsiSecondaryMotionDemo
             for(int i=0;i<actors.Length;i++)
             {
                 var a=actors[i];a.hair?.RestorePose();a.breast?.RestorePose();
-                a.root.transform.position=new Vector3(i==0?-.63f:.63f,jump?.32f*Mathf.Sin((t-4)/2*Mathf.PI):0,.07f*Mathf.Sin(Mathf.Min(t,11)*2));
+                // Camera looks along -Z: world +X is screen left.
+                a.root.transform.position=new Vector3(i==0?.63f:-.63f,jump?.32f*Mathf.Sin((t-4)/2*Mathf.PI):0,.07f*Mathf.Sin(Mathf.Min(t,11)*2));
                 a.root.transform.rotation=Quaternion.Euler(0,t<7?18:Mathf.Lerp(18,195,Mathf.SmoothStep(0,1,(t-7)/2)),0);
                 a.mixer.SetInputWeight(0,runWeight);a.mixer.SetInputWeight(1,jumpWeight);a.mixer.SetInputWeight(2,1-runWeight-jumpWeight);
                 a.clips[0].SetTime(t%a.clips[0].GetAnimationClip().length);
                 a.clips[1].SetTime(Mathf.Clamp01((t-4)/2)*a.clips[1].GetAnimationClip().length);
                 a.clips[2].SetTime(Mathf.Min(t,12)%a.clips[2].GetAnimationClip().length);
                 a.graph.Evaluate(0);a.hair?.Step(1f/Fps);a.breast?.Step(1f/Fps);
+                if(seamAudit && frame>=281)
+                {
+                    foreach(var r in a.root.GetComponent<BodyBones>().HairInstance.GetComponentsInChildren<Renderer>(true))r.enabled=false;
+                    if(ActorBodyResolver.TryResolve(a.root,out var skin,out _))
+                    {
+                        var mat=skin.material;
+                        if(frame>=282)mat.DisableKeyword("_NORMALMAP");
+                        if(frame>=283){mat.SetTexture("_BaseMap",Texture2D.whiteTexture);mat.SetColor("_BaseColor",Color.gray);}
+                    }
+                }
                 a.expectedFoot=a.foot.position;
                 if(i==0&&t<4)
                 {
@@ -211,11 +235,28 @@ public static class MsiSecondaryMotionDemo
                 float error=Vector3.Distance(a.foot.position,a.expectedFoot);
                 maxPoseOverwrite=Mathf.Max(maxPoseOverwrite,error);
                 if(error>.001f)throw new InvalidOperationException("Animation pose overwritten before rendering: foot error="+error);
+                if(seamAudit && frame==280 && ActorBodyResolver.TryResolve(a.root,out var skin,out _))
+                {
+                    var baked=new Mesh();skin.BakeMesh(baked);
+                    var v=baked.vertices;
+                    var vertices=skin.sharedMesh.vertices;
+                    var groups=skin.sharedMesh.GetTriangles(0).Distinct().GroupBy(i=>vertices[i])
+                        .Where(g=>g.Count()>1).Select(g=>g.ToArray()).ToArray();
+                    float gap=0;int open=0;
+                    foreach(var group in groups)
+                    {
+                        float distance=group.Max(i=>Vector3.Distance(skin.transform.TransformPoint(v[i]),skin.transform.TransformPoint(v[group[0]])));
+                        gap=Mathf.Max(gap,distance);if(distance>.00001f)open++;
+                    }
+                    File.AppendAllText(Output+"/seams.txt",$"candidate={a==actors[1]} groups={groups.Length} open={open} maxGapMetres={gap:R}\n");
+                    Object.DestroyImmediate(baked);
+                }
             }
             var previous=RenderTexture.active;RenderTexture.active=target;
             pixels.ReadPixels(new Rect(0,0,target.width,target.height),0,0);pixels.Apply();RenderTexture.active=previous;
             File.WriteAllBytes(Output+"/frames/frame-"+frame.ToString("D4")+".png",pixels.EncodeToPNG());
             pending=false;
+            if(seamAudit && frame>=283){Finish(0);return;}
             if(++frame%60==0)Debug.Log("[SecondaryMotion] captured "+frame+"/"+Count);
             if(frame<Count)return;
             measurements.Dispose();measurements=null;

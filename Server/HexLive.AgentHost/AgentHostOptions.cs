@@ -20,6 +20,8 @@ public sealed class AgentHostOptions
     public string LlmBackend { get; init; } = "xai";
     public int? NpcId { get; init; }
     public MashaIdentity? InitialIdentity { get; init; }
+    /// <summary>§171.5: true for a server-run character — relationship numbers are not author-editable.</summary>
+    public bool ServerOwnedRelationships { get; init; }
     public string? ExpectedWorldId { get; init; }
     public int HeartbeatSeconds { get; init; } = 30;
     public string CodexExecutable { get; init; } = "/Applications/ChatGPT.app/Contents/Resources/codex";

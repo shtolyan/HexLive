@@ -128,8 +128,14 @@ public sealed partial class MashaMemoryStore
     private MashaArchive _archive;
     public AgentMemoryArchive History { get; }
 
-    public MashaMemoryStore(string memoryDirectory, MashaIdentity? initialIdentity = null)
+    // §171.5: a server-run character's trust is moved only by the runtime's bounded
+    // assessment steps, never by whoever can edit the workspace documents.
+    private readonly bool _authorMayEditRelationships;
+
+    public MashaMemoryStore(string memoryDirectory, MashaIdentity? initialIdentity = null, bool authorMayEditRelationships = true)
     {
+        // Set before construction applies any pending document edit below.
+        _authorMayEditRelationships = authorMayEditRelationships;
         if (string.IsNullOrWhiteSpace(memoryDirectory))
             throw new ArgumentException("A Masha memory directory is required.", nameof(memoryDirectory));
 
@@ -784,7 +790,7 @@ public sealed partial class MashaMemoryStore
         Directory.CreateDirectory(backups);
         WriteArchiveAtomically(Path.Combine(backups, "before-document-edit-" + Guid.NewGuid().ToString("N") + ".json"), _archive);
         var next = JsonSerializer.Deserialize<MashaArchive>(JsonSerializer.Serialize(_archive, JsonOptions), JsonOptions)!;
-        var edits = MemoryDocumentEdits.ApplyPending(root, next);
+        var edits = MemoryDocumentEdits.ApplyPending(root, next, _authorMayEditRelationships);
         _archive = next;
         return edits;
     }

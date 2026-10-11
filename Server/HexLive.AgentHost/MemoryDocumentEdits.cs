@@ -85,7 +85,9 @@ public static class MemoryDocumentEdits
         });
     }
 
-    public static IReadOnlyList<string> ApplyPending(string root, MashaArchive archive)
+    /// <param name="authorMayEditRelationships">§171.5: false when the server owns the
+    /// relationship numbers — edited text still applies, edited percentages do not.</param>
+    public static IReadOnlyList<string> ApplyPending(string root, MashaArchive archive, bool authorMayEditRelationships = true)
     {
         var directory = DirectoryFor(root);
         if (!Directory.Exists(directory)) return [];
@@ -101,7 +103,7 @@ public static class MemoryDocumentEdits
             Validate(edit.Document, edit.After);
             if (!archive.AppliedDocumentEditIds.Contains(edit.Id))
             {
-                Apply(archive, edit);
+                Apply(archive, edit, authorMayEditRelationships);
                 archive.AppliedDocumentEditIds.Add(edit.Id);
             }
             done.Add(path);
@@ -117,7 +119,7 @@ public static class MemoryDocumentEdits
         foreach (var path in paths) File.Delete(path);
     }
 
-    private static void Apply(MashaArchive archive, MemoryDocumentEdit edit)
+    private static void Apply(MashaArchive archive, MemoryDocumentEdit edit, bool authorMayEditRelationships)
     {
         var before = Facts(edit.Before.Contains(Start, StringComparison.Ordinal) ? Section(edit.Before) : edit.Before);
         var after = Facts(edit.After.Contains(Start, StringComparison.Ordinal) ? Section(edit.After) : edit.After);
@@ -153,7 +155,7 @@ public static class MemoryDocumentEdits
                 Source = edit.Document switch { "USER.md" => "model-user", "SOUL.md" => "model-self", _ => "model-core" },
                 SpeakerKey = edit.Document == "USER.md" ? archive.PrimarySpeakerKey ?? "" : "" });
         }
-        if (edit.Document == "USER.md")
+        if (edit.Document == "USER.md" && authorMayEditRelationships)
         {
             var oldMetrics = Metrics(edit.Before); var newMetrics = Metrics(edit.After);
             if (newMetrics != null && newMetrics != oldMetrics)

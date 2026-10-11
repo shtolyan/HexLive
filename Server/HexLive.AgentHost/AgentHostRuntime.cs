@@ -58,7 +58,8 @@ public sealed partial class AgentHostRuntime
         _options = options;
         if (options.HeartbeatSeconds is < 5 or > 3600)
             throw new ArgumentOutOfRangeException(nameof(options.HeartbeatSeconds));
-        _memory = new MashaMemoryStore(options.MemoryDirectory, options.InitialIdentity);
+        _memory = new MashaMemoryStore(options.MemoryDirectory, options.InitialIdentity,
+            authorMayEditRelationships: !options.ServerOwnedRelationships);
         _providers = providers ?? new AgentProviders(options.ProviderOptions);
         _mcpHandler = mcpHandler;
         _outbox = new AgentTurnOutbox(options.OutboxPath);

@@ -446,7 +446,9 @@ public static class PeopleAssetPreparation
                 if (normal != null)
                 {
                     mat.SetTexture("_BumpMap", AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Source/" + (string)normal["image"]));
-                    mat.SetFloat("_BumpScale", .6f);
+                    // Preserve the legacy URP strength: the Primal dress/collar
+                    // use this same normal texture at 1, not the preview's .6.
+                    mat.SetFloat("_BumpScale", (float?)row["normalScale"] ?? 1f);
                     mat.EnableKeyword("_NORMALMAP");
                 }
                 if (hairMaterials.Contains(property.Name)) ApplyLowPolyHairMaterial(mat);

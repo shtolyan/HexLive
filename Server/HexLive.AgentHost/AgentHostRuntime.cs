@@ -292,6 +292,8 @@ public sealed partial class AgentHostRuntime
         // turns until it ends. Dialogue and critical events may still request
         // an explicit replacement; a carried patient needs the next leg chosen.
         var turnId = messageTurnId ?? Guid.NewGuid().ToString("N");
+        // §171.4: every provider attempt inside this lane is billed to this turn.
+        using var usageTurn = HexLive.AgentCore.Studio.UsageScope.Turn(turnId);
         var consumed = false;
         var stage = "state";
         var ownsWriter = false;

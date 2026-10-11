@@ -4,7 +4,9 @@ using HexLive.AgentHost;
 namespace HexLive.AgentCore.Studio;
 
 /// <summary>One profile, one transport, one set of providers. No process-wide provider environment.</summary>
-public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecutable)
+/// <remarks>§171.4: with a usage ledger every model/TTS attempt of the session is metered at the provider seam.</remarks>
+public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecutable,
+    IUsageLedger? usageLedger = null, UsageTariffs? usageTariffs = null)
 {
     public async Task<IAgentSession> ConnectAsync(AgentProfile profile, ServerProfile server,
         CancellationToken token, HttpMessageHandler? mcpHandler = null)
@@ -54,11 +56,18 @@ public sealed class AgentSessionFactory(ISecretStore secrets, string codexExecut
         }
         McpClient? knowledge = null;
         IAgentProviders? providers = null;
+        // Owner is the authenticated player identity this transport speaks for; the
+        // character is the profile, so a re-bound NPC keeps one spending history.
+        var usage = new UsageContext(server.PlayerClientId ?? "", profile.Id.ToString("N"),
+            profile.WorldId, profile.NpcId, Guid.NewGuid().ToString("N"));
+        if (usageLedger != null) model = new MeteredModelAdapter(model, usageLedger, usage, usageTariffs);
         try
         {
             IVoiceAdapter voice = profile.Voice == null ? new NoVoiceAdapter() :
                 new ElevenLabsVoiceAdapter(profile.Voice.IntegrationId,
                     t => { t.ThrowIfCancellationRequested(); return Task.FromResult(voiceCredential!); });
+            if (usageLedger != null && profile.Voice != null)
+                voice = new MeteredVoiceAdapter(voice, usageLedger, usage, "ElevenLabs", usageTariffs);
             var inner = new AgentProviders(options.ProviderOptions, model, profile.Model,
                 voice, profile.Voice ?? new VoiceSelection("none", "none", "none"));
             knowledge = new McpClient(options.ProviderOptions, mcpHandler);

@@ -35,6 +35,7 @@ namespace HexLive.UnityPresentation.Diagnostics
         public const int RunnerLateUpdate = 8;
         public const int PortraitLateUpdate = 9;
         public const int CameraLateUpdate = 10;
+        public const int PortraitCameraRender = 11;
 
         private static readonly string[] SectionNames =
         {
@@ -42,6 +43,7 @@ namespace HexLive.UnityPresentation.Diagnostics
             "NpcFaceAnimator.LateUpdate (all)", "CharacterPanel.Update", "TacticalMap.Update",
             "Sound.LateUpdate", "Runner.Update (net+events)", "Runner.LateUpdate",
             "PortraitStage.LateUpdate", "RtsCamera.LateUpdate",
+            "PortraitStage camera render (#434)",
         };
 
         public static bool Enabled { get; private set; }

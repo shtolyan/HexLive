@@ -28,9 +28,27 @@ namespace HexLive.UnityPresentation.UI
         private const float FaceDistanceMeters = 0.72f;
         private const float EyeLiftMeters = 0.03f;
 #if UNITY_WEBGL && !UNITY_EDITOR
-        private const float WebRenderIntervalSeconds = 1f / 6f;
+        // #434 / §168.11: one portrait render costs ~0.9 ms CPU (M1, WebGL),
+        // so 30 Hz is ~0.45 ms a frame; the old 6 Hz made blinks and call
+        // lip-sync visibly jerky. ?portraitHz=N in the page URL overrides it
+        // for measurement (0 = every frame); WebPerf (?perf=1) shows the cost.
+        private static readonly float WebRenderIntervalSeconds = WebRenderInterval(30f);
         private float _nextWebRenderAt;
+
+        private static float WebRenderInterval(float defaultHz)
+        {
+            var url = Application.absoluteURL ?? string.Empty;
+            var at = url.IndexOf("portraitHz=", System.StringComparison.Ordinal);
+            if (at < 0) return 1f / defaultHz;
+            var start = at + "portraitHz=".Length;
+            var end = start;
+            while (end < url.Length && (char.IsDigit(url[end]) || url[end] == '.')) end++;
+            if (!float.TryParse(url.Substring(start, end - start), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var hz)) return 1f / defaultHz;
+            return hz <= 0f ? 0f : 1f / hz;
+        }
 #endif
+        private long _perfRenderStart;
         private const float NeonSetDepth = 20f;
         private const float NeonSetOverscan = 1.04f;
         private const string NeonGridShaderPath = "HexLive/UI/PortraitNeonGrid";
@@ -150,9 +168,9 @@ namespace HexLive.UnityPresentation.UI
             }
 
 #if UNITY_WEBGL && !UNITY_EDITOR
-            // §168.11: включённая камера портрета — второй полный проход сцены
-            // каждый кадр. В браузере (один поток) живой портрет обновляется
-            // ~6 раз в секунду; между проходами текстура держит прошлый кадр.
+            // §168.11 / #434: камера портрета снимает только слой Portrait, но
+            // в браузере (один поток) живой портрет всё равно не чаще 30 Гц;
+            // между проходами текстура держит прошлый кадр.
             if (Time.unscaledTime < _nextWebRenderAt)
             {
                 _camera.enabled = false;
@@ -258,6 +276,7 @@ namespace HexLive.UnityPresentation.UI
         {
             if (camera == _camera)
             {
+                _perfRenderStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
                 IsolateSelectedActor();
             }
         }
@@ -267,6 +286,9 @@ namespace HexLive.UnityPresentation.UI
             if (camera == _camera)
             {
                 RestoreActorLayers();
+                HexLive.UnityPresentation.Diagnostics.WebPerf.End(
+                    HexLive.UnityPresentation.Diagnostics.WebPerf.PortraitCameraRender, _perfRenderStart);
+                _perfRenderStart = 0;
             }
         }
 

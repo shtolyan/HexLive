@@ -110,13 +110,16 @@ public static class SessionConfig
         }
     }
 
-    /// <summary>§121.9: токен игрока для NpcCommand; null — аноним.</summary>
+    /// <summary>
+    /// §121.9: токен игрока для NpcCommand; null — аноним. §171.12: у веб-клиента
+    /// без явного токена им становится сессия аккаунта со страницы входа.
+    /// </summary>
     public static string? ControlToken
     {
         get
         {
             Resolve();
-            return _controlToken;
+            return _controlToken ?? Platform.WebPage.AccountSessionToken;
         }
     }
 

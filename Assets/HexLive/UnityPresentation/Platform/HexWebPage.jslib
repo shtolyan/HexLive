@@ -1,5 +1,23 @@
 // §168.5: page-level helpers for WebPage.cs.
 mergeInto(LibraryManager.library, {
+  // §171.12: the account session the /login page stored. Returns null when absent,
+  // malformed or expired; Unity frees the returned buffer.
+  HexAccountSession: function () {
+    try {
+      var raw = window.localStorage.getItem('hexlive.session');
+      if (!raw) return null;
+      var s = JSON.parse(raw);
+      if (!s || typeof s.sessionToken !== 'string' || !s.sessionToken) return null;
+      if (s.expiresAt && Date.parse(s.expiresAt) <= Date.now()) return null;
+      var size = lengthBytesUTF8(s.sessionToken) + 1;
+      var buffer = _malloc(size);
+      stringToUTF8(s.sessionToken, buffer, size);
+      return buffer;
+    } catch (e) {
+      return null;
+    }
+  },
+
   HexPageReload: function () {
     window.location.reload();
   },

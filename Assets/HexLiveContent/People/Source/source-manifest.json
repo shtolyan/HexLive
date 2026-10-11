@@ -2818,16 +2818,28 @@
               "toSocket": "Base Color"
             }
           ]
+        },
+        {
+          "node": "SkinNormal",
+          "image": "Textures/Marta_SkinNormal.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Normal Map",
+              "toSocket": "Color"
+            }
+          ]
         }
       ],
       "baseColor": [
         0.699999988079071,
         0.5,
-        0.4000000059604645,
+        0.40000000596046448,
         1.0
       ],
-      "roughness": 0.7799999713897705,
-      "metallic": 0.0
+      "roughness": 0.77999997138977051,
+      "metallic": 0.0,
+      "normalScale": 1.0
     },
     "Kshishtof_Atlas": {
       "name": "Kshishtof_Atlas",
@@ -2846,16 +2858,28 @@
               "toSocket": "Base Color"
             }
           ]
+        },
+        {
+          "node": "SkinNormal",
+          "image": "Textures/Kshishtof_SkinNormal.png",
+          "links": [
+            {
+              "output": "Color",
+              "toNode": "Normal Map",
+              "toSocket": "Color"
+            }
+          ]
         }
       ],
       "baseColor": [
         0.699999988079071,
         0.5,
-        0.4000000059604645,
+        0.40000000596046448,
         1.0
       ],
-      "roughness": 0.7799999713897705,
-      "metallic": 0.0
+      "roughness": 0.77999997138977051,
+      "metallic": 0.0,
+      "normalScale": 1.0
     },
     "Marta_PrimalArmWraps_Wear / Sleeve": {
       "name": "Marta_PrimalArmWraps_Wear / Sleeve",

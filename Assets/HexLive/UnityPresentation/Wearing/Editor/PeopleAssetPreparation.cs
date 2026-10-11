@@ -715,6 +715,12 @@ public static class PeopleAssetPreparation
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null) { mat = new Material(skin.sharedMaterial); AssetDatabase.CreateAsset(mat, path); }
             mat.name = skin.sharedMaterial.name;
+            // Existing variants retain their complexion, but share the body's normal atlas.
+            var normal = skin.sharedMaterial.GetTexture("_BumpMap");
+            mat.SetTexture("_BumpMap", normal);
+            mat.SetFloat("_BumpScale", skin.sharedMaterial.GetFloat("_BumpScale"));
+            if (normal != null && skin.sharedMaterial.IsKeywordEnabled("_NORMALMAP")) mat.EnableKeyword("_NORMALMAP");
+            else mat.DisableKeyword("_NORMALMAP");
             mat.SetColor("_BaseColor", actor == "Marta" ? tones[i % tones.Length] : Color.white);
             mat.SetColor("_Color", mat.GetColor("_BaseColor"));
             EditorUtility.SetDirty(mat);

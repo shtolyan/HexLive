@@ -299,6 +299,9 @@ public static class GoalCatalog
         Add(GoalType.CraftWoodenLeg, InteractionType.Craft,
             craftOutputs: new[] { ContentIds.WoodenLeg },
             craftTrace: "CraftedWoodenLeg", craftNeedsHands: true);
+        // §138.6: assigned only by the authoritative manual command.
+        Add(GoalType.CraftItem, InteractionType.Craft, reactive: true,
+            craftTrace: "CraftedItem", craftNeedsHands: true, loop: LoopPolicy.Sticky);
         Add(GoalType.CraftLeather, InteractionType.Craft);
         Add(GoalType.CookMeat, InteractionType.Craft);
         Add(GoalType.CraftBed, InteractionType.Craft);

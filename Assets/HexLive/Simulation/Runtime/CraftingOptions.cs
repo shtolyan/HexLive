@@ -206,26 +206,32 @@ public static class CraftingOptions
         var scan = new GroundScan(world, npc);
         foreach (var pair in recipes)
         {
-            into.Add(Resolve(world, npc, pair.Value.Goal, scan));
+            into.Add(Resolve(world, npc, pair.Value, scan));
         }
         return true;
     }
 
     internal static CraftRecipeOption Resolve(
         WorldState world, NPCState npc, GoalType goal) =>
-        Resolve(world, npc, goal, new GroundScan(world, npc));
+        Resolve(world, npc, RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe) ? recipe : null,
+            new GroundScan(world, npc));
+
+    // §138.6: admission resolves a requested output independently of the active plan.
+    internal static CraftRecipeOption Resolve(WorldState world, NPCState npc, string outputId) =>
+        Resolve(world, npc, RecipeCatalog.ByOutput.TryGetValue(outputId ?? "", out var recipe) ? recipe : null,
+            new GroundScan(world, npc));
 
     internal static CraftRecipeOption ResolveExactProject(
         WorldState world, NPCState npc, WorldObjectState project)
     {
         var option = new CraftRecipeOption { BlockReason = CraftBlockReason.InvalidRecipe };
         if (!project.IsCraftProject || !project.Fragment.Equals(npc.Fragment)) return option;
-        foreach (var pair in RecipeCatalog.ByGoal)
+        foreach (var pair in RecipeCatalog.ByOutput)
         {
-            if (RecipeCatalog.OutputOf(pair.Key) != project.DefinitionId ||
-                !RecipeCatalog.UsesPersistentProject(pair.Key)) continue;
+            if (pair.Key != project.DefinitionId ||
+                !RecipeCatalog.UsesPersistentProject(pair.Value.Goal)) continue;
             var recipe = pair.Value;
-            option.Goal = pair.Key;
+            option.Goal = recipe.Goal;
             option.OutputDefinitionId = project.DefinitionId;
             option.StationTag = recipe.Station;
             if (project.CraftStationObjectId is { } id &&
@@ -235,9 +241,9 @@ public static class CraftingOptions
                  project.Junctions.Count == 0 || station.Junctions[0] != project.Junctions[0] ||
                  station.IsOccupied && station.CurrentUser != npc.Id ||
                  !world.Content.ObjectDefinitions.TryGetValue(station.DefinitionId, out var definition) ||
-                 !definition.HasTag(recipe.Station) || !StationGateOk(world, recipe, pair.Key, station))) return option;
+                 !definition.HasTag(recipe.Station) || !StationGateOk(world, recipe, recipe.Goal, station))) return option;
             ResolveProject(world, npc, recipe, project, option, new GroundScan(world, npc));
-            var block = ActorBlock(world, npc, pair.Key);
+            var block = ActorBlock(world, npc, recipe.Goal);
             if (block != CraftBlockReason.None)
             {
                 option.CanCraft = false;
@@ -249,18 +255,19 @@ public static class CraftingOptions
     }
 
     private static CraftRecipeOption Resolve(
-        WorldState world, NPCState npc, GoalType goal, GroundScan scan)
+        WorldState world, NPCState npc, Recipe recipe, GroundScan scan)
     {
+        var goal = recipe?.Goal ?? GoalType.None;
         var option = new CraftRecipeOption
         {
             Goal = goal,
-            OutputDefinitionId = RecipeCatalog.OutputOf(goal),
+            OutputDefinitionId = recipe?.OutputDefinitionId ?? "",
             WorkTile = npc.Tile
         };
 
-        if (!RecipeCatalog.IsItemOutputGoal(goal) ||
-            !RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe) ||
-            string.IsNullOrEmpty(option.OutputDefinitionId))
+        if (recipe == null || string.IsNullOrEmpty(option.OutputDefinitionId) ||
+            !world.Content.ObjectDefinitions.TryGetValue(option.OutputDefinitionId, out var output) ||
+            !output.Interactions.Exists(i => i.Type == InteractionType.PickUp))
         {
             option.BlockReason = CraftBlockReason.InvalidRecipe;
             return option;
@@ -269,10 +276,11 @@ public static class CraftingOptions
         option.StationTag = recipe.Station;
         option.IsActive = npc.Mind.ManualControl &&
             (npc.Mind.CurrentGoal == goal || npc.Plan.Goal == goal) &&
+            (goal != GoalType.CraftItem || npc.Plan.TargetItemDefinitionId == recipe.OutputDefinitionId) &&
             (npc.Plan.Status == PlanStatus.Active ||
              npc.Execution.Status == ExecutionStatus.InProgress);
 
-        var project = CraftProjectMath.FindReachableProject(world, npc, goal);
+        var project = CraftProjectMath.FindReachableProject(world, npc, goal, recipe.OutputDefinitionId);
         if (project != null)
         {
             ResolveProject(world, npc, recipe, project, option, scan);
@@ -330,6 +338,16 @@ public static class CraftingOptions
         if (!string.IsNullOrEmpty(recipe.Station) && station == null)
         {
             option.BlockReason = CraftBlockReason.NoStation;
+            return;
+        }
+
+        // §138.6: resuming a paid item still requires its station and fire.
+        if (station != null &&
+            (!world.Content.ObjectDefinitions.TryGetValue(station.DefinitionId, out var definition) ||
+             !definition.HasTag(recipe.Station) || !StationGateOk(world, recipe, recipe.Goal, station) ||
+             station.IsOccupied && station.CurrentUser != npc.Id))
+        {
+            option.BlockReason = CraftBlockReason.StationBusy;
             return;
         }
 

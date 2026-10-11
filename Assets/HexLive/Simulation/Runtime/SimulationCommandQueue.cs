@@ -383,9 +383,22 @@ public sealed class StopCommand : ISimulationCommand
     public EntityId? TargetEntity => Npc;
 }
 
-/// <summary>§138: craft one authored item recipe through the normal plan and
-/// execution pipeline. The goal is revalidated against RecipeCatalog when the
-/// queue is drained; presentation cannot smuggle an arbitrary output.</summary>
+/// <summary>§138.6: craft one catalog output through the ordinary project
+/// pipeline. Additive command: the legacy GoalType payload is unchanged.</summary>
+public sealed class CraftByOutputCommand : ISimulationCommand
+{
+    public EntityId? TargetEntity => Npc;
+    public CraftByOutputCommand(EntityId npc, string outputDefinitionId)
+    {
+        Npc = npc;
+        OutputDefinitionId = outputDefinitionId ?? string.Empty;
+    }
+
+    public EntityId Npc { get; }
+    public string OutputDefinitionId { get; }
+}
+
+/// <summary>§138: legacy goal-based command, still revalidated at admission.</summary>
 public sealed class CraftItemCommand : ISimulationCommand
 {
     public CraftItemCommand(EntityId npc, GoalType recipeGoal)

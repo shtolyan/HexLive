@@ -510,27 +510,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
 
                     // Spec §54 (R2): ingredients/gate sourced from RecipeCatalog.
                     // In-place recipes (including bandages) use RunCraftInPlace;
-                    // this switch is only the station-backed interaction path.
-                    var craftOk = npc.Plan.Goal switch
-                    {
-                        GoalType.CraftSpear => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CookMeat => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftLeather => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftAxe => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftPickaxe => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftRack => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftBed => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftTent => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftBow => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftArrows => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftRope => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftCloth => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftKnife => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftSplint => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftWoodenArm => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        GoalType.CraftWoodenLeg => CraftGateOk(world, npc, worldObject, npc.Plan.Goal),
-                        _ => false
-                    };
+                    // this gate is only the station-backed interaction path.
+                    // §138.6: the catalog validates both legacy and data-only crafts.
+                    var craftOk = CraftGateOk(world, npc, worldObject, npc.Plan.Goal);
 
                     if (!craftOk)
                     {
@@ -1771,12 +1753,12 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         // garment whose pockets hold the requested result. Take exactly one
         // recipe output and leave the container plus unrelated contents.
         else if (RecipeCatalog.UsesPersistentProject(npc.Plan.Goal) &&
-                 worldObject.DefinitionId != RecipeCatalog.OutputOf(npc.Plan.Goal) &&
+                 worldObject.DefinitionId != RecipeCatalog.OutputOf(npc.Plan.Goal, npc.Plan.TargetItemDefinitionId) &&
                  worldObject.Contents.Count > 0)
         {
             if (!RecoverCraftOutputFromStash(
                     world, npc, worldObject,
-                    RecipeCatalog.OutputOf(npc.Plan.Goal)))
+                    RecipeCatalog.OutputOf(npc.Plan.Goal, npc.Plan.TargetItemDefinitionId)))
             {
                 return false;
             }
@@ -1850,7 +1832,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         !(npc.Plan.Goal == GoalType.CraftLeather &&
           worldObject.DefinitionId == ContentIds.LeatherPants) &&
         !(RecipeCatalog.UsesPersistentProject(npc.Plan.Goal) &&
-          worldObject.DefinitionId != RecipeCatalog.OutputOf(npc.Plan.Goal) &&
+          worldObject.DefinitionId != RecipeCatalog.OutputOf(npc.Plan.Goal, npc.Plan.TargetItemDefinitionId) &&
           worldObject.Contents.Count > 0) &&
         !(npc.Plan.Goal == GoalType.GatherTools &&
           worldObject.Contents.Count > 0 && !definition.HasTag("Tool"));

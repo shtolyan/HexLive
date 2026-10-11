@@ -37,7 +37,7 @@ public static class SimulationCommandCodec
     // 6: §28.15G requested shared Talk topic, with legacy opcode 11 unchanged.
     // 7: §153.4 voluntary request for one carried item (opcode 43).
     // 8: §123.5 ManageInventory carries the authoritative drop quantity.
-    public const int WireVersion = 9; // §56.7: append-only ButcherPerson (47).
+    public const int WireVersion = 10; // §138.6: append-only CraftByOutput (48).
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -92,6 +92,7 @@ public static class SimulationCommandCodec
         ShoutDirective = 45,
         RespondDirective = 46,
         ButcherPerson = 47,
+        CraftByOutput = 48, // §138.6 append-only
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -193,6 +194,11 @@ public static class SimulationCommandCodec
             case StopCommand c:
                 w.Write((ushort)CommandType.Stop);
                 WriteEntity(w, c.Npc);
+                break;
+            case CraftByOutputCommand c:
+                w.Write((ushort)CommandType.CraftByOutput);
+                WriteEntity(w, c.Npc);
+                WireIo.WriteString(w, c.OutputDefinitionId);
                 break;
             case CraftItemCommand c:
                 w.Write((ushort)CommandType.CraftItem);
@@ -452,6 +458,8 @@ public static class SimulationCommandCodec
                 return new AttackMobCommand(ReadEntity(r), r.ReadInt32());
             case CommandType.Stop:
                 return new StopCommand(ReadEntity(r));
+            case CommandType.CraftByOutput:
+                return new CraftByOutputCommand(ReadEntity(r), r.ReadString());
             case CommandType.CraftItem:
                 return new CraftItemCommand(ReadEntity(r), (GoalType)r.ReadInt32());
             case CommandType.TalkTo:

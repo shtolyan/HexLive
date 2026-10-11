@@ -162,6 +162,7 @@ public sealed class GoalCatalogGateTests
             [GoalType.CraftSplint] = InteractionType.Craft,
             [GoalType.CraftWoodenArm] = InteractionType.Craft,
             [GoalType.CraftWoodenLeg] = InteractionType.Craft,
+            [GoalType.CraftItem] = InteractionType.Craft, // §138.6 data-driven manual craft
             // §28.15C v3: Bury СНЯТА — тело остаётся лежать там, где упало, и
             // хоронить его больше некому. Отсутствие строки здесь и есть
             // утверждение «взаимодействия у цели больше нет».
@@ -202,6 +203,12 @@ public sealed class GoalCatalogGateTests
         var assigned = SourceScan.DirectGoalAssignments()
             .Select(h => h.Value)
             .ToHashSet(StringComparer.Ordinal);
+
+        // §138.6: ApplyCraftOption assigns option.Goal, not a literal. The
+        // data-only path is behaviorally covered by ManualCraftingTests
+        // (command -> paid project -> save/load -> output), so the source
+        // scanner's literal-only limitation must not require per-item code.
+        assigned.Add(GoalType.CraftItem.ToString());
 
         var orphans = GoalCatalog.All
             .Where(d => d != null && d.IsReactive)

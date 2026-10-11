@@ -457,12 +457,24 @@ namespace HexLive.UnityPresentation.Wearing
             ["LegR"] = new Rect(0.25195f, 0.65674f, 0.41016f, 0.35645f),
         };
 
-        private static Texture2D? WrapOverlayFor(string zoneName)
+        private bool _usesBandageAtlas;
+        private SkinBandageAtlas? _bandageAtlas;
+
+        private SkinBandageAtlas.ZoneWrap? AtlasWrapFor(string zoneName)
+        {
+            if (_bandageAtlas == null && _body != null)
+                _bandageAtlas = SkinBandageAtlas.Load(_body.sharedMesh);
+            return _bandageAtlas != null ? _bandageAtlas.ForZone(zoneName) : null;
+        }
+
+        private Texture2D? WrapOverlayFor(string zoneName)
         {
             if (!WrapOverlayEnabled)
             {
                 return null;
             }
+
+            if (_usesBandageAtlas) return AtlasWrapFor(zoneName)?.Albedo;
 
             if (_wrapOverlays.TryGetValue(zoneName, out var cached))
             {
@@ -480,8 +492,9 @@ namespace HexLive.UnityPresentation.Wearing
         // §118.2: рельеф марли. Карта высот — яркость самой ткани, поэтому блик
         // идёт ровно по тем ниткам, которые видно в альбедо. Без неё обмотка
         // была бы плоской наклейкой: глубину в игре даёт ТОЛЬКО этот канал.
-        private static Texture2D? WrapNormalFor(string zoneName)
+        private Texture2D? WrapNormalFor(string zoneName)
         {
+            if (_usesBandageAtlas) return AtlasWrapFor(zoneName)?.Normal;
             if (_wrapNormals.TryGetValue(zoneName, out var cached))
             {
                 return cached;
@@ -783,6 +796,8 @@ namespace HexLive.UnityPresentation.Wearing
             enabled = false;
             SkinPaintScheduler.Register(this);
             _body = body;
+            _usesBandageAtlas = SkinBandageAtlas.UsesAtlasLayout(body.sharedMesh);
+            _bandageAtlas = _usesBandageAtlas ? SkinBandageAtlas.Load(body.sharedMesh) : null;
             _bones = bones;
             _bodyRoot = bodyRoot;
             _npcId = npcId;
@@ -2271,6 +2286,11 @@ namespace HexLive.UnityPresentation.Wearing
 
                     if (wrap != null && WrapRects.TryGetValue(zoneName, out var wrapRect))
                     {
+                        // Browser bodies repack all skin slots into one atlas.
+                        // The transferred alpha defines the zone across its UV
+                        // islands; Genesis crop coordinates belong only to the
+                        // legacy multi-slot meshes.
+                        if (_usesBandageAtlas) wrapRect = new Rect(.5f, .5f, 1f, 1f);
                         _stamps[key] = new Stamp
                         {
                             Key = key,
@@ -2682,7 +2702,7 @@ namespace HexLive.UnityPresentation.Wearing
         // Fill in any art a stamp missed because its texture asset wasn't
         // imported yet when the stamp was placed (sweat stamps are
         // normal-only by design — key prefix "sw").
-        private static void RefreshStampArt(Stamp stamp)
+        private void RefreshStampArt(Stamp stamp)
         {
             if (stamp.Slot < 0)
             {
@@ -2716,6 +2736,7 @@ namespace HexLive.UnityPresentation.Wearing
                     var wrapZone = stamp.Key.Substring(1);
                     if (stamp.Over == null) stamp.Over = WrapOverlayFor(wrapZone);
                     if (stamp.OverNormal == null) stamp.OverNormal = WrapNormalFor(wrapZone);
+                    if (_usesBandageAtlas && WrapRects.ContainsKey(wrapZone)) return;
                 }
 
                 stamp.Over ??= stamp.IsGauze ? _texGauze : _texBandage;

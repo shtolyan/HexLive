@@ -263,7 +263,8 @@ public sealed class McpTools
             "Старый recipeGoal также поддерживается; укажите ровно один из них.",
             Schema(("npcId", "integer", "id колонистки", true),
                    ("outputId", "string", "definition id результата из read_recipes", false),
-                   ("recipeGoal", "string", "старая цель рецепта", false))),
+                   ("recipeGoal", "string", "старая цель рецепта", false),
+                   ("requestId", "string", "ключ повтора заказа: до 96 букв ASCII, цифр, -, _, .; новый заказ — новый ключ", false))),
 
         new("attack_npc",
             "Напасть на человека.",
@@ -447,7 +448,7 @@ public sealed class McpTools
     /// а не исключение: агенту нужна причина, чтобы попробовать иначе.
     /// </summary>
     public string Call(string name, JsonElement arguments, string owner, out bool isError,
-        Func<int, bool>? canAccessNpc = null)
+        Func<int, bool>? canAccessNpc = null, string? requestOwner = null)
     {
         // Bind exactly once per JSON-RPC tool invocation. A world swap between
         // calls must be visible; a single call must never mix two worlds.
@@ -466,7 +467,7 @@ public sealed class McpTools
             {
                 case "read_agent_command": return Json(host.ReadAgentCommand(Int(arguments, "npcId"),
                     OptionalLong(arguments, "sequence") ?? throw new McpArgumentException("Нужен параметр sequence"), Text(arguments, "commandId")));
-                case "execute_agent_command": return ExecuteAgentCommand(arguments, owner, out isError);
+                case "execute_agent_command": return ExecuteAgentCommand(arguments, owner, out isError, requestOwner);
                 case "world_status": return WorldStatus(host);
                 case "list_colonists": return ListColonists(host, canAccessNpc);
                 case "list_leases": return ListLeases(canAccessNpc);
@@ -508,7 +509,7 @@ public sealed class McpTools
                 case "release_control": return Release(host, Int(arguments, "npcId"), owner, out isError);
                 case "move_to": return MoveTo(host, arguments, owner, out isError);
                 case "interact": return Interact(host, arguments, owner, out isError);
-                case "craft_item": return Craft(host, arguments, owner, out isError);
+                case "craft_item": return Craft(host, arguments, owner, out isError, requestOwner ?? owner);
                 case "attack_npc": return AttackNpc(host, arguments, owner, out isError);
                 case "attack_mob": return AttackMob(host, arguments, owner, out isError);
                 case "stop": return Simple(host, arguments, owner, npc => new StopCommand(npc), out isError);
@@ -1547,20 +1548,23 @@ public sealed class McpTools
             npc => new InteractCommand(npc, new ObjectId(objectId), interaction), out isError);
     }
 
-    private string Craft(WorldHost host, JsonElement arguments, string owner, out bool isError)
+    private string Craft(WorldHost host, JsonElement arguments, string owner, out bool isError, string requestOwner)
     {
         var npcId = Int(arguments, "npcId");
         var outputId = OptionalText(arguments, "outputId");
+        var requestId = arguments.TryGetProperty("requestId", out _) ? Text(arguments, "requestId") : "";
+        if (requestId.Length > 0 && !CraftRequestLedger.ValidRequestId(requestId))
+            throw new McpArgumentException("InvalidCraftRequest");
         if (arguments.TryGetProperty("outputId", out _))
         {
             if (arguments.TryGetProperty("recipeGoal", out _) ||
-                !RecipeCatalog.ByOutput.ContainsKey(outputId))
+                (requestId.Length == 0 && !RecipeCatalog.ByOutput.ContainsKey(outputId)))
             {
                 isError = true;
                 return "Укажите один известный outputId из read_recipes либо старый recipeGoal.";
             }
             return Submit(host, npcId, owner,
-                npc => new CraftByOutputCommand(npc, outputId), out isError);
+                npc => new CraftByOutputCommand(npc, outputId, requestId), out isError, requestOwner);
         }
         var goalName = Text(arguments, "recipeGoal");
         if (!Enum.TryParse<GoalType>(goalName, ignoreCase: true, out var goal) ||
@@ -1577,6 +1581,15 @@ public sealed class McpTools
             return $"«{goalName}» — не цель рецепта. Доступные: {string.Join(", ", known)}";
         }
 
+        // §138.6.1: legacy aliases share the canonical output identity.
+        if (requestId.Length > 0)
+        {
+            var recipe = RecipeCatalog.ByGoal[goal];
+            if (string.IsNullOrEmpty(recipe.OutputDefinitionId))
+                throw new McpArgumentException("InvalidRecipe");
+            return Submit(host, npcId, owner,
+                npc => new CraftByOutputCommand(npc, recipe.OutputDefinitionId, requestId), out isError, requestOwner);
+        }
         return Submit(host, npcId, owner, npc => new CraftItemCommand(npc, goal), out isError);
     }
 
@@ -1736,7 +1749,7 @@ public sealed class McpTools
     /// лиза» — иначе весь смысл владения теряется на первом же исключении.
     /// </summary>
     private string Submit(WorldHost host, int npcId, string owner,
-        Func<EntityId, ISimulationCommand> build, out bool isError)
+        Func<EntityId, ISimulationCommand> build, out bool isError, string? requestOwner = null)
     {
         if (!_agents.CanIssueWorldCommands(npcId, owner))
         {
@@ -1754,12 +1767,12 @@ public sealed class McpTools
         if (_trackedCommand.Value is { } tracked)
         {
             if (tracked.NpcId != npcId) throw new McpArgumentException("TrackedActorMismatch");
-            var receipt = host.SubmitTrackedManualCommand(tracked, build(new EntityId(npcId)));
+            var receipt = host.SubmitTrackedManualCommand(tracked, build(new EntityId(npcId)), requestOwner ?? owner);
             _trackedResult.Value = receipt;
             isError = receipt.Outcome == "failed";
             return Json(receipt);
         }
-        var admission = host.SubmitManualCommand(build(new EntityId(npcId)));
+        var admission = host.SubmitManualCommand(build(new EntityId(npcId)), requestOwner ?? owner);
         isError = !admission.Accepted;
         return Json(new Dictionary<string, object?>
         {
@@ -1776,7 +1789,7 @@ public sealed class McpTools
         return holder.Length == 0 ? string.Empty : holder;
     }
 
-    private string ExecuteAgentCommand(JsonElement args, string owner, out bool isError)
+    private string ExecuteAgentCommand(JsonElement args, string owner, out bool isError, string? requestOwner)
     {
         var npcId = Int(args, "npcId");
         var sequence = OptionalLong(args, "sequence") ?? throw new McpArgumentException("Нужен параметр sequence");
@@ -1808,7 +1821,7 @@ public sealed class McpTools
                 _trackedCommand.Value = _trackedCommand.Value with { RestNeed = need, RestTarget = target };
             }
             _trackedResult.Value = null;
-            var result = Call(tool, bound, owner, out isError);
+            var result = Call(tool, bound, owner, out isError, requestOwner: requestOwner);
             if (_trackedResult.Value is { } receipt)
             {
                 // A recorded failure is a valid receipt, not an unknown transport

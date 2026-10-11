@@ -388,14 +388,16 @@ public sealed class StopCommand : ISimulationCommand
 public sealed class CraftByOutputCommand : ISimulationCommand
 {
     public EntityId? TargetEntity => Npc;
-    public CraftByOutputCommand(EntityId npc, string outputDefinitionId)
+    public CraftByOutputCommand(EntityId npc, string outputDefinitionId, string requestId = "")
     {
         Npc = npc;
         OutputDefinitionId = outputDefinitionId ?? string.Empty;
+        RequestId = requestId ?? string.Empty;
     }
 
     public EntityId Npc { get; }
     public string OutputDefinitionId { get; }
+    public string RequestId { get; }
 }
 
 /// <summary>§138: legacy goal-based command, still revalidated at admission.</summary>

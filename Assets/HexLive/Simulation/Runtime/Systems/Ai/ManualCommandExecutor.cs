@@ -30,7 +30,15 @@ namespace HexLive.Simulation.Runtime
 //    приказ читается игроком как «игра сломалась».
 internal static class ManualCommandExecutor
 {
-    public static ManualCommandAdmission Apply(WorldState world, ISimulationCommand command)
+    public static ManualCommandAdmission Apply(WorldState world, ISimulationCommand command, string requestOwner = "")
+    {
+        // §138.6.1: retries return the original admission before any plan interruption.
+        if (command is CraftByOutputCommand craft && craft.RequestId.Length > 0)
+            return CraftRequestLedger.Apply(world, craft, requestOwner, () => ApplyCore(world, command));
+        return ApplyCore(world, command);
+    }
+
+    private static ManualCommandAdmission ApplyCore(WorldState world, ISimulationCommand command)
     {
         var admission = new AdmissionTracker(command.TargetEntity, OrderName(command));
         if (!Spec121.ManualControlEnabled)

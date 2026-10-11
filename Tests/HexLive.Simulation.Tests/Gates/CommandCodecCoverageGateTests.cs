@@ -58,7 +58,7 @@ public sealed class CommandCodecCoverageGateTests
         new PutPersonInBedCommand(new EntityId(17), new ObjectId(71)),
         new AttackMobCommand(new EntityId(18), 81),
         new StopCommand(new EntityId(19)),
-        new CraftByOutputCommand(new EntityId(201), "test.craft_output"),
+        new CraftByOutputCommand(new EntityId(201), "test.craft_output", "craft-123"),
         new CraftItemCommand(new EntityId(20), GoalType.CraftBandage),
         new TalkToCommand(new EntityId(21), new EntityId(112)),
         new RequestItemCommand(new EntityId(21), new EntityId(112), GearCatalog.Lighter),
@@ -207,7 +207,7 @@ public sealed class CommandCodecCoverageGateTests
         using var bytes = new MemoryStream();
         using var writer = new BinaryWriter(bytes, System.Text.Encoding.UTF8, true);
         SimulationCommandCodec.Write(writer, new CraftItemCommand(new EntityId(20), GoalType.CraftBandage));
-        SimulationCommandCodec.Write(writer, new CraftByOutputCommand(new EntityId(201), "test.craft_output"));
+        SimulationCommandCodec.Write(writer, new CraftByOutputCommand(new EntityId(201), "test.craft_output", "craft-123"));
         writer.Flush();
         bytes.Position = 0;
         using var reader = new BinaryReader(bytes);
@@ -220,6 +220,7 @@ public sealed class CommandCodecCoverageGateTests
         var decoded = (CraftByOutputCommand)SimulationCommandCodec.Read(reader);
         Assert.That(decoded.Npc, Is.EqualTo(new EntityId(201)));
         Assert.That(decoded.OutputDefinitionId, Is.EqualTo("test.craft_output"));
+        Assert.That(decoded.RequestId, Is.EqualTo("craft-123"));
         Assert.That(bytes.Position, Is.EqualTo(bytes.Length));
     }
 

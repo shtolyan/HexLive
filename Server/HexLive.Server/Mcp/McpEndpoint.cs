@@ -139,6 +139,9 @@ public static class McpEndpoint
                 // коллизия с ws:-игроком исключена синтаксически.
                 var owner = "mcp:" + (string.IsNullOrWhiteSpace(session) ? "anonymous" : session);
 
+                // §138.6.1: leases belong to sessions, saved craft receipts to the
+                // authenticated principal, stable across reconnects and server reloads.
+                var requestOwner = administrator ? "mcp:administrator" : "ws:" + (gamePlayer ?? playerGrant!.PlayerId);
                 var root = document.RootElement;
                 Func<int, bool>? canAccessNpc = null;
                 if (!administrator)
@@ -173,7 +176,7 @@ public static class McpEndpoint
                     var batch = new List<object>();
                     foreach (var item in root.EnumerateArray())
                     {
-                        var answer = Handle(item, tools, owner, context);
+                        var answer = Handle(item, tools, owner, context, requestOwner: requestOwner);
                         if (answer != null) batch.Add(answer);
                     }
 
@@ -187,7 +190,7 @@ public static class McpEndpoint
                     return;
                 }
 
-                var response = Handle(root, tools, owner, context, canAccessNpc);
+                var response = Handle(root, tools, owner, context, canAccessNpc, requestOwner);
                 if (response == null)
                 {
                     // Уведомление: по JSON-RPC ответа нет вообще.
@@ -253,7 +256,7 @@ public static class McpEndpoint
     }
 
     private static object? Handle(JsonElement request, McpTools tools, string owner,
-        HttpContext context, Func<int, bool>? canAccessNpc = null)
+        HttpContext context, Func<int, bool>? canAccessNpc = null, string? requestOwner = null)
     {
         if (request.ValueKind != JsonValueKind.Object) return Error(null, -32600, "Invalid request.");
         var id = request.TryGetProperty("id", out var idElement) && idElement.ValueKind != JsonValueKind.Null
@@ -350,7 +353,7 @@ public static class McpEndpoint
                     : default;
 
                 var text = tools.Call(nameElement.GetString() ?? string.Empty, arguments, owner,
-                    out var isError, canAccessNpc);
+                    out var isError, canAccessNpc, requestOwner);
 
                 // Ошибка инструмента — это НЕ ошибка протокола: агент должен
                 // прочитать причину и попробовать иначе, а не получить обрыв.

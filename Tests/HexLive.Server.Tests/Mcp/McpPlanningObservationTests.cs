@@ -188,6 +188,7 @@ public sealed class McpPlanningObservationTests
             Assert.That(schema.GetProperty("properties").GetProperty("outputId").GetProperty("enum")
                 .EnumerateArray().Any(v => v.GetString() == ContentIds.Plaster), Is.True);
             Assert.That(schema.GetProperty("oneOf").GetArrayLength(), Is.EqualTo(2));
+            Assert.That(schema.GetProperty("properties").GetProperty("requestId").GetProperty("type").GetString(), Is.EqualTo("string"));
             Call(tools, "acquire_npc_control", new { npcId = 901 });
             host.Read(w =>
             {
@@ -218,6 +219,53 @@ public sealed class McpPlanningObservationTests
             RecipeCatalog.ResetToDefaults();
             SimDataFile.Require(Path.Combine(Root(), "SimData/simdata.json"));
         }
+    }
+
+    [Test]
+    public void CraftRequestReceiptSurvivesHostReloadAndLegacyAliasWithoutRestartingCancelledPlan()
+    {
+        string receipt;
+        using (var host = Host())
+        {
+            var tools = new McpTools(host, new ControlLeases(45));
+            Call(tools, "acquire_npc_control", new { npcId = 901 });
+            host.Read(w =>
+            {
+                var npc = w.Entities.Npcs[new EntityId(901)];
+                npc.CurrentJunction ??= w.Tiles.Items[npc.Tile].Junctions[0];
+                npc.Needs.Hunger = npc.Needs.Thirst = 0f;
+                for (var i = 0; i < RecipeCatalog.InputCount(HexLive.Simulation.AI.GoalType.CraftRope, ContentIds.Fiber); i++)
+                    npc.Inventory.Items.Add(new ItemInstance(ContentIds.Fiber));
+                return true;
+            });
+            receipt = Call(tools, "craft_item", new { npcId = 901, recipeGoal = "CraftRope", requestId = "saved" }).GetRawText();
+            Assert.That(Call(tools, "craft_item", new { npcId = 901, outputId = ContentIds.Rope, requestId = "saved" }).GetRawText(), Is.EqualTo(receipt));
+            var conflict = tools.Call("craft_item", JsonSerializer.SerializeToElement(new { npcId = 901, outputId = ContentIds.Bandage, requestId = "saved" }), "fixture", out var error);
+            Assert.That(error, Is.True);
+            Assert.That(conflict, Does.Contain("CraftRequestConflict"));
+            Call(tools, "stop", new { npcId = 901 });
+            host.Save();
+        }
+        using var restored = Host();
+        var after = new McpTools(restored, new ControlLeases(45));
+        Call(after, "acquire_npc_control", new { npcId = 901 });
+        var before = restored.Read(w => (w.Entities.Npcs[new EntityId(901)].Plan.Status, w.Events.HighestSeq));
+        Assert.That(Call(after, "craft_item", new { npcId = 901, outputId = ContentIds.Rope, requestId = "saved" }).GetRawText(), Is.EqualTo(receipt));
+        Assert.That(restored.Read(w => (w.Entities.Npcs[new EntityId(901)].Plan.Status, w.Events.HighestSeq)), Is.EqualTo(before));
+        Assert.That(restored.Read(w => w.CraftRequests[901].Receipts.Count), Is.EqualTo(1));
+        after.Call("craft_item", JsonSerializer.SerializeToElement(new { npcId = 901, outputId = ContentIds.Rope, requestId = "saved" }), "intruder", out var denied);
+        Assert.That(denied, Is.True, "A receipt never bypasses the current lease");
+    }
+
+    [Test]
+    public void ConcurrentCraftRetriesRecordOneAdmission()
+    {
+        using var host = Host();
+        var results = new HexLive.Simulation.Runtime.ManualCommandAdmission[20];
+        System.Threading.Tasks.Parallel.For(0, results.Length, i => results[i] = host.SubmitManualCommand(
+            new HexLive.Simulation.Runtime.CraftByOutputCommand(new EntityId(901), "unknown", "concurrent"), "player"));
+        Assert.That(results.All(r => r.Equals(results[0])), Is.True);
+        Assert.That(host.Read(w => w.CraftRequests[901].Receipts.Count), Is.EqualTo(1));
     }
 
     [Test]

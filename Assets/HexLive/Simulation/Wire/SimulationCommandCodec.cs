@@ -199,6 +199,7 @@ public static class SimulationCommandCodec
                 w.Write((ushort)CommandType.CraftByOutput);
                 WriteEntity(w, c.Npc);
                 WireIo.WriteString(w, c.OutputDefinitionId);
+                WireIo.WriteString(w, c.RequestId); // §138.6.1, unreleased v10 / handshake v24
                 break;
             case CraftItemCommand c:
                 w.Write((ushort)CommandType.CraftItem);
@@ -459,7 +460,7 @@ public static class SimulationCommandCodec
             case CommandType.Stop:
                 return new StopCommand(ReadEntity(r));
             case CommandType.CraftByOutput:
-                return new CraftByOutputCommand(ReadEntity(r), r.ReadString());
+                return new CraftByOutputCommand(ReadEntity(r), r.ReadString(), r.ReadString());
             case CommandType.CraftItem:
                 return new CraftItemCommand(ReadEntity(r), (GoalType)r.ReadInt32());
             case CommandType.TalkTo:

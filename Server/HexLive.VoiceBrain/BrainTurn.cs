@@ -59,7 +59,15 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, McpClient 
             // Speak again only when the player has not heard anything yet, or the
             // world said no — an accepted order already announced needs no second take.
             if (!spoke || anyRejected)
-                await StreamAsync(messages, withTools: false, Say, token);
+            {
+                // The second pass continues an utterance already heard: keep the sentences apart.
+                var needsSpace = spoke;
+                await StreamAsync(messages, withTools: false, piece =>
+                {
+                    if (needsSpace) { needsSpace = false; piece = " " + piece.TrimStart(); }
+                    return Say(piece);
+                }, token);
+            }
         }
         log.LogInformation("turn {Turn} npc={Npc} state={State}ms first={First}ms total={Total}ms tools=[{Tools}] spoke={Spoke}",
             turnId[..8], ticket.NpcId, (int)tState.TotalMilliseconds, (int)tFirst.TotalMilliseconds,
@@ -77,8 +85,9 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, McpClient 
         {
             ["model"] = options.Model,
             ["messages"] = JsonNode.Parse(messages.ToJsonString()),
-            ["reasoning_effort"] = options.ReasoningEffort,
         };
+        // Non-reasoning models (gpt-4.1*) reject the field: VOICEBRAIN_REASONING=omit leaves it out.
+        if (options.ReasoningEffort is { Length: > 0 } effort && effort != "omit") body["reasoning_effort"] = effort;
         if (withTools) { body["tools"] = Tools(); body["parallel_tool_calls"] = true; }
         var started = Stopwatch.GetTimestamp();
         try
@@ -149,7 +158,6 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, McpClient 
             var body = new JsonObject
             {
                 ["model"] = options.Model,
-                ["reasoning_effort"] = "low",
                 ["response_format"] = new JsonObject { ["type"] = "json_object" },
                 ["messages"] = new JsonArray
                 {
@@ -162,6 +170,7 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, McpClient 
                     new JsonObject { ["role"] = "user", ["content"] = userText.Length > 1000 ? userText[..1000] : userText },
                 },
             };
+            if (options.ReasoningEffort is { Length: > 0 } effort && effort != "omit") body["reasoning_effort"] = effort;
             var started = Stopwatch.GetTimestamp();
             var (json, input, output) = await llm.CompleteJsonAsync(body, token);
             Record("ok", started, input, output, null);
@@ -179,7 +188,8 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, McpClient 
         "Решай сама по своему телу, чувствам и отношению к голосу (ниже). Чем ниже доверие, тем охотнее споришь " +
         "и отказываешься от трудного или опасного; при высоком доверии соглашаешься легче. Опасное для себя или " +
         "своих делаешь только при очень высоком доверии и всё равно можешь отказаться.\n" +
-        "Если решила что-то сделать — вызови инструмент. Можно одновременно коротко сказать, что делаешь. " +
+        "Если решила что-то сделать — СНАЧАЛА скажи короткую живую фразу (2–8 слов), ПОТОМ в том же ответе вызови инструмент: " +
+        "голос должен звучать сразу, а не после действия. " +
         "Не обещай того, чего не можешь (нет объекта, нет инструмента, далеко) — скажи честно. " +
         "Если инструмент вернул отказ — объясни его своими словами, не выдумывай успех. " +
         "Используй только objectId/npcId из списков ниже.\n\n" +

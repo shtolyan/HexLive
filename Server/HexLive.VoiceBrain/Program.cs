@@ -13,6 +13,12 @@ builder.Logging.AddSimpleConsole(o => { o.SingleLine = true; o.TimestampFormat =
 builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
 var app = builder.Build();
 var log = app.Logger;
+// Prototype diagnostics: which paths the provider actually calls (no bodies, no headers).
+app.Use(async (c, next) =>
+{
+    await next();
+    if (c.Request.Path != "/health") log.LogInformation("http {Method} {Path} -> {Status}", c.Request.Method, c.Request.Path, c.Response.StatusCode);
+});
 
 var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
 var llm = new OpenAiStream(http, options.OpenAiKey);
@@ -79,11 +85,19 @@ app.MapPost("/v1/chat/completions", async (HttpContext c) =>
 {
     var auth = c.Request.Headers.Authorization.ToString();
     var presented = auth.StartsWith("Bearer ", StringComparison.Ordinal) ? Encoding.UTF8.GetBytes(auth[7..]) : [];
-    if (!CryptographicOperations.FixedTimeEquals(presented, secret)) { c.Response.StatusCode = 401; return; }
+    if (!CryptographicOperations.FixedTimeEquals(presented, secret))
+    {
+        log.LogWarning("llm request rejected: auth header {Kind}", auth.Length == 0 ? "missing" : auth.Split(' ')[0]);
+        c.Response.StatusCode = 401; return;
+    }
     using var doc = await JsonDocument.ParseAsync(c.Request.Body, cancellationToken: c.RequestAborted);
     var body = doc.RootElement;
     var ticketText = body.TryGetProperty("elevenlabs_extra_body", out var extra) && extra.TryGetProperty("ticket", out var t) ? t.GetString() : null;
-    if (!tickets.TryVerify(ticketText, out var ticket)) { c.Response.StatusCode = 403; return; }
+    if (!tickets.TryVerify(ticketText, out var ticket))
+    {
+        log.LogWarning("llm request rejected: ticket {State}", ticketText == null ? "missing" : "invalid");
+        c.Response.StatusCode = 403; return;
+    }
     BrainTurn.CurrentTicket.Value = ticket;
 
     c.Response.ContentType = "text/event-stream";

@@ -277,3 +277,22 @@ Eight focused package tests pass, including same-size blob corruption rejection.
 The canonical hash validator required no code change. Local receipts and the
 activation plan are under `Build/MSIRelease/20261011-1704/`. Worlds, saves, server
 binary, New York, Flashback and Coil are not release mutation targets.
+# Activation receipt — 2026-10-11 14:21 UTC
+
+Tolya directly ordered immediate activation of the prepared package while the
+new Player was building. MSI activated Singapore content using the installed
+publisher as `hexlive`: 215 objects, exit 0, registry **230 → 445**. All 230
+public index entries were compared with the release plan: zero hash mismatches.
+Simdata, worlds/saves and server binary were unchanged; no service restarted.
+
+Package source remains `dabccb70c7ad5bf480e2e40fc633a46be114f6b1`, with the
+previously recorded dirty inputs. Manifest SHA256:
+`38a87018e11abaad905a0388edcecc7aae4daf985fd5727628922c48c634583d`.
+Remote receipt and rollback remain under
+`/var/lib/hexlive/assets-webgl/staging/msi-release-20261011-1704-dabccb70/`.
+Player at activation still resolved to directory
+`4b34c09a6a3f913b29f602b77e48fc0003419cff`; this is not a verified source SHA.
+The matching new Player and live visual QA are still required. Sveta notified.
+
+New Flashback #435 work (position-map precision, wound sizing and dirt angle
+fade) is **not** in this package. It is undergoing native Unity validation.

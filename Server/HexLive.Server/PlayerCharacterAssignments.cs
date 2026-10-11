@@ -119,6 +119,14 @@ public sealed class PlayerCharacterAssignments
         lock (_gate)
         {
             var record = FindOrAdd(canonicalPlayerId);
+            // §171.9: account death uses the same notice transition as §149.6,
+            // but a vacant slot waits for explicit character creation.
+            if (record.AccountCharacter)
+            {
+                characterLimit = 1;
+                if (record.NeedsNewCharacter || record.NpcIds.Any(id => deadNpcIds?.Contains(id) == true))
+                    assignable = Array.Empty<int>();
+            }
             var usedByOthers = new HashSet<int>();
             for (var i = 0; i < _players.Count; i++)
             {
@@ -171,7 +179,7 @@ public sealed class PlayerCharacterAssignments
     /// </summary>
     public IReadOnlyList<int> Reconcile(
         WorldHost host, string playerId, int characterLimit = DefaultCharacterLimit,
-        CancellationToken worldLifetime = default, int worldGeneration = 0)
+        CancellationToken worldLifetime = default, int worldGeneration = 0, bool accountCharacter = false)
     {
         var custom = host.Read(world => world.CreationConfig == null ? null :
             (world.CreationConfig.CreatorPlayerId == playerId
@@ -248,8 +256,13 @@ public sealed class PlayerCharacterAssignments
             }
 
             var record = FindOrAdd(playerId);
+            if (accountCharacter && !record.AccountCharacter)
+            {
+                record.AccountCharacter = true;
+                Save();
+            }
             var dead = record.NpcIds.Where(id => !roster.living.Contains(id)).ToHashSet();
-            if (custom != null)
+            if (custom != null && !record.AccountCharacter)
             {
                 characterLimit = Math.Max(record.LobbyCharacterLimit, Math.Max(custom.Length, record.NpcIds.Count));
                 record.LobbyCharacterLimit = characterLimit;
@@ -321,6 +334,10 @@ public sealed class PlayerCharacterAssignments
     internal bool StillAssigned(string playerId, int npcId)
     { lock (_gate) return _players.Any(p => p.PlayerId == playerId && p.NpcIds.Contains(npcId)); }
 
+    /// <summary>§171.9: persistent death state survives notice acknowledgement and restart.</summary>
+    public bool NeedsNewCharacter(string playerId)
+    { lock (_gate) return _players.Any(p => p.PlayerId == playerId && p.NeedsNewCharacter); }
+
     public PlayerAssignmentNotice[] PendingNotices(string playerId)
     {
         lock (_gate) return _players.FirstOrDefault(p => p.PlayerId == playerId)?.PendingNotices
@@ -351,7 +368,13 @@ public sealed class PlayerCharacterAssignments
             changed = true;
         }
         foreach (var id in record.NpcIds.Except(next))
-            Add(id, deadNpcIds?.Contains(id) == true ? "died" : "unavailable");
+        {
+            var died = deadNpcIds?.Contains(id) == true;
+            Add(id, died ? "died" : "unavailable");
+            if (record.AccountCharacter && died) record.NeedsNewCharacter = true;
+        }
+        if (next.Count > 0 && record.NeedsNewCharacter)
+        { record.NeedsNewCharacter = false; changed = true; }
         foreach (var id in next)
         {
             if (!record.IntroducedIds.Contains(id))
@@ -464,7 +487,8 @@ public sealed class PlayerCharacterAssignments
                 PlayerId = playerId, NpcIds = ids,
                 IntroducedIds = source.IntroducedIds ?? new(), KnownNames = source.KnownNames ?? new(),
                 PendingNotices = source.PendingNotices ?? new(), NoticeSequence = source.NoticeSequence,
-                LobbyCharacterLimit = source.LobbyCharacterLimit });
+                LobbyCharacterLimit = source.LobbyCharacterLimit,
+                AccountCharacter = source.AccountCharacter, NeedsNewCharacter = source.NeedsNewCharacter });
         }
 
         return normalized;
@@ -522,6 +546,8 @@ public sealed class PlayerCharacterAssignments
         public List<PlayerAssignmentNotice> PendingNotices { get; set; } = new();
         public long NoticeSequence { get; set; }
         public int LobbyCharacterLimit { get; set; }
+        public bool AccountCharacter { get; set; }
+        public bool NeedsNewCharacter { get; set; }
 
     }
 }

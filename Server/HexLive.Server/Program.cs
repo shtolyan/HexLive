@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Server.Assets;
 using HexLive.Server.Llm;
+using HexLive.Server.Accounts;
 
 namespace HexLive.Server
 {
@@ -181,7 +182,10 @@ public static class Program
         AccessTokenFile? playerToken = null;
         var agentSessions = new AgentSessionRegistry();
         using var deepgram = new DeepgramTokenBroker();
-        if (options.ControlEnabled || options.McpEnabled)
+        using var firebaseHttp = options.FirebaseProject is null ? null : new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        var playerAccounts = options.FirebaseProject is null ? null : new AccountStore(options.AccountsPath, options.FirebaseProject);
+        var firebaseVerifier = options.FirebaseProject is null ? null : new FirebaseTokenVerifier(options.FirebaseProject, firebaseHttp!);
+        if (options.ControlEnabled || options.McpEnabled || playerAccounts is not null)
         {
             controlLeases = new ControlLeases(options.McpLeaseSeconds);
         }
@@ -210,6 +214,9 @@ public static class Program
         });
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
         builder.Services.AddRouting();
+        if (playerAccounts is not null) builder.Services.AddSingleton<IPlayerSessionResolver>(playerAccounts);
+        builder.Services.AddSingleton(new PlayerHttpIdentity(
+            playerToken is null ? null : playerToken.Matches, playerAccounts));
         builder.Services.AddResponseCompression(options => options.EnableForHttps = true);
         builder.WebHost.UseKestrel();
         // Kestrel's socket transport disables Nagle by default; stated
@@ -245,6 +252,8 @@ public static class Program
             });
         }
         GodMode.AdminAccessEndpoints.Map(app, adminAccess, sessions, adminBus, worlds);
+        // §171.9: disabled means no routes and no account store/network access.
+        AccountEndpoints.Map(app, playerAccounts, firebaseVerifier, worlds);
 
         app.Map("/watch", async context =>
         {
@@ -272,7 +281,18 @@ public static class Program
                 context.WebSockets.WebSocketRequestedProtocols);
             string? controlOwner = null;
             IReadOnlyList<int>? assignedNpcIds = null;
-            if (playerToken is not null && controlLeases is not null)
+            // §171.9: authenticated account identity overrides every client-supplied id.
+            using var accountConnection = playerAccounts?.Connect(upgrade.Token);
+            using var viewerLifetime = CancellationTokenSource.CreateLinkedTokenSource(
+                viewerSession.Lifetime, accountConnection?.Lifetime ?? CancellationToken.None);
+            if (accountConnection is not null && controlLeases is not null)
+            {
+                controlOwner = "ws:" + accountConnection.PlayerId;
+                assignedNpcIds = viewerSession.Assignments!.Reconcile(
+                    viewerSession.Host, accountConnection.PlayerId, 1,
+                    viewerSession.Lifetime, viewerSession.WorldGeneration, accountCharacter: true);
+            }
+            else if (playerToken is not null && controlLeases is not null)
             {
                 if (upgrade.Token is not null && playerToken.Matches(upgrade.Token))
                 {
@@ -325,7 +345,7 @@ public static class Program
                 Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments, playerMcpAccess);
             try
             {
-                await viewer.RunAsync(viewerSession.Lifetime);
+                await viewer.RunAsync(viewerLifetime.Token);
             }
             catch (OperationCanceledException)
             {
@@ -756,6 +776,11 @@ public sealed class ServerOptions
     /// </summary>
     public bool ControlEnabled { get; private set; }
 
+    /// <summary>§171.9: opt-in Firebase project; credentials live beside the world library.</summary>
+    public string? FirebaseProject { get; private set; }
+    public string AccountsPath =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath))!, "hexlive-accounts.json");
+
     public string PlayerTokenPath =>
         Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-player.txt");
 
@@ -798,6 +823,13 @@ public sealed class ServerOptions
         {
             switch (args[i])
             {
+                case "--firebase-project" when i + 1 < args.Length:
+                    var project = args[++i];
+                    if (string.IsNullOrWhiteSpace(project) || project.Length > 128 ||
+                        project.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '-')))
+                        throw new ArgumentException("Invalid Firebase project id.");
+                    options.FirebaseProject = project;
+                    break;
                 case "--seed" when i + 1 < args.Length:
                     options.Seed = int.Parse(args[++i]);
                     break;
@@ -916,6 +948,7 @@ public sealed class ServerOptions
                         "  --character-preset masha  ensure the authored Masha body preset exists\n" +
                         "  --companion masha  deprecated alias for --character-preset masha\n" +
                         "  --control        allow player NPC control over /watch (token in hexlive-player.txt)\n" +
+                        "  --firebase-project ID  enable Firebase accounts and session-based player control (§171.9)\n" +
                         "  --mcp-lease N    seconds a control lease survives without commands (default 120)\n" +
                         "  --spec-dir PATH  spec served to MCP agents (default: Spec/ beside the binary)\n" +
                         "  --llm-endpoint URL  enable host-side HTTP LLM provider endpoint\n" +

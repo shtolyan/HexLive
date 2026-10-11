@@ -38,6 +38,12 @@ Genesis reference also exhibited.
 
 ## Evidence and remaining checks
 
+Dependency discovered during #432: the prepared body meshes had zero tangents.
+The initial tests below prove atlas placement and normal-texture production,
+not visible normal-map relief. Integrate the body-tangent postprocessor fix
+from #432 before accepting bandage lighting in the shared build. A normal
+keyword and populated render texture alone cannot establish that acceptance.
+
 Native Unity 6000.4.5f1 PlayMode capture through real `Construct`, `Sync`, and
 `PaintCycle` passed all 12 body/zone cases and wrote 48 views, including bent
 limbs. The local fixture injects prepared maps into the existing map caches

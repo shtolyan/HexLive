@@ -77,6 +77,7 @@ public static class PeopleAssetPreparation
             var importer = (ModelImporter)AssetImporter.GetAtPath(path);
             importer.normalSmoothingSource = ModelImporterNormalSmoothingSource.FromAngle;
             importer.normalSmoothingAngle = 180f;
+            // Tangents are generated after import without splitting paint-map vertices.
             importer.importTangents = ModelImporterTangents.None;
             importer.SaveAndReimport();
         }

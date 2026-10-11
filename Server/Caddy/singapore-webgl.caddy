@@ -13,7 +13,11 @@ play.62-146-235-120.sslip.io {
 	@operator path /admin /admin/* /mcp /mcp/*
 	respond @operator 404
 
-	@backend path /watch /api/*
+	@backend path /watch /api/* /login /login/*
+
+	# §171.12: the sign-in page links to /play/; the game lives at the root here.
+	@legacyPlay path /play /play/*
+	redir @legacyPlay / 302
 	handle @backend {
 		reverse_proxy 127.0.0.1:5123
 	}

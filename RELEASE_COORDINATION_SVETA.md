@@ -296,3 +296,32 @@ The matching new Player and live visual QA are still required. Sveta notified.
 
 New Flashback #435 work (position-map precision, wound sizing and dirt angle
 fade) is **not** in this package. It is undergoing native Unity validation.
+
+
+## SVETA-RELEASE-OWNER-20261012-02
+Coordinator allocation under existing Tolya release order: MSI is sole Singapore CONTENT publisher; Mac builds/publishes matching Player only. Mac must not activate assets-webgl concurrently. Request existing Claude ACK and finished build/deploy receipt (source SHA, dirty inputs, artifact/public hashes, wound8d2cae8e and bandage7c5ea3d9 plus BodyAtlases). This entry is NOT an ACK or compatibility acceptance. Unity30397 observed compressing player-434-measure WASM; last Claude text17:39Z awaiting build. Do not interrupt build. Prior --ask failure is not delivery proof; no new Claude instance.
+
+## Claude — Singapore: new server + client, BigIsland world, accounts + voice (2026-10-12)
+Direct order from Tolya (12.10): finish #434, build from master, publish to Singapore, then start a new
+BigIsland world under the new (§171) rules. New York, Flashback, Coil and keys untouched.
+- Source: master `7cd230bda39202a3a5a84da98106109bf270aae1` (protocol 24; old server `88ee8821b` was 23).
+- Tests in a clean worktree of that SHA (Release): Simulation 1700/1700 (+6 skipped), VoiceBrain 5/5, Server 466/466
+  in the dedicated run. `QueryAllocationDependsOnOutputLimitRatherThanRememberedCount` flakes ONLY under parallel CPU
+  load (549512 vs ≤547200 bytes); separate task to stabilise it.
+- Server archive SHA-256 `642c0c09ccd1dfbe79138e14f5a601e16aa93ea948adf6586621ab743e6d4bea` →
+  `/opt/hexlive/releases/7cd230bda…`; previous `88ee8821b…` kept.
+- Client (release WebGL, FSB audio 2872, no BurstDebugInformation) archive SHA-256
+  `2352b37b6a382d7bf382342d12d52580266d78fee99c02a590aa5c9c273340e8` → `/var/lib/hexlive-web/releases/7cd230bda…`;
+  previous `4b34c09a6…` kept. Content registry untouched (447 revision, 230 active WebGL).
+- World: previous feud world saved at tick 682829 and MOVED (not deleted) with simdata, drop-ins, Caddyfile,
+  previous symlink targets and secret hashes to `/var/lib/hexlive-archive/20261012-pre-bigisland`. New world:
+  `--mode bigisland --seed 1288076543`. Admin/player/MCP secret hashes unchanged.
+- Accounts: `--firebase-project hexlive-game`, providers google,password (Apple pending Service ID).
+  Voice: `/etc/hexlive/voice.env` (0600 hexlive), separate ElevenLabs agent `agent_2301…` whose brain URL is
+  `https://play.62-146-235-120.sslip.io/api/voice/v1/brain`; state/usage in `/var/lib/hexlive/voicebrain`.
+  Drop-in `zzzz-bigisland-accounts.conf`.
+- Caddy (play host): `/login` → game server; `/play/` → `/` (302). Repo `Server/Caddy/singapore-webgl.caddy` = prod.
+- External: `/` 200, `/login/` 200, client-config 200, wasm 200, asset index 200, `/watch` 101, flashback/keys/admin 200.
+- Live browser (guest, Claude app): connect 3.1 s, curtain ~125 s on a cold cache, day 1, Jolly/Wren dressed, live
+  portrait; exceptions 0, console errors 0, missing-record errors 0. FPS not measured (pane throttled).
+- NOT verified: real sign-in and a voice call on prod (agents may not create real Firebase accounts) — Tolya.

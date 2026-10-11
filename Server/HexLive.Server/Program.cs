@@ -363,9 +363,10 @@ public static class Program
             options.AdminIconRoot);
         WorldCreationEndpoints.Map(app, worlds, account, sessions, assetRegistry, options.CompanionProfile, playerToken);
         // §171.8: voice brain in-process; off unless player control and every provider secret are configured.
-        if (controlLeases is not null && playerToken is not null)
+        // Same identity seam as every player API: an account session (§171.9) or the shared token + client id.
+        if (controlLeases is not null && (playerToken is not null || playerAccounts is not null))
             Voice.VoiceEndpoints.Map(app, worlds, controlLeases, agentSessions,
-                new PlayerHttpIdentity(value => playerToken.Matches(value)),
+                app.Services.GetRequiredService<PlayerHttpIdentity>(),
                 Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddSimpleConsole(o => o.SingleLine = true)).CreateLogger("voice"));
         RetiredBugTracker.Map(app);
         if (options.WebRoot is not null)

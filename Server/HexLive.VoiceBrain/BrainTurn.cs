@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using HexLive.AgentCore.Studio;
-using HexLive.AgentHost;
+using Microsoft.Extensions.Logging;
 
 namespace HexLive.VoiceBrain;
 
@@ -14,7 +14,7 @@ namespace HexLive.VoiceBrain;
 /// fast model decide speech + at most a few whitelisted game actions, executes
 /// them through the ordinary MCP command path, and streams only SPEECH back.
 /// </summary>
-public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, McpClient mcp, RelationshipStore bonds,
+public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGateway world, RelationshipStore bonds,
     IUsageLedger? ledger, UsageTariffs? tariffs, ILogger log)
 {
     public const int MaxHistory = 12;
@@ -26,7 +26,7 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, McpClient 
         var timer = Stopwatch.StartNew();
         var turnId = TurnId(request);
         using var usageTurn = UsageScope.Turn(turnId);
-        var describe = await mcp.CallToolAsync("describe_colonist", new { npcId = ticket.NpcId }, token);
+        var describe = await world.CallAsync("describe_colonist", new { npcId = ticket.NpcId }, token);
         var tState = timer.Elapsed;
         var bond = bonds.Load(ticket.CharacterId, ticket.OwnerUserId);
         var messages = new JsonArray { new JsonObject { ["role"] = "system", ["content"] = SystemPrompt(describe, bond) } };
@@ -139,13 +139,13 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, McpClient 
         try
         {
             // The spoken order takes the body for a while; when the lease lapses the colony AI resumes.
-            await mcp.CallToolAsync("acquire_control", new { npcId, ttlSeconds = 120 }, token);
-            var result = await mcp.CallToolAsync(call.Name, mcpArgs, token);
+            await world.CallAsync("acquire_control", new { npcId, ttlSeconds = 120 }, token);
+            var result = await world.CallAsync(call.Name, mcpArgs, token);
             var text = result.GetRawText();
             var accepted = !(result.TryGetProperty("status", out var s) && s.GetString() is "Rejected" or "rejected");
             return (accepted, text);
         }
-        catch (McpToolRejectedException ex)
+        catch (WorldToolRejectedException ex)
         {
             return (false, JsonSerializer.Serialize(new { status = "rejected", reason = ex.Message.Length > 200 ? ex.Message[..200] : ex.Message }));
         }

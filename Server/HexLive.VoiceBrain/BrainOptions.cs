@@ -3,8 +3,6 @@ namespace HexLive.VoiceBrain;
 /// <summary>§171.7: everything comes from the environment; no secret is ever logged or returned.</summary>
 public sealed class BrainOptions
 {
-    public required Uri McpUri { get; init; }
-    public required string McpToken { get; init; }
     public required string OpenAiKey { get; init; }
     public required string ElevenLabsKey { get; init; }
     /// <summary>Shared secret ElevenLabs sends as Bearer to /v1/chat/completions.</summary>
@@ -19,6 +17,10 @@ public sealed class BrainOptions
     public string StateDirectory { get; init; } = "";
     public string VoicesPath { get; init; } = "";
 
+    /// <summary>True when every provider secret is present; the game server keeps voice off otherwise.</summary>
+    public static bool Configured() => new[] { "OPENAI_API_KEY", "ELEVENLABS_API_KEY", "VOICEBRAIN_SECRET", "VOICEBRAIN_AGENT_ID" }
+        .All(n => Environment.GetEnvironmentVariable(n) is { Length: > 0 });
+
     public static BrainOptions FromEnvironment()
     {
         static string Need(string name) => Environment.GetEnvironmentVariable(name) is { Length: > 0 } v
@@ -28,8 +30,6 @@ public sealed class BrainOptions
         var ticket = Environment.GetEnvironmentVariable("VOICEBRAIN_TICKET_KEY");
         return new BrainOptions
         {
-            McpUri = new Uri(Need("HEXLIVE_MCP_URI")),
-            McpToken = Need("HEXLIVE_MCP_TOKEN"),
             OpenAiKey = Need("OPENAI_API_KEY"),
             ElevenLabsKey = Need("ELEVENLABS_API_KEY"),
             BrainSecret = Need("VOICEBRAIN_SECRET"),

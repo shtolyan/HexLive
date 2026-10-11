@@ -342,6 +342,11 @@ public static class Program
             app, worlds, account, sessions, mailer, lifetime, assetRegistry, assetCatalog,
             options.AdminIconRoot);
         WorldCreationEndpoints.Map(app, worlds, account, sessions, assetRegistry, options.CompanionProfile, playerToken);
+        // §171.8: voice brain in-process; off unless player control and every provider secret are configured.
+        if (controlLeases is not null && playerToken is not null)
+            Voice.VoiceEndpoints.Map(app, worlds, controlLeases, agentSessions,
+                new PlayerHttpIdentity(value => playerToken.Matches(value)),
+                Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddSimpleConsole(o => o.SingleLine = true)).CreateLogger("voice"));
         RetiredBugTracker.Map(app);
         if (options.WebRoot is not null)
         {

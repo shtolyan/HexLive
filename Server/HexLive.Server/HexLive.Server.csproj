@@ -21,6 +21,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../HexLive.Simulation.Standalone.csproj" />
+    <!-- §171.8: voice brain (ElevenLabs Agents custom LLM) hosted in-process. -->
+    <ProjectReference Include="../HexLive.VoiceBrain/HexLive.VoiceBrain.csproj" />
   </ItemGroup>
 
   <!-- §58.7: generated from canonical I2 terms; never a hand-authored C# name table. -->

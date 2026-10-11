@@ -1,5 +1,5 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
-  <!-- §171.7: voice brain prototype — ElevenLabs Agents "custom LLM" endpoint backed by the game world. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- §171.7: voice brain core — ElevenLabs Agents "custom LLM" turn, tickets, usage. Hosted by HexLive.Server (§171.8) or the standalone prototype host. -->
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -7,7 +7,7 @@
     <BaseOutputPath>../../Build/dotnet/bin/HexLive.VoiceBrain/</BaseOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Content Update="wwwroot/**" CopyToOutputDirectory="PreserveNewest" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../HexLive.AgentCore/HexLive.AgentCore.csproj" />
   </ItemGroup>
 </Project>

@@ -24,7 +24,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 504740881195336628}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.000000081460335, y: 0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.00000014106499, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
@@ -89,7 +89,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1240349845090674673}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00000008146036, y: 0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.00000014106499, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
@@ -121,7 +121,15 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8d513b53e9e2340ebb83fc9f1710c7eb, type: 2}
+  - {fileID: 2100000, guid: 9bb48de51ef58b747b7fa7fb6dd5e5b5, type: 2}
+  - {fileID: 2100000, guid: 5b0aa3162ec12f04c8171e501d073a00, type: 2}
+  - {fileID: 2100000, guid: 97e0b1dfaf5bdab4bb26a72452f16266, type: 2}
+  - {fileID: 2100000, guid: fde708f3770afd54ab42abbb9bb4b8ca, type: 2}
+  - {fileID: 2100000, guid: 24d9707ed19f17e41bbbcc6a7e14fbc0, type: 2}
+  - {fileID: 2100000, guid: e0454f91f04043f4c950a15f626c8bf0, type: 2}
+  - {fileID: 2100000, guid: 31c3518b94fe5ed46ac347df29f24709, type: 2}
+  - {fileID: 2100000, guid: bed7219fb82ca134a9696e42e686bc37, type: 2}
+  - {fileID: 2100000, guid: 00ece08e39762b240a62331687273ecd, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -163,8 +171,8 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 7861440917310060220}
   m_AABB:
-    m_Center: {x: -0.13550186, y: 47.451485, z: -6.790011}
-    m_Extent: {x: 12.896658, y: 30.890707, z: 16.38363}
+    m_Center: {x: 0.2294712, y: 47.267395, z: -6.7900066}
+    m_Extent: {x: 11.11146, y: 30.615492, z: 16.38362}
   m_DirtyAABB: 0
 --- !u!1 &1755773011272698004
 GameObject:
@@ -191,7 +199,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1755773011272698004}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00000008146036, y: 0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.00000014106499, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
@@ -223,7 +231,15 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8d513b53e9e2340ebb83fc9f1710c7eb, type: 2}
+  - {fileID: 2100000, guid: 9bb48de51ef58b747b7fa7fb6dd5e5b5, type: 2}
+  - {fileID: 2100000, guid: 5b0aa3162ec12f04c8171e501d073a00, type: 2}
+  - {fileID: 2100000, guid: 97e0b1dfaf5bdab4bb26a72452f16266, type: 2}
+  - {fileID: 2100000, guid: fde708f3770afd54ab42abbb9bb4b8ca, type: 2}
+  - {fileID: 2100000, guid: 24d9707ed19f17e41bbbcc6a7e14fbc0, type: 2}
+  - {fileID: 2100000, guid: e0454f91f04043f4c950a15f626c8bf0, type: 2}
+  - {fileID: 2100000, guid: 31c3518b94fe5ed46ac347df29f24709, type: 2}
+  - {fileID: 2100000, guid: bed7219fb82ca134a9696e42e686bc37, type: 2}
+  - {fileID: 2100000, guid: 00ece08e39762b240a62331687273ecd, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -265,8 +281,8 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 7861440917310060220}
   m_AABB:
-    m_Center: {x: 0.11734295, y: 47.244125, z: -6.790011}
-    m_Extent: {x: 10.911464, y: 30.638762, z: 16.38363}
+    m_Center: {x: 0.27340508, y: 47.244125, z: -6.7900066}
+    m_Extent: {x: 11.067526, y: 30.638765, z: 16.38362}
   m_DirtyAABB: 0
 --- !u!1 &2355106594520353848
 GameObject:
@@ -439,8 +455,8 @@ LODGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3575513564447534471}
   serializedVersion: 3
-  m_LocalReferencePoint: {x: -0.0013550073, y: 1.5262959, z: -0.049651697}
-  m_Size: 0.61781406
+  m_LocalReferencePoint: {x: 0.0022947118, y: 1.5242221, z: -0.049651474}
+  m_Size: 0.6127753
   m_FadeMode: 0
   m_AnimateCrossFading: 0
   m_LastLODIsBillboard: 0

@@ -1,0 +1,479 @@
+{
+  "gameReady": false,
+  "bundleBuildAuthorized": false,
+  "prefabs": [
+    {
+      "kind": "hair",
+      "id": "AdellHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/AdellHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "AsukaHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/AsukaHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "BendineHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/BendineHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "Bob3Hair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/Bob3Hair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "ChunkyHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/ChunkyHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "EilisHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/EilisHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "Hair07_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/Hair07.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "JelikaHair_32434_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/JelikaHair_32434.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "JenniferHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/JenniferHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "LeonyPonytail_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/LeonyPonytail.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "LoonaHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/LoonaHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "LowPonytail_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/LowPonytail.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "Neu09Hair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/Neu09Hair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "OnyxHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/OnyxHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "ShilohHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/ShilohHair.prefab"
+    },
+    {
+      "kind": "hair",
+      "id": "TootsieRollHair_LOD0",
+      "actor": "Marta",
+      "path": "Assets/HexLiveContent/People/Prefabs/Hair/TootsieRollHair.prefab"
+    }
+  ],
+  "materialVariants": {
+    "AdellHair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/AdellHair_SourceUV_0__Base.mat"
+    },
+    "AdellHair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/AdellHair_SourceUV_1__Base.mat"
+    },
+    "AsukaHair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_0__Base.mat"
+    },
+    "AsukaHair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_1__Base.mat"
+    },
+    "AsukaHair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_2__Base.mat"
+    },
+    "AsukaHair_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_3__Base.mat"
+    },
+    "AsukaHair_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_4__Base.mat"
+    },
+    "AsukaHair_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_5__Base.mat"
+    },
+    "AsukaHair_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_6__Base.mat"
+    },
+    "AsukaHair_SourceUV_7": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_7__Base.mat"
+    },
+    "AsukaHair_SourceUV_8": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_8__Base.mat"
+    },
+    "AsukaHair_SourceUV_9": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_9__Base.mat"
+    },
+    "AsukaHair_SourceUV_10": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_10__Base.mat"
+    },
+    "AsukaHair_SourceUV_11": {
+      "Base": "Assets/HexLiveContent/People/Materials/AsukaHair_SourceUV_11__Base.mat"
+    },
+    "BendineHair_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/BendineHair_SourceUV_4__Base.mat"
+    },
+    "BendineHair_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/BendineHair_SourceUV_5__Base.mat"
+    },
+    "BendineHair_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/BendineHair_SourceUV_6__Base.mat"
+    },
+    "BendineHair_SourceUV_7": {
+      "Base": "Assets/HexLiveContent/People/Materials/BendineHair_SourceUV_7__Base.mat"
+    },
+    "BendineHair_SourceUV_8": {
+      "Base": "Assets/HexLiveContent/People/Materials/BendineHair_SourceUV_8__Base.mat"
+    },
+    "Bob3Hair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/Bob3Hair_SourceUV_0__Base.mat"
+    },
+    "Bob3Hair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/Bob3Hair_SourceUV_1__Base.mat"
+    },
+    "Bob3Hair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/Bob3Hair_SourceUV_2__Base.mat"
+    },
+    "Bob3Hair_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/Bob3Hair_SourceUV_3__Base.mat"
+    },
+    "Bob3Hair_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/Bob3Hair_SourceUV_4__Base.mat"
+    },
+    "ChunkyHair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/ChunkyHair_SourceUV_1__Base.mat"
+    },
+    "ChunkyHair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/ChunkyHair_SourceUV_2__Base.mat"
+    },
+    "ChunkyHair_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/ChunkyHair_SourceUV_3__Base.mat"
+    },
+    "ChunkyHair_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/ChunkyHair_SourceUV_5__Base.mat"
+    },
+    "ChunkyHair_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/ChunkyHair_SourceUV_6__Base.mat"
+    },
+    "ChunkyHair_SourceUV_7": {
+      "Base": "Assets/HexLiveContent/People/Materials/ChunkyHair_SourceUV_7__Base.mat"
+    },
+    "EilisHair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/EilisHair_SourceUV_0__Base.mat"
+    },
+    "EilisHair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/EilisHair_SourceUV_1__Base.mat"
+    },
+    "EilisHair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/EilisHair_SourceUV_2__Base.mat"
+    },
+    "Hair07_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/Hair07_SourceUV_0__Base.mat"
+    },
+    "Hair07_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/Hair07_SourceUV_1__Base.mat"
+    },
+    "Hair07_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/Hair07_SourceUV_2__Base.mat"
+    },
+    "Hair07_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/Hair07_SourceUV_3__Base.mat"
+    },
+    "Hair07_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/Hair07_SourceUV_4__Base.mat"
+    },
+    "Hair07_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/Hair07_SourceUV_5__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_0__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_1__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_2__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_3__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_4__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_5__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_6__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_7": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_7__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_8": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_8__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_9": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_9__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_10": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_10__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_11": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_11__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_12": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_12__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_13": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_13__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_14": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_14__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_15": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_15__Base.mat"
+    },
+    "JelikaHair_32434_SourceUV_16": {
+      "Base": "Assets/HexLiveContent/People/Materials/JelikaHair_32434_SourceUV_16__Base.mat"
+    },
+    "JenniferHair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_0__Base.mat"
+    },
+    "JenniferHair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_1__Base.mat"
+    },
+    "JenniferHair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_2__Base.mat"
+    },
+    "JenniferHair_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_3__Base.mat"
+    },
+    "JenniferHair_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_4__Base.mat"
+    },
+    "JenniferHair_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_5__Base.mat"
+    },
+    "JenniferHair_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_6__Base.mat"
+    },
+    "JenniferHair_SourceUV_7": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_7__Base.mat"
+    },
+    "JenniferHair_SourceUV_8": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_8__Base.mat"
+    },
+    "JenniferHair_SourceUV_9": {
+      "Base": "Assets/HexLiveContent/People/Materials/JenniferHair_SourceUV_9__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_0__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_1__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_2__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_3__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_4__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_5__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_6__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_7": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_7__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_8": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_8__Base.mat"
+    },
+    "LeonyPonytail_SourceUV_9": {
+      "Base": "Assets/HexLiveContent/People/Materials/LeonyPonytail_SourceUV_9__Base.mat"
+    },
+    "LoonaHair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/LoonaHair_SourceUV_0__Base.mat"
+    },
+    "LoonaHair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/LoonaHair_SourceUV_1__Base.mat"
+    },
+    "LoonaHair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/LoonaHair_SourceUV_2__Base.mat"
+    },
+    "LoonaHair_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/LoonaHair_SourceUV_3__Base.mat"
+    },
+    "LoonaHair_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/LoonaHair_SourceUV_4__Base.mat"
+    },
+    "LoonaHair_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/LoonaHair_SourceUV_5__Base.mat"
+    },
+    "LoonaHair_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/LoonaHair_SourceUV_6__Base.mat"
+    },
+    "LowPonytail_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_SourceUV_0__Base.mat"
+    },
+    "LowPonytail_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_SourceUV_1__Base.mat"
+    },
+    "LowPonytail_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_SourceUV_2__Base.mat"
+    },
+    "LowPonytail_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_SourceUV_3__Base.mat"
+    },
+    "LowPonytail_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_SourceUV_4__Base.mat"
+    },
+    "LowPonytail_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_SourceUV_5__Base.mat"
+    },
+    "LowPonytail_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_SourceUV_6__Base.mat"
+    },
+    "LowPonytail_SourceUV_8": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_SourceUV_8__Base.mat"
+    },
+    "LowPonytail_SourceUV_9": {
+      "Base": "Assets/HexLiveContent/People/Materials/LowPonytail_SourceUV_9__Base.mat"
+    },
+    "Neu09Hair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_SourceUV_0__Base.mat"
+    },
+    "Neu09Hair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_SourceUV_1__Base.mat"
+    },
+    "Neu09Hair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_SourceUV_2__Base.mat"
+    },
+    "Neu09Hair_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_SourceUV_3__Base.mat"
+    },
+    "Neu09Hair_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_SourceUV_4__Base.mat"
+    },
+    "Neu09Hair_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_SourceUV_5__Base.mat"
+    },
+    "Neu09Hair_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_SourceUV_6__Base.mat"
+    },
+    "Neu09Hair_SourceUV_7": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_SourceUV_7__Base.mat"
+    },
+    "Neu09Hair_SourceUV_8": {
+      "Base": "Assets/HexLiveContent/People/Materials/Neu09Hair_SourceUV_8__Base.mat"
+    },
+    "OnyxHair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_SourceUV_0__Base.mat"
+    },
+    "OnyxHair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_SourceUV_1__Base.mat"
+    },
+    "OnyxHair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_SourceUV_2__Base.mat"
+    },
+    "OnyxHair_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_SourceUV_3__Base.mat"
+    },
+    "OnyxHair_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_SourceUV_4__Base.mat"
+    },
+    "OnyxHair_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_SourceUV_5__Base.mat"
+    },
+    "OnyxHair_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_SourceUV_6__Base.mat"
+    },
+    "OnyxHair_SourceUV_7": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_SourceUV_7__Base.mat"
+    },
+    "OnyxHair_SourceUV_8": {
+      "Base": "Assets/HexLiveContent/People/Materials/OnyxHair_SourceUV_8__Base.mat"
+    },
+    "ShilohHair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/ShilohHair_SourceUV_0__Base.mat"
+    },
+    "ShilohHair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/ShilohHair_SourceUV_1__Base.mat"
+    },
+    "ShilohHair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/ShilohHair_SourceUV_2__Base.mat"
+    },
+    "ShilohHair_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/ShilohHair_SourceUV_3__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_0": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_0__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_1": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_1__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_2": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_2__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_3": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_3__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_4": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_4__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_5": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_5__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_6": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_6__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_7": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_7__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_8": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_8__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_9": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_9__Base.mat"
+    },
+    "TootsieRollHair_SourceUV_10": {
+      "Base": "Assets/HexLiveContent/People/Materials/TootsieRollHair_SourceUV_10__Base.mat"
+    }
+  }
+}

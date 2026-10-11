@@ -245,6 +245,11 @@ bytes. Browser rendering is explicitly not yet validated.
   records 189 preserved dirty tracked inputs. Unity additionally registered
   `SENTIS_ANALYTICS_ENABLED;MAGICACLOTH2` for WebGL in ProjectSettings; prior
   version changes remain intact. Other pre-existing dirty hashes were unchanged.
+  Comparing the complete tracked path set after the build also found newly dirty
+  `Assets/Settings/Mobile_RPAsset.asset`: only its `m_Prefilter*` shader-variant
+  fields changed. This is preserved separately from the 189 pre-existing dirty
+  inputs; the checkout now has 190 dirty tracked paths. Neither settings file
+  was included in the report/test commit or reset.
 - Package manifest SHA256:
   `38a87018e11abaad905a0388edcecc7aae4daf985fd5727628922c48c634583d`.
 - Game package archive: 277,733,863 bytes, SHA256

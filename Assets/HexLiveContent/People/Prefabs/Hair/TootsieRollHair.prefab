@@ -159,7 +159,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2879627188227856474}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00000008146036, y: 0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.00000014106499, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
@@ -191,7 +191,17 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 72b7a5e4d16cb42f7b14f35bdd2f2e79, type: 2}
+  - {fileID: 2100000, guid: b1ead5e48306dce42a63bad1d15db997, type: 2}
+  - {fileID: 2100000, guid: accede0e1eaa79c4b83b9154a8be1398, type: 2}
+  - {fileID: 2100000, guid: 693deb9c4825dbc409c0a4c51f495886, type: 2}
+  - {fileID: 2100000, guid: f8b2739b54889ba47a953a44b2b17bc4, type: 2}
+  - {fileID: 2100000, guid: 454a63c18d825b5458d176d7492efac3, type: 2}
+  - {fileID: 2100000, guid: 6d8f0fbf06a0f8e46bddf61ac59a6b84, type: 2}
+  - {fileID: 2100000, guid: a4fd73246fdc2e84fa6c0684ab66b79a, type: 2}
+  - {fileID: 2100000, guid: b72a3d6405160e54bba8bdbcf982dcc8, type: 2}
+  - {fileID: 2100000, guid: 39c060884c86a534597ed7dc3c73360e, type: 2}
+  - {fileID: 2100000, guid: cf453e5086199024a9a5992294bdb4f8, type: 2}
+  - {fileID: 2100000, guid: 32d68b4cddc468046a781972dd20566a, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -244,8 +254,8 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 244717404644375861}
   m_AABB:
-    m_Center: {x: 0.4447384, y: 63.91889, z: -5.0196285}
-    m_Extent: {x: 12.739315, y: 11.630531, z: 15.162399}
+    m_Center: {x: 0.28849983, y: 63.78708, z: -4.1833835}
+    m_Extent: {x: 12.909787, y: 11.934265, z: 13.767197}
   m_DirtyAABB: 0
 --- !u!1 &2982418212279261611
 GameObject:
@@ -397,7 +407,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3951448397478223185}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.000000081460335, y: 0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.00000014106499, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
@@ -480,8 +490,8 @@ LODGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4373021664157394519}
   serializedVersion: 3
-  m_LocalReferencePoint: {x: 0.002884999, y: 1.6896517, z: -0.031947836}
-  m_Size: 0.30324808
+  m_LocalReferencePoint: {x: 0.002884999, y: 1.6896517, z: -0.024505172}
+  m_Size: 0.27718407
   m_FadeMode: 0
   m_AnimateCrossFading: 0
   m_LastLODIsBillboard: 0
@@ -929,7 +939,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9203058096179100955}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00000008146036, y: 0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.00000014106499, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
@@ -961,7 +971,17 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 72b7a5e4d16cb42f7b14f35bdd2f2e79, type: 2}
+  - {fileID: 2100000, guid: b1ead5e48306dce42a63bad1d15db997, type: 2}
+  - {fileID: 2100000, guid: accede0e1eaa79c4b83b9154a8be1398, type: 2}
+  - {fileID: 2100000, guid: 693deb9c4825dbc409c0a4c51f495886, type: 2}
+  - {fileID: 2100000, guid: f8b2739b54889ba47a953a44b2b17bc4, type: 2}
+  - {fileID: 2100000, guid: 454a63c18d825b5458d176d7492efac3, type: 2}
+  - {fileID: 2100000, guid: 6d8f0fbf06a0f8e46bddf61ac59a6b84, type: 2}
+  - {fileID: 2100000, guid: a4fd73246fdc2e84fa6c0684ab66b79a, type: 2}
+  - {fileID: 2100000, guid: b72a3d6405160e54bba8bdbcf982dcc8, type: 2}
+  - {fileID: 2100000, guid: 39c060884c86a534597ed7dc3c73360e, type: 2}
+  - {fileID: 2100000, guid: cf453e5086199024a9a5992294bdb4f8, type: 2}
+  - {fileID: 2100000, guid: 32d68b4cddc468046a781972dd20566a, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1014,6 +1034,6 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 244717404644375861}
   m_AABB:
-    m_Center: {x: 0.28849983, y: 63.78708, z: -4.183384}
-    m_Extent: {x: 12.909787, y: 11.934265, z: 13.767197}
+    m_Center: {x: 0.12275982, y: 63.72805, z: -4.2753806}
+    m_Extent: {x: 12.744047, y: 11.8752365, z: 13.859194}
   m_DirtyAABB: 0

@@ -491,6 +491,7 @@ namespace HexLive.UnityDebug.Editor
                 // Block compression would quantize the positions into visible
                 // steps along every decal edge.
                 importer.textureCompression = TextureImporterCompression.Uncompressed;
+                SkinPositionMapImportPolicy.Configure(importer);
                 importer.SaveAndReimport();
             }
 

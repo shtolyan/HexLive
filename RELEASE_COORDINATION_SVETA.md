@@ -208,3 +208,91 @@ Five production files copied/compiled and SHA256-equal source/execution: Environ
   loader said bodies ready, inventory clothes tab empty — likely sim-side undress, please confirm. Roster shows initials.
 - Screenshot: `/Users/shtolyan/hex-girls/webgl-build/release-evidence/20261010-singapore/live-world-v6-claude.jpg`.
 - Player command still unverified (guest session).
+
+## MSI release 20261011-1704 — current limited authorization
+
+Tolya authorizes the existing MSI worker to integrate the five visual-fix commits,
+build WebGL content and publish that validated content on Singapore 62.146.235.120.
+MSI owns the bundle release; Claude/Mac matching-player ownership and the single
+production writer handoff must be acknowledged before activation. No content is
+activated against an incompatible player. Existing worlds/saves and rollback are
+preserved; no server binary/world replacement, New York, Flashback or Coil change
+is included in this order. The older world-replacement scope above is not reused.
+
+MSI fetched origin/master = 820f7ca7b674dc6e5c8d2df9293f4258c8e3084a, already an
+ancestor of codex/msi-visual-bugs / 042b97409e98be1af8db3bb57d39b84b63327c31.
+All five named visual-fix commits are present. Unpushed Mac work is not assumed
+integrated. PeopleAssetPreparation.cs overlap requires Mac review. Unity6000.4.5f1
+WebGLSupport is installed; Windows content adapter reuses canonical inventory,
+serialized payload and package validation. Build input receipt records dirty
+tracked hashes. Matching player must include SkinBandageAtlas/Resources and
+SkinTexturePainter changes; live v11 compatibility is unproven.
+
+Next: local bundle build/validation; obtain exact current client source/build
+receipt and Mac publisher ACK through Sveta; staged rollout with rollback, public
+hash verification and live visual/performance QA. The denied 29MB evidence archive
+is still excluded. Heartbeat stays disabled. No new worker/worktree/checkout.
+
+### MSI bundle result — 2026-10-11, source dabccb70
+
+Unity 6000.4.5f1 completed the WebGL content build at 10:55:27 UTC with exit 0:
+229/229 bundles, no failures. The canonical validator reopened 121 People objects,
+held five bundles together and checked 23 renderer/paint-map contracts. Including
+raw simdata, the validated package has 230 objects/blobs and 306,968,282 payload
+bytes. Browser rendering is explicitly not yet validated.
+
+- Source commit: `dabccb70c7ad5bf480e2e40fc633a46be114f6b1`; the build receipt also
+  records 189 preserved dirty tracked inputs. Unity additionally registered
+  `SENTIS_ANALYTICS_ENABLED;MAGICACLOTH2` for WebGL in ProjectSettings; prior
+  version changes remain intact. Other pre-existing dirty hashes were unchanged.
+  Comparing the complete tracked path set after the build also found newly dirty
+  `Assets/Settings/Mobile_RPAsset.asset`: only its `m_Prefilter*` shader-variant
+  fields changed. This is preserved separately from the 189 pre-existing dirty
+  inputs; the checkout now has 190 dirty tracked paths. Neither settings file
+  was included in the report/test commit or reset.
+- Package manifest SHA256:
+  `38a87018e11abaad905a0388edcecc7aae4daf985fd5727628922c48c634583d`.
+- Game package archive: 277,733,863 bytes, SHA256
+  `635f69561941865aa4b6846755f349ffc860a58e3f3c55f6856026bb041fae69`.
+- Local plan has 215 changed objects. Keep identical blobs and the current
+  simdata revision: old/new simdata JSON is semantically identical. Object IDs,
+  metadata and states match the 230-object live baseline.
+- Hair transfer size increased from 7,515,069 to 46,986,612 bytes. This is not a
+  GPU memory or frame-time measurement; multiple-actor WebGL QA remains required.
+- Singapore staging:
+  `/var/lib/hexlive/assets-webgl/staging/msi-release-20261011-1704-dabccb70`.
+  Rollback candidates preserve all 230 old records and verified payloads. Roll
+  back through the installed publisher with new revisions, never by restoring
+  an old registry cursor. Upload exited 0; server verification at 11:08:12 UTC
+  matched the archive/verifier/manifest hashes and all 230 payloads. The prepared
+  `activation-candidates/` contains only the 215 planned changes and does not
+  publish them. Revalidate current registry and payloads before using it.
+- No activation: live registry remains 230 and the current Player is v11, whose
+  source SHA is unverified. Sveta confirms Claude has not acknowledged a matching
+  Player or single-publisher handoff; MSI Player build ownership is not agreed.
+  Matching Player needs SkinTexturePainter/SkinBandageAtlas plus two atlas assets
+  and 24 textures under Resources/HexLive/Decals/BodyAtlases.
+
+Eight focused package tests pass, including same-size blob corruption rejection.
+The canonical hash validator required no code change. Local receipts and the
+activation plan are under `Build/MSIRelease/20261011-1704/`. Worlds, saves, server
+binary, New York, Flashback and Coil are not release mutation targets.
+# Activation receipt — 2026-10-11 14:21 UTC
+
+Tolya directly ordered immediate activation of the prepared package while the
+new Player was building. MSI activated Singapore content using the installed
+publisher as `hexlive`: 215 objects, exit 0, registry **230 → 445**. All 230
+public index entries were compared with the release plan: zero hash mismatches.
+Simdata, worlds/saves and server binary were unchanged; no service restarted.
+
+Package source remains `dabccb70c7ad5bf480e2e40fc633a46be114f6b1`, with the
+previously recorded dirty inputs. Manifest SHA256:
+`38a87018e11abaad905a0388edcecc7aae4daf985fd5727628922c48c634583d`.
+Remote receipt and rollback remain under
+`/var/lib/hexlive/assets-webgl/staging/msi-release-20261011-1704-dabccb70/`.
+Player at activation still resolved to directory
+`4b34c09a6a3f913b29f602b77e48fc0003419cff`; this is not a verified source SHA.
+The matching new Player and live visual QA are still required. Sveta notified.
+
+New Flashback #435 work (position-map precision, wound sizing and dirt angle
+fade) is **not** in this package. It is undergoing native Unity validation.

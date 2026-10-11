@@ -77,6 +77,7 @@ public static class PeopleAssetPreparation
             var importer = (ModelImporter)AssetImporter.GetAtPath(path);
             importer.normalSmoothingSource = ModelImporterNormalSmoothingSource.FromAngle;
             importer.normalSmoothingAngle = 180f;
+            // Tangents are generated after import without splitting paint-map vertices.
             importer.importTangents = ModelImporterTangents.None;
             importer.SaveAndReimport();
         }
@@ -394,7 +395,43 @@ public static class PeopleAssetPreparation
         return result;
     }
 
-    public static void PreparePrefabs()
+    public static void PreparePrefabs() => PreparePrefabs(false);
+    public static void PrepareHairPrefabs() => PreparePrefabs(true);
+
+    // §169: update hair without regenerating unrelated actor/wardrobe materials.
+    public static void ImportHairAndPrepare()
+    {
+        var manifest = JObject.Parse(File.ReadAllText(Root + "/Source/source-manifest.json"));
+        var rows = manifest["models"].Where(m => (string)m["kind"] == "hair").ToArray();
+        if (rows.Length != 32 || rows.Any(m => string.IsNullOrEmpty((string)m["authoredBindings"])))
+            throw new InvalidOperationException("Expected 32 authored hair exports with bindings");
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        var keys = new HashSet<string>(rows.SelectMany(m => m["meshes"]).SelectMany(m => m["materials"].Values<string>()));
+        foreach (string image in keys.SelectMany(k => manifest["materials"][k]["images"])
+            .Select(i => (string)i["image"]).Distinct())
+        {
+            var importer = (TextureImporter)AssetImporter.GetAtPath(Root + "/Source/" + image);
+            importer.maxTextureSize = 1024; importer.isReadable = false; importer.mipmapEnabled = true;
+            importer.textureType = TextureImporterType.Default; importer.sRGBTexture = true;
+            importer.alphaSource = TextureImporterAlphaSource.FromInput; importer.alphaIsTransparency = true;
+            importer.textureCompression = TextureImporterCompression.Compressed; importer.SaveAndReimport();
+        }
+        foreach (var row in rows)
+        {
+            var importer = (ModelImporter)AssetImporter.GetAtPath(Root + "/Source/" + (string)row["path"]);
+            importer.importAnimation = false; importer.importCameras = false; importer.importLights = false;
+            importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            importer.meshCompression = ModelImporterMeshCompression.Off; importer.isReadable = true;
+            importer.optimizeGameObjects = false; importer.optimizeBones = true;
+            importer.skinWeights = ModelImporterSkinWeights.Custom; importer.maxBonesPerVertex = 32; importer.minBoneWeight = 0;
+            importer.importNormals = ModelImporterNormals.Import; importer.importTangents = ModelImporterTangents.None;
+            importer.animationType = ModelImporterAnimationType.Generic;
+            importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel; importer.SaveAndReimport();
+        }
+        PrepareHairPrefabs();
+    }
+
+    private static void PreparePrefabs(bool hairOnly)
     {
         var manifest = JObject.Parse(File.ReadAllText(Root + "/Source/source-manifest.json"));
         var wardrobe = JArray.Parse(File.ReadAllText(Root + "/Source/wardrobe-authoring.json"));
@@ -410,6 +447,7 @@ public static class PeopleAssetPreparation
         var variants = new JObject();
         foreach (var property in manifest["materials"].Children<JProperty>())
         {
+            if (hairOnly && !hairMaterials.Contains(property.Name)) continue;
             var row = property.Value;
             var names = (row["variants"] ?? new JArray("Base")).Values<string>().ToArray();
             var paths = new JObject();
@@ -431,7 +469,13 @@ public static class PeopleAssetPreparation
                 var normal = images.FirstOrDefault(i => (i["links"] ?? new JArray()).Any(l => (string)l["toSocket"] == "Color" && ((string)l["toNode"] ?? "").Contains("Normal")));
                 mat.SetTexture("_BaseMap", ResolveBaseTexture(row, image));
                 var rgba = row["baseColor"].Values<float>().ToArray();
-                mat.SetColor("_BaseColor", image == null ? new Color(rgba[0], rgba[1], rgba[2], rgba[3]) : Color.white);
+                bool authoredHair = (bool?)row["authoredHair"] == true;
+                mat.SetColor("_BaseColor", image == null || authoredHair ? new Color(rgba[0], rgba[1], rgba[2], rgba[3]) : Color.white);
+                if (authoredHair)
+                {
+                    mat.SetTextureScale("_BaseMap", new Vector2((float)row["uvScale"][0], (float)row["uvScale"][1]));
+                    mat.SetTextureOffset("_BaseMap", new Vector2((float)row["uvOffset"][0], (float)row["uvOffset"][1]));
+                }
                 mat.SetFloat("_Smoothness", 1f - (float)row["roughness"]);
                 mat.SetFloat("_Metallic", (float)row["metallic"]);
                 mat.SetFloat("_Cull", (bool)row["doubleSided"] ? 0f : 2f);
@@ -446,10 +490,12 @@ public static class PeopleAssetPreparation
                 if (normal != null)
                 {
                     mat.SetTexture("_BumpMap", AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Source/" + (string)normal["image"]));
-                    mat.SetFloat("_BumpScale", .6f);
+                    // Preserve the legacy URP strength: the Primal dress/collar
+                    // use this same normal texture at 1, not the preview's .6.
+                    mat.SetFloat("_BumpScale", (float?)row["normalScale"] ?? 1f);
                     mat.EnableKeyword("_NORMALMAP");
                 }
-                if (hairMaterials.Contains(property.Name)) ApplyLowPolyHairMaterial(mat);
+                if (hairMaterials.Contains(property.Name) && !authoredHair) ApplyLowPolyHairMaterial(mat);
                 mat.SetColor("_Color", mat.GetColor("_BaseColor"));
                 EditorUtility.SetDirty(mat);
                 if (variant == "Base") materials[property.Name] = mat;
@@ -461,6 +507,7 @@ public static class PeopleAssetPreparation
         foreach (var row in manifest["models"])
         {
             string kind = (string)row["kind"], id = (string)row["id"], actor = (string)row["actor"];
+            if (hairOnly && kind != "hair") continue;
             if (kind == "hair" && id.EndsWith("_LOD1", StringComparison.Ordinal)) continue;
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Source/" + (string)row["path"]);
             var go = UnityEngine.Object.Instantiate(model);
@@ -517,7 +564,7 @@ public static class PeopleAssetPreparation
             finally { UnityEngine.Object.DestroyImmediate(go); }
         }
         AssetDatabase.SaveAssets();
-        File.WriteAllText(Root + "/Validation/preparation.json", new JObject {
+        File.WriteAllText(Root + (hairOnly ? "/Validation/hair-preparation.json" : "/Validation/preparation.json"), new JObject {
             ["gameReady"] = false, ["bundleBuildAuthorized"] = false,
             ["prefabs"] = prefabs, ["materialVariants"] = variants }.ToString());
         Debug.Log("PEOPLE_PREFABS: " + prefabs.Count);
@@ -527,6 +574,7 @@ public static class PeopleAssetPreparation
     private static Texture2D ResolveBaseTexture(JToken row, JToken image)
     {
         if (image == null) return null;
+        if (row["opacitySource"] != null) return ResolveHairOpacityTexture(row, image);
         string colourPath = Root + "/Source/" + (string)image["image"];
         var alpha = row["images"].FirstOrDefault(i => (i["links"] ?? new JArray()).Any(l => (string)l["output"] == "Alpha" && (string)l["toSocket"] == "Alpha"));
         if ((string)row["alphaMode"] != "CLIP" || alpha == null || (string)alpha["image"] == (string)image["image"])
@@ -562,6 +610,59 @@ public static class PeopleAssetPreparation
         importer.alphaSource = TextureImporterAlphaSource.FromInput;
         importer.alphaIsTransparency = true;
         importer.SaveAndReimport();
+        return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+    }
+
+    // Daz hair may store opacity in a separate grayscale RGB map. Its alpha
+    // channel is opaque, so reading .a (the fur path above) would lose the mask.
+    private static Texture2D ResolveHairOpacityTexture(JToken row, JToken image)
+    {
+        var opacity = row["opacitySource"];
+        if ((string)opacity["channel"] != "r") throw new InvalidOperationException("Unknown hair opacity channel");
+        string colourPath = Root + "/Source/" + (string)image["image"];
+        string maskPath = Root + "/Source/" + (string)opacity["image"];
+        var colourScale = new Vector2((float)row["uvScale"][0], (float)row["uvScale"][1]);
+        var colourOffset = new Vector2((float)row["uvOffset"][0], (float)row["uvOffset"][1]);
+        var maskScale = new Vector2((float)opacity["uvScale"][0], (float)opacity["uvScale"][1]);
+        var maskOffset = new Vector2((float)opacity["uvOffset"][0], (float)opacity["uvOffset"][1]);
+        if (colourScale.x == 0 || colourScale.y == 0) throw new InvalidOperationException("Zero hair UV scale");
+        string path = Root + "/Textures/hair_alpha_" + Hash128.Compute(colourPath + "|" + maskPath + "|" +
+            row["uvScale"].ToString() + row["uvOffset"].ToString() + opacity["uvScale"].ToString() + opacity["uvOffset"].ToString()) + ".png";
+        if (!File.Exists(path))
+        {
+            var colour = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+            var mask = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+            Texture2D combined = null;
+            try
+            {
+                if (!ImageConversion.LoadImage(colour, File.ReadAllBytes(colourPath)) || !ImageConversion.LoadImage(mask, File.ReadAllBytes(maskPath)))
+                    throw new InvalidOperationException("Cannot decode hair colour/opacity sources");
+                colour.wrapMode = mask.wrapMode = TextureWrapMode.Repeat;
+                int width = Mathf.Min(1024, colour.width), height = Mathf.Min(1024, colour.height);
+                combined = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+                var pixels = new Color[width * height];
+                for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
+                {
+                    float u = (x + .5f) / width, v = (y + .5f) / height;
+                    var c = colour.GetPixelBilinear(u, v);
+                    float mu = (u - colourOffset.x) / colourScale.x * maskScale.x + maskOffset.x;
+                    float mv = (v - colourOffset.y) / colourScale.y * maskScale.y + maskOffset.y;
+                    c.a = mask.GetPixelBilinear(mu, mv).r;
+                    pixels[y * width + x] = c;
+                }
+                combined.SetPixels(pixels); combined.Apply(); File.WriteAllBytes(path, combined.EncodeToPNG());
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(colour); UnityEngine.Object.DestroyImmediate(mask);
+                if (combined != null) UnityEngine.Object.DestroyImmediate(combined);
+            }
+        }
+        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+        var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+        importer.maxTextureSize = 1024; importer.sRGBTexture = true; importer.isReadable = false;
+        importer.mipmapEnabled = true; importer.alphaSource = TextureImporterAlphaSource.FromInput;
+        importer.alphaIsTransparency = true; importer.SaveAndReimport();
         return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
     }
 
@@ -712,6 +813,12 @@ public static class PeopleAssetPreparation
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null) { mat = new Material(skin.sharedMaterial); AssetDatabase.CreateAsset(mat, path); }
             mat.name = skin.sharedMaterial.name;
+            // Existing variants retain their complexion, but share the body's normal atlas.
+            var normal = skin.sharedMaterial.GetTexture("_BumpMap");
+            mat.SetTexture("_BumpMap", normal);
+            mat.SetFloat("_BumpScale", skin.sharedMaterial.GetFloat("_BumpScale"));
+            if (normal != null && skin.sharedMaterial.IsKeywordEnabled("_NORMALMAP")) mat.EnableKeyword("_NORMALMAP");
+            else mat.DisableKeyword("_NORMALMAP");
             mat.SetColor("_BaseColor", actor == "Marta" ? tones[i % tones.Length] : Color.white);
             mat.SetColor("_Color", mat.GetColor("_BaseColor"));
             EditorUtility.SetDirty(mat);

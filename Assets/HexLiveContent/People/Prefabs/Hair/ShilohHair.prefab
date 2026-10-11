@@ -138,8 +138,8 @@ LODGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1482401795502067048}
   serializedVersion: 3
-  m_LocalReferencePoint: {x: -0.0007477999, y: 1.6417713, z: -0.035137847}
-  m_Size: 0.38904774
+  m_LocalReferencePoint: {x: -0.0012696832, y: 1.6389314, z: -0.029462755}
+  m_Size: 0.38336802
   m_FadeMode: 0
   m_AnimateCrossFading: 0
   m_LastLODIsBillboard: 0
@@ -336,7 +336,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4707199241525964010}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00000008146036, y: 0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.00000014106499, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
@@ -368,7 +368,10 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 7212f47f714ca46f29140e054ec2ae93, type: 2}
+  - {fileID: 2100000, guid: a0668873585f5554fa5d92a12d245927, type: 2}
+  - {fileID: 2100000, guid: 6af76540874a1714ba3297a1c006e5c0, type: 2}
+  - {fileID: 2100000, guid: 1b148e50009259e4ab12d8bf7ce9f545, type: 2}
+  - {fileID: 2100000, guid: 5abcf02ea0c996b40b49751606023932, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -410,8 +413,8 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 6529554472547232877}
   m_AABB:
-    m_Center: {x: -0.07478142, y: 58.715042, z: -4.430337}
-    m_Extent: {x: 14.395212, y: 19.16838, z: 15.107356}
+    m_Center: {x: -0.12696838, y: 58.67729, z: -4.7711377}
+    m_Extent: {x: 14.724077, y: 19.084991, z: 15.448158}
   m_DirtyAABB: 0
 --- !u!1 &6670279257962673984
 GameObject:
@@ -469,7 +472,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7032598066516933826}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.000000081460335, y: 0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.00000014106499, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
@@ -566,7 +569,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8784634833949608672}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00000008146036, y: 0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.00000014106499, y: 0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
   m_ConstrainProportionsScale: 0
@@ -598,7 +601,10 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 7212f47f714ca46f29140e054ec2ae93, type: 2}
+  - {fileID: 2100000, guid: a0668873585f5554fa5d92a12d245927, type: 2}
+  - {fileID: 2100000, guid: 6af76540874a1714ba3297a1c006e5c0, type: 2}
+  - {fileID: 2100000, guid: 1b148e50009259e4ab12d8bf7ce9f545, type: 2}
+  - {fileID: 2100000, guid: 5abcf02ea0c996b40b49751606023932, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -640,6 +646,6 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 6529554472547232877}
   m_AABB:
-    m_Center: {x: -0.09817314, y: 59.19594, z: -5.442917}
-    m_Extent: {x: 14.15582, y: 19.255463, z: 15.911358}
+    m_Center: {x: -0.07478142, y: 58.715042, z: -4.430336}
+    m_Extent: {x: 14.395212, y: 19.16838, z: 15.107357}
   m_DirtyAABB: 0

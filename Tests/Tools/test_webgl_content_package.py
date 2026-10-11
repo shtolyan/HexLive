@@ -58,6 +58,15 @@ class WebGLPackageTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             builder.verify(self.package)
 
+    def test_same_size_corrupt_blob_is_rejected(self):
+        self.make_package()
+        payload = next((self.package / "payloads").iterdir())
+        data = bytearray(payload.read_bytes())
+        data[0] ^= 1
+        payload.write_bytes(data)
+        with self.assertRaisesRegex(ValueError, "Corrupt payload"):
+            builder.verify(self.package)
+
     def test_missing_candidate_cannot_be_packaged(self):
         (self.build / "wear/primal/candidate.json").unlink()
         with self.assertRaises(ValueError):

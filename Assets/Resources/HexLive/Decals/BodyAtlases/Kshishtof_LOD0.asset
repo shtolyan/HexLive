@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f127212d62f32ce4e83d816d9650f431, type: 3}
+  m_Name: Kshishtof_LOD0
+  m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.SkinBandageAtlas
+  MeshName: Kshishtof_LOD0
+  VertexCount: 8957
+  SourceBlendSha256: 568b871a7c839e140de973da1e670fe1ab7e00cceabab8083e0267b6bd7b5661
+  Zones:
+  - Zone: Torso
+    Albedo: {fileID: 2800000, guid: 36bf7a7822d4ec2448d905e439cc98de, type: 3}
+    Normal: {fileID: 2800000, guid: c9cf05d66a310f643ad5612ceb36baa5, type: 3}
+  - Zone: Pelvis
+    Albedo: {fileID: 2800000, guid: 7532bbed66483ec48be4c0a4e6a1f5c4, type: 3}
+    Normal: {fileID: 2800000, guid: b3879f70556279e43b569a56571ac9df, type: 3}
+  - Zone: ArmL
+    Albedo: {fileID: 2800000, guid: 5806702e4e515664f8b8389802278ac5, type: 3}
+    Normal: {fileID: 2800000, guid: ff17adc6e067f8c4a938fd922764d8e0, type: 3}
+  - Zone: ArmR
+    Albedo: {fileID: 2800000, guid: 5c3e5403d9a1c6d4bb33f3a32dd491a4, type: 3}
+    Normal: {fileID: 2800000, guid: 1cee9f8079f7ba944ae2fcb8b56a91dc, type: 3}
+  - Zone: LegL
+    Albedo: {fileID: 2800000, guid: 4f9ffb88f20a6d54196ebcef3df89995, type: 3}
+    Normal: {fileID: 2800000, guid: b957ab9269cfa7041a010286bcd4a0da, type: 3}
+  - Zone: LegR
+    Albedo: {fileID: 2800000, guid: 508b77472b2d9514183ef722a6445719, type: 3}
+    Normal: {fileID: 2800000, guid: f1735d5e2e65b354d8529feb69c2e99b, type: 3}

@@ -208,3 +208,27 @@ Five production files copied/compiled and SHA256-equal source/execution: Environ
   loader said bodies ready, inventory clothes tab empty — likely sim-side undress, please confirm. Roster shows initials.
 - Screenshot: `/Users/shtolyan/hex-girls/webgl-build/release-evidence/20261010-singapore/live-world-v6-claude.jpg`.
 - Player command still unverified (guest session).
+
+## MSI release 20261011-1704 — current limited authorization
+
+Tolya authorizes the existing MSI worker to integrate the five visual-fix commits,
+build WebGL content and publish that validated content on Singapore 62.146.235.120.
+MSI owns the bundle release; Claude/Mac matching-player ownership and the single
+production writer handoff must be acknowledged before activation. No content is
+activated against an incompatible player. Existing worlds/saves and rollback are
+preserved; no server binary/world replacement, New York, Flashback or Coil change
+is included in this order. The older world-replacement scope above is not reused.
+
+MSI fetched origin/master = 820f7ca7b674dc6e5c8d2df9293f4258c8e3084a, already an
+ancestor of codex/msi-visual-bugs / 042b97409e98be1af8db3bb57d39b84b63327c31.
+All five named visual-fix commits are present. Unpushed Mac work is not assumed
+integrated. PeopleAssetPreparation.cs overlap requires Mac review. Unity6000.4.5f1
+WebGLSupport is installed; Windows content adapter reuses canonical inventory,
+serialized payload and package validation. Build input receipt records dirty
+tracked hashes. Matching player must include SkinBandageAtlas/Resources and
+SkinTexturePainter changes; live v11 compatibility is unproven.
+
+Next: local bundle build/validation; obtain exact current client source/build
+receipt and Mac publisher ACK through Sveta; staged rollout with rollback, public
+hash verification and live visual/performance QA. The denied 29MB evidence archive
+is still excluded. Heartbeat stays disabled. No new worker/worktree/checkout.

@@ -13,7 +13,11 @@ public sealed record FirebaseIdentity(string Uid, string Provider);
 public sealed record FirebaseVerification(FirebaseIdentity? Identity, string Error = "invalid_credentials");
 
 /// <summary>§171.9: Firebase ID tokens only; no SDK, private keys or token logging.</summary>
-public sealed class FirebaseTokenVerifier(string projectId, HttpClient http, TimeProvider? clock = null)
+/// <param name="requireVerifiedEmail">§171.9: off by default (Толя 11.10) — Firebase mail lands in spam and a
+/// mangled link left new players locked out; the verification email is still sent, just not required to play.</param>
+/// <param name="emulator">§171.12: LOCAL TESTING ONLY — accept the Firebase Auth emulator's unsigned tokens.</param>
+public sealed class FirebaseTokenVerifier(string projectId, HttpClient http, TimeProvider? clock = null,
+    bool requireVerifiedEmail = false, bool emulator = false)
 {
     public const string JwksUrl = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
     public const int MaxTokenLength = 16384;
@@ -37,9 +41,11 @@ public sealed class FirebaseTokenVerifier(string projectId, HttpClient http, Tim
             var h = header.RootElement;
             var p = payload.RootElement;
             // Reject ambiguous duplicate members, unsupported critical extensions and algorithms.
-            if (!Unique(h) || !Unique(p) || String(h, "alg") != "RS256" ||
-                h.TryGetProperty("crit", out _) || String(h, "kid") is not { Length: > 0 and <= 256 } kid)
+            var unsignedEmulatorToken = emulator && String(h, "alg") == "none" && parts[2].Length == 0;
+            if (!Unique(h) || !Unique(p) || h.TryGetProperty("crit", out _) ||
+                (!unsignedEmulatorToken && (String(h, "alg") != "RS256" || String(h, "kid") is not { Length: > 0 and <= 256 })))
                 return new(null);
+            var kid = String(h, "kid") ?? "";
             if (String(p, "iss") != "https://securetoken.google.com/" + projectId ||
                 String(p, "aud") != projectId || String(p, "sub") is not { Length: > 0 and <= 128 } uid ||
                 string.IsNullOrWhiteSpace(uid)) return new(null);
@@ -50,17 +56,20 @@ public sealed class FirebaseTokenVerifier(string projectId, HttpClient http, Tim
                 return new(null);
             if (p.TryGetProperty("auth_time", out _) &&
                 (!Integer(p, "auth_time", out var auth) || auth < 0 || auth > now + skew)) return new(null);
-            var key = await GetKeyAsync(kid, cancel).ConfigureAwait(false);
-            if (key == null) return new(null);
-            using var rsa = RSA.Create();
-            rsa.ImportParameters(key.Value);
-            if (!rsa.VerifyData(Encoding.ASCII.GetBytes(parts[0] + "." + parts[1]), Decode(parts[2]),
-                    HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)) return new(null);
+            if (!unsignedEmulatorToken)
+            {
+                var key = await GetKeyAsync(kid, cancel).ConfigureAwait(false);
+                if (key == null) return new(null);
+                using var rsa = RSA.Create();
+                rsa.ImportParameters(key.Value);
+                if (!rsa.VerifyData(Encoding.ASCII.GetBytes(parts[0] + "." + parts[1]), Decode(parts[2]),
+                        HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)) return new(null);
+            }
             if (!p.TryGetProperty("firebase", out var firebase) || !Unique(firebase)) return new(null);
             var provider = String(firebase, "sign_in_provider");
             if (provider is not ("google.com" or "apple.com" or "password")) return new(null);
             // This actionable error is returned ONLY after signature and every identity claim pass.
-            if (provider == "password" && (!p.TryGetProperty("email_verified", out var verified) ||
+            if (requireVerifiedEmail && provider == "password" && (!p.TryGetProperty("email_verified", out var verified) ||
                                            verified.ValueKind != JsonValueKind.True))
                 return new(null, "email_not_verified");
             return new(new FirebaseIdentity(uid, provider));

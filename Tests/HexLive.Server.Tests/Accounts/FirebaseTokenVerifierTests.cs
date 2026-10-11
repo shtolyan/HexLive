@@ -64,6 +64,28 @@ public sealed class FirebaseTokenVerifierTests
         Assert.That(result.Error, Is.EqualTo(forged ? "invalid_credentials" : "email_not_verified"));
     }
 
+    [Test]
+    public async Task UnverifiedPasswordPlaysByDefault()
+    {
+        // §171.9 (Толя 11.10): the confirmation mail landed in spam and its link broke — a new player must not be locked out.
+        using var f = new FirebaseFixture(requireVerifiedEmail: false);
+        var result = await f.Verifier.VerifyAsync(f.Token("password", c => c.Remove("email_verified")));
+        Assert.That(result.Identity?.Provider, Is.EqualTo("password"));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task UnsignedEmulatorTokenIsAcceptedOnlyInEmulatorMode(bool emulator)
+    {
+        using var f = new FirebaseFixture(requireVerifiedEmail: false, emulator: emulator);
+        var signed = f.Token("password");
+        var parts = signed.Split('.');
+        static string B64(string s) => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(s)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var unsigned = B64("{\"alg\":\"none\",\"typ\":\"JWT\"}") + "." + parts[1] + ".";
+        var result = await f.Verifier.VerifyAsync(unsigned);
+        Assert.That(result.Identity != null, Is.EqualTo(emulator));
+    }
+
     [TestCase("anonymous")]
     [TestCase("custom")]
     [TestCase("github.com")]

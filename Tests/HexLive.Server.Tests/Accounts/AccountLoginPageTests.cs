@@ -51,7 +51,9 @@ public sealed class AccountLoginPageTests
             Assert.That(config.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(config.Headers.CacheControl!.NoStore, Is.True);
             var json = await config.Content.ReadFromJsonAsync<JsonElement>();
-            Assert.That(json.EnumerateObject().Select(p => p.Name), Is.EquivalentTo(new[] { "projectId", "apiKey", "authDomain", "providers" }));
+            Assert.That(json.EnumerateObject().Select(p => p.Name), Is.EquivalentTo(new[] { "projectId", "apiKey", "authDomain", "providers", "emulator", "requireVerifiedEmail" }));
+            Assert.That(json.GetProperty("emulator").ValueKind, Is.EqualTo(JsonValueKind.Null), "no emulator unless asked for");
+            Assert.That(json.GetProperty("requireVerifiedEmail").GetBoolean(), Is.False);
             Assert.That(json.GetProperty("projectId").GetString(), Is.EqualTo(options.FirebaseProject));
             Assert.That(json.GetProperty("apiKey").GetString(), Is.EqualTo(options.FirebaseApiKey));
             Assert.That(json.GetProperty("authDomain").GetString(), Is.EqualTo(domain ?? "fixture-login-project.firebaseapp.com"));

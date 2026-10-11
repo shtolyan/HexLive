@@ -55,7 +55,7 @@ async function api(path,method='GET',body,authorized=true) {
 }
 async function initFirebase() {
  if(auth)return;if(!config?.apiKey||!config.authDomain)throw {code:'configuration'};
- try { const [app,authSdk]=await Promise.all([import('https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js')]);sdk=authSdk;auth=sdk.getAuth(app.initializeApp({projectId:config.projectId,apiKey:config.apiKey,authDomain:config.authDomain}));auth.languageCode=lang;await sdk.setPersistence(auth,sdk.browserSessionPersistence);await auth.authStateReady(); }catch(e){throw {code:e.code||'network'};}
+ try { const [app,authSdk]=await Promise.all([import('https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js')]);sdk=authSdk;auth=sdk.getAuth(app.initializeApp({projectId:config.projectId,apiKey:config.apiKey,authDomain:config.authDomain}));if(config.emulator)sdk.connectAuthEmulator(auth,'http://'+config.emulator,{disableWarnings:true});auth.languageCode=lang;await sdk.setPersistence(auth,sdk.browserSessionPersistence);await auth.authStateReady(); }catch(e){throw {code:e.code||'network'};}
 }
 async function exchange(user) { const idToken=await user.getIdToken(true);const fresh=await api('/session','POST',{idToken},false);storageSet(SESSION_KEY,{sessionToken:fresh.sessionToken,playerId:fresh.playerId,expiresAt:fresh.expiresAt});session=fresh;await refreshMe(); }
 async function refreshMe() {
@@ -77,7 +77,7 @@ async function bootstrap() {
  const result=await sdk.getRedirectResult(auth);
  if(result){await exchange(result.user);return;}
  if(redirected){message('redirectFailed',true);return;}
- if(auth.currentUser){if(!auth.currentUser.emailVerified&&auth.currentUser.providerData.some(p=>p.providerId==='password')){view='verify';message('email_not_verified');}else await exchange(auth.currentUser);}
+ if(auth.currentUser){if(config.requireVerifiedEmail&&!auth.currentUser.emailVerified&&auth.currentUser.providerData.some(p=>p.providerId==='password')){view='verify';message('email_not_verified');}else await exchange(auth.currentUser);}
 }
 async function providerLogin(provider) {
  await initFirebase();const p=provider==='google'?new sdk.GoogleAuthProvider():new sdk.OAuthProvider('apple.com');
@@ -95,11 +95,11 @@ function renderAuth() {
  for(const p of ['google','apple'])if(config?.providers.includes(p))providers.append(button(p,()=>providerLogin(p)));
  main.append(providers);if(!config?.providers.includes('password'))return;
  main.append(el('div',t('or'),{class:'divider'}));const form=el('form',null);const email=field(form,'email',el('input',null,{type:'email',autocomplete:'email',required:'',maxlength:'254'}));const password=field(form,'password',el('input',null,{type:'password',autocomplete:'current-password',required:''}));form.append(el('small',t('passwordHint')));
- async function submit(register) {if(!form.reportValidity())return;await initFirebase();const result=await (register?sdk.createUserWithEmailAndPassword:sdk.signInWithEmailAndPassword)(auth,email.value.trim(),password.value);if(register){view='verify';await sdk.sendEmailVerification(result.user);message('sent');}else await exchange(result.user);}
+ async function submit(register) {if(!form.reportValidity())return;await initFirebase();const result=await (register?sdk.createUserWithEmailAndPassword:sdk.signInWithEmailAndPassword)(auth,email.value.trim(),password.value);if(register){try{await sdk.sendEmailVerification(result.user,{url:location.origin+'/login/'});}catch(_){}}if(register&&config.requireVerifiedEmail){view='verify';message('sent');}else await exchange(result.user);}
  const login=el('button',t('login'),{type:'submit',class:'primary'});form.addEventListener('submit',e=>{e.preventDefault();run(()=>submit(false));});
  actions(form,login,button('register',()=>submit(true)));actions(form,button('reset',async()=>{if(!email.reportValidity())return;await initFirebase();await sdk.sendPasswordResetEmail(auth,email.value.trim());message('resetSent');}));main.append(form);
 }
-function renderVerify() {main.append(el('h2',t('verifyTitle')),el('p',t('email_not_verified')));actions(main,button('verified',async()=>{await initFirebase();if(!auth.currentUser){view='auth';return;}await sdk.reload(auth.currentUser);await exchange(auth.currentUser);},true),button('resend',async()=>{await initFirebase();if(!auth.currentUser){view='auth';return;}await sdk.sendEmailVerification(auth.currentUser);message('sent');}));actions(main,button('logout',logout));}
+function renderVerify() {main.append(el('h2',t('verifyTitle')),el('p',t('email_not_verified')));actions(main,button('verified',async()=>{await initFirebase();if(!auth.currentUser){view='auth';return;}await sdk.reload(auth.currentUser);await exchange(auth.currentUser);},true),button('resend',async()=>{await initFirebase();if(!auth.currentUser){view='auth';return;}await sdk.sendEmailVerification(auth.currentUser,{url:location.origin+'/login/'});message('sent');}));actions(main,button('logout',logout));}
 function makeDraft() {
  const b=options.bodies[0];return {name:'',body:b?.id||'',skin:b?.skins[0]||'',hair:b?.hair[0]||'none',hairColour:'prototype',eyes:b?.eyes[0]||'',voice:b?.sex==='male'?'kshishtof':'marta',traits:[],attributes:options.attributes.map(id=>({id,value:Math.min(.5,Math.floor(options.attributeBudget/options.attributes.length*100)/100)})),skills:options.skills.map(id=>({id,value:0})),camp:options.camps.find(c=>c.hasSpace)?.id||''};
 }

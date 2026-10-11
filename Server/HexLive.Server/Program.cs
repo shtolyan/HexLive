@@ -184,7 +184,10 @@ public static class Program
         using var deepgram = new DeepgramTokenBroker();
         using var firebaseHttp = options.FirebaseProject is null ? null : new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         var playerAccounts = options.FirebaseProject is null ? null : new AccountStore(options.AccountsPath, options.FirebaseProject);
-        var firebaseVerifier = options.FirebaseProject is null ? null : new FirebaseTokenVerifier(options.FirebaseProject, firebaseHttp!);
+        var firebaseVerifier = options.FirebaseProject is null ? null : new FirebaseTokenVerifier(options.FirebaseProject, firebaseHttp!,
+            requireVerifiedEmail: options.FirebaseRequireVerifiedEmail, emulator: options.FirebaseEmulator is not null);
+        if (options.FirebaseEmulator is not null)
+            Console.WriteLine($"[server] WARNING: Firebase AUTH EMULATOR {options.FirebaseEmulator} — unsigned tokens accepted; local testing only");
         if (options.ControlEnabled || options.McpEnabled || playerAccounts is not null)
         {
             controlLeases = new ControlLeases(options.McpLeaseSeconds);
@@ -784,6 +787,10 @@ public sealed class ServerOptions
     private string? _firebaseAuthDomain;
     public string? FirebaseAuthDomain => _firebaseAuthDomain ?? (FirebaseProject is null ? null : FirebaseProject + ".firebaseapp.com");
     public string[] FirebaseProviders { get; private set; } = new[] { "google", "password" };
+    /// <summary>§171.9: require a confirmed address for email+password accounts (off by default).</summary>
+    public bool FirebaseRequireVerifiedEmail { get; private set; }
+    /// <summary>§171.12: LOCAL TESTING ONLY — Firebase Auth emulator host:port (unsigned tokens accepted).</summary>
+    public string? FirebaseEmulator { get; private set; }
     public string AccountsPath =>
         Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath))!, "hexlive-accounts.json");
 
@@ -846,6 +853,15 @@ public sealed class ServerOptions
                         domain.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '.' or '-')))
                         throw new ArgumentException("Invalid Firebase auth domain.");
                     options._firebaseAuthDomain = domain.ToLowerInvariant();
+                    break;
+                case "--firebase-require-verified-email":
+                    options.FirebaseRequireVerifiedEmail = true;
+                    break;
+                case "--firebase-emulator" when i + 1 < args.Length:
+                    var emulatorHost = args[++i];
+                    if (!emulatorHost.StartsWith("127.0.0.1:", StringComparison.Ordinal) && !emulatorHost.StartsWith("localhost:", StringComparison.Ordinal))
+                        throw new ArgumentException("The Firebase emulator must be on this machine (127.0.0.1:PORT).");
+                    options.FirebaseEmulator = emulatorHost;
                     break;
                 case "--firebase-providers" when i + 1 < args.Length:
                     var providers = args[++i].Split(',', StringSplitOptions.TrimEntries);

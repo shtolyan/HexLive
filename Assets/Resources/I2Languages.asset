@@ -28533,6 +28533,86 @@ MonoBehaviour:
       - 'Не дозвониться'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'assignment.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Your character'
+      - 'Ваш персонаж'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'assignment.introduction'
+      TermType: 0
+      Description:
+      Languages:
+      - 'You play as {0}.'
+      - 'Вы играете за {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'assignment.replacement'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Now you play as {0}.'
+      - 'Теперь вы играете за {0}.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'assignment.died'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} is no longer alive.'
+      - '{0} больше нет в живых.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'assignment.unavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - '{0} is no longer available to you.'
+      - 'Персонаж {0} больше вам недоступен.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'assignment.traits'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Traits'
+      - 'Черты'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'assignment.waiting'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No character yet — create one on the sign-in page.'
+      - 'Персонажа пока нет — создайте его на странице входа.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'assignment.persistence'
+      TermType: 0
+      Description:
+      Languages:
+      - 'While you are away, your character keeps living in the world.'
+      - 'Пока вас нет, персонаж продолжает жить в мире.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'assignment.ok'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Got it'
+      - 'Понятно'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'attr.compassiontrait'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Compassion'
+      - 'Сострадание'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

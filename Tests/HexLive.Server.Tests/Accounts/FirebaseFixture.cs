@@ -31,10 +31,11 @@ internal sealed class FirebaseFixture : HttpMessageHandler
     public string Kid { get; set; } = "fixture-key";
     public HttpClient Client { get; }
     public FirebaseTokenVerifier Verifier { get; }
-    public FirebaseFixture()
+    /// <param name="requireVerifiedEmail">strict §171.9 mode; production default is lenient (see the verifier).</param>
+    public FirebaseFixture(bool requireVerifiedEmail = true, bool emulator = false)
     {
         Client = new HttpClient(this);
-        Verifier = new FirebaseTokenVerifier(Project, Client, Clock);
+        Verifier = new FirebaseTokenVerifier(Project, Client, Clock, requireVerifiedEmail, emulator);
     }
     public string Token(string provider = "google.com", Action<Dictionary<string, object>>? change = null,
         RSA? signer = null, string? kid = null, string algorithm = "RS256")

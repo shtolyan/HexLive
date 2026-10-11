@@ -32,13 +32,15 @@ public static class AccountLoginPage
             " https://www.gstatic.com/firebasejs/12.3.0/ https://apis.google.com; " +
             "style-src " + Hashes("style") + "; " +
             "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com " +
-            "https://www.googleapis.com " + authOrigin + "; " +
+            "https://www.googleapis.com " + authOrigin +
+            (options.FirebaseEmulator is { } emu ? " http://" + emu : "") + "; " +
             "frame-src " + authOrigin + " https://accounts.google.com; img-src 'self' data:;";
 
         app.MapGet(AccountEndpoints.Prefix + "/client-config", (HttpContext context) => {
             context.Response.Headers.CacheControl = "no-store";
             return Results.Json(new { projectId = options.FirebaseProject, apiKey = options.FirebaseApiKey,
-                authDomain = options.FirebaseAuthDomain, providers = options.FirebaseProviders });
+                authDomain = options.FirebaseAuthDomain, providers = options.FirebaseProviders,
+                emulator = options.FirebaseEmulator, requireVerifiedEmail = options.FirebaseRequireVerifiedEmail });
         });
         // ASP.NET routing matches both /login and /login/ with this single endpoint.
         app.MapGet("/login", (HttpContext context) => {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
 using HexLive.Simulation.Runtime;
 
@@ -26,9 +27,18 @@ public static class PlayerCharacterCreation
     public const int FirstNpcId = 1_000_000_000;
     public const int ReceiptCapacity = 100_000;
 
-    public static List<string> StartingClothing(string body) => body == "Kshishtof"
-        ? new List<string> { "underwear.briefs_primal_male" }
-        : new List<string> { "underwear.briefs_primal", "clothing.top_primal" };
+    // Server-assigned, never the player's choice: a world still on an older catalogue
+    // (registry revision pending) may lack a starter. Skip it rather than refuse the
+    // whole character with an error about clothes the player never picked.
+    public static List<string> StartingClothing(string body)
+    {
+        var male = body is "Kshishtof" or "Tonny";
+        var wanted = male
+            ? new[] { "underwear.briefs_primal_male" }
+            : new[] { "underwear.briefs_primal", "clothing.top_primal" };
+        var sex = male ? GarmentSex.Male : GarmentSex.Female;
+        return wanted.Where(id => GarmentLibrary.IsSpawnable(id) && GarmentLibrary.FitsSex(sex, id)).ToList();
+    }
 
     public static bool IsAvailableCamp(WorldState world, Faction camp) =>
         FactionRelations.IsGirlCamp(camp) && world.FactionHomes.ContainsKey(camp) &&

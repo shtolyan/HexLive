@@ -101,6 +101,25 @@ public sealed class VoiceBrainService
         await c.Response.WriteAsync("data: [DONE]\n\n", c.RequestAborted);
     }
 
+    /// <summary>§171.11: the browser module (ES module) — static code, no secrets, same origin as the game page.</summary>
+    public static void MapClientScript(IEndpointRouteBuilder app, string path)
+    {
+        string? script = null;
+        app.MapGet(path, () =>
+        {
+            script ??= ReadClientScript();
+            return Results.Text(script, "text/javascript; charset=utf-8");
+        });
+    }
+
+    public static string ReadClientScript()
+    {
+        using var stream = typeof(VoiceBrainService).Assembly.GetManifestResourceStream("HexLive.VoiceBrain.hexlive-voice.js")
+            ?? throw new InvalidOperationException("hexlive-voice.js is not embedded");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
+
     /// <summary>§171.4: bill the finished ElevenLabs conversation (they finalise a few seconds after hang-up).</summary>
     public async Task<(double? Seconds, decimal? ProviderCredits)> RecordSessionEndAsync(string conversationId, SessionTicket ticket, CancellationToken token)
     {

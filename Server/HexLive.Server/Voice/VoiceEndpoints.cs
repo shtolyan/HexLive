@@ -35,6 +35,7 @@ public static class VoiceEndpoints
         var voice = new VoiceBrainService(options, ticket => new InProcessWorldGateway(tools, ticket.OwnerUserId,
             npc => ticket.OwnerUserId.StartsWith("ws:", StringComparison.Ordinal) && Owns(ticket.OwnerUserId[3..], npc)), log);
         voice.MapCompletions(app, BrainPath);
+        VoiceBrainService.MapClientScript(app, Root + "/client.js");
         var recent = new ConcurrentDictionary<string, (long Window, int Count)>();
 
         app.MapPost(Root + "/session", async (HttpContext c, VoiceSessionRequest request) =>

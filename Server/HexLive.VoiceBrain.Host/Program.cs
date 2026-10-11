@@ -27,6 +27,7 @@ var mcp = new McpClient(new AgentProviderOptions
 var world = new McpWorldGateway(mcp);
 var voice = new VoiceBrainService(options, _ => world, log);
 voice.MapCompletions(app);
+VoiceBrainService.MapClientScript(app, "/api/voice/v1/client.js");
 
 static bool IsLoopback(HttpContext c) => c.Connection.RemoteIpAddress is { } ip && IPAddress.IsLoopback(ip)
     && !c.Request.Headers.ContainsKey("CF-Connecting-IP") && !c.Request.Headers.ContainsKey("X-Forwarded-For");

@@ -8,6 +8,8 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- §171.11: the browser half, served by whichever process hosts the brain. -->
+    <EmbeddedResource Include="Client/hexlive-voice.js" LogicalName="HexLive.VoiceBrain.hexlive-voice.js" />
     <ProjectReference Include="../HexLive.AgentCore/HexLive.AgentCore.csproj" />
   </ItemGroup>
 </Project>

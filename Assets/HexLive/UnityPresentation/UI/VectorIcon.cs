@@ -32,10 +32,12 @@ namespace HexLive.UnityPresentation.UI
             Shirt,
             Coat,
             Bag,
-            Microphone
+            Microphone,
+            Phone,          // §171.11: call the character
+            PhoneHangUp     // §171.11: end the call
         }
 
-        private readonly Kind _kind;
+        private Kind _kind;
         private Color _color;
 
         public VectorIcon(Kind kind, Color color)
@@ -44,6 +46,15 @@ namespace HexLive.UnityPresentation.UI
             _color = color;
             pickingMode = PickingMode.Ignore;
             generateVisualContent += OnGenerate;
+        }
+
+        public Kind Current => _kind;
+
+        public void SetKind(Kind kind)
+        {
+            if (_kind == kind) return;
+            _kind = kind;
+            MarkDirtyRepaint();
         }
 
         public void SetColor(Color color)
@@ -96,7 +107,44 @@ namespace HexLive.UnityPresentation.UI
                 case Kind.Coat: DrawCoat(p, P); break;
                 case Kind.Bag: DrawBag(p, P); break;
                 case Kind.Microphone: DrawMicrophone(p, P); break;
+                case Kind.Phone: DrawPhone(p, P); break;
+                case Kind.PhoneHangUp: DrawPhoneHangUp(p, P); break;
             }
+        }
+
+        // Classic handset, earpiece top-left, mouthpiece bottom-right (24-unit grid).
+        private static void DrawPhone(Painter2D p, Pt P)
+        {
+            p.BeginPath();
+            p.MoveTo(P(6.4f, 3.4f));
+            p.LineTo(P(9.1f, 3.4f));
+            p.LineTo(P(10.5f, 7.7f));
+            p.LineTo(P(8.4f, 9.3f));
+            p.BezierCurveTo(P(9.6f, 11.9f), P(12.1f, 14.4f), P(14.7f, 15.6f));
+            p.LineTo(P(16.3f, 13.5f));
+            p.LineTo(P(20.6f, 14.9f));
+            p.LineTo(P(20.6f, 17.6f));
+            p.BezierCurveTo(P(20.6f, 19.3f), P(19.3f, 20.6f), P(17.6f, 20.6f));
+            p.BezierCurveTo(P(10.2f, 20.2f), P(3.8f, 13.8f), P(3.4f, 6.4f));
+            p.BezierCurveTo(P(3.4f, 4.7f), P(4.7f, 3.4f), P(6.4f, 3.4f));
+            p.ClosePath();
+            p.Fill();
+        }
+
+        // The handset laid down, ends pointing down — the universal «hang up».
+        private static void DrawPhoneHangUp(Painter2D p, Pt P)
+        {
+            p.BeginPath();
+            p.MoveTo(P(2.6f, 13.6f));
+            p.BezierCurveTo(P(8.1f, 8.2f), P(15.9f, 8.2f), P(21.4f, 13.6f));
+            p.LineTo(P(19.8f, 16.8f));
+            p.LineTo(P(16.2f, 15.6f));
+            p.LineTo(P(15.9f, 12.9f));
+            p.BezierCurveTo(P(13.4f, 12.0f), P(10.6f, 12.0f), P(8.1f, 12.9f));
+            p.LineTo(P(7.8f, 15.6f));
+            p.LineTo(P(4.2f, 16.8f));
+            p.ClosePath();
+            p.Fill();
         }
 
         private static void DrawMicrophone(Painter2D p, Pt P)

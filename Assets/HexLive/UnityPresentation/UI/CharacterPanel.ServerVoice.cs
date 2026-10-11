@@ -10,11 +10,12 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
-    /// §171.11: in the browser the microphone button talks to the player's OWN
-    /// character through the game server's voice brain (ElevenLabs Agents) — no
-    /// Agent Studio attachment needed. Listening, turn-taking and her voice are the
-    /// browser's; the panel only starts/stops the session and shows subtitles.
-    /// The desktop keeps the §160 Agent Studio path unchanged.
+    /// §171.11: in the browser the voice button of the portrait window is a PHONE:
+    /// call your own character, talk, hang up — through the game server's voice
+    /// brain (ElevenLabs Agents), no Agent Studio attachment needed. The whole call
+    /// lives in that small window (Толя, 11.10): no capture overlay, no subtitles over
+    /// the world — the player keeps seeing her. Listening, turn-taking and her voice
+    /// are the browser's. The desktop keeps the §160 Agent Studio path unchanged.
     /// </summary>
     public sealed partial class CharacterPanel
     {
@@ -39,8 +40,7 @@ namespace HexLive.UnityPresentation.UI
             if (_serverVoice == null)
             {
                 _serverVoice = new WebVoiceAgent();
-                _serverVoice.Line += (speaker, text) =>
-                    ShowAgentSubtitle(speaker == "user" ? "› " + text : text, speaker == "user" ? 3f : 6f);
+                _serverVoice.Line += (speaker, text) => Debug.Log("[voice] " + speaker + ": " + text);
             }
             _serverVoice.Start(WebVoiceAgent.PageServerHttpBase()!, SessionConfig.ControlToken!, SessionConfig.ClientId,
                 _agentVoiceNpc!.Id.Value);
@@ -57,29 +57,53 @@ namespace HexLive.UnityPresentation.UI
             if (_serverVoice.Current == WebVoiceAgent.Phase.Error && _serverVoice.LastError.Length > 0)
             {
                 Debug.LogWarning("[voice] " + _serverVoice.LastError);
-                ShowAgentSubtitle(Loc.Get("agent.voice.input_failed"), 5f);
+                _callFailedUntil = Time.unscaledTime + 4f;
                 _serverVoice.Stop();
             }
         }
 
-        /// <summary>Returns true when the button belongs to the server voice this frame.</summary>
+        private float _callFailedUntil;
+
+        /// <summary>
+        /// Returns true when the button belongs to the call this frame. Three states in
+        /// one place: green handset «Позвонить» → rocking handset «Звоню…» → red handset
+        /// to hang up, captioned «Слушает»/«Говорит».
+        /// </summary>
         private bool RefreshServerVoiceButton()
         {
-            if (_agentVoiceButton == null || !ServerVoiceMode) return false;
+            if (_agentVoiceButton == null || _agentVoiceGlyph == null) return false;
+            if (!ServerVoiceMode)
+            {
+                // Back to the desktop/Agent Studio microphone if the call mode goes away.
+                if (_agentVoiceGlyph.Current != VectorIcon.Kind.Microphone)
+                {
+                    _agentVoiceGlyph.SetKind(VectorIcon.Kind.Microphone);
+                    _agentVoiceGlyph.style.rotate = new Rotate(0f);
+                }
+                return false;
+            }
             _agentVoiceButton.style.display = DisplayStyle.Flex;
             _agentVoiceButton.SetEnabled(true);
             var phase = _serverVoice?.Current ?? WebVoiceAgent.Phase.Off;
-            var live = phase is WebVoiceAgent.Phase.Listening or WebVoiceAgent.Phase.Speaking;
-            _agentVoiceGlyph!.SetColor(live ? Warn : Text);
-            SetBorderColor(_agentVoiceButton, live ? Warn : NeonCyanDim);
+            var inCall = phase is WebVoiceAgent.Phase.Listening or WebVoiceAgent.Phase.Speaking;
+            var ringing = phase == WebVoiceAgent.Phase.Connecting;
+            var failed = !inCall && !ringing && Time.unscaledTime < _callFailedUntil;
+            var tint = inCall ? Crit : failed ? Warn : Good;
+
+            _agentVoiceGlyph.SetKind(inCall ? VectorIcon.Kind.PhoneHangUp : VectorIcon.Kind.Phone);
+            _agentVoiceGlyph.SetColor(tint);
+            // A ringing phone rocks; at rest it is still.
+            _agentVoiceGlyph.style.rotate = new Rotate(ringing ? Mathf.Sin(Time.unscaledTime * 18f) * 14f : 0f);
+            SetBorderColor(_agentVoiceButton, tint);
             _agentVoiceStateLabel!.text = phase switch
             {
-                WebVoiceAgent.Phase.Connecting => Loc.Get("agent.voice.thinking"),
-                WebVoiceAgent.Phase.Listening => Loc.Get("agent.voice.listening"),
-                WebVoiceAgent.Phase.Speaking => Loc.Get("agent.voice.speaking"),
-                _ => Loc.Get("agent.voice.ready"),
+                WebVoiceAgent.Phase.Connecting => Loc.Get("agent.call.ringing"),
+                WebVoiceAgent.Phase.Listening => Loc.Get("agent.call.listening"),
+                WebVoiceAgent.Phase.Speaking => Loc.Get("agent.call.speaking"),
+                _ when failed => Loc.Get("agent.call.failed"),
+                _ => Loc.Get("agent.call.start"),
             };
-            _agentVoiceButton.tooltip = Loc.Get("agent.voice.button");
+            _agentVoiceButton.tooltip = Loc.Get(inCall || ringing ? "agent.call.hangup" : "agent.call.button");
             return true;
         }
     }

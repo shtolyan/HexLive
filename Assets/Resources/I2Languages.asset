@@ -28477,6 +28477,62 @@ MonoBehaviour:
       - 'Нужна рабочая рука'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'agent.call.start'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Call'
+      - 'Позвонить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.ringing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Calling…'
+      - 'Звоню…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.listening'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Listening'
+      - 'Слушает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.speaking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Speaking'
+      - 'Говорит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.button'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Call your character and talk by voice'
+      - 'Позвонить персонажу и поговорить голосом'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.hangup'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hang up'
+      - 'Повесить трубку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Call failed'
+      - 'Не дозвониться'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

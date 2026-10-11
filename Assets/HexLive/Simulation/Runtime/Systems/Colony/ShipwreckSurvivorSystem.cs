@@ -13,6 +13,8 @@ namespace HexLive.Simulation.Runtime
 /// §146.10: one deterministic wounded woman is washed ashore near the player's
 /// HugeIsland/Maniac camp. She is aid-compatible but not controllable; after treatment,
 /// food and water she changes faction once and joins Colony.
+/// A world created with WorldCreationConfig.ShipwreckSurvivorEnabled=false never has
+/// her: the switch lives in the per-world recipe, never in a balance static (§146.6).
 /// </summary>
 public sealed class ShipwreckSurvivorSystem : ISimulationSystem
 {
@@ -29,7 +31,8 @@ public sealed class ShipwreckSurvivorSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
-        if (world.Mode is not (GameMode.HugeIsland or GameMode.Maniac))
+        if (world.Mode is not (GameMode.HugeIsland or GameMode.Maniac) ||
+            world.CreationConfig?.ShipwreckSurvivorEnabled == false)
         {
             return;
         }

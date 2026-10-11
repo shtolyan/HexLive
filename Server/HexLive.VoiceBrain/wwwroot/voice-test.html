@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Голос персонажа — прототип</title>
+<style>
+  :root { --bg:#f6f5f2; --fg:#1d1c1a; --muted:#6b6862; --card:#fff; --line:#e3e0da; --accent:#2f6f5e; --warn:#a2452e; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#161615; --fg:#ecebe8; --muted:#a19d96; --card:#1f1f1d; --line:#33322f; --accent:#6fbfa8; --warn:#e08a6e; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.45 system-ui, sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px; }
+  h1 { font-size:20px; margin:0 0 4px; } p.sub { color:var(--muted); margin:0 0 16px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  input, select, button { font:inherit; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  #status { font-weight:600; } #log { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px; min-height:240px; }
+  .u { color:var(--muted); } .a { color:var(--fg); } .t { color:var(--accent); font-size:13px; } .e { color:var(--warn); }
+  table { border-collapse:collapse; margin-top:12px; } td { padding:2px 10px 2px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Голос персонажа — прототип §171.7</h1>
+  <p class="sub">ElevenLabs слышит и говорит, мозг на нашем сервере решает. Говорите в микрофон после «слушаю».</p>
+  <div class="row">
+    <label>NPC <input id="npc" type="number" value="1" style="width:5em"></label>
+    <label>Голос <select id="voice"><option value="">по персонажу</option><option>masha</option><option>marta</option><option>molly</option><option>jana</option><option>jolly</option><option>kshishtof</option></select></label>
+    <button class="primary" id="start">Начать разговор</button>
+    <button id="stop" disabled>Завершить</button>
+    <span id="status">—</span>
+  </div>
+  <div id="log"></div>
+  <table id="stats"></table>
+</main>
+<script type="module">
+import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.25.0/+esm";
+const $ = id => document.getElementById(id);
+let conversation = null, session = null, lastUserAt = 0, waitingForReply = false;
+const latencies = [];
+function line(cls, text) { const d = document.createElement("div"); d.className = cls; d.textContent = text; $("log").append(d); $("log").scrollTop = 1e9; }
+function stats() {
+  if (!latencies.length) return;
+  const s = [...latencies].sort((a, b) => a - b), q = p => s[Math.min(s.length - 1, Math.floor(p * s.length))];
+  $("stats").innerHTML = `<tr><td>реплик</td><td>${s.length}</td></tr><tr><td>p50 конец речи → голос</td><td>${q(.5)} мс</td></tr><tr><td>p95</td><td>${q(.95)} мс</td></tr>`;
+}
+$("start").onclick = async () => {
+  $("start").disabled = true; $("status").textContent = "подключаю…";
+  try {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+    const r = await fetch("/voice/session", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ npcId: +$("npc").value, voice: $("voice").value || null }) });
+    if (!r.ok) throw new Error("session HTTP " + r.status);
+    session = await r.json();
+    line("t", `персонаж: ${session.name}`);
+    conversation = await Conversation.startSession({
+      conversationToken: session.conversationToken, connectionType: "webrtc",
+      customLlmExtraBody: { ticket: session.ticket },
+      overrides: session.voiceId ? { tts: { voiceId: session.voiceId } } : undefined,
+      onConnect: () => $("status").textContent = "слушаю",
+      onDisconnect: () => { $("status").textContent = "отключено"; $("start").disabled = false; $("stop").disabled = true; },
+      onError: e => line("e", "ошибка: " + (e?.message || e)),
+      onModeChange: ({ mode }) => {
+        $("status").textContent = mode === "speaking" ? "говорит" : "слушаю";
+        if (mode === "speaking" && waitingForReply && lastUserAt) {
+          const ms = Math.round(performance.now() - lastUserAt); latencies.push(ms); waitingForReply = false;
+          line("t", `↳ первый звук через ${ms} мс после расшифровки`); stats();
+        }
+      },
+      onMessage: ({ source, message }) => {
+        if (source === "user") { lastUserAt = performance.now(); waitingForReply = true; line("u", "Вы: " + message); }
+        else line("a", session.name + ": " + message);
+      },
+    });
+    $("stop").disabled = false;
+  } catch (e) { line("e", String(e)); $("status").textContent = "ошибка"; $("start").disabled = false; }
+};
+$("stop").onclick = async () => {
+  const id = conversation?.getId?.();
+  await conversation?.endSession(); conversation = null;
+  if (id && session) {
+    const r = await fetch("/voice/session/end", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId: id, ticket: session.ticket }) });
+    if (r.ok) { const j = await r.json(); line("t", `сессия: ${j.seconds ?? "?"} с, кредиты ElevenLabs: ${j.providerCredits ?? "?"}`); }
+  }
+};
+</script>
+</body>
+</html>

@@ -22,7 +22,7 @@ public sealed record UsageEvent
     public int NpcId { get; init; }
     public string SessionId { get; init; } = "";
     public string TurnId { get; init; } = "";
-    public string Kind { get; init; } = "";          // llm | tts | stt
+    public string Kind { get; init; } = "";          // llm | tts | stt | voice
     public string Provider { get; init; } = "";
     public string Model { get; init; } = "";         // model id, or TTS model for voice
     public string VoiceId { get; init; } = "";
@@ -54,6 +54,8 @@ public static class UsageKind
     public const string Llm = "llm";
     public const string Tts = "tts";
     public const string Stt = "stt";
+    // §171.7: a whole hosted voice-agent session (ASR + turn-taking + TTS), billed per minute.
+    public const string Voice = "voice";
 }
 
 /// <summary>Who the spend belongs to. Fixed per session; the turn comes from <see cref="UsageScope"/>.</summary>
@@ -185,6 +187,7 @@ public sealed class UsageRate
             case UsageKind.Tts:
                 return u.Characters is { } chars && PerThousandCharacters is { } perK ? chars * perK / 1000m : null;
             case UsageKind.Stt:
+            case UsageKind.Voice:
                 return u.AudioSeconds is { } seconds && PerMinuteAudio is { } perMin ? (decimal)seconds * perMin / 60m : null;
             default:
                 return null;

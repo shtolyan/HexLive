@@ -651,7 +651,8 @@ namespace HexLive.UnityPresentation.Wearing
         private int _bruiseHash;
 
         public bool WantsFreshPass =>
-            _materials != null && (_freshPending || HasPendingSeamUpgrade());
+            _materials != null && (_freshPending || HasPendingSeamUpgrade() ||
+                (_geometryArrived && System.Threading.Volatile.Read(ref _pendingPlacements) == 0));
 
         /// <summary>Initial corpse presentation must not expose the authored
         /// clean body before historical wounds, blood soil and bruises have
@@ -738,6 +739,7 @@ namespace HexLive.UnityPresentation.Wearing
         public void PaintFresh()
         {
             _freshPending = false;
+            _geometryArrived = false;
             foreach (var stamp in _stamps.Values)
             {
                 if (stamp.DrawAsRect && stamp.NeedsSeamUpgrade && stamp.GeometryReady)
@@ -1836,6 +1838,9 @@ namespace HexLive.UnityPresentation.Wearing
             var targetWorld = (SpeckleWorldSizeMin +
                                NextRand(ref state) * (SpeckleWorldSizeMax - SpeckleWorldSizeMin)) *
                               (_height / 1.7f);
+            if (_usesBandageAtlas && TryPlaceProjectedStain(key, zoneName, index, point,
+                    targetWorld, SpeckleVariant(ref state), false, NextRand(ref state) * 360f))
+                return;
             SizeFromDensity(point, targetWorld, out var sizeU, out var sizeV, minUv: 0.004f);
             sizeU = Mathf.Min(sizeU, SpeckleMaxUvSize);
             sizeV = Mathf.Min(sizeV, SpeckleMaxUvSize);
@@ -1885,6 +1890,9 @@ namespace HexLive.UnityPresentation.Wearing
                 return;
             }
 
+            if (_usesBandageAtlas && TryPlaceProjectedStain(key, zoneName, index, point,
+                    targetWorld, _texBruise, true, NextRand(ref state) * 360f))
+                return;
             SizeFromDensity(point, targetWorld, out var sizeU, out var sizeV, minUv: 0.004f);
             sizeU = Mathf.Min(sizeU, SpeckleMaxUvSize);
             sizeV = Mathf.Min(sizeV, SpeckleMaxUvSize);
@@ -2125,7 +2133,10 @@ namespace HexLive.UnityPresentation.Wearing
         private void SizeFromDensity(in PaintPointMap.Point point, float targetWorld,
             out float sizeU, out float sizeV, float minUv = 0.02f)
         {
-            var heightScale = Mathf.Max(0.0001f, _height / 1.7f);
+            // BindPerU/V are in mesh units, which are centimetres for prepared
+            // people. Convert with the baked mesh height, not a metre-only rig.
+            var meshHeight = _map != null ? _map.MeshHeight : 1.7f;
+            var heightScale = Mathf.Max(0.0001f, _height / Mathf.Max(0.0001f, meshHeight));
             var worldPerU = Mathf.Max(0.0001f, point.BindPerU * heightScale);
             var worldPerV = Mathf.Max(0.0001f, point.BindPerV * heightScale);
             sizeU = Mathf.Clamp(targetWorld / worldPerU, minUv, 0.95f);
@@ -2440,8 +2451,23 @@ namespace HexLive.UnityPresentation.Wearing
         /// through the map's own bind-pose height, so a body exported at a
         /// different scale still gets a 14 cm wrap.
         /// </summary>
+        private bool TryPlaceProjectedStain(string key, string zoneName, int seed,
+            in PaintPointMap.Point point, float size, Texture? art, bool bruise, float rotation)
+        {
+            if (!TryPlaceProjected(key, zoneName, seed, false, false, point, size,
+                    surfaceStain: true, rotation: rotation)) return false;
+            var stamp = _stamps[key];
+            stamp.Over = art;
+            stamp.Under = null;
+            stamp.OverGloss = null;
+            stamp.IsBruise = bruise;
+            stamp.IsSpeckle = !bruise;
+            return true;
+        }
+
         private bool TryPlaceProjected(string key, string zoneName, int seed, bool isBandage,
-            bool isGauze, in PaintPointMap.Point point, float targetWorld)
+            bool isGauze, in PaintPointMap.Point point, float targetWorld,
+            bool surfaceStain = false, float rotation = 0f)
         {
             if (_posMaps == null || _map == null)
             {
@@ -2478,7 +2504,7 @@ namespace HexLive.UnityPresentation.Wearing
             // LookRotation(forward=normal, up=along): local +Z is the surface
             // normal, +Y runs along the limb, +X around it.
             var frame = Matrix4x4.TRS(point.BindPos,
-                Quaternion.LookRotation(normal, along), Vector3.one).inverse;
+                Quaternion.LookRotation(normal, along) * Quaternion.Euler(0f, 0f, rotation), Vector3.one).inverse;
             var scale = Matrix4x4.Scale(new Vector3(1f / size, 1f / size, 1f));
             var underScale = Matrix4x4.Scale(new Vector3(1f / (size * 1.6f), 1f / (size * 1.6f), 1f));
 
@@ -2503,7 +2529,11 @@ namespace HexLive.UnityPresentation.Wearing
                 Uv = point.Uv,
                 UvSizeX = rectSizeU,
                 UvSizeY = rectSizeV,
-                DrawAsRect = true,
+                DrawAsRect = !surfaceStain,
+                // Packed bodies have many UV islands inside ONE material slot.
+                // Waiting for a multi-slot seam would leave the UV rectangle
+                // visible until the next ambient paint cycle.
+                NeedsSeamUpgrade = _usesBandageAtlas,
                 Seed = seed,
                 Under = isBandage ? null : _texSplash,
                 Over = isGauze ? _texGauze : (isBandage ? _texBandage : over),
@@ -2530,7 +2560,7 @@ namespace HexLive.UnityPresentation.Wearing
                 0.5f + slack / underSize, 0.5f + slack / underSize,
                 depth * 1.6f + slack);
             QueueGeometry(stamp, point.Slot, scale * frame, halfExtents,
-                underHalfExtents, hasUnderlay: !isBandage);
+                underHalfExtents, hasUnderlay: !isBandage && !surfaceStain);
             return true;
         }
 
@@ -2650,7 +2680,7 @@ namespace HexLive.UnityPresentation.Wearing
                 }
             }
 
-            stamp.NeedsSeamUpgrade = reached.Count > 1;
+            stamp.NeedsSeamUpgrade |= reached.Count > 1;
             stamp.Slots = reached.ToArray();
             stamp.Windows = windows;
             stamp.UnderWindows = underWindows;
@@ -3629,7 +3659,7 @@ namespace HexLive.UnityPresentation.Wearing
                 // пятен: синяк разлит ПОД кожей, кровь лежит НА ней.
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (!stamp.IsBruise || stamp.Slot != slot || stamp.Over == null ||
+                    if (!stamp.IsBruise || !StampTouchesSlot(stamp, slot) || stamp.Over == null ||
                         !_alpha.TryGetValue(stamp.Key, out var bruiseAlpha) || bruiseAlpha <= 0.01f)
                     {
                         continue;
@@ -3640,6 +3670,11 @@ namespace HexLive.UnityPresentation.Wearing
                         continue;
                     }
 
+                    if (stamp.IsProjected)
+                    {
+                        DrawProjectedAlbedo(stamp, slot, bruiseAlpha);
+                        continue;
+                    }
                     var bcx = stamp.Uv.x;
                     var bcy = 1f - stamp.Uv.y;
                     GL.PushMatrix();
@@ -3658,7 +3693,7 @@ namespace HexLive.UnityPresentation.Wearing
                 // removals is not layering order.
                 foreach (var stamp in _stamps.Values)
                 {
-                    if (!stamp.IsSpeckle || stamp.Slot != slot || stamp.Over == null ||
+                    if (!stamp.IsSpeckle || !StampTouchesSlot(stamp, slot) || stamp.Over == null ||
                         !_alpha.TryGetValue(stamp.Key, out var speckleAlpha) || speckleAlpha <= 0.01f)
                     {
                         continue;
@@ -3669,6 +3704,11 @@ namespace HexLive.UnityPresentation.Wearing
                         continue;
                     }
 
+                    if (stamp.IsProjected)
+                    {
+                        DrawProjectedAlbedo(stamp, slot, speckleAlpha);
+                        continue;
+                    }
                     var scx = stamp.Uv.x;
                     var scy = 1f - stamp.Uv.y;
                     // r4: seeded spin around the stamp centre — a GL matrix

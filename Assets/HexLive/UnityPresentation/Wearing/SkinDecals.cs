@@ -373,6 +373,13 @@ namespace HexLive.UnityPresentation.Wearing
             // the full image; it does NOT reach the far side (radius margin).
             projector.size = new Vector3(size, size, radius * 2.2f);
             projector.pivot = new Vector3(0f, 0f, radius * 1.1f);
+            // Dirt must disappear before a grazing projection becomes a long
+            // stripe around the shoulder/thigh. Other effects keep their art.
+            if (type == DecalType.Dirt)
+            {
+                projector.startAngleFade = 45f;
+                projector.endAngleFade = 75f;
+            }
             // Skin-only by default; rain droplets also hit the cloth layer.
             // Never the terrain (default layer bit 0 is excluded either way).
             projector.renderingLayerMask = alsoCloth
@@ -409,7 +416,11 @@ namespace HexLive.UnityPresentation.Wearing
             // URP decal shader (needs the Decal renderer feature + an entry in
             // GraphicsSettings' Always Included Shaders, or builds strip it —
             // nothing else references it by asset). Missing → no decals.
-            var shader = Shader.Find("Shader Graphs/Decal");
+            // The URP template disables angle fade at shader-generation time.
+            // Keep a Resources dependency for the dirt-only enabled variant.
+            var shader = type == DecalType.Dirt
+                ? Resources.Load<Shader>("HexLive/Decals/SkinDirtDecal")
+                : Shader.Find("Shader Graphs/Decal");
             if (shader == null)
             {
                 if (!_decalShaderWarned)

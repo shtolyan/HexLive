@@ -1,0 +1,52 @@
+.server-selection {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.server-selection-card {
+    width: 520px;
+    max-width: 100%;
+    max-height: 86%;
+    padding: 28px;
+    border-radius: 20px;
+    border-width: 1px;
+    border-color: rgba(225, 235, 231, 0.2);
+    background-color: rgba(13, 23, 26, 0.90);
+    color: rgb(240, 245, 238);
+}
+.server-selection-title { font-size: 30px; -unity-font-style: bold; margin-bottom: 8px; white-space: normal; }
+.server-selection-subtitle { font-size: 15px; color: rgb(173, 187, 187); margin-bottom: 20px; white-space: normal; }
+.server-selection-list { flex-shrink: 1; min-height: 120px; }
+.server-card {
+    flex-direction: row;
+    align-items: center;
+    min-height: 86px;
+    margin-bottom: 10px;
+    padding: 16px;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(220, 233, 223, 0.16);
+    background-color: rgba(40, 58, 57, 0.84);
+    color: rgb(240, 245, 238);
+    transition-property: background-color, border-color;
+    transition-duration: 0.15s;
+}
+.server-card:hover { border-color: rgb(178, 225, 157); background-color: rgb(48, 71, 66); }
+.server-card:focus { border-color: rgb(196, 238, 170); }
+.server-card:disabled { opacity: 0.75; }
+.server-card-labels { flex-grow: 1; flex-shrink: 1; }
+.server-name { font-size: 22px; -unity-font-style: bold; white-space: normal; }
+.server-ping { font-size: 14px; margin-top: 5px; color: rgb(180, 195, 187); }
+.server-action { font-size: 15px; margin-left: 16px; }
+.server-quality-dot { width: 10px; height: 10px; flex-shrink: 0; border-radius: 5px; margin-right: 16px; background-color: rgb(151, 165, 168); }
+.server-card.good .server-quality-dot { background-color: rgb(144, 226, 122); }
+.server-card.fair .server-quality-dot { background-color: rgb(245, 199, 85); }
+.server-card.poor .server-quality-dot, .server-card.offline .server-quality-dot { background-color: rgb(242, 112, 104); }
+.server-card.good .server-ping { color: rgb(144, 226, 122); }
+.server-card.fair .server-ping { color: rgb(245, 199, 85); }
+.server-card.poor .server-ping, .server-card.offline .server-ping { color: rgb(242, 112, 104); }
+.server-selection-message { color: rgb(245, 199, 85); white-space: normal; }
+.server-refresh { margin-top: 12px; padding: 9px; background-color: rgba(40, 58, 57, 0.5); color: rgb(194, 210, 197); border-width: 0; border-radius: 8px; font-size: 14px; }
+.server-refresh:hover { background-color: rgb(48, 71, 66); }

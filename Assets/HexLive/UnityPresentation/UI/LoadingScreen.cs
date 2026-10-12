@@ -194,12 +194,12 @@ namespace HexLive.UnityPresentation.UI
             _worlds = SaveGame.ListWorlds();
             _save = SaveGame.TryReadHeader();
             Updates.ClientUpdateService.Ensure();
-            BuildUi();
+            BuildUi(Platform.WebPage.IsWeb);
             Updates.ClientUpdateService.AcknowledgeMenu();
             StartCoroutine(Run());
         }
 
-        private void BuildUi()
+        private void BuildUi(bool serverSelection)
         {
             var document = gameObject.AddComponent<UIDocument>();
             // Own settings clone: 1080p-referenced scaling (the shared debug
@@ -260,6 +260,105 @@ namespace HexLive.UnityPresentation.UI
                 _root.Add(logoImage);
             }
 
+            if (serverSelection)
+            {
+                _menuBox = new ServerSelectionPanel(this, ConnectDirectoryServer, Platform.WebPage.PageServerUrl);
+                _root.Add(_menuBox);
+            }
+            else BuildLegacyMenu();
+
+            // Bottom gradient strip carrying the title/status/progress, so
+            // text stays readable over any art. Hidden while the menu is up.
+            var strip = new VisualElement
+            {
+                style =
+                {
+                    width = Length.Percent(100),
+                    paddingBottom = 28, paddingTop = 18,
+                    paddingLeft = 32, paddingRight = 32,
+                    backgroundColor = new Color(0f, 0f, 0f, 0.55f),
+                    alignItems = Align.Center,
+                    display = DisplayStyle.None
+                }
+            };
+            _progressStrip = strip;
+            _root.Add(strip);
+
+            // The centerpiece during the time-wind: a large, letter-spaced
+            // day + clock. Hidden until replay starts, so the other phases
+            // (island/warmup) keep the compact single-line status.
+            _timeReadout = new Label(string.Empty)
+            {
+                style =
+                {
+                    fontSize = 44,
+                    unityFontStyleAndWeight = FontStyle.Bold,
+                    letterSpacing = 3,
+                    color = new Color(0.96f, 0.93f, 0.86f, 1f),
+                    marginBottom = 6,
+                    display = DisplayStyle.None
+                }
+            };
+            strip.Add(_timeReadout);
+
+            _status = new Label("...")
+            {
+                style =
+                {
+                    fontSize = 14,
+                    unityFontStyleAndWeight = FontStyle.Normal,
+                    letterSpacing = 4,
+                    color = new Color(0.72f, 0.75f, 0.72f, 1f),
+                    marginBottom = 12
+                }
+            };
+            strip.Add(_status);
+
+            var barBack = new VisualElement
+            {
+                style =
+                {
+                    width = Length.Percent(60),
+                    height = 8,
+                    backgroundColor = new Color(1f, 1f, 1f, 0.15f),
+                    borderTopLeftRadius = 4, borderTopRightRadius = 4,
+                    borderBottomLeftRadius = 4, borderBottomRightRadius = 4,
+                    overflow = Overflow.Hidden
+                }
+            };
+            strip.Add(barBack);
+
+            _progressFill = new VisualElement
+            {
+                style =
+                {
+                    width = Length.Percent(0),
+                    height = Length.Percent(100),
+                    backgroundColor = new Color(0.95f, 0.75f, 0.35f, 1f)
+                }
+            };
+            barBack.Add(_progressFill);
+
+            document.rootVisualElement.Add(_root);
+        }
+
+        private void ConnectDirectoryServer(ServerDirectoryEntry entry)
+        {
+            if (Platform.WebPage.IsWeb && !entry.IsPageServer(Platform.WebPage.PageServerUrl))
+            {
+                // Account sessions and character ownership are server-local. Navigate without a token.
+                Application.OpenURL(entry.playUrl);
+                return;
+            }
+            ServerBook.Remember(entry.socketUrl);
+            SessionConfig.UseServer(entry.socketUrl, Platform.WebPage.AccountSessionToken);
+            _connectChosen = true;
+            _continueChosen = false;
+            _menuChosen = true;
+        }
+
+        private void BuildLegacyMenu()
+        {
             // Spec 41.4: the main menu — a compact dark card docked to the
             // bottom-left corner: icon rows over a dimmed rounded panel. The
             // world doesn't exist yet; buttons decide which world to build.
@@ -426,79 +525,6 @@ namespace HexLive.UnityPresentation.UI
             _root.Add(_worldLibraryBox);
             _root.Add(_newGameBox);
 
-            // Bottom gradient strip carrying the title/status/progress, so
-            // text stays readable over any art. Hidden while the menu is up.
-            var strip = new VisualElement
-            {
-                style =
-                {
-                    width = Length.Percent(100),
-                    paddingBottom = 28, paddingTop = 18,
-                    paddingLeft = 32, paddingRight = 32,
-                    backgroundColor = new Color(0f, 0f, 0f, 0.55f),
-                    alignItems = Align.Center,
-                    display = DisplayStyle.None
-                }
-            };
-            _progressStrip = strip;
-            _root.Add(strip);
-
-            // The centerpiece during the time-wind: a large, letter-spaced
-            // day + clock. Hidden until replay starts, so the other phases
-            // (island/warmup) keep the compact single-line status.
-            _timeReadout = new Label(string.Empty)
-            {
-                style =
-                {
-                    fontSize = 44,
-                    unityFontStyleAndWeight = FontStyle.Bold,
-                    letterSpacing = 3,
-                    color = new Color(0.96f, 0.93f, 0.86f, 1f),
-                    marginBottom = 6,
-                    display = DisplayStyle.None
-                }
-            };
-            strip.Add(_timeReadout);
-
-            _status = new Label("...")
-            {
-                style =
-                {
-                    fontSize = 14,
-                    unityFontStyleAndWeight = FontStyle.Normal,
-                    letterSpacing = 4,
-                    color = new Color(0.72f, 0.75f, 0.72f, 1f),
-                    marginBottom = 12
-                }
-            };
-            strip.Add(_status);
-
-            var barBack = new VisualElement
-            {
-                style =
-                {
-                    width = Length.Percent(60),
-                    height = 8,
-                    backgroundColor = new Color(1f, 1f, 1f, 0.15f),
-                    borderTopLeftRadius = 4, borderTopRightRadius = 4,
-                    borderBottomLeftRadius = 4, borderBottomRightRadius = 4,
-                    overflow = Overflow.Hidden
-                }
-            };
-            strip.Add(barBack);
-
-            _progressFill = new VisualElement
-            {
-                style =
-                {
-                    width = Length.Percent(0),
-                    height = Length.Percent(100),
-                    backgroundColor = new Color(0.95f, 0.75f, 0.35f, 1f)
-                }
-            };
-            barBack.Add(_progressFill);
-
-            document.rootVisualElement.Add(_root);
         }
 
         // Menu rows in the reference style: icon + label on a transparent

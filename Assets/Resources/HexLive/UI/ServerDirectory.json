@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "servers": [
+    {
+      "id": "singapore",
+      "nameTerm": "menu.servers.singapore",
+      "name": "Singapore",
+      "socketUrl": "wss://play.62-146-235-120.sslip.io/watch",
+      "playUrl": "https://play.62-146-235-120.sslip.io/play/",
+      "enabled": true
+    },
+    {
+      "id": "new-york",
+      "nameTerm": "menu.servers.newyork",
+      "name": "New York",
+      "socketUrl": "wss://163-245-204-96.sslip.io/watch",
+      "playUrl": "https://163-245-204-96.sslip.io/play/",
+      "enabled": false
+    }
+  ]
+}

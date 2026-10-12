@@ -117,6 +117,8 @@ public static class HexLiveWebGLPlayerBuild
             if (succeeded)
             {
                 CapDevicePixelRatio(Path.Combine(output, "index.html"));
+                File.Copy("Assets/Resources/HexLive/UI/ServerDirectory.json",
+                    Path.Combine(output, "server-directory.json"), overwrite: true);
             }
         }
         catch (Exception ex)

@@ -300,6 +300,11 @@ public sealed class ManualCraftingTests
     [TestCase("clothing.top_primal")]
     [TestCase("clothing.skirt_primal_male")]
     [TestCase("gear.backpack_primal_gatherer")]
+    [TestCase("gear.backpack_primal_hunter")]
+    [TestCase("gear.backpack_primal_trail")]
+    [TestCase("gear.backpack_primal_gatherer_male")]
+    [TestCase("gear.backpack_primal_hunter_male")]
+    [TestCase("gear.backpack_primal_trail_male")]
     public void PreparedWearBillCompletesAtWorkbenchThroughGenericCommand(string output)
     {
         var savedGarments = GarmentLibrary.Active.ToArray();

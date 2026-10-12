@@ -60,3 +60,25 @@ Browser Player6ea/protocol24 и content564 совместимы; повторн�
 native build logs, package/stage/activate scripts; test TRX находятся в
 `Build/MSIRelease/20261012-craft-release/`. После активации требуются настоящая
 игровая проверка звонка/отношений и живого roster; сейчас они не заявлены.
+
+## Активация — 2026-10-12T14:37:39Z
+
+Новое прямое поручение Толи: проверить крафт рюкзаков, commit/push и deploy
+на сервер. После свежего preflight Сингапур обновлён74b→1214; эта новая команда
+сняла ожидание разрешения выше. Обе Git ветки получили backpack test51ee15d38;
+server/runtime исходники после сборки1214 не менялись (проверено git diff).
+
+- Migration tick78107, playersOnly=true. Сохранён NPC1000000000,
+  удалён сгенерированныйNPC1. После сохранения аудит: только1000000000.
+- Тот же world/seed/topology, 2928 objects; pinned content564 и Player6ea сохранены.
+- Пять защищённых auth/account/env файлов побайтно прежние при операции.
+  Aggregate SHA voice bonds до/после offline migration одинаковый.
+- Public HTTPS relationship endpoint отвечает401 без токена (раньше404);
+  доступ владельца и отказ другому игроку проверены отдельным HTTP test.
+- После прогрева:2,27ms/tick,3,92TPS,1/1 alive. Это конкретное измерение,
+  а не обещание производительности в других состояниях.
+- Backup/квитанция: /var/lib/hexlive/ops/msi-player-only-20261012-1214a639a/
+  world-backup и activation-receipt.json. Old release74b сохранён для отката.
+
+Реальные голосовые звонки из аккаунта и полный игровой craft UI тест остаются
+проверкой игрока; статусы fixed не выставляются.

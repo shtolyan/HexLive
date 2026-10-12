@@ -6,7 +6,7 @@ their worktree, transport, base and publication restrictions are historical,
 not new instructions. Follow current AGENTS.md and direct user instructions.
 
 Latest handoff: voice-player-only-437-442.md. Runtime fixes are in common master;
-the server hotfix is staged and awaits explicit Singapore activation approval.
+the server hotfix was activated on Singapore after the user's new deployment order.
 craft-menu-440-441.md records the previous completed Player/content release.
 bug-435-body-paint.md separates local checks/source preservation from live QA.
 

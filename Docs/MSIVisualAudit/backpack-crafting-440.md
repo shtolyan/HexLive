@@ -24,3 +24,10 @@ a309de74171d470385412bfab01ffdab, pinned registry564; все6 recipes прису
 Файлы524 проверены по SHA, полный Server suite475/475 passed.
 Нужны свежий preflight и rollback; Player6ea/content564 остаются совместимыми.
 Квитанция фактической активации появится в ops/msi-player-only-20261012-1214a639a.
+
+Активация завершена2026-10-12T14:37:39Z: server1214 active, old74b retained,
+Player6ea/content564 unchanged. Повторная проверка effective world simdata
+подтвердила все6 рецептов после миграции. Own character и voice bonds сохранены;
+service steady2,27ms/tick/3,92TPS. Квитанция activation-receipt.json получена
+и сохранена также локально. Это не подтверждение игрокового live крафта,
+который расходовал бы реальные ресурсы аккаунта; такие приказы не выдавались.

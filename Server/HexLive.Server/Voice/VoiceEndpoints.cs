@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using HexLive.Simulation.Common;
+using HexLive.Simulation.Agents;
+using HexLive.Simulation.Runtime;
 using HexLive.VoiceBrain;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -33,10 +35,18 @@ public static class VoiceEndpoints
         var tools = new Mcp.McpTools(() => worlds.Host, () => worlds.CaptureViewerSession().WorldGeneration, leases, agents);
         bool Owns(string playerId, int npcId) => worlds.CaptureViewerSession().Assignments?.StillAssigned(playerId, npcId) == true;
         var voice = new VoiceBrainService(options, ticket => new InProcessWorldGateway(tools, ticket.OwnerUserId,
-            npc => ticket.OwnerUserId.StartsWith("ws:", StringComparison.Ordinal) && Owns(ticket.OwnerUserId[3..], npc)), log);
+            npc => ticket.WorldId == worlds.Host.WorldId && ticket.OwnerUserId.StartsWith("ws:", StringComparison.Ordinal) &&
+                Owns(ticket.OwnerUserId[3..], npc), () => worlds.Host), log);
         voice.MapCompletions(app, BrainPath);
         VoiceBrainService.MapClientScript(app, Root + "/client.js");
         var recent = new ConcurrentDictionary<string, (long Window, int Count)>();
+
+        app.MapGet(Root + "/relationship/{npcId:int}", (HttpContext c, int npcId) =>
+        {
+            if (!identity.TryResolve(c, out var playerId)) return Results.Unauthorized();
+            if (!Owns(playerId, npcId)) return Results.StatusCode(StatusCodes.Status403Forbidden);
+            return Results.Json(voice.RelationshipView(worlds.Host.WorldId + ":" + npcId, "ws:" + playerId));
+        });
 
         app.MapPost(Root + "/session", async (HttpContext c, VoiceSessionRequest request) =>
         {
@@ -80,8 +90,20 @@ public sealed record VoiceSessionRequest(int NpcId);
 public sealed record VoiceSessionEnd(string ConversationId, string Ticket);
 
 /// <summary>The MCP tool table called in-process, as the ticket's owner, scoped to their own characters.</summary>
-public sealed class InProcessWorldGateway(Mcp.McpTools tools, string owner, Func<int, bool> canAccessNpc) : IWorldGateway
+public sealed class InProcessWorldGateway(Mcp.McpTools tools, string owner, Func<int, bool> canAccessNpc,
+    Func<WorldHost>? currentHost = null) : IWorldGateway
 {
+    public Task RecordConversationAsync(int npcId, string turnId, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (!canAccessNpc(npcId)) throw new WorldToolRejectedException("NpcAccessDenied");
+        if (currentHost == null) throw new WorldToolRejectedException("ConversationRecorderUnavailable");
+        var result = currentHost().SubmitManualCommand(new RecordAgentSocialCommand(
+            new EntityId(npcId), turnId, CompanionReaction.Neutral));
+        if (!result.Accepted) throw new WorldToolRejectedException(result.Reason);
+        return Task.CompletedTask;
+    }
+
     public Task<JsonElement> CallAsync(string tool, object arguments, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();

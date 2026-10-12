@@ -56,4 +56,17 @@ public sealed class InProcessWorldGatewayTests
         Assert.That(read!.Message, Does.Contain("NpcAccessDenied"));
         Assert.ThrowsAsync<WorldToolRejectedException>(() => gateway.CallAsync("acquire_control", new { npcId = 2, ttlSeconds = 60 }, default));
     }
+
+    [Test]
+    public async Task VoiceConversationRaisesSocialExactlyOnceWithoutManualControl()
+    {
+        using var host = Host();
+        var gateway = new InProcessWorldGateway(new McpTools(host, new ControlLeases(45)), "ws:player", npc => npc == 1, () => host);
+        host.Read(w => { w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(1)].Needs.Social = .3f; return true; });
+        await gateway.RecordConversationAsync(1, "call-1-turn-1", default);
+        await gateway.RecordConversationAsync(1, "call-1-turn-1", default);
+        Assert.That(host.Read(w => w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(1)].Needs.Social), Is.EqualTo(.38f).Within(.0001f));
+        Assert.That(host.Read(w => w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(1)].Mind.ManualControl), Is.False);
+        Assert.ThrowsAsync<WorldToolRejectedException>(() => gateway.RecordConversationAsync(2, "foreign", default));
+    }
 }

@@ -14,6 +14,7 @@ public sealed class WorldToolRejectedException(string reason) : Exception(reason
 public interface IWorldGateway
 {
     Task<JsonElement> CallAsync(string tool, object arguments, CancellationToken token);
+    Task RecordConversationAsync(int npcId, string turnId, CancellationToken token) => Task.CompletedTask;
 }
 
 /// <summary>Prototype host: the game server's /mcp endpoint.</summary>

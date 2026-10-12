@@ -5,6 +5,7 @@ using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Platform;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UIElements;
 
 namespace HexLive.UnityPresentation.UI
@@ -48,6 +49,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void TickServerVoice()
         {
+            PollServerVoiceRelation();
             if (_serverVoice == null) return;
             _serverVoice.Pump();
             // The conversation belongs to the body it started with: switching selection,
@@ -63,6 +65,34 @@ namespace HexLive.UnityPresentation.UI
         }
 
         private float _callFailedUntil;
+        private bool _serverRelationRequestPending;
+        private float _serverRelationNextPoll;
+
+        private void PollServerVoiceRelation()
+        {
+            if (!ServerVoiceEligible || _serverRelationRequestPending || Time.unscaledTime < _serverRelationNextPoll) return;
+            _serverRelationNextPoll = Time.unscaledTime + 3f;
+            StartCoroutine(ReadServerVoiceRelation(_agentVoiceNpc!.Id.Value, SessionConfig.ControlToken!,
+                WebVoiceAgent.PageServerHttpBase()!));
+        }
+
+        private System.Collections.IEnumerator ReadServerVoiceRelation(int npcId, string bearer, string server)
+        {
+            _serverRelationRequestPending = true;
+            try
+            {
+                using var request = UnityWebRequest.Get(server.TrimEnd('/') + "/api/voice/v1/relationship/" + npcId);
+                request.SetRequestHeader("Authorization", "Bearer " + bearer);
+                request.SetRequestHeader("X-HexLive-Client-Id", SessionConfig.ClientId);
+                request.timeout = 10;
+                yield return request.SendWebRequest();
+                if (request.result != UnityWebRequest.Result.Success || !ServerVoiceEligible ||
+                    _agentVoiceNpc!.Id.Value != npcId || SessionConfig.ControlToken != bearer) yield break;
+                _agentAttachedNpcId = npcId;
+                ParseAgentRelation(request.downloadHandler.text);
+            }
+            finally { _serverRelationRequestPending = false; }
+        }
 
         /// <summary>
         /// Returns true when the button belongs to the call this frame. Three states in

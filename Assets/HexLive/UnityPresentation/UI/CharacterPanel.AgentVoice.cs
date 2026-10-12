@@ -178,6 +178,11 @@ namespace HexLive.UnityPresentation.UI
             if (_runner == null || !_runner.TryGetAgentState(npc.Id, out var state) || !state.Attached)
             {
                 _selectedAgentState = null;
+                if (ServerVoiceEligible)
+                {
+                    _agentAttachedNpcId = npc.Id.Value;
+                    return;
+                }
                 if (_agentAttachedNpcId == npc.Id.Value)
                 {
                     _agentAttachedNpcId = -1;
@@ -203,7 +208,7 @@ namespace HexLive.UnityPresentation.UI
                         ? _thoughtValue.text
                         : state.IntentSummary;
             }
-            ParseAgentRelation(state.RelationView);
+            if (!ServerVoiceEligible) ParseAgentRelation(state.RelationView);
             RefreshAgentJournal(state.JournalEntry, npc.Id.Value);
 
             if (_awaitingAgentTurn && state.Revision > _voiceSubmittedRevision &&

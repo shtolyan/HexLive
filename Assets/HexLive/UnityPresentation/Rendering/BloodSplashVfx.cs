@@ -73,6 +73,7 @@ public static class BloodSplashVfx
         var vfx = Object.Instantiate(prefab, origin,
             Quaternion.LookRotation(outward.normalized + Vector3.up * 0.35f));
         vfx.transform.localScale = Vector3.one * (actorScale * SizeScale);
+        BloodPalette.TintParticles(vfx);
         foreach (var ps in vfx.GetComponentsInChildren<ParticleSystem>(true))
         {
             var main = ps.main;

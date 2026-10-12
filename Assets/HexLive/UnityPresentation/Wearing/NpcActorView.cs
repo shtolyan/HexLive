@@ -2947,6 +2947,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             Quaternion.LookRotation(Vector3.down, root.forward), bone);
         vfx.transform.localScale = Vector3.one;
 
+        Rendering.BloodPalette.TintParticles(vfx);
 
         foreach (var ps in vfx.GetComponentsInChildren<UnityEngine.ParticleSystem>(true))
         {

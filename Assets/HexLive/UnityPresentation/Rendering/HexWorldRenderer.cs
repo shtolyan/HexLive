@@ -4834,7 +4834,11 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     // Флип идёт вокруг пивота (он у ног живой модели), поэтому
                     // перевёрнутое тело оказывается под землёй — прижать
                     // панцирем к грунту по фактическим границам.
-                    var lift = carcassRoot.transform.position.y - flippedBounds.min.y;
+                    // The rotated box includes empty corners below the shell.
+                    // Seat the actual static death geometry, not those corners.
+                    var contactY = ObjectFit.TryStaticMeshMinimumY(deadMob, out var vertexY)
+                        ? vertexY : flippedBounds.min.y;
+                    var lift = carcassRoot.transform.position.y - contactY;
                     deadMob.transform.position += Vector3.up * lift;
                 }
                 return carcassRoot;

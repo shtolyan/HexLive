@@ -37,13 +37,14 @@ public static class CrabCarcassScaleProof
         ObjectFit.WorldBounds(dead, out var deadBounds);
         var liveBody = live.transform.GetChild(0);
         var deadBody = dead.transform.GetChild(0);
-        Debug.Log($"CRAB_PROOF live={liveBounds.size:F6} dead={deadBounds.size:F6} liveScale={liveBody.localScale:F6} deadScale={deadBody.localScale:F6} groundError={deadBounds.min.y-dead.transform.position.y:F6}");
+        ObjectFit.TryStaticMeshMinimumY(dead, out var contactY);
+        Debug.Log($"CRAB_PROOF live={liveBounds.size:F6} dead={deadBounds.size:F6} liveScale={liveBody.localScale:F6} deadScale={deadBody.localScale:F6} groundError={contactY-dead.transform.position.y:F6}");
         var passed = Vector3.Distance(liveBody.localScale, deadBody.localScale) < 0.0001f &&
-                     Mathf.Abs(deadBounds.min.y - dead.transform.position.y) < 0.0001f &&
+                     Mathf.Abs(contactY - dead.transform.position.y) < 0.0001f &&
                      Mathf.Abs(Mathf.Max(deadBounds.size.x, deadBounds.size.z) - 0.24f) < 0.0001f;
         // Render the actual factory results together at identical camera scale.
         live.transform.position = new Vector3(-0.22f, 0, 0);
-        dead.transform.position = new Vector3(0.22f, -deadBounds.min.y + dead.transform.position.y, 0);
+        dead.transform.position = new Vector3(0.22f, 0, 0);
         var cameraGo = new GameObject("Proof camera");
         var camera = cameraGo.AddComponent<Camera>();
         camera.transform.position = new Vector3(0, 1.2f, -1.4f);

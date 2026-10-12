@@ -916,7 +916,7 @@
         "ThighR",
         "ThighL"
       ],
-      "noHide": [],
+      "noHide": ["Pelvis", "ThighR", "ThighL"],
       "materials": [
         {
           "source": "skirt",

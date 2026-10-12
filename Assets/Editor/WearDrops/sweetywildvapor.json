@@ -32,9 +32,7 @@
         "ThighR",
         "ThighL"
       ],
-      "noHide": [
-        "Pelvis"
-      ],
+      "noHide": ["Chest", "Belly", "Pelvis", "ThighR", "ThighL"],
       "materials": [
         {
           "source": "fur_plain",
@@ -83,7 +81,7 @@
         "warmth": 0.18,
         "armor": 0.0,
         "thermalDelta": 0.0,
-        "capacity": 0,
+        "capacity": 2,
         "covers": [
           "Torso",
           "Pelvis",
@@ -248,7 +246,7 @@
         "Chest",
         "Belly"
       ],
-      "noHide": [],
+      "noHide": ["Chest", "Belly"],
       "materials": [
         {
           "source": "dress",
@@ -295,7 +293,7 @@
         "warmth": 0.07,
         "armor": 0.0,
         "thermalDelta": 0.0,
-        "capacity": 0,
+        "capacity": 1,
         "covers": [
           "Torso"
         ]
@@ -587,7 +585,7 @@
       "slots": [
         "Pelvis"
       ],
-      "noHide": [],
+      "noHide": ["Pelvis"],
       "materials": [
         {
           "source": "skirt",

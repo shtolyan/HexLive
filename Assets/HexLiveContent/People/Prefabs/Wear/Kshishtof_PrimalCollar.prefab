@@ -570,7 +570,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Wear
   configs: []
   slots: 0400000009000000
-  noHideUnderwearSlots: 
+  noHideUnderwearSlots: 0400000009000000
   hideWearSlots: 
   layer: 2
   gender: 0

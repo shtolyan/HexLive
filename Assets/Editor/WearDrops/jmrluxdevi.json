@@ -1968,7 +1968,7 @@
       "slots": [
         "Pelvis"
       ],
-      "noHide": [],
+      "noHide": ["Pelvis"],
       "materials": [
         {
           "source": "Mat1",

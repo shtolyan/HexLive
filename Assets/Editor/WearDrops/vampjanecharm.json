@@ -535,7 +535,7 @@
         "ShinR",
         "ShinL"
       ],
-      "noHide": [],
+      "noHide": ["Pelvis", "ThighR", "ThighL", "ShinR", "ShinL"],
       "materials": [
         {
           "source": "waistband",

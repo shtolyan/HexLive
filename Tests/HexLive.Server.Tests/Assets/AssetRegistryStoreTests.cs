@@ -61,6 +61,71 @@ public sealed class AssetRegistryStoreTests
     }
 
     [Test]
+    public async Task ActiveWearRecipeTravelsInSimdataAndRetiringRemovesIt()
+    {
+        var basePath = Path.Combine(_root, "base.json");
+        File.WriteAllText(basePath, "{\"garments\":[],\"recipes\":[]}");
+        var published = await _store.PublishAsync(Candidate("wear", "clothing.top_primal", "top", hasIcon: true));
+        var catalog = new AssetGarmentCatalog(_store, basePath);
+        var metadata = new GarmentSimulationMetadata {
+            DisplayName = "Hide Wrap", PrototypeId = "clothing.top_primal", Layer = "Underwear", Sex = "Female",
+            Covers = new List<string> { "Torso" }, DressDurationTicks = 8,
+            Craft = new GarmentCraftMetadata { Inputs = new List<GarmentCraftInput> {
+                new() { Id = "resource.hide", Count = 1 }, new() { Id = "resource.rope", Count = 1 } } }
+        };
+        var record = _store.ReadCurrentRecord("wear", "clothing.top_primal")!;
+        await _store.UpdateRecordAsync(record.Type, record.Id, record.Revision, "active", catalog.WithSimulationMetadata(record, metadata));
+        var recipe = JsonNode.Parse(catalog.Materialize().Json)!["recipes"]!.AsArray().Single()!;
+        Assert.That(recipe["output"]!.GetValue<string>(), Is.EqualTo(record.Id));
+        Assert.That(recipe["station"]!.GetValue<string>(), Is.EqualTo("Workbench"));
+        Assert.That(recipe["inputs"]!.AsArray().Count, Is.EqualTo(2));
+        record = _store.ReadCurrentRecord(record.Type, record.Id)!;
+        await _store.UpdateRecordAsync(record.Type, record.Id, record.Revision, "retired", record.Metadata);
+        Assert.That(JsonNode.Parse(catalog.Materialize().Json)!["recipes"]!.AsArray(), Is.Empty);
+    }
+
+    [Test]
+    public void MalformedWearBillsAreRejectedBeforeCatalogActivation()
+    {
+        var craft = new GarmentCraftMetadata { Inputs = new List<GarmentCraftInput> {
+            new() { Id = "resource.hide", Count = 1 }, new() { Id = "resource.hide", Count = 2 } } };
+        Assert.Throws<InvalidDataException>(() => craft.Validate());
+        craft.Inputs.RemoveAt(1); craft.Inputs[0].Count = 0;
+        Assert.Throws<InvalidDataException>(() => craft.Validate());
+        craft.Inputs[0].Count = 1; craft.Station = "unknown";
+        Assert.Throws<InvalidDataException>(() => craft.Validate());
+    }
+
+    [Test]
+    public async Task PreparedCatalogMaterializesAllWearRecipesAlongsideBaseNonWearRecipes()
+    {
+        var repo = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repo != null && !File.Exists(Path.Combine(repo.FullName, "SimData", "simdata.json"))) repo = repo.Parent;
+        Assert.That(repo, Is.Not.Null);
+        using var source = JsonDocument.Parse(File.ReadAllText(Path.Combine(repo!.FullName,
+            "Assets", "HexLiveContent", "People", "catalog.json")));
+        var rows = source.RootElement.GetProperty("records").EnumerateArray()
+            .Where(r => r.GetProperty("type").GetString() == "wear").ToArray();
+        foreach (var row in rows)
+        {
+            var id = row.GetProperty("id").GetString()!;
+            var candidate = Candidate("wear", id, id, hasIcon: true);
+            candidate.Metadata["simulation"] = row.GetProperty("metadata").GetProperty("simulation").Clone();
+            await _store.PublishAsync(candidate);
+        }
+        var basePath = Path.Combine(_root, "base.json");
+        File.WriteAllText(basePath, "{\"garments\":[],\"recipes\":[{\"output\":\"resource.rope\"}]}");
+        var catalog = new AssetGarmentCatalog(_store, basePath);
+        var snapshot = catalog.Materialize(); var json = JsonNode.Parse(snapshot.Json)!;
+        Assert.That(rows.Length, Is.EqualTo(78));
+        Assert.That(snapshot.SpawnableWear, Is.EqualTo(78));
+        Assert.That(snapshot.UnconfiguredWear, Is.Zero);
+        Assert.That(json["recipes"]!.AsArray().Count, Is.EqualTo(79));
+        Assert.That(json["recipes"]!.AsArray().OfType<JsonObject>().Select(r => r["output"]!.GetValue<string>()),
+            Is.EquivalentTo(rows.Select(r => r.GetProperty("id").GetString()).Append("resource.rope")));
+    }
+
+    [Test]
     public async Task IconIsAnEntryOfOwningPayloadAndThereIsNoIconObjectType()
     {
         var result = await _store.PublishAsync(

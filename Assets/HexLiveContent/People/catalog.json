@@ -52,7 +52,21 @@
           "covers": [
             "ArmL",
             "ArmR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -84,7 +98,21 @@
           "covers": [
             "ArmL",
             "ArmR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -116,7 +144,21 @@
           "covers": [
             "ArmL",
             "ArmR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -148,7 +190,21 @@
           "covers": [
             "ArmL",
             "ArmR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -180,7 +236,21 @@
           "covers": [
             "ArmL",
             "ArmR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -212,7 +282,21 @@
           "covers": [
             "ArmL",
             "ArmR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -244,7 +328,21 @@
           "covers": [
             "ArmL",
             "ArmR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -276,7 +374,21 @@
           "covers": [
             "ArmL",
             "ArmR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -305,7 +417,17 @@
           "capacity": 1,
           "covers": [
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -334,7 +456,17 @@
           "capacity": 1,
           "covers": [
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -363,7 +495,17 @@
           "capacity": 1,
           "covers": [
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -392,7 +534,17 @@
           "capacity": 1,
           "covers": [
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -421,7 +573,17 @@
           "capacity": 1,
           "covers": [
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -450,7 +612,17 @@
           "capacity": 1,
           "covers": [
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -479,7 +651,17 @@
           "capacity": 1,
           "covers": [
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -508,7 +690,17 @@
           "capacity": 1,
           "covers": [
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -536,7 +728,17 @@
           "capacity": 0,
           "covers": [
             "Head"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -564,7 +766,17 @@
           "capacity": 0,
           "covers": [
             "Head"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -592,7 +804,17 @@
           "capacity": 0,
           "covers": [
             "Head"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -620,7 +842,17 @@
           "capacity": 0,
           "covers": [
             "Head"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -648,7 +880,17 @@
           "capacity": 0,
           "covers": [
             "Head"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -676,7 +918,17 @@
           "capacity": 0,
           "covers": [
             "Head"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -704,7 +956,17 @@
           "capacity": 0,
           "covers": [
             "Head"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -732,7 +994,17 @@
           "capacity": 0,
           "covers": [
             "Head"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -764,7 +1036,21 @@
           "covers": [
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -796,7 +1082,21 @@
           "covers": [
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -828,7 +1128,21 @@
           "covers": [
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -860,7 +1174,21 @@
           "covers": [
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -892,7 +1220,21 @@
           "covers": [
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -924,7 +1266,21 @@
           "covers": [
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -956,7 +1312,21 @@
           "covers": [
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -988,7 +1358,21 @@
           "covers": [
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1018,7 +1402,21 @@
           "covers": [
             "Torso",
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1048,7 +1446,21 @@
           "covers": [
             "Torso",
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1078,7 +1490,21 @@
           "covers": [
             "Torso",
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1108,7 +1534,21 @@
           "covers": [
             "Torso",
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1138,7 +1578,21 @@
           "covers": [
             "Torso",
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1168,7 +1622,21 @@
           "covers": [
             "Torso",
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1198,7 +1666,21 @@
           "covers": [
             "Torso",
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1228,7 +1710,21 @@
           "covers": [
             "Torso",
             "Pelvis"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1256,7 +1752,21 @@
           "capacity": 2,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1284,7 +1794,21 @@
           "capacity": 2,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1312,7 +1836,21 @@
           "capacity": 2,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1340,7 +1878,21 @@
           "capacity": 2,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1375,7 +1927,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1410,7 +1976,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1445,7 +2025,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1480,7 +2074,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1515,7 +2123,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1550,7 +2172,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1585,7 +2221,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1620,7 +2270,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1655,7 +2319,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1690,7 +2368,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1725,7 +2417,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1760,7 +2466,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1795,7 +2515,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1830,7 +2564,21 @@
             "Pelvis",
             "LegL",
             "LegR"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -1859,7 +2607,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -1888,7 +2646,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -1917,7 +2685,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -1946,7 +2724,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -1975,7 +2763,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2004,7 +2802,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2033,7 +2841,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2062,7 +2880,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2091,7 +2919,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2120,7 +2958,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2149,7 +2997,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2178,7 +3036,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2207,7 +3075,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2236,7 +3114,17 @@
           "capacity": 0,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2424,7 +3312,21 @@
           "capacity": 9,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2452,7 +3354,21 @@
           "capacity": 9,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2480,7 +3396,21 @@
           "capacity": 9,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2508,7 +3438,21 @@
           "capacity": 9,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2536,7 +3480,21 @@
           "capacity": 9,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },
@@ -2564,7 +3522,21 @@
           "capacity": 9,
           "covers": [
             "Torso"
-          ]
+          ],
+          "craft": {
+            "station": "Workbench",
+            "baseWorkTicks": 24,
+            "inputs": [
+              {
+                "id": "resource.hide",
+                "count": 3
+              },
+              {
+                "id": "resource.rope",
+                "count": 2
+              }
+            ]
+          }
         }
       }
     },

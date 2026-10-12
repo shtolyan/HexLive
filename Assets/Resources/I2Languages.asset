@@ -28709,6 +28709,70 @@ MonoBehaviour:
       - 'Нью-Йорк'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'craft.category.all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'All'
+      - 'Все'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.clothing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clothing'
+      - 'Одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.prosthetics'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Prosthetics'
+      - 'Протезы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.tools'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Tools & supplies'
+      - 'Инструменты и припасы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.resources'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Resources'
+      - 'Ресурсы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.food'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Food'
+      - 'Еда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.other'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Other'
+      - 'Другое'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.close'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Close'
+      - 'Закрыть'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

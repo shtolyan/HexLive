@@ -99,7 +99,9 @@ public sealed class CharacterDollAndInventoryUiContractTests
             Assert.That(source, Does.Contain("_relationWindowAnchorId"));
             Assert.That(source, Does.Contain("b.LastInteractionTick.CompareTo(a.LastInteractionTick)"));
             Assert.That(source, Does.Not.Contain("var maxTabs = Mathf.Min(relations.Count, 5)"));
-            Assert.That(source, Does.Not.Contain("new ScrollView(ScrollViewMode.Vertical)"));
+            // The flat backpack remains fixed. Bug #440 adds an independent
+            // scroll viewport only for the much larger recipe collection.
+            Assert.That(source, Does.Contain("new ScrollView(ScrollViewMode.Vertical) { name = \"craft-recipe-scroll\" }"));
             Assert.That(source, Does.Not.Contain("_inventoryScroll"));
             Assert.That(source, Does.Not.Contain("_invLeftColumn"));
             Assert.That(source, Does.Not.Contain("_invCenterColumn"));

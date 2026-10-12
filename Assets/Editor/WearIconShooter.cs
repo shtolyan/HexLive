@@ -21,6 +21,119 @@ using UnityEngine;
 /// </summary>
 internal static class WearIconShooter
 {
+    // Exact prepared garments only; never reshoot existing author art or mutate material assets.
+    public static void RenderPreparedMissing()
+    {
+        var rows = (Newtonsoft.Json.Linq.JArray)Newtonsoft.Json.Linq.JObject.Parse(
+            File.ReadAllText("Assets/HexLiveContent/People/catalog.json"))["records"];
+        var shot = new List<string>();
+        var log = new System.Text.StringBuilder();
+        foreach (var row in rows)
+        {
+            if ((string)row["type"] != "wear") continue;
+            var id = (string)row["id"];
+            var target = "Assets/HexLiveContent/Icons/" + id + ".png";
+            if (File.Exists(target)) continue;
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>((string)row["main"]);
+            var renderer = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true).Single();
+            if (!Write(target, renderer.sharedMesh, renderer.sharedMaterials, shot, log, id))
+                throw new System.InvalidOperationException("Missing prepared icon: " + id);
+        }
+        AssetDatabase.Refresh();
+        foreach (var path in shot) ApplySpriteImport(path);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[PreparedIcons] rendered " + shot.Count + "\n" + log);
+    }
+
+    // Export imported meshes/materials, including prefab overrides, for the
+    // fixed Blender tool camera. Both inputs and owners are explicitly scoped.
+    public static void ExportOwnerIconSources()
+    {
+        var args = System.Environment.GetCommandLineArgs();
+        string Argument(string flag)
+        {
+            var index = System.Array.IndexOf(args, flag);
+            if (index < 0 || index + 1 >= args.Length) throw new System.ArgumentException("Required: " + flag);
+            return args[index + 1];
+        }
+        var output = Path.GetFullPath(Argument("-icon-output")); Directory.CreateDirectory(output);
+        var owners = new HashSet<string>(Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(
+            File.ReadAllText(Argument("-icon-owners"))));
+        var rows = (Newtonsoft.Json.Linq.JArray)Newtonsoft.Json.Linq.JObject.Parse(
+            File.ReadAllText(Argument("-icon-inventory")))["records"];
+        var count = 0;
+        foreach (var row in rows)
+        {
+            var type = (string)row["type"]; var id = (string)row["id"];
+            if (type != "object" && type != "prosthetic") continue;
+            if (!owners.Remove(type + "/" + id)) continue;
+            var iconId = type == "prosthetic" ? "prosthetic_" + id.Replace('.', '_') : id;
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>((string)row["main"]);
+            if (source == null) throw new System.InvalidOperationException("No icon model: " + id);
+            var combine = new List<CombineInstance>(); var materials = new List<Material>();
+            foreach (var renderer in source.GetComponentsInChildren<Renderer>(true))
+            {
+                var mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh : renderer.GetComponent<MeshFilter>()?.sharedMesh;
+                if (mesh == null) continue;
+                for (var sub = 0; sub < mesh.subMeshCount; sub++)
+                {
+                    combine.Add(new CombineInstance { mesh = mesh, subMeshIndex = sub,
+                        transform = renderer.transform.localToWorldMatrix });
+                    materials.Add(renderer.sharedMaterials[Mathf.Min(sub, renderer.sharedMaterials.Length - 1)]);
+                }
+            }
+            var merged = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            try
+            {
+                if (combine.Count == 0) throw new System.InvalidOperationException("Empty icon model: " + id);
+                merged.CombineMeshes(combine.ToArray(), false, true); merged.RecalculateBounds();
+                ExportObj(Path.Combine(output, iconId), merged, materials.ToArray()); count++;
+            }
+            finally { Object.DestroyImmediate(merged); }
+        }
+        if (owners.Count > 0) throw new System.ArgumentException("Unknown icon owners: " + string.Join(",", owners));
+        Debug.Log("[OwnerIcons] exported " + count);
+    }
+
+    private static void ExportObj(string target, Mesh mesh, Material[] materials)
+    {
+        string Number(float value) => value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        var obj = new System.Text.StringBuilder("mtllib " + Path.GetFileName(target) + ".mtl\n");
+        // OBJ is right-handed; import_scene.obj / wm.obj_import converts Y-up to Z-up.
+        foreach (var vertex in mesh.vertices) obj.AppendLine($"v {Number(vertex.x)} {Number(vertex.y)} {Number(-vertex.z)}");
+        foreach (var uv in mesh.uv) obj.AppendLine($"vt {Number(uv.x)} {Number(uv.y)}");
+        foreach (var normal in mesh.normals) obj.AppendLine($"vn {Number(normal.x)} {Number(normal.y)} {Number(-normal.z)}");
+        var hasUv = mesh.uv.Length == mesh.vertexCount;
+        var hasNormals = mesh.normals.Length == mesh.vertexCount;
+        string Index(int index) => !hasUv && !hasNormals ? (index + 1).ToString()
+            : (index + 1) + (hasUv ? "/" + (index + 1) : "/") + (hasNormals ? "/" + (index + 1) : "");
+        var mtl = new System.Text.StringBuilder();
+        for (var sub = 0; sub < mesh.subMeshCount; sub++)
+        {
+            obj.AppendLine("usemtl material" + sub);
+            var triangles = mesh.GetTriangles(sub);
+            for (var i = 0; i < triangles.Length; i += 3)
+                obj.AppendLine($"f {Index(triangles[i])} {Index(triangles[i + 2])} {Index(triangles[i + 1])}");
+            var material = materials[sub];
+            var color = material.HasProperty("_BaseColor") ? material.GetColor("_BaseColor") : material.color;
+            mtl.AppendLine($"newmtl material{sub}\nKd {Number(color.r)} {Number(color.g)} {Number(color.b)}\nd 1");
+            var texture = material.HasProperty("_BaseMap") ? material.GetTexture("_BaseMap") : material.mainTexture;
+            if (texture == null) continue;
+            var previous = RenderTexture.active;
+            var rt = RenderTexture.GetTemporary(texture.width, texture.height, 0, RenderTextureFormat.ARGB32);
+            var copy = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false);
+            try
+            {
+                Graphics.Blit(texture, rt); RenderTexture.active = rt;
+                copy.ReadPixels(new Rect(0, 0, texture.width, texture.height), 0, 0); copy.Apply();
+                var name = Path.GetFileName(target) + "_" + sub + ".png";
+                File.WriteAllBytes(Path.Combine(Path.GetDirectoryName(target), name), copy.EncodeToPNG());
+                mtl.AppendLine("map_Kd " + name);
+            }
+            finally { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(rt); Object.DestroyImmediate(copy); }
+        }
+        File.WriteAllText(target + ".obj", obj.ToString()); File.WriteAllText(target + ".mtl", mtl.ToString());
+    }
     private const string WearRoot = "Assets/HexLiveContent/Wear";
     private const string IconRoot = "Assets/HexLiveContent/Icons";
     private const int Size = 512;
@@ -162,10 +275,10 @@ internal static class WearIconShooter
         return true;
     }
 
-    private static byte[] Capture(Mesh mesh, Material[] materials)
+    private static byte[] Capture(Mesh mesh, Material[] materials, bool framePairs = true)
     {
-        var onBlack = Render(mesh, materials, Color.black);
-        var onWhite = Render(mesh, materials, Color.white);
+        var onBlack = Render(mesh, materials, Color.black, framePairs);
+        var onWhite = Render(mesh, materials, Color.white, framePairs);
         if (onBlack == null || onWhite == null)
         {
             return null;
@@ -204,12 +317,12 @@ internal static class WearIconShooter
 
     // PreviewRenderUtility rather than a scene camera: it is the one path that
     // renders correctly in edit mode under URP, and it touches no open scene.
-    private static Texture2D Render(Mesh mesh, Material[] materials, Color backdrop)
+    private static Texture2D Render(Mesh mesh, Material[] materials, Color backdrop, bool framePairs)
     {
         var preview = new PreviewRenderUtility();
         try
         {
-            var bounds = OneOfAPair(mesh);
+            var bounds = framePairs ? OneOfAPair(mesh) : mesh.bounds;
             var radius = Mathf.Max(bounds.extents.magnitude, 0.001f);
             var camera = preview.camera;
             camera.fieldOfView = 30f;
@@ -335,6 +448,7 @@ internal static class WearIconShooter
         }
 
         importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = SpriteImportMode.Single;
         importer.alphaIsTransparency = true;
         importer.mipmapEnabled = false;
         importer.SaveAndReimport();

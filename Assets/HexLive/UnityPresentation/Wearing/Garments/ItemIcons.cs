@@ -17,6 +17,7 @@ public static class ItemIcons
     private static readonly HashSet<string> Loading = new();
     private static readonly HashSet<string> Missing = new();
     private static HashSet<string> _wearIds;
+    public static int Revision { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
@@ -27,6 +28,7 @@ public static class ItemIcons
         Loading.Clear();
         Missing.Clear();
         _wearIds = null;
+        Revision = 0;
     }
 
     public static string Address(string id)
@@ -120,12 +122,15 @@ public static class ItemIcons
                 loaded?.Dispose();
             }
             Loading.Remove(cacheId);
+            Revision++;
             ContentQueue.End(ContentQueue.Kind.Icon);
         });
     }
 
     private static (string Type, string Id) Owner(string id)
     {
+        if (ProstheticContent.TryWorldDropObjectId(id, 0, out var prostheticId))
+            return ("prosthetic", prostheticId);
         // A crafted garment with no bundle of its own shows its donor's icon
         // (WearArtAliases) — the emoji fallback read as "item lost".
         if (WearArtAliases.IsAliased(id))
@@ -136,7 +141,7 @@ public static class ItemIcons
         {
             return ("wear", id);
         }
-        foreach (var type in new[] { "object", "building", "mob" })
+        foreach (var type in new[] { "object", "prosthetic", "building", "mob" })
         {
             if (ContentAssetService.Instance.TryGetRecord(type, id, out _))
             {

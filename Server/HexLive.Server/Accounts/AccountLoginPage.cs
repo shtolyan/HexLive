@@ -16,7 +16,10 @@ public static class AccountLoginPage
         using var stream = typeof(AccountLoginPage).Assembly.GetManifestResourceStream("HexLive.Accounts.Login.html")
             ?? throw new InvalidOperationException("Missing embedded login page.");
         using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
+        // The CSP hashes below must equal what the browser hashes, and an HTML parser turns
+        // CRLF into LF before hashing an inline block. A CRLF copy of the page (Singapore
+        // build, 12.10.2026) blocked its own style and script: an unstyled, dead login page.
+        return reader.ReadToEnd().Replace("\r\n", "\n").Replace('\r', '\n');
     });
 
     private static string Hashes(string tag) => string.Join(" ",

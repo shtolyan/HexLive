@@ -241,8 +241,7 @@ namespace HexLive.UnityPresentation.Config
             return stats;
         }
 
-        // The recipe declared on this item's card → RecipeCatalog (the craft
-        // must have a goal-layer verb; unknown outputs are ignored there).
+        // §138.6: the recipe on this card registers by output id, including new items.
         public void ApplyRecipe()
         {
             if (!craftable || craftIngredients == null || craftIngredients.Length == 0)

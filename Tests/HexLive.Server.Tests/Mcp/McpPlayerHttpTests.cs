@@ -84,6 +84,19 @@ public sealed class McpPlayerHttpTests
                 Assert.That(list.GetProperty("colonists")[0].GetProperty("npcId").GetInt32(), Is.EqualTo(ids[0]));
                 var blocked = await Call(client, "describe_colonist", new { npcId = ids[2] });
                 Assert.That(blocked.GetProperty("error").GetString(), Is.EqualTo("NpcAccessDenied"));
+                // §138.6.1: a fresh authenticated MCP session keeps the player's
+                // craft identity, while acquiring its own lease again.
+                await Call(client, "acquire_npc_control", new { npcId = ids[0] });
+                var craft = new { npcId = ids[0], outputId = "unknown.fixture", requestId = "reconnect" };
+                var receipt = await Call(client, "craft_item", craft);
+                await Call(client, "release_control", new { npcId = ids[0] });
+                client.DefaultRequestHeaders.Remove("Mcp-Session-Id");
+                using var reconnect = await client.PostAsJsonAsync("/mcp", Rpc("initialize", new { protocolVersion = "2025-06-18" }));
+                reconnect.EnsureSuccessStatusCode();
+                client.DefaultRequestHeaders.Add("Mcp-Session-Id", reconnect.Headers.GetValues("Mcp-Session-Id").Single());
+                await Call(client, "acquire_npc_control", new { npcId = ids[0] });
+                Assert.That((await Call(client, "craft_item", craft)).GetRawText(), Is.EqualTo(receipt.GetRawText()));
+                Assert.That(worlds.Host.Read(w => w.CraftRequests[ids[0]].Receipts.Single().Owner), Is.EqualTo("ws:" + playerId));
                 if (gameToken)
                 {
                     Assert.That(File.Exists(Path.Combine(directory.FullName, "access.json")), Is.False, "No pairing or approval grant is needed for game tokens.");

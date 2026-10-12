@@ -50,6 +50,24 @@ public sealed class ShipwreckSurvivorTests
     }
 
     [Test]
+    public void WorldRecipeSwitchKeepsTheCastawayOutAndDefaultKeepsHer()
+    {
+        // §146.10: the scripted castaway is a per-world creation choice, never a static.
+        var off = Build();
+        off.CreationConfig = new WorldCreationConfig { ShipwreckSurvivorEnabled = false };
+        off.Tick = WorldBalance.DayLengthTicks * 6;
+        new ShipwreckSurvivorSystem().Run(off);
+        Assert.That(off.Entities.Npcs.ContainsKey(new EntityId(ShipwreckSurvivorSystem.SurvivorId)), Is.False);
+
+        var on = Build();
+        on.CreationConfig = new WorldCreationConfig();
+        on.Tick = WorldBalance.DayLengthTicks * 6;
+        new ShipwreckSurvivorSystem().Run(on);
+        Assert.That(on.Entities.Npcs.ContainsKey(new EntityId(ShipwreckSurvivorSystem.SurvivorId)), Is.True,
+            "a recipe that does not mention the castaway keeps the shipped story");
+    }
+
+    [Test]
     public void TreatedFedAndWateredCastawayJoinsThePlayerCamp()
     {
         var world = Build();

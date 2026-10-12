@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- §171.7: standalone prototype host — the brain talks to a game server over MCP. -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BaseOutputPath>../../Build/dotnet/bin/HexLive.VoiceBrain.Host/</BaseOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Update="wwwroot/**" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="../HexLive.VoiceBrain/HexLive.VoiceBrain.csproj" />
+  </ItemGroup>
+</Project>

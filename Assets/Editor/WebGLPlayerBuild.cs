@@ -147,6 +147,18 @@ public static class HexLiveWebGLPlayerBuild
                        throw new InvalidOperationException("FMOD settings have no PlatformWebGL entry.");
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic |
                     System.Reflection.BindingFlags.Public;
+        // Выключенная в настройках FMOD платформа (active: 0) берёт ВСЕ свойства
+        // у родителя (десктопа): v3–v8 уходили в браузер с буфером 1024×4 и без
+        // обработчика старта, хотя скрипт их «ставил» (замер ?perf=1, 11.10.2026).
+        // AffirmProperties включает платформу; свойства читаем ПОСЛЕ него.
+        var active = (bool)(typeof(FMODUnity.Platform).GetProperty("Active", flags)?.GetValue(platform) ??
+                            throw new InvalidOperationException("FMOD Platform.Active not found."));
+        if (!active)
+        {
+            (typeof(FMODUnity.Platform).GetMethod("AffirmProperties", flags) ??
+             throw new InvalidOperationException("FMOD Platform.AffirmProperties not found.")).Invoke(platform, null);
+            Debug.Log("[WebGLBuild] FMOD WebGL platform was inactive — activated");
+        }
         var properties = typeof(FMODUnity.Platform).GetField("Properties", flags)?.GetValue(platform) ??
                          throw new InvalidOperationException("FMOD Platform.Properties not found.");
         void Set(string name, int value)
@@ -162,9 +174,23 @@ public static class HexLiveWebGLPlayerBuild
         // «дребезг» (жалоба 10.10.2026). Задержка эффектов терпима.
         Set("DSPBufferLength", 2048);
         Set("DSPBufferCount", 4);
+
+        // §168.6: обработчик старта FMOD для браузера (частота микшера под
+        // устройство, полевые переключатели из URL) — HexLive WebAudioTuning.
+        const string tuningPath = "Assets/HexLive/UnityPresentation/Audio/WebAudioTuning.asset";
+        var tuning = AssetDatabase.LoadAssetAtPath<HexLive.UnityPresentation.Audio.WebAudioTuning>(tuningPath);
+        if (tuning == null)
+        {
+            tuning = ScriptableObject.CreateInstance<HexLive.UnityPresentation.Audio.WebAudioTuning>();
+            AssetDatabase.CreateAsset(tuning, tuningPath);
+        }
+        var handler = properties.GetType().GetField("CallbackHandler", flags)?.GetValue(properties) ??
+                      throw new InvalidOperationException("FMOD property CallbackHandler not found.");
+        handler.GetType().GetField("Value", flags)!.SetValue(handler, tuning);
+        handler.GetType().GetField("HasValue", flags)!.SetValue(handler, true);
         EditorUtility.SetDirty(settings);
         AssetDatabase.SaveAssets();
-        Debug.Log("[WebGLBuild] FMOD WebGL DSP buffer: 4 x 2048");
+        Debug.Log("[WebGLBuild] FMOD WebGL DSP buffer: 4 x 2048, callback WebAudioTuning");
     }
 
     /// <summary>

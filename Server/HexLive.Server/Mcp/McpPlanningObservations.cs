@@ -89,7 +89,11 @@ internal static class McpPlanningObservations
 
     public static string Recipes(string definitionId)
     {
-        var recipes = RecipeCatalog.ByGoal.Values.OrderBy(r => r.Goal.ToString(), StringComparer.Ordinal).ToArray();
+        // §138.6: retain code-owned furniture recipes and include data-only items.
+        var recipes = RecipeCatalog.ByGoal.Values.Where(r => string.IsNullOrEmpty(r.OutputDefinitionId))
+            .Concat(RecipeCatalog.ByOutput.Values)
+            .OrderBy(r => r.Goal.ToString(), StringComparer.Ordinal)
+            .ThenBy(r => r.OutputDefinitionId, StringComparer.Ordinal).ToArray();
         var catalog = recipes.Select(r => new
         {
             goal = r.Goal.ToString(), outputDefinitionId = r.OutputDefinitionId,

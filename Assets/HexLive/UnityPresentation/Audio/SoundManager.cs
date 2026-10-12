@@ -283,7 +283,15 @@ namespace HexLive.UnityPresentation.Audio
         // ------------------------------------------------------------------
         // Frame pump: listener, delayed shots, island ambience.
         // ------------------------------------------------------------------
+        // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
         private void LateUpdate()
+        {
+            var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+            LateUpdateCore();
+            HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.SoundLateUpdate, perfStart);
+        }
+
+        private void LateUpdateCore()
         {
             var cam = Camera.main;
             if (cam != null)

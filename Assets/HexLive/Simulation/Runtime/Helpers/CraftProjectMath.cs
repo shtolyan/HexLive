@@ -60,8 +60,8 @@ internal static class CraftProjectMath
         WorldState world, NPCState npc, GoalType goal, WorldObjectState station)
     {
         if (!RecipeCatalog.UsesPersistentProject(goal) ||
-            !RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe) ||
-            !StationMatches(world, station, recipe.Station))
+            !RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe) ||
+            !StationMatches(world, station, recipe))
         {
             return false;
         }
@@ -141,7 +141,7 @@ internal static class CraftProjectMath
         out WorldObjectState source)
     {
         source = null;
-        var output = RecipeCatalog.OutputOf(goal);
+        var output = RecipeCatalog.OutputOf(goal, npc.Plan.TargetItemDefinitionId);
         if (string.IsNullOrEmpty(output)) return false;
 
         foreach (var perceived in npc.Perception.Objects)
@@ -214,14 +214,16 @@ internal static class CraftProjectMath
     }
 
     internal static WorldObjectState FindReachableProject(
-        WorldState world, NPCState npc, GoalType goal)
+        WorldState world, NPCState npc, GoalType goal, string outputId = null)
     {
-        var output = RecipeCatalog.OutputOf(goal);
+        var output = RecipeCatalog.OutputOf(goal, outputId ?? npc.Plan.TargetItemDefinitionId);
         WorldObjectState best = null;
         var bestDistance = int.MaxValue;
         foreach (var candidate in world.Entities.Objects.Values)
         {
-            if (PinnedProject(npc, goal) is { } exact && candidate.Id != exact) continue;
+            // §138.6: an exact-project order for another output cannot pin this query.
+            if ((goal != GoalType.CraftItem || npc.Plan.TargetItemDefinitionId == output) &&
+                PinnedProject(npc, goal) is { } exact && candidate.Id != exact) continue;
             if (!candidate.IsCraftProject || candidate.DefinitionId != output ||
                 !candidate.Fragment.Equals(npc.Fragment) ||
                 (candidate.IsOccupied && candidate.CurrentUser != npc.Id))
@@ -254,9 +256,9 @@ internal static class CraftProjectMath
         out WorldObjectState project)
     {
         project = null;
-        if (!RecipeCatalog.ByGoal.TryGetValue(goal, out var recipe) ||
+        if (!RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe) ||
             !RecipeCatalog.UsesPersistentProject(goal) ||
-            !StationMatches(world, station, recipe.Station))
+            !StationMatches(world, station, recipe))
         {
             return false;
         }
@@ -308,7 +310,7 @@ internal static class CraftProjectMath
         if (npc.Execution.CraftProjectId is not { } projectId ||
             !world.Entities.Objects.TryGetValue(projectId, out var project) ||
             project.CraftWorkRequired <= 0 ||
-            project.DefinitionId != RecipeCatalog.OutputOf(goal) ||
+            project.DefinitionId != RecipeCatalog.OutputOf(goal, npc.Plan.TargetItemDefinitionId) ||
             !project.IsOccupied ||
             project.CurrentUser != npc.Id)
         {
@@ -432,7 +434,7 @@ internal static class CraftProjectMath
     internal static WorldObjectState FindStationForGoal(
         WorldState world, NPCState npc, GoalType goal)
     {
-        var tag = RecipeCatalog.StationOf(goal);
+        var tag = RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe) ? recipe.Station : "";
         if (string.IsNullOrEmpty(tag)) return null;
         WorldObjectState best = null;
         var bestDistance = int.MaxValue;
@@ -455,8 +457,8 @@ internal static class CraftProjectMath
         WorldState world, NPCState npc, GoalType goal, Recipe recipe, WorldObjectState station)
     {
         if (!HasAtomicBill(world, npc, recipe, station)) return null;
-        var outputId = RecipeCatalog.OutputOf(goal);
-        if (string.IsNullOrEmpty(outputId)) return null;
+        var outputId = recipe.OutputDefinitionId;
+        if (string.IsNullOrEmpty(outputId) || !world.Content.ObjectDefinitions.ContainsKey(outputId)) return null;
 
         var anchor = station is not null && station.Junctions.Count > 0
             ? station.Junctions[0]
@@ -550,7 +552,7 @@ internal static class CraftProjectMath
         bool requireNearby, out WorldObjectState project)
     {
         project = null;
-        var output = RecipeCatalog.OutputOf(goal);
+        var output = RecipeCatalog.OutputOf(goal, npc.Plan.TargetItemDefinitionId);
         var bestDistance = int.MaxValue;
         foreach (var candidate in world.Entities.Objects.Values)
         {
@@ -595,8 +597,11 @@ internal static class CraftProjectMath
     }
 
     private static bool StationMatches(
-        WorldState world, WorldObjectState station, string stationTag)
+        WorldState world, WorldObjectState station, Recipe recipe)
     {
+        var stationTag = recipe.Station;
+        if (recipe.NeedsLitFire && (station == null || station.ResourceAmount <= 0f)) return false;
+        if (recipe.RequiresNoRack && DecisionSystem.RackExists(world)) return false;
         if (string.IsNullOrEmpty(stationTag)) return station is null;
         return station is not null &&
             world.Content.ObjectDefinitions.TryGetValue(station.DefinitionId, out var definition) &&

@@ -92,7 +92,15 @@ namespace HexLive.UnityPresentation.UI
             PointerOverMap = false;
         }
 
+        // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
         private void Update()
+        {
+            var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+            UpdateCore();
+            HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.TacticalMapUpdate, perfStart);
+        }
+
+        private void UpdateCore()
         {
             ResolveDependencies();
             RefreshMapFrame();

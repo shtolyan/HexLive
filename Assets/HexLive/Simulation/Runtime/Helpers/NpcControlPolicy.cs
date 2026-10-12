@@ -56,7 +56,7 @@ internal static class NpcControlPolicy
     /// из принятой команды.
     /// </summary>
     public static bool IsManualCraftGoal(GoalType goal) =>
-        Content.RecipeCatalog.ByGoal.ContainsKey(goal);
+        goal == GoalType.CraftItem || Content.RecipeCatalog.ByGoal.ContainsKey(goal);
 
     /// <summary>
     /// ⭐ §121.9: социальные и само-приказы носят РОДНУЮ цель (как крафт §138) —

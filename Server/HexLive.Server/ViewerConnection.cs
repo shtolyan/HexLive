@@ -613,7 +613,7 @@ public sealed class ViewerConnection
             return;
         }
 
-        var admission = _host.SubmitManualCommand(command);
+        var admission = _host.SubmitManualCommand(command, _controlOwner ?? "");
         await SendAsync(Frame.CommandResult(correlationId, admission), cancel)
             .ConfigureAwait(false);
     }

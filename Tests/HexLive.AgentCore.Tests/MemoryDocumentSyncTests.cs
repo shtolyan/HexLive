@@ -62,6 +62,22 @@ public sealed class MemoryDocumentSyncTests
         Assert.That(MemoryDocumentEdits.HasPending(_root), Is.False);
     }
 
+    [Test] public async Task ServerOwnedRelationshipsIgnoreEditedPercentagesButKeepEditedFacts()
+    {
+        // §171.5: whoever can edit the workspace cannot buy trust; the runtime's bounded steps still move it.
+        var store = new MashaMemoryStore(_root, authorMayEditRelationships: false); var world = await World(store);
+        await store.BindSpeakerAsync("server:alice", true, default);
+        var documents = new WorkspaceDocuments(_root);
+        await documents.SaveAsync(await documents.ReadAsync("USER.md"), "# Голос\n- Player's name is Алекс\n- Знакомство: 80%; доверие: 50%; привязанность: -20%.");
+        var bond = (await store.SnapshotAsync(default)).Speakers["server:alice"].Bond;
+        Assert.That((bond.Familiarity, bond.Trust, bond.Affinity), Is.EqualTo((0f, 0f, 0f)));
+        Assert.That((await store.BuildPromptContextAsync(world with { SpeakerKey = "server:alice" }, "Алекс", default)).Text, Does.Contain("Алекс"),
+            "the edited fact itself is still the author's to write");
+        await store.CommitTurnAsync(world with { SpeakerKey = "server:alice", MessageIds = ["warm"] }, "warm", "voice",
+            new() { RelationshipAssessment = new(false, RelationshipDirection.Increase, RelationshipDirection.Increase, false, "Помог") }, default);
+        Assert.That((await store.SnapshotAsync(default)).Speakers["server:alice"].Bond.Trust, Is.EqualTo(.03f).Within(.0001));
+    }
+
     [Test] public async Task AuthorRelationshipEditTargetsOnlyPrimaryAndDoesNotFreezeLaterAssessments()
     {
         var store = new MashaMemoryStore(_root); var world = await World(store);

@@ -21,10 +21,13 @@
 
   <ItemGroup>
     <ProjectReference Include="../../HexLive.Simulation.Standalone.csproj" />
+    <!-- §171.8: voice brain (ElevenLabs Agents custom LLM) hosted in-process. -->
+    <ProjectReference Include="../HexLive.VoiceBrain/HexLive.VoiceBrain.csproj" />
   </ItemGroup>
 
   <!-- §58.7: generated from canonical I2 terms; never a hand-authored C# name table. -->
   <ItemGroup>
+    <EmbeddedResource Include="Accounts/login.html" LogicalName="HexLive.Accounts.Login.html" />
     <EmbeddedResource Include="Mcp/npc-names.json" LogicalName="HexLive.Mcp.NpcNames.json" />
     <EmbeddedResource Include="Mcp/effect-terms.json" LogicalName="HexLive.Mcp.EffectTerms.json" />
   </ItemGroup>

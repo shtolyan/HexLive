@@ -178,7 +178,9 @@ public static class WorldSaveSerializer
     // Authority axis (§28.2) in every relationship record.
     // v79 (§55.5 / #417): per-vessel appearance, independent of safe water kind.
     // v81 (§54.21 / #429): ground harvest scatter; old objects remain orderly.
-    public const int BlobVersion = 81;
+    // v82 (§138.6.1): bounded craft request admission receipts, appended per world.
+    // v83 (§171.10): account character creation receipts and ownership recovery.
+    public const int BlobVersion = 83;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -519,6 +521,28 @@ public static class WorldSaveSerializer
                     w.Write(receipt.Outcome); w.Write(receipt.Reason);
                 }
                 if (version >= 76) { w.Write(pair.Value.RestNeed); w.Write(pair.Value.RestTarget); }
+            }
+        }
+        if (version >= 82)
+        {
+            w.Write(world.CraftRequests.Count);
+            foreach (var pair in world.CraftRequests.OrderBy(p => p.Key))
+            {
+                w.Write(pair.Key); w.Write(pair.Value.Receipts.Count);
+                foreach (var receipt in pair.Value.Receipts)
+                {
+                    w.Write(receipt.Owner); w.Write(receipt.RequestId); w.Write(receipt.OutputId);
+                    w.Write(receipt.Accepted); w.Write(receipt.Reason);
+                }
+            }
+        }
+        if (version >= 83)
+        {
+            w.Write(world.PlayerCharacterCreations.Count);
+            foreach (var receipt in world.PlayerCharacterCreations)
+            {
+                w.Write(receipt.PlayerId); w.Write(receipt.RequestId); w.Write(receipt.NpcId);
+                w.Write(receipt.Name); w.Write((int)receipt.Camp);
             }
         }
         w.Write(EndMarker);
@@ -1014,6 +1038,57 @@ public static class WorldSaveSerializer
                     ledger.ActiveSequence != 0 && !ledger.Receipts.Any(x => x.Sequence == ledger.ActiveSequence && x.Outcome == "accepted"))
                     throw new InvalidDataException("Invalid agent command ledger");
                 world.AgentCommands.Add(npcId, ledger);
+            }
+        }
+        world.CraftRequests.Clear();
+        if (version >= 82)
+        {
+            var count = ReadBoundedCount(r, 100000, "craft request ledgers");
+            for (var i = 0; i < count; i++)
+            {
+                var npcId = r.ReadInt32();
+                if (npcId <= 0 || world.CraftRequests.ContainsKey(npcId))
+                    throw new InvalidDataException("Invalid craft request ledger");
+                var ledger = new CraftRequestLedger();
+                var receipts = ReadBoundedCount(r, CraftRequestLedger.Capacity, "craft request receipts");
+                var keys = new HashSet<(string, string)>();
+                for (var j = 0; j < receipts; j++)
+                {
+                    var receipt = new CraftRequestReceipt { Owner = r.ReadString(), RequestId = r.ReadString(),
+                        OutputId = r.ReadString(), Accepted = r.ReadBoolean(), Reason = r.ReadString() };
+                    if (!CraftRequestLedger.ValidRequestId(receipt.RequestId) ||
+                        receipt.Owner.Length > CraftRequestLedger.MaxOwnerLength ||
+                        receipt.OutputId.Length > CraftRequestLedger.MaxOutputLength ||
+                        receipt.Reason.Length > CraftRequestLedger.MaxReasonLength ||
+                        receipt.Accepted && receipt.Reason.Length != 0 ||
+                        !receipt.Accepted && receipt.Reason.Length == 0 ||
+                        !keys.Add((receipt.Owner, receipt.RequestId)))
+                        throw new InvalidDataException("Invalid craft request receipt");
+                    ledger.Receipts.Add(receipt);
+                }
+                world.CraftRequests.Add(npcId, ledger);
+            }
+        }
+        world.PlayerCharacterCreations.Clear();
+        if (version >= 83)
+        {
+            var count = ReadBoundedCount(r, Bootstrap.PlayerCharacterCreation.ReceiptCapacity, "player creation receipts");
+            var keys = new HashSet<(string, string)>();
+            var ids = new HashSet<int>();
+            for (var i = 0; i < count; i++)
+            {
+                var receipt = new Bootstrap.PlayerCharacterCreationReceipt {
+                    PlayerId = r.ReadString(), RequestId = r.ReadString(), NpcId = r.ReadInt32(),
+                    Name = r.ReadString(), Camp = (Agents.Faction)r.ReadInt32() };
+                if (!System.Guid.TryParseExact(receipt.PlayerId, "N", out _) ||
+                    !System.Guid.TryParseExact(receipt.RequestId, "N", out _) ||
+                    receipt.NpcId < Bootstrap.PlayerCharacterCreation.FirstNpcId ||
+                    string.IsNullOrWhiteSpace(receipt.Name) || receipt.Name.Length > 64 ||
+                    !Runtime.FactionRelations.IsGirlCamp(receipt.Camp) ||
+                    !keys.Add((receipt.PlayerId, receipt.RequestId)) || !ids.Add(receipt.NpcId))
+                    throw new InvalidDataException("Invalid player creation receipt");
+                world.PlayerCharacterCreations.Add(receipt);
+                if (world.Entities.Npcs.ContainsKey(new EntityId(receipt.NpcId))) world.PlayerControlledNpcs.Add(receipt.NpcId);
             }
         }
         if (r.ReadInt32() != EndMarker)

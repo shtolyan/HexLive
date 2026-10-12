@@ -135,7 +135,7 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
 
         return true;
     }
-    internal static NPCState CreateArrival(WorldState world, EntityId id, Faction faction, PopulationArrivalMath.Landing landing)
+    internal static NPCState CreateArrival(WorldState world, EntityId id, Faction faction, PopulationArrivalMath.Landing landing, CharacterCreationConfig character = null)
     {
         var look = PopulationArrivalMath.RollFemaleLook(world, id.Value);
         var npc = new NPCState
@@ -174,6 +174,20 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
         // bottle and light female clothes drawn from the live garment catalog.
         npc.Inventory.Items.Add(new ItemInstance(GearCatalog.Bottle));
         RaidSpawnWardrobe.EquipFemale(world, npc);
+        if (character != null)
+        {
+            npc.DisplayName = character.Name;
+            npc.ActorMesh = character.Body; npc.SkinSet = character.Skin;
+            npc.Hairstyle = character.Hair; npc.HairColour = character.HairColour;
+            npc.EyeColor = character.Eyes; npc.VoiceBank = character.Voice;
+            npc.Traits.Clear();
+            foreach (var trait in character.Traits) npc.Traits.Add(System.Enum.Parse<TraitKind>(trait));
+            foreach (var value in character.Attributes) npc.Attributes.Set(System.Enum.Parse<AttributeKind>(value.Id), value.Value);
+            foreach (var value in character.Skills) npc.Skills.Set(System.Enum.Parse<SkillKind>(value.Id), value.Value);
+            npc.WornItems.Clear();
+            foreach (var item in PlayerCharacterCreation.StartingClothing(character.Body))
+                npc.WornItems.Add(new ItemInstance(item) { OwnerId = id.Value });
+        }
         EquipmentMath.Recalculate(world, npc);
 
         PopulationArrivalMath.AddToWorld(world, npc, landing.Junction);

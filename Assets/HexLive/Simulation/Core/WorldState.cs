@@ -9,6 +9,8 @@ namespace HexLive.Simulation.Core
 
 public sealed class WorldState
 {
+    // §171.10: creation and ownership recovery journal, private to the host/save.
+    public System.Collections.Generic.List<Bootstrap.PlayerCharacterCreationReceipt> PlayerCharacterCreations { get; } = new();
     public Bootstrap.WorldCreationConfig CreationConfig { get; set; }
     /// <summary>
     /// Runtime-only monotonic clock. The engine replaces the default instance
@@ -53,6 +55,8 @@ public sealed class WorldState
 
     public SimulationEventBuffer Events { get; } = new();
     public System.Collections.Generic.Dictionary<int, AgentCommandLedger> AgentCommands { get; } = new();
+    // §138.6.1: saved admission journal; deliberately absent from the viewer snapshot.
+    public System.Collections.Generic.Dictionary<int, CraftRequestLedger> CraftRequests { get; } = new();
 
     /// <summary>
     /// Spec §30.14. Отладочный бортовой самописец: последние ~64 события каждого

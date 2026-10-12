@@ -119,6 +119,14 @@ public sealed class PlayerCharacterAssignments
         lock (_gate)
         {
             var record = FindOrAdd(canonicalPlayerId);
+            // §171.9: account death uses the same notice transition as §149.6,
+            // but a vacant slot waits for explicit character creation.
+            if (record.AccountCharacter)
+            {
+                characterLimit = 1;
+                // Accounts explicitly create a body; never consume a resident, even on first login.
+                assignable = Array.Empty<int>();
+            }
             var usedByOthers = new HashSet<int>();
             for (var i = 0; i < _players.Count; i++)
             {
@@ -171,14 +179,25 @@ public sealed class PlayerCharacterAssignments
     /// </summary>
     public IReadOnlyList<int> Reconcile(
         WorldHost host, string playerId, int characterLimit = DefaultCharacterLimit,
-        CancellationToken worldLifetime = default, int worldGeneration = 0)
+        CancellationToken worldLifetime = default, int worldGeneration = 0, bool accountCharacter = false)
     {
+        // Keep receipt recovery, roster capture and ownership projection on the same tick boundary.
+        return host.Read(_ => ReconcileAtBoundary(host, playerId, characterLimit, worldLifetime, worldGeneration, accountCharacter));
+    }
+
+    private IReadOnlyList<int> ReconcileAtBoundary(WorldHost host, string playerId, int characterLimit,
+        CancellationToken worldLifetime, int worldGeneration, bool accountCharacter)
+    {
+        var createdIds = host.Read(world => world.PlayerCharacterCreations.Select(r => r.NpcId).ToHashSet());
+        var creation = host.Read(world => world.PlayerCharacterCreations.LastOrDefault(r => r.PlayerId == playerId));
+        var isAccount = accountCharacter || creation != null;
+        lock (_gate) isAccount |= _players.Any(p => p.PlayerId == playerId && p.AccountCharacter);
         var custom = host.Read(world => world.CreationConfig == null ? null :
             (world.CreationConfig.CreatorPlayerId == playerId
-                ? world.Entities.Npcs.Values.Where(n => world.PlayerControlledNpcs.Contains(n.Id.Value) && FactionRelations.IsGirlCamp(n.Faction)).Select(n => n.Id.Value).OrderBy(id => id).ToArray()
+                ? world.Entities.Npcs.Values.Where(n => world.PlayerControlledNpcs.Contains(n.Id.Value) && !createdIds.Contains(n.Id.Value) && FactionRelations.IsGirlCamp(n.Faction)).Select(n => n.Id.Value).OrderBy(id => id).ToArray()
                 : Array.Empty<int>()));
         var isSpectator = host.Read(world => world.CreationConfig != null && world.CreationConfig.CreatorPlayerId != playerId);
-        if (isSpectator) return Array.Empty<int>();
+        if (isSpectator && !isAccount) return Array.Empty<int>();
         var roster = host.Read(world =>
         {
             var retainable = new List<int>();
@@ -198,7 +217,7 @@ public sealed class PlayerCharacterAssignments
                 }
 
                 retainable.Add(npc.Id.Value);
-                if (npc.Health > 0f && !npc.IsDying)
+                if (npc.Health > 0f && !npc.IsDying && !createdIds.Contains(npc.Id.Value))
                 {
                     assignable.Add(npc.Id.Value);
                     if (CharacterPresetRegistry.ProfileIds.Contains(npc.ProfileId))
@@ -248,8 +267,24 @@ public sealed class PlayerCharacterAssignments
             }
 
             var record = FindOrAdd(playerId);
+            if (creation != null && record.LastCreatedNpcId != creation.NpcId)
+            {
+                // The world blob commits first. Repair a missing/stale players.json after a crash.
+                record.AccountCharacter = true;
+                var next = new List<int> { creation.NpcId };
+                UpdateNotices(record, next, roster.names, record.NpcIds.Where(id => !roster.living.Contains(id)).ToHashSet());
+                record.NpcIds = next;
+                record.LastCreatedNpcId = creation.NpcId;
+                record.NeedsNewCharacter = false;
+                Save();
+            }
+            if (isAccount && !record.AccountCharacter)
+            {
+                record.AccountCharacter = true;
+                Save();
+            }
             var dead = record.NpcIds.Where(id => !roster.living.Contains(id)).ToHashSet();
-            if (custom != null)
+            if (custom != null && !record.AccountCharacter)
             {
                 characterLimit = Math.Max(record.LobbyCharacterLimit, Math.Max(custom.Length, record.NpcIds.Count));
                 record.LobbyCharacterLimit = characterLimit;
@@ -259,6 +294,7 @@ public sealed class PlayerCharacterAssignments
             var assigned = Reconcile(
                 playerId, roster.retainable, roster.assignable, characterLimit,
                 roster.authoredPriority, roster.names, dead);
+            if (creation != null) Save();
             union = AllAssignedIdsLocked();
             result = assigned;
         }
@@ -321,6 +357,10 @@ public sealed class PlayerCharacterAssignments
     internal bool StillAssigned(string playerId, int npcId)
     { lock (_gate) return _players.Any(p => p.PlayerId == playerId && p.NpcIds.Contains(npcId)); }
 
+    /// <summary>§171.9: persistent death state survives notice acknowledgement and restart.</summary>
+    public bool NeedsNewCharacter(string playerId)
+    { lock (_gate) return _players.Any(p => p.PlayerId == playerId && p.NeedsNewCharacter); }
+
     public PlayerAssignmentNotice[] PendingNotices(string playerId)
     {
         lock (_gate) return _players.FirstOrDefault(p => p.PlayerId == playerId)?.PendingNotices
@@ -351,7 +391,13 @@ public sealed class PlayerCharacterAssignments
             changed = true;
         }
         foreach (var id in record.NpcIds.Except(next))
-            Add(id, deadNpcIds?.Contains(id) == true ? "died" : "unavailable");
+        {
+            var died = deadNpcIds?.Contains(id) == true;
+            Add(id, died ? "died" : "unavailable");
+            if (record.AccountCharacter && died) record.NeedsNewCharacter = true;
+        }
+        if (next.Count > 0 && record.NeedsNewCharacter)
+        { record.NeedsNewCharacter = false; changed = true; }
         foreach (var id in next)
         {
             if (!record.IntroducedIds.Contains(id))
@@ -464,7 +510,8 @@ public sealed class PlayerCharacterAssignments
                 PlayerId = playerId, NpcIds = ids,
                 IntroducedIds = source.IntroducedIds ?? new(), KnownNames = source.KnownNames ?? new(),
                 PendingNotices = source.PendingNotices ?? new(), NoticeSequence = source.NoticeSequence,
-                LobbyCharacterLimit = source.LobbyCharacterLimit });
+                LobbyCharacterLimit = source.LobbyCharacterLimit,
+                AccountCharacter = source.AccountCharacter, NeedsNewCharacter = source.NeedsNewCharacter, LastCreatedNpcId = source.LastCreatedNpcId });
         }
 
         return normalized;
@@ -522,6 +569,9 @@ public sealed class PlayerCharacterAssignments
         public List<PlayerAssignmentNotice> PendingNotices { get; set; } = new();
         public long NoticeSequence { get; set; }
         public int LobbyCharacterLimit { get; set; }
+        public int LastCreatedNpcId { get; set; }
+        public bool AccountCharacter { get; set; }
+        public bool NeedsNewCharacter { get; set; }
 
     }
 }

@@ -47,14 +47,14 @@ public sealed class SimulationEngine
     /// scheduling: Unity uses <see cref="Commands"/> on its main thread, while a
     /// host must serialize this call with <see cref="Step"/> and snapshot reads.
     /// </summary>
-    public ManualCommandAdmission ApplyManualCommand(ISimulationCommand command)
+    public ManualCommandAdmission ApplyManualCommand(ISimulationCommand command, string requestOwner = "")
     {
         if (command is null)
         {
             throw new System.ArgumentNullException(nameof(command));
         }
 
-        return ManualCommandExecutor.Apply(World, command);
+        return ManualCommandExecutor.Apply(World, command, requestOwner);
     }
 
     public void Step()

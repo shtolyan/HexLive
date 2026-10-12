@@ -798,7 +798,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
         SetOverviewImpostorsActive(false);
     }
 
+    // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
     private void Update()
+    {
+        var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+        UpdateCore();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.HexWorldUpdate, perfStart);
+    }
+
+    private void UpdateCore()
     {
         // While offline ticks wind forward, stay dark: winding is pure headless
         // simulation and painting each intermediate world (skin decals, actor
@@ -5666,7 +5674,15 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
     /// <summary>§150.4: все квады смотрят в камеру одним общим кватернионом —
     /// один цикл за кадр вместо тысяч per-object Update.</summary>
+    // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
     private void LateUpdate()
+    {
+        var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+        LateUpdateCore();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.HexWorldLateUpdate, perfStart);
+    }
+
+    private void LateUpdateCore()
     {
         if (!_overviewImpostorsActive)
         {

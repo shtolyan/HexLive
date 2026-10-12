@@ -126,6 +126,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void DisableAgentVoice()
         {
+            _serverVoice?.Stop(); // §171.11: never leave a billed conversation running behind a closed panel
             _agentMicrophone?.Cancel();
             _agentMicrophone?.Dispose();
             _agentMicrophone = null;
@@ -256,6 +257,7 @@ namespace HexLive.UnityPresentation.UI
                     FinishAgentCapture();
                 }
             }
+            TickServerVoice();
             RefreshAgentVoiceButton();
             RefreshCaptureOverlay();
         }
@@ -319,6 +321,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void ToggleAgentCapture()
         {
+            if (ServerVoiceMode) { ToggleServerVoice(); return; } // §171.11 browser: own character via the server brain
             if (_agentMicrophone?.IsRecording == true)
             {
                 FinishAgentCapture();
@@ -615,7 +618,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void RefreshAgentVoiceButton()
         {
-            if (_agentVoiceButton == null) return;
+            if (_agentVoiceButton == null || RefreshServerVoiceButton()) return;
             var visible = _selectedAgentState is { Attached: true } && NpcSelection.Count == 1;
             _agentVoiceButton.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
             if (!visible) return;

@@ -7719,7 +7719,15 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         _bodyBones?.SetHeelPoseSuppressed(_sitting || _laying || _swimming);
     }
 
+    // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
     private void LateUpdate()
+    {
+        var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+        LateUpdateCore();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.ActorLateUpdate, perfStart);
+    }
+
+    private void LateUpdateCore()
     {
         // Bug #354: every corpse appears only after the animator proves that
         // it is in the shared final FallenIdle state. Re-hide every pass while

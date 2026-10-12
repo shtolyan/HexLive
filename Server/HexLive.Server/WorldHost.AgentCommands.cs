@@ -35,7 +35,7 @@ public sealed partial class WorldHost
         }
     }
 
-    public AgentCommandResult SubmitTrackedManualCommand(AgentCommandRequest request, ISimulationCommand command)
+    public AgentCommandResult SubmitTrackedManualCommand(AgentCommandRequest request, ISimulationCommand command, string requestOwner = "")
     {
         lock (_gate)
         {
@@ -73,7 +73,7 @@ public sealed partial class WorldHost
             // Stop still uses ordinary actor validation and interruption cleanup.
             var restSatisfied = request.RestNeed == "Energy" && npc.Needs.Energy >= request.RestTarget ||
                 request.RestNeed == "Stamina" && npc.Needs.Stamina >= request.RestTarget;
-            var admission = SubmitManualCommand(restSatisfied ? new StopCommand(npc.Id) : command);
+            var admission = SubmitManualCommand(restSatisfied ? new StopCommand(npc.Id) : command, requestOwner);
             if (!admission.Accepted)
             { receipt.Outcome = "failed"; receipt.Reason = admission.Reason.Length <= 96 ? admission.Reason : "Rejected"; }
             else if (restSatisfied)

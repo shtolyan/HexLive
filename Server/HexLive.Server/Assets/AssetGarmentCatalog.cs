@@ -165,6 +165,9 @@ public sealed class AssetGarmentCatalog
         _runtimeDirectory = Path.Combine(store.RootPath, "runtime");
     }
 
+    internal IReadOnlyList<ContentObjectRecord> AppearanceRecords() => _store.ReadCurrentRecords()
+        .Where(r => r.State == "active" && (r.Type == "actor" || r.Type == "hair")).ToArray();
+
     public long RegistryRevision => _store.RegistryRevision;
 
     public AssetCatalogOverview ReadOverview()

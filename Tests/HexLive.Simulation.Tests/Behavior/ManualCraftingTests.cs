@@ -264,8 +264,9 @@ public sealed class ManualCraftingTests
         });
     }
 
-    [Test]
-    public void ManualLeatherCraftKeepsTheImmediateWearResult()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void ManualLeatherCraftKeepsTheImmediateWearResult(bool byOutput)
     {
         var engine = TestWorld.CreateEngine(138006);
         var world = engine.World;
@@ -277,7 +278,9 @@ public sealed class ManualCraftingTests
         npc.WornItems.RemoveAll(id => id == ContentIds.LeatherPants);
         Add(npc, ContentIds.Hide, 1);
 
-        engine.Commands.Enqueue(new CraftItemCommand(npc.Id, GoalType.CraftLeather));
+        engine.Commands.Enqueue(byOutput
+            ? new CraftByOutputCommand(npc.Id, ContentIds.LeatherPants)
+            : new CraftItemCommand(npc.Id, GoalType.CraftLeather));
         StepUntil(engine, () =>
             npc.WornItems.Contains(ContentIds.LeatherPants) &&
             npc.Plan.Status == PlanStatus.Completed,
@@ -460,8 +463,9 @@ public sealed class ManualCraftingTests
     // план: §119-защита от дубля видела готовый выход в восприятии и
     // отказывалась начать цикл. Для ИИ это правильно — решение перенаправят на
     // PickUp; ЯВНЫЙ приказ игрока перенаправлять некому.
-    [Test]
-    public void ManualBandageOrderCraftsEvenWithAFinishedBandageLyingNearby()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void ManualBandageOrderCraftsEvenWithAFinishedBandageLyingNearby(bool byOutput)
     {
         var engine = TestWorld.CreateEngine(138010);
         var world = engine.World;
@@ -488,7 +492,9 @@ public sealed class ManualCraftingTests
                 "Бинт в поставке — крафт на месте, без костра.");
         });
 
-        engine.Commands.Enqueue(new CraftItemCommand(npc.Id, GoalType.CraftBandage));
+        engine.Commands.Enqueue(byOutput
+            ? new CraftByOutputCommand(npc.Id, ContentIds.Bandage)
+            : new CraftItemCommand(npc.Id, GoalType.CraftBandage));
         StepUntil(engine, () =>
             npc.Inventory.Items.Any(item => item.DefinitionId == ContentIds.Bandage) &&
             npc.Plan.Status == PlanStatus.Completed,
@@ -499,6 +505,7 @@ public sealed class ManualCraftingTests
             Assert.That(npc.Inventory.Items.Count(item =>
                 item.DefinitionId == ContentIds.Bandage), Is.EqualTo(1),
                 "Заказ обязан выдать ровно один новый бинт.");
+            Assert.That(MedicalSupplyMath.HerbalBandageCount(npc), Is.EqualTo(1));
             Assert.That(npc.Inventory.Items.Any(item =>
                 item.DefinitionId == ContentIds.HerbLeaf), Is.False,
                 "Оба листа травы оплачены.");
@@ -616,8 +623,302 @@ public sealed class ManualCraftingTests
         });
     }
 
+    // §138.6: ONE fixture recipe, loaded as JSON; no enum/goal/output adapter.
+    private static void DataRecipe(string station = "", bool fire = false) =>
+        Assert.That(SimDataFile.ApplyJson("{\"recipes\":[{\"output\":\"" + ContentIds.Plaster +
+            "\",\"inputs\":[{\"id\":\"resource.stone\",\"count\":2}],\"station\":\"" + station +
+            "\",\"needsLitFire\":" + (fire ? "true" : "false") + ",\"baseWorkTicks\":72}]}"), Is.True);
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void DataOnlyRecipeCompletesAfterSaveLoadAndLeavesOverflowAtWorkplace(bool fullPack)
+    {
+        var engine = TestWorld.CreateEngine(138601);
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        DataRecipe();
+        Strip(world, ContentIds.Stone, ContentIds.Plaster);
+        npc.Inventory.Items.Clear();
+        foreach (var other in world.Entities.Npcs.Values.Where(n => n.Id != npc.Id))
+        {
+            other.Mind.ManualControl = true;
+            other.Mind.CurrentGoal = GoalType.None;
+            other.Plan.Status = PlanStatus.Completed;
+            other.Plan.Steps.Clear();
+            other.Needs.Hunger = other.Needs.Thirst = 0f;
+        }
+        if (fullPack)
+        {
+            npc.Inventory.HolsterSlotIds.Clear();
+            EquipmentMath.RecalculateCapacity(world, npc);
+            for (var i = 0; i < npc.Inventory.Capacity * InventoryState.StackSize; i++)
+                npc.Inventory.Items.Add(new ItemInstance(ContentIds.Stick));
+            Spawn(world, npc, ContentIds.Stone, npc.Tile);
+            Spawn(world, npc, ContentIds.Stone, npc.Tile);
+        }
+        else Add(npc, ContentIds.Stone, 2);
+
+        var options = new List<CraftRecipeOption>();
+        CraftingOptions.TryFill(world, npc.Id, options);
+        var option = options.Single(o => o.OutputDefinitionId == ContentIds.Plaster);
+        Assert.That(option.Goal, Is.EqualTo(GoalType.CraftItem));
+        Assert.That(option.CanCraft, Is.True);
+        engine.Commands.Enqueue(new CraftByOutputCommand(npc.Id, ContentIds.Plaster));
+        StepUntil(engine, () => world.Entities.Objects.Values.Any(o =>
+            o.DefinitionId == ContentIds.Plaster && o.IsCraftProject && o.CraftWorkDone >= 24), 300);
+        var project = world.Entities.Objects.Values.Single(o => o.DefinitionId == ContentIds.Plaster);
+        Assert.That(project.Contents.Count, Is.EqualTo(2));
+        Assert.That(npc.Mind.CurrentGoal, Is.EqualTo(GoalType.CraftItem));
+        Assert.That(CraftingOptions.Resolve(world, npc, ContentIds.Plaster).BlockReason,
+            Is.EqualTo(CraftBlockReason.Active));
+        // A different output does not acquire the generic goal's active flag.
+        Assert.That(CraftingOptions.Resolve(world, npc, ContentIds.Rope).IsActive, Is.False);
+        engine.Commands.Enqueue(new StopCommand(npc.Id));
+        engine.Step();
+        Assert.That(project.Contents.Count, Is.EqualTo(2));
+        Assert.That(CraftingOptions.Resolve(world, npc, ContentIds.Plaster).IsResume, Is.True);
+        engine.Commands.Enqueue(new CraftByOutputCommand(npc.Id, ContentIds.Plaster));
+        engine.Step();
+
+        using var save = new MemoryStream();
+        using (var writer = new BinaryWriter(save, System.Text.Encoding.UTF8, true))
+            WorldSaveSerializer.Write(world, writer);
+        var loaded = TestWorld.CreateEngine(138601);
+        DataRecipe();
+        save.Position = 0;
+        using (var reader = new BinaryReader(save, System.Text.Encoding.UTF8, true))
+            WorldSaveSerializer.Read(loaded.World, reader);
+        var actor = loaded.World.Entities.Npcs[npc.Id];
+        Assert.That(actor.Plan.TargetItemDefinitionId, Is.EqualTo(ContentIds.Plaster));
+        StepUntil(loaded, () => actor.Plan.Status == PlanStatus.Completed, 600);
+        var ground = loaded.World.Entities.Objects.Values.Where(o => o.DefinitionId == ContentIds.Plaster).ToArray();
+        Assert.Multiple(() =>
+        {
+            Assert.That(actor.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Plaster), Is.EqualTo(fullPack ? 0 : 1));
+            Assert.That(ground.Length, Is.EqualTo(fullPack ? 1 : 0));
+            Assert.That(ground.All(o => !o.IsCraftProject && o.Contents.Count == 0), Is.True);
+            Assert.That(actor.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Stone), Is.Zero);
+        });
+    }
+
+    [Test]
+    public void DataRecipeRejectsIncompleteBillUnknownOutputAndMissingStationWithoutPayment()
+    {
+        var world = TestWorld.CreateWorld(138602);
+        var npc = PrepareManual(world);
+        DataRecipe();
+        Strip(world, ContentIds.Stone, ContentIds.Plaster);
+        Add(npc, ContentIds.Stone, 1);
+        ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, ContentIds.Plaster));
+        Assert.That(HasTrace(world, npc.Id, "ManualOrderRejected", "Reason=MissingResources"), Is.True);
+        Add(npc, ContentIds.Stone, 1);
+        DataRecipe("FixtureStation");
+        ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, ContentIds.Plaster));
+        Assert.That(HasTrace(world, npc.Id, "ManualOrderRejected", "Reason=NoStation"), Is.True);
+        ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "unknown.output"));
+        Assert.That(HasTrace(world, npc.Id, "ManualOrderRejected", "Reason=InvalidRecipe"), Is.True);
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Stone), Is.EqualTo(2));
+        Assert.That(world.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.Plaster), Is.False);
+        world.Content.ObjectDefinitions.Remove(ContentIds.Plaster);
+        Assert.That(CraftingOptions.Resolve(world, npc, ContentIds.Plaster).BlockReason, Is.EqualTo(CraftBlockReason.InvalidRecipe));
+    }
+
+    [Test]
+    public void DataRecipeUsesStationFireGateAndCompletesThroughTheStationPlan()
+    {
+        var engine = TestWorld.CreateEngine(138603);
+        engine.Step(); // establish real junction occupancy before a station order
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        DataRecipe("FixtureStation", fire: true);
+        Strip(world, ContentIds.Stone, ContentIds.Plaster);
+        Add(npc, ContentIds.Stone, 2);
+        var definition = new ObjectDefinition { Id = "test.data_station" };
+        definition.Tags.Add("FixtureStation");
+        definition.Interactions.Add(new InteractionDefinition { Id = "test.craft", Type = InteractionType.Craft, DurationTicks = 24 });
+        world.Content.ObjectDefinitions[definition.Id] = definition;
+        var station = WorldObjectMutations.SpawnObject(world, definition.Id, npc.Fragment, npc.Tile, npc.CurrentJunction.Value);
+        station.CraftJunction = npc.CurrentJunction;
+        station.ResourceAmount = 0f;
+        Assert.That(CraftingOptions.Resolve(world, npc, ContentIds.Plaster).CanCraft, Is.False);
+        station.ResourceAmount = 10f;
+        Assert.That(CraftingOptions.Resolve(world, npc, ContentIds.Plaster).CanCraft, Is.True);
+        var admission = ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, ContentIds.Plaster));
+        Assert.That(admission.Accepted, Is.True);
+        station.ResourceAmount = 0f; // fire went out after admission, before payment
+        Assert.That(CraftProjectMath.TryBeginCycle(world, npc, GoalType.CraftItem, station, out _), Is.False);
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Stone), Is.EqualTo(2));
+        station.ResourceAmount = 10f;
+        for (var tick = 0; tick < 600 && !npc.Inventory.Items.Any(i => i.DefinitionId == ContentIds.Plaster); tick++)
+        {
+            engine.Step();
+            if (npc.Plan.Status is PlanStatus.Invalid or PlanStatus.Failed) break;
+        }
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Plaster), Is.EqualTo(1),
+            $"goal={npc.Mind.CurrentGoal} plan={npc.Plan.Status} step={npc.Plan.CurrentStepIndex} " +
+            $"exec={npc.Execution.Status}/{npc.Execution.CurrentInteraction} fire={station.ResourceAmount}; " +
+            string.Join(" | ", world.Events.Items.Where(e => e.EntityId == npc.Id.Value &&
+                (e.Type.Contains("Craft") || e.Type.Contains("Fail") || e.Type.Contains("Manual") ||
+                 e.Type.Contains("Plan") || e.Type.Contains("Abort")))
+                .TakeLast(20).Select(e => e.Type + ":" + e.Message)));
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+    }
+
+    [Test]
+    public void DataRecipeValidatesIngredientsAndExportsWithoutAGoal()
+    {
+        DataRecipe();
+        Assert.That(RecipeCatalog.ByOutput[ContentIds.Plaster].Goal, Is.EqualTo(GoalType.CraftItem));
+        Assert.That(RecipeCatalog.ByGoal.ContainsKey(GoalType.CraftItem), Is.False);
+        var json = SimDataFile.ExportJson();
+        RecipeCatalog.ResetToDefaults();
+        Assert.That(SimDataFile.ApplyJson(json), Is.True);
+        Assert.That(RecipeCatalog.ByOutput[ContentIds.Plaster].BaseWorkTicks, Is.EqualTo(72));
+        Assert.Throws<System.ArgumentException>(() => RecipeCatalog.Override(ContentIds.Plaster,
+            new[] { new RecipeIngredient(ContentIds.Stone, 1), new RecipeIngredient(ContentIds.Stone, 1) }, false));
+        Assert.Throws<System.ArgumentException>(() => RecipeCatalog.Override(ContentIds.Plaster,
+            new[] { new RecipeIngredient(ContentIds.Stone, 0) }, false));
+    }
+
     private static NPCState Colonist(WorldState world) =>
         world.Entities.Npcs.Values.First(npc => npc.Faction == Faction.Colony);
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void RequestIdReplaysDuringWorkAndAfterCompletionIncludingSaveReload(bool reload)
+    {
+        var engine = TestWorld.CreateEngine(138610);
+        engine.Step();
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        DataRecipe();
+        Strip(world, ContentIds.Stone, ContentIds.Plaster);
+        npc.Inventory.Items.Clear();
+        Add(npc, ContentIds.Stone, 6); // enough to expose an accidental second payment
+        var command = new CraftByOutputCommand(npc.Id, ContentIds.Plaster, "order-1");
+        var first = engine.ApplyManualCommand(command, "player");
+        Assert.That(first.Accepted, Is.True);
+        StepUntil(engine, () => world.Entities.Objects.Values.Any(o =>
+            o.DefinitionId == ContentIds.Plaster && o.IsCraftProject && o.CraftWorkDone >= 24), 300);
+        var project = world.Entities.Objects.Values.Single(o => o.DefinitionId == ContentIds.Plaster);
+        var progress = (project.Id, project.CraftWorkDone, npc.Plan.CurrentStepIndex);
+        Assert.That(engine.ApplyManualCommand(command, "player"), Is.EqualTo(first));
+        Assert.That((project.Id, project.CraftWorkDone, npc.Plan.CurrentStepIndex), Is.EqualTo(progress));
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Stone), Is.EqualTo(4));
+        if (reload) Reload();
+        Assert.That(engine.ApplyManualCommand(command, "player"), Is.EqualTo(first));
+        StepUntil(engine, () => npc.Plan.Status == PlanStatus.Completed, 600);
+        if (reload) Reload();
+        Assert.That(engine.ApplyManualCommand(command, "player"), Is.EqualTo(first));
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Plaster), Is.EqualTo(1));
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Stone), Is.EqualTo(4));
+        Assert.That(world.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.Plaster), Is.False);
+        Assert.That(engine.ApplyManualCommand(new CraftByOutputCommand(npc.Id, ContentIds.Rope, "order-1"), "player")
+            .Reason, Is.EqualTo("CraftRequestConflict"));
+        Assert.That(npc.Plan.Status, Is.EqualTo(PlanStatus.Completed));
+        // §138.5 stays intact: an explicit unkeyed repeat makes another thing.
+        Assert.That(engine.ApplyManualCommand(new CraftByOutputCommand(npc.Id, ContentIds.Plaster)).Accepted, Is.True);
+        Assert.That(engine.ApplyManualCommand(new CraftByOutputCommand(npc.Id, ContentIds.Plaster)).Accepted, Is.False);
+        StepUntil(engine, () => npc.Plan.Status == PlanStatus.Completed, 600);
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Plaster), Is.EqualTo(2));
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Stone), Is.EqualTo(2));
+        Assert.That(world.CraftRequests[npc.Id.Value].Receipts.Count, Is.EqualTo(1));
+
+        void Reload()
+        {
+            using var save = new MemoryStream();
+            using (var writer = new BinaryWriter(save, System.Text.Encoding.UTF8, true))
+                WorldSaveSerializer.Write(world, writer);
+            engine = TestWorld.CreateEngine(world.Seed);
+            DataRecipe();
+            save.Position = 0;
+            using var reader = new BinaryReader(save);
+            WorldSaveSerializer.Read(engine.World, reader);
+            world = engine.World;
+            npc = world.Entities.Npcs[npc.Id];
+        }
+    }
+
+    [Test]
+    public void RequestIdKeepsRefusalsAndScopesKeysByOwnerAndNpc()
+    {
+        var world = TestWorld.CreateWorld(138611);
+        var npc = PrepareManual(world);
+        DataRecipe();
+        Strip(world, ContentIds.Stone, ContentIds.Plaster);
+        npc.Inventory.Items.Clear();
+        var command = new CraftByOutputCommand(npc.Id, ContentIds.Plaster, "refused");
+        var first = ManualCommandExecutor.Apply(world, command, "owner-1");
+        Assert.That(first.Reason, Is.EqualTo("MissingResources"));
+        Add(npc, ContentIds.Stone, 2);
+        Assert.That(ManualCommandExecutor.Apply(world, command, "owner-1"), Is.EqualTo(first));
+        Assert.That(ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "unknown", "refused"), "owner-1")
+            .Reason, Is.EqualTo("CraftRequestConflict"));
+        Assert.That(ManualCommandExecutor.Apply(world, command, "owner-2").Accepted, Is.True);
+        ManualCommandExecutor.Apply(world, new StopCommand(npc.Id));
+        Assert.That(ManualCommandExecutor.Apply(world, command, "owner-2").Accepted, Is.True);
+        Assert.That(npc.Plan.Status, Is.Not.EqualTo(PlanStatus.Active), "Replay must not resume a cancelled craft");
+        var other = world.Entities.Npcs.Values.First(n => n.Id != npc.Id);
+        ManualCommandExecutor.Apply(world, new CraftByOutputCommand(other.Id, "unknown", "refused"), "owner-1");
+        Assert.That(world.CraftRequests[other.Id.Value].Receipts.Single().OutputId, Is.EqualTo("unknown"));
+        npc.Health = 0;
+        Assert.That(ManualCommandExecutor.Apply(world, command, "owner-2").Accepted, Is.True);
+        Assert.That(world.CraftRequests[npc.Id.Value].Receipts.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void RequestJournalKeepsTheNewestWindowAndRejectsMalformedIds()
+    {
+        var world = TestWorld.CreateWorld(138612);
+        var npc = PrepareManual(world);
+        foreach (var key in new[] { "bad key", new string('a', 97), "не-ascii" })
+            Assert.That(ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "unknown", key)).Reason,
+                Is.EqualTo("InvalidCraftRequest"));
+        Assert.That(world.CraftRequests, Is.Empty);
+        ManualCommandAdmission first = default;
+        for (var i = 0; i < CraftRequestLedger.Capacity; i++)
+        {
+            var result = ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "unknown", "key-" + i));
+            if (i == 0) first = result;
+        }
+        Assert.That(first.Reason, Is.EqualTo("InvalidRecipe"));
+        Assert.That(ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "unknown", "key-0")), Is.EqualTo(first),
+            "inside the window a retry is answered from the journal");
+        // A full journal never stops a NEW key: the oldest receipt makes room.
+        Assert.That(ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "unknown", "overflow")).Reason,
+            Is.EqualTo("InvalidRecipe"));
+        var receipts = world.CraftRequests[npc.Id.Value].Receipts;
+        Assert.That(receipts.Count, Is.EqualTo(CraftRequestLedger.Capacity));
+        Assert.That(receipts.Select(r => r.RequestId), Does.Not.Contain("key-0").And.Contain("key-1").And.Contain("overflow"));
+        // A retry of a key still in the window keeps its stored outcome after eviction of others.
+        Assert.That(ManualCommandExecutor.Apply(world, new CraftByOutputCommand(npc.Id, "other", "key-1")).Reason,
+            Is.EqualTo("CraftRequestConflict"));
+    }
+
+    [TestCase(81)]
+    [TestCase(82)]
+    public void CraftRequestSaveVersionPreservesOnlySupportedReceipts(int version)
+    {
+        var world = TestWorld.CreateWorld(138613);
+        var npc = PrepareManual(world);
+        var command = new CraftByOutputCommand(npc.Id, "unknown", "saved-refusal");
+        var first = ManualCommandExecutor.Apply(world, command, "owner");
+        using var bytes = new MemoryStream();
+        using (var writer = new BinaryWriter(bytes, System.Text.Encoding.UTF8, true))
+            WorldSaveSerializer.WriteAtVersion(world, writer, version);
+        bytes.Position = 0;
+        var restored = TestWorld.CreateWorld(world.Seed);
+        using var reader = new BinaryReader(bytes);
+        WorldSaveSerializer.Read(restored, reader);
+        Assert.That(bytes.Position, Is.EqualTo(bytes.Length));
+        Assert.That(restored.CraftRequests.Count, Is.EqualTo(version >= 82 ? 1 : 0));
+        if (version >= 82)
+        {
+            Assert.That(restored.CraftRequests[npc.Id.Value].Receipts.Single().Owner, Is.EqualTo("owner"));
+            Assert.That(ManualCommandExecutor.Apply(restored, command, "owner"), Is.EqualTo(first));
+        }
+    }
 
     private static NPCState PrepareManual(WorldState world)
     {

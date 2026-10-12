@@ -58,7 +58,8 @@ public sealed partial class AgentHostRuntime
         _options = options;
         if (options.HeartbeatSeconds is < 5 or > 3600)
             throw new ArgumentOutOfRangeException(nameof(options.HeartbeatSeconds));
-        _memory = new MashaMemoryStore(options.MemoryDirectory, options.InitialIdentity);
+        _memory = new MashaMemoryStore(options.MemoryDirectory, options.InitialIdentity,
+            authorMayEditRelationships: !options.ServerOwnedRelationships);
         _providers = providers ?? new AgentProviders(options.ProviderOptions);
         _mcpHandler = mcpHandler;
         _outbox = new AgentTurnOutbox(options.OutboxPath);
@@ -292,6 +293,8 @@ public sealed partial class AgentHostRuntime
         // turns until it ends. Dialogue and critical events may still request
         // an explicit replacement; a carried patient needs the next leg chosen.
         var turnId = messageTurnId ?? Guid.NewGuid().ToString("N");
+        // §171.4: every provider attempt inside this lane is billed to this turn.
+        using var usageTurn = HexLive.AgentCore.Studio.UsageScope.Turn(turnId);
         var consumed = false;
         var stage = "state";
         var ownsWriter = false;

@@ -70,6 +70,59 @@ public sealed class WorldCreationTests
         Assert.That(errors.Any(e => e.Code == "noControlledCharacter"), Is.True);
         Assert.That(errors.Any(e => e.Path.Contains("attributes") && e.Code == "range"), Is.True);
     }
+    private static void FillAll(CharacterCreationConfig npc, float attribute, float skill)
+    {
+        npc.Attributes = AttributeSet.All.Select(k => new CreationValue { Id = k.ToString(), Value = attribute }).ToList();
+        npc.Skills = SkillSet.All.Select(k => new CreationValue { Id = k.ToString(), Value = skill }).ToList();
+    }
+    [Test] public void PointBuyBudgetsAreOptionalAndCheckedOnTheServer()
+    {
+        // §162.3: without a budget the admin lobby keeps free 0..1 sliders.
+        var free = Config(); FillAll(free.Characters[0], 1f, 1f);
+        Assert.That(WorldCreation.Validate(free, Tiny(7)), Is.Empty);
+
+        var capped = Config(); capped.AttributeBudget = WorldCreation.DefaultAttributeBudget; capped.SkillBudget = 1f;
+        Assert.That(WorldCreation.DefaultAttributeBudget, Is.EqualTo(4.2f).Within(1e-4f), "7 × (Mean 0.5 + Bonus 0.1), §76.2");
+        FillAll(capped.Characters[0], .6f, 1f / SkillSet.All.Length);
+        FillAll(capped.Characters[1], .6f, 0f);
+        Assert.That(WorldCreation.Validate(capped, Tiny(7)), Is.Empty, "spending exactly the budget is legal");
+
+        capped.Characters[0].Attributes[0].Value = .9f;
+        capped.Characters[1].Skills[0].Value = 1f; capped.Characters[1].Skills[1].Value = .5f;
+        capped.Characters[1].Attributes.RemoveAt(6);
+        var errors = WorldCreation.Validate(capped, Tiny(7));
+        Assert.Multiple(() =>
+        {
+            Assert.That(errors.Any(e => e.Path == "characters[0].attributes" && e.Code == "budget"), Is.True);
+            Assert.That(errors.Any(e => e.Path == "characters[1].skills" && e.Code == "budget"), Is.True);
+            Assert.That(errors.Any(e => e.Path == "characters[1].attributes" && e.Code == "budgetIncomplete"), Is.True,
+                "a capped hero must name every attribute, or the rolled remainder escapes the cap");
+        });
+
+        var nonsense = Config(); nonsense.AttributeBudget = 8f; nonsense.SkillBudget = float.NaN;
+        var bad = WorldCreation.Validate(nonsense, Tiny(7));
+        Assert.That(bad.Any(e => e.Path == "attributeBudget" && e.Code == "range"), Is.True);
+        Assert.That(bad.Any(e => e.Path == "skillBudget" && e.Code == "range"), Is.True);
+    }
+    [Test] public void NewRecipeFieldsSurviveXmlAndOldRecipesKeepDefaults()
+    {
+        var c = Config(); c.ShipwreckSurvivorEnabled = false; c.AttributeBudget = 4.2f; c.SkillBudget = 2f;
+        var back = WorldCreationCodec.Decode(WorldCreationCodec.Encode(c));
+        Assert.Multiple(() =>
+        {
+            Assert.That(back.ShipwreckSurvivorEnabled, Is.False);
+            Assert.That(back.AttributeBudget, Is.EqualTo(4.2f));
+            Assert.That(back.SkillBudget, Is.EqualTo(2f));
+        });
+        // A creation.xml written before these fields existed (§162.4 library on disk).
+        var legacy = WorldCreationCodec.Encode(Config())
+            .Replace("<ShipwreckSurvivorEnabled>true</ShipwreckSurvivorEnabled>", "")
+            .Replace("<AttributeBudget>0</AttributeBudget>", "").Replace("<SkillBudget>0</SkillBudget>", "");
+        Assert.That(legacy, Does.Not.Contain("ShipwreckSurvivorEnabled"));
+        var old = WorldCreationCodec.Decode(legacy);
+        Assert.That(old.ShipwreckSurvivorEnabled, Is.True);
+        Assert.That(old.AttributeBudget, Is.Zero);
+    }
     [Test] public void SaveRoundTripPreservesWorldRulesAppearanceAndSkills()
     {
         var c = Config(); c.Camps[0].ControlArrivals = true; c.Camps[0].ArrivalIntervalDays = 23;

@@ -182,8 +182,8 @@ namespace HexLive.UnityPresentation.UI
         private VisualElement _craftAction;
         private Label _craftActionLabel;
         private readonly List<CraftRecipeOption> _craftOptions = new();
-        private readonly Dictionary<int, int> _selectedCraftGoalByNpc = new();
-        private int _selectedCraftGoal = -1;
+        private readonly Dictionary<int, string> _selectedCraftOutputByNpc = new();
+        private string _selectedCraftOutput;
         private string _craftSig;
         private bool _craftPage;
         private bool _clothesPage;
@@ -612,7 +612,15 @@ namespace HexLive.UnityPresentation.UI
             DisableAgentVoice();
         }
 
+        // §168.11: обёртка профилировщика (?perf=1); вне него — одна проверка флага.
         private void Update()
+        {
+            var perfStart = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
+            UpdateCore();
+            HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.CharacterPanelUpdate, perfStart);
+        }
+
+        private void UpdateCore()
         {
             UpdateDiagnostics();
             TickAgentVoice();
@@ -2349,15 +2357,15 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            if (_selectedCraftGoal < 0 &&
-                _selectedCraftGoalByNpc.TryGetValue(npc.Id.Value, out var remembered))
+            if (string.IsNullOrEmpty(_selectedCraftOutput) &&
+                _selectedCraftOutputByNpc.TryGetValue(npc.Id.Value, out var remembered))
             {
-                _selectedCraftGoal = remembered;
+                _selectedCraftOutput = remembered;
             }
             if (FindSelectedCraft() == null && _craftOptions.Count > 0)
             {
-                _selectedCraftGoal = (int)_craftOptions[0].Goal;
-                _selectedCraftGoalByNpc[npc.Id.Value] = _selectedCraftGoal;
+                _selectedCraftOutput = _craftOptions[0].OutputDefinitionId;
+                _selectedCraftOutputByNpc[npc.Id.Value] = _selectedCraftOutput;
             }
 
             var sig = CraftingSignature();
@@ -2377,7 +2385,7 @@ namespace HexLive.UnityPresentation.UI
         private string CraftingSignature()
         {
             var result = new System.Text.StringBuilder();
-            result.Append(_selectedCraftGoal).Append('|');
+            result.Append(_selectedCraftOutput).Append('|');
             foreach (var option in _craftOptions)
             {
                 result.Append((int)option.Goal).Append(':')
@@ -2407,7 +2415,7 @@ namespace HexLive.UnityPresentation.UI
             _craftRecipeGrid.Clear();
             foreach (var option in _craftOptions)
             {
-                var selected = (int)option.Goal == _selectedCraftGoal;
+                var selected = option.OutputDefinitionId == _selectedCraftOutput;
                 var card = new VisualElement { name = "craft-recipe-card" };
                 card.style.width = 104f;
                 card.style.height = 122f;
@@ -2476,10 +2484,10 @@ namespace HexLive.UnityPresentation.UI
 
                 card.RegisterCallback<MouseDownEvent>(evt =>
                 {
-                    _selectedCraftGoal = (int)option.Goal;
+                    _selectedCraftOutput = option.OutputDefinitionId;
                     if (_inventoryActorId >= 0)
                     {
-                        _selectedCraftGoalByNpc[_inventoryActorId] = _selectedCraftGoal;
+                        _selectedCraftOutputByNpc[_inventoryActorId] = _selectedCraftOutput;
                     }
                     _craftSig = CraftingSignature();
                     RebuildCraftRecipeGrid();
@@ -2494,7 +2502,7 @@ namespace HexLive.UnityPresentation.UI
         {
             foreach (var option in _craftOptions)
             {
-                if ((int)option.Goal == _selectedCraftGoal) return option;
+                if (option.OutputDefinitionId == _selectedCraftOutput) return option;
             }
             return null;
         }
@@ -2626,8 +2634,8 @@ namespace HexLive.UnityPresentation.UI
                 return;
             }
 
-            _runner.EnqueueCommand(new CraftItemCommand(
-                new HexLive.Simulation.Common.EntityId(_inventoryActorId), option.Goal));
+            _runner.EnqueueCommand(new CraftByOutputCommand(
+                new HexLive.Simulation.Common.EntityId(_inventoryActorId), option.OutputDefinitionId));
             _craftSig = null;
             _refreshedTick = -1;
         }
@@ -3731,11 +3739,11 @@ namespace HexLive.UnityPresentation.UI
         {
             if (_inventoryActorId >= 0 && _inventoryActorId != npc.Id.Value)
             {
-                if (_selectedCraftGoal >= 0)
+                if (!string.IsNullOrEmpty(_selectedCraftOutput))
                 {
-                    _selectedCraftGoalByNpc[_inventoryActorId] = _selectedCraftGoal;
+                    _selectedCraftOutputByNpc[_inventoryActorId] = _selectedCraftOutput;
                 }
-                _selectedCraftGoal = -1;
+                _selectedCraftOutput = null;
                 ClearInventoryDrag();
                 HideItemDetail();
                 _invSig = null;

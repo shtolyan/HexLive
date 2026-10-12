@@ -800,7 +800,10 @@ public enum GoalType
 
     // §127 append-only: consensual or forced paired intimacy. The concrete
     // branch and authored pose live in transient Romance* fields above.
-    Romance
+    Romance,
+
+    // §138.6 append-only: one manual goal for every data-only item recipe.
+    CraftItem
 }
 
 public sealed class GoalScore

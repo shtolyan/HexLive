@@ -23,7 +23,11 @@ public static class McpActionSchemas
         {
             case "self_action": Choices("kind", Enum.GetNames<SelfActionKind>()); break;
             case "aid_person": Choices("kind", Enum.GetValues<AidKind>().Where(x => x != AidKind.None).Select(x => x.ToString())); break;
-            case "craft_item": Choices("recipeGoal", RecipeCatalog.ByGoal.Keys.Select(x => x.ToString())); break;
+            case "craft_item":
+                Choices("recipeGoal", RecipeCatalog.ByGoal.Keys.Select(x => x.ToString()));
+                Choices("outputId", RecipeCatalog.ByOutput.Keys);
+                result["oneOf"] = JsonNode.Parse("[{\"required\":[\"outputId\"]},{\"required\":[\"recipeGoal\"]}]");
+                break;
             case "manage_inventory":
                 Choices("source", Enum.GetNames<InventoryItemSource>());
                 Choices("action", Enum.GetNames<InventoryAction>());

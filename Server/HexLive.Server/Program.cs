@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using HexLive.Simulation.Bootstrap;
 using HexLive.Server.Assets;
 using HexLive.Server.Llm;
+using HexLive.Server.Accounts;
 
 namespace HexLive.Server
 {
@@ -181,7 +182,13 @@ public static class Program
         AccessTokenFile? playerToken = null;
         var agentSessions = new AgentSessionRegistry();
         using var deepgram = new DeepgramTokenBroker();
-        if (options.ControlEnabled || options.McpEnabled)
+        using var firebaseHttp = options.FirebaseProject is null ? null : new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        var playerAccounts = options.FirebaseProject is null ? null : new AccountStore(options.AccountsPath, options.FirebaseProject);
+        var firebaseVerifier = options.FirebaseProject is null ? null : new FirebaseTokenVerifier(options.FirebaseProject, firebaseHttp!,
+            requireVerifiedEmail: options.FirebaseRequireVerifiedEmail, emulator: options.FirebaseEmulator is not null);
+        if (options.FirebaseEmulator is not null)
+            Console.WriteLine($"[server] WARNING: Firebase AUTH EMULATOR {options.FirebaseEmulator} — unsigned tokens accepted; local testing only");
+        if (options.ControlEnabled || options.McpEnabled || playerAccounts is not null)
         {
             controlLeases = new ControlLeases(options.McpLeaseSeconds);
         }
@@ -210,6 +217,9 @@ public static class Program
         });
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
         builder.Services.AddRouting();
+        if (playerAccounts is not null) builder.Services.AddSingleton<IPlayerSessionResolver>(playerAccounts);
+        builder.Services.AddSingleton(new PlayerHttpIdentity(
+            playerToken is null ? null : playerToken.Matches, playerAccounts));
         builder.Services.AddResponseCompression(options => options.EnableForHttps = true);
         builder.WebHost.UseKestrel();
         // Kestrel's socket transport disables Nagle by default; stated
@@ -245,6 +255,9 @@ public static class Program
             });
         }
         GodMode.AdminAccessEndpoints.Map(app, adminAccess, sessions, adminBus, worlds);
+        // §171.9: disabled means no routes and no account store/network access.
+        AccountEndpoints.Map(app, playerAccounts, firebaseVerifier, worlds);
+        AccountLoginPage.Map(app, options);
 
         app.Map("/watch", async context =>
         {
@@ -272,7 +285,18 @@ public static class Program
                 context.WebSockets.WebSocketRequestedProtocols);
             string? controlOwner = null;
             IReadOnlyList<int>? assignedNpcIds = null;
-            if (playerToken is not null && controlLeases is not null)
+            // §171.9: authenticated account identity overrides every client-supplied id.
+            using var accountConnection = playerAccounts?.Connect(upgrade.Token);
+            using var viewerLifetime = CancellationTokenSource.CreateLinkedTokenSource(
+                viewerSession.Lifetime, accountConnection?.Lifetime ?? CancellationToken.None);
+            if (accountConnection is not null && controlLeases is not null)
+            {
+                controlOwner = "ws:" + accountConnection.PlayerId;
+                assignedNpcIds = viewerSession.Assignments!.Reconcile(
+                    viewerSession.Host, accountConnection.PlayerId, 1,
+                    viewerSession.Lifetime, viewerSession.WorldGeneration, accountCharacter: true);
+            }
+            else if (playerToken is not null && controlLeases is not null)
             {
                 if (upgrade.Token is not null && playerToken.Matches(upgrade.Token))
                 {
@@ -325,7 +349,7 @@ public static class Program
                 Guid.NewGuid().ToString("N"), adminViewer, viewerSession.Assignments, playerMcpAccess);
             try
             {
-                await viewer.RunAsync(viewerSession.Lifetime);
+                await viewer.RunAsync(viewerLifetime.Token);
             }
             catch (OperationCanceledException)
             {
@@ -342,6 +366,12 @@ public static class Program
             app, worlds, account, sessions, mailer, lifetime, assetRegistry, assetCatalog,
             options.AdminIconRoot);
         WorldCreationEndpoints.Map(app, worlds, account, sessions, assetRegistry, options.CompanionProfile, playerToken);
+        // §171.8: voice brain in-process; off unless player control and every provider secret are configured.
+        // Same identity seam as every player API: an account session (§171.9) or the shared token + client id.
+        if (controlLeases is not null && (playerToken is not null || playerAccounts is not null))
+            Voice.VoiceEndpoints.Map(app, worlds, controlLeases, agentSessions,
+                app.Services.GetRequiredService<PlayerHttpIdentity>(),
+                Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddSimpleConsole(o => o.SingleLine = true)).CreateLogger("voice"));
         RetiredBugTracker.Map(app);
         if (options.WebRoot is not null)
         {
@@ -751,6 +781,19 @@ public sealed class ServerOptions
     /// </summary>
     public bool ControlEnabled { get; private set; }
 
+    /// <summary>§171.9: opt-in Firebase project; credentials live beside the world library.</summary>
+    public string? FirebaseProject { get; private set; }
+    public string FirebaseApiKey { get; private set; } = "";
+    private string? _firebaseAuthDomain;
+    public string? FirebaseAuthDomain => _firebaseAuthDomain ?? (FirebaseProject is null ? null : FirebaseProject + ".firebaseapp.com");
+    public string[] FirebaseProviders { get; private set; } = new[] { "google", "password" };
+    /// <summary>§171.9: require a confirmed address for email+password accounts (off by default).</summary>
+    public bool FirebaseRequireVerifiedEmail { get; private set; }
+    /// <summary>§171.12: LOCAL TESTING ONLY — Firebase Auth emulator host:port (unsigned tokens accepted).</summary>
+    public string? FirebaseEmulator { get; private set; }
+    public string AccountsPath =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath))!, "hexlive-accounts.json");
+
     public string PlayerTokenPath =>
         Path.Combine(Path.GetDirectoryName(Path.GetFullPath(SavePath)) ?? ".", "hexlive-player.txt");
 
@@ -793,6 +836,39 @@ public sealed class ServerOptions
         {
             switch (args[i])
             {
+                case "--firebase-project" when i + 1 < args.Length:
+                    var project = args[++i];
+                    if (string.IsNullOrWhiteSpace(project) || project.Length > 128 ||
+                        project.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '-')))
+                        throw new ArgumentException("Invalid Firebase project id.");
+                    options.FirebaseProject = project;
+                    break;
+                case "--firebase-api-key" when i + 1 < args.Length:
+                    options.FirebaseApiKey = args[++i];
+                    break;
+                case "--firebase-auth-domain" when i + 1 < args.Length:
+                    var domain = args[++i];
+                    // This host is also placed in CSP: no schemes, ports, paths or directives.
+                    if (domain.Length > 253 || Uri.CheckHostName(domain) != UriHostNameType.Dns ||
+                        domain.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '.' or '-')))
+                        throw new ArgumentException("Invalid Firebase auth domain.");
+                    options._firebaseAuthDomain = domain.ToLowerInvariant();
+                    break;
+                case "--firebase-require-verified-email":
+                    options.FirebaseRequireVerifiedEmail = true;
+                    break;
+                case "--firebase-emulator" when i + 1 < args.Length:
+                    var emulatorHost = args[++i];
+                    if (!emulatorHost.StartsWith("127.0.0.1:", StringComparison.Ordinal) && !emulatorHost.StartsWith("localhost:", StringComparison.Ordinal))
+                        throw new ArgumentException("The Firebase emulator must be on this machine (127.0.0.1:PORT).");
+                    options.FirebaseEmulator = emulatorHost;
+                    break;
+                case "--firebase-providers" when i + 1 < args.Length:
+                    var providers = args[++i].Split(',', StringSplitOptions.TrimEntries);
+                    if (providers.Any(p => p is not ("google" or "password" or "apple")))
+                        throw new ArgumentException("Firebase providers must be google,password[,apple].");
+                    options.FirebaseProviders = providers.Distinct(StringComparer.Ordinal).ToArray();
+                    break;
                 case "--seed" when i + 1 < args.Length:
                     options.Seed = int.Parse(args[++i]);
                     break;
@@ -911,6 +987,10 @@ public sealed class ServerOptions
                         "  --character-preset masha  ensure the authored Masha body preset exists\n" +
                         "  --companion masha  deprecated alias for --character-preset masha\n" +
                         "  --control        allow player NPC control over /watch (token in hexlive-player.txt)\n" +
+                        "  --firebase-project ID  enable Firebase accounts and session-based player control (§171.9)\n" +
+                        "  --firebase-api-key KEY  public Firebase web API key for /login (§171.12)\n" +
+                        "  --firebase-auth-domain HOST  default <project>.firebaseapp.com\n" +
+                        "  --firebase-providers LIST  google,password (default), optionally apple\n" +
                         "  --mcp-lease N    seconds a control lease survives without commands (default 120)\n" +
                         "  --spec-dir PATH  spec served to MCP agents (default: Spec/ beside the binary)\n" +
                         "  --llm-endpoint URL  enable host-side HTTP LLM provider endpoint\n" +

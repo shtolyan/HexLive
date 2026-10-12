@@ -28,7 +28,41 @@ public static class WebPage
 
 #if UNITY_WEBGL && !UNITY_EDITOR
     [DllImport("__Internal")] private static extern void HexPageReload();
+    [DllImport("__Internal")] private static extern int HexAudioSampleRate();
+    [DllImport("__Internal")] private static extern string? HexAccountSession();
 #endif
+
+    /// <summary>
+    /// §171.12: the player's account session stored by the server's /login page
+    /// (Firebase sign-in → /api/accounts/v1/session). It is the player identity of
+    /// the web client: the /watch token (§168.2) and the voice Bearer (§171.11).
+    /// Null off the web, before sign-in, or after it expired.
+    /// </summary>
+    public static string? AccountSessionToken
+    {
+        get
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            var token = HexAccountSession();
+            return string.IsNullOrEmpty(token) ? null : token;
+#else
+            return null;
+#endif
+        }
+    }
+
+    /// <summary>§168.6: the browser's real audio output rate; 0 when unknown or off the web.</summary>
+    public static int AudioSampleRate
+    {
+        get
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return HexAudioSampleRate();
+#else
+            return 0;
+#endif
+        }
+    }
 
     /// <summary>
     /// §168.10: the game server of the page itself — the web build is served

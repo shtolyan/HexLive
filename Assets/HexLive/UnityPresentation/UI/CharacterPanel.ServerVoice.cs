@@ -21,6 +21,13 @@ namespace HexLive.UnityPresentation.UI
     public sealed partial class CharacterPanel
     {
         private WebVoiceAgent? _serverVoice;
+        private Wearing.NpcActorView? _serverCallActor;
+
+        private void ReleaseServerCallActor()
+        {
+            if (_serverCallActor != null) _serverCallActor.SetPhoneVoiceActive(false);
+            _serverCallActor = null;
+        }
 
         private bool ServerVoiceActive => _serverVoice != null &&
             _serverVoice.Current is WebVoiceAgent.Phase.Connecting or WebVoiceAgent.Phase.Listening or WebVoiceAgent.Phase.Speaking;
@@ -45,12 +52,25 @@ namespace HexLive.UnityPresentation.UI
             }
             _serverVoice.Start(WebVoiceAgent.PageServerHttpBase()!, SessionConfig.ControlToken!, SessionConfig.ClientId,
                 _agentVoiceNpc!.Id.Value);
+            AttachServerCallActor();
+        }
+
+        private void AttachServerCallActor()
+        {
+            if (_serverCallActor != null || _serverVoice == null || !ServerVoiceActive) return;
+            _worldRenderer ??= FindAnyObjectByType<Rendering.HexWorldRenderer>();
+            if (_worldRenderer != null && _worldRenderer.TryGetActorView(_serverVoice.NpcId, out var actor))
+            {
+                _serverCallActor = actor;
+                actor.SetPhoneVoiceActive(true);
+            }
         }
 
         private void TickServerVoice()
         {
             PollServerVoiceRelation();
             if (_serverVoice == null) return;
+            AttachServerCallActor(); // reserve before draining voice events
             _serverVoice.Pump();
             // The conversation belongs to the body it started with: switching selection,
             // losing the link or the character ends it (and stops the per-minute billing).
@@ -61,6 +81,10 @@ namespace HexLive.UnityPresentation.UI
                 Debug.LogWarning("[voice] " + _serverVoice.LastError);
                 _callFailedUntil = Time.unscaledTime + 4f;
                 _serverVoice.Stop();
+            }
+            if (!ServerVoiceActive)
+            {
+                ReleaseServerCallActor();
             }
         }
 

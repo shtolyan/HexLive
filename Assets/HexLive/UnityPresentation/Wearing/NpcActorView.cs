@@ -2947,6 +2947,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             Quaternion.LookRotation(Vector3.down, root.forward), bone);
         vfx.transform.localScale = Vector3.one;
 
+
         foreach (var ps in vfx.GetComponentsInChildren<UnityEngine.ParticleSystem>(true))
         {
             ps.Stop(true, UnityEngine.ParticleSystemStopBehavior.StopEmitting);
@@ -4690,6 +4691,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     public bool IsExternalVoicePlaying(string wavPath) =>
         string.Equals(_voiceChannel.File, wavPath, System.StringComparison.Ordinal) &&
         Audio.FmodSfx.IsPlaying(ref _voiceChannel);
+
+    public void SetPhoneVoiceActive(bool active)
+    {
+        EnsureSpeechBubble();
+        _speech?.SetPhoneVoice(active);
+    }
+
 
     /// <summary>§160: external reply routed through the existing mouth director.</summary>
     public bool SayExternalVoice(

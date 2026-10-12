@@ -127,6 +127,7 @@ namespace HexLive.UnityPresentation.UI
         private void DisableAgentVoice()
         {
             _serverVoice?.Stop(); // §171.11: never leave a billed conversation running behind a closed panel
+            ReleaseServerCallActor();
             _agentMicrophone?.Cancel();
             _agentMicrophone?.Dispose();
             _agentMicrophone = null;

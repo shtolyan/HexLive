@@ -771,7 +771,7 @@ public static class WorldSnapshotExporter
             IsWaking = world.Tick < npc.Mind.WakeGraceUntilTick,
             Stress = npc.Needs.Stress,
             CurrentGoal = npc.Mind.CurrentGoal.ToString(),
-            IsManualControl = npc.Mind.ManualControl, // §121
+            IsManualControl = npc.Mind.PersistedManualControl, // §121: the player's switch, not an external agent
             RunByDefault = npc.Mind.RunByDefault, // §121.11
             OutfitLocked = npc.Mind.OutfitLocked, // §133.9
             CurrentDream = npc.Mind.CurrentDream.ToString(),

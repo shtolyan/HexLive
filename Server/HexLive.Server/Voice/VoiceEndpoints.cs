@@ -85,7 +85,16 @@ public sealed class InProcessWorldGateway(Mcp.McpTools tools, string owner, Func
     public Task<JsonElement> CallAsync(string tool, object arguments, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var text = tools.Call(tool, JsonSerializer.SerializeToElement(arguments), owner, out var isError, canAccessNpc);
+        var commandOwner = "voice:" + owner;
+        var args = JsonSerializer.SerializeToElement(arguments);
+        if (tool == "acquire_control")
+        {
+            var attach = new { npcId = args.GetProperty("npcId").GetInt32(), displayName = "Голосовой агент",
+                capabilities = new[] { "worldActions", "relationView" }, ttlSeconds = 120 };
+            tools.Call("attach_agent", JsonSerializer.SerializeToElement(attach), commandOwner, out var attachError, canAccessNpc);
+            if (attachError) throw new WorldToolRejectedException("VoiceAttachmentRejected");
+        }
+        var text = tools.Call(tool, args, commandOwner, out var isError, canAccessNpc);
         if (isError) throw new WorldToolRejectedException(text.Length > 300 ? text[..300] : text);
         using var doc = JsonDocument.Parse(text);
         return Task.FromResult(doc.RootElement.Clone());

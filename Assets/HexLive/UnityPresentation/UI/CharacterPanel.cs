@@ -7322,11 +7322,12 @@ namespace HexLive.UnityPresentation.UI
             {
                 _controlButton.tooltip = Loc.Get(agentControlled
                     ? "panel.control.agent" : "panel.control.readonly");
-                _controlAiSegment.style.backgroundColor = Color.clear;
+                _controlAiSegment.style.backgroundColor = agentControlled
+                    ? new Color(NeonCyan.r, NeonCyan.g, NeonCyan.b, 0.22f) : Color.clear;
                 _controlPlayerSegment.style.backgroundColor = Color.clear;
-                _controlAiGlyph.style.color = TextMute;
+                _controlAiGlyph.style.color = agentControlled ? NeonCyan : TextMute;
                 _controlPlayerGlyph.style.color = TextMute;
-                _controlAiIcon.style.opacity = 0.35f;
+                _controlAiIcon.style.opacity = agentControlled ? 1f : 0.35f;
                 _controlPlayerIcon.style.opacity = 0.35f;
                 SetBorderColor(_controlButton, Stroke);
                 if (_stopButton != null)

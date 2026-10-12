@@ -58,7 +58,7 @@ public static class AtomicContentBatchBuild
         string type = (string)row["type"], id = (string)row["id"];
         var meta = (JObject)row["metadata"].DeepClone();
         var result = new BuildInputs { Main = (string)row["main"], DisplayName = id, ExtraMetadata = meta,
-            Icon = $"{IconRoot}/{type}.{id}.png" };
+            Icon = IconBearingTypes.Contains(type) ? $"{IconRoot}/{type}.{id}.png" : null };
         if (type == "wear")
         {
             result.Icon = $"{IconRoot}/{id}.png";

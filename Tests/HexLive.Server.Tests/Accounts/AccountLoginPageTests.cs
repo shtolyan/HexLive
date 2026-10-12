@@ -75,6 +75,9 @@ public sealed class AccountLoginPageTests
                 var csp = response.Headers.GetValues("Content-Security-Policy").Single();
                 Assert.That(csp, Does.Contain("default-src 'none'").And.Contain("frame-ancestors 'none'").And.Contain("https://" + options.FirebaseAuthDomain));
                 Assert.That(csp, Does.Not.Contain("unsafe-inline").And.Not.Contain("unsafe-eval").And.Not.Contain("*"));
+                // A browser hashes inline blocks after turning CRLF into LF; raw CRLF bytes
+                // would match the header here and still be blocked in Chrome (Singapore, 12.10).
+                Assert.That(html, Does.Not.Contain('\r'), "Served page must already be LF-normalized");
                 foreach (var tag in new[] { "script", "style" })
                 {
                     var blocks = Regex.Matches(html, $"<{tag}(?:\\s[^>]*)?>([\\s\\S]*?)</{tag}>");

@@ -1,12 +1,22 @@
 // §171.11/§171.15: WebRTC lifecycle and user silence; audio stays in the SDK.
 const SDK = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.25.0/+esm";
 export const USER_SILENCE_MS = 15000;
+const INPUT_ACTIVITY_THRESHOLD = 0.04;
 export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () => import(SDK), later = setTimeout, cancel = clearTimeout } = {}) {
   let active = null;
   function arm(me) {
     cancel(me.timer); me.timer = null;
     if (me.stopped || !me.connected || me.mode === "speaking") return;
     me.timer = later(() => void finish(me, "user_silence"), USER_SILENCE_MS);
+  }
+  function pollInput(me) {
+    if (me.stopped) return;
+    // The existing agent may not publish vad_score. Read the SDK's own mic
+    // analyser so a long utterance cannot time out before its final transcript.
+    try {
+      if (me.mode !== "speaking" && (me.conversation?.getInputVolume?.() || 0) >= INPUT_ACTIVITY_THRESHOLD) arm(me);
+    } catch (_) { }
+    me.activityTimer = later(() => pollInput(me), 200);
   }
   async function bill(me) {
     if (me.billed || !me.conversation || !me.ticket) return;
@@ -21,9 +31,11 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
   }
   function finish(me, reason) {
     if (me.finishing) return me.finishing;
-    me.stopped = true; cancel(me.timer);
+    me.stopped = true; cancel(me.timer); cancel(me.activityTimer);
     if (active === me) active = null;
-    me.emit({ type: "state", state: "ended", detail: reason });
+    // Leave error visible to the game until it acknowledges it; otherwise the
+    // ended event in the same batch masks session/402 and microphone errors.
+    if (reason !== "error") me.emit({ type: "state", state: "ended", detail: reason });
     // Assign before endSession can synchronously fire onDisconnect.
     me.finishing = Promise.resolve().then(async () => {
       try { await me.conversation?.endSession(); } catch (_) { }
@@ -37,7 +49,7 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
     const headers = { "Content-Type": "application/json", Authorization: "Bearer " + bearer };
     if (clientId) headers["X-HexLive-Client-Id"] = clientId;
     const me = { conversation: null, ticket: null, base: server.replace(/\/+$/, ""), headers, emit,
-      stopped: false, connected: false, mode: "listening", timer: null, billed: false, finishing: null };
+      stopped: false, connected: false, mode: "listening", timer: null, activityTimer: null, billed: false, finishing: null };
     active = me; emit({ type: "state", state: "connecting" });
     try {
       const r = await request(me.base + "/api/voice/v1/session", { method: "POST", headers, body: JSON.stringify({ npcId }) });
@@ -66,6 +78,7 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
         onAudioAlignment: a => { if (!me.stopped) emit({ type: "align", chars: a.chars,
           starts: a.char_start_times_ms, durations: a.char_durations_ms }); },
       });
+      if (!me.stopped) pollInput(me);
       // Disconnect can happen before the SDK promise gives us the conversation.
       if (me.stopped) { try { await me.conversation.endSession(); } catch (_) { } await bill(me); }
     } catch (e) {

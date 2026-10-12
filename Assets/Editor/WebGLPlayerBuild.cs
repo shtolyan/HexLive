@@ -83,7 +83,10 @@ public static class HexLiveWebGLPlayerBuild
                 .Where(scene => scene.enabled)
                 .Select(scene => scene.path)
                 .ToArray();
-            var webMusic = WriteWebMusic();
+            // MSI may reuse an already published FSB tree only when the
+            // publisher verifies unchanged audio sources and complete stems.
+            var reusePublishedAudio = arguments.Contains("-webgl-reuse-published-audio");
+            var webMusic = reusePublishedAudio ? new List<string>() : WriteWebMusic();
             WriteAudioManifest();
             BuildReport report;
             try
@@ -119,6 +122,9 @@ public static class HexLiveWebGLPlayerBuild
                 CapDevicePixelRatio(Path.Combine(output, "index.html"));
                 File.Copy("Assets/Resources/HexLive/UI/ServerDirectory.json",
                     Path.Combine(output, "server-directory.json"), overwrite: true);
+                if (reusePublishedAudio)
+                    File.WriteAllText(Path.Combine(output, "audio-reuse-required.json"),
+                        "{\"requiresVerifiedPublishedFsb\":true}\n");
             }
         }
         catch (Exception ex)

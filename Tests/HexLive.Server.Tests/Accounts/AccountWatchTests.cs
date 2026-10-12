@@ -190,6 +190,10 @@ public sealed class AccountWatchTests
             };
             // No inherited provider credentials: the fixture must never contact paid services.
             info.Environment.Clear();
+            if (OperatingSystem.IsWindows())
+                info.Environment["SystemRoot"] = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            if (Environment.GetEnvironmentVariable("DOTNET_ROLL_FORWARD") is { Length: > 0 } rollForward)
+                info.Environment["DOTNET_ROLL_FORWARD"] = rollForward;
             foreach (var arg in new[] { typeof(Program).Assembly.Location, "--port", port.ToString(), "--save", Path.Combine(directory, "world.sav"),
                 "--simdata", AccountHttpTests.RepoFile("SimData/simdata.json"), "--asset-root", Path.Combine(directory, "assets"),
                 "--start-paused", "--mode", "bigisland", "--player-characters", "8" }) info.ArgumentList.Add(arg);
@@ -197,7 +201,7 @@ public sealed class AccountWatchTests
             if (accounts) { info.ArgumentList.Add("--firebase-project"); info.ArgumentList.Add(FirebaseFixture.Project); }
             var process = Process.Start(info)!;
             // Drain (never print) first-run admin credentials emitted by this isolated test process.
-            var stdout = Drain(process.StandardOutput); var stderr = Drain(process.StandardError);
+            var stdout = Drain(process.StandardOutput); var stderr = DrainErrors(process.StandardError);
             var client = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:" + port), Timeout = TimeSpan.FromSeconds(2) };
             var server = new RunningServer(process, client, stdout, stderr);
             try
@@ -205,9 +209,10 @@ public sealed class AccountWatchTests
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 while (!timeout.IsCancellationRequested)
                 {
-                    if (process.HasExited) throw new InvalidOperationException("Fixture server exited: " + process.ExitCode);
+                    if (process.HasExited) throw new InvalidOperationException("Fixture server exited: " + process.ExitCode + " " + await stderr);
                     try { using var response = await client.GetAsync("/", timeout.Token); if (response.IsSuccessStatusCode) return server; }
                     catch (HttpRequestException) { }
+                    catch (OperationCanceledException) when (!timeout.IsCancellationRequested) { }
                     await Task.Delay(100, timeout.Token);
                 }
                 throw new TimeoutException("Fixture server did not start");
@@ -215,6 +220,18 @@ public sealed class AccountWatchTests
             catch { await server.DisposeAsync(); throw; }
         }
         private static async Task Drain(StreamReader reader) { while (await reader.ReadLineAsync() != null) { } }
+        private static async Task<string> DrainErrors(StreamReader reader)
+        {
+            var safe = new System.Text.StringBuilder();
+            while (await reader.ReadLineAsync() is { } line)
+            {
+                if (line.StartsWith("Unhandled exception.", StringComparison.Ordinal))
+                    safe.AppendLine(line.Split(':')[0]);
+                else if (line.StartsWith("   at ", StringComparison.Ordinal) && safe.Length < 4000)
+                    safe.AppendLine(line);
+            }
+            return safe.ToString();
+        }
         public async ValueTask DisposeAsync()
         {
             Client.Dispose();

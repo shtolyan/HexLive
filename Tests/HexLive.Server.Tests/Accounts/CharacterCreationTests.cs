@@ -278,7 +278,8 @@ public sealed class CharacterCreationTests
     {
         foreach (var body in new[] { "Marta", "Kshishtof" })
         {
-            var prefab = File.ReadAllText(AccountHttpTests.RepoFile("Assets/HexLiveContent/People/Prefabs/Actors/" + body + ".prefab"));
+            var prefab = File.ReadAllText(AccountHttpTests.RepoFile("Assets/HexLiveContent/People/Prefabs/Actors/" + body + ".prefab"))
+                .Replace("\r\n", "\n", StringComparison.Ordinal);
             var skins = prefab.Split("  skins:\n", StringSplitOptions.None)[1].Split("--- !u!", StringSplitOptions.None)[0];
             var ids = System.Text.RegularExpressions.Regex.Matches(skins, @"  - id: (.+)").Select(m => m.Groups[1].Value.Trim());
             Assert.That(body == "Marta" ? CharacterAppearanceValidation.PrimalFemaleSkins : CharacterAppearanceValidation.PrimalMaleSkins, Is.EquivalentTo(ids));

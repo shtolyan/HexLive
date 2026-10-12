@@ -86,8 +86,10 @@ public sealed class AccountStoreTests
         var store = new AccountStore(StorePath, FirebaseFixture.Project);
         var session = store.CreateSession(new("a", "google.com"));
         File.Delete(StorePath); Directory.CreateDirectory(StorePath);
-        Assert.Catch<IOException>(() => store.CreateSession(new("a", "google.com")));
-        Assert.Catch<IOException>(() => store.Revoke(session.SessionToken));
+        Assert.That(Assert.Catch(() => store.CreateSession(new("a", "google.com"))),
+            Is.InstanceOf<IOException>().Or.InstanceOf<UnauthorizedAccessException>());
+        Assert.That(Assert.Catch(() => store.Revoke(session.SessionToken)),
+            Is.InstanceOf<IOException>().Or.InstanceOf<UnauthorizedAccessException>());
         Assert.That(store.TryResolve(session.SessionToken, out _), Is.True);
         Assert.That(_directory.GetFiles("*.tmp-*").Length, Is.Zero);
     }

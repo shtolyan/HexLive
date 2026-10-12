@@ -64,6 +64,7 @@ public sealed class RaidWaveSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        if (world.CreationConfig?.PlayersOnly == true) return;
         var interval = Interval(world);
         if ((world.CreationConfig == null && (!Spec72.Enabled || Spec72.OutsiderCount <= 0)) || interval <= 0)
         {

@@ -27,6 +27,7 @@ public sealed class ColonyArrivalSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        if (world.CreationConfig?.PlayersOnly == true) return;
         var interval = WorldBalance.ColonyArrivalIntervalDays;
         if (interval <= 0 && world.CreationConfig == null)
         {

@@ -20,6 +20,7 @@ internal static class AdminWorldObjects
             return AdminCommandResult.Reject(c, "MissingCoordinates");
         if (c.Kind == "spawn_npc")
         {
+            if (world.CreationConfig?.PlayersOnly == true) return AdminCommandResult.Reject(c, "PlayersOnlyWorld");
             if (c.Text.Length > 48 || c.Text.Any(char.IsControl)) return AdminCommandResult.Reject(c, "InvalidName");
             if (c.DefinitionId != "colonist") return AdminCommandResult.Reject(c, "UnknownPreset");
             if (!Enum.TryParse<Faction>(c.Target, true, out var faction) || !FactionRelations.IsGirlCamp(faction))

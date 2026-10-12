@@ -54,10 +54,23 @@ public sealed class GroundPileProfile
         if (_layout==1) return new(0,index*.001f,0); // proven equal-XY leaf layers; no yaw/jitter
         if (_layout==2)
         {
-            const float gap=.01f;
+            const float gap=.006f;
             var width=Single.MaxZ-Single.MinZ;var height=Single.MaxY-Single.MinY;
             var row=index/5;var column=index%5;
-            return new(0,row*(height+gap),(column-2)*(width+gap)+(row%2)*.5f*(width+gap)-.25f*(width+gap));
+            return new(0,row*(height+.001f),(column-2)*(width+gap)+(row%2)*.5f*(width+gap)-.25f*(width+gap));
+        }
+        if (_layout==7) // boards: five aligned boards per course, four low courses
+            return new(0,index/5*(Single.MaxY-Single.MinY+.001f),
+                (index%5-2)*(Single.MaxZ-Single.MinZ+.006f));
+        if (_layout==8) // bandage rolls: two compact bundles of five
+            return new(0,index/5*(Single.MaxY-Single.MinY+.001f),
+                (index%5-2)*(Single.MaxZ-Single.MinZ+.006f));
+        if (_layout==9) // stones: broad twelve-piece base, eight-piece upper course
+        {
+            var upper=index>=12;var stoneCell=upper?index-12:index;
+            var x=(stoneCell%4-1.5f)*(Single.MaxX-Single.MinX+.006f);
+            var z=(stoneCell/4-(upper?.5f:1f))*(Single.MaxZ-Single.MinZ+.006f);
+            return new(x,upper?Single.MaxY-Single.MinY+.001f:0,z);
         }
         if (_layout==4) // tools: one orderly row, every handle visible
         {
@@ -160,7 +173,43 @@ public static class GroundPileCatalog
         Profiles["tool.spear"]=new("tool.spear",new(-0.034110f,0,-0.675011f,0.034110f,0.047602f,0.675011f),TargetWorldSize("tool.spear"),4,centerVisualXZ:true);
         Profiles["resource.cloth"]=new("resource.cloth",new(-0.162010f,0,-0.117276f,0.162010f,0.131383f,0.117276f),TargetWorldSize("resource.cloth"),5,centerVisualXZ:true);
         Profiles["item.pill"]=new("item.pill",new(-0.090010f,0,-0.055172f,0.090010f,0.043559f,0.055172f),TargetWorldSize("item.pill"),6,centerVisualXZ:true);
-        Profiles["item.bandage"]=new("item.bandage",new(-0.090010f,0,-0.049306f,0.090010f,0.140976f,0.049306f),TargetWorldSize("item.bandage"),6,centerVisualXZ:true);
+        Profiles["item.bandage"]=new("item.bandage",new(-0.090010f,0,-0.049306f,0.090010f,0.140976f,0.049306f),TargetWorldSize("item.bandage"),8,centerVisualXZ:true);
+        // Measured with canonical FindObjectMain + FitObjectPrefab (Unity6000.4.5f1).
+        // Generic sqrt(3)*target cubes left 1.26 wu of empty air between boards.
+        // source-sha256: 494614f05f6f7056be7e10a5f8bbe4f7b7661405e2b78ba9a98e5ae24a10f13a Assets/HexLiveContent/RuntimeSource/Objects/resource.board.fbx
+        // source-sha256: f414e589fd91268943dca3614dc091c2305eb43a936b051dc6af534cf66621ed Assets/HexLiveContent/RuntimeSource/Objects/resource.board.fbx.meta
+        Profiles[ContentIds.Board]=new(ContentIds.Board,new(-.375010f,0,-.072110f,.375010f,.045173f,.072110f),.75f,7,centerVisualXZ:true);
+        // source-sha256: 847232595b708c8511e4f6436c87ff35f86f8cb22e109b5635aa609155ec3d9f Assets/HexLiveContent/RuntimeSource/Objects/stone_single_native.fbx
+        // source-sha256: 418f5fe931c55df2d4214b8903f8beadb2ce1dbf268c0f00885be1fa196eb7f6 Assets/HexLiveContent/RuntimeSource/Objects/stone_single_native.fbx.meta
+        Profiles[ContentIds.Stone]=new(ContentIds.Stone,new(-.162010f,0,-.131801f,.162010f,.211292f,.131801f),.324f,9,centerVisualXZ:true);
+        // #418: the same native factory measurement covers other ordinary stacks.
+        // source-sha256: 09889233eda47f18db39688b315d47d2424ae3bb218fb07b0634a27c4fb6d356 Assets/HexLiveContent/RuntimeSource/Objects/resource.log.fbx
+        // source-sha256: aa3260189b85398466d9dadeddddf7f85b1c3daa69eef7a0f6952b0b00b9b108 Assets/HexLiveContent/RuntimeSource/Objects/resource.log.fbx.meta
+        Profiles["resource.log"]=new("resource.log",new(-0.52500998f,0,-0.14888929f,0.52500998f,0.28319515f,0.14888929f),TargetWorldSize("resource.log"),2,centerVisualXZ:true);
+        // source-sha256: 6bb17c067fa99fce640d1fd0691ea4842ce57671bd99e5ea462fde624565b337 Assets/HexLiveContent/RuntimeSource/Objects/resource.rope.prefab
+        // source-sha256: d5b87a0ed2dd1eb894a9f3046bb94af22089f83a634a52f921d08b567b495669 Assets/HexLiveContent/RuntimeSource/Objects/resource.rope.prefab.meta
+        Profiles["resource.rope"]=new("resource.rope",new(-0.07501001f,0,-0.06936569f,0.07501001f,0.02013992f,0.06936569f),TargetWorldSize("resource.rope"),5,centerVisualXZ:true);
+        // source-sha256: a4b106ad0c6ce225a6a487403c03de92f67e580741177fdc45aac14523e6c6ee Assets/HexLiveContent/RuntimeSource/Objects/food_meat_raw_native.fbx
+        // source-sha256: 8b4a545b33106f19bda8c6fe9e2bb7147f772a021bc1bc990fccba6d7ad73055 Assets/HexLiveContent/RuntimeSource/Objects/food_meat_raw_native.fbx.meta
+        Profiles["food.meat_raw"]=new("food.meat_raw",new(-0.13501001f,0,-0.06854433f,0.13501001f,0.13098670f,0.06854433f),TargetWorldSize("food.meat_raw"),3,centerVisualXZ:true);
+        // source-sha256: f7daf38b274bd52bf643c55c95c18358594f6193f8761fbbb822c74e6d076d1a Assets/HexLiveContent/RuntimeSource/Objects/food_meat_cooked_native.fbx
+        // source-sha256: 0547d9d64a25f9d435e341269c0d885a1a3009fbce256dd4b5bb84a9850a5357 Assets/HexLiveContent/RuntimeSource/Objects/food_meat_cooked_native.fbx.meta
+        Profiles["food.meat_cooked"]=new("food.meat_cooked",new(-0.13501001f,0,-0.06854433f,0.13501001f,0.13098670f,0.06854433f),TargetWorldSize("food.meat_cooked"),3,centerVisualXZ:true);
+        // source-sha256: 41d15daf33dca5be4b740d5a0cf43ed74b6c4d458ab7be004db137ec24b5f3ac Assets/HexLiveContent/RuntimeSource/Objects/resource.arrow.fbx
+        // source-sha256: 94b073d8c2a2f37c817b78df9db984ddc4576be0bf8249319d43ab683a0c63c1 Assets/HexLiveContent/RuntimeSource/Objects/resource.arrow.fbx.meta
+        Profiles["resource.arrow"]=new("resource.arrow",new(-0.02758447f,0,-0.01977175f,0.02758447f,0.32400997f,0.01977175f),TargetWorldSize("resource.arrow"),6,centerVisualXZ:true);
+        // source-sha256: 070b52b358ce09f07a6859ba0faafe9de66f87dde161fa0fefe006413368ebfc Assets/HexLiveContent/RuntimeSource/Objects/resource.fiber.fbx
+        // source-sha256: 58e4c0808768365ae2aa66f4157ba00783ff13c6dc02be4e19d0094c1c8f1508 Assets/HexLiveContent/RuntimeSource/Objects/resource.fiber.fbx.meta
+        Profiles["resource.fiber"]=new("resource.fiber",new(-0.08881895f,0,-0.07580190f,0.08881895f,0.32401000f,0.07580190f),TargetWorldSize("resource.fiber"),6,centerVisualXZ:true);
+        // source-sha256: d1829a92d0ccfa50f8d745203600a700c2b190d4ec54f0909b7870e5bc2111b2 Assets/HexLiveContent/RuntimeSource/Objects/resource.herb_leaf.fbx
+        // source-sha256: d225e59294ff644ac1a81d89c80be306bcad5ae633f249b694c011f7e9249cc5 Assets/HexLiveContent/RuntimeSource/Objects/resource.herb_leaf.fbx.meta
+        Profiles["resource.herb_leaf"]=new("resource.herb_leaf",new(-0.16201000f,0,-0.04772195f,0.16201000f,0.06545131f,0.04772195f),TargetWorldSize("resource.herb_leaf"),7,centerVisualXZ:true);
+        // source-sha256: b4b0f8c562bc050c6d17ac24461e9fd3765411d9de8670fbd8aed3b8f4ce6d97 Assets/HexLiveContent/RuntimeSource/Objects/resource_hide_native.fbx
+        // source-sha256: 1f8a3fc83bec3c22e0e1eefe1d6cfff1a32d44256ea1385098414d9d23d4c4bd Assets/HexLiveContent/RuntimeSource/Objects/resource_hide_native.fbx.meta
+        Profiles["resource.hide"]=new("resource.hide",new(-0.16201000f,0,-0.11823045f,0.16201000f,0.01697554f,0.11823045f),TargetWorldSize("resource.hide"),5,centerVisualXZ:true);
+        // source-sha256: 68b8656a4a6952ec8982676cdf33e05ea58f245a1029d0146a960410fab3b871 Assets/HexLiveContent/RuntimeSource/Objects/resource.mechanical_part.fbx
+        // source-sha256: 372ca6e956f3b17a824f0a5380197bc705a88c75b304849f23b2d6e192e8a077 Assets/HexLiveContent/RuntimeSource/Objects/resource.mechanical_part.fbx.meta
+        Profiles["resource.mechanical_part"]=new("resource.mechanical_part",new(-0.16201000f,0,-0.16201000f,0.16201000f,0.05888318f,0.16201000f),TargetWorldSize("resource.mechanical_part"),6,centerVisualXZ:true);
         Profiles["med.splint"]=new("med.splint",new(-0.023099f,0,-0.013272f,0.023099f,0.180011f,0.013272f),TargetWorldSize("med.splint"),6,centerVisualXZ:true);
         Profiles["item.plaster"]=new("item.plaster",new(-0.090010f,0,-0.029128f,0.090010f,0.017878f,0.029128f),TargetWorldSize("item.plaster"),6,centerVisualXZ:true);
         // Measured coconut half: source .248302788 diameter, .129195194 height,

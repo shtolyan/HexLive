@@ -371,7 +371,7 @@ public static class Program
         if (controlLeases is not null && (playerToken is not null || playerAccounts is not null))
             Voice.VoiceEndpoints.Map(app, worlds, controlLeases, agentSessions,
                 app.Services.GetRequiredService<PlayerHttpIdentity>(),
-                Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddSimpleConsole(o => o.SingleLine = true)).CreateLogger("voice"));
+                Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddSimpleConsole(o => o.SingleLine = true)).CreateLogger("voice"), playerAccounts);
         RetiredBugTracker.Map(app);
         if (options.WebRoot is not null)
         {

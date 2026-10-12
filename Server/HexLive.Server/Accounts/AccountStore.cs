@@ -35,7 +35,7 @@ public sealed class AccountStore : IPlayerSessionResolver
             var data = JsonSerializer.Deserialize<StoreData>(File.ReadAllText(_path), Json);
             if (data == null || data.Version != 1 || data.ProjectId != projectId || data.Accounts == null || data.Sessions == null ||
                 data.Accounts.Any(a => a == null || !PlayerCharacterAssignments.TryNormalizePlayerId(a.AccountId, out var id) || id != a.AccountId ||
-                    string.IsNullOrWhiteSpace(a.FirebaseUid) || a.FirebaseUid.Length > 128 || a.Providers == null ||
+                    string.IsNullOrWhiteSpace(a.FirebaseUid) || a.FirebaseUid.Length > 128 || a.OpeningCreditUsd < 0 || a.Providers == null ||
                     a.Providers.Length == 0 || a.Providers.Any(p => p is not ("google.com" or "apple.com" or "password"))) ||
                 data.Accounts.Select(a => a.AccountId).Distinct().Count() != data.Accounts.Length ||
                 data.Accounts.Select(a => a.FirebaseUid).Distinct().Count() != data.Accounts.Length ||
@@ -58,7 +58,7 @@ public sealed class AccountStore : IPlayerSessionResolver
             var now = _clock.GetUtcNow();
             var previous = _data.Accounts.SingleOrDefault(a => a.FirebaseUid == identity.Uid);
             var account = previous == null
-                ? new Account(Guid.NewGuid().ToString("N"), identity.Uid, new[] { identity.Provider }, now, now)
+                ? new Account(Guid.NewGuid().ToString("N"), identity.Uid, new[] { identity.Provider }, now, now, 5m)
                 : previous with { LastSeen = now, Providers = previous.Providers.Append(identity.Provider).Distinct().Order().ToArray() };
             var expiry = now.AddDays(30);
             var session = new Session(Hash(token), account.AccountId, identity.Provider, now, expiry);
@@ -74,6 +74,12 @@ public sealed class AccountStore : IPlayerSessionResolver
         var session = Resolve(bearer);
         playerId = session?.PlayerId ?? "";
         return session != null;
+    }
+
+    // Older accounts deserialize with zero; logging in is never another grant.
+    public decimal OpeningCreditUsd(string playerId)
+    {
+        lock (_gate) return _data.Accounts.SingleOrDefault(a => a.AccountId == playerId)?.OpeningCreditUsd ?? 0m;
     }
 
     public AccountSession? Resolve(string? bearer)
@@ -162,7 +168,8 @@ public sealed class AccountStore : IPlayerSessionResolver
     }
 
     private sealed record StoreData(int Version, string ProjectId, Account[] Accounts, Session[] Sessions);
-    private sealed record Account(string AccountId, string FirebaseUid, string[] Providers, DateTimeOffset Created, DateTimeOffset LastSeen);
+    private sealed record Account(string AccountId, string FirebaseUid, string[] Providers, DateTimeOffset Created, DateTimeOffset LastSeen,
+        decimal OpeningCreditUsd = 0m);
     private sealed record Session(string Hash, string AccountId, string Provider, DateTimeOffset Created, DateTimeOffset ExpiresAt);
 }
 

@@ -15,7 +15,7 @@ namespace HexLive.VoiceBrain;
 /// them through the ordinary MCP command path, and streams only SPEECH back.
 /// </summary>
 public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGateway world, RelationshipStore bonds,
-    IUsageLedger? ledger, UsageTariffs? tariffs, ILogger log)
+    IUsageLedger? ledger, UsageTariffs? tariffs, ILogger log, Func<string, bool>? canSpend = null)
 {
     public const int MaxHistory = 12;
     private static readonly string[] Interactions =
@@ -93,6 +93,8 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
 
     private async Task<StreamResult> StreamAsync(JsonArray messages, bool withTools, Func<string, Task> say, CancellationToken token)
     {
+        if (CurrentTicket.Value is { } t && canSpend != null && !canSpend(t.OwnerUserId))
+            throw new InvalidOperationException("InsufficientCredit");
         var body = new JsonObject
         {
             ["model"] = options.Model,

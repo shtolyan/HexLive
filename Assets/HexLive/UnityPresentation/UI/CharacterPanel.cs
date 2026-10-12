@@ -6549,6 +6549,7 @@ namespace HexLive.UnityPresentation.UI
             _langButton.style.marginLeft = 0f;
             _langButton.style.marginRight = 0f;
             _root.Add(_langButton);
+            BuildBalance();
         }
 
         private void BuildDiagnostics()
@@ -6567,6 +6568,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void UpdateDiagnostics()
         {
+            PollBalance();
             _diagnosticsElapsed += Time.unscaledDeltaTime;
             _diagnosticsFrames++;
             if (_diagnosticsLabel == null || _diagnosticsElapsed < 0.5f)

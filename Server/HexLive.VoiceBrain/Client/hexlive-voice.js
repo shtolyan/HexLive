@@ -46,7 +46,8 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
       if (me.stopped) return;
       const { Conversation } = await sdk(); if (me.stopped) return;
       me.conversation = await Conversation.startSession({
-        conversationToken: session.conversationToken, connectionType: "webrtc", customLlmExtraBody: { ticket: session.ticket },
+        conversationToken: session.conversationToken, connectionType: "webrtc", userId: session.sessionId,
+        customLlmExtraBody: { ticket: session.ticket },
         overrides: session.voiceId ? { tts: { voiceId: session.voiceId } } : undefined,
         onConnect: () => { if (me.stopped) return; me.connected = true; arm(me); emit({ type: "state", state: "listening" }); },
         onDisconnect: () => { void finish(me, "disconnected"); },

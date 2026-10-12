@@ -8,6 +8,7 @@ using HexLive.Simulation.Common;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Runtime;
 using HexLive.VoiceBrain;
+using HexLive.Server.Accounts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -28,18 +29,30 @@ public static class VoiceEndpoints
     public const int SessionsPerMinute = 6;
 
     public static VoiceBrainService? Map(WebApplication app, WorldSupervisor worlds, ControlLeases leases,
-        AgentSessionRegistry agents, PlayerHttpIdentity identity, ILogger log)
+        AgentSessionRegistry agents, PlayerHttpIdentity identity, ILogger log, AccountStore? accounts = null)
     {
         if (!BrainOptions.Configured()) return null;
         var options = BrainOptions.FromEnvironment();
         var tools = new Mcp.McpTools(() => worlds.Host, () => worlds.CaptureViewerSession().WorldGeneration, leases, agents);
         bool Owns(string playerId, int npcId) => worlds.CaptureViewerSession().Assignments?.StillAssigned(playerId, npcId) == true;
-        var voice = new VoiceBrainService(options, ticket => new InProcessWorldGateway(tools, ticket.OwnerUserId,
+        VoiceBrainService? voice = null;
+        bool CanSpend(string owner) => accounts == null || (owner.StartsWith("ws:", StringComparison.Ordinal) &&
+            options.UsageDirectory.Length > 0 && voice!.Balance(owner, accounts.OpeningCreditUsd(owner[3..])).BalanceUsd > 0);
+        voice = new VoiceBrainService(options, ticket => new InProcessWorldGateway(tools, ticket.OwnerUserId,
             npc => ticket.WorldId == worlds.Host.WorldId && ticket.OwnerUserId.StartsWith("ws:", StringComparison.Ordinal) &&
-                Owns(ticket.OwnerUserId[3..], npc), () => worlds.Host), log);
+                Owns(ticket.OwnerUserId[3..], npc), () => worlds.Host), log, canSpend: CanSpend);
         voice.MapCompletions(app, BrainPath);
         VoiceBrainService.MapClientScript(app, Root + "/client.js");
         var recent = new ConcurrentDictionary<string, (long Window, int Count)>();
+        if (accounts != null)
+            app.MapGet(AccountEndpoints.Prefix + "/balance", (HttpContext c) =>
+            {
+                c.Response.Headers.CacheControl = "no-store";
+                var account = accounts.Resolve(AccountEndpoints.Bearer(c));
+                if (account == null) return Results.Unauthorized();
+                if (options.UsageDirectory.Length == 0) return Results.StatusCode(503);
+                return Results.Json(voice.Balance("ws:" + account.PlayerId, accounts.OpeningCreditUsd(account.PlayerId)));
+            });
 
         app.MapGet(Root + "/relationship/{npcId:int}", (HttpContext c, int npcId) =>
         {
@@ -61,14 +74,17 @@ public static class VoiceEndpoints
                 ? (Alive: true, npc.DisplayName, npc.VoiceBank) : (Alive: false, DisplayName: "", VoiceBank: ""));
             if (!facts.Alive) return Results.NotFound();
             var owner = "ws:" + playerId;
+            if (!CanSpend(owner)) return Results.Json(new { error = "insufficient_credit" }, statusCode: 402);
             var ticket = voice.Tickets.Mint(owner, host.WorldId + ":" + request.NpcId, host.WorldId, request.NpcId);
+            voice.Tickets.TryVerify(ticket, out var signed);
             string token;
             try { token = await voice.ElevenLabs.ConversationTokenAsync(options.AgentId, c.RequestAborted); }
             catch (HttpRequestException) { return Results.StatusCode(StatusCodes.Status502BadGateway); }
+            voice.RecordSessionStarted(signed);
             log.LogInformation("voice session player={Player} npc={Npc}", playerId[..8], request.NpcId);
             return Results.Json(new
             {
-                conversationToken = token, ticket, name = facts.DisplayName,
+                conversationToken = token, ticket, sessionId = signed.SessionId, name = facts.DisplayName,
                 voiceId = voice.VoiceFor(null, facts.VoiceBank, facts.DisplayName),
             });
         });
@@ -78,8 +94,15 @@ public static class VoiceEndpoints
             if (!identity.TryResolve(c, out var playerId) || !voice.Tickets.TryVerify(request.Ticket, out var ticket) ||
                 ticket.OwnerUserId != "ws:" + playerId || request.ConversationId is not { Length: > 0 and <= 128 })
                 return Results.NotFound();
-            var (seconds, credits) = await voice.RecordSessionEndAsync(request.ConversationId, ticket, c.RequestAborted);
-            return Results.Json(new { seconds, providerCredits = credits });
+            try
+            {
+                // The final charge must persist even if the browser goes away.
+                var (seconds, credits) = await voice.RecordSessionEndAsync(request.ConversationId, ticket, CancellationToken.None);
+                return Results.Json(new { seconds, providerCredits = credits });
+            }
+            catch (System.IO.InvalidDataException) { return Results.NotFound(); }
+            catch (Exception ex) when (ex is System.IO.IOException or HttpRequestException or OperationCanceledException)
+            { return Results.StatusCode(503); }
         });
         Console.WriteLine($"[server] voice brain     {BrainPath} (model {options.Model}, agent {options.AgentId[..Math.Min(10, options.AgentId.Length)]}…)");
         return voice;

@@ -1,0 +1,8 @@
+{
+  "version": "openai-standard-2026-10-12",
+  "currency": "USD",
+  "source": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+  "rates": [
+    { "kind": "llm", "provider": "OpenAI", "model": "gpt-5.6-luna", "inputPerMillion": 0.20, "cachedPerMillion": 0.02, "outputPerMillion": 1.20 }
+  ]
+}

@@ -89,6 +89,11 @@ public static class RecipeCatalog
                 foreach (var recipe in ByGoal.Values)
                     if (!string.IsNullOrEmpty(recipe.OutputDefinitionId))
                         _byOutput.Add(recipe.OutputDefinitionId, recipe);
+                _byOutput.Add(GearCatalog.Hammer, new Recipe(GoalType.CraftItem,
+                    new[] { new RecipeIngredient(ContentIds.Stick, 1),
+                        new RecipeIngredient(ContentIds.Stone, 1),
+                        new RecipeIngredient(ContentIds.Rope, 1) },
+                    station: "", outputDefinitionId: GearCatalog.Hammer));
             }
             return _byOutput;
         }

@@ -2207,6 +2207,7 @@
     {"output": "resource.cloth", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.fiber", "count": 4}]},
     {"output": "resource.rope", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.fiber", "count": 1}]},
     {"output": "tool.axe_stone", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.stick", "count": 1}, {"id": "resource.stone", "count": 1}]},
+    {"output": "tool.hammer", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.stick", "count": 1}, {"id": "resource.stone", "count": 1}, {"id": "resource.rope", "count": 1}]},
     {"output": "tool.knife", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.stick", "count": 1}, {"id": "resource.stone", "count": 1}]},
     {"output": "tool.pickaxe_stone", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.stick", "count": 1}, {"id": "resource.stone", "count": 2}]},
     {"output": "tool.spear", "needsLitFire": false, "station": "", "baseWorkTicks": 24, "inputs": [{"id": "resource.stick", "count": 1}]}

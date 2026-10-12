@@ -35,6 +35,30 @@ public sealed class ManualCraftingTests
     }
 
     [Test]
+    public void ExistingHammerCanBeCraftedInPlaceFromItsPhysicalBill()
+    {
+        var engine = TestWorld.CreateEngine(44901);
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        Strip(world, ContentIds.Stick, ContentIds.Stone, ContentIds.Rope, GearCatalog.Hammer);
+        Add(npc, ContentIds.Stick, 1);
+        Add(npc, ContentIds.Stone, 1);
+        Add(npc, ContentIds.Rope, 1);
+        var options = new List<CraftRecipeOption>();
+        CraftingOptions.TryFill(world, npc.Id, options);
+        var option = options.Single(o => o.OutputDefinitionId == GearCatalog.Hammer);
+        Assert.That(option.CanCraft, Is.True);
+        Assert.That(option.StationTag, Is.Empty);
+        engine.Commands.Enqueue(new CraftByOutputCommand(npc.Id, GearCatalog.Hammer));
+        StepUntil(engine, () => npc.Inventory.Items.Any(i => i.DefinitionId == GearCatalog.Hammer) ||
+            world.Entities.Objects.Values.Any(o => o.DefinitionId == GearCatalog.Hammer && !o.IsCraftProject), 250);
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == GearCatalog.Hammer) +
+            world.Entities.Objects.Values.Count(o => o.DefinitionId == GearCatalog.Hammer && !o.IsCraftProject), Is.EqualTo(1));
+        foreach (var id in new[] {ContentIds.Stick, ContentIds.Stone, ContentIds.Rope})
+            Assert.That(npc.Inventory.Items.Any(i => i.DefinitionId == id), Is.False, id);
+    }
+
+    [Test]
     public void GroundCountUsesCenterAndSixNeighborsButRejectsNonFreeObjects()
     {
         var world = TestWorld.CreateWorld(138001);

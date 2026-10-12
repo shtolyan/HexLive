@@ -10,8 +10,8 @@ internal static class SkinWeatheringTone
         var tan = Mathf.Clamp01(tanLevel);
         var redPhase = Mathf.Clamp01(tan / 0.5f);
         var brownPhase = Mathf.Clamp01((tan - 0.5f) / 0.5f);
-        var tint = Color.Lerp(Color.white, new Color(0.90f, 0.75f, 0.66f), redPhase);
-        tint = Color.Lerp(tint, new Color(0.66f, 0.50f, 0.38f), brownPhase);
+        var tint = Color.Lerp(Color.white, new Color(0.96f, 0.86f, 0.78f), redPhase);
+        tint = Color.Lerp(tint, new Color(0.82f, 0.70f, 0.60f), brownPhase);
         tint = Color.Lerp(Color.white, tint, Mathf.Clamp01(tanStrength));
 
         // Acute burn is a temporary flush OF the already tanned skin. Preserve

@@ -29,6 +29,13 @@ namespace HexLive.UnityPresentation.Audio
         };
 
         private const int VisemeCount = 14;
+        public static bool HasVisemes(Mesh mesh)
+        {
+            for (var i = 0; i < mesh.blendShapeCount; i++)
+                foreach (var suffix in VisemeSuffixes)
+                    if (mesh.GetBlendShapeName(i).EndsWith(suffix, System.StringComparison.Ordinal)) return true;
+            return false;
+        }
         private const int HeaderBytes = 14;
         private const ushort FormatVersion = 1;
         private const float Smoothness = 0.06f; // как у прежнего uLipSyncBlendShape
@@ -75,6 +82,25 @@ namespace HexLive.UnityPresentation.Audio
         private FmodSfx.Loop _handle;
         private bool _idle = true;      // всё в нуле — Update/LateUpdate спят
         private bool _applyFinal;       // последний нулевой прогон в LateUpdate
+        private readonly StreamVoiceVisemes _stream = new();
+        private bool _streamSpeaking;
+        private float _streamStarted;
+
+        public void AppendStream(string[] chars, float[] starts, float[] durations) => _stream.Append(chars, starts, durations);
+        public void SetStreamSpeaking(bool speaking)
+        {
+            if (speaking == _streamSpeaking) return;
+            _streamSpeaking = speaking;
+            _timeline = null;
+            if (speaking) { _streamStarted = Time.unscaledTime; _idle = false; }
+            else _stream.Clear();
+        }
+
+        public void ResetStream()
+        {
+            SetStreamSpeaking(false);
+            _stream.Clear();
+        }
 
         /// <summary>
         /// §67.8: реплика ещё звучит — ртом владеют виземы липсинка.
@@ -165,7 +191,14 @@ namespace HexLive.UnityPresentation.Audio
             }
 
             var speaking = false;
-            if (_timeline != null)
+            if (_streamSpeaking)
+            {
+                var vis = _stream.Sample(Time.unscaledTime - _streamStarted);
+                for (var v = 0; v < VisemeCount; v++) _targets[v] = v == vis ? 0.8f : 0f;
+                _volumeTarget = vis >= 0 ? 0.8f : 0f;
+                speaking = true;
+            }
+            else if (_timeline != null)
             {
                 var ms = FmodSfx.GetPlaybackMs(ref _handle);
                 if (ms >= 0)

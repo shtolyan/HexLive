@@ -1930,7 +1930,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // с виземами (у примитивных фолбэк-капсул её нет, там и рта-то нет).
         foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>(true))
         {
-            if (smr.sharedMesh != null && smr.sharedMesh.blendShapeCount > 50)
+            if (smr.sharedMesh != null && Audio.NpcVoiceLipSync.HasVisemes(smr.sharedMesh))
             {
                 _voiceLipSync = gameObject.AddComponent<Audio.NpcVoiceLipSync>();
                 _voiceLipSync.Construct(smr);
@@ -4696,8 +4696,12 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     {
         EnsureSpeechBubble();
         _speech?.SetPhoneVoice(active);
+        if (!active) _voiceLipSync?.ResetStream();
     }
 
+    public void SetPhoneSpeaking(bool speaking) => _voiceLipSync?.SetStreamSpeaking(speaking);
+    public void AppendPhoneAlignment(string[] chars, float[] starts, float[] durations)
+        => _voiceLipSync?.AppendStream(chars, starts, durations);
 
     /// <summary>§160: external reply routed through the existing mouth director.</summary>
     public bool SayExternalVoice(

@@ -104,6 +104,14 @@ internal static class RuntimeVoiceAlignment
         ['г']=12, ['к']=12, ['х']=12, ['ъ']=-2, ['ь']=-2,
     };
 
+    internal static bool TryTextViseme(string text, int index, out int viseme, out int letters)
+    {
+        letters = 1;
+        if (index + 1 < text.Length && RuntimeVoiceCalibration.Digraphs.TryGetValue(text.Substring(index, 2), out viseme))
+        { letters = 2; return true; }
+        return RuntimeVoiceCalibration.Letters.TryGetValue(text[index], out viseme) || Russian.TryGetValue(text[index], out viseme);
+    }
+
     private static List<State> G2P(string text)
     {
         var states = new List<State> { new() { Vis = -1, Min = 1 } };
@@ -120,10 +128,9 @@ internal static class RuntimeVoiceAlignment
                 if (states[states.Count - 1].Vis >= 0) states.Add(new State { Vis = -1, Min = 1 });
                 continue;
             }
-            int vis;
-            if (i + 1 < text.Length && RuntimeVoiceCalibration.Digraphs.TryGetValue(text.Substring(i, 2), out vis)) i++;
-            else if (!RuntimeVoiceCalibration.Letters.TryGetValue(c, out vis) && !Russian.TryGetValue(c, out vis))
+            if (!TryTextViseme(text, i, out var vis, out var letters))
                 return new List<State>(); // unsupported language: acoustic fallback for the whole utterance
+            i += letters - 1;
             if (vis < 0) continue;
             if (states[states.Count - 1].Vis == vis) { states[states.Count - 1].Max = 0; continue; }
             states.Add(new State { Vis = vis, Min = vis <= 4 ? 4 : 2,

@@ -49,6 +49,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 _serverVoice = new WebVoiceAgent();
                 _serverVoice.Line += (speaker, text) => Debug.Log("[voice] " + speaker + ": " + text);
+                _serverVoice.Alignment += a => _serverCallActor?.AppendPhoneAlignment(a.chars, a.starts, a.durations);
             }
             _serverVoice.Start(WebVoiceAgent.PageServerHttpBase()!, SessionConfig.ControlToken!, SessionConfig.ClientId,
                 _agentVoiceNpc!.Id.Value);
@@ -70,7 +71,7 @@ namespace HexLive.UnityPresentation.UI
         {
             PollServerVoiceRelation();
             if (_serverVoice == null) return;
-            AttachServerCallActor(); // reserve before draining voice events
+            AttachServerCallActor(); // reserve before draining the first alignment batch
             _serverVoice.Pump();
             // The conversation belongs to the body it started with: switching selection,
             // losing the link or the character ends it (and stops the per-minute billing).
@@ -86,6 +87,8 @@ namespace HexLive.UnityPresentation.UI
             {
                 ReleaseServerCallActor();
             }
+            if (_serverCallActor != null)
+                _serverCallActor.SetPhoneSpeaking(_serverVoice.Current == WebVoiceAgent.Phase.Speaking);
         }
 
         private float _callFailedUntil;

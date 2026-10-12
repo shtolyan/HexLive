@@ -30,8 +30,8 @@ public sealed class WebVoiceAgent
         public string detail = "";
         public string text = "";
         public string[] chars = Array.Empty<string>();
-        public int[] starts = Array.Empty<int>();
-        public int[] durations = Array.Empty<int>();
+        public float[] starts = Array.Empty<float>();
+        public float[] durations = Array.Empty<float>();
         public float seconds;
     }
 

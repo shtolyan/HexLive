@@ -11,7 +11,7 @@ public sealed class FitShortsScaleContractTests
     [Test]
     public void JanaFitShortsUseExactlyOneStandardScaleStep()
     {
-        var prefab = File.ReadAllText(Path.Combine(
+        var prefab = RepoPaths.ReadText(Path.Combine(
             RepoPaths.Root,
             "Assets", "HexLiveContent", "Wear", "clothing.shorts_fit",
             "FitShorts.prefab"));

@@ -9,7 +9,7 @@ public sealed class RemoteManualLeaseHeartbeatContractTests
     [Test]
     public void SelectedRemoteManualActorsRenewTheirLeaseBeforeClicks()
     {
-        var source = File.ReadAllText(FindRepoFile(
+        var source = RepoPaths.ReadText(FindRepoFile(
             "Assets", "HexLive", "UnityPresentation", "Input", "SimulationInputAdapter.cs"));
 
         Assert.Multiple(() =>

@@ -162,7 +162,7 @@ public sealed class StrikeContactGateTests
             "\nСними его: /Applications/Blender.app/Contents/MacOS/Blender -b " +
             "-P Tools/measure_strike_contact.py -- --write");
 
-        using var doc = JsonDocument.Parse(File.ReadAllText(path));
+        using var doc = JsonDocument.Parse(RepoPaths.ReadText(path));
         var rows = new Dictionary<string, ContactRow>(StringComparer.Ordinal);
         foreach (var clip in doc.RootElement.GetProperty("clips").EnumerateArray())
         {

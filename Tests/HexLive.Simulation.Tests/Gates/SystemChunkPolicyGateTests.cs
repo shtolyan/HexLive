@@ -138,7 +138,7 @@ public sealed class SystemChunkPolicyGateTests
             // тайл (IsAwake — когда обходят не объекты, а тайлы, как тени).
             var asks = files.Any(f =>
             {
-                var text = File.ReadAllText(f);
+                var text = RepoPaths.ReadText(f);
                 return text.Contains("ChunkMath.IsAwake", StringComparison.Ordinal) ||
                        text.Contains("ChunkMath.CollectTickable", StringComparison.Ordinal);
             });

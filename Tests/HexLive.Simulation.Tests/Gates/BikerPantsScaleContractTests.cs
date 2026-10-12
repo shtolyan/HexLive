@@ -11,7 +11,7 @@ public sealed class BikerPantsScaleContractTests
     [Test]
     public void EveryActressGetsSecondRequestedScaleStep_Bug194()
     {
-        var prefab = File.ReadAllText(Path.Combine(
+        var prefab = RepoPaths.ReadText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLiveContent", "Wear",
             "clothing.pants_biker", "BikerPants.prefab"));
         var expected = new Dictionary<int, float>

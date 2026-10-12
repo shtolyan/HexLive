@@ -308,7 +308,7 @@ public sealed class EffectImpactContractTests
             Is.EqualTo(Enum.GetValues<EffectKind>().OrderBy(kind => kind)),
             "Every EffectKind must resolve through the shared status/impact catalog.");
 
-        var localization = File.ReadAllText(Path.Combine(
+        var localization = RepoPaths.ReadText(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
         foreach (var kind in ImpactKinds)
         {
@@ -354,7 +354,7 @@ public sealed class EffectImpactContractTests
     [Test]
     public void CharacterPanelMapsEveryCellAndBuildsDirectionRows()
     {
-        var panel = File.ReadAllText(Path.Combine(
+        var panel = RepoPaths.ReadText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", "UI",
             "CharacterPanel.cs"));
         var mappings = new Dictionary<string, NeedKind>

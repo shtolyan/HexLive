@@ -193,7 +193,7 @@ public sealed class SimDataFreshnessGateTests
     /// <summary>Ассет → его класс конфига, по guid скрипта.</summary>
     private static ConfigClass ConfigFor(string assetPath)
     {
-        var text = File.ReadAllText(assetPath);
+        var text = RepoPaths.ReadText(assetPath);
         var guid = Regex.Match(text, @"m_Script:\s*\{fileID:\s*\d+,\s*guid:\s*([0-9a-f]{32})");
         if (!guid.Success)
         {
@@ -202,7 +202,7 @@ public sealed class SimDataFreshnessGateTests
 
         foreach (var meta in Directory.EnumerateFiles(ConfigSources, "*.cs.meta"))
         {
-            if (!File.ReadAllText(meta).Contains(guid.Groups[1].Value, StringComparison.Ordinal))
+            if (!RepoPaths.ReadText(meta).Contains(guid.Groups[1].Value, StringComparison.Ordinal))
             {
                 continue;
             }
@@ -220,7 +220,7 @@ public sealed class SimDataFreshnessGateTests
             return null;
         }
 
-        var text = File.ReadAllText(path);
+        var text = RepoPaths.ReadText(path);
         var targets = Regex.Matches(text, @"\[MirrorTarget\(typeof\((\w+)\)\)\]")
             .Select(m => m.Groups[1].Value).ToList();
         if (targets.Count == 0)

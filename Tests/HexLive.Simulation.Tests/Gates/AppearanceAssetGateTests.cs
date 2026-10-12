@@ -72,7 +72,7 @@ public sealed class AppearanceAssetGateTests
             yield break;
         }
 
-        var wantGuid = Regex.Match(File.ReadAllText(texture + ".meta"), @"guid: (\w{32})")
+        var wantGuid = Regex.Match(RepoPaths.ReadText(texture + ".meta"), @"guid: (\w{32})")
             .Groups[1].Value;
 
         foreach (var slot in Tinted)
@@ -89,7 +89,7 @@ public sealed class AppearanceAssetGateTests
                 yield return $"{color}/{slot}.mat: нет .meta — Unity его не увидит";
             }
 
-            var body = File.ReadAllText(path);
+            var body = RepoPaths.ReadText(path);
             if (!body.Contains("m_Name: " + slot))
             {
                 yield return $"{color}/{slot}.mat: m_Name не '{slot}' — подмена идёт по ИМЕНИ";

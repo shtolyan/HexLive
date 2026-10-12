@@ -11,7 +11,7 @@ namespace HexLive.Simulation.Tests.Gates
 public sealed class LootTransferUiContractTests
 {
     private static string ReadLocalization() => Regex.Replace(
-        File.ReadAllText(Path.Combine(
+        RepoPaths.ReadText(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset")),
         @"\\u([0-9a-fA-F]{4})",
         match => ((char)Convert.ToInt32(match.Groups[1].Value, 16)).ToString());
@@ -23,7 +23,7 @@ public sealed class LootTransferUiContractTests
     [Test]
     public void ExchangeIsTwoEqualScrollingWindowsWithAuthoritativeDragDrops()
     {
-        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
+        var panel = RepoPaths.ReadText(Presentation("UI", "LootTransferPanel.cs"));
 
         Assert.Multiple(() =>
         {
@@ -57,7 +57,7 @@ public sealed class LootTransferUiContractTests
     // evt.target — и разваливалась от пересборки раскладки посреди жеста.
     public void DragIsHeldByPointerCaptureAndResolvedGeometrically()
     {
-        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
+        var panel = RepoPaths.ReadText(Presentation("UI", "LootTransferPanel.cs"));
 
         Assert.Multiple(() =>
         {
@@ -80,7 +80,7 @@ public sealed class LootTransferUiContractTests
     // выбор количества обязан стоять до развилки двух авторитетных команд.
     public void StackTransfersAlwaysAskForAnExactQuantity()
     {
-        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
+        var panel = RepoPaths.ReadText(Presentation("UI", "LootTransferPanel.cs"));
         var localization = ReadLocalization();
 
         Assert.Multiple(() =>
@@ -103,9 +103,9 @@ public sealed class LootTransferUiContractTests
     // инвентаря спрашивают именно его.
     public void DoubleClickRuleIsSharedBetweenExchangeAndColonistInventory()
     {
-        var shared = File.ReadAllText(Presentation("UI", "InventoryQuickAction.cs"));
-        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
-        var character = File.ReadAllText(Presentation("UI", "CharacterPanel.cs"));
+        var shared = RepoPaths.ReadText(Presentation("UI", "InventoryQuickAction.cs"));
+        var panel = RepoPaths.ReadText(Presentation("UI", "LootTransferPanel.cs"));
+        var character = RepoPaths.ReadText(Presentation("UI", "CharacterPanel.cs"));
         var localization = ReadLocalization();
 
         Assert.Multiple(() =>
@@ -144,9 +144,9 @@ public sealed class LootTransferUiContractTests
     // не защита, а зафиксированный симптом.
     public void ContextMenuOffersLootForAnyLyingPersonOfEitherFaction()
     {
-        var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
-        var bootstrap = File.ReadAllText(Presentation("Bootstrap", "PrototypeRuntimeBootstrap.cs"));
-        var camera = File.ReadAllText(Presentation("Input", "RtsCameraController.cs"));
+        var adapter = RepoPaths.ReadText(Presentation("Input", "SimulationInputAdapter.cs"));
+        var bootstrap = RepoPaths.ReadText(Presentation("Bootstrap", "PrototypeRuntimeBootstrap.cs"));
+        var camera = RepoPaths.ReadText(Presentation("Input", "RtsCameraController.cs"));
         var localization = ReadLocalization();
 
         Assert.Multiple(() =>
@@ -158,7 +158,7 @@ public sealed class LootTransferUiContractTests
                 "Allied and foreign lying people must share the same interaction.");
             // Тело живёт в отдельном списке снапшота — без этой ветки панель
             // молча не открылась бы над мёртвой.
-            Assert.That(File.ReadAllText(Presentation("UI", "LootTransferPanel.cs")),
+            Assert.That(RepoPaths.ReadText(Presentation("UI", "LootTransferPanel.cs")),
                 Does.Contain("snapshot.Corpses"));
             Assert.That(bootstrap, Does.Contain("AddComponent<LootTransferPanel>()"));
             Assert.That(camera, Does.Contain("UI.LootTransferPanel.IsOpen"));
@@ -178,11 +178,11 @@ public sealed class LootTransferUiContractTests
     // ключами вместо текста, и никакой C# этого не заметит.
     public void ContextMenuOffersGiftForAnAwakePersonAndThePanelGoesOneWay()
     {
-        var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
-        var panel = File.ReadAllText(Presentation("UI", "LootTransferPanel.cs"));
-        var speech = File.ReadAllText(Presentation("UI", "SpeechCatalog.cs"));
-        var history = File.ReadAllText(Presentation("History", "GameHistoryFormatter.cs"));
-        var localization = File.ReadAllText(Path.Combine(
+        var adapter = RepoPaths.ReadText(Presentation("Input", "SimulationInputAdapter.cs"));
+        var panel = RepoPaths.ReadText(Presentation("UI", "LootTransferPanel.cs"));
+        var speech = RepoPaths.ReadText(Presentation("UI", "SpeechCatalog.cs"));
+        var history = RepoPaths.ReadText(Presentation("History", "GameHistoryFormatter.cs"));
+        var localization = RepoPaths.ReadText(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
 
         Assert.Multiple(() =>
@@ -222,7 +222,7 @@ public sealed class LootTransferUiContractTests
     [Test]
     public void EmptyRemainsAndWardrobeOpenTheTwoSidedContainerPanel()
     {
-        var adapter = File.ReadAllText(Presentation("Input", "SimulationInputAdapter.cs"));
+        var adapter = RepoPaths.ReadText(Presentation("Input", "SimulationInputAdapter.cs"));
 
         Assert.Multiple(() =>
         {

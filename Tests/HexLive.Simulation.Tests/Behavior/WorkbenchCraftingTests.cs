@@ -366,6 +366,9 @@ public sealed class WorkbenchCraftingTests
             var ready = WorldObjectMutations.SpawnObject(
                 world, pair.Key, crafter.Fragment, crafter.Tile, anchor);
             new PerceptionSystem().Run(world);
+            // Data-only recipes share CraftItem; its ordered output is part
+            // of the plan identity, just as in a real CraftByOutput command.
+            crafter.Plan.TargetItemDefinitionId = pair.Key;
 
             Assert.That(CraftProjectMath.HasReachableCompletedOutput(
                     world, crafter, goal), Is.True,

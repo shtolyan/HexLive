@@ -192,10 +192,24 @@ public sealed class McpKnownObjectObservationTests
                 return (bytes, timings[50] * 1_000_000d / Stopwatch.Frequency,
                     timings[95] * 1_000_000d / Stopwatch.Frequency, timings[99] * 1_000_000d / Stopwatch.Frequency, payload);
             }
+            // Steady state is byte-identical (5472 B/read for both sizes). Under parallel CPU
+            // load, one-time runtime work (tier-up/OSR of the 4096-record loop) once landed
+            // inside a window: +2312 B in a single sample, 12.10.2026. Keep the cheapest of
+            // several windows; real per-read growth with source count is in every window.
+            (long Bytes, double MedianUs, double P95Us, double MaxUs, int PayloadBytes) Steady()
+            {
+                var best = Sample();
+                for (var i = 1; i < 5; i++)
+                {
+                    var next = Sample();
+                    if (next.Bytes < best.Bytes) best = next;
+                }
+                return best;
+            }
             Add(1, 256);
-            var small = Sample();
+            var small = Steady();
             Add(257, 4096); // Oversized permanent home knowledge must still have bounded request storage.
-            var large = Sample();
+            var large = Steady();
             Assert.That(calibration, Is.GreaterThanOrEqualTo(4096));
             Assert.That(small.Bytes, Is.GreaterThan(0));
             Assert.That(large.Bytes, Is.LessThanOrEqualTo(small.Bytes), "No allocation growth with source count");

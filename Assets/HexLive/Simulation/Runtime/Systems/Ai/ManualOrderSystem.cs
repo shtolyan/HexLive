@@ -1,4 +1,5 @@
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Content;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Navigation;
 using HexLive.Simulation.Spatial;
@@ -177,7 +178,8 @@ public sealed class ManualOrderSystem : ISimulationSystem
 
         if (npc.Mind.ManualAttackMobId is { } mobId)
         {
-            KeepAttackingMob(world, npc, mobId);
+            if (mobId < 0) KeepHuntingCrab(world, npc, mobId);
+            else KeepAttackingMob(world, npc, mobId);
             return;
         }
 
@@ -269,6 +271,26 @@ public sealed class ManualOrderSystem : ISimulationSystem
             Trace.Debug(world, npc.Id, "ManualChaseRepath",
                 $"Target=NPC{target.Id.Value} ApproachJunction={approach.Value}");
         }
+    }
+
+    private static void KeepHuntingCrab(WorldState world, NPCState npc, int targetId)
+    {
+        if (!npc.Body.CanUseToolsOrWeapons || !npc.Inventory.Items.Contains(ContentIds.Spear))
+        { EndAttack(world, npc, "MissingTool"); return; }
+        if (!ManualCrabHunt.TryTarget(world, targetId, out var junction, out var tile))
+        { EndAttack(world, npc, "TargetGone"); return; }
+        var stale = npc.Plan.Status != PlanStatus.Active ||
+            npc.Plan.TargetJunctionId is not { } current || !current.Equals(junction);
+        if (!stale || npc.Movement.HopTimer > 0f) return;
+        ClearAttackApproach(world, npc, "Краб сместился");
+        npc.Mind.CurrentGoal = GoalType.PlayerAttack;
+        npc.Mind.ManualAttackMobId = targetId;
+        npc.Plan.Goal = GoalType.PlayerAttack;
+        npc.Plan.TargetJunctionId = junction;
+        npc.Plan.TargetTile = tile;
+        npc.Plan.Steps.Add(new PlanStep {Type=PlanStepType.MoveToJunction, TargetJunction=junction});
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
     }
 
     private static void KeepAttackingMob(WorldState world, NPCState npc, int mobId)
@@ -431,6 +453,11 @@ public sealed class ManualOrderSystem : ISimulationSystem
                 ledger.Receipts.Find(r => r.Sequence == sequence)?.Outcome == "accepted")
                 ledger.ActiveSequence = sequence;
         }
+    }
+
+    internal static void CompleteCrabHunt(WorldState world, NPCState npc, int crabId)
+    {
+        if (ManualCrabHunt.IsOrdered(npc,crabId)) EndAttack(world,npc,"TargetDown");
     }
 
     private static void EndAttack(WorldState world, NPCState npc, string reason)

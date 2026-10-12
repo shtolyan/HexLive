@@ -2188,15 +2188,19 @@ internal static class ManualCommandExecutor
         var actors = GroupActors(world, command.Actors, rejectIncapacitated: true,
             out var manual, out var incapacitated, out var ai);
         var accepted = 0;
-        if (ManualControlMath.TryGetMob(world, command.MobId, out _))
+        var crab = command.MobId < 0;
+        if (crab ? ManualCrabHunt.TryTarget(world, command.MobId, out _, out _) :
+            ManualControlMath.TryGetMob(world, command.MobId, out _))
         {
             foreach (var npc in actors)
             {
+                if (crab && (!npc.Body.CanUseToolsOrWeapons ||
+                    !npc.Inventory.Items.Contains(ContentIds.Spear))) continue;
                 ClearForNewOrder(world, npc, "Групповой приказ атаковать зверя");
                 ClearAttackOrder(world, npc);
                 npc.Mind.CurrentGoal = GoalType.PlayerAttack;
                 npc.Mind.ManualAttackMobId = command.MobId;
-                npc.Mind.CombatAssistDogId = command.MobId;
+                npc.Mind.CombatAssistDogId = crab ? null : command.MobId;
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "ManualOrderAccepted",
@@ -3347,9 +3351,17 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        if (!ManualControlMath.TryGetMob(world, command.MobId, out _))
+        var crab = command.MobId < 0;
+        if (crab ? !ManualCrabHunt.TryTarget(world, command.MobId, out _, out _) :
+            !ManualControlMath.TryGetMob(world, command.MobId, out _))
         {
             Reject(world, npc.Id, "AttackMob", "TargetGone", admission);
+            return;
+        }
+
+        if (crab && (!npc.Body.CanUseToolsOrWeapons || !npc.Inventory.Items.Contains(ContentIds.Spear)))
+        {
+            Reject(world, npc.Id, "AttackMob", "MissingTool", admission);
             return;
         }
 
@@ -3361,7 +3373,7 @@ internal static class ManualCommandExecutor
         npc.Plan.Status = PlanStatus.None;
         // Сцепку со зверем держит §57: AnimalCombatSystem бьёт любого, у кого
         // стоит CombatAssistDogId, — приказ просто становится в тот же строй.
-        npc.Mind.CombatAssistDogId = command.MobId;
+        npc.Mind.CombatAssistDogId = crab ? null : command.MobId;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",

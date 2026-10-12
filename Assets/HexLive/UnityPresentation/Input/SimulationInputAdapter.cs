@@ -60,6 +60,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     private WorldObjectView? _hovered;
     private int _hoveredNpcId = -1;
     private int _hoveredMobId = -1;
+    private bool _hasHoveredMob;
+    private Renderer[]? _hoveredMobRenderers;
     private float _nextRemoteLeaseHeartbeatAt;
 
     private readonly List<ContextMenuEntry> _entries = new();
@@ -208,6 +210,15 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
 
         PickTarget(snapshot, mousePos, out _hoveredNpcId, out _hoveredMobId, out var objectHit);
+        var mobRenderers = _worldRenderer?.WildlifeRenderers(_hoveredMobId);
+        _hasHoveredMob = mobRenderers != null && _hoveredNpcId < 0 && objectHit == null;
+        if (!_hasHoveredMob) mobRenderers = null;
+        if (!ReferenceEquals(mobRenderers,_hoveredMobRenderers))
+        {
+            if (_hoveredMobRenderers != null) HoverHighlight.Active.Clear(_hoveredMobRenderers);
+            _hoveredMobRenderers=mobRenderers;
+            if (_hoveredMobRenderers != null) HoverHighlight.Active.Apply(_hoveredMobRenderers);
+        }
 
         if (!ReferenceEquals(objectHit, _hovered))
         {
@@ -299,6 +310,9 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         _hovered = null;
         _hoveredNpcId = -1;
         _hoveredMobId = -1;
+        _hasHoveredMob=false;
+        if (_hoveredMobRenderers != null) HoverHighlight.Active.Clear(_hoveredMobRenderers);
+        _hoveredMobRenderers=null;
     }
 
     // Предикаты пикера держим полями: они уходят делегатами в
@@ -520,6 +534,8 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return -1;
         }
 
+        if (_worldRenderer != null && _worldRenderer.TryPickWildlife(
+            _camera.ScreenPointToRay(mousePos), out var wildlifeId)) return wildlifeId;
         var bestId = -1;
         foreach (var mob in snapshot.Mobs)
         {
@@ -586,7 +602,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return true;
         }
 
-        if (_hoveredMobId >= 0)
+        if (_hasHoveredMob || _hoveredMobId >= 0)
         {
             OpenMobMenu(mousePos, _hoveredMobId);
             return true;
@@ -728,7 +744,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return true;
         }
 
-        if (mobId >= 0)
+        if (mobId != -1)
         {
             OpenMobMenu(mousePos, mobId);
             return true;
@@ -1387,7 +1403,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         var me = OrderNpcId;
         _entries.Clear();
-        _entries.Add(new ContextMenuEntry(Loc.Get("menu.attack"),
+        _entries.Add(new ContextMenuEntry(Loc.Get(mobId < 0 ? "goal.Hunt" : "menu.attack"),
             () => EnqueueMobAttack(me, mobId)));
 
         ContextMenuPanel.Open(mousePos, Loc.Get("menu.target.beast"), _entries);

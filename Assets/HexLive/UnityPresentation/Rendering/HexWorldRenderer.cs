@@ -6316,6 +6316,32 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // (footprint on the hex, stride tuning, blood splash, wound stamps).
     // Adding a tiger = drop a MobConfig asset with a prefab path — no new
     // view code. A missing or travelling bundle never becomes a primitive.
+    public bool TryPickWildlife(Ray ray, out int targetId)
+    {
+        var selected=-1; var best=float.PositiveInfinity; var found=false;
+        void Pick(Dictionary<int,GameObject> views, bool crabs)
+        {
+            foreach(var entry in views)
+            {
+                if(entry.Value == null) continue;
+                var pick=entry.Value.GetComponent<WildlifePickView>();
+                if(pick != null && pick.Raycast(ray,out var distance) && distance < best)
+                { best=distance; selected=crabs?ManualCrabHunt.TargetId(entry.Key):entry.Key; found=true; }
+            }
+        }
+        Pick(_mobViews,false); Pick(_crabViews,true);
+        targetId=selected;
+        return found;
+    }
+
+    public Renderer[] WildlifeRenderers(int targetId)
+    {
+        var views=targetId<0?_crabViews:_mobViews;
+        var id=targetId<0?-targetId-1:targetId;
+        return views.TryGetValue(id,out var root) && root != null
+            ? root.GetComponent<WildlifePickView>()?.Renderers : null;
+    }
+
     private GameObject CreateMobView(string mobId, int id)
     {
         var root = new GameObject($"Mob {mobId} #{id}");
@@ -6351,6 +6377,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             root.AddComponent<MobView>().Configure(config);
+            root.AddComponent<WildlifePickView>();
 
             // Persistent wounds painted into the pelt (NPC stamp tech,
             // random-spot edition) — seeded by id so save/load repaints the

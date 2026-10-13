@@ -1740,15 +1740,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             TakeMeatFromSpit(world, npc, worldObject);
         }
-        else if (npc.Plan.Goal == GoalType.CraftLeather &&
-                 worldObject.DefinitionId == ContentIds.LeatherPants)
-        {
-            // Leather's authored completion adapter is immediate wear. Reusing
-            // a finished pair found on the ground must behave exactly like the
-            // pair this worker has just completed, not strand it in her pack.
-            return CompleteDress(
-                world, npc, worldObject, definition, completedInteraction, needsBefore);
-        }
         // §119.2: the generic craft-output planner may target a dropped
         // garment whose pockets hold the requested result. Take exactly one
         // recipe output and leave the container plus unrelated contents.
@@ -1829,8 +1820,6 @@ public sealed partial class ExecutionSystem : ISimulationSystem
     private static bool IsDirectInventoryPickup(
         NPCState npc, WorldObjectState worldObject, ObjectDefinition definition) =>
         !definition.HasTag("Campfire") &&
-        !(npc.Plan.Goal == GoalType.CraftLeather &&
-          worldObject.DefinitionId == ContentIds.LeatherPants) &&
         !(RecipeCatalog.UsesPersistentProject(npc.Plan.Goal) &&
           worldObject.DefinitionId != RecipeCatalog.OutputOf(npc.Plan.Goal, npc.Plan.TargetItemDefinitionId) &&
           worldObject.Contents.Count > 0) &&

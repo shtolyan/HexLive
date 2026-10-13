@@ -164,7 +164,7 @@ public sealed class WorkbenchCraftingTests
     }
 
     [Test]
-    public void BandageAndLeatherRecipes_KeepPhysicalGameplayOutputs()
+    public void BandageRecipeKeepsPhysicalOutputAndRetiredLeatherCannotStart()
     {
         var world = TestWorld.CreateWorld(119065);
         var crafter = world.Entities.Npcs.Values.First();
@@ -195,21 +195,9 @@ public sealed class WorkbenchCraftingTests
         });
 
         Add(crafter, ContentIds.Hide, 1);
-        var leatherStation = string.IsNullOrEmpty(RecipeCatalog.StationOf(GoalType.CraftLeather))
-            ? null
-            : WorldObjectMutations.SpawnObject(
-                world, ContentIds.Campfire, crafter.Fragment, crafter.Tile, anchor);
-        Assert.That(CraftProjectMath.TryBeginCycle(
-            world, crafter, GoalType.CraftLeather, leatherStation, out var pants), Is.True);
-        Assert.That(pants.DefinitionId, Is.EqualTo(ContentIds.LeatherPants));
-        Assert.That(CraftProjectMath.CompleteCycle(
-            world, crafter, GoalType.CraftLeather), Is.True);
-        Assert.Multiple(() =>
-        {
-            Assert.That(pants.IsCraftProject, Is.False);
-            Assert.That(world.Content.ObjectDefinitions.ContainsKey(pants.DefinitionId), Is.True,
-                "The physical 100% output must be a real world item, not resource.leather.");
-        });
+        Assert.That(CraftProjectMath.TryBeginCycle(world, crafter,
+            GoalType.CraftLeather, null, out _), Is.False);
+        Assert.That(world.Content.ObjectDefinitions.ContainsKey(ContentIds.LeatherPants), Is.False);
     }
 
     [Test]
@@ -573,61 +561,6 @@ public sealed class WorkbenchCraftingTests
             Assert.That(crafter.Inventory.Items.Count(i =>
                 i.DefinitionId == ContentIds.WoodenArm), Is.EqualTo(1));
             Assert.That(crafter.Plan.Status, Is.EqualTo(PlanStatus.Completed));
-        });
-    }
-
-    [Test]
-    public void AutonomousStationLeather_UsesItsImmediateWearAdapterAfterTheTakeBeat()
-    {
-        var world = TestWorld.CreateWorld(119097);
-        var crafter = world.Entities.Npcs.Values.First();
-        var anchor = crafter.CurrentJunction ?? world.Tiles.Items[crafter.Tile].Junctions[0];
-        crafter.CurrentJunction = anchor;
-        crafter.Inventory.Items.Clear();
-        crafter.WornItems.RemoveAll(i => i.DefinitionId == ContentIds.LeatherPants);
-        var station = WorldObjectMutations.SpawnObject(
-            world, ContentIds.Campfire, crafter.Fragment, crafter.Tile, anchor);
-        Add(crafter, ContentIds.Hide, 1);
-        Assert.That(CraftProjectMath.TryBeginCycle(
-            world, crafter, GoalType.CraftLeather, station, out var project), Is.True);
-
-        project.CraftWorkDone = project.CraftWorkRequired - Spec119.CraftCycleWork;
-        crafter.Execution.CraftCycleStartWork = project.CraftWorkDone;
-        crafter.Mind.ManualControl = false;
-        crafter.Mind.CurrentGoal = GoalType.CraftLeather;
-        crafter.Plan.Goal = GoalType.CraftLeather;
-        crafter.Plan.Status = PlanStatus.Active;
-        crafter.Plan.TargetObjectId = station.Id;
-        crafter.Plan.TargetJunctionId = anchor;
-        crafter.Plan.Steps.Clear();
-        crafter.Plan.Steps.Add(new PlanStep
-        {
-            Type = PlanStepType.Interact,
-            TargetObject = station.Id,
-            TargetJunction = anchor,
-            Interaction = InteractionType.Craft
-        });
-        world.Tick = 100;
-        crafter.Execution.Status = ExecutionStatus.InProgress;
-        crafter.Execution.CurrentInteraction = InteractionType.Craft;
-        crafter.Execution.TargetObject = station.Id;
-        crafter.Execution.StartTick = world.Tick - 1;
-        crafter.Execution.EndTick = world.Tick;
-        station.IsOccupied = true;
-        station.CurrentUser = crafter.Id;
-
-        var execution = new ExecutionSystem();
-        execution.Run(world);
-        world.Tick = crafter.Execution.EndTick;
-        execution.Run(world);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(world.Entities.Objects.ContainsKey(project.Id), Is.False);
-            Assert.That(crafter.WornItems.Count(i =>
-                i.DefinitionId == ContentIds.LeatherPants), Is.EqualTo(1));
-            Assert.That(crafter.Inventory.Items.Any(i =>
-                i.DefinitionId == ContentIds.LeatherPants), Is.False);
         });
     }
 

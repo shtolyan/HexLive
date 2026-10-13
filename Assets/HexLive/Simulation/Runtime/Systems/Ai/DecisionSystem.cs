@@ -1845,10 +1845,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var cookingFire = FindCookingFire(npc, world);
         var cookAvail = hasRawMeat && cookingFire != null &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.CookMeat);
-        var craftLeatherAvail = !npc.WornItems.Contains(ContentIds.LeatherPants) &&
-            !npc.Inventory.Items.Contains(ContentIds.LeatherPants) &&
-            ((hideCount >= 1 && CraftPlaceOk(GoalType.CraftLeather)) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftLeather));
+        // §138.6 / #461: the enum remains save/wire compatible, its craft is retired.
+        var craftLeatherAvail = false;
 
         // Inside the peckish window the hunt genuinely outbids GetFood
         // (0.3+0.5h > h for h < 0.6); the availability window above is

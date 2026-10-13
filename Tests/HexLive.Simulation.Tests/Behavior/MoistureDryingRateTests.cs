@@ -131,7 +131,7 @@ public sealed class MoistureDryingRateTests
         Assert.That(world.Content.ObjectDefinitions[jacketId].Layer, Is.Not.Null,
             "Setup must use a shipped wearable, not the legacy clothing.coat id.");
         var dryCoat = new ItemInstance(jacketId);
-        var dampPants = new ItemInstance(ContentIds.LeatherPants) { Wetness = 0.5f };
+        var dampPants = new ItemInstance("clothing.skirt_primal") { Wetness = 0.5f };
         npc.WornItems.Add(panties);
         npc.WornItems.Add(backpack);
         EquipmentMath.Recalculate(world, npc);

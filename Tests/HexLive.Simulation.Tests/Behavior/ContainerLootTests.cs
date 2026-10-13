@@ -152,7 +152,7 @@ public sealed class ContainerLootTests
             world, ContentIds.Wardrobe, npc.Fragment, npc.Tile, anchor);
         wardrobe.RotationDegrees = 120f;
         var garment = WorldObjectMutations.SpawnObject(
-            world, ContentIds.LeatherPants, npc.Fragment, npc.Tile, anchor);
+            world, "clothing.skirt_primal", npc.Fragment, npc.Tile, anchor);
         garment.Wetness = 0.7f;
         garment.Durability = 0.6f;
         garment.Dirtiness = 0.5f;
@@ -164,10 +164,10 @@ public sealed class ContainerLootTests
             "An empty wardrobe must remain a valid destination before its first garment.");
         var cells = new List<(string ItemId, int Count, int SourceIndex)>();
         ContainerLootMath.BuildCells(world, wardrobe, cells);
-        Assert.That(cells.Select(cell => cell.ItemId), Does.Contain(ContentIds.LeatherPants));
-        var slot = cells.FindIndex(cell => cell.ItemId == ContentIds.LeatherPants);
+        Assert.That(cells.Select(cell => cell.ItemId), Does.Contain("clothing.skirt_primal"));
+        var slot = cells.FindIndex(cell => cell.ItemId == "clothing.skirt_primal");
         Assert.That(ContainerLootMath.TryResolve(
-            world, wardrobe, slot, ContentIds.LeatherPants, 1,
+            world, wardrobe, slot, "clothing.skirt_primal", 1,
             out var moving, out var groundSources), Is.True);
         Assert.That(ContainerLootMath.FitsInLooter(world, npc, moving), Is.True);
 
@@ -177,25 +177,25 @@ public sealed class ContainerLootTests
         {
             Assert.That(world.Entities.Objects.ContainsKey(garment.Id), Is.False);
             Assert.That(npc.Inventory.Items.Count(item =>
-                item.DefinitionId == ContentIds.LeatherPants), Is.EqualTo(1));
+                item.DefinitionId == "clothing.skirt_primal"), Is.EqualTo(1));
             Assert.That(npc.Inventory.Items.Count(item =>
                 item.DefinitionId == ContentIds.Stone), Is.EqualTo(1));
             var carried = npc.Inventory.Items.Single(item =>
-                item.DefinitionId == ContentIds.LeatherPants);
+                item.DefinitionId == "clothing.skirt_primal");
             Assert.That(carried.Wetness, Is.EqualTo(0.7f));
             Assert.That(carried.Durability, Is.EqualTo(0.6f));
             Assert.That(carried.OwnerId, Is.EqualTo(npc.Id.Value));
         });
 
         var returning = npc.Inventory.Items.Single(item =>
-            item.DefinitionId == ContentIds.LeatherPants);
+            item.DefinitionId == "clothing.skirt_primal");
         Assert.That(ContainerLootMath.CanAccept(
             world, wardrobe, new[] { returning }), Is.True);
         ContainerLootMath.GiveToContainer(
             world, wardrobe, npc, new[] { returning });
 
         var restored = world.Entities.Objects.Values.Single(obj =>
-            obj.Id != wardrobe.Id && obj.DefinitionId == ContentIds.LeatherPants &&
+            obj.Id != wardrobe.Id && obj.DefinitionId == "clothing.skirt_primal" &&
             obj.Junctions.Contains(anchor));
         Assert.Multiple(() =>
         {
@@ -216,7 +216,7 @@ public sealed class ContainerLootTests
             world, ContentIds.DryingRack, npc.Fragment, npc.Tile, anchor);
         var collector = WorldObjectMutations.SpawnObject(
             world, ContentIds.WaterCollector, npc.Fragment, npc.Tile, anchor);
-        var garment = new ItemInstance(ContentIds.LeatherPants) { Wetness = 0.6f };
+        var garment = new ItemInstance("clothing.skirt_primal") { Wetness = 0.6f };
         var bottle = new ItemInstance(ContentIds.Bottle) { ResourceAmount = 7f };
         bottle.WaterKind = WaterKind.Rain;
         var stone = new ItemInstance(ContentIds.Stone);
@@ -247,7 +247,7 @@ public sealed class ContainerLootTests
         Assert.Multiple(() =>
         {
             Assert.That(rackCells.Select(cell => cell.ItemId),
-                Is.EquivalentTo(new[] { ContentIds.LeatherPants }));
+                Is.EquivalentTo(new[] { "clothing.skirt_primal" }));
             Assert.That(collectorCells.Select(cell => cell.ItemId),
                 Is.EquivalentTo(new[] { ContentIds.Bottle }));
             var parked = WaterCollectorMath.FindVessel(world, collector);

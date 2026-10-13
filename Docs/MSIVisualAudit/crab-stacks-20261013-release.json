@@ -57,7 +57,7 @@
   "serverFilesVerified": 521,
   "playerStageFilesVerified": 20,
   "audioFilesVerified": 5668,
-  "serviceRestarts": 1,
+  "serviceRestarts": 2,
   "service": "hexlive.service",
   "worldIdPreserved": true,
   "worldReset": false,
@@ -97,7 +97,7 @@
     "audioFsbSignaturePassed": true
   },
   "liveWebSocket": {
-    "utc": "2026-10-13T05:55:46.8342183Z",
+    "utc": "2026-10-13T06:12:10.2888853Z",
     "passed": true,
     "websocketUpgrade": 101,
     "protocol": 24,
@@ -105,8 +105,8 @@
     "seed": 629209070,
     "mode": 2,
     "topology": "59DDDCBB",
-    "handshakeTick": 298531,
-    "snapshotTick": 298531,
+    "handshakeTick": 302450,
+    "snapshotTick": 302450,
     "paused": false,
     "speed": 1,
     "controlEnabled": false,
@@ -127,5 +127,23 @@
     "limitations": "Same exception count had been observed in previous menu; cause not diagnosed. Read-only world smoke test; targeted gameplay acceptance remains player QA."
   },
   "rollbackRetained": true,
-  "evidenceArchiveUploaded": false
+  "evidenceArchiveUploaded": false,
+  "activationServiceRestarts": 1,
+  "restartVerification": {
+    "startedUtc": "2026-10-13T06:10:36.759347+00:00",
+    "sourceCommit": "dae0138061c9521489ada91c14d4f8bee82bd5b3",
+    "world": "a309de74171d470385412bfab01ffdab",
+    "savedTick": 301843,
+    "savedSha256": "44965956692bb517685bac2b8bddc0a3dc7827c81f511bf11686048d5ab04b18",
+    "registryRevision": 604,
+    "catalogRevision": 604,
+    "controlledRestarts": 1,
+    "passed": true,
+    "restoredTick": 301851,
+    "protectedFilesUnchanged": 5,
+    "assignmentsPreserved": true,
+    "savePermissions": "0600 hexlive:hexlive",
+    "health": "HexLive server\ntick 301851\ncolonists 1/1\nobjects 3048\nseed 629209070\ntopology 0x59DDDCBB\navg 56.85 ms/tick\nrate 1.39 ticks/s\nadmin /admin\n",
+    "finishedUtc": "2026-10-13T06:10:43.188795+00:00"
+  }
 }

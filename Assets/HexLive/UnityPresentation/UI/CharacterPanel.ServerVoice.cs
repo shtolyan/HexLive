@@ -51,7 +51,9 @@ namespace HexLive.UnityPresentation.UI
             if (_serverVoice == null)
             {
                 _serverVoice = new WebVoiceAgent();
-                _serverVoice.Line += (speaker, text) => Debug.Log("[voice] " + speaker + ": " + text);
+                // The name is committed before the reply. Refresh after a transcript/reply
+                // instead of waiting for the normal idle poll or a page reload.
+                _serverVoice.Line += (_, _) => _serverRelationNextPoll = 0;
                 _serverVoice.Alignment += a => _serverCallActor?.AppendPhoneAlignment(a.chars, a.starts, a.durations);
             }
             _serverVoice.Start(WebVoiceAgent.PageServerHttpBase()!, SessionConfig.ControlToken!, SessionConfig.ClientId,

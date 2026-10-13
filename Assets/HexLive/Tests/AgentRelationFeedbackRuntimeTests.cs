@@ -30,6 +30,31 @@ public sealed class AgentRelationFeedbackRuntimeTests
     }
 
     [UnityTest]
+    public IEnumerator LearnedVoiceNameRebuildsAnAlreadyVisibleRelationshipWithoutReconnect()
+    {
+        var owner = new GameObject("VoiceNameMethods"); owner.SetActive(false);
+        var character = owner.AddComponent<CharacterPanel>();
+        var relations = new VisualElement();
+        typeof(CharacterPanel).GetField("_relationsContainer", Private)!.SetValue(character, relations);
+        typeof(CharacterPanel).GetField("_agentAttachedNpcId", Private)!.SetValue(character, 7);
+        var parse = typeof(CharacterPanel).GetMethod("ParseAgentRelation", Private)!;
+        var update = typeof(CharacterPanel).GetMethod("UpdateRelations", Private)!;
+        var npc = new NpcSnapshot { Id = new HexLive.Simulation.Common.EntityId(7) };
+        try
+        {
+            parse.Invoke(character,new object[]{"{\"familiarity\":0.02,\"trust\":0,\"affinity\":0,\"voiceName\":\"Голос\"}"});
+            update.Invoke(character,new object[]{npc});
+            Assert.That(relations.Query<Label>().ToList().Any(l=>l.text=="Голос"),Is.True);
+            parse.Invoke(character,new object[]{"{\"familiarity\":0.02,\"trust\":0,\"affinity\":0,\"voiceName\":\"Толя\"}"});
+            update.Invoke(character,new object[]{npc});
+            Assert.That(relations.Query<Label>().ToList().Any(l=>l.text=="Толя"),Is.True);
+            Assert.That(relations.Query<Label>().ToList().Any(l=>l.text=="Голос"),Is.False);
+            yield return null;
+        }
+        finally { Object.Destroy(owner); }
+    }
+
+    [UnityTest]
     public IEnumerator CompactDeltasOpenBoundedPlainTextHoverPopupAndRepositionAfterExpansion()
     {
         var owner = new GameObject("RelationMethods");
@@ -66,7 +91,7 @@ public sealed class AgentRelationFeedbackRuntimeTests
             Assert.That(deltas.Select(x => x.text), Is.EqualTo(new[] { "+0", "+2", "-3" }),
                 "Compact values follow the same Affinity/Familiarity/Trust order as the rings.");
 
-            using (var enter = MouseEnterEvent.GetPooled()) feedback.SendEvent(enter);
+            using (var enter = MouseEnterEvent.GetPooled()) { enter.target = feedback; feedback.SendEvent(enter); }
             for (var i = 0; i < 3; i++) yield return null;
             var popup = document.rootVisualElement.Q<VisualElement>(className: "agent-relation-tooltip");
             Assert.That(popup, Is.Not.Null);
@@ -93,10 +118,10 @@ public sealed class AgentRelationFeedbackRuntimeTests
                 new object[] { JsonUtility.ToJson(new Payload { reason = expandedReason, trustDelta = .03f }) });
             Assert.That(popup.resolvedStyle.display, Is.EqualTo(DisplayStyle.None),
                 "A changed payload must not leave stale details visible.");
-            using (var leaveAfterChange = MouseLeaveEvent.GetPooled()) feedback.SendEvent(leaveAfterChange);
-            using (var firstReenter = MouseEnterEvent.GetPooled()) feedback.SendEvent(firstReenter);
-            using (var immediateLeave = MouseLeaveEvent.GetPooled()) feedback.SendEvent(immediateLeave);
-            using (var finalReenter = MouseEnterEvent.GetPooled()) feedback.SendEvent(finalReenter);
+            using (var leaveAfterChange = MouseLeaveEvent.GetPooled()) { leaveAfterChange.target = feedback; feedback.SendEvent(leaveAfterChange); }
+            using (var firstReenter = MouseEnterEvent.GetPooled()) { firstReenter.target = feedback; feedback.SendEvent(firstReenter); }
+            using (var immediateLeave = MouseLeaveEvent.GetPooled()) { immediateLeave.target = feedback; feedback.SendEvent(immediateLeave); }
+            using (var finalReenter = MouseEnterEvent.GetPooled()) { finalReenter.target = feedback; feedback.SendEvent(finalReenter); }
             for (var i = 0; i < 6; i++) yield return null;
             Assert.That(popup.resolvedStyle.display, Is.EqualTo(DisplayStyle.Flex));
             Assert.That(popup.resolvedStyle.visibility, Is.EqualTo(Visibility.Visible));
@@ -109,7 +134,7 @@ public sealed class AgentRelationFeedbackRuntimeTests
             Assert.That(popup.worldBound.yMax, Is.LessThanOrEqualTo(document.rootVisualElement.worldBound.yMax + .1f),
                 "A stale short-popup schedule must not leave expanded details outside the panel.");
 
-            using (var leave = MouseLeaveEvent.GetPooled()) feedback.SendEvent(leave);
+            using (var leave = MouseLeaveEvent.GetPooled()) { leave.target = feedback; feedback.SendEvent(leave); }
             yield return null;
             Assert.That(popup.resolvedStyle.display, Is.EqualTo(DisplayStyle.None));
         }

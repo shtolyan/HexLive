@@ -29,6 +29,15 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
         var describe = await world.CallAsync("describe_colonist", new { npcId = ticket.NpcId }, token);
         var tState = timer.Elapsed;
         var bond = bonds.Load(ticket.CharacterId, ticket.OwnerUserId);
+        var lastUser = LastUserText(request);
+        var introduced = VoiceIntroduction.TryRead(lastUser, out var voiceName);
+        if (introduced)
+        {
+            bonds.Apply(ticket.CharacterId, ticket.OwnerUserId, turnId + ":name",
+                new RelationshipAssessment(true, RelationshipDirection.Unchanged, RelationshipDirection.Unchanged,
+                    false, "Явно представился", voiceName, "Сам назвал обращение"));
+            bond = bonds.Load(ticket.CharacterId, ticket.OwnerUserId);
+        }
         var messages = new JsonArray { new JsonObject { ["role"] = "system", ["content"] = SystemPrompt(describe, bond) } };
         foreach (var m in History(request)) messages.Add(m);
         var spoke = false;
@@ -74,7 +83,6 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
             (int)timer.Elapsed.TotalMilliseconds, string.Join(",", outcomes), spoke);
 
         // §171.5: relationship moves after the turn, off the latency path.
-        var lastUser = LastUserText(request);
         if (lastUser.Length > 0)
         {
             if (spoke)
@@ -86,7 +94,7 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
             _ = Task.Run(async () =>
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                await AssessAsync(ticket, turnId, lastUser, bond, timeout.Token);
+                await AssessAsync(ticket, turnId, lastUser, bond, introduced, timeout.Token);
             });
         }
     }
@@ -165,7 +173,7 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
         }
     }
 
-    private async Task AssessAsync(SessionTicket ticket, string turnId, string userText, VoiceRelationship bond, CancellationToken token)
+    private async Task AssessAsync(SessionTicket ticket, string turnId, string userText, VoiceRelationship bond, bool introduced, CancellationToken token)
     {
         try
         {
@@ -180,8 +188,8 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
                         "Верни JSON: {\"learnedSomethingSignificant\":bool,\"trust\":\"Decrease|Unchanged|Increase\"," +
                         "\"sympathy\":\"Decrease|Unchanged|Increase\",\"seriousHarm\":bool,\"reason\":\"до 120 символов\"," +
                         "\"voiceName\":null,\"namingReason\":null}. " +
-                        "Если голос представился или назвал предпочтительное обращение, укажи voiceName (до 48 символов) " +
-                        "и namingReason (до 120 символов), learnedSomethingSignificant=true. Не выдумывай имя. " +
+                        "Явное представление уже сохраняется сервером. voiceName и namingReason оставь null; " +
+                        "не меняй имя по догадке или имени третьего лица. " +
                         "Обычная просьба или вопрос — Unchanged. Забота, честность, полезный совет — Increase. " +
                         "Грубость, ложь, приказ навредить себе или другим — Decrease.\n" + bond.BuildPromptBlock() },
                     new JsonObject { ["role"] = "user", ["content"] = userText.Length > 1000 ? userText[..1000] : userText },
@@ -192,7 +200,9 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
             var (json, input, output) = await llm.CompleteJsonAsync(body, token);
             Record("ok", started, input, output, null);
             var assessment = JsonSerializer.Deserialize<RelationshipAssessment>(json);
-            if (assessment != null) bonds.Apply(ticket.CharacterId, ticket.OwnerUserId, turnId, assessment);
+            if (assessment != null) bonds.Apply(ticket.CharacterId, ticket.OwnerUserId, turnId,
+                assessment with { VoiceName = null, NamingReason = null,
+                    LearnedSomethingSignificant = assessment.LearnedSomethingSignificant && !introduced });
         }
         catch (Exception ex) { log.LogWarning("relationship assessment failed: {Type}", ex.GetType().Name); }
     }
@@ -260,7 +270,8 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
 
     private static string LastUserText(JsonElement request) =>
         request.TryGetProperty("messages", out var messages) && messages.ValueKind == JsonValueKind.Array
-            ? messages.EnumerateArray().LastOrDefault(m => m.TryGetProperty("role", out var r) && r.GetString() == "user") is { ValueKind: JsonValueKind.Object } u
+            ? messages.EnumerateArray().LastOrDefault() is { ValueKind: JsonValueKind.Object } u
+              && u.TryGetProperty("role", out var r) && r.GetString() == "user"
               && u.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString()! : ""
             : "";
 

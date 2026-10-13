@@ -27,7 +27,7 @@ public sealed class VoiceTurnRelationshipTests
                 await turn.RunAsync(input.RootElement, t, text => { spoken.Append(text); return Task.CompletedTask; }, default);
                 Assert.That(spoken.ToString(), Is.EqualTo("Привет, Толя."));
                 var until = DateTime.UtcNow.AddSeconds(5);
-                while (store.Load("world:1", "owner").Snapshot.Familiarity < (t.SessionId == "session-1" ? .02f : .04f) && DateTime.UtcNow < until)
+                while (store.Load("world:1", "owner").Snapshot.Trust < (t.SessionId == "session-1" ? .03f : .06f) && DateTime.UtcNow < until)
                     await Task.Delay(20);
             }
             await Run(ticket);

@@ -3,19 +3,30 @@ const SDK = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.25.0/+esm";
 export const USER_SILENCE_MS = 15000;
 export const CONNECTION_TIMEOUT_MS = 30000;
 const INPUT_ACTIVITY_THRESHOLD = 0.04;
-export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () => import(SDK), later = setTimeout, cancel = clearTimeout } = {}) {
+export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () => import(SDK), later = setTimeout, cancel = clearTimeout, clock = () => performance.now() } = {}) {
   let active = null;
-  function arm(me) {
+  function arm(me, userActivity = false) {
     cancel(me.timer); me.timer = null;
+    if (me.listeningSince !== null) me.remaining = Math.max(0, me.remaining - (clock() - me.listeningSince));
+    me.listeningSince = null;
+    if (userActivity) me.remaining = USER_SILENCE_MS;
     if (me.stopped || !me.connected || me.mode === "speaking") return;
-    me.timer = later(() => void finish(me, "user_silence"), USER_SILENCE_MS);
+    me.listeningSince = clock();
+    me.timer = later(() => void finish(me, "user_silence"), me.remaining);
   }
   function pollInput(me) {
     if (me.stopped) return;
-    // The existing agent may not publish vad_score. Read the SDK's own mic
-    // analyser so a long utterance cannot time out before its final transcript.
+    // VAD is authoritative. Without it, only a new mic burst above the observed
+    // background can extend listening: a continuous fan must not renew forever.
     try {
-      if (me.mode !== "speaking" && (me.conversation?.getInputVolume?.() || 0) >= INPUT_ACTIVITY_THRESHOLD) arm(me);
+      const volume = me.conversation?.getInputVolume?.() || 0;
+      if (!me.vadAvailable && me.mode !== "speaking" && Number.isFinite(volume)) {
+        if (me.micBaseline === null) me.micBaseline = volume;
+        const hot = volume >= Math.max(INPUT_ACTIVITY_THRESHOLD, me.micBaseline * 1.8 + 0.02);
+        if (hot && !me.micHot) arm(me, true);
+        if (!hot) me.micBaseline = Math.min(volume, me.micBaseline * 0.95 + volume * 0.05);
+        me.micHot = hot;
+      }
     } catch (_) { }
     me.activityTimer = later(() => pollInput(me), 200);
   }
@@ -52,6 +63,7 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
     if (clientId) headers["X-HexLive-Client-Id"] = clientId;
     const me = { conversation: null, ticket: null, base: server.replace(/\/+$/, ""), headers, emit,
       stopped: false, connected: false, mode: "listening", timer: null, activityTimer: null, connectTimer: null,
+      remaining: USER_SILENCE_MS, listeningSince: null, micBaseline: null, micHot: false, vadAvailable: false,
       abort: new AbortController(), stage: "session", billed: false, finishing: null };
     active = me; emit({ type: "state", state: "connecting" });
     me.connectTimer = later(() => {
@@ -77,12 +89,16 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
         onModeChange: ({ mode }) => {
           if (me.stopped) return;
           const next = mode === "speaking" ? "speaking" : "listening";
-          if (next !== me.mode) { me.mode = next; arm(me); }
+          if (next !== me.mode) { arm(me); me.mode = next; arm(me); }
           emit({ type: "state", state: next });
         },
-        onVadScore: ({ vadScore }) => { if (vadScore >= 0.5) arm(me); },
+        onVadScore: ({ vadScore }) => {
+          if (me.stopped || !Number.isFinite(vadScore)) return;
+          me.vadAvailable = true;
+          if (vadScore >= 0.5) arm(me, true);
+        },
         onMessage: ({ source, message }) => {
-          if (me.stopped) return; if (source === "user" && message?.trim()) arm(me);
+          if (me.stopped) return; if (source === "user" && message?.trim()) arm(me, true);
           emit({ type: source === "user" ? "user" : "agent", text: message });
         },
         onAudioAlignment: a => { if (!me.stopped) emit({ type: "align", chars: a.chars,

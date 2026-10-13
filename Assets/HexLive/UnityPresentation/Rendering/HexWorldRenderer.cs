@@ -2047,7 +2047,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
 
             if (parts.GroundPile != null && _groundPileRank.TryGetValue(key, out var groundSlot))
             {
-                if (worldObject.IsHarvestScatter) parts.GroundPile.ApplyScatter(key);
+                if (worldObject.IsHarvestScatter) parts.GroundPile.ApplyScatter(key,groundSlot);
                 else if (_groundPileLegacy.Contains(worldObject.Junctions[0])) parts.GroundPile.ApplyLegacy(key);
                 else parts.GroundPile.Apply(groundSlot,GroundPileCatalog.Capacity(worldObject.DefinitionId),key);
                 AdjustGroundPileSupport(parts.GroundPile, worldObject);
@@ -5045,7 +5045,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         var pile=root.AddComponent<GroundPileLayout>();
         pile.Initialize(visual.transform,profile);
         _groundPileRank.TryGetValue(item.Id.Value,out var rank);
-        if (item.IsHarvestScatter) pile.ApplyScatter(item.Id.Value);
+        if (item.IsHarvestScatter) pile.ApplyScatter(item.Id.Value,rank);
         else if (item.Junctions.Count > 0 && _groundPileLegacy.Contains(item.Junctions[0])) pile.ApplyLegacy(item.Id.Value);
         else pile.Apply(rank,GroundPileCatalog.Capacity(item.DefinitionId),item.Id.Value);
         AdjustGroundPileSupport(pile, item);

@@ -14,6 +14,7 @@ namespace HexLive.UnityPresentation.UI
 public sealed partial class CharacterPanel
 {
     private VisualElement _inventoryDropQuantityOverlay = null!;
+    private RuntimeWindow? _inventoryDropQuantityModal;
     private Label _inventoryDropQuantityTitle = null!;
     private SliderInt _inventoryDropQuantitySlider = null!;
     private IntegerField _inventoryDropQuantityInput = null!;
@@ -57,7 +58,11 @@ public sealed partial class CharacterPanel
         _inventoryDropQuantityTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
         _inventoryDropQuantityTitle.style.whiteSpace = WhiteSpace.Normal;
         _inventoryDropQuantityTitle.style.marginBottom = 12f;
-        card.Add(_inventoryDropQuantityTitle);
+        var header = new VisualElement(); header.style.flexDirection = FlexDirection.Row;
+        _inventoryDropQuantityTitle.style.flexGrow = 1;
+        header.Add(_inventoryDropQuantityTitle);
+        header.Add(RuntimeWindow.CloseButton(HideInventoryDropQuantityPicker, Text, "inventory-quantity-close"));
+        card.Add(header);
 
         var chooser = new VisualElement();
         chooser.style.flexDirection = FlexDirection.Row;
@@ -116,17 +121,10 @@ public sealed partial class CharacterPanel
                 evt.StopPropagation();
             }
         });
-        _inventoryDropQuantityOverlay.RegisterCallback<PointerDownEvent>(evt =>
-        {
-            if (ReferenceEquals(evt.target, _inventoryDropQuantityOverlay))
-            {
-                HideInventoryDropQuantityPicker();
-                evt.StopPropagation();
-            }
-        });
-
         _inventoryDropQuantityOverlay.Add(card);
         _root.Add(_inventoryDropQuantityOverlay);
+        _inventoryDropQuantityModal = new RuntimeWindow(_root, card, HideInventoryDropQuantityPicker,
+            "inventory-quantity", _inventoryDropQuantityOverlay);
         _inventoryDropQuantityOverlay.style.display = DisplayStyle.None;
     }
 
@@ -168,7 +166,7 @@ public sealed partial class CharacterPanel
         _inventoryDropQuantitySlider.SetValueWithoutNotify(count);
         _inventoryDropQuantityInput.SetValueWithoutNotify(count);
         _inventoryDropQuantityConfirm.text = Loc.Get("inv.drop_quantity_confirm");
-        _inventoryDropQuantityOverlay.style.display = DisplayStyle.Flex;
+        _inventoryDropQuantityModal?.Show(true);
         _inventoryDropQuantityOverlay.BringToFront();
         _inventoryDropQuantityInput.Focus();
     }
@@ -205,6 +203,7 @@ public sealed partial class CharacterPanel
 
     private void HideInventoryDropQuantityPicker()
     {
+        _inventoryDropQuantityModal?.Show(false);
         _inventoryDropQuantityMax = 0;
         _inventoryDropQuantityActorId = -1;
         _inventoryDropQuantityDefinitionId = string.Empty;

@@ -34,7 +34,8 @@ namespace HexLive.UnityPresentation.UI
             Bag,
             Microphone,
             Phone,          // §171.11: call the character
-            PhoneHangUp     // §171.11: end the call
+            PhoneHangUp,    // §171.11: end the call
+            Close
         }
 
         private Kind _kind;
@@ -86,6 +87,9 @@ namespace HexLive.UnityPresentation.UI
 
             switch (_kind)
             {
+                case Kind.Close:
+                    p.BeginPath(); p.MoveTo(P(6, 6)); p.LineTo(P(18, 18));
+                    p.MoveTo(P(18, 6)); p.LineTo(P(6, 18)); p.Stroke(); break;
                 case Kind.Hunger: DrawHunger(p, P, k); break;
                 case Kind.Thirst: DrawThirst(p, P); break;
                 case Kind.Energy: DrawEnergy(p, P); break;

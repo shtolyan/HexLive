@@ -26,6 +26,7 @@ public sealed class AdminVoicePanel : MonoBehaviour
     private GameObject _ui;
     private PanelSettings _settings;
     private VisualElement _root, _modal, _debug;
+    private RuntimeWindow _windowModal;
     private Label _status;
     private TextField _input, _raw;
     private Button _request, _send, _sendRaw;
@@ -59,12 +60,11 @@ public sealed class AdminVoicePanel : MonoBehaviour
         toggle.RegisterCallback<PointerEnterEvent>(_ => NpcSelection.PointerOverUi = true);
         toggle.RegisterCallback<PointerLeaveEvent>(_ => NpcSelection.PointerOverUi = false);
         _modal = new VisualElement(); _modal.AddToClassList("admin-modal"); _modal.AddToClassList("admin-hidden"); _root.Add(_modal);
-        _modal.RegisterCallback<PointerDownEvent>(e => { if (e.target == _modal) SetOpen(false); e.StopPropagation(); });
-        _modal.RegisterCallback<PointerUpEvent>(e => e.StopPropagation());
         var card = new VisualElement(); card.AddToClassList("admin-card"); _modal.Add(card);
+        _windowModal = new RuntimeWindow(_root, card, () => SetOpen(false), "admin", _modal);
         var header = new VisualElement(); header.AddToClassList("admin-header"); card.Add(header);
         var title = new Label(L("title")); title.AddToClassList("admin-title"); header.Add(title);
-        var close = new Button(() => SetOpen(false)) { text = "×", tooltip = Loc.Get("loot.quantity_cancel") }; close.AddToClassList("admin-close"); header.Add(close);
+        var close = RuntimeWindow.CloseButton(() => SetOpen(false), new Color(.906f,.925f,.937f), "admin-close"); close.AddToClassList("admin-close"); header.Add(close);
         var scroll = new ScrollView(); scroll.AddToClassList("admin-content"); card.Add(scroll);
         var body = new VisualElement(); body.AddToClassList("admin-body"); scroll.Add(body);
         _status = new Label(); body.Add(_status);
@@ -87,6 +87,7 @@ public sealed class AdminVoicePanel : MonoBehaviour
     {
         if (IsOpen == open) return;
         IsOpen = open; _modal?.EnableInClassList("admin-hidden", !open);
+        _windowModal?.Show(open);
         if (!open) { _closedFrame = Time.frameCount; CancelCapture(); _input?.Blur(); _raw?.Blur(); NpcSelection.PointerOverUi = false; }
     }
     private bool EnsureSecret()

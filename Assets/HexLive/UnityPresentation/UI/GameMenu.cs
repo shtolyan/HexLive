@@ -28,6 +28,7 @@ namespace HexLive.UnityPresentation.UI
 
         private UIDocument _document;
         private VisualElement _overlay;
+        private RuntimeWindow _windowModal;
         private Label _title;
         private Label _continueLabel;
         private Label _mainMenuLabel;
@@ -72,6 +73,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void OnDisable()
         {
+            _windowModal?.Show(false);
             Loc.LanguageChanged -= ApplyLanguage;
             PlayerPrefs.Save();
             if (IsOpen)
@@ -126,6 +128,7 @@ namespace HexLive.UnityPresentation.UI
 
             if (!open) PlayerPrefs.Save();
             IsOpen = open;
+            _windowModal?.Show(open);
             if (_overlay != null)
             {
                 _overlay.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
@@ -197,6 +200,7 @@ namespace HexLive.UnityPresentation.UI
             card.style.paddingBottom = 26f;
             card.style.alignItems = Align.Stretch;
             _overlay.Add(card);
+            _windowModal = new RuntimeWindow(root, card, () => SetOpen(false), "game-menu", _overlay);
 
             _title = new Label();
             _title.style.color = Text;
@@ -204,7 +208,11 @@ namespace HexLive.UnityPresentation.UI
             _title.style.unityFontStyleAndWeight = FontStyle.Bold;
             _title.style.unityTextAlign = TextAnchor.MiddleCenter;
             _title.style.marginBottom = 22f;
-            card.Add(_title);
+            var header = new VisualElement(); header.style.flexDirection = FlexDirection.Row;
+            _title.style.flexGrow = 1;
+            header.Add(_title);
+            header.Add(RuntimeWindow.CloseButton(() => SetOpen(false), Text, "game-menu-close"));
+            card.Add(header);
 
             var continueButton = MakeButton(out _continueLabel);
             continueButton.style.backgroundColor = Gold;

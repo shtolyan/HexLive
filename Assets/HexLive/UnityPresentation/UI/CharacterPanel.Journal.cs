@@ -256,17 +256,8 @@ namespace HexLive.UnityPresentation.UI
             _journalSubtitle.style.marginLeft = 10f;
             header.Add(_journalSubtitle);
 
-            var close = new Label("✕");
-            close.style.width = 24f;
-            close.style.height = 24f;
-            close.style.color = InkFaint;
-            close.style.fontSize = 14f;
-            close.style.unityTextAlign = TextAnchor.MiddleCenter;
-            close.RegisterCallback<MouseDownEvent>(evt =>
-            {
-                CloseJournal();
-                evt.StopPropagation();
-            });
+            var close = RuntimeWindow.CloseButton(CloseJournal, Ink, "journal-close");
+            close.style.backgroundColor = PaperEdge;
             header.Add(close);
 
             _journalScroll = new ScrollView(ScrollViewMode.Vertical);
@@ -294,6 +285,7 @@ namespace HexLive.UnityPresentation.UI
 
             LocalizeJournal();
             _root.Add(_journalWindow);
+            _journalModal = new RuntimeWindow(_root, _journalWindow, CloseJournal, "journal");
         }
 
         /// <summary>
@@ -331,12 +323,13 @@ namespace HexLive.UnityPresentation.UI
             _journalOpen = true;
             _journalSig = int.MinValue;
             FitJournalWindow();
-            _journalWindow.style.display = DisplayStyle.Flex;
+            _journalModal.Show(true);
             _refreshedTick = -1; // подтянуть свежий снапшот прямо сейчас
         }
 
         private void CloseJournal()
         {
+            _journalModal?.Show(false);
             _journalOpen = false;
             _journalDragScroll?.Cancel();
             if (_journalWindow != null)

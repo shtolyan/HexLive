@@ -155,6 +155,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     }
 
     private static bool PointerBlocked() =>
+        RuntimeWindow.BlocksWorldInput ||
         NpcSelection.PointerOverUi ||
         TacticalMapPanel.PointerOverMap ||
         HexInspectorPanel.PointerOverPanel ||
@@ -574,7 +575,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // Открытое меню закрывается кликом мимо себя — и на этом клик кончается:
         // иначе то же нажатие тут же отдало бы приказ идти под меню. Гейт режима
         // стоит НИЖЕ: меню могло остаться висеть после выключения 🎮.
-        if (CraftProjectDetailsPanel.BlocksWorldInput || CharacterPanel.BlocksWorldPointer) return true;
+        if (RuntimeWindow.BlocksWorldInput || CraftProjectDetailsPanel.BlocksWorldInput || CharacterPanel.BlocksWorldPointer) return true;
 
         if (ContextMenuPanel.IsOpen)
         {
@@ -715,7 +716,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// </summary>
     public bool TryHandleContextClick(Vector2 mousePos)
     {
-        if (CraftProjectDetailsPanel.BlocksWorldInput || CharacterPanel.BlocksWorldPointer) return true;
+        if (RuntimeWindow.BlocksWorldInput || CraftProjectDetailsPanel.BlocksWorldInput || CharacterPanel.BlocksWorldPointer) return true;
         var runner = _runner;
         if (runner == null || _camera == null || !runner.SupportsNpcCommands ||
             _selectedColonyIds.Count == 0)

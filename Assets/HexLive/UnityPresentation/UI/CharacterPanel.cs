@@ -1749,7 +1749,6 @@ namespace HexLive.UnityPresentation.UI
         // unchanged legacy item card opens beside the deliberately clicked item.
         private void BuildInventoryWindow()
         {
-            BuildInventoryBackdrop();
             _inventoryWindow = new VisualElement();
             _inventoryWindow.style.position = Position.Absolute;
             _inventoryWindow.style.bottom = InventoryWindowBottom;
@@ -1793,7 +1792,7 @@ namespace HexLive.UnityPresentation.UI
 
             header.Add(BuildOutfitLockToggle());
 
-            var close = new Button(CloseInventory) { name = "inventory-close", text = "×", tooltip = Loc.Get("panel.close") };
+            var close = RuntimeWindow.CloseButton(CloseInventory, Text, "inventory-close");
             close.style.color = Text;
             close.style.fontSize = 26;
             close.style.width = 32f;
@@ -1981,6 +1980,7 @@ namespace HexLive.UnityPresentation.UI
                 DismissInventoryDetailOnBackgroundClick);
 
             _root.Add(_inventoryWindow);
+            BuildInventoryBackdrop();
             // The item card intentionally lives on the root overlay instead
             // of inside the clipped inventory window. This lets it occupy one
             // stable place just beyond the doll-side edge without covering the
@@ -3056,7 +3056,7 @@ namespace HexLive.UnityPresentation.UI
                 CloseHealth(); // the floating windows share the same spot
                 CloseJournal(); // §136
                 _inventoryOpen = true;
-                _inventoryBackdrop.style.display = DisplayStyle.Flex;
+                _inventoryModal.Show(true);
                 _invVisibleWearLayer = VisualWearLayer.Bags;
                 _invSig = null; // force a rebuild on the next refresh
                 _craftSig = null;
@@ -3074,8 +3074,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void CloseInventory()
         {
-            if (_inventoryOpen) _inventoryClosedFrame = Time.frameCount;
-            if (_inventoryBackdrop != null) _inventoryBackdrop.style.display = DisplayStyle.None;
+            HideInventoryDropQuantityPicker();
+            _inventoryModal?.Show(false);
             _inventoryOpen = false;
             _craftPage = false;
             _clothesPage = false;
@@ -3283,22 +3283,8 @@ namespace HexLive.UnityPresentation.UI
             _healthTitle.style.flexGrow = 1f;
             header.Add(_healthTitle);
 
-            var close = new Label("✕");
-            close.style.color = TextDim;
-            close.style.fontSize = 15;
-            close.style.unityFontStyleAndWeight = FontStyle.Bold;
-            close.style.width = 24f;
-            close.style.height = 24f;
-            close.style.unityTextAlign = TextAnchor.MiddleCenter;
-            close.style.flexShrink = 0f;
+            var close = RuntimeWindow.CloseButton(CloseHealth, Text, "health-close");
             SetRadius(close, 6f);
-            close.RegisterCallback<MouseEnterEvent>(_ => close.style.color = Text);
-            close.RegisterCallback<MouseLeaveEvent>(_ => close.style.color = TextDim);
-            close.RegisterCallback<MouseDownEvent>(evt =>
-            {
-                CloseHealth();
-                evt.StopPropagation();
-            });
             header.Add(close);
             _healthWindow.Add(header);
 
@@ -3421,6 +3407,7 @@ namespace HexLive.UnityPresentation.UI
 
             _healthWindow.Add(body);
             _root.Add(_healthWindow);
+            _healthModal = new RuntimeWindow(_root, _healthWindow, CloseHealth, "health");
         }
 
         private void ToggleHealth()
@@ -3434,13 +3421,14 @@ namespace HexLive.UnityPresentation.UI
             CloseInventory(); // the floating windows share the same spot
             CloseJournal();   // §136
             _healthOpen = true;
-            _healthWindow.style.display = DisplayStyle.Flex;
+            _healthModal.Show(true);
             _characterDollStage?.SetMode(CharacterDollMode.Health);
             _refreshedTick = -1; // pull a fresh snapshot into the window now
         }
 
         private void CloseHealth()
         {
+            _healthModal?.Show(false);
             _healthOpen = false;
             if (_healthWindow != null)
             {

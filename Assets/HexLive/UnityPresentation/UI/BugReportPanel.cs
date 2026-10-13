@@ -33,6 +33,7 @@ namespace HexLive.UnityPresentation.UI
 
         private VisualElement _quickWindow;
         private VisualElement _managerWindow;
+        private RuntimeWindow _quickModal, _managerModal;
         private VisualElement _root;
         private TextField _quickInput;
         private ScrollView _managerList;
@@ -161,6 +162,8 @@ namespace HexLive.UnityPresentation.UI
         private void ApplyVisible()
         {
             IsOpen = Visible;
+            _quickModal?.Show(_quickVisible);
+            _managerModal?.Show(_managerVisible);
             if (_quickWindow != null)
             {
                 _quickWindow.style.display = _quickVisible ? DisplayStyle.Flex : DisplayStyle.None;
@@ -189,10 +192,12 @@ namespace HexLive.UnityPresentation.UI
             _quickWindow = MakeWindow(480f, 290f);
             root.Add(_quickWindow);
             BuildQuickWindow();
+            _quickModal = new RuntimeWindow(root, _quickWindow, () => SetQuickVisible(false), "bug-quick");
 
             _managerWindow = MakeWindow(1040f, Length.Percent(88f));
             root.Add(_managerWindow);
             BuildManagerWindow();
+            _managerModal = new RuntimeWindow(root, _managerWindow, () => SetManagerVisible(false), "bug-manager");
         }
 
         private VisualElement MakeWindow(Length width, Length maxHeight)
@@ -270,12 +275,7 @@ namespace HexLive.UnityPresentation.UI
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
             header.Add(title);
 
-            var close = new Label("✕");
-            close.style.color = Text;
-            close.style.fontSize = 14;
-            close.style.unityFontStyleAndWeight = FontStyle.Bold;
-            close.style.paddingLeft = 10f;
-            close.RegisterCallback<MouseDownEvent>(evt => { closeAction(); evt.StopPropagation(); });
+            var close = RuntimeWindow.CloseButton(closeAction, Text, "bug-window-close");
             header.Add(close);
             return header;
         }

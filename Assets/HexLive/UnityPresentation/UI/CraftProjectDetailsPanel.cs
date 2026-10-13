@@ -23,6 +23,7 @@ public sealed class CraftProjectDetailsPanel : MonoBehaviour
     private Label _remaining = null!;
     private ProgressBar _progress = null!;
     private Button _close = null!;
+    private RuntimeWindow? _windowModal;
     private float _nextRefresh;
 
     public static bool IsOpen => _instance != null;
@@ -49,6 +50,7 @@ public sealed class CraftProjectDetailsPanel : MonoBehaviour
         if (_instance == null) return;
         var panel = _instance;
         _instance = null;
+        panel._windowModal?.Show(false);
         _closedFrame = Time.frameCount;
         panel.gameObject.SetActive(false);
         Destroy(panel.gameObject);
@@ -71,15 +73,21 @@ public sealed class CraftProjectDetailsPanel : MonoBehaviour
         if (sheet != null) root.styleSheets.Add(sheet);
         var card = new VisualElement();
         card.AddToClassList("craft-project-card");
+        var header = new VisualElement(); header.style.flexDirection = FlexDirection.Row;
+        header.style.alignItems = Align.Center;
         _title = new Label(); _title.AddToClassList("craft-project-title");
+        _title.style.flexGrow = 1;
         _status = new Label();
         _worker = new Label();
         _progress = new ProgressBar { lowValue = 0, highValue = 100 };
         _remaining = new Label();
-        _close = new Button(Close);
-        card.Add(_title); card.Add(_status); card.Add(_worker);
-        card.Add(_progress); card.Add(_remaining); card.Add(_close);
+        _close = RuntimeWindow.CloseButton(Close, new Color(.906f,.925f,.937f), "craft-project-close");
+        header.Add(_title); header.Add(_close);
+        card.Add(header); card.Add(_status); card.Add(_worker);
+        card.Add(_progress); card.Add(_remaining);
         root.Add(card);
+        _windowModal = new RuntimeWindow(root, card, Close, "craft-project");
+        _windowModal.Show(true);
         root.RegisterCallback<PointerDownEvent>(evt => evt.StopPropagation());
         root.RegisterCallback<PointerUpEvent>(evt => evt.StopPropagation());
         root.RegisterCallback<WheelEvent>(evt => evt.StopPropagation());
@@ -124,7 +132,7 @@ public sealed class CraftProjectDetailsPanel : MonoBehaviour
         _progress.title = Math.Floor(percent).ToString("0") + "%";
         _remaining.text = string.Format(Loc.Get("craft.project.remaining"),
             Math.Max(0, project.CraftWorkRequired - project.CraftWorkDone), project.CraftWorkRequired);
-        _close.text = Loc.Get("craft.project.close");
+        _close.tooltip = Loc.Get("craft.project.close");
     }
 
     public static string ItemName(ISimulationSource runner, string definitionId)
@@ -137,6 +145,7 @@ public sealed class CraftProjectDetailsPanel : MonoBehaviour
 
     private void OnDisable()
     {
+        _windowModal?.Show(false);
         if (_instance != this) return;
         _instance = null;
         _closedFrame = Time.frameCount;

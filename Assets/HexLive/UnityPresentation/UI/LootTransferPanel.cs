@@ -28,6 +28,8 @@ public sealed class LootTransferPanel : MonoBehaviour
     private UIDocument _document = null!;
     private VisualElement _root = null!;
     private VisualElement _frame = null!;
+    private RuntimeWindow? _windowModal;
+    private RuntimeWindow? _quantityModal;
     private VisualElement _leftPane = null!;
     private VisualElement _rightPane = null!;
     private ScrollView _leftScroll = null!;
@@ -184,6 +186,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void OnDestroy()
     {
+        _windowModal?.Show(false);
         if (!ReferenceEquals(_instance, this)) return;
         _instance = null;
         IsOpen = false;
@@ -253,6 +256,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
+        _windowModal?.Show(true);
         IsOpen = true;
         LayoutFrame();
         Refresh(force: true);
@@ -289,6 +293,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
+        _windowModal?.Show(true);
         IsOpen = true;
         LayoutFrame();
         Refresh(force: true);
@@ -352,19 +357,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _title.style.unityFontStyleAndWeight = FontStyle.Bold;
         _title.style.flexGrow = 1f;
         header.Add(_title);
-        var close = new Label("✕");
-        close.style.color = TextDim;
-        close.style.fontSize = 15f;
-        close.style.width = 26f;
-        close.style.height = 24f;
-        close.style.unityTextAlign = TextAnchor.MiddleCenter;
-        close.RegisterCallback<PointerEnterEvent>(_ => close.style.color = Text);
-        close.RegisterCallback<PointerLeaveEvent>(_ => close.style.color = TextDim);
-        close.RegisterCallback<PointerDownEvent>(evt =>
-        {
-            Hide();
-            evt.StopPropagation();
-        });
+        var close = RuntimeWindow.CloseButton(Hide, Text, "loot-close");
         header.Add(close);
         _frame.Add(header);
 
@@ -399,6 +392,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _frame.Add(_status);
         BuildQuantityPicker();
         _root.Add(_frame);
+        _windowModal = new RuntimeWindow(_root, _frame, Hide, "loot");
     }
 
     private void BuildQuantityPicker()
@@ -430,7 +424,11 @@ public sealed class LootTransferPanel : MonoBehaviour
         _quantityTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
         _quantityTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
         _quantityTitle.style.marginBottom = 12f;
-        card.Add(_quantityTitle);
+        var header = new VisualElement(); header.style.flexDirection = FlexDirection.Row;
+        _quantityTitle.style.flexGrow = 1;
+        header.Add(_quantityTitle);
+        header.Add(RuntimeWindow.CloseButton(CancelQuantity, Text, "loot-quantity-close"));
+        card.Add(header);
 
         var chooser = new VisualElement();
         chooser.style.flexDirection = FlexDirection.Row;
@@ -487,6 +485,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
         _quantityOverlay.Add(card);
         _frame.Add(_quantityOverlay);
+        _quantityModal = new RuntimeWindow(_frame, card, CancelQuantity, "loot-quantity", _quantityOverlay);
         _quantityOverlay.style.display = DisplayStyle.None;
     }
 
@@ -1162,7 +1161,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _quantityInput.SetValueWithoutNotify(item.Count);
         _quantityConfirm.text = Loc.Get("loot.quantity_confirm");
         _quantityCancel.text = Loc.Get("loot.quantity_cancel");
-        _quantityOverlay.style.display = DisplayStyle.Flex;
+        _quantityModal?.Show(true);
         _quantityOverlay.BringToFront();
         _quantityOverlay.Focus();
         _quantityInput.Focus();
@@ -1187,6 +1186,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void HideQuantityPicker()
     {
+        _quantityModal?.Show(false);
         _quantityOpen = false;
         _quantityDestinationId = 0;
         _quantityItem = default;
@@ -1486,6 +1486,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void Hide()
     {
+        _windowModal?.Show(false);
         if (_root != null) _root.style.display = DisplayStyle.None;
         _looterId = -1;
         _otherId = -1;

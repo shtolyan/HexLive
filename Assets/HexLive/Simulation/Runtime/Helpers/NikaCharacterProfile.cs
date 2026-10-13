@@ -20,6 +20,7 @@ public static class NikaCharacterProfile
 
     public static bool EnsureSpawned(WorldState world)
     {
+        if (world.CreationConfig?.PlayersOnly == true) return false;
         var id = new EntityId(ReservedNpcId);
         if (world.Entities.Npcs.TryGetValue(id, out var existing) ||
             world.Entities.Corpses.TryGetValue(id, out existing))

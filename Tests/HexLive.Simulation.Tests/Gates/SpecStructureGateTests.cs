@@ -82,7 +82,7 @@ public sealed class SpecStructureGateTests
         // правило «§N -> Spec/N.md» имеет молчаливую дыру.
         foreach (var pointer in onDisk.Where(k => !listed.Contains(k)).OrderBy(k => k))
         {
-            var text = File.ReadAllText(Path.Combine(SpecDir, pointer + ".md"));
+            var text = RepoPaths.ReadText(Path.Combine(SpecDir, pointer + ".md"));
             var target = Regex.Match(text, @"\((\d+[A-Z]?)\.md\)");
             Assert.That(target.Success, Is.True,
                 $"Spec/{pointer}.md не в ORDER.txt и не похож на указатель. Раздел " +
@@ -135,7 +135,7 @@ public sealed class SpecStructureGateTests
     [Test]
     public void IndexListsEverySectionWithItsTitle()
     {
-        var index = File.ReadAllText(IndexPath);
+        var index = RepoPaths.ReadText(IndexPath);
 
         foreach (var key in Order())
         {
@@ -166,7 +166,7 @@ public sealed class SpecStructureGateTests
         var dangling = new SortedDictionary<string, string>(SectionOrder.Instance);
         foreach (var file in SourceFiles())
         {
-            foreach (Match m in Reference.Matches(File.ReadAllText(file)))
+            foreach (Match m in Reference.Matches(RepoPaths.ReadText(file)))
             {
                 var key = m.Groups[1].Value;
                 if (have.Contains(key) || known.Contains(key)) continue;

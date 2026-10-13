@@ -67,7 +67,7 @@ public sealed class TraceGateLintTests
                 continue;
             }
 
-            var text = File.ReadAllText(file);
+            var text = RepoPaths.ReadText(file);
             var lines = text.Split('\n');
             for (var i = 0; i < lines.Length; i++)
             {
@@ -135,7 +135,7 @@ public sealed class TraceGateLintTests
                 continue;
             }
 
-            var text = File.ReadAllText(Path.Combine(RepoPaths.Root, hit.RelativePath));
+            var text = RepoPaths.ReadText(Path.Combine(RepoPaths.Root, hit.RelativePath));
             var lines = text.Split('\n');
             if (hit.Line - 1 >= lines.Length)
             {
@@ -178,7 +178,7 @@ public sealed class TraceGateLintTests
     {
         var path = Path.Combine(RepoPaths.Root, "Assets", "HexLive", "Simulation",
             "Runtime", "GameEventTypes.cs");
-        var text = File.ReadAllText(path);
+        var text = RepoPaths.ReadText(path);
         return Regex.Matches(text, "\"([A-Za-z][A-Za-z0-9_]*)\"")
             .Select(m => m.Groups[1].Value)
             .Distinct();

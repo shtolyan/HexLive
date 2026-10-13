@@ -297,6 +297,56 @@ public sealed class ManualCraftingTests
         });
     }
 
+    [TestCase("clothing.top_primal")]
+    [TestCase("clothing.skirt_primal_male")]
+    [TestCase("gear.backpack_primal_gatherer")]
+    [TestCase("gear.backpack_primal_hunter")]
+    [TestCase("gear.backpack_primal_trail")]
+    [TestCase("gear.backpack_primal_gatherer_male")]
+    [TestCase("gear.backpack_primal_hunter_male")]
+    [TestCase("gear.backpack_primal_trail_male")]
+    public void PreparedWearBillCompletesAtWorkbenchThroughGenericCommand(string output)
+    {
+        var savedGarments = GarmentLibrary.Active.ToArray();
+        try
+        {
+            var path = Path.Combine(RepoPaths.Root, "Assets", "HexLiveContent", "People", "catalog.json");
+            using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+            var row = json.RootElement.GetProperty("records").EnumerateArray().Single(r =>
+                r.GetProperty("type").GetString() == "wear" && r.GetProperty("id").GetString() == output);
+            var metadata = row.GetProperty("metadata").GetProperty("simulation");
+            var craft = metadata.GetProperty("craft");
+            var covers = metadata.GetProperty("covers").EnumerateArray().Select(c =>
+                System.Enum.Parse<BodyPart>(c.GetString()!)).ToArray();
+            GarmentLibrary.Override(savedGarments.Where(g => g.Id != output).Append(new GarmentParams(output,
+                metadata.GetProperty("displayName").GetString()!, System.Enum.Parse<WearLayer>(metadata.GetProperty("layer").GetString()!),
+                0, 0, 0, 8, metadata.GetProperty("capacity").GetInt32(),
+                System.Enum.Parse<GarmentSex>(metadata.GetProperty("sex").GetString()!), covers)));
+            var engine = TestWorld.CreateEngine(138604); engine.Step();
+            var world = engine.World; var npc = PrepareManual(world);
+            var inputs = craft.GetProperty("inputs").EnumerateArray().Select(i => new RecipeIngredient(
+                i.GetProperty("id").GetString()!, i.GetProperty("count").GetInt32())).ToArray();
+            RecipeCatalog.Override(output, inputs, needsLitFire: false,
+                station: craft.GetProperty("station").GetString()!, baseWorkTicks: craft.GetProperty("baseWorkTicks").GetInt32());
+            Strip(world, inputs.Select(i => i.Id).Append(output).ToArray());
+            foreach (var ingredient in inputs) Add(npc, ingredient.Id, ingredient.Count);
+            var definition = new ObjectDefinition { Id = "test.wear_workbench" };
+            definition.Tags.Add("Workbench");
+            definition.Interactions.Add(new InteractionDefinition { Id = "test.craft", Type = InteractionType.Craft, DurationTicks = 24 });
+            world.Content.ObjectDefinitions[definition.Id] = definition;
+            var station = WorldObjectMutations.SpawnObject(world, definition.Id, npc.Fragment, npc.Tile, npc.CurrentJunction.Value);
+            station.CraftJunction = npc.CurrentJunction;
+            Assert.That(CraftingOptions.Resolve(world, npc, output).CanCraft, Is.True);
+            Assert.That(engine.ApplyManualCommand(new CraftByOutputCommand(npc.Id, output)).Accepted, Is.True);
+            StepUntil(engine, () => npc.Plan.Status == PlanStatus.Completed, 600);
+            var count = npc.Inventory.Items.Count(i => i.DefinitionId == output) + npc.WornItems.Count(i => i == output)
+                + world.Entities.Objects.Values.Count(o => o.DefinitionId == output && !o.IsCraftProject);
+            Assert.That(count, Is.EqualTo(1), output);
+            foreach (var input in inputs) Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == input.Id), Is.Zero);
+        }
+        finally { GarmentLibrary.Override(savedGarments); }
+    }
+
     [Test]
     public void ManualStoneAxeOrderFinishesTheRealTunedRecipe()
     {

@@ -37,6 +37,7 @@ public static class MashaCompanionProfile
     public static bool EnsureSpawned(WorldState world)
     {
         if (world == null) throw new ArgumentNullException(nameof(world));
+        if (world.CreationConfig?.PlayersOnly == true) return false;
 
         if (world.MashaCompanionHasSpawned)
             world.SpawnedCharacterPresets.Add(ProfileId);

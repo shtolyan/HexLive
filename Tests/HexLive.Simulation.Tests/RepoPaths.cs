@@ -23,6 +23,12 @@ public static class RepoPaths
 
     public static string SimData => Path.Combine(Root, "SimData", "simdata.json");
 
+    public static string ReadText(string path) =>
+        File.ReadAllText(path).Replace("\r\n", "\n", StringComparison.Ordinal);
+
+    public static string ReadText(string path, System.Text.Encoding encoding) =>
+        File.ReadAllText(path, encoding).Replace("\r\n", "\n", StringComparison.Ordinal);
+
     /// <summary>Корень исходников симуляции — то, что сканируют линты и гейты.</summary>
     public static string SimulationSources =>
         Path.Combine(Root, "Assets", "HexLive", "Simulation");

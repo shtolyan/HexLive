@@ -225,6 +225,9 @@ public static class AdminEndpoints
                 }
                 var simulation = new GarmentSimulationMetadata
                 {
+                    // The legacy balance form has no recipe fields. Preserve
+                    // the owner's bill while editing warmth, slots or coverage.
+                    Craft = assetCatalog.ReadWear(id)?.Simulation?.Craft,
                     DisplayName = form["displayName"].ToString().Trim(),
                     PrototypeId = form["prototypeId"].ToString().Trim(),
                     Layer = form["layer"].ToString().Trim(),

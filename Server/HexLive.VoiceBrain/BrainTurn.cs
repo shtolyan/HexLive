@@ -24,7 +24,7 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
     public async Task RunAsync(JsonElement request, SessionTicket ticket, Func<string, Task> say, CancellationToken token)
     {
         var timer = Stopwatch.StartNew();
-        var turnId = TurnId(request);
+        var turnId = TurnId(request, ticket.SessionId);
         using var usageTurn = UsageScope.Turn(turnId);
         var describe = await world.CallAsync("describe_colonist", new { npcId = ticket.NpcId }, token);
         var tState = timer.Elapsed;
@@ -76,7 +76,19 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
         // §171.5: relationship moves after the turn, off the latency path.
         var lastUser = LastUserText(request);
         if (lastUser.Length > 0)
-            _ = Task.Run(() => AssessAsync(ticket, turnId, lastUser, CancellationToken.None));
+        {
+            if (spoke)
+            {
+                try { await world.RecordConversationAsync(ticket.NpcId, turnId, token); }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                catch (Exception ex) { log.LogWarning("voice social record failed: {Type}", ex.GetType().Name); }
+            }
+            _ = Task.Run(async () =>
+            {
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                await AssessAsync(ticket, turnId, lastUser, bond, timeout.Token);
+            });
+        }
     }
 
     private async Task<StreamResult> StreamAsync(JsonArray messages, bool withTools, Func<string, Task> say, CancellationToken token)
@@ -151,7 +163,7 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
         }
     }
 
-    private async Task AssessAsync(SessionTicket ticket, string turnId, string userText, CancellationToken token)
+    private async Task AssessAsync(SessionTicket ticket, string turnId, string userText, VoiceRelationship bond, CancellationToken token)
     {
         try
         {
@@ -162,11 +174,14 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
                 ["messages"] = new JsonArray
                 {
                     new JsonObject { ["role"] = "system", ["content"] =
-                        "Оцени, как одна реплика невидимого голоса повлияла на отношение героини к нему. " +
+                        "Оцени, как одна новая реплика невидимого голоса повлияла на отношение героини к нему. " +
                         "Верни JSON: {\"learnedSomethingSignificant\":bool,\"trust\":\"Decrease|Unchanged|Increase\"," +
-                        "\"sympathy\":\"Decrease|Unchanged|Increase\",\"seriousHarm\":bool,\"reason\":\"до 120 символов\"}. " +
+                        "\"sympathy\":\"Decrease|Unchanged|Increase\",\"seriousHarm\":bool,\"reason\":\"до 120 символов\"," +
+                        "\"voiceName\":null,\"namingReason\":null}. " +
+                        "Если голос представился или назвал предпочтительное обращение, укажи voiceName (до 48 символов) " +
+                        "и namingReason (до 120 символов), learnedSomethingSignificant=true. Не выдумывай имя. " +
                         "Обычная просьба или вопрос — Unchanged. Забота, честность, полезный совет — Increase. " +
-                        "Грубость, ложь, приказ навредить себе или другим — Decrease." },
+                        "Грубость, ложь, приказ навредить себе или другим — Decrease.\n" + bond.BuildPromptBlock() },
                     new JsonObject { ["role"] = "user", ["content"] = userText.Length > 1000 ? userText[..1000] : userText },
                 },
             };
@@ -248,10 +263,10 @@ public sealed class BrainTurn(BrainOptions options, OpenAiStream llm, IWorldGate
             : "";
 
     /// <summary>Stable per utterance: a retried request maps to the same turn (idempotent craft keys, one relationship step).</summary>
-    private static string TurnId(JsonElement request)
+    private static string TurnId(JsonElement request, string sessionId)
     {
         var count = request.TryGetProperty("messages", out var m) && m.ValueKind == JsonValueKind.Array ? m.GetArrayLength() : 0;
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(count + "\n" + LastUserText(request)))).ToLowerInvariant();
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sessionId + "\n" + count + "\n" + LastUserText(request)))).ToLowerInvariant();
     }
 
     private static int Int(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.TryGetInt32(out var i) ? i : 0;

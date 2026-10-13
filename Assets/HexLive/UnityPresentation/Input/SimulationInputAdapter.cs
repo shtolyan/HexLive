@@ -157,7 +157,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         TacticalMapPanel.PointerOverMap ||
         HexInspectorPanel.PointerOverPanel ||
         ContextMenuPanel.BlocksWorldPointer ||
-        LootTransferPanel.IsOpen || CraftProjectDetailsPanel.BlocksWorldInput ||
+        LootTransferPanel.IsOpen || CraftProjectDetailsPanel.BlocksWorldInput || CharacterPanel.BlocksWorldPointer ||
         GameMenu.IsOpen || PlayerAssignmentDialog.IsOpen || AdminVoicePanel.BlocksGameInput ||
         EndSummaryPanel.IsOpen ||
         // Bug #279: окно отчёта об ошибке блокирует мир своим флагом — общий
@@ -558,7 +558,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         // Открытое меню закрывается кликом мимо себя — и на этом клик кончается:
         // иначе то же нажатие тут же отдало бы приказ идти под меню. Гейт режима
         // стоит НИЖЕ: меню могло остаться висеть после выключения 🎮.
-        if (CraftProjectDetailsPanel.BlocksWorldInput) return true;
+        if (CraftProjectDetailsPanel.BlocksWorldInput || CharacterPanel.BlocksWorldPointer) return true;
 
         if (ContextMenuPanel.IsOpen)
         {
@@ -699,7 +699,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// </summary>
     public bool TryHandleContextClick(Vector2 mousePos)
     {
-        if (CraftProjectDetailsPanel.BlocksWorldInput) return true;
+        if (CraftProjectDetailsPanel.BlocksWorldInput || CharacterPanel.BlocksWorldPointer) return true;
         var runner = _runner;
         if (runner == null || _camera == null || !runner.SupportsNpcCommands ||
             _selectedColonyIds.Count == 0)

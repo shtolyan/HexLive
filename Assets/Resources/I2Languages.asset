@@ -28613,6 +28613,166 @@ MonoBehaviour:
       - 'Сострадание'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'menu.servers.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose your server'
+      - 'Выберите сервер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.subtitle'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Your world is waiting. Choose a server and play.'
+      - 'Ваш мир ждёт. Выберите сервер и играйте.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.refresh'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Refresh connection quality'
+      - 'Обновить качество связи'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.connecting'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Connecting…'
+      - 'Подключаемся…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.checking'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Measuring ping…'
+      - 'Измеряем пинг…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.ping'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ping · {0} ms'
+      - 'Пинг · {0} мс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.ping.description'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Game Ping/Pong round trip, including server response and browser frame timing. Green: under 100 ms; yellow: 100–249 ms; red: 250 ms or more.'
+      - 'Время ответа игрового Ping/Pong, включая обработку сервером и кадр браузера. Зелёный: до 100 мс; жёлтый: 100–249 мс; красный: от 250 мс.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.play'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Play →'
+      - 'Играть →'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.update'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Update required'
+      - 'Нужно обновление'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.notready'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Not available yet'
+      - 'Пока недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.singapore'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Singapore'
+      - 'Сингапур'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.newyork'
+      TermType: 0
+      Description:
+      Languages:
+      - 'New York'
+      - 'Нью-Йорк'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.all'
+      TermType: 0
+      Description:
+      Languages:
+      - 'All'
+      - 'Все'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.clothing'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Clothing'
+      - 'Одежда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.prosthetics'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Prosthetics'
+      - 'Протезы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.tools'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Tools & supplies'
+      - 'Инструменты и припасы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.resources'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Resources'
+      - 'Ресурсы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.food'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Food'
+      - 'Еда'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.category.other'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Other'
+      - 'Другое'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'panel.close'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Close'
+      - 'Закрыть'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

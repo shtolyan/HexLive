@@ -257,7 +257,7 @@ public sealed class ContentHandleLifetimeContractTests
         var path = Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation", relative);
         Assert.That(File.Exists(path), Is.True, "нет файла " + path);
-        return File.ReadAllText(path);
+        return RepoPaths.ReadText(path);
     }
 
     private static string BeforeRequest(string source, string request)

@@ -353,6 +353,7 @@ namespace HexLive.UnityPresentation.UI
         // snapshot at most once per tick (language change invalidates too).
         private int _refreshedTick = -1;
         private int _refreshedActorId = -1;
+        private int _refreshedIconRevision = -1;
 
         // Slide animation
         private bool _shown;
@@ -701,7 +702,7 @@ namespace HexLive.UnityPresentation.UI
             // The floating windows (inventory / limb health) sit ABOVE the bar —
             // their bounds must also swallow clicks, or picking inside them
             // deselects the NPC.
-            NpcSelection.PointerOverUi = overBar || overRoster ||
+            NpcSelection.PointerOverUi = _inventoryOpen || BlocksWorldPointer || overBar || overRoster ||
                 PointerOverFloating(_inventoryOpen, _inventoryWindow, mousePos, scale) ||
                 PointerOverFloating(
                     _inventoryOpen && _invSelectedId != null,
@@ -841,7 +842,8 @@ namespace HexLive.UnityPresentation.UI
             _groupCard.style.display = DisplayStyle.None;
             _card.style.display = DisplayStyle.Flex;
 
-            if (snapshot.Tick == _refreshedTick && NpcSelection.PrimaryId == _refreshedActorId)
+            if (snapshot.Tick == _refreshedTick && NpcSelection.PrimaryId == _refreshedActorId &&
+                _refreshedIconRevision == Wearing.Garments.ItemIcons.Revision)
             {
                 return;
             }
@@ -854,6 +856,7 @@ namespace HexLive.UnityPresentation.UI
 
             _refreshedTick = snapshot.Tick;
             _refreshedActorId = npc.Id.Value;
+            _refreshedIconRevision = Wearing.Garments.ItemIcons.Revision;
             _currentTooltipNpc = npc;
 
             // §74: DisplayName is a name ID; the player sees the localized term.
@@ -1746,6 +1749,7 @@ namespace HexLive.UnityPresentation.UI
         // unchanged legacy item card opens beside the deliberately clicked item.
         private void BuildInventoryWindow()
         {
+            BuildInventoryBackdrop();
             _inventoryWindow = new VisualElement();
             _inventoryWindow.style.position = Position.Absolute;
             _inventoryWindow.style.bottom = InventoryWindowBottom;
@@ -1789,22 +1793,15 @@ namespace HexLive.UnityPresentation.UI
 
             header.Add(BuildOutfitLockToggle());
 
-            var close = new Label("✕");
-            close.style.color = TextDim;
-            close.style.fontSize = 15;
-            close.style.unityFontStyleAndWeight = FontStyle.Bold;
-            close.style.width = 24f;
-            close.style.height = 24f;
-            close.style.unityTextAlign = TextAnchor.MiddleCenter;
+            var close = new Button(CloseInventory) { name = "inventory-close", text = "×", tooltip = Loc.Get("panel.close") };
+            close.style.color = Text;
+            close.style.fontSize = 26;
+            close.style.width = 32f;
+            close.style.height = 32f;
             close.style.flexShrink = 0f;
+            close.style.marginLeft = StyleKeyword.Auto;
+            close.style.backgroundColor = Raised;
             SetRadius(close, 6f);
-            close.RegisterCallback<MouseEnterEvent>(_ => close.style.color = Text);
-            close.RegisterCallback<MouseLeaveEvent>(_ => close.style.color = TextDim);
-            close.RegisterCallback<MouseDownEvent>(evt =>
-            {
-                CloseInventory();
-                evt.StopPropagation();
-            });
             header.Add(close);
             _inventoryWindow.Add(header);
 
@@ -2180,7 +2177,13 @@ namespace HexLive.UnityPresentation.UI
             _craftRecipeGrid.style.paddingLeft = 2f;
             _craftRecipeGrid.style.paddingRight = 8f;
             _craftRecipeGrid.style.overflow = Overflow.Hidden;
-            _craftView.Add(_craftRecipeGrid);
+            var browser = new VisualElement { name = "craft-browser" };
+            browser.style.flexGrow = 1; browser.style.flexShrink = 1; browser.style.minWidth = 0; browser.style.minHeight = 0;
+            BuildCraftCategories(browser);
+            _craftRecipeScroll = new ScrollView(ScrollViewMode.Vertical) { name = "craft-recipe-scroll" };
+            _craftRecipeScroll.style.flexGrow = 1; _craftRecipeScroll.style.minHeight = 0;
+            _craftRecipeScroll.Add(_craftRecipeGrid); browser.Add(_craftRecipeScroll);
+            _craftView.Add(browser);
 
             _craftDetail = new VisualElement { name = "craft-recipe-detail" };
             _craftDetail.style.width = 326f;
@@ -2385,7 +2388,7 @@ namespace HexLive.UnityPresentation.UI
         private string CraftingSignature()
         {
             var result = new System.Text.StringBuilder();
-            result.Append(_selectedCraftOutput).Append('|');
+            result.Append(_selectedCraftOutput).Append('|').Append(_craftCategory).Append('|').Append(Wearing.Garments.ItemIcons.Revision).Append('|');
             foreach (var option in _craftOptions)
             {
                 result.Append((int)option.Goal).Append(':')
@@ -2412,9 +2415,11 @@ namespace HexLive.UnityPresentation.UI
         private void RebuildCraftRecipeGrid()
         {
             if (_craftRecipeGrid == null) return;
+            EnsureCraftCategorySelection();
             _craftRecipeGrid.Clear();
             foreach (var option in _craftOptions)
             {
+                if (!InCraftCategory(option.OutputDefinitionId)) continue;
                 var selected = option.OutputDefinitionId == _selectedCraftOutput;
                 var card = new VisualElement { name = "craft-recipe-card" };
                 card.style.width = 104f;
@@ -3051,6 +3056,7 @@ namespace HexLive.UnityPresentation.UI
                 CloseHealth(); // the floating windows share the same spot
                 CloseJournal(); // §136
                 _inventoryOpen = true;
+                _inventoryBackdrop.style.display = DisplayStyle.Flex;
                 _invVisibleWearLayer = VisualWearLayer.Bags;
                 _invSig = null; // force a rebuild on the next refresh
                 _craftSig = null;
@@ -3068,6 +3074,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void CloseInventory()
         {
+            if (_inventoryOpen) _inventoryClosedFrame = Time.frameCount;
+            if (_inventoryBackdrop != null) _inventoryBackdrop.style.display = DisplayStyle.None;
             _inventoryOpen = false;
             _craftPage = false;
             _clothesPage = false;
@@ -3829,7 +3837,8 @@ namespace HexLive.UnityPresentation.UI
                 + "|lock=" + (npc.OutfitLocked ? "1" : "0")
                 + "|wornOwners=" + string.Join(",", npc.WornOwnerIds)
                 + "|page=" + (_clothesPage ? "clothes" : "backpack")
-                + "|" + InventoryLayoutSignature(npc);
+                + "|" + InventoryLayoutSignature(npc)
+                + "|icons=" + Wearing.Garments.ItemIcons.Revision;
             if (sig == _invSig)
             {
                 return;
@@ -7322,11 +7331,12 @@ namespace HexLive.UnityPresentation.UI
             {
                 _controlButton.tooltip = Loc.Get(agentControlled
                     ? "panel.control.agent" : "panel.control.readonly");
-                _controlAiSegment.style.backgroundColor = Color.clear;
+                _controlAiSegment.style.backgroundColor = agentControlled
+                    ? new Color(NeonCyan.r, NeonCyan.g, NeonCyan.b, 0.22f) : Color.clear;
                 _controlPlayerSegment.style.backgroundColor = Color.clear;
-                _controlAiGlyph.style.color = TextMute;
+                _controlAiGlyph.style.color = agentControlled ? NeonCyan : TextMute;
                 _controlPlayerGlyph.style.color = TextMute;
-                _controlAiIcon.style.opacity = 0.35f;
+                _controlAiIcon.style.opacity = agentControlled ? 1f : 0.35f;
                 _controlPlayerIcon.style.opacity = 0.35f;
                 SetBorderColor(_controlButton, Stroke);
                 if (_stopButton != null)
@@ -7917,6 +7927,7 @@ namespace HexLive.UnityPresentation.UI
             _refreshedTick = -1; // texts set in Refresh() need re-localizing
             _rosterTick = int.MinValue;
 
+            RefreshCraftCategories();
             _needsTitle.text = Loc.Get("panel.needs");
             _natureTitle.text = Loc.Get("panel.nature");
             _skillsTitle.text = Loc.Get("panel.skills");

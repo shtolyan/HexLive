@@ -25,6 +25,7 @@ public sealed class WorldCreationConfig
     public Faction PlayerCamp { get; set; }
     public int PopulationLimit { get; set; } = 10;
     public int SeaRaidIntervalDays { get; set; }
+    public bool PlayersOnly { get; set; }
     // §146.10: false removes the scripted wounded castaway (id 900) from this world.
     // Absent in older creation.xml/JSON ⇒ true, the shipped HugeIsland/Maniac story.
     public bool ShipwreckSurvivorEnabled { get; set; } = true;
@@ -187,7 +188,8 @@ public static class WorldCreation
             ValidateCharacter(npc, config.AttributeBudget, config.SkillBudget, path, Error);
         }
         var active = config.Characters.Where(c => c != null && c.Enabled && config.Camp(c.Camp)?.Enabled == true).ToList();
-        if (!active.Any(c => c.Controlled && c.Camp == config.PlayerCamp)) Error("characters", "noControlledCharacter");
+        if (config.PlayersOnly && active.Count != 0) Error("characters", "playersOnlyStartEmpty");
+        if (!config.PlayersOnly && !active.Any(c => c.Controlled && c.Camp == config.PlayerCamp)) Error("characters", "noControlledCharacter");
         if (active.Count > config.PopulationLimit) Error("characters", "capacity");
         foreach (var camp in config.Camps.Where(c => c != null))
             if (active.Count(c => c.Camp == camp.Faction) > camp.PopulationLimit) Error("camps." + camp.Faction, "capacity");
@@ -252,7 +254,7 @@ public static class WorldCreation
         }
         var originalNpcs = definition.Npcs.ToDictionary(n => n.Id);
         definition.Npcs.Clear();
-        foreach (var entry in config.Characters.Where(c => c.Enabled && config.Camp(c.Camp)?.Enabled == true).OrderBy(c => c.Id))
+        foreach (var entry in config.Characters.Where(c => !config.PlayersOnly && c.Enabled && config.Camp(c.Camp)?.Enabled == true).OrderBy(c => c.Id))
         {
             var home = definition.FactionHomes.First(h => h.Faction == entry.Camp);
             var tile = definition.Fragments.SelectMany(f => f.Tiles.Select(t => (f, t))).First(p => p.t.Q == home.TileQ && p.t.R == home.TileR);

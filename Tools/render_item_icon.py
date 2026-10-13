@@ -295,9 +295,12 @@ def setup_materials(meshes, style):
             _set_input(bsdf, sheen, 'Sheen', 'Sheen Weight')
             # icons are always opaque: a see-through prop (the plastic bottle)
             # would otherwise render as a ghost on the transparent film
-            if 'Alpha' in bsdf.inputs and not bsdf.inputs['Alpha'].links:
+            if 'Alpha' in bsdf.inputs:
+                for link in list(bsdf.inputs['Alpha'].links):
+                    mat.node_tree.links.remove(link)
                 bsdf.inputs['Alpha'].default_value = 1.0
-            mat.blend_method = 'OPAQUE'
+            if hasattr(mat, 'blend_method'):
+                mat.blend_method = 'OPAQUE'
 
 
 def render(dst, meshes, style, fit, samples):
@@ -374,4 +377,5 @@ def main():
         install(dst, opts["install"])
 
 
-main()
+if __name__ == '__main__':
+    main()

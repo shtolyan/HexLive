@@ -53,3 +53,13 @@ the test run itself passed. This does not establish a clean full-game run.
 This fix is not in Singapore registry445 activated earlier. It requires a
 matching Player (SkinTexturePainter code) and rebuilt actor content
 (position texture format). Native images do not establish WebGL/live QA.
+
+## Сохранение локальной доработки грязи — 2026-10-12
+
+По поручению Толи commit/push сохраняется ранее локальная часть: для Dirt
+проектора angle fade45–75 градусов и отдельный Resources ShaderGraph с
+включённым angle fade. Другие decal types продолжают использовать прежний shader.
+SkinDecals.cs и SkinDirtDecal.shadergraph побайтно совпадают с critical inputs
+успешно собранного и опубликованного Player6ea (Unity6000.4.5f1, build exit0).
+Это сохранение уже использованных исходников, без новой публикации или заявления
+о прохождении live dirt/wound QA. #435 остаётся in_progress.

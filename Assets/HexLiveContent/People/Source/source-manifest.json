@@ -3087,7 +3087,7 @@
       "images": [
         {
           "node": "Image Texture",
-          "image": "Textures/Marta_BaseColor_2048_0b51d48c5148.jpg",
+          "image": "Textures/Marta_BaseColor_Padded.png",
           "links": [
             {
               "output": "Color",
@@ -3127,7 +3127,7 @@
       "images": [
         {
           "node": "Image Texture",
-          "image": "Textures/Kshishtof_BaseColor_2048_e32e5c0944e4.jpg",
+          "image": "Textures/Kshishtof_BaseColor_Padded.png",
           "links": [
             {
               "output": "Color",
@@ -12020,8 +12020,8 @@
   },
   "textures": {
     "Marta_BaseColor_2048": {
-      "path": "Textures/Marta_BaseColor_2048_0b51d48c5148.jpg",
-      "sha256": "0b51d48c5148236330efaa27aa18203811d79ff86a63319af03ff7a6981c0cd7",
+      "path": "Textures/Marta_BaseColor_Padded.png",
+      "sha256": "6bc0f552cfbd340277e3f3a933136b0e334a657637bad337d5067e1197f2f287",
       "width": 2048,
       "height": 2048,
       "colorSpace": "sRGB",
@@ -12029,8 +12029,8 @@
       "sourceCanvasHeight": 2048
     },
     "Kshishtof_BaseColor_2048": {
-      "path": "Textures/Kshishtof_BaseColor_2048_e32e5c0944e4.jpg",
-      "sha256": "e32e5c0944e42078e0bf427eed5ffb91b0d2138c9513fb54b3a0cb409a088096",
+      "path": "Textures/Kshishtof_BaseColor_Padded.png",
+      "sha256": "062079c9cb07c86c6dfa19d6f9bc0c01276014c2305dcc434ed7259079e8c951",
       "width": 2048,
       "height": 2048,
       "colorSpace": "sRGB",

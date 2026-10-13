@@ -14,10 +14,10 @@ public sealed class CampHomeUiContractTests
     [Test]
     public void MakeHomeMenuEntryUsesTheSharedPredicateAndPlainCommand()
     {
-        var adapter = File.ReadAllText(Path.Combine(
+        var adapter = RepoPaths.ReadText(Path.Combine(
             RepoPaths.Root, "Assets", "HexLive", "UnityPresentation",
             "Input", "SimulationInputAdapter.cs"));
-        var terms = File.ReadAllText(Path.Combine(
+        var terms = RepoPaths.ReadText(Path.Combine(
             RepoPaths.Root, "Assets", "Resources", "I2Languages.asset"));
 
         Assert.Multiple(() =>

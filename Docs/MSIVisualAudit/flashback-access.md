@@ -8,7 +8,10 @@ python -X utf8 Tools/bugs_with_ca.py --ca-file C:/Users/shtolyan/HexLiveSourceRe
 python -X utf8 Tools/bugs_with_ca.py --ca-file C:/Users/shtolyan/HexLiveSourceReference/20261011/flashback-ca-bundle.pem queue
 ```
 
-The public CA bundle was delivered by Sveta; it is outside Git. The wrapper
+The public CA bundle was delivered by Sveta; it is outside Git. It is a
+diagnostic snapshot, not an automatically updated long-term trust store.
+The server certificate is valid; no server renewal or restart is needed.
+The wrapper
 passes an explicit `ssl.create_default_context(cafile=...)` to its own requests.
 Hostname, certificate-chain and validity checks stay enabled. Missing or invalid
 CA files fail closed. It does not modify global SSL state or the shared client.

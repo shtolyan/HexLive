@@ -189,7 +189,7 @@ public sealed class BalanceKnobHygieneGateTests
         foreach (var file in Directory.EnumerateFiles(configDir, "*BalanceConfig.cs")
                      .OrderBy(p => p, StringComparer.Ordinal))
         {
-            var text = File.ReadAllText(file);
+            var text = RepoPaths.ReadText(file);
             var targets = Regex.Matches(text, @"\[MirrorTarget\(typeof\((\w+)\)\)\]")
                 .Select(m => m.Groups[1].Value)
                 .ToHashSet(StringComparer.Ordinal);
@@ -327,7 +327,7 @@ public sealed class BalanceKnobHygieneGateTests
 
     private static List<ConfigFieldTarget> ConfigFields(string file)
     {
-        var text = File.ReadAllText(file);
+        var text = RepoPaths.ReadText(file);
         var targets = Regex.Matches(text, @"\[MirrorTarget\(typeof\((\w+)\)\)\]")
             .Select(m => m.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
@@ -373,7 +373,7 @@ public sealed class BalanceKnobHygieneGateTests
             }
 
             var owner = Path.GetFileNameWithoutExtension(file);
-            foreach (Match m in StaticField.Matches(File.ReadAllText(file)))
+            foreach (Match m in StaticField.Matches(RepoPaths.ReadText(file)))
             {
                 if (!TryNumber(m.Groups[2].Value, out var value))
                 {
@@ -406,7 +406,7 @@ public sealed class BalanceKnobHygieneGateTests
             }
 
             var owner = Path.GetFileNameWithoutExtension(file);
-            foreach (Match match in StaticDeclaration.Matches(File.ReadAllText(file)))
+            foreach (Match match in StaticDeclaration.Matches(RepoPaths.ReadText(file)))
             {
                 if (!found.TryGetValue(match.Groups[1].Value, out var owners))
                 {

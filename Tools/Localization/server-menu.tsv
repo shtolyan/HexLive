@@ -1,0 +1,12 @@
+menu.servers.title	Choose your server	Выберите сервер
+menu.servers.subtitle	Your world is waiting. Choose a server and play.	Ваш мир ждёт. Выберите сервер и играйте.
+menu.servers.refresh	Refresh connection quality	Обновить качество связи
+menu.servers.connecting	Connecting…	Подключаемся…
+menu.servers.checking	Measuring ping…	Измеряем пинг…
+menu.servers.ping	Ping · {0} ms	Пинг · {0} мс
+menu.servers.ping.description	Game Ping/Pong round trip, including server response and browser frame timing. Green: under 100 ms; yellow: 100–249 ms; red: 250 ms or more.	Время ответа игрового Ping/Pong, включая обработку сервером и кадр браузера. Зелёный: до 100 мс; жёлтый: 100–249 мс; красный: от 250 мс.
+menu.servers.play	Play →	Играть →
+menu.servers.update	Update required	Нужно обновление
+menu.servers.notready	Not available yet	Пока недоступен
+menu.servers.singapore	Singapore	Сингапур
+menu.servers.newyork	New York	Нью-Йорк

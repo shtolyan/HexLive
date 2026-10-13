@@ -107,7 +107,7 @@ public sealed class AtomicContentTransportContractTests
             fullPath = Path.Combine(fullPath, part);
         }
 
-        return File.ReadAllText(fullPath);
+        return RepoPaths.ReadText(fullPath);
     }
 }
 

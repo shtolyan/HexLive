@@ -15,6 +15,7 @@ namespace HexLive.Server.Assets
 /// <summary>§154.1 server-owned gameplay fields inside wear metadata.</summary>
 public sealed class GarmentSimulationMetadata
 {
+    public GarmentCraftMetadata? Craft { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string PrototypeId { get; set; } = string.Empty;
     public string Layer { get; set; } = nameof(WearLayer.Wear);
@@ -28,6 +29,7 @@ public sealed class GarmentSimulationMetadata
 
     public void Validate(string id)
     {
+        Craft?.Validate();
         if (!ContentIdentity.IsId(id))
         {
             throw new InvalidDataException("Invalid garment id.");
@@ -81,6 +83,32 @@ public sealed class GarmentSimulationMetadata
             }
         }
     }
+}
+
+public sealed class GarmentCraftInput
+{
+    public string Id { get; set; } = string.Empty;
+    public int Count { get; set; }
+}
+
+public sealed class GarmentCraftMetadata
+{
+    public string Station { get; set; } = "Workbench";
+    public int BaseWorkTicks { get; set; } = 24;
+    public List<GarmentCraftInput> Inputs { get; set; } = new();
+    public void Validate()
+    {
+        if (Station is not ("" or "Workbench" or "Campfire") || BaseWorkTicks < 1 || BaseWorkTicks > 100000 ||
+            Inputs == null || Inputs.Count == 0 || Inputs.Count > 16 ||
+            Inputs.Any(i => i == null || !ContentIdentity.IsId(i.Id) || i.Count < 1 || i.Count > 10000) ||
+            Inputs.Select(i => i.Id).Distinct(StringComparer.Ordinal).Count() != Inputs.Count)
+            throw new InvalidDataException("Invalid garment craft metadata.");
+    }
+    public JsonObject Recipe(string output) => new()
+    {
+        ["output"] = output, ["station"] = Station, ["needsLitFire"] = false, ["baseWorkTicks"] = BaseWorkTicks,
+        ["inputs"] = new JsonArray(Inputs.Select(i => (JsonNode)new JsonObject { ["id"] = i.Id, ["count"] = i.Count }).ToArray())
+    };
 }
 
 public sealed class GarmentCatalogEntry
@@ -143,7 +171,7 @@ public sealed class AssetGarmentCatalogSnapshot
 
 /// <summary>
 /// §154 compatibility bridge. Global tuning remains in the exported SimData;
-/// only its garments array is derived from atomic wear records.
+/// its garments and authored wear recipes are derived from atomic wear records.
 /// </summary>
 public sealed class AssetGarmentCatalog
 {
@@ -259,6 +287,16 @@ public sealed class AssetGarmentCatalog
         }
 
         root["garments"] = output;
+        // Recipes belong to the same active wear metadata as its gameplay appearance.
+        var recipes = (root["recipes"] as JsonArray ?? new JsonArray()).OfType<JsonObject>()
+            .ToDictionary(r => r["output"]!.GetValue<string>(), r => (JsonObject)r.DeepClone(), StringComparer.Ordinal);
+        foreach (var record in wearRecords)
+        {
+            var entry = BuildEntry(record, baseGarments);
+            if (record.State != "active") { recipes.Remove(record.Id); continue; }
+            if (entry.Simulation?.Craft is { } craft) recipes[record.Id] = craft.Recipe(record.Id);
+        }
+        root["recipes"] = new JsonArray(recipes.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => (JsonNode)p.Value).ToArray());
         var json = root.ToJsonString(JsonOptions) + Environment.NewLine;
         var fingerprint = Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(json))).ToLowerInvariant()[..16];

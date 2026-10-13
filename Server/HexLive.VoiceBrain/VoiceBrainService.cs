@@ -52,6 +52,13 @@ public sealed class VoiceBrainService
         return _voices.GetValueOrDefault("Masha", "");
     }
 
+    public object RelationshipView(string characterId, string ownerUserId)
+    {
+        var value = _bonds.Load(characterId, ownerUserId).Snapshot;
+        return new { familiarity = value.Familiarity, trust = value.Trust, affinity = value.Sympathy,
+            voiceName = string.IsNullOrWhiteSpace(value.VoiceName) ? "Голос" : value.VoiceName };
+    }
+
     /// <summary>The OpenAI-compatible streaming endpoint ElevenLabs calls (base URL …/v1; it appends /chat/completions).</summary>
     public void MapCompletions(IEndpointRouteBuilder app, string path = "/v1/chat/completions") =>
         app.MapPost(path, HandleCompletionAsync);

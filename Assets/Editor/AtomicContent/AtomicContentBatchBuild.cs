@@ -57,9 +57,11 @@ public static class AtomicContentBatchBuild
     {
         string type = (string)row["type"], id = (string)row["id"];
         var meta = (JObject)row["metadata"].DeepClone();
-        var result = new BuildInputs { Main = (string)row["main"], DisplayName = id, ExtraMetadata = meta };
+        var result = new BuildInputs { Main = (string)row["main"], DisplayName = id, ExtraMetadata = meta,
+            Icon = IconBearingTypes.Contains(type) ? $"{IconRoot}/{type}.{id}.png" : null };
         if (type == "wear")
         {
+            result.Icon = $"{IconRoot}/{id}.png";
             result.Metadata = (string)row["definition"];
             var def = AssetDatabase.LoadAssetAtPath<GarmentDefinition>(result.Metadata);
             if (def == null) throw new InvalidOperationException("Missing people garment: " + id);

@@ -36,7 +36,7 @@ public sealed class HumanCombatMercyRetirementContractTests
             "SimData/simdata.json"
         };
         var activeGraph = string.Join("\n", activeFiles.Select(path =>
-            File.ReadAllText(Path.Combine(root!, path))));
+            RepoPaths.ReadText(Path.Combine(root!, path))));
         foreach (var retiredSymbol in new[]
                  {
                      "PendingHumanStrikeKillAuthorized",
@@ -51,7 +51,7 @@ public sealed class HumanCombatMercyRetirementContractTests
             Assert.That(activeGraph, Does.Not.Contain(retiredSymbol), retiredSymbol);
         }
 
-        var serializer = File.ReadAllText(Path.Combine(root!,
+        var serializer = RepoPaths.ReadText(Path.Combine(root!,
             "Assets/HexLive/Simulation/Persistence/WorldSaveSerializer.cs"));
         Assert.Multiple(() =>
         {

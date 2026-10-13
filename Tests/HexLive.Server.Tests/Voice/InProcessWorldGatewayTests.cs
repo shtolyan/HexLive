@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using HexLive.Server;
 using HexLive.Server.Mcp;
@@ -32,11 +34,17 @@ public sealed class InProcessWorldGatewayTests
     public async Task OwnCharacterIsReadableAndCommandable()
     {
         using var host = Host();
-        var gateway = new InProcessWorldGateway(new McpTools(host, new ControlLeases(45)), "ws:player", npc => npc == 1);
+        var tools = new McpTools(host, new ControlLeases(45));
+        var gateway = new InProcessWorldGateway(tools, "ws:player", npc => npc == 1);
         var describe = await gateway.CallAsync("describe_colonist", new { npcId = 1 }, default);
         Assert.That(describe.GetProperty("npcId").GetInt32(), Is.EqualTo(1));
         await gateway.CallAsync("acquire_control", new { npcId = 1, ttlSeconds = 60 }, default);
         Assert.DoesNotThrowAsync(() => gateway.CallAsync("stop", new { npcId = 1 }, default));
+        Assert.That(host.Read(w => w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(1)].Mind.ExternalControl?.IsActive), Is.True);
+        Assert.That(host.Read(w => HexLive.Simulation.Debug.WorldSnapshotExporter.Export(w).Npcs.First(n => n.Id.Value == 1).IsManualControl), Is.False);
+        var playerResult = tools.Call("stop", JsonSerializer.SerializeToElement(new { npcId = 1 }), "ws:player", out var playerError, npc => npc == 1);
+        Assert.That(playerError, Is.True);
+        Assert.That(playerResult, Does.Contain("ControlledByAgent"));
     }
 
     [Test]
@@ -47,5 +55,18 @@ public sealed class InProcessWorldGatewayTests
         var read = Assert.ThrowsAsync<WorldToolRejectedException>(() => gateway.CallAsync("describe_colonist", new { npcId = 2 }, default));
         Assert.That(read!.Message, Does.Contain("NpcAccessDenied"));
         Assert.ThrowsAsync<WorldToolRejectedException>(() => gateway.CallAsync("acquire_control", new { npcId = 2, ttlSeconds = 60 }, default));
+    }
+
+    [Test]
+    public async Task VoiceConversationRaisesSocialExactlyOnceWithoutManualControl()
+    {
+        using var host = Host();
+        var gateway = new InProcessWorldGateway(new McpTools(host, new ControlLeases(45)), "ws:player", npc => npc == 1, () => host);
+        host.Read(w => { w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(1)].Needs.Social = .3f; return true; });
+        await gateway.RecordConversationAsync(1, "call-1-turn-1", default);
+        await gateway.RecordConversationAsync(1, "call-1-turn-1", default);
+        Assert.That(host.Read(w => w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(1)].Needs.Social), Is.EqualTo(.38f).Within(.0001f));
+        Assert.That(host.Read(w => w.Entities.Npcs[new HexLive.Simulation.Common.EntityId(1)].Mind.ManualControl), Is.False);
+        Assert.ThrowsAsync<WorldToolRejectedException>(() => gateway.RecordConversationAsync(2, "foreign", default));
     }
 }

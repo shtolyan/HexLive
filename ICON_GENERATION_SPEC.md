@@ -1,7 +1,7 @@
 # HexLive — Inventory Icon Generation Spec
 
-How to produce the little 3D pictures the inventory shows for an item, without
-opening Unity. Companion to `TOOL_GENERATION_SPEC.md` (that one is about the
+How to produce the little 3D pictures the inventory shows for an item.
+Companion to `TOOL_GENERATION_SPEC.md` (that one is about the
 **world model**; this one is about the **icon**).
 
 Approved by the icons that shipped: the garment set (`Shorts_10_14636.png` and
@@ -13,24 +13,31 @@ exactly so every row of the inventory list looks like it came from one camera.
 
 ## 0. Where an icon lives and how it's found
 
-- File: **`Assets/Resources/HexLive/UI/Items/<itemId>.png`** — 512×512 RGBA,
+- File: **`Assets/HexLiveContent/Icons/<itemId>.png`** — 512×512 RGBA,
   transparent background, plus a sprite `.meta`.
 - The filename is the item id **verbatim, spaces and capitals included**
   (`FCO Pants Male.png`, `clothing.shorts_red.png`). The id is
   `GarmentDefinition.id` for clothing, `GearConfig.gearId` for tools/items.
-- `CharacterPanel.LoadItemIcon` (the inventory panel) loads **only** the exact
-  id. `HexInspectorPanel` additionally falls back to `ItemCatalog.Slug(id)`
-  (lowercase, non-alphanumerics → `_`). Name the file after the id and both work.
+- `ItemIcons` resolves the atomic owner `type/id#icon` (§152.2). The PNG is
+  embedded in that owner's bundle as entry `icon`; there is no icon bundle,
+  runtime Resources fallback or Addressables icon catalog. Prepared wear uses
+  its exact ID. Prosthetic side objects use `prosthetic_<id with dots replaced
+  by underscores>.png`; a generic simulation prosthetic ID uses the left-side
+  owner for its inventory picture.
 - No icon = the panel falls back to the category emoji. That is the "male
   clothing has no pictures" symptom.
 
 Coverage check (from the repo root):
 
 ```bash
-comm -23 <(grep -h '^  id: ' Assets/HexLive/UnityPresentation/Wearing/Garments/Assets/*/*.asset | sed 's/^  id: //' | sort) <(ls Assets/Resources/HexLive/UI/Items/*.png | sed 's|.*/||; s|\.png$||' | sort)
+python -c "import json,pathlib; rows=json.load(open('Assets/HexLiveContent/People/catalog.json'))['records']; print('\n'.join(r['id'] for r in rows if r['type']=='wear' and not pathlib.Path('Assets/HexLiveContent/Icons/'+r['id']+'.png').is_file()))"
 ```
 
 Same idea for gear: `grep -h '^  gearId: ' Assets/Resources/HexLive/Gear/*.asset`.
+
+PNG presence is only the first check: import as a Sprite and confirm the
+builder's owning payload resolves the exact path. `CraftMenuRuntimeTests`
+checks all 78 prepared garments through `AtomicContentBatchBuild.ResolvePeople`.
 
 ## ⭐ 1. Before rendering anything — look for a ready icon
 
@@ -41,6 +48,19 @@ md5). All nine male garments came from there — no render, no AI, just a copy.
 
 So: `find /Volumes/ORICO/molly_copy/Assets/Wear -iname '<item>*.png'` first.
 Only render when the mesh is HexLive-only (recoloured prints, new props).
+
+The Primal set reuses matching family/colourway icons for male variants.
+Missing prepared garments (including backpacks) can use the existing native
+`WearIconShooter.RenderPreparedMissing` photographer: it preserves imported
+meshes and material overrides and skips existing author art. Compare its
+result with `clothing.top_primal.png`, not an invented garment silhouette.
+
+For a Unity prefab prop, first export its imported geometry and actual base
+materials/textures using `WearIconShooter.ExportOwnerIconSources` with explicit
+`-icon-inventory <inventory.json> -icon-owners <JSON array of type/id>
+-icon-output <scratch folder>`. The export preserves prefab transforms without
+modifying model/material assets. Render the resulting OBJ with `--style tool`
+through the fixed camera below; this avoids missing Unity-only FBX textures.
 
 ## 2. Path A — a garment (source: a Unity `.mesh`)
 
@@ -106,9 +126,10 @@ the reference) before installing — same size in frame, same lighting side.
 
 ## 5. Install — the `.meta` by hand
 
-`--install <itemId>` copies the PNG into `Assets/Resources/HexLive/UI/Items/`
-and writes a sprite `.meta` cloned from `Bikini Bottom.png.meta` with fresh
-`guid:` and `spriteID:` (uuid4). That is the whole Unity side: `textureType: 8`,
+`--install <itemId>` copies the PNG into `Assets/HexLiveContent/Icons/`
+and writes a sprite `.meta` using the renderer's built-in template with fresh
+`guid:` and `spriteID:` (uuid4); reinstalling preserves the existing GUID.
+The Unity import settings are `textureType: 8`,
 `spriteMode: 1`, `alphaIsTransparency: 1` — the file imports as a Sprite on the
 next editor launch, no editor session needed.
 
@@ -125,15 +146,19 @@ Never reuse an existing guid, and never let two icons share one.
 - **White on white**: a cream/white item on the pale AI background has no
   silhouette. That matters for the *source image* of an AI prop, not for the
   render (the icon background is transparent).
-- Blender here is **3.2.2** → legacy `bpy.ops.import_scene.obj`; the 4.x
-  `wm.obj_import` does not exist.
+- The renderer supports legacy OBJ import and modern Blender `wm.obj_import`;
+  Principled input names and opaque icon alpha support Blender 5.2 as well.
 - The renderer must run **from the repo root** when using `--install` (the
-  Resources path is relative).
+  content path is relative).
 
-## 7. Still icon-less (as of 2026-08-01)
+## 7. Coverage checked 2026-10-12
 
-`item.bandage`, `tool.bottle`, `tool.saw`, `tool.spear` — bottle,
-saw and bandage now have GLB models, so Path B covers them in one command each.
+All 78 prepared wear records have PNGs: 38 were already present, 34 male
+variants reuse matching existing art, six backpacks were photographed. Added
+29 missing object icons and eight prosthetic-side icons. Existing meat icons
+(raw/cooked animal meat and human body-part meat) were preserved. New PNGs
+still require their owner bundles to be built and published; source coverage
+alone does not mean the current live game has those pictures.
 
 ---
 

@@ -69,7 +69,7 @@ public sealed class BalanceParityGateTests
     private static HashSet<string> ExportedBalanceKeys()
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
-        var text = File.ReadAllText(RepoPaths.SimData);
+        var text = RepoPaths.ReadText(RepoPaths.SimData);
 
         var section = text.IndexOf("\"balance\"", StringComparison.Ordinal);
         if (section < 0)

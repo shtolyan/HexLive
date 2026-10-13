@@ -31,6 +31,7 @@ public sealed class ShipwreckSurvivorSystem : ISimulationSystem
 
     public void Run(WorldState world)
     {
+        if (world.CreationConfig?.PlayersOnly == true) return;
         if (world.Mode is not (GameMode.HugeIsland or GameMode.Maniac) ||
             world.CreationConfig?.ShipwreckSurvivorEnabled == false)
         {

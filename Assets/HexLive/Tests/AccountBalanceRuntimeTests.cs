@@ -42,15 +42,15 @@ public sealed class AccountBalanceRuntimeTests
             foreach (var current in new[] { Language.English, Language.Russian })
             {
                 Loc.Current = current; Apply(panel, Partial);
-                Assert.That(label.text, Does.Contain("4.9966 USD").And.Contain("0.0034 USD (0.34 ¢)"));
+                Assert.That(label.text, Does.Contain("5.00 USD").And.Contain("0.00 USD (0.34 ¢)"));
                 Assert.That(label.text, Does.Contain(string.Format(Loc.Get("account.balance.pending"), 1)));
                 Assert.That(label.tooltip, Does.Contain("1 USD = 100"));
                 Apply(panel, Settled);
-                Assert.That(label.text, Does.Contain("4.8914 USD").And.Contain("0.1086 USD (10.86 ¢)"));
-                Assert.That(label.text, Does.Not.Contain("4.9966").And.Not.Contain("0.34 ¢"),
+                Assert.That(label.text, Does.Contain("4.89 USD").And.Contain("0.11 USD (10.86 ¢)"));
+                Assert.That(label.text, Does.Not.Contain("5.00 USD\n").And.Not.Contain("0.34 ¢"),
                     "A provider finalization must replace the whole display, not just the balance.");
                 Assert.That(label.text, Does.Contain(Loc.Get("account.balance.estimated")));
-                Assert.That(label.tooltip, Does.Contain("0.1052 USD").And.Contain("0.0034 USD"));
+                Assert.That(label.tooltip, Does.Contain("0.11 USD").And.Contain("0.00 USD"));
                 for (var i = 0; i < 4; i++) yield return null;
                 foreach (var line in label.text.Split('\n'))
                     Assert.That(label.MeasureTextSize(line, 0, VisualElement.MeasureMode.Undefined, 0,

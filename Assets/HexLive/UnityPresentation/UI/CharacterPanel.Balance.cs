@@ -95,7 +95,7 @@ namespace HexLive.UnityPresentation.UI
                 value.openingUsd - value.spentUsd != value.balanceUsd)
             { ShowBalanceUnavailable(); return; }
 
-            string Usd(decimal amount) => decimal.Round(amount, 4, MidpointRounding.AwayFromZero).ToString("0.0000", CultureInfo.InvariantCulture);
+            string Usd(decimal amount) => decimal.Round(amount, 2, MidpointRounding.AwayFromZero).ToString("0.00", CultureInfo.InvariantCulture);
             var cents = decimal.Round(value.spentUsd * 100m, 2, MidpointRounding.AwayFromZero).ToString("0.00", CultureInfo.InvariantCulture);
             var approximate = value.estimatedUsd > 0 || value.pendingRequests > 0 ? "≈ " : "";
             var lines = string.Format(Loc.Get("account.balance.amount"), approximate + Usd(value.balanceUsd)) + "\n" +

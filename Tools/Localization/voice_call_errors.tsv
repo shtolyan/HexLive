@@ -1,0 +1,5 @@
+# key	English	Русский
+agent.call.credit	Insufficient balance	Недостаточно средств
+agent.call.signin	Sign in again	Войди снова
+agent.call.forbidden	Call not allowed	Звонок недоступен
+agent.call.busy	Try again later	Повтори позже

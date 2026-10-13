@@ -28773,6 +28773,38 @@ MonoBehaviour:
       - 'Закрыть'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'agent.call.credit'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Insufficient balance'
+      - 'Недостаточно средств'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.signin'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Sign in again'
+      - 'Войди снова'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.forbidden'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Call not allowed'
+      - 'Звонок недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.busy'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Try again later'
+      - 'Повтори позже'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

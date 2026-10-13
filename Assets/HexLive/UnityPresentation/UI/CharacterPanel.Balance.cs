@@ -75,7 +75,7 @@ namespace HexLive.UnityPresentation.UI
                 _balanceLabel.tooltip = Loc.Current == Language.Russian
                     ? $"Расход ${value.spentUsd:0.0000}; по тарифу ${value.estimatedUsd:0.0000}; ждут стоимости: {value.pendingRequests}"
                     : $"Spent ${value.spentUsd:0.0000}; tariff estimate ${value.estimatedUsd:0.0000}; pending: {value.pendingRequests}";
-                if (value.balanceUsd <= 0 && ServerVoiceActive) _serverVoice!.Stop();
+                ApplyServerVoiceBalance(value.balanceUsd);
             }
             finally { _balancePending = false; }
         }

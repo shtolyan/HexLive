@@ -38,11 +38,22 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 
 ## Где собирать
 
-- **Только macOS.** FSB-кодер `hexfsb` собирается из macOS FMOD Engine SDK,
-  музыку перекодируют `/opt/homebrew/bin/ffmpeg` и `oggenc`. На Windows (MSI)
-  WebGL-плеер не собирается. Там собирают только пакеты контента
-  (`Tools/build_webgl_content_windows.py`), и только по команде Толи.
-- **Отдельный проект для сборки:** `~/hex-girls/webgl-build/HexLive`
+- **macOS — полный путь.** FSB-кодер `hexfsb` собирается из macOS FMOD
+  Engine SDK, музыку перекодируют `/opt/homebrew/bin/ffmpeg` и `oggenc`.
+  Только на Маке звук можно закодировать заново.
+- **Windows (MSI) — плеер без перекодирования звука.** Кодера на Windows нет.
+  MSI собирает тем же `HexLiveWebGLPlayerBuild.Build`, но с флагом
+  `-webgl-reuse-published-audio` (Codex, 12.10.2026, выпуск `msi-20261012-6ea38650b`).
+  В этом режиме музыка не перекодируется, а в результат кладётся метка
+  `audio-reuse-required.json`. Дерево FSB/`.vis` берётся из уже
+  опубликованного релиза, и только после доказательства, что исходные
+  `Sfx/**` и `Music` с тех пор не менялись (квитанция `audio-source-proof.json`).
+  Если звук менялся, путь закрыт: нужна сборка на Маке. Скрипт проверки пока
+  живёт у MSI вне git (`Build/MSIRelease/…`) — это долг. Его надо закоммитить
+  в `Tools/`, чтобы проверку мог повторить любой агент.
+  Пакеты контента на MSI — `Tools/build_webgl_content_windows.py`, только по
+  команде Толи.
+- **Отдельный проект для сборки (Мак):** `~/hex-girls/webgl-build/HexLive`
   (worktree этого репо, уже импортирован под WebGL). Основной проект
   `/Volumes/ORICO/HexLive` под WebGL **не переключать**: `-buildTarget`
   в batchmode сохраняется, и Толя откроет редактор на WebGL с часовым
@@ -94,8 +105,11 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
    Флаги: `-webgl-development` — только по просьбе Толи;
    `-webgl-exceptions full|explicit` — для отладки; `-webgl-lto` — +1 час
    линковки ради нескольких процентов, только для финального выпуска по
-   решению Толи. Код выхода 0 — успех; `DisplayDialog` скрипт не показывает.
-4. **Звук в FSB — обязательно.** Веб-FMOD читает только FSB; без этого шага
+   решению Толи; `-webgl-reuse-published-audio` — путь MSI, см. выше. Код
+   выхода 0 — успех; `DisplayDialog` скрипт не показывает. Кроме плеера в
+   результат кладётся `server-directory.json` — каталог серверов меню (§168.13).
+4. **Звук в FSB — обязательно** (на MSI — проверенное переиспользование, см.
+   «Где собирать»). Веб-FMOD читает только FSB; без этого шага
    голоса, музыка, лупы и фолбэк SFX в браузере молчат (`ERR_FORMAT`):
    ```bash
    python3 Tools/webgl_audio_fsb.py ~/hex-girls/webgl-build/player-<label>-<sha>
@@ -109,7 +123,7 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 ```
 [WebGLBuild] code optimization: RuntimeSpeed (…)
 [WebGLBuild] FMOD WebGL DSP buffer: 4 x 2048, callback WebAudioTuning
-[WebGLBuild] web music: N Ogg track(s) for the browser
+[WebGLBuild] web music: N Ogg track(s) for the browser   (на MSI с reuse — 0, это норма)
 [WebGLBuild] audio manifest: N files
 [WebGLBuild] Succeeded: … 0 errors …
 [WebGLBuild] devicePixelRatio capped at 1

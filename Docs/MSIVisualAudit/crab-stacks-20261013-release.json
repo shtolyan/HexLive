@@ -1,0 +1,131 @@
+{
+  "bugs": [
+    418,
+    449,
+    450,
+    451
+  ],
+  "sourceCommit": "dae0138061c9521489ada91c14d4f8bee82bd5b3",
+  "contentBuildSourceCommit": "46864827370ff9491c716e115cb19fe9959b3aef",
+  "contentSourceDifference": "Two test fixtures only; runtime and content unchanged between468648273 anddae013806.",
+  "activatedUtc": "2026-10-13T05:56:04.313699+00:00",
+  "target": "Singapore",
+  "layers": [
+    "server binary",
+    "client",
+    "content",
+    "world catalog"
+  ],
+  "result": "active",
+  "serverRelease": "/opt/hexlive/releases/dae0138061c9521489ada91c14d4f8bee82bd5b3",
+  "playerRelease": "/var/lib/hexlive-web/releases/msi-20261013-dae013806",
+  "previousServerRelease": "/opt/hexlive/releases/msi-20261012-1214a639a",
+  "previousPlayerRelease": "/var/lib/hexlive-web/releases/msi-20261012-6ea38650b",
+  "registryBefore": 601,
+  "registryAfter": 604,
+  "worldCatalogRevision": 604,
+  "objectsPublished": 3,
+  "unchangedObjects": 227,
+  "objects": [
+    {
+      "key": "config/simdata",
+      "candidate": "config--simdata.json",
+      "oldRevision": 2,
+      "oldSha256": "1310d70a7b1849e239c544a4d6d6e558633ebabc62fd72eb380172c1c43d837f",
+      "newSha256": "f50d5996dd27d0a1c748b534415696dfaf7ecc15ab25449fc0bc09268d1aaaa4",
+      "newSize": 552019
+    },
+    {
+      "key": "mob/crab",
+      "candidate": "mob--crab.json",
+      "oldRevision": 2,
+      "oldSha256": "578adfc9a25d0245b4e2c08449661579a3e04aaccab8cce5b537ecd6b954e2f9",
+      "newSha256": "22e364c4779d2c0ffb93ca9fc6a43954cb7b104774b4cc622776834a3abc36e4",
+      "newSize": 188687
+    },
+    {
+      "key": "object/tool.hammer",
+      "candidate": "object--tool.hammer.json",
+      "oldRevision": 2,
+      "oldSha256": "7fb6f587f425c79afbfecbea2511f680ac62b20d995dcb0076c8e11c7fe39f54",
+      "newSha256": "c5d03e1025a57201d17b93b2516ef554cf02bd93c0a2639fd896d508dfa45927",
+      "newSize": 4308324
+    }
+  ],
+  "serverArchiveSha256": "19af7d960ad68580a4af832d819bbc5e32784bf3074702d81841ae630033b460",
+  "playerArchiveSha256": "0f265a89dadd2fe139acf1d4ba5a5a8f609e2adec39aa33c929766a1ffffb888",
+  "serverFilesVerified": 521,
+  "playerStageFilesVerified": 20,
+  "audioFilesVerified": 5668,
+  "serviceRestarts": 1,
+  "service": "hexlive.service",
+  "worldIdPreserved": true,
+  "worldReset": false,
+  "newYorkChanged": false,
+  "protectedFilesUnchanged": 5,
+  "assignmentsPreserved": true,
+  "offlineSaveUnchanged": true,
+  "savePermissions": "0600 hexlive:hexlive",
+  "catalogDelta": "Only added tool.hammer; existing recipes and other sections unchanged.",
+  "tests": {
+    "simulationPassed": 1737,
+    "simulationFailed": 0,
+    "simulationSkipped": 6,
+    "serverPassed": 479,
+    "serverFailed": 0
+  },
+  "unity": {
+    "version": "6000.4.5f1",
+    "exitCode": 0,
+    "buildErrors": 0,
+    "buildWarnings": 349,
+    "foreignDirtyInputsRecordedAndPreserved": true,
+    "runtimeTrackedClean": true
+  },
+  "publicVerification": {
+    "utc": "2026-10-13T05:58:23.575148+00:00",
+    "passed": true,
+    "sourceCommit": "dae0138061c9521489ada91c14d4f8bee82bd5b3",
+    "registryRevision": 604,
+    "recordsVerified": 230,
+    "unchangedRecordsVerified": 227,
+    "publicBlobsDownloadedAndHashed": 3,
+    "clientFilesDownloadedAndHashed": 19,
+    "brotliAndWasmMimePassed": true,
+    "protocol": 24,
+    "protocolVerifiedThroughLiveWebSocket": true,
+    "audioFsbSignaturePassed": true
+  },
+  "liveWebSocket": {
+    "utc": "2026-10-13T05:55:46.8342183Z",
+    "passed": true,
+    "websocketUpgrade": 101,
+    "protocol": 24,
+    "world": "a309de74171d470385412bfab01ffdab",
+    "seed": 629209070,
+    "mode": 2,
+    "topology": "59DDDCBB",
+    "handshakeTick": 298531,
+    "snapshotTick": 298531,
+    "paused": false,
+    "speed": 1,
+    "controlEnabled": false,
+    "assignedNpcCount": 0,
+    "addedRecipe": "tool.hammer",
+    "ordersIssued": false
+  },
+  "browserQA": {
+    "browser": "Codex In-app Browser",
+    "loader": "Build/player-dae013806.loader.js",
+    "serverSelectionRendered": true,
+    "worldEntered": true,
+    "anonymous": true,
+    "playerOrdersIssued": false,
+    "authChanged": false,
+    "nullReferenceExceptionsWithoutStack": 2,
+    "wasmAborts": 0,
+    "limitations": "Same exception count had been observed in previous menu; cause not diagnosed. Read-only world smoke test; targeted gameplay acceptance remains player QA."
+  },
+  "rollbackRetained": true,
+  "evidenceArchiveUploaded": false
+}

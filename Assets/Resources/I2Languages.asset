@@ -28805,6 +28805,38 @@ MonoBehaviour:
       - 'Повтори позже'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'agent.call.provider'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Voice service unavailable'
+      - 'Голосовой сервис недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.server_timeout'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Voice service timed out'
+      - 'Голосовой сервис не отвечает'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.module_timeout'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Voice module timed out'
+      - 'Голосовой модуль не загрузился'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'agent.call.connection_timeout'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Voice connection timed out'
+      - 'Нет голосового соединения'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

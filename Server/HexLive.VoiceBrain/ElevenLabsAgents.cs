@@ -17,7 +17,10 @@ public sealed class ElevenLabsAgents(HttpClient http, string apiKey)
         var body = await response.Content.ReadAsStringAsync(token);
         if (!response.IsSuccessStatusCode) throw new HttpRequestException("ElevenLabs token HTTP " + (int)response.StatusCode);
         using var doc = JsonDocument.Parse(body);
-        return doc.RootElement.GetProperty("token").GetString() ?? throw new InvalidDataException("ElevenLabsTokenMissing");
+        if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("token", out var value) ||
+            value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(value.GetString()))
+            throw new InvalidDataException("ElevenLabsTokenMissing");
+        return value.GetString()!;
     }
 
     /// <summary>Billing facts of a finished conversation: duration in seconds and the provider's own cost figure, if given.</summary>

@@ -1,6 +1,7 @@
 // §171.11/§171.15: WebRTC lifecycle and user silence; audio stays in the SDK.
 const SDK = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.25.0/+esm";
 export const USER_SILENCE_MS = 15000;
+export const CONNECTION_TIMEOUT_MS = 30000;
 const INPUT_ACTIVITY_THRESHOLD = 0.04;
 export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () => import(SDK), later = setTimeout, cancel = clearTimeout } = {}) {
   let active = null;
@@ -31,7 +32,8 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
   }
   function finish(me, reason) {
     if (me.finishing) return me.finishing;
-    me.stopped = true; cancel(me.timer); cancel(me.activityTimer);
+    me.stopped = true; cancel(me.timer); cancel(me.activityTimer); cancel(me.connectTimer);
+    me.abort.abort();
     if (active === me) active = null;
     // Leave error visible to the game until it acknowledges it; otherwise the
     // ended event in the same batch masks session/402 and microphone errors.
@@ -49,19 +51,27 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
     const headers = { "Content-Type": "application/json", Authorization: "Bearer " + bearer };
     if (clientId) headers["X-HexLive-Client-Id"] = clientId;
     const me = { conversation: null, ticket: null, base: server.replace(/\/+$/, ""), headers, emit,
-      stopped: false, connected: false, mode: "listening", timer: null, activityTimer: null, billed: false, finishing: null };
+      stopped: false, connected: false, mode: "listening", timer: null, activityTimer: null, connectTimer: null,
+      abort: new AbortController(), stage: "session", billed: false, finishing: null };
     active = me; emit({ type: "state", state: "connecting" });
+    me.connectTimer = later(() => {
+      if (me.stopped || me.connected) return;
+      emit({ type: "state", state: "error", detail: "connect_timeout:" + me.stage });
+      void finish(me, "error");
+    }, CONNECTION_TIMEOUT_MS);
     try {
-      const r = await request(me.base + "/api/voice/v1/session", { method: "POST", headers, body: JSON.stringify({ npcId }) });
+      const r = await request(me.base + "/api/voice/v1/session", { method: "POST", headers, body: JSON.stringify({ npcId }), signal: me.abort.signal });
       if (!r.ok) throw new Error("session:" + r.status);
       const session = await r.json(); me.ticket = session.ticket;
       if (me.stopped) return;
+      me.stage = "sdk";
       const { Conversation } = await sdk(); if (me.stopped) return;
+      me.stage = "webrtc";
       me.conversation = await Conversation.startSession({
         conversationToken: session.conversationToken, connectionType: "webrtc", userId: session.sessionId,
         customLlmExtraBody: { ticket: session.ticket },
         overrides: session.voiceId ? { tts: { voiceId: session.voiceId } } : undefined,
-        onConnect: () => { if (me.stopped) return; me.connected = true; arm(me); emit({ type: "state", state: "listening" }); },
+        onConnect: () => { if (me.stopped) return; me.connected = true; cancel(me.connectTimer); arm(me); emit({ type: "state", state: "listening" }); },
         onDisconnect: () => { void finish(me, "disconnected"); },
         onError: e => { if (me.stopped) return; emit({ type: "state", state: "error", detail: String(e?.message || e) }); void finish(me, "error"); },
         onModeChange: ({ mode }) => {
@@ -82,7 +92,8 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
       // Disconnect can happen before the SDK promise gives us the conversation.
       if (me.stopped) { try { await me.conversation.endSession(); } catch (_) { } await bill(me); }
     } catch (e) {
-      if (!me.stopped) { emit({ type: "state", state: "error", detail: String(e?.message || e) }); await finish(me, "error"); }
+      if (me.stopped) return;
+      emit({ type: "state", state: "error", detail: String(e?.message || e) }); await finish(me, "error");
       throw e;
     }
   }

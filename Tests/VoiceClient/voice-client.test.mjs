@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 const source = await readFile(new URL('../../Server/HexLive.VoiceBrain/Client/hexlive-voice.js', import.meta.url), 'utf8');
-const { createVoiceClient, USER_SILENCE_MS } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+const { createVoiceClient, USER_SILENCE_MS, CONNECTION_TIMEOUT_MS } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 function fixture(connectLater=false) {
   let cb, resolve, now=0, next=0, ends=0, bills=0, inputVolume=0;
   const timers = new Map(), events=[];
@@ -25,3 +25,31 @@ test('UI callback exceptions cannot prevent hang-up',async()=>{const f=fixture()
 test('long mic speech stays connected without provider VAD events or a final transcript',async()=>{const f=fixture();await f.start();f.input(.25);await f.advance(10000);await f.advance(10000);assert(f.client.isActive());f.input(0);await f.advance(14999);assert(f.client.isActive());await f.advance(1);assert(!f.client.isActive());});
 test('quiet mic noise does not extend the call',async()=>{const f=fixture();await f.start();f.input(.01);await f.advance(14000);await f.advance(1000);assert(!f.client.isActive());});
 test('depleted credit error remains visible while the connection is closed',async()=>{const events=[];const client=createVoiceClient({request:async()=>({ok:false,status:402})});await assert.rejects(client.startVoice({server:'https://fixture',bearer:'fixture',npcId:7,onEvent:e=>events.push(e)}));assert(!client.isActive());assert.equal(events.at(-1).state,'error');assert.equal(events.at(-1).detail,'session:402');});
+for (const stage of ['session', 'sdk', 'webrtc']) test('hung '+stage+' setup ends with a specific timeout; cancelled attempts cannot overwrite a later call', async()=>{
+  let deadline, calls=0, aborted=false, resolveLate, ends=0, callbacks;
+  const events=[];
+  const conversation={getId:()=> 'fixture-call',endSession:async()=>{ends++;}};
+  const lateConversation={getId:()=> 'fixture-old-call',endSession:async()=>{ends++;}};
+  const client=createVoiceClient({later:(f,ms)=>{if(ms===CONNECTION_TIMEOUT_MS)deadline=f;return ms;},cancel:()=>{},
+    request:async(url,options)=>{
+      if(url.endsWith('/end'))return {ok:true,json:async()=>({seconds:1})};
+      calls++;
+      if(stage==='session' && calls===1)return await new Promise((_,reject)=>options.signal.addEventListener('abort',()=>{aborted=true;reject(new DOMException('cancelled old attempt','AbortError'));}));
+      return {ok:true,json:async()=>({ticket:'fixture',conversationToken:'fixture'})};
+    },
+    sdk:async()=>{
+      if(stage==='sdk' && calls===1)await new Promise(r=>resolveLate=r);
+      return {Conversation:{startSession:async o=>{callbacks=o;if(stage==='webrtc' && calls===1)return await new Promise(r=>resolveLate=r);o.onConnect();return conversation;}}};
+    }});
+  const start=()=>client.startVoice({server:'https://fixture',bearer:'fixture',npcId:7,onEvent:e=>events.push(e)});
+  const old=start();await new Promise(r=>setImmediate(r));
+  assert.equal(CONNECTION_TIMEOUT_MS,30000);deadline();await new Promise(r=>setImmediate(r));
+  assert(!client.isActive());assert.equal(events.at(-1).detail,'connect_timeout:'+stage);
+  if(stage==='session')assert(aborted);
+  await start();assert(client.isActive());assert.equal(events.at(-1).state,'listening');
+  if(resolveLate)resolveLate(stage==='webrtc'?lateConversation:undefined);
+  await old;await new Promise(r=>setImmediate(r));
+  assert.equal(events.filter(e=>e.type==='state').at(-1).state,'listening','Late cancellation/SDK completion cannot report an error for the new call.');
+  if(stage==='webrtc')assert.equal(ends,1,'Late returned connection must close.');
+  await client.stopVoice();
+});

@@ -55,6 +55,11 @@ public sealed class ServerVoiceFailureRuntimeTests
     [TestCase("session:401", "agent.call.signin")]
     [TestCase("session:403", "agent.call.forbidden")]
     [TestCase("session:429", "agent.call.busy")]
+    [TestCase("session:502", "agent.call.provider")]
+    [TestCase("session:504", "agent.call.server_timeout")]
+    [TestCase("connect_timeout:session", "agent.call.server_timeout")]
+    [TestCase("connect_timeout:sdk", "agent.call.module_timeout")]
+    [TestCase("connect_timeout:webrtc", "agent.call.connection_timeout")]
     [TestCase("provider failure", "agent.call.failed")]
     public void FailedCallShowsLocalizedReasonRatherThanRawProviderDetail(string detail, string term)
     {

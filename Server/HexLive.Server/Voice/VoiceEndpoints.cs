@@ -27,9 +27,11 @@ public static class VoiceEndpoints
     /// <summary>ElevenLabs custom-LLM BASE url is <c>https://host/api/voice/v1/brain</c>; it appends /chat/completions.</summary>
     public const string BrainPath = Root + "/brain/chat/completions";
     public const int SessionsPerMinute = 6;
+    public static readonly TimeSpan ProviderSessionTimeout = TimeSpan.FromSeconds(15);
 
     public static VoiceBrainService? Map(WebApplication app, WorldSupervisor worlds, ControlLeases leases,
-        AgentSessionRegistry agents, PlayerHttpIdentity identity, ILogger log, AccountStore? accounts = null)
+        AgentSessionRegistry agents, PlayerHttpIdentity identity, ILogger log, AccountStore? accounts = null,
+        HttpClient? providerHttp = null)
     {
         if (!BrainOptions.Configured()) return null;
         var options = BrainOptions.FromEnvironment();
@@ -40,7 +42,7 @@ public static class VoiceEndpoints
             options.UsageDirectory.Length > 0 && voice!.Balance(owner, accounts.OpeningCreditUsd(owner[3..])).BalanceUsd > 0);
         voice = new VoiceBrainService(options, ticket => new InProcessWorldGateway(tools, ticket.OwnerUserId,
             npc => ticket.WorldId == worlds.Host.WorldId && ticket.OwnerUserId.StartsWith("ws:", StringComparison.Ordinal) &&
-                Owns(ticket.OwnerUserId[3..], npc), () => worlds.Host), log, canSpend: CanSpend);
+                Owns(ticket.OwnerUserId[3..], npc), () => worlds.Host), log, providerHttp, canSpend: CanSpend);
         voice.MapCompletions(app, BrainPath);
         VoiceBrainService.MapClientScript(app, Root + "/client.js");
         var recent = new ConcurrentDictionary<string, (long Window, int Count)>();
@@ -78,8 +80,19 @@ public static class VoiceEndpoints
             var ticket = voice.Tickets.Mint(owner, host.WorldId + ":" + request.NpcId, host.WorldId, request.NpcId);
             voice.Tickets.TryVerify(ticket, out var signed);
             string token;
-            try { token = await voice.ElevenLabs.ConversationTokenAsync(options.AgentId, c.RequestAborted); }
-            catch (HttpRequestException) { return Results.StatusCode(StatusCodes.Status502BadGateway); }
+            using var issuance = CancellationTokenSource.CreateLinkedTokenSource(c.RequestAborted);
+            issuance.CancelAfter(ProviderSessionTimeout);
+            try { token = await voice.ElevenLabs.ConversationTokenAsync(options.AgentId, issuance.Token); }
+            catch (OperationCanceledException) when (!c.RequestAborted.IsCancellationRequested)
+            {
+                log.LogWarning("voice session issuance timed out");
+                return Results.Json(new { error = "voice_provider_timeout" }, statusCode: 504);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException or System.IO.InvalidDataException)
+            {
+                log.LogWarning("voice session issuance failed: {Type}", ex.GetType().Name);
+                return Results.Json(new { error = "voice_provider_unavailable" }, statusCode: 502);
+            }
             voice.RecordSessionStarted(signed);
             log.LogInformation("voice session player={Player} npc={Npc}", playerId[..8], request.NpcId);
             return Results.Json(new

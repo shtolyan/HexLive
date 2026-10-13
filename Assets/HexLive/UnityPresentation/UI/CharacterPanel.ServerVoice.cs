@@ -106,6 +106,10 @@ namespace HexLive.UnityPresentation.UI
                 "session:401" => "agent.call.signin",
                 "session:403" => "agent.call.forbidden",
                 "session:429" => "agent.call.busy",
+                "session:502" => "agent.call.provider",
+                "session:504" or "connect_timeout:session" => "agent.call.server_timeout",
+                "connect_timeout:sdk" => "agent.call.module_timeout",
+                "connect_timeout:webrtc" => "agent.call.connection_timeout",
                 _ => "agent.call.failed",
             };
             _callFailureNpcId = _serverVoice?.NpcId ?? 0;

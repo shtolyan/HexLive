@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "tool": "Tools/Art/fit_trailpack_straps.py",
+  "models": [
+    {
+      "actor": "Marta",
+      "inputSha256": "78f81c7865b98f0e3d55f542348bf8c0a01daac788011656796a7e1e6fe24525",
+      "bodySha256": "0ab372b7ae69118b2b048138231c7df2adee55a5ccfd180dd8e3a7be9aac27b2",
+      "output": "Marta_PrimalTrailPack.fbx",
+      "outputSha256": "f0bf52f9e1f3223d4379a226a31856b3a15a69fae28035f9312d5f07c7492ffa",
+      "bytes": 201708,
+      "originalVertices": 1218,
+      "vertices": 2238,
+      "triangles": 4166,
+      "strapVertices": 1092,
+      "fittedVertices": 237,
+      "maxShiftMetres": 0.03700306056367141,
+      "clearanceMetres": 0.02,
+      "bodyUnchanged": true,
+      "bagVerticesUnchanged": true,
+      "addedBones": [
+        "lCollar",
+        "lPectoral",
+        "lShldrBend",
+        "lShldrTwist",
+        "neckLower",
+        "rCollar",
+        "rPectoral",
+        "rShldrBend",
+        "rShldrTwist"
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "lShldrTwist",
+        "neckLower",
+        "rCollar",
+        "rShldrBend",
+        "rShldrTwist",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "maxBoneWeights": 6
+    },
+    {
+      "actor": "Kshishtof",
+      "inputSha256": "eac1e04599add233a587887d2715be3855d1d7cb32e7eda156ac6c545140cadd",
+      "bodySha256": "e740185bf22d8d7248dfc1cb33723680df6a4ab580919fed0bca8aca2559d5ab",
+      "output": "Kshishtof_PrimalTrailPack.fbx",
+      "outputSha256": "59ed5128afc7556fad8e97cd7feeecea497c32478e334c3903ff1ccada6a5dbe",
+      "bytes": 199340,
+      "originalVertices": 1218,
+      "vertices": 2238,
+      "triangles": 4166,
+      "strapVertices": 1092,
+      "fittedVertices": 495,
+      "maxShiftMetres": 0.024241201759761247,
+      "clearanceMetres": 0.02,
+      "bodyUnchanged": true,
+      "bagVerticesUnchanged": true,
+      "addedBones": [
+        "lCollar",
+        "lPectoral",
+        "lShldrBend",
+        "neckLower",
+        "rCollar",
+        "rPectoral",
+        "rShldrBend"
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "neckLower",
+        "rCollar",
+        "rShldrBend",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "maxBoneWeights": 6
+    }
+  ]
+}

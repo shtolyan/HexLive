@@ -41,7 +41,14 @@ public sealed class ElevenLabsAgents(HttpClient http, string apiKey)
         }
         var status = root.TryGetProperty("status", out var s) ? s.GetString() ?? "" : "";
         var user = root.TryGetProperty("user_id", out var u) ? u.GetString() ?? "" : "";
-        return new(seconds, cost, usd, status, user);
+        var transcript = new List<ConversationUtterance>();
+        if (root.TryGetProperty("transcript", out var rows) && rows.ValueKind == JsonValueKind.Array)
+            foreach (var row in rows.EnumerateArray())
+                if (row.ValueKind == JsonValueKind.Object && row.TryGetProperty("role", out var role) && role.ValueKind == JsonValueKind.String && role.GetString() is "user" or "agent" &&
+                    row.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+                    transcript.Add(new(role.GetString() == "user" ? "user" : "assistant", message.GetString()!,
+                        row.TryGetProperty("interrupted", out var interrupted) && interrupted.ValueKind == JsonValueKind.True));
+        return new(seconds, cost, usd, status, user) { Transcript = transcript };
     }
 
     public async Task<string?> ConversationForSessionAsync(string agentId, string sessionId, CancellationToken token)
@@ -66,4 +73,8 @@ public sealed class ElevenLabsAgents(HttpClient http, string apiKey)
     }
 }
 
-public sealed record ConversationFacts(double? Seconds, decimal? ProviderCredits, decimal? CostUsd, string Status, string UserId);
+public sealed record ConversationUtterance(string Role, string Text, bool Interrupted = false);
+public sealed record ConversationFacts(double? Seconds, decimal? ProviderCredits, decimal? CostUsd, string Status, string UserId)
+{
+    public IReadOnlyList<ConversationUtterance> Transcript { get; init; } = [];
+}

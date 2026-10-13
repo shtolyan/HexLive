@@ -21,6 +21,7 @@ public sealed partial class VoiceBrainService
     public ElevenLabsAgents ElevenLabs { get; }
     private readonly OpenAiStream _llm;
     private readonly RelationshipStore _bonds;
+    private readonly VoiceConversationMemory _memory;
     private readonly IUsageLedger? _ledger;
     private readonly UsageTariffs? _tariffs;
     private readonly Func<SessionTicket, IWorldGateway> _worldFor;
@@ -38,6 +39,7 @@ public sealed partial class VoiceBrainService
         ElevenLabs = new ElevenLabsAgents(http, options.ElevenLabsKey);
         Tickets = new SessionTickets(options.TicketKey);
         _bonds = new RelationshipStore(Path.Combine(options.StateDirectory, "bonds"));
+        _memory = new VoiceConversationMemory(Path.Combine(options.StateDirectory, "conversations"));
         _ledger = options.UsageDirectory.Length > 0 ? new JsonlUsageLedger(options.UsageDirectory) : null;
         if (options.TariffsPath.Length > 0) _tariffs = UsageTariffs.Load(options.TariffsPath); // explicit bad config fails closed
         else
@@ -118,7 +120,7 @@ public sealed partial class VoiceBrainService
             await c.Response.Body.FlushAsync(c.RequestAborted);
         }
         await Chunk(new { role = "assistant" }, null);
-        var turn = new BrainTurn(Options, _llm, _worldFor(ticket), _bonds, _ledger, _tariffs, _log, _canSpend);
+        var turn = new BrainTurn(Options, _llm, _worldFor(ticket), _bonds, _ledger, _tariffs, _log, _canSpend, _memory);
         try { await turn.RunAsync(body, ticket, piece => Chunk(new { content = piece }, null), c.RequestAborted); }
         catch (OperationCanceledException) when (c.RequestAborted.IsCancellationRequested) { return; } // barge-in
         catch (Exception ex)
@@ -159,7 +161,8 @@ public sealed partial class VoiceBrainService
         if (previous != null && (previous.OwnerUserId != ticket.OwnerUserId || previous.SessionId != ticket.SessionId ||
             previous.ProviderRequestId.Length > 0 && previous.ProviderRequestId != conversationId))
             throw new InvalidDataException("ConversationOwnerMismatch");
-        if (previous?.CostSource == UsageCostSource.Reconciled) return (previous.AudioSeconds, previous.ProviderCredits);
+        if (previous?.CostSource == UsageCostSource.Reconciled && _memory.For(ticket).HasCompletedImport(ticket.SessionId))
+            return (previous.AudioSeconds, previous.ProviderCredits);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeout.CancelAfter(TimeSpan.FromSeconds(45));
         ConversationFacts facts = new(null, null, null, "", "");
@@ -172,6 +175,10 @@ public sealed partial class VoiceBrainService
         // SDK userId is the opaque signed session id, not an account id.
         if (facts.UserId != ticket.SessionId) throw new InvalidDataException("ConversationOwnerMismatch");
         var complete = facts.Status is "done" or "failed";
+        try { _memory.For(ticket).Import(ticket.SessionId, facts.Transcript, !complete); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        { _log.LogError("voice conversation archive failed: {Type}", ex.GetType().Name); }
+        if (previous?.CostSource == UsageCostSource.Reconciled) return (previous.AudioSeconds, previous.ProviderCredits);
         var usage = new UsageEvent
         {
             EventId = eventId, Revision = complete && facts.CostUsd != null ? 2 : 1,

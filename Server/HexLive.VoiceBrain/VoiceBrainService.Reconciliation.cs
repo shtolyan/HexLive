@@ -17,7 +17,9 @@ public sealed partial class VoiceBrainService
             var pending = JsonlUsageLedger.ReadAll(Options.UsageDirectory).Where(e => e.Kind == UsageKind.Voice &&
                 e.Provider == "ElevenLabs" && e.SessionId.Length > 0 && e.EventId == "voice-" + e.SessionId &&
                 e.OwnerUserId.StartsWith("ws:", StringComparison.Ordinal) && e.WorldId.Length > 0 && e.NpcId > 0 &&
-                e.CostSource != UsageCostSource.Reconciled).OrderBy(e => e.AtUtc).ThenBy(e => e.EventId, StringComparer.Ordinal).ToArray();
+                (e.CostSource != UsageCostSource.Reconciled || !_memory.For(new SessionTicket(e.SessionId,
+                    e.OwnerUserId, e.CharacterId, e.WorldId, e.NpcId, 0)).HasCompletedImport(e.SessionId)))
+                .OrderBy(e => e.AtUtc).ThenBy(e => e.EventId, StringComparer.Ordinal).ToArray();
             if (pending.Length == 0) { _reconciliationCursor = 0; return 0; }
             var start = _reconciliationCursor % pending.Length;
             var count = Math.Min(4, pending.Length);

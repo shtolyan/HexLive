@@ -10,7 +10,7 @@ public sealed class VoiceReconciliationTests
     private sealed class Provider : HttpMessageHandler
     {
         public int Calls;
-        public bool Fail = true, Foreign, Ambiguous, Missing, Malformed;
+        public bool Fail = true, Foreign, Ambiguous, Missing, Malformed, Transcript;
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
             Calls++;
@@ -24,6 +24,8 @@ public sealed class VoiceReconciliationTests
             }
             else body = "{\"status\":\"done\",\"user_id\":\"" + (Foreign ? "foreign-session" : "session-1") +
                 "\",\"metadata\":{\"call_duration_secs\":79,\"cost\":584,\"cost_fiat\":0.10523577872020277}}";
+            if(Transcript && !request.RequestUri.AbsolutePath.EndsWith("/conversations"))
+                body=body[..^1]+",\"transcript\":[{\"role\":\"agent\",\"message\":\"Привет\"},{\"role\":\"user\",\"message\":\"Мою собаку зовут Барсик\"}]}";
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
         }
     }
@@ -34,6 +36,25 @@ public sealed class VoiceReconciliationTests
     }, _=>null!, NullLogger.Instance, new HttpClient(handler));
     private static SessionTicket Ticket => new("session-1","ws:owner","w:7","w",7,DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds());
 
+    [Test]
+    public async Task PreviouslyPaidConversationBackfillsMemoryOnceWithoutChangingItsBill()
+    {
+        var dir=Directory.CreateTempSubdirectory("voice-backfill-");
+        try
+        {
+            var handler=new Provider{Fail=false,Transcript=true};var voice=Service(dir.FullName,handler);
+            var ledger=new JsonlUsageLedger(dir.FullName);
+            ledger.Append(new UsageEvent{EventId="voice-session-1",Revision=2,OwnerUserId="ws:owner",CharacterId="w:7",WorldId="w",NpcId=7,
+                Kind=UsageKind.Voice,Provider="ElevenLabs",Model="agents",SessionId="session-1",ProviderRequestId="conversation-1",
+                Cost=.12m,Currency="USD",CostSource=UsageCostSource.Reconciled});
+            Assert.That(await voice.ReconcilePendingSessionsAsync(default),Is.EqualTo(1));
+            Assert.That(new VoiceConversationMemory(Path.Combine(dir.FullName,"conversations")).For(Ticket).Context("Барсик","new"),Does.Contain("Мою собаку зовут Барсик"));
+            Assert.That(voice.Balance("ws:owner",5m).SpentUsd,Is.EqualTo(.12m));
+            Assert.That(await voice.ReconcilePendingSessionsAsync(default),Is.Zero);Assert.That(handler.Calls,Is.EqualTo(1));
+            Assert.That(new VoiceConversationMemory(Path.Combine(dir.FullName,"conversations")).For(Ticket with{OwnerUserId="ws:other"}).Context("Барсик","new"),Is.EqualTo("[]"));
+        }
+        finally {dir.Delete(true);}
+    }
     [Test]
     public async Task LostBrowserReceiptRetriesAfterRestartAndUpdatesSameBalanceSnapshotWithoutDoubleCharge()
     {

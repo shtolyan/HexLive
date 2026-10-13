@@ -97,9 +97,18 @@ Filesystem-only preparation may continue in the agreed shared checkout.
 The old `unityMcpLease` field and helper are historical, not authorization
 for Unity access.
 
-For the current WebGL work, coordinate with Claude in `claude/webgl-port`
-at `/Volumes/ORICO/HexLive-webgl`; consult `WEBGL_ASSET_HANDOFF.md` when present.
-New people/clothing assets are prepared there alongside the WebGL port.
+**WebGL client build: follow `Docs/WebGLBuild.md` exactly** (every agent,
+every machine). The web Player is built only by
+`-executeMethod HexLiveWebGLPlayerBuild.Build` and then
+`python3 Tools/webgl_audio_fsb.py <build-dir>`. The FMOD web settings
+(DSP buffer 4×2048, WebAudioTuning) live in the gitignored
+`Assets/Plugins/FMOD/` and are applied by that method on every build, so a
+Build Settings/menu build ships without them; `HexLiveWebGLBuildGuard` now
+fails such a build. macOS only; build in `~/hex-girls/webgl-build/HexLive`,
+never switch the main project to WebGL. The `claude/webgl-port` branch was
+merged into master on 2026-10-10 and `/Volumes/ORICO/HexLive-webgl` no longer
+exists; WebGL work happens on master. Release receipts and content ownership:
+`RELEASE_COORDINATION_SVETA.md`; history in `WEBGL_ASSET_HANDOFF.md`.
 Do not build or publish AssetBundles until the player explicitly commands it.
 
 ## Server bug tracker (spec §114)

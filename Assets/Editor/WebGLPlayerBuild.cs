@@ -27,6 +27,9 @@ public static class HexLiveWebGLPlayerBuild
     private const string AudioRoot = "Assets/StreamingAssets/HexLive";
     private const string AudioManifest = AudioRoot + "/web-audio-manifest.json";
 
+    /// <summary>Идёт ли сборка из <see cref="Build"/> — читает <see cref="HexLiveWebGLBuildGuard"/>.</summary>
+    internal static bool Running { get; private set; }
+
     public static void Build()
     {
         var succeeded = false;
@@ -88,6 +91,7 @@ public static class HexLiveWebGLPlayerBuild
             BuildReport report;
             try
             {
+                Running = true;
                 report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
                     scenes = scenes,
@@ -98,6 +102,7 @@ public static class HexLiveWebGLPlayerBuild
             }
             finally
             {
+                Running = false;
                 // Генерируется на каждую сборку из того, что реально лежит в
                 // StreamingAssets, — в репозитории ему не место (устареет).
                 PlayerSettings.SetStackTraceLogType(LogType.Log, logTrace);
@@ -354,5 +359,32 @@ public static class HexLiveWebGLPlayerBuild
             }
         }
         return null;
+    }
+}
+
+/// <summary>
+/// §168.10: WebGL-плеер собирается только через <see cref="HexLiveWebGLPlayerBuild.Build"/>.
+/// Настройки FMOD лежат вне git (Assets/Plugins/FMOD в .gitignore), а
+/// буфер 4×2048, обработчик WebAudioTuning, wasm2023, исключения без стека,
+/// RuntimeSpeed, манифест звука и devicePixelRatio 1 ставит только этот
+/// метод — на каждой сборке. Сборка из окна Build Settings или из чужого
+/// скрипта собралась бы «успешно» и уехала бы в браузер без всего этого,
+/// поэтому она отказывает сразу. Бандлы (BuildAssetBundles) сюда не доходят.
+/// Порядок сборки — Docs/WebGLBuild.md.
+/// </summary>
+internal sealed class HexLiveWebGLBuildGuard : UnityEditor.Build.IPreprocessBuildWithReport
+{
+    public int callbackOrder => int.MinValue;
+
+    public void OnPreprocessBuild(BuildReport report)
+    {
+        if (report.summary.platform != BuildTarget.WebGL || HexLiveWebGLPlayerBuild.Running)
+        {
+            return;
+        }
+        throw new UnityEditor.Build.BuildFailedException(
+            "WebGL Player is built only by HexLiveWebGLPlayerBuild.Build " +
+            "(-executeMethod HexLiveWebGLPlayerBuild.Build -webgl-output <dir>): it applies the gitignored " +
+            "FMOD web settings and the wasm/page tuning on every build. See Docs/WebGLBuild.md.");
     }
 }

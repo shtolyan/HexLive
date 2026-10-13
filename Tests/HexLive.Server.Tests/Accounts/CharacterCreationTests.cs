@@ -75,6 +75,17 @@ public sealed class CharacterCreationTests
         Assert.That(options.GetProperty("eyes").EnumerateArray().Select(e => e.GetString()), Is.EqualTo(new[] { "" }));
         Assert.That(options.GetProperty("attributeBudget").GetSingle(), Is.EqualTo(4.2f).Within(.0001));
         Assert.That(options.GetProperty("skillBudget").GetSingle(), Is.EqualTo(3f));
+        var styles = options.GetProperty("hair").EnumerateArray().Select(h => h.GetProperty("id").GetString()).ToArray();
+        foreach (var body in bodies)
+        {
+            Assert.That(body.GetProperty("hair").EnumerateArray().Select(h => h.GetString()), Is.EqualTo(styles),
+                "Both sexes receive the same published hairstyles.");
+            Assert.That(body.GetProperty("startingClothing").EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(PlayerCharacterCreation.StartingClothing(body.GetProperty("id").GetString()!)));
+        }
+        foreach (var hair in options.GetProperty("hair").EnumerateArray().Where(h => h.GetProperty("id").GetString() != "none"))
+            Assert.That(hair.GetProperty("colours").EnumerateArray().Select(c => c.GetString()),
+                Is.SupersetOf(HairTintPalette.All.Select(c => c.Id)));
         var me = await f.Client.GetFromJsonAsync<JsonElement>(AccountEndpoints.Prefix + "/me");
         Assert.That(me.GetProperty("character").ValueKind, Is.EqualTo(JsonValueKind.Null), "first login never appropriates a resident");
         f.Client.DefaultRequestHeaders.Authorization = null;
@@ -82,6 +93,33 @@ public sealed class CharacterCreationTests
         Assert.That((await f.Client.PostAsJsonAsync(Root, Request())).StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
+    [Test]
+    public async Task TintWithoutHairstyleRejectsWithoutCreatingCharacter()
+    {
+        await using var f = await Fixture.Create(); var request = Request();
+        request.Hair = null!; request.HairColour = "tint.silver";
+        var count = f.Worlds.Host.Read(w => w.Entities.Npcs.Count);
+        Assert.That((await f.Client.PostAsJsonAsync(Root, request)).StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(f.Worlds.Host.Read(w => w.Entities.Npcs.Count), Is.EqualTo(count));
+    }
+
+    [Test]
+    public async Task MalePonytailAndTintAreCreatedAndUnknownTintStillRejects()
+    {
+        await using var f = await Fixture.Create();
+        var request = Request("Kshishtof", "Colony");
+        request.Hair = "LowPonytail"; request.HairColour = "tint.not-a-preset";
+        Assert.That((await f.Client.PostAsJsonAsync(Root, request)).StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        request.HairColour = "tint.silver";
+        var reply = await f.CreateCharacter(request);
+        f.Worlds.Host.Read(w => {
+            var npc = w.Entities.Npcs[new EntityId(reply.GetProperty("npcId").GetInt32())];
+            Assert.That(npc.Hairstyle, Is.EqualTo("LowPonytail"));
+            Assert.That(npc.HairColour, Is.EqualTo("tint.silver"));
+            Assert.That(npc.WornItems.Select(i => i.DefinitionId), Is.EqualTo(new[] { "underwear.briefs_primal_male" }));
+            return 0;
+        });
+    }
     [TestCase("Marta", "Colony2")]
     [TestCase("Kshishtof", "Colony")]
     public async Task CreatesInCampWithExactUnderwearOwnershipAndPersistentReceipt(string body, string camp)

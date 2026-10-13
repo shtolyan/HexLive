@@ -51,7 +51,8 @@ internal static class CharacterEndpoints
                 return Results.Json(new {
                     bodies = bodies.Select(b => new { id = b.Id, sex = b.Id == "Kshishtof" ? "male" : "female",
                         skins = CharacterAppearanceValidation.Skins(b.Id, records),
-                        hair = b.Id == "Kshishtof" ? new[] { "none" } : hair.Select(h => h.id).ToArray(),
+                        hair = hair.Select(h => h.id).ToArray(),
+                        startingClothing = PlayerCharacterCreation.StartingClothing(b.Id),
                         eyes = b.Id == "Kshishtof" || CharacterAppearanceValidation.IsPrimal(b) ? new[] { "" } : ColonistAppearance.EyeColors }),
                     skins = bodies.SelectMany(b => CharacterAppearanceValidation.Skins(b.Id, records)).Distinct().ToArray(),
                     hair, eyes = bodies.SelectMany(b => b.Id == "Kshishtof" || CharacterAppearanceValidation.IsPrimal(b) ? new[] { "" } : ColonistAppearance.EyeColors).Distinct().ToArray(),
@@ -145,7 +146,7 @@ internal static class CharacterEndpoints
     private static string[] HairColours(ContentObjectRecord record) =>
         record.Metadata.TryGetValue("colours", out var colours) && colours.ValueKind == JsonValueKind.Array
             ? colours.EnumerateArray().Where(c => c.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String)
-                .Select(c => c.GetProperty("id").GetString()!).Prepend("prototype").Distinct().ToArray()
-            : new[] { "prototype" };
+                .Select(c => c.GetProperty("id").GetString()!).Concat(HairTintPalette.All.Select(c => c.Id)).Prepend("prototype").Distinct().ToArray()
+            : new[] { "prototype" }.Concat(HairTintPalette.All.Select(c => c.Id)).ToArray();
     private static IResult Error(string error, int status) => Results.Json(new { error }, statusCode: status);
 }

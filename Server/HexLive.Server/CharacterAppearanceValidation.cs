@@ -32,7 +32,7 @@ internal static class CharacterAppearanceValidation
         var male = n.Body is "Kshishtof" or "Tonny";
         if (!actors.Contains(n.Body)) errors.Add(new CreationError() { Path = p + ".body", Code = "unknown" });
         if (!string.IsNullOrEmpty(n.Skin) && !Skins(n.Body, records).Contains(n.Skin)) errors.Add(new CreationError() { Path = p + ".skin", Code = "unknown" });
-        if (male && (!string.IsNullOrEmpty(n.Hair) && n.Hair != "none" || !string.IsNullOrEmpty(n.Eyes)))
+        if (male && !string.IsNullOrEmpty(n.Eyes))
             errors.Add(new CreationError() { Path = p + ".body", Code = "incompatible" });
         if (!string.IsNullOrEmpty(n.Skin) && !primal && !(male ? n.Skin == n.Body : ColonistAppearance.SkinSets.Contains(n.Skin))) errors.Add(new CreationError() { Path = p + ".skin", Code = "incompatible" });
         if (!string.IsNullOrEmpty(n.Eyes) && !ColonistAppearance.EyeColors.Contains(n.Eyes)) errors.Add(new CreationError() { Path = p + ".eyes", Code = "unknown" });
@@ -42,6 +42,7 @@ internal static class CharacterAppearanceValidation
         {
             var valid = !string.IsNullOrEmpty(n.Hair) && hairs.TryGetValue(n.Hair, out var record) && record.Metadata.TryGetValue("colours", out var colours) && colours.ValueKind == System.Text.Json.JsonValueKind.Array &&
                 colours.EnumerateArray().Any(v => v.TryGetProperty("id", out var id) && id.GetString() == n.HairColour);
+            valid |= !string.IsNullOrEmpty(n.Hair) && n.Hair != "none" && hairs.ContainsKey(n.Hair) && HairTintPalette.TryGet(n.HairColour, out _);
             if (!valid) errors.Add(new CreationError() { Path = p + ".hairColour", Code = "unknown" });
         }
     }

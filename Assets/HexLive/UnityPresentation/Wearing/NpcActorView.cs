@@ -6524,6 +6524,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 yield break;
             }
 
+            if (Simulation.Content.HairTintPalette.TryGet(explicitColour, out var tint))
+            {
+                _bodyBones.SetHair(prefab);
+                var tintedHair = _bodyBones.HairInstance;
+                var appliedTint = false;
+                if (tintedHair != null)
+                    yield return HairTintApplier.Apply(tintedHair.gameObject, tint,
+                        () => this != null && _bodyBones != null && request == _hairRequest && tintedHair != null,
+                        success => appliedTint = success);
+                if (!appliedTint && this != null && request == _hairRequest && IsCreationPreview) CreationAppearanceFailed = true;
+                yield break;
+            }
+
             var colour = string.IsNullOrEmpty(explicitColour)
                 ? HairColourApplier.Choose(hairstyle, IsCreationPreview ? CreationAppearanceSeed : _npcId)
                 : ActorAppearanceCatalog.Instance?.ColoursFor(hairstyle).FirstOrDefault(c => c.colour == explicitColour);

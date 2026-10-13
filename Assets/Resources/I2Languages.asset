@@ -28901,9 +28901,785 @@ MonoBehaviour:
       1 USD = 100 центов. Расходы без цены не бесплатны; баланс изменится после сверки.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'creator.eyebrow'
+      TermType: 0
+      Description:
+      Languages:
+      - 'HEX ISLAND · YOUR STORY'
+      - 'HEX ISLAND · ВАША ИСТОРИЯ'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.title'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Create your character'
+      - 'Создание персонажа'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.back'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Back'
+      - 'Назад'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.name'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Name'
+      - 'Имя'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.sex'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Character'
+      - 'Персонаж'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.female'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Female'
+      - 'Женщина'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.male'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Male'
+      - 'Мужчина'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Skin'
+      - 'Скин'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hairstyle'
+      - 'Причёска'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hair colour'
+      - 'Цвет волос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.appearance'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Appearance'
+      - 'Внешность'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.abilities'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Abilities'
+      - 'Умения'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.camp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Camp'
+      - 'Лагерь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.attributes'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Attributes'
+      - 'Характеристики'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skills'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Skills'
+      - 'Навыки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.traits'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Personality'
+      - 'Характер'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.budget'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Remaining: {0} of {1} points'
+      - 'Осталось: {0} из {1} очков'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.abilitiesHint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Shape your character''s strengths. Unspent points are allowed.'
+      - 'Распределите сильные стороны персонажа. Можно оставить часть очков.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.campHint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose where your character begins. A full camp is temporarily unavailable.'
+      - 'Выберите место старта. В заполненный лагерь пока нельзя войти.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.campNumber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Camp {0}'
+      - 'Лагерь {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.campOpen'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Available'
+      - 'Доступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.campFull'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Full'
+      - 'Заполнен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.confirmHint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Your character appears on the island only after you confirm.'
+      - 'Персонаж появится на острове только после подтверждения.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.starterClothes'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Starting clothes are included. Find and craft other outfits on the island.'
+      - 'Стартовая одежда уже включена. Другие вещи можно найти и изготовить на острове.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.orbitHint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Drag to rotate · Scroll to zoom'
+      - 'Потяните, чтобы повернуть · Колесо — масштаб'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.rotateLeft'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Turn left'
+      - 'Повернуть влево'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.rotateRight'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Turn right'
+      - 'Повернуть вправо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.fullBody'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Full body'
+      - 'Весь рост'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.face'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Face'
+      - 'Лицо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.previousHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Previous hairstyle'
+      - 'Предыдущая причёска'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.nextHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Next hairstyle'
+      - 'Следующая причёска'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.summary'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Make this character yours'
+      - 'Ваш новый персонаж'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.next'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Continue'
+      - 'Далее'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.create'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Begin your story'
+      - 'Начать историю'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.retry'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Refresh'
+      - 'Обновить'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.retryCreation'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Retry creation'
+      - 'Повторить создание'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.pending'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Creation may have completed. Retry safely with the same choices.'
+      - 'Создание могло завершиться. Повторите с теми же параметрами.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.loading'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Loading your character options…'
+      - 'Загружаем настройки персонажа…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.creating'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Creating your character…'
+      - 'Создаём персонажа…'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.signIn'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sign in'
+      - 'Войти'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.signInHint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sign in to create your character or return to the island.'
+      - 'Войдите, чтобы создать персонажа или вернуться на остров.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.characterDied'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Your character has died. You can begin a new story.'
+      - 'Ваш персонаж погиб. Можно начать новую историю.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.network'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Could not reach the server. Your choices are saved; please retry.'
+      - 'Не удалось связаться с сервером. Выбор сохранён — попробуйте ещё раз.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.storage'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Allow site storage before creating a character.'
+      - 'Разрешите хранение данных сайта перед созданием персонажа.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.anotherTab'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Another tab is creating this character. Wait and refresh.'
+      - 'Этот персонаж создаётся в другой вкладке. Подождите и обновите.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.appearance'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Preview could not load. Refresh before confirming.'
+      - 'Предпросмотр не загрузился. Обновите его перед подтверждением.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.validation_failed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Check your name, appearance and remaining points.'
+      - 'Проверьте имя, внешность и оставшиеся очки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.camp_full'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This camp is now full. Refresh to choose another.'
+      - 'Лагерь уже заполнен. Обновите список и выберите другой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.camp_unavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This camp is unavailable. Refresh the options.'
+      - 'Этот лагерь недоступен. Обновите список.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.world_completed'
+      TermType: 0
+      Description:
+      Languages:
+      - 'This island is no longer accepting new characters.'
+      - 'Этот остров больше не принимает новых персонажей.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.try_later'
+      TermType: 0
+      Description:
+      Languages:
+      - 'The server is busy. Please retry; your choices are saved.'
+      - 'Сервер занят. Попробуйте ещё раз — ваш выбор сохранён.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin.Marta'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sand'
+      - 'Песок'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin.Molly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dawn'
+      - 'Рассвет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin.Jana'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Amber'
+      - 'Янтарь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin.Jolly'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Honey'
+      - 'Мёд'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin.Masha'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Sunset'
+      - 'Закат'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin.Rita'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Copper'
+      - 'Медь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin.Kshishtof'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dune'
+      - 'Дюна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin.Tonny'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Bronze'
+      - 'Бронза'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.skin.fallback'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Skin {0}'
+      - 'Скин {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.none'
+      TermType: 0
+      Description:
+      Languages:
+      - 'No hair'
+      - 'Без волос'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.AdellHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Soft line'
+      - 'Мягкая линия'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.AsukaHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Aurora'
+      - 'Аврора'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.BendineHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Iris'
+      - 'Ирис'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.Bob3Hair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Classic bob'
+      - 'Классический боб'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.ChunkyHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wild curls'
+      - 'Свободные локоны'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.EilisHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Breeze'
+      - 'Бриз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.Hair07'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Short rhythm'
+      - 'Короткий ритм'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.JelikaHair_32434'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Cascade'
+      - 'Каскад'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.JenniferHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Silhouette'
+      - 'Силуэт'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.LeonyPonytail'
+      TermType: 0
+      Description:
+      Languages:
+      - 'High ponytail'
+      - 'Высокий хвост'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.LoonaHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Luna'
+      - 'Луна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.LowPonytail'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Low ponytail'
+      - 'Низкий хвост'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.Neu09Hair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Edge'
+      - 'Грань'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.OnyxHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Onyx'
+      - 'Оникс'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.ShilohHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Wave'
+      - 'Волна'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.TootsieRollHair'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Spring'
+      - 'Пружина'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.hair.fallback'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Style {0}'
+      - 'Стиль {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.prototype'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Original'
+      - 'Исходный'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.fallback'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Tone {0}'
+      - 'Оттенок {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.chooseHairFirst'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose a hairstyle before its colour.'
+      - 'Сначала выберите причёску, затем её цвет.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.black'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Black'
+      - 'Чёрный'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.graphite'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Graphite'
+      - 'Графит'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.espresso'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Espresso'
+      - 'Эспрессо'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.chestnut'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Chestnut'
+      - 'Каштан'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.copper'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Copper'
+      - 'Медь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.auburn'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Auburn'
+      - 'Рыжий'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.honey'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Honey'
+      - 'Медовый'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.gold'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Gold'
+      - 'Золотистый'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.ash'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ash'
+      - 'Пепельный'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.platinum'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Platinum'
+      - 'Платина'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.silver'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Silver'
+      - 'Серебро'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.white'
+      TermType: 0
+      Description:
+      Languages:
+      - 'White'
+      - 'Белый'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.rose'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Rose'
+      - 'Розовый'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.violet'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Violet'
+      - 'Фиолетовый'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.ocean'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Ocean'
+      - 'Океан'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.colour.tint.mint'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Mint'
+      - 'Мятный'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
-    mTerm_AppName: 
+    mTerm_AppName:
     mLanguages:
     - Name: English
       Code: en
@@ -28913,17 +29689,17 @@ MonoBehaviour:
       Flags: 0
     IgnoreDeviceLanguage: 0
     _AllowUnloadingLanguages: 0
-    Google_WebServiceURL: 
-    Google_SpreadsheetKey: 
-    Google_SpreadsheetName: 
-    Google_LastUpdatedVersion: 
+    Google_WebServiceURL:
+    Google_SpreadsheetKey:
+    Google_SpreadsheetName:
+    Google_LastUpdatedVersion:
     Google_Password: change_this
     GoogleUpdateFrequency: 3
     GoogleInEditorCheckFrequency: 2
     GoogleUpdateSynchronization: 1
     GoogleUpdateDelay: 0
     Assets: []
-    Spreadsheet_LocalFileName: 
+    Spreadsheet_LocalFileName:
     Spreadsheet_LocalCSVSeparator: ','
     Spreadsheet_LocalCSVEncoding: utf-8
     Spreadsheet_SpecializationAsRows: 1

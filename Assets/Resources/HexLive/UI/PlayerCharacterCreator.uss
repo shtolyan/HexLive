@@ -1,0 +1,69 @@
+.creator-overlay { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.creator { flex-grow: 1; background-color: rgb(14, 20, 21); color: rgb(237, 242, 226); padding: 22px 30px; }
+.creator-header { flex-direction: row; align-items: center; margin-bottom: 18px; flex-shrink: 0; }
+.creator-heading { flex-grow: 1; flex-basis: 0; min-width: 0; }
+.creator-eyebrow { color: rgb(193, 242, 120); font-size: 11px; letter-spacing: 3px; margin-bottom: 4px; }
+.creator-title { font-size: 30px; -unity-font-style: bold; white-space: normal; }
+.creator Button { color: rgb(237, 242, 226); background-color: rgb(27, 38, 39); border-width: 1px; border-color: rgb(59, 76, 72); border-radius: 9px; padding: 10px 14px; min-height: 42px; }
+.creator Button:hover { background-color: rgb(45, 61, 55); border-color: rgb(161, 195, 131); }
+.creator Button:focus { border-color: rgb(193, 242, 120); }
+.creator Button:disabled { opacity: 0.42; }
+.creator-body { flex-grow: 1; min-height: 0; flex-direction: row; }
+.creator-stage { flex-grow: 1; flex-basis: 0; min-width: 0; margin-right: 22px; border-width: 1px; border-color: rgb(35, 49, 49); border-radius: 16px; background-color: rgb(9, 12, 14); overflow: hidden; }
+.creator-preview { flex-grow: 1; min-height: 0; }
+.creator-viewport { flex-grow: 1; min-height: 180px; }
+.creator-camera-controls { flex-direction: row; justify-content: center; flex-wrap: wrap; padding: 8px; }
+.creator-camera-controls > Button { margin: 3px; min-width: 42px; font-size: 12px; }
+.creator-hint { color: rgb(157, 174, 167); font-size: 11px; -unity-text-align: middle-center; margin: 4px 10px 12px; white-space: normal; }
+.creator-editor { width: 430px; min-width: 350px; flex-shrink: 0; background-color: rgb(22, 30, 31); border-radius: 16px; border-width: 1px; border-color: rgb(44, 60, 55); padding: 16px; }
+.creator-steps { flex-direction: row; margin-bottom: 12px; }
+.creator-steps > Button { flex-grow: 1; flex-basis: 0; margin-right: 4px; font-size: 12px; padding: 9px 5px; }
+.creator .creator-selected { border-color: rgb(193, 242, 120); background-color: rgb(49, 67, 44); }
+.creator-controls { flex-grow: 1; min-height: 0; }
+.creator-section-title { font-size: 17px; -unity-font-style: bold; margin-top: 18px; margin-bottom: 8px; }
+.creator-note { color: rgb(163, 181, 171); font-size: 11px; white-space: normal; margin: 8px 0; }
+.creator-choice-row { flex-direction: row; margin: 4px 0; }
+.creator-choice-row > Button { flex-grow: 1; flex-basis: 0; margin-right: 6px; }
+.creator .unity-base-field { margin: 7px 0; }
+.creator .unity-base-field__label { color: rgb(196, 209, 197); min-width: 100px; font-size: 12px; }
+.creator .unity-base-field__input { background-color: rgb(14, 22, 23); color: rgb(242, 245, 232); border-width: 1px; border-color: rgb(58, 77, 70); border-radius: 6px; padding: 6px; }
+.creator .unity-text-field__input { min-height: 38px; }
+.creator-controls .unity-scroller--vertical { width: 10px; margin-left: 6px; }
+.creator-controls .unity-scroller__low-button, .creator-controls .unity-scroller__high-button { display: none; }
+.creator-controls .unity-base-slider__tracker { background-color: rgb(31, 45, 42); border-radius: 5px; }
+.creator-controls .unity-base-slider__dragger { background-color: rgb(99, 129, 99); border-radius: 5px; border-width: 0; }
+.creator-grid { flex-direction: row; flex-wrap: wrap; }
+.creator .creator-tile { width: 116px; height: 136px; padding: 4px; margin: 4px; justify-content: flex-start; overflow: hidden; }
+.creator-tile-image { height: 96px; flex-shrink: 0; }
+.creator-tile > Label { font-size: 11px; white-space: normal; -unity-text-align: middle-center; }
+.creator .creator-colour-tile { width: 82px; height: 110px; }
+.creator-colour-tile > Image { height: 72px; }
+.creator-selector { flex-direction: row; align-items: center; margin: 12px 0 6px; }
+.creator-selector > Label { flex-grow: 1; -unity-text-align: middle-center; -unity-font-style: bold; }
+.creator-selector > Button { width: 42px; padding: 8px; }
+.creator-icon { width: 20px; height: 20px; margin-right: 6px; flex-shrink: 0; }
+.creator-icon-button { flex-direction: row; align-items: center; justify-content: center; }
+.creator-footer { flex-direction: row; align-items: center; flex-shrink: 0; border-top-width: 1px; border-top-color: rgb(44, 60, 55); margin-top: 16px; padding-top: 14px; }
+.creator-footer-copy { flex-grow: 1; min-width: 0; margin-right: 12px; }
+.creator-summary { font-size: 14px; -unity-font-style: bold; white-space: normal; }
+.creator-status { color: rgb(240, 191, 133); font-size: 11px; white-space: normal; margin-top: 4px; }
+.creator .creator-primary { background-color: rgb(193, 242, 120); color: rgb(17, 27, 14); -unity-font-style: bold; min-width: 180px; margin-left: 8px; }
+.creator .creator-primary:hover { background-color: rgb(212, 255, 155); }
+.creator-hidden { display: none; }
+.creator-budget { color: rgb(193, 242, 120); font-size: 12px; margin: 8px 0; }
+.creator-over-budget { color: rgb(255, 152, 139); }
+.creator-compact { padding: 12px; }
+.creator-compact .creator-body { flex-direction: column; }
+.creator-compact .creator-stage { height: 245px; flex-grow: 0; flex-shrink: 0; flex-basis: auto; margin-right: 0; margin-bottom: 10px; }
+.creator-compact .creator-viewport { min-height: 100px; }
+.creator-compact .creator-editor { width: auto; min-width: 0; flex-grow: 1; flex-shrink: 1; padding: 10px; }
+.creator-compact .creator-title { font-size: 22px; }
+.creator-compact .creator-header { align-items: flex-start; margin-bottom: 10px; }
+.creator-compact .creator-eyebrow { display: none; }
+.creator-compact .creator-camera-controls { flex-wrap: nowrap; padding: 2px; flex-shrink: 0; }
+.creator-compact .creator-camera-controls > Button { padding: 6px; min-width: 36px; font-size: 10px; }
+.creator-compact .creator-icon { margin-right: 3px; width: 18px; height: 18px; }
+.creator-compact .creator-hint { font-size: 9px; margin-bottom: 6px; flex-shrink: 0; }
+.creator-compact .creator-choice-row > Button { padding-left: 3px; padding-right: 3px; font-size: 11px; }
+.creator-compact .creator-footer { flex-wrap: wrap; }
+.creator-compact .creator-footer-copy { width: 100%; margin-bottom: 8px; }

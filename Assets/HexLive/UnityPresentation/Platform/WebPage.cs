@@ -30,6 +30,11 @@ public static class WebPage
     [DllImport("__Internal")] private static extern void HexPageReload();
     [DllImport("__Internal")] private static extern int HexAudioSampleRate();
     [DllImport("__Internal")] private static extern string? HexAccountSession();
+    [DllImport("__Internal")] private static extern string? HexCreatorStoreGet(string key);
+    [DllImport("__Internal")] private static extern int HexCreatorStoreSet(string key, string value);
+    [DllImport("__Internal")] private static extern int HexCreatorLockStart(string key);
+    [DllImport("__Internal")] private static extern int HexCreatorLockStatus(string key);
+    [DllImport("__Internal")] private static extern void HexCreatorLockRelease(string key);
 #endif
 
     /// <summary>
@@ -100,6 +105,53 @@ public static class WebPage
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
         HexPageReload();
+#endif
+    }
+
+    // §171.20: draft/immutable creation attempt only, never a credential store.
+    public static string? CreatorRead(string key)
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return HexCreatorStoreGet(key);
+#else
+        return UnityEngine.PlayerPrefs.GetString(key, "");
+#endif
+    }
+    public static bool CreatorWrite(string key, string value)
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return HexCreatorStoreSet(key, value ?? "") == 1;
+#else
+        if (string.IsNullOrEmpty(value)) UnityEngine.PlayerPrefs.DeleteKey(key);
+        else UnityEngine.PlayerPrefs.SetString(key, value);
+        UnityEngine.PlayerPrefs.Save(); return true;
+#endif
+    }
+#if !UNITY_WEBGL || UNITY_EDITOR
+    private static readonly System.Collections.Generic.HashSet<string> CreatorLocks = new();
+#endif
+    public static int CreatorAcquire(string key)
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return HexCreatorLockStart(key);
+#else
+        return CreatorLocks.Add(key) ? 1 : 2;
+#endif
+    }
+    public static int CreatorLockState(string key)
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return HexCreatorLockStatus(key);
+#else
+        return CreatorLocks.Contains(key) ? 1 : 2;
+#endif
+    }
+    public static void CreatorRelease(string key)
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        HexCreatorLockRelease(key);
+#else
+        CreatorLocks.Remove(key);
 #endif
     }
 }

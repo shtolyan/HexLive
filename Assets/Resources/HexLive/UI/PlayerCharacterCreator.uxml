@@ -1,0 +1,31 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:Style src="PlayerCharacterCreator.uss" />
+  <ui:VisualElement name="creator" class="creator">
+    <ui:VisualElement class="creator-header">
+      <ui:VisualElement class="creator-heading">
+        <ui:Label name="eyebrow" class="creator-eyebrow" />
+        <ui:Label name="title" class="creator-title" />
+      </ui:VisualElement>
+      <ui:Button name="back" class="creator-back" />
+    </ui:VisualElement>
+    <ui:VisualElement name="body" class="creator-body">
+      <ui:VisualElement name="stage" class="creator-stage">
+        <ui:VisualElement name="preview" class="creator-preview" />
+        <ui:VisualElement name="cameraControls" class="creator-camera-controls" />
+        <ui:Label name="orbitHint" class="creator-hint" />
+      </ui:VisualElement>
+      <ui:VisualElement name="editor" class="creator-editor">
+        <ui:VisualElement name="steps" class="creator-steps" />
+        <ui:ScrollView name="controls" class="creator-controls" />
+      </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement class="creator-footer">
+      <ui:VisualElement class="creator-footer-copy">
+        <ui:Label name="summary" class="creator-summary" />
+        <ui:Label name="status" class="creator-status" />
+      </ui:VisualElement>
+      <ui:Button name="retry" class="creator-secondary" />
+      <ui:Button name="continue" class="creator-primary" />
+    </ui:VisualElement>
+  </ui:VisualElement>
+</ui:UXML>

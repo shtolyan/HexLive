@@ -40,7 +40,7 @@ namespace HexLive.UnityPresentation.UI
         {
             IsOpen = false;
             _sequence = 0;
-            _document.rootVisualElement.Clear();
+            _document?.rootVisualElement?.Clear();
         }
 
         private void OnDestroy()

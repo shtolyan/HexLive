@@ -5,14 +5,19 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Bootstrap;
 using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Bootstrap.Remote;
 using HexLive.UnityPresentation.Localization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
+#if UNITY_WEBGL && !UNITY_EDITOR
+using UnityEngine.Networking;
+#endif
 
 namespace HexLive.UnityPresentation.UI
 {
@@ -24,7 +29,11 @@ public sealed class ServerWorldLobby : IDisposable
     private readonly Label _status;
     private readonly MonoBehaviour _runner;
     private readonly Action<string, string> _connect;
+#if UNITY_WEBGL && !UNITY_EDITOR
+    private readonly CancellationTokenSource _httpLifetime = new();
+#else
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(10) };
+#endif
     private readonly string _previousServer = SessionConfig.ServerUrl;
     private readonly string _previousToken = SessionConfig.ControlToken;
     private string _server, _token, _playToken, _requestId, _submittedConfig;
@@ -92,16 +101,37 @@ public sealed class ServerWorldLobby : IDisposable
     private async Task<JToken> Api(string route, object body = null)
     {
         var origin = new UriBuilder(_server) { Scheme = _server.StartsWith("wss:", StringComparison.OrdinalIgnoreCase) ? "https" : "http", Path = "/api/worlds/v1" + route, Query = string.Empty };
+#if UNITY_WEBGL && !UNITY_EDITOR
+        var cancel = _httpLifetime.Token;
+        cancel.ThrowIfCancellationRequested();
+        using var message = new UnityWebRequest(origin.Uri, body == null ? "GET" : "POST")
+        { downloadHandler = new DownloadHandlerBuffer(), timeout = 600 };
+        if (!string.IsNullOrEmpty(_token)) message.SetRequestHeader("Authorization", "Bearer " + _token);
+        if (body != null)
+        {
+            message.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(body)));
+            message.SetRequestHeader("Content-Type", "application/json");
+        }
+        using var cancellation = cancel.Register(message.Abort);
+        await message.SendWebRequest();
+        cancel.ThrowIfCancellationRequested();
+        var text = message.downloadHandler.text;
+        var success = message.result == UnityWebRequest.Result.Success;
+        var status = message.responseCode;
+#else
         using var message = new HttpRequestMessage(body == null ? HttpMethod.Get : HttpMethod.Post, origin.Uri);
         if (!string.IsNullOrEmpty(_token)) message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _token);
         if (body != null) message.Content = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
         using var response = await _http.SendAsync(message);
         var text = await response.Content.ReadAsStringAsync();
+        var success = response.IsSuccessStatusCode;
+        var status = (int)response.StatusCode;
+#endif
         var json = string.IsNullOrWhiteSpace(text) ? new JObject() : JToken.Parse(text);
-        if (!response.IsSuccessStatusCode)
+        if (!success)
         {
             if (json["errors"] is JArray errors) throw new InvalidOperationException(FormatErrors(errors));
-            throw new InvalidOperationException(T("http") + " " + (int)response.StatusCode);
+            throw new InvalidOperationException(T("http") + " " + status);
         }
         return json;
     }
@@ -213,7 +243,7 @@ public sealed class ServerWorldLobby : IDisposable
             var operation = await Api("", new { requestId = _requestId, config = _config });
             while (!_closed && operation.Value<string>("state") == "running")
             {
-                await Task.Delay(1000); operation = await Api("/operations/" + _requestId);
+                await WireSocket.Delay(TimeSpan.FromSeconds(1), CancellationToken.None); operation = await Api("/operations/" + _requestId);
             }
             if (_closed) return;
             if (operation.Value<string>("state") != "complete")
@@ -293,7 +323,14 @@ public sealed class ServerWorldLobby : IDisposable
     public void Dispose()
     {
         if (_closed) return;
-        _closed = true; SaveDraft(); _characterEditor?.Dispose(); _http.Dispose(); _root.RemoveFromHierarchy();
+        _closed = true; SaveDraft(); _characterEditor?.Dispose();
+#if UNITY_WEBGL && !UNITY_EDITOR
+        _httpLifetime.Cancel();
+        _httpLifetime.Dispose();
+#else
+        _http.Dispose();
+#endif
+        _root.RemoveFromHierarchy();
         if (!_connecting) SessionConfig.UseServer(_previousServer, _previousToken);
     }
 }

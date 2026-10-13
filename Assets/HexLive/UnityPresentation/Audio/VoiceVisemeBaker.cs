@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace HexLive.UnityPresentation.Audio
 {
@@ -36,21 +37,38 @@ public static class VoiceVisemeBaker
         try
         {
             var frames = RuntimeVoiceAlignment.Bake(pcm, text, cancellationToken);
-            var directory = Path.GetDirectoryName(outputPath);
-            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-            using var stream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.Read);
-            using var writer = new BinaryWriter(stream, Encoding.ASCII);
-            writer.Write(Encoding.ASCII.GetBytes("HXLS"));
-            writer.Write((ushort)1);
-            writer.Write((byte)14);
-            writer.Write((byte)60);
-            writer.Write((ushort)frames.Length);
-            writer.Write(pcm.Length);
-            foreach (var frame in frames) writer.Write(frame);
+            WriteFrames(outputPath, pcm.Length, frames);
             return true;
         }
         catch (IOException) { error = "VisemeWriteFailed"; return false; }
         catch (UnauthorizedAccessException) { error = "VisemeWriteFailed"; return false; }
+    }
+
+    public static async Task<float> BakeCooperativelyAsync(byte[] wav, string text, string outputPath,
+        float playbackBaseGain, Func<Task> yieldFrame, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!TryReadPcm(wav, out var pcm, out _)) return 0f;
+        var frames = await RuntimeVoiceAlignment.BakeAsync(pcm, text, yieldFrame, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var gain = MeasurePlaybackGain(pcm, playbackBaseGain);
+        WriteFrames(outputPath, pcm.Length, frames);
+        return gain;
+    }
+
+    private static void WriteFrames(string outputPath, int sampleCount, byte[][] frames)
+    {
+        var directory = Path.GetDirectoryName(outputPath);
+        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+        using var stream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+        using var writer = new BinaryWriter(stream, Encoding.ASCII);
+        writer.Write(Encoding.ASCII.GetBytes("HXLS"));
+        writer.Write((ushort)1);
+        writer.Write((byte)14);
+        writer.Write((byte)60);
+        writer.Write((ushort)frames.Length);
+        writer.Write(sampleCount);
+        foreach (var frame in frames) writer.Write(frame);
     }
 
     private static float MeasurePlaybackGain(short[] samples, float playbackBaseGain)

@@ -1,7 +1,9 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace HexLive.UnityPresentation.Audio
 {
@@ -22,6 +24,29 @@ internal static class RuntimeVoiceAlignment
 
     public static byte[][] Bake(short[] pcm, string text, CancellationToken cancel = default)
     {
+        byte[][] result = Array.Empty<byte[]>();
+        foreach (var _ in BakeSteps(pcm, text, value => result = value, cancel)) { }
+        return result;
+    }
+
+    public static async Task<byte[][]> BakeAsync(short[] pcm, string text, Func<Task> yieldFrame,
+        CancellationToken cancel = default, double budgetMilliseconds = 4)
+    {
+        byte[][] result = Array.Empty<byte[]>();
+        var budget = Stopwatch.StartNew();
+        foreach (var _ in BakeSteps(pcm, text, value => result = value, cancel))
+        {
+            cancel.ThrowIfCancellationRequested();
+            if (budget.Elapsed.TotalMilliseconds < budgetMilliseconds) continue;
+            await yieldFrame();
+            cancel.ThrowIfCancellationRequested();
+            budget.Restart();
+        }
+        return result;
+    }
+
+    private static IEnumerable<int> BakeSteps(short[] pcm, string text, Action<byte[][]> completed, CancellationToken cancel)
+    {
         var dsp = new Dsp();
         var count = (int)Math.Ceiling(pcm.Length / 44100d * 60) + 1;
         var distances = new double[count][];
@@ -33,6 +58,7 @@ internal static class RuntimeVoiceAlignment
             Array.Fill(distances[f], double.NaN);
             if (f + 1 < count)
                 dsp.Analyze(pcm, (int)Math.Round(f / 60d * 44100), distances[f], out volumes[f]);
+            yield return 0;
         }
         var states = G2P(text);
         int[]? path = null;
@@ -54,7 +80,8 @@ internal static class RuntimeVoiceAlignment
                     normalized[f] = new double[Visemes];
                     for (var v = 0; v < Visemes; v++) normalized[f][v] = (distances[f][v] - mean) / std;
                 }
-                path = Align(normalized, volumes, states, cancel);
+                foreach (var step in AlignSteps(normalized, volumes, states, value => path = value, cancel))
+                    yield return step;
             }
         }
         var ratios = new double[count, Visemes];
@@ -90,7 +117,7 @@ internal static class RuntimeVoiceAlignment
             for (var v = 0; v < Visemes; v++) result[f][v] = Byte(ratios[f, v]);
             result[f][Visemes] = Byte(volumes[f]);
         }
-        return result;
+        completed(result);
     }
 
     private static byte Byte(double value) => (byte)Math.Clamp((int)Math.Round(value * 255), 0, 255);
@@ -140,7 +167,8 @@ internal static class RuntimeVoiceAlignment
         return states;
     }
 
-    private static int[]? Align(double[][] distances, double[] volumes, List<State> states, CancellationToken cancel)
+    private static IEnumerable<int> AlignSteps(double[][] distances, double[] volumes, List<State> states,
+        Action<int[]> completed, CancellationToken cancel)
     {
         var entry = new int[states.Count];
         var subState = new List<int>();
@@ -195,6 +223,7 @@ internal static class RuntimeVoiceAlignment
             }
             for (var j = 0; j < size; j++) next[j] += Emission(f, states[subState[j]].Vis, distances, volumes);
             cost = next;
+            yield return 0;
         }
         var best = -1;
         var bestCost = inf;
@@ -206,15 +235,15 @@ internal static class RuntimeVoiceAlignment
             var total = cost[j] + 4 * remaining;
             if (total < bestCost) { best = j; bestCost = total; }
         }
-        if (best < 0) return null;
+        if (best < 0) yield break;
         var path = new int[volumes.Length];
         for (var f = path.Length - 1; f >= 0; f--)
         {
-            if (best < 0) return null;
+            if (best < 0) yield break;
             path[f] = subState[best];
             if (f > 0) best = back[f][best];
         }
-        return path;
+        completed(path);
     }
 
     private static double Emission(int frame, int vis, double[][] distances, double[] volumes)

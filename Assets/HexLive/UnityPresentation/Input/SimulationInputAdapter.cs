@@ -143,7 +143,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             }
 
             _selectedColonyIds.Add(npc.Id.Value);
-            if (npc.IsManualControl) _manualSelectedIds.Add(npc.Id.Value);
+            if (npc.IsManualControl && !CharacterPanel.BlocksManualInput(npc.Id.Value)) _manualSelectedIds.Add(npc.Id.Value);
         }
 
         _selectedColonyIds.Sort();
@@ -567,6 +567,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// </summary>
     public bool TryHandleManualClick(Vector2 mousePos)
     {
+        if (CharacterPanel.BlocksManualInput(NpcSelection.PrimaryId)) return true;
         if (_runner == null)
         {
             return false;
@@ -716,6 +717,7 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// </summary>
     public bool TryHandleContextClick(Vector2 mousePos)
     {
+        if (CharacterPanel.BlocksManualInput(NpcSelection.PrimaryId)) return true;
         if (RuntimeWindow.BlocksWorldInput || CraftProjectDetailsPanel.BlocksWorldInput || CharacterPanel.BlocksWorldPointer) return true;
         var runner = _runner;
         if (runner == null || _camera == null || !runner.SupportsNpcCommands ||

@@ -41,6 +41,15 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
       const j = await r.json(); me.emit({ type: "usage", seconds: j.seconds, providerCredits: j.providerCredits });
     } catch (_) { me.emit({ type: "billing_pending" }); }
   }
+  async function releaseControl(me) {
+    if (!me.ticket || me.released) return;
+    me.released = true;
+    try {
+      const r = await request(me.base + "/api/voice/v1/session/cancel", { method: "POST", headers: me.headers, keepalive: true,
+        body: JSON.stringify({ ticket: me.ticket }) });
+      if (!r.ok) throw new Error("control_release:" + r.status);
+    } catch (_) { me.emit({ type: "control_release_pending" }); }
+  }
   function finish(me, reason) {
     if (me.finishing) return me.finishing;
     me.stopped = true; cancel(me.timer); cancel(me.activityTimer); cancel(me.connectTimer);
@@ -51,12 +60,13 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
     if (reason !== "error") me.emit({ type: "state", state: "ended", detail: reason });
     // Assign before endSession can synchronously fire onDisconnect.
     me.finishing = Promise.resolve().then(async () => {
+      void releaseControl(me); // Independent of WebRTC teardown and final billing.
       try { await me.conversation?.endSession(); } catch (_) { }
       await bill(me);
     });
     return me.finishing;
   }
-  async function startVoice({ server, bearer, clientId, npcId, onEvent }) {
+  async function startVoice({ server, bearer, clientId, npcId, controlEpoch, onEvent }) {
     if (active) await finish(active, "replaced");
     const emit = e => { try { onEvent?.(e); } catch (_) { } };
     const headers = { "Content-Type": "application/json", Authorization: "Bearer " + bearer };
@@ -64,7 +74,7 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
     const me = { conversation: null, ticket: null, base: server.replace(/\/+$/, ""), headers, emit,
       stopped: false, connected: false, mode: "listening", timer: null, activityTimer: null, connectTimer: null,
       remaining: USER_SILENCE_MS, listeningSince: null, micBaseline: null, micHot: false, vadAvailable: false,
-      abort: new AbortController(), stage: "session", billed: false, finishing: null };
+      abort: new AbortController(), stage: "session", billed: false, released: false, finishing: null };
     active = me; emit({ type: "state", state: "connecting" });
     me.connectTimer = later(() => {
       if (me.stopped || me.connected) return;
@@ -72,10 +82,10 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
       void finish(me, "error");
     }, CONNECTION_TIMEOUT_MS);
     try {
-      const r = await request(me.base + "/api/voice/v1/session", { method: "POST", headers, body: JSON.stringify({ npcId }), signal: me.abort.signal });
+      const r = await request(me.base + "/api/voice/v1/session", { method: "POST", headers, body: JSON.stringify({ npcId, controlEpoch }), signal: me.abort.signal });
       if (!r.ok) throw new Error("session:" + r.status);
       const session = await r.json(); me.ticket = session.ticket;
-      if (me.stopped) return;
+      if (me.stopped) { await releaseControl(me); return; }
       me.stage = "sdk";
       const { Conversation } = await sdk(); if (me.stopped) return;
       me.stage = "webrtc";

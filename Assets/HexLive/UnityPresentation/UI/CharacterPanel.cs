@@ -6992,6 +6992,7 @@ namespace HexLive.UnityPresentation.UI
             col.Add(vitalsCluster);
 
             col.Add(BuildControlToggle());
+            col.Add(_controlCallState);
             col.Add(BuildPaceToggle()); // §121.11: тот же тумблер, нижний угол
             col.Add(BuildStopButton());
             col.Add(BuildInventoryButton());
@@ -7039,7 +7040,7 @@ namespace HexLive.UnityPresentation.UI
             button.style.position = Position.Absolute;
             button.style.left = 12f;
             button.style.top = 12f;
-            button.style.width = 88f;
+            button.style.width = 132f;
             button.style.height = 34f;
             button.style.flexDirection = FlexDirection.Row;
             button.style.alignItems = Align.Center;
@@ -7055,19 +7056,33 @@ namespace HexLive.UnityPresentation.UI
             _controlPlayerSegment = BuildToggleSegment(
                 "HexLive/UI/IdentityManualIcon", "🎮", Loc.Get("panel.control.manual"),
                 out _controlPlayerGlyph, out _controlPlayerIcon);
+            button.name = "character-control-modes";
+            _controlAiSegment.name = "control-ai";
+            _controlPlayerSegment.name = "control-manual";
+            _controlAiSegment.style.width = Length.Percent(33.333f);
+            _controlPlayerSegment.style.width = Length.Percent(33.333f);
             SetRadius(_controlAiSegment, 9f);
             SetRadius(_controlPlayerSegment, 9f);
             button.Add(_controlAiSegment);
             button.Add(_controlPlayerSegment);
+            button.Add(BuildPhoneControlSegment());
             button.Add(BuildToggleDivider());
+            var secondDivider = BuildToggleDivider(); secondDivider.style.left = 87f; button.Add(secondDivider);
 
             button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
             button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
                 button,
                 !_controlAvailable ? Stroke : _manualControlNow ? GoldDim : NeonCyanDim));
-            button.RegisterCallback<MouseDownEvent>(evt =>
+            _controlAiSegment.RegisterCallback<PointerDownEvent>(evt =>
             {
-                ToggleManualControl();
+                if (evt.button != 0) return;
+                SelectCharacterControlMode(CharacterControlMode.Ai);
+                evt.StopPropagation();
+            });
+            _controlPlayerSegment.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 0) return;
+                SelectCharacterControlMode(CharacterControlMode.Manual);
                 evt.StopPropagation();
             });
 
@@ -7244,14 +7259,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void ToggleManualControl()
         {
-            if (_runner == null || !_runner.SupportsNpcCommands ||
-                !_controlAvailable || !NpcSelection.HasSelection)
-            {
-                return;
-            }
-
-            _runner.EnqueueCommand(new HexLive.Simulation.Runtime.SetManualControlCommand(
-                new HexLive.Simulation.Common.EntityId(NpcSelection.SelectedId), !_manualControlNow));
+            SelectCharacterControlMode(_manualControlNow ? CharacterControlMode.Ai : CharacterControlMode.Manual);
         }
 
         // §121: одиночное «Отставить» — снять текущий приказ, НЕ выключая
@@ -7310,7 +7318,16 @@ namespace HexLive.UnityPresentation.UI
                 _runner.TryGetAgentState(npc.Id, out var attachedAgent) && attachedAgent.Attached;
             var available = _runner != null && _runner.SupportsNpcCommands &&
                 _runner.CanControlNpc(npc.Id) && npc.Health > 0f && !agentControlled;
+            var call = ServerVoiceActive || _callPreparing || PhoneControls(npc.Id.Value);
+            if (!call && !_controlModePending && _controlInputNpc == npc.Id.Value && npc.IsManualControl == _controlTargetManual)
+                _controlInputNpc = -1;
+            if ((call || _lastCallControlNpc == npc.Id.Value) && _runner != null && _runner.IsAssignedNpc(npc.Id) && npc.Health > 0f) available = true;
             _controlAvailable = available;
+            _controlAiSegment.SetEnabled(available);
+            _controlPlayerSegment.SetEnabled(available);
+            _controlCallSegment.SetEnabled(ServerVoiceEligible || call);
+            _controlCallSegment.style.backgroundColor = call ? new Color(Good.r,Good.g,Good.b,.22f) : Color.clear;
+            RenderServerVoiceButton();
             var readable = _runner != null;
             _controlButton.style.display = readable ? DisplayStyle.Flex : DisplayStyle.None;
             if (_orderToast != null)
@@ -7339,7 +7356,7 @@ namespace HexLive.UnityPresentation.UI
             // §121.9: на удалёнке сервер может снять ручной режим сам (истёк
             // лиз, операторский force-release) — локального события об этом
             // нет, поэтому край «был ручной → стал ИИ» ловится по снапшоту.
-            if (_manualEdgeNpcId == npc.Id.Value && _manualEdgeWas &&
+            if (!call && _manualEdgeNpcId == npc.Id.Value && _manualEdgeWas &&
                 !npc.IsManualControl && _runner != null && _runner.Link.IsRemote)
             {
                 Input.ManualOrderFeedback.ReportTerm(npc.Id.Value, "toast.manual_expired");
@@ -7351,21 +7368,21 @@ namespace HexLive.UnityPresentation.UI
             _manualControlNow = npc.IsManualControl;
             if (_stopButton != null)
             {
-                _stopButton.style.display = _manualControlNow
+                _stopButton.style.display = _manualControlNow && !call
                     ? DisplayStyle.Flex
                     : DisplayStyle.None;
             }
             _controlButton.tooltip = Loc.Get("panel.control.tooltip");
-            _controlAiSegment.style.backgroundColor = _manualControlNow
+            _controlAiSegment.style.backgroundColor = _manualControlNow || call
                 ? Color.clear
                 : new Color(NeonCyan.r, NeonCyan.g, NeonCyan.b, 0.22f);
-            _controlPlayerSegment.style.backgroundColor = _manualControlNow
+            _controlPlayerSegment.style.backgroundColor = _manualControlNow && !call
                 ? new Color(Gold.r, Gold.g, Gold.b, 0.24f)
                 : Color.clear;
-            _controlAiGlyph.style.color = _manualControlNow ? TextMute : NeonCyan;
-            _controlPlayerGlyph.style.color = _manualControlNow ? Gold : TextMute;
-            _controlAiIcon.style.opacity = _manualControlNow ? 0.42f : 1f;
-            _controlPlayerIcon.style.opacity = _manualControlNow ? 1f : 0.42f;
+            _controlAiGlyph.style.color = _manualControlNow || call ? TextMute : NeonCyan;
+            _controlPlayerGlyph.style.color = _manualControlNow && !call ? Gold : TextMute;
+            _controlAiIcon.style.opacity = _manualControlNow || call ? 0.42f : 1f;
+            _controlPlayerIcon.style.opacity = _manualControlNow && !call ? 1f : 0.42f;
             SetBorderColor(_controlButton, _manualControlNow ? GoldDim : NeonCyanDim);
 
             if (_orderToast != null)

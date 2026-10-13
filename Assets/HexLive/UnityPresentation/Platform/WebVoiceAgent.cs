@@ -38,6 +38,7 @@ public sealed class WebVoiceAgent
     public Phase Current { get; private set; } = Phase.Off;
     public string LastError { get; private set; } = "";
     public int NpcId { get; private set; }
+    private bool _acceptEvents = true; // Also permits explicit Editor previews before the first Start.
 
     /// <summary>(speaker is "user" or "agent", text) — final lines for subtitles.</summary>
     public event Action<string, string>? Line;
@@ -47,7 +48,7 @@ public sealed class WebVoiceAgent
     public static bool Supported => WebPage.IsWeb;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
-    [DllImport("__Internal")] private static extern void HexVoiceStart(string server, string bearer, string clientId, int npcId);
+    [DllImport("__Internal")] private static extern void HexVoiceStart(string server, string bearer, string clientId, int npcId, string controlEpoch);
     [DllImport("__Internal")] private static extern void HexVoiceStop();
     [DllImport("__Internal")] private static extern int HexVoiceNextSize();
     [DllImport("__Internal")] private static extern int HexVoiceTake(byte[] buffer, int capacity);
@@ -55,19 +56,21 @@ public sealed class WebVoiceAgent
 
     /// <param name="serverHttpBase">https://host of the game server (same origin as the page).</param>
     /// <param name="bearer">account session (§171.9) or the shared player token.</param>
-    public void Start(string serverHttpBase, string bearer, string clientId, int npcId)
+    public void Start(string serverHttpBase, string bearer, string clientId, int npcId, long? controlEpoch = null)
     {
         if (!Supported || Current is Phase.Connecting or Phase.Listening or Phase.Speaking) return;
         NpcId = npcId;
+        _acceptEvents = true;
         LastError = "";
         Current = Phase.Connecting;
 #if UNITY_WEBGL && !UNITY_EDITOR
-        HexVoiceStart(serverHttpBase, bearer, clientId, npcId);
+        HexVoiceStart(serverHttpBase, bearer, clientId, npcId, controlEpoch?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "");
 #endif
     }
 
     public void Stop()
     {
+        _acceptEvents = false;
         if (Current == Phase.Off) return;
 #if UNITY_WEBGL && !UNITY_EDITOR
         HexVoiceStop();
@@ -91,11 +94,13 @@ public sealed class WebVoiceAgent
     /// <summary>Applies one JSON batch of events (public for tests and the editor preview).</summary>
     public void Apply(string jsonArray)
     {
+        if (!_acceptEvents) return;
         Batch batch;
         try { batch = JsonUtility.FromJson<Batch>("{\"items\":" + jsonArray + "}"); }
         catch (ArgumentException) { return; }
         foreach (var e in batch.items ?? Array.Empty<VoiceEvent>())
         {
+            if (!_acceptEvents) break;
             switch (e.type)
             {
                 case "state":
@@ -108,6 +113,7 @@ public sealed class WebVoiceAgent
                         _ => Phase.Off,
                     };
                     if (Current == Phase.Error) LastError = e.detail;
+                    if (Current == Phase.Off) _acceptEvents = false;
                     break;
                 case "user":
                 case "agent":

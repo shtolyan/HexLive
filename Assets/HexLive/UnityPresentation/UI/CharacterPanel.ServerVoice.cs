@@ -11,10 +11,10 @@ using UnityEngine.UIElements;
 namespace HexLive.UnityPresentation.UI
 {
     /// <summary>
-    /// §171.11: in the browser the voice button of the portrait window is a PHONE:
+    /// §171.23: in the browser the right control segment is a PHONE:
     /// call your own character, talk, hang up — through the game server's voice
     /// brain (ElevenLabs Agents), no Agent Studio attachment needed. The whole call
-    /// lives in that small window (Толя, 11.10): no capture overlay, no subtitles over
+    /// lives in that control strip: no capture overlay, no subtitles over
     /// the world — the player keeps seeing her. Listening, turn-taking and her voice
     /// are the browser's. The desktop keeps the §160 Agent Studio path unchanged.
     /// </summary>
@@ -45,7 +45,11 @@ namespace HexLive.UnityPresentation.UI
 
         private void ToggleServerVoice()
         {
-            if (ServerVoiceActive) { _serverVoice!.Stop(); return; }
+            SelectCharacterControlMode(ServerVoiceActive ? CharacterControlMode.Ai : CharacterControlMode.Call);
+        }
+
+        private void StartServerVoice(long epoch)
+        {
             if (!ServerVoiceEligible) return;
             ClearServerVoiceFailure();
             if (_serverVoice == null)
@@ -57,7 +61,7 @@ namespace HexLive.UnityPresentation.UI
                 _serverVoice.Alignment += a => _serverCallActor?.AppendPhoneAlignment(a.chars, a.starts, a.durations);
             }
             _serverVoice.Start(WebVoiceAgent.PageServerHttpBase()!, SessionConfig.ControlToken!, SessionConfig.ClientId,
-                _agentVoiceNpc!.Id.Value);
+                _agentVoiceNpc!.Id.Value, epoch);
             AttachServerCallActor();
         }
 
@@ -90,6 +94,7 @@ namespace HexLive.UnityPresentation.UI
             if (!ServerVoiceActive)
             {
                 ReleaseServerCallActor();
+                if (!_callPreparing && !_controlModePending) _phoneControlNpc = -1;
             }
             if (_serverCallActor != null)
                 _serverCallActor.SetPhoneSpeaking(_serverVoice.Current == WebVoiceAgent.Phase.Speaking);
@@ -108,15 +113,18 @@ namespace HexLive.UnityPresentation.UI
                 "session:401" => "agent.call.signin",
                 "session:403" => "agent.call.forbidden",
                 "session:429" => "agent.call.busy",
+                "session:409" => "panel.control.agent",
                 "session:502" => "agent.call.provider",
                 "session:504" or "connect_timeout:session" => "agent.call.server_timeout",
                 "connect_timeout:sdk" => "agent.call.module_timeout",
                 "connect_timeout:webrtc" => "agent.call.connection_timeout",
                 _ => "agent.call.failed",
             };
-            _callFailureNpcId = _serverVoice?.NpcId ?? 0;
+            _callFailureNpcId = _agentVoiceNpc?.Id.Value ?? _serverVoice?.NpcId ?? 0;
             _serverVoice?.Stop();
             ReleaseServerCallActor();
+            _phoneControlNpc = -1;
+            _controlInputNpc = -1;
         }
 
         private void ApplyServerVoiceBalance(float balanceUsd)
@@ -160,8 +168,13 @@ namespace HexLive.UnityPresentation.UI
         /// </summary>
         private bool RefreshServerVoiceButton()
         {
-            if (_agentVoiceButton == null || _agentVoiceGlyph == null) return false;
             if (_agentVoiceNpc == null || _agentVoiceNpc.Id.Value != _callFailureNpcId) ClearServerVoiceFailure();
+            if (_controlCallSegment != null && (WebVoiceAgent.Supported || ServerVoiceActive || _callPreparing))
+            {
+                if (_agentVoiceButton != null) _agentVoiceButton.style.display = DisplayStyle.None;
+                RenderServerVoiceButton(); return true;
+            }
+            if (_agentVoiceButton == null || _agentVoiceGlyph == null) return false;
             if (!ServerVoiceMode)
             {
                 if (_agentVoiceStateLabel != null)
@@ -185,29 +198,35 @@ namespace HexLive.UnityPresentation.UI
 
         private void RenderServerVoiceButton()
         {
-            if (_agentVoiceButton == null || _agentVoiceGlyph == null || _agentVoiceStateLabel == null) return;
+            var button = _controlCallSegment ?? _agentVoiceButton;
+            var glyph = _controlCallGlyph ?? _agentVoiceGlyph;
+            var label = _controlCallState ?? _agentVoiceStateLabel;
+            if (button == null || glyph == null || label == null) return;
             var phase = _serverVoice?.Current ?? WebVoiceAgent.Phase.Off;
             var inCall = phase is WebVoiceAgent.Phase.Listening or WebVoiceAgent.Phase.Speaking;
-            var ringing = phase == WebVoiceAgent.Phase.Connecting;
+            var ringing = phase == WebVoiceAgent.Phase.Connecting || _callPreparing;
             var failed = !inCall && !ringing && _callFailureTerm.Length > 0;
             var tint = inCall ? Crit : failed ? Warn : Good;
 
-            _agentVoiceGlyph.SetKind(inCall ? VectorIcon.Kind.PhoneHangUp : VectorIcon.Kind.Phone);
-            _agentVoiceGlyph.SetColor(tint);
+            glyph.SetKind(inCall ? VectorIcon.Kind.PhoneHangUp : VectorIcon.Kind.Phone);
+            glyph.SetColor(ServerVoiceEligible || ServerVoiceActive || _callPreparing || failed ? tint : TextMute);
             // A ringing phone rocks; at rest it is still.
-            _agentVoiceGlyph.style.rotate = new Rotate(ringing ? Mathf.Sin(Time.unscaledTime * 18f) * 14f : 0f);
-            SetBorderColor(_agentVoiceButton, tint);
-            _agentVoiceStateLabel!.text = phase switch
+            glyph.style.rotate = new Rotate(ringing ? Mathf.Sin(Time.unscaledTime * 18f) * 14f : 0f);
+            if (_controlCallSegment == null) SetBorderColor(button, tint);
+            label.text = phase switch
             {
+                _ when _callPreparing => Loc.Get("agent.call.ringing"),
                 WebVoiceAgent.Phase.Connecting => Loc.Get("agent.call.ringing"),
                 WebVoiceAgent.Phase.Listening => Loc.Get("agent.call.listening"),
                 WebVoiceAgent.Phase.Speaking => Loc.Get("agent.call.speaking"),
                 _ when failed => Loc.Get(_callFailureTerm),
                 _ => Loc.Get("agent.call.start"),
             };
-            _agentVoiceStateLabel.style.color = failed ? Warn : TextMute;
-            _agentVoiceStateLabel.style.fontSize = failed ? 11f : 8.5f;
-            _agentVoiceButton!.tooltip = failed
+            label.style.display = (_controlCallState != null ? inCall || ringing || failed : ServerVoiceMode || failed)
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            label.style.color = failed ? Warn : TextMute;
+            label.style.fontSize = failed ? 11f : 8.5f;
+            button.tooltip = failed
                 ? Loc.Get(_callFailureTerm) + "\n" + Loc.Get("agent.call.button")
                 : Loc.Get(inCall || ringing ? "agent.call.hangup" : "agent.call.button");
         }

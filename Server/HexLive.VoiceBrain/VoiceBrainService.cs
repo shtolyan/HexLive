@@ -29,9 +29,10 @@ public sealed partial class VoiceBrainService
     private readonly byte[] _secret;
     private readonly Dictionary<string, string> _voices;
     private readonly Func<string, bool>? _canSpend;
+    private readonly Func<SessionTicket, CancellationToken?>? _callLifetime;
 
     public VoiceBrainService(BrainOptions options, Func<SessionTicket, IWorldGateway> worldFor, ILogger log, HttpClient? http = null,
-        Func<string, bool>? canSpend = null)
+        Func<string, bool>? canSpend = null, Func<SessionTicket, CancellationToken?>? callLifetime = null)
     {
         Options = options;
         http ??= new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
@@ -52,6 +53,7 @@ public sealed partial class VoiceBrainService
         _secret = Encoding.UTF8.GetBytes(options.BrainSecret);
         _voices = LoadVoices(options.VoicesPath);
         _canSpend = canSpend;
+        _callLifetime = callLifetime;
     }
 
     public UsageBalance Balance(string owner, decimal openingUsd) => UsageBalance.Calculate(openingUsd, owner,
@@ -105,6 +107,10 @@ public sealed partial class VoiceBrainService
             c.Response.StatusCode = 403; return;
         }
         BrainTurn.CurrentTicket.Value = ticket;
+        var lifetime = _callLifetime?.Invoke(ticket);
+        if (_callLifetime != null && lifetime == null) { c.Response.StatusCode = 403; return; }
+        using var linked = lifetime.HasValue ? CancellationTokenSource.CreateLinkedTokenSource(c.RequestAborted, lifetime.Value) : null;
+        var callToken = linked?.Token ?? c.RequestAborted;
         if (_canSpend != null && !_canSpend(ticket.OwnerUserId)) { c.Response.StatusCode = 402; return; }
 
         c.Response.ContentType = "text/event-stream";
@@ -116,13 +122,17 @@ public sealed partial class VoiceBrainService
         {
             var json = JsonSerializer.Serialize(new { id, @object = "chat.completion.chunk", created, model,
                 choices = new[] { new { index = 0, delta, finish_reason = finish } } });
-            await c.Response.WriteAsync("data: " + json + "\n\n", c.RequestAborted);
-            await c.Response.Body.FlushAsync(c.RequestAborted);
+            await c.Response.WriteAsync("data: " + json + "\n\n", callToken);
+            await c.Response.Body.FlushAsync(callToken);
         }
-        await Chunk(new { role = "assistant" }, null);
         var turn = new BrainTurn(Options, _llm, _worldFor(ticket), _bonds, _ledger, _tariffs, _log, _canSpend, _memory);
-        try { await turn.RunAsync(body, ticket, piece => Chunk(new { content = piece }, null), c.RequestAborted); }
-        catch (OperationCanceledException) when (c.RequestAborted.IsCancellationRequested) { return; } // barge-in
+        try
+        {
+            await Chunk(new { role = "assistant" }, null);
+            await turn.RunAsync(body, ticket, piece => Chunk(new { content = piece }, null), callToken);
+        }
+        catch (OperationCanceledException) when (callToken.IsCancellationRequested) { return; }
+        catch (WorldToolRejectedException) when (_callLifetime != null && _callLifetime(ticket) == null) { return; }
         catch (Exception ex)
         {
             _log.LogWarning("voice brain: turn failed: {Type} {Message}", ex.GetType().Name,
@@ -130,7 +140,7 @@ public sealed partial class VoiceBrainService
             await Chunk(new { content = "Погоди… мысль сбилась." }, null);
         }
         await Chunk(new { }, "stop");
-        await c.Response.WriteAsync("data: [DONE]\n\n", c.RequestAborted);
+        await c.Response.WriteAsync("data: [DONE]\n\n", callToken);
     }
 
     /// <summary>§171.11: the browser module (ES module) — static code, no secrets, same origin as the game page.</summary>

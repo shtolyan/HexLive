@@ -127,6 +127,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void DisableAgentVoice()
         {
+            _controlIntentSequence++; _controlModePending = false; _callPreparing = false; _phoneControlNpc = -1; _controlInputNpc = -1;
             _serverVoice?.Stop(); // §171.11: never leave a billed conversation running behind a closed panel
             ReleaseServerCallActor();
             _agentMicrophone?.Cancel();
@@ -154,6 +155,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void ResetAgentVoiceSelection()
         {
+            _controlIntentSequence++; _controlModePending = false; _callPreparing = false; _phoneControlNpc = -1; _controlInputNpc = -1;
+            _serverVoice?.Stop(); ReleaseServerCallActor();
             _awaitingAgentTurn = false;
             _agentMicrophone?.Cancel();
             _agentVoiceNpc = null;

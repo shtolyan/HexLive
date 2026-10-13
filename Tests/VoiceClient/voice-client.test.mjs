@@ -3,6 +3,30 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 const source = await readFile(new URL('../../Server/HexLive.VoiceBrain/Client/hexlive-voice.js', import.meta.url), 'utf8');
 const { createVoiceClient, USER_SILENCE_MS, CONNECTION_TIMEOUT_MS } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+test('control release does not delay hangup billing and forwards fenced epoch',async()=>{
+  const requests=[];let cb,ends=0;
+  const client=createVoiceClient({later:()=>0,cancel:()=>{},request:async(url,o)=>{
+    requests.push({url,body:JSON.parse(o.body)});
+    if(url.endsWith('/cancel'))return new Promise(()=>{});
+    return {ok:true,json:async()=>url.endsWith('/end')?{seconds:1}:{ticket:'fixture',conversationToken:'fixture'}};
+  },sdk:async()=>({Conversation:{startSession:async o=>{cb=o;cb.onConnect();return{getId:()=> 'fixture',endSession:async()=>{ends++;cb.onDisconnect();}};}}})});
+  await client.startVoice({server:'https://fixture',bearer:'fixture',npcId:7,controlEpoch:42});
+  await client.stopVoice();await client.stopVoice();
+  assert.equal(requests[0].body.controlEpoch,42);assert.equal(ends,1);
+  assert.equal(requests.filter(r=>r.url.endsWith('/cancel')).length,1);
+  assert.equal(requests.filter(r=>r.url.endsWith('/end')).length,1);
+});
+test('a cancelled pending HTTP session is released when its late ticket arrives',async()=>{
+  let resolve;const requests=[];
+  const client=createVoiceClient({later:()=>0,cancel:()=>{},sdk:async()=>{throw Error('must not load SDK');},request:async(url,o)=>{
+    requests.push(url);if(url.endsWith('/session'))return await new Promise(r=>resolve=r);
+    return {ok:true};
+  }});
+  const starting=client.startVoice({server:'https://fixture',bearer:'fixture',npcId:7});
+  await new Promise(r=>setImmediate(r));await client.stopVoice();
+  resolve({ok:true,json:async()=>({ticket:'late',conversationToken:'fixture'})});await starting;
+  assert.equal(client.isActive(),false);assert.equal(requests.filter(x=>x.endsWith('/cancel')).length,1);
+});
 function fixture(connectLater=false) {
   let cb, resolve, now=0, next=0, ends=0, bills=0, inputVolume=0;
   const timers = new Map(), events=[];

@@ -148,12 +148,19 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 ```
 [WebGLBuild] code optimization: RuntimeSpeed (…)
 [WebGLBuild] FMOD WebGL DSP buffer: 4 x 2048, callback WebAudioTuning
-[WebGLBuild] web music: N Ogg track(s) for the browser   (на MSI с reuse — 0, это норма)
+[WebGLBuild] web music: N Ogg track(s) for the browser   (только при перекодировании)
 [WebGLBuild] audio manifest: N files
 [WebGLBuild] Succeeded: … 0 errors …
 [WebGLBuild] devicePixelRatio capped at 1
 ```
-Если хоть одной нет — сборку не публиковать.
+При перекодировании нужны все строки. В каноническом MSI reuse-пути
+`WriteWebMusic()` не вызывается, поэтому строки `web music` в логе нет.
+Вместо неё до переноса аудио проверяются `audio-reuse-required.json`
+с `requiresVerifiedPublishedFsb:true`, `audio-source-proof.json` с `passed:true`
+и точный опубликованный audio source SHA. После переноса проверяются полный
+набор FSB/`.vis`, все SHA-256 и сигнатуры FSB5; метка удаляется только после
+успеха. Остальные строки лога обязательны в обоих режимах. При отсутствии
+обязательной строки или доказательства переиспользования сборку не публиковать.
 
 **Вывод `webgl_audio_fsb.py`** — `[fsb] N sounds …`: число звуков порядка
 2900 (на 12.10.2026 — 2872), не ноль.

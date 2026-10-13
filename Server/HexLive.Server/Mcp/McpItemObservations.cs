@@ -146,6 +146,11 @@ internal static class McpItemObservations
         return new Dictionary<string, object?>
         {
             ["itemId"] = definitionId,
+            // §133/§171.22: names come from the active catalog, never from
+            // a guessed translation of an id or a previous conversation.
+            ["displayName"] = world.Content.ObjectDefinitions.TryGetValue(definitionId, out var named)
+                ? named.DisplayName : null,
+            ["catalogKnown"] = named != null,
             ["capabilities"] = GearCatalog.Active.TryGetValue(definitionId, out var gear) ? gear.Capabilities.ToString() : "None",
             ["inventoryCapacityWhenWorn"] = world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition)
                 ? definition.InventoryCapacity : 0,
@@ -164,6 +169,8 @@ internal static class McpItemObservations
         if (!world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) ||
             !definition.Layer.HasValue) return;
         var condition = Math.Clamp(durability, 0f, 1f);
+        row["layer"] = definition.Layer.Value.ToString();
+        row["covers"] = definition.Covers.Select(part => part.ToString()).ToArray();
         row["likingPercent"] = (int)MathF.Round(ItemAffinity.For(observer.Id.Value, definitionId) * 100f);
         row["durability"] = condition;
         row["conditionPercent"] = (int)MathF.Round(condition * 100f);

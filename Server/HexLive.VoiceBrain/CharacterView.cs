@@ -13,6 +13,11 @@ public static class CharacterView
     public const int MaxPerception = 2400;
     public const int MaxObjects = 24;
     public const int MaxPeople = 8;
+    public const int MaxWornItems = 32;
+    private static readonly JsonSerializerOptions ReadableJson = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All)
+    };
 
     public static string Name(JsonElement d) => d.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
 
@@ -44,6 +49,9 @@ public static class CharacterView
     {
         var sb = new StringBuilder();
         sb.Append("Имя: ").Append(Name(d)).Append('\n');
+        if (d.TryGetProperty("tick", out var tick) && tick.TryGetInt64(out var t))
+            sb.Append("Свежий снимок сервера, tick=").Append(t).Append('\n');
+        AppendWardrobe(sb, d);
         if (d.TryGetProperty("stateSummary", out var state)) sb.Append("Тело и занятие: ").Append(state.GetString()).Append('\n');
         if (d.TryGetProperty("bodyNeeds", out var needs))
             // Words, not numbers: the model read hunger 0.71 ("1 = starving") as "barely hungry".
@@ -54,9 +62,11 @@ public static class CharacterView
         if (d.TryGetProperty("execution", out var exec)) sb.Append("Текущее выполнение: ").Append(exec.GetRawText()).Append('\n');
         if (d.TryGetProperty("inventoryItems", out var inv) && inv.ValueKind == JsonValueKind.Array)
         {
-            var items = inv.EnumerateArray().Select(i => i.TryGetProperty("itemId", out var id) ? id.GetString() : null)
-                .Where(s => s != null).GroupBy(s => s!).Select(g => g.Count() > 1 ? $"{g.Key}×{g.Count()}" : g.Key);
-            sb.Append("В инвентаре: ").Append(string.Join(", ", items)).Append('\n');
+            var items = inv.EnumerateArray().Select(ItemLabel).GroupBy(s => s)
+                .Select(g => g.Count() > 1 ? $"{g.Key}×{g.Count()}" : g.Key).ToArray();
+            sb.Append("В инвентаре (это НЕ надето): ").Append(string.Join(", ", items.Take(MaxObjects)));
+            if (items.Length > MaxObjects) sb.Append("; прочие вещи опущены");
+            sb.Append('\n');
         }
         if (d.TryGetProperty("visibleNpcs", out var npcs) && npcs.ValueKind == JsonValueKind.Array)
         {
@@ -88,5 +98,39 @@ public static class CharacterView
         if (d.TryGetProperty("perceptionSummary", out var perception) && perception.GetString() is { } p)
             sb.Append("Восприятие (ближайшие по типам): ").Append(p.Length > MaxPerception ? p[..MaxPerception] + "…" : p).Append('\n');
         return sb.ToString();
+    }
+
+    // §171.22: absence of the field is an unknown wardrobe, not a naked body.
+    // A bounded prefix must never claim to be a complete empty/full outfit.
+    private static void AppendWardrobe(StringBuilder sb, JsonElement d)
+    {
+        sb.Append("Надето сейчас (только wornItems): ");
+        if (!d.TryGetProperty("wornItems", out var worn) || worn.ValueKind != JsonValueKind.Array)
+        {
+            sb.Append("нет достоверных данных; не угадывай одежду или наготу.\n");
+            return;
+        }
+        var count = worn.GetArrayLength();
+        if (count == 0) { sb.Append("ничего, список надетых вещей пуст.\n"); return; }
+        sb.Append(count).Append(" вещей\n");
+        foreach (var item in worn.EnumerateArray().Take(MaxWornItems))
+        {
+            sb.Append("- ").Append(ItemLabel(item));
+            foreach (var key in new[] { "layer", "covers", "conditionPercent", "catalogKnown" })
+                if (item.ValueKind == JsonValueKind.Object && item.TryGetProperty(key, out var value))
+                    sb.Append(' ').Append(key).Append('=').Append(value.GetRawText());
+            sb.Append('\n');
+        }
+        if (count > MaxWornItems) sb.Append("Часть надетых вещей опущена; список выше неполный.\n");
+    }
+
+    private static string ItemLabel(JsonElement item)
+    {
+        static string Text(JsonElement row, string key) => row.ValueKind == JsonValueKind.Object
+            && row.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String
+            ? (value.GetString() ?? "") : "";
+        static string Quoted(string value) => JsonSerializer.Serialize(value.Length > 96 ? value[..96] + "…" : value, ReadableJson);
+        var id = Text(item, "itemId"); var name = Text(item, "displayName");
+        return "itemId=" + Quoted(id) + (name.Length > 0 ? " название=" + Quoted(name) : " название неизвестно");
     }
 }

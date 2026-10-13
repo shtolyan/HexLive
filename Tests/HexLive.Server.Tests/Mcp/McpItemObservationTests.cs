@@ -431,6 +431,48 @@ public sealed class McpItemObservationTests
 
     private static NPCState Observer(WorldState world) => world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
 
+    [Test]
+    public void VoiceWardrobeReadsActiveCatalogAndUndressWithoutConfusingCarriedPants()
+    {
+        using var host = CreateHost();
+        var setup = host.Read(world =>
+        {
+            var actor = Observer(world); actor.Inventory.Items.Clear(); actor.WornItems.Clear();
+            actor.WornItems.Add(new ItemInstance(ContentIds.LeatherPants));
+            return (actor.Id.Value, world.Content.ObjectDefinitions[ContentIds.LeatherPants].DisplayName,
+                world.Content.ObjectDefinitions[ContentIds.LeatherPants].Layer!.Value.ToString());
+        });
+        using var dressed = Describe(host, setup.Item1);
+        var item = dressed.RootElement.GetProperty("wornItems")[0];
+        Assert.That(item.GetProperty("displayName").GetString(), Is.EqualTo(setup.Item2));
+        Assert.That(item.GetProperty("layer").GetString(), Is.EqualTo(setup.Item3));
+        Assert.That(item.GetProperty("catalogKnown").GetBoolean(), Is.True);
+        Assert.That(HexLive.VoiceBrain.CharacterView.Build(dressed.RootElement), Does.Contain(setup.Item2));
+        host.Read(world =>
+        {
+            var actor = Observer(world); actor.Inventory.Items.Add(actor.WornItems[0]); actor.WornItems.Clear();
+            actor.Inventory.Items.Add(new ItemInstance("unknown-clothing-id")); return true;
+        });
+        using var undressed = Describe(host, setup.Item1);
+        var projection = HexLive.VoiceBrain.CharacterView.Build(undressed.RootElement);
+        Assert.That(projection, Does.Contain("ничего, список надетых вещей пуст").And.Contain("В инвентаре (это НЕ надето)"));
+        var unknown = undressed.RootElement.GetProperty("inventoryItems")[1];
+        Assert.That(unknown.GetProperty("catalogKnown").GetBoolean(), Is.False);
+        Assert.That(unknown.GetProperty("displayName").ValueKind, Is.EqualTo(JsonValueKind.Null));
+        Assert.That(host.Read(world => Observer(world).WornItems.Count), Is.Zero, "Reads cannot equip carried pants");
+        // Measure the real warmed local read + projection, not model/TTS latency.
+        var samples = new List<double>(); var promptChars = 0;
+        for (var i = 0; i < 20; i++)
+        {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            using var snapshot = Describe(host, setup.Item1);
+            promptChars = HexLive.VoiceBrain.CharacterView.Build(snapshot.RootElement).Length;
+            samples.Add(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+        }
+        samples.Sort();
+        TestContext.WriteLine($"Local warmed MCP read+projection: medianMs={samples[10]:F3}, p95Ms={samples[18]:F3}, samples=20, projectedChars={promptChars}; no provider call.");
+    }
+
     private static WorldObjectState Add(WorldState world, NPCState actor, int id, string itemId, EntityId? owner = null)
     {
         var item = new WorldObjectState { Id = new ObjectId(id), DefinitionId = itemId, Owner = owner, Tile = actor.Tile };

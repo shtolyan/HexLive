@@ -73,4 +73,43 @@ public sealed class CharacterViewTests
         using var doc = JsonDocument.Parse($$"""{"name":"Аня","stateSummary":"ok","visibleItems":[{{items}}],"perceptionSummary":"{{new string('x', 9000)}}"}""");
         Assert.That(CharacterView.Build(doc.RootElement).Length, Is.LessThan(4000));
     }
+
+    [TestCase("{}", "нет достоверных данных")]
+    [TestCase("{\"wornItems\":null}", "нет достоверных данных")]
+    [TestCase("{\"wornItems\":[]}", "ничего, список надетых вещей пуст")]
+    public void MissingWardrobeIsNotReportedAsNudity(string json, string expected)
+    {
+        using var doc = JsonDocument.Parse(json);
+        Assert.That(CharacterView.Build(doc.RootElement), Does.Contain(expected));
+    }
+
+    [Test]
+    public void OutfitIsSeparateFromCarriedPantsAndUnknownItemsKeepUnknownNames()
+    {
+        using var doc = JsonDocument.Parse("""
+            {"tick":12,"wornItems":[{"itemId":"underwear.briefs_primal","displayName":"Primal briefs","layer":"Underwear","covers":["Pelvis"],"conditionPercent":88},{"itemId":"unregistered"}],
+             "inventoryItems":[{"itemId":"clothing.pants","displayName":"Походные штаны"}],"execution":{"status":"Moving"}}
+            """);
+        var text = CharacterView.Build(doc.RootElement);
+        var outfit = text[..text.IndexOf("Текущее выполнение:", StringComparison.Ordinal)];
+        Assert.Multiple(() =>
+        {
+            Assert.That(outfit, Does.Contain("Primal briefs").And.Contain("Underwear").And.Contain("88"));
+            Assert.That(outfit, Does.Not.Contain("Походные штаны"));
+            Assert.That(outfit, Does.Contain("unregistered\" название неизвестно"));
+            Assert.That(text, Does.Contain("В инвентаре (это НЕ надето)").And.Contain("Походные штаны"));
+            Assert.That(text, Does.Contain("tick=12").And.Contain("Moving"));
+        });
+    }
+
+    [Test]
+    public void LargeWardrobeAndInventoryHaveExplicitBoundedPrefixes()
+    {
+        var items = Enumerable.Range(0, 300).Select(i => new { itemId="item"+i, displayName=new string('x',10000) });
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(new { wornItems=items, inventoryItems=items }));
+        var text = CharacterView.Build(doc.RootElement);
+        Assert.That(text.Length, Is.LessThan(9000));
+        Assert.That(text, Does.Contain("список выше неполный").And.Contain("прочие вещи опущены"));
+        Assert.That(text, Does.Not.Contain("item299"));
+    }
 }

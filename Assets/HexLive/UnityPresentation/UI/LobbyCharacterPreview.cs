@@ -35,6 +35,7 @@ public sealed class LobbyCharacterPreview : IDisposable
     private int _thumbnailFraming;
     public bool IsReady => !Failed && _view != null && _view.CreationHairReady && _view.CreationClothesReady(_character.Clothing) && _loading == null;
     public bool Failed { get; private set; }
+    internal string LoadingDependency { get; private set; } = "";
     private readonly bool _creator;
     private bool _frameBody;
     private bool _bodyFraming = true;
@@ -188,16 +189,22 @@ public sealed class LobbyCharacterPreview : IDisposable
         GameObject prefab;
         while ((prefab = ContentPrefabCache.GetOrRequest("actor", _character.Body)) == null ||
             AtomicResources.Load<NpcAnimSet>("HexLive/NpcAnimSet") == null ||
-            (!string.IsNullOrEmpty(_character.Skin) && ContentPrefabCache.GetOrRequest("actor", _character.Skin) == null) ||
-            (!string.IsNullOrEmpty(_character.Eyes) &&
+            (!string.IsNullOrEmpty(_character.Skin) && prefab.GetComponentInChildren<PeopleAppearance>(true)==null &&
+             ContentPrefabCache.GetOrRequest("actor", _character.Skin) == null) ||
+            (!string.IsNullOrEmpty(_character.Eyes) && prefab.GetComponentInChildren<PeopleAppearance>(true)==null &&
              (AtomicResources.LoadAll<Material>("HexLive/Eyes/Common").Length < 3 ||
               AtomicResources.LoadAll<Material>("HexLive/Eyes/" + _character.Eyes).Length < 2)))
         {
+            LoadingDependency=prefab==null?"actor:"+_character.Body:
+                AtomicResources.Load<NpcAnimSet>("HexLive/NpcAnimSet")==null?"config:npcanimset":
+                ContentPrefabCache.GetOrRequest("actor",_character.Skin)==null?"skin:"+_character.Skin:
+                "legacyEyes:"+_character.Eyes;
             if (_disposed || generation != _generation) yield break;
             if (Time.realtimeSinceStartup - started > 60)
             { Failed = true; _loading = null; _status.text = Loc.Get("lobby.appearanceUnavailable"); yield break; }
             yield return null;
         }
+        LoadingDependency="";
         if (_disposed || generation != _generation) yield break;
         if (_actor == null)
         {
@@ -248,7 +255,10 @@ public sealed class LobbyCharacterPreview : IDisposable
         while (pending != null && pending.Any(v => !ReferenceEquals(v, null) && !v.CreationHairReady)) yield return null;
         while (LoadingScreen.IsActive && bodies.Count + hair.Count + garments.Count > 0)
         {
-            bodies.RemoveWhere(id => Owners.Any(o => o._bodies.Contains(id)) || ReleaseBody(id));
+            // Primal skins are aliases of the same actor payload. Retiring Jana
+            // must not evict Marta while another preview still owns that body.
+            bodies.RemoveWhere(id => Owners.Any(o => o._bodies.Any(owned =>
+                PeopleIdMap.ContentId("actor",owned)==PeopleIdMap.ContentId("actor",id))) || ReleaseBody(id));
             hair.RemoveWhere(id => Owners.Any(o => o._hair.Contains(id)) || HairContent.Evict(id));
             garments.RemoveWhere(id => Owners.Any(o => o._garments.Contains(id)) || ActorWardrobe.Evict(id));
             yield return null;

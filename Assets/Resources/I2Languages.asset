@@ -28981,6 +28981,86 @@ MonoBehaviour:
       - 'Цвет волос'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'creator.eyes'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Eye colour'
+      - 'Цвет глаз'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.eye.default'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Original eyes'
+      - 'Родной цвет'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.eye.blue'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Blue'
+      - 'Голубые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.eye.blue_green'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Blue-green'
+      - 'Бирюзовые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.eye.green'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Green'
+      - 'Зелёные'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.eye.grey'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Grey'
+      - 'Серые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.eye.hazel'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Hazel'
+      - 'Ореховые'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.eye.amber'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Amber'
+      - 'Янтарные'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.eye.brown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Brown'
+      - 'Карие'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.eye.dark_brown'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Dark brown'
+      - 'Тёмно-карие'
+      Flags: 0101
+      Languages_Touch: []
     - Term: 'creator.appearance'
       TermType: 0
       Description:

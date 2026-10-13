@@ -32,6 +32,7 @@ public sealed class PlayerCreatorAppearance
     public bool IsMale => Body?.Value<string>("sex") == "male";
     public IEnumerable<string> Skins => Body?["skins"]?.Values<string>() ?? Enumerable.Empty<string>();
     public IEnumerable<string> Hair => Body?["hair"]?.Values<string>() ?? Enumerable.Empty<string>();
+    public IEnumerable<string> Eyes => Body?["eyes"]?.Values<string>() ?? new[]{""};
     public IEnumerable<string> Colours => Options["hair"]?.FirstOrDefault(h => h.Value<string>("id") == Character.Hair)?["colours"]?.Values<string>() ?? new[] { "prototype" };
     public void SetSex(bool male)
     {
@@ -41,7 +42,7 @@ public sealed class PlayerCreatorAppearance
         if (!Skins.Contains(Character.Skin)) Character.Skin = Skins.FirstOrDefault() ?? Character.Body;
         if (!Hair.Contains(Character.Hair)) Character.Hair = Hair.FirstOrDefault() ?? "none";
         if (!Colours.Contains(Character.HairColour)) Character.HairColour = "prototype";
-        Character.Eyes = body["eyes"]?.Values<string>().FirstOrDefault() ?? "";
+        if(!Eyes.Contains(Character.Eyes)) Character.Eyes=Eyes.FirstOrDefault() ?? "";
         Character.Voice = IsMale ? "kshishtof" : "marta";
         Character.Clothing = body["startingClothing"]?.Values<string>().ToList() ?? PlayerCharacterCreation.StartingClothing(Character.Body);
     }
@@ -70,7 +71,7 @@ public sealed class PlayerCreatorAppearance
             values.Sum(v => (double)v.Value) <= Options.Value<double>(key == "attributes" ? "attributeBudget" : "skillBudget") + .000001;
     }
     public bool CanSubmit => !string.IsNullOrWhiteSpace(Character.Name) && Character.Name.Trim().Length <= 64 &&
-        Body != null && Skins.Contains(Character.Skin) && Hair.Contains(Character.Hair) && Colours.Contains(Character.HairColour) &&
+        Body != null && Skins.Contains(Character.Skin) && Hair.Contains(Character.Hair) && Colours.Contains(Character.HairColour) && Eyes.Contains(Character.Eyes) &&
         ValidBudget("attributes") && ValidBudget("skills") &&
         Options["camps"]?.Any(c => c.Value<string>("id") == Character.Camp.ToString() && c.Value<bool>("hasSpace")) == true;
     public CharacterCreationConfig Look(string skin = null, string hair = null, string colour = null) =>

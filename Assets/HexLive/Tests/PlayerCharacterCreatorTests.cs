@@ -34,10 +34,10 @@ public sealed class PlayerCharacterCreatorTests
         return new JObject {
             ["bodies"] = new JArray(
                 new JObject { ["id"]="Marta", ["sex"]="female", ["skins"]=new JArray("Marta","Molly","Jana","Jolly","Masha","Rita"),
-                    ["hair"]=new JArray(new[]{"none"}.Concat(hair)), ["eyes"]=new JArray(""),
+                    ["hair"]=new JArray(new[]{"none"}.Concat(hair)), ["eyes"]=new JArray(new[]{""}.Concat(ColonistAppearance.EyeColors)),
                     ["startingClothing"]=new JArray("underwear.briefs_primal","clothing.top_primal") },
                 new JObject { ["id"]="Kshishtof", ["sex"]="male", ["skins"]=new JArray("Kshishtof","Tonny"),
-                    ["hair"]=new JArray(new[]{"none"}.Concat(hair)), ["eyes"]=new JArray(""),
+                    ["hair"]=new JArray(new[]{"none"}.Concat(hair)), ["eyes"]=new JArray(new[]{""}.Concat(ColonistAppearance.EyeColors)),
                     ["startingClothing"]=new JArray("underwear.briefs_primal_male") }),
             ["hair"]=new JArray(hair.Select(id=>new JObject { ["id"]=id, ["colours"]=new JArray(new[]{"prototype"}.Concat(HairTintPalette.All.Select(t=>t.Id))) })),
             ["attributes"]=new JArray("Strength","Agility","Endurance","Intelligence","Willpower","Charisma","Perception"),
@@ -51,13 +51,16 @@ public sealed class PlayerCharacterCreatorTests
     {
         var model = new PlayerCreatorAppearance(Options()); model.Character.Name="Test";
         model.Character.Hair="LowPonytail"; model.Character.HairColour="tint.silver";
+        model.Character.Eyes="green";
         model.SetSex(true);
         Assert.That(model.Character.Body,Is.EqualTo("Kshishtof"));
         Assert.That(model.Character.Hair,Is.EqualTo("LowPonytail"));
         Assert.That(model.Character.HairColour,Is.EqualTo("tint.silver"));
+        Assert.That(model.Character.Eyes,Is.EqualTo("green"));
         Assert.That(model.Character.Clothing,Is.EqualTo(new[]{"underwear.briefs_primal_male"}));
         Assert.That(model.CanSubmit,Is.True);
         var request=model.Request("fixture-request");
+        Assert.That(request.Value<string>("eyes"),Is.EqualTo("green"));
         Assert.That(request.Properties().Select(p=>p.Name),Is.EquivalentTo(new[]{"requestId","name","body","skin","hair","hairColour","eyes","voice","camp","traits","attributes","skills"}));
         model.Character.Attributes[0].Value=1;model.Character.Attributes[1].Value=1;
         Assert.That(model.CanSubmit,Is.False);
@@ -65,6 +68,102 @@ public sealed class PlayerCharacterCreatorTests
         Assert.That(model.Character.Clothing,Is.EqualTo(new[]{"underwear.briefs_primal","clothing.top_primal"}));
     }
     private static object Get(Type t,string field)=>t.GetField(field,Static).GetValue(null);
+    [TestCase("Marta")]
+    [TestCase("Kshishtof")]
+    public void PrimalEyeGpuChangesOnlyIrisAndDoesNotMutateSharedMaterials(string body)
+    {
+        var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/HexLiveContent/People/Prefabs/Actors/"+body+".prefab");
+        var actor=Object.Instantiate(prefab);
+        var appearance=actor.GetComponent<PeopleAppearance>();
+        var skin=actor.GetComponentsInChildren<SkinnedMeshRenderer>().First(r=>r.sharedMaterials.Any(m=>m.name.EndsWith("_Eyes")));
+        var source=skin.sharedMaterials.First(m=>m.name.EndsWith("_Eyes"));var bodyMaterial=skin.sharedMaterials[0];
+        var sourceTexture=source.GetTexture("_BaseMap");
+        var shader=Resources.Load<Shader>("HexLive/PeopleEyeTintBlit");Assert.That(shader,Is.Not.Null);
+        var reference=new RenderTexture(256,256,0,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);reference.Create();
+        var copy=new Material(shader);copy.SetFloat("_EnableTint",0);
+        var previous=GL.sRGBWrite;var active=RenderTexture.active;
+        try
+        {
+            GL.sRGBWrite=QualitySettings.activeColorSpace==ColorSpace.Linear;Graphics.Blit(sourceTexture,reference,copy);
+            var baseline=Pixels(reference);RenderTexture reused=null;Color32[] blue=null;
+            foreach(var id in ColonistAppearance.EyeColors)
+            {
+                Assert.That(appearance.ApplyEyes(id),Is.True,id);
+                var material=skin.sharedMaterials.First(m=>m.name==source.name);
+                var texture=(RenderTexture)material.GetTexture("_BaseMap");
+                if(reused==null)reused=texture;else Assert.That(texture,Is.SameAs(reused),"Only one small render texture per actor");
+                Assert.That(texture.width,Is.EqualTo(256));Assert.That(material.GetTextureScale("_BaseMap"),Is.EqualTo(new Vector2(8,8)));
+                var pixels=Pixels(texture);var changes=0;
+                for(var y=0;y<256;y++)for(var x=0;x<256;x++)
+                {
+                    var uv=new Vector2((x+.5f)/256,(y+.5f)/256);
+                    var distance=Mathf.Min(Vector2.Distance(uv,new Vector2(506f/2048,1-1525f/2048)),Vector2.Distance(uv,new Vector2(1527f/2048,1-1530f/2048)));
+                    var n=y*256+x;var delta=Mathf.Abs(pixels[n].r-baseline[n].r)+Mathf.Abs(pixels[n].g-baseline[n].g)+Mathf.Abs(pixels[n].b-baseline[n].b);
+                    if(distance>.221f || distance<.047f)Assert.That(delta,Is.LessThanOrEqualTo(3),"Pupil/sclera changed at "+uv+" colour="+id);
+                    else if(delta>9)changes++;
+                }
+                Assert.That(changes,Is.GreaterThan(300),"A palette must really recolour the iris");
+                if(id=="blue")blue=pixels;
+                if(id=="green")Assert.That(pixels.Where((p,n)=>p.r!=blue[n].r || p.g!=blue[n].g || p.b!=blue[n].b).Count(),Is.GreaterThan(300));
+                Assert.That(skin.sharedMaterials[0],Is.SameAs(bodyMaterial));Assert.That(source.GetTexture("_BaseMap"),Is.SameAs(sourceTexture));
+            }
+            Assert.That(appearance.ApplyEyes(""),Is.True);
+            Assert.That(skin.sharedMaterials.Any(m=>ReferenceEquals(m,source)),Is.True,"Original colour restores the original material");
+        }
+        finally {GL.sRGBWrite=previous;RenderTexture.active=active;reference.Release();Object.DestroyImmediate(reference);Object.DestroyImmediate(copy);Object.DestroyImmediate(actor);}
+    }
+    private static Color32[] Pixels(RenderTexture texture)
+    {
+        var previous=RenderTexture.active;var copy=new Texture2D(texture.width,texture.height,TextureFormat.RGBA32,false);
+        try {RenderTexture.active=texture;copy.ReadPixels(new Rect(0,0,texture.width,texture.height),0,0);copy.Apply();return copy.GetPixels32();}
+        finally {RenderTexture.active=previous;Object.DestroyImmediate(copy);}
+    }
+    [UnityTest]
+    public IEnumerator EyePaletteUnderPreviewAppliesPersistsAndDisablesDuringSubmission()
+    {
+        using var sources=new SourceFixture();
+        var host=new GameObject("Creator eyes");var runner=host.AddComponent<PlayerCreatorRunner>();var doc=host.AddComponent<UIDocument>();
+        var settings=Object.Instantiate(Resources.Load<PanelSettings>("HexLive/DebugPanelSettings"));
+        var target=new RenderTexture(1280,900,24);target.Create();settings.targetTexture=target;
+        settings.scaleMode=PanelScaleMode.ConstantPixelSize;doc.panelSettings=settings;
+        var model=new PlayerCreatorAppearance(Options());model.Character.Name="Толя";
+        var old=Loc.Current;Loc.Current=Language.Russian;
+        var ui=new PlayerCharacterCreator(doc.rootVisualElement,runner,model,()=>{},()=>{},()=>{},()=>{});
+        try
+        {
+            yield return Ready(ui);for(var i=0;i<12;i++)yield return null;
+            var buttons=ui.Root.Query<Button>(className:"creator-eye-button").ToList();Assert.That(buttons.Count,Is.EqualTo(9));
+            Assert.That(ui.Root.Q("eyeControls").worldBound.yMin,Is.GreaterThanOrEqualTo(ui.Root.Q("preview").worldBound.yMax-.1f));
+            foreach(var eye in new[]{"green","blue"})
+            {
+                var button=ui.Root.Q<Button>("creator-eye-"+eye);
+                typeof(Clickable).GetMethod("SimulateSingleClick",Instance|BindingFlags.Public).Invoke(button.clickable,new object[]{null,0});
+                Assert.That(model.Character.Eyes,Is.EqualTo(eye));Assert.That(model.Request("fixture").Value<string>("eyes"),Is.EqualTo(eye));
+                yield return Ready(ui);yield return new WaitForSecondsRealtime(.15f);for(var i=0;i<12;i++)yield return null;
+                Assert.That(button.ClassListContains("creator-selected"),Is.True);
+                var pixels=Pixels(target);var image=new Texture2D(1280,900,TextureFormat.RGBA32,false);image.SetPixels32(pixels);image.Apply();
+                Directory.CreateDirectory("Build/MSIRelease/20261014-creator-eyes/visual");
+                File.WriteAllBytes("Build/MSIRelease/20261014-creator-eyes/visual/"+eye+".png",image.EncodeToPNG());Object.DestroyImmediate(image);
+            }
+            model.SetSex(true);Assert.That(model.Character.Eyes,Is.EqualTo("blue"));
+            typeof(PlayerCharacterCreator).GetMethod("Changed",Instance).Invoke(ui,new object[]{true});
+            typeof(PlayerCharacterCreator).GetMethod("BuildControls",Instance).Invoke(ui,null);yield return Ready(ui);
+            ui.SetState(true,false,"");Assert.That(ui.Root.Q<Button>("creator-eye-blue").enabledInHierarchy,Is.False);
+            ui.SetState(false,true,"");Assert.That(ui.Root.Q<Button>("creator-eye-blue").enabledInHierarchy,Is.False);
+            ui.SetState(false,false,"");Assert.That(ui.Root.Q<Button>("creator-eye-blue").enabledInHierarchy,Is.True);
+            model.Character.Eyes="unknown";Assert.That(model.CanSubmit,Is.False);
+            model.Character.Eyes="blue";
+            settings.targetTexture=null;target.Release();Object.DestroyImmediate(target);target=new RenderTexture(390,720,24);target.Create();settings.targetTexture=target;
+            for(var i=0;i<15;i++)yield return null;
+            Assert.That(ui.Root.ClassListContains("creator-compact"),Is.True);
+            foreach(var button in ui.Root.Query<Button>(className:"creator-eye-button").ToList())
+            {
+                Assert.That(button.worldBound.xMin,Is.GreaterThanOrEqualTo(0));Assert.That(button.worldBound.xMax,Is.LessThanOrEqualTo(390));
+                Assert.That(button.worldBound.yMax,Is.LessThan(ui.Root.Q("stage").worldBound.yMax));
+            }
+        }
+        finally {ui.Dispose();Loc.Current=old;settings.targetTexture=null;target.Release();Object.DestroyImmediate(target);Object.DestroyImmediate(settings);Object.DestroyImmediate(host);}
+    }
     private static void PutHandle<T>(Type cache,string field,string key,T asset) where T:Object
     {
         var handle=Activator.CreateInstance(typeof(ContentAssetHandle<T>),Instance,null,new object[]{asset,(Action)(()=>{})},null);
@@ -88,7 +187,7 @@ public sealed class PlayerCharacterCreatorTests
             var catalog=JObject.Parse(File.ReadAllText("Assets/HexLiveContent/People/catalog.json"))["records"];
             foreach(var row in catalog)
             {
-                var record=new ContentRecord {type=row.Value<string>("type"),id=row.Value<string>("id"),metadata=(JObject)row["metadata"],variant=new ContentVariant()};
+                var record=new ContentRecord {type=row.Value<string>("type"),id=row.Value<string>("id"),state="active",metadata=(JObject)row["metadata"],variant=new ContentVariant()};
                 _records[record.Key]=record;
                 if(record.type=="actor" || record.type=="hair")
                 {
@@ -99,6 +198,7 @@ public sealed class PlayerCharacterCreatorTests
                 }
             }
             var appearances=ScriptableObject.CreateInstance<ActorAppearanceCatalog>();
+            Assert.That(PeopleIdMap.Active,Is.True,"Fixture must represent the published Primal catalog, including active state");
             appearances.hairstyles=_records.Values.Where(r=>r.type=="hair").Select(r=>r.id).ToList();
             typeof(ActorAppearanceCatalog).GetField("_instance",Static).SetValue(null,appearances);
             typeof(ActorAppearanceCatalog).GetField("_tried",Static).SetValue(null,true);
@@ -244,7 +344,19 @@ public sealed class PlayerCharacterCreatorTests
             typeof(PlayerCharacterCreator).GetMethod("BuildControls",Instance).Invoke(ui,null);
             var thumbDeadline=Time.realtimeSinceStartup+12;
             while(!ui.Root.Query<Image>(className:"creator-tile-image").ToList().Any(i=>i.image!=null) && Time.realtimeSinceStartup<thumbDeadline)yield return null;
-            Assert.That(ui.Root.Query<Image>(className:"creator-tile-image").ToList().Any(i=>i.image!=null),Is.True,"Real hair thumbnails must render");
+            var thumbs=ui.Root.Query<Image>(className:"creator-tile-image").ToList();
+            var cache=typeof(PlayerCharacterCreator).GetField("_thumbnails",Instance).GetValue(ui);
+            var thumbnailStage=(LobbyCharacterPreview)cache.GetType().GetField("_stage",Instance).GetValue(cache);
+            var viewport=ui.Root.Q<ScrollView>("controls").contentViewport.worldBound;
+            var thumbnailLook=thumbnailStage==null?null:(CharacterCreationConfig)typeof(LobbyCharacterPreview).GetField("_character",Instance).GetValue(thumbnailStage);
+            var thumbnailView=thumbnailStage==null?null:(NpcActorView)typeof(LobbyCharacterPreview).GetField("_view",Instance).GetValue(thumbnailStage);
+            Assert.That(thumbs.Any(i=>i.image!=null),Is.True,"Real hair thumbnails must render; images="+thumbs.Count+
+                "; visible="+thumbs.Count(i=>viewport.Overlaps(i.worldBound))+"; viewport="+viewport+
+                "; stageReady="+thumbnailStage?.IsReady+"; stageFailed="+thumbnailStage?.Failed+
+                "; look="+thumbnailLook?.Body+"/"+thumbnailLook?.Skin+"/"+thumbnailLook?.Hair+"/"+thumbnailLook?.Eyes+
+                "; waiting="+(thumbnailStage==null?"none":typeof(LobbyCharacterPreview).GetProperty("LoadingDependency",Instance).GetValue(thumbnailStage))+
+                "; view="+(thumbnailView!=null)+"; hairReady="+thumbnailView?.CreationHairReady+
+                "; clothesReady="+(thumbnailView!=null && thumbnailView.CreationClothesReady(thumbnailLook.Clothing)));
             var visibleDeadline=Time.realtimeSinceStartup+12;
             while(ui.Root.Query<Image>(className:"creator-tile-image").ToList().Count(i=>i.image!=null)<3 && Time.realtimeSinceStartup<visibleDeadline)yield return null;
             _ = ui.Root.Q<VisualElement>("preview");

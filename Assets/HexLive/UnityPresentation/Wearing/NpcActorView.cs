@@ -6598,13 +6598,19 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     // iris.
     private void ApplyEyeSet(string eyeColor)
     {
-        if (string.IsNullOrEmpty(eyeColor) || _bodySkins == null)
+        if (_bodySkins == null)
         {
             return;
         }
 
-        // The new atlas has authored eyes; legacy iris maps have incompatible UVs.
-        if (GetComponentInChildren<PeopleAppearance>(true) != null) return;
+        // Primal has a distinct eye atlas tile; legacy maps have incompatible UVs.
+        var primal=GetComponentInChildren<PeopleAppearance>(true);
+        if(primal!=null)
+        {
+            if(!primal.ApplyEyes(eyeColor)) {CreationAppearanceFailed=true;Debug.LogWarning("Primal iris colour unavailable: "+eyeColor);}
+            return;
+        }
+        if(string.IsNullOrEmpty(eyeColor)) return;
         ReplaceBodyMaterials(LoadEyeSet(eyeColor));
     }
 

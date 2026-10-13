@@ -16,6 +16,13 @@ namespace HexLive.UnityPresentation.Wearing
         [SerializeField] private Skin[] skins = Array.Empty<Skin>();
         public string BodyId => bodyId;
         private readonly Dictionary<SkinnedMeshRenderer, Bounds> _authoredBounds = new();
+        private PeopleEyeColour _eyeColours;
+        public bool ApplyEyes(string id)
+        {
+            _eyeColours ??= new PeopleEyeColour(GetComponentsInChildren<SkinnedMeshRenderer>(true));
+            return _eyeColours.Apply(id);
+        }
+        private void OnDestroy() => _eyeColours?.Dispose();
 
         public void RestoreLocomotionBounds(SkinnedMeshRenderer skin)
         {

@@ -11,6 +11,7 @@
     <ui:VisualElement name="body" class="creator-body">
       <ui:VisualElement name="stage" class="creator-stage">
         <ui:VisualElement name="preview" class="creator-preview" />
+        <ui:VisualElement name="eyeControls" class="creator-eyes" />
         <ui:VisualElement name="cameraControls" class="creator-camera-controls" />
         <ui:Label name="orbitHint" class="creator-hint" />
       </ui:VisualElement>

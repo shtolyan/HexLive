@@ -4,6 +4,7 @@ using System.Linq;
 using HexLive.Simulation.Agents;
 using HexLive.Simulation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Wearing;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -23,6 +24,7 @@ public sealed class PlayerCharacterCreator : IDisposable
     private readonly Action _changed, _submit;
     private readonly List<(Button button, Func<bool> selected)> _tiles = new();
     private readonly Dictionary<string, Button> _steps = new();
+    private readonly Dictionary<string, Button> _eyeButtons = new();
     private string _tab = "appearance";
     private string _appearanceTab = "skin";
     private bool _disposed, _busy, _pending, _focusHead;
@@ -75,12 +77,30 @@ public sealed class PlayerCharacterCreator : IDisposable
     private void BuildControls()
     {
         _controls.Clear(); _tiles.Clear();
+        BuildEyes();
         foreach (var pair in _steps) pair.Value.EnableInClassList("creator-selected", pair.Key == _tab);
         if (_tab == "appearance") BuildAppearance();
         else if (_tab == "abilities") BuildAbilities();
         else BuildCamps();
     }
     private void Heading(string title) { var label = new Label(title); label.AddToClassList("creator-section-title"); _controls.Add(label); }
+    private void BuildEyes()
+    {
+        var panel=Root.Q("eyeControls");panel.Clear();_eyeButtons.Clear();
+        panel.style.display=_tab=="appearance"?DisplayStyle.Flex:DisplayStyle.None;
+        var title=new Label(T("eyes"));title.AddToClassList("creator-eye-title");panel.Add(title);
+        var row=new VisualElement();row.AddToClassList("creator-eye-row");panel.Add(row);
+        foreach(var id in Appearance.Eyes)
+        {
+            var label=T("eye."+(id.Length==0?"default":id));
+            var button=AddButton(row,"",()=> {Appearance.Character.Eyes=id;_focusHead=true;Changed();},"creator-eye-button");
+            button.name="creator-eye-"+(id.Length==0?"default":id);button.tooltip=label;
+            var white=new VisualElement {pickingMode=PickingMode.Ignore};white.AddToClassList("creator-eye-white");
+            var iris=new VisualElement {pickingMode=PickingMode.Ignore};iris.AddToClassList("creator-eye-iris");iris.style.backgroundColor=PeopleEyeColour.Swatch(id);
+            var pupil=new VisualElement {pickingMode=PickingMode.Ignore};pupil.AddToClassList("creator-eye-pupil");
+            iris.Add(pupil);white.Add(iris);button.Add(white);_eyeButtons[id]=button;
+        }
+    }
     private void Note(string text) { var label = new Label(text); label.AddToClassList("creator-note"); _controls.Add(label); }
     private VisualElement Row(string css)
     { var row = new VisualElement(); row.AddToClassList(css); _controls.Add(row); return row; }
@@ -217,7 +237,10 @@ public sealed class PlayerCharacterCreator : IDisposable
         Note(T("confirmHint")); Highlight();
     }
     private void Highlight()
-    { foreach (var tile in _tiles) tile.button.EnableInClassList("creator-selected", tile.selected()); }
+    {
+        foreach (var tile in _tiles) tile.button.EnableInClassList("creator-selected", tile.selected());
+        foreach(var pair in _eyeButtons) pair.Value.EnableInClassList("creator-selected",pair.Key==Appearance.Character.Eyes);
+    }
     private void Changed(bool preview = true)
     { _changed(); if (preview) _preview.Refresh(Appearance.Character); Highlight(); UpdateReady(); }
     private void UpdateReady()
@@ -234,6 +257,7 @@ public sealed class PlayerCharacterCreator : IDisposable
     {
         _busy = busy; _pending = pending; _status.text = message;
         _controls.SetEnabled(!busy && !pending); _back.SetEnabled(!busy); _retry.SetEnabled(!busy);
+        Root.Q("eyeControls").SetEnabled(!busy && !pending);
         UpdateReady();
     }
     public void Dispose()

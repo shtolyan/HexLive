@@ -15,6 +15,13 @@
 .creator-camera-controls { flex-direction: row; justify-content: center; flex-wrap: wrap; padding: 8px; }
 .creator-camera-controls > Button { margin: 3px; min-width: 42px; font-size: 12px; }
 .creator-hint { color: rgb(157, 174, 167); font-size: 11px; -unity-text-align: middle-center; margin: 4px 10px 12px; white-space: normal; }
+.creator-eyes { padding: 8px 10px 2px; flex-shrink: 0; align-items: center; }
+.creator-eye-title { color: rgb(196, 209, 197); font-size: 12px; margin-bottom: 5px; }
+.creator-eye-row { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.creator .creator-eye-button { width: 44px; min-height: 38px; padding: 4px; margin: 2px; align-items: center; justify-content: center; }
+.creator-eye-white { width: 30px; height: 20px; border-radius: 12px; background-color: rgb(221, 224, 209); align-items: center; justify-content: center; }
+.creator-eye-iris { width: 18px; height: 18px; border-radius: 9px; align-items: center; justify-content: center; }
+.creator-eye-pupil { width: 7px; height: 7px; border-radius: 4px; background-color: rgb(5, 8, 9); }
 .creator-editor { width: 430px; min-width: 350px; flex-shrink: 0; background-color: rgb(22, 30, 31); border-radius: 16px; border-width: 1px; border-color: rgb(44, 60, 55); padding: 16px; }
 .creator-steps { flex-direction: row; margin-bottom: 12px; }
 .creator-steps > Button { flex-grow: 1; flex-basis: 0; margin-right: 4px; font-size: 12px; padding: 9px 5px; }
@@ -54,7 +61,7 @@
 .creator-over-budget { color: rgb(255, 152, 139); }
 .creator-compact { padding: 12px; }
 .creator-compact .creator-body { flex-direction: column; }
-.creator-compact .creator-stage { height: 245px; flex-grow: 0; flex-shrink: 0; flex-basis: auto; margin-right: 0; margin-bottom: 10px; }
+.creator-compact .creator-stage { height: 335px; flex-grow: 0; flex-shrink: 0; flex-basis: auto; margin-right: 0; margin-bottom: 10px; }
 .creator-compact .creator-viewport { min-height: 100px; }
 .creator-compact .creator-editor { width: auto; min-width: 0; flex-grow: 1; flex-shrink: 1; padding: 10px; }
 .creator-compact .creator-title { font-size: 22px; }

@@ -49,7 +49,8 @@ public static class Spec49
     // So the one canonical bed is a BIG comfort source and bare grass stays a
     // pittance. Legacy bed.leaf saves canonicalize to bed.basic before use.
     public static float SleepComfortGrassNight = 0.05f;
-    public static float SleepComfortBedNight = 1.40f;   // was 1.00 — premium bedroll fills comfort fully + margin
+    // §49.2 / #459: legacy fallback only; normal beds use the current stump Sit rate.
+    public static float SleepComfortBedNight = 1.40f;
     // §49.8: a night's sleep beside a lit fire tops up ~5% comfort on its own —
     // the campfire's warmth reads as cosy even on bare grass.
     public static float SleepComfortFireBonusNight = 0.05f;

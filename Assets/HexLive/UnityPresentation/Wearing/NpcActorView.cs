@@ -3393,6 +3393,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
 
         _resting = resting;
+        if (!resting) ResetStandUpMotion();
         if (_animator != null)
         {
             _animator.SetBool(RestingParam, resting);
@@ -3477,6 +3478,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _wakeBlend = 0f; // lying back down cancels any in-flight ease
         }
 
+        if (_laying && !laying) ResetStandUpMotion();
         _laying = laying;
         // §137: легла — значит уже не сидит. Снимается ЗДЕСЬ, а не в
         // рендерере: лежачих веток четыре, и забыть флаг в одной из них
@@ -4294,6 +4296,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             _animator.SetBool(WorkingParam, !_legless && _hasUsableHand && !chopping &&
                 interaction is "Harvest" or "BuildRaft");
             _animator.SetBool(CraftingParam, kneelingCraft);
+            if (!praying && _animator.GetBool(PrayingParam)) ResetStandUpMotion();
             _animator.SetBool(PrayingParam, praying); // §110
             _animator.SetBool(TreatingParam, treating); // §68/§53
             // §111.13: с какой станции лежащего тела она работает. Слот 0 (ноги)
@@ -4731,6 +4734,11 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         {
             return;
         }
+
+        var pose = _animator.GetCurrentAnimatorStateInfo(0);
+        if (_wakeBlend > 0f || IsStandUpState(pose) || pose.IsName("RestDown") || pose.IsName("RestIdle") ||
+            pose.IsName("PrayDown") || pose.IsName("Pray") ||
+            _animator.IsInTransition(0) && IsStandUpState(_animator.GetNextAnimatorStateInfo(0))) return;
 
         OverrideClip(EmoteBaseClip, Standing(clip));
         _animator.SetTrigger("Emote");
@@ -6834,6 +6842,48 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         }
     }
 
+    private static bool IsStandUpState(AnimatorStateInfo state) =>
+        state.IsName("GetUp") || state.IsName("RestUp") ||
+        state.IsName("StandUp") || state.IsName("PrayUp");
+
+    private void ResetStandUpMotion()
+    {
+        _motionSampleValid = false;
+        _wasWalking = false;
+        _smoothedSpeed = 0f;
+        _stillTimer = 0f;
+        _animSpeed = 1f;
+        _gait = 0f;
+        if (_animator == null) return;
+        _animator.SetFloat(SpeedParam, 0f);
+        _animator.SetFloat(TurnDirectionParam, 0f);
+        _animator.SetFloat(GaitParam, 0f);
+        _animator.speed = _simSpeed;
+    }
+
+    private void ApplyWakeEase()
+    {
+        if (_bodyRoot == null || _wakeBlend <= 0f) return;
+        var hold = false;
+        if (_animator != null)
+        {
+            var state = _animator.GetCurrentAnimatorStateInfo(0);
+            hold = IsStandUpState(state) || state.IsName("Sleep") || state.IsName("LieDown") ||
+                state.IsName("FallenIdle") || state.IsName("FallDown") ||
+                _animator.IsInTransition(0) && IsStandUpState(_animator.GetNextAnimatorStateInfo(0));
+        }
+        if (!hold)
+            _wakeBlend = Mathf.MoveTowards(_wakeBlend, 0f,
+                Time.deltaTime * Mathf.Max(0f, _simSpeed) / WakeEaseSeconds);
+        if ((_wakeFromPos - _bodyRoot.position).magnitude < _moveEpsilon * 300f)
+        {
+            var t = _wakeBlend * _wakeBlend * (3f - 2f * _wakeBlend);
+            _bodyRoot.position = Vector3.Lerp(_bodyRoot.position, _wakeFromPos, t);
+            _bodyRoot.rotation = Quaternion.Slerp(_bodyRoot.rotation, _wakeFromRot, t);
+        }
+        else _wakeBlend = 0f;
+    }
+
     private void SampleMotion()
     {
         if (_animator == null)
@@ -6871,6 +6921,13 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // walking the ×50 back down — animations played "Flash"-fast.
             _animSpeed = _animator.speed > 0f ? 1f : 0f;
             _motionSampleValid = false;
+            return;
+        }
+
+        if (IsStandUpState(_animator.GetCurrentAnimatorStateInfo(0)) ||
+            _animator.IsInTransition(0) && IsStandUpState(_animator.GetNextAnimatorStateInfo(0)))
+        {
+            ResetStandUpMotion();
             return;
         }
 
@@ -7857,26 +7914,9 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 _bodyRoot.localPosition = rest;
                 _bodyRoot.localRotation = Quaternion.identity;
 
-                // Wake-up ease: blend from the remembered on-bed pose to the
-                // freshly computed rest pose, so she rises where she slept and
-                // glides onto her feet instead of teleporting sideways off the
-                // bed. Skipped when the gap is huge (an intended teleport).
-                if (_wakeBlend > 0f)
-                {
-                    _wakeBlend = Mathf.MoveTowards(
-                        _wakeBlend, 0f,
-                        Time.deltaTime * Mathf.Max(1f, _simSpeed) / WakeEaseSeconds);
-                    if ((_wakeFromPos - _bodyRoot.position).magnitude < _moveEpsilon * 300f)
-                    {
-                        var t = _wakeBlend * _wakeBlend * (3f - 2f * _wakeBlend);
-                        _bodyRoot.position = Vector3.Lerp(_bodyRoot.position, _wakeFromPos, t);
-                        _bodyRoot.rotation = Quaternion.Slerp(_bodyRoot.rotation, _wakeFromRot, t);
-                    }
-                    else
-                    {
-                        _wakeBlend = 0f;
-                    }
-                }
+                // #453: rise on the remembered bed anchor, then ease to the
+                // standing root. Horizontal easing during GetUp was sliding.
+                ApplyWakeEase();
             }
         }
 

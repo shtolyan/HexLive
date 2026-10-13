@@ -42,6 +42,8 @@ public static class HexHopTuning
     // приземления она ПОДНИМАЕТСЯ — эту паузу и задаёт ручка. Сим держит
     // ClimbPauseTimer на это время, вид в ту же паузу играет Standing Up;
     // ползущая не встаёт и просто лежит её до конца.
+    // #453: MovementSystem применяет минимум StandUpMath.GraceTicks,
+    // чтобы конфиг1.6с не обрывал Standing Up и его переходы.
     public static float FallRecoverSeconds = 1.6f;
 
     // Symmetric flight geometry: takeoff EdgePadding BEFORE the elevation

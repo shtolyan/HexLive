@@ -523,7 +523,7 @@ internal static class ManualCommandExecutor
         if (interruptedSleep)
         {
             npc.Mind.WakeGraceUntilTick = System.Math.Max(
-                npc.Mind.WakeGraceUntilTick, world.Tick + AiBalance.WakeGraceTicks);
+                npc.Mind.WakeGraceUntilTick, world.Tick + StandUpMath.GraceTicks);
         }
 
         // A pending attack/need can have no active movement plan. Its receipt

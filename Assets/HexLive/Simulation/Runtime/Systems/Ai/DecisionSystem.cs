@@ -107,7 +107,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 // Bug #54: without wake grace, NeedsDecaySystem could re-arm
                 // the same faint later in this very tick while the collapse
                 // thresholds were still true.
-                npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
+                npc.Mind.WakeGraceUntilTick = world.Tick + StandUpMath.GraceTicks;
                 MortalityHelpers.TryStartPlayDead(world, npc); // hiding clears grace
             }
 
@@ -138,7 +138,6 @@ public sealed partial class DecisionSystem : ISimulationSystem
             if (npc.Mind.CryingUntilTick != 0)
             {
                 LyingSpot.EndCrying(world, npc);
-                npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
 
                 // §105.14: те же ворота перед подъёмом, и та же причина
                 // спрашивать ручку прямо здесь (см. обморок выше).

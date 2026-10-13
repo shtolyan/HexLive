@@ -317,7 +317,8 @@ public sealed class MovementSystem : ISimulationSystem
                 if (!npc.Body.CanJump && !npc.Movement.HopUp)
                 {
                     npc.Movement.ClimbPauseTimer = System.MathF.Max(
-                        npc.Movement.ClimbPauseTimer, HexHopTuning.FallRecoverSeconds);
+                        npc.Movement.ClimbPauseTimer, System.MathF.Max(HexHopTuning.FallRecoverSeconds,
+                            StandUpMath.GraceTicks * world.TickDeltaTime));
                 }
 
                 if (SimTrace.Enabled)
@@ -366,6 +367,27 @@ public sealed class MovementSystem : ISimulationSystem
             // ground she lands, whatever the planner has decided since.
             if (RunHopWindow(world, npc))
             {
+                continue;
+            }
+
+            // #453: stand/recover before any route check or turn, including
+            // a fall which landed at the route's last point.
+            if (npc.Movement.ClimbPauseTimer > 0f)
+            {
+                npc.Movement.ClimbPauseTimer = System.MathF.Max(0f,
+                    npc.Movement.ClimbPauseTimer - world.TickDeltaTime);
+                if (npc.Movement.IsMoving) npc.Movement.SetStatus(MovementStatus.Waiting);
+                if (SimTrace.Enabled)
+                    Trace.Debug(world, npc.Id, "ClimbPause", $"Timer={npc.Movement.ClimbPauseTimer:F2}s remaining");
+                PauseGaitAndBreath(npc);
+                continue;
+            }
+
+            // #453: also gate an already armed path, not only path creation.
+            // Preserve the order/path so it resumes when the rise finishes.
+            if (world.Tick < npc.Mind.WakeGraceUntilTick)
+            {
+                PauseGaitAndBreath(npc);
                 continue;
             }
 
@@ -899,22 +921,6 @@ public sealed class MovementSystem : ISimulationSystem
                     PauseGaitAndBreath(npc);
                     continue;
                 }
-            }
-
-            // Standing pause (swim-entry treading, §40.18-B). Deferred while
-            // a hop is flying — the hop owns its own timeline; a pending
-            // tread pause plays after the landing beat.
-            if (npc.Movement.ClimbPauseTimer > 0f && npc.Movement.HopTimer <= 0f)
-            {
-                npc.Movement.ClimbPauseTimer -= world.TickDeltaTime;
-                npc.Movement.SetStatus(MovementStatus.Waiting);
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "ClimbPause",
-                        $"Timer={npc.Movement.ClimbPauseTimer:F2}s remaining");
-                }
-                PauseGaitAndBreath(npc);
-                continue;
             }
 
             // §21.21B v6 + v17: the hop window ran at the TOP of this loop, before

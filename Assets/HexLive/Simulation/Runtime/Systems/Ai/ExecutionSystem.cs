@@ -47,7 +47,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             // and remain queued, but no interaction may start over the GetUp
             // clip. This also covers an order whose target is already underfoot
             // and therefore needs no pathfinding.
-            if (world.Tick < npc.Mind.WakeGraceUntilTick)
+            if (world.Tick < npc.Mind.WakeGraceUntilTick || npc.Movement.ClimbPauseTimer > 0f)
             {
                 continue;
             }
@@ -1097,7 +1097,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 // senses for a beat before the next errand.
                 if (completedInteraction.Type == InteractionType.Sleep)
                 {
-                    npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
+                    npc.Mind.WakeGraceUntilTick = world.Tick + StandUpMath.GraceTicks;
                 }
 
                 npc.Plan.Status = PlanStatus.Completed;

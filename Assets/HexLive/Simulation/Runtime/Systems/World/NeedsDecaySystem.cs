@@ -231,7 +231,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     {
         LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
         npc.Mind.ComaCause = ComaCause.None;
-        npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks; // spec 41.5
+        npc.Mind.WakeGraceUntilTick = world.Tick + StandUpMath.GraceTicks; // spec 41.5
 
         ExecutionSystem.ReleaseClaims(world, npc);
         if (npc.CurrentJunction is { } lay)

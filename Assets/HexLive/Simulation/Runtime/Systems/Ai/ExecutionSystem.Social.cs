@@ -530,7 +530,7 @@ public sealed partial class ExecutionSystem
                 if (target.IsLyingDown(world.Tick))
                 {
                     helper.Mind.WakeGraceUntilTick = System.Math.Max(
-                        helper.Mind.WakeGraceUntilTick, world.Tick + Spec53.ConsoleStandUpTicks);
+                        helper.Mind.WakeGraceUntilTick, world.Tick + StandUpMath.KneelingGraceTicks);
                 }
 
                 break;

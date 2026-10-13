@@ -203,7 +203,7 @@ public sealed partial class ExecutionSystem
         // the grass; the get-up clip plays out during the grace.
         if (kind == InteractionType.Sleep)
         {
-            npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
+            npc.Mind.WakeGraceUntilTick = world.Tick + StandUpMath.GraceTicks;
         }
 
         if (kind == InteractionType.Sit)
@@ -328,7 +328,7 @@ public sealed partial class ExecutionSystem
         if (stoodUp)
         {
             npc.Mind.WakeGraceUntilTick = System.Math.Max(
-                npc.Mind.WakeGraceUntilTick, world.Tick + AiBalance.WakeGraceTicks);
+                npc.Mind.WakeGraceUntilTick, world.Tick + StandUpMath.GraceTicks);
         }
 
         npc.Mind.RestCooldownUntilTick = world.Tick + Spec137.CooldownTicks;

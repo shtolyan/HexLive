@@ -650,7 +650,7 @@ public sealed class KenshiCoreTests
 
         new DecisionSystem().Run(world);
         Assert.That(patient.Mind.WakeGraceUntilTick,
-            Is.EqualTo(world.Tick + AiBalance.WakeGraceTicks));
+            Is.EqualTo(world.Tick + StandUpMath.GraceTicks));
 
         new NeedsDecaySystem().Run(world);
         Assert.That(patient.Mind.FaintedUntilTick, Is.Zero,
@@ -683,7 +683,7 @@ public sealed class KenshiCoreTests
         patient.Body.Parts[BodyPart.LegR] = 0.8f;
         MortalityHelpers.GrantStandUpGrace(world, patient, wasProne: true);
         Assert.That(patient.Mind.WakeGraceUntilTick,
-            Is.EqualTo(world.Tick + AiBalance.WakeGraceTicks));
+            Is.EqualTo(world.Tick + StandUpMath.GraceTicks));
     }
 
     [Test]

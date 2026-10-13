@@ -62,7 +62,7 @@ internal static class MortalityHelpers
         }
 
         npc.Mind.WakeGraceUntilTick = System.Math.Max(
-            npc.Mind.WakeGraceUntilTick, world.Tick + AiBalance.WakeGraceTicks);
+            npc.Mind.WakeGraceUntilTick, world.Tick + StandUpMath.GraceTicks);
     }
 
     // ---- Кровотечение: одно определение на всю симуляцию ---------------------
@@ -530,7 +530,7 @@ internal static class MortalityHelpers
 
         // Как после сна/комы: встать и прийти в себя (§41.5), отпустить
         // лежачий след и джанкшн, который держало тело.
-        npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
+        npc.Mind.WakeGraceUntilTick = world.Tick + StandUpMath.GraceTicks;
         ExecutionSystem.ReleaseClaims(world, npc);
         if (npc.CurrentJunction is { } lay)
         {
@@ -807,7 +807,7 @@ internal static class MortalityHelpers
         LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
         npc.Mind.PlayDeadUntilTick = 0;
         npc.Mind.PlayDeadSinceTick = 0;
-        npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks; // §41.5
+        npc.Mind.WakeGraceUntilTick = world.Tick + StandUpMath.GraceTicks; // §41.5
 
         ExecutionSystem.ReleaseClaims(world, npc);
         if (npc.CurrentJunction is { } lay)

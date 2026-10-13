@@ -99,6 +99,12 @@ internal static class MeleeSwing
         damage = 0f;
         clipSeconds = 0f;
 
+        if (world.Tick < actor.Mind.WakeGraceUntilTick || actor.Movement.ClimbPauseTimer > 0f)
+        {
+            Cancel(actor);
+            return false;
+        }
+
         // §116: both hands and the torso are committed to the patient. Cancel
         // a wind-up left over from the instant before pickup as well.
         if (actor.IsCarryingPerson)

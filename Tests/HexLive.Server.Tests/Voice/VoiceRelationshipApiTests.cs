@@ -51,6 +51,7 @@ public sealed class VoiceRelationshipApiTests
                 client.DefaultRequestHeaders.Add("X-HexLive-Client-Id",player);
                 var response = await client.GetAsync(route);
                 Assert.That(response.StatusCode,Is.EqualTo(HttpStatusCode.OK));
+                Assert.That(response.Headers.CacheControl?.NoStore,Is.True,"Names and owner-scoped relationships cannot be served from a stale browser cache");
                 var view = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
                 Assert.That(view.GetProperty("voiceName").GetString(),Is.EqualTo("Голос"));
                 Assert.That(view.GetProperty("familiarity").GetSingle(),Is.Zero);

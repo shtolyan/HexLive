@@ -58,6 +58,7 @@ public static class VoiceEndpoints
 
         app.MapGet(Root + "/relationship/{npcId:int}", (HttpContext c, int npcId) =>
         {
+            c.Response.Headers.CacheControl = "no-store";
             if (!identity.TryResolve(c, out var playerId)) return Results.Unauthorized();
             if (!Owns(playerId, npcId)) return Results.StatusCode(StatusCodes.Status403Forbidden);
             return Results.Json(voice.RelationshipView(worlds.Host.WorldId + ":" + npcId, "ws:" + playerId));

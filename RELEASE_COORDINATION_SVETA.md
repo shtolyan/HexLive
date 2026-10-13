@@ -325,3 +325,57 @@ BigIsland world under the new (§171) rules. New York, Flashback, Coil and keys 
 - Live browser (guest, Claude app): connect 3.1 s, curtain ~125 s on a cold cache, day 1, Jolly/Wren dressed, live
   portrait; exceptions 0, console errors 0, missing-record errors 0. FPS not measured (pane throttled).
 - NOT verified: real sign-in and a voice call on prod (agents may not create real Firebase accounts) — Tolya.
+
+## MSI — Singapore server + Player, 2026-10-13 12:28 UTC
+
+Tolya directly ordered two-decimal balance display, commit/push, branch refresh,
+build and deploy to Singapore. MSI published both runtime layers; content was
+preserved. Source `f7a20d6cd3d21745a42e6d7759702eeccb842d52`, protocol24.
+`codex/msi-visual-bugs` was pushed and pulled with `--ff-only` before the build.
+The release includes #443 voice setup/error handling, #444 precise usage ledger,
+automatic final voice reconciliation and USD display with two decimal places,
+#452 browser API corrections and #453 standing/movement synchronization.
+
+- Server archive SHA256 `cec9ee7980671a95a5ccb300c93260981c1a0e9d31333dd80bcaade9d2e52368`;
+  521 staged files verified. `/opt/hexlive/current` changed from
+  `/opt/hexlive/releases/dae0138061c9521489ada91c14d4f8bee82bd5b3` to
+  `/opt/hexlive/releases/f7a20d6cd3d21745a42e6d7759702eeccb842d52`.
+- Player archive SHA256 `23b58bb1967fac1e71aae1e9130781f6642a870415717a04abc3f7f86dd9f850`;
+  19 staged files, 18 final public files downloaded and hashed.
+  `/var/lib/hexlive-web/current` changed from
+  `/var/lib/hexlive-web/releases/msi-20261013-dae013806` to
+  `/var/lib/hexlive-web/releases/msi-20261013-f7a20d6cd`.
+- Canonical Unity6000.4.5f1 CLI builder succeeded: 234MB, 0 errors, 562 warnings,
+  18.4 build minutes. Log confirms RuntimeSpeed, FMOD4×2048/WebAudioTuning,
+  audio manifest7984, success and devicePixelRatio1. Dirty project settings
+  restored byte-for-byte; foreign material/editor changes preserved.
+- Verified reuse of audio source `7cd230bda39202a3a5a84da98106109bf270aae1`:
+  all7984 source files unchanged, all5668 copied FSB/vis hashes checked,
+  FSB5 signatures checked, reuse marker removed only after verification.
+  MSI reuse skips WriteWebMusic; the narrow documentation correction is
+  `7a5ff754011ecd6f0597b71b4422df1b224574af`, not new Player runtime code.
+- Checks: native UI18/18, Server485/485, Voice14/14, JS12/12, tooling7/7;
+  strict WebGL compiler0 errors/0 forbidden APIs. Full Simulation1749 passed
+  with6 existing skips at the unchanged simulation source from #453.
+- One `hexlive.service` restart; Caddy/configuration unchanged. Stopped-world
+  backup, accounts, keys and voice usage backup retained privately under
+  `/var/lib/hexlive/ops/msi-balance-release-20261013-f7a20d6cd/activation-backup`.
+  No world reset, no credit regrant, assignments preserved; tick392461 loaded
+  and continued392467. Registry/catalog604 and all230 content records unchanged.
+  Previous server/Player remain for rollback. New York was not modified.
+- Public verification passed: Brotli/WASM MIME, complete Player SHA map,
+  voice client.js matches source, audio sidecar hash and anonymous live
+  wire24 snapshot in the same running world. No player orders issued.
+- In-app Chromium opened loader `player-f7a20d6cd.loader.js` and rendered the
+  centered server menu. FMOD log: AUDIOWORKLET,48000Hz,2048×4. Singapore ping
+  was positive456ms (the separator is `·`). Two startup NullReferenceExceptions
+  without stacks and missing NY `closedtest.unavailable` localization were
+  recorded on #439; matching the earlier reported NRE cause is unproven.
+  Real authenticated balance/join/call and standing visual QA were not performed
+  in this browser; native checks do not replace the player's live confirmation.
+
+Operational receipts/logs are local at `Build/MSIRelease/20261013-balance-release/`;
+the public runtime receipt is `/release-receipt.json`. No source/evidence archive
+was exported to Flashback. Transfer recovered from a verified-complete stalled
+SFTP by stopping only MSI's own copy process and using standard SCP with strict
+host checking; production pointers remained unchanged until guarded activation.

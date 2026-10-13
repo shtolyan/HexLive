@@ -368,10 +368,12 @@ public static class Program
         WorldCreationEndpoints.Map(app, worlds, account, sessions, assetRegistry, options.CompanionProfile, playerToken);
         // §171.8: voice brain in-process; off unless player control and every provider secret are configured.
         // Same identity seam as every player API: an account session (§171.9) or the shared token + client id.
+        HexLive.VoiceBrain.VoiceBrainService? voiceBrain = null;
         if (controlLeases is not null && (playerToken is not null || playerAccounts is not null))
-            Voice.VoiceEndpoints.Map(app, worlds, controlLeases, agentSessions,
+            voiceBrain = Voice.VoiceEndpoints.Map(app, worlds, controlLeases, agentSessions,
                 app.Services.GetRequiredService<PlayerHttpIdentity>(),
                 Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddSimpleConsole(o => o.SingleLine = true)).CreateLogger("voice"), playerAccounts);
+        var voiceReconciliation = voiceBrain?.ReconcilePendingContinuouslyAsync(lifetime.Token) ?? Task.CompletedTask;
         RetiredBugTracker.Map(app);
         if (options.WebRoot is not null)
         {
@@ -468,7 +470,7 @@ public static class Program
         }
 
         lifetime.Cancel();
-        await Task.WhenAll(autosave, status, leaseSweep, agentSweep).ConfigureAwait(false);
+        await Task.WhenAll(autosave, status, leaseSweep, agentSweep, voiceReconciliation).ConfigureAwait(false);
 
         // Last write wins: whatever happens, the colony that was alive a second
         // ago is on disk when this process ends.

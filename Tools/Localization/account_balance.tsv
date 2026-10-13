@@ -1,0 +1,7 @@
+# key	English	Русский
+account.balance.amount	Balance: {0} USD	Баланс: {0} USD
+account.balance.spent	Spent: {0} USD ({1} ¢)	Расход: {0} USD ({1} ¢)
+account.balance.pending	Awaiting prices: {0}	Уточняются расходы: {0}
+account.balance.estimated	Includes tariff estimates	Включает тарифную оценку
+account.balance.unavailable	Balance unavailable	Баланс недоступен
+account.balance.details	Credit: {0} USD\nConfirmed spend: {1} USD\nTariff estimate: {2} USD\nUnpriced requests: {3}\n1 USD = 100 cents. Unpriced usage is not free; balance will change after reconciliation.	Кредит: {0} USD\nПодтверждённый расход: {1} USD\nТарифная оценка: {2} USD\nЗапросы без цены: {3}\n1 USD = 100 центов. Расходы без цены не бесплатны; баланс изменится после сверки.

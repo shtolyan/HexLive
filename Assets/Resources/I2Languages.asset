@@ -28837,6 +28837,70 @@ MonoBehaviour:
       - 'Нет голосового соединения'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'account.balance.amount'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Balance: {0} USD'
+      - 'Баланс: {0} USD'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'account.balance.spent'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Spent: {0} USD ({1} ¢)'
+      - 'Расход: {0} USD ({1} ¢)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'account.balance.pending'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Awaiting prices: {0}'
+      - 'Уточняются расходы: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'account.balance.estimated'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Includes tariff estimates'
+      - 'Включает тарифную оценку'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'account.balance.unavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Balance unavailable'
+      - 'Баланс недоступен'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'account.balance.details'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Credit: {0} USD
+
+      Confirmed spend: {1} USD
+
+      Tariff estimate: {2} USD
+
+      Unpriced requests: {3}
+
+      1 USD = 100 cents. Unpriced usage is not free; balance will change after reconciliation.'
+      - 'Кредит: {0} USD
+
+      Подтверждённый расход: {1} USD
+
+      Тарифная оценка: {2} USD
+
+      Запросы без цены: {3}
+
+      1 USD = 100 центов. Расходы без цены не бесплатны; баланс изменится после сверки.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName: 

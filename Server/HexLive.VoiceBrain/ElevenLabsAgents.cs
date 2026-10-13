@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace HexLive.VoiceBrain;
 
-/// <summary>§171.7: the only two ElevenLabs Agents calls the brain makes; the API key never leaves this class.</summary>
+/// <summary>§171.7: ElevenLabs Agents token and billing calls; the API key never leaves this class.</summary>
 public sealed class ElevenLabsAgents(HttpClient http, string apiKey)
 {
     private const string Api = "https://api.elevenlabs.io";
@@ -42,6 +42,27 @@ public sealed class ElevenLabsAgents(HttpClient http, string apiKey)
         var status = root.TryGetProperty("status", out var s) ? s.GetString() ?? "" : "";
         var user = root.TryGetProperty("user_id", out var u) ? u.GetString() ?? "" : "";
         return new(seconds, cost, usd, status, user);
+    }
+
+    public async Task<string?> ConversationForSessionAsync(string agentId, string sessionId, CancellationToken token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, Api + "/v1/convai/conversations?agent_id=" +
+            Uri.EscapeDataString(agentId) + "&user_id=" + Uri.EscapeDataString(sessionId) + "&page_size=2&summary_mode=exclude");
+        request.Headers.Add("xi-api-key", apiKey);
+        using var response = await http.SendAsync(request, token);
+        if (!response.IsSuccessStatusCode) throw new HttpRequestException("ElevenLabs session lookup HTTP " + (int)response.StatusCode);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
+        var root = doc.RootElement;
+        var rows = root.GetProperty("conversations");
+        if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() > 1 ||
+            root.TryGetProperty("has_more", out var more) && more.ValueKind == JsonValueKind.True)
+            throw new InvalidDataException("ConversationLookupAmbiguous");
+        if (rows.GetArrayLength() == 0) return null;
+        var row = rows[0];
+        if (row.GetProperty("agent_id").GetString() != agentId ||
+            row.GetProperty("conversation_id").GetString() is not { Length: > 0 and <= 128 } id)
+            throw new InvalidDataException("ConversationLookupInvalid");
+        return id;
     }
 }
 

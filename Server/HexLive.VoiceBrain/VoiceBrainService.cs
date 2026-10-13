@@ -14,7 +14,7 @@ namespace HexLive.VoiceBrain;
 /// "custom LLM" endpoint, session tickets, voices, usage — independent of WHO hosts
 /// it. The world is reached through <see cref="IWorldGateway"/> chosen per ticket.
 /// </summary>
-public sealed class VoiceBrainService
+public sealed partial class VoiceBrainService
 {
     public BrainOptions Options { get; }
     public SessionTickets Tickets { get; }

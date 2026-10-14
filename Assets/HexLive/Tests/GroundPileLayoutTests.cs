@@ -60,6 +60,13 @@ public sealed class GroundPileLayoutTests
             }
             adapter.ApplyScatter(123);var first=adapter.SlotTransform.localRotation;
             adapter.Apply(0,GroundPileCatalog.Capacity(id),123);
+            if(id=="resource.palm_crown")
+            {
+                Assert.That(ObjectFit.WorldBounds(visual,out var droppedBounds),Is.True);
+                Assert.That(droppedBounds.center.x,Is.EqualTo(0f).Within(.00005f),"A single crown must not use the first corner of a20-crown grid.");
+                Assert.That(droppedBounds.center.z,Is.EqualTo(0f).Within(.00005f));
+                Assert.That(droppedBounds.min.y,Is.EqualTo(0f).Within(.00005f));
+            }
             adapter.ApplyScatter(123);
             Assert.That(adapter.SlotTransform.localRotation,Is.EqualTo(first));
             Assert.That(GroundPileLayout.ScatterYaw(123),Is.Not.EqualTo(GroundPileLayout.ScatterYaw(124)));

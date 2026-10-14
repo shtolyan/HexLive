@@ -17,6 +17,41 @@ namespace HexLive.Simulation.Tests.Behavior
 {
 public sealed class GroundItemPlacementTests
 {
+    [TestCase("resource.palm_crown")]
+    [TestCase("resource.palm_crown_small")]
+    public void SingleCrownDropsAtOwnOccupiedPointWithoutReservingTwentyCrowns(string crownId)
+    {
+        var (world,npc)=Fixture(onlyOwnPoint:true);
+        var position=npc.Position;
+        var desired=position+new Float2(3.5f,0f);
+        var neighbour=world.Junctions.Items.Values.Where(j=>j.Fragment==npc.Fragment &&
+            j.Tiles.Any(t=>SpatialQueries.IsTileWalkable(world,t)))
+            .OrderBy(j=>HexSpatialMath.Distance(j.WorldPosition,desired)).First();
+        Assert.That(neighbour.WorldPosition.X-position.X,Is.GreaterThan(3f));
+        var coconut=WorldObjectMutations.SpawnObject(world,ContentIds.Coconut,npc.Fragment,
+            neighbour.Tiles.First(t=>SpatialQueries.IsTileWalkable(world,t)),neighbour.Id);
+        npc.Inventory.Items.Clear();npc.Inventory.Items.Add(new ItemInstance(crownId));
+        var result=PlayerInventoryCommandExecutor.TryApply(world,npc,
+            new InventoryItemRef(InventoryItemSource.Carried,0,crownId),InventoryAction.Drop,out var reason,count:1);
+        Assert.That(result,Is.True,reason);
+        Assert.That(npc.Inventory.Items,Is.Empty);
+        var dropped=world.Entities.Objects.Values.Single(o=>o.DefinitionId==crownId);
+        Assert.That(dropped.Junctions.Single(),Is.EqualTo(npc.CurrentJunction.Value),"The actor is allowed to stand at the drop anchor.");
+        Assert.That(npc.Position,Is.EqualTo(position));
+        Assert.That(world.Entities.Objects.ContainsKey(coconut.Id),Is.True);
+    }
+
+    [Test]
+    public void CrownDropStillRefusesAnotherActorsOnlyAvailablePoint()
+    {
+        var (world,npc)=Fixture(onlyOwnPoint:true);
+        world.Occupancy.JunctionOwner[npc.CurrentJunction.Value]=new EntityId(999998);
+        var crown=new ItemInstance("resource.palm_crown");npc.Inventory.Items.Clear();npc.Inventory.Items.Add(crown);
+        Assert.That(PlayerInventoryCommandExecutor.TryApply(world,npc,
+            new InventoryItemRef(InventoryItemSource.Carried,0,crown.DefinitionId),InventoryAction.Drop,out _,count:1),Is.False);
+        Assert.That(npc.Inventory.Items.Single(),Is.SameAs(crown));
+        Assert.That(world.Entities.Objects,Is.Empty);
+    }
     [TestCase(false)]
     [TestCase(true)]
     public void DropPreviewDoesNotMutateAndItsSuggestedOriginUsesNativeAdmission(bool blockLocalRing)

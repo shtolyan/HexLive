@@ -3309,10 +3309,12 @@ public static class GroundPileCatalog
     {
         "resource.stick" => 20,
         "resource.palm_leaf" => 60,
+        // #468: a single dropped crown must not reserve a 20-crown grid.
+        // Inventory stacking is independent; large crowns need separate anchors.
+        "resource.palm_crown" or "resource.palm_crown_small" => 1,
         "resource.cloth" => 20,
         "food.coconut_open" or "food.meat_raw" or "food.meat_cooked" => 8,
         "item.bandage" or "item.pill" or "med.splint" => 10,
-        "resource.palm_crown" or "resource.palm_crown_small" or
         "resource.arrow" or "resource.board" or "resource.fiber" or
         "resource.herb_leaf" or "resource.hide" or "resource.log" or
         "resource.mechanical_part" or "resource.rope" or "resource.stone" => 20,

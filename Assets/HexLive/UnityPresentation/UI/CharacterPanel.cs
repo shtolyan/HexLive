@@ -4523,34 +4523,36 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
             int sourceIndex,
-            int ownerId)
+            int ownerId,
+            VisualElement destination = null)
         {
-            _invDetailStats.Clear();
+            var rows = destination ?? _invDetailStats;
+            rows.Clear();
             var affinity = ItemAffinity.For(_boundActorId, info.DefinitionId);
-            _invDetailStats.Add(MakeStatRow(
+            rows.Add(MakeStatRow(
                 Loc.Get("inv.affinity"), $"{Mathf.RoundToInt(affinity * 100f)}%",
                 Color.Lerp(Warn, Gold, affinity)));
             if (def != null && def.Layer.HasValue)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.owner"), InventoryOwnerName(ownerId), TextDim));
             }
             if (!worn && stacks.TryGetValue(info.DefinitionId, out var stackCount) && stackCount > 1)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.stack"), $"x{stackCount}", CategoryColor(ItemCategory.Resource)));
             }
 
             if (!worn && water.TryGetValue(sourceIndex, out var waterState) &&
                 waterState.ItemId == info.DefinitionId)
             {
-                _invDetailStats.Add(MakeWaterContainerBlock(info.DefinitionId, waterState));
+                rows.Add(MakeWaterContainerBlock(info.DefinitionId, waterState));
             }
 
             if ((def == null || def.Layer.HasValue) &&
                 durability.TryGetValue(info.DefinitionId, out var itemDurability))
             {
-                _invDetailStats.Add(MakeClothingHpBlock(
+                rows.Add(MakeClothingHpBlock(
                     itemDurability,
                     def != null && def.Layer.HasValue ? "inv.clothing_hp" : "inv.durability"));
             }
@@ -4558,7 +4560,7 @@ namespace HexLive.UnityPresentation.UI
             if (def != null && def.Layer.HasValue &&
                 wetness.TryGetValue(info.DefinitionId, out var wet))
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.wetness"), $"{Mathf.RoundToInt(wet * 100f)}%",
                     Color.Lerp(TextDim, Thirst, Mathf.Clamp01(wet))));
             }
@@ -4566,16 +4568,16 @@ namespace HexLive.UnityPresentation.UI
             if (def != null && def.Layer.HasValue &&
                 dirtiness.TryGetValue(info.DefinitionId, out var dirt))
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.dirtiness"), $"{Mathf.RoundToInt(dirt * 100f)}%",
                     Color.Lerp(TextDim, Hunger, Mathf.Clamp01(dirt))));
             }
 
             if (def == null)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.definition_id"), MissingItemId(info.DefinitionId), TextDim));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.status"), Loc.Get("inv.missing_definition"), Warn));
                 return;
             }
@@ -4591,7 +4593,7 @@ namespace HexLive.UnityPresentation.UI
 
             if (def.Layer.HasValue)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.layer"), Loc.Get("layer." + def.Layer.Value.ToString().ToLowerInvariant()), TextDim));
             }
 
@@ -4603,26 +4605,26 @@ namespace HexLive.UnityPresentation.UI
                     parts.Add(Loc.Get("part." + part.ToString().ToLowerInvariant()));
                 }
 
-                _invDetailStats.Add(MakeStatRow(Loc.Get("inv.covers"), string.Join(", ", parts), TextDim));
+                rows.Add(MakeStatRow(Loc.Get("inv.covers"), string.Join(", ", parts), TextDim));
             }
 
             if (warmth > 0.001f)
             {
                 // Spec 42: EquippedWarmth × 10 ≈ °C, so a per-garment delta reads
                 // roughly as this many degrees of insulation.
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.warmth"), $"+{warmth * 10f:0.0}°C", CategoryColor(ItemCategory.Water)));
             }
 
             if (armor > 0.001f)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.armor"), $"+{Mathf.RoundToInt(armor * 100f)}%", CategoryColor(ItemCategory.Armor)));
             }
 
             if (hunger < -0.001f)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
             }
 
@@ -4640,35 +4642,35 @@ namespace HexLive.UnityPresentation.UI
                 var modifiers = $"{Loc.Get("attr.strength")} {SignedPercent(stats.StrengthMultiplier)}, " +
                     $"{Loc.Get("skill.combat")} {SignedPercent(stats.CombatMultiplier)}, " +
                     $"{Loc.Get("inv.hands")} {SignedPercent(stats.LimbMultiplier)}";
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.damage"),
                     $"{stats.BaseDamage:0.###} → {stats.EffectiveDamage:0.###} ({modifiers})",
                     StatComparisonColor(baseline.EffectiveDamage, stats.EffectiveDamage, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.cut"),
                     $"{stats.BaseCutDamage:0.###} → {stats.EffectiveCutDamage:0.###}",
                     StatComparisonColor(baseline.EffectiveCutDamage, stats.EffectiveCutDamage, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.blunt"),
                     $"{stats.BaseBluntDamage:0.###} → {stats.EffectiveBluntDamage:0.###}",
                     StatComparisonColor(baseline.EffectiveBluntDamage, stats.EffectiveBluntDamage, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.blood_loss"),
                     $"{stats.InstantBloodLoss:0.###}",
                     StatComparisonColor(baseline.InstantBloodLoss, stats.InstantBloodLoss, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.cadence"),
                     $"{stats.AttacksPerMinute:0.#} {Loc.Get("inv.attacks_per_minute")} · " +
                     $"{stats.CycleSeconds:0.##} {Loc.Get("inv.seconds_cycle")}",
                     StatComparisonColor(
                         baseline.CycleSeconds, stats.CycleSeconds, 0.01f,
                         higherIsBetter: false)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.dps"), $"{stats.DamagePerSecond:0.###}",
                     StatComparisonColor(baseline.DamagePerSecond, stats.DamagePerSecond, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.hit_moment"), $"{stats.HitDelaySeconds:0.##} {Loc.Get("inv.seconds")}", TextDim));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.agility_recovery"),
                     $"{SignedBonusPercent(1f - stats.AgilityRecoveryMultiplier)} · " +
                     $"{stats.RecoverySeconds:0.##} {Loc.Get("inv.seconds")}",
@@ -4678,13 +4680,13 @@ namespace HexLive.UnityPresentation.UI
 
                 if (stats.TwoHanded)
                 {
-                    _invDetailStats.Add(MakeStatRow(
+                    rows.Add(MakeStatRow(
                         Loc.Get("inv.grip"), Loc.Get("inv.two_handed"), Gold));
                 }
 
                 if (stats.Capabilities != GearCapability.None)
                 {
-                    _invDetailStats.Add(MakeStatRow(
+                    rows.Add(MakeStatRow(
                         Loc.Get("inv.tool_profile"), LocalizeCapabilities(stats.Capabilities), TextDim));
                 }
             }

@@ -20,7 +20,7 @@ namespace HexLive.UnityPresentation.UI
 /// <see cref="TransferInventoryCommand"/>.
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
-public sealed class LootTransferPanel : MonoBehaviour
+public sealed partial class LootTransferPanel : MonoBehaviour
 {
     [SerializeField] private float _uiScale = 1f;
 
@@ -321,6 +321,8 @@ public sealed class LootTransferPanel : MonoBehaviour
     private void BuildUi()
     {
         _root = _document.rootVisualElement;
+        var informationStyle = Resources.Load<StyleSheet>("HexLive/UI/ItemInformation");
+        if (informationStyle != null) _root.styleSheets.Add(informationStyle);
         _root.pickingMode = PickingMode.Ignore;
         _root.RegisterCallback<GeometryChangedEvent>(_ => LayoutFrame());
 
@@ -650,6 +652,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void RebuildWithContainer(NpcSnapshot looter, ObjectSnapshot container)
     {
+        HideItemInformation();
         _leftContent.Clear();
         _rightContent.Clear();
         _slotCells.Clear();
@@ -730,6 +733,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void Rebuild(NpcSnapshot looter, NpcSnapshot other)
     {
+        HideItemInformation();
         _leftContent.Clear();
         _rightContent.Clear();
         _slotCells.Clear();
@@ -1098,6 +1102,10 @@ public sealed class LootTransferPanel : MonoBehaviour
         {
             QuickAction(item);
         }
+        else if (_dragCell != null && _dragCell.worldBound.Contains(position))
+        {
+            ShowItemInformation(item);
+        }
 
         // Двойной клик сам оставляет сообщение (в том числе «так нельзя»), а
         // сорвавшееся перетаскивание обязано вернуть подсказку. Успешный приказ
@@ -1136,6 +1144,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void ShowQuantityPicker(int destinationId, DragItem item)
     {
+        HideItemInformation();
         _quantityOpen = true;
         _quantityDestinationId = destinationId;
         _quantityItem = item;
@@ -1469,6 +1478,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void Hide()
     {
+        HideItemInformation();
         _windowModal?.Show(false);
         if (_root != null) _root.style.display = DisplayStyle.None;
         _looterId = -1;

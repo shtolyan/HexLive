@@ -154,6 +154,9 @@ namespace HexLive.Tests
             var runner=owner.AddComponent<SimulationRunnerBehaviour>();
             typeof(SimulationRunnerBehaviour).GetField("_backend",Private).SetValue(runner,new LocalEngineBackend(engine,clock,options));
             var adapter=owner.AddComponent<SimulationInputAdapter>(); adapter.SetRunner(runner);
+            var informationHost=new GameObject("Shared inventory information builder");
+            var information=informationHost.AddComponent<CharacterPanel>(); information.enabled=false; information.SetRunner(runner);
+            var informationSettings=informationHost.GetComponent<UIDocument>().panelSettings;
             var host=new GameObject("Actual loot window"); var panel=host.AddComponent<LootTransferPanel>(); panel.enabled=false; panel.SetRunner(runner);
             var doc=host.GetComponent<UIDocument>(); var settings=doc.panelSettings;
             var target=new RenderTexture(1920,1080,24); target.Create(); settings.targetTexture=target;
@@ -185,6 +188,35 @@ namespace HexLive.Tests
                 var right=(VisualElement)Field(panel,"_rightContent");
                 var name=(string)Call(panel,"ItemName","resource.stick");
                 var cell=right.Query<VisualElement>().ToList().First(e=>e.tooltip==name);
+                Down(cell);
+                using(var up=PointerUpEvent.GetPooled(new Event {type=EventType.MouseUp,button=0,mousePosition=cell.worldBound.center}))
+                { up.target=cell; cell.SendEvent(up); }
+                yield return null; yield return null;
+                var details=doc.rootVisualElement.Q("loot-item-information-card");
+                Assert.That(details,Is.Not.Null,"A real short click opens information, not a transfer.");
+                Assert.That(details.Q<Label>("item-information-name").text,Is.EqualTo(name));
+                Assert.That(details.Query<Label>().ToList().Any(l=>l.text=="x3"),Is.True,"Shows the clicked stack's count.");
+                Assert.That(details.Query<Label>().ToList().Any(l=>l.text==HexLive.UnityPresentation.Localization.Loc.Get("inv.missing_definition")),
+                    Is.False,"Information must use this exchange's source, not an unrelated HUD/runner.");
+                Assert.That(engine.Commands.Count,Is.Zero,"Inspecting never enqueues an order or changes control mode.");
+                AssertIcon(doc.rootVisualElement,"loot-item-information-close");
+                Capture(doc,target,details,"loot-item-information");
+                Click(doc.rootVisualElement.Q<Button>("loot-item-information-close"));
+                Assert.That(doc.rootVisualElement.Q("loot-item-information-card"),Is.Null);
+                Assert.That(LootTransferPanel.IsOpen,Is.True,"Closing details leaves the exchange open.");
+                ((DoubleClickWatch)Field(panel,"_doubleClick")).Reset();
+                Down(cell);
+                using(var up=PointerUpEvent.GetPooled(new Event {type=EventType.MouseUp,button=0,mousePosition=cell.worldBound.center}))
+                { up.target=cell; cell.SendEvent(up); }
+                yield return null; yield return null;
+                var informationBackdrop=doc.rootVisualElement.Q("loot-item-information-backdrop");
+                Assert.That(doc.rootVisualElement.panel.Pick(new Vector2(10,10)),Is.SameAs(informationBackdrop),
+                    "A click outside the entire exchange must dismiss only the top information card.");
+                Down(informationBackdrop);
+                Assert.That(doc.rootVisualElement.Q("loot-item-information-card"),Is.Null);
+                Assert.That(doc.rootVisualElement.Q("loot-item-information-backdrop"),Is.Null,"Repeated cards leave no stale modal backdrops.");
+                Assert.That(LootTransferPanel.IsOpen,Is.True);
+                ((DoubleClickWatch)Field(panel,"_doubleClick")).Reset();
                 Down(cell); Assert.That(Field(panel,"_dragPrepared"),Is.True);
                 var drag=Field(panel,"_drag"); Call(panel,"DropOn",actor.Id.Value,drag);
                 Assert.That(Field(panel,"_quantityOpen"),Is.True,"A real stack transfer still opens its quantity picker");
@@ -215,8 +247,31 @@ namespace HexLive.Tests
                 LootTransferPanel.Close(); InputSystem.RemoveDevice(mouse); NpcSelection.Clear();
                 NpcSelection.ActivateMany(selection);
                 foreach(var p in otherLoot) if (p.Panel!=null) p.Panel.enabled=p.Enabled;
-                Object.DestroyImmediate(host); Object.DestroyImmediate(settings); target.Release(); Object.DestroyImmediate(target); Object.DestroyImmediate(owner);
+                Object.DestroyImmediate(host); Object.DestroyImmediate(settings); Object.DestroyImmediate(informationHost); Object.DestroyImmediate(informationSettings);
+                target.Release(); Object.DestroyImmediate(target); Object.DestroyImmediate(owner);
             }
+        }
+
+        [UnityTest]
+        public IEnumerator SharedReadOnlyCardDistinguishesTwoPhysicalWaterVessels()
+        {
+            var host=new GameObject("Physical vessel information verification");
+            var panel=host.AddComponent<CharacterPanel>(); panel.enabled=false;
+            var settings=host.GetComponent<UIDocument>().panelSettings;
+            try
+            {
+                var npc=new HexLive.Simulation.Debug.NpcSnapshot();
+                npc.InventoryWater.Add("1\ttool.bottle\t1\t4\t1");
+                npc.InventoryWater.Add("7\ttool.bottle\t3\t4\t1");
+                var first=panel.CreateReadOnlyItemInformation("tool.bottle",npc,false,1,1);
+                var second=panel.CreateReadOnlyItemInformation("tool.bottle",npc,false,7,1);
+                Assert.That(first.Query<Label>().ToList().Any(l=>l.text.Contains("25%")),Is.True);
+                Assert.That(first.Query<Label>().ToList().Any(l=>l.text.Contains("75%")),Is.False);
+                Assert.That(second.Query<Label>().ToList().Any(l=>l.text.Contains("75%")),Is.True);
+                Assert.That(first.Query<Button>().ToList(),Is.Empty,"Information contains no inventory action buttons.");
+                yield return null;
+            }
+            finally { Object.DestroyImmediate(host); Object.DestroyImmediate(settings); }
         }
 
         private sealed class InputIsolation : IDisposable

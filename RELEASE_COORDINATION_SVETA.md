@@ -476,3 +476,41 @@ Operational receipts are local at
 `Build/MSIRelease/20261014-flower-leaf-release/` and staged under the private
 Singapore ops directory `msi-flower-leaf-release-20261014-f2576372c`.
 This entry is a **staging receipt, not a publication receipt**.
+
+## MSI — Singapore published, 2026-10-14 11:51 UTC
+
+Tolya explicitly approved both the Singapore client and game-server update
+from `05ba952da` / wire24 to `f2576372ca5a26a279936cdc68695a78ed557d24` / wire25, preserving
+world, accounts and assignments with one `hexlive.service` restart. This
+publication receipt supersedes the pending activation state above.
+
+- Server: `/opt/hexlive/releases/f2576372ca5a26a279936cdc68695a78ed557d24`; all 521 files
+  hash-verified and executable checked on Linux before activation.
+- Client: `/var/lib/hexlive-web/releases/msi-20261014-f2576372c`;
+  paired pointer activation completed at `2026-10-14T11:51:09.596196+00:00`.
+- Stopped-world backup retained in the private ops directory
+  `msi-flower-leaf-release-20261014-f2576372c/activation-backup`.
+  Previous server/client releases retained; rollback must restore that
+  stopped-world save before starting the old save-format reader.
+- World identity/seed/topology unchanged; saved tick 729033 loaded
+  at 729037, anonymous wire25 snapshot 729102.
+  Accounts/keys hashes and players.json assignments matched at activation;
+  no world reset, credit regrant, content activation or New York changes.
+- Public checks passed: all 18 build hashes, Brotli/WASM MIME, source-exact
+  voice client.js and sampled audio sidecar. Registry 604 and all 230 content
+  records retained. Full Server 496 and Simulation 1811 passed, 6 existing
+  skips; strict WebGL 0/0, focused leaf 85 and native leaf material 5 passed.
+- In-app Chromium loaded the new Player and rendered the central menu.
+  Singapore ping 441ms; FMOD AUDIOWORKLET 48000Hz, buffer 2048x4. Two previously
+  observed startup NREs without stacks and untranslated New York
+  `closedtest.unavailable` recur; tracked on #439, not claimed fixed.
+  No authenticated join/call, live Nika actions or drying-time gameplay
+  test was performed; reports remain ready_for_test for player validation.
+- Follow-up service health: tick 729467, 2/2 colonists, 3.86 ticks/s,
+  average 8.20ms/tick. No additional restart.
+
+Runtime/source receipt remains `f2576372ca5a26a279936cdc68695a78ed557d24`; later documentation
+commits do not change that build identity. Local operational receipts are
+under `Build/MSIRelease/20261014-flower-leaf-release/`; public receipt is
+`https://play.62-146-235-120.sslip.io/release-receipt.json`.
+No source/evidence archive exported to Flashback.

@@ -86,7 +86,11 @@ public static class CharacterView
         if (d.TryGetProperty("visibleItems", out var objects) && objects.ValueKind == JsonValueKind.Array)
         {
             sb.Append("Объекты (objectId, что это, действия):\n");
-            foreach (var o in objects.EnumerateArray().Where(o => o.TryGetProperty("objectId", out var id) && id.ValueKind == JsonValueKind.Number).Take(MaxObjects))
+            var candidates = objects.EnumerateArray().Where(o => o.ValueKind == JsonValueKind.Object &&
+                o.TryGetProperty("objectId", out var id) && id.TryGetInt32(out _)).ToArray();
+            // Facilities are often newer than loose items: an ID prefix hid
+            // beds behind the first 24 sticks. Keep a bounded deterministic list.
+            foreach (var o in candidates.OrderByDescending(HasSleep).ThenBy(o => o.GetProperty("objectId").GetInt32()).Take(MaxObjects))
             {
                 var verbs = o.TryGetProperty("interactions", out var acts) && acts.ValueKind == JsonValueKind.Array
                     ? string.Join("/", acts.EnumerateArray().Select(a => a.TryGetProperty("type", out var t) ? t.GetString() : null).Where(t => t != null).Distinct())
@@ -94,11 +98,31 @@ public static class CharacterView
                 sb.Append("- ").Append(o.GetProperty("objectId").GetInt32()).Append(' ').Append(o.GetProperty("itemId").GetString())
                   .Append(verbs.Length > 0 ? " [" + verbs + "]" : "").Append('\n');
             }
+            if (candidates.Length > MaxObjects)
+                sb.Append("Этот список неполный; отсутствие объекта здесь не доказывает отсутствие в лагере.\n");
+        }
+        if (d.TryGetProperty("knownSleepPlaces", out var known) && known.ValueKind == JsonValueKind.Object &&
+            known.TryGetProperty("objects", out var beds) && beds.ValueKind == JsonValueKind.Array)
+        {
+            sb.Append("Лично известные места сна (память, не подтверждает наличие или доступность сейчас):\n");
+            foreach (var bed in beds.EnumerateArray().Take(8))
+            {
+                sb.Append("- ");
+                foreach (var key in new[] { "objectId", "definitionId", "lastSeenTick", "lastKnownTile", "provenance" })
+                    if (bed.ValueKind == JsonValueKind.Object && bed.TryGetProperty(key, out var value))
+                        sb.Append(key).Append('=').Append(value.GetRawText()).Append(' ');
+                sb.Append('\n');
+            }
+            sb.Append("Можно попытаться Sleep по известному objectId; отказ сервера означает, что место сейчас недоступно. Не объявляй сон начатым по одному accepted.\n");
         }
         if (d.TryGetProperty("perceptionSummary", out var perception) && perception.GetString() is { } p)
             sb.Append("Восприятие (ближайшие по типам): ").Append(p.Length > MaxPerception ? p[..MaxPerception] + "…" : p).Append('\n');
         return sb.ToString();
     }
+
+    private static bool HasSleep(JsonElement item) => item.TryGetProperty("interactions", out var acts) &&
+        acts.ValueKind == JsonValueKind.Array && acts.EnumerateArray().Any(a => a.ValueKind == JsonValueKind.Object &&
+            a.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "Sleep");
 
     // §171.22: absence of the field is an unknown wardrobe, not a naked body.
     // A bounded prefix must never claim to be a complete empty/full outfit.

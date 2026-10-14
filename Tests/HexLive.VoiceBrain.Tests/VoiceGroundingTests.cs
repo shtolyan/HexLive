@@ -9,6 +9,24 @@ namespace HexLive.VoiceBrain.Tests;
 public sealed class VoiceGroundingTests
 {
     [Test]
+    public void SleepFacilitySurvivesLooseItemBudgetAndMemoryIsExplicitlyLastKnown()
+    {
+        var items = Enumerable.Range(1, 30).Select(id => new { objectId=id, itemId="resource.stick",
+            interactions=new[] { new { type="PickUp" } } }).ToList();
+        items.Add(new { objectId=999, itemId="bed.basic", interactions=new[] { new { type="Sleep" } } });
+        var d = JsonSerializer.SerializeToElement(new { name="Ника", visibleItems=items,
+            knownSleepPlaces=new { source="personalMemory", truncated=false, objects=new[] {
+                new { objectId=777, definitionId="bed.basic", lastSeenTick=100,
+                    lastKnownTile=new { q=1,r=2 }, provenance="homeKnowledge" } } } });
+        var view = CharacterView.Build(d);
+        Assert.That(view, Does.Contain("999 bed.basic [Sleep]").And.Contain("список неполный"));
+        Assert.That(view.Split('\n').Count(line => line.StartsWith("- ") && !line.Contains("777")),
+            Is.EqualTo(CharacterView.MaxObjects));
+        Assert.That(view, Does.Contain("777").And.Contain("lastSeenTick").And.Contain("не подтверждает наличие или доступность"));
+        Assert.That(view, Does.Not.Contain("30 resource.stick"));
+    }
+
+    [Test]
     public async Task EachTurnGetsFreshOutfitDespiteAnOldWrongAnswerWithoutAnotherModelRound()
     {
         var dir = Directory.CreateTempSubdirectory("voice-grounding-");

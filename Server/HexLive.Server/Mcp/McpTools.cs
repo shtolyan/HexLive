@@ -977,6 +977,10 @@ public sealed class McpTools
                 ["inventory"] = Inventory(npc),
                 ["inventorySummary"] = McpInventoryObservations.Read(world, npc),
                 ["visibleItems"] = McpItemObservations.Visible(world, npc),
+                // §171.22 / #470: the voice budget must not erase a personally
+                // remembered bed. This is last-known memory, never a live lookup.
+                ["knownSleepPlaces"] = McpKnownObjectObservations.Read(world, npc,
+                    new McpKnownObjectObservations.Query("", InteractionType.Sleep, 8)),
                 ["visibleNpcs"] = McpNpcObservations.Visible(world, npc),
                 ["visibleCorpses"] = McpNpcObservations.VisibleCorpses(world, npc),
                 ["recentPerception"] = McpPerceptionObservations.Recent(

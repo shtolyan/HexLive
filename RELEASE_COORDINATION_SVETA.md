@@ -514,3 +514,39 @@ commits do not change that build identity. Local operational receipts are
 under `Build/MSIRelease/20261014-flower-leaf-release/`; public receipt is
 `https://play.62-146-235-120.sslip.io/release-receipt.json`.
 No source/evidence archive exported to Flashback.
+
+## MSI — menu startup NRE diagnosis and packaging fix (#471), 2026-10-14
+
+Direct Tolya task: fix the two menu startup NRE, with no new Player build or
+deployment. Both public Studio-bank URLs returned HTTP404 with zero bytes:
+`StreamingAssets/FMODBanks/Master.bank` and `Master.strings.bank`. Both files
+are present in the existing f2576372c Unity output but absent from its runtime
+archive. The old private packaging filter excluded all StreamingAssets.
+
+Local Unity reproduction exercised the installed FMOD web-loading coroutine:
+empty HTTP404 yields null data, then `RuntimeManager.loadFromWeb` line925
+calls `FMOD.Studio.System.loadBankMemory` line676, which dereferences
+`buffer.Length`. Both missing-bank cases reproduced those exact NRE stacks.
+The same two committed artifact banks over local HTTP200 completed without
+NRE (the Editor's already-loaded banks produce the expected SDK warning).
+Native comparison tests2/2 passed; no exception suppression was added.
+
+`Tools/webgl_package_player.py` is now the documented Player archive path:
+reuse skips only StreamingAssets/HexLive, preserves Studio banks and other
+runtime files, verifies RIFF/FEV sizes and exact committed/LFS bank hashes,
+then archive membership and hashes. The historical private wrapper routes to
+this helper; it was not executed again. Docs/WebGLBuild.md and Spec/168.md
+require public HTTP200/hash checks for both banks. Tool tests16/16 passed,
+including nine packaging regressions. Existing artifact layout passes with21
+files; its historical19-file archive is correctly rejected for missing banks.
+
+Verified source f2576372c bank SHA256:
+- Master.bank: `5441eae1abd29377a36d2e54c5dde0f3573d6d55bb5d4ecca7c7336ede6a3b16`
+- Master.strings.bank: `757ca5591fe4a91b635f21d4d6f74bf945d36b3acdbd171f0a77f7ce88abffae`
+
+No Unity Player build, runtime source/SDK edits, package reactivation, service
+restart or production changes. The two bank files already exist; a later
+explicitly authorized site-file update can use that verified artifact without
+recompiling Unity. Public absence/NRE remains until that update and live QA.
+Local diagnostics (including temporary Unity test source, exact stacks and
+receipts) are preserved at `Build/MSIRelease/20261014-menu-nre/`; not exported.

@@ -173,6 +173,31 @@ http://localhost:8090/):
 
 ## Упаковка и публикация
 
+- **Архив Player — `Tools/webgl_package_player.py`.** Режим reuse исключает
+  только `StreamingAssets/HexLive`, которую затем заменяет проверенное дерево
+  FSB/`.vis`. Остальные `StreamingAssets` сохраняются, особенно
+  `FMODBanks/Master.bank` и `FMODBanks/Master.strings.bank`. Это Studio-банки,
+  отдельные от FSB; их отсутствие вызывает две стартовые NRE (#471): пустой
+  HTTP404 доходит до `FMOD.Studio.System.loadBankMemory(null)`.
+  Упаковщик проверяет RIFF/FEV, размер и SHA каждой банки против точного
+  закоммиченного source SHA (включая LFS), затем полный состав и SHA архива.
+  Отсутствующая/пустая/изменённая банка блокирует упаковку. Для MSI:
+  ```powershell
+  python Tools/webgl_package_player.py <existing-player-dir> `
+    --source-commit <exact-player-source-sha> --protocol <wire-version> `
+    --reuse-published-audio --output <new-player.tar.gz> `
+    --receipt <player-manifest.json>
+  ```
+  На Маке после FSB-кодирования флаг reuse не используется. `--verify-only`
+  проверяет готовый каталог без сборки/архива; `--check-archive <archive>`
+  проверяет уже упакованный файл. Уже существующий архив не перезаписывается.
+  Это не заменяет квитанции Unity, проверки совместимости, source proof FSB
+  и разрешение Толи на публикацию.
+- **После разрешённой публикации** проверить HTTP200 и SHA не только файлов
+  `Build/*` и FSB/`.vis`, но и обеих публичных
+  `StreamingAssets/FMODBanks/*.bank`. Они входят в `buildFiles` публичной
+  квитанции и в проверку полного архива; stage-копирование не должно их
+  выкидывать. Успех загрузки меню без этих запросов недостаточен.
 - В архив сайта не кладётся `*_BurstDebugInformation_DoNotShip`.
   Имя `webgl-site-<sha>.tar.gz`, рядом записывается SHA-256.
 - **Публикация — только по прямой команде Толи, с названным сервером**

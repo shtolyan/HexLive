@@ -242,6 +242,97 @@ public sealed class PlayerCharacterCreatorTests
         typeof(PlayerCharacterCreationFlow).GetMethod("Run",Instance).Invoke(flow,new object[]{routine});
     }
     [UnityTest]
+    public IEnumerator NewAccountWithJsonNullCharacterOpensEditorWithoutCreatingAnNpc()
+    {
+        using var sources=new SourceFixture();
+        var host=new GameObject("CreatorNewAccountNullTest");var runner=host.AddComponent<PlayerCreatorRunner>();
+        var document=host.AddComponent<UIDocument>();
+        var settings=Object.Instantiate(Resources.Load<PanelSettings>("HexLive/DebugPanelSettings"));document.panelSettings=settings;
+        var routes=new List<string>();var connected=false;
+        IEnumerator Transport(string route,JObject body,Action<JObject,long> done)
+        {
+            routes.Add(route);yield return null;
+            // Real AccountEndpoints /me contract before explicit creation.
+            if(route=="/me")done(JObject.Parse("{\"playerId\":\"new-null-fixture\",\"character\":null,\"needsNewCharacter\":false,\"messageCode\":null}"),200);
+            else if(route=="/character/options")done(Options(),200);
+            else Assert.Fail("Loading must not create a character automatically.");
+        }
+        using var flow=new PlayerCharacterCreationFlow(document.rootVisualElement,runner,"wss://creator.invalid","fixture-not-a-credential",()=>connected=true,()=>{},Transport);
+        try
+        {
+            yield return Idle(flow);
+            var ui=(PlayerCharacterCreator)typeof(PlayerCharacterCreationFlow).GetField("_editor",Instance).GetValue(flow);
+            Assert.That(ui,Is.Not.Null,"A new account must reach the actual creator, not stay on loading.");
+            Assert.That(connected,Is.False);
+            Assert.That(routes,Is.EqualTo(new[]{"/me","/character/options"}));
+            yield return Ready(ui);
+        }
+        finally {flow.Dispose();WebPage.CreatorWrite("hexlive.creator."+Hash128.Compute("https://creator.invalid|new-null-fixture"),"");Object.Destroy(host);Object.Destroy(settings);}
+    }
+    [UnityTest]
+    public IEnumerator NestedTransportFailureShowsErrorAndTheRetryButtonRecovers()
+    {
+        using var sources=new SourceFixture();
+        var host=new GameObject("CreatorRetryAfterException");var runner=host.AddComponent<PlayerCreatorRunner>();
+        var document=host.AddComponent<UIDocument>();
+        var settings=Object.Instantiate(Resources.Load<PanelSettings>("HexLive/DebugPanelSettings"));document.panelSettings=settings;
+        var reads=0;var connected=false;
+        IEnumerator FailNested() {yield return null;throw new InvalidOperationException("fixture-only transport failure");}
+        IEnumerator Transport(string route,JObject body,Action<JObject,long> done)
+        {
+            yield return null;
+            if(route=="/me" && ++reads==1) {yield return FailNested();yield break;}
+            if(route=="/me")done(JObject.Parse("{\"playerId\":\"retry-null-fixture\",\"character\":null,\"needsNewCharacter\":false}"),200);
+            else if(route=="/character/options")done(Options(),200);
+            else Assert.Fail("Retrying load must not send a create request.");
+        }
+        LogAssert.Expect(LogType.Error,"Player character creation stopped: InvalidOperationException");
+        using var flow=new PlayerCharacterCreationFlow(document.rootVisualElement,runner,"wss://creator.invalid","fixture-not-a-credential",()=>connected=true,()=>{},Transport);
+        try
+        {
+            yield return Idle(flow);
+            var loading=(VisualElement)typeof(PlayerCharacterCreationFlow).GetField("_loading",Instance).GetValue(flow);
+            Assert.That(loading.Q<Label>("status").text,Is.EqualTo(Loc.Get("creator.error.network")));
+            var retry=loading.Q<Button>("retry");
+            Assert.That(retry.enabledInHierarchy,Is.True);
+            Assert.That(retry.ClassListContains("creator-hidden"),Is.False);
+            typeof(Clickable).GetMethod("SimulateSingleClick",Instance|BindingFlags.Public).Invoke(retry.clickable,new object[]{null,0});
+            yield return Idle(flow);
+            var ui=(PlayerCharacterCreator)typeof(PlayerCharacterCreationFlow).GetField("_editor",Instance).GetValue(flow);
+            Assert.That(ui,Is.Not.Null);Assert.That(connected,Is.False);Assert.That(reads,Is.EqualTo(2));
+            yield return Ready(ui);
+        }
+        finally {flow.Dispose();WebPage.CreatorWrite("hexlive.creator."+Hash128.Compute("https://creator.invalid|retry-null-fixture"),"");Object.Destroy(host);Object.Destroy(settings);}
+    }
+    [UnityTest]
+    public IEnumerator JsonNullCharacterAfterSuccessfulPostDoesNotConnectOrLeaveTheCreatorBusy()
+    {
+        using var sources=new SourceFixture();
+        var host=new GameObject("CreatorPostNullTest");var runner=host.AddComponent<PlayerCreatorRunner>();
+        var document=host.AddComponent<UIDocument>();
+        var settings=Object.Instantiate(Resources.Load<PanelSettings>("HexLive/DebugPanelSettings"));document.panelSettings=settings;
+        var player="post-null-"+Guid.NewGuid().ToString("N");var posts=0;var connected=false;
+        IEnumerator Transport(string route,JObject body,Action<JObject,long> done)
+        {
+            yield return null;
+            if(route=="/me")done(new JObject{["playerId"]=player,["character"]=JValue.CreateNull(),["needsNewCharacter"]=posts>0},200);
+            else if(route=="/character/options")done(Options(),200);
+            else {posts++;done(new JObject(),200);}
+        }
+        using var flow=new PlayerCharacterCreationFlow(document.rootVisualElement,runner,"wss://creator.invalid","fixture-not-a-credential",()=>connected=true,()=>{},Transport);
+        try
+        {
+            yield return Idle(flow);
+            var ui=(PlayerCharacterCreator)typeof(PlayerCharacterCreationFlow).GetField("_editor",Instance).GetValue(flow);
+            ui.Appearance.Character.Name="Post-null fixture";yield return Ready(ui);
+            Submit(flow);yield return Idle(flow);
+            Assert.That(posts,Is.EqualTo(1));Assert.That(connected,Is.False);
+            Assert.That(ui.Root.Q<Label>("status").text,Is.EqualTo(Loc.Get("creator.characterDied")));
+            Assert.That(WebPage.CreatorRead("hexlive.characterAttempt."+player),Is.Empty);
+        }
+        finally {flow.Dispose();WebPage.CreatorWrite("hexlive.creator."+Hash128.Compute("https://creator.invalid|"+player),"");Object.Destroy(host);Object.Destroy(settings);}
+    }
+    [UnityTest]
     public IEnumerator LostCreationReplyRetriesIdenticalAttemptAndConnectsOnlyAfterAuthoritativeRead()
     {
         using var sources=new SourceFixture();
@@ -252,7 +343,7 @@ public sealed class PlayerCharacterCreatorTests
         IEnumerator Transport(string route,JObject body,Action<JObject,long> done)
         {
             yield return null;
-            if(route=="/me")done(new JObject{["playerId"]=player,["needsNewCharacter"]=!created,["character"]=new JObject{["alive"]=created}},200);
+            if(route=="/me")done(new JObject{["playerId"]=player,["needsNewCharacter"]=created?false:calls.Count>0,["character"]=created?new JObject{["alive"]=true}:JValue.CreateNull()},200);
             else if(route=="/character/options")done(Options(),200);
             else {calls.Add((JObject)body.DeepClone());created=calls.Count>1;done(new JObject{["error"]="network"},created?200:503);}
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
 using HexLive.UnityPresentation.Platform;
@@ -78,10 +79,52 @@ public sealed class PlayerCharacterCreationFlow : IDisposable
     private IEnumerator Work(IEnumerator routine)
     {
         yield return null;
-        yield return routine;
-        _work = null;
+        // Unity advances a yielded child iterator outside the parent's catch.
+        // Advance nested routines here so a parsing/transport failure cannot
+        // leave the loading screen and its retry guard permanently busy.
+        var pending = new Stack<IEnumerator>();
+        pending.Push(routine);
+        Exception failure = null;
+        try
+        {
+            while (pending.Count > 0 && !_disposed)
+            {
+                object step = null;
+                var advanced = false;
+                try
+                {
+                    advanced = pending.Peek().MoveNext();
+                    if (advanced) step = pending.Peek().Current;
+                    else (pending.Pop() as IDisposable)?.Dispose();
+                }
+                catch (Exception ex) { failure = ex; break; }
+                if (!advanced) continue;
+                if (step is IEnumerator nested) pending.Push(nested);
+                else yield return step;
+            }
+        }
+        finally
+        {
+            while (pending.Count > 0)
+            {
+                try { (pending.Pop() as IDisposable)?.Dispose(); }
+                catch (Exception ex) { if (failure == null) failure = ex; }
+            }
+            _request = null;
+            _work = null;
+            if (!_disposed && failure != null)
+            {
+                _connected = false;
+                SetState(false, T("error.network"));
+                // Never log transport text, request bodies or credentials.
+                Debug.LogError("Player character creation stopped: " + failure.GetType().Name);
+            }
+        }
         if (_connected && !_disposed) _connect();
     }
+    private static bool HasLivingCharacter(JObject me) =>
+        me?["character"] is JObject character && character.Value<bool>("alive") &&
+        !me.Value<bool>("needsNewCharacter");
     private IEnumerator Boot()
     {
         _editor?.Dispose(); _editor = null;
@@ -96,7 +139,7 @@ public sealed class PlayerCharacterCreationFlow : IDisposable
         _scope = "hexlive.creator." + Hash128.Compute(_origin + "|" + player);
         _attemptKey = "hexlive.characterAttempt." + player;
         _lockKey = "hexlive.character." + player;
-        if (me["character"]?.Value<bool>("alive") == true && me.Value<bool>("needsNewCharacter") == false)
+        if (HasLivingCharacter(me))
         { ClearPending(); _connected = true; yield break; }
         JObject options = null;
         yield return _transport("/character/options", null, (value, code) => { options = value; status = code; });
@@ -184,7 +227,7 @@ public sealed class PlayerCharacterCreationFlow : IDisposable
             yield return _transport("/me", null, (value, code) => { me = value; status = code; });
             if (_disposed) yield break;
             if (status != 200) { SetState(false, Error(me, status)); yield break; }
-            if (me?["character"]?.Value<bool>("alive") == true && me.Value<bool>("needsNewCharacter") == false)
+            if (HasLivingCharacter(me))
             { ClearPending(); _connected = true; }
             else { ClearPending(); SetState(false, T("characterDied")); }
         }

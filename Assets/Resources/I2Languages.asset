@@ -30208,6 +30208,14 @@ MonoBehaviour:
       - 'Река'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'closedtest.unavailable'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Server unavailable'
+      - 'Сервер недоступен'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

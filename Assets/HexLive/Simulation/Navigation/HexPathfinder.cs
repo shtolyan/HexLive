@@ -29,8 +29,9 @@ public static class HexPathfinder
     // direction. Look just beyond the target junction along the travel vector:
     // crossing a border picks the tile on the far side, while walking along the
     // border has no strong forward tile and falls back to the shared current
-    // side. MovementSystem uses the same resolver for hop arming and tile
-    // bookkeeping, so pathability and execution agree.
+    // side. This is the conservative directed-edge resolver for path costs.
+    // MovementSystem additionally retains its actual current tile at a shared
+    // node (§21.21B v26): a turning route need not enter the extrapolated tile.
     public static bool TryGetDirectedStepTile(
         WorldState world, JunctionId fromId, JunctionId toId, out Tile tile)
     {
@@ -95,8 +96,8 @@ public static class HexPathfinder
 
     // §40.17 v2: the signed elevation change of a directed step, resolved from
     // the tiles the walker actually leaves and enters. This is THE definition of
-    // "this step is a jump" — the hop arming in MovementSystem reads the same
-    // resolver, and worldgen bakes it into Junction.NeighborStepDelta so the
+    // "this edge can require a jump" — worldgen bakes the directed-edge
+    // estimate into Junction.NeighborStepDelta so the
     // pathfinder never has to run it in its inner loop.
     public static int ResolveStepDelta(WorldState world, JunctionId fromId, JunctionId toId)
     {

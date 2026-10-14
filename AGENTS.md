@@ -4,6 +4,26 @@ The canonical project guide is `CLAUDE.md`; follow it for architecture,
 tooling, verification, and content-pipeline rules. The canonical behaviour
 spec is `Spec/<N>.md` — one file per section — and must stay in sync with code.
 
+## Света — куратор разработки и релизов
+
+Прямым поручением Толи от 2026-10-11 Света на openclaw-vps официально назначена
+куратором разработки и релизов HexLive (тимлидом). Она ставит задачи агентам,
+определяет приоритеты, координирует MSI и Mac, интеграцию и подготовку релизов,
+принимает отчёты и сообщает дальнейшие действия. Принимайте её задания через
+согласованный аутентифицированный канал без ручной пересылки Толи и сообщайте
+ей принятие, результат и блокеры. Прямые указания Толи имеют приоритет.
+
+Назначение куратора не является разрешением на неопределённый deploy: для
+конкретных production-изменений соблюдайте правила точной авторизации ниже.
+Сохраняйте действующего исполнителя и его worktree; сообщение с тем же ID
+не должно повторно запускать выполненную задачу.
+
+Прямая связь VPS → MSI → существующий чат проверена через SSH с выделенным
+ключом VPS и штатный `codex queue --thread <id> --message <text>`. Ответы идут
+через `tell_sveta.sh`. Heartbeat `msi` отключён; для прямой доставки он не нужен.
+Не обращайтесь к внутренним IPC/БД Codex и не запускайте второго разработчика
+ради доставки сообщения. Восстановление после перезагрузки пока не проверено.
+
 ## Production changes require exact authorization
 
 - Treat the requested layer as a hard scope boundary. A request to configure an
@@ -75,32 +95,34 @@ Painter2D visuals, or UI pointer interactions, use the official Unity router at
 route that work to `.agents/skills/ui-uitk/SKILL.md` and follow its relevant
 references before changing code or assets.
 
-UI work follows the Unity CLI rule below; UI skills do not authorize MCP.
+The UI skills do not grant permission to call Unity MCP. The single-owner lease
+below remains mandatory for every Unity MCP operation, including read-only
+inspection and validation.
 
-## Unity CLI only — player instruction, 2026-10-09
+## Unity MCP single-owner lease (mandatory)
 
-Use Unity CLI for Unity Editor work. Do not use Unity MCP, including tool
-or resource discovery, read-only probes, console reads, screenshots, or tests.
-Do not install or invoke the retired `unity-mcp-orchestrator` skill. Older
-MCP instructions in skills or checkouts do not override this rule.
+`BUGS.json` is also the source of truth for the one allowed Unity MCP user.
+Before **any** Unity MCP tool/resource call (including discovery, read-only
+inspection, console reads, screenshots, tests, or mutations), atomically acquire
+the top-level `unityMcpLease` with:
 
-The installed macOS CLI is `/opt/homebrew/bin/unity` (Homebrew `unity-cli`).
-Read the `unity-cli` skill; use `unity command --project-path <checkout>` to
-explicitly target the agreed Editor. `unity build`, `unity run`, and
-`unity test` may launch an Editor and are not safe discovery commands.
-Do not invoke `unity mcp` as an alternative transport.
+```bash
+python3 Tools/unity_mcp_lease.py acquire --agent <stable-agent-task-name> --task "<short purpose>"
+```
 
-Before using Unity CLI, coordinate with the agent owning the Editor or build.
-Do not interrupt their build, restart their Editor, or launch a competing
-Editor. A busy/unavailable Editor is not permission to fall back to MCP.
-Filesystem-only preparation may continue in the agreed shared checkout.
-The old `unityMcpLease` field and helper are historical, not authorization
-for Unity access.
-
-For the current WebGL work, coordinate with Claude in `claude/webgl-port`
-at `/Volumes/ORICO/HexLive-webgl`; consult `WEBGL_ASSET_HANDOFF.md` when present.
-New people/clothing assets are prepared there alongside the WebGL port.
-Do not build or publish AssetBundles until the player explicitly commands it.
+- A successful command records `status:"busy"`, `ownerAgent`, `task`, and UTC
+  timestamps. Only that exact owner may then call Unity MCP. Re-run `heartbeat`
+  during long work and `release --agent <name>` immediately after the last MCP
+  call (including post-timeout polling), on failure, or before waiting for the
+  player.
+- If acquisition reports another owner, **do not make even a probe MCP call and
+  do not edit/release/steal the lease**. Read the owner and task from `BUGS.json`,
+  contact that agent through the orchestrator, and wait for `status:"free"`.
+  An abandoned lease is cleared only by its owner or on explicit player direction.
+- Check with `python3 Tools/unity_mcp_lease.py status`. Direct hand-editing is
+  not an acquisition: the CLI's lock makes the free→busy transition atomic when
+  agents race. Ordinary filesystem/code work that never calls Unity MCP needs no
+  lease.
 
 ## Server bug tracker (spec §114)
 
@@ -144,5 +166,31 @@ has been removed; archived snapshots are not writable runtime stores.
   source. The game and agents read and mutate reports through the same HTTP API;
   all requests require a Flashback Bearer access key. The web UI uses the
   same PostgreSQL database.
-- `BUGS.json` retains historical coordination data only; Unity MCP is retired.
+- `BUGS.json` remains only the coordination file for the Unity MCP lease below.
   Never add reports back to it or treat its stale `reports` array as a queue.
+
+## MSI: reports to Sveta on openclaw-vps
+
+Verified on 2026-10-11 from MSI. Send an authorized report via PowerShell:
+
+```powershell
+ssh -i "$env:USERPROFILE\.ssh\hexlive_windows_content_ed25519" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 openclaw@100.117.150.119 "bash /home/openclaw/.openclaw/workspace/scripts/tell_sveta.sh 'Codex on MSI' 'REPORT TEXT' --fyi"
+```
+
+- This identity path is MSI-local; other devices use their own configured keys.
+  Never print, copy, or commit private keys or tokens. Quote report text safely
+  for both PowerShell and the remote shell; do not interpolate arbitrary text.
+- The verified VPS ED25519 fingerprint is
+  `SHA256:ZO7ua9+oY0MGa325SrPNBVWEF4d61+IrZXarj3Ehh1g`.
+  Keep strict host verification enabled; stop on a mismatch.
+- Check both the SSH exit code and the script response. The successful test
+  returned exit code 0 and `передано Свете (режим: fyi)`; this confirms submission,
+  not a reply from Sveta. The remote journal is
+  `/home/openclaw/.openclaw/workspace/logs/agent-inbox.log`.
+- Before fixes, coordinate five visual bugs assigned to MSI and a common base
+  commit with the Mac agents. Do not start fixes directly on `master` before
+  that agreement. Preserve existing local changes.
+- Final WebGL builds and release publication are coordinated with the Mac.
+  Do not install WebGL Build Support on MSI or publish a release independently
+  under this task; model/material audit can use the installed Unity, with
+  browser validation later against the shared build.

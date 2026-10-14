@@ -145,7 +145,7 @@ PlayerSettings:
   loadStoreDebugModeEnabled: 0
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
-  bundleVersion: 0.1.110
+  bundleVersion: 0.1.113
   preloadedAssets:
   - {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   metroInputSource: 0
@@ -171,12 +171,12 @@ PlayerSettings:
     Standalone: com.juilcylove.hexgirls
     iPhone: com.Unity-Technologies.com.unity.template.urp-blank
   buildNumber:
-    Standalone: 110
+    Standalone: 113
     VisionOS: 0
-    iPhone: 110
+    iPhone: 113
     tvOS: 0
   overrideDefaultApplicationIdentifier: 1
-  AndroidBundleVersionCode: 110
+  AndroidBundleVersionCode: 113
   AndroidMinSdkVersion: 25
   AndroidTargetSdkVersion: 0
   AndroidPreferredInstallLocation: 1
@@ -536,6 +536,9 @@ PlayerSettings:
   - m_BuildTarget: Standalone
     m_StaticBatching: 1
     m_DynamicBatching: 0
+  - m_BuildTarget: WebGL
+    m_StaticBatching: 0
+    m_DynamicBatching: 0
   m_BuildTargetShaderSettings: []
   m_BuildTargetGraphicsJobs: []
   m_BuildTargetGraphicsJobMode: []
@@ -812,7 +815,7 @@ PlayerSettings:
   blurSplashScreenBackground: 1
   spritePackerPolicy: 
   webGLMemorySize: 32
-  webGLExceptionSupport: 1
+  webGLExceptionSupport: 2
   webGLNameFilesAsHashes: 0
   webGLShowDiagnostics: 0
   webGLDataCaching: 1
@@ -837,7 +840,7 @@ PlayerSettings:
   webGLWebAssemblyTable: 0
   webGLWebAssemblyBigInt: 0
   webGLCloseOnQuit: 0
-  webWasm2023: 0
+  webWasm2023: 1
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
     Android: TextMeshPro
@@ -853,7 +856,7 @@ PlayerSettings:
     QNX: TextMeshPro
     Standalone: APP_UI_EDITOR_ONLY;MAGICACLOTH2;TextMeshPro;SENTIS_ANALYTICS_ENABLED
     VisionOS: TextMeshPro
-    WebGL: TextMeshPro
+    WebGL: TextMeshPro;MAGICACLOTH2;APP_UI_EDITOR_ONLY
     XboxOne: TextMeshPro
     iPhone: TextMeshPro
     tvOS: TextMeshPro

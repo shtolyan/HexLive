@@ -69,6 +69,24 @@ public sealed class PlayerCharacterCreatorTests
         Assert.That(model.Character.Clothing,Is.EqualTo(new[]{"underwear.briefs_primal","clothing.top_primal"}));
     }
     private static object Get(Type t,string field)=>t.GetField(field,Static).GetValue(null);
+    [TestCase("6000.4.5f1",false)]
+    [TestCase("6000.4.6f1",true)]
+    [TestCase("6000.4.10f1",true)]
+    [TestCase("6000.4.6b1",false)]
+    [TestCase("6000.5.0b1",false)]
+    [TestCase("invalid",false)]
+    public void WebPlayerBuildRejectsEditorsWithoutReviewedInputFocusFix(string version,bool allowed)
+    {
+        var builder=AppDomain.CurrentDomain.GetAssemblies().Select(a=>a.GetType("HexLiveWebGLPlayerBuild")).First(t=>t!=null);
+        var validate=builder.GetMethod("RequireWebInputFix",Static);
+        if(allowed) Assert.DoesNotThrow(()=>validate.Invoke(null,new object[]{version}));
+        else
+        {
+            var error=Assert.Throws<TargetInvocationException>(()=>validate.Invoke(null,new object[]{version}));
+            Assert.That(error.InnerException.GetType().Name,Is.EqualTo("BuildFailedException"));
+            Assert.That(error.InnerException.Message,Does.Contain("UUM-137597"));
+        }
+    }
     [UnityTest]
     public IEnumerator TypingCyrillicNameEnablesNextImmediatelyAndSurvivesStepChanges()
     {
@@ -77,26 +95,39 @@ public sealed class PlayerCharacterCreatorTests
         var runner=host.AddComponent<PlayerCreatorRunner>();
         var doc=host.AddComponent<UIDocument>();
         var settings=Object.Instantiate(Resources.Load<PanelSettings>("HexLive/DebugPanelSettings"));
+        var target=new RenderTexture(1280,900,24);target.Create();settings.targetTexture=target;
         doc.panelSettings=settings;
         var model=new PlayerCreatorAppearance(Options());
         var ui=new PlayerCharacterCreator(doc.rootVisualElement,runner,model,()=>{},()=>{},()=>{},()=>{});
         try
         {
-            yield return null;
+            for(var frame=0;frame<4;frame++)yield return null;
             var field=ui.Root.Q<TextField>("creatorName");
             var next=ui.Root.Q<Button>("createCharacter");
             Assert.That(next.enabledSelf,Is.False);
             Assert.That(ui.Root.Q<Label>("nameError").text,Is.EqualTo(Loc.Get("creator.error.nameRequired")));
             Assert.That(next.tooltip,Is.EqualTo(ui.Root.Q<Label>("nameError").text));
-            field.Focus();yield return null;
-            foreach(var character in "Ника")
+            ui.Root.Q<Button>("back").Focus();yield return null;
+            var input=field.Q<VisualElement>(className:"unity-text-field__input");
+            var picked=field.panel.Pick(input.worldBound.center);
+            Assert.That(input.worldBound.width,Is.GreaterThan(0));
+            Assert.That(input.worldBound.height,Is.GreaterThan(0));
+            Assert.That(picked==input || input.Contains(picked),Is.True,$"The name input must receive the click. Input={input.worldBound}; picked={picked?.GetType().Name}/{picked?.name} {picked?.worldBound}");
+            using(var down=PointerDownEvent.GetPooled(new Event {type=EventType.MouseDown,button=0,mousePosition=input.worldBound.center}))
+            { down.target=picked;picked.SendEvent(down); }
+            using(var up=PointerUpEvent.GetPooled(new Event {type=EventType.MouseUp,button=0,mousePosition=input.worldBound.center}))
+            { up.target=picked;picked.SendEvent(up); }
+            yield return null;
+            var focus=doc.rootVisualElement.focusController.focusedElement as VisualElement;
+            Assert.That(focus==field || field.Contains(focus),Is.True,$"Click must move focus from Back to the name field, without calling its Focus(). Focus={focus?.GetType().Name}/{focus?.name}");
+            foreach(var character in "Кшиштоф")
             {
                 using var key=KeyDownEvent.GetPooled(character,KeyCode.None,EventModifiers.None);
                 ((VisualElement)doc.rootVisualElement.focusController.focusedElement).SendEvent(key);
                 yield return null;
             }
-            Assert.That(field.value,Is.EqualTo("Ника"));
-            Assert.That(model.Character.Name,Is.EqualTo("Ника"),"Typing must update the draft before blur.");
+            Assert.That(field.value,Is.EqualTo("Кшиштоф"));
+            Assert.That(model.Character.Name,Is.EqualTo("Кшиштоф"),"Typing must update the draft before blur.");
             Assert.That(next.enabledSelf,Is.True);
             Assert.That(ui.Root.Q<Label>("nameError").ClassListContains("creator-hidden"),Is.True);
             var focused=doc.rootVisualElement.focusController.focusedElement;
@@ -106,7 +137,7 @@ public sealed class PlayerCharacterCreatorTests
             typeof(Clickable).GetMethod("SimulateSingleClick",Instance|BindingFlags.Public).Invoke(next.clickable,new object[]{null,0});
             Assert.That(typeof(PlayerCharacterCreator).GetField("_tab",Instance).GetValue(ui),Is.EqualTo("abilities"));
             typeof(PlayerCharacterCreator).GetMethod("SwitchTab",Instance).Invoke(ui,new object[]{"appearance"});
-            Assert.That(ui.Root.Q<TextField>("creatorName").value,Is.EqualTo("Ника"));
+            Assert.That(ui.Root.Q<TextField>("creatorName").value,Is.EqualTo("Кшиштоф"));
             ui.SetState(true,false,Loc.Get("creator.creating"));
             Assert.That(field.enabledInHierarchy,Is.False);Assert.That(next.enabledSelf,Is.False);
             Assert.That(next.tooltip,Is.EqualTo(Loc.Get("creator.creating")));
@@ -116,9 +147,10 @@ public sealed class PlayerCharacterCreatorTests
             field.value="   ";Assert.That(next.enabledSelf,Is.False);
             Assert.That(ui.Root.Q<Label>("nameError").text,Is.EqualTo(Loc.Get("creator.error.nameRequired")));
         }
-        finally {ui.Dispose();Object.DestroyImmediate(host);Object.DestroyImmediate(settings);}
+        finally {ui.Dispose();Object.DestroyImmediate(host);settings.targetTexture=null;target.Release();Object.DestroyImmediate(target);Object.DestroyImmediate(settings);}
     }
     [TestCase("Ника", "")]
+    [TestCase("Кшиштоф", "")]
     [TestCase("  Толя  ", "")]
     [TestCase("", "error.nameRequired")]
     [TestCase("   ", "error.nameRequired")]

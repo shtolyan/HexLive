@@ -69,7 +69,20 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 
 ## Один раз на машину
 
-1. Unity `6000.4.5f1` с модулем WebGLSupport (версия — `ProjectSettings/ProjectVersion.txt`).
+1. Для WebGL Player нужен стабильный Unity `6000.4.6f1` или более новый patch
+   ветки `6000.4`, с соответствующим модулем WebGLSupport. Текущий desktop
+   checkout ещё закреплён на `6000.4.5f1` (`ProjectSettings/ProjectVersion.txt`);
+   это **не допустимая версия для нового WebGL Player**. Другую ветку Unity
+   сначала согласуют и проверяют на совместимость контента.
+   В `6000.4.5f1` присутствует регрессия фокуса UI Toolkit в WebGL
+   [UUM-137597](https://issuetracker.unity.com/issues/4006/input-fields-do-not-maintain-focus-when-they-are-selected-in-a-web-build)
+   (#473): поле имени нельзя удержать в фокусе в браузере, хотя нативные
+   PlayMode-тесты ввода проходят. Исправление подтверждено
+   [release notes 6000.4.6f1](https://unity.com/releases/editor/whats-new/6000.4.6f1).
+   `HexLiveWebGLPlayerBuild` проверяет версию **до изменения настроек/аудио**;
+   preprocess guard повторяет проверку. Нативный тест клика/ввода не заменяет
+   браузерную проверку: после следующей разрешённой сборки кликнуть имя,
+   ввести `Кшиштоф`, проверить сохранение фокуса и доступность «Далее».
 2. `brew install ffmpeg vorbis-tools`.
 3. Копия FMOD Engine SDK 2.03.x для macOS (лицензия Толи, в git не кладётся)
    и кодер:
@@ -104,7 +117,7 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 3. **Плеер.** Релизный по умолчанию. Это 15–35 минут, поэтому запускай в
    фоне и следи за логом:
    ```bash
-   /Applications/Unity/Hub/Editor/6000.4.5f1/Unity.app/Contents/MacOS/Unity \
+   /Applications/Unity/Hub/Editor/6000.4.6f1/Unity.app/Contents/MacOS/Unity \
      -batchmode -quit -nographics -accept-apiupdate \
      -projectPath ~/hex-girls/webgl-build/HexLive -buildTarget WebGL \
      -executeMethod HexLiveWebGLPlayerBuild.Build \

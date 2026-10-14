@@ -30216,6 +30216,70 @@ MonoBehaviour:
       - 'Сервер недоступен'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'creator.nameHint'
+      TermType: 0
+      Description:
+      Languages:
+      - '1–64 characters. Cyrillic names are supported.'
+      - 'От 1 до 64 символов. Можно вводить имя кириллицей.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.nameRequired'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Enter your character''s name to continue.'
+      - 'Введите имя персонажа, чтобы продолжить.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.nameTooLong'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Shorten the name to 64 characters or fewer.'
+      - 'Сократите имя до 64 символов.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.nameControl'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Remove tabs, line breaks or other control characters from the name.'
+      - 'Уберите из имени табуляцию, переносы строк и другие управляющие символы.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.attributeBudget'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Check your attributes: their total must stay within the available points.'
+      - 'Проверьте характеристики: их сумма не должна превышать доступные очки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.skillBudget'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Check your skills: their total must stay within the available points.'
+      - 'Проверьте навыки: их сумма не должна превышать доступные очки.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.error.chooseCamp'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Choose a camp with space available.'
+      - 'Выберите лагерь, в котором есть свободное место.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'creator.previewLoading'
+      TermType: 0
+      Description:
+      Languages:
+      - 'Waiting for the character preview. You can create the character once it loads.'
+      - 'Ждём загрузку предпросмотра персонажа. После неё можно начать игру.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

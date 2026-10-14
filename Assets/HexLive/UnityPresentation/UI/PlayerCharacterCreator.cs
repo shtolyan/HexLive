@@ -19,7 +19,10 @@ public sealed class PlayerCharacterCreator : IDisposable
     private readonly LobbyCharacterPreview _preview;
     private readonly LobbyAppearanceThumbnails _thumbnails;
     private readonly ScrollView _controls;
+    private readonly VisualElement _choices;
     private readonly Label _status, _summary;
+    private readonly TextField _name;
+    private readonly Label _nameError;
     private readonly Button _continue, _retry, _back;
     private readonly Action _changed, _submit;
     private readonly List<(Button button, Func<bool> selected)> _tiles = new();
@@ -27,6 +30,7 @@ public sealed class PlayerCharacterCreator : IDisposable
     private readonly Dictionary<string, Button> _eyeButtons = new();
     private string _tab = "appearance";
     private string _appearanceTab = "skin";
+    private string _stateMessage = "";
     private bool _disposed, _busy, _pending, _focusHead;
     private static string T(string key) => Loc.Get("creator." + key);
     public bool PreviewReady => _preview.IsReady;
@@ -37,6 +41,13 @@ public sealed class PlayerCharacterCreator : IDisposable
         Root = Resources.Load<VisualTreeAsset>("HexLive/UI/PlayerCharacterCreator").CloneTree();
         Root.AddToClassList("creator-overlay"); parent.Add(Root);
         _controls = Root.Q<ScrollView>("controls"); _status = Root.Q<Label>("status"); _summary = Root.Q<Label>("summary");
+        _choices = Root.Q<VisualElement>("choices");
+        _name = Root.Q<TextField>("creatorName"); _name.label = T("name");
+        _name.maxLength = 64; _name.isDelayed = false; _name.isReadOnly = false;
+        _name.SetValueWithoutNotify(Appearance.Character.Name);
+        Root.Q<Label>("nameHint").text = T("nameHint");
+        _nameError = Root.Q<Label>("nameError");
+        _name.RegisterValueChangedCallback(e => { Appearance.Character.Name = e.newValue; Changed(false); });
         Root.Q<Label>("eyebrow").text = T("eyebrow"); Root.Q<Label>("title").text = T("title");
         Root.Q<Label>("orbitHint").text = T("orbitHint");
         _back = Root.Q<Button>("back"); _back.text = T("back"); _back.clicked += back;
@@ -54,6 +65,9 @@ public sealed class PlayerCharacterCreator : IDisposable
             _steps[tab] = AddButton(Root.Q<VisualElement>("steps"), T(tab), () => SwitchTab(tab), "creator-step");
         Root.RegisterCallback<GeometryChangedEvent>(e => Root.EnableInClassList("creator-compact", e.newRect.width < 820));
         Root.schedule.Execute(UpdateReady).Every(100);
+        Root.schedule.Execute(() => {
+            if (!_disposed && !_busy && !_pending && string.IsNullOrWhiteSpace(Appearance.Character.Name)) _name.Focus();
+        });
         BuildControls(); UpdateReady();
     }
     private Button AddButton(VisualElement parent, string title, Action action, string css = null)
@@ -76,14 +90,14 @@ public sealed class PlayerCharacterCreator : IDisposable
     }
     private void BuildControls()
     {
-        _controls.Clear(); _tiles.Clear();
+        _choices.Clear(); _tiles.Clear();
         BuildEyes();
         foreach (var pair in _steps) pair.Value.EnableInClassList("creator-selected", pair.Key == _tab);
         if (_tab == "appearance") BuildAppearance();
         else if (_tab == "abilities") BuildAbilities();
         else BuildCamps();
     }
-    private void Heading(string title) { var label = new Label(title); label.AddToClassList("creator-section-title"); _controls.Add(label); }
+    private void Heading(string title) { var label = new Label(title); label.AddToClassList("creator-section-title"); _choices.Add(label); }
     private void BuildEyes()
     {
         var panel=Root.Q("eyeControls");panel.Clear();_eyeButtons.Clear();
@@ -101,13 +115,11 @@ public sealed class PlayerCharacterCreator : IDisposable
             iris.Add(pupil);white.Add(iris);button.Add(white);_eyeButtons[id]=button;
         }
     }
-    private void Note(string text) { var label = new Label(text); label.AddToClassList("creator-note"); _controls.Add(label); }
+    private void Note(string text) { var label = new Label(text); label.AddToClassList("creator-note"); _choices.Add(label); }
     private VisualElement Row(string css)
-    { var row = new VisualElement(); row.AddToClassList(css); _controls.Add(row); return row; }
+    { var row = new VisualElement(); row.AddToClassList(css); _choices.Add(row); return row; }
     private void BuildAppearance()
     {
-        var name = new TextField(T("name")) { value = Appearance.Character.Name, maxLength = 64, name = "creatorName" };
-        _controls.Add(name); name.RegisterValueChangedCallback(e => { Appearance.Character.Name = e.newValue; Changed(false); });
         var sex = Row("creator-choice-row");
         foreach (var male in new[] { false, true })
         {
@@ -197,7 +209,7 @@ public sealed class PlayerCharacterCreator : IDisposable
         foreach (var id in Appearance.Values("traits"))
         {
             var toggle = new Toggle(Loc.Get("trait." + id.ToLowerInvariant() + ".title")) { value = Appearance.Character.Traits.Contains(id) };
-            _controls.Add(toggle);
+            _choices.Add(toggle);
             toggle.RegisterValueChangedCallback(e => {
                 Appearance.Character.Traits.Remove(id);
                 if (e.newValue)
@@ -211,13 +223,13 @@ public sealed class PlayerCharacterCreator : IDisposable
     }
     private void Stats(string key, List<CreationValue> values, string prefix)
     {
-        Heading(T(key)); var budget = new Label(); budget.AddToClassList("creator-budget"); _controls.Add(budget);
+        Heading(T(key)); var budget = new Label(); budget.AddToClassList("creator-budget"); _choices.Add(budget);
         var limit = Appearance.Options.Value<float>(key == "attributes" ? "attributeBudget" : "skillBudget");
         void Update() { budget.text = string.Format(T("budget"), (limit - values.Sum(v => v.Value)).ToString("0.00"), limit.ToString("0.00")); budget.EnableInClassList("creator-over-budget", !Appearance.ValidBudget(key)); }
         foreach (var value in values)
         {
             var slider = new Slider(Loc.Get(prefix + value.Id.ToLowerInvariant()), 0, 10) { value = value.Value * 10, showInputField = true };
-            _controls.Add(slider); slider.RegisterValueChangedCallback(e => { value.Value = Mathf.Round(e.newValue * 10) / 100; Changed(false); Update(); });
+            _choices.Add(slider); slider.RegisterValueChangedCallback(e => { value.Value = Mathf.Round(e.newValue * 10) / 100; Changed(false); Update(); });
         }
         Update();
     }
@@ -228,7 +240,7 @@ public sealed class PlayerCharacterCreator : IDisposable
         {
             var id = camp.Value<string>("id"); var number = id == "Colony" ? "1" : id.Replace("Colony", "");
             var title = string.Format(T("campNumber"), number);
-            var button = AddButton(_controls, title + "\n" + T(camp.Value<bool>("hasSpace") ? "campOpen" : "campFull"), () => {
+            var button = AddButton(_choices, title + "\n" + T(camp.Value<bool>("hasSpace") ? "campOpen" : "campFull"), () => {
                 if (Enum.TryParse<Faction>(id, out var value)) { Appearance.Character.Camp = value; Changed(false); }
             });
             button.SetEnabled(camp.Value<bool>("hasSpace"));
@@ -242,21 +254,40 @@ public sealed class PlayerCharacterCreator : IDisposable
         foreach(var pair in _eyeButtons) pair.Value.EnableInClassList("creator-selected",pair.Key==Appearance.Character.Eyes);
     }
     private void Changed(bool preview = true)
-    { _changed(); if (preview) _preview.Refresh(Appearance.Character); Highlight(); UpdateReady(); }
+    { if (!_busy && !_pending) _stateMessage = ""; _changed(); if (preview) _preview.Refresh(Appearance.Character); Highlight(); UpdateReady(); }
+    private string BlockedReason()
+    {
+        if (_busy) return _stateMessage.Length > 0 ? _stateMessage : T("creating");
+        if (_pending) return "";
+        if (Appearance.NameErrorKey.Length > 0) return T(Appearance.NameErrorKey);
+        if (_tab == "camp")
+        {
+            if (Appearance.ValidationErrorKey.Length > 0) return T(Appearance.ValidationErrorKey);
+            if (!_preview.IsReady) return T(_preview.Failed ? "error.appearance" : "previewLoading");
+        }
+        return "";
+    }
     private void UpdateReady()
     {
         if (_disposed) return;
         if (_focusHead && _preview.IsReady) { _preview.FocusFace(); _focusHead = false; }
         _continue.text = T(_pending ? "retryCreation" : _tab == "camp" ? "create" : "next");
-        _continue.SetEnabled(!_busy && (_pending || (_tab != "camp" ? !string.IsNullOrWhiteSpace(Appearance.Character.Name) : Appearance.CanSubmit && _preview.IsReady)));
+        var reason = BlockedReason();
+        _continue.SetEnabled(reason.Length == 0);
+        _continue.tooltip = reason;
+        var nameError = !_busy && !_pending ? Appearance.NameErrorKey : "";
+        _nameError.text = nameError.Length > 0 ? T(nameError) : "";
+        _nameError.EnableInClassList("creator-hidden", nameError.Length == 0);
         _summary.text = string.IsNullOrWhiteSpace(Appearance.Character.Name) ? T("summary") : Appearance.Character.Name.Trim();
-        if (!_busy && !_pending && _preview.Failed) _status.text = T("error.appearance");
+        _status.text = reason.Length > 0 ? reason : _stateMessage.Length > 0 ? _stateMessage : _preview.Failed ? T("error.appearance") : "";
         _retry.EnableInClassList("creator-hidden", !_pending && !_preview.Failed);
     }
     public void SetState(bool busy, bool pending, string message)
     {
-        _busy = busy; _pending = pending; _status.text = message;
+        _busy = busy; _pending = pending; _stateMessage = message ?? "";
         _controls.SetEnabled(!busy && !pending); _back.SetEnabled(!busy); _retry.SetEnabled(!busy);
+        _name.SetEnabled(!busy && !pending);
+        foreach (var step in _steps.Values) step.SetEnabled(!busy && !pending);
         Root.Q("eyeControls").SetEnabled(!busy && !pending);
         UpdateReady();
     }

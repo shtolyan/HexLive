@@ -33,6 +33,14 @@ creator.previousHair	Previous hairstyle	Предыдущая причёска
 creator.nextHair	Next hairstyle	Следующая причёска
 creator.summary	Make this character yours	Ваш новый персонаж
 creator.next	Continue	Далее
+creator.nameHint	1–64 characters. Cyrillic names are supported.	От 1 до 64 символов. Можно вводить имя кириллицей.
+creator.error.nameRequired	Enter your character's name to continue.	Введите имя персонажа, чтобы продолжить.
+creator.error.nameTooLong	Shorten the name to 64 characters or fewer.	Сократите имя до 64 символов.
+creator.error.nameControl	Remove tabs, line breaks or other control characters from the name.	Уберите из имени табуляцию, переносы строк и другие управляющие символы.
+creator.error.attributeBudget	Check your attributes: their total must stay within the available points.	Проверьте характеристики: их сумма не должна превышать доступные очки.
+creator.error.skillBudget	Check your skills: their total must stay within the available points.	Проверьте навыки: их сумма не должна превышать доступные очки.
+creator.error.chooseCamp	Choose a camp with space available.	Выберите лагерь, в котором есть свободное место.
+creator.previewLoading	Waiting for the character preview. You can create the character once it loads.	Ждём загрузку предпросмотра персонажа. После неё можно начать игру.
 creator.create	Begin your story	Начать историю
 creator.retry	Refresh	Обновить
 creator.retryCreation	Retry creation	Повторить создание

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using HexLive.Simulation.Bootstrap;
+using HexLive.Simulation.Agents;
 using HexLive.Simulation.Content;
 using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.Localization;
@@ -68,6 +69,109 @@ public sealed class PlayerCharacterCreatorTests
         Assert.That(model.Character.Clothing,Is.EqualTo(new[]{"underwear.briefs_primal","clothing.top_primal"}));
     }
     private static object Get(Type t,string field)=>t.GetField(field,Static).GetValue(null);
+    [UnityTest]
+    public IEnumerator TypingCyrillicNameEnablesNextImmediatelyAndSurvivesStepChanges()
+    {
+        using var sources=new SourceFixture();
+        var host=new GameObject("Creator keyboard input");
+        var runner=host.AddComponent<PlayerCreatorRunner>();
+        var doc=host.AddComponent<UIDocument>();
+        var settings=Object.Instantiate(Resources.Load<PanelSettings>("HexLive/DebugPanelSettings"));
+        doc.panelSettings=settings;
+        var model=new PlayerCreatorAppearance(Options());
+        var ui=new PlayerCharacterCreator(doc.rootVisualElement,runner,model,()=>{},()=>{},()=>{},()=>{});
+        try
+        {
+            yield return null;
+            var field=ui.Root.Q<TextField>("creatorName");
+            var next=ui.Root.Q<Button>("createCharacter");
+            Assert.That(next.enabledSelf,Is.False);
+            Assert.That(ui.Root.Q<Label>("nameError").text,Is.EqualTo(Loc.Get("creator.error.nameRequired")));
+            Assert.That(next.tooltip,Is.EqualTo(ui.Root.Q<Label>("nameError").text));
+            field.Focus();yield return null;
+            foreach(var character in "Ника")
+            {
+                using var key=KeyDownEvent.GetPooled(character,KeyCode.None,EventModifiers.None);
+                ((VisualElement)doc.rootVisualElement.focusController.focusedElement).SendEvent(key);
+                yield return null;
+            }
+            Assert.That(field.value,Is.EqualTo("Ника"));
+            Assert.That(model.Character.Name,Is.EqualTo("Ника"),"Typing must update the draft before blur.");
+            Assert.That(next.enabledSelf,Is.True);
+            Assert.That(ui.Root.Q<Label>("nameError").ClassListContains("creator-hidden"),Is.True);
+            var focused=doc.rootVisualElement.focusController.focusedElement;
+            typeof(PlayerCharacterCreator).GetMethod("BuildControls",Instance).Invoke(ui,null);
+            Assert.That(ui.Root.Q<TextField>("creatorName"),Is.SameAs(field),"Changing appearance controls must not recreate the input.");
+            Assert.That(doc.rootVisualElement.focusController.focusedElement,Is.SameAs(focused));
+            typeof(Clickable).GetMethod("SimulateSingleClick",Instance|BindingFlags.Public).Invoke(next.clickable,new object[]{null,0});
+            Assert.That(typeof(PlayerCharacterCreator).GetField("_tab",Instance).GetValue(ui),Is.EqualTo("abilities"));
+            typeof(PlayerCharacterCreator).GetMethod("SwitchTab",Instance).Invoke(ui,new object[]{"appearance"});
+            Assert.That(ui.Root.Q<TextField>("creatorName").value,Is.EqualTo("Ника"));
+            ui.SetState(true,false,Loc.Get("creator.creating"));
+            Assert.That(field.enabledInHierarchy,Is.False);Assert.That(next.enabledSelf,Is.False);
+            Assert.That(next.tooltip,Is.EqualTo(Loc.Get("creator.creating")));
+            ui.SetState(false,true,Loc.Get("creator.pending"));
+            Assert.That(field.enabledInHierarchy,Is.False);Assert.That(next.enabledSelf,Is.True,"An immutable pending request remains retryable.");
+            ui.SetState(false,false,"");Assert.That(field.enabledInHierarchy,Is.True);
+            field.value="   ";Assert.That(next.enabledSelf,Is.False);
+            Assert.That(ui.Root.Q<Label>("nameError").text,Is.EqualTo(Loc.Get("creator.error.nameRequired")));
+        }
+        finally {ui.Dispose();Object.DestroyImmediate(host);Object.DestroyImmediate(settings);}
+    }
+    [TestCase("Ника", "")]
+    [TestCase("  Толя  ", "")]
+    [TestCase("", "error.nameRequired")]
+    [TestCase("   ", "error.nameRequired")]
+    [TestCase("Ни\tка", "error.nameControl")]
+    [TestCase("Ни\nка", "error.nameControl")]
+    public void NameValidationMatchesTrimmedServerRequest(string name,string expected)
+    {
+        var model=new PlayerCreatorAppearance(Options());model.Character.Name=name;
+        Assert.That(model.NameErrorKey,Is.EqualTo(expected));
+        Assert.That(model.CanSubmit,Is.EqualTo(expected.Length==0));
+        model.Character.Name=new string('A',64);Assert.That(model.NameErrorKey,Is.Empty);
+        model.Character.Name=new string('A',65);Assert.That(model.NameErrorKey,Is.EqualTo("error.nameTooLong"));
+    }
+    [UnityTest]
+    public IEnumerator FinalCreateExplainsBudgetCampAndPreviewBlockersInBothLanguages()
+    {
+        using var sources=new SourceFixture();
+        var host=new GameObject("Creator validation feedback");var runner=host.AddComponent<PlayerCreatorRunner>();
+        var doc=host.AddComponent<UIDocument>();
+        var settings=Object.Instantiate(Resources.Load<PanelSettings>("HexLive/DebugPanelSettings"));doc.panelSettings=settings;
+        var model=new PlayerCreatorAppearance(Options());model.Character.Name="Ника";
+        var old=Loc.Current;
+        PlayerCharacterCreator ui=null;
+        try
+        {
+            foreach(var language in new[]{Language.Russian,Language.English})
+            {
+                Loc.Current=language;
+                ui=new PlayerCharacterCreator(doc.rootVisualElement,runner,model,()=>{},()=>{},()=>{},()=>{});
+                typeof(PlayerCharacterCreator).GetMethod("SwitchTab",Instance).Invoke(ui,new object[]{"camp"});
+                var next=ui.Root.Q<Button>("createCharacter");var status=ui.Root.Q<Label>("status");
+                if (!ui.PreviewReady)
+                { Assert.That(next.enabledSelf,Is.False);Assert.That(status.text,Is.EqualTo(Loc.Get("creator.previewLoading"))); }
+                yield return Ready(ui);yield return new WaitForSecondsRealtime(.15f);
+                Assert.That(next.enabledSelf,Is.True);
+                var value=model.Character.Attributes[0].Value;
+                model.Character.Attributes[0].Value=2;
+                typeof(PlayerCharacterCreator).GetMethod("UpdateReady",Instance).Invoke(ui,null);
+                Assert.That(next.enabledSelf,Is.False);Assert.That(status.text,Is.EqualTo(Loc.Get("creator.error.attributeBudget")));
+                model.Character.Attributes[0].Value=value;model.Character.Skills[0].Value=2;
+                typeof(PlayerCharacterCreator).GetMethod("UpdateReady",Instance).Invoke(ui,null);
+                Assert.That(status.text,Is.EqualTo(Loc.Get("creator.error.skillBudget")));
+                model.Character.Skills[0].Value=0;model.Character.Camp=Faction.Colony2;
+                typeof(PlayerCharacterCreator).GetMethod("UpdateReady",Instance).Invoke(ui,null);
+                Assert.That(next.enabledSelf,Is.False);Assert.That(status.text,Is.EqualTo(Loc.Get("creator.error.chooseCamp")));
+                model.Character.Camp=Faction.Colony;
+                typeof(PlayerCharacterCreator).GetMethod("UpdateReady",Instance).Invoke(ui,null);
+                Assert.That(next.enabledSelf,Is.True);Assert.That(status.text,Is.Empty);
+                ui.Dispose();ui=null;
+            }
+        }
+        finally {ui?.Dispose();Loc.Current=old;Object.DestroyImmediate(host);Object.DestroyImmediate(settings);}
+    }
     [TestCase("Marta")]
     [TestCase("Kshishtof")]
     public void PrimalEyeGpuChangesOnlyIrisAndDoesNotMutateSharedMaterials(string body)
@@ -474,6 +578,10 @@ public sealed class PlayerCharacterCreatorTests
             target=new RenderTexture(390,720,24);target.Create();settings.targetTexture=target;
             for(var i=0;i<12;i++)yield return null;
             Assert.That(ui.Root.ClassListContains("creator-compact"),Is.True);
+            Assert.That(ui.Root.Q<ScrollView>("controls").contentViewport.worldBound.height,Is.GreaterThan(50),"Name must not consume the whole mobile control viewport.");
+            var input=ui.Root.Q<TextField>("creatorName").Q<VisualElement>(className:"unity-text-field__input");
+            Assert.That(input.worldBound.height,Is.GreaterThanOrEqualTo(30));
+            Assert.That(ui.Root.Q<ScrollView>("controls").Contains(ui.Root.Q<TextField>("creatorName")),Is.True);
             Capture(target,"creator-compact");
         }
         finally {ui.Dispose();Loc.Current=language;settings.targetTexture=null;target.Release();Object.Destroy(target);Object.Destroy(settings);Object.Destroy(host);}

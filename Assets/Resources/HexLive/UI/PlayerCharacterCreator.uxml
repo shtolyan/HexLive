@@ -17,7 +17,12 @@
       </ui:VisualElement>
       <ui:VisualElement name="editor" class="creator-editor">
         <ui:VisualElement name="steps" class="creator-steps" />
-        <ui:ScrollView name="controls" class="creator-controls" />
+        <ui:ScrollView name="controls" class="creator-controls">
+          <ui:TextField name="creatorName" />
+          <ui:Label name="nameHint" class="creator-note" />
+          <ui:Label name="nameError" class="creator-status" />
+          <ui:VisualElement name="choices" />
+        </ui:ScrollView>
       </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement class="creator-footer">

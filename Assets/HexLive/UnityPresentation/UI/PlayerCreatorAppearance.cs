@@ -70,10 +70,24 @@ public sealed class PlayerCreatorAppearance
             values.All(v => ids.Contains(v.Id) && v.Value >= 0 && v.Value <= 1) &&
             values.Sum(v => (double)v.Value) <= Options.Value<double>(key == "attributes" ? "attributeBudget" : "skillBudget") + .000001;
     }
-    public bool CanSubmit => !string.IsNullOrWhiteSpace(Character.Name) && Character.Name.Trim().Length <= 64 &&
-        Body != null && Skins.Contains(Character.Skin) && Hair.Contains(Character.Hair) && Colours.Contains(Character.HairColour) && Eyes.Contains(Character.Eyes) &&
-        ValidBudget("attributes") && ValidBudget("skills") &&
-        Options["camps"]?.Any(c => c.Value<string>("id") == Character.Camp.ToString() && c.Value<bool>("hasSpace")) == true;
+    public string NameErrorKey => string.IsNullOrWhiteSpace(Character.Name) ? "error.nameRequired" :
+        Character.Name.Trim().Length > 64 ? "error.nameTooLong" :
+        Character.Name.Trim().Any(char.IsControl) ? "error.nameControl" : "";
+    public string ValidationErrorKey
+    {
+        get
+        {
+            if (NameErrorKey.Length > 0) return NameErrorKey;
+            if (Body == null || !Skins.Contains(Character.Skin) || !Hair.Contains(Character.Hair) ||
+                !Colours.Contains(Character.HairColour) || !Eyes.Contains(Character.Eyes)) return "error.appearance";
+            if (!ValidBudget("attributes")) return "error.attributeBudget";
+            if (!ValidBudget("skills")) return "error.skillBudget";
+            if (Options["camps"]?.Any(c => c.Value<string>("id") == Character.Camp.ToString() && c.Value<bool>("hasSpace")) != true)
+                return "error.chooseCamp";
+            return "";
+        }
+    }
+    public bool CanSubmit => ValidationErrorKey.Length == 0;
     public CharacterCreationConfig Look(string skin = null, string hair = null, string colour = null) =>
         new CharacterCreationConfig { Id = Character.Id, Body = Character.Body, Skin = skin ?? Character.Skin,
             Eyes = Character.Eyes, Hair = hair ?? Character.Hair, HairColour = colour ?? Character.HairColour,

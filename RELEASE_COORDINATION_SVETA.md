@@ -550,3 +550,30 @@ explicitly authorized site-file update can use that verified artifact without
 recompiling Unity. Public absence/NRE remains until that update and live QA.
 Local diagnostics (including temporary Unity test source, exact stacks and
 receipts) are preserved at `Build/MSIRelease/20261014-menu-nre/`; not exported.
+
+### #471 — two Studio banks published under new exact authorization
+
+Tolya subsequently authorized publishing only Master.bank and
+Master.strings.bank to Singapore, without Unity rebuild or game-server update.
+At server UTC `2026-10-14T12:27:37.000361+00:00`, the two source-verified files
+were atomically added as `StreamingAssets/FMODBanks` in the existing
+`msi-20261014-f2576372c` client release. No previous client file was replaced.
+All 5688 pre-existing file hashes remained identical, including the public
+release receipt; the supplemental bank-patch receipt is in private ops
+`msi-fmod-banks-20261014-f2576372c/bank-patch-receipt.json`.
+
+- Public HTTP200 and SHA checks passed for both banks, matching the hashes
+  recorded above (Master.bank 21521248 bytes; strings 12686 bytes).
+- Existing Player/server pointers, service PID/start/restart count, registry
+  state and active-world identity remained unchanged. Zero service restarts,
+  no server deployment, Unity compilation or new Player build.
+- Fresh anonymous in-app Chromium startup rendered the server-selection menu
+  (Singapore ping176ms). Both FMODBanks fetches are present in the observed
+  resource inventory; Console error list is empty and NRE count is zero.
+  FMOD reports AUDIOWORKLET48000Hz/2048x4. Existing URP warnings and the
+  New York untranslated label remain outside this fix. No authenticated
+  join/call was tested. Player confirmation still owns #471 -> fixed.
+
+Rollback is limited to removing the newly added two-file FMODBanks directory;
+no existing files/pointers were overwritten. Bank-patch, public hash and
+browser receipts are local under `Build/MSIRelease/20261014-menu-nre/`.

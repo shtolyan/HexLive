@@ -43,9 +43,19 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-UNITY_VERSION = "6000.4.5f1"
-UNITY_ROOT = (pathlib.Path(os.environ.get("ProgramFiles", "C:/Program Files")) / f"Unity/Hub/Editor/{UNITY_VERSION}/Editor/Data"
-              if os.name == "nt" else pathlib.Path(f"/Applications/Unity/Hub/Editor/{UNITY_VERSION}"))
+_project_version = (REPO / "ProjectSettings/ProjectVersion.txt").read_text(encoding="utf-8")
+_version_match = re.search(r"^m_EditorVersion:\s*(\d+\.\d+\.\d+[abfp]\d+)\s*$", _project_version, re.MULTILINE)
+if _version_match is None:
+    raise RuntimeError("m_EditorVersion missing or invalid in ProjectSettings/ProjectVersion.txt")
+UNITY_VERSION = _version_match.group(1)
+if os.name == "nt":
+    _unity_roots = [
+        pathlib.Path(os.environ.get("ProgramFiles", "C:/Program Files")) / f"Unity/Hub/Editor/{UNITY_VERSION}/Editor/Data",
+        pathlib.Path.home() / f"AppData/Local/Programs/Unity/Hub/Editor/{UNITY_VERSION}/Editor/Data",
+    ]
+    UNITY_ROOT = next((root for root in _unity_roots if root.is_dir()), _unity_roots[0])
+else:
+    UNITY_ROOT = pathlib.Path(f"/Applications/Unity/Hub/Editor/{UNITY_VERSION}")
 PLAYER_MANAGED = {
     "webgl": UNITY_ROOT / "PlaybackEngines/WebGLSupport/Variations/nondevelopment/Data/Managed",
     "standalone": UNITY_ROOT / ("PlaybackEngines/windowsstandalonesupport/Variations/il2cpp/Managed" if os.name == "nt"

@@ -70,9 +70,10 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 ## Один раз на машину
 
 1. Для WebGL Player нужен стабильный Unity `6000.4.6f1` или более новый patch
-   ветки `6000.4`, с соответствующим модулем WebGLSupport. Текущий desktop
-   checkout ещё закреплён на `6000.4.5f1` (`ProjectSettings/ProjectVersion.txt`);
-   это **не допустимая версия для нового WebGL Player**. Другую ветку Unity
+   ветки `6000.4`, с соответствующим модулем WebGLSupport. Checkout закреплён
+   на `6000.4.6f1` (`ProjectSettings/ProjectVersion.txt`); compile-check берёт
+   managed-библиотеки именно указанной версии. `6000.4.5f1` **не допустима
+   для нового WebGL Player**. Другую ветку Unity
    сначала согласуют и проверяют на совместимость контента.
    В `6000.4.5f1` присутствует регрессия фокуса UI Toolkit в WebGL
    [UUM-137597](https://issuetracker.unity.com/issues/4006/input-fields-do-not-maintain-focus-when-they-are-selected-in-a-web-build)

@@ -673,7 +673,8 @@ public void LegacyOverflowStowsFirst64ExactVictimsThenSpillsRemainderAfterGarmen
         var loot=world.Entities.Objects.Values.Where(o=>o.DefinitionId==id).ToArray();
         Assert.That(loot.Length,Is.EqualTo(count));
         Assert.That(loot.All(o=>o.IsHarvestScatter),Is.True);
-        Assert.That(loot.Select(o=>o.Junctions[0]).Distinct().Count(),Is.EqualTo(id==ContentIds.PalmLeaf?1:count));
+        if(id==ContentIds.PalmLeaf) Assert.That(loot.Select(o=>o.Junctions[0]).Distinct().Count(),Is.GreaterThan(8));
+        else Assert.That(loot.Select(o=>o.Junctions[0]).Distinct().Count(),Is.EqualTo(count));
         if(id==ContentIds.PalmLeaf) Assert.That(loot.All(o=>o.Tile.Equals(source.Tile)),Is.True);
         Assert.That(GroundPileCatalog.TryGet(id,false,out var profile),Is.True);
         var radius=profile.Single.RadiusXZ;
@@ -763,6 +764,63 @@ public void LegacyOverflowStowsFirst64ExactVictimsThenSpillsRemainderAfterGarmen
         Assert.That(GroundItemPlacement.TryFindNear(world,npc,new ItemInstance(ContentIds.PalmLeaf),physical,node.WorldPosition,
             out _,out var next,out _,scatter:true),Is.True);
         Assert.That(next,Is.Not.EqualTo(anchor),"Inventory pile must not silently become harvest scatter");
+    }
+
+    [TestCase(8)]
+    [TestCase(42)]
+    [TestCase(120)]
+    public void CrownLeavesCoverSourceHexEvenlyAndRetainPositionsAcrossSave(int count)
+    {
+        var (world,npc)=Fixture();var tile=TileCoord.Zero;
+        var center=HexSpatialMath.TileToWorld(tile);
+        var node=world.Junctions.Items.Values.First(j=>j.Fragment==npc.Fragment && !j.Blocked &&
+            HexSpatialMath.Distance(j.WorldPosition,center)<.01f);
+        npc.CurrentJunction=node.Id;npc.Position=node.WorldPosition;npc.Tile=tile;
+        var source=new WorldObjectState {Fragment=npc.Fragment,Tile=tile};source.Junctions.Add(node.Id);
+        Assert.That(GroundPileCatalog.TryGet(ContentIds.PalmLeaf,false,out var profile),Is.True);
+        var limit=HexSpatialMath.HexApothem-profile.Single.RadiusXZ-.01f;
+        var allowed=world.Tiles.Items[tile].Junctions.Where(id=>
+        {
+            var p=world.Junctions.Items[id].WorldPosition-center;
+            return SpatialQueries.IsJunctionPassable(world,id) &&
+                Math.Abs(p.X)<=limit && Math.Abs(.5f*p.X+HexSpatialMath.Sqrt3*.5f*p.Y)<=limit &&
+                Math.Abs(.5f*p.X-HexSpatialMath.Sqrt3*.5f*p.Y)<=limit;
+        }).ToArray();
+        ExecutionSystem.ApplyHarvestYields(world,npc,source,new[]{new HarvestDrop
+            {DefinitionId=ContentIds.PalmLeaf,Count=count,Scatter=true}});
+        var leaves=world.Entities.Objects.Values.OrderBy(o=>o.Id.Value).ToArray();
+        Assert.That(leaves.Length,Is.EqualTo(count));
+        var groups=leaves.GroupBy(o=>o.Junctions.Single()).ToArray();
+        Assert.That(groups.Length,Is.EqualTo(Math.Min(count,allowed.Length)));
+        Assert.That(groups.Max(g=>g.Count())-groups.Min(g=>g.Count()),Is.LessThanOrEqualTo(1));
+        var positions=groups.Select(g=>world.Junctions.Items[g.Key].WorldPosition-center).ToArray();
+        Assert.That(positions.Max(p=>p.X)-positions.Min(p=>p.X),Is.GreaterThan(1f));
+        Assert.That(positions.Max(p=>p.Y)-positions.Min(p=>p.Y),Is.GreaterThan(1f));
+        foreach(var leaf in leaves)
+        {
+            Assert.That(leaf.IsHarvestScatter && leaf.Tile.Equals(tile),Is.True);
+            var p=world.Junctions.Items[leaf.Junctions.Single()].WorldPosition;
+            for(var angle=0;angle<360;angle+=5)
+            {
+                var a=angle*Math.PI/180;
+                Assert.That(HexSpatialMath.WorldToTile(p+new Float2((float)Math.Cos(a)*profile.Single.RadiusXZ,
+                    (float)Math.Sin(a)*profile.Single.RadiusXZ)),Is.EqualTo(tile));
+            }
+        }
+        using var bytes=new MemoryStream();
+        using(var writer=new BinaryWriter(bytes,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.Write(world,writer);
+        bytes.Position=0;var restored=TestWorld.CreateWorld();
+        using(var reader=new BinaryReader(bytes,System.Text.Encoding.UTF8,true)) WorldSaveSerializer.Read(restored,reader);
+        foreach(var leaf in leaves) Assert.That(restored.Entities.Objects[leaf.Id].Junctions,Is.EqualTo(leaf.Junctions));
+        // Repeating a harvest after load chooses the same next anchor.
+        var item=new ItemInstance(ContentIds.PalmLeaf);
+        Assert.That(GroundItemPlacement.TryFindNear(world,npc,item,tile,center,out _,out var next,out _,true),Is.True);
+        Assert.That(GroundItemPlacement.TryFindNear(restored,restored.Entities.Npcs[npc.Id],item,tile,center,
+            out _,out var loadedNext,out _,true),Is.True);
+        Assert.That(loadedNext,Is.EqualTo(next));
+        var survivors=leaves.Skip(1).ToDictionary(o=>o.Id,o=>o.Junctions.Single());
+        WorldObjectMutations.DespawnObject(world,leaves[0].Id);
+        foreach(var pair in survivors) Assert.That(world.Entities.Objects[pair.Key].Junctions.Single(),Is.EqualTo(pair.Value));
     }
 
     private static (WorldState,NPCState) Fixture(bool onlyOwnPoint=false)

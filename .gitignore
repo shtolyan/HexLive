@@ -94,6 +94,16 @@ Assets/Editor/WearDrops/_active.txt.meta
 # Python bytecode cache from Tools/*.py (build_release, wardrobe, icon render…).
 __pycache__/
 *.pyc
+
+# MSI local source-audit mirrors and test evidence; preserve locally, never ship.
+/Assets/Editor/MSIHairImportAudit/
+/Assets/Editor/MSIHairImportAudit.meta
+/Assets/Editor/MSIVisualAuditNormals/
+/Assets/Editor/MSIVisualAuditNormals.meta
+/TestResults/
+# Generated WebGL Burst compiler output outside Assets.
+/Data/Plugins/lib_burst_generated.cpp
+/Data/Plugins/lib_burst_generated.wasm
 # Mono/Unity crash dumps land at the repo root; they are local diagnostics.
 /mono_crash.*.json
 # Stable advisory lock for the BUGS.json Unity MCP lease; the owner/state

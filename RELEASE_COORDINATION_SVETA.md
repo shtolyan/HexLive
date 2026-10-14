@@ -429,3 +429,50 @@ Operational receipts are local at `Build/MSIRelease/20261014-camp-release/`;
 public receipt is `/release-receipt.json`. No evidence/source archive exported
 to Flashback. The TrailPack geometry fix #462 still needs a separately authorized
 content/bundle release; this runtime publication did not activate those models.
+
+## MSI — Singapore release staged, 2026-10-14 11:26 UTC
+
+Tolya requested a clean commit/push, a WebGL build and Singapore client
+publication. Build source `f2576372ca5a26a279936cdc68695a78ed557d24` is pushed
+in `codex/msi-visual-bugs`, including #454/#464–470 and the separate local
+audit/build-output ignore change. Local diagnostic models and reports remain
+preserved. No new worker/worktree, Unity MCP, heartbeat or New York change.
+
+- Canonical `HexLiveWebGLPlayerBuild.Build`, Unity6000.4.5f1 CLI:234MB,
+  0 errors,567 warnings,20.3 build minutes, editor exit0. Mandatory RuntimeSpeed,
+  FMOD4×2048/WebAudioTuning, manifest and devicePixelRatio1 lines verified.
+  Auto Refresh and original settings restored; runtime inputs unchanged;
+  working tree clean before build and again after its temporary overrides.
+- Full Server496/496 and Simulation1811 passed,6 existing skips; focused leaf
+  checks85 and native leaf material/GPU checks5 passed; strict WebGL0/0.
+  Full simulation used process-only GCConserveMemory9; no tests suppressed.
+- Audio source `7cd230bda39202a3a5a84da98106109bf270aae1`:7984 original source
+  files verified unchanged. Singapore staged5668 FSB/vis files, all hashes
+  checked and FSB5 headers verified; reuse marker removed only after success.
+- Player archive SHA256
+  `ba3c32671602ab794c8c4bd75f42db02bce45d2faeb905d57cd59566cbc96ffc`;
+  19 staged files verified under
+  `/var/lib/hexlive-web/releases/msi-20261014-f2576372c`.
+  Stage receipt has `activated:false`; public pointer remains
+  `/var/lib/hexlive-web/releases/msi-20261014-05ba952da`.
+- Matching linux-x64 server package521 files prepared **locally only**;
+  SHA256 `ca1ce32b0ebc482a40b0247e705f8e3a4d52219d60656a5639d5ec8d36978f94`.
+  Installed server remains `/opt/hexlive/releases/05ba952da9370c79c7e83c56a4c0a45a1d5ebbe6`.
+- **Activation gate:** installed Player/server use wire24; new Player/server
+  use wire25 and save84 (reads66..83). A client-only pointer switch would break
+  connections. Exact approval to update the Singapore game-server version,
+  preserve world/accounts/assignments and restart hexlive.service once was
+  requested from Tolya and remains pending. Neither pointer switched;
+  no service restart, world reset, account change or content activation.
+- Anonymous baseline handshake: existing world
+  `a309de74171d470385412bfab01ffdab`, seed629209070, HugeIsland mode2,
+  topology59DDDCBB, speed1, paused=false, wire24; no assignments/orders.
+  Registry604 and230 content records retained. Public new-Player browser QA
+  and authenticated gameplay/call QA await compatible activation.
+- Rollback preparation must restore the stopped-world backup before restarting
+  the old executable after a failed activation: it cannot read a new save84.
+
+Operational receipts are local at
+`Build/MSIRelease/20261014-flower-leaf-release/` and staged under the private
+Singapore ops directory `msi-flower-leaf-release-20261014-f2576372c`.
+This entry is a **staging receipt, not a publication receipt**.

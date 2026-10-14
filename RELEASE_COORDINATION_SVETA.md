@@ -379,3 +379,53 @@ the public runtime receipt is `/release-receipt.json`. No source/evidence archiv
 was exported to Flashback. Transfer recovered from a verified-complete stalled
 SFTP by stopping only MSI's own copy process and using standard SCP with strict
 host checking; production pointers remained unchanged until guarded activation.
+
+## MSI — Singapore server + WebGL Player, 2026-10-14 05:05 UTC
+
+Tolya explicitly authorized both runtime layers and separately approved committing
+the previously prepared MSI Unity materials/import metadata/settings. Source
+`05ba952da9370c79c7e83c56a4c0a45a1d5ebbe6` is pushed in `codex/msi-visual-bugs`.
+The release includes #463 autonomous neutral-camp property admission, plus the
+previously committed UI, voice, inventory and wardrobe changes on this branch.
+Content/model bundles and New York were preserved.
+
+- Server archive SHA256 `33d6c2303158fc062576a0179e53d0266c0b4ec3ffaa5215e895ef3f54f3bf7d`;
+  521 files verified. Server pointer changed from
+  `/opt/hexlive/releases/f7a20d6cd3d21745a42e6d7759702eeccb842d52` to
+  `/opt/hexlive/releases/05ba952da9370c79c7e83c56a4c0a45a1d5ebbe6`.
+- Player archive SHA256 `6e46d5a5fbe4ec075d0014a039eab27ead8e99b08f5d29c2481b86d8634d9310`;
+  19 staged files and 18 final public files hashed. Player pointer changed from
+  `/var/lib/hexlive-web/releases/msi-20261013-f7a20d6cd` to
+  `/var/lib/hexlive-web/releases/msi-20261014-05ba952da`.
+- Canonical `HexLiveWebGLPlayerBuild.Build`, Unity6000.4.5f1 CLI: 234MB,
+  0 errors, 563 warnings, 19.5 build minutes. Verified RuntimeSpeed,
+  FMOD4×2048/WebAudioTuning, audio manifest, success and devicePixelRatio1.
+  Auto Refresh and original project settings restored; runtime inputs unchanged.
+- Audio source `7cd230bda39202a3a5a84da98106109bf270aae1`: 7984 source
+  hashes verified unchanged; 5668 staged FSB/vis files hashed, FSB5 signatures
+  checked. Reuse marker removed only after verification.
+- Full Server495/495 and Simulation1767 passed, 6 existing skips;
+  focused simulation185 passed, MCP clothing21 passed, strict WebGL0 errors/0 RS0030.
+  Simulation was rerun completely after Unity using VSTest with process-only
+  GCConserveMemory9 to avoid competing memory pressure; no test was suppressed.
+- One `hexlive.service` stop/start, Caddy/configuration unchanged. Private
+  stopped-world/accounts/keys/voice backup remains under
+  `/var/lib/hexlive/ops/msi-camp-release-20261014-05ba952da/activation-backup`.
+  World identity/seed/topology, accounts, keys and assignments preserved.
+  Saved tick631722 loaded at631732; anonymous live snapshot632307 on wire24,
+  paused=false, speed1. Later health tick633530, 2/2 colonists, rate3.94 ticks/s.
+  Previous releases retained for rollback; no world reset or credit regrant.
+- Public verification: all18 Player hashes, Brotli/WASM MIME, source-exact
+  voice client.js, audio sidecar, registry604 and all230 content records unchanged.
+- Live in-app Chromium rendered the central server menu with
+  `player-05ba952da.loader.js`; FMOD AUDIOWORKLET48000Hz/2048×4.
+  Singapore ping431ms, NY disabled. Two startup NREs without stacks and
+  untranslated `closedtest.unavailable` observed again and recorded on #439;
+  identity of their cause is not established. Screenshot saved locally.
+  Real authenticated join/call and live foreign-camp actions were not exercised;
+  no player orders were issued. #463 remains ready_for_test for the player's QA.
+
+Operational receipts are local at `Build/MSIRelease/20261014-camp-release/`;
+public receipt is `/release-receipt.json`. No evidence/source archive exported
+to Flashback. The TrailPack geometry fix #462 still needs a separately authorized
+content/bundle release; this runtime publication did not activate those models.

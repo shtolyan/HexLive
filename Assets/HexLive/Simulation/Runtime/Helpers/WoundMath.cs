@@ -221,7 +221,7 @@ internal static class WoundMath
         return true;
     }
 
-    /// <summary>Общий выбор жертвы для повязки и пластыря: самая ОПАСНАЯ рана.
+    /// <summary>Выбор одной раны для пластыря: самая ОПАСНАЯ рана.
     /// Активное кровотечение усиливает опасность (до ×2), но не отменяет
     /// глубину (bug #284): раньше категориальный приоритет «кровоточащая
     /// всегда вперёд сухой» мотал бинт на свежую царапину руки, пока
@@ -252,15 +252,70 @@ internal static class WoundMath
         return chosen;
     }
 
+    // §118.2, bug #474: a dressing covers a whole part. Comparing individual
+    // cuts favours one scratch over several cuts on a more injured part.
+    // HP loss and the aggregate remaining cut damage describe the same injury,
+    // so take their maximum, not their sum; critical depth is additional damage.
+    private static WoundState PickMostInjuredZone(NPCState npc)
+    {
+        WoundState chosen = null;
+        var worstDamage = 0f;
+        var worstBleeding = 0f;
+        foreach (var part in npc.Body.Parts)
+        {
+            WoundState candidate = null;
+            var cuts = 0f;
+            var bleeding = 0f;
+            foreach (var wound in npc.Wounds)
+            {
+                if (wound.Zone != part.Key || wound.Heal01 >= 1f || wound.Severity <= 0f)
+                {
+                    continue;
+                }
+
+                var remaining = wound.Severity * (1f - wound.Heal01);
+                cuts += remaining;
+                if (wound.Stabilized || ScarsNaturally(npc, wound))
+                {
+                    continue;
+                }
+
+                bleeding += remaining * wound.BleedFactor * (1f - wound.Clot01);
+                if (candidate == null || wound.Id < candidate.Id)
+                {
+                    candidate = wound;
+                }
+            }
+
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            // Cut records can include damage beyond zero HP. That depth is
+            // already in CriticalTrauma, so cap the ordinary cut loss at 1.
+            var damage = System.Math.Max(1f - part.Value, MathUtil.Clamp01(cuts)) +
+                npc.Body.Condition(part.Key).CriticalTrauma;
+            if (chosen == null || damage > worstDamage ||
+                (damage == worstDamage && (bleeding > worstBleeding ||
+                    (bleeding == worstBleeding && (int)part.Key < (int)chosen.Zone))))
+            {
+                chosen = candidate;
+                worstDamage = damage;
+                worstBleeding = bleeding;
+            }
+        }
+
+        return chosen;
+    }
+
     public static bool StabilizeMostDangerous(
         NPCState npc, bool herbal, out WoundState stabilized)
     {
-        // The most dangerous wound wins: active hemorrhage amplifies danger
-        // (up to ×2) but never outranks depth (bug #284). The chosen wound
-        // only picks the ZONE — the dressing then covers all of it (see
-        // below). §118.2: the same picker serves the plaster, which stops at
-        // that one wound.
-        stabilized = PickMostDangerous(npc);
+        // Self-treatment and helping another patient share this zone picker.
+        // Re-evaluate when the dressing completes: injuries can change during
+        // the action. Plasters still select one wound with their own picker.
+        stabilized = PickMostInjuredZone(npc);
         if (stabilized == null)
         {
             return false;
@@ -276,8 +331,8 @@ internal static class WoundMath
         // bandaged=True при четырёх из пяти ран stabilized=False). Модель
         // спорила сама с собой: перевязка мыслится по зоне, а лечила по записи.
         //
-        // Теперь выбор САМОЙ ОПАСНОЙ раны выбирает ЗОНУ (приоритет активного
-        // кровотечения сохранён), а бинт ложится на все её открытые раны разом.
+        // Теперь выбирается самая раненая ЗОНА, а бинт ложится на все её
+        // открытые раны разом. Кровотечение решает только при равном повреждении.
         // Это и есть настоящая перевязка: тряпку наматывают на руку, а не на
         // отдельный порез. Другие зоны требуют своего бинта — одна повязка
         // по-прежнему одна конечность.

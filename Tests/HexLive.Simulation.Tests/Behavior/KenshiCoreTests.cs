@@ -319,6 +319,10 @@ public sealed class KenshiCoreTests
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
+        // Match the described injured parts; clotted cuts on HP >= 0.9
+        // are deliberately left to natural scarring by bug #306.
+        patient.Body.Parts[BodyPart.LegL] = 0.2f;
+        patient.Body.Parts[BodyPart.ArmL] = 0.92f;
         patient.Wounds.Add(new WoundState
         {
             Id = 1, Zone = BodyPart.LegL, Severity = 0.8f,
@@ -344,6 +348,8 @@ public sealed class KenshiCoreTests
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
+        patient.Body.Parts[BodyPart.LegL] = 0.2f;
+        patient.Body.Parts[BodyPart.ArmL] = 0.92f;
         patient.Wounds.Add(new WoundState
         {
             Id = 1, Zone = BodyPart.LegL, Severity = 0.8f,
@@ -368,6 +374,8 @@ public sealed class KenshiCoreTests
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
+        patient.Body.Parts[BodyPart.LegL] = 0f;
+        patient.Body.Parts[BodyPart.ArmL] = 0.92f;
         patient.Body.Condition(BodyPart.LegL).CriticalTrauma = 0.5f;
         patient.Wounds.Add(new WoundState
         {
@@ -391,6 +399,8 @@ public sealed class KenshiCoreTests
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
+        patient.Body.Parts[BodyPart.ArmL] = 0.95f;
+        patient.Body.Parts[BodyPart.LegL] = 0.7f;
         patient.Wounds.Add(new WoundState
         {
             Id = 1, Zone = BodyPart.ArmL, Severity = 0.05f,

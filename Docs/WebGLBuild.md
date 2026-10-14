@@ -38,6 +38,32 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 
 ## Где собирать
 
+После смены patch редактора `Tools/webgl_compile_check.py` переводит ссылки
+старого сгенерированного `.csproj` на закреплённый Editor: стандартные
+библиотеки сохраняются, `UnityEditor` исключается, модули движка берутся
+из WebGLSupport. Ошибка проверки или ненулевой exit code запрещает выпуск.
+
+На MSI установка 6000.4.6f1 в длинный per-user путь пропустила файлы,
+чьи пути превышали Windows MAX_PATH. В частности, отсутствовали файлы SRP17.4.0:
+`Runtime-PrivateShared/InternalBridge/Unity.InternalAPIEngineBridge.RenderPipelines.Core.Runtime.Shared.asmdef`
+и его `.meta`. Без них служебный код попадает в другую сборку и получает
+CS0117 для `TryMigrateRenderingLayersToTagManager`/`ClearMigratedRenderPipelines`.
+При этой точной ошибке проверять полноту установки пакета, а не менять его C#.
+Исправление установки: повторить официальный инсталлятор Editor и совпадающего
+WebGL-модуля через короткий путь к той же установке (MSI использует junction
+`%LOCALAPPDATA%/U646`). Это не вторая копия редактора или проекта. Проверять
+подпись издателя и контрольную сумму загрузки; не ограничиваться исправлением
+первой ошибки, поскольку другие длинные пути также могли быть пропущены.
+Восстановленные метаданные из
+[официального исходника Unity](https://github.com/Unity-Technologies/Graphics/tree/6000.4/staging/Packages/com.unity.render-pipelines.core/Runtime-PrivateShared/InternalBridge)
+побайтово совпали с установленным официальным SRP17.4.0 из 6000.4.5f1:
+SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7ac2`,
+`.meta` `0f1ecc2eb2ca57e4519fa40ece68ba6eecc239f23c2f83c67bcf17b5d2f6ec93`.
+Ремонт установки выполнять при закрытом Editor. Метаданные выше восстановлены
+точно, но сами по себе не заменяют проверку остальных пропущенных файлов.
+Не отключать проверки и не подменять служебный код заглушкой. После ремонта
+обязательны реальная компиляция Editor и проверки WebGL.
+
 - **macOS — полный путь.** FSB-кодер `hexfsb` собирается из macOS FMOD
   Engine SDK, музыку перекодируют `/opt/homebrew/bin/ffmpeg` и `oggenc`.
   Только на Маке звук можно закодировать заново.

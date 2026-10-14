@@ -86,6 +86,16 @@ class AudioReuseProofTests(unittest.TestCase):
 
 
 class WebGlCompileCheckTests(unittest.TestCase):
+    def test_previous_editor_install_does_not_hide_bcl_or_leak_editor_engine(self):
+        old = "C:/Program Files/Unity/Hub/Editor/6000.4.5f1/Editor/Data/"
+        with patch.object(Path, "exists", return_value=True):
+            bcl = compile_check.player_reference("webgl", old + "NetStandard/ref/2.1.0/netstandard.dll")
+            self.assertIn(compile_check.UNITY_VERSION, bcl)
+            self.assertNotIn("6000.4.5f1", bcl)
+            engine = compile_check.player_reference("webgl", old + "Managed/UnityEngine/UnityEngine.CoreModule.dll")
+            self.assertEqual(engine, str(compile_check.PLAYER_MANAGED["webgl"] / "UnityEngine.CoreModule.dll"))
+            self.assertIsNone(compile_check.player_reference("webgl", old + "Managed/UnityEngine/UnityEditor.CoreModule.dll"))
+
     def test_windows_and_posix_diagnostics_keep_distinct_columns_without_summary_duplicates(self):
         lines = [r"C:\repo\a.cs(26,17): error RS0030: banned HttpClient [C:\out\p.csproj]",
                  r"C:\repo\a.cs(26,36): error RS0030: banned HttpClient [C:\out\p.csproj]",

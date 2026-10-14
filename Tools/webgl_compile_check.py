@@ -130,11 +130,21 @@ def player_reference(target: str, hint: str) -> str | None:
     name = pathlib.Path(hint).name
     # Сам путь установки содержит «/Hub/Editor/» — судить только по хвосту.
     normalized = hint.replace("\\", "/")
-    lowered = normalized.lower().replace(str(UNITY_ROOT).replace("\\", "/").lower(), "")
+    # Generated csproj can still refer to the previous Editor after a patch
+    # upgrade. Strip its installation prefix too, and use the pinned toolchain
+    # for BCL references rather than discarding them as editor-only assemblies.
+    installation = re.match(r"^.+/(?:Editor/Data|Unity\.app/Contents)/(.+)$", normalized, re.IGNORECASE)
+    if installation:
+        relative = installation.group(1)
+        data_root = UNITY_ROOT if os.name == "nt" else UNITY_ROOT / "Unity.app/Contents"
+        hint = str(data_root / relative)
+        lowered = "/" + relative.lower()
+    else:
+        lowered = normalized.lower()
     if name.startswith("UnityEditor") or "/editor/" in lowered or "nunit" in lowered \
             or "mono-cecil" in lowered or "unity xcode" in lowered or "/tests/" in lowered:
         return None
-    if "/scripting/managed/unityengine/" in lowered or name in ("UnityEngine.dll", "Unity.Scripting.dll"):
+    if "/scripting/managed/unityengine/" in lowered or "/managed/unityengine/" in lowered or name in ("UnityEngine.dll", "Unity.Scripting.dll"):
         candidate = PLAYER_MANAGED[target] / name
         if name == "UnityEngine.dll":
             # Фасад редактора тянет UnityEditor; модули плеера покрывают всё.

@@ -47,6 +47,7 @@ public sealed class LootTransferPanel : MonoBehaviour
     private Label _quantityTitle = null!;
     private SliderInt _quantitySlider = null!;
     private IntegerField _quantityInput = null!;
+    private InventoryQuantityChoice _quantityChoice = null!;
     private Button _quantityConfirm = null!;
     private Button _quantityCancel = null!;
 
@@ -90,7 +91,6 @@ public sealed class LootTransferPanel : MonoBehaviour
     // the player chooses an exact count. One state serves loot, gifts and
     // world containers because all three already converge on DropOn.
     private bool _quantityOpen;
-    private bool _quantitySync;
     private int _quantityDestinationId;
     private DragItem _quantityItem;
 
@@ -433,10 +433,11 @@ public sealed class LootTransferPanel : MonoBehaviour
         var chooser = new VisualElement();
         chooser.style.flexDirection = FlexDirection.Row;
         chooser.style.alignItems = Align.Center;
-        _quantitySlider = new SliderInt { name = "loot-quantity-slider" };
+        _quantityChoice = new InventoryQuantityChoice("loot-quantity");
+        _quantitySlider = _quantityChoice.Slider;
         _quantitySlider.style.flexGrow = 1f;
         _quantitySlider.style.marginRight = 12f;
-        _quantityInput = new IntegerField { name = "loot-quantity-input" };
+        _quantityInput = _quantityChoice.Input;
         _quantityInput.style.width = 76f;
         _quantityInput.isDelayed = false;
         chooser.Add(_quantitySlider);
@@ -454,21 +455,6 @@ public sealed class LootTransferPanel : MonoBehaviour
         buttons.Add(_quantityConfirm);
         card.Add(buttons);
 
-        _quantitySlider.RegisterValueChangedCallback(evt =>
-        {
-            if (_quantitySync) return;
-            _quantitySync = true;
-            _quantityInput.SetValueWithoutNotify(evt.newValue);
-            _quantitySync = false;
-        });
-        _quantityInput.RegisterValueChangedCallback(evt =>
-        {
-            if (_quantitySync) return;
-            _quantitySync = true;
-            _quantitySlider.SetValueWithoutNotify(Mathf.Clamp(
-                evt.newValue, _quantitySlider.lowValue, _quantitySlider.highValue));
-            _quantitySync = false;
-        });
         _quantityOverlay.RegisterCallback<KeyDownEvent>(evt =>
         {
             if (evt.keyCode is KeyCode.Return or KeyCode.KeypadEnter)
@@ -1155,10 +1141,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _quantityItem = item;
         _quantityTitle.text = string.Format(
             Loc.Get("loot.quantity_title"), ItemName(item.DefinitionId));
-        _quantitySlider.lowValue = 1;
-        _quantitySlider.highValue = item.Count;
-        _quantitySlider.SetValueWithoutNotify(item.Count);
-        _quantityInput.SetValueWithoutNotify(item.Count);
+        _quantityChoice.Configure(item.Count);
         _quantityConfirm.text = Loc.Get("loot.quantity_confirm");
         _quantityCancel.text = Loc.Get("loot.quantity_cancel");
         _quantityModal?.Show(true);
@@ -1172,7 +1155,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         if (!_quantityOpen) return;
         var destinationId = _quantityDestinationId;
         var item = _quantityItem;
-        var count = Mathf.Clamp(_quantityInput.value, 1, item.Count);
+        var count = _quantityChoice.Value;
         HideQuantityPicker();
         ExecuteTransfer(destinationId, item, count);
     }

@@ -18,9 +18,9 @@ public sealed partial class CharacterPanel
     private Label _inventoryDropQuantityTitle = null!;
     private SliderInt _inventoryDropQuantitySlider = null!;
     private IntegerField _inventoryDropQuantityInput = null!;
+    private InventoryQuantityChoice _inventoryDropQuantityChoice = null!;
     private Button _inventoryDropQuantityConfirm = null!;
     private int _inventoryDropQuantityMax;
-    private bool _inventoryDropQuantitySync;
     private int _inventoryDropQuantityActorId = -1;
     private string _inventoryDropQuantityDefinitionId = string.Empty;
     private int _inventoryDropQuantitySourceIndex = -1;
@@ -67,10 +67,11 @@ public sealed partial class CharacterPanel
         var chooser = new VisualElement();
         chooser.style.flexDirection = FlexDirection.Row;
         chooser.style.alignItems = Align.Center;
-        _inventoryDropQuantitySlider = new SliderInt { name = "inventory-drop-quantity-slider" };
+        _inventoryDropQuantityChoice = new InventoryQuantityChoice("inventory-drop-quantity");
+        _inventoryDropQuantitySlider = _inventoryDropQuantityChoice.Slider;
         _inventoryDropQuantitySlider.style.flexGrow = 1f;
         _inventoryDropQuantitySlider.style.marginRight = 12f;
-        _inventoryDropQuantityInput = new IntegerField { name = "inventory-drop-quantity-input" };
+        _inventoryDropQuantityInput = _inventoryDropQuantityChoice.Input;
         _inventoryDropQuantityInput.style.width = 76f;
         _inventoryDropQuantityInput.isDelayed = false;
         chooser.Add(_inventoryDropQuantitySlider);
@@ -90,24 +91,6 @@ public sealed partial class CharacterPanel
         buttons.Add(_inventoryDropQuantityConfirm);
         card.Add(buttons);
 
-        _inventoryDropQuantitySlider.RegisterValueChangedCallback(evt =>
-        {
-            if (_inventoryDropQuantitySync) return;
-            _inventoryDropQuantitySync = true;
-            _inventoryDropQuantityInput.SetValueWithoutNotify(evt.newValue);
-            _inventoryDropQuantitySync = false;
-        });
-        _inventoryDropQuantityInput.RegisterValueChangedCallback(evt =>
-        {
-            if (_inventoryDropQuantitySync) return;
-            _inventoryDropQuantitySync = true;
-            var value = Mathf.Clamp(
-                evt.newValue, _inventoryDropQuantitySlider.lowValue,
-                _inventoryDropQuantitySlider.highValue);
-            _inventoryDropQuantitySlider.SetValueWithoutNotify(value);
-            _inventoryDropQuantityInput.SetValueWithoutNotify(value);
-            _inventoryDropQuantitySync = false;
-        });
         _inventoryDropQuantityOverlay.RegisterCallback<KeyDownEvent>(evt =>
         {
             if (evt.keyCode is KeyCode.Return or KeyCode.KeypadEnter)
@@ -161,10 +144,7 @@ public sealed partial class CharacterPanel
         _inventoryDropQuantityWorn = _invSelectedWorn;
         _inventoryDropQuantityTitle.text = string.Format(
             Loc.Get("inv.drop_quantity_title"), _invDetailName.text);
-        _inventoryDropQuantitySlider.lowValue = 1;
-        _inventoryDropQuantitySlider.highValue = count;
-        _inventoryDropQuantitySlider.SetValueWithoutNotify(count);
-        _inventoryDropQuantityInput.SetValueWithoutNotify(count);
+        _inventoryDropQuantityChoice.Configure(count);
         _inventoryDropQuantityConfirm.text = Loc.Get("inv.drop_quantity_confirm");
         _inventoryDropQuantityModal?.Show(true);
         _inventoryDropQuantityOverlay.BringToFront();
@@ -196,7 +176,7 @@ public sealed partial class CharacterPanel
             return;
         }
 
-        var count = Mathf.Clamp(_inventoryDropQuantityInput.value, 1, _inventoryDropQuantityMax);
+        var count = _inventoryDropQuantityChoice.Value;
         HideInventoryDropQuantityPicker();
         EnqueueInventoryAction(InventoryAction.Drop, count);
     }

@@ -25,6 +25,10 @@ public sealed class ItemInstance : System.IEquatable<ItemInstance>
 
     public float Bloodiness { get; set; }
 
+    // §54 / #469: harvest age of this physical leaf, independent of wetness.
+    // -1 means not yet initialized (including older saves).
+    public int LeafDryingStartTick { get; set; } = -1;
+
     // Portable container contents, in drink charges. Every physical vessel
     // owns its amount: pickup/drop/loot can therefore preserve two bottles
     // with different contents instead of consulting an NPC-global sidecar.

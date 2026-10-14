@@ -463,6 +463,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
     private bool _leftHanded;
     private bool _hasUsableHand = true;
     private GameObject _handProp;
+    private HexLive.UnityPresentation.Rendering.LeafDryingTint _handLeafTint;
     private Renderer[] _handPropRenderers = new Renderer[0];
 
     // Spec 33.1 (iter 33): a slung weapon rides on the back when carried but
@@ -4211,6 +4212,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             HexLive.UnityPresentation.Environment.BottleLiquidVisual.Sync(_handProp, fill, appearance);
     }
 
+    public void SyncHeldLeafDryness(float dryness) => _handLeafTint?.Sync(dryness);
+
     public void SetInteraction(string interaction, string heldItemId, bool aidTargetLying = false,
         float interactionSeconds = 0f, int lyingStationSlot = -1, bool standingCraft = false)
     {
@@ -5775,12 +5778,18 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         UpdateArmedStance(itemId);
         if (_handProp != null) { _handProp.SetActive(false); Destroy(_handProp); }
         _handProp = null;
+        _handLeafTint=null;
         _currentPropId = null;
         _handPropRenderers = new Renderer[0];
         if (string.IsNullOrEmpty(itemId) || hand == null) return;
         _handProp = HandPropVisual.Create(itemId, hand, _leftHanded);
         if (_handProp == null) return;
         _currentPropId = itemId;
+        if (HexLive.Simulation.Runtime.LeafDryingMath.HasLeaves(itemId))
+        {
+            _handLeafTint=_handProp.AddComponent<HexLive.UnityPresentation.Rendering.LeafDryingTint>();
+            _handLeafTint.Initialize();
+        }
         _handPropRenderers = _handProp.GetComponentsInChildren<Renderer>();
     }
 

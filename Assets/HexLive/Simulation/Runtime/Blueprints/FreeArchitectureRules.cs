@@ -350,6 +350,8 @@ namespace HexLive.Simulation.Runtime.Blueprints
                     dropped.ResourceAmount = item.ResourceAmount;
                     dropped.WaterKind = item.WaterKind;
                     dropped.LastAddedWaterKind = item.LastAddedWaterKind;
+                    LeafDryingMath.Initialize(item,world.Tick);
+                    dropped.LeafDryingStartTick=item.LeafDryingStartTick;
                     dropped.Dirtiness = item.Dirtiness;
                     dropped.Bloodiness = item.Bloodiness;
                     dropped.Owner = item.OwnerId != 0 ? new EntityId(item.OwnerId) : null;

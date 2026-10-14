@@ -113,6 +113,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         public HexLive.UnityPresentation.Environment.BedAssembly Assembly;
         public HexLive.UnityPresentation.Environment.CampfireSpitMeat SpitMeat;
         public GarmentWorldCondition Garment;
+        public LeafDryingTint Leaves;
         public GroundPileLayout GroundPile;
         public HexLive.UnityPresentation.Environment.BuildSitePile Pile;
         public HexLive.UnityPresentation.Environment.CraftProjectVisual CraftProject;
@@ -1898,6 +1899,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     ? objectView.AddComponent<HexLive.UnityPresentation.Environment.CraftProjectVisual>()
                     : null;
                 craftProject?.Sync(worldObject);
+                LeafDryingTint leaves=null;
+                if (LeafDryingMath.HasLeaves(worldObject.DefinitionId))
+                {
+                    leaves=objectView.AddComponent<LeafDryingTint>();
+                    leaves.Initialize(); leaves.Sync(worldObject.LeafDryness);
+                }
                 _objectViewParts[key] = new ObjectViewParts
                 {
                     // The compact hut hearth keeps its effect on the authored
@@ -1909,6 +1916,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     Assembly = objectView.GetComponent<HexLive.UnityPresentation.Environment.BedAssembly>(),
                     SpitMeat = objectView.GetComponent<HexLive.UnityPresentation.Environment.CampfireSpitMeat>(),
                     Garment = objectView.GetComponent<GarmentWorldCondition>(),
+                    Leaves=leaves,
                     GroundPile = objectView.GetComponent<GroundPileLayout>(),
                     Pile = objectView.GetComponent<HexLive.UnityPresentation.Environment.BuildSitePile>(),
                     CraftProject = craftProject,
@@ -2054,6 +2062,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             var garmentCondition = parts.Garment;
+            parts.Leaves?.Sync(worldObject.LeafDryness);
             if (garmentCondition != null)
             {
                 garmentCondition.Sync(worldObject.Durability, worldObject.Dirtiness,
@@ -3256,6 +3265,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 item.CraftCurrentWorkerId == npc.Id.Value));
         actorView.SetOffhandItem(npc.OffhandItemId);
         actorView.SyncBottleLiquid(npc.HeldBottleFill, npc.HeldBottleAppearance);
+        actorView.SyncHeldLeafDryness(npc.HeldLeafDryness);
         // §119: ground crafting retains the worker's indicator; tabletop
         // projects own their persistent bar. The ground bar follows the head in
         // LateUpdate, so sitting and lying poses need no renderer-side offsets.

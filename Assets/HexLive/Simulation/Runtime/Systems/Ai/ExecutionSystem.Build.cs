@@ -39,6 +39,9 @@ public sealed partial class ExecutionSystem
 
                 npc.Inventory.Items.Remove(carried);
                 site.Contents.Add(carried);
+                if (mat==ContentIds.PalmLeaf && BuildSiteMath.Delivered(site,mat)==1)
+                    site.LeafDryingStartTick=-1; // first actual material, not blueprint age
+                LeafDryingMath.Receive(site,carried,world.Tick);
                 if (BuildSiteMath.IsArchitecturalBuilding(site.BuildProduct))
                 {
                     BuildingRules.SyncHutElements(world, site);
@@ -290,6 +293,7 @@ public sealed partial class ExecutionSystem
         raised.OwnerFaction = ownerFaction;
         raised.BlueprintId = blueprintId;
         raised.RotationDegrees = yaw;
+        raised.LeafDryingStartTick=site.LeafDryingStartTick;
         if (!string.IsNullOrEmpty(variant)) raised.Variant = variant;
         ApplyIndoorFurnitureFootprint(world, raised);
         BuildingRules.ReparentElements(world, architectureOwner, raised);

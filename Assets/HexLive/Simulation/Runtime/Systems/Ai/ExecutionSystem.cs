@@ -1802,6 +1802,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                         : worldObject.ResourceAmount,
                 WaterKind = worldObject.WaterKind,
                 LastAddedWaterKind = worldObject.LastAddedWaterKind,
+                LeafDryingStartTick = LeafDryingMath.HasLeaves(worldObject.DefinitionId)
+                    ? LeafDryingMath.Start(worldObject) : -1,
                 Dirtiness = worldObject.Dirtiness,
                 Bloodiness = worldObject.Bloodiness,
                 // §133: поднятая вещь несёт владельца дальше — иначе одежда
@@ -2442,19 +2444,22 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                     // item (importance-guarded) — a pack full of sticks must
                     // not send fresh meat to rot on the ground.
                     InventoryMath.MakeRoomFor(world, npc, drop.DefinitionId);
-                    GiveOrDrop(world, npc, CreateYieldItem(world, drop.DefinitionId));
+                    GiveOrDrop(world, npc, CreateYieldItem(world, drop.DefinitionId, source));
                     continue;
                 }
 
-                var item = CreateYieldItem(world, drop.DefinitionId);
+                var item = CreateYieldItem(world, drop.DefinitionId, source);
                 if (!TryDropYieldNear(world,npc,source,item,out _, scatter:true)) GiveOrDrop(world,npc,item);
             }
         }
     }
 
-    private static ItemInstance CreateYieldItem(WorldState world, string definitionId)
+    private static ItemInstance CreateYieldItem(WorldState world, string definitionId, WorldObjectState source = null)
     {
         var item = new ItemInstance(definitionId);
+        if (LeafDryingMath.HasLeaves(definitionId))
+            item.LeafDryingStartTick=source is not null && LeafDryingMath.HasLeaves(source.DefinitionId)
+                ? LeafDryingMath.Start(source) : world.Tick;
         // §59-склад: начальный запас из декларации (вода дырявого кокоса).
         if (world.Content.ObjectDefinitions.TryGetValue(definitionId, out var def))
         {
@@ -2486,7 +2491,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         {
             for (var i = 0; i < drop.Count; i++)
             {
-                var item = CreateYieldItem(world,drop.DefinitionId);
+                var item = CreateYieldItem(world,drop.DefinitionId,source);
                 item.ResourceAmount = world.Content.ObjectDefinitions.TryGetValue(drop.DefinitionId,out var definition)
                     ? definition.StoredAmount(Content.StoredKind.Water) : 0f;
                 if (TryDropYieldNear(world,npc,source,item,out var spawned)) primary ??= spawned;
@@ -2619,6 +2624,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         dropped.ResourceAmount = item.ResourceAmount;
         dropped.WaterKind = item.WaterKind;
         dropped.LastAddedWaterKind = item.LastAddedWaterKind;
+        LeafDryingMath.Initialize(item,world.Tick);
+        dropped.LeafDryingStartTick=item.LeafDryingStartTick;
         dropped.Dirtiness = item.Dirtiness;
         dropped.Bloodiness = item.Bloodiness;
         // §31C.1 / bug #411: both carried drops and harvested branch yields

@@ -499,6 +499,7 @@ internal static class CraftProjectMath
                     ResourceAmount = source.ResourceAmount,
                     WaterKind = source.WaterKind,
                     LastAddedWaterKind = source.LastAddedWaterKind,
+                    LeafDryingStartTick=LeafDryingMath.HasLeaves(source.DefinitionId) ? LeafDryingMath.Start(source) : -1,
                     Dirtiness = source.Dirtiness,
                     Bloodiness = source.Bloodiness
                 });

@@ -180,7 +180,7 @@ public static class WorldSaveSerializer
     // v81 (§54.21 / #429): ground harvest scatter; old objects remain orderly.
     // v82 (§138.6.1): bounded craft request admission receipts, appended per world.
     // v83 (§171.10): account character creation receipts and ownership recovery.
-    public const int BlobVersion = 83;
+    public const int BlobVersion = 84;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1097,6 +1097,9 @@ public static class WorldSaveSerializer
         }
 
         MigrateRetiredContent(world, version);
+        LeafDryingMath.InitializeCarried(world);
+        foreach (var obj in world.Entities.Objects.Values)
+            foreach (var item in obj.Contents) LeafDryingMath.Initialize(item,world.Tick);
         MigrateBuildingOwnership(world, version);
     }
 
@@ -1385,6 +1388,7 @@ public static class WorldSaveSerializer
         w.Write(obj.Dirtiness);
         w.Write(obj.Bloodiness);
         w.Write(obj.SpawnTick);
+        if (version >= 84) w.Write(obj.LeafDryingStartTick);
         WriteJunctionList(w, obj.BlockedJunctions);
         w.Write(obj.NextProductionTick);
         w.Write(obj.ProducedItems.Count);
@@ -1484,6 +1488,8 @@ public static class WorldSaveSerializer
             obj.Dirtiness = MathUtil.Clamp01(obj.Dirtiness + obj.Bloodiness);
         }
         obj.SpawnTick = r.ReadInt32();
+        obj.LeafDryingStartTick=version >= 84 ? r.ReadInt32() :
+            LeafDryingMath.HasLeaves(obj.DefinitionId) ? System.Math.Max(0,obj.SpawnTick) : -1;
         ReadJunctionList(r, obj.BlockedJunctions);
         obj.NextProductionTick = r.ReadInt32();
         var producedCount = r.ReadInt32();
@@ -3180,6 +3186,7 @@ public static class WorldSaveSerializer
             w.Write(item.OwnerId);
             if (version >= 68) w.Write((int)item.WaterKind);
             if (version >= 79) w.Write((int)item.LastAddedWaterKind);
+            if (version >= 84) w.Write(item.LeafDryingStartTick);
         }
     }
 
@@ -3199,6 +3206,7 @@ public static class WorldSaveSerializer
             };
             item.WaterKind = version >= 68 ? (WaterKind)r.ReadInt32() : WaterKind.None;
             item.LastAddedWaterKind = version >= 79 ? (WaterKind)r.ReadInt32() : item.WaterKind;
+            item.LeafDryingStartTick=version >= 84 ? r.ReadInt32() : -1;
             if (item.WaterKind == WaterKind.None && item.DefinitionId == ContentIds.Bottle)
             {
                 // Before v68 ResourceAmount on a bottle was not water; fresh

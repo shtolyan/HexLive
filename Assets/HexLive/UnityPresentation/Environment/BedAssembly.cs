@@ -21,7 +21,8 @@ namespace HexLive.UnityPresentation.Environment
 #if UNITY_EDITOR
         // Player content is asynchronous and must never be requested while an
         // editor build gate is inspecting authoring assets. The world-prop gate
-        // installs these resolvers only for the duration of its validation, so
+        // installs these resolvers only for the duration of its validation (or
+        // a scoped native PlayMode fixture), so
         // the exact runtime assembly code can be exercised against source FBX
         // objects without starting ContentAssetService or an edit-mode coroutine.
         public static Func<string, GameObject?>? EditorAssemblyPrefabResolver;
@@ -290,7 +291,7 @@ namespace HexLive.UnityPresentation.Environment
         private static GameObject? LoadAssemblyPrefab(string resourcePath)
         {
 #if UNITY_EDITOR
-            if (!Application.isPlaying && EditorAssemblyPrefabResolver != null)
+            if (EditorAssemblyPrefabResolver != null)
             {
                 return EditorAssemblyPrefabResolver(resourcePath);
             }
@@ -301,7 +302,7 @@ namespace HexLive.UnityPresentation.Environment
         private static GameObject? LoadObjectPrefab(string id)
         {
 #if UNITY_EDITOR
-            if (!Application.isPlaying && EditorObjectPrefabResolver != null)
+            if (EditorObjectPrefabResolver != null)
             {
                 return EditorObjectPrefabResolver(id);
             }

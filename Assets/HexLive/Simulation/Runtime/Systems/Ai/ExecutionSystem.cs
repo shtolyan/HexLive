@@ -329,6 +329,17 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §133.12: recheck before occupancy resentment and before every
+            // interaction tick. A plan from an old save is not permission.
+            if (!CampPropertyMath.CanUse(world, npc, worldObject))
+            {
+                PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+                PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                    "Foreign camp property is not available to autonomous AI");
+                npc.Mind.CurrentGoal = GoalType.None;
+                continue;
+            }
+
             if (!world.Content.ObjectDefinitions.TryGetValue(worldObject.DefinitionId, out var definition))
             {
                 npc.Plan.Status = PlanStatus.Failed;
@@ -1721,6 +1732,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
+        if (!CampPropertyMath.CanUse(world, npc, worldObject)) return false;
+
         if (worldObject.IsCraftProject)
         {
             worldObject.IsOccupied = false;
@@ -1858,6 +1871,9 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
+        if (!CampPropertyMath.CanUse(world, npc, worldObject) &&
+            !OutfitMaintenanceMath.CanRestorePinnedPiece(world, npc, worldObject)) return false;
+
         var restoringSelectedOutfit =
             OutfitMaintenanceMath.CanRestorePinnedPiece(world, npc, worldObject);
         if (npc.Mind.OutfitLocked && !restoringSelectedOutfit)
@@ -2129,6 +2145,8 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         ObjectDefinition definition, InteractionDefinition completedInteraction,
         string needsBefore)
     {
+        if (!CampPropertyMath.CanUse(world, npc, worldObject)) return false;
+
         // Spec 35.5: the wettest garment moves onto the rack —
         // an ownerless world object that dries at x5.
         var wetWorn = FindWettestWornItem(npc);
@@ -2580,6 +2598,14 @@ public sealed partial class ExecutionSystem : ISimulationSystem
             return SpawnDroppedItem(world,npc,item,dropTile,dropJunction);
         }
 
+        return null;
+    }
+
+    internal static WorldObjectState DropAutomaticItemAtFeet(WorldState world, NPCState npc, ItemInstance item)
+    {
+        if (GroundItemPlacement.TryFind(world, npc, item, out var tile, out var junction, out _) &&
+            CampPropertyMath.CanDeposit(world, npc, tile))
+            return SpawnDroppedItem(world, npc, item, tile, junction);
         return null;
     }
 

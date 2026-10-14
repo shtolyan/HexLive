@@ -674,7 +674,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 (!npc.Mind.OutfitLocked && !pendingRedress &&
                  (wantsBackpack || wantsArmor || wantsCover ||
                   (coldForWardrobe &&
-                   HasInteraction(npc, InteractionType.Dress) &&
+                   HasInteraction(npc, world, InteractionType.Dress) &&
                    // §52.7: ...and only when something in reach is a REAL warmth
                    // upgrade — no trek to an equal/worse shirt (the girl's own
                    // example: a top over an identical top warms her by nothing).

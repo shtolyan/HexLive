@@ -61,7 +61,9 @@ internal static class CraftProjectMath
     {
         if (!RecipeCatalog.UsesPersistentProject(goal) ||
             !RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe) ||
-            !StationMatches(world, station, recipe))
+            !StationMatches(world, station, recipe) ||
+            (station is null ? !CampPropertyMath.CanDeposit(world, npc, npc.Tile)
+                : !CampPropertyMath.CanUse(world, npc, station)))
         {
             return false;
         }
@@ -148,7 +150,7 @@ internal static class CraftProjectMath
         {
             if (!perceived.IsReachable || perceived.DefinitionId != output ||
                 !perceived.AvailableInteractions.Contains(InteractionType.PickUp) ||
-                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
+                !DecisionSystem.ObjectUsableBy(world, npc, perceived) ||
                 npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var candidate) ||
                 !candidate.Fragment.Equals(npc.Fragment) || candidate.IsOccupied ||
@@ -181,7 +183,7 @@ internal static class CraftProjectMath
         {
             if (!perceived.IsReachable ||
                 !perceived.AvailableInteractions.Contains(InteractionType.PickUp) ||
-                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
+                !DecisionSystem.ObjectUsableBy(world, npc, perceived) ||
                 npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var container) ||
                 container.IsCraftProject || container.IsOccupied ||
@@ -225,6 +227,7 @@ internal static class CraftProjectMath
             if ((goal != GoalType.CraftItem || npc.Plan.TargetItemDefinitionId == output) &&
                 PinnedProject(npc, goal) is { } exact && candidate.Id != exact) continue;
             if (!candidate.IsCraftProject || candidate.DefinitionId != output ||
+                !CampPropertyMath.CanUse(world, npc, candidate) ||
                 !candidate.Fragment.Equals(npc.Fragment) ||
                 (candidate.IsOccupied && candidate.CurrentUser != npc.Id))
             {
@@ -258,7 +261,9 @@ internal static class CraftProjectMath
         project = null;
         if (!RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe) ||
             !RecipeCatalog.UsesPersistentProject(goal) ||
-            !StationMatches(world, station, recipe))
+            !StationMatches(world, station, recipe) ||
+            (station is null ? !CampPropertyMath.CanDeposit(world, npc, npc.Tile)
+                : !CampPropertyMath.CanUse(world, npc, station)))
         {
             return false;
         }
@@ -440,7 +445,8 @@ internal static class CraftProjectMath
         var bestDistance = int.MaxValue;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (!world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
+            if (!CampPropertyMath.CanUse(world, npc, obj) ||
+                !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 !definition.HasTag(tag)) continue;
             var distance = HexSpatialMath.HexDistance(npc.Tile, obj.Tile);
             if (distance < bestDistance ||
@@ -536,6 +542,7 @@ internal static class CraftProjectMath
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (obj.DefinitionId == definitionId && !obj.IsOccupied && !obj.IsCraftProject &&
+                CampPropertyMath.CanUse(world, npc, obj) &&
                 obj.Contents.Count == 0 && string.IsNullOrEmpty(obj.BuildProduct) &&
                 obj.Fragment.Equals(npc.Fragment) &&
                 HexSpatialMath.HexDistance(tile, obj.Tile) <= 1)
@@ -558,6 +565,7 @@ internal static class CraftProjectMath
         {
             if (PinnedProject(npc, goal) is { } exact && candidate.Id != exact) continue;
             if (!candidate.IsCraftProject || candidate.DefinitionId != output ||
+                !CampPropertyMath.CanUse(world, npc, candidate) ||
                 !candidate.Fragment.Equals(npc.Fragment) ||
                 (candidate.IsOccupied && candidate.CurrentUser != npc.Id)) continue;
             var match = station is not null

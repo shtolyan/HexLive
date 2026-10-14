@@ -305,6 +305,7 @@ public sealed partial class ExecutionSystem
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (obj.DefinitionId != definitionId ||
+                !CampPropertyMath.CanUse(world, npc, obj) ||
                 !obj.Fragment.Equals(npc.Fragment) ||
                 obj.IsOccupied ||
                 obj.Contents.Count > 0 ||
@@ -567,6 +568,15 @@ public sealed partial class ExecutionSystem
 
     private static void RunLegacyCraftInPlace(WorldState world, NPCState npc)
     {
+        if (!CampPropertyMath.CanDeposit(world, npc, npc.Tile))
+        {
+            PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                "Foreign camp is not an autonomous craft/drop site");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
         var goal = npc.Plan.Goal != GoalType.None ? npc.Plan.Goal : npc.Mind.CurrentGoal;
         if (!Content.RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe))
         {

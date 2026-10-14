@@ -1483,7 +1483,8 @@ public sealed partial class ExecutionSystem
     // execution state and are restored when the piece is laid back down.
     private static bool TryPickGarmentIntoHand(WorldState world, NPCState npc, ObjectId objectId)
     {
-        if (!world.Entities.Objects.TryGetValue(objectId, out var garment))
+        if (!world.Entities.Objects.TryGetValue(objectId, out var garment) ||
+            !CampPropertyMath.CanUse(world, npc, garment))
         {
             return false;
         }

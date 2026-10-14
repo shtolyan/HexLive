@@ -979,6 +979,7 @@ public sealed partial class PlanningSystem
         foreach (var perceived in npc.Perception.Objects)
         {
             if (!perceived.IsReachable || perceived.Distance >= bestDistance ||
+                !CampPropertyMath.CanUse(world, npc, perceived) ||
                 perceived.DefinitionId != ContentIds.Campfire ||
                 npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var campfire) ||

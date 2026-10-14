@@ -365,7 +365,7 @@ public sealed partial class DecisionSystem
             {
                 // Те же фильтры, что у HasReachableWithTag: недостижимое,
                 // занятое и отвергнутое памятью источником не является.
-                if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
+                if (!obj.IsReachable || !ObjectUsableBy(world, npc, obj) ||
                     npc.Memory.IsShunned(obj.Id, world.Tick) ||
                     !world.Content.ObjectDefinitions.TryGetValue(
                         obj.DefinitionId, out var definition))

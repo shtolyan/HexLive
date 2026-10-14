@@ -55,8 +55,9 @@ internal static class InventoryMath
 
     internal static WorldObjectState TryDropAutomatic(WorldState world, NPCState npc, ItemInstance item)
     {
-        if (world.Tick < npc.Inventory.NextGroundDropRetryTick) return null;
-        var dropped = ExecutionSystem.DropItemAtFeet(world, npc, item);
+        if (world.Tick < npc.Inventory.NextGroundDropRetryTick ||
+            !CampPropertyMath.CanDeposit(world, npc, npc.Tile)) return null;
+        var dropped = ExecutionSystem.DropAutomaticItemAtFeet(world, npc, item);
         if (dropped == null)
             npc.Inventory.NextGroundDropRetryTick = world.Tick + System.Math.Max(1, world.SlowIntervalTicks);
         return dropped;
@@ -125,7 +126,9 @@ internal static class InventoryMath
     // drop admission without spawning items or changing the retry timer.
     private static bool CanDropReplacement(WorldState world, NPCState npc, ItemInstance victim) =>
         victim is not null && world.Tick >= npc.Inventory.NextGroundDropRetryTick &&
-        GroundItemPlacement.TryFind(world, npc, victim, out _, out _, out _);
+        CampPropertyMath.CanDeposit(world, npc, npc.Tile) &&
+        GroundItemPlacement.TryFind(world, npc, victim, out var tile, out _, out _) &&
+        CampPropertyMath.CanDeposit(world, npc, tile);
 
     /// <summary>A physical instance can enter without displacing anything.
     /// Used by completion paths which must distinguish a truly full pack from

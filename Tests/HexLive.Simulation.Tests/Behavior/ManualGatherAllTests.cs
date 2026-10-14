@@ -285,7 +285,7 @@ public sealed class ManualGatherAllTests
     /// сделал бы приказ бесконечным, а девушку — вечно занятой.
     /// </summary>
     [Test]
-    public void GatherAllStopsOnItsBudgetAndDoesNotChaseLateArrivals()
+    public void GatherAllRescansAndCollectsLateArrivalsInsideItsFixedArea()
     {
         var engine = TestWorld.CreateEngine();
         var world = engine.World;
@@ -309,7 +309,7 @@ public sealed class ManualGatherAllTests
                 "Бюджет обязан равняться числу однотипных предметов гекса.");
         });
 
-        // Пока она несёт первый лист, на гекс ложится третий — уже не её дело.
+        // #467: перечитывать область после сбора, включая появившийся лист.
         StepUntil(engine, () => Carried(npc, ContentIds.PalmLeaf) >= 1);
         var late = WorldObjectMutations.SpawnObject(
             world, ContentIds.PalmLeaf, npc.Fragment, tile, junctions[2]);
@@ -321,12 +321,70 @@ public sealed class ManualGatherAllTests
         {
             Assert.That(ManualGatherTargets.IsActive(npc.Mind), Is.False,
                 "Очередь не закрылась на своём бюджете — это вечный приказ.");
-            Assert.That(Carried(npc, ContentIds.PalmLeaf), Is.EqualTo(2),
-                "Собрано не ровно столько листьев, сколько лежало при приказе.");
-            Assert.That(world.Entities.Objects.ContainsKey(late.Id), Is.True,
-                "Лист, прилетевший ПОСЛЕ приказа, унесён: очередь продлевает " +
-                "сама себя и может не кончиться никогда.");
+            Assert.That(Carried(npc, ContentIds.PalmLeaf), Is.EqualTo(3));
+            Assert.That(world.Entities.Objects.ContainsKey(late.Id), Is.False,
+                "Перечитывание области обязано увидеть новый ресурс до завершения очереди.");
         });
+    }
+
+    [Test]
+    public void GatherAllCollectsTheFixedSevenTileFlowerAndLeavesTheSecondRingAlone()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = TakeControl(engine);
+        var available = world.Tiles.Items.Values.Where(t=>SpatialQueries.IsTileWalkable(world,t.Coord))
+            .Select(t=>new {tile=t.Coord,node=t.Junctions.Select(id=>world.Junctions.Items[id])
+                .Where(j=>j.Tiles.Count==1 && !j.Blocked && SpatialQueries.IsJunctionFree(world,j.Id) &&
+                    Connectivity.Reachable(world,npc.CurrentJunction.Value,j.Id))
+                .OrderBy(j=>HexSpatialMath.Distance(j.WorldPosition,HexSpatialMath.TileToWorld(t.Coord))).FirstOrDefault()})
+            .Where(t=>t.node!=null).ToDictionary(t=>t.tile,t=>t.node);
+        var origin=available.Keys.OrderBy(t=>HexSpatialMath.HexDistance(npc.Tile,t)).First(t=>
+            world.Tiles.Items.Keys.Count(n=>HexSpatialMath.HexDistance(t,n)<=1 && available.ContainsKey(n))==7);
+        var flower = world.Tiles.Items.Keys.Where(t => HexSpatialMath.HexDistance(origin,t)<=1).ToArray();
+        Assert.That(flower.Length,Is.EqualTo(7));
+        foreach(var obj in world.Entities.Objects.Values.Where(o=>o.DefinitionId==ContentIds.PalmLeaf && flower.Contains(o.Tile)).ToArray())
+            WorldObjectMutations.DespawnObject(world,obj.Id);
+        var leaves = flower.Select(t => {
+            var j = available[t];
+            return WorldObjectMutations.SpawnObject(world,ContentIds.PalmLeaf,npc.Fragment,t,j.Id);
+        }).ToArray();
+        var outsideTile = world.Tiles.Items.Keys.First(t=>HexSpatialMath.HexDistance(origin,t)==2 && SpatialQueries.IsTileWalkable(world,t));
+        var outsideJ = world.Tiles.Items[outsideTile].Junctions.First(j=>!world.Junctions.Items[j].Blocked);
+        var outside = WorldObjectMutations.SpawnObject(world,ContentIds.PalmLeaf,npc.Fragment,outsideTile,outsideJ);
+        var anchor = leaves.Single(o=>o.Tile==origin);
+        var order = ManualCommandExecutor.Apply(world,new GatherAllOnHexCommand(npc.Id,anchor.Id,InteractionType.PickUp));
+        Assert.That(order.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),order.Reason);
+        StepUntil(engine,()=>!ManualGatherTargets.IsActive(npc.Mind),3000);
+        Assert.That(leaves.Any(o=>world.Entities.Objects.ContainsKey(o.Id)),Is.False);
+        Assert.That(world.Entities.Objects.ContainsKey(outside.Id),Is.True,"The flower must not follow the walking actor.");
+        Assert.That(Carried(npc,ContentIds.PalmLeaf),Is.EqualTo(7));
+    }
+
+    [Test]
+    public void NextResourceUsesCurrentDistanceAndObjectIdOnlyBreaksTies()
+    {
+        var engine=TestWorld.CreateEngine();var world=engine.World;var npc=TakeControl(engine);
+        var junctions=FreeJunctionsOnOneTile(world,npc,2,out var tile);
+        var older=WorldObjectMutations.SpawnObject(world,ContentIds.PalmLeaf,npc.Fragment,tile,junctions[0]);
+        var closer=WorldObjectMutations.SpawnObject(world,ContentIds.PalmLeaf,npc.Fragment,tile,junctions[1]);
+        npc.Position=world.Junctions.Items[junctions[1]].WorldPosition;
+        Assert.That(ManualGatherTargets.Next(world,npc,ContentIds.PalmLeaf,tile,InteractionType.PickUp).Id,Is.EqualTo(closer.Id));
+        npc.Position=world.Junctions.Items[junctions[0]].WorldPosition;
+        Assert.That(ManualGatherTargets.Next(world,npc,ContentIds.PalmLeaf,tile,InteractionType.PickUp).Id,Is.EqualTo(older.Id));
+    }
+
+    [Test]
+    public void SuccessfulOrderWithoutRemovingItsResourceStopsInsteadOfRearmingForever()
+    {
+        var engine=TestWorld.CreateEngine();var world=engine.World;var npc=TakeControl(engine);
+        var leaves=Scatter(world,npc,ContentIds.PalmLeaf,3,out _);
+        ManualCommandExecutor.Apply(world,new GatherAllOnHexCommand(npc.Id,leaves[0].Id,InteractionType.PickUp));
+        npc.Plan.Status=PlanStatus.Completed;
+        npc.Execution.Status=ExecutionStatus.None;
+        new ManualOrderSystem().Run(world);
+        Assert.That(ManualGatherTargets.IsActive(npc.Mind),Is.False,"No progress may not refresh the queue budget.");
+        Assert.That(leaves.All(o=>world.Entities.Objects.ContainsKey(o.Id)),Is.True);
     }
 
     // ── 6. Граница приёма ────────────────────────────────────────────────

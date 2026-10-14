@@ -3043,14 +3043,13 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        var budget = matches.Count < ManualGatherTargets.MaxQueueLength
-            ? matches.Count
-            : ManualGatherTargets.MaxQueueLength;
+        var budget = matches.Count;
+        var first = matches.Find(candidate => candidate.Id.Equals(anchor.Id)) ?? matches[0];
 
         // Первый подход — обычный ручной приказ. Он же снимает старую очередь
         // через ClearForNewOrder, поэтому взводим новую ПОСЛЕ него.
         if (!TryStartInteractOrder(
-                world, npc, matches[0].Id, command.Interaction,
+                world, npc, first.Id, command.Interaction,
                 command.InteractionId, "GatherAll", admission))
         {
             return;
@@ -3111,12 +3110,22 @@ internal static class ManualCommandExecutor
         var tile = npc.Mind.GatherAllTile!.Value;
         var interaction = npc.Mind.GatherAllInteraction!.Value;
         var interactionId = npc.Mind.GatherAllInteractionId;
-        var remaining = npc.Mind.GatherAllRemaining - 1;
-
-        var next = ManualGatherTargets.Next(world, npc, definitionId, tile, interaction);
-        if (next is null || remaining <= 0)
+        // #467: dynamic rescan replaces the initial 64-object budget. A
+        // completed pickup must actually remove its target; otherwise a full
+        // pack or a defective executor could endlessly rearm the same object.
+        if (npc.Plan.TargetObjectId is { } previous &&
+            world.Entities.Objects.TryGetValue(previous, out var unconsumed) &&
+            unconsumed.DefinitionId == definitionId)
         {
-            FinishGatherAll(world, npc, next is null ? "HexEmpty" : "QueueSpent");
+            FinishGatherAll(world, npc, "NoProgress");
+            return;
+        }
+        var candidates = ManualGatherTargets.Collect(world, npc, definitionId, tile, interaction);
+        var remaining = candidates.Count;
+        var next = remaining > 0 ? candidates[0] : null;
+        if (next is null)
+        {
+            FinishGatherAll(world, npc, "AreaEmpty");
             return;
         }
 

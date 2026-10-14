@@ -348,15 +348,15 @@ public sealed class McpItemObservationTests
             var actor = Observer(world);
             actor.Inventory.Items.Clear();
             actor.WornItems.Clear();
-            actor.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants) { Durability = 1f });
-            actor.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants) { Durability = 0.125f });
-            actor.WornItems.Add(new ItemInstance(ContentIds.LeatherPants) { Durability = 0.875f });
+            actor.Inventory.Items.Add(new ItemInstance("underwear.briefs_primal") { Durability = 1f });
+            actor.Inventory.Items.Add(new ItemInstance("underwear.briefs_primal") { Durability = 0.125f });
+            actor.WornItems.Add(new ItemInstance("underwear.briefs_primal") { Durability = 0.875f });
             return actor.Id.Value;
         });
         using var response = Describe(host, id);
         var carried = response.RootElement.GetProperty("inventoryItems");
         var worn = response.RootElement.GetProperty("wornItems");
-        var liking = (int)MathF.Round(ItemAffinity.For(id, ContentIds.LeatherPants) * 100f);
+        var liking = (int)MathF.Round(ItemAffinity.For(id, "underwear.briefs_primal") * 100f);
         Assert.Multiple(() =>
         {
             Assert.That(carried[0].GetProperty("conditionPercent").GetInt32(), Is.EqualTo(100));
@@ -378,11 +378,11 @@ public sealed class McpItemObservationTests
         {
             var actor = Observer(world);
             actor.Perception.Objects.Clear();
-            Add(world, actor, 902001, ContentIds.LeatherPants).Durability = -0.5f;
-            Add(world, actor, 902002, ContentIds.LeatherPants).Durability = 1.5f;
-            Add(world, actor, 902003, ContentIds.LeatherPants);
+            Add(world, actor, 902001, "underwear.briefs_primal").Durability = -0.5f;
+            Add(world, actor, 902002, "underwear.briefs_primal").Durability = 1.5f;
+            Add(world, actor, 902003, "underwear.briefs_primal");
             actor.Perception.Objects.Last().FromMemory = true;
-            Add(world, actor, 902004, ContentIds.LeatherPants);
+            Add(world, actor, 902004, "underwear.briefs_primal");
             actor.Perception.Objects.RemoveAt(actor.Perception.Objects.Count - 1);
             Add(world, actor, 902005, ContentIds.Bottle);
             return actor.Id.Value;
@@ -396,7 +396,7 @@ public sealed class McpItemObservationTests
             Assert.That(visible[0].GetProperty("conditionPercent").GetInt32(), Is.Zero);
             Assert.That(visible[1].GetProperty("conditionPercent").GetInt32(), Is.EqualTo(100));
             Assert.That(visible[0].GetProperty("likingPercent").GetInt32(),
-                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, ContentIds.LeatherPants) * 100f)));
+                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, "underwear.briefs_primal") * 100f)));
             Assert.That(visible[2].TryGetProperty("conditionPercent", out _), Is.False);
             Assert.That(visible[2].TryGetProperty("likingPercent", out _), Is.False);
         });
@@ -414,7 +414,7 @@ public sealed class McpItemObservationTests
             foreach (var actor in people)
             {
                 actor.Inventory.Items.Clear();
-                actor.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants)
+                actor.Inventory.Items.Add(new ItemInstance("underwear.briefs_primal")
                     { OwnerId = people[0].Id.Value, Durability = 0.4f });
             }
             return people.Select(n => n.Id.Value).ToArray();
@@ -424,7 +424,7 @@ public sealed class McpItemObservationTests
             using var response = Describe(host, id);
             var item = response.RootElement.GetProperty("inventoryItems")[0];
             Assert.That(item.GetProperty("likingPercent").GetInt32(),
-                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, ContentIds.LeatherPants) * 100f)));
+                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, "underwear.briefs_primal") * 100f)));
             Assert.That(item.GetProperty("ownerNpcId").GetInt32(), Is.EqualTo(ids[0]));
         }
     }
@@ -432,15 +432,15 @@ public sealed class McpItemObservationTests
     private static NPCState Observer(WorldState world) => world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
 
     [Test]
-    public void VoiceWardrobeReadsActiveCatalogAndUndressWithoutConfusingCarriedPants()
+    public void VoiceWardrobeReadsActiveCatalogAndUndressWithoutConfusingCarriedClothing()
     {
         using var host = CreateHost();
         var setup = host.Read(world =>
         {
             var actor = Observer(world); actor.Inventory.Items.Clear(); actor.WornItems.Clear();
-            actor.WornItems.Add(new ItemInstance(ContentIds.LeatherPants));
-            return (actor.Id.Value, world.Content.ObjectDefinitions[ContentIds.LeatherPants].DisplayName,
-                world.Content.ObjectDefinitions[ContentIds.LeatherPants].Layer!.Value.ToString());
+            actor.WornItems.Add(new ItemInstance("underwear.briefs_primal"));
+            return (actor.Id.Value, world.Content.ObjectDefinitions["underwear.briefs_primal"].DisplayName,
+                world.Content.ObjectDefinitions["underwear.briefs_primal"].Layer!.Value.ToString());
         });
         using var dressed = Describe(host, setup.Item1);
         var item = dressed.RootElement.GetProperty("wornItems")[0];
@@ -459,7 +459,7 @@ public sealed class McpItemObservationTests
         var unknown = undressed.RootElement.GetProperty("inventoryItems")[1];
         Assert.That(unknown.GetProperty("catalogKnown").GetBoolean(), Is.False);
         Assert.That(unknown.GetProperty("displayName").ValueKind, Is.EqualTo(JsonValueKind.Null));
-        Assert.That(host.Read(world => Observer(world).WornItems.Count), Is.Zero, "Reads cannot equip carried pants");
+        Assert.That(host.Read(world => Observer(world).WornItems.Count), Is.Zero, "Reads cannot equip carried clothing");
         // Measure the real warmed local read + projection, not model/TTS latency.
         var samples = new List<double>(); var promptChars = 0;
         for (var i = 0; i < 20; i++)

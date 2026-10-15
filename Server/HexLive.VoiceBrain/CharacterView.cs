@@ -5,8 +5,8 @@ namespace HexLive.VoiceBrain;
 
 /// <summary>
 /// §171.7: describe_colonist is 30–80 KB; a voice turn cannot afford that many
-/// prompt tokens. This projection keeps what the character can feel, see and
-/// act on (~3 KB): body, mood, what is near with the ids the tools need.
+/// prompt tokens. This bounded projection keeps body, mood and current sight,
+/// with the ids the tools need; remembered objects stay explicitly separate.
 /// </summary>
 public static class CharacterView
 {
@@ -45,12 +45,16 @@ public static class CharacterView
         return list.Count > 0 ? list : ["чувствует себя хорошо"];
     }
 
-    public static string Build(JsonElement d)
+    public static string Build(JsonElement d, string query = "")
     {
         var sb = new StringBuilder();
         sb.Append("Имя: ").Append(Name(d)).Append('\n');
         if (d.TryGetProperty("tick", out var tick) && tick.TryGetInt64(out var t))
             sb.Append("Свежий снимок сервера, tick=").Append(t).Append('\n');
+        if(d.TryGetProperty("perceptionTick",out var pt) && pt.TryGetInt32(out var observed))
+            sb.Append("Текущее восприятие обновлено на tick=").Append(observed).Append('\n');
+        if(d.TryGetProperty("environment",out var environment) && environment.ValueKind==JsonValueKind.Object)
+            sb.Append("Окружение сейчас: ").Append(environment.GetRawText()).Append('\n');
         AppendWardrobe(sb, d);
         if (d.TryGetProperty("stateSummary", out var state)) sb.Append("Тело и занятие: ").Append(state.GetString()).Append('\n');
         if (d.TryGetProperty("bodyNeeds", out var needs))
@@ -85,21 +89,29 @@ public static class CharacterView
         }
         if (d.TryGetProperty("visibleItems", out var objects) && objects.ValueKind == JsonValueKind.Array)
         {
-            sb.Append("Объекты (objectId, что это, действия):\n");
-            var candidates = objects.EnumerateArray().Where(o => o.ValueKind == JsonValueKind.Object &&
-                o.TryGetProperty("objectId", out var id) && id.TryGetInt32(out _)).ToArray();
+            sb.Append("Вижу сейчас — объекты (objectId, что это, действия):\n");
+            var candidates = SurroundingsView.CurrentObjects(d);
+            var groups=candidates.GroupBy(o=>SurroundingsView.Text(o,"itemId")).OrderByDescending(g=>g.Count()).ThenBy(g=>g.Key).ToArray();
+            sb.Append("Всего в текущем зрении: ").Append(candidates.Length).Append(" объектов; по типам: ")
+                .Append(string.Join(", ",groups.Take(12).Select(g=>$"{g.Key}×{g.Count()}"))).Append(groups.Length>12 ? "; прочие типы опущены" : "").Append('\n');
             // Facilities are often newer than loose items: an ID prefix hid
             // beds behind the first 24 sticks. Keep a bounded deterministic list.
-            foreach (var o in candidates.OrderByDescending(HasSleep).ThenBy(o => o.GetProperty("objectId").GetInt32()).Take(MaxObjects))
+            foreach (var o in SurroundingsView.Select(d,query).Take(MaxObjects))
             {
                 var verbs = o.TryGetProperty("interactions", out var acts) && acts.ValueKind == JsonValueKind.Array
                     ? string.Join("/", acts.EnumerateArray().Select(a => a.TryGetProperty("type", out var t) ? t.GetString() : null).Where(t => t != null).Distinct())
                     : "";
                 sb.Append("- ").Append(o.GetProperty("objectId").GetInt32()).Append(' ').Append(o.GetProperty("itemId").GetString())
                   .Append(verbs.Length > 0 ? " [" + verbs + "]" : "").Append('\n');
+                if(o.TryGetProperty("interactions",out var available) && available.ValueKind==JsonValueKind.Array)
+                    foreach(var a in available.EnumerateArray())
+                        if(a.TryGetProperty("toolRequirementMet",out var met) && met.ValueKind==JsonValueKind.False)
+                            sb.Append("  Для ").Append(SurroundingsView.Text(a,"type")).Append(" отсутствует нужный инструмент\n");
+                foreach(var key in new[]{"displayName","distance","reachable","occupied","sameCamp","collector","fire","construction"})
+                    if(o.TryGetProperty(key,out var value)) sb.Append("  ").Append(key).Append('=').Append(value.GetRawText()).Append('\n');
             }
             if (candidates.Length > MaxObjects)
-                sb.Append("Этот список неполный; отсутствие объекта здесь не доказывает отсутствие в лагере.\n");
+                sb.Append("Этот список неполный; используй inspect_surroundings по названию или типу, прежде чем говорить «не вижу».\n");
         }
         if (d.TryGetProperty("knownSleepPlaces", out var known) && known.ValueKind == JsonValueKind.Object &&
             known.TryGetProperty("objects", out var beds) && beds.ValueKind == JsonValueKind.Array)
@@ -115,8 +127,10 @@ public static class CharacterView
             }
             sb.Append("Можно попытаться Sleep по известному objectId; отказ сервера означает, что место сейчас недоступно. Не объявляй сон начатым по одному accepted.\n");
         }
-        if (d.TryGetProperty("perceptionSummary", out var perception) && perception.GetString() is { } p)
-            sb.Append("Восприятие (ближайшие по типам): ").Append(p.Length > MaxPerception ? p[..MaxPerception] + "…" : p).Append('\n');
+        if(d.TryGetProperty("mobs",out var mobs) && mobs.ValueKind==JsonValueKind.Array)
+            sb.Append("Вижу сейчас — звери (distanceTiles в гексах): ")
+                .Append(JsonSerializer.Serialize(mobs.EnumerateArray().Take(8))).Append('\n');
+        sb.Append("Память и архив не являются текущим зрением. Нет предмета в коротком списке — уточни inspect_surroundings.\n");
         return sb.ToString();
     }
 

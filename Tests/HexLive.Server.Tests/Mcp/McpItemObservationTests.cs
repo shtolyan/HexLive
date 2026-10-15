@@ -17,6 +17,36 @@ namespace HexLive.Server.Tests.Mcp;
 
 public sealed class McpItemObservationTests
 {
+    [Test]
+    public void CurrentSightHasObservationFactsAndVisibleMobsWithoutRememberedObjects()
+    {
+        using var host=CreateHost();
+        var id=host.Read(world=>
+        {
+            var actor=Observer(world);actor.Perception.Objects.Clear();actor.Perception.Mobs.Clear();
+            actor.Perception.LastUpdatedTick=77;
+            actor.Perception.Environment.Temperature=24.5f;
+            Add(world,actor,900050,"resource.stick");
+            var seen=actor.Perception.Objects.Last();seen.Distance=1.25f;seen.Tile=actor.Tile;seen.IsReachable=false;
+            Add(world,actor,900051,"tool.bottle");actor.Perception.Objects.Last().FromMemory=true;
+            actor.Perception.Mobs.Add(new PerceivedMob{Id=88,MobId="dog",Distance=2,Health=1.2f,TargetsMe=true});
+            return actor.Id.Value;
+        });
+        using var d=Describe(host,id);
+        var rows=d.RootElement.GetProperty("visibleItems");Assert.That(rows.GetArrayLength(),Is.EqualTo(1));
+        var row=rows[0];Assert.That(row.GetProperty("objectId").GetInt32(),Is.EqualTo(900050));
+        Assert.That(d.RootElement.GetProperty("perceptionTick").GetInt32(),Is.EqualTo(77));
+        Assert.That(d.RootElement.GetProperty("environment").GetProperty("temperature").GetDouble(),Is.EqualTo(24.5));
+        Assert.That(row.GetProperty("fromMemory").GetBoolean(),Is.False);
+        Assert.That(row.GetProperty("perceivedTick").GetInt32(),Is.EqualTo(77));
+        Assert.That(row.GetProperty("distance").GetDouble(),Is.EqualTo(1.25));
+        Assert.That(row.GetProperty("reachable").GetBoolean(),Is.False);
+        Assert.That(row.GetProperty("tile").TryGetProperty("q",out _),Is.True);
+        var mobs=d.RootElement.GetProperty("mobs");Assert.That(mobs.GetArrayLength(),Is.EqualTo(1));
+        Assert.That(mobs[0].GetProperty("mobId").GetInt32(),Is.EqualTo(88));
+        Assert.That(mobs[0].GetProperty("targetsMe").GetBoolean(),Is.True);
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public void VisibleFireReportsBurningAndTheSeparateIgnitionPrerequisites(bool burning)

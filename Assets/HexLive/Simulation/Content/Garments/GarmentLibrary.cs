@@ -26,6 +26,7 @@ namespace HexLive.Simulation.Content
     {
         private static List<GarmentParams> _active;
         private static List<GarmentParams> _spawnable;
+        private static Dictionary<string, GarmentParams> _byId;
 
         // The active table the catalog reads. Lazily seeded from the defaults so
         // a host that never applies an asset still gets sane values.
@@ -69,6 +70,7 @@ namespace HexLive.Simulation.Content
             }
 
             _active = list;
+            _byId = null;
             _spawnable = list.Where(value => value != null && !value.Retired).ToList();
         }
 
@@ -83,24 +85,37 @@ namespace HexLive.Simulation.Content
             return GarmentSex.Any;
         }
 
-        // §84: можно ли ЭТОМУ телу надеть ЭТУ вещь. Женская вещь на мужском
-        // теле рисуется вывернутым мешем — поэтому запрет стоит в симуляции, а
-        // не в виде: чужую одежду не надо отрисовывать правильнее, её не надо
-        // даже рассматривать как одежду.
+        // §84 / §169.8: another body requires an explicitly prepared paired fit.
         //
         // Вещь без пола (Any) носят все; неизвестный id пропускаем — не наше
         // дело запрещать то, чего мы не знаем.
         public static bool FitsSex(GarmentSex wearer, string definitionId)
         {
-            foreach (var g in Active)
-            {
-                if (g.Id == definitionId)
-                {
-                    return g.Sex == GarmentSex.Any || g.Sex == wearer;
-                }
-            }
+            return definitionId == null || FitDefinitionId(wearer, definitionId) != null;
+        }
 
-            return true;
+        // Only a reciprocal, explicitly authored pair with identical mechanics
+        // permits another body. Legacy garments without a fit remain restricted.
+        public static string FitDefinitionId(GarmentSex wearer, string definitionId)
+        {
+            if (definitionId == null) return null;
+            EnsureSeeded();
+            if (_byId == null)
+            {
+                _byId = new Dictionary<string, GarmentParams>();
+                foreach (var item in _active)
+                    if (item != null && !_byId.ContainsKey(item.Id)) _byId.Add(item.Id, item);
+            }
+            _byId.TryGetValue(definitionId, out var original);
+            if (original == null || original.Sex == GarmentSex.Any || original.Sex == wearer)
+                return definitionId;
+            _byId.TryGetValue(original.AlternateFitId ?? string.Empty, out var fit);
+            return fit != null && fit.Sex == wearer && fit.AlternateFitId == original.Id &&
+                fit.Layer == original.Layer && fit.Warmth == original.Warmth &&
+                fit.Armor == original.Armor && fit.ThermalDelta == original.ThermalDelta &&
+                fit.Capacity == original.Capacity && fit.DressDurationTicks == original.DressDurationTicks &&
+                fit.Covers.Count == original.Covers.Count && fit.Covers.All(original.Covers.Contains)
+                ? fit.Id : null;
         }
 
         /// <summary>§154.2 gate for every path that creates a new garment.</summary>
@@ -115,6 +130,7 @@ namespace HexLive.Simulation.Content
 
         public static void ResetToDefaults()
         {
+            _byId = null;
             _active = BuildDefaults();
             _spawnable = new List<GarmentParams>(_active);
         }

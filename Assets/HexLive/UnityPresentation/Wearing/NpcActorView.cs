@@ -3153,7 +3153,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             // count=0. Otherwise the first render tick permanently marked a
             // real garment art-less and the panel said "Надето" over a nude
             // body even after its bundle had arrived.
-            if (!ActorWardrobe.TryGetVisuals(simId, out var prefabs))
+            var fittedId = ActorWardrobe.FittedId(simId, _actorMesh);
+            if (!ActorWardrobe.TryGetVisuals(fittedId, out var prefabs))
             {
                 continue;
             }
@@ -3174,7 +3175,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
             var isNewItem = !_equippedSimItems.ContainsKey(simId);
             for (var i = 0; i < prefabs.Count; i++)
             {
-                _bodyBones.Equip($"{simId}#{i}", prefabs[i]); // no-op if already on the body
+                _bodyBones.Equip($"{simId}#{i}", prefabs[i],
+                    Garments.GarmentVariants.MaterialsOf(fittedId)); // item identity stays unchanged
             }
 
             _equippedSimItems[simId] = prefabs.Count;

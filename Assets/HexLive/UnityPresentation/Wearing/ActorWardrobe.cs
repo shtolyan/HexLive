@@ -8,6 +8,11 @@ namespace HexLive.UnityPresentation.Wearing
 /// <summary>§152 single door to independently versioned garment objects.</summary>
 public static class ActorWardrobe
 {
+    public static string FittedId(string simDefinitionId, ActorName actor) =>
+        HexLive.Simulation.Content.GarmentLibrary.FitDefinitionId(
+            ActorSex.Of(actor) == VisualGender.Male ? HexLive.Simulation.Content.GarmentSex.Male
+                : HexLive.Simulation.Content.GarmentSex.Female, simDefinitionId) ?? simDefinitionId;
+
     private static readonly Dictionary<string, List<Wear>> Cache = new();
     private static readonly Dictionary<string, ContentAssetHandle<GameObject>> Handles = new();
     private static readonly HashSet<string> Loading = new();

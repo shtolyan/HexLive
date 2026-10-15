@@ -116,6 +116,7 @@ public static class ContentResidency
             if (!string.IsNullOrEmpty(worn))
             {
                 AddKit("wear/" + worn);
+                AddWornFit(worn, npc.ActorMesh);
             }
         }
         if (!string.IsNullOrEmpty(npc.HeldGarmentId))
@@ -149,10 +150,17 @@ public static class ContentResidency
             if (!string.IsNullOrEmpty(worn))
             {
                 AddKit("wear/" + worn);
+                AddWornFit(worn, body.ActorMesh);
             }
         }
 
         Report("corpse/" + corpseId, KitScratch, visible: true, pinned: true);
+    }
+
+    private static void AddWornFit(string id, string actor)
+    {
+        if (Enum.TryParse<Wearing.ActorName>(actor, out var name))
+            AddKit("wear/" + Wearing.ActorWardrobe.FittedId(id, name));
     }
 
     /// <summary>Живой вью лежащей/висящей одежды.</summary>

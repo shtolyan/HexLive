@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.top_primal_2
   prototypeId: clothing.top_primal
+  alternateFitId: clothing.top_primal_male_2
   displayName: Hide Wrap (2)
   retired: 0
   hasSexOverride: 1

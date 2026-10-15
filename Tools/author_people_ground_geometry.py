@@ -6,7 +6,7 @@ root=Path(__file__).resolve().parents[1]
 rel=Path('Assets/HexLiveContent/People/Validation/scale-audit.json')
 a=json.loads((root/rel).read_text());assert a['passed']
 wear=[r for r in a['rows'] if r['type']=='wear' and not r['hanging']]
-proto={r['prototypeId']:r for r in wear};assert len(proto)==21
+proto={r['prototypeId']:r for r in wear};assert len(proto)==22
 lines=['// Generated from People/Validation/scale-audit.json through the real GarmentDropFactory.', '// Metres at HexWorldRenderer.ActorScale; immutable shared server/client placement data.', 'using System.Collections.Generic;', 'namespace HexLive.Simulation.Content', '{', 'internal static class PreparedPeopleGroundGeometry', '{','    internal static void Register(Dictionary<string, GroundPileProfile> garments,', '        Dictionary<string, string> prototypes, Dictionary<string, GroundPileProfile> objects)', '    {']
 def num(x):return f'{x:.6f}f'
 def outward(b):

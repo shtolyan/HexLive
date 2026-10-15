@@ -293,6 +293,7 @@ namespace HexLive.Simulation.Content
                         PrototypeId = string.IsNullOrEmpty(Str(g, "prototypeId"))
                             ? gid
                             : Str(g, "prototypeId"),
+                        AlternateFitId = Str(g, "alternateFitId"),
                         Retired = B(g, "retired"),
                     });
                 }
@@ -679,6 +680,10 @@ namespace HexLive.Simulation.Content
                 {
                     sb.Append($"\"prototypeId\": {Q(g.PrototypeId)}, ");
                 }
+
+                // §169.8: preserve explicit fitted-pair provenance in effective SimData.
+                if (!string.IsNullOrEmpty(g.AlternateFitId))
+                    sb.Append($"\"alternateFitId\": {Q(g.AlternateFitId)}, ");
 
                 // §154.2 / bug #335: retired пишется только когда взведён —
                 // подавляющее большинство вещей живые, шум в файле не нужен.

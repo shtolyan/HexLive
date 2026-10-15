@@ -235,6 +235,12 @@
       "id": "PrimalTrailPack",
       "actor": "Kshishtof",
       "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalTrailPack.prefab"
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalTop",
+      "actor": "Kshishtof",
+      "path": "Assets/HexLiveContent/People/Prefabs/Wear/Kshishtof_PrimalTop.prefab"
     }
   ],
   "materialVariants": {

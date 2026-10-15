@@ -30280,6 +30280,70 @@ MonoBehaviour:
       - 'Ждём загрузку предпросмотра персонажа. После неё можно начать игру.'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'item.clothing_top_primal_male.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Wrap'
+      - 'Кожаная повязка на грудь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_male.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece of hide and a knot. Nothing to catch on a branch.'
+      - 'Один кусок кожи и узел. Не за что зацепиться веткой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_male_1.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Wrap (Style 1)'
+      - 'Кожаная повязка на грудь (вариант 1)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_male_1.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece of hide and a knot. Nothing to catch on a branch.'
+      - 'Один кусок кожи и узел. Не за что зацепиться веткой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_male_2.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Wrap (Style 2)'
+      - 'Кожаная повязка на грудь (вариант 2)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_male_2.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece of hide and a knot. Nothing to catch on a branch.'
+      - 'Один кусок кожи и узел. Не за что зацепиться веткой.'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_male_3.name'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Hide Wrap (Style 3)'
+      - 'Кожаная повязка на грудь (вариант 3)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'item.clothing_top_primal_male_3.desc'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'One piece of hide and a knot. Nothing to catch on a branch.'
+      - 'Один кусок кожи и узел. Не за что зацепиться веткой.'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

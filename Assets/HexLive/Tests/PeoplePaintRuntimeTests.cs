@@ -44,6 +44,8 @@ public sealed class PeoplePaintRuntimeTests
             foreach (var guid in AssetDatabase.FindAssets("t:" + type.Name, new[] { Root + "/PaintMaps" }))
             {
                 var asset = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guid), type);
+                Assert.That(asset.name, Is.EqualTo(Path.GetFileNameWithoutExtension(AssetDatabase.GUIDToAssetPath(guid))),
+                    "Prepared paint-map names are runtime resource keys");
                 cache[asset.name] = asset;
             }
         }
@@ -175,7 +177,7 @@ public sealed class PeoplePaintRuntimeTests
             }
             Object.DestroyImmediate(go);
         }
-        Assert.That(tested, Is.EqualTo(78), "All catalog variants must be exercised");
+        Assert.That(tested, Is.EqualTo(82), "All catalog variants must be exercised");
     }
 
     [Test]
@@ -236,7 +238,7 @@ public sealed class PeoplePaintRuntimeTests
                 bones.TakeOff(id); tested++; yield return null;
             }
         }
-        Assert.That(tested, Is.EqualTo(78));
+        Assert.That(tested, Is.EqualTo(82));
     }
 
     [Test]
@@ -279,7 +281,7 @@ public sealed class PeoplePaintRuntimeTests
                 if (savedDef == null) variants.Remove(id); else variants[id] = savedDef;
             }
         }
-        Assert.That(count, Is.EqualTo(78));
+        Assert.That(count, Is.EqualTo(82));
     }
 
     [UnityTest]

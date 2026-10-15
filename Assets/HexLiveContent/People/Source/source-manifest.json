@@ -636,8 +636,8 @@
       "id": "PrimalArmWraps",
       "actor": "Marta",
       "path": "Models/Marta_PrimalArmWraps.fbx",
-      "bytes": 149948,
-      "sha256": "7de4223a59eb75419c1515fea2aae58d35602b641729164992a1bb7653b59232",
+      "bytes": 237724,
+      "sha256": "39afc88e65921050ab3e2520af17b482bdb51f23ecf9a4f6ee12229ff73b6c5b",
       "bones": [
         "hip",
         "abdomenLower",
@@ -661,13 +661,31 @@
         "lCarpal3",
         "lRing1",
         "lCarpal4",
-        "lPinky1"
+        "lPinky1",
+        "rCollar",
+        "rShldrBend",
+        "rShldrTwist",
+        "rForearmBend",
+        "rForearmTwist",
+        "rHand",
+        "rCarpal1",
+        "rIndex1",
+        "rIndex2",
+        "rCarpal2",
+        "rMid1",
+        "rMid2",
+        "rCarpal3",
+        "rRing1",
+        "rCarpal4",
+        "rPinky1",
+        "rThumb1",
+        "rThumb2"
       ],
       "meshes": [
         {
           "name": "Marta_PrimalArmWraps",
-          "vertices": 1093,
-          "triangles": 1999,
+          "vertices": 2186,
+          "triangles": 3998,
           "blendShapes": [],
           "materials": [
             "Marta_PrimalArmWraps_Wear / Sleeve",
@@ -685,8 +703,8 @@
       "id": "PrimalArmWraps",
       "actor": "Kshishtof",
       "path": "Models/Kshishtof_PrimalArmWraps.fbx",
-      "bytes": 149708,
-      "sha256": "758f64257862a47967efb5024fc6b6aaa329ba08f09ba197d171d5198374f225",
+      "bytes": 240988,
+      "sha256": "a841106bffc7d2713662fe919575468931269f583c5904dc06b44242d23f4782",
       "bones": [
         "hip",
         "abdomenLower",
@@ -710,13 +728,31 @@
         "lCarpal3",
         "lRing1",
         "lCarpal4",
-        "lPinky1"
+        "lPinky1",
+        "rCollar",
+        "rShldrBend",
+        "rShldrTwist",
+        "rForearmBend",
+        "rForearmTwist",
+        "rHand",
+        "rCarpal1",
+        "rIndex1",
+        "rIndex2",
+        "rCarpal2",
+        "rMid1",
+        "rMid2",
+        "rCarpal3",
+        "rRing1",
+        "rCarpal4",
+        "rPinky1",
+        "rThumb1",
+        "rThumb2"
       ],
       "meshes": [
         {
           "name": "Kshishtof_PrimalArmWraps",
-          "vertices": 1095,
-          "triangles": 2000,
+          "vertices": 2190,
+          "triangles": 4000,
           "blendShapes": [],
           "materials": [
             "Kshishtof_PrimalArmWraps_Wear / Sleeve",
@@ -3101,6 +3137,46 @@
         "receipt": "trailpack-fit.json",
         "clearanceMetres": 0.02
       }
+    },
+    {
+      "kind": "wear",
+      "id": "PrimalTop",
+      "actor": "Kshishtof",
+      "path": "Models/Kshishtof_PrimalTop.fbx",
+      "bytes": 136908,
+      "sha256": "42b8170c9d75929769f29c179e7f219bc98006ddf75753ae1b960a87e23e60b7",
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "rCollar",
+        "rShldrBend",
+        "neckLower",
+        "neckUpper",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "meshes": [
+        {
+          "name": "Kshishtof_PrimalTop",
+          "vertices": 1225,
+          "triangles": 2049,
+          "blendShapes": [],
+          "materials": [
+            "Marta_PrimalTop_Wear / Tie",
+            "Marta_PrimalTop_Wear / Top",
+            "Marta_PrimalTop_Wear / Fringe"
+          ],
+          "uvLayers": [
+            "UVMap"
+          ],
+          "maxBoneWeights": 5
+        }
+      ]
     }
   ],
   "materials": {

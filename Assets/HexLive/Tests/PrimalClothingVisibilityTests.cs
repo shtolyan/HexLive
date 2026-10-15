@@ -14,9 +14,8 @@ namespace HexLive.Tests
         const string Root = "Assets/HexLiveContent/People/Prefabs/";
         static Wear Prefab(string actor, string item) =>
             AssetDatabase.LoadAssetAtPath<GameObject>(Root + "Wear/" + actor + "_" + item + ".prefab").GetComponent<Wear>();
-        static string[] Items(string actor, string outer) => actor == "Marta"
-            ? new[] { "PrimalBriefs", "PrimalTop", outer, "PrimalCollar" }
-            : new[] { "PrimalBriefs", outer, "PrimalCollar" };
+        static string[] Items(string actor, string outer) =>
+            new[] { "PrimalBriefs", "PrimalTop", outer, "PrimalCollar" };
 
         [TestCase("Marta", false)]
         [TestCase("Marta", true)]
@@ -36,7 +35,7 @@ namespace HexLive.Tests
                 bones.TakeOff("PrimalCollar");
                 bones.TakeOff("PrimalSkirt");
                 AssertVisible(bones, "PrimalBriefs");
-                if (actor == "Marta") AssertVisible(bones, "PrimalTop");
+                AssertVisible(bones, "PrimalTop");
             }
             finally { Object.DestroyImmediate(go); }
         }

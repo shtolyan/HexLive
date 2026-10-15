@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.skirt_primal_male_2
   prototypeId: clothing.skirt_primal_male
+  alternateFitId: clothing.skirt_primal_2
   displayName: Hide Skirt (2)
   retired: 0
   hasSexOverride: 1

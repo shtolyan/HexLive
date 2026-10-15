@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.wrapboots_primal_male_1
   prototypeId: clothing.wrapboots_primal_male
+  alternateFitId: clothing.wrapboots_primal_1
   displayName: Wrapped Boots (1)
   retired: 0
   hasSexOverride: 1

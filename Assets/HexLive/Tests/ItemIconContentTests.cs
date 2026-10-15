@@ -45,7 +45,7 @@ namespace HexLive.Tests
                 Assert.That(inputs.GetType().GetField("Icon").GetValue(inputs), Is.EqualTo(path), id);
                 count++;
             }
-            Assert.That(count, Is.EqualTo(78));
+            Assert.That(count, Is.EqualTo(82));
         }
 
     }

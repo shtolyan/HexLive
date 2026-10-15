@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.collar_fur_male_color05
   prototypeId: clothing.collar_fur_male
+  alternateFitId: clothing.collar_fur_color05
   displayName: Fur Collar (color05)
   retired: 0
   hasSexOverride: 1

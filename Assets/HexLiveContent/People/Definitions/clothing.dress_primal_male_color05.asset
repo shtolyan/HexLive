@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.dress_primal_male_color05
   prototypeId: clothing.dress_primal_male
+  alternateFitId: clothing.dress_primal_color05
   displayName: Fur-Trimmed Dress (color05)
   retired: 0
   hasSexOverride: 1

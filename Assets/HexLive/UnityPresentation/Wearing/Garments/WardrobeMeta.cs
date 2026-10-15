@@ -91,6 +91,7 @@ public static class WardrobeMeta
             // One logical item owns one independently versioned payload even
             // when its authoring prefab was cloned from an art prototype.
             PrototypeId = record.id,
+            AlternateFitId = metadata.Value<string>("alternateFitId") ?? string.Empty,
         };
     }
 

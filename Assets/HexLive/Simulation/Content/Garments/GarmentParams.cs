@@ -80,12 +80,14 @@ namespace HexLive.Simulation.Content
         /// </remarks>
         public string PrototypeId { get; set; }
 
+        // §169.8: explicit opposite-body fit of the SAME item/colour; not a new item.
+        public string AlternateFitId { get; set; } = string.Empty;
+
         public string DisplayName { get; }
 
-        // §84: на кого сшито. Меш каждой вещи вылеплен под конкретное тело, и
-        // женская вещь на мужском теле рисуется вывернутым мешем — поэтому
-        // запрет живёт в СИМУЛЯЦИИ, а не в виде: чужую одежду не надо
-        // отрисовывать правильнее, её не надо даже рассматривать.
+        // §84 / §169.8: на какое тело сшит основной меш. Другое тело допустимо
+        // только с явно подготовленной взаимной AlternateFitId; без неё
+        // ограничение проверяется в симуляции до выбора вещи.
         //
         // Any — вещь без пола (верёвка на поясе, подсумок): её носят все.
         public GarmentSex Sex { get; }

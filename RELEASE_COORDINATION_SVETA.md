@@ -577,3 +577,55 @@ release receipt; the supplemental bank-patch receipt is in private ops
 Rollback is limited to removing the newly added two-file FMODBanks directory;
 no existing files/pointers were overwritten. Bank-patch, public hash and
 browser receipts are local under `Build/MSIRelease/20261014-menu-nre/`.
+
+## MSI — character creator client published (#473), 2026-10-15
+
+Tolya authorized checking real character creation and publishing the Singapore
+client. The published Player source is
+`d23e9cddb8dfc7e7e7857819f27a3874c8d1249e`; later documentation commits do not
+change that build identity. This release updates the client only.
+
+- Official Unity6000.4.6f1 Editor and matching WebGL installers were repaired
+  through the U646 junction to the same existing installation. Both exited0.
+  Only35 missing package-cache files were restored from the repaired official
+  installation; no existing cached file was overwritten or deleted.
+- Creator PlayMode tests26/26 passed on6000.4.6, including pointer-click and
+  Cyrillic typing. Strict WebGL compilation passed with0 errors and0 RS0030.
+  Audio-source reuse proof passed for7984 sources against the actual published
+  audio source `7cd230bda39202a3a5a84da98106109bf270aae1`.
+- Canonical `HexLiveWebGLPlayerBuild.Build` exited0:234MB,0 errors,
+  570 warnings. AutoRefresh preferences and original ProjectSettings/QualitySettings
+  bytes were restored. The release started from a clean tracked tree.
+- Canonical Player package SHA256:
+  `6dc5393a5f56a7f5d5fe80a06b1dd2b7c58a062318319e4364a63b7e6725b009`.
+  All21 packaged files, both source-exact Studio banks, and5668 reused published
+  audio files were hash-verified at staging.
+- Browser QA clicked the name field, entered the complete `Кшиштоф`, retained
+  the name through gender/step changes and used Continue. Exactly one dedicated
+  QA character, `Кшиштоф QA473-1015`, was created through the interface and
+  entered the island. Server assignments independently confirmed NPC1000000002
+  in world `a309de74171d470385412bfab01ffdab`.
+- At server UTC `2026-10-15T06:07:01.118384+00:00`, the client pointer changed
+  from `/var/lib/hexlive-web/releases/msi-20261014-f2576372c` to
+  `/var/lib/hexlive-web/releases/msi-20261015-d23e9cddb`. The old release remains
+  available for rollback. Server binary `f2576372c`, protocol25,
+  `hexlive.service` PID1925094, world identity and registry604 were retained;
+  zero service restarts. New York was not changed.
+- Public checks passed for all20 published build-file hashes, including both
+  FMOD banks, Brotli/WASM headers, sampled FSB/vis, and all230 unchanged content
+  records. A fresh join from the main public URL entered the same QA character
+  without opening creation or creating a duplicate. Browser NRE0/errors0.
+  Temporary desktop viewport override was restored afterwards.
+
+QA NPC1000000002 remains assigned to the dedicated test account. Standard
+destructive admin commands require the player's confirmation in the viewer
+(`AdminCommandBus.Confirm`); no confirmation bypass or direct save edit was
+attempted. The separate #474 bandage-priority server fix is committed in the
+Player's source history but has **not** been deployed to the authoritative
+game server by this client-only release.
+
+Operational receipts and screenshots remain local under
+`Build/MSIRelease/20261015-creator-release/`. Public source receipt:
+`https://play.62-146-235-120.sslip.io/release-receipt.json`.
+No source/evidence archive was exported to Flashback. #473 remains
+ready_for_test; only the player confirms fixed.

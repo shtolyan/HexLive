@@ -629,3 +629,67 @@ Operational receipts and screenshots remain local under
 `https://play.62-146-235-120.sslip.io/release-receipt.json`.
 No source/evidence archive was exported to Flashback. #473 remains
 ready_for_test; only the player confirms fixed.
+
+## MSI — wardrobe #476, Singapore three-layer release (2026-10-15 UTC)
+
+Tolya explicitly authorized a new WebGL Player, bundles and Singapore game-server
+update while preserving the world, accounts and characters. All runtime layers
+use source `66b9bca5b07cb80cc084135cd6753e0a2a4ef5a2` (protocol25). A later journal
+commit does not replace that published source identity. New York, authentication and service configuration
+were not changed; Caddy was not restarted.
+
+- Fresh release gates passed:1834 simulation tests with6 existing skips,
+  497 server tests,56 VoiceBrain tests, strict WebGL0 compile errors/0 RS0030.
+  Clothing fixture checks22/22 had passed before the source commit; serialized
+  content was reopened successfully with5 coexisting People bundles and24
+  renderer/paint-map contracts. Full browser dressing of all82 variants remains
+  the player's acceptance test; #476 stays ready_for_test.
+- Unity6000.4.6f1 CLI built238/238 content objects with0 failures; the canonical
+  package contains239 objects including config/simdata. Existing78 garments gain
+  reciprocal fit links;4 male top variants and5 paint maps are new. Fourteen flat
+  fur capacity values align0->1 with their already-existing simulation capacity1.
+  All other existing metadata/mechanics were verified unchanged.
+- Canonical Player Build exited0:234MB,0 errors,349 warnings. The log verifies
+  RuntimeSpeed, FMOD4x2048/WebAudioTuning,7984 audio sources and DPR1. Original
+  ProjectSettings/QualitySettings bytes and AutoRefresh preferences were restored.
+  Content's final clean-tree wrapper initially tripped on a hash-identical
+  Mobile_RPAsset stat/line-ending flag; index normalization cleared it without
+  a source change. Canonical Unity/package/source checks passed independently.
+- SHA256 archives: server `b1b868f38f0ba8970cf6364935dafe889c872c177f0cb2ebb4e8f1ef7c2e4cbf`;
+  Player `aee6d2a12a6c88f918a3d5ef517f376e54ed90f9d6d43d9f78d407be52f204be`;
+  content `5197acac83eb2e714b50a723d57aaad5c0b9098a45625342d13518b387d1511d`.
+  Staging verified521 server files,21 packaged Player files, both source-exact
+  Studio banks and5668 reused FSB/vis files against actual audio source
+  `7cd230bda39202a3a5a84da98106109bf270aae1` (7984-source proof).
+- At server-reported UTC `2026-10-15T17:05:22.541239+00:00`, server pointer changed
+  `/opt/hexlive/releases/25893fa5b6338179fbdb023489077bf1acf6b324` -> `/opt/hexlive/releases/66b9bca5b07cb80cc084135cd6753e0a2a4ef5a2`;
+  Player pointer `/var/lib/hexlive-web/releases/msi-20261015-d23e9cddb` -> `/var/lib/hexlive-web/releases/msi-20261015-66b9bca5b`.
+  Exactly1 planned hexlive.service stop/start; registry604->843 and pinned
+  world catalog843. The canonical publisher retains monotonic history;239
+  rollback candidates and both old releases remain available.
+- A private stopped backup covers all worlds, root account/key state and voice
+  state under `/var/lib/hexlive/ops/msi-wardrobe476-release-20261015-66b9bca5b/activation-backup`
+  (0700). The tested private helper calls the exact server assembly APIs
+  AssetGarmentCatalog.Materialize + WorldLibrary.StoreCatalog against the world's
+  pinned rules. No password/cookie/HTTP-auth workaround or direct save edit.
+  The bootstrap SimData was retained. Save/assignment/account/key checks passed;
+  save and world metadata permissions remain0600.
+- World `a309de74171d470385412bfab01ffdab`, seed629209070, topology59DDDCBB and1/1 live
+  colonist were preserved. Saved tick1149909 resumed at
+  1149914. Fresh anonymous WSS gets82 garments/82 paired fits,
+  male top present, protocol25, speed1/unpaused and0 control orders. Post-start
+  NRestarts0; no NRE, unhandled exception, OOM or protocol mismatch in new PID.
+- Public verification passed for all20 Player file
+  SHA hashes including both FMOD banks, Brotli/WASM headers, all239 index records,
+  89 public wardrobe/actor/new-map
+  blobs (195029865 bytes), and sampled FSB/vis.
+  Staged and public-root Chromium startup rendered the server menu without
+  console errors/NRE; FMOD reports AUDIOWORKLET48000Hz,2048x4. Staging had3 known
+  URP/persistent-path warnings; the public-root run had2 URP warnings. No account
+  or character creation, authenticated gameplay orders, phone call or ElevenLabs
+  usage was part of this release QA.
+
+Operational receipts remain local at
+`Build/MSIRelease/20261015-wardrobe476-release/` and private Singapore ops above.
+No source/evidence archive was exported to Flashback. Public receipt:
+https://play.62-146-235-120.sslip.io/release-receipt.json .

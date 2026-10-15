@@ -1749,7 +1749,6 @@ namespace HexLive.UnityPresentation.UI
         // unchanged legacy item card opens beside the deliberately clicked item.
         private void BuildInventoryWindow()
         {
-            BuildInventoryBackdrop();
             _inventoryWindow = new VisualElement();
             _inventoryWindow.style.position = Position.Absolute;
             _inventoryWindow.style.bottom = InventoryWindowBottom;
@@ -1793,7 +1792,7 @@ namespace HexLive.UnityPresentation.UI
 
             header.Add(BuildOutfitLockToggle());
 
-            var close = new Button(CloseInventory) { name = "inventory-close", text = "×", tooltip = Loc.Get("panel.close") };
+            var close = RuntimeWindow.CloseButton(CloseInventory, Text, "inventory-close");
             close.style.color = Text;
             close.style.fontSize = 26;
             close.style.width = 32f;
@@ -1981,6 +1980,7 @@ namespace HexLive.UnityPresentation.UI
                 DismissInventoryDetailOnBackgroundClick);
 
             _root.Add(_inventoryWindow);
+            BuildInventoryBackdrop();
             // The item card intentionally lives on the root overlay instead
             // of inside the clipped inventory window. This lets it occupy one
             // stable place just beyond the doll-side edge without covering the
@@ -3056,7 +3056,7 @@ namespace HexLive.UnityPresentation.UI
                 CloseHealth(); // the floating windows share the same spot
                 CloseJournal(); // §136
                 _inventoryOpen = true;
-                _inventoryBackdrop.style.display = DisplayStyle.Flex;
+                _inventoryModal.Show(true);
                 _invVisibleWearLayer = VisualWearLayer.Bags;
                 _invSig = null; // force a rebuild on the next refresh
                 _craftSig = null;
@@ -3074,8 +3074,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void CloseInventory()
         {
-            if (_inventoryOpen) _inventoryClosedFrame = Time.frameCount;
-            if (_inventoryBackdrop != null) _inventoryBackdrop.style.display = DisplayStyle.None;
+            HideInventoryDropQuantityPicker();
+            _inventoryModal?.Show(false);
             _inventoryOpen = false;
             _craftPage = false;
             _clothesPage = false;
@@ -3283,22 +3283,8 @@ namespace HexLive.UnityPresentation.UI
             _healthTitle.style.flexGrow = 1f;
             header.Add(_healthTitle);
 
-            var close = new Label("✕");
-            close.style.color = TextDim;
-            close.style.fontSize = 15;
-            close.style.unityFontStyleAndWeight = FontStyle.Bold;
-            close.style.width = 24f;
-            close.style.height = 24f;
-            close.style.unityTextAlign = TextAnchor.MiddleCenter;
-            close.style.flexShrink = 0f;
+            var close = RuntimeWindow.CloseButton(CloseHealth, Text, "health-close");
             SetRadius(close, 6f);
-            close.RegisterCallback<MouseEnterEvent>(_ => close.style.color = Text);
-            close.RegisterCallback<MouseLeaveEvent>(_ => close.style.color = TextDim);
-            close.RegisterCallback<MouseDownEvent>(evt =>
-            {
-                CloseHealth();
-                evt.StopPropagation();
-            });
             header.Add(close);
             _healthWindow.Add(header);
 
@@ -3421,6 +3407,7 @@ namespace HexLive.UnityPresentation.UI
 
             _healthWindow.Add(body);
             _root.Add(_healthWindow);
+            _healthModal = new RuntimeWindow(_root, _healthWindow, CloseHealth, "health");
         }
 
         private void ToggleHealth()
@@ -3434,13 +3421,14 @@ namespace HexLive.UnityPresentation.UI
             CloseInventory(); // the floating windows share the same spot
             CloseJournal();   // §136
             _healthOpen = true;
-            _healthWindow.style.display = DisplayStyle.Flex;
+            _healthModal.Show(true);
             _characterDollStage?.SetMode(CharacterDollMode.Health);
             _refreshedTick = -1; // pull a fresh snapshot into the window now
         }
 
         private void CloseHealth()
         {
+            _healthModal?.Show(false);
             _healthOpen = false;
             if (_healthWindow != null)
             {
@@ -4535,34 +4523,36 @@ namespace HexLive.UnityPresentation.UI
             Dictionary<string, float> wetness,
             Dictionary<string, float> dirtiness,
             int sourceIndex,
-            int ownerId)
+            int ownerId,
+            VisualElement destination = null)
         {
-            _invDetailStats.Clear();
+            var rows = destination ?? _invDetailStats;
+            rows.Clear();
             var affinity = ItemAffinity.For(_boundActorId, info.DefinitionId);
-            _invDetailStats.Add(MakeStatRow(
+            rows.Add(MakeStatRow(
                 Loc.Get("inv.affinity"), $"{Mathf.RoundToInt(affinity * 100f)}%",
                 Color.Lerp(Warn, Gold, affinity)));
             if (def != null && def.Layer.HasValue)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.owner"), InventoryOwnerName(ownerId), TextDim));
             }
             if (!worn && stacks.TryGetValue(info.DefinitionId, out var stackCount) && stackCount > 1)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.stack"), $"x{stackCount}", CategoryColor(ItemCategory.Resource)));
             }
 
             if (!worn && water.TryGetValue(sourceIndex, out var waterState) &&
                 waterState.ItemId == info.DefinitionId)
             {
-                _invDetailStats.Add(MakeWaterContainerBlock(info.DefinitionId, waterState));
+                rows.Add(MakeWaterContainerBlock(info.DefinitionId, waterState));
             }
 
             if ((def == null || def.Layer.HasValue) &&
                 durability.TryGetValue(info.DefinitionId, out var itemDurability))
             {
-                _invDetailStats.Add(MakeClothingHpBlock(
+                rows.Add(MakeClothingHpBlock(
                     itemDurability,
                     def != null && def.Layer.HasValue ? "inv.clothing_hp" : "inv.durability"));
             }
@@ -4570,7 +4560,7 @@ namespace HexLive.UnityPresentation.UI
             if (def != null && def.Layer.HasValue &&
                 wetness.TryGetValue(info.DefinitionId, out var wet))
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.wetness"), $"{Mathf.RoundToInt(wet * 100f)}%",
                     Color.Lerp(TextDim, Thirst, Mathf.Clamp01(wet))));
             }
@@ -4578,16 +4568,16 @@ namespace HexLive.UnityPresentation.UI
             if (def != null && def.Layer.HasValue &&
                 dirtiness.TryGetValue(info.DefinitionId, out var dirt))
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.dirtiness"), $"{Mathf.RoundToInt(dirt * 100f)}%",
                     Color.Lerp(TextDim, Hunger, Mathf.Clamp01(dirt))));
             }
 
             if (def == null)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.definition_id"), MissingItemId(info.DefinitionId), TextDim));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.status"), Loc.Get("inv.missing_definition"), Warn));
                 return;
             }
@@ -4603,7 +4593,7 @@ namespace HexLive.UnityPresentation.UI
 
             if (def.Layer.HasValue)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.layer"), Loc.Get("layer." + def.Layer.Value.ToString().ToLowerInvariant()), TextDim));
             }
 
@@ -4615,26 +4605,26 @@ namespace HexLive.UnityPresentation.UI
                     parts.Add(Loc.Get("part." + part.ToString().ToLowerInvariant()));
                 }
 
-                _invDetailStats.Add(MakeStatRow(Loc.Get("inv.covers"), string.Join(", ", parts), TextDim));
+                rows.Add(MakeStatRow(Loc.Get("inv.covers"), string.Join(", ", parts), TextDim));
             }
 
             if (warmth > 0.001f)
             {
                 // Spec 42: EquippedWarmth × 10 ≈ °C, so a per-garment delta reads
                 // roughly as this many degrees of insulation.
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.warmth"), $"+{warmth * 10f:0.0}°C", CategoryColor(ItemCategory.Water)));
             }
 
             if (armor > 0.001f)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.armor"), $"+{Mathf.RoundToInt(armor * 100f)}%", CategoryColor(ItemCategory.Armor)));
             }
 
             if (hunger < -0.001f)
             {
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.restores"), $"+{Mathf.RoundToInt(-hunger * 100f)}%", CategoryColor(ItemCategory.Food)));
             }
 
@@ -4652,35 +4642,35 @@ namespace HexLive.UnityPresentation.UI
                 var modifiers = $"{Loc.Get("attr.strength")} {SignedPercent(stats.StrengthMultiplier)}, " +
                     $"{Loc.Get("skill.combat")} {SignedPercent(stats.CombatMultiplier)}, " +
                     $"{Loc.Get("inv.hands")} {SignedPercent(stats.LimbMultiplier)}";
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.damage"),
                     $"{stats.BaseDamage:0.###} → {stats.EffectiveDamage:0.###} ({modifiers})",
                     StatComparisonColor(baseline.EffectiveDamage, stats.EffectiveDamage, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.cut"),
                     $"{stats.BaseCutDamage:0.###} → {stats.EffectiveCutDamage:0.###}",
                     StatComparisonColor(baseline.EffectiveCutDamage, stats.EffectiveCutDamage, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.blunt"),
                     $"{stats.BaseBluntDamage:0.###} → {stats.EffectiveBluntDamage:0.###}",
                     StatComparisonColor(baseline.EffectiveBluntDamage, stats.EffectiveBluntDamage, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.blood_loss"),
                     $"{stats.InstantBloodLoss:0.###}",
                     StatComparisonColor(baseline.InstantBloodLoss, stats.InstantBloodLoss, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.cadence"),
                     $"{stats.AttacksPerMinute:0.#} {Loc.Get("inv.attacks_per_minute")} · " +
                     $"{stats.CycleSeconds:0.##} {Loc.Get("inv.seconds_cycle")}",
                     StatComparisonColor(
                         baseline.CycleSeconds, stats.CycleSeconds, 0.01f,
                         higherIsBetter: false)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.dps"), $"{stats.DamagePerSecond:0.###}",
                     StatComparisonColor(baseline.DamagePerSecond, stats.DamagePerSecond, 0.001f)));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.hit_moment"), $"{stats.HitDelaySeconds:0.##} {Loc.Get("inv.seconds")}", TextDim));
-                _invDetailStats.Add(MakeStatRow(
+                rows.Add(MakeStatRow(
                     Loc.Get("inv.agility_recovery"),
                     $"{SignedBonusPercent(1f - stats.AgilityRecoveryMultiplier)} · " +
                     $"{stats.RecoverySeconds:0.##} {Loc.Get("inv.seconds")}",
@@ -4690,13 +4680,13 @@ namespace HexLive.UnityPresentation.UI
 
                 if (stats.TwoHanded)
                 {
-                    _invDetailStats.Add(MakeStatRow(
+                    rows.Add(MakeStatRow(
                         Loc.Get("inv.grip"), Loc.Get("inv.two_handed"), Gold));
                 }
 
                 if (stats.Capabilities != GearCapability.None)
                 {
-                    _invDetailStats.Add(MakeStatRow(
+                    rows.Add(MakeStatRow(
                         Loc.Get("inv.tool_profile"), LocalizeCapabilities(stats.Capabilities), TextDim));
                 }
             }
@@ -6549,6 +6539,7 @@ namespace HexLive.UnityPresentation.UI
             _langButton.style.marginLeft = 0f;
             _langButton.style.marginRight = 0f;
             _root.Add(_langButton);
+            BuildBalance();
         }
 
         private void BuildDiagnostics()
@@ -6567,6 +6558,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void UpdateDiagnostics()
         {
+            PollBalance();
             _diagnosticsElapsed += Time.unscaledDeltaTime;
             _diagnosticsFrames++;
             if (_diagnosticsLabel == null || _diagnosticsElapsed < 0.5f)
@@ -7002,6 +6994,7 @@ namespace HexLive.UnityPresentation.UI
             col.Add(vitalsCluster);
 
             col.Add(BuildControlToggle());
+            col.Add(_controlCallState);
             col.Add(BuildPaceToggle()); // §121.11: тот же тумблер, нижний угол
             col.Add(BuildStopButton());
             col.Add(BuildInventoryButton());
@@ -7049,7 +7042,7 @@ namespace HexLive.UnityPresentation.UI
             button.style.position = Position.Absolute;
             button.style.left = 12f;
             button.style.top = 12f;
-            button.style.width = 88f;
+            button.style.width = 132f;
             button.style.height = 34f;
             button.style.flexDirection = FlexDirection.Row;
             button.style.alignItems = Align.Center;
@@ -7065,19 +7058,33 @@ namespace HexLive.UnityPresentation.UI
             _controlPlayerSegment = BuildToggleSegment(
                 "HexLive/UI/IdentityManualIcon", "🎮", Loc.Get("panel.control.manual"),
                 out _controlPlayerGlyph, out _controlPlayerIcon);
+            button.name = "character-control-modes";
+            _controlAiSegment.name = "control-ai";
+            _controlPlayerSegment.name = "control-manual";
+            _controlAiSegment.style.width = Length.Percent(33.333f);
+            _controlPlayerSegment.style.width = Length.Percent(33.333f);
             SetRadius(_controlAiSegment, 9f);
             SetRadius(_controlPlayerSegment, 9f);
             button.Add(_controlAiSegment);
             button.Add(_controlPlayerSegment);
+            button.Add(BuildPhoneControlSegment());
             button.Add(BuildToggleDivider());
+            var secondDivider = BuildToggleDivider(); secondDivider.style.left = 87f; button.Add(secondDivider);
 
             button.RegisterCallback<MouseEnterEvent>(_ => SetBorderColor(button, GoldDim));
             button.RegisterCallback<MouseLeaveEvent>(_ => SetBorderColor(
                 button,
                 !_controlAvailable ? Stroke : _manualControlNow ? GoldDim : NeonCyanDim));
-            button.RegisterCallback<MouseDownEvent>(evt =>
+            _controlAiSegment.RegisterCallback<PointerDownEvent>(evt =>
             {
-                ToggleManualControl();
+                if (evt.button != 0) return;
+                SelectCharacterControlMode(CharacterControlMode.Ai);
+                evt.StopPropagation();
+            });
+            _controlPlayerSegment.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 0) return;
+                SelectCharacterControlMode(CharacterControlMode.Manual);
                 evt.StopPropagation();
             });
 
@@ -7254,14 +7261,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void ToggleManualControl()
         {
-            if (_runner == null || !_runner.SupportsNpcCommands ||
-                !_controlAvailable || !NpcSelection.HasSelection)
-            {
-                return;
-            }
-
-            _runner.EnqueueCommand(new HexLive.Simulation.Runtime.SetManualControlCommand(
-                new HexLive.Simulation.Common.EntityId(NpcSelection.SelectedId), !_manualControlNow));
+            SelectCharacterControlMode(_manualControlNow ? CharacterControlMode.Ai : CharacterControlMode.Manual);
         }
 
         // §121: одиночное «Отставить» — снять текущий приказ, НЕ выключая
@@ -7320,7 +7320,16 @@ namespace HexLive.UnityPresentation.UI
                 _runner.TryGetAgentState(npc.Id, out var attachedAgent) && attachedAgent.Attached;
             var available = _runner != null && _runner.SupportsNpcCommands &&
                 _runner.CanControlNpc(npc.Id) && npc.Health > 0f && !agentControlled;
+            var call = ServerVoiceActive || _callPreparing || PhoneControls(npc.Id.Value);
+            if (!call && !_controlModePending && _controlInputNpc == npc.Id.Value && npc.IsManualControl == _controlTargetManual)
+                _controlInputNpc = -1;
+            if ((call || _lastCallControlNpc == npc.Id.Value) && _runner != null && _runner.IsAssignedNpc(npc.Id) && npc.Health > 0f) available = true;
             _controlAvailable = available;
+            _controlAiSegment.SetEnabled(available);
+            _controlPlayerSegment.SetEnabled(available);
+            _controlCallSegment.SetEnabled(ServerVoiceEligible || call);
+            _controlCallSegment.style.backgroundColor = call ? new Color(Good.r,Good.g,Good.b,.22f) : Color.clear;
+            RenderServerVoiceButton();
             var readable = _runner != null;
             _controlButton.style.display = readable ? DisplayStyle.Flex : DisplayStyle.None;
             if (_orderToast != null)
@@ -7349,7 +7358,7 @@ namespace HexLive.UnityPresentation.UI
             // §121.9: на удалёнке сервер может снять ручной режим сам (истёк
             // лиз, операторский force-release) — локального события об этом
             // нет, поэтому край «был ручной → стал ИИ» ловится по снапшоту.
-            if (_manualEdgeNpcId == npc.Id.Value && _manualEdgeWas &&
+            if (!call && _manualEdgeNpcId == npc.Id.Value && _manualEdgeWas &&
                 !npc.IsManualControl && _runner != null && _runner.Link.IsRemote)
             {
                 Input.ManualOrderFeedback.ReportTerm(npc.Id.Value, "toast.manual_expired");
@@ -7361,21 +7370,21 @@ namespace HexLive.UnityPresentation.UI
             _manualControlNow = npc.IsManualControl;
             if (_stopButton != null)
             {
-                _stopButton.style.display = _manualControlNow
+                _stopButton.style.display = _manualControlNow && !call
                     ? DisplayStyle.Flex
                     : DisplayStyle.None;
             }
             _controlButton.tooltip = Loc.Get("panel.control.tooltip");
-            _controlAiSegment.style.backgroundColor = _manualControlNow
+            _controlAiSegment.style.backgroundColor = _manualControlNow || call
                 ? Color.clear
                 : new Color(NeonCyan.r, NeonCyan.g, NeonCyan.b, 0.22f);
-            _controlPlayerSegment.style.backgroundColor = _manualControlNow
+            _controlPlayerSegment.style.backgroundColor = _manualControlNow && !call
                 ? new Color(Gold.r, Gold.g, Gold.b, 0.24f)
                 : Color.clear;
-            _controlAiGlyph.style.color = _manualControlNow ? TextMute : NeonCyan;
-            _controlPlayerGlyph.style.color = _manualControlNow ? Gold : TextMute;
-            _controlAiIcon.style.opacity = _manualControlNow ? 0.42f : 1f;
-            _controlPlayerIcon.style.opacity = _manualControlNow ? 1f : 0.42f;
+            _controlAiGlyph.style.color = _manualControlNow || call ? TextMute : NeonCyan;
+            _controlPlayerGlyph.style.color = _manualControlNow && !call ? Gold : TextMute;
+            _controlAiIcon.style.opacity = _manualControlNow || call ? 0.42f : 1f;
+            _controlPlayerIcon.style.opacity = _manualControlNow && !call ? 1f : 0.42f;
             SetBorderColor(_controlButton, _manualControlNow ? GoldDim : NeonCyanDim);
 
             if (_orderToast != null)

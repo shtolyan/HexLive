@@ -43,11 +43,23 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-UNITY_VERSION = "6000.4.5f1"
-UNITY_ROOT = pathlib.Path(f"/Applications/Unity/Hub/Editor/{UNITY_VERSION}")
+_project_version = (REPO / "ProjectSettings/ProjectVersion.txt").read_text(encoding="utf-8")
+_version_match = re.search(r"^m_EditorVersion:\s*(\d+\.\d+\.\d+[abfp]\d+)\s*$", _project_version, re.MULTILINE)
+if _version_match is None:
+    raise RuntimeError("m_EditorVersion missing or invalid in ProjectSettings/ProjectVersion.txt")
+UNITY_VERSION = _version_match.group(1)
+if os.name == "nt":
+    _unity_roots = [
+        pathlib.Path(os.environ.get("ProgramFiles", "C:/Program Files")) / f"Unity/Hub/Editor/{UNITY_VERSION}/Editor/Data",
+        pathlib.Path.home() / f"AppData/Local/Programs/Unity/Hub/Editor/{UNITY_VERSION}/Editor/Data",
+    ]
+    UNITY_ROOT = next((root for root in _unity_roots if root.is_dir()), _unity_roots[0])
+else:
+    UNITY_ROOT = pathlib.Path(f"/Applications/Unity/Hub/Editor/{UNITY_VERSION}")
 PLAYER_MANAGED = {
     "webgl": UNITY_ROOT / "PlaybackEngines/WebGLSupport/Variations/nondevelopment/Data/Managed",
-    "standalone": UNITY_ROOT / "Unity.app/Contents/PlaybackEngines/MacStandaloneSupport/Variations/il2cpp/Managed",
+    "standalone": UNITY_ROOT / ("PlaybackEngines/windowsstandalonesupport/Variations/il2cpp/Managed" if os.name == "nt"
+                                else "Unity.app/Contents/PlaybackEngines/MacStandaloneSupport/Variations/il2cpp/Managed"),
 }
 BANNED_API_PACKAGE = ("Microsoft.CodeAnalysis.BannedApiAnalyzers", "3.3.4")
 
@@ -61,8 +73,8 @@ OWN = {name for name, _, _ in ASSEMBLIES}
 # Сторонние asmdef, которые цель не собирает вовсе.
 EXCLUDED_THIRD_PARTY = {"webgl": {"MagicaClothV2"}, "standalone": set()}
 # Banned-API проверяется только там, где код реально исполняется в клиенте.
-# Simulation.LlmControl (Task.Run) живёт на сервере; её долг — отдельным отчётом.
-BANNED_ENFORCED = {"HexLive.UnityPresentation", "HexLive.UnityDebug"}
+# Даже серверные типы могут иметь браузерный offline/mock путь: проверяем все три asmdef.
+BANNED_ENFORCED = OWN
 
 EDITOR_DEFINE = re.compile(
     r"(EDITOR|STANDALONE|^ENABLE_MONO$|^PLATFORM_SUPPORTS_MONO$|^UNITY_INCLUDE_TESTS$"
@@ -75,13 +87,16 @@ PLATFORM_DEFINES = {
     "standalone": ["UNITY_STANDALONE_OSX", "UNITY_STANDALONE", "PLATFORM_STANDALONE_OSX",
                    "PLATFORM_STANDALONE", "ENABLE_IL2CPP", "MAGICACLOTH2"],
 }
+if os.name == "nt":
+    PLATFORM_DEFINES["standalone"] = ["UNITY_STANDALONE_WIN", "UNITY_STANDALONE", "PLATFORM_STANDALONE_WIN",
+                                      "PLATFORM_STANDALONE", "ENABLE_IL2CPP", "MAGICACLOTH2"]
 MSBUILD_NS = {"m": "http://schemas.microsoft.com/developer/msbuild/2003"}
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--target", choices=sorted(PLAYER_MANAGED), default="webgl")
-    p.add_argument("--unity-project", type=pathlib.Path, default=pathlib.Path("/Volumes/ORICO/HexLive"),
+    p.add_argument("--unity-project", type=pathlib.Path, default=REPO if os.name == "nt" else pathlib.Path("/Volumes/ORICO/HexLive"),
                    help="проект, где Unity сгенерировал *.csproj и Library/ScriptAssemblies")
     p.add_argument("--checkout", type=pathlib.Path, default=REPO, help="откуда брать исходники HexLive")
     p.add_argument("--out", type=pathlib.Path, default=None, help="каталог для проектов и obj (временный)")
@@ -114,11 +129,22 @@ def player_reference(target: str, hint: str) -> str | None:
     """Ссылка для ПЛЕЕРА: редакторные — выкинуть, модули движка — из PlaybackEngines цели."""
     name = pathlib.Path(hint).name
     # Сам путь установки содержит «/Hub/Editor/» — судить только по хвосту.
-    lowered = hint.replace("\\", "/").replace(str(UNITY_ROOT), "").lower()
+    normalized = hint.replace("\\", "/")
+    # Generated csproj can still refer to the previous Editor after a patch
+    # upgrade. Strip its installation prefix too, and use the pinned toolchain
+    # for BCL references rather than discarding them as editor-only assemblies.
+    installation = re.match(r"^.+/(?:Editor/Data|Unity\.app/Contents)/(.+)$", normalized, re.IGNORECASE)
+    if installation:
+        relative = installation.group(1)
+        data_root = UNITY_ROOT if os.name == "nt" else UNITY_ROOT / "Unity.app/Contents"
+        hint = str(data_root / relative)
+        lowered = "/" + relative.lower()
+    else:
+        lowered = normalized.lower()
     if name.startswith("UnityEditor") or "/editor/" in lowered or "nunit" in lowered \
             or "mono-cecil" in lowered or "unity xcode" in lowered or "/tests/" in lowered:
         return None
-    if "/Scripting/Managed/UnityEngine/" in hint or name in ("UnityEngine.dll", "Unity.Scripting.dll"):
+    if "/scripting/managed/unityengine/" in lowered or "/managed/unityengine/" in lowered or name in ("UnityEngine.dll", "Unity.Scripting.dll"):
         candidate = PLAYER_MANAGED[target] / name
         if name == "UnityEngine.dll":
             # Фасад редактора тянет UnityEditor; модули плеера покрывают всё.
@@ -204,8 +230,20 @@ def write_project(out: pathlib.Path, target: str, args: argparse.Namespace, name
     return path
 
 
-DIAG = re.compile(r"^(?P<file>/[^(]+)\((?P<line>\d+),(?P<col>\d+)\): (?P<sev>error|warning) (?P<code>\w+): "
+DIAG = re.compile(r"^(?P<file>.+?)\((?P<line>\d+),(?P<col>\d+)\): (?P<sev>error|warning) (?P<code>\w+): "
                   r"(?P<msg>.*?) \[(?P<proj>[^\]]+)\]$")
+
+
+def unique_diagnostics(output: str):
+    seen = set()
+    for line in output.splitlines():
+        match = DIAG.match(line.strip())
+        if not match:
+            continue
+        key = tuple(match[name] for name in ("file", "line", "col", "code", "msg"))
+        if key not in seen:
+            seen.add(key)
+            yield match
 
 
 def main() -> int:
@@ -213,7 +251,7 @@ def main() -> int:
     args.checkout = args.checkout.resolve()
     if not PLAYER_MANAGED[args.target].exists():
         sys.exit(f"нет модуля плеера: {PLAYER_MANAGED[args.target]}")
-    out = args.out or pathlib.Path(tempfile.mkdtemp(prefix=f"hexlive-compile-{args.target}-"))
+    out = (args.out or pathlib.Path(tempfile.mkdtemp(prefix=f"hexlive-compile-{args.target}-"))).resolve()
     try:
         top = None
         for name, asm_dir, own_refs in ASSEMBLIES:
@@ -222,29 +260,23 @@ def main() -> int:
         result = subprocess.run(
             ["dotnet", "build", str(top), "-nologo", "-v:q", "-clp:NoSummary", "--disable-build-servers"],
             capture_output=True, text=True, cwd=out)
-        seen = set()
-        errors = warnings = 0
+        errors = warnings = banned_errors = 0
         banned_by_file: dict[str, int] = {}
-        for line in (result.stdout + result.stderr).splitlines():
-            m = DIAG.match(line.strip())
-            if not m:
-                continue
-            key = (m["file"], m["line"], m["code"], m["msg"])
-            if key in seen:
-                continue
-            seen.add(key)
+        for m in unique_diagnostics(result.stdout + result.stderr):
             rel = os.path.relpath(m["file"], args.checkout)
             if m["code"] == "RS0030":
                 banned_by_file[rel] = banned_by_file.get(rel, 0) + 1
             if m["sev"] == "error":
                 errors += 1
-                print(f"{rel}:{m['line']}: {m['code']}: {m['msg']}")
+                if m["code"] == "RS0030": banned_errors += 1
+                print(f"{rel}:{m['line']}:{m['col']}: {m['code']}: {m['msg']}")
             elif m["code"] == "RS0030":
                 warnings += 1
-                print(f"{rel}:{m['line']}: {m['code']} (долг): {m['msg']}")
+                print(f"{rel}:{m['line']}:{m['col']}: {m['code']} (долг): {m['msg']}")
         if result.returncode != 0 and errors == 0:
             print(result.stdout[-4000:], result.stderr[-4000:], sep="\n")
-        print(f"\n[{args.target}] ошибок: {errors}, запрещённых API (предупреждения): {warnings}")
+        print(f"\n[{args.target}] ошибок компиляции: {errors - banned_errors}, запрещённых API: {sum(banned_by_file.values())} "
+              f"(ошибки: {banned_errors}, предупреждения: {warnings}), всего ошибок: {errors}; dotnet exit: {result.returncode}")
         if banned_by_file:
             print("запрещённые API по файлам:")
             for rel, count in sorted(banned_by_file.items(), key=lambda kv: -kv[1]):

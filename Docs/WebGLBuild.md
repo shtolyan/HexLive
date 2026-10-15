@@ -38,6 +38,32 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 
 ## Где собирать
 
+После смены patch редактора `Tools/webgl_compile_check.py` переводит ссылки
+старого сгенерированного `.csproj` на закреплённый Editor: стандартные
+библиотеки сохраняются, `UnityEditor` исключается, модули движка берутся
+из WebGLSupport. Ошибка проверки или ненулевой exit code запрещает выпуск.
+
+На MSI установка 6000.4.6f1 в длинный per-user путь пропустила файлы,
+чьи пути превышали Windows MAX_PATH. В частности, отсутствовали файлы SRP17.4.0:
+`Runtime-PrivateShared/InternalBridge/Unity.InternalAPIEngineBridge.RenderPipelines.Core.Runtime.Shared.asmdef`
+и его `.meta`. Без них служебный код попадает в другую сборку и получает
+CS0117 для `TryMigrateRenderingLayersToTagManager`/`ClearMigratedRenderPipelines`.
+При этой точной ошибке проверять полноту установки пакета, а не менять его C#.
+Исправление установки: повторить официальный инсталлятор Editor и совпадающего
+WebGL-модуля через короткий путь к той же установке (MSI использует junction
+`%LOCALAPPDATA%/U646`). Это не вторая копия редактора или проекта. Проверять
+подпись издателя и контрольную сумму загрузки; не ограничиваться исправлением
+первой ошибки, поскольку другие длинные пути также могли быть пропущены.
+Восстановленные метаданные из
+[официального исходника Unity](https://github.com/Unity-Technologies/Graphics/tree/6000.4/staging/Packages/com.unity.render-pipelines.core/Runtime-PrivateShared/InternalBridge)
+побайтово совпали с установленным официальным SRP17.4.0 из 6000.4.5f1:
+SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7ac2`,
+`.meta` `0f1ecc2eb2ca57e4519fa40ece68ba6eecc239f23c2f83c67bcf17b5d2f6ec93`.
+Ремонт установки выполнять при закрытом Editor. Метаданные выше восстановлены
+точно, но сами по себе не заменяют проверку остальных пропущенных файлов.
+Не отключать проверки и не подменять служебный код заглушкой. После ремонта
+обязательны реальная компиляция Editor и проверки WebGL.
+
 - **macOS — полный путь.** FSB-кодер `hexfsb` собирается из macOS FMOD
   Engine SDK, музыку перекодируют `/opt/homebrew/bin/ffmpeg` и `oggenc`.
   Только на Маке звук можно закодировать заново.
@@ -48,9 +74,11 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
   `audio-reuse-required.json`. Дерево FSB/`.vis` берётся из уже
   опубликованного релиза, и только после доказательства, что исходные
   `Sfx/**` и `Music` с тех пор не менялись (квитанция `audio-source-proof.json`).
-  Если звук менялся, путь закрыт: нужна сборка на Маке. Скрипт проверки пока
-  живёт у MSI вне git (`Build/MSIRelease/…`) — это долг. Его надо закоммитить
-  в `Tools/`, чтобы проверку мог повторить любой агент.
+  Проверка — `Tools/webgl_verify_audio_reuse.py` (команда ниже). Она проверяет
+  все исходные `.ogg/.mp3/.wav/.vis` в `Sfx/**` и `Music`, включая LFS SHA-256;
+  добавленные, удалённые и изменённые файлы закрывают путь переиспользования.
+  Если звук менялся, нужна сборка на Маке. Проверка работает локально,
+  не подключается к серверу, не копирует звук и не публикует архивы.
   Пакеты контента на MSI — `Tools/build_webgl_content_windows.py`, только по
   команде Толи.
 - **Отдельный проект для сборки (Мак):** `~/hex-girls/webgl-build/HexLive`
@@ -67,7 +95,21 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 
 ## Один раз на машину
 
-1. Unity `6000.4.5f1` с модулем WebGLSupport (версия — `ProjectSettings/ProjectVersion.txt`).
+1. Для WebGL Player нужен стабильный Unity `6000.4.6f1` или более новый patch
+   ветки `6000.4`, с соответствующим модулем WebGLSupport. Checkout закреплён
+   на `6000.4.6f1` (`ProjectSettings/ProjectVersion.txt`); compile-check берёт
+   managed-библиотеки именно указанной версии. `6000.4.5f1` **не допустима
+   для нового WebGL Player**. Другую ветку Unity
+   сначала согласуют и проверяют на совместимость контента.
+   В `6000.4.5f1` присутствует регрессия фокуса UI Toolkit в WebGL
+   [UUM-137597](https://issuetracker.unity.com/issues/4006/input-fields-do-not-maintain-focus-when-they-are-selected-in-a-web-build)
+   (#473): поле имени нельзя удержать в фокусе в браузере, хотя нативные
+   PlayMode-тесты ввода проходят. Исправление подтверждено
+   [release notes 6000.4.6f1](https://unity.com/releases/editor/whats-new/6000.4.6f1).
+   `HexLiveWebGLPlayerBuild` проверяет версию **до изменения настроек/аудио**;
+   preprocess guard повторяет проверку. Нативный тест клика/ввода не заменяет
+   браузерную проверку: после следующей разрешённой сборки кликнуть имя,
+   ввести `Кшиштоф`, проверить сохранение фокуса и доступность «Далее».
 2. `brew install ffmpeg vorbis-tools`.
 3. Копия FMOD Engine SDK 2.03.x для macOS (лицензия Толи, в git не кладётся)
    и кодер:
@@ -87,6 +129,13 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
    ```bash
    python3 Tools/webgl_compile_check.py
    ```
+   На Windows тот же скрипт использует установленный WebGLSupport Unity
+   и сгенерированные `.csproj` текущего checkout. Другой рабочий проект:
+   `--unity-project <project> --checkout <source-checkout>`.
+   Результат отдельно считает ошибки компиляции и RS0030, с колонками:
+   две ссылки на запрещённый API в одной строке — два сообщения.
+   Строгий запуск проверяет все три asmdef; `--report-only` служит только
+   диагностике и не является проходом предрелизного гейта.
 2. **Auto Refresh.** `CompileControl` держит его выключенным, и batchmode
    может выполнить `-executeMethod` на старых сборках. Делай как
    `Tools/build_release.py`: перед запуском временно поставь
@@ -95,7 +144,7 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 3. **Плеер.** Релизный по умолчанию. Это 15–35 минут, поэтому запускай в
    фоне и следи за логом:
    ```bash
-   /Applications/Unity/Hub/Editor/6000.4.5f1/Unity.app/Contents/MacOS/Unity \
+   /Applications/Unity/Hub/Editor/6000.4.6f1/Unity.app/Contents/MacOS/Unity \
      -batchmode -quit -nographics -accept-apiupdate \
      -projectPath ~/hex-girls/webgl-build/HexLive -buildTarget WebGL \
      -executeMethod HexLiveWebGLPlayerBuild.Build \
@@ -107,7 +156,7 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
    линковки ради нескольких процентов, только для финального выпуска по
    решению Толи; `-webgl-reuse-published-audio` — путь MSI, см. выше. Код
    выхода 0 — успех; `DisplayDialog` скрипт не показывает. Кроме плеера в
-   результат кладётся `server-directory.json` — каталог серверов меню (§168.13).
+   результат кладётся `server-directory.json` — каталог серверов меню (§168.14).
 4. **Звук в FSB — обязательно** (на MSI — проверенное переиспользование, см.
    «Где собирать»). Веб-FMOD читает только FSB; без этого шага
    голоса, музыка, лупы и фолбэк SFX в браузере молчат (`ERR_FORMAT`):
@@ -117,18 +166,41 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
    Кэш кодера — `~/hex-girls/webgl-build/fsb-cache`, повторная сборка
    перекодирует только изменённое.
 
+   **MSI: доказательство неизменности исходников опубликованного звука.**
+   Нужны полный source SHA из квитанции именно аудиорелиза и его публичный
+   `web-audio-manifest.json`, уже сохранённый локально. Не подставляйте
+   текущий HEAD вместо этого SHA. До переноса опубликованных FSB/`.vis`:
+   ```powershell
+   python Tools/webgl_verify_audio_reuse.py --published-source-commit <audio-source-sha> `
+     --manifest <local-published-web-audio-manifest.json> `
+     --output Build/audio-source-proof.json
+   ```
+   При другом checkout добавьте `--checkout <source-checkout>`.
+   Требуются exit0 и `passed:true`; при отказе файл результата перезаписывается
+   с `passed:false`, старый PASS не сохраняется. Пути вне Sfx/Music и неоднозначные
+   соответствия FSB → исходник отвергаются. Квитанция содержит только SHA,
+   относительные пути и хеши, без ключей и аккаунтных данных. Она доказывает
+   исходники, но не заменяет проверку хешей скопированных опубликованных FSB.
+
 ## Проверка: сборка правильная, только если всё ниже на месте
 
 **Лог Unity** — все строки, в этом порядке:
 ```
 [WebGLBuild] code optimization: RuntimeSpeed (…)
 [WebGLBuild] FMOD WebGL DSP buffer: 4 x 2048, callback WebAudioTuning
-[WebGLBuild] web music: N Ogg track(s) for the browser   (на MSI с reuse — 0, это норма)
+[WebGLBuild] web music: N Ogg track(s) for the browser   (только при перекодировании)
 [WebGLBuild] audio manifest: N files
 [WebGLBuild] Succeeded: … 0 errors …
 [WebGLBuild] devicePixelRatio capped at 1
 ```
-Если хоть одной нет — сборку не публиковать.
+При перекодировании нужны все строки. В каноническом MSI reuse-пути
+`WriteWebMusic()` не вызывается, поэтому строки `web music` в логе нет.
+Вместо неё до переноса аудио проверяются `audio-reuse-required.json`
+с `requiresVerifiedPublishedFsb:true`, `audio-source-proof.json` с `passed:true`
+и точный опубликованный audio source SHA. После переноса проверяются полный
+набор FSB/`.vis`, все SHA-256 и сигнатуры FSB5; метка удаляется только после
+успеха. Остальные строки лога обязательны в обоих режимах. При отсутствии
+обязательной строки или доказательства переиспользования сборку не публиковать.
 
 **Вывод `webgl_audio_fsb.py`** — `[fsb] N sounds …`: число звуков порядка
 2900 (на 12.10.2026 — 2872), не ноль.
@@ -141,6 +213,31 @@ http://localhost:8090/):
 
 ## Упаковка и публикация
 
+- **Архив Player — `Tools/webgl_package_player.py`.** Режим reuse исключает
+  только `StreamingAssets/HexLive`, которую затем заменяет проверенное дерево
+  FSB/`.vis`. Остальные `StreamingAssets` сохраняются, особенно
+  `FMODBanks/Master.bank` и `FMODBanks/Master.strings.bank`. Это Studio-банки,
+  отдельные от FSB; их отсутствие вызывает две стартовые NRE (#471): пустой
+  HTTP404 доходит до `FMOD.Studio.System.loadBankMemory(null)`.
+  Упаковщик проверяет RIFF/FEV, размер и SHA каждой банки против точного
+  закоммиченного source SHA (включая LFS), затем полный состав и SHA архива.
+  Отсутствующая/пустая/изменённая банка блокирует упаковку. Для MSI:
+  ```powershell
+  python Tools/webgl_package_player.py <existing-player-dir> `
+    --source-commit <exact-player-source-sha> --protocol <wire-version> `
+    --reuse-published-audio --output <new-player.tar.gz> `
+    --receipt <player-manifest.json>
+  ```
+  На Маке после FSB-кодирования флаг reuse не используется. `--verify-only`
+  проверяет готовый каталог без сборки/архива; `--check-archive <archive>`
+  проверяет уже упакованный файл. Уже существующий архив не перезаписывается.
+  Это не заменяет квитанции Unity, проверки совместимости, source proof FSB
+  и разрешение Толи на публикацию.
+- **После разрешённой публикации** проверить HTTP200 и SHA не только файлов
+  `Build/*` и FSB/`.vis`, но и обеих публичных
+  `StreamingAssets/FMODBanks/*.bank`. Они входят в `buildFiles` публичной
+  квитанции и в проверку полного архива; stage-копирование не должно их
+  выкидывать. Успех загрузки меню без этих запросов недостаточен.
 - В архив сайта не кладётся `*_BurstDebugInformation_DoNotShip`.
   Имя `webgl-site-<sha>.tar.gz`, рядом записывается SHA-256.
 - **Публикация — только по прямой команде Толи, с названным сервером**

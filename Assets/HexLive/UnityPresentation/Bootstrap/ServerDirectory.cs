@@ -17,7 +17,7 @@ namespace HexLive.UnityPresentation.Bootstrap
         public bool IsPageServer(string pageSocket) => ServerDirectory.SameOrigin(socketUrl, pageSocket);
     }
 
-    // §168.13: public presentation data, never credentials or a replacement for ServerBook recents.
+    // §168.14: public presentation data, never credentials or a replacement for ServerBook recents.
     public static class ServerDirectory
     {
         [Serializable] private sealed class Document { public int version; public ServerDirectoryEntry[] servers; }

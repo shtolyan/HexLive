@@ -325,3 +325,307 @@ BigIsland world under the new (§171) rules. New York, Flashback, Coil and keys 
 - Live browser (guest, Claude app): connect 3.1 s, curtain ~125 s on a cold cache, day 1, Jolly/Wren dressed, live
   portrait; exceptions 0, console errors 0, missing-record errors 0. FPS not measured (pane throttled).
 - NOT verified: real sign-in and a voice call on prod (agents may not create real Firebase accounts) — Tolya.
+
+## MSI — Singapore server + Player, 2026-10-13 12:28 UTC
+
+Tolya directly ordered two-decimal balance display, commit/push, branch refresh,
+build and deploy to Singapore. MSI published both runtime layers; content was
+preserved. Source `f7a20d6cd3d21745a42e6d7759702eeccb842d52`, protocol24.
+`codex/msi-visual-bugs` was pushed and pulled with `--ff-only` before the build.
+The release includes #443 voice setup/error handling, #444 precise usage ledger,
+automatic final voice reconciliation and USD display with two decimal places,
+#452 browser API corrections and #453 standing/movement synchronization.
+
+- Server archive SHA256 `cec9ee7980671a95a5ccb300c93260981c1a0e9d31333dd80bcaade9d2e52368`;
+  521 staged files verified. `/opt/hexlive/current` changed from
+  `/opt/hexlive/releases/dae0138061c9521489ada91c14d4f8bee82bd5b3` to
+  `/opt/hexlive/releases/f7a20d6cd3d21745a42e6d7759702eeccb842d52`.
+- Player archive SHA256 `23b58bb1967fac1e71aae1e9130781f6642a870415717a04abc3f7f86dd9f850`;
+  19 staged files, 18 final public files downloaded and hashed.
+  `/var/lib/hexlive-web/current` changed from
+  `/var/lib/hexlive-web/releases/msi-20261013-dae013806` to
+  `/var/lib/hexlive-web/releases/msi-20261013-f7a20d6cd`.
+- Canonical Unity6000.4.5f1 CLI builder succeeded: 234MB, 0 errors, 562 warnings,
+  18.4 build minutes. Log confirms RuntimeSpeed, FMOD4×2048/WebAudioTuning,
+  audio manifest7984, success and devicePixelRatio1. Dirty project settings
+  restored byte-for-byte; foreign material/editor changes preserved.
+- Verified reuse of audio source `7cd230bda39202a3a5a84da98106109bf270aae1`:
+  all7984 source files unchanged, all5668 copied FSB/vis hashes checked,
+  FSB5 signatures checked, reuse marker removed only after verification.
+  MSI reuse skips WriteWebMusic; the narrow documentation correction is
+  `7a5ff754011ecd6f0597b71b4422df1b224574af`, not new Player runtime code.
+- Checks: native UI18/18, Server485/485, Voice14/14, JS12/12, tooling7/7;
+  strict WebGL compiler0 errors/0 forbidden APIs. Full Simulation1749 passed
+  with6 existing skips at the unchanged simulation source from #453.
+- One `hexlive.service` restart; Caddy/configuration unchanged. Stopped-world
+  backup, accounts, keys and voice usage backup retained privately under
+  `/var/lib/hexlive/ops/msi-balance-release-20261013-f7a20d6cd/activation-backup`.
+  No world reset, no credit regrant, assignments preserved; tick392461 loaded
+  and continued392467. Registry/catalog604 and all230 content records unchanged.
+  Previous server/Player remain for rollback. New York was not modified.
+- Public verification passed: Brotli/WASM MIME, complete Player SHA map,
+  voice client.js matches source, audio sidecar hash and anonymous live
+  wire24 snapshot in the same running world. No player orders issued.
+- In-app Chromium opened loader `player-f7a20d6cd.loader.js` and rendered the
+  centered server menu. FMOD log: AUDIOWORKLET,48000Hz,2048×4. Singapore ping
+  was positive456ms (the separator is `·`). Two startup NullReferenceExceptions
+  without stacks and missing NY `closedtest.unavailable` localization were
+  recorded on #439; matching the earlier reported NRE cause is unproven.
+  Real authenticated balance/join/call and standing visual QA were not performed
+  in this browser; native checks do not replace the player's live confirmation.
+
+Operational receipts/logs are local at `Build/MSIRelease/20261013-balance-release/`;
+the public runtime receipt is `/release-receipt.json`. No source/evidence archive
+was exported to Flashback. Transfer recovered from a verified-complete stalled
+SFTP by stopping only MSI's own copy process and using standard SCP with strict
+host checking; production pointers remained unchanged until guarded activation.
+
+## MSI — Singapore server + WebGL Player, 2026-10-14 05:05 UTC
+
+Tolya explicitly authorized both runtime layers and separately approved committing
+the previously prepared MSI Unity materials/import metadata/settings. Source
+`05ba952da9370c79c7e83c56a4c0a45a1d5ebbe6` is pushed in `codex/msi-visual-bugs`.
+The release includes #463 autonomous neutral-camp property admission, plus the
+previously committed UI, voice, inventory and wardrobe changes on this branch.
+Content/model bundles and New York were preserved.
+
+- Server archive SHA256 `33d6c2303158fc062576a0179e53d0266c0b4ec3ffaa5215e895ef3f54f3bf7d`;
+  521 files verified. Server pointer changed from
+  `/opt/hexlive/releases/f7a20d6cd3d21745a42e6d7759702eeccb842d52` to
+  `/opt/hexlive/releases/05ba952da9370c79c7e83c56a4c0a45a1d5ebbe6`.
+- Player archive SHA256 `6e46d5a5fbe4ec075d0014a039eab27ead8e99b08f5d29c2481b86d8634d9310`;
+  19 staged files and 18 final public files hashed. Player pointer changed from
+  `/var/lib/hexlive-web/releases/msi-20261013-f7a20d6cd` to
+  `/var/lib/hexlive-web/releases/msi-20261014-05ba952da`.
+- Canonical `HexLiveWebGLPlayerBuild.Build`, Unity6000.4.5f1 CLI: 234MB,
+  0 errors, 563 warnings, 19.5 build minutes. Verified RuntimeSpeed,
+  FMOD4×2048/WebAudioTuning, audio manifest, success and devicePixelRatio1.
+  Auto Refresh and original project settings restored; runtime inputs unchanged.
+- Audio source `7cd230bda39202a3a5a84da98106109bf270aae1`: 7984 source
+  hashes verified unchanged; 5668 staged FSB/vis files hashed, FSB5 signatures
+  checked. Reuse marker removed only after verification.
+- Full Server495/495 and Simulation1767 passed, 6 existing skips;
+  focused simulation185 passed, MCP clothing21 passed, strict WebGL0 errors/0 RS0030.
+  Simulation was rerun completely after Unity using VSTest with process-only
+  GCConserveMemory9 to avoid competing memory pressure; no test was suppressed.
+- One `hexlive.service` stop/start, Caddy/configuration unchanged. Private
+  stopped-world/accounts/keys/voice backup remains under
+  `/var/lib/hexlive/ops/msi-camp-release-20261014-05ba952da/activation-backup`.
+  World identity/seed/topology, accounts, keys and assignments preserved.
+  Saved tick631722 loaded at631732; anonymous live snapshot632307 on wire24,
+  paused=false, speed1. Later health tick633530, 2/2 colonists, rate3.94 ticks/s.
+  Previous releases retained for rollback; no world reset or credit regrant.
+- Public verification: all18 Player hashes, Brotli/WASM MIME, source-exact
+  voice client.js, audio sidecar, registry604 and all230 content records unchanged.
+- Live in-app Chromium rendered the central server menu with
+  `player-05ba952da.loader.js`; FMOD AUDIOWORKLET48000Hz/2048×4.
+  Singapore ping431ms, NY disabled. Two startup NREs without stacks and
+  untranslated `closedtest.unavailable` observed again and recorded on #439;
+  identity of their cause is not established. Screenshot saved locally.
+  Real authenticated join/call and live foreign-camp actions were not exercised;
+  no player orders were issued. #463 remains ready_for_test for the player's QA.
+
+Operational receipts are local at `Build/MSIRelease/20261014-camp-release/`;
+public receipt is `/release-receipt.json`. No evidence/source archive exported
+to Flashback. The TrailPack geometry fix #462 still needs a separately authorized
+content/bundle release; this runtime publication did not activate those models.
+
+## MSI — Singapore release staged, 2026-10-14 11:26 UTC
+
+Tolya requested a clean commit/push, a WebGL build and Singapore client
+publication. Build source `f2576372ca5a26a279936cdc68695a78ed557d24` is pushed
+in `codex/msi-visual-bugs`, including #454/#464–470 and the separate local
+audit/build-output ignore change. Local diagnostic models and reports remain
+preserved. No new worker/worktree, Unity MCP, heartbeat or New York change.
+
+- Canonical `HexLiveWebGLPlayerBuild.Build`, Unity6000.4.5f1 CLI:234MB,
+  0 errors,567 warnings,20.3 build minutes, editor exit0. Mandatory RuntimeSpeed,
+  FMOD4×2048/WebAudioTuning, manifest and devicePixelRatio1 lines verified.
+  Auto Refresh and original settings restored; runtime inputs unchanged;
+  working tree clean before build and again after its temporary overrides.
+- Full Server496/496 and Simulation1811 passed,6 existing skips; focused leaf
+  checks85 and native leaf material/GPU checks5 passed; strict WebGL0/0.
+  Full simulation used process-only GCConserveMemory9; no tests suppressed.
+- Audio source `7cd230bda39202a3a5a84da98106109bf270aae1`:7984 original source
+  files verified unchanged. Singapore staged5668 FSB/vis files, all hashes
+  checked and FSB5 headers verified; reuse marker removed only after success.
+- Player archive SHA256
+  `ba3c32671602ab794c8c4bd75f42db02bce45d2faeb905d57cd59566cbc96ffc`;
+  19 staged files verified under
+  `/var/lib/hexlive-web/releases/msi-20261014-f2576372c`.
+  Stage receipt has `activated:false`; public pointer remains
+  `/var/lib/hexlive-web/releases/msi-20261014-05ba952da`.
+- Matching linux-x64 server package521 files prepared **locally only**;
+  SHA256 `ca1ce32b0ebc482a40b0247e705f8e3a4d52219d60656a5639d5ec8d36978f94`.
+  Installed server remains `/opt/hexlive/releases/05ba952da9370c79c7e83c56a4c0a45a1d5ebbe6`.
+- **Activation gate:** installed Player/server use wire24; new Player/server
+  use wire25 and save84 (reads66..83). A client-only pointer switch would break
+  connections. Exact approval to update the Singapore game-server version,
+  preserve world/accounts/assignments and restart hexlive.service once was
+  requested from Tolya and remains pending. Neither pointer switched;
+  no service restart, world reset, account change or content activation.
+- Anonymous baseline handshake: existing world
+  `a309de74171d470385412bfab01ffdab`, seed629209070, HugeIsland mode2,
+  topology59DDDCBB, speed1, paused=false, wire24; no assignments/orders.
+  Registry604 and230 content records retained. Public new-Player browser QA
+  and authenticated gameplay/call QA await compatible activation.
+- Rollback preparation must restore the stopped-world backup before restarting
+  the old executable after a failed activation: it cannot read a new save84.
+
+Operational receipts are local at
+`Build/MSIRelease/20261014-flower-leaf-release/` and staged under the private
+Singapore ops directory `msi-flower-leaf-release-20261014-f2576372c`.
+This entry is a **staging receipt, not a publication receipt**.
+
+## MSI — Singapore published, 2026-10-14 11:51 UTC
+
+Tolya explicitly approved both the Singapore client and game-server update
+from `05ba952da` / wire24 to `f2576372ca5a26a279936cdc68695a78ed557d24` / wire25, preserving
+world, accounts and assignments with one `hexlive.service` restart. This
+publication receipt supersedes the pending activation state above.
+
+- Server: `/opt/hexlive/releases/f2576372ca5a26a279936cdc68695a78ed557d24`; all 521 files
+  hash-verified and executable checked on Linux before activation.
+- Client: `/var/lib/hexlive-web/releases/msi-20261014-f2576372c`;
+  paired pointer activation completed at `2026-10-14T11:51:09.596196+00:00`.
+- Stopped-world backup retained in the private ops directory
+  `msi-flower-leaf-release-20261014-f2576372c/activation-backup`.
+  Previous server/client releases retained; rollback must restore that
+  stopped-world save before starting the old save-format reader.
+- World identity/seed/topology unchanged; saved tick 729033 loaded
+  at 729037, anonymous wire25 snapshot 729102.
+  Accounts/keys hashes and players.json assignments matched at activation;
+  no world reset, credit regrant, content activation or New York changes.
+- Public checks passed: all 18 build hashes, Brotli/WASM MIME, source-exact
+  voice client.js and sampled audio sidecar. Registry 604 and all 230 content
+  records retained. Full Server 496 and Simulation 1811 passed, 6 existing
+  skips; strict WebGL 0/0, focused leaf 85 and native leaf material 5 passed.
+- In-app Chromium loaded the new Player and rendered the central menu.
+  Singapore ping 441ms; FMOD AUDIOWORKLET 48000Hz, buffer 2048x4. Two previously
+  observed startup NREs without stacks and untranslated New York
+  `closedtest.unavailable` recur; tracked on #439, not claimed fixed.
+  No authenticated join/call, live Nika actions or drying-time gameplay
+  test was performed; reports remain ready_for_test for player validation.
+- Follow-up service health: tick 729467, 2/2 colonists, 3.86 ticks/s,
+  average 8.20ms/tick. No additional restart.
+
+Runtime/source receipt remains `f2576372ca5a26a279936cdc68695a78ed557d24`; later documentation
+commits do not change that build identity. Local operational receipts are
+under `Build/MSIRelease/20261014-flower-leaf-release/`; public receipt is
+`https://play.62-146-235-120.sslip.io/release-receipt.json`.
+No source/evidence archive exported to Flashback.
+
+## MSI — menu startup NRE diagnosis and packaging fix (#471), 2026-10-14
+
+Direct Tolya task: fix the two menu startup NRE, with no new Player build or
+deployment. Both public Studio-bank URLs returned HTTP404 with zero bytes:
+`StreamingAssets/FMODBanks/Master.bank` and `Master.strings.bank`. Both files
+are present in the existing f2576372c Unity output but absent from its runtime
+archive. The old private packaging filter excluded all StreamingAssets.
+
+Local Unity reproduction exercised the installed FMOD web-loading coroutine:
+empty HTTP404 yields null data, then `RuntimeManager.loadFromWeb` line925
+calls `FMOD.Studio.System.loadBankMemory` line676, which dereferences
+`buffer.Length`. Both missing-bank cases reproduced those exact NRE stacks.
+The same two committed artifact banks over local HTTP200 completed without
+NRE (the Editor's already-loaded banks produce the expected SDK warning).
+Native comparison tests2/2 passed; no exception suppression was added.
+
+`Tools/webgl_package_player.py` is now the documented Player archive path:
+reuse skips only StreamingAssets/HexLive, preserves Studio banks and other
+runtime files, verifies RIFF/FEV sizes and exact committed/LFS bank hashes,
+then archive membership and hashes. The historical private wrapper routes to
+this helper; it was not executed again. Docs/WebGLBuild.md and Spec/168.md
+require public HTTP200/hash checks for both banks. Tool tests16/16 passed,
+including nine packaging regressions. Existing artifact layout passes with21
+files; its historical19-file archive is correctly rejected for missing banks.
+
+Verified source f2576372c bank SHA256:
+- Master.bank: `5441eae1abd29377a36d2e54c5dde0f3573d6d55bb5d4ecca7c7336ede6a3b16`
+- Master.strings.bank: `757ca5591fe4a91b635f21d4d6f74bf945d36b3acdbd171f0a77f7ce88abffae`
+
+No Unity Player build, runtime source/SDK edits, package reactivation, service
+restart or production changes. The two bank files already exist; a later
+explicitly authorized site-file update can use that verified artifact without
+recompiling Unity. Public absence/NRE remains until that update and live QA.
+Local diagnostics (including temporary Unity test source, exact stacks and
+receipts) are preserved at `Build/MSIRelease/20261014-menu-nre/`; not exported.
+
+### #471 — two Studio banks published under new exact authorization
+
+Tolya subsequently authorized publishing only Master.bank and
+Master.strings.bank to Singapore, without Unity rebuild or game-server update.
+At server UTC `2026-10-14T12:27:37.000361+00:00`, the two source-verified files
+were atomically added as `StreamingAssets/FMODBanks` in the existing
+`msi-20261014-f2576372c` client release. No previous client file was replaced.
+All 5688 pre-existing file hashes remained identical, including the public
+release receipt; the supplemental bank-patch receipt is in private ops
+`msi-fmod-banks-20261014-f2576372c/bank-patch-receipt.json`.
+
+- Public HTTP200 and SHA checks passed for both banks, matching the hashes
+  recorded above (Master.bank 21521248 bytes; strings 12686 bytes).
+- Existing Player/server pointers, service PID/start/restart count, registry
+  state and active-world identity remained unchanged. Zero service restarts,
+  no server deployment, Unity compilation or new Player build.
+- Fresh anonymous in-app Chromium startup rendered the server-selection menu
+  (Singapore ping176ms). Both FMODBanks fetches are present in the observed
+  resource inventory; Console error list is empty and NRE count is zero.
+  FMOD reports AUDIOWORKLET48000Hz/2048x4. Existing URP warnings and the
+  New York untranslated label remain outside this fix. No authenticated
+  join/call was tested. Player confirmation still owns #471 -> fixed.
+
+Rollback is limited to removing the newly added two-file FMODBanks directory;
+no existing files/pointers were overwritten. Bank-patch, public hash and
+browser receipts are local under `Build/MSIRelease/20261014-menu-nre/`.
+
+## MSI — character creator client published (#473), 2026-10-15
+
+Tolya authorized checking real character creation and publishing the Singapore
+client. The published Player source is
+`d23e9cddb8dfc7e7e7857819f27a3874c8d1249e`; later documentation commits do not
+change that build identity. This release updates the client only.
+
+- Official Unity6000.4.6f1 Editor and matching WebGL installers were repaired
+  through the U646 junction to the same existing installation. Both exited0.
+  Only35 missing package-cache files were restored from the repaired official
+  installation; no existing cached file was overwritten or deleted.
+- Creator PlayMode tests26/26 passed on6000.4.6, including pointer-click and
+  Cyrillic typing. Strict WebGL compilation passed with0 errors and0 RS0030.
+  Audio-source reuse proof passed for7984 sources against the actual published
+  audio source `7cd230bda39202a3a5a84da98106109bf270aae1`.
+- Canonical `HexLiveWebGLPlayerBuild.Build` exited0:234MB,0 errors,
+  570 warnings. AutoRefresh preferences and original ProjectSettings/QualitySettings
+  bytes were restored. The release started from a clean tracked tree.
+- Canonical Player package SHA256:
+  `6dc5393a5f56a7f5d5fe80a06b1dd2b7c58a062318319e4364a63b7e6725b009`.
+  All21 packaged files, both source-exact Studio banks, and5668 reused published
+  audio files were hash-verified at staging.
+- Browser QA clicked the name field, entered the complete `Кшиштоф`, retained
+  the name through gender/step changes and used Continue. Exactly one dedicated
+  QA character, `Кшиштоф QA473-1015`, was created through the interface and
+  entered the island. Server assignments independently confirmed NPC1000000002
+  in world `a309de74171d470385412bfab01ffdab`.
+- At server UTC `2026-10-15T06:07:01.118384+00:00`, the client pointer changed
+  from `/var/lib/hexlive-web/releases/msi-20261014-f2576372c` to
+  `/var/lib/hexlive-web/releases/msi-20261015-d23e9cddb`. The old release remains
+  available for rollback. Server binary `f2576372c`, protocol25,
+  `hexlive.service` PID1925094, world identity and registry604 were retained;
+  zero service restarts. New York was not changed.
+- Public checks passed for all20 published build-file hashes, including both
+  FMOD banks, Brotli/WASM headers, sampled FSB/vis, and all230 unchanged content
+  records. A fresh join from the main public URL entered the same QA character
+  without opening creation or creating a duplicate. Browser NRE0/errors0.
+  Temporary desktop viewport override was restored afterwards.
+
+QA NPC1000000002 remains assigned to the dedicated test account. Standard
+destructive admin commands require the player's confirmation in the viewer
+(`AdminCommandBus.Confirm`); no confirmation bypass or direct save edit was
+attempted. The separate #474 bandage-priority server fix is committed in the
+Player's source history but has **not** been deployed to the authoritative
+game server by this client-only release.
+
+Operational receipts and screenshots remain local under
+`Build/MSIRelease/20261015-creator-release/`. Public source receipt:
+`https://play.62-146-235-120.sslip.io/release-receipt.json`.
+No source/evidence archive was exported to Flashback. #473 remains
+ready_for_test; only the player confirms fixed.

@@ -126,7 +126,7 @@ public sealed partial class DecisionSystem
         {
             if (!obj.IsReachable ||
                 obj.DefinitionId != definitionId ||
-                !ObjectUsableBy(obj, npc.Id) ||
+                !ObjectUsableBy(world, npc, obj) ||
                 // недавно оказался занят по прибытии — не топтаться вокруг него
                 npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 // виден в восприятии, но в мире его уже нет
@@ -276,7 +276,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (!obj.IsReachable ||
-                !ObjectUsableBy(obj, npc.Id) ||
+                !ObjectUsableBy(world, npc, obj) ||
                 !obj.AvailableInteractions.Contains(InteractionType.PickUp) ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition))
             {
@@ -383,7 +383,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+            if (obj.IsReachable && ObjectUsableBy(world, npc, obj) &&
                 !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
                 definition.HasTag(tag))
@@ -408,7 +408,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+            if (obj.IsReachable && ObjectUsableBy(world, npc, obj) &&
                 !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 HexSpatialMath.HexDistance(obj.Tile, origin) <= radiusTiles &&
                 world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) &&
@@ -445,7 +445,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.DefinitionId != definitionId || !obj.IsReachable ||
-                !ObjectUsableBy(obj, npc.Id) ||
+                !ObjectUsableBy(world, npc, obj) ||
                 npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 !world.Entities.Objects.TryGetValue(obj.Id, out var groundPiece) ||
                 groundPiece.Junctions.Count == 0 ||
@@ -463,7 +463,7 @@ public sealed partial class DecisionSystem
             foreach (var other in npc.Perception.Objects)
             {
                 if (other.DefinitionId == definitionId && other.IsReachable &&
-                    ObjectUsableBy(other, npc.Id) &&
+                    ObjectUsableBy(world, npc, other) &&
                     !npc.Memory.IsShunned(other.Id, world.Tick) &&
                     HexSpatialMath.HexDistance(other.Tile, obj.Tile) <= 1)
                 {
@@ -537,7 +537,7 @@ public sealed partial class DecisionSystem
             foreach (var obj in npc.Perception.Objects)
             {
                 if (obj.DefinitionId == ingredient.Id && obj.IsReachable &&
-                    ObjectUsableBy(obj, npc.Id) &&
+                    ObjectUsableBy(world, npc, obj) &&
                     !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                     HexSpatialMath.HexDistance(obj.Tile, anchor) <= 1)
                 {
@@ -558,7 +558,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+            if (obj.IsReachable && ObjectUsableBy(world, npc, obj) &&
                 !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 obj.DefinitionId == definitionId)
             {
@@ -574,7 +574,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (obj.IsReachable && ObjectUsableBy(obj, npc.Id) &&
+            if (obj.IsReachable && ObjectUsableBy(world, npc, obj) &&
                 !npc.Memory.IsShunned(obj.Id, world.Tick) &&
                 obj.DefinitionId == definitionId &&
                 InventoryMath.CanMakeRoomFor(world, npc, obj.DefinitionId))
@@ -677,7 +677,7 @@ public sealed partial class DecisionSystem
     {
         foreach (var obj in npc.Perception.Objects)
         {
-            if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
+            if (!obj.IsReachable || !ObjectUsableBy(world, npc, obj) ||
                 npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 !obj.AvailableInteractions.Contains(InteractionType.PickUp))
             {
@@ -720,6 +720,7 @@ public sealed partial class DecisionSystem
         foreach (var obj in npc.Perception.Objects)
         {
             if (!obj.IsReachable ||
+                !CampPropertyMath.CanUse(world, npc, obj) ||
                 npc.Memory.IsShunned(obj.Id, world.Tick) ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var definition) ||
                 !definition.HasTag("Campfire"))
@@ -746,7 +747,7 @@ public sealed partial class DecisionSystem
         foreach (var perceived in npc.Perception.Objects)
         {
             if (!perceived.IsReachable ||
-                !ObjectUsableBy(perceived, npc.Id) ||
+                !ObjectUsableBy(world, npc, perceived) ||
                 npc.Memory.IsShunned(perceived.Id, world.Tick) ||
                 !world.Content.ObjectDefinitions.TryGetValue(
                     perceived.DefinitionId, out var definition) ||
@@ -899,12 +900,12 @@ public sealed partial class DecisionSystem
         return burden >= burdenGate || quietAftercare;
     }
 
-    private static bool HasInteraction(NPCState npc, InteractionType interactionType)
+    private static bool HasInteraction(NPCState npc, WorldState world, InteractionType interactionType)
     {
         foreach (var obj in npc.Perception.Objects)
         {
             if (obj.IsReachable &&
-                ObjectUsableBy(obj, npc.Id) &&
+                ObjectUsableBy(world, npc, obj) &&
                 obj.AvailableInteractions.Contains(interactionType) &&
                 // §84: чужую по полу вещь не видно как одежду вовсе.
                 (interactionType != InteractionType.Dress ||
@@ -919,6 +920,9 @@ public sealed partial class DecisionSystem
 
     // Spec 24.3: occupied objects are unavailable — unless occupied by this
     // NPC itself (an NPC mid-interaction must not lose its own target).
+    internal static bool ObjectUsableBy(WorldState world, NPCState npc, PerceivedObject obj) =>
+        ObjectUsableBy(obj, npc.Id) && CampPropertyMath.CanUse(world, npc, obj);
+
     internal static bool ObjectUsableBy(PerceivedObject obj, EntityId self)
     {
         return !obj.IsOccupied ||
@@ -1087,7 +1091,7 @@ public sealed partial class DecisionSystem
     private static bool IsDressCandidateCommon(
         NPCState npc, WorldState world, PerceivedObject obj)
     {
-        if (!obj.IsReachable || !ObjectUsableBy(obj, npc.Id) ||
+        if (!obj.IsReachable || !ObjectUsableBy(world, npc, obj) ||
             npc.Memory.IsShunned(obj.Id, world.Tick) ||
             !obj.AvailableInteractions.Contains(InteractionType.Dress) ||
             !Content.GarmentLibrary.FitsSex(npc.Sex, obj.DefinitionId) ||
@@ -1144,7 +1148,7 @@ public sealed partial class DecisionSystem
         foreach (var seen in npc.Perception.Objects)
         {
             if (seen.DefinitionId != WaterCollectorMath.CollectorId ||
-                !seen.IsReachable || !ObjectUsableBy(seen, npc.Id))
+                !seen.IsReachable || !ObjectUsableBy(world, npc, seen))
             {
                 continue;
             }
@@ -1182,7 +1186,7 @@ public sealed partial class DecisionSystem
         foreach (var seen in npc.Perception.Objects)
         {
             if (seen.DefinitionId != WaterCollectorMath.CollectorId ||
-                !seen.IsReachable || !ObjectUsableBy(seen, npc.Id))
+                !seen.IsReachable || !ObjectUsableBy(world, npc, seen))
             {
                 continue;
             }

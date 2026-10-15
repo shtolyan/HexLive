@@ -35,6 +35,30 @@ public sealed class ManualCraftingTests
     }
 
     [Test]
+    public void ExistingHammerCanBeCraftedInPlaceFromItsPhysicalBill()
+    {
+        var engine = TestWorld.CreateEngine(44901);
+        var world = engine.World;
+        var npc = PrepareManual(world);
+        Strip(world, ContentIds.Stick, ContentIds.Stone, ContentIds.Rope, GearCatalog.Hammer);
+        Add(npc, ContentIds.Stick, 1);
+        Add(npc, ContentIds.Stone, 1);
+        Add(npc, ContentIds.Rope, 1);
+        var options = new List<CraftRecipeOption>();
+        CraftingOptions.TryFill(world, npc.Id, options);
+        var option = options.Single(o => o.OutputDefinitionId == GearCatalog.Hammer);
+        Assert.That(option.CanCraft, Is.True);
+        Assert.That(option.StationTag, Is.Empty);
+        engine.Commands.Enqueue(new CraftByOutputCommand(npc.Id, GearCatalog.Hammer));
+        StepUntil(engine, () => npc.Inventory.Items.Any(i => i.DefinitionId == GearCatalog.Hammer) ||
+            world.Entities.Objects.Values.Any(o => o.DefinitionId == GearCatalog.Hammer && !o.IsCraftProject), 250);
+        Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == GearCatalog.Hammer) +
+            world.Entities.Objects.Values.Count(o => o.DefinitionId == GearCatalog.Hammer && !o.IsCraftProject), Is.EqualTo(1));
+        foreach (var id in new[] {ContentIds.Stick, ContentIds.Stone, ContentIds.Rope})
+            Assert.That(npc.Inventory.Items.Any(i => i.DefinitionId == id), Is.False, id);
+    }
+
+    [Test]
     public void GroundCountUsesCenterAndSixNeighborsButRejectsNonFreeObjects()
     {
         var world = TestWorld.CreateWorld(138001);
@@ -266,34 +290,22 @@ public sealed class ManualCraftingTests
 
     [TestCase(false)]
     [TestCase(true)]
-    public void ManualLeatherCraftKeepsTheImmediateWearResult(bool byOutput)
+    public void RetiredLeatherCraftRejectsBothLegacyAndOutputCommands(bool byOutput)
     {
         var engine = TestWorld.CreateEngine(138006);
         var world = engine.World;
         var npc = PrepareManual(world);
-        RecipeCatalog.Override(ContentIds.LeatherPants,
-            new[] { new RecipeIngredient(ContentIds.Hide, 1) },
-            needsLitFire: false, station: "", baseWorkTicks: 24);
-        Strip(world, ContentIds.Hide, ContentIds.LeatherPants);
-        npc.WornItems.RemoveAll(id => id == ContentIds.LeatherPants);
         Add(npc, ContentIds.Hide, 1);
-
         engine.Commands.Enqueue(byOutput
             ? new CraftByOutputCommand(npc.Id, ContentIds.LeatherPants)
             : new CraftItemCommand(npc.Id, GoalType.CraftLeather));
-        StepUntil(engine, () =>
-            npc.WornItems.Contains(ContentIds.LeatherPants) &&
-            npc.Plan.Status == PlanStatus.Completed,
-            300);
-
+        engine.Step();
         Assert.Multiple(() =>
         {
-            Assert.That(npc.WornItems.Count(id => id == ContentIds.LeatherPants),
-                Is.EqualTo(1));
-            Assert.That(npc.Inventory.Items.Any(item =>
-                item.DefinitionId == ContentIds.LeatherPants), Is.False);
-            Assert.That(world.Entities.Objects.Values.Any(obj =>
-                obj.DefinitionId == ContentIds.LeatherPants), Is.False);
+            Assert.That(npc.Inventory.Items.Count(i => i.DefinitionId == ContentIds.Hide), Is.EqualTo(1));
+            Assert.That(npc.WornItems.Contains(ContentIds.LeatherPants), Is.False);
+            Assert.That(world.Entities.Objects.Values.Any(o => o.DefinitionId == ContentIds.LeatherPants), Is.False);
+            Assert.That(npc.Plan.Status, Is.Not.EqualTo(PlanStatus.Active));
         });
     }
 

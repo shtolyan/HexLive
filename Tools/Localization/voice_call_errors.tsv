@@ -1,0 +1,9 @@
+# key	English	Русский
+agent.call.credit	Insufficient balance	Недостаточно средств
+agent.call.signin	Sign in again	Войди снова
+agent.call.forbidden	Call not allowed	Звонок недоступен
+agent.call.busy	Try again later	Повтори позже
+agent.call.provider	Voice service unavailable	Голосовой сервис недоступен
+agent.call.server_timeout	Voice service timed out	Голосовой сервис не отвечает
+agent.call.module_timeout	Voice module timed out	Голосовой модуль не загрузился
+agent.call.connection_timeout	Voice connection timed out	Нет голосового соединения

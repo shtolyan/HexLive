@@ -91,6 +91,23 @@ public sealed class NpcSpeechDirector
     private bool _stateKnown;
     private string _lastInteraction = string.Empty;
     private float _ambientDue;
+    private bool _phoneVoice;
+
+    /// <summary>§171.17: WebRTC reserves this same mouth, including listening.</summary>
+    public void SetPhoneVoice(bool active)
+    {
+        if (_phoneVoice == active) return;
+        _phoneVoice = active;
+        _stage.StopVoiceLine();
+        _activeUntil = -1f;
+        _activePlayerReply = false;
+        _heldIcon = null;
+        _heldFace = null;
+        _stage.HideSpeechIcon();
+        // Resume current state after a gap; do not replay accumulated old cues.
+        _lastAny = _clock();
+        _ambientDue = _clock() + AmbientGap;
+    }
 
     public NpcSpeechDirector(ISpeechStage stage, System.Func<float> clock = null)
     {
@@ -174,6 +191,7 @@ public sealed class NpcSpeechDirector
     // ради кьюшек нельзя. Правила старшинства при этом общие.
     private void ShowSilent(string cueKind, SpeechCatalog.CueVisual cue, Sprite peerFace)
     {
+        if (_phoneVoice) return;
         if (string.IsNullOrEmpty(cue.PopIcon))
         {
             return;
@@ -262,6 +280,7 @@ public sealed class NpcSpeechDirector
     /// угол пузыря маленьким треугольником.</summary>
     public bool Say(string speechId, Sprite subjectFace)
     {
+        if (_phoneVoice) return false;
         if (string.IsNullOrEmpty(speechId))
         {
             return false;
@@ -344,6 +363,7 @@ public sealed class NpcSpeechDirector
         string wavPath, string visemePath, string emotion, SpeechCatalog.Rank rank,
         float playbackGain = 1f)
     {
+        if (_phoneVoice) return false;
         if (string.IsNullOrEmpty(wavPath)) return false;
         var alarm = rank == SpeechCatalog.Rank.Alarm;
         if (!_stage.CanSpeakExternal(rank == SpeechCatalog.Rank.Talk)) return false;
@@ -384,6 +404,7 @@ public sealed class NpcSpeechDirector
     /// timed line has faded, and schedule the ambient layer.</summary>
     public void Tick()
     {
+        if (_phoneVoice) return;
         var now = _clock();
         if (now < _activeUntil)
         {

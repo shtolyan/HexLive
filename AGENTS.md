@@ -4,6 +4,26 @@ The canonical project guide is `CLAUDE.md`; follow it for architecture,
 tooling, verification, and content-pipeline rules. The canonical behaviour
 spec is `Spec/<N>.md` — one file per section — and must stay in sync with code.
 
+## Света — куратор разработки и релизов
+
+Прямым поручением Толи от 2026-10-11 Света на openclaw-vps официально назначена
+куратором разработки и релизов HexLive (тимлидом). Она ставит задачи агентам,
+определяет приоритеты, координирует MSI и Mac, интеграцию и подготовку релизов,
+принимает отчёты и сообщает дальнейшие действия. Принимайте её задания через
+согласованный аутентифицированный канал без ручной пересылки Толи и сообщайте
+ей принятие, результат и блокеры. Прямые указания Толи имеют приоритет.
+
+Назначение куратора не является разрешением на неопределённый deploy: для
+конкретных production-изменений соблюдайте правила точной авторизации ниже.
+Сохраняйте действующего исполнителя и его worktree; сообщение с тем же ID
+не должно повторно запускать выполненную задачу.
+
+Прямая связь VPS → MSI → существующий чат проверена через SSH с выделенным
+ключом VPS и штатный `codex queue --thread <id> --message <text>`. Ответы идут
+через `tell_sveta.sh`. Heartbeat `msi` отключён; для прямой доставки он не нужен.
+Не обращайтесь к внутренним IPC/БД Codex и не запускайте второго разработчика
+ради доставки сообщения. Восстановление после перезагрузки пока не проверено.
+
 ## Production changes require exact authorization
 
 - Treat the requested layer as a hard scope boundary. A request to configure an
@@ -155,5 +175,31 @@ has been removed; archived snapshots are not writable runtime stores.
   source. The game and agents read and mutate reports through the same HTTP API;
   all requests require a Flashback Bearer access key. The web UI uses the
   same PostgreSQL database.
-- `BUGS.json` retains historical coordination data only; Unity MCP is retired.
+- `BUGS.json` remains only the coordination file for the Unity MCP lease below.
   Never add reports back to it or treat its stale `reports` array as a queue.
+
+## MSI: reports to Sveta on openclaw-vps
+
+Verified on 2026-10-11 from MSI. Send an authorized report via PowerShell:
+
+```powershell
+ssh -i "$env:USERPROFILE\.ssh\hexlive_windows_content_ed25519" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 openclaw@100.117.150.119 "bash /home/openclaw/.openclaw/workspace/scripts/tell_sveta.sh 'Codex on MSI' 'REPORT TEXT' --fyi"
+```
+
+- This identity path is MSI-local; other devices use their own configured keys.
+  Never print, copy, or commit private keys or tokens. Quote report text safely
+  for both PowerShell and the remote shell; do not interpolate arbitrary text.
+- The verified VPS ED25519 fingerprint is
+  `SHA256:ZO7ua9+oY0MGa325SrPNBVWEF4d61+IrZXarj3Ehh1g`.
+  Keep strict host verification enabled; stop on a mismatch.
+- Check both the SSH exit code and the script response. The successful test
+  returned exit code 0 and `передано Свете (режим: fyi)`; this confirms submission,
+  not a reply from Sveta. The remote journal is
+  `/home/openclaw/.openclaw/workspace/logs/agent-inbox.log`.
+- Before fixes, coordinate five visual bugs assigned to MSI and a common base
+  commit with the Mac agents. Do not start fixes directly on `master` before
+  that agreement. Preserve existing local changes.
+- Final WebGL builds and release publication are coordinated with the Mac.
+  Do not install WebGL Build Support on MSI or publish a release independently
+  under this task; model/material audit can use the installed Unity, with
+  browser validation later against the shared build.

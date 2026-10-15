@@ -123,6 +123,16 @@ public sealed class AssetRegistryStoreTests
         Assert.That(json["recipes"]!.AsArray().Count, Is.EqualTo(79));
         Assert.That(json["recipes"]!.AsArray().OfType<JsonObject>().Select(r => r["output"]!.GetValue<string>()),
             Is.EquivalentTo(rows.Select(r => r.GetProperty("id").GetString()).Append("resource.rope")));
+        // #448: assert the effective registry catalogue used by the server,
+        // including both fitted sexes and colour variants, not only defaults.
+        var garments = json["garments"]!.AsArray().OfType<JsonObject>().ToArray();
+        var collars = garments.Where(g => g["id"]!.GetValue<string>().StartsWith("clothing.collar_fur", StringComparison.Ordinal)).ToArray();
+        Assert.That(collars.Length, Is.EqualTo(14));
+        Assert.That(collars.All(g => g["capacity"]!.GetValue<int>() == 1), Is.True);
+        var dresses = garments.Where(g => g["id"]!.GetValue<string>().StartsWith("clothing.dress_primal", StringComparison.Ordinal)).ToArray();
+        Assert.That(dresses.All(g => g["capacity"]!.GetValue<int>() == 2), Is.True);
+        var skirts = garments.Where(g => g["id"]!.GetValue<string>().StartsWith("clothing.skirt_primal", StringComparison.Ordinal)).ToArray();
+        Assert.That(skirts.All(g => g["capacity"]!.GetValue<int>() == 2), Is.True);
     }
 
     [Test]

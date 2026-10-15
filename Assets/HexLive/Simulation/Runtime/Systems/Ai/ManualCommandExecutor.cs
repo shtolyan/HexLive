@@ -523,7 +523,7 @@ internal static class ManualCommandExecutor
         if (interruptedSleep)
         {
             npc.Mind.WakeGraceUntilTick = System.Math.Max(
-                npc.Mind.WakeGraceUntilTick, world.Tick + AiBalance.WakeGraceTicks);
+                npc.Mind.WakeGraceUntilTick, world.Tick + StandUpMath.GraceTicks);
         }
 
         // A pending attack/need can have no active movement plan. Its receipt
@@ -2188,15 +2188,19 @@ internal static class ManualCommandExecutor
         var actors = GroupActors(world, command.Actors, rejectIncapacitated: true,
             out var manual, out var incapacitated, out var ai);
         var accepted = 0;
-        if (ManualControlMath.TryGetMob(world, command.MobId, out _))
+        var crab = command.MobId < 0;
+        if (crab ? ManualCrabHunt.TryTarget(world, command.MobId, out _, out _) :
+            ManualControlMath.TryGetMob(world, command.MobId, out _))
         {
             foreach (var npc in actors)
             {
+                if (crab && (!npc.Body.CanUseToolsOrWeapons ||
+                    !npc.Inventory.Items.Contains(ContentIds.Spear))) continue;
                 ClearForNewOrder(world, npc, "Групповой приказ атаковать зверя");
                 ClearAttackOrder(world, npc);
                 npc.Mind.CurrentGoal = GoalType.PlayerAttack;
                 npc.Mind.ManualAttackMobId = command.MobId;
-                npc.Mind.CombatAssistDogId = command.MobId;
+                npc.Mind.CombatAssistDogId = crab ? null : command.MobId;
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "ManualOrderAccepted",
@@ -3039,14 +3043,13 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        var budget = matches.Count < ManualGatherTargets.MaxQueueLength
-            ? matches.Count
-            : ManualGatherTargets.MaxQueueLength;
+        var budget = matches.Count;
+        var first = matches.Find(candidate => candidate.Id.Equals(anchor.Id)) ?? matches[0];
 
         // Первый подход — обычный ручной приказ. Он же снимает старую очередь
         // через ClearForNewOrder, поэтому взводим новую ПОСЛЕ него.
         if (!TryStartInteractOrder(
-                world, npc, matches[0].Id, command.Interaction,
+                world, npc, first.Id, command.Interaction,
                 command.InteractionId, "GatherAll", admission))
         {
             return;
@@ -3107,12 +3110,22 @@ internal static class ManualCommandExecutor
         var tile = npc.Mind.GatherAllTile!.Value;
         var interaction = npc.Mind.GatherAllInteraction!.Value;
         var interactionId = npc.Mind.GatherAllInteractionId;
-        var remaining = npc.Mind.GatherAllRemaining - 1;
-
-        var next = ManualGatherTargets.Next(world, npc, definitionId, tile, interaction);
-        if (next is null || remaining <= 0)
+        // #467: dynamic rescan replaces the initial 64-object budget. A
+        // completed pickup must actually remove its target; otherwise a full
+        // pack or a defective executor could endlessly rearm the same object.
+        if (npc.Plan.TargetObjectId is { } previous &&
+            world.Entities.Objects.TryGetValue(previous, out var unconsumed) &&
+            unconsumed.DefinitionId == definitionId)
         {
-            FinishGatherAll(world, npc, next is null ? "HexEmpty" : "QueueSpent");
+            FinishGatherAll(world, npc, "NoProgress");
+            return;
+        }
+        var candidates = ManualGatherTargets.Collect(world, npc, definitionId, tile, interaction);
+        var remaining = candidates.Count;
+        var next = remaining > 0 ? candidates[0] : null;
+        if (next is null)
+        {
+            FinishGatherAll(world, npc, "AreaEmpty");
             return;
         }
 
@@ -3347,9 +3360,17 @@ internal static class ManualCommandExecutor
             return;
         }
 
-        if (!ManualControlMath.TryGetMob(world, command.MobId, out _))
+        var crab = command.MobId < 0;
+        if (crab ? !ManualCrabHunt.TryTarget(world, command.MobId, out _, out _) :
+            !ManualControlMath.TryGetMob(world, command.MobId, out _))
         {
             Reject(world, npc.Id, "AttackMob", "TargetGone", admission);
+            return;
+        }
+
+        if (crab && (!npc.Body.CanUseToolsOrWeapons || !npc.Inventory.Items.Contains(ContentIds.Spear)))
+        {
+            Reject(world, npc.Id, "AttackMob", "MissingTool", admission);
             return;
         }
 
@@ -3361,7 +3382,7 @@ internal static class ManualCommandExecutor
         npc.Plan.Status = PlanStatus.None;
         // Сцепку со зверем держит §57: AnimalCombatSystem бьёт любого, у кого
         // стоит CombatAssistDogId, — приказ просто становится в тот же строй.
-        npc.Mind.CombatAssistDogId = command.MobId;
+        npc.Mind.CombatAssistDogId = crab ? null : command.MobId;
         if (SimTrace.Enabled)
         {
             Trace.Debug(world, npc.Id, "ManualOrderAccepted",

@@ -27,11 +27,14 @@ public sealed class GroundPileLayout : MonoBehaviour
         }
     }
 
-    public void ApplyScatter(int objectId)
+    public void ApplyScatter(int objectId, int rank = 0)
     {
         SlotIndex = 0; Capacity = 1;
-        SlotTransform.localPosition = Vector3.zero;
-        SlotTransform.localRotation = Quaternion.Euler(0f, ScatterYaw(objectId), 0f);
+        var leaves=Profile.Id==ContentIds.PalmLeaf;
+        // Compact harvest leaves share XZ; tiny layers prevent coincident faces.
+        // Bound height even when successive crowns reuse the same ground point.
+        SlotTransform.localPosition = leaves ? new Vector3(0f,Mathf.Min(Mathf.Max(0,rank),59)*.002f,0f) : Vector3.zero;
+        SlotTransform.localRotation = Quaternion.Euler(0f, leaves ? (ScatterYaw(objectId)/360f-.5f)*24f : ScatterYaw(objectId), 0f);
     }
 
     public static float ScatterYaw(int objectId)

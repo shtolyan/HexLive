@@ -16,6 +16,36 @@ namespace HexLive.Server.Tests.Mcp;
 public sealed class McpKnownObjectObservationTests
 {
     [Test]
+    public void DescribeIncludesOnlyPersonalSleepMemoryWithoutRevealingHiddenLiveBed()
+    {
+        using var host = CreateHost();
+        var npcId = host.Read(world =>
+        {
+            var npc = world.Entities.Npcs.Values.First();
+            npc.Memory.KnownObjects.Clear(); npc.Perception.Objects.Clear();
+            var id = new ObjectId(900777);
+            npc.Memory.KnownObjects[id] = new ObjectMemory { Id=id, DefinitionId=ContentIds.BedBasic,
+                Tile=npc.Tile, LastSeenTick=world.Tick, IsPermanent=true };
+            var foreign = world.Entities.Npcs.Values.Skip(1).First();
+            foreign.Memory.KnownObjects[new ObjectId(900778)] = new ObjectMemory {
+                Id=new ObjectId(900778), DefinitionId=ContentIds.BedBasic, Tile=npc.Tile,
+                LastSeenTick=world.Tick, IsPermanent=true };
+            return npc.Id.Value;
+        });
+        var leases = new ControlLeases(45);
+        var result = new McpTools(host,leases).Call("describe_colonist", JsonSerializer.SerializeToElement(new { npcId }),
+            "mcp:470", out var error, id => id==npcId);
+        Assert.That(error, Is.False, result);
+        using var doc = JsonDocument.Parse(result);
+        var known = doc.RootElement.GetProperty("knownSleepPlaces");
+        Assert.That(known.GetProperty("source").GetString(), Is.EqualTo("personalMemory"));
+        Assert.That(known.GetProperty("objects").GetArrayLength(), Is.EqualTo(1));
+        Assert.That(known.GetProperty("objects")[0].GetProperty("objectId").GetInt32(), Is.EqualTo(900777));
+        Assert.That(known.GetRawText(), Does.Not.Contain("900778").And.Not.Contain("exists"));
+        Assert.That(leases.TryRenew(npcId,"mcp:470",out _), Is.False);
+    }
+
+    [Test]
     public void QueryUsesAuthenticatedNpcScopeAndNeedsNoControlLease()
     {
         using var host = CreateHost();

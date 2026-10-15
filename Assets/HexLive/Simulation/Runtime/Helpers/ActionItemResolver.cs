@@ -101,7 +101,7 @@ public static class ActionItemResolver
                     : string.Empty;
 
             case InteractionType.Fuel:
-                return InventoryContains(npc, "resource.stick") ? "resource.stick" : string.Empty;
+                return ContainerLootMath.FindCarriedCampfireFuel(world,npc)?.DefinitionId ?? string.Empty;
 
             case InteractionType.Ignite:
                 return InventoryContains(npc, GearCatalog.Lighter)

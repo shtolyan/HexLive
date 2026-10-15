@@ -182,9 +182,13 @@ internal static class LyingSpot
 
     internal static void EndCrying(WorldState world, NPCState npc)
     {
+        var wasCrying = npc.Mind.CryingUntilTick != 0;
         npc.Mind.CryingUntilTick = 0;
         ReleaseRestSurfaceOnRise(world, npc);
         ExecutionSystem.ReleaseClaims(world, npc);
+        if (wasCrying && !npc.IsLyingDown(world.Tick) && !npc.Body.IsCrawling)
+            npc.Mind.WakeGraceUntilTick = System.Math.Max(npc.Mind.WakeGraceUntilTick,
+                world.Tick + StandUpMath.GraceTicks);
     }
 
     private static int NearbyBedPriority(

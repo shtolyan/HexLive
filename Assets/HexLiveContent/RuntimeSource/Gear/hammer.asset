@@ -24,10 +24,19 @@ MonoBehaviour:
   attackSpeed: 0.9
   harvestSpeedMult: 1
   capabilities: 10000000
-  craftable: 0
+  craftable: 1
   craftStation: 0
   craftNeedsLitFire: 0
-  craftIngredients: []
+  craftIngredients:
+  - item: {fileID: 0}
+    itemId: resource.stick
+    count: 1
+  - item: {fileID: 0}
+    itemId: resource.stone
+    count: 1
+  - item: {fileID: 0}
+    itemId: resource.rope
+    count: 1
   handPoseAuthored: 1
   handLocalPosition: {x: 0.054, y: -0.033, z: -0.076}
   handLocalEuler: {x: -27.667, y: 97.515, z: 87.548}

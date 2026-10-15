@@ -373,9 +373,10 @@ namespace HexLive.UnityPresentation.Input
 
             if (UI.AdminVoicePanel.BlocksGameInput) return;
             var keyboard = Keyboard.current;
-            if (!UI.AdminVoicePanel.BlocksGameInput && keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            if (!UI.AdminVoicePanel.BlocksGameInput && !UI.GameMenu.IsOpen && keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
-                if (UI.CraftProjectDetailsPanel.BlocksWorldInput || UI.CharacterPanel.BlocksWorldPointer)
+                if (UI.RuntimeWindow.CloseTopmost()) { }
+                else if (UI.CraftProjectDetailsPanel.BlocksWorldInput || UI.CharacterPanel.BlocksWorldPointer)
                 {
                     UI.CraftProjectDetailsPanel.Close();
                 }
@@ -399,8 +400,10 @@ namespace HexLive.UnityPresentation.Input
                 }
             }
 
-            if (UI.CraftProjectDetailsPanel.BlocksWorldInput || UI.CharacterPanel.BlocksWorldPointer)
+            if (UI.RuntimeWindow.BlocksWorldInput || UI.CraftProjectDetailsPanel.BlocksWorldInput || UI.CharacterPanel.BlocksWorldPointer)
             {
+                _leftPressActive = false; _rightPressActive = false;
+                _selectionDragging = false; _rightDragging = false;
                 _worldPointerBlockedLastFrame = true;
                 return;
             }
@@ -828,6 +831,7 @@ namespace HexLive.UnityPresentation.Input
         }
 
         private static bool PointerBlockedForWorld() =>
+            UI.RuntimeWindow.BlocksWorldInput ||
             NpcSelection.PointerOverUi || UI.TacticalMapPanel.PointerOverMap ||
             UI.HexInspectorPanel.PointerOverPanel ||
             UI.ContextMenuPanel.BlocksWorldPointer || UI.LootTransferPanel.IsOpen || UI.CraftProjectDetailsPanel.BlocksWorldInput || UI.CharacterPanel.BlocksWorldPointer ||

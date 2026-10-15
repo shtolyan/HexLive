@@ -136,17 +136,6 @@ public sealed partial class ExecutionSystem
             // §54.14 (r2): CookMeat no longer grants here — the raw chunk is
             // hung on the spit at the station-craft arm and FireSystem roasts
             // it over time (a campfire-station recipe never crafts in place).
-            case GoalType.CraftLeather:
-                ResolveWearConflicts(world, npc, ContentIds.LeatherPants);
-                npc.WornItems.Add(ContentIds.LeatherPants);
-                EquipmentMath.Recalculate(world, npc);
-                StowDisplacedGarments(world, npc); // §52.9 r2: displaced pants go to the pack, overflow to ground
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "CraftedLeather",
-                        $"Pants worn. Warmth={npc.EquippedWarmth:F2} Armor={npc.EquippedArmor:F2}");
-                }
-                return true;
             case GoalType.CraftAxe:
                 GiveOrDrop(world, npc, ContentIds.AxeStone);
                 if (SimTrace.Enabled)
@@ -316,6 +305,7 @@ public sealed partial class ExecutionSystem
         foreach (var obj in world.Entities.Objects.Values)
         {
             if (obj.DefinitionId != definitionId ||
+                !CampPropertyMath.CanUse(world, npc, obj) ||
                 !obj.Fragment.Equals(npc.Fragment) ||
                 obj.IsOccupied ||
                 obj.Contents.Count > 0 ||
@@ -468,27 +458,6 @@ public sealed partial class ExecutionSystem
     private static bool TakeCompletedProjectOutput(
         WorldState world, NPCState npc, GoalType goal, WorldObjectState crafted)
     {
-        if (goal == GoalType.CraftLeather &&
-            crafted.DefinitionId == ContentIds.LeatherPants)
-        {
-            // Leather's one authored output adapter: it is worn immediately.
-            ResolveWearConflicts(world, npc, ContentIds.LeatherPants);
-            npc.WornItems.Add(new ItemInstance(ContentIds.LeatherPants)
-            {
-                Wetness = crafted.Wetness,
-                Durability = crafted.Durability,
-                ResourceAmount = crafted.ResourceAmount,
-                WaterKind = crafted.WaterKind,
-                LastAddedWaterKind = crafted.LastAddedWaterKind,
-                Dirtiness = crafted.Dirtiness,
-                Bloodiness = crafted.Bloodiness
-            });
-            WorldObjectMutations.DespawnObject(world, crafted.Id);
-            EquipmentMath.Recalculate(world, npc);
-            StowDisplacedGarments(world, npc);
-            return true;
-        }
-
         if (!InventoryMath.FitsWithoutEviction(world, npc, crafted.DefinitionId))
         {
             crafted.IsOccupied = false;
@@ -599,6 +568,15 @@ public sealed partial class ExecutionSystem
 
     private static void RunLegacyCraftInPlace(WorldState world, NPCState npc)
     {
+        if (!CampPropertyMath.CanDeposit(world, npc, npc.Tile))
+        {
+            PlanningSystem.SetGoalCooldown(world, npc, npc.Plan.Goal);
+            PlanInterruption.TryAbort(world, npc, InterruptionCause.ExecutionFailure,
+                "Foreign camp is not an autonomous craft/drop site");
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
         var goal = npc.Plan.Goal != GoalType.None ? npc.Plan.Goal : npc.Mind.CurrentGoal;
         if (!Content.RecipeCatalog.TryGet(goal, npc.Plan.TargetItemDefinitionId, out var recipe))
         {

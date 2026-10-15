@@ -353,6 +353,8 @@ public sealed class ObjectSnapshot
     // freshly slain carcass (play the death clip) from a restored one.
     public int SpawnTick { get; set; }
 
+    public float LeafDryness { get; set; }
+
     // Spec §54: build-site payload, so the view can assemble a piece from its
     // delivered components (a bed growing from hauled stones/logs). Empty
     // BuildProduct ⇒ not a site. Delivered* are how many of each material have
@@ -435,6 +437,7 @@ public sealed class ObjectSnapshot
 
 public sealed class InventorySlotSnapshot
 {
+    public float LeafDryness { get; set; }
     public int Index { get; set; }
 
     // Index of the first physical InventoryState.Items instance in this cell;
@@ -818,6 +821,8 @@ public sealed class NpcSnapshot
     // The concrete inventory object that should be visible in the acting hand
     // for the current interaction. Empty means empty hands.
     public string HeldItemId { get; set; } = string.Empty;
+
+    public float HeldLeafDryness { get; set; }
 
     // §55.4 (bug #317): вторая ёмкость во ВТОРОЙ руке — источник перелива
     // (пробитый кокос), пока идёт FillVessel. Пусто = вторая рука свободна.

@@ -2945,20 +2945,29 @@
       "id": "PrimalTrailPack",
       "actor": "Marta",
       "path": "Models/Marta_PrimalTrailPack.fbx",
-      "bytes": 110268,
-      "sha256": "78f81c7865b98f0e3d55f542348bf8c0a01daac788011656796a7e1e6fe24525",
+      "bytes": 201708,
+      "sha256": "f0bf52f9e1f3223d4379a226a31856b3a15a69fae28035f9312d5f07c7492ffa",
       "bones": [
         "hip",
         "abdomenLower",
         "abdomenUpper",
         "chestLower",
-        "chestUpper"
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "lShldrTwist",
+        "neckLower",
+        "rCollar",
+        "rShldrBend",
+        "rShldrTwist",
+        "lPectoral",
+        "rPectoral"
       ],
       "meshes": [
         {
           "name": "Marta_PrimalTrailPack",
-          "vertices": 1218,
-          "triangles": 2126,
+          "vertices": 2238,
+          "triangles": 4166,
           "blendShapes": [],
           "materials": [
             "PrimalTrailPack_Primal.001"
@@ -2966,9 +2975,14 @@
           "uvLayers": [
             "PackAtlas"
           ],
-          "maxBoneWeights": 2
+          "maxBoneWeights": 6
         }
-      ]
+      ],
+      "strapFit": {
+        "tool": "Tools/Art/fit_trailpack_straps.py",
+        "receipt": "trailpack-fit.json",
+        "clearanceMetres": 0.02
+      }
     },
     {
       "kind": "backpack",
@@ -3051,20 +3065,27 @@
       "id": "PrimalTrailPack",
       "actor": "Kshishtof",
       "path": "Models/Kshishtof_PrimalTrailPack.fbx",
-      "bytes": 110652,
-      "sha256": "eac1e04599add233a587887d2715be3855d1d7cb32e7eda156ac6c545140cadd",
+      "bytes": 199340,
+      "sha256": "59ed5128afc7556fad8e97cd7feeecea497c32478e334c3903ff1ccada6a5dbe",
       "bones": [
         "hip",
         "abdomenLower",
         "abdomenUpper",
         "chestLower",
-        "chestUpper"
+        "chestUpper",
+        "lCollar",
+        "lShldrBend",
+        "neckLower",
+        "rCollar",
+        "rShldrBend",
+        "lPectoral",
+        "rPectoral"
       ],
       "meshes": [
         {
           "name": "Kshishtof_PrimalTrailPack",
-          "vertices": 1218,
-          "triangles": 2126,
+          "vertices": 2238,
+          "triangles": 4166,
           "blendShapes": [],
           "materials": [
             "PrimalTrailPack_Primal.001"
@@ -3072,9 +3093,14 @@
           "uvLayers": [
             "PackAtlas"
           ],
-          "maxBoneWeights": 2
+          "maxBoneWeights": 6
         }
-      ]
+      ],
+      "strapFit": {
+        "tool": "Tools/Art/fit_trailpack_straps.py",
+        "receipt": "trailpack-fit.json",
+        "clearanceMetres": 0.02
+      }
     }
   ],
   "materials": {

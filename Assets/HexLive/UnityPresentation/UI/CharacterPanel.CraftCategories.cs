@@ -30,8 +30,8 @@ namespace HexLive.UnityPresentation.UI
         private ScrollView _craftRecipeScroll;
         private CraftCategory _craftCategory;
         private VisualElement _inventoryBackdrop;
-        private static int _inventoryClosedFrame = -1;
-        public static bool BlocksWorldPointer => _inventoryClosedFrame == Time.frameCount;
+        private RuntimeWindow _inventoryModal, _healthModal, _journalModal;
+        public static bool BlocksWorldPointer => RuntimeWindow.BlocksWorldInput;
 
         private void BuildCraftCategories(VisualElement parent)
         {
@@ -78,16 +78,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void BuildInventoryBackdrop()
         {
-            _inventoryBackdrop = new VisualElement { name = "inventory-backdrop", pickingMode = PickingMode.Position };
-            _inventoryBackdrop.style.position = Position.Absolute;
-            _inventoryBackdrop.style.left = 0; _inventoryBackdrop.style.right = 0;
-            _inventoryBackdrop.style.top = 0; _inventoryBackdrop.style.bottom = 0;
-            _inventoryBackdrop.style.display = DisplayStyle.None;
-            _inventoryBackdrop.RegisterCallback<PointerDownEvent>(evt => {
-                if (evt.button != 0 || evt.target != _inventoryBackdrop) return;
-                CloseInventory(); evt.StopPropagation();
-            });
-            _root.Add(_inventoryBackdrop);
+            _inventoryModal = new RuntimeWindow(_root, _inventoryWindow, CloseInventory, "inventory");
+            _inventoryBackdrop = _inventoryModal.Backdrop;
         }
     }
 }

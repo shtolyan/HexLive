@@ -5,6 +5,10 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+#if UNITY_WEBGL && !UNITY_EDITOR
+using UnityEngine;
+using UnityEngine.Networking;
+#endif
 
 namespace HexLive.UnityPresentation.Audio
 {
@@ -23,13 +27,30 @@ namespace HexLive.UnityPresentation.Audio
         { _maxCharacters = Math.Max(1, maxCharacters); _rejectOverflow = rejectOverflow; }
         private static readonly Uri Endpoint = new(
             "https://api.deepgram.com/v1/listen?model=nova-3&language=ru&smart_format=true&punctuate=true");
+#if !(UNITY_WEBGL && !UNITY_EDITOR)
         private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(35) };
+#endif
 
         public async Task<string> TranscribeAsync(byte[] wav, string temporaryToken,
             CancellationToken cancellationToken)
         {
             if (wav == null || wav.Length < 44 || string.IsNullOrWhiteSpace(temporaryToken))
                 return string.Empty;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            cancellationToken.ThrowIfCancellationRequested();
+            using var request = new UnityWebRequest(Endpoint, "POST")
+            {
+                uploadHandler = new UploadHandlerRaw(wav), downloadHandler = new DownloadHandlerBuffer(), timeout = 35
+            };
+            request.SetRequestHeader("Authorization", "Bearer " + temporaryToken);
+            request.SetRequestHeader("Content-Type", "audio/wav");
+            using var cancellation = cancellationToken.Register(request.Abort);
+            await request.SendWebRequest();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (request.result != UnityWebRequest.Result.Success)
+                throw new HttpRequestException("Deepgram HTTP " + request.responseCode);
+            var json = request.downloadHandler.text;
+#else
             using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", temporaryToken);
             request.Content = new ByteArrayContent(wav);
@@ -38,6 +59,7 @@ namespace HexLive.UnityPresentation.Audio
                 .ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+#endif
             var transcript = (string?)JObject.Parse(json)["results"]?["channels"]?[0]?
                 ["alternatives"]?[0]?["transcript"];
             return BoundTranscript(transcript);
@@ -51,6 +73,11 @@ namespace HexLive.UnityPresentation.Audio
             return transcript.Length <= _maxCharacters ? transcript : transcript.Substring(0, _maxCharacters);
         }
 
-        public void Dispose() => _http.Dispose();
+        public void Dispose()
+        {
+#if !(UNITY_WEBGL && !UNITY_EDITOR)
+            _http.Dispose();
+#endif
+        }
     }
 }

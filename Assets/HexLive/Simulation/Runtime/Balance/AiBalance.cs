@@ -189,6 +189,8 @@ public static class AiBalance
     /// GetUp = «Situp To Idle.fbx», 132 кадра @ 30 fps = 4.40 с = 17.6 тика
     /// (тик 0.25 с) → 18. Цепочка падения короче (StandUp = «X Bot@Standing
     /// Up», 50 кадров = 1.67 с) и покрыта тем же числом.
+    /// #453: сохранённое значение ограничивает StandUpMath — минимум20
+    /// тиков с учётом входного/выходного бленда. Старый default18 совместим.
     /// </summary>
     public static int WakeGraceTicks = 18;
 

@@ -89,6 +89,11 @@ public static class RecipeCatalog
                 foreach (var recipe in ByGoal.Values)
                     if (!string.IsNullOrEmpty(recipe.OutputDefinitionId))
                         _byOutput.Add(recipe.OutputDefinitionId, recipe);
+                _byOutput.Add(GearCatalog.Hammer, new Recipe(GoalType.CraftItem,
+                    new[] { new RecipeIngredient(ContentIds.Stick, 1),
+                        new RecipeIngredient(ContentIds.Stone, 1),
+                        new RecipeIngredient(ContentIds.Rope, 1) },
+                    station: "", outputDefinitionId: GearCatalog.Hammer));
             }
             return _byOutput;
         }
@@ -117,6 +122,9 @@ public static class RecipeCatalog
         foreach (var input in inputs)
             if (input == null || string.IsNullOrWhiteSpace(input.Id) || input.Count <= 0 || !ids.Add(input.Id))
                 throw new System.ArgumentException("Recipe ingredients require unique ids and positive counts.");
+
+        // §138.6 / #461: stale SimData and asset tunings cannot revive Hide Pants.
+        if (outputId == ContentIds.LeatherPants) return;
 
         ByOutput.TryGetValue(outputId, out var existing);
         var goal = existing?.Goal ?? GoalType.CraftItem;
@@ -199,10 +207,6 @@ public static class RecipeCatalog
         Add(GoalType.CraftSpear, new[] { I("resource.stick", 1) }, output: ContentIds.Spear);
         Add(GoalType.CookMeat, new[] { I("food.meat_raw", 1) }, fire: true,
             output: ContentIds.MeatCooked);
-        // Leather craft actually produces the wearable pants. The old
-        // pseudo-output resource.leather had no physical world definition.
-        Add(GoalType.CraftLeather, new[] { I("resource.hide", 1) },
-            output: ContentIds.LeatherPants);
         Add(GoalType.CraftAxe, new[] { I("resource.stick", 1), I("resource.stone", 1) },
             output: ContentIds.AxeStone);
         Add(GoalType.CraftPickaxe, new[] { I("resource.stick", 1), I("resource.stone", 2) },

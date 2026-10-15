@@ -159,6 +159,30 @@ namespace HexLive.Tests
             Assert.That(stage.Stopped, Is.EqualTo(1));
         }
 
+        [Test]
+        public void PhoneCallOwnsTheSameMouthAndDropsOldCues()
+        {
+            var now = 0f;
+            var stage = new Stage { AllowOrdinary = true };
+            var director = new NpcSpeechDirector(stage, () => now);
+            Assert.That(director.Say("work_chop"), Is.True);
+            director.SetPhoneVoice(true);
+            director.SetPhoneVoice(true);
+            Assert.That(stage.Stopped, Is.EqualTo(1), "reserve only once");
+            now = 60f;
+            Assert.That(director.Say("hurt_wound"), Is.False, "even an alarm must not overlap WebRTC");
+            Assert.That(director.SayExternal("reply.wav", "reply.vis", "warm", SpeechCatalog.Rank.Talk), Is.False);
+            director.OnCue("SleepRejected:Hunger");
+            director.OnTalkTurn();
+            director.Tick();
+            Assert.That(stage.OrdinaryStarted, Is.EqualTo(1));
+            director.SetPhoneVoice(false);
+            director.Tick();
+            Assert.That(stage.OrdinaryStarted, Is.EqualTo(1), "no queued stale speech on release");
+            now += 7f;
+            Assert.That(director.Say("work_chop"), Is.True);
+        }
+
         private sealed class Stage : ISpeechStage
         {
             public int Started;

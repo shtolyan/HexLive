@@ -78,6 +78,7 @@ namespace HexLive.UnityPresentation.UI
         // The addresses themselves live in ServerBook, which also remembers
         // which kind of session was last played so Continue can follow it.
         private bool _connectChosen;
+        private PlayerCharacterCreationFlow _playerCreator;
         private VisualElement _connectBox;
         private TextField _serverField;
         private TextField _tokenField;
@@ -161,6 +162,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void OnDestroy()
         {
+            _playerCreator?.Dispose(); _playerCreator = null;
             IsActive = false;
             Application.backgroundLoadingPriority = _previousLoadingPriority;
             // Корутина умирает молча (domain reload в игре), а воркер намотки —
@@ -350,8 +352,28 @@ namespace HexLive.UnityPresentation.UI
                 Application.OpenURL(entry.playUrl);
                 return;
             }
+            if (Platform.WebPage.IsWeb)
+            {
+                if (_playerCreator != null) return;
+                _menuBox.AddToClassList("server-menu-hidden");
+                var creatorToken = Platform.WebPage.AccountSessionToken;
+                _playerCreator = new PlayerCharacterCreationFlow(_root, this, entry.socketUrl, creatorToken,
+                    () => {
+                        _playerCreator?.Dispose(); _playerCreator = null;
+                        ChooseDirectoryServer(entry, creatorToken);
+                    },
+                    () => {
+                        _playerCreator?.Dispose(); _playerCreator = null;
+                        _menuBox.RemoveFromClassList("server-menu-hidden");
+                    });
+                return;
+            }
+            ChooseDirectoryServer(entry, SessionConfig.ControlToken);
+        }
+        private void ChooseDirectoryServer(ServerDirectoryEntry entry, string token)
+        {
             ServerBook.Remember(entry.socketUrl);
-            SessionConfig.UseServer(entry.socketUrl, Platform.WebPage.AccountSessionToken);
+            SessionConfig.UseServer(entry.socketUrl, token);
             _connectChosen = true;
             _continueChosen = false;
             _menuChosen = true;

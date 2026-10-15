@@ -311,10 +311,12 @@ public sealed partial class ExecutionSystem
     internal static WorldObjectState DropGarmentWithContents(
         WorldState world, NPCState npc, ItemInstance garment)
     {
+        if (!CampPropertyMath.CanDeposit(world, npc, npc.Tile)) return null;
+
         // Spawn before mutating the pack.  A missing ground point must leave
         // the authoritative carried instances untouched rather than stranded
         // in the shared scratch list.
-        var dropped = DropItemAtFeet(world, npc, garment, underFoot: true);
+        var dropped = DropAutomaticItemAtFeet(world, npc, garment);
         if (dropped is null)
         {
             return null;
@@ -359,6 +361,8 @@ public sealed partial class ExecutionSystem
         {
             return DropGarmentWithContents(world, npc, garment);
         }
+
+        if (!CampPropertyMath.CanUse(world, npc, station)) return null;
 
         _garmentSpillScratch.Clear();
         InventoryMath.MoveOverflowToGarment(world, npc.Id.Value, npc.Inventory, _garmentSpillScratch);
@@ -683,7 +687,7 @@ public sealed partial class ExecutionSystem
             return;
         }
 
-        var dropped = DropItemAtFeet(world, npc, item);
+        var dropped = InventoryMath.TryDropAutomatic(world, npc, item);
         if (dropped is null)
         {
             npc.Plan.Status = PlanStatus.Failed;

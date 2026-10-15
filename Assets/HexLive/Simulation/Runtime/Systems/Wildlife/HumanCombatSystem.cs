@@ -63,6 +63,14 @@ public sealed class HumanCombatSystem : ISimulationSystem
                 continue;
             }
 
+            // #453: combat spacing is another position writer. A rising body
+            // must finish its clip before turning, gliding or starting a swing.
+            if (world.Tick < actor.Mind.WakeGraceUntilTick || actor.Movement.ClimbPauseTimer > 0f)
+            {
+                MeleeSwing.Cancel(actor);
+                continue;
+            }
+
             // Turn to face — the same courtesy the dog fight pays.
             //
             // §109.13: ⭐ НО ТОЛЬКО ЕСЛИ СТОИШЬ. Идущего разворачивает

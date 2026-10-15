@@ -137,7 +137,7 @@ public sealed class Junction
     public List<JunctionId> Neighbors { get; } = new();
 
     // §40.17 v2: the signed elevation change of the step this -> Neighbors[i],
-    // precomputed at worldgen by the SAME resolver the hop arming uses
+    // precomputed at worldgen by the directed-edge path-cost resolver
     // (HexPathfinder.TryGetDirectedStepTile), so pathfinding and execution agree
     // on what a jump is. 0 = flat, +1/-1 = a hop up/down.
     // Why per-EDGE and not per-junction: a seam junction borders both elevations,

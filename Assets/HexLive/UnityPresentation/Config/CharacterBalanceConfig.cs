@@ -87,7 +87,7 @@ namespace HexLive.UnityPresentation.Config
         [Range(20, 1200)] public int sitCooldownTicks = 240;
         [Tooltip("Одевшись, не переодевается столько тиков.")]
         [Range(20, 1200)] public int dressCooldownTicks = 160;
-        [Tooltip("Только что проснулась: столько тиков стоит и приходит в себя (§41.5). Не меньше 18: GetUp-клип (Situp To Idle, 132 кадра @ 30 fps) = 4.4 с = 17.6 тика; меньше — ноги скользят под клип вставания (баг #1).")]
+        [Tooltip("§41.5/#453: пауза после подъёма. Эффективный минимум — 20 тиков (5 с): GetUp 4.4 с и переходы. Старые значения 0–19 не сокращают это окно; более длинная настройка сохраняется.")]
         [Range(0, 120)] public int wakeGraceTicks = 18;
         [Tooltip("Цель, чей план не построился, отдыхает столько тиков.")]
         [Range(10, 400)] public int failureCooldownTicks = 40;

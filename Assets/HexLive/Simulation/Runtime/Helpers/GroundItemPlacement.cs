@@ -84,8 +84,9 @@ internal static class GroundItemPlacement
     private readonly struct Candidate
     {
         public readonly JunctionId Id; public readonly TileCoord Tile; public readonly Float2 Position; public readonly float Distance;
-        public Candidate(JunctionId id,TileCoord tile,Float2 position,float distance)
-        {Id=id;Tile=tile;Position=position;Distance=distance;}
+        public readonly int LeafCount; public readonly float LeafSeparation;
+        public Candidate(JunctionId id,TileCoord tile,Float2 position,float distance,int leafCount=0,float leafSeparation=0)
+        {Id=id;Tile=tile;Position=position;Distance=distance;LeafCount=leafCount;LeafSeparation=leafSeparation;}
     }
     private readonly struct Reservation
     {
@@ -97,6 +98,13 @@ internal static class GroundItemPlacement
     private static readonly ConditionalWeakTable<WorldState,ConcurrentBag<Scratch>> Work = new();
     private static readonly Comparison<Candidate> CompareCandidates=(a,b) =>
     {var d=a.Distance.CompareTo(b.Distance);return d!=0?d:a.Id.Value.CompareTo(b.Id.Value);};
+    private static readonly Comparison<Candidate> CompareLeafCandidates=(a,b) =>
+    {
+        var count=a.LeafCount.CompareTo(b.LeafCount);
+        if(count!=0) return count;
+        var separation=b.LeafSeparation.CompareTo(a.LeafSeparation);
+        return separation!=0?separation:CompareCandidates(a,b);
+    };
 
     private static Scratch Rent(WorldState world) => Work.GetOrCreateValue(world).TryTake(out var scratch) ? scratch : new Scratch();
     private static void Return(WorldState world,Scratch scratch)
@@ -157,10 +165,13 @@ internal static class GroundItemPlacement
         reason="NoDropSpot";
         var capacity=scatter?1:GroundPileCatalog.Capacity(item.DefinitionId);
         var footprint=Footprint(profile,capacity,scatter);
+        var compactLeaves=scatter && item.DefinitionId==ContentIds.PalmLeaf;
+        if(compactLeaves) { origin=HexSpatialMath.WorldToTile(position); tile=origin; }
         scratch.Candidates.Clear();scratch.Objects.Clear();scratch.SeenJunctions.Clear();
         scratch.SeenObjects.Clear();scratch.Sockets.Clear();scratch.ObjectsInspected=0;
-        // Inventory placement stays local; large harvests need room for individual ground pieces.
-        var searchRadius=scatter?3:1;
+        // §54.21: crown leaves spread evenly inside their source hex; logs and other
+        // harvests still need separate ground spots. Inventory admission is unchanged.
+        var searchRadius=compactLeaves?0:scatter?3:1;
         for(var dq=-searchRadius;dq<=searchRadius;dq++) for(var dr=Math.Max(-searchRadius,-dq-searchRadius);dr<=Math.Min(searchRadius,-dq+searchRadius);dr++)
         {
             var coord=new TileCoord(origin.Q+dq,origin.R+dr);
@@ -174,6 +185,7 @@ internal static class GroundItemPlacement
                 var dx=node.WorldPosition.X-position.X;var dz=node.WorldPosition.Y-position.Y;
                 var support=scatter?HexSpatialMath.WorldToTile(node.WorldPosition):coord;
                 if(scatter && !SpatialQueries.IsTileWalkable(world,support)) continue;
+                if(compactLeaves && (!support.Equals(origin) || !FitsInsideHex(node.WorldPosition,origin,profile.Single.RadiusXZ))) continue;
                 scratch.Candidates.Add(new(id,support,node.WorldPosition,dx*dx+dz*dz));
             }
         }
@@ -194,6 +206,28 @@ internal static class GroundItemPlacement
                 else scratch.Objects.Add(obj);
             }
         }
+        if(compactLeaves)
+        {
+            // Balance all admissible anchors before adding another thin layer.
+            // Among equally filled anchors choose the one farthest from existing
+            // leaves, so even the eight-leaf yield covers the source hex.
+            // Score from saved objects, not transient batch/rank state: collecting
+            // a leaf or loading a save must not move any surviving leaf.
+            for(var i=0;i<scratch.Candidates.Count;i++)
+            {
+                var candidate=scratch.Candidates[i];var count=0;var separation=float.MaxValue;
+                foreach(var obj in scratch.Objects)
+                {
+                    if(!obj.IsHarvestScatter || obj.DefinitionId!=ContentIds.PalmLeaf || !obj.Tile.Equals(origin) ||
+                        !world.Junctions.Items.TryGetValue(obj.Junctions[0],out var anchor)) continue;
+                    if(obj.Junctions[0]==candidate.Id) count++;
+                    var dx=candidate.Position.X-anchor.WorldPosition.X;var dz=candidate.Position.Y-anchor.WorldPosition.Y;
+                    separation=Math.Min(separation,dx*dx+dz*dz);
+                }
+                scratch.Candidates[i]=new(candidate.Id,candidate.Tile,candidate.Position,candidate.Distance,count,separation);
+            }
+            scratch.Candidates.Sort(CompareLeafCandidates);
+        }
         foreach(var candidate in scratch.Candidates)
         {
             scratch.CandidatesChecked++;
@@ -203,6 +237,9 @@ internal static class GroundItemPlacement
             foreach(var obj in scratch.Objects)
             {
                 if(scratch.Sockets.Contains(obj.Junctions[0]) || !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId,out var def) || !IsLoose(def)) continue;
+                // Separate item instances remain independently pickable; only
+                // harvest leaves may overlap each other, never an inventory pile.
+                if(compactLeaves && obj.IsHarvestScatter && obj.DefinitionId==ContentIds.PalmLeaf) continue;
                 if(!GroundPileCatalog.TryGet(obj.DefinitionId,def.Layer!=null,out var neighbourProfile)) {reason="UnknownGroundGeometry:"+obj.DefinitionId;return false;}
                 if(obj.Junctions[0]==candidate.Id)
                 {
@@ -227,6 +264,16 @@ internal static class GroundItemPlacement
             tile=candidate.Tile;junction=candidate.Id;resultBounds=bounds;reason="";return true;
         }
         return false;
+    }
+    private static bool FitsInsideHex(Float2 point,TileCoord tile,float radius)
+    {
+        var center=HexSpatialMath.TileToWorld(tile);
+        var x=point.X-center.X;var z=point.Y-center.Y;
+        var limit=HexSpatialMath.HexApothem-radius-.01f;
+        // Distance to each pair of sides of the pointy-top hex. The measured
+        // bounding circle contains the whole leaf for every allowed yaw.
+        return Math.Abs(x)<=limit && Math.Abs(.5f*x+HexSpatialMath.Sqrt3*.5f*z)<=limit &&
+            Math.Abs(.5f*x-HexSpatialMath.Sqrt3*.5f*z)<=limit;
     }
     private static GroundPileBounds Footprint(GroundPileProfile profile,int capacity,bool scatter=false)
     {

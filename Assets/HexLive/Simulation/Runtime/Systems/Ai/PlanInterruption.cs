@@ -150,6 +150,12 @@ public static class PlanInterruption
     private static EntityId? AbortCore(
         WorldState world, NPCState npc, InterruptionCause cause, string reason, bool keepCarriedPerson)
     {
+        var previousInteraction = npc.Execution.CurrentInteraction;
+        var wasKneeling = previousInteraction == InteractionType.ConsoleOther &&
+            npc.Plan.TargetAgentId is { } comfortTarget && world.Entities.Npcs.TryGetValue(comfortTarget, out var patient) &&
+            patient.IsLyingDown(world.Tick);
+        var wasLowPose = npc.IsLyingDown(world.Tick) || previousInteraction is
+            InteractionType.Rest or InteractionType.Sit || wasKneeling;
         AgentCommandLedger.Observe(world, npc);
         AgentCommandLedger.Finish(world, npc, "failed", "PlanInterrupted." + cause);
         if (npc.Mind.RomancePartnerNpcId is not null)
@@ -292,14 +298,7 @@ public static class PlanInterruption
         // когда в поле зрения появился зверь. Взять с собой надо ровно одно:
         // колдаун, чтобы она не плюхнулась обратно на первом же тике, когда
         // повод встать исчезнет.
-        //
-        // ⭐ Грация подъёма здесь НЕ выдаётся, и это осознанно. Через Abort
-        // проходит срочное — бой, испуг, приказ, — а держать тело на месте
-        // четыре с половиной секунды ради красивого клипа значит скормить её
-        // волку. Вид от этого не ломается: у всех трёх состояний отдыха есть
-        // клапан «Speed > 0.1 → Idle», так что пошедшая просто встаёт рывком —
-        // это и есть подскочить. Спокойный выход живёт в FinishIdleRest, и
-        // грацию выдаёт он.
+        // #453: danger and player orders still wait for the authored rise.
         if (npc.Execution.CurrentInteraction == InteractionType.Rest)
         {
             npc.Mind.RestCooldownUntilTick = world.Tick + Spec137.CooldownTicks;
@@ -313,6 +312,13 @@ public static class PlanInterruption
         npc.Execution.TargetInventoryWorldObject = null;
         npc.Execution.StartTick = 0;
         npc.Execution.EndTick = 0;
+
+        if (wasLowPose && !npc.IsLyingDown(world.Tick) && !npc.Body.IsCrawling)
+        {
+            var ticks = wasKneeling
+                ? StandUpMath.KneelingGraceTicks : StandUpMath.GraceTicks;
+            npc.Mind.WakeGraceUntilTick = System.Math.Max(npc.Mind.WakeGraceUntilTick, world.Tick + ticks);
+        }
 
         npc.Plan.Status = PlanStatus.Invalid;
         npc.Plan.Steps.Clear();
@@ -330,7 +336,7 @@ public static class PlanInterruption
         npc.Movement.IsMoving = false;
         npc.Movement.SetStatus(MovementStatus.Idle);
         npc.Movement.StopReason = reason;
-        npc.Movement.ClimbPauseTimer = 0f;
+        // #453: a new order cannot cancel the rise/recovery already in progress.
         npc.Movement.HopArmed = false;
         npc.Movement.HopPathIndex = -1;
 

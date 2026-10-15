@@ -1,0 +1,106 @@
+# key	English	Russian
+creator.eyebrow	HEX ISLAND · YOUR STORY	HEX ISLAND · ВАША ИСТОРИЯ
+creator.title	Create your character	Создание персонажа
+creator.back	Back	Назад
+creator.name	Name	Имя
+creator.sex	Character	Персонаж
+creator.female	Female	Женщина
+creator.male	Male	Мужчина
+creator.skin	Skin	Скин
+creator.hair	Hairstyle	Причёска
+creator.colour	Hair colour	Цвет волос
+creator.chooseHairFirst	Choose a hairstyle before its colour.	Сначала выберите причёску, затем её цвет.
+creator.appearance	Appearance	Внешность
+creator.abilities	Abilities	Умения
+creator.camp	Camp	Лагерь
+creator.attributes	Attributes	Характеристики
+creator.skills	Skills	Навыки
+creator.traits	Personality	Характер
+creator.budget	Remaining: {0} of {1} points	Осталось: {0} из {1} очков
+creator.abilitiesHint	Shape your character's strengths. Unspent points are allowed.	Распределите сильные стороны персонажа. Можно оставить часть очков.
+creator.campHint	Choose where your character begins. A full camp is temporarily unavailable.	Выберите место старта. В заполненный лагерь пока нельзя войти.
+creator.campNumber	Camp {0}	Лагерь {0}
+creator.campOpen	Available	Доступен
+creator.campFull	Full	Заполнен
+creator.confirmHint	Your character appears on the island only after you confirm.	Персонаж появится на острове только после подтверждения.
+creator.starterClothes	Starting clothes are included. Find and craft other outfits on the island.	Стартовая одежда уже включена. Другие вещи можно найти и изготовить на острове.
+creator.orbitHint	Drag to rotate · Scroll to zoom	Потяните, чтобы повернуть · Колесо — масштаб
+creator.rotateLeft	Turn left	Повернуть влево
+creator.rotateRight	Turn right	Повернуть вправо
+creator.fullBody	Full body	Весь рост
+creator.face	Face	Лицо
+creator.previousHair	Previous hairstyle	Предыдущая причёска
+creator.nextHair	Next hairstyle	Следующая причёска
+creator.summary	Make this character yours	Ваш новый персонаж
+creator.next	Continue	Далее
+creator.nameHint	1–64 characters. Cyrillic names are supported.	От 1 до 64 символов. Можно вводить имя кириллицей.
+creator.error.nameRequired	Enter your character's name to continue.	Введите имя персонажа, чтобы продолжить.
+creator.error.nameTooLong	Shorten the name to 64 characters or fewer.	Сократите имя до 64 символов.
+creator.error.nameControl	Remove tabs, line breaks or other control characters from the name.	Уберите из имени табуляцию, переносы строк и другие управляющие символы.
+creator.error.attributeBudget	Check your attributes: their total must stay within the available points.	Проверьте характеристики: их сумма не должна превышать доступные очки.
+creator.error.skillBudget	Check your skills: their total must stay within the available points.	Проверьте навыки: их сумма не должна превышать доступные очки.
+creator.error.chooseCamp	Choose a camp with space available.	Выберите лагерь, в котором есть свободное место.
+creator.previewLoading	Waiting for the character preview. You can create the character once it loads.	Ждём загрузку предпросмотра персонажа. После неё можно начать игру.
+creator.create	Begin your story	Начать историю
+creator.retry	Refresh	Обновить
+creator.retryCreation	Retry creation	Повторить создание
+creator.pending	Creation may have completed. Retry safely with the same choices.	Создание могло завершиться. Повторите с теми же параметрами.
+creator.loading	Loading your character options…	Загружаем настройки персонажа…
+creator.creating	Creating your character…	Создаём персонажа…
+creator.signIn	Sign in	Войти
+creator.signInHint	Sign in to create your character or return to the island.	Войдите, чтобы создать персонажа или вернуться на остров.
+creator.characterDied	Your character has died. You can begin a new story.	Ваш персонаж погиб. Можно начать новую историю.
+creator.error.network	Could not reach the server. Your choices are saved; please retry.	Не удалось связаться с сервером. Выбор сохранён — попробуйте ещё раз.
+creator.error.storage	Allow site storage before creating a character.	Разрешите хранение данных сайта перед созданием персонажа.
+creator.error.anotherTab	Another tab is creating this character. Wait and refresh.	Этот персонаж создаётся в другой вкладке. Подождите и обновите.
+creator.error.appearance	Preview could not load. Refresh before confirming.	Предпросмотр не загрузился. Обновите его перед подтверждением.
+creator.error.validation_failed	Check your name, appearance and remaining points.	Проверьте имя, внешность и оставшиеся очки.
+creator.error.camp_full	This camp is now full. Refresh to choose another.	Лагерь уже заполнен. Обновите список и выберите другой.
+creator.error.camp_unavailable	This camp is unavailable. Refresh the options.	Этот лагерь недоступен. Обновите список.
+creator.error.world_completed	This island is no longer accepting new characters.	Этот остров больше не принимает новых персонажей.
+creator.error.try_later	The server is busy. Please retry; your choices are saved.	Сервер занят. Попробуйте ещё раз — ваш выбор сохранён.
+creator.skin.Marta	Sand	Песок
+creator.skin.Molly	Dawn	Рассвет
+creator.skin.Jana	Amber	Янтарь
+creator.skin.Jolly	Honey	Мёд
+creator.skin.Masha	Sunset	Закат
+creator.skin.Rita	Copper	Медь
+creator.skin.Kshishtof	Dune	Дюна
+creator.skin.Tonny	Bronze	Бронза
+creator.skin.fallback	Skin {0}	Скин {0}
+creator.hair.none	No hair	Без волос
+creator.hair.AdellHair	Soft line	Мягкая линия
+creator.hair.AsukaHair	Aurora	Аврора
+creator.hair.BendineHair	Iris	Ирис
+creator.hair.Bob3Hair	Classic bob	Классический боб
+creator.hair.ChunkyHair	Wild curls	Свободные локоны
+creator.hair.EilisHair	Breeze	Бриз
+creator.hair.Hair07	Short rhythm	Короткий ритм
+creator.hair.JelikaHair_32434	Cascade	Каскад
+creator.hair.JenniferHair	Silhouette	Силуэт
+creator.hair.LeonyPonytail	High ponytail	Высокий хвост
+creator.hair.LoonaHair	Luna	Луна
+creator.hair.LowPonytail	Low ponytail	Низкий хвост
+creator.hair.Neu09Hair	Edge	Грань
+creator.hair.OnyxHair	Onyx	Оникс
+creator.hair.ShilohHair	Wave	Волна
+creator.hair.TootsieRollHair	Spring	Пружина
+creator.hair.fallback	Style {0}	Стиль {0}
+creator.colour.prototype	Original	Исходный
+creator.colour.tint.black	Black	Чёрный
+creator.colour.tint.graphite	Graphite	Графит
+creator.colour.tint.espresso	Espresso	Эспрессо
+creator.colour.tint.chestnut	Chestnut	Каштан
+creator.colour.tint.copper	Copper	Медь
+creator.colour.tint.auburn	Auburn	Рыжий
+creator.colour.tint.honey	Honey	Медовый
+creator.colour.tint.gold	Gold	Золотистый
+creator.colour.tint.ash	Ash	Пепельный
+creator.colour.tint.platinum	Platinum	Платина
+creator.colour.tint.silver	Silver	Серебро
+creator.colour.tint.white	White	Белый
+creator.colour.tint.rose	Rose	Розовый
+creator.colour.tint.violet	Violet	Фиолетовый
+creator.colour.tint.ocean	Ocean	Океан
+creator.colour.tint.mint	Mint	Мятный
+creator.colour.fallback	Tone {0}	Оттенок {0}

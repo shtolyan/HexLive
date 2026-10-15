@@ -1,0 +1,434 @@
+{
+  "schema": 1,
+  "unity": "6000.4.5f1",
+  "renderer": "D3D11 / NVIDIA RTX 3060 Laptop GPU",
+  "utc": "2026-10-12T18:34:23.516871+00:00",
+  "fixture": "Assets/Editor/MsiGroundVisualAudit.cs",
+  "rawResult": "Build/MSIAudit/20261013-ground/after/measured.json",
+  "note": "Canonical FindObjectMain + production FitObjectPrefab + GroundPileLayout; padding 0.00001wu; all actual slots inside admission bounds. Raw screenshots/logs remain local.",
+  "ordinaryProfiles": [
+    {
+      "id": "resource.board",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.board.fbx",
+      "sourceSha256": "494614f05f6f7056be7e10a5f8bbe4f7b7661405e2b78ba9a98e5ae24a10f13a",
+      "importerSha256": "f414e589fd91268943dca3614dc091c2305eb43a936b051dc6af534cf66621ed",
+      "fittedSizeWu": [
+        0.75,
+        0.0451624729,
+        0.14419842500000002
+      ],
+      "pileHeightWu": 0.183681473
+    },
+    {
+      "id": "resource.stick",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.stick.fbx",
+      "sourceSha256": "78063675fbdb8c90e5250c3445fe74b0d5ee61619c931bf36092bcad2ba4162c",
+      "importerSha256": "1df11d6dd5a7b9940baf0827272a49d8119c29b2b4e8b8d819d490fd2423d704",
+      "fittedSizeWu": [
+        1.05,
+        0.079794094,
+        0.07779350900000001
+      ],
+      "pileHeightWu": 0.3221764
+    },
+    {
+      "id": "resource.stone",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/stone_single_native.fbx",
+      "sourceSha256": "847232595b708c8511e4f6436c87ff35f86f8cb22e109b5635aa609155ec3d9f",
+      "importerSha256": "418f5fe931c55df2d4214b8903f8beadb2ce1dbf268c0f00885be1fa196eb7f6",
+      "fittedSizeWu": [
+        0.324000044,
+        0.211281821,
+        0.263580814
+      ],
+      "pileHeightWu": 0.423573822
+    },
+    {
+      "id": "item.bandage",
+      "capacity": 10,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/item_bandage_native.fbx",
+      "sourceSha256": "abfdd2b2e423b6b0a1f34979fdeeaa64d24090b37b21d91803b181a217231d63",
+      "importerSha256": "eebe2907f0d66d636fa3a158a3c9dfcd4be6bb191475af83a67fa914b91bbe66",
+      "fittedSizeWu": [
+        0.1799999922,
+        0.140965372,
+        0.098591283
+      ],
+      "pileHeightWu": 0.282941341
+    },
+    {
+      "id": "resource.cloth",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.cloth.fbx",
+      "sourceSha256": "50f89454f2712d19aff1468e9b7d48e8e761ced9918a05af60c2ae8a09bf1de7",
+      "importerSha256": "3e40cf9cfc4feb3cb287e7851896e97c1650a428b12e394527459663ab94e8ff",
+      "fittedSizeWu": [
+        0.323999941,
+        0.131372154,
+        0.234530508
+      ],
+      "pileHeightWu": 0.6649041
+    },
+    {
+      "id": "item.pill",
+      "capacity": 10,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/item.pill.fbx",
+      "sourceSha256": "0ed0624e4bd3a79cf4cfdcadae4f86453cff182a93d7637d745ea72f86125c05",
+      "importerSha256": "2a109322a85517971e6c43f86007e46a439d22e1398fbd465a9f8fefc0e4f6af",
+      "fittedSizeWu": [
+        0.18000006699999999,
+        0.0435483977,
+        0.11032256430000001
+      ],
+      "pileHeightWu": 0.0435483977
+    },
+    {
+      "id": "tool.hammer",
+      "capacity": 4,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.hammer.prefab",
+      "sourceSha256": "44d87b0a73a7f46cdd585d10c558f61ab608eaafabaaf782fb1b97d10f62e481",
+      "importerSha256": "48b66ea0696dd9dd9ffb912247fe94bed9e319c55863ad38243a193d0d90112b",
+      "fittedSizeWu": [
+        0.070999832,
+        0.07262452,
+        0.32400006
+      ],
+      "pileHeightWu": 0.07262452
+    },
+    {
+      "id": "food.coconut_open",
+      "capacity": 8,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.coconut_open.fbx",
+      "sourceSha256": "56bea6a6b8cc56f42d4095c1c89f3f3a9e7c87f0b4d320b18986c4cf6ebe0e49",
+      "importerSha256": "7f411acc230a473f6feabd95c36eaa764c42cde322c54922358eb81edf1efbdf",
+      "fittedSizeWu": [
+        0.180000007,
+        0.09365637,
+        0.17999999
+      ],
+      "pileHeightWu": 0.09365637
+    },
+    {
+      "id": "resource.log",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.log.fbx",
+      "sourceSha256": "09889233eda47f18db39688b315d47d2424ae3bb218fb07b0634a27c4fb6d356",
+      "importerSha256": "aa3260189b85398466d9dadeddddf7f85b1c3daa69eef7a0f6952b0b00b9b108",
+      "fittedSizeWu": [
+        1.05,
+        0.283185154,
+        0.29775845
+      ],
+      "pileHeightWu": 1.13577056
+    },
+    {
+      "id": "resource.palm_leaf",
+      "capacity": 60,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/palm_frond_native.fbx",
+      "sourceSha256": "57d8a8109e482dedd43ae95a9f8176a959a0393e27bb12e1d69e304555294d1e",
+      "importerSha256": "cc40a17c5197d43cc662756630c3b52cbe7d25b99d55e97d630c23a22c3f99e9",
+      "fittedSizeWu": [
+        0.825000048,
+        0.15848,
+        0.422585756
+      ],
+      "pileHeightWu": 0.21748
+    },
+    {
+      "id": "resource.rope",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.rope.prefab",
+      "sourceSha256": "6bb17c067fa99fce640d1fd0691ea4842ce57671bd99e5ea462fde624565b337",
+      "importerSha256": "d5b87a0ed2dd1eb894a9f3046bb94af22089f83a634a52f921d08b567b495669",
+      "fittedSizeWu": [
+        0.150000006,
+        0.0201299172,
+        0.13871137064
+      ],
+      "pileHeightWu": 0.1086896
+    },
+    {
+      "id": "med.splint",
+      "capacity": 10,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/med.splint.fbx",
+      "sourceSha256": "3c7c5e800f33066893d6ebbc59ba3c587dd2f1817f66a92ccf2961298f9c1eb1",
+      "importerSha256": "3daeb8062b342663705721d49ad6707434638687d8d2c486adad51ba13f1e295",
+      "fittedSizeWu": [
+        0.046177581999999995,
+        0.180000022,
+        0.0265226757
+      ],
+      "pileHeightWu": 0.180000022
+    },
+    {
+      "id": "tool.axe_stone",
+      "capacity": 4,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.axe_stone.prefab",
+      "sourceSha256": "c8386f9b53f77322431aafa61750e37cb2aac061e0b373a94d91335a01317791",
+      "importerSha256": "d8e9e38ba90f5c439cdec6aea2df535924ef8f6d2abdda051db07058b2a13442",
+      "fittedSizeWu": [
+        0.135478223,
+        0.168665528,
+        0.32400006
+      ],
+      "pileHeightWu": 0.168665528
+    },
+    {
+      "id": "tool.knife",
+      "capacity": 4,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.knife.prefab",
+      "sourceSha256": "4645ea38bfc2dfc28508bed2640be6b72802703d357c12fb3ff5cd52794ceea1",
+      "importerSha256": "f56c87ce35c7917f7b6db97c9243fec6e936f2efd4ca428689d7a90e0644b655",
+      "fittedSizeWu": [
+        0.055154771000000005,
+        0.02115381,
+        0.32400003
+      ],
+      "pileHeightWu": 0.02115381
+    },
+    {
+      "id": "tool.pickaxe_stone",
+      "capacity": 4,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.pickaxe_stone.prefab",
+      "sourceSha256": "939bce8039845da25afda32b2e76fbc49b2ced97472ee353393f091c2fee086c",
+      "importerSha256": "eebae4bf23439962e7c3119c101e0b52b3b9b1f75af8bb838cd3f57efbebf514",
+      "fittedSizeWu": [
+        0.026237212099999997,
+        0.1428657,
+        0.32400009
+      ],
+      "pileHeightWu": 0.1428657
+    },
+    {
+      "id": "tool.saw",
+      "capacity": 4,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_saw_native.fbx",
+      "sourceSha256": "3ffa03b1ce552a1a46d545f73b83e232501f3d3ac40febf218fa9c1c3b64431c",
+      "importerSha256": "408158cde76f086d1d8073f0189ba208e2214a861ac1453779e9daf712c510e8",
+      "fittedSizeWu": [
+        0.018931500000000004,
+        0.106481686,
+        0.32400012
+      ],
+      "pileHeightWu": 0.106481686
+    },
+    {
+      "id": "tool.spear",
+      "capacity": 4,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.spear.prefab",
+      "sourceSha256": "442cda1f0e75fc9186ab813c42824b98462778c239180d287f684f9d78f3a322",
+      "importerSha256": "81f91437968acac8131cc9a04427ae419ff4143ea5bcee6dba671d442997c41e",
+      "fittedSizeWu": [
+        0.068198675,
+        0.04759174,
+        1.3500002
+      ],
+      "pileHeightWu": 0.04759174
+    },
+    {
+      "id": "tool.bottle",
+      "capacity": 1,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_bottle_native.prefab",
+      "sourceSha256": "224979f6cf7f06bd2c2c71117811d03998acfb41295559f6fb07674fdc228816",
+      "importerSha256": "8e69478434ecd67b4aa612c0f2127a283e6f747092285458e646d3e31a87dff2",
+      "fittedSizeWu": [
+        0.08358726,
+        0.270000041,
+        0.08322842
+      ],
+      "pileHeightWu": 0.270000041
+    },
+    {
+      "id": "food.meat_raw",
+      "capacity": 8,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food_meat_raw_native.fbx",
+      "sourceSha256": "a4b106ad0c6ce225a6a487403c03de92f67e580741177fdc45aac14523e6c6ee",
+      "importerSha256": "8b4a545b33106f19bda8c6fe9e2bb7147f772a021bc1bc990fccba6d7ad73055",
+      "fittedSizeWu": [
+        0.270000022,
+        0.1309767,
+        0.13706862174
+      ],
+      "pileHeightWu": 0.1309767
+    },
+    {
+      "id": "food.meat_cooked",
+      "capacity": 8,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food_meat_cooked_native.fbx",
+      "sourceSha256": "f7daf38b274bd52bf643c55c95c18358594f6193f8761fbbb822c74e6d076d1a",
+      "importerSha256": "0547d9d64a25f9d435e341269c0d885a1a3009fbce256dd4b5bb84a9850a5357",
+      "fittedSizeWu": [
+        0.270000022,
+        0.1309767,
+        0.13706862174
+      ],
+      "pileHeightWu": 0.1309767
+    },
+    {
+      "id": "item.plaster",
+      "capacity": 1,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/item.plaster.fbx",
+      "sourceSha256": "f273b40c044a61c09992c5004d26f7cf4c464bb50e5c29a445fe3ca250580847",
+      "importerSha256": "c1b0133d0ff63ca622c99d75eac9ee8f47df4b12637ea5031e89fc6b216c6dd3",
+      "fittedSizeWu": [
+        0.1799999922,
+        0.01786765,
+        0.0582352876
+      ],
+      "pileHeightWu": 0.01786765
+    },
+    {
+      "id": "resource.arrow",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.arrow.fbx",
+      "sourceSha256": "41d15daf33dca5be4b740d5a0cf43ed74b6c4d458ab7be004db137ec24b5f3ac",
+      "importerSha256": "94b073d8c2a2f37c817b78df9db984ddc4576be0bf8249319d43ab683a0c63c1",
+      "fittedSizeWu": [
+        0.05514893000000001,
+        0.323999971,
+        0.03952339650000001
+      ],
+      "pileHeightWu": 0.323999971
+    },
+    {
+      "id": "resource.fiber",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.fiber.fbx",
+      "sourceSha256": "070b52b358ce09f07a6859ba0faafe9de66f87dde161fa0fefe006413368ebfc",
+      "importerSha256": "58e4c0808768365ae2aa66f4157ba00783ff13c6dc02be4e19d0094c1c8f1508",
+      "fittedSizeWu": [
+        0.17761796300000005,
+        0.324,
+        0.151583731
+      ],
+      "pileHeightWu": 0.324
+    },
+    {
+      "id": "resource.herb_leaf",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.herb_leaf.fbx",
+      "sourceSha256": "d1829a92d0ccfa50f8d745203600a700c2b190d4ec54f0909b7870e5bc2111b2",
+      "importerSha256": "d225e59294ff644ac1a81d89c80be306bcad5ae633f249b694c011f7e9249cc5",
+      "fittedSizeWu": [
+        0.324,
+        0.06544131,
+        0.095423907
+      ],
+      "pileHeightWu": 0.264795244
+    },
+    {
+      "id": "resource.hide",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource_hide_native.fbx",
+      "sourceSha256": "b4b0f8c562bc050c6d17ac24461e9fd3765411d9de8670fbd8aed3b8f4ce6d97",
+      "importerSha256": "1f8a3fc83bec3c22e0e1eefe1d6cfff1a32d44256ea1385098414d9d23d4c4bd",
+      "fittedSizeWu": [
+        0.324000021,
+        0.0169655439,
+        0.23644091354
+      ],
+      "pileHeightWu": 0.0928677
+    },
+    {
+      "id": "resource.mechanical_part",
+      "capacity": 20,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/resource.mechanical_part.fbx",
+      "sourceSha256": "68b8656a4a6952ec8982676cdf33e05ea58f245a1029d0146a960410fab3b871",
+      "importerSha256": "372ca6e956f3b17a824f0a5380197bc705a88c75b304849f23b2d6e192e8a077",
+      "fittedSizeWu": [
+        0.32399999999999995,
+        0.0588731766,
+        0.324000001
+      ],
+      "pileHeightWu": 0.0588731766
+    },
+    {
+      "id": "food.coconut",
+      "capacity": 1,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.coconut.fbx",
+      "sourceSha256": "c171a12b24893a3c7345c924affe81785084d3f04dda62905053d4d10df3a92a",
+      "importerSha256": "149f0db54652490a65184498cb9ab7346728d212e17ee768d1fd944e5e86cd55",
+      "fittedSizeWu": [
+        0.17999998,
+        0.18,
+        0.17999998
+      ],
+      "pileHeightWu": 0.18
+    },
+    {
+      "id": "food.coconut_pierced",
+      "capacity": 1,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/food.coconut_pierced.fbx",
+      "sourceSha256": "2c80c1ab893db888c3eb81ad1bbca7a00f5026c7fd2f24ad24e7b5e3f4b66871",
+      "importerSha256": "074232a3d175cde6b1d004e423a9a3a382b4a242960fb0f5f65e2b4cef8e73fe",
+      "fittedSizeWu": [
+        0.1799999922,
+        0.180000037,
+        0.1799999922
+      ],
+      "pileHeightWu": 0.180000037
+    },
+    {
+      "id": "tool.bow",
+      "capacity": 4,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool.bow.fbx",
+      "sourceSha256": "e22739fc3544e690c50ddd63a4df2166a2b1bf0c3126579760f8eeb6729e8ff7",
+      "importerSha256": "85d929014a67da1d4386b425fe6903646ee98d62321adaf3959a87ac61c24f51",
+      "fittedSizeWu": [
+        0.3232993,
+        0.018814957668677402,
+        0.32400003
+      ],
+      "pileHeightWu": 0.0188149586
+    },
+    {
+      "id": "tool.lighter",
+      "capacity": 4,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_lighter_native.fbx",
+      "sourceSha256": "aa58aca309b635b23572d62d412f5b5654752bb5fff4d07dd354d874cac0c2dd",
+      "importerSha256": "c2973ec9cc10918dfc739915baa51920d714f0b94e8b90fd43a7d5f68df904f0",
+      "fittedSizeWu": [
+        0.0375114533,
+        0.03441987,
+        0.10800002
+      ],
+      "pileHeightWu": 0.03441987
+    },
+    {
+      "id": "tool.machete",
+      "capacity": 4,
+      "source": "Assets/HexLiveContent/RuntimeSource/Objects/tool_machete_native.prefab",
+      "sourceSha256": "5c743d8bd99c691c46256f5933bd7e4f936e68cf511c100eb5bdf5da04a9f3b4",
+      "importerSha256": "aea973e6e74171429cbeb6b5b5184ab4c96241c4bf01af7b4b42dec43dbb6e65",
+      "fittedSizeWu": [
+        0.045218098,
+        0.02157104,
+        0.324
+      ],
+      "pileHeightWu": 0.02157104
+    }
+  ],
+  "crabChecks": [
+    {
+      "id": "crab.pick",
+      "targetId": -8,
+      "visiblePick": true,
+      "hiddenRejected": true
+    },
+    {
+      "id": "carcass.crab",
+      "surfaceY": 0.75,
+      "boundsMinY": 0.7050389,
+      "vertexMinY": 0.75,
+      "gap": 0.0
+    },
+    {
+      "id": "carcass.yaw-contact",
+      "samples": 8,
+      "passed": true
+    }
+  ]
+}

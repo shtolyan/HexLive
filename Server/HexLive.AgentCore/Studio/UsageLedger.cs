@@ -35,6 +35,7 @@ public sealed record UsageEvent
     public long? Characters { get; init; }
     public double? AudioSeconds { get; init; }
     public string ProviderRequestId { get; init; } = "";
+    public decimal? ProviderCredits { get; init; } // provider units, never treated as USD
     // Null means UNKNOWN, never free (§171.4).
     public decimal? Cost { get; init; }
     public string Currency { get; init; } = "";

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -973,10 +974,20 @@ public sealed class McpTools
                 ["effectDefinitions"] = effects.Definitions,
                 ["effectTerms"] = effects.Terms,
                 ["perceptionSummary"] = context.PerceptionSummary,
+                ["perceptionTick"] = npc.Perception.LastUpdatedTick,
+                ["environment"] = new {temperature=npc.Perception.Environment.Temperature,
+                    crowded=npc.Perception.Environment.IsCrowded,privatePlace=npc.Perception.Environment.IsPrivate,
+                    nearbyAgents=npc.Perception.Environment.NearbyAgentsCount},
                 ["memorySummary"] = context.MemorySummary,
                 ["inventory"] = Inventory(npc),
                 ["inventorySummary"] = McpInventoryObservations.Read(world, npc),
                 ["visibleItems"] = McpItemObservations.Visible(world, npc),
+                ["mobs"] = npc.Perception.Mobs.Select(m => new {mobId=m.Id,definitionId=m.MobId,
+                    distanceTiles=m.Distance,health=m.Health,status=m.Status.ToString(),targetsMe=m.TargetsMe}).ToArray(),
+                // §171.22 / #470: the voice budget must not erase a personally
+                // remembered bed. This is last-known memory, never a live lookup.
+                ["knownSleepPlaces"] = McpKnownObjectObservations.Read(world, npc,
+                    new McpKnownObjectObservations.Query("", InteractionType.Sleep, 8)),
                 ["visibleNpcs"] = McpNpcObservations.Visible(world, npc),
                 ["visibleCorpses"] = McpNpcObservations.VisibleCorpses(world, npc),
                 ["recentPerception"] = McpPerceptionObservations.Recent(

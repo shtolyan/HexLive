@@ -35,6 +35,7 @@ public static class HexLiveWebGLPlayerBuild
         var succeeded = false;
         try
         {
+            RequireWebInputFix(Application.unityVersion);
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.WebGL)
             {
                 throw new InvalidOperationException(
@@ -368,6 +369,18 @@ public static class HexLiveWebGLPlayerBuild
         }
         return null;
     }
+
+    // #473 / UUM-137597: native Editor input tests do not exercise the
+    // WebGL keyboard focus regression. Keep the supported build line explicit.
+    internal static void RequireWebInputFix(string version)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(version ?? "", @"^6000\.4\.(\d+)f\d+$");
+        if (match.Success && int.TryParse(match.Groups[1].Value, out var patch) && patch >= 6) return;
+        throw new UnityEditor.Build.BuildFailedException(
+            "WebGL Player requires a stable Unity 6000.4 patch >= 6000.4.6f1: " +
+            "UUM-137597 makes UI Toolkit text inputs lose focus in desktop browsers. " +
+            "Current editor: " + version + ". Other Unity release lines need compatibility review. See Docs/WebGLBuild.md.");
+    }
 }
 
 /// <summary>
@@ -386,10 +399,12 @@ internal sealed class HexLiveWebGLBuildGuard : UnityEditor.Build.IPreprocessBuil
 
     public void OnPreprocessBuild(BuildReport report)
     {
-        if (report.summary.platform != BuildTarget.WebGL || HexLiveWebGLPlayerBuild.Running)
+        if (report.summary.platform != BuildTarget.WebGL)
         {
             return;
         }
+        HexLiveWebGLPlayerBuild.RequireWebInputFix(Application.unityVersion);
+        if (HexLiveWebGLPlayerBuild.Running) return;
         throw new UnityEditor.Build.BuildFailedException(
             "WebGL Player is built only by HexLiveWebGLPlayerBuild.Build " +
             "(-executeMethod HexLiveWebGLPlayerBuild.Build -webgl-output <dir>): it applies the gitignored " +

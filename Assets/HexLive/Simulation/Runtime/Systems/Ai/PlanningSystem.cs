@@ -2062,6 +2062,8 @@ public sealed partial class PlanningSystem : ISimulationSystem
         WorldState world, NPCState npc, GoalType goal, PerceivedObject perceived,
         ObjectId? queuedBuildSiteId = null)
     {
+        if (!CampPropertyMath.CanUse(world, npc, perceived)) return false;
+
         if (world.Entities.Objects.TryGetValue(perceived.Id, out var liveTarget) &&
             liveTarget.IsCraftProject)
         {
@@ -2177,7 +2179,6 @@ public sealed partial class PlanningSystem : ISimulationSystem
             case GoalType.CraftWoodenLeg:
             case GoalType.TendFire:
             case GoalType.CraftSpear:
-            case GoalType.CraftLeather:
             case GoalType.CraftAxe:
             case GoalType.CraftPickaxe:
             case GoalType.CraftRack:

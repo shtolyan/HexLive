@@ -20,7 +20,7 @@ namespace HexLive.UnityPresentation.UI
 /// <see cref="TransferInventoryCommand"/>.
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
-public sealed class LootTransferPanel : MonoBehaviour
+public sealed partial class LootTransferPanel : MonoBehaviour
 {
     [SerializeField] private float _uiScale = 1f;
 
@@ -28,6 +28,8 @@ public sealed class LootTransferPanel : MonoBehaviour
     private UIDocument _document = null!;
     private VisualElement _root = null!;
     private VisualElement _frame = null!;
+    private RuntimeWindow? _windowModal;
+    private RuntimeWindow? _quantityModal;
     private VisualElement _leftPane = null!;
     private VisualElement _rightPane = null!;
     private ScrollView _leftScroll = null!;
@@ -45,6 +47,7 @@ public sealed class LootTransferPanel : MonoBehaviour
     private Label _quantityTitle = null!;
     private SliderInt _quantitySlider = null!;
     private IntegerField _quantityInput = null!;
+    private InventoryQuantityChoice _quantityChoice = null!;
     private Button _quantityConfirm = null!;
     private Button _quantityCancel = null!;
 
@@ -88,7 +91,6 @@ public sealed class LootTransferPanel : MonoBehaviour
     // the player chooses an exact count. One state serves loot, gifts and
     // world containers because all three already converge on DropOn.
     private bool _quantityOpen;
-    private bool _quantitySync;
     private int _quantityDestinationId;
     private DragItem _quantityItem;
 
@@ -184,6 +186,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void OnDestroy()
     {
+        _windowModal?.Show(false);
         if (!ReferenceEquals(_instance, this)) return;
         _instance = null;
         IsOpen = false;
@@ -253,6 +256,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
+        _windowModal?.Show(true);
         IsOpen = true;
         LayoutFrame();
         Refresh(force: true);
@@ -289,6 +293,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
+        _windowModal?.Show(true);
         IsOpen = true;
         LayoutFrame();
         Refresh(force: true);
@@ -316,6 +321,8 @@ public sealed class LootTransferPanel : MonoBehaviour
     private void BuildUi()
     {
         _root = _document.rootVisualElement;
+        var informationStyle = Resources.Load<StyleSheet>("HexLive/UI/ItemInformation");
+        if (informationStyle != null) _root.styleSheets.Add(informationStyle);
         _root.pickingMode = PickingMode.Ignore;
         _root.RegisterCallback<GeometryChangedEvent>(_ => LayoutFrame());
 
@@ -352,19 +359,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _title.style.unityFontStyleAndWeight = FontStyle.Bold;
         _title.style.flexGrow = 1f;
         header.Add(_title);
-        var close = new Label("✕");
-        close.style.color = TextDim;
-        close.style.fontSize = 15f;
-        close.style.width = 26f;
-        close.style.height = 24f;
-        close.style.unityTextAlign = TextAnchor.MiddleCenter;
-        close.RegisterCallback<PointerEnterEvent>(_ => close.style.color = Text);
-        close.RegisterCallback<PointerLeaveEvent>(_ => close.style.color = TextDim);
-        close.RegisterCallback<PointerDownEvent>(evt =>
-        {
-            Hide();
-            evt.StopPropagation();
-        });
+        var close = RuntimeWindow.CloseButton(Hide, Text, "loot-close");
         header.Add(close);
         _frame.Add(header);
 
@@ -399,6 +394,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         _frame.Add(_status);
         BuildQuantityPicker();
         _root.Add(_frame);
+        _windowModal = new RuntimeWindow(_root, _frame, Hide, "loot");
     }
 
     private void BuildQuantityPicker()
@@ -430,15 +426,20 @@ public sealed class LootTransferPanel : MonoBehaviour
         _quantityTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
         _quantityTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
         _quantityTitle.style.marginBottom = 12f;
-        card.Add(_quantityTitle);
+        var header = new VisualElement(); header.style.flexDirection = FlexDirection.Row;
+        _quantityTitle.style.flexGrow = 1;
+        header.Add(_quantityTitle);
+        header.Add(RuntimeWindow.CloseButton(CancelQuantity, Text, "loot-quantity-close"));
+        card.Add(header);
 
         var chooser = new VisualElement();
         chooser.style.flexDirection = FlexDirection.Row;
         chooser.style.alignItems = Align.Center;
-        _quantitySlider = new SliderInt { name = "loot-quantity-slider" };
+        _quantityChoice = new InventoryQuantityChoice("loot-quantity");
+        _quantitySlider = _quantityChoice.Slider;
         _quantitySlider.style.flexGrow = 1f;
         _quantitySlider.style.marginRight = 12f;
-        _quantityInput = new IntegerField { name = "loot-quantity-input" };
+        _quantityInput = _quantityChoice.Input;
         _quantityInput.style.width = 76f;
         _quantityInput.isDelayed = false;
         chooser.Add(_quantitySlider);
@@ -456,21 +457,6 @@ public sealed class LootTransferPanel : MonoBehaviour
         buttons.Add(_quantityConfirm);
         card.Add(buttons);
 
-        _quantitySlider.RegisterValueChangedCallback(evt =>
-        {
-            if (_quantitySync) return;
-            _quantitySync = true;
-            _quantityInput.SetValueWithoutNotify(evt.newValue);
-            _quantitySync = false;
-        });
-        _quantityInput.RegisterValueChangedCallback(evt =>
-        {
-            if (_quantitySync) return;
-            _quantitySync = true;
-            _quantitySlider.SetValueWithoutNotify(Mathf.Clamp(
-                evt.newValue, _quantitySlider.lowValue, _quantitySlider.highValue));
-            _quantitySync = false;
-        });
         _quantityOverlay.RegisterCallback<KeyDownEvent>(evt =>
         {
             if (evt.keyCode is KeyCode.Return or KeyCode.KeypadEnter)
@@ -487,6 +473,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
         _quantityOverlay.Add(card);
         _frame.Add(_quantityOverlay);
+        _quantityModal = new RuntimeWindow(_frame, card, CancelQuantity, "loot-quantity", _quantityOverlay);
         _quantityOverlay.style.display = DisplayStyle.None;
     }
 
@@ -665,6 +652,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void RebuildWithContainer(NpcSnapshot looter, ObjectSnapshot container)
     {
+        HideItemInformation();
         _leftContent.Clear();
         _rightContent.Clear();
         _slotCells.Clear();
@@ -745,6 +733,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void Rebuild(NpcSnapshot looter, NpcSnapshot other)
     {
+        HideItemInformation();
         _leftContent.Clear();
         _rightContent.Clear();
         _slotCells.Clear();
@@ -1113,6 +1102,10 @@ public sealed class LootTransferPanel : MonoBehaviour
         {
             QuickAction(item);
         }
+        else if (_dragCell != null && _dragCell.worldBound.Contains(position))
+        {
+            ShowItemInformation(item);
+        }
 
         // Двойной клик сам оставляет сообщение (в том числе «так нельзя»), а
         // сорвавшееся перетаскивание обязано вернуть подсказку. Успешный приказ
@@ -1151,18 +1144,16 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void ShowQuantityPicker(int destinationId, DragItem item)
     {
+        HideItemInformation();
         _quantityOpen = true;
         _quantityDestinationId = destinationId;
         _quantityItem = item;
         _quantityTitle.text = string.Format(
             Loc.Get("loot.quantity_title"), ItemName(item.DefinitionId));
-        _quantitySlider.lowValue = 1;
-        _quantitySlider.highValue = item.Count;
-        _quantitySlider.SetValueWithoutNotify(item.Count);
-        _quantityInput.SetValueWithoutNotify(item.Count);
+        _quantityChoice.Configure(item.Count);
         _quantityConfirm.text = Loc.Get("loot.quantity_confirm");
         _quantityCancel.text = Loc.Get("loot.quantity_cancel");
-        _quantityOverlay.style.display = DisplayStyle.Flex;
+        _quantityModal?.Show(true);
         _quantityOverlay.BringToFront();
         _quantityOverlay.Focus();
         _quantityInput.Focus();
@@ -1173,7 +1164,7 @@ public sealed class LootTransferPanel : MonoBehaviour
         if (!_quantityOpen) return;
         var destinationId = _quantityDestinationId;
         var item = _quantityItem;
-        var count = Mathf.Clamp(_quantityInput.value, 1, item.Count);
+        var count = _quantityChoice.Value;
         HideQuantityPicker();
         ExecuteTransfer(destinationId, item, count);
     }
@@ -1187,6 +1178,7 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void HideQuantityPicker()
     {
+        _quantityModal?.Show(false);
         _quantityOpen = false;
         _quantityDestinationId = 0;
         _quantityItem = default;
@@ -1486,6 +1478,8 @@ public sealed class LootTransferPanel : MonoBehaviour
 
     private void Hide()
     {
+        HideItemInformation();
+        _windowModal?.Show(false);
         if (_root != null) _root.style.display = DisplayStyle.None;
         _looterId = -1;
         _otherId = -1;

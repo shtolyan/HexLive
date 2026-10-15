@@ -25,8 +25,8 @@ internal static class PreparedPeopleGroundGeometry
         garments["gear.backpack_primal_gatherer_male"] = new("gear.backpack_primal_gatherer_male", new(-0.143086f, -0.000001f, -0.189064f, 0.143086f, 0.031141f, 0.189064f), 1f, garment: true);
         garments["gear.backpack_primal_hunter"] = new("gear.backpack_primal_hunter", new(-0.123101f, -0.000001f, -0.169145f, 0.123101f, 0.028328f, 0.169145f), 1f, garment: true);
         garments["gear.backpack_primal_hunter_male"] = new("gear.backpack_primal_hunter_male", new(-0.143086f, -0.000001f, -0.189064f, 0.143086f, 0.031307f, 0.189064f), 1f, garment: true);
-        garments["gear.backpack_primal_trail"] = new("gear.backpack_primal_trail", new(-0.135631f, -0.000001f, -0.124237f, 0.135631f, 0.037455f, 0.124237f), 1f, garment: true);
-        garments["gear.backpack_primal_trail_male"] = new("gear.backpack_primal_trail_male", new(-0.136028f, -0.000002f, -0.130309f, 0.136028f, 0.039125f, 0.130309f), 1f, garment: true);
+        garments["gear.backpack_primal_trail"] = new("gear.backpack_primal_trail", new(-0.135631f, -0.000001f, -0.124259f, 0.135631f, 0.039550f, 0.124259f), 1f, garment: true);
+        garments["gear.backpack_primal_trail_male"] = new("gear.backpack_primal_trail_male", new(-0.136028f, -0.000001f, -0.133294f, 0.136028f, 0.040319f, 0.133294f), 1f, garment: true);
         garments["underwear.briefs_primal"] = new("underwear.briefs_primal", new(-0.128702f, -0.000001f, -0.076528f, 0.128702f, 0.023187f, 0.076528f), 1f, garment: true);
         garments["underwear.briefs_primal_male"] = new("underwear.briefs_primal_male", new(-0.126180f, -0.000001f, -0.084672f, 0.126180f, 0.026005f, 0.084672f), 1f, garment: true);
         prototypes["clothing.armwraps_primal"] = "clothing.armwraps_primal";

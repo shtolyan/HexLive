@@ -91,6 +91,8 @@ namespace HexLive.Simulation.Content
                     }
                 }
             }
+            // §138.6 / #461: ignore even an old world-local catalog's ghost pants.
+            defs.Remove(ContentIds.LeatherPants);
             // §134: old JSON/assets must not resurrect boiling through merge.
             // Keep the enum for saves, but never advertise this retired verb.
             foreach (var definition in defs.Values)

@@ -101,7 +101,7 @@ public sealed class FreeArchitectureTests
         {
             var support = FreeArchitectureRules.FreePieces(world).Single(piece =>
                 piece.ArchitectureElements.Single().SlotKey == placement.SlotKey);
-            FillBill(support);
+            FillBill(world, support);
             FreeArchitectureRules.Complete(world, support);
         }
 
@@ -196,7 +196,7 @@ public sealed class FreeArchitectureTests
             new[] { placement }, System.Array.Empty<string>())).Accepted, Is.True);
         var wall = FreeArchitectureRules.FreePieces(world).Single(candidate =>
             candidate.ArchitectureElements.Single().SlotKey == placement.SlotKey);
-        FillBill(wall);
+        FillBill(world, wall);
         FreeArchitectureRules.Complete(world, wall);
         var wallId = wall.Id;
         var wallAnchor = wall.Junctions[0];
@@ -255,7 +255,7 @@ public sealed class FreeArchitectureTests
             new[] { wallPlacement }, System.Array.Empty<string>())).Accepted, Is.True);
         var wall = FreeArchitectureRules.FreePieces(world).Single(candidate =>
             candidate.ArchitectureElements.Single().SlotKey == wallPlacement.SlotKey);
-        FillBill(wall);
+        FillBill(world, wall);
         FreeArchitectureRules.Complete(world, wall);
         var originalId = wall.Id;
         var doorPlacement = FreeArchitecturePlacementData.FromElement(new BlueprintElementData
@@ -303,12 +303,13 @@ public sealed class FreeArchitectureTests
             .ThenBy(tile => tile.Coord.R)
             .First().Coord;
 
-    private static void FillBill(WorldObjectState site)
+    private static void FillBill(WorldState world, WorldObjectState site)
     {
         Add(site, ContentIds.Stick, site.BillSticks);
         Add(site, ContentIds.Board, site.BillBoards);
         Add(site, ContentIds.Rope, site.BillRope);
         Add(site, ContentIds.PalmLeaf, site.BillLeaves);
+        while (BuildSiteMath.TryInstallOne(world, site)) { }
     }
 
     private static void Add(WorldObjectState site, string definitionId, int count)

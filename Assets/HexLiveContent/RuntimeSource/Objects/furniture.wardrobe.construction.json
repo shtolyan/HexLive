@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "definitionId": "furniture.wardrobe",
+  "modelSha256": "ec4f73aae87d036f1ea4a7932025b337a0d1ae174c7ee70044fde45bdf936b0c",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_1__stick/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_1__stick/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_1__stick/unit_01_002"
+    },
+    {
+      "index": 4,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_1__stick/unit_01_003"
+    },
+    {
+      "index": 5,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_2__board/unit_02_000"
+    },
+    {
+      "index": 6,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_2__board/unit_02_001"
+    },
+    {
+      "index": 7,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_2__board/unit_02_002"
+    },
+    {
+      "index": 8,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_2__board/unit_02_003"
+    },
+    {
+      "index": 9,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_2__board/unit_02_004"
+    },
+    {
+      "index": 10,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_2__board/unit_02_005"
+    },
+    {
+      "index": 11,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_2__board/unit_02_006"
+    },
+    {
+      "index": 12,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_2__board/unit_02_007"
+    },
+    {
+      "index": 13,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "furniture.wardrobe/BuildStage_3__rope/unit_03_000"
+    }
+  ]
+}

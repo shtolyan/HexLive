@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "definitionId": "furniture.hearth",
+  "modelSha256": "a1ba09af6c85a1084d6ebb8e6d6ebf1bd032671cea4709a58dcaa4c596e5e45b",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_1__stick/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_1__stick/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_1__stick/unit_01_002"
+    },
+    {
+      "index": 4,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_1__stick/unit_01_003"
+    },
+    {
+      "index": 5,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_1__stick/unit_01_004"
+    },
+    {
+      "index": 6,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_1__stick/unit_01_005"
+    },
+    {
+      "index": 7,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_1__stick/unit_01_006"
+    },
+    {
+      "index": 8,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_1__stick/unit_01_007"
+    },
+    {
+      "index": 9,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_000"
+    },
+    {
+      "index": 10,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_001"
+    },
+    {
+      "index": 11,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_002"
+    },
+    {
+      "index": 12,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_003"
+    },
+    {
+      "index": 13,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_004"
+    },
+    {
+      "index": 14,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_005"
+    },
+    {
+      "index": 15,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_006"
+    },
+    {
+      "index": 16,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_007"
+    },
+    {
+      "index": 17,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_008"
+    },
+    {
+      "index": 18,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_009"
+    },
+    {
+      "index": 19,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_010"
+    },
+    {
+      "index": 20,
+      "stage": 2,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_2__stone/unit_02_011"
+    },
+    {
+      "index": 21,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "furniture.hearth/BuildStage_3__rope/unit_03_000"
+    }
+  ]
+}

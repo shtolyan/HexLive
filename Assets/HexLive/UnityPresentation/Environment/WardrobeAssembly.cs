@@ -65,6 +65,9 @@ namespace HexLive.UnityPresentation.Environment
             // meshes/ancestors come from the same bundle as the rail sockets.
             // A fixed 0.19 placed soles 0.075 below the shipped board top.
             var top = float.NegativeInfinity;
+            var authoredShelf = FindDescendant(model.transform, "ShoeShelfSurface");
+            if (authoredShelf != null)
+                top = wrapper.transform.InverseTransformPoint(authoredShelf.position).y;
             foreach (var filter in model.GetComponentsInChildren<MeshFilter>(true))
             {
                 if (!filter.name.StartsWith("Wardrobe_ShoeShelf_", System.StringComparison.Ordinal) ||

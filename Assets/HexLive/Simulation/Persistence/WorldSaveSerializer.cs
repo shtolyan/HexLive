@@ -180,7 +180,9 @@ public static class WorldSaveSerializer
     // v81 (§54.21 / #429): ground harvest scatter; old objects remain orderly.
     // v82 (§138.6.1): bounded craft request admission receipts, appended per world.
     // v83 (§171.10): account character creation receipts and ownership recovery.
-    public const int BlobVersion = 84;
+    // v84 (§54): fresh/dry leaf provenance on world objects and items.
+    // v85 (§120): installed building units are durable and distinct from stock.
+    public const int BlobVersion = 85;
     private const int OldestReadableBlobVersion = 66;
 
     private const int EndMarker = unchecked((int)0x454E4421); // "END!"
@@ -1464,6 +1466,16 @@ public static class WorldSaveSerializer
         if (version >= 74) w.Write((byte)obj.ProduceOrigin);
         if (version >= 79) w.Write((int)obj.LastAddedWaterKind);
         if (version >= 81) w.Write(obj.IsHarvestScatter);
+        if (version >= 85)
+        {
+            w.Write(obj.InstalledBuildMaterials != null);
+            if (obj.InstalledBuildMaterials != null)
+            {
+                if (obj.InstalledBuildMaterials.Length != Runtime.BuildSiteMath.AllMaterials.Length)
+                    throw new InvalidDataException("Invalid construction material channel count.");
+                foreach (var count in obj.InstalledBuildMaterials) w.Write(count);
+            }
+        }
     }
 
     private static WorldObjectState ReadObject(BinaryReader r, int version)
@@ -1587,6 +1599,17 @@ public static class WorldSaveSerializer
             throw new InvalidDataException("Invalid ground produce origin.");
         obj.LastAddedWaterKind = version >= 79 ? (WaterKind)r.ReadInt32() : obj.WaterKind;
         obj.IsHarvestScatter = version >= 81 && r.ReadBoolean();
+        if (version >= 85 && r.ReadBoolean())
+        {
+            obj.InstalledBuildMaterials = new int[Runtime.BuildSiteMath.AllMaterials.Length];
+            for (var i = 0; i < obj.InstalledBuildMaterials.Length; i++)
+            {
+                var count = r.ReadInt32();
+                if (count < 0 || count > Runtime.BuildSiteMath.Delivered(obj, Runtime.BuildSiteMath.AllMaterials[i]))
+                    throw new InvalidDataException("Invalid installed construction material count.");
+                obj.InstalledBuildMaterials[i] = count;
+            }
+        }
 
         // Rotation is a placement contract, not decorative save data. Repair
         // legacy arbitrary/30-degree poses on every save version, including

@@ -563,7 +563,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
     // §133: wardrobe junctions and their furniture yaw. Hung garments share
     // both the wardrobe's local slot coordinates and its six-way rotation.
     private readonly HashSet<JunctionId> _wardrobeJunctions = new();
-    private readonly Dictionary<JunctionId, float> _wardrobeYawByJunction = new();
+    private readonly Dictionary<JunctionId, float> _rackYawByJunction = new();
     // §54.15: junctions occupied by water collectors — a tool.bottle sharing
     // one is PARKED in the vessel slot (drawn on the stone stand, not scattered).
     private readonly HashSet<JunctionId> _collectorJunctions = new();
@@ -1757,7 +1757,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // (sorted by object id) so every hung garment gets a stable hanger slot.
         _rackJunctions.Clear();
         _wardrobeJunctions.Clear();
-        _wardrobeYawByJunction.Clear();
+        _rackYawByJunction.Clear();
         _rackHangRank.Clear();
         _collectorJunctions.Clear();
         _groundPileScratch.Clear(); _groundPileRank.Clear(); _groundPileCounts.Clear();
@@ -1769,6 +1769,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
             if (worldObject.DefinitionId == "station.drying_rack" && worldObject.Junctions.Count > 0)
             {
                 _rackJunctions.Add(worldObject.Junctions[0]);
+                _rackYawByJunction[worldObject.Junctions[0]] =
+                    SimulationUnityMapper.ToUnityFootprintYawDegrees(worldObject.RotationDegrees);
             }
 
             // §133: гардероб развешивает одежду тем же механизмом, что и
@@ -1777,7 +1779,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             {
                 _rackJunctions.Add(worldObject.Junctions[0]);
                 _wardrobeJunctions.Add(worldObject.Junctions[0]);
-                _wardrobeYawByJunction[worldObject.Junctions[0]] =
+                _rackYawByJunction[worldObject.Junctions[0]] =
                     SimulationUnityMapper.ToUnityFootprintYawDegrees(worldObject.RotationDegrees);
             }
 
@@ -2138,9 +2140,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                         }
                     }
                 }
-                if (inWardrobe && _wardrobeYawByJunction.TryGetValue(
-                        worldObject.Junctions[0], out var wardrobeYaw))
-                    objectView.transform.rotation = Quaternion.Euler(0f, wardrobeYaw, 0f);
+                if (_rackYawByJunction.TryGetValue(
+                        worldObject.Junctions[0], out var rackYaw))
+                    objectView.transform.rotation = Quaternion.Euler(0f, rackYaw, 0f);
             }
 
             // Spec §66: a BUILT piece stands at the yaw the sim staked it with —
@@ -2154,6 +2156,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
             // footprint yaw with the module's local yaw (ArchitectureModuleView),
             // so writing it onto the module's root here would apply it twice.
             if (worldObject.RotationDegrees != 0f && parts.GroundPile == null && parts.Module == null &&
+                !_rackHangRank.ContainsKey(key) &&
                 !HexLive.UnityPresentation.Environment.PalmTreeFactory.IsPalm(
                     worldObject.DefinitionId))
             {
@@ -2167,6 +2170,8 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     IsIntegratedHutBed(worldObject) ||
                     IsIntegratedHutHearth(worldObject) ||
                     worldObject.DefinitionId == ContentIds.Wardrobe ||
+                    worldObject.DefinitionId == ContentIds.DryingRack ||
+                    worldObject.BuildProduct == ContentIds.DryingRack ||
                     // §120: the plan's OWN furniture. Its yaw is a yawStep 0..5
                     // the constructor authored (BuildingBootstrap
                     // .StakePlanFurnitureSites composes it with the building's
@@ -2176,14 +2181,7 @@ public sealed class HexWorldRenderer : MonoBehaviour
                     // covered already; a rack, a workbench or a collector the
                     // player put in a plan were not, and neither was a piece
                     // still standing as its build-site.
-                    IsPlanFurniture(worldObject) ||
-                    // A hung garment is spatially owned by the wardrobe, not
-                    // by its original loose-item yaw.  It must share the
-                    // wardrobe's six-way footprint basis with its socket and
-                    // procedural hanger; otherwise this generic §66 sync
-                    // overwrites the yaw assigned above by 90°.
-                    (_rackHangRank.ContainsKey(key) && worldObject.Junctions.Count > 0 &&
-                     _wardrobeJunctions.Contains(worldObject.Junctions[0]));
+                    IsPlanFurniture(worldObject);
                 var builtRot = Quaternion.Euler(
                     0f, architectureFootprint
                         ? SimulationUnityMapper.ToUnityFootprintYawDegrees(worldObject.RotationDegrees)
@@ -4999,9 +4997,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
                 var hungPos = GetObjectAnchorFromJunctions(worldObject, junctionPositions);
                 hungRoot.transform.position = SimulationUnityMapper.ToUnityPosition(
                     hungPos, GroundY(worldObject.Tile));
-                if (inWardrobe && _wardrobeYawByJunction.TryGetValue(
-                        worldObject.Junctions[0], out var wardrobeYaw))
-                    hungRoot.transform.rotation = Quaternion.Euler(0f, wardrobeYaw, 0f);
+                if (_rackYawByJunction.TryGetValue(
+                        worldObject.Junctions[0], out var rackYaw))
+                    hungRoot.transform.rotation = Quaternion.Euler(0f, rackYaw, 0f);
                 if (inWardrobe && !footwearOnWardrobeShelf)
                 {
                     var hanger = HexLive.UnityPresentation.Environment.WardrobeHangerFactory.Build();

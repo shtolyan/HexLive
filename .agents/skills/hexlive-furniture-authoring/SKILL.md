@@ -82,19 +82,19 @@ python3 .agents/skills/hexlive-furniture-authoring/scripts/generate_wardrobe_pla
 ## Architecture elements (§120 constructor)
 
 Walls, windows, doors, corner supports, floor sectors, roof sectors and the
-indoor hearth are one family. Their geometry is CODE, not hand-moved objects:
+indoor hearth are one family. Procedural geometry originates in
 [`Tools/blender/arch_elements_lib.py`](../../../Tools/blender/arch_elements_lib.py)
-holds the primitives, `build_arch_elements.py` builds every element from fixed
-seeds, `export_arch_elements.py` writes one FBX per definition id. Rebuild with
-
-```python
-exec(open("Tools/blender/build_arch_elements.py").read())
-exec(open("Tools/blender/export_arch_elements.py").read())
-```
-
-Author there and nowhere else. Blender crashed three times in one session and
-took every unsaved hand edit with it; a script made recovery free, and it makes
-the art reviewable as a diff. Save the `.blend` right after a rebuild anyway.
+and the legacy generators recorded in `Tools/construction_stage_manifest.json`.
+The editable source for the 14 buildable models is now
+`_ArtSource/Construction/hexlive_construction_stages.blend`.
+Read `Docs/ConstructionStagesAuthoring.md` before stage/export work.
+Preserve its artist-authored hierarchy: do not run an old generator/exporter
+over it. For a procedural redesign, change the generator and transfer only the
+changed geometry into existing units. Save and export through
+`Tools/blender/export_construction_stage_workspace.py`; independently re-import
+with `--verify-export-dir` to check every vertex and attachment. Native FBX
+changes do not publish atomic content; bundle publication needs a separate
+explicit player command.
 
 ### Rules paid for in bugs
 
@@ -125,8 +125,9 @@ the art reviewable as a diff. Save the `.blend` right after a rebuild anyway.
 
 ### Stage contract
 
-`BuildStage_1/2/3` empties at the root; every direct mesh child of a stage is
-ONE delivered resource — sticks, then boards/stones/leaves, then rope. A name
+`BuildStage_<N>__<material>` empties at the root; every direct non-helper child
+is ONE delivered resource. Ordered `unit_NN_MMM` Empty wrappers may contain
+several meshes of that one resource. A name
 containing `_deco_` is free hardware that ships with its stage. `HL_Door_Pivot`
 is a transparent container: its leaf boards count as ordinary stage-2 resources.
 `BlueprintArchitectureFactory.ApplyStageProgress` reveals exactly the pieces the
@@ -185,7 +186,9 @@ Always Included Shaders or the Player strips it.
 ## Verify all layers
 
 1. Compare the FBX bounds and pivot reported by the verifier with the intended junction footprint.
-2. In the already-open Unity Editor, obey the Unity MCP lease from `AGENTS.md`, wait for import/compilation, and check errors.
+2. Coordinate Editor access, then use Unity CLI only as required by `AGENTS.md`.
+   Never discover or call Unity MCP. Run `HexLive.Editor.ConstructionStageBuildGate.ValidateAll`
+   after import; it exercises every resource increment and checks export receipts.
 3. Inspect the hierarchy: placement root identity except for world position and six-way `Y` yaw; imported FBX correction only below it.
 4. Sweep all six yaws. The primary axis must remain on one of the six legal footprint lines and never acquire a `30°` intermediate angle.
 5. Check both the authoring fixture and production loading path from the same committed data.

@@ -149,7 +149,7 @@ public sealed partial class DecisionSystem
             // снимает ЛЮБАЯ девушка, которая видит источник, и ставит она себя
             // сама, один раз. Значит «мёртвая» = мёртвая для всех подряд
             // BuildSiteUnstockableSkipTicks тиков, а не «эта отвернулась».
-            if (SiteShortOfAnything(site))
+            if (!BuildSiteMath.HasReadyWork(world, site) && SiteShortOfAnything(site))
             {
                 if (!sourcesScanned)
                 {

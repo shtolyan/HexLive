@@ -111,7 +111,10 @@ namespace HexLive.UnityPresentation.Environment
 
         private void RefreshBed(ObjectSnapshot site)
         {
-            EnsureBed(site.BuildProduct);
+            var product = site.BuildProduct == ContentIds.Campfire &&
+                site.Variant == HexLive.Simulation.Runtime.BuildingRules.HutHearthVariant
+                ? ContentIds.FurnitureHearth : site.BuildProduct;
+            EnsureBed(product);
             _bedAssembly?.Apply(site.DeliveredLogs, site.DeliveredSticks, site.DeliveredRope,
                 site.DeliveredLeaves, site.DeliveredStones, site.DeliveredBoards);
         }

@@ -1,0 +1,238 @@
+{
+  "version": 1,
+  "definitionId": "campfire.spot",
+  "modelSha256": "6f0efd6733dbb398ce260c190c696435b20f496831ee10836c82dc7ec615acad",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_1__stick/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_1__stick/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_1__stick/unit_01_002"
+    },
+    {
+      "index": 4,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_1__stick/unit_01_003"
+    },
+    {
+      "index": 5,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_1__stick/unit_01_004"
+    },
+    {
+      "index": 6,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_1__stick/unit_01_005"
+    },
+    {
+      "index": 7,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_1__stick/unit_01_006"
+    },
+    {
+      "index": 8,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_1__stick/unit_01_007"
+    },
+    {
+      "index": 9,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_1__stick/unit_01_008"
+    },
+    {
+      "index": 10,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_2__stick/unit_02_000"
+    },
+    {
+      "index": 11,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_2__stick/unit_02_001"
+    },
+    {
+      "index": 12,
+      "stage": 3,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_3__stick/unit_03_000"
+    },
+    {
+      "index": 13,
+      "stage": 4,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_4__rope/unit_04_000"
+    },
+    {
+      "index": 14,
+      "stage": 4,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_4__rope/unit_04_001"
+    },
+    {
+      "index": 15,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_000"
+    },
+    {
+      "index": 16,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_001"
+    },
+    {
+      "index": 17,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_002"
+    },
+    {
+      "index": 18,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_003"
+    },
+    {
+      "index": 19,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_004"
+    },
+    {
+      "index": 20,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_005"
+    },
+    {
+      "index": 21,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_006"
+    },
+    {
+      "index": 22,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_007"
+    },
+    {
+      "index": 23,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_008"
+    },
+    {
+      "index": 24,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_009"
+    },
+    {
+      "index": 25,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_010"
+    },
+    {
+      "index": 26,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_011"
+    },
+    {
+      "index": 27,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_012"
+    },
+    {
+      "index": 28,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_013"
+    },
+    {
+      "index": 29,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_014"
+    },
+    {
+      "index": 30,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_015"
+    },
+    {
+      "index": 31,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_016"
+    },
+    {
+      "index": 32,
+      "stage": 5,
+      "resource": "resource.stone",
+      "count": 1,
+      "nodePath": "campfire.spot/BuildStage_5__stone/unit_05_017"
+    }
+  ]
+}

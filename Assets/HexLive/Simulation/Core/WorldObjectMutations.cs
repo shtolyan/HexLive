@@ -23,6 +23,8 @@ public static class WorldObjectMutations
         {
             Id = new ObjectId(world.NextRuntimeObjectId++),
             DefinitionId = definitionId,
+            InstalledBuildMaterials = definitionId == ContentIds.BuildSite
+                ? new int[Runtime.BuildSiteMath.AllMaterials.Length] : null,
             Fragment = fragment,
             Tile = tile,
             // §59-склад: начальный запас — из декларации объекта (вода в

@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "stageNameFormat": "BuildStage_<index>__<material>",
+  "unitRule": "one direct non-deco child equals one delivered resource",
+  "definitions": [
+    {
+      "id": "architecture.wall.wood",
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "architecture.wall.wood",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.wall.wood.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 4
+        },
+        {
+          "index": 2,
+          "material": "resource.board",
+          "units": 3
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 4
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "HL_ARCH_WALL",
+      "geometryGenerator": "Tools/blender/export_arch_elements.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "architecture.window.wood",
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "architecture.window.wood",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.window.wood.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 4
+        },
+        {
+          "index": 2,
+          "material": "resource.board",
+          "units": 3
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 4
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "HL_ARCH_WINDOW",
+      "geometryGenerator": "Tools/blender/export_arch_elements.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "architecture.door.wood",
+      "requiredNodes": ["HL_Door_Pivot", "HL_Door_State_Closed", "HL_Door_State_Open"],
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "architecture.door.wood",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.door.wood.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "notes": "HL_Door_Pivot is a transparent unit container; state markers and *_deco_* are free helpers.",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 5
+        },
+        {
+          "index": 2,
+          "material": "resource.board",
+          "units": 2
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 4
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "HL_ARCH_DOOR",
+      "geometryGenerator": "Tools/blender/export_arch_elements.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "architecture.support.wood",
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "architecture.support.wood",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.support.wood.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 2
+        },
+        {
+          "index": 2,
+          "material": "resource.board",
+          "units": 0
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 3
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "HL_ARCH_SUPPORT",
+      "geometryGenerator": "Tools/blender/export_arch_elements.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "architecture.floor.board",
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "architecture.floor.board",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.floor.board.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 2
+        },
+        {
+          "index": 2,
+          "material": "resource.board",
+          "units": 3
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 3
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "HL_ARCH_FLOOR",
+      "geometryGenerator": "Tools/blender/export_arch_elements.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "architecture.roof.palm",
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "architecture.roof.palm",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.roof.palm.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 3
+        },
+        {
+          "index": 2,
+          "material": "resource.palm_leaf",
+          "units": 27
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 2
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "HL_ARCH_ROOF",
+      "geometryGenerator": "Tools/blender/export_arch_elements.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "architecture.roof.palm.flat",
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "architecture.roof.palm.flat",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.roof.palm.flat.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 3
+        },
+        {
+          "index": 2,
+          "material": "resource.palm_leaf",
+          "units": 27
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 2
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "HL_ARCH_ROOF_FLAT",
+      "geometryGenerator": "Tools/blender/export_arch_elements.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "furniture.hearth",
+      "requiredNodes": ["fire_point", "stick_bar"],
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "furniture.hearth",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.hearth.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "notes": "The two visible joint wraps are one delivered rope unit and must share one direct unit container.",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 8
+        },
+        {
+          "index": 2,
+          "material": "resource.stone",
+          "units": 12
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 1
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "HL_ARCH_HEARTH",
+      "geometryGenerator": "Tools/blender/export_arch_elements.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "bed.basic",
+      "requiredNodes": ["point"],
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "bed.basic",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/bed_basic_final_native.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "notes": "Canonical stage workspace contains the approved hex-fit artwork; legacy geometry source is provenance only.",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.log",
+          "units": 4
+        },
+        {
+          "index": 2,
+          "material": "resource.stick",
+          "units": 5
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 10
+        },
+        {
+          "index": 4,
+          "material": "resource.palm_leaf",
+          "units": 50
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "L_HexFitBed_root",
+      "geometryGenerator": "Tools/blender/export_hexfit_bed.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "campfire.spot",
+      "requiredNodes": ["stick_bar"],
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "campfire.spot",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/campfire_final_native.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 9
+        },
+        {
+          "index": 2,
+          "material": "resource.stick",
+          "units": 2
+        },
+        {
+          "index": 3,
+          "material": "resource.stick",
+          "units": 1
+        },
+        {
+          "index": 4,
+          "material": "resource.rope",
+          "units": 2
+        },
+        {
+          "index": 5,
+          "material": "resource.stone",
+          "units": 18
+        }
+      ],
+      "geometrySource": "Assets/_AiGen/campfire_staged.glb",
+      "geometrySourceRoot": "campfire_staged",
+      "geometryGenerator": "Tools/bake_world_prop_fbx.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "station.drying_rack",
+      "requiredNodes": ["DryingSlot_00", "DryingSlot_01", "DryingSlot_02", "DryingSlot_03", "DryingSlot_04", "DryingSlot_05", "DryingSlot_06", "DryingSlot_07"],
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "station.drying_rack",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/station.drying_rack.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "notes": "Normalized +Y rail axis; two planted uprights with corner stays, two rails, four fitted lashings. All eight garment sockets export with the model.",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 2
+        },
+        {
+          "index": 2,
+          "material": "resource.stick",
+          "units": 2
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 4
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Objects/hexlive_atomic_world_props.blend",
+      "geometrySourceRoot": "station.drying_rack",
+      "geometryGenerator": "Tools/blender/author_atomic_world_props.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "station.water_collector",
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "station.water_collector",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/water_collector_final_native.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 4
+        },
+        {
+          "index": 2,
+          "material": "resource.stone",
+          "units": 5
+        },
+        {
+          "index": 3,
+          "material": "resource.stick",
+          "units": 4
+        },
+        {
+          "index": 4,
+          "material": "resource.rope",
+          "units": 8
+        },
+        {
+          "index": 5,
+          "material": "resource.palm_leaf",
+          "units": 11
+        }
+      ],
+      "geometrySource": "Assets/_AiGen/water_collector.glb",
+      "geometrySourceRoot": "WC_root",
+      "geometryGenerator": "Tools/bake_world_prop_fbx.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "station.workbench",
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "station.workbench",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/station.workbench.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 4
+        },
+        {
+          "index": 2,
+          "material": "resource.stick",
+          "units": 2
+        },
+        {
+          "index": 3,
+          "material": "resource.board",
+          "units": 2
+        },
+        {
+          "index": 4,
+          "material": "resource.rope",
+          "units": 2
+        },
+        {
+          "index": 5,
+          "material": "resource.board",
+          "units": 4
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Crafting/hexlive_crafting.blend",
+      "geometrySourceRoot": "station.workbench",
+      "geometryGenerator": "Tools/make_workbench_models.py",
+      "sourceStatus": "ready"
+    },
+    {
+      "id": "furniture.wardrobe",
+      "requiredNodes": ["HangerTemplate", "ShoeShelfSurface", "ClothingSlot_00", "ClothingSlot_01", "ClothingSlot_02", "ClothingSlot_03", "ClothingSlot_04", "ClothingSlot_05", "ClothingSlot_06", "ClothingSlot_07", "ClothingSlot_08", "ClothingSlot_09", "ClothingSlot_10", "ClothingSlot_11", "ShoePairSlot_00", "ShoePairSlot_01", "ShoePairSlot_02"],
+      "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
+      "sourceRoot": "furniture.wardrobe",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/furniture.wardrobe.fbx",
+      "exporter": "Tools/blender/export_construction_stage_workspace.py",
+      "notes": "Four frame units including grounded feet, eight spanning shelf slats, one compound rope. Approved HangerTemplate and twelve garment sockets are unchanged.",
+      "stages": [
+        {
+          "index": 1,
+          "material": "resource.stick",
+          "units": 4
+        },
+        {
+          "index": 2,
+          "material": "resource.board",
+          "units": 8
+        },
+        {
+          "index": 3,
+          "material": "resource.rope",
+          "units": 1
+        }
+      ],
+      "geometrySource": "Assets/ArtSource/Building/hexlive_building_kit.blend",
+      "geometrySourceRoot": "HL_Wardrobe_Module",
+      "geometryGenerator": "Tools/blender/export_wardrobe_module.py",
+      "sourceStatus": "ready"
+    }
+  ],
+  "authoringSource": "_ArtSource/Construction/hexlive_construction_stages.blend",
+  "authoringExporter": "Tools/blender/export_construction_stage_workspace.py"
+}

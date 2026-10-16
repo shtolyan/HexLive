@@ -560,6 +560,20 @@ public static class AtomicContentBatchBuild
     {
         ValidateAsset(inputs.Main, "main");
         ValidateAsset(inputs.Metadata, "metadata");
+        // A construction owner carries its exact per-unit contract. Reject a
+        // stale/native-overwritten FBX before invoking the bundle builder.
+        var constructionReceipt = HexLive.Editor.ConstructionStageBuildGate.ValidateContent(type, id);
+        if (constructionReceipt != null)
+        {
+            var requiredModel = constructionReceipt.Replace(".construction.json", ".fbx");
+            if (!string.Equals(inputs.Main, requiredModel, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Construction {id} must use {requiredModel}, not {inputs.Main}.");
+            var receipt = JObject.Parse(File.ReadAllText(constructionReceipt));
+            inputs.ExtraMetadata["construction"] = receipt;
+            inputs.Entries = inputs.Entries.Concat(new[] {
+                new ContentEntry { name = "construction", asset = constructionReceipt }
+            }).ToArray();
+        }
         if (!string.IsNullOrEmpty(inputs.Icon))
         {
             ValidateAsset(inputs.Icon, "icon");

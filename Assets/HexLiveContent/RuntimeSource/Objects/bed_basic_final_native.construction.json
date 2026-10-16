@@ -1,0 +1,497 @@
+{
+  "version": 1,
+  "definitionId": "bed.basic",
+  "modelSha256": "9ba593528c935fa037f45ee399e24a365f4901d5180fcfb9f180556f8f06c694",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.log",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_1__log/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.log",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_1__log/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 1,
+      "resource": "resource.log",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_1__log/unit_01_002"
+    },
+    {
+      "index": 4,
+      "stage": 1,
+      "resource": "resource.log",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_1__log/unit_01_003"
+    },
+    {
+      "index": 5,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_2__stick/unit_02_000"
+    },
+    {
+      "index": 6,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_2__stick/unit_02_001"
+    },
+    {
+      "index": 7,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_2__stick/unit_02_002"
+    },
+    {
+      "index": 8,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_2__stick/unit_02_003"
+    },
+    {
+      "index": 9,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_2__stick/unit_02_004"
+    },
+    {
+      "index": 10,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_000"
+    },
+    {
+      "index": 11,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_001"
+    },
+    {
+      "index": 12,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_002"
+    },
+    {
+      "index": 13,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_003"
+    },
+    {
+      "index": 14,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_004"
+    },
+    {
+      "index": 15,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_005"
+    },
+    {
+      "index": 16,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_006"
+    },
+    {
+      "index": 17,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_007"
+    },
+    {
+      "index": 18,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_008"
+    },
+    {
+      "index": 19,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_3__rope/unit_03_009"
+    },
+    {
+      "index": 20,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_000"
+    },
+    {
+      "index": 21,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_001"
+    },
+    {
+      "index": 22,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_002"
+    },
+    {
+      "index": 23,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_003"
+    },
+    {
+      "index": 24,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_004"
+    },
+    {
+      "index": 25,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_005"
+    },
+    {
+      "index": 26,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_006"
+    },
+    {
+      "index": 27,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_007"
+    },
+    {
+      "index": 28,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_008"
+    },
+    {
+      "index": 29,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_009"
+    },
+    {
+      "index": 30,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_010"
+    },
+    {
+      "index": 31,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_011"
+    },
+    {
+      "index": 32,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_012"
+    },
+    {
+      "index": 33,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_013"
+    },
+    {
+      "index": 34,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_014"
+    },
+    {
+      "index": 35,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_015"
+    },
+    {
+      "index": 36,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_016"
+    },
+    {
+      "index": 37,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_017"
+    },
+    {
+      "index": 38,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_018"
+    },
+    {
+      "index": 39,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_019"
+    },
+    {
+      "index": 40,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_020"
+    },
+    {
+      "index": 41,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_021"
+    },
+    {
+      "index": 42,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_022"
+    },
+    {
+      "index": 43,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_023"
+    },
+    {
+      "index": 44,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_024"
+    },
+    {
+      "index": 45,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_025"
+    },
+    {
+      "index": 46,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_026"
+    },
+    {
+      "index": 47,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_027"
+    },
+    {
+      "index": 48,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_028"
+    },
+    {
+      "index": 49,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_029"
+    },
+    {
+      "index": 50,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_030"
+    },
+    {
+      "index": 51,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_031"
+    },
+    {
+      "index": 52,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_032"
+    },
+    {
+      "index": 53,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_033"
+    },
+    {
+      "index": 54,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_034"
+    },
+    {
+      "index": 55,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_035"
+    },
+    {
+      "index": 56,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_036"
+    },
+    {
+      "index": 57,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_037"
+    },
+    {
+      "index": 58,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_038"
+    },
+    {
+      "index": 59,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_039"
+    },
+    {
+      "index": 60,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_040"
+    },
+    {
+      "index": 61,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_041"
+    },
+    {
+      "index": 62,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_042"
+    },
+    {
+      "index": 63,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_043"
+    },
+    {
+      "index": 64,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_044"
+    },
+    {
+      "index": 65,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_045"
+    },
+    {
+      "index": 66,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_046"
+    },
+    {
+      "index": 67,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_047"
+    },
+    {
+      "index": 68,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_048"
+    },
+    {
+      "index": 69,
+      "stage": 4,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "bed.basic/BuildStage_4__palm_leaf/unit_04_049"
+    }
+  ]
+}

@@ -2238,6 +2238,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     BuildSiteMath.IsSite(fsite) &&
                     DecisionSystem.IsOurSite(world, npc, fsite) &&
                     (DecisionSystem.CarriesSiteMaterial(npc, fsite) ||
+                     BuildSiteMath.HasReadyWork(world, fsite) ||
                      BuildSiteMath.IsStocked(fsite));
             case GoalType.BuildRaft:
                 return definition.HasTag("Raft");

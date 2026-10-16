@@ -138,7 +138,7 @@ public static class ActionItemResolver
                         }
                     }
 
-                    return Runtime.BuildSiteMath.IsStocked(site) && InventoryContains(npc, "tool.hammer")
+                    return (Runtime.BuildSiteMath.IsStocked(site) || Runtime.BuildSiteMath.HasReadyWork(world, site)) && InventoryContains(npc, "tool.hammer")
                         ? "tool.hammer"
                         : string.Empty;
                 }

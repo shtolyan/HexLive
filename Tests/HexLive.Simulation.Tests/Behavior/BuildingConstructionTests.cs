@@ -310,6 +310,7 @@ public sealed class BuildingConstructionTests
         Deliver(site, ContentIds.Rope, bill.Rope);
         Deliver(site, ContentIds.PalmLeaf, bill.Leaves);
         BuildingRules.SyncHutElements(world, site);
+        while (BuildSiteMath.TryInstallOne(world, site)) { }
         Assert.That(BuildingRules.Elements(world, site).All(element => element.Complete), Is.True,
             "Распределение материалов обязано читать чертёж площадки, а не committed fallback.");
 

@@ -1286,7 +1286,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
         // next to the BuildFurniture score, where the gather flags exist —
         // staged sites take bundles, not single pieces (see below).
         var buildFurnitureRaise = buildSite != null && buildWindow &&
-            BuildSiteMath.IsStocked(buildSite) &&
+            (BuildSiteMath.IsStocked(buildSite) || BuildSiteMath.HasReadyWork(world, buildSite)) &&
             (BuildSiteMath.IsDemolitionSite(buildSite)
                 ? ctx.CanUseToolsOrWeapons && hasDemolitionTool
                 : siteWaivesHammer || (ctx.CanUseToolsOrWeapons && hasHammer));

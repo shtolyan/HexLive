@@ -153,6 +153,11 @@ public sealed class WorldObjectState
     // workbench's six board_* children are revealed from this exact channel.
     public int BillBoards { get; set; }
 
+    // §120: delivered stock is Contents; installed pieces are a separate,
+    // durable prefix per material in BuildSiteMath.AllMaterials order.
+    // null preserves the delivery-based appearance of pre-v85 saves.
+    public int[] InstalledBuildMaterials { get; set; }
+
     /// <summary>
     /// §54.19: с какого тика ТЕКУЩУЮ стадию этой стройки нечем закрыть —
     /// материала, которого ей не хватает, в мире не нашлось ни у кого.

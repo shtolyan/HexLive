@@ -22,24 +22,46 @@ public sealed class BuildStagesShowcaseBootstrap : MonoBehaviour
     private const float RowStep = 6f;
     private const float ColumnStep = 4f;
 
-    // (product, максимумы материалов: logs, sticks, rope, leaves, stones,
-    // boards) — прогрессия строится добавлением материалов по одному в
-    // порядке их стадий, как их выкладывает BuildSiteMath.
-    private static readonly (string Product, int Logs, int Sticks, int Rope, int Leaves, int Stones, int Boards)[]
-        Furniture =
+    private sealed class FurnitureStages
+    {
+        public readonly string Product;
+        public readonly (int Logs, int Sticks, int Rope, int Leaves, int Stones, int Boards)[] Stages;
+
+        public FurnitureStages(string product,
+            params (int Logs, int Sticks, int Rope, int Leaves, int Stones, int Boards)[] stages)
         {
-            (ContentIds.BedBasic, 4, 5, 4, 96, 0, 0),
-            ("campfire.spot", 0, 12, 2, 0, 18, 0),
-            ("station.drying_rack", 0, 4, 4, 0, 0, 0),
-            ("station.water_collector", 0, 8, 8, 11, 5, 0),
-            (ContentIds.Workbench, 0, 6, 2, 0, 0, 6),
-        };
+            Product = product;
+            Stages = stages;
+        }
+    }
+
+    // Same ordered stage contract as Tools/construction_stage_manifest.json and
+    // BuildSiteMath. Repeated materials deliberately stay separate: the water
+    // collector builds four posts, then stones, then another four sticks.
+    private static readonly FurnitureStages[] Furniture =
+    {
+        new(ContentIds.BedBasic,
+            Step(logs: 4), Step(sticks: 5), Step(rope: 10), Step(leaves: 50)),
+        new(ContentIds.Campfire,
+            Step(sticks: 9), Step(sticks: 2), Step(sticks: 1), Step(rope: 2), Step(stones: 18)),
+        new(ContentIds.DryingRack,
+            Step(sticks: 2), Step(sticks: 2), Step(rope: 4)),
+        new(ContentIds.WaterCollector,
+            Step(sticks: 4), Step(stones: 5), Step(sticks: 4), Step(rope: 8), Step(leaves: 11)),
+        new(ContentIds.Workbench,
+            Step(sticks: 4), Step(sticks: 2), Step(boards: 2), Step(rope: 2), Step(boards: 4)),
+    };
+
+    private static readonly FurnitureStages WardrobeStages = new(
+        ContentIds.Wardrobe, Step(sticks: 4), Step(boards: 8), Step(rope: 1));
 
     private static readonly string[] ArchitectureModules =
     {
         "architecture.support.wood", "architecture.wall.wood",
         "architecture.window.wood", "architecture.door.wood",
         "architecture.floor.board", "architecture.roof.palm",
+        "architecture.roof.palm.flat",
+        ContentIds.FurnitureHearth,
     };
 
     private readonly List<GameObject> _spawned = new();
@@ -82,40 +104,67 @@ public sealed class BuildStagesShowcaseBootstrap : MonoBehaviour
         var complete = true;
         foreach (var f in Furniture)
         {
-            var stages = StageProgression(f);
-            for (var column = 0; column < stages.Count; column++)
-            {
-                var (logs, sticks, rope, leaves, stones, boards) = stages[column];
-                var built = column == stages.Count - 1
-                    ? BedAssembly.BuildFinished(f.Product)
-                    : BedAssembly.BuildPartial(
-                        f.Product, logs, sticks, rope, leaves, stones, boards);
-                if (built == null)
-                {
-                    complete = false;
-                    continue;
-                }
-
-                Place(built, row, column,
-                    $"{f.Product}\nL{logs} S{sticks} R{rope} Lf{leaves} St{stones} B{boards}");
-            }
-
+            complete &= BuildFurnitureRow(f, row);
             row++;
         }
 
         foreach (var module in ArchitectureModules)
         {
-            var built = BlueprintArchitectureFactory.InstantiateModel(
+            var probe = BlueprintArchitectureFactory.InstantiateModel(
                 module, Vector3.zero, Quaternion.identity);
-            if (built == null)
+            if (probe == null)
             {
                 complete = false;
                 continue;
             }
-
-            Place(built, row, 0, module);
+            var counts = (
+                BlueprintArchitectureFactory.ResourceCount(probe, 1),
+                BlueprintArchitectureFactory.ResourceCount(probe, 2),
+                BlueprintArchitectureFactory.ResourceCount(probe, 3));
+            Destroy(probe);
+            for (var column = 0; column <= 3; column++)
+            {
+                var built = BlueprintArchitectureFactory.InstantiateModel(
+                    module, Vector3.zero, Quaternion.identity);
+                if (built == null)
+                {
+                    complete = false;
+                    continue;
+                }
+                var sticks = column >= 1 ? counts.Item1 : 0;
+                var middle = column >= 2 ? counts.Item2 : 0;
+                var rope = column >= 3 ? counts.Item3 : 0;
+                BlueprintArchitectureFactory.ApplyStageProgress(built, sticks, middle, rope);
+                Place(built, row, column,
+                    $"{module}\nstage {column}/3: {sticks} / {middle} / {rope}");
+            }
             row++;
         }
+
+        // New stage assets show empty/frame/boards/rope. Keep a conspicuous
+        // legacy column if an old published content bundle is still loaded.
+        var wardrobeProbe = BedAssembly.BuildPartial(ContentIds.Wardrobe, 0, 0, 0, 0, 0, 0);
+        if (wardrobeProbe == null)
+        {
+            complete = false;
+        }
+        else
+        {
+            var staged = HasStageParent(wardrobeProbe.transform);
+            Destroy(wardrobeProbe);
+            if (staged)
+            {
+                complete &= BuildFurnitureRow(WardrobeStages, row);
+            }
+            else
+            {
+                var wardrobe = WardrobeAssembly.BuildFinished();
+                if (wardrobe == null) complete = false;
+                else Place(wardrobe, row, 0,
+                    "furniture.wardrobe\nНЕ РАЗЛОЖЕН ПО СТАДИЯМ");
+            }
+        }
+        row++;
 
         if (!complete)
         {
@@ -125,30 +174,59 @@ public sealed class BuildStagesShowcaseBootstrap : MonoBehaviour
         }
     }
 
-    private static List<(int, int, int, int, int, int)> StageProgression(
-        (string Product, int Logs, int Sticks, int Rope, int Leaves, int Stones, int Boards) f)
+    private static (int Logs, int Sticks, int Rope, int Leaves, int Stones, int Boards) Step(
+        int logs = 0, int sticks = 0, int rope = 0, int leaves = 0, int stones = 0,
+        int boards = 0) => (logs, sticks, rope, leaves, stones, boards);
+
+    private static List<(int, int, int, int, int, int)> StageProgression(FurnitureStages furniture)
     {
-        // Пустая площадка → +каждый материал в порядке стадий → готовая.
         var stages = new List<(int, int, int, int, int, int)>
         {
-            (0, 0, 0, 0, 0, 0),
-            (f.Logs, 0, 0, 0, 0, 0),
-            (f.Logs, f.Sticks, 0, 0, 0, 0),
-            (f.Logs, f.Sticks, f.Rope, 0, 0, 0),
-            (f.Logs, f.Sticks, f.Rope, f.Leaves, 0, 0),
-            (f.Logs, f.Sticks, f.Rope, f.Leaves, f.Stones, 0),
-            (f.Logs, f.Sticks, f.Rope, f.Leaves, f.Stones, f.Boards),
+            (0, 0, 0, 0, 0, 0)
         };
-        // Схлопнуть подряд идущие одинаковые (материал с нулевым максимумом).
-        for (var i = stages.Count - 1; i > 0; i--)
+        var total = (Logs: 0, Sticks: 0, Rope: 0, Leaves: 0, Stones: 0, Boards: 0);
+        foreach (var step in furniture.Stages)
         {
-            if (stages[i].Equals(stages[i - 1]))
-            {
-                stages.RemoveAt(i);
-            }
+            total.Logs += step.Logs;
+            total.Sticks += step.Sticks;
+            total.Rope += step.Rope;
+            total.Leaves += step.Leaves;
+            total.Stones += step.Stones;
+            total.Boards += step.Boards;
+            stages.Add(total);
         }
-
         return stages;
+    }
+
+    private bool BuildFurnitureRow(FurnitureStages furniture, int row)
+    {
+        var complete = true;
+        var stages = StageProgression(furniture);
+        for (var column = 0; column < stages.Count; column++)
+        {
+            var (logs, sticks, rope, leaves, stones, boards) = stages[column];
+            var built = column == stages.Count - 1
+                ? BedAssembly.BuildFinished(furniture.Product)
+                : BedAssembly.BuildPartial(
+                    furniture.Product, logs, sticks, rope, leaves, stones, boards);
+            if (built == null)
+            {
+                complete = false;
+                continue;
+            }
+            Place(built, row, column,
+                $"{furniture.Product}\nL{logs} S{sticks} R{rope} " +
+                $"Lf{leaves} St{stones} B{boards}");
+        }
+        return complete;
+    }
+
+    private static bool HasStageParent(Transform root)
+    {
+        if (root.name.StartsWith("BuildStage_", System.StringComparison.Ordinal)) return true;
+        for (var index = 0; index < root.childCount; index++)
+            if (HasStageParent(root.GetChild(index))) return true;
+        return false;
     }
 
     private void Place(GameObject built, int row, int column, string caption)

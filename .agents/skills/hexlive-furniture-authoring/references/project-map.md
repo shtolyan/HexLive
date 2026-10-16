@@ -15,8 +15,10 @@ Use these as routing hints; inspect current code because names can evolve.
 | Furniture factory precedent | `Assets/HexLive/UnityPresentation/Environment/BedAssembly.cs` |
 | Hut layout draft UI | `Assets/HexLive/UnityPresentation/HutTest/HutLayoutDesigner.cs` |
 | Hut production acceptance fixture | `Assets/HexLive/UnityPresentation/HutTest/HutTestBootstrap.cs` |
-| Building art master | `Assets/ArtSource/Building/hexlive_building_kit.blend` |
-| Player-packed furniture FBXs | `Assets/Resources/HexLive/Objects/` |
+| Editable construction stages / normalized art | `_ArtSource/Construction/hexlive_construction_stages.blend` |
+| Stage manifest / exporter | `Tools/construction_stage_manifest.json`, `Tools/blender/export_construction_stage_workspace.py` |
+| Legacy building art provenance | `Assets/ArtSource/Building/hexlive_building_kit.blend` |
+| Player-packed furniture FBX inputs | `Assets/HexLiveContent/RuntimeSource/Objects/` (independent atomic content) |
 | Blender authoring/export scripts | `Tools/blender/` |
 
 ## Data ownership

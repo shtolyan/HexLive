@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "definitionId": "architecture.floor.board",
+  "modelSha256": "1143ad1e17cfd2c154787fe4f63ee3ecdf21ce7f12508b1ce14b5b5b2a00f468",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.floor.board/BuildStage_1__stick/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.floor.board/BuildStage_1__stick/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "architecture.floor.board/BuildStage_2__board/unit_02_000"
+    },
+    {
+      "index": 4,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "architecture.floor.board/BuildStage_2__board/unit_02_001"
+    },
+    {
+      "index": 5,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "architecture.floor.board/BuildStage_2__board/unit_02_002"
+    },
+    {
+      "index": 6,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.floor.board/BuildStage_3__rope/unit_03_000"
+    },
+    {
+      "index": 7,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.floor.board/BuildStage_3__rope/unit_03_001"
+    },
+    {
+      "index": 8,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.floor.board/BuildStage_3__rope/unit_03_002"
+    }
+  ]
+}

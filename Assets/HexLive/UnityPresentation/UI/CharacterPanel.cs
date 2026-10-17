@@ -644,6 +644,7 @@ namespace HexLive.UnityPresentation.UI
                 Refresh();
             }
 
+            TickCraftQueue(); // §138.7: runs whether or not the window is open
             RefreshRoster();
             AnimateRoster();
 
@@ -2374,7 +2375,7 @@ namespace HexLive.UnityPresentation.UI
                 _selectedCraftOutputByNpc[npc.Id.Value] = _selectedCraftOutput;
             }
 
-            var sig = CraftingSignature();
+            var sig = CraftingSignature() + "|q" + _craftQueue.Remaining(npc.Id.Value, _selectedCraftOutput);
             if (sig == _craftSig)
             {
                 return;
@@ -2562,14 +2563,21 @@ namespace HexLive.UnityPresentation.UI
             _craftReason.text = blocked
                 ? Loc.Get("craft.block." + option.BlockReason) : string.Empty;
 
-            _craftActionLabel.text = option.IsActive
-                ? Loc.Get("craft.working")
+            // §138.7: every press queues one more; while she works the button
+            // stays live («make another») and shows how many are left.
+            var queued = _craftQueue.Remaining(_inventoryActorId, option.OutputDefinitionId);
+            var canQueue = option.CanCraft || option.IsActive;
+            var label = option.IsActive
+                ? Loc.Get("craft.create_more")
                 : option.IsResume ? Loc.Get("craft.continue") : Loc.Get("craft.create");
-            _craftAction.style.opacity = option.CanCraft ? 1f : 0.46f;
-            _craftAction.pickingMode = option.CanCraft
+            _craftActionLabel.text = queued > 0
+                ? $"{label} · {string.Format(Loc.Get("craft.queue"), queued)}"
+                : label;
+            _craftAction.style.opacity = canQueue ? 1f : 0.46f;
+            _craftAction.pickingMode = canQueue
                 ? PickingMode.Position : PickingMode.Ignore;
-            _craftAction.style.backgroundColor = option.CanCraft ? GoldDim : Track;
-            SetBorder(_craftAction, option.CanCraft ? Gold : Stroke, 1f);
+            _craftAction.style.backgroundColor = canQueue ? GoldDim : Track;
+            SetBorder(_craftAction, canQueue ? Gold : Stroke, 1f);
         }
 
         private VisualElement BuildCraftIngredientRow(CraftIngredientOption ingredient)
@@ -2633,19 +2641,38 @@ namespace HexLive.UnityPresentation.UI
             return row;
         }
 
+        // §138.7: one press, one more item; the queue issues the orders one by one.
+        private readonly CraftQueue _craftQueue = new();
+
         private void EnqueueSelectedCraft()
         {
             var option = FindSelectedCraft();
-            if (!(_craftAvailable && option?.CanCraft == true) ||
+            if (!(_craftAvailable && option != null && (option.CanCraft || option.IsActive)) ||
                 _runner == null || _inventoryActorId < 0)
             {
                 return;
             }
 
-            _runner.EnqueueCommand(new CraftByOutputCommand(
-                new HexLive.Simulation.Common.EntityId(_inventoryActorId), option.OutputDefinitionId));
+            _craftQueue.Add(_inventoryActorId, option.OutputDefinitionId, option);
             _craftSig = null;
             _refreshedTick = -1;
+        }
+
+        private readonly List<CraftRecipeOption> _craftQueueScratch = new();
+
+        private void TickCraftQueue()
+        {
+            var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
+            if (snapshot == null) return;
+            _craftQueue.Tick(snapshot.Tick,
+                npc =>
+                {
+                    var state = FindNpc(snapshot, npc);
+                    return state != null && state.Health > 0f && state.IsManualControl &&
+                        _runner.SupportsNpcCommands && _runner.CanControlNpc(new HexLive.Simulation.Common.EntityId(npc));
+                },
+                (npc, into) => _runner.TryGetCraftingOptions(new HexLive.Simulation.Common.EntityId(npc), into),
+                command => { _runner.EnqueueCommand(command); _craftSig = null; });
         }
 
         private void BuildInventoryWearLayerButtons()

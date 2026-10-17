@@ -150,9 +150,35 @@ function inventoryModel() {
   };
 }
 
+// §138.7 on the stand: a pretend workbench — each queued item takes 3 s.
+const craftQueue = {}; // recipe → count (the item in the making included)
+const craftProgress = {};
+setInterval(() => {
+  let changed = false;
+  for (const [recipe, n] of Object.entries(craftQueue)) {
+    if (n <= 0) continue;
+    craftProgress[recipe] = (craftProgress[recipe] || 0) + 1 / 6;
+    if (craftProgress[recipe] >= 1) { craftProgress[recipe] = 0; craftQueue[recipe] = n - 1; }
+    changed = true;
+    break; // one at a time, head first
+  }
+  if (changed && inv.open) sendInventory();
+}, 500);
+
 function sendInventory() {
   if (!ready) return;
-  if (inv.open && isGame(state.dialog)) post({ t: 'show', screen: 'inventory', model: inventoryModel() });
+  if (inv.open && isGame(state.dialog)) {
+    const model = inventoryModel();
+    for (const r of model.craft.recipes) {
+      const d = model.craft.detail[r.id];
+      r.queued = craftQueue[r.id] || 0;
+      if (r.queued > 0) r.working = true;
+      d.queued = r.queued;
+      if (r.queued > 0) { d.progress = craftProgress[r.id] || 0; d.button = 'working'; }
+      d.canQueue = !d.block || r.queued > 0;
+    }
+    post({ t: 'show', screen: 'inventory', model });
+  }
   else post({ t: 'hide', screen: 'inventory' });
 }
 
@@ -495,10 +521,12 @@ function handle(message) {
     if (message.cmd === 'dollRect') { inv.dollRect = a; drawWorld(); return; }
     if (message.cmd === 'dollRotate') return;
     note(key, `${args} → ${{ close: 'закрыть окно', action: 'надеть / снять / выбросить вещь', outfitLock: 'закрепить одежду',
-      dollLayer: 'показать слой одежды на кукле', craft: 'начать изготовление' }[message.cmd] || '?'}`);
+      dollLayer: 'показать слой одежды на кукле', craft: 'ещё одну в очередь крафта', craftCancel: 'очистить очередь (текущую доделает)' }[message.cmd] || '?'}`);
     if (message.cmd === 'close') { inv.open = false; inv.dollRect = null; drawWorld(); }
     if (message.cmd === 'outfitLock') inv.locked = !!a.value;
     if (message.cmd === 'dollLayer') inv.layer = a.layer;
+    if (message.cmd === 'craft') craftQueue[a.recipe] = (craftQueue[a.recipe] || 0) + 1;
+    if (message.cmd === 'craftCancel') craftQueue[a.recipe] = Math.min(craftQueue[a.recipe] || 0, 1);
     if (message.cmd === 'action') {
       const it = inv.items.find((x) => x.uid === a.uid);
       if (it && a.kind === 'wear') it.worn = true;

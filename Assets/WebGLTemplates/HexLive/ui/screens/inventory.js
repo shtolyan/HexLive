@@ -12,11 +12,14 @@
 //             detail: { category, desc, stats: [[label, value]], actions: ['wear'|'stow'|'drop'|'fill'|'plant'], note } }],
 //   slots,                                  // total cells, empty ones included
 //   dollLayer: 'underwear'|'wear'|'outerwear'|'bags',
-//   craft: { blocked (key|null), categories: [id], recipes: [{ id, icon, name, category, working }],
-//            detail: { recipe → { ingredients: [{ icon, name, have, need }], station, inPlace, progress, block, button } } },
+//   craft: { blocked (key|null), categories: [id], recipes: [{ id, icon, name, category, working, queued }],
+//            detail: { recipe → { ingredients: [{ icon, name, have, need }], station, inPlace, progress, block, button,
+//                                 queued, canQueue } },
+//            stopped: null | { recipe, reason } },        // §138.7: why the queue stopped on its own
 // }
 // Commands: close, action { uid, kind, count }, outfitLock { value }, dollLayer { layer },
-// dollRotate { dx }, dollRect { x, y, w, h, vw, vh }, craft { recipe }.
+// dollRotate { dx }, dollRect { x, y, w, h, vw, vh }, craft { recipe } (one more into the queue),
+// craftCancel { recipe } (drop what is queued; the item in the making is finished).
 import { html, useState, useEffect, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { asset } from '../bridge.js';
@@ -129,6 +132,7 @@ function Craft({ model, send }) {
               ${asset(r.icon) ? html`<img src=${asset(r.icon)} alt="" />` : html`<span class="hx-slot__name">${r.name}</span>`}
               <span>${r.name}</span>
               ${r.working && html`<b class="hx-slot__tag">${t('craft.working')}</b>`}
+              ${r.queued > 0 && html`<b class="hx-recipe__queue">×${r.queued}</b>`}
             </button></li>`)}
         </ul>
       </div>
@@ -151,10 +155,15 @@ function Craft({ model, send }) {
             ${detail.progress > 0 && html`<dt>${t('craft.progress')}</dt><dd>${Math.round(detail.progress * 100)}%</dd>`}
           </dl>
           ${detail.progress > 0 && html`<span class="hx-bar"><i style=${{ width: `${detail.progress * 100}%`, background: 'var(--hx-gold)' }}></i></span>`}
-          ${detail.block && html`<p class="hx-warn">${t(`craft.block.${detail.block}`)}</p>`}
-          <div class="hx-actions hx-actions--left">
-            <${Button} variant="primary" disabled=${!!detail.block || detail.button === 'working'}
-              onClick=${() => send('craft', { recipe: chosen.id })}>${t(`craft.${detail.button || 'create'}`)}<//>
+          ${detail.block && !detail.canQueue && html`<p class="hx-warn">${t(`craft.block.${detail.block}`)}</p>`}
+          ${craft.stopped?.recipe === chosen.id && html`<p class="hx-notice">${icons.alert()}
+            <span>${t('craft.queue_stopped', { 0: t(`craft.block.${craft.stopped.reason}`) })}</span></p>`}
+          <div class="hx-actions hx-actions--left hx-craft-go">
+            <${Button} variant="primary" disabled=${!detail.canQueue}
+              onClick=${() => send('craft', { recipe: chosen.id })}>${t(detail.button === 'working' ? 'craft.create_more' : `craft.${detail.button || 'create'}`)}<//>
+            ${detail.queued > 0 && html`
+              <span class="hx-queue" aria-live="polite">${t('craft.queue', { 0: detail.queued })}</span>
+              <button type="button" class="hx-link-back" onClick=${() => send('craftCancel', { recipe: chosen.id })}>${t('craft.queue_clear')}</button>`}
           </div>
         </section>`}
     </div>`;

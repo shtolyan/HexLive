@@ -30634,6 +30634,38 @@ MonoBehaviour:
       - 'Живут: {0} из {1}'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'craft.queue'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Queued: {0}'
+      - 'В очереди: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.create_more'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Make another'
+      - 'Создать ещё'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.queue_clear'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Clear the queue'
+      - 'Очистить очередь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'craft.queue_stopped'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Queue stopped: {0}'
+      - 'Очередь остановлена: {0}'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

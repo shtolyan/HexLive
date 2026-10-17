@@ -1,7 +1,7 @@
 {
   "version": 1,
   "definitionId": "architecture.roof.palm.flat",
-  "modelSha256": "02cdb09c813a3c806a756431ccf1787b6f485cd88ee44cb010e653790e93b739",
+  "modelSha256": "7f5a64dd9327beb3d4f4a07d3ffd0f1e2481921906e6cdac68d1f900b90193c6",
   "basis": {
     "up": "+Z",
     "forward": "+Y",

@@ -23,12 +23,13 @@ namespace HexLive.Editor
             if (type != "object" && type != "building") return null;
             var manifest = JsonUtility.FromJson<Manifest>(File.ReadAllText(ManifestPath));
             var definition = manifest.definitions.FirstOrDefault(item => item.id == id);
-            if (definition == null) return null;
             var issues = new SortedSet<string>(StringComparer.Ordinal);
-            ValidateDefinition(definition, issues);
+            if (definition != null) ValidateDefinition(definition, issues);
+            foreach (var check in manifest.additionalArtChecks ?? Array.Empty<ArtCheck>())
+                if (check.id == id) ValidateArtCheck(check, issues);
             if (issues.Count != 0)
                 throw new UnityEditor.Build.BuildFailedException(string.Join("\n", issues));
-            return Path.ChangeExtension(definition.export, ".construction.json").Replace('\\', '/');
+            return definition == null ? null : Path.ChangeExtension(definition.export, ".construction.json").Replace('\\', '/');
         }
 
         public static HashSet<string> Validate(ISet<string> violations)
@@ -40,6 +41,11 @@ namespace HexLive.Editor
                 ids.Add(definition.id);
                 try { ValidateDefinition(definition, violations); }
                 catch (Exception error) { violations.Add(definition.id + ": " + error.Message); }
+            }
+            foreach (var check in manifest.additionalArtChecks ?? Array.Empty<ArtCheck>())
+            {
+                try { ValidateArtCheck(check, violations); }
+                catch (Exception error) { violations.Add(check.id + ": " + error.Message); }
             }
             return ids;
         }
@@ -79,6 +85,7 @@ namespace HexLive.Editor
             {
                 var model = Object.Instantiate(prefab, wrapper.transform, false);
                 var nodes = model.GetComponentsInChildren<Transform>(true);
+                ValidateForbiddenNodes(definition.id, nodes, definition.forbiddenNodeFragments, issues);
                 // Unity may replace the single FBX root's name with its file
                 // basename (bed_basic_final_native rather than bed.basic).
                 var owner = nodes.FirstOrDefault(t => t.name == definition.id) ?? model.transform;
@@ -178,13 +185,30 @@ namespace HexLive.Editor
             }
         }
 
-        [Serializable] private sealed class Manifest { public Definition[] definitions; }
+        private static void ValidateForbiddenNodes(string id, Transform[] nodes, string[] fragments, ISet<string> issues)
+        {
+            foreach (var node in nodes)
+                if ((fragments ?? Array.Empty<string>()).Any(fragment =>
+                        node.name.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0))
+                    issues.Add(id + ": forbidden technical roof geometry " + node.name);
+        }
+
+        private static void ValidateArtCheck(ArtCheck check, ISet<string> issues)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(check.export);
+            if (prefab == null) throw new InvalidOperationException("Missing native FBX " + check.export);
+            ValidateForbiddenNodes(check.id, prefab.GetComponentsInChildren<Transform>(true), check.forbiddenNodeFragments, issues);
+        }
+
+        [Serializable] private sealed class Manifest { public Definition[] definitions; public ArtCheck[] additionalArtChecks; }
+        [Serializable] private sealed class ArtCheck { public string id; public string export; public string[] forbiddenNodeFragments; }
         [Serializable] private sealed class Definition
         {
             public string id;
             public string export;
             public string[] requiredNodes;
             public string[] outwardMeshPrefixes;
+            public string[] forbiddenNodeFragments;
             public Stage[] stages;
         }
         [Serializable] private sealed class Stage { public int index; public string material; public int units; }

@@ -56,6 +56,9 @@ def validate(definition):
                for i in range(4) for j in range(4)):
             issues.append(f"Stage {index} must have identity transform for drag reparenting")
     export_names = [stage_name(obj) for obj in [root, *root.children_recursive]]
+    for name in export_names:
+        if any(fragment.lower() in name.lower() for fragment in definition.get("forbiddenNodeFragments", [])):
+            issues.append("Forbidden technical geometry: " + name)
     duplicate_names = sorted(name for name in set(export_names) if export_names.count(name)>1)
     if duplicate_names:
         issues.append("Duplicate exported attachment/part names: " + ", ".join(duplicate_names))

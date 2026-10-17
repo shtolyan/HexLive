@@ -659,14 +659,12 @@ public sealed class HutAssembly : MonoBehaviour
 
         // Stage 3: twelve delivered bundles. Each is one direct stage child,
         // so progress reveals whole bundles; inside it the six roof directions
-        // receive two compact, controlled fronds. Woven triangular mats below
-        // guarantee a closed silhouette, while the 144 fronds supply the dense
-        // irregular leaf edge approved in the Blender study.
+        // receive two compact, controlled fronds. Only the real fronds cover
+        // the roof; no opaque technical mat is generated underneath them.
         for (var bundle = 0; bundle < BuildingRules.RoofLeaves; bundle++)
         {
             var bundleRoot = new GameObject($"roof_bundle_{bundle:00}");
             bundleRoot.transform.SetParent(roof, false);
-            if (bundle < 6) AddRoofMat(bundleRoot.transform, bundle);
             for (var crown = 0; crown < 2; crown++)
             {
                 for (var side = 0; side < 6; side++)
@@ -969,32 +967,6 @@ public sealed class HutAssembly : MonoBehaviour
         piece.transform.localScale = new Vector3(radius, delta.magnitude * 0.5f, radius);
         piece.GetComponent<Renderer>().sharedMaterial = NativeMaterial(material);
         DestroyRuntime(piece.GetComponent<Collider>());
-    }
-
-    private static void AddRoofMat(Transform parent, int side)
-    {
-        var a0 = (side * 60f - 30f) * Mathf.Deg2Rad;
-        var a1 = (side * 60f + 30f) * Mathf.Deg2Rad;
-        var mesh = new Mesh { name = $"roof_mat_mesh_{side}" };
-        var apex = new Vector3(0f, 2.70f, 0f);
-        var left = new Vector3(Mathf.Sin(a0) * 1.66f, 2.08f, Mathf.Cos(a0) * 1.66f);
-        var right = new Vector3(Mathf.Sin(a1) * 1.66f, 2.08f, Mathf.Cos(a1) * 1.66f);
-        mesh.vertices = new[]
-        {
-            apex, left, right,
-            apex, left, right
-        };
-        // Separate vertices for the reverse face. Sharing the same three
-        // vertices would cancel RecalculateNormals; relying only on Cull Off
-        // left some URP camera angles reading the interior as a black wedge.
-        mesh.triangles = new[] { 0, 1, 2, 3, 5, 4 };
-        var normal = Vector3.Cross(left - apex, right - apex).normalized;
-        mesh.normals = new[] { normal, normal, normal, -normal, -normal, -normal };
-        var piece = new GameObject($"roof_woven_mat_{side}");
-        piece.transform.SetParent(parent, false);
-        var filter = piece.AddComponent<MeshFilter>();
-        filter.sharedMesh = mesh;
-        piece.AddComponent<MeshRenderer>().sharedMaterial = NativeMaterial("LeafMat");
     }
 
     private static void AddRoofFrond(Transform parent, string name, Vector3 from,

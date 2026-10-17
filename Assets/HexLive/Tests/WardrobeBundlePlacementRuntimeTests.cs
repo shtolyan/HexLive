@@ -11,6 +11,8 @@ using HexLive.UnityPresentation.Environment;
 using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Wearing;
 using HexLive.UnityPresentation.Wearing.Garments;
+using HexLive.Simulation.Common;
+using HexLive.Simulation.Runtime.Blueprints;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -55,6 +57,8 @@ public sealed class WardrobeBundlePlacementRuntimeTests
         oldSubscription = Swap(typeof(AtomicResources), "_registrySource", service);
         Swap(typeof(ContentPrefabCache), "_registrySource", service);
         handles = Cache(typeof(AtomicResources), "Handles");
+        Cache(typeof(AtomicResources), "Terminal");
+        Cache(typeof(BlueprintArchitectureFactory), "ModelPrefabs");
         prefabHandles = Cache(typeof(ContentPrefabCache), "Handles");
         Swap(typeof(DryingRackHangers), "_resolvedPrefab", null);
         Swap(typeof(DryingRackHangers), "_hasAuthoredSlots", false);
@@ -199,6 +203,45 @@ public sealed class WardrobeBundlePlacementRuntimeTests
             }
             Object.DestroyImmediate(view);
         }
+    }
+    [Test]
+    public void ImportedRoofOwnersKeepRealLeavesWithoutTechnicalBackingAcrossSixYaws()
+    {
+        foreach (var id in new[] { "architecture.roof.palm", "architecture.roof.palm.flat", "building.hut_1hex" })
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/HexLiveContent/RuntimeSource/Objects/" + id + ".fbx");
+            Assert.That(prefab, Is.Not.Null);
+            handles["building/" + id + "#main"] = Activator.CreateInstance(
+                typeof(ContentAssetHandle<Object>), Instance, null, new object[] { prefab, null }, null);
+            for (int yaw = 0; yaw < 360; yaw += 60)
+            {
+                var view = id == "building.hut_1hex" ? HutAssembly.BuildFinished() :
+                    BlueprintArchitectureFactory.InstantiateModel(id, Vector3.zero, Quaternion.identity);
+                Assert.That(view, Is.Not.Null); objects.Add(view);
+                view.transform.SetPositionAndRotation(new Vector3(12, 3, -7), Quaternion.Euler(0, yaw, 0));
+                Assert.That(view.GetComponentsInChildren<Transform>(true).Any(t =>
+                    t.name.IndexOf("ThatchBacking", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    t.name.IndexOf("roof_woven_mat_", StringComparison.OrdinalIgnoreCase) >= 0), Is.False);
+                var meshes = view.GetComponentsInChildren<MeshFilter>(true);
+                var leaves = meshes.Count(f => f.name.IndexOf("_leaf_", StringComparison.OrdinalIgnoreCase) >= 0);
+                Assert.That(leaves, Is.EqualTo(id == "building.hut_1hex" ? 48 : 27));
+                Assert.That(meshes.Length, Is.EqualTo(id == "building.hut_1hex" ? 152 : 32));
+                Object.DestroyImmediate(view);
+            }
+        }
+    }
+    [Test]
+    public void PendingRoofContentDoesNotGenerateAnOpaqueTriangle()
+    {
+        var terminal = (IDictionary)typeof(AtomicResources).GetField("Terminal", Static).GetValue(null);
+        terminal["building/architecture.roof.palm.flat#main"] = AtomicResources.Availability.Loading;
+        var element = new BlueprintElementData { Kind = BlueprintElementKind.RoofSector,
+            RoofSector = new RoofSectorKey(new TileCoord(0, 0), 0) };
+        var draft = new BuildingBlueprintDraft(); draft.Elements.Add(element);
+        var pending = BlueprintArchitectureFactory.Build(element, draft); objects.Add(pending);
+        Assert.That(pending.GetComponentsInChildren<Renderer>(true), Is.Empty);
+        Assert.That(pending.GetComponentsInChildren<MeshFilter>(true), Is.Empty);
     }
     [Test]
     public void ImportedSourceUsesTheSameProductionFactories()

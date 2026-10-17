@@ -368,9 +368,12 @@ namespace HexLive.UnityPresentation.Environment
                 SectorYaw(bisector));
             if (model != null) return model;
 
-            return Triangle(
-                $"Roof sector {sector}", center, a, b,
-                RoofEaveHeight, Leaf, 0.025f, 0.22f);
+            // Content is asynchronous. A filled fallback triangle becomes an
+            // opaque technical roof even before the real fronds are available.
+            var pending = new GameObject($"Roof sector {sector} (content pending)");
+            pending.transform.SetPositionAndRotation(
+                new Vector3(center.X, RoofEaveHeight, center.Y), SectorYaw(bisector));
+            return pending;
         }
 
         private static GameObject BuildBay(

@@ -219,45 +219,6 @@ def review_roof(root):
     root["hexlive_art_review"] = "2026-10-16: thatch clipped to the canonical hex sector, 27 paid fronds preserved"
 
 
-def close_thatch_gaps(root):
-    """Each paid palm bundle owns one overlapping band of woven leaf backing.
-
-    Frond leaflets alone are perforated and are not a weatherproof roof. Bands
-    follow the same hex plane, not an asset-specific runtime seam correction.
-    """
-    if root.get("hexlive_thatch_backing_review"):
-        return
-    sequence = [unit for stage, _, unit in stages.unit_sequence(root) if stage == 2]
-    apothem = 1.5*math.sqrt(3)/2
-    rise = .135 if root.get("hexlive_definition_id") == "architecture.roof.palm" else 0
-    collection = root.users_collection[0]
-    for index, unit in enumerate(sequence):
-        source = next(obj for obj in unit.children_recursive if obj.type == "MESH")
-        # Eave first, peak last; neighbouring bands overlap by 0.008 wu.
-        x0 = max(0, apothem*(1-(index+1)/len(sequence))-.004)
-        x1 = min(apothem, apothem*(1-index/len(sequence))+.004)
-        points = []
-        for dz in (-.006, .002):
-            for x, sign in ((x0, -1), (x1, -1), (x1, 1), (x0, 1)):
-                points.append((x, sign*x/math.sqrt(3), rise*(1-x/apothem)+dz))
-        mesh = bpy.data.meshes.new("WovenThatchBacking")
-        mesh.from_pydata(points, [], [(3, 2, 1, 0), (4, 5, 6, 7),
-            (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)])
-        mesh.materials.append(source.data.materials[0])
-        bm = bmesh.new()
-        bm.from_mesh(mesh)
-        bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
-        bm.to_mesh(mesh)
-        bm.free()
-        name = f"ThatchBacking_{index:02d}"
-        obj = bpy.data.objects.new(name, mesh)
-        collection.objects.link(obj)
-        obj.parent = unit
-        obj.matrix_world = root.matrix_world.copy()
-        obj["hexlive_export_name"] = name
-    root["hexlive_thatch_backing_review"] = "27 overlapping paid leaf bands; canonical sector plane"
-
-
 def review_bed_grounding():
     root = root_for("bed.basic")
     if root.get("hexlive_grounded_log_review"):
@@ -335,8 +296,6 @@ def main():
             review_roof(root_for(definition))
         for root in [o for o in bpy.data.objects if o.get("hexlive_definition_id")]:
             wrap_units(root)
-        for definition in ("architecture.roof.palm", "architecture.roof.palm.flat"):
-            close_thatch_gaps(root_for(definition))
         bpy.context.view_layer.update()
         manifest = json.loads((REPO / "Tools/construction_stage_manifest.json").read_text())
         for definition in manifest["definitions"]:

@@ -2,6 +2,13 @@
   "schemaVersion": 1,
   "stageNameFormat": "BuildStage_<index>__<material>",
   "unitRule": "one direct non-deco child equals one delivered resource",
+  "additionalArtChecks": [
+    {
+      "id": "building.hut_1hex",
+      "export": "Assets/HexLiveContent/RuntimeSource/Objects/building.hut_1hex.fbx",
+      "forbiddenNodeFragments": ["roof_woven_mat_", "ThatchBacking"]
+    }
+  ],
   "definitions": [
     {
       "id": "architecture.wall.wood",
@@ -147,6 +154,7 @@
     },
     {
       "id": "architecture.roof.palm",
+      "forbiddenNodeFragments": ["ThatchBacking", "roof_woven_mat_"],
       "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
       "sourceRoot": "architecture.roof.palm",
       "export": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.roof.palm.fbx",
@@ -175,6 +183,7 @@
     },
     {
       "id": "architecture.roof.palm.flat",
+      "forbiddenNodeFragments": ["ThatchBacking", "roof_woven_mat_"],
       "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
       "sourceRoot": "architecture.roof.palm.flat",
       "export": "Assets/HexLiveContent/RuntimeSource/Objects/architecture.roof.palm.flat.fbx",

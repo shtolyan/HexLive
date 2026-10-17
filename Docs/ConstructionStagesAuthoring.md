@@ -144,3 +144,30 @@ Blender, не утверждение об успешной Unity-интегра�
 реальные production modules из `BlueprintBuildingPlan.Modules`, а
 `render_production_construction_review.py` делает художественные снимки стадий.
 Редактор Unity и production loading path всё равно требуют собственного прогона.
+
+## Крыши без технической подложки (#480)
+
+Оба секторных owner сохраняют 3 каркасных, 27 листовых и 2 верёвочных units.
+Все 54 `ThatchBacking` удалены из общего authoring source. Старый
+`close_thatch_gaps` больше не существует и не вызывается художественным review.
+Экспорт и Unity construction gate отвергают технические маты, включая скрытые.
+
+У цельной legacy-хижины отдельный сохраняющий арт источник:
+`_ArtSource/Construction/legacy_hut_1hex.blend` (Blender 3.2). Он получен из
+фактически поставленного FBX SHA256
+`443ba60205ccf5493745d2b1ac4860dc828b5a22940e7c79ab7f9b9ad864f186`:
+удалены только шесть технических матов, сохранены все остальные 152 меша,
+их вершины, грани и материалы, включая 48 настоящих листьев крыши. Provenance
+записан также на owner-root. Старый kit не перезаписывается: его регенерация
+меняла посторонние пол и листья, что было отвергнуто сравнением геометрии.
+
+```text
+blender _ArtSource/Construction/legacy_hut_1hex.blend --background --python-exit-code 1 --python Tools/blender/export_hut_1hex.py
+```
+
+Для временной проверки добавить `-- --output <review.fbx>`; экспорт не сохраняет
+исходник автоматически. Цель — прежний
+`Assets/HexLiveContent/RuntimeSource/Objects/building.hut_1hex.fbx`. Этот owner
+остаётся совместимым legacy-объектом, не пятнадцатой моделью поштучного строительства:
+его запрет подложки задан в `additionalArtChecks` manifest и проверяется также
+при атомарной сборке. Процедурное превью и pending roof не создают сплошных матов.

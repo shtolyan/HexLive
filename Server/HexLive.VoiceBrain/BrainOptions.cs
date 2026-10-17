@@ -16,6 +16,8 @@ public sealed class BrainOptions
     public string TariffsPath { get; init; } = "";
     public string StateDirectory { get; init; } = "";
     public string VoicesPath { get; init; } = "";
+    /// <summary>§171.26: the call opens with a generated first line; the ElevenLabs agent must allow the first_message override.</summary>
+    public bool Greeting { get; init; }
 
     /// <summary>True when every provider secret is present; the game server keeps voice off otherwise.</summary>
     public static bool Configured() => new[] { "OPENAI_API_KEY", "ELEVENLABS_API_KEY", "VOICEBRAIN_SECRET", "VOICEBRAIN_AGENT_ID" }
@@ -42,6 +44,7 @@ public sealed class BrainOptions
             TariffsPath = Opt("VOICEBRAIN_TARIFFS", ""),
             StateDirectory = Opt("VOICEBRAIN_STATE_DIR", Path.Combine(Path.GetTempPath(), "hexlive-voicebrain")),
             VoicesPath = Opt("VOICEBRAIN_VOICES", ""),
+            Greeting = Opt("VOICEBRAIN_GREETING", "") == "1",
         };
     }
 }

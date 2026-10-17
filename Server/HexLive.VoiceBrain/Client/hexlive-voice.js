@@ -66,6 +66,13 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
     });
     return me.finishing;
   }
+  // §171.26: the character's own first line, when the server wrote one.
+  function overridesFor(session) {
+    const overrides = {};
+    if (session.voiceId) overrides.tts = { voiceId: session.voiceId };
+    if (typeof session.firstMessage === "string" && session.firstMessage.trim()) overrides.agent = { firstMessage: session.firstMessage };
+    return Object.keys(overrides).length ? overrides : undefined;
+  }
   async function startVoice({ server, bearer, clientId, npcId, controlEpoch, onEvent }) {
     if (active) await finish(active, "replaced");
     const emit = e => { try { onEvent?.(e); } catch (_) { } };
@@ -92,7 +99,7 @@ export function createVoiceClient({ request = (...a) => fetch(...a), sdk = () =>
       me.conversation = await Conversation.startSession({
         conversationToken: session.conversationToken, connectionType: "webrtc", userId: session.sessionId,
         customLlmExtraBody: { ticket: session.ticket },
-        overrides: session.voiceId ? { tts: { voiceId: session.voiceId } } : undefined,
+        overrides: overridesFor(session),
         onConnect: () => { if (me.stopped) return; me.connected = true; cancel(me.connectTimer); arm(me); emit({ type: "state", state: "listening" }); },
         onDisconnect: () => { void finish(me, "disconnected"); },
         onError: e => { if (me.stopped) return; emit({ type: "state", state: "error", detail: String(e?.message || e) }); void finish(me, "error"); },

@@ -31,6 +31,7 @@
     <EmbeddedResource Include="Accounts/site/*.webp" LogicalName="HexLive.Accounts.Site.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Mcp/npc-names.json" LogicalName="HexLive.Mcp.NpcNames.json" />
     <EmbeddedResource Include="Mcp/effect-terms.json" LogicalName="HexLive.Mcp.EffectTerms.json" />
+    <EmbeddedResource Include="Mcp/journal-terms.json" LogicalName="HexLive.Mcp.JournalTerms.json" />
   </ItemGroup>
 
   <!--

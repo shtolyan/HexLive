@@ -949,6 +949,9 @@ public sealed class McpTools
                 ["camps"] = McpSocialObservations.Camps(world, npc),
                 ["knownPeople"] = knownPeople,
                 ["knownPeopleTotal"] = knownPeopleTotal,
+                // §171.26: her own diary as ready phrases, plus the clock to read pauses.
+                ["dayLengthTicks"] = WorldBalance.DayLengthTicks,
+                ["journal"] = McpJournalObservations.Recent(world, npc),
                 // §167: обещание, ожидающая просьба и запас лагеря против целей.
                 ["directive"] = npc.Mind.Directive is { } directive ? new Dictionary<string, object?>
                 {

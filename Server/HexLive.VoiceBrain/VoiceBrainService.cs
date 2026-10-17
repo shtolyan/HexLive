@@ -22,6 +22,7 @@ public sealed partial class VoiceBrainService
     private readonly OpenAiStream _llm;
     private readonly RelationshipStore _bonds;
     private readonly VoiceConversationMemory _memory;
+    private readonly ContactClock _contacts;
     private readonly IUsageLedger? _ledger;
     private readonly UsageTariffs? _tariffs;
     private readonly Func<SessionTicket, IWorldGateway> _worldFor;
@@ -41,6 +42,7 @@ public sealed partial class VoiceBrainService
         Tickets = new SessionTickets(options.TicketKey);
         _bonds = new RelationshipStore(Path.Combine(options.StateDirectory, "bonds"));
         _memory = new VoiceConversationMemory(Path.Combine(options.StateDirectory, "conversations"));
+        _contacts = new ContactClock(Path.Combine(options.StateDirectory, "contacts"));
         _ledger = options.UsageDirectory.Length > 0 ? new JsonlUsageLedger(options.UsageDirectory) : null;
         if (options.TariffsPath.Length > 0) _tariffs = UsageTariffs.Load(options.TariffsPath); // explicit bad config fails closed
         else
@@ -125,7 +127,7 @@ public sealed partial class VoiceBrainService
             await c.Response.WriteAsync("data: " + json + "\n\n", callToken);
             await c.Response.Body.FlushAsync(callToken);
         }
-        var turn = new BrainTurn(Options, _llm, _worldFor(ticket), _bonds, _ledger, _tariffs, _log, _canSpend, _memory);
+        var turn = new BrainTurn(Options, _llm, _worldFor(ticket), _bonds, _ledger, _tariffs, _log, _canSpend, _memory, _contacts);
         try
         {
             await Chunk(new { role = "assistant" }, null);
@@ -141,6 +143,26 @@ public sealed partial class VoiceBrainService
         }
         await Chunk(new { }, "stop");
         await c.Response.WriteAsync("data: [DONE]\n\n", callToken);
+    }
+
+    /// <summary>
+    /// §171.26: her first line for a call that is being set up, or null — off,
+    /// timed out, refused or empty. Never throws: the call then opens with the
+    /// agent's default line.
+    /// </summary>
+    public async Task<string?> GreetingAsync(SessionTicket ticket, CancellationToken token)
+    {
+        if (!Options.Greeting) return null;
+        try
+        {
+            var turn = new BrainTurn(Options, _llm, _worldFor(ticket), _bonds, _ledger, _tariffs, _log, _canSpend, _memory, _contacts);
+            return await turn.GreetAsync(ticket, token);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning("voice greeting skipped: {Type}", ex.GetType().Name);
+            return null;
+        }
     }
 
     /// <summary>§171.11: the browser module (ES module) — static code, no secrets, same origin as the game page.</summary>

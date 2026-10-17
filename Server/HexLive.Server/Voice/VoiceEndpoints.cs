@@ -28,6 +28,7 @@ public static class VoiceEndpoints
     public const string BrainPath = Root + "/brain/chat/completions";
     public const int SessionsPerMinute = 6;
     public static readonly TimeSpan ProviderSessionTimeout = TimeSpan.FromSeconds(15);
+    public static readonly TimeSpan GreetingTimeout = TimeSpan.FromSeconds(4);
 
     public static VoiceBrainService? Map(WebApplication app, WorldSupervisor worlds, ControlLeases leases,
         AgentSessionRegistry agents, PlayerHttpIdentity identity, ILogger log, AccountStore? accounts = null,
@@ -142,32 +143,42 @@ public static class VoiceEndpoints
             }
             catch (WorldToolRejectedException) { return Results.StatusCode(409); }
             if (!calls.Begin(signed, epoch)) return Results.StatusCode(409);
-            string token;
-            using var issuance = CancellationTokenSource.CreateLinkedTokenSource(c.RequestAborted, calls.Lifetime(signed) ?? new CancellationToken(true));
-            issuance.CancelAfter(ProviderSessionTimeout);
-            try { token = await voice.ElevenLabs.ConversationTokenAsync(options.AgentId, issuance.Token); }
-            catch (OperationCanceledException)
+            // §171.26: her first line is written while the provider token is fetched.
+            using var greetingBudget = CancellationTokenSource.CreateLinkedTokenSource(c.RequestAborted,
+                calls.Lifetime(signed) ?? new CancellationToken(true));
+            greetingBudget.CancelAfter(GreetingTimeout);
+            var greeting = voice.GreetingAsync(signed, greetingBudget.Token);
+            try
             {
-                var cancelled = c.RequestAborted.IsCancellationRequested || calls.Lifetime(signed) == null;
-                calls.Stop(signed);
-                if (cancelled) return Results.StatusCode(409);
-                log.LogWarning("voice session issuance timed out");
-                return Results.Json(new { error = "voice_provider_timeout" }, statusCode: 504);
+                string token;
+                using var issuance = CancellationTokenSource.CreateLinkedTokenSource(c.RequestAborted, calls.Lifetime(signed) ?? new CancellationToken(true));
+                issuance.CancelAfter(ProviderSessionTimeout);
+                try { token = await voice.ElevenLabs.ConversationTokenAsync(options.AgentId, issuance.Token); }
+                catch (OperationCanceledException)
+                {
+                    var cancelled = c.RequestAborted.IsCancellationRequested || calls.Lifetime(signed) == null;
+                    calls.Stop(signed);
+                    if (cancelled) return Results.StatusCode(409);
+                    log.LogWarning("voice session issuance timed out");
+                    return Results.Json(new { error = "voice_provider_timeout" }, statusCode: 504);
+                }
+                catch (Exception ex) when (ex is HttpRequestException or JsonException or System.IO.InvalidDataException)
+                {
+                    calls.Stop(signed);
+                    log.LogWarning("voice session issuance failed: {Type}", ex.GetType().Name);
+                    return Results.Json(new { error = "voice_provider_unavailable" }, statusCode: 502);
+                }
+                if (c.RequestAborted.IsCancellationRequested || calls.Lifetime(signed) == null) { calls.Stop(signed); return Results.StatusCode(409); }
+                voice.RecordSessionStarted(signed);
+                log.LogInformation("voice session player={Player} npc={Npc}", playerId[..8], request.NpcId);
+                var firstMessage = await greeting;
+                return Results.Json(new
+                {
+                    conversationToken = token, ticket, sessionId = signed.SessionId, name = facts.DisplayName,
+                    voiceId = voice.VoiceFor(null, facts.VoiceBank, facts.DisplayName), firstMessage,
+                });
             }
-            catch (Exception ex) when (ex is HttpRequestException or JsonException or System.IO.InvalidDataException)
-            {
-                calls.Stop(signed);
-                log.LogWarning("voice session issuance failed: {Type}", ex.GetType().Name);
-                return Results.Json(new { error = "voice_provider_unavailable" }, statusCode: 502);
-            }
-            if (c.RequestAborted.IsCancellationRequested || calls.Lifetime(signed) == null) { calls.Stop(signed); return Results.StatusCode(409); }
-            voice.RecordSessionStarted(signed);
-            log.LogInformation("voice session player={Player} npc={Npc}", playerId[..8], request.NpcId);
-            return Results.Json(new
-            {
-                conversationToken = token, ticket, sessionId = signed.SessionId, name = facts.DisplayName,
-                voiceId = voice.VoiceFor(null, facts.VoiceBank, facts.DisplayName),
-            });
+            finally { greetingBudget.Cancel(); }
         });
 
         app.MapPost(Root + "/session/end", async (HttpContext c, VoiceSessionEnd request) =>

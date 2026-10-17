@@ -81,3 +81,16 @@ for (const stage of ['session', 'sdk', 'webrtc']) test('hung '+stage+' setup end
   if(stage==='webrtc')assert.equal(ends,1,'Late returned connection must close.');
   await client.stopVoice();
 });
+test('§171.26: the server-written first line opens the call, an absent one leaves the agent default',async()=>{
+  const seen=[];
+  for(const firstMessage of ['Ну наконец-то.',null,'   ']){
+    const client=createVoiceClient({later:()=>0,cancel:()=>{},
+      request:async url=>({ok:true,json:async()=>url.endsWith('/end')?{seconds:1}:{ticket:'t',conversationToken:'c',voiceId:'v',firstMessage}}),
+      sdk:async()=>({Conversation:{startSession:async o=>{seen.push(o.overrides);o.onConnect();return{getId:()=>'x',endSession:async()=>o.onDisconnect()};}}})});
+    await client.startVoice({server:'https://fixture',bearer:'fixture',npcId:7});
+    await client.stopVoice();
+  }
+  assert.deepEqual(seen[0],{tts:{voiceId:'v'},agent:{firstMessage:'Ну наконец-то.'}});
+  assert.deepEqual(seen[1],{tts:{voiceId:'v'}});
+  assert.deepEqual(seen[2],{tts:{voiceId:'v'}});
+});

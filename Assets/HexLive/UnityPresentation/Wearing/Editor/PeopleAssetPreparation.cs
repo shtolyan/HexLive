@@ -520,6 +520,7 @@ public static class PeopleAssetPreparation
                 if (kind == "actor")
                 {
                     AssignNonSkinMaterials(go, actor);
+                    PeopleEyelashPreparation.Attach(go, actor);
                     ConfigureActorAnimator(go, actor);
                     ConfigureActorIK(go);
                     ConfigureAppearance(go, actor);

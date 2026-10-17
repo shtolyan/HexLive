@@ -8,13 +8,20 @@ import hashlib
 import json
 import pathlib
 import re
+import argparse
+import sys
 import bpy
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-OUT = ROOT / 'Build/RestoredPeopleSkins'
+parser = argparse.ArgumentParser()
+parser.add_argument('--output', type=pathlib.Path, default=ROOT / 'Build/RestoredPeopleSkins')
+parser.add_argument('--target-dir', type=pathlib.Path, default=ROOT / 'Build/PeopleSkinNormalSource')
+options = parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
+OUT = options.output.resolve()
+options.target_dir = options.target_dir.resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 SIZE = 1024
 
@@ -58,11 +65,18 @@ def main():
         su = np.asarray([u.uv[:] for u in mesh.uv_layers.active.data])[loops]
         slots = np.asarray([t.material_index for t in mesh.loop_triangles])
         names = [s.material.name.split('.')[0] for s in source.material_slots]
+        # #482: optical shells and lash cards are not skin. Their white/black
+        # pixels must never win a nearest-surface query on a simplified eyelid.
+        excluded = {'Cornea', 'EyeMoisture', 'Pupils', 'Irises', 'Sclera', 'Eyelashes'}
+        keep = np.asarray([names[slot] not in excluded for slot in slots])
+        tri, su, slots = tri[keep], su[keep], slots[keep]
         tree = BVHTree.FromPolygons(sv.tolist(), tri.tolist(), all_triangles=True)
-        target_path = ROOT / 'Build/PeopleSkinNormalSource' / (actor + '-mesh.json')
+        target_path = options.target_dir / (actor + '-mesh.json')
         target = json.loads(target_path.read_text())
         tv, tu = np.asarray(target['vertices']), np.asarray(target['uv'])
-        ti = np.asarray(target['triangles']).reshape(-1, 3)
+        # Only material slot 0 is paintable skin; eye/mouth islands remain on
+        # their authored, separate runtime materials. Old ambiguous dumps fail.
+        ti = np.asarray(target['skinTriangles']).reshape(-1, 3)
         pixels, positions = [], []
         for ids in ti:
             uv = tu[ids] * SIZE
@@ -82,6 +96,7 @@ def main():
         positions[:, 0] *= -1  # Unity-to-Blender mesh coordinates.
         hits = [tree.find_nearest(Vector(p)) for p in positions]
         distance = np.asarray([h[3] for h in hits])
+        print(actor, 'registration cm p95/max', float(np.percentile(distance, 95)), float(distance.max()), flush=True)
         if np.percentile(distance, 95) > 1 or distance.max() > 2:
             raise RuntimeError('Source/target registration failed: ' + actor)
         si = np.asarray([h[2] for h in hits])
@@ -157,6 +172,7 @@ def main():
             output=OUT/(actor+'_'+donor+'_BaseColor.png')
             image.filepath_raw=str(output); image.file_format='PNG'; image.save()
             report.append({'body':actor,'skin':donor,'output':output.name,'sha256':sha(output),
+                           'excludedSourceSurfaces':sorted(excluded), 'targetSurface':'skinTriangles',
                            'targetMeshSha256':sha(target_path),'sourceMeshSha256':sha(source_path),
                            'distanceCmP95':float(np.percentile(distance,95)), 'distanceCmMax':float(distance.max()),
                            'sources':receipts})

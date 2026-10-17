@@ -74,7 +74,8 @@ public static class PeopleSkinNormalExport
                     ["normals"]=new JArray(mesh.normals.Select(v=>new JArray(v.x,v.y,v.z))),
                     ["tangents"]=new JArray(mesh.tangents.Select(v=>new JArray(v.x,v.y,v.z,v.w))),
                     ["uv"]=new JArray(mesh.uv.Select(v=>new JArray(v.x,v.y))),
-                    ["triangles"]=new JArray(mesh.triangles)
+                    ["triangles"]=new JArray(mesh.triangles),
+                    ["skinTriangles"]=new JArray(mesh.GetTriangles(0))
                 }.ToString(Newtonsoft.Json.Formatting.None));
                 var rows=new JArray(); var files=new Dictionary<string,string>();
                 foreach(var path in Directory.GetFiles(root,"*.mat").OrderBy(p=>p))

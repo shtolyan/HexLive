@@ -38,6 +38,12 @@ def find_root(definition_id):
 
 def validate(definition):
     root = find_root(definition["id"])
+    # Inactive Blender scenes can retain unevaluated identity matrix_world
+    # values even when a socket's authored location is nonzero. Evaluate the
+    # owning scene before validation AND before any export/roundtrip snapshot.
+    scene = next(s for s in bpy.data.scenes if s.get("hexlive_definition_id") == definition["id"])
+    bpy.context.window.scene = scene
+    bpy.context.view_layer.update()
     issues = authoring.validate_root(root, definition)
     if any(abs(root.matrix_world[i][j] - Matrix.Identity(4)[i][j]) > 1e-5
            for i in range(4) for j in range(4)):
@@ -54,6 +60,12 @@ def validate(definition):
     missing = [name for name in required if name not in export_names]
     if missing:
         issues.append("Missing required sockets/parts: " + ", ".join(missing))
+    for prefix in ("DryingSlot_", "ClothingSlot_"):
+        sockets = [obj for obj in root.children_recursive if stage_name(obj).startswith(prefix)]
+        for i, socket in enumerate(sockets):
+            for previous in sockets[:i]:
+                if (socket.matrix_world.translation - previous.matrix_world.translation).length < 1e-4:
+                    issues.append(f"Collapsed attachment sockets: {stage_name(previous)}, {stage_name(socket)}")
     if issues:
         raise RuntimeError(definition["id"] + ": " + "; ".join(issues))
     return root
@@ -67,9 +79,9 @@ def stage_name(obj):
 
 
 def export_definition(definition, output=None):
+    old_scene = bpy.context.window.scene
     root = validate(definition)
     scene = next(s for s in bpy.data.scenes if s.get("hexlive_definition_id") == definition["id"])
-    old_scene = bpy.context.window.scene
     bpy.context.window.scene = scene
     destination = Path(output) if output else REPO / definition["export"]
     destination.parent.mkdir(parents=True, exist_ok=True)

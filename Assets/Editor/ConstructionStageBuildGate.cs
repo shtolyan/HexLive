@@ -145,6 +145,11 @@ namespace HexLive.Editor
                 var attachments = nodes.Where(t => t.name.StartsWith("ClothingSlot_", StringComparison.Ordinal) ||
                     t.name.StartsWith("DryingSlot_", StringComparison.Ordinal)).ToArray();
                 var offsets = attachments.Select(t => wrapper.transform.InverseTransformPoint(t.position)).ToArray();
+                for (var i = 0; i < attachments.Length; i++)
+                    for (var j = 0; j < i; j++)
+                        if (attachments[i].name.Split('_')[0] == attachments[j].name.Split('_')[0] &&
+                            Vector3.Distance(offsets[i], offsets[j]) < .0001f)
+                            issues.Add($"{definition.id}: collapsed attachment sockets {attachments[j].name}, {attachments[i].name}");
                 for (var yaw = 0; yaw < 6; yaw++)
                 {
                     wrapper.transform.rotation = Quaternion.Euler(0, yaw*60, 0);

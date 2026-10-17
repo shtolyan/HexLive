@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using HexLive.UnityPresentation;
 using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.Environment;
+using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Wearing;
 using HexLive.UnityPresentation.Wearing.Garments;
 using NUnit.Framework;
@@ -29,7 +30,8 @@ public sealed class WardrobeBundlePlacementRuntimeTests
     object oldService, oldSubscription;
     readonly List<(FieldInfo field, object value)> fields = new();
     readonly List<(IDictionary cache, Dictionary<object, object> entries)> caches = new();
-    IDictionary handles, wardrobe, variants;
+    IDictionary handles, prefabHandles, wardrobe, variants;
+    Vector3[] savedDryingSlots;
     AssetBundle bundle;
 
     object Swap(Type type, string field, object value)
@@ -51,7 +53,13 @@ public sealed class WardrobeBundlePlacementRuntimeTests
         typeof(ContentAssetService).GetField("_pinned", Instance).SetValue(service, new Dictionary<string, ContentRecord>());
         oldService = Swap(typeof(ContentAssetService), "_instance", service);
         oldSubscription = Swap(typeof(AtomicResources), "_registrySource", service);
+        Swap(typeof(ContentPrefabCache), "_registrySource", service);
         handles = Cache(typeof(AtomicResources), "Handles");
+        prefabHandles = Cache(typeof(ContentPrefabCache), "Handles");
+        Swap(typeof(DryingRackHangers), "_resolvedPrefab", null);
+        Swap(typeof(DryingRackHangers), "_hasAuthoredSlots", false);
+        savedDryingSlots = (Vector3[])((Vector3[])typeof(DryingRackHangers)
+            .GetField("AuthoredSlots", Static).GetValue(null)).Clone();
         wardrobe = Cache(typeof(ActorWardrobe), "Cache");
         variants = Cache(typeof(GarmentVariants), "ById");
         Cache(typeof(WardrobeAssembly), "ClothingSlots");
@@ -64,6 +72,8 @@ public sealed class WardrobeBundlePlacementRuntimeTests
     {
         DestroyInstances();
         if (bundle != null) bundle.Unload(true);
+        savedDryingSlots.CopyTo((Vector3[])typeof(DryingRackHangers)
+            .GetField("AuthoredSlots", Static).GetValue(null), 0);
         foreach (var (cache, entries) in caches) { cache.Clear(); foreach (var e in entries) cache[e.Key] = e.Value; }
         caches.Clear();
         for (int i = fields.Count - 1; i >= 0; i--) fields[i].field.SetValue(null, fields[i].value);
@@ -106,6 +116,54 @@ public sealed class WardrobeBundlePlacementRuntimeTests
             var prefab = bundle.LoadAsset<GameObject>("main"); Assert.That(prefab, Is.Not.Null); Publish(prefab);
             Verify(prefab);
             DestroyInstances(); handles.Remove(Key); bundle.Unload(true); bundle = null;
+        }
+    }
+    [Test]
+    public void ImportedDryingRackUsesEightDistinctAuthoredSlotsAcrossReloadAndSixYaws()
+    {
+        var source = AssetDatabase.LoadAssetAtPath<GameObject>(
+            "Assets/HexLiveContent/RuntimeSource/Objects/station.drying_rack.fbx");
+        Assert.That(source, Is.Not.Null);
+        const string garmentId = "clothing.wrapboots_primal";
+        wardrobe[garmentId] = new List<Wear> { AssetDatabase.LoadAssetAtPath<GameObject>(
+            "Assets/HexLiveContent/People/Prefabs/Wear/Marta_PrimalWrapBoots.prefab").GetComponent<Wear>() };
+        variants[garmentId] = AssetDatabase.LoadAssetAtPath<GarmentDefinition>(
+            "Assets/HexLiveContent/People/Definitions/clothing.wrapboots_primal.asset");
+        var hang = typeof(HexWorldRenderer).GetMethod("HangSlotOffset", Static);
+        Assert.That(hang, Is.Not.Null);
+        for (int reload = 0; reload < 2; reload++)
+        {
+            var prefab = Object.Instantiate(source); objects.Add(prefab);
+            prefabHandles["object/station.drying_rack"] = Activator.CreateInstance(
+                typeof(ContentAssetHandle<GameObject>), Instance, null, new object[] { prefab, null }, null);
+            var slots = Enumerable.Range(0, 8).Select(DryingRackHangers.Slot).ToArray();
+            for (int i = 0; i < slots.Length; i++)
+            {
+                Assert.That(slots[i].y, Is.EqualTo(i < 4 ? 1.14f : .73f).Within(.0001f));
+                for (int j = 0; j < i; j++)
+                    Assert.That(Vector3.Distance(slots[i], slots[j]), Is.GreaterThan(.15f),
+                        $"Drying slots {i}/{j} collapsed");
+            }
+            for (int yaw = 0; yaw < 360; yaw += 60)
+            {
+                var frame = new GameObject("Drying production frame " + yaw); objects.Add(frame);
+                frame.transform.SetPositionAndRotation(new Vector3(12, 3, -7), Quaternion.Euler(0, yaw, 0));
+                var model = Object.Instantiate(prefab, frame.transform, false);
+                for (int i = 0; i < 8; i++)
+                {
+                    var socket = model.GetComponentsInChildren<Transform>(true).Single(t => t.name == $"DryingSlot_{i:D2}");
+                    Assert.That(Vector3.Distance(frame.transform.TransformPoint(slots[i]), socket.position), Is.LessThan(.0001f));
+                    var garment = GarmentDropFactory.BuildHanging(garmentId); Assert.That(garment, Is.Not.Null);
+                    garment.transform.SetParent(frame.transform, false);
+                    garment.transform.localScale = Vector3.one * .7764706f;
+                    var position = (Vector3)hang.Invoke(null, new object[] { garment.transform, i, false, Vector3.zero });
+                    garment.transform.localPosition = position;
+                    Assert.That(position.x, Is.EqualTo(slots[i].x).Within(.0001f));
+                    Assert.That(position.z, Is.EqualTo(slots[i].z).Within(.0001f));
+                    Assert.That(Geometry(garment, frame.transform).min.y, Is.GreaterThanOrEqualTo(.0399f));
+                }
+                Object.DestroyImmediate(frame);
+            }
         }
     }
     [Test]
@@ -192,6 +250,15 @@ public sealed class WardrobeBundlePlacementRuntimeTests
                 hanger.transform.SetParent(frame.transform, false);
                 Assert.That(WardrobeAssembly.TryGetClothingSlotLocal(0, out var socket), Is.True);
                 hanger.transform.localPosition = socket;
+                for (int slotIndex = 1; slotIndex < WardrobeHangers.SlotCount; slotIndex++)
+                {
+                    Assert.That(WardrobeAssembly.TryGetClothingSlotLocal(slotIndex, out var nextSocket), Is.True);
+                    Assert.That(Vector3.Distance(socket, nextSocket), Is.GreaterThan(.04f));
+                    var nextHanger = WardrobeHangerFactory.Build(prefab); Assert.That(nextHanger, Is.Not.Null);
+                    nextHanger.transform.SetParent(frame.transform, false);
+                    nextHanger.transform.localPosition = nextSocket;
+                    Assert.That(Vector3.Distance(frame.transform.InverseTransformPoint(nextHanger.transform.position), nextSocket), Is.LessThan(.0001f));
+                }
                 var bounds = Geometry(hanger, frame.transform);
                 Assert.That(bounds.size.x, Is.EqualTo(.2525226f).Within(.0001f));
                 Assert.That(bounds.size.y, Is.EqualTo(.2387662f).Within(.0001f), "Hanger must stay upright after detaching");

@@ -33,6 +33,7 @@ public sealed class OpenAiStream(HttpClient http, string apiKey)
         var first = TimeSpan.Zero;
         while (await reader.ReadLineAsync(token) is { } line)
         {
+            token.ThrowIfCancellationRequested(); // ReadLineAsync can complete from its buffer after cancellation.
             if (!line.StartsWith("data: ", StringComparison.Ordinal)) continue;
             var data = line[6..];
             if (data == "[DONE]") break;

@@ -8,25 +8,26 @@ internal static class PreparedPeopleGroundGeometry
     internal static void Register(Dictionary<string, GroundPileProfile> garments,
         Dictionary<string, string> prototypes, Dictionary<string, GroundPileProfile> objects)
     {
-        garments["clothing.armwraps_primal"] = new("clothing.armwraps_primal", new(-0.131558f, -0.000001f, -0.042004f, 0.131558f, 0.016079f, 0.042005f), 1f, garment: true);
-        garments["clothing.armwraps_primal_male"] = new("clothing.armwraps_primal_male", new(-0.146463f, -0.000001f, -0.050263f, 0.146464f, 0.018682f, 0.050263f), 1f, garment: true);
+        garments["clothing.armwraps_primal"] = new("clothing.armwraps_primal", new(-0.222221f, -0.000001f, -0.134369f, 0.222221f, 0.016079f, 0.134369f), 1f, garment: true);
+        garments["clothing.armwraps_primal_male"] = new("clothing.armwraps_primal_male", new(-0.249045f, -0.000001f, -0.150286f, 0.249045f, 0.018682f, 0.150286f), 1f, garment: true);
         garments["clothing.collar_fur"] = new("clothing.collar_fur", new(-0.049741f, -0.000001f, -0.189071f, 0.049741f, 0.031574f, 0.189071f), 1f, garment: true);
         garments["clothing.collar_fur_male"] = new("clothing.collar_fur_male", new(-0.048866f, -0.000001f, -0.215329f, 0.048866f, 0.030709f, 0.215329f), 1f, garment: true);
         garments["clothing.dress_primal"] = new("clothing.dress_primal", new(-0.159416f, -0.000001f, -0.326455f, 0.159416f, 0.030053f, 0.326455f), 1f, garment: true);
         garments["clothing.dress_primal_male"] = new("clothing.dress_primal_male", new(-0.159371f, -0.000001f, -0.350937f, 0.159371f, 0.029914f, 0.350937f), 1f, garment: true);
         garments["clothing.headband_primal"] = new("clothing.headband_primal", new(-0.069111f, -0.000002f, -0.082595f, 0.069111f, 0.114664f, 0.082595f), 1f, garment: true);
-        garments["clothing.headband_primal_male"] = new("clothing.headband_primal_male", new(-0.069992f, -0.000001f, -0.057043f, 0.069992f, 0.019355f, 0.057043f), 1f, garment: true);
+        garments["clothing.headband_primal_male"] = new("clothing.headband_primal_male", new(-0.069992f, -0.000001f, -0.080641f, 0.069992f, 0.114085f, 0.080641f), 1f, garment: true);
         garments["clothing.skirt_primal"] = new("clothing.skirt_primal", new(-0.143636f, -0.000001f, -0.092959f, 0.143636f, 0.025088f, 0.092959f), 1f, garment: true);
         garments["clothing.skirt_primal_male"] = new("clothing.skirt_primal_male", new(-0.142909f, -0.000001f, -0.091590f, 0.142909f, 0.026432f, 0.091590f), 1f, garment: true);
         garments["clothing.top_primal"] = new("clothing.top_primal", new(-0.118953f, -0.000001f, -0.126630f, 0.118953f, 0.021703f, 0.126630f), 1f, garment: true);
+        garments["clothing.top_primal_male"] = new("clothing.top_primal_male", new(-0.139617f, -0.000001f, -0.149852f, 0.139617f, 0.023803f, 0.149852f), 1f, garment: true);
         garments["clothing.wrapboots_primal"] = new("clothing.wrapboots_primal", new(-0.151654f, -0.000001f, -0.099693f, 0.151654f, 0.403760f, 0.099693f), 1f, garment: true);
-        garments["clothing.wrapboots_primal_male"] = new("clothing.wrapboots_primal_male", new(-0.163890f, -0.000001f, -0.209529f, 0.163890f, 0.026228f, 0.209529f), 1f, garment: true);
-        garments["gear.backpack_primal_gatherer"] = new("gear.backpack_primal_gatherer", new(-0.123101f, -0.000002f, -0.169145f, 0.123101f, 0.028162f, 0.169145f), 1f, garment: true);
-        garments["gear.backpack_primal_gatherer_male"] = new("gear.backpack_primal_gatherer_male", new(-0.143086f, -0.000001f, -0.189064f, 0.143086f, 0.031141f, 0.189064f), 1f, garment: true);
-        garments["gear.backpack_primal_hunter"] = new("gear.backpack_primal_hunter", new(-0.123101f, -0.000001f, -0.169145f, 0.123101f, 0.028328f, 0.169145f), 1f, garment: true);
-        garments["gear.backpack_primal_hunter_male"] = new("gear.backpack_primal_hunter_male", new(-0.143086f, -0.000001f, -0.189064f, 0.143086f, 0.031307f, 0.189064f), 1f, garment: true);
-        garments["gear.backpack_primal_trail"] = new("gear.backpack_primal_trail", new(-0.135631f, -0.000001f, -0.124237f, 0.135631f, 0.037455f, 0.124237f), 1f, garment: true);
-        garments["gear.backpack_primal_trail_male"] = new("gear.backpack_primal_trail_male", new(-0.136028f, -0.000002f, -0.130309f, 0.136028f, 0.039125f, 0.130309f), 1f, garment: true);
+        garments["clothing.wrapboots_primal_male"] = new("clothing.wrapboots_primal_male", new(-0.163890f, -0.000001f, -0.109277f, 0.163890f, 0.419057f, 0.109277f), 1f, garment: true);
+        garments["gear.backpack_primal_gatherer"] = new("gear.backpack_primal_gatherer", new(-0.123101f, -0.000002f, -0.117335f, 0.123101f, 0.338289f, 0.117335f), 1f, garment: true);
+        garments["gear.backpack_primal_gatherer_male"] = new("gear.backpack_primal_gatherer_male", new(-0.143086f, -0.000002f, -0.129748f, 0.143086f, 0.378126f, 0.129748f), 1f, garment: true);
+        garments["gear.backpack_primal_hunter"] = new("gear.backpack_primal_hunter", new(-0.123101f, -0.000002f, -0.118028f, 0.123101f, 0.338289f, 0.118028f), 1f, garment: true);
+        garments["gear.backpack_primal_hunter_male"] = new("gear.backpack_primal_hunter_male", new(-0.143086f, -0.000002f, -0.130441f, 0.143086f, 0.378126f, 0.130441f), 1f, garment: true);
+        garments["gear.backpack_primal_trail"] = new("gear.backpack_primal_trail", new(-0.135631f, -0.000001f, -0.164785f, 0.135631f, 0.248517f, 0.164785f), 1f, garment: true);
+        garments["gear.backpack_primal_trail_male"] = new("gear.backpack_primal_trail_male", new(-0.136028f, -0.000002f, -0.167991f, 0.136028f, 0.266586f, 0.167991f), 1f, garment: true);
         garments["underwear.briefs_primal"] = new("underwear.briefs_primal", new(-0.128702f, -0.000001f, -0.076528f, 0.128702f, 0.023187f, 0.076528f), 1f, garment: true);
         garments["underwear.briefs_primal_male"] = new("underwear.briefs_primal_male", new(-0.126180f, -0.000001f, -0.084672f, 0.126180f, 0.026005f, 0.084672f), 1f, garment: true);
         prototypes["clothing.armwraps_primal"] = "clothing.armwraps_primal";
@@ -85,6 +86,10 @@ internal static class PreparedPeopleGroundGeometry
         prototypes["clothing.top_primal_1"] = "clothing.top_primal";
         prototypes["clothing.top_primal_2"] = "clothing.top_primal";
         prototypes["clothing.top_primal_3"] = "clothing.top_primal";
+        prototypes["clothing.top_primal_male"] = "clothing.top_primal_male";
+        prototypes["clothing.top_primal_male_1"] = "clothing.top_primal_male";
+        prototypes["clothing.top_primal_male_2"] = "clothing.top_primal_male";
+        prototypes["clothing.top_primal_male_3"] = "clothing.top_primal_male";
         prototypes["clothing.wrapboots_primal"] = "clothing.wrapboots_primal";
         prototypes["clothing.wrapboots_primal_1"] = "clothing.wrapboots_primal";
         prototypes["clothing.wrapboots_primal_2"] = "clothing.wrapboots_primal";

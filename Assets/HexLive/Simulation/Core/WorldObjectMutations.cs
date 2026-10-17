@@ -33,7 +33,8 @@ public static class WorldObjectMutations
                 def.StoredAmount(Content.StoredKind.Water) > 0f
                     ? def.StoredAmount(Content.StoredKind.Water)
                     : 1f,
-            SpawnTick = world.Tick
+            SpawnTick = world.Tick,
+            LeafDryingStartTick = LeafDryingMath.HasLeaves(definitionId) ? world.Tick : -1
         };
         worldObject.Junctions.Add(anchorJunction);
 

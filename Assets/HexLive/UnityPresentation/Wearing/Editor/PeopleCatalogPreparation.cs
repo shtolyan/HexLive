@@ -101,6 +101,7 @@ namespace HexLive.UnityPresentation.Wearing.Editor
                                 ["covers"] = new JArray(def.covers.Select(c => c.ToString())) } } });
                 }
             }
+            PeopleWardrobeFitPreparation.ApplyPairs(records);
             foreach (var guid in AssetDatabase.FindAssets("t:ScriptableObject", new[] { Root + "/PaintMaps" }))
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);

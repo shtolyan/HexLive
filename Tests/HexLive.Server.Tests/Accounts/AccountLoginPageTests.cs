@@ -72,6 +72,7 @@ public sealed class AccountLoginPageTests
                 Assert.That(html, Does.Not.Contain(options.FirebaseApiKey).And.Not.Contain(options.FirebaseProject!).And.Not.Contain(options.FirebaseAuthDomain!));
                 Assert.That(html, Does.Not.Contain("AIza").And.Not.Contain("hexlive-game").And.Not.Contain("innerHTML"));
                 Assert.That(html, Does.Contain("api('/client-config'").And.Contain("hexlive.session").And.Contain("/play/"));
+                Assert.That(html, Does.Not.Contain("function createCharacter").And.Not.Contain("function appearance(").And.Not.Contain("api('/character/options'"));
                 var csp = response.Headers.GetValues("Content-Security-Policy").Single();
                 Assert.That(csp, Does.Contain("default-src 'none'").And.Contain("frame-ancestors 'none'").And.Contain("https://" + options.FirebaseAuthDomain));
                 Assert.That(csp, Does.Not.Contain("unsafe-inline").And.Not.Contain("unsafe-eval").And.Not.Contain("*"));

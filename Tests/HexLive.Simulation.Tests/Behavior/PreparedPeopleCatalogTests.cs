@@ -15,7 +15,7 @@ public sealed class PreparedPeopleCatalogTests
             "Assets/HexLiveContent/People/Validation/scale-audit.json")));
         Assert.That(audit["passed"].GetValue<bool>(), Is.True);
         var rows = audit["rows"].AsArray().Where(r => r["type"].GetValue<string>() == "wear" && !r["hanging"].GetValue<bool>()).ToArray();
-        Assert.That(rows.Length, Is.EqualTo(78));
+        Assert.That(rows.Length, Is.EqualTo(82));
         foreach (var row in rows)
         {
             string id = row["id"].GetValue<string>();
@@ -52,12 +52,12 @@ public sealed class PreparedPeopleCatalogTests
             Assert.That(GarmentLibrary.Spawnable.Select(g => g.Id),
                 Is.EquivalentTo(rows.Select(r => r["id"].GetValue<string>())));
             Assert.That(GarmentLibrary.Spawnable.Count(g => g.Sex == GarmentSex.Female), Is.EqualTo(41));
-            Assert.That(GarmentLibrary.Spawnable.Count(g => g.Sex == GarmentSex.Male), Is.EqualTo(37));
+            Assert.That(GarmentLibrary.Spawnable.Count(g => g.Sex == GarmentSex.Male), Is.EqualTo(41));
             foreach (var item in GarmentLibrary.Spawnable)
             {
                 Assert.That(GarmentLibrary.FitsSex(item.Sex, item.Id), Is.True);
                 var opposite = item.Sex == GarmentSex.Female ? GarmentSex.Male : GarmentSex.Female;
-                Assert.That(GarmentLibrary.FitsSex(opposite, item.Id), Is.False, item.Id);
+                Assert.That(GarmentLibrary.FitsSex(opposite, item.Id), Is.True, item.Id);
                 Assert.That(GarmentLibrary.IsSpawnable(item.PrototypeId), Is.True, item.Id);
             }
             Assert.That(GarmentLibrary.IsSpawnable("underwear.bra_riot"), Is.False);

@@ -156,7 +156,7 @@ public sealed class RabbitSystem : ISimulationSystem
         // tiles, no adjacency chase needed.
         foreach (var npc in world.Entities.Npcs.Values)
         {
-            if (npc.Mind.CurrentGoal != GoalType.Hunt ||
+            if (!HasHuntIntent(npc, rabbit.Id) ||
                 !npc.Body.CanUseToolsOrWeapons ||
                 !npc.Inventory.Items.Contains(ContentIds.Bow) ||
                 !npc.Inventory.Items.Contains(ContentIds.Arrow) ||
@@ -186,6 +186,7 @@ public sealed class RabbitSystem : ISimulationSystem
                 }
 
                 _deadRabbits.Add(rabbit);
+                ManualOrderSystem.CompleteCrabHunt(world,npc,rabbit.Id);
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "CrabKilled",
@@ -212,7 +213,7 @@ public sealed class RabbitSystem : ISimulationSystem
             // Spec 29F.2: убийство копьём — только НАМЕРЕННОЕ (Goal=Hunt),
             // симметрично луковой ветке выше. Без гейта любая колонистка с
             // копьём, случайно оказавшаяся рядом, забивала краба мимоходом.
-            if (npc.Mind.CurrentGoal != GoalType.Hunt ||
+            if (!HasHuntIntent(npc, rabbit.Id) ||
                 !npc.Body.CanUseToolsOrWeapons ||
                 !npc.Inventory.Items.Contains(ContentIds.Spear) ||
                 npc.CurrentJunction is not { } npcJunction ||
@@ -241,6 +242,7 @@ public sealed class RabbitSystem : ISimulationSystem
             {
                 // Spec §54: no instant loot — the kill drops a carcass to butcher.
                 _deadRabbits.Add(rabbit);
+                ManualOrderSystem.CompleteCrabHunt(world,npc,rabbit.Id);
                 if (SimTrace.Enabled)
                 {
                     Trace.Debug(world, npc.Id, "CrabKilled",
@@ -262,6 +264,10 @@ public sealed class RabbitSystem : ISimulationSystem
 
         return false;
     }
+
+    private static bool HasHuntIntent(NPCState npc, int crabId) =>
+        ManualControlMath.IsManual(npc) ? ManualCrabHunt.IsOrdered(npc, crabId) :
+        npc.Mind.CurrentGoal == GoalType.Hunt;
 
     private static void FleeHop(WorldState world, Wildlife.RabbitState rabbit, NPCState threat)
     {

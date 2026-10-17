@@ -170,7 +170,13 @@ public sealed class McpPlanningObservationTests
         Assert.That(recipe.GetProperty("station").GetString(), Is.EqualTo(expected.Station));
         Assert.That(result.GetProperty("version").GetString(), Has.Length.EqualTo(64));
         Assert.That(Call(tools, "read_recipes", new { definitionId = "does.not.exist" }).GetProperty("recipes").GetArrayLength(), Is.Zero);
-        Assert.That(Call(tools, "read_recipes", new { }).GetProperty("recipes").GetArrayLength(), Is.EqualTo(RecipeCatalog.ByGoal.Count));
+        var all = Call(tools, "read_recipes", new { }).GetProperty("recipes");
+        Assert.That(all.EnumerateArray().Select(r => r.GetProperty("outputDefinitionId").GetString())
+                .Where(id => !string.IsNullOrEmpty(id)),
+            Is.EquivalentTo(RecipeCatalog.ByOutput.Keys),
+            "Every physical output, including data-only hammer crafting, must be discoverable.");
+        Assert.That(all.GetArrayLength(), Is.EqualTo(RecipeCatalog.ByOutput.Count +
+            RecipeCatalog.ByGoal.Values.Count(r => string.IsNullOrEmpty(r.OutputDefinitionId))));
     }
 
     [Test]

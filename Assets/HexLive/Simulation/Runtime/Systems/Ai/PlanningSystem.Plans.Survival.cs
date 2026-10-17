@@ -82,7 +82,7 @@ public sealed partial class PlanningSystem
         {
             if (!perceived.IsReachable ||
                 Spatial.HexSpatialMath.HexDistance(npc.Tile, perceived.Tile) > maxTiles ||
-                !DecisionSystem.ObjectUsableBy(perceived, npc.Id) ||
+                !DecisionSystem.ObjectUsableBy(world, npc, perceived) ||
                 !world.Content.ObjectDefinitions.TryGetValue(perceived.DefinitionId, out var definition) ||
                 !definition.HasTag("Campfire") ||
                 !world.Entities.Objects.TryGetValue(perceived.Id, out var fire) ||
@@ -467,7 +467,7 @@ public sealed partial class PlanningSystem
         {
             if (!obj.IsReachable ||
                 obj.DefinitionId != definitionId ||
-                !DecisionSystem.ObjectUsableBy(obj, npc.Id) ||
+                !DecisionSystem.ObjectUsableBy(world, npc, obj) ||
                 // Jul 2026: skip a source that turned out occupied on arrival
                 // recently — chase a different one instead of oscillating.
                 npc.Memory.IsShunned(obj.Id, world.Tick) ||

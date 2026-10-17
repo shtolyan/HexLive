@@ -24,6 +24,7 @@ namespace HexLive.UnityPresentation.Wearing.Garments
         [Tooltip("Чей АРТ носит эта вещь (§31B.4E). Пусто = свой собственный, папка Resources/HexLive/Wear/<id>. " +
                  "Заполняется только у ВАРИАЦИИ: трусы в горошек и трусы со звёздочками — две вещи на одной геометрии.")]
         public string prototypeId = string.Empty;
+        public string alternateFitId = string.Empty;
         [Tooltip("Отображаемое имя (запасное, если нет строки в локализации).")]
         public string displayName = string.Empty;
 
@@ -89,6 +90,7 @@ namespace HexLive.UnityPresentation.Wearing.Garments
                 parts)
             {
                 PrototypeId = ArtId,
+                AlternateFitId = alternateFitId,
                 Category = category == GarmentCategory.Unclassified
                     ? GarmentCategoryRules.Classify(id, displayName, layer, parts, capacity)
                     : category,

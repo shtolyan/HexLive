@@ -1381,39 +1381,6 @@ public static class PrototypeContentCatalog
         // Unity presentation layer applied it at startup).
         GarmentLibrary.AppendDefinitions(defs);
 
-        // CraftLeather has always awarded this legacy id, but no wardrobe
-        // entry authored a matching world definition. §119 makes the output a
-        // physical 0% object, so it must remain pickable/dressable even when a
-        // GarmentCatalog asset does not contain the old survival garment.
-        if (!defs.ContainsKey(ContentIds.LeatherPants))
-        {
-            var leatherPants = new ObjectDefinition
-            {
-                Id = ContentIds.LeatherPants,
-                DisplayName = "Hide Pants",
-                Layer = WearLayer.Wear,
-                InventoryCapacity = 4
-            };
-            leatherPants.Covers.Add(BodyPart.Pelvis);
-            leatherPants.Covers.Add(BodyPart.LegL);
-            leatherPants.Covers.Add(BodyPart.LegR);
-            leatherPants.Tags.Add("Clothing");
-            leatherPants.Tags.Add("Armor");
-            leatherPants.Interactions.Add(new InteractionDefinition
-            {
-                Id = "dress." + ContentIds.LeatherPants,
-                Type = InteractionType.Dress,
-                DurationTicks = 8,
-                Effects = { WarmthDelta = 0.16f, ArmorDelta = 0.08f }
-            });
-            leatherPants.Interactions.Add(new InteractionDefinition
-            {
-                Id = "pickup." + ContentIds.LeatherPants,
-                Type = InteractionType.PickUp,
-                DurationTicks = 4
-            });
-            defs[ContentIds.LeatherPants] = leatherPants;
-        }
         HumanMeatCatalog.AppendDefinitions(defs);
         return defs;
     }

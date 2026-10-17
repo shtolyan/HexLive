@@ -100,6 +100,8 @@ public sealed class WorldObjectState
     // §55.5 / #417: appearance only; never used to decide drink safety.
     public Agents.WaterKind LastAddedWaterKind { get; set; } = Agents.WaterKind.None;
 
+    public int LeafDryingStartTick { get; set; } = -1;
+
     // Spec 35.5: ground items get rained on; wetness survives the
     // drop -> pickup -> dress round-trip.
     public float Wetness { get; set; }

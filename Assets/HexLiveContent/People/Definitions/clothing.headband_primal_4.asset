@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.headband_primal_4
   prototypeId: clothing.headband_primal
+  alternateFitId: clothing.headband_primal_male_4
   displayName: Hide Headband (4)
   retired: 0
   hasSexOverride: 1

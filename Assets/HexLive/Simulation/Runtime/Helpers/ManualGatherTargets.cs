@@ -9,7 +9,7 @@ namespace HexLive.Simulation.Runtime
 {
 
 /// <summary>
-/// §121.10 (баг #270): что такое «однотипный ресурс на этом гексе» и в каком
+/// §121.10 (#467): однотипные ресурсы исходного гекса и шести соседних, в каком
 /// порядке его брать. Один предикат на всё: его спрашивает и приём приказа
 /// «собрать всё», и продолжение очереди в <c>ManualOrderSystem</c>, — иначе
 /// «все» в меню и «все» в исполнении разошлись бы, и игрок увидел бы
@@ -18,14 +18,12 @@ namespace HexLive.Simulation.Runtime
 /// Однотипность — это <c>DefinitionId</c>, а не тег и не категория: игрок
 /// кликнул по конкретному пальмовому листу и сказал «все такие». Считать
 /// количество для UI никто не просил, но число нужно самой симуляции как
-/// бюджет подходов (см. <see cref="NPCMind.GatherAllRemaining"/>).
+/// остаток текущего поиска (см. <see cref="NPCMind.GatherAllRemaining"/>).
 /// </para>
 /// </summary>
 internal static class ManualGatherTargets
 {
-    /// <summary>Верхняя граница бюджета подходов: гекс не бывает засыпан
-    /// сотнями предметов, а очередь обязана быть заведомо конечной.</summary>
-    public const int MaxQueueLength = 64;
+    public const int RadiusTiles = 1;
 
     public static bool IsActive(NPCMind mind) =>
         mind.GatherAllDefinitionId.Length > 0 &&
@@ -54,34 +52,37 @@ internal static class ManualGatherTargets
     }
 
     /// <summary>
-    /// Однотипные предметы гекса, годные под этот приказ, В ПОРЯДКЕ ВОЗРАСТАНИЯ
-    /// ID. Порядок обязан быть детерминированным: сервер и клиент считают одну
-    /// и ту же симуляцию, и «сначала ближний» по float-расстоянию сделал бы
-    /// очередь зависящей от порядка обхода словаря.
+    /// Ближайшие однотипные предметы фиксированного цветочка. Дистанция от
+    /// текущей позиции; при равенстве ObjectId, независимо от обхода словаря.
     /// </summary>
     public static List<WorldObjectState> Collect(
         WorldState world, NPCState npc, string definitionId, TileCoord tile,
         InteractionType interaction)
     {
         var found = new List<WorldObjectState>();
-        if (definitionId.Length == 0 ||
-            !world.Caches.ObjectsByTile.TryGetValue(tile, out var ids))
+        if (definitionId.Length == 0) return found;
+        for (var dq = -RadiusTiles; dq <= RadiusTiles; dq++)
+        for (var dr = System.Math.Max(-RadiusTiles, -dq - RadiusTiles);
+             dr <= System.Math.Min(RadiusTiles, -dq + RadiusTiles); dr++)
         {
-            return found;
+            var cell = new TileCoord(tile.Q + dq, tile.R + dr);
+            if (!world.Caches.ObjectsByTile.TryGetValue(cell, out var ids)) continue;
+            foreach (var id in ids)
+                if (world.Entities.Objects.TryGetValue(id, out var candidate) &&
+                    IsGatherable(world, npc, candidate, definitionId, interaction) &&
+                    world.Junctions.Items.ContainsKey(candidate.Junctions[0])) found.Add(candidate);
         }
-
-        foreach (var id in ids)
+        var position = npc.Position;
+        float DistanceSquared(WorldObjectState obj)
         {
-            if (!world.Entities.Objects.TryGetValue(id, out var candidate) ||
-                !IsGatherable(world, npc, candidate, definitionId, interaction))
-            {
-                continue;
-            }
-
-            found.Add(candidate);
+            var point = world.Junctions.Items[obj.Junctions[0]].WorldPosition;
+            var dx = point.X - position.X; var dz = point.Y - position.Y;
+            return dx * dx + dz * dz;
         }
-
-        found.Sort(static (a, b) => a.Id.Value.CompareTo(b.Id.Value));
+        found.Sort((a, b) => {
+            var distance = DistanceSquared(a).CompareTo(DistanceSquared(b));
+            return distance != 0 ? distance : a.Id.Value.CompareTo(b.Id.Value);
+        });
         return found;
     }
 

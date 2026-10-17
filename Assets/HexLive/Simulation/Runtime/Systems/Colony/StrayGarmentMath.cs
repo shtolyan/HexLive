@@ -73,6 +73,7 @@ public static class StrayGarmentMath
             if (!world.Entities.Objects.TryGetValue(perceived.Id, out var obj) ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def) ||
                 def.Layer is null || obj.IsOccupied ||
+                !CampPropertyMath.CanUse(world, npc, obj) ||
                 npc.Memory.IsShunned(perceived.Id, world.Tick))
             {
                 continue;

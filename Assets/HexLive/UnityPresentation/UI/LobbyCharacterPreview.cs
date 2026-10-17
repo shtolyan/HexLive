@@ -35,11 +35,15 @@ public sealed class LobbyCharacterPreview : IDisposable
     private int _thumbnailFraming;
     public bool IsReady => !Failed && _view != null && _view.CreationHairReady && _view.CreationClothesReady(_character.Clothing) && _loading == null;
     public bool Failed { get; private set; }
+    internal string LoadingDependency { get; private set; } = "";
+    private readonly bool _creator;
+    private bool _frameBody;
+    private bool _bodyFraming = true;
     public Animator Animator => _actor != null ? _actor.GetComponentInChildren<Animator>() : null;
 
-    public LobbyCharacterPreview(VisualElement parent, MonoBehaviour runner, CharacterCreationConfig character, bool thumbnail = false)
+    public LobbyCharacterPreview(VisualElement parent, MonoBehaviour runner, CharacterCreationConfig character, bool thumbnail = false, bool creator = false)
     {
-        Owners.Add(this); _runner = runner; _layer = thumbnail ? 30 : 31;
+        Owners.Add(this); _runner = runner; _layer = thumbnail ? 30 : 31; _creator = creator; _frameBody = creator;
         _stage = new GameObject(thumbnail ? "LobbyThumbnail" : "LobbyPreview");
         _stage.transform.position = new Vector3(0, thumbnail ? -11000 : -10000, 0);
         _texture = new RenderTexture(thumbnail ? 192 : 640, thumbnail ? 192 : 960, 24); _texture.Create();
@@ -48,27 +52,77 @@ public sealed class LobbyCharacterPreview : IDisposable
         _camera.enabled = !thumbnail;
         _camera.clearFlags = CameraClearFlags.SolidColor; _camera.backgroundColor = new Color(.035f, .047f, .055f, 1);
         _camera.cullingMask = 1 << _layer; _camera.nearClipPlane = .03f; _camera.farClipPlane = 30; _camera.fieldOfView = 34;
-        AddLight("Key", new Vector3(-3, 4, 4), new Color(1, .91f, .82f), 3.0f);
+        AddLight("Key", new Vector3(-3, 4, 4), new Color(1, .91f, .82f), 3.0f, creator || thumbnail);
         AddLight("Fill", new Vector3(3, 2.8f, 3), new Color(.77f, .86f, 1), 1.8f);
         if (!thumbnail)
         {
             var image = new Image { image = _texture, scaleMode = ScaleMode.ScaleToFit, name = "characterOrbit" };
-            image.AddToClassList("lobby-doll"); parent.Add(image); image.AddManipulator(new Orbit(this));
-            var reset = new Button(ResetCamera) { text = Loc.Get("lobby.resetCamera") }; parent.Add(reset);
-            var help = new Label(Loc.Get("lobby.orbitHelp")) { pickingMode = PickingMode.Ignore };
-            help.AddToClassList("lobby-camera-help"); parent.Add(help);
+            image.AddToClassList(creator ? "creator-viewport" : "lobby-doll"); parent.Add(image); image.AddManipulator(new Orbit(this, creator));
+            if (creator) image.RegisterCallback<GeometryChangedEvent>(e => {
+                if (_disposed || e.newRect.width < 1 || e.newRect.height < 1) return;
+                var ratio = Mathf.Min(1, 1024f / Mathf.Max(e.newRect.width, e.newRect.height));
+                var width = Mathf.Max(32, Mathf.RoundToInt(e.newRect.width * ratio));
+                var height = Mathf.Max(32, Mathf.RoundToInt(e.newRect.height * ratio));
+                if (_texture.width == width && _texture.height == height) return;
+                _texture.Release(); _texture.width = width; _texture.height = height; _texture.Create();
+                _camera.aspect = (float)width / height;
+                if (_bodyFraming) FocusBody(); else FocusFace();
+            });
+            if (!creator)
+            {
+                var reset = new Button(ResetCamera) { text = Loc.Get("lobby.resetCamera") }; parent.Add(reset);
+                var help = new Label(Loc.Get("lobby.orbitHelp")) { pickingMode = PickingMode.Ignore };
+                help.AddToClassList("lobby-camera-help"); parent.Add(help);
+            }
         }
         _status = new Label(); parent.Add(_status);
         CameraPose(); Refresh(character);
     }
-    private void AddLight(string name, Vector3 position, Color colour, float intensity)
+    private void AddLight(string name, Vector3 position, Color colour, float intensity, bool directional = false)
     {
         var go = new GameObject(name); go.transform.SetParent(_stage.transform, false); go.transform.localPosition = position;
         go.transform.LookAt(_stage.transform.position + Vector3.up);
-        var light = go.AddComponent<Light>(); light.type = LightType.Spot; light.spotAngle = 65; light.range = 18;
+        var light = go.AddComponent<Light>(); light.type = directional ? LightType.Directional : LightType.Spot; light.spotAngle = 65; light.range = 18;
         light.color = colour; light.intensity = intensity; light.cullingMask = 1 << _layer; light.shadows = LightShadows.None;
     }
     public void ResetCamera() { _yaw = 180; _pitch = 8; _distance = 3.8f; _focus = new Vector3(0, .95f, 0); CameraPose(); }
+    public void Rotate(float degrees) { _yaw += degrees; CameraPose(); }
+    public void FocusBody()
+    {
+        _bodyFraming = true;
+        if (_actor == null) return;
+        Bounds? total = null; var baked = new Mesh();
+        try
+        {
+            foreach (var skin in _actor.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (!skin.enabled || skin.sharedMesh == null) continue;
+                skin.BakeMesh(baked, true);
+                foreach (var vertex in baked.vertices)
+                {
+                    var point = skin.transform.TransformPoint(vertex);
+                    if (total == null) total = new Bounds(point, Vector3.zero);
+                    else { var bounds = total.Value; bounds.Encapsulate(point); total = bounds; }
+                }
+            }
+        }
+        finally { UnityEngine.Object.Destroy(baked); }
+        if (total == null) return;
+        _focus = total.Value.center - _stage.transform.position;
+        _distance = Mathf.Max(total.Value.extents.y, total.Value.extents.x / _camera.aspect) * 1.16f /
+            Mathf.Tan(_camera.fieldOfView * .5f * Mathf.Deg2Rad);
+        _pitch = 4; CameraPose(); _frameBody = false;
+    }
+    public void FocusFace()
+    {
+        _bodyFraming = false;
+        if (_view == null || !_view.TryGetFace(out var face, out var forward, out var up, out var scale)) return;
+        _view.GetPortraitHeadExtents(face, Vector3.Cross(up, forward).normalized, up, 1, out var above, out var below, out var halfWidth);
+        _focus = face - _stage.transform.position + up * ((above - below) * .5f);
+        _distance = Mathf.Clamp(Mathf.Max((above + below) * .5f, halfWidth) * 1.35f /
+            Mathf.Tan(_camera.fieldOfView * .5f * Mathf.Deg2Rad), .6f, 2.5f);
+        _pitch = 0; CameraPose();
+    }
     public void FrameThumbnail(int framing)
     {
         _thumbnailFraming = framing;
@@ -96,7 +150,7 @@ public sealed class LobbyCharacterPreview : IDisposable
                 aim += up * ((above - below) * .5f);
                 distance = Mathf.Max((above + below) * .5f, halfWidth) * 1.15f / Mathf.Tan(_camera.fieldOfView * .5f * Mathf.Deg2Rad);
             }
-            _camera.transform.position = aim + forward * distance;
+            _camera.transform.position = aim + (_thumbnailFraming == 3 ? Quaternion.AngleAxis(25, up) * forward : forward) * distance;
             _camera.transform.LookAt(aim, Vector3.up);
         }
         var previous = RenderTexture.active;
@@ -122,6 +176,7 @@ public sealed class LobbyCharacterPreview : IDisposable
             if (_view != null) _retiredViews.Add(_view);
             if (_actor != null) UnityEngine.Object.Destroy(_actor);
             _actor = null; _view = null; _body = character.Body;
+            _frameBody = _creator;
         }
         _loading = _runner.StartCoroutine(Apply(generation));
     }
@@ -134,16 +189,22 @@ public sealed class LobbyCharacterPreview : IDisposable
         GameObject prefab;
         while ((prefab = ContentPrefabCache.GetOrRequest("actor", _character.Body)) == null ||
             AtomicResources.Load<NpcAnimSet>("HexLive/NpcAnimSet") == null ||
-            (!string.IsNullOrEmpty(_character.Skin) && ContentPrefabCache.GetOrRequest("actor", _character.Skin) == null) ||
-            (!string.IsNullOrEmpty(_character.Eyes) &&
+            (!string.IsNullOrEmpty(_character.Skin) && prefab.GetComponentInChildren<PeopleAppearance>(true)==null &&
+             ContentPrefabCache.GetOrRequest("actor", _character.Skin) == null) ||
+            (!string.IsNullOrEmpty(_character.Eyes) && prefab.GetComponentInChildren<PeopleAppearance>(true)==null &&
              (AtomicResources.LoadAll<Material>("HexLive/Eyes/Common").Length < 3 ||
               AtomicResources.LoadAll<Material>("HexLive/Eyes/" + _character.Eyes).Length < 2)))
         {
+            LoadingDependency=prefab==null?"actor:"+_character.Body:
+                AtomicResources.Load<NpcAnimSet>("HexLive/NpcAnimSet")==null?"config:npcanimset":
+                ContentPrefabCache.GetOrRequest("actor",_character.Skin)==null?"skin:"+_character.Skin:
+                "legacyEyes:"+_character.Eyes;
             if (_disposed || generation != _generation) yield break;
             if (Time.realtimeSinceStartup - started > 60)
             { Failed = true; _loading = null; _status.text = Loc.Get("lobby.appearanceUnavailable"); yield break; }
             yield return null;
         }
+        LoadingDependency="";
         if (_disposed || generation != _generation) yield break;
         if (_actor == null)
         {
@@ -172,7 +233,8 @@ public sealed class LobbyCharacterPreview : IDisposable
             foreach (var t in _actor.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = _layer;
             if (_view.CreationAppearanceFailed || (!IsReady && Time.realtimeSinceStartup - started > 60))
             { Failed = true; _status.text = Loc.Get("lobby.appearanceUnavailable"); }
-            if (!retired && IsReady) { RetireUnused(); retired = true; }
+            if (!retired && IsReady)
+            { if (_frameBody) FocusBody(); RetireUnused(); retired = true; }
             yield return null;
         }
     }
@@ -193,7 +255,10 @@ public sealed class LobbyCharacterPreview : IDisposable
         while (pending != null && pending.Any(v => !ReferenceEquals(v, null) && !v.CreationHairReady)) yield return null;
         while (LoadingScreen.IsActive && bodies.Count + hair.Count + garments.Count > 0)
         {
-            bodies.RemoveWhere(id => Owners.Any(o => o._bodies.Contains(id)) || ReleaseBody(id));
+            // Primal skins are aliases of the same actor payload. Retiring Jana
+            // must not evict Marta while another preview still owns that body.
+            bodies.RemoveWhere(id => Owners.Any(o => o._bodies.Any(owned =>
+                PeopleIdMap.ContentId("actor",owned)==PeopleIdMap.ContentId("actor",id))) || ReleaseBody(id));
             hair.RemoveWhere(id => Owners.Any(o => o._hair.Contains(id)) || HairContent.Evict(id));
             garments.RemoveWhere(id => Owners.Any(o => o._garments.Contains(id)) || ActorWardrobe.Evict(id));
             yield return null;
@@ -216,8 +281,9 @@ public sealed class LobbyCharacterPreview : IDisposable
     private sealed class Orbit : PointerManipulator
     {
         private readonly LobbyCharacterPreview _owner;
+        private readonly bool _direct;
         private int _pointer = -1, _button;
-        public Orbit(LobbyCharacterPreview owner) => _owner = owner;
+        public Orbit(LobbyCharacterPreview owner, bool direct = false) { _owner = owner; _direct = direct; }
         protected override void RegisterCallbacksOnTarget()
         {
             target.RegisterCallback<PointerDownEvent>(Down); target.RegisterCallback<PointerMoveEvent>(Move);
@@ -232,14 +298,14 @@ public sealed class LobbyCharacterPreview : IDisposable
         }
         private void Down(PointerDownEvent e)
         {
-            if (_pointer >= 0 || (e.button != 1 && e.button != 2)) return;
+            if (_pointer >= 0 || (e.button != 1 && e.button != 2 && !(_direct && e.button == 0))) return;
             _pointer = e.pointerId; _button = e.button; target.CapturePointer(_pointer); e.StopPropagation();
         }
         private void Move(PointerMoveEvent e)
         {
             if (_pointer != e.pointerId || !target.HasPointerCapture(_pointer)) return;
             if (!target.worldBound.Contains(e.position)) { e.StopPropagation(); return; }
-            if (_button == 1) { _owner._yaw += e.deltaPosition.x * .25f; _owner._pitch = Mathf.Clamp(_owner._pitch + e.deltaPosition.y * .25f, -15, 85); }
+            if (_button == 1 || (_direct && _button == 0)) { _owner._yaw += e.deltaPosition.x * .25f; _owner._pitch = Mathf.Clamp(_owner._pitch + e.deltaPosition.y * .25f, -15, 85); }
             else
             {
                 var delta = new Vector3(-e.deltaPosition.x, e.deltaPosition.y, 0) * (.002f * _owner._distance);

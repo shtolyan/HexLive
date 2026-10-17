@@ -180,6 +180,7 @@ public static class WorldSaveSerializer
     // v81 (§54.21 / #429): ground harvest scatter; old objects remain orderly.
     // v82 (§138.6.1): bounded craft request admission receipts, appended per world.
     // v83 (§171.10): account character creation receipts and ownership recovery.
+    // v84 (§54): fresh/dry leaf provenance on world objects and items.
     // v85 (§120): installed building units are durable and distinct from stock.
     public const int BlobVersion = 85;
     private const int OldestReadableBlobVersion = 66;
@@ -1098,6 +1099,9 @@ public static class WorldSaveSerializer
         }
 
         MigrateRetiredContent(world, version);
+        LeafDryingMath.InitializeCarried(world);
+        foreach (var obj in world.Entities.Objects.Values)
+            foreach (var item in obj.Contents) LeafDryingMath.Initialize(item,world.Tick);
         MigrateBuildingOwnership(world, version);
     }
 
@@ -1141,7 +1145,7 @@ public static class WorldSaveSerializer
         // them exactly once into normal world objects before spatial repair.
         BuildingRules.MaterializeLegacyElements(world);
         var retired = new List<ObjectId>();
-        foreach (var obj in world.Entities.Objects.Values)
+        foreach (var obj in world.Entities.Objects.Values.ToArray())
         {
             if (obj.DefinitionId == ContentIds.HutBed)
             {
@@ -1171,7 +1175,27 @@ public static class WorldSaveSerializer
                 obj.BillLeaves = System.Math.Max(obj.BillLeaves, SimBalance.BedBasicBillLeaves);
             }
 
-            if (obj.DefinitionId is "water.pond" or "armor.leather" or "armor.heavy")
+            obj.Contents.RemoveAll(IsRetiredGarment);
+            if (obj.DefinitionId == ContentIds.LeatherPants)
+            {
+                // §138.6 / #461: retire the pants/project, preserve its pockets or bill.
+                var anchor = obj.Junctions.Count > 0 ? obj.Junctions[0] :
+                    world.Tiles.Items[obj.Tile].Junctions[0];
+                foreach (var item in obj.Contents)
+                {
+                    var drop = WorldObjectMutations.SpawnObject(world, item.DefinitionId,
+                        obj.Fragment, obj.Tile, anchor);
+                    drop.Wetness = item.Wetness;
+                    drop.Durability = item.Durability;
+                    drop.Dirtiness = item.Dirtiness;
+                    drop.Bloodiness = item.Bloodiness;
+                    drop.ResourceAmount = item.ResourceAmount;
+                    drop.WaterKind = item.WaterKind;
+                    drop.LastAddedWaterKind = item.LastAddedWaterKind;
+                    if (item.OwnerId != 0) drop.Owner = new EntityId(item.OwnerId);
+                }
+            }
+            if (obj.DefinitionId is "water.pond" or "armor.leather" or "armor.heavy" or ContentIds.LeatherPants)
             {
                 retired.Add(obj.Id);
             }
@@ -1263,7 +1287,7 @@ public static class WorldSaveSerializer
 
     private const string RetiredSharkMobId = "shark";
 
-    // These armor ids never had shipping art or localization. Strip them from
+    // These retired ids never had shipping art or localization. Strip them from
     // old saves as well as new content, otherwise a saved wearer remains an
     // invisible, overpowered ghost item after the catalog has retired it.
     private static void MigrateRetiredGarments(
@@ -1274,6 +1298,27 @@ public static class WorldSaveSerializer
         {
             npc.WornItems.RemoveAll(IsRetiredGarment);
             npc.Inventory.Items.RemoveAll(IsRetiredGarment);
+            if (npc.Execution.HeldGarment != null && IsRetiredGarment(npc.Execution.HeldGarment))
+                npc.Execution.HeldGarment = null;
+            npc.Execution.HeldGarmentContents.RemoveAll(IsRetiredGarment);
+            if (npc.Mind.CurrentGoal == GoalType.CraftLeather || npc.Plan.Goal == GoalType.CraftLeather)
+            {
+                if (npc.Plan.TargetObjectId is { } stationId &&
+                    world.Entities.Objects.TryGetValue(stationId, out var station) && station.CurrentUser == npc.Id)
+                {
+                    station.IsOccupied = false;
+                    station.CurrentUser = null;
+                }
+                npc.Mind.CurrentGoal = GoalType.None;
+                npc.Plan.Goal = GoalType.None;
+                npc.Plan.Status = PlanStatus.Invalid;
+                npc.Plan.Steps.Clear();
+                npc.Plan.TargetObjectId = null;
+                npc.Plan.CraftProjectTargetId = null;
+                npc.Execution.Status = ExecutionStatus.Failed;
+                npc.Execution.CraftProjectId = null;
+                npc.Execution.CraftLayout.Clear();
+            }
             npc.Mind.RedressGarments.RemoveAll(id => !world.Entities.Objects.ContainsKey(id));
             // §52.9 / баг #124: сейвы, сделанные до сужения стартового пула,
             // несут пару, дерущуюся за один (слой, слот) — вид пересобирал обе
@@ -1285,10 +1330,10 @@ public static class WorldSaveSerializer
     }
 
     private static bool IsRetiredGarment(ItemInstance item) =>
-        item.DefinitionId is "armor.leather" or "armor.heavy";
+        IsRetiredGarment(item.DefinitionId);
 
     private static bool IsRetiredGarment(string definitionId) =>
-        definitionId is "armor.leather" or "armor.heavy";
+        definitionId is "armor.leather" or "armor.heavy" or ContentIds.LeatherPants;
 
     private static void WriteDeathRecord(BinaryWriter w, DeathRecord death)
     {
@@ -1345,6 +1390,7 @@ public static class WorldSaveSerializer
         w.Write(obj.Dirtiness);
         w.Write(obj.Bloodiness);
         w.Write(obj.SpawnTick);
+        if (version >= 84) w.Write(obj.LeafDryingStartTick);
         WriteJunctionList(w, obj.BlockedJunctions);
         w.Write(obj.NextProductionTick);
         w.Write(obj.ProducedItems.Count);
@@ -1454,6 +1500,8 @@ public static class WorldSaveSerializer
             obj.Dirtiness = MathUtil.Clamp01(obj.Dirtiness + obj.Bloodiness);
         }
         obj.SpawnTick = r.ReadInt32();
+        obj.LeafDryingStartTick=version >= 84 ? r.ReadInt32() :
+            LeafDryingMath.HasLeaves(obj.DefinitionId) ? System.Math.Max(0,obj.SpawnTick) : -1;
         ReadJunctionList(r, obj.BlockedJunctions);
         obj.NextProductionTick = r.ReadInt32();
         var producedCount = r.ReadInt32();
@@ -3161,6 +3209,7 @@ public static class WorldSaveSerializer
             w.Write(item.OwnerId);
             if (version >= 68) w.Write((int)item.WaterKind);
             if (version >= 79) w.Write((int)item.LastAddedWaterKind);
+            if (version >= 84) w.Write(item.LeafDryingStartTick);
         }
     }
 
@@ -3180,6 +3229,7 @@ public static class WorldSaveSerializer
             };
             item.WaterKind = version >= 68 ? (WaterKind)r.ReadInt32() : WaterKind.None;
             item.LastAddedWaterKind = version >= 79 ? (WaterKind)r.ReadInt32() : item.WaterKind;
+            item.LeafDryingStartTick=version >= 84 ? r.ReadInt32() : -1;
             if (item.WaterKind == WaterKind.None && item.DefinitionId == ContentIds.Bottle)
             {
                 // Before v68 ResourceAmount on a bottle was not water; fresh

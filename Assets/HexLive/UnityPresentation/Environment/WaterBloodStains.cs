@@ -39,7 +39,7 @@ public sealed class WaterBloodStains : MonoBehaviour
     private const int BleedGraceTicks = 20;     // matches the ground stains
     private const float DropJitter = 0.14f;
     // Fresh arterial scarlet; as it dilutes it fades toward a pale pink film.
-    private static readonly Color FreshBlood = new(0.72f, 0.02f, 0.04f, 1f);
+    private static readonly Color FreshBlood = BloodPalette.Fresh;
     private static readonly Color DilutePink = new(0.85f, 0.30f, 0.34f, 1f);
     // A tiny lift above the surface so the disc never z-fights the water mesh.
     private const float SurfaceLift = 0.02f;

@@ -53,7 +53,7 @@ $("start").onclick = async () => {
     session = await r.json();
     line("t", `персонаж: ${session.name}`);
     conversation = await Conversation.startSession({
-      conversationToken: session.conversationToken, connectionType: "webrtc",
+      conversationToken: session.conversationToken, connectionType: "webrtc", userId: session.sessionId,
       customLlmExtraBody: { ticket: session.ticket },
       overrides: session.voiceId ? { tts: { voiceId: session.voiceId } } : undefined,
       onConnect: () => $("status").textContent = "слушаю",

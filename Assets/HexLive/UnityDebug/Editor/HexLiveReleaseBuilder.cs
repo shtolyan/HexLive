@@ -426,6 +426,7 @@ namespace HexLive.UnityDebug.Editor
                 "Assets/Resources/PerformanceTestRunSettings.json",
                 "Assets/Resources/HexLive/DebugPanelSettings.asset",
                 "Assets/Resources/HexLive/AudioSettings.uss",
+                "Assets/Resources/HexLive/PlayerAssignmentDialog.uss",
                 // Spec 20.16 (r3): вода — часть каждого ПЕРВОГО кадра острова
                 // и обязана рендериться до готовности Asset API, ровно как UI.
                 // Бандловая доставка воды уже отзывалась двумя багами: ленивый

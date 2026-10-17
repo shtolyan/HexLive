@@ -29,6 +29,7 @@ public sealed class MeatSpoilageSystem : ISimulationSystem
     public void Run(WorldState world)
     {
         _spoiled.Clear();
+        LeafDryingMath.InitializeCarried(world);
         // §156: порог якорный (Tick - SpawnTick), поэтому проспавшее мясо
         // испортится обычным кодом на первом бодром такте — обход по бодрым
         // чанкам это вся правка.
@@ -48,12 +49,6 @@ public sealed class MeatSpoilageSystem : ISimulationSystem
             else if (HumanMeatCatalog.IsCooked(obj.DefinitionId))
             {
                 spoilTicks = SimBalance.MeatCookedSpoilTicks;
-            }
-            else if (obj.DefinitionId == ContentIds.PalmLeaf &&
-                     SimBalance.PalmLeafWitherTicks > 0)
-            {
-                // Bug #338: лист — та же схема SpawnTick-на-земле, что и мясо.
-                spoilTicks = SimBalance.PalmLeafWitherTicks;
             }
             else
             {

@@ -9,6 +9,7 @@ using HexLive.Simulation.Debug;
 using HexLive.Simulation.Wire;
 using HexLive.UnityPresentation.Audio;
 using HexLive.UnityPresentation.Bootstrap;
+using HexLive.UnityPresentation.Bootstrap.Remote;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
 using UnityEngine;
@@ -126,7 +127,9 @@ namespace HexLive.UnityPresentation.UI
 
         private void DisableAgentVoice()
         {
+            _controlIntentSequence++; _controlModePending = false; _callPreparing = false; _phoneControlNpc = -1; _controlInputNpc = -1;
             _serverVoice?.Stop(); // §171.11: never leave a billed conversation running behind a closed panel
+            ReleaseServerCallActor();
             _agentMicrophone?.Cancel();
             _agentMicrophone?.Dispose();
             _agentMicrophone = null;
@@ -152,6 +155,8 @@ namespace HexLive.UnityPresentation.UI
 
         private void ResetAgentVoiceSelection()
         {
+            _controlIntentSequence++; _controlModePending = false; _callPreparing = false; _phoneControlNpc = -1; _controlInputNpc = -1;
+            _serverVoice?.Stop(); ReleaseServerCallActor();
             _awaitingAgentTurn = false;
             _agentMicrophone?.Cancel();
             _agentVoiceNpc = null;
@@ -483,7 +488,7 @@ namespace HexLive.UnityPresentation.UI
             try
             {
                 var text = await _agentTranscriber!.TranscribeAsync(wav, token, cancellationToken)
-                    .ConfigureAwait(false);
+                    .OnWire();
                 _agentMainThread.Enqueue(() =>
                 {
                     if (cancellationToken.IsCancellationRequested) return;
@@ -537,7 +542,19 @@ namespace HexLive.UnityPresentation.UI
                 var wavPath = Path.Combine(_agentCachePath, basename + ".wav");
                 var visPath = Path.Combine(_agentCachePath, basename + ".vis");
                 var playbackGain = 0f;
-                try { if (speech.Wav.Length > 0) playbackGain = await Task.Run(() =>
+                try { if (speech.Wav.Length > 0)
+                {
+#if UNITY_WEBGL && !UNITY_EDITOR
+                    playbackGain = await VoiceVisemeBaker.BakeCooperativelyAsync(speech.Wav, metadata.Text,
+                        visPath, FmodSfx.VoicePlaybackBaseGain,
+                        async () => await Awaitable.NextFrameAsync(cancellationToken), cancellationToken);
+                    if (playbackGain > 0f)
+                    {
+                        File.WriteAllBytes(wavPath, speech.Wav);
+                        TrimAgentVoiceCache(_agentCachePath);
+                    }
+#else
+                playbackGain = await Task.Run(() =>
                 {
                     Directory.CreateDirectory(_agentCachePath);
                     if (!VoiceVisemeBaker.TryBake(speech.Wav, metadata.Text, visPath,
@@ -546,7 +563,9 @@ namespace HexLive.UnityPresentation.UI
                     File.WriteAllBytes(wavPath, speech.Wav);
                     TrimAgentVoiceCache(_agentCachePath);
                     return measuredGain;
-                }, cancellationToken); }
+                }, cancellationToken);
+#endif
+                } }
                 catch (IOException) { /* still deliver the exact subtitle */ }
                 catch (UnauthorizedAccessException) { }
                 _agentMainThread.Enqueue(() =>

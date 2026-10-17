@@ -499,6 +499,8 @@ public static class BuildingRules
             piece.ArchitectureOwnerId = owner.Id;
             piece.RotationDegrees = owner.RotationDegrees;
             piece.ArchitectureElements.Add(component);
+            if (component.RequiredLeaves > 0)
+                piece.LeafDryingStartTick=component.DeliveredLeaves > 0 ? LeafDryingMath.Start(owner) : -1;
         }
     }
 
@@ -781,6 +783,13 @@ public static class BuildingRules
             element.DefinitionId == "architecture.support.wood" && element.Complete);
         SyncAllocate(roofs, byKey, ref sticks, ref boards, ref rope, ref leaves,
             supports >= RequiredSupportsForRoof(elements));
+        // The physical roof fragments keep their own clock after reparenting
+        // or later extensions. A mixed bundle represents its oldest leaf.
+        foreach (var piece in ArchitectureObjects(world,owner))
+        {
+            if (piece.ArchitectureElements[0].DeliveredLeaves <= 0) continue;
+            foreach (var item in owner.Contents) LeafDryingMath.Receive(piece,item,world.Tick);
+        }
     }
 
     private static void RefreshRoofBuildability(IEnumerable<ArchitectureElementState> elements)

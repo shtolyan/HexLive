@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1050" height="550" viewBox="0 0 1050 550">
+<rect width="1050" height="550" fill="#14211d"/>
+<g font-family="Arial" fill="#eef5ed">
+<text x="30" y="40" font-size="23">Листья после рубки: распределение внутри исходного гекса</text>
+<text x="35" y="80" font-size="17">Было: все 42 листа в одной точке</text>
+<polygon points="418.286,373.500 265.000,462.000 111.714,373.500 111.714,196.500 265.000,108.000 418.286,196.500" fill="#1b3026" stroke="#8db8a0" stroke-width="2"/>
+<circle cx="265.000" cy="108.000" r="2.4" fill="#dca267"/>
+<circle cx="303.322" cy="130.125" r="2.4" fill="#dca267"/>
+<circle cx="341.643" cy="152.250" r="2.4" fill="#dca267"/>
+<circle cx="379.965" cy="174.375" r="2.4" fill="#dca267"/>
+<circle cx="418.286" cy="196.500" r="2.4" fill="#dca267"/>
+<circle cx="226.678" cy="130.125" r="2.4" fill="#dca267"/>
+<circle cx="265.000" cy="152.250" r="2.4" fill="#dca267"/>
+<circle cx="303.322" cy="174.375" r="2.4" fill="#dca267"/>
+<circle cx="341.643" cy="196.500" r="2.4" fill="#dca267"/>
+<circle cx="379.965" cy="218.625" r="2.4" fill="#dca267"/>
+<circle cx="418.286" cy="240.750" r="2.4" fill="#dca267"/>
+<circle cx="188.357" cy="152.250" r="2.4" fill="#dca267"/>
+<circle cx="226.678" cy="174.375" r="2.4" fill="#dca267"/>
+<circle cx="265.000" cy="196.500" r="2.4" fill="#7eab97"/>
+<circle cx="303.322" cy="218.625" r="2.4" fill="#7eab97"/>
+<circle cx="341.643" cy="240.750" r="2.4" fill="#7eab97"/>
+<circle cx="379.965" cy="262.875" r="2.4" fill="#dca267"/>
+<circle cx="418.286" cy="285.000" r="2.4" fill="#dca267"/>
+<circle cx="150.035" cy="174.375" r="2.4" fill="#dca267"/>
+<circle cx="188.357" cy="196.500" r="2.4" fill="#dca267"/>
+<circle cx="226.678" cy="218.625" r="2.4" fill="#7eab97"/>
+<circle cx="265.000" cy="240.750" r="2.4" fill="#7eab97"/>
+<circle cx="303.322" cy="262.875" r="2.4" fill="#7eab97"/>
+<circle cx="341.643" cy="285.000" r="2.4" fill="#7eab97"/>
+<circle cx="379.965" cy="307.125" r="2.4" fill="#dca267"/>
+<circle cx="418.286" cy="329.250" r="2.4" fill="#dca267"/>
+<circle cx="111.714" cy="196.500" r="2.4" fill="#dca267"/>
+<circle cx="150.035" cy="218.625" r="2.4" fill="#dca267"/>
+<circle cx="188.357" cy="240.750" r="2.4" fill="#7eab97"/>
+<circle cx="226.678" cy="262.875" r="2.4" fill="#7eab97"/>
+<circle cx="265.000" cy="285.000" r="2.4" fill="#7eab97"/>
+<circle cx="303.322" cy="307.125" r="2.4" fill="#7eab97"/>
+<circle cx="341.643" cy="329.250" r="2.4" fill="#7eab97"/>
+<circle cx="379.965" cy="351.375" r="2.4" fill="#dca267"/>
+<circle cx="418.286" cy="373.500" r="2.4" fill="#dca267"/>
+<circle cx="111.714" cy="240.750" r="2.4" fill="#dca267"/>
+<circle cx="150.035" cy="262.875" r="2.4" fill="#dca267"/>
+<circle cx="188.357" cy="285.000" r="2.4" fill="#7eab97"/>
+<circle cx="226.678" cy="307.125" r="2.4" fill="#7eab97"/>
+<circle cx="265.000" cy="329.250" r="2.4" fill="#7eab97"/>
+<circle cx="303.322" cy="351.375" r="2.4" fill="#7eab97"/>
+<circle cx="341.643" cy="373.500" r="2.4" fill="#dca267"/>
+<circle cx="379.965" cy="395.625" r="2.4" fill="#dca267"/>
+<circle cx="111.714" cy="285.000" r="2.4" fill="#dca267"/>
+<circle cx="150.035" cy="307.125" r="2.4" fill="#dca267"/>
+<circle cx="188.357" cy="329.250" r="2.4" fill="#7eab97"/>
+<circle cx="226.678" cy="351.375" r="2.4" fill="#7eab97"/>
+<circle cx="265.000" cy="373.500" r="2.4" fill="#7eab97"/>
+<circle cx="303.322" cy="395.625" r="2.4" fill="#dca267"/>
+<circle cx="341.643" cy="417.750" r="2.4" fill="#dca267"/>
+<circle cx="111.714" cy="329.250" r="2.4" fill="#dca267"/>
+<circle cx="150.035" cy="351.375" r="2.4" fill="#dca267"/>
+<circle cx="188.357" cy="373.500" r="2.4" fill="#dca267"/>
+<circle cx="226.678" cy="395.625" r="2.4" fill="#dca267"/>
+<circle cx="265.000" cy="417.750" r="2.4" fill="#dca267"/>
+<circle cx="303.322" cy="439.875" r="2.4" fill="#dca267"/>
+<circle cx="111.714" cy="373.500" r="2.4" fill="#dca267"/>
+<circle cx="150.035" cy="395.625" r="2.4" fill="#dca267"/>
+<circle cx="188.357" cy="417.750" r="2.4" fill="#dca267"/>
+<circle cx="226.678" cy="439.875" r="2.4" fill="#dca267"/>
+<circle cx="265.000" cy="462.000" r="2.4" fill="#dca267"/>
+<circle cx="265.000" cy="285.000" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="265.000" cy="285.000" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="265.000" y="290.000" text-anchor="middle" font-size="14">42</text>
+<text x="560" y="80" font-size="17">Станет: равномерно по доступным точкам</text>
+<polygon points="943.286,373.500 790.000,462.000 636.714,373.500 636.714,196.500 790.000,108.000 943.286,196.500" fill="#1b3026" stroke="#8db8a0" stroke-width="2"/>
+<circle cx="790.000" cy="108.000" r="2.4" fill="#dca267"/>
+<circle cx="828.322" cy="130.125" r="2.4" fill="#dca267"/>
+<circle cx="866.643" cy="152.250" r="2.4" fill="#dca267"/>
+<circle cx="904.965" cy="174.375" r="2.4" fill="#dca267"/>
+<circle cx="943.286" cy="196.500" r="2.4" fill="#dca267"/>
+<circle cx="751.678" cy="130.125" r="2.4" fill="#dca267"/>
+<circle cx="790.000" cy="152.250" r="2.4" fill="#dca267"/>
+<circle cx="828.322" cy="174.375" r="2.4" fill="#dca267"/>
+<circle cx="866.643" cy="196.500" r="2.4" fill="#dca267"/>
+<circle cx="904.965" cy="218.625" r="2.4" fill="#dca267"/>
+<circle cx="943.286" cy="240.750" r="2.4" fill="#dca267"/>
+<circle cx="713.357" cy="152.250" r="2.4" fill="#dca267"/>
+<circle cx="751.678" cy="174.375" r="2.4" fill="#dca267"/>
+<circle cx="790.000" cy="196.500" r="2.4" fill="#7eab97"/>
+<circle cx="828.322" cy="218.625" r="2.4" fill="#7eab97"/>
+<circle cx="866.643" cy="240.750" r="2.4" fill="#7eab97"/>
+<circle cx="904.965" cy="262.875" r="2.4" fill="#dca267"/>
+<circle cx="943.286" cy="285.000" r="2.4" fill="#dca267"/>
+<circle cx="675.035" cy="174.375" r="2.4" fill="#dca267"/>
+<circle cx="713.357" cy="196.500" r="2.4" fill="#dca267"/>
+<circle cx="751.678" cy="218.625" r="2.4" fill="#7eab97"/>
+<circle cx="790.000" cy="240.750" r="2.4" fill="#7eab97"/>
+<circle cx="828.322" cy="262.875" r="2.4" fill="#7eab97"/>
+<circle cx="866.643" cy="285.000" r="2.4" fill="#7eab97"/>
+<circle cx="904.965" cy="307.125" r="2.4" fill="#dca267"/>
+<circle cx="943.286" cy="329.250" r="2.4" fill="#dca267"/>
+<circle cx="636.714" cy="196.500" r="2.4" fill="#dca267"/>
+<circle cx="675.035" cy="218.625" r="2.4" fill="#dca267"/>
+<circle cx="713.357" cy="240.750" r="2.4" fill="#7eab97"/>
+<circle cx="751.678" cy="262.875" r="2.4" fill="#7eab97"/>
+<circle cx="790.000" cy="285.000" r="2.4" fill="#7eab97"/>
+<circle cx="828.322" cy="307.125" r="2.4" fill="#7eab97"/>
+<circle cx="866.643" cy="329.250" r="2.4" fill="#7eab97"/>
+<circle cx="904.965" cy="351.375" r="2.4" fill="#dca267"/>
+<circle cx="943.286" cy="373.500" r="2.4" fill="#dca267"/>
+<circle cx="636.714" cy="240.750" r="2.4" fill="#dca267"/>
+<circle cx="675.035" cy="262.875" r="2.4" fill="#dca267"/>
+<circle cx="713.357" cy="285.000" r="2.4" fill="#7eab97"/>
+<circle cx="751.678" cy="307.125" r="2.4" fill="#7eab97"/>
+<circle cx="790.000" cy="329.250" r="2.4" fill="#7eab97"/>
+<circle cx="828.322" cy="351.375" r="2.4" fill="#7eab97"/>
+<circle cx="866.643" cy="373.500" r="2.4" fill="#dca267"/>
+<circle cx="904.965" cy="395.625" r="2.4" fill="#dca267"/>
+<circle cx="636.714" cy="285.000" r="2.4" fill="#dca267"/>
+<circle cx="675.035" cy="307.125" r="2.4" fill="#dca267"/>
+<circle cx="713.357" cy="329.250" r="2.4" fill="#7eab97"/>
+<circle cx="751.678" cy="351.375" r="2.4" fill="#7eab97"/>
+<circle cx="790.000" cy="373.500" r="2.4" fill="#7eab97"/>
+<circle cx="828.322" cy="395.625" r="2.4" fill="#dca267"/>
+<circle cx="866.643" cy="417.750" r="2.4" fill="#dca267"/>
+<circle cx="636.714" cy="329.250" r="2.4" fill="#dca267"/>
+<circle cx="675.035" cy="351.375" r="2.4" fill="#dca267"/>
+<circle cx="713.357" cy="373.500" r="2.4" fill="#dca267"/>
+<circle cx="751.678" cy="395.625" r="2.4" fill="#dca267"/>
+<circle cx="790.000" cy="417.750" r="2.4" fill="#dca267"/>
+<circle cx="828.322" cy="439.875" r="2.4" fill="#dca267"/>
+<circle cx="636.714" cy="373.500" r="2.4" fill="#dca267"/>
+<circle cx="675.035" cy="395.625" r="2.4" fill="#dca267"/>
+<circle cx="713.357" cy="417.750" r="2.4" fill="#dca267"/>
+<circle cx="751.678" cy="439.875" r="2.4" fill="#dca267"/>
+<circle cx="790.000" cy="462.000" r="2.4" fill="#dca267"/>
+<circle cx="790.000" cy="196.500" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="790.000" cy="196.500" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="790.000" y="201.500" text-anchor="middle" font-size="14">2</text>
+<circle cx="828.322" cy="218.625" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="828.322" cy="218.625" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="828.322" y="223.625" text-anchor="middle" font-size="14">2</text>
+<circle cx="866.643" cy="240.750" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="866.643" cy="240.750" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="866.643" y="245.750" text-anchor="middle" font-size="14">2</text>
+<circle cx="751.678" cy="218.625" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="751.678" cy="218.625" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="751.678" y="223.625" text-anchor="middle" font-size="14">2</text>
+<circle cx="790.000" cy="240.750" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="790.000" cy="240.750" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="790.000" y="245.750" text-anchor="middle" font-size="14">3</text>
+<circle cx="828.322" cy="262.875" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="828.322" cy="262.875" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="828.322" y="267.875" text-anchor="middle" font-size="14">3</text>
+<circle cx="866.643" cy="285.000" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="866.643" cy="285.000" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="866.643" y="290.000" text-anchor="middle" font-size="14">2</text>
+<circle cx="713.357" cy="240.750" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="713.357" cy="240.750" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="713.357" y="245.750" text-anchor="middle" font-size="14">2</text>
+<circle cx="751.678" cy="262.875" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="751.678" cy="262.875" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="751.678" y="267.875" text-anchor="middle" font-size="14">2</text>
+<circle cx="790.000" cy="285.000" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="790.000" cy="285.000" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="790.000" y="290.000" text-anchor="middle" font-size="14">3</text>
+<circle cx="828.322" cy="307.125" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="828.322" cy="307.125" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="828.322" y="312.125" text-anchor="middle" font-size="14">2</text>
+<circle cx="866.643" cy="329.250" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="866.643" cy="329.250" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="866.643" y="334.250" text-anchor="middle" font-size="14">2</text>
+<circle cx="713.357" cy="285.000" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="713.357" cy="285.000" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="713.357" y="290.000" text-anchor="middle" font-size="14">2</text>
+<circle cx="751.678" cy="307.125" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="751.678" cy="307.125" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="751.678" y="312.125" text-anchor="middle" font-size="14">2</text>
+<circle cx="790.000" cy="329.250" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="790.000" cy="329.250" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="790.000" y="334.250" text-anchor="middle" font-size="14">3</text>
+<circle cx="828.322" cy="351.375" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="828.322" cy="351.375" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="828.322" y="356.375" text-anchor="middle" font-size="14">2</text>
+<circle cx="713.357" cy="329.250" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="713.357" cy="329.250" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="713.357" y="334.250" text-anchor="middle" font-size="14">2</text>
+<circle cx="751.678" cy="351.375" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="751.678" cy="351.375" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="751.678" y="356.375" text-anchor="middle" font-size="14">2</text>
+<circle cx="790.000" cy="373.500" r="54.689" fill="#a3e35a" fill-opacity=".08" stroke="#73ac63" stroke-opacity=".3"/>
+<ellipse cx="790.000" cy="373.500" rx="48.675" ry="24.933" fill="#9bdd61" fill-opacity=".45"/>
+<text x="790.000" y="378.500" text-anchor="middle" font-size="14">2</text>
+<text x="30" y="475" font-size="16">Гекс: R=1.5 wu; сетка: 37 внутренних + 24 граничных узла; шаг 0.375 wu.</text>
+<text x="30" y="504" font-size="16">19 допустимых точек; лист: 0,825 wu, защитный радиус 0.4635 wu + край 0,01 wu.</text>
+<text x="30" y="532" font-size="15">Оранжевые узлы: лист пересёк бы край. Круги: защитный размер листа. Числа: количество листьев.</text>
+</g></svg>

@@ -28,14 +28,14 @@ MonoBehaviour:
   craftStation: 0
   craftNeedsLitFire: 0
   craftIngredients:
-  - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc31, type: 2}
-    itemId:
+  - item: {fileID: 0}
+    itemId: resource.stick
     count: 1
-  - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc32, type: 2}
-    itemId:
+  - item: {fileID: 0}
+    itemId: resource.stone
     count: 1
-  - item: {fileID: 11400000, guid: b5fb45ee9dde457ea63cb0c2403af1f0, type: 2}
-    itemId:
+  - item: {fileID: 0}
+    itemId: resource.rope
     count: 1
   handPoseAuthored: 1
   handLocalPosition: {x: 0.054, y: -0.033, z: -0.076}

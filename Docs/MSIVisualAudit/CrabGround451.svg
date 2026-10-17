@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="300" viewBox="0 0 840 300"><rect width="840" height="300" fill="#14202b"/><g font-family="Arial,sans-serif" fill="#eef4fa"><text x="24" y="30" font-size="21">Краб: опора по реальным вершинам</text>
+<text x="24" y="74" font-size="18">Раньше: пустой угол AABB</text>
+<path d="M24 195h360" stroke="#86a773" stroke-width="3"/>
+<path d="M49 136.55h70" stroke="#77c6e6" stroke-width="3"/>
+<text x="127" y="131.55" fill="#77c6e6" font-size="12">Нижняя реальная вершина</text>
+<path d="M49 195.00h70" stroke="#ed9393" stroke-width="3"/>
+<text x="127" y="190.00" fill="#ed9393" font-size="12">Низ коробки (может быть пустым)</text>
+<text x="24" y="277" font-size="15">Зазор: 0.044961 wu; поверхность 0.75 wu</text>
+<text x="444" y="74" font-size="18">Теперь: реальная геометрия</text>
+<path d="M444 195h360" stroke="#86a773" stroke-width="3"/>
+<path d="M469 195.00h70" stroke="#77c6e6" stroke-width="3"/>
+<text x="547" y="190.00" fill="#77c6e6" font-size="12">Нижняя реальная вершина</text>
+<path d="M469 253.45h70" stroke="#ed9393" stroke-width="3"/>
+<text x="547" y="248.45" fill="#ed9393" font-size="12">Низ коробки (может быть пустым)</text>
+<text x="444" y="277" font-size="15">Зазор: 0.000000 wu; поверхность 0.75 wu</text>
+</g></svg>

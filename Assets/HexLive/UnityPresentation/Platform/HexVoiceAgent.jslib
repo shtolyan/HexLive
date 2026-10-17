@@ -4,14 +4,19 @@
 // The module is loaded with an injected <script type="module">, not import():
 // the WebGL build's minifier does not have to understand dynamic import syntax.
 mergeInto(LibraryManager.library, {
-  HexVoiceStart: function (serverPtr, bearerPtr, clientPtr, npcId) {
+  HexVoiceStart: function (serverPtr, bearerPtr, clientPtr, npcId, epochPtr) {
     var server = UTF8ToString(serverPtr).replace(/\/+$/, '');
     var bearer = UTF8ToString(bearerPtr);
     var clientId = UTF8ToString(clientPtr);
+    var epoch = UTF8ToString(epochPtr);
     var state = window.__hexVoice || (window.__hexVoice = { queue: [], module: null, pending: null });
-    function push(e) { state.queue.push(e); }
+    var generation = state.generation = (state.generation || 0) + 1;
+    state.queue = []; state.batch = null;
+    function push(e) { if (state.generation === generation) state.queue.push(e); }
+    state.push = push;
     function begin(m) {
-      m.startVoice({ server: server, bearer: bearer, clientId: clientId, npcId: npcId, onEvent: push })
+      if (state.generation !== generation) return;
+      m.startVoice({ server: server, bearer: bearer, clientId: clientId, npcId: npcId, controlEpoch: epoch ? Number(epoch) : undefined, onEvent: push })
         .catch(function (e) { push({ type: 'state', state: 'error', detail: String((e && e.message) || e) }); });
     }
     if (state.module) { begin(state.module); return; }
@@ -20,19 +25,20 @@ mergeInto(LibraryManager.library, {
     state.loading = true;
     window.addEventListener('hexvoice-ready', function () {
       state.module = window.__hexVoiceModule;
+      state.loading = false;
       if (state.pending) { var go = state.pending; state.pending = null; go(state.module); }
     }, { once: true });
     var script = document.createElement('script');
     script.type = 'module';
     script.textContent = 'import * as m from ' + JSON.stringify(server + '/api/voice/v1/client.js') +
       '; window.__hexVoiceModule = m; window.dispatchEvent(new Event("hexvoice-ready"));';
-    script.onerror = function () { state.loading = false; push({ type: 'state', state: 'error', detail: 'module' }); };
+    script.onerror = function () { state.loading = false; state.pending = null; if (state.push) state.push({ type: 'state', state: 'error', detail: 'module' }); };
     document.head.appendChild(script);
   },
 
   HexVoiceStop: function () {
     var state = window.__hexVoice;
-    if (state) state.pending = null;
+    if (state) { state.pending = null; state.push = null; state.generation = (state.generation || 0) + 1; state.queue = []; state.batch = null; }
     if (state && state.module) state.module.stopVoice();
   },
 

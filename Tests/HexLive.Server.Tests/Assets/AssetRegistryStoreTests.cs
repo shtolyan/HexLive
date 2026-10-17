@@ -117,12 +117,29 @@ public sealed class AssetRegistryStoreTests
         File.WriteAllText(basePath, "{\"garments\":[],\"recipes\":[{\"output\":\"resource.rope\"}]}");
         var catalog = new AssetGarmentCatalog(_store, basePath);
         var snapshot = catalog.Materialize(); var json = JsonNode.Parse(snapshot.Json)!;
-        Assert.That(rows.Length, Is.EqualTo(78));
-        Assert.That(snapshot.SpawnableWear, Is.EqualTo(78));
+        Assert.That(rows.Length, Is.EqualTo(82));
+        Assert.That(snapshot.SpawnableWear, Is.EqualTo(82));
         Assert.That(snapshot.UnconfiguredWear, Is.Zero);
-        Assert.That(json["recipes"]!.AsArray().Count, Is.EqualTo(79));
+        Assert.That(json["recipes"]!.AsArray().Count, Is.EqualTo(83));
         Assert.That(json["recipes"]!.AsArray().OfType<JsonObject>().Select(r => r["output"]!.GetValue<string>()),
             Is.EquivalentTo(rows.Select(r => r.GetProperty("id").GetString()).Append("resource.rope")));
+        // #448: assert the effective registry catalogue used by the server,
+        // including both fitted sexes and colour variants, not only defaults.
+        var garments = json["garments"]!.AsArray().OfType<JsonObject>().ToArray();
+        foreach (var garment in garments)
+        {
+            var sourceRow = rows.Single(r => r.GetProperty("id").GetString() == garment["id"]!.GetValue<string>());
+            Assert.That(garment["alternateFitId"]!.GetValue<string>(), Is.EqualTo(
+                sourceRow.GetProperty("metadata").GetProperty("simulation").GetProperty("alternateFitId").GetString()),
+                "The effective server catalog must preserve the explicitly authored body fit");
+        }
+        var collars = garments.Where(g => g["id"]!.GetValue<string>().StartsWith("clothing.collar_fur", StringComparison.Ordinal)).ToArray();
+        Assert.That(collars.Length, Is.EqualTo(14));
+        Assert.That(collars.All(g => g["capacity"]!.GetValue<int>() == 1), Is.True);
+        var dresses = garments.Where(g => g["id"]!.GetValue<string>().StartsWith("clothing.dress_primal", StringComparison.Ordinal)).ToArray();
+        Assert.That(dresses.All(g => g["capacity"]!.GetValue<int>() == 2), Is.True);
+        var skirts = garments.Where(g => g["id"]!.GetValue<string>().StartsWith("clothing.skirt_primal", StringComparison.Ordinal)).ToArray();
+        Assert.That(skirts.All(g => g["capacity"]!.GetValue<int>() == 2), Is.True);
         foreach (var recipe in json["recipes"]!.AsArray().OfType<JsonObject>()
                      .Where(r => r["output"]!.GetValue<string>() != "resource.rope"))
         {

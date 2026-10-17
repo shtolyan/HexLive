@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="370" viewBox="0 0 1200 370"><rect width="1200" height="370" fill="#14202b"/><g font-family="Arial,sans-serif" fill="#eef4fa">
+<text x="24" y="30" font-size="21">Укладка после исправления: реальные границы моделей из Unity</text>
+<rect x="66.18" y="244.84" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="99.98" y="244.84" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="133.78" y="244.84" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="167.58" y="244.84" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="201.38" y="244.84" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="66.18" y="234.45" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="99.98" y="234.45" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="133.78" y="234.45" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="167.58" y="234.45" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="201.38" y="234.45" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="66.18" y="224.06" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="99.98" y="224.06" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="133.78" y="224.06" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="167.58" y="224.06" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="201.38" y="224.06" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="66.18" y="213.67" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="99.98" y="213.67" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="133.78" y="213.67" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="167.58" y="213.67" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="201.38" y="213.67" width="32.44" height="10.16" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<text x="150" y="75" text-anchor="middle" font-size="19">Доски: 20 шт.</text>
+<path d="M 20 255 H 280" stroke="#86a773" stroke-width="3"/>
+<circle cx="150" cy="255" r="4" fill="#ffb34f"/>
+<text x="150" y="283" text-anchor="middle" font-size="14">Высота 0.184 wu; ширина 0.745 wu</text>
+<rect x="398.83" y="237.05" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="417.68" y="237.05" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="436.53" y="237.05" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="455.39" y="237.05" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="474.24" y="237.05" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="408.25" y="218.87" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="427.11" y="218.87" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="445.96" y="218.87" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="464.82" y="218.87" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="483.67" y="218.87" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="398.83" y="200.69" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="417.68" y="200.69" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="436.53" y="200.69" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="455.39" y="200.69" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="474.24" y="200.69" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="408.25" y="182.51" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="427.11" y="182.51" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="445.96" y="182.51" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="464.82" y="182.51" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="483.67" y="182.51" width="17.50" height="17.95" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<text x="450" y="75" text-anchor="middle" font-size="19">Палки: 20 шт.</text>
+<path d="M 320 255 H 580" stroke="#86a773" stroke-width="3"/>
+<circle cx="450" cy="255" r="4" fill="#ffb34f"/>
+<text x="450" y="283" text-anchor="middle" font-size="14">Высота 0.322 wu; ширина 0.455 wu</text>
+<rect x="659.69" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="659.69" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="659.69" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="659.69" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="720.35" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="720.35" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="720.35" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="720.35" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="781.01" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="781.01" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="781.01" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="781.01" y="207.46" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="690.02" y="159.70" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="690.02" y="159.70" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="690.02" y="159.70" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="690.02" y="159.70" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="750.68" y="159.70" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="750.68" y="159.70" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="750.68" y="159.70" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="750.68" y="159.70" width="59.31" height="47.54" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<text x="750" y="75" text-anchor="middle" font-size="19">Камни: 20 шт.</text>
+<path d="M 620 255 H 880" stroke="#86a773" stroke-width="3"/>
+<circle cx="750" cy="255" r="4" fill="#ffb34f"/>
+<text x="750" y="283" text-anchor="middle" font-size="14">Высота 0.424 wu; ширина 0.803 wu</text>
+<rect x="991.83" y="223.28" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="1015.37" y="223.28" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="1038.91" y="223.28" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="1062.45" y="223.28" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="1085.98" y="223.28" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="991.83" y="191.34" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="1015.37" y="191.34" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="1038.91" y="191.34" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="1062.45" y="191.34" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<rect x="1085.98" y="191.34" width="22.18" height="31.72" fill="#77c6e6" fill-opacity=".32" stroke="#a3d8e9" stroke-width=".8"/>
+<text x="1050" y="75" text-anchor="middle" font-size="19">Бинты: 10 шт.</text>
+<path d="M 920 255 H 1180" stroke="#86a773" stroke-width="3"/>
+<circle cx="1050" cy="255" r="4" fill="#ffb34f"/>
+<text x="1050" y="283" text-anchor="middle" font-size="14">Высота 0.283 wu; ширина 0.517 wu</text>
+<text x="24" y="323" font-size="15">Голубое — границы предметов сбоку; зелёное — поверхность; оранжевое — неизменный опорный узел.</text>
+<text x="24" y="350" font-size="15">Между курсами 0.001 wu, между соседями 0.006 wu. Число предметов и правила инвентаря сохранены.</text></g></svg>

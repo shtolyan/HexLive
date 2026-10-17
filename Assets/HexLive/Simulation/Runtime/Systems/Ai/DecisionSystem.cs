@@ -107,7 +107,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 // Bug #54: without wake grace, NeedsDecaySystem could re-arm
                 // the same faint later in this very tick while the collapse
                 // thresholds were still true.
-                npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
+                npc.Mind.WakeGraceUntilTick = world.Tick + StandUpMath.GraceTicks;
                 MortalityHelpers.TryStartPlayDead(world, npc); // hiding clears grace
             }
 
@@ -138,7 +138,6 @@ public sealed partial class DecisionSystem : ISimulationSystem
             if (npc.Mind.CryingUntilTick != 0)
             {
                 LyingSpot.EndCrying(world, npc);
-                npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks;
 
                 // §105.14: те же ворота перед подъёмом, и та же причина
                 // спрашивать ручку прямо здесь (см. обморок выше).
@@ -675,7 +674,7 @@ public sealed partial class DecisionSystem : ISimulationSystem
                 (!npc.Mind.OutfitLocked && !pendingRedress &&
                  (wantsBackpack || wantsArmor || wantsCover ||
                   (coldForWardrobe &&
-                   HasInteraction(npc, InteractionType.Dress) &&
+                   HasInteraction(npc, world, InteractionType.Dress) &&
                    // §52.7: ...and only when something in reach is a REAL warmth
                    // upgrade — no trek to an equal/worse shirt (the girl's own
                    // example: a top over an identical top warms her by nothing).
@@ -1863,12 +1862,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
         var cookingFire = FindCookingFire(npc, world);
         var cookAvail = hasRawMeat && cookingFire != null &&
             PlanningSystem.HasObjectCandidateForGoal(world, npc, GoalType.CookMeat);
-        var craftLeatherAvail = !npc.WornItems.Contains(ContentIds.LeatherPants) &&
-            !npc.Inventory.Items.Contains(ContentIds.LeatherPants) &&
-            (((HasRecipeInputs(npc, GoalType.CraftLeather) ||
-               BillCoveredByGroundPiles(npc, world, GoalType.CraftLeather)) &&
-              CraftPlaceOk(GoalType.CraftLeather)) ||
-             CraftProjectMath.HasReachableProject(world, npc, GoalType.CraftLeather));
+        // §138.6 / #461: the enum remains save/wire compatible, its craft is retired.
+        var craftLeatherAvail = false;
 
         // Inside the peckish window the hunt genuinely outbids GetFood
         // (0.3+0.5h > h for h < 0.6); the availability window above is
@@ -2279,12 +2274,8 @@ public sealed partial class DecisionSystem : ISimulationSystem
             (axeRopeTarget > 0 && carriedRope < axeRopeTarget) ||
             (spearRopeTarget > 0 && carriedRope < spearRopeTarget) ||
             (!hasBow && hideCount >= 1 && carriedRope == 0);
-        var leatherClothNeeded = !npc.WornItems.Contains(ContentIds.LeatherPants) &&
-            !npc.Inventory.Items.Contains(ContentIds.LeatherPants) && hideCount >= 1 &&
-            carriedCloth < Content.RecipeCatalog.InputCount(
-                GoalType.CraftLeather, ContentIds.Cloth);
         var wantCloth = (bedDeficit && carriedCloth == 0) ||
-            bandageClothNeeded || leatherClothNeeded;
+            bandageClothNeeded;
         // §54.13: gather fiber for the WHOLE rope shortfall, not one rope's
         // worth — the old cost-of-one made a girl cut a yucca (4 fibers
         // scatter), pick up ONE, craft one rope, deliver it, and walk all

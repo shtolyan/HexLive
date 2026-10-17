@@ -5,14 +5,19 @@ namespace HexLive.VoiceBrain;
 
 /// <summary>
 /// §171.7: describe_colonist is 30–80 KB; a voice turn cannot afford that many
-/// prompt tokens. This projection keeps what the character can feel, see and
-/// act on (~3 KB): body, mood, what is near with the ids the tools need.
+/// prompt tokens. This bounded projection keeps body, mood and current sight,
+/// with the ids the tools need; remembered objects stay explicitly separate.
 /// </summary>
 public static class CharacterView
 {
     public const int MaxPerception = 2400;
     public const int MaxObjects = 24;
     public const int MaxPeople = 8;
+    public const int MaxWornItems = 32;
+    private static readonly JsonSerializerOptions ReadableJson = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All)
+    };
 
     public static string Name(JsonElement d) => d.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
 
@@ -40,10 +45,17 @@ public static class CharacterView
         return list.Count > 0 ? list : ["чувствует себя хорошо"];
     }
 
-    public static string Build(JsonElement d)
+    public static string Build(JsonElement d, string query = "")
     {
         var sb = new StringBuilder();
         sb.Append("Имя: ").Append(Name(d)).Append('\n');
+        if (d.TryGetProperty("tick", out var tick) && tick.TryGetInt64(out var t))
+            sb.Append("Свежий снимок сервера, tick=").Append(t).Append('\n');
+        if(d.TryGetProperty("perceptionTick",out var pt) && pt.TryGetInt32(out var observed))
+            sb.Append("Текущее восприятие обновлено на tick=").Append(observed).Append('\n');
+        if(d.TryGetProperty("environment",out var environment) && environment.ValueKind==JsonValueKind.Object)
+            sb.Append("Окружение сейчас: ").Append(environment.GetRawText()).Append('\n');
+        AppendWardrobe(sb, d);
         if (d.TryGetProperty("stateSummary", out var state)) sb.Append("Тело и занятие: ").Append(state.GetString()).Append('\n');
         if (d.TryGetProperty("bodyNeeds", out var needs))
             // Words, not numbers: the model read hunger 0.71 ("1 = starving") as "barely hungry".
@@ -54,9 +66,11 @@ public static class CharacterView
         if (d.TryGetProperty("execution", out var exec)) sb.Append("Текущее выполнение: ").Append(exec.GetRawText()).Append('\n');
         if (d.TryGetProperty("inventoryItems", out var inv) && inv.ValueKind == JsonValueKind.Array)
         {
-            var items = inv.EnumerateArray().Select(i => i.TryGetProperty("itemId", out var id) ? id.GetString() : null)
-                .Where(s => s != null).GroupBy(s => s!).Select(g => g.Count() > 1 ? $"{g.Key}×{g.Count()}" : g.Key);
-            sb.Append("В инвентаре: ").Append(string.Join(", ", items)).Append('\n');
+            var items = inv.EnumerateArray().Select(ItemLabel).GroupBy(s => s)
+                .Select(g => g.Count() > 1 ? $"{g.Key}×{g.Count()}" : g.Key).ToArray();
+            sb.Append("В инвентаре (это НЕ надето): ").Append(string.Join(", ", items.Take(MaxObjects)));
+            if (items.Length > MaxObjects) sb.Append("; прочие вещи опущены");
+            sb.Append('\n');
         }
         if (d.TryGetProperty("visibleNpcs", out var npcs) && npcs.ValueKind == JsonValueKind.Array)
         {
@@ -75,18 +89,86 @@ public static class CharacterView
         }
         if (d.TryGetProperty("visibleItems", out var objects) && objects.ValueKind == JsonValueKind.Array)
         {
-            sb.Append("Объекты (objectId, что это, действия):\n");
-            foreach (var o in objects.EnumerateArray().Where(o => o.TryGetProperty("objectId", out var id) && id.ValueKind == JsonValueKind.Number).Take(MaxObjects))
+            sb.Append("Вижу сейчас — объекты (objectId, что это, действия):\n");
+            var candidates = SurroundingsView.CurrentObjects(d);
+            var groups=candidates.GroupBy(o=>SurroundingsView.Text(o,"itemId")).OrderByDescending(g=>g.Count()).ThenBy(g=>g.Key).ToArray();
+            sb.Append("Всего в текущем зрении: ").Append(candidates.Length).Append(" объектов; по типам: ")
+                .Append(string.Join(", ",groups.Take(12).Select(g=>$"{g.Key}×{g.Count()}"))).Append(groups.Length>12 ? "; прочие типы опущены" : "").Append('\n');
+            // Facilities are often newer than loose items: an ID prefix hid
+            // beds behind the first 24 sticks. Keep a bounded deterministic list.
+            foreach (var o in SurroundingsView.Select(d,query).Take(MaxObjects))
             {
                 var verbs = o.TryGetProperty("interactions", out var acts) && acts.ValueKind == JsonValueKind.Array
                     ? string.Join("/", acts.EnumerateArray().Select(a => a.TryGetProperty("type", out var t) ? t.GetString() : null).Where(t => t != null).Distinct())
                     : "";
                 sb.Append("- ").Append(o.GetProperty("objectId").GetInt32()).Append(' ').Append(o.GetProperty("itemId").GetString())
                   .Append(verbs.Length > 0 ? " [" + verbs + "]" : "").Append('\n');
+                if(o.TryGetProperty("interactions",out var available) && available.ValueKind==JsonValueKind.Array)
+                    foreach(var a in available.EnumerateArray())
+                        if(a.TryGetProperty("toolRequirementMet",out var met) && met.ValueKind==JsonValueKind.False)
+                            sb.Append("  Для ").Append(SurroundingsView.Text(a,"type")).Append(" отсутствует нужный инструмент\n");
+                foreach(var key in new[]{"displayName","distance","reachable","occupied","sameCamp","collector","fire","construction"})
+                    if(o.TryGetProperty(key,out var value)) sb.Append("  ").Append(key).Append('=').Append(value.GetRawText()).Append('\n');
             }
+            if (candidates.Length > MaxObjects)
+                sb.Append("Этот список неполный; используй inspect_surroundings по названию или типу, прежде чем говорить «не вижу».\n");
         }
-        if (d.TryGetProperty("perceptionSummary", out var perception) && perception.GetString() is { } p)
-            sb.Append("Восприятие (ближайшие по типам): ").Append(p.Length > MaxPerception ? p[..MaxPerception] + "…" : p).Append('\n');
+        if (d.TryGetProperty("knownSleepPlaces", out var known) && known.ValueKind == JsonValueKind.Object &&
+            known.TryGetProperty("objects", out var beds) && beds.ValueKind == JsonValueKind.Array)
+        {
+            sb.Append("Лично известные места сна (память, не подтверждает наличие или доступность сейчас):\n");
+            foreach (var bed in beds.EnumerateArray().Take(8))
+            {
+                sb.Append("- ");
+                foreach (var key in new[] { "objectId", "definitionId", "lastSeenTick", "lastKnownTile", "provenance" })
+                    if (bed.ValueKind == JsonValueKind.Object && bed.TryGetProperty(key, out var value))
+                        sb.Append(key).Append('=').Append(value.GetRawText()).Append(' ');
+                sb.Append('\n');
+            }
+            sb.Append("Можно попытаться Sleep по известному objectId; отказ сервера означает, что место сейчас недоступно. Не объявляй сон начатым по одному accepted.\n");
+        }
+        if(d.TryGetProperty("mobs",out var mobs) && mobs.ValueKind==JsonValueKind.Array)
+            sb.Append("Вижу сейчас — звери (distanceTiles в гексах): ")
+                .Append(JsonSerializer.Serialize(mobs.EnumerateArray().Take(8))).Append('\n');
+        sb.Append("Память и архив не являются текущим зрением. Нет предмета в коротком списке — уточни inspect_surroundings.\n");
         return sb.ToString();
+    }
+
+    private static bool HasSleep(JsonElement item) => item.TryGetProperty("interactions", out var acts) &&
+        acts.ValueKind == JsonValueKind.Array && acts.EnumerateArray().Any(a => a.ValueKind == JsonValueKind.Object &&
+            a.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "Sleep");
+
+    // §171.22: absence of the field is an unknown wardrobe, not a naked body.
+    // A bounded prefix must never claim to be a complete empty/full outfit.
+    private static void AppendWardrobe(StringBuilder sb, JsonElement d)
+    {
+        sb.Append("Надето сейчас (только wornItems): ");
+        if (!d.TryGetProperty("wornItems", out var worn) || worn.ValueKind != JsonValueKind.Array)
+        {
+            sb.Append("нет достоверных данных; не угадывай одежду или наготу.\n");
+            return;
+        }
+        var count = worn.GetArrayLength();
+        if (count == 0) { sb.Append("ничего, список надетых вещей пуст.\n"); return; }
+        sb.Append(count).Append(" вещей\n");
+        foreach (var item in worn.EnumerateArray().Take(MaxWornItems))
+        {
+            sb.Append("- ").Append(ItemLabel(item));
+            foreach (var key in new[] { "layer", "covers", "conditionPercent", "catalogKnown" })
+                if (item.ValueKind == JsonValueKind.Object && item.TryGetProperty(key, out var value))
+                    sb.Append(' ').Append(key).Append('=').Append(value.GetRawText());
+            sb.Append('\n');
+        }
+        if (count > MaxWornItems) sb.Append("Часть надетых вещей опущена; список выше неполный.\n");
+    }
+
+    private static string ItemLabel(JsonElement item)
+    {
+        static string Text(JsonElement row, string key) => row.ValueKind == JsonValueKind.Object
+            && row.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String
+            ? (value.GetString() ?? "") : "";
+        static string Quoted(string value) => JsonSerializer.Serialize(value.Length > 96 ? value[..96] + "…" : value, ReadableJson);
+        var id = Text(item, "itemId"); var name = Text(item, "displayName");
+        return "itemId=" + Quoted(id) + (name.Length > 0 ? " название=" + Quoted(name) : " название неизвестно");
     }
 }

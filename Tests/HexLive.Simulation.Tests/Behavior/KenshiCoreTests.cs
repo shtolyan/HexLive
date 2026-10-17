@@ -319,6 +319,10 @@ public sealed class KenshiCoreTests
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
+        // Match the described injured parts; clotted cuts on HP >= 0.9
+        // are deliberately left to natural scarring by bug #306.
+        patient.Body.Parts[BodyPart.LegL] = 0.2f;
+        patient.Body.Parts[BodyPart.ArmL] = 0.92f;
         patient.Wounds.Add(new WoundState
         {
             Id = 1, Zone = BodyPart.LegL, Severity = 0.8f,
@@ -344,6 +348,8 @@ public sealed class KenshiCoreTests
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
+        patient.Body.Parts[BodyPart.LegL] = 0.2f;
+        patient.Body.Parts[BodyPart.ArmL] = 0.92f;
         patient.Wounds.Add(new WoundState
         {
             Id = 1, Zone = BodyPart.LegL, Severity = 0.8f,
@@ -368,6 +374,8 @@ public sealed class KenshiCoreTests
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
+        patient.Body.Parts[BodyPart.LegL] = 0f;
+        patient.Body.Parts[BodyPart.ArmL] = 0.92f;
         patient.Body.Condition(BodyPart.LegL).CriticalTrauma = 0.5f;
         patient.Wounds.Add(new WoundState
         {
@@ -391,6 +399,8 @@ public sealed class KenshiCoreTests
         var world = TestWorld.CreateWorld();
         var patient = world.Entities.Npcs.Values.First();
         patient.Wounds.Clear();
+        patient.Body.Parts[BodyPart.ArmL] = 0.95f;
+        patient.Body.Parts[BodyPart.LegL] = 0.7f;
         patient.Wounds.Add(new WoundState
         {
             Id = 1, Zone = BodyPart.ArmL, Severity = 0.05f,
@@ -650,7 +660,7 @@ public sealed class KenshiCoreTests
 
         new DecisionSystem().Run(world);
         Assert.That(patient.Mind.WakeGraceUntilTick,
-            Is.EqualTo(world.Tick + AiBalance.WakeGraceTicks));
+            Is.EqualTo(world.Tick + StandUpMath.GraceTicks));
 
         new NeedsDecaySystem().Run(world);
         Assert.That(patient.Mind.FaintedUntilTick, Is.Zero,
@@ -683,7 +693,7 @@ public sealed class KenshiCoreTests
         patient.Body.Parts[BodyPart.LegR] = 0.8f;
         MortalityHelpers.GrantStandUpGrace(world, patient, wasProne: true);
         Assert.That(patient.Mind.WakeGraceUntilTick,
-            Is.EqualTo(world.Tick + AiBalance.WakeGraceTicks));
+            Is.EqualTo(world.Tick + StandUpMath.GraceTicks));
     }
 
     [Test]

@@ -36,7 +36,7 @@ internal static class ContainerLootMath
 
     public const float FuelTicksPerStick = 1200f;
 
-    // ItemInstance has no free enum field. Wood does not otherwise use its
+    // Wood and leaves do not otherwise use their
     // ResourceAmount, so this persisted negative value is an unambiguous §151
     // discriminator between queued fuel and the campfire's construction bill.
     private const float QueuedFuelMarker = -151f;
@@ -161,21 +161,22 @@ internal static class ContainerLootMath
         container?.DefinitionId == ContentIds.Campfire &&
         item is not null && item.ResourceAmount == QueuedFuelMarker;
 
-    private static bool IsWood(WorldState world, ItemInstance item) =>
+    private static bool IsFuel(WorldState world, ItemInstance item) =>
+        LeafDryingMath.IsDry(world,item) ||
         world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition) &&
         definition.HasTag(ObjectTags.Wood);
 
     private static float FuelTicks(ItemInstance item) =>
-        item.DefinitionId == ContentIds.Log
+        item.DefinitionId == ContentIds.PalmLeaf ? FuelTicksPerStick * .25f : item.DefinitionId == ContentIds.Log
             ? FuelTicksPerStick * 4f
             : FuelTicksPerStick;
 
     private static readonly string[] CampfireFuelPreference =
     {
-        ContentIds.Stick, ContentIds.Board, ContentIds.Log
+        ContentIds.PalmLeaf, ContentIds.Stick, ContentIds.Board, ContentIds.Log
     };
 
-    /// <summary>§151.2: the action and the container accept the same Wood set.
+    /// <summary>§151.2: the action and container accept wood or fully dry leaves.
     /// Prefer cheap fuel before a four-stick log, but keep content-tagged wood
     /// extensible without another hard-coded interaction branch.</summary>
     public static ItemInstance FindCarriedCampfireFuel(WorldState world, NPCState npc)
@@ -184,7 +185,7 @@ internal static class ContainerLootMath
         {
             foreach (var item in npc.Inventory.Items)
             {
-                if (item.DefinitionId == preferred && IsWood(world, item))
+                if (item.DefinitionId == preferred && IsFuel(world, item))
                 {
                     return item;
                 }
@@ -193,7 +194,7 @@ internal static class ContainerLootMath
 
         foreach (var item in npc.Inventory.Items)
         {
-            if (IsWood(world, item)) return item;
+            if (IsFuel(world, item)) return item;
         }
 
         return null;
@@ -227,7 +228,7 @@ internal static class ContainerLootMath
         for (var i = 0; i < fire.Contents.Count; i++)
         {
             var item = fire.Contents[i];
-            if (!IsQueuedCampfireFuel(fire, item) || !IsWood(world, item)) continue;
+            if (!IsQueuedCampfireFuel(fire, item) || !IsFuel(world, item)) continue;
             fire.Contents.RemoveAt(i);
             item.ResourceAmount = 0f;
             fuelTicks = FuelTicks(item);
@@ -241,7 +242,7 @@ internal static class ContainerLootMath
     {
         foreach (var item in fire.Contents)
         {
-            if (IsQueuedCampfireFuel(fire, item) && IsWood(world, item)) return true;
+            if (IsQueuedCampfireFuel(fire, item) && IsFuel(world, item)) return true;
         }
 
         return false;
@@ -579,9 +580,7 @@ internal static class ContainerLootMath
                 continue;
             }
 
-            if (!world.Content.ObjectDefinitions.TryGetValue(
-                    item.DefinitionId, out var definition) ||
-                !definition.HasTag(ObjectTags.Wood))
+            if (!IsFuel(world,item))
             {
                 return false;
             }
@@ -628,6 +627,7 @@ internal static class ContainerLootMath
         foreach (var item in moving)
         {
             if (!InventoryMath.RemoveReference(looter.Inventory.Items, item)) continue;
+            LeafDryingMath.Initialize(item,world.Tick);
             var externalStorage =
                 (IsRack(world, obj) || obj.DefinitionId == ContentIds.WaterCollector) &&
                 obj.Junctions.Count > 0;

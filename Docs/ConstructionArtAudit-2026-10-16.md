@@ -54,16 +54,21 @@ meshes: например, ножку вместе с опорой или нес�
   attachment matrices, рецептов и всех 299 записей действий.
 - Отдельное сравнение 14 неизменяемых attachments гардероба/кровати с исходным
   снимком: максимальное изменение 0.
-- Simulation: 26 focused tests прошли, включая каталог, сметы, повторяющиеся
-  материалы и SpecStructureGate.
+- Simulation: 90 focused tests прошли на актуальном master, включая реальное
+  завершение Build-цикла, поштучную установку, save v84→v85, snapshot, каталог,
+  сметы, повторяющиеся материалы и SpecStructureGate.
+- Два Python-теста проверили исходные контракты и отказы на старый receipt,
+  неверную платформу и несовпадение hash/размера candidate payload.
 - Грубая проверка контакта предыдущих деталей: 14 объектов без предупреждений.
   Это геометрическая эвристика, не физическая экспертиза устойчивости.
 - Unity gate проходит через реальные `BedAssembly.Apply` и
   `BlueprintArchitectureFactory.ApplyStageProgress`: нулевая площадка, каждый
   шаг, наличие геометрии, required sockets, hash и action paths. Выполняется
   в изолированных PreviewScene без смены активной сцены или Play Mode.
-  Фактический запуск через Unity CLI / Unity 6000.4.5f1: PASS, 14 моделей,
-  все ресурсные приращения, sockets и export receipts. Журнал:
+  Предыдущий запуск через Unity CLI / Unity 6000.4.5f1: PASS, 14 моделей,
+  все ресурсные приращения, sockets и export receipts. После финального
+  закрытия щелей кровли и подключения gate к atomic builder повторный импорт,
+  компиляция Editor и этот gate обязательны на ПК-сборщике. Журнал прошлого запуска:
   `Build/ConstructionReview-20261016/unity-construction-gate.log`.
 
 Локальные результаты (генерируемые, каталог Build не коммитится):
@@ -72,7 +77,7 @@ meshes: например, ножку вместе с опорой или нес�
   313 кадров предметов и семь стадий дома.
 - `overview.jpg`, `station.drying_rack-stages.jpg`, `furniture.wardrobe-stages.jpg`.
 - `final-fbx-roundtrip.log`, `audit.json`, `final-simulation-tests.log`,
-  `unity-construction-gate.log`.
+  `integrated-tests.log`, `unity-construction-gate.log`.
 
 Снимки общего дома строятся из 51 реального production module, полученного через
 `BlueprintBuildingPlan.Modules(CommittedBuildingPlans.PlayerHut)`. Это Blender

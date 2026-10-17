@@ -44,7 +44,8 @@ public static class StowMath
     public static UndressSpot? FindUndressSpot(WorldState world, NPCState npc)
     {
         if (npc.CurrentJunction is not { } from ||
-            ColonyQueries.Home(world, npc.Faction) is not { } home)
+            ColonyQueries.Home(world, npc.Faction) is not { } home ||
+            !CampPropertyMath.CanDeposit(world, npc, home))
         {
             return null;
         }
@@ -55,7 +56,7 @@ public static class StowMath
         var bestDistance = float.MaxValue;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.Junctions.Count == 0 ||
+            if (!CampPropertyMath.CanUse(world, npc, obj) || obj.Junctions.Count == 0 ||
                 HexSpatialMath.HexDistance(obj.Tile, home) > Spec133.HomeStowRadiusTiles ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
             {
@@ -118,7 +119,7 @@ public static class StowMath
         var bestRank = int.MaxValue;
         foreach (var obj in world.Entities.Objects.Values)
         {
-            if (obj.Junctions.Count == 0 ||
+            if (!CampPropertyMath.CanUse(world, npc, obj) || obj.Junctions.Count == 0 ||
                 HexSpatialMath.HexDistance(obj.Tile, npc.Tile) > 1 ||
                 !world.Content.ObjectDefinitions.TryGetValue(obj.DefinitionId, out var def))
             {

@@ -278,11 +278,11 @@ namespace HexLive.Simulation.Tests.Behavior
             var engine = TestWorld.CreateEngine();
             var outsider = engine.World.Entities.Npcs.Values.First(n => n.Faction != Faction.Colony);
             outsider.Mind.ManualControl = false;
-            outsider.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants));
+            outsider.Inventory.Items.Add(new ItemInstance("clothing.skirt_primal"));
             engine.Commands.Enqueue(new SetManualControlCommand(outsider.Id, true));
             engine.Commands.Enqueue(new ManageInventoryCommand(outsider.Id,
                 new InventoryItemRef(InventoryItemSource.Carried,
-                    outsider.Inventory.Items.Count - 1, ContentIds.LeatherPants),
+                    outsider.Inventory.Items.Count - 1, "clothing.skirt_primal"),
                 InventoryAction.Drop));
             engine.Step();
 
@@ -290,7 +290,7 @@ namespace HexLive.Simulation.Tests.Behavior
             {
                 Assert.That(outsider.Mind.ManualControl, Is.False);
                 Assert.That(outsider.Inventory.Items.Any(i =>
-                    i.DefinitionId == ContentIds.LeatherPants), Is.True);
+                    i.DefinitionId == "clothing.skirt_primal"), Is.True);
                 Assert.That(engine.World.Events.Items.Any(e =>
                     e.Type == "ManualOrderRejected" && e.EntityId == outsider.Id.Value &&
                     e.Message.Contains("Reason=NotOwned")), Is.True);
@@ -334,12 +334,12 @@ namespace HexLive.Simulation.Tests.Behavior
             npc.Plan.Steps.Clear();
             npc.Plan.Steps.Add(preservedStep);
 
-            var pants = new ItemInstance(ContentIds.LeatherPants)
+            var pants = new ItemInstance("clothing.skirt_primal")
                 { OwnerId = formerOwner.Id.Value };
             npc.Inventory.Items.Add(pants);
             var index = npc.Inventory.Items.Count - 1;
             var result = engine.ApplyManualCommand(new ManageInventoryCommand(npc.Id,
-                new InventoryItemRef(InventoryItemSource.Carried, index, ContentIds.LeatherPants),
+                new InventoryItemRef(InventoryItemSource.Carried, index, "clothing.skirt_primal"),
                 InventoryAction.Wear));
 
             Assert.Multiple(() =>

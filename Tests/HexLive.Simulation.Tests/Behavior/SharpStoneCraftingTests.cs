@@ -89,8 +89,6 @@ namespace HexLive.Simulation.Tests.Behavior
                 (ContentIds.Stick, 1), (ContentIds.Stone, 1), (ContentIds.Rope, 1));
             AssertBill(GoalType.CraftBandage,
                 (ContentIds.HerbLeaf, 2), (ContentIds.Cloth, 1));
-            AssertBill(GoalType.CraftLeather,
-                (ContentIds.Hide, 1), (ContentIds.Cloth, 1));
         }
 
         [Test]

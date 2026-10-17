@@ -125,11 +125,35 @@ namespace HexLive.UnityDebug.Editor
                     SaveMap(map, $"garment_{smr.sharedMesh.name}_{smr.sharedMesh.vertexCount}");
                     garments++;
                 }
-                if (actors != 2 || garments != 21) throw new System.InvalidOperationException($"Incomplete people maps: {actors} actors, {garments} garments");
+                if (actors != 2 || garments != 22) throw new System.InvalidOperationException($"Incomplete people maps: {actors} actors, {garments} garments");
                 AssetDatabase.SaveAssets();
                 Debug.Log($"PEOPLE_PAINT_MAPS: {actors} actors, {garments} garments");
             }
             finally { OutputFolder = previousOutput; }
+        }
+
+        public static string[] GenerateWebGLGarmentMaps(string[] prefabPaths)
+        {
+            var previous = OutputFolder;
+            OutputFolder = "Assets/HexLiveContent/People/PaintMaps";
+            try
+            {
+                var paths = new System.Collections.Generic.List<string>();
+                foreach (var path in prefabPaths)
+                {
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    var smr = prefab.GetComponentInChildren<SkinnedMeshRenderer>(true);
+                    var radius = GarmentAnchorRadius / Mathf.Max(.00001f, Mathf.Abs(smr.transform.lossyScale.x));
+                    var map = BuildGarmentMap(prefab.name, smr.sharedMesh, smr, radius);
+                    if (map == null || !map.Zones.Any(z => z.Points.Any(p => p.Valid)))
+                        throw new System.InvalidOperationException("No valid garment map: " + path);
+                    var key = $"garment_{smr.sharedMesh.name}_{smr.sharedMesh.vertexCount}";
+                    SaveMap(map, key); paths.Add(OutputFolder + "/" + key + ".asset");
+                }
+                AssetDatabase.SaveAssets();
+                return paths.ToArray();
+            }
+            finally { OutputFolder = previous; }
         }
 
         // ---- skin maps (one per actor prefab) ----
@@ -1315,6 +1339,9 @@ namespace HexLive.UnityDebug.Editor
 
         private static void SaveMap(PaintPointMap map, string key)
         {
+            // CopySerialized also copies m_Name. A freshly baked ScriptableObject
+            // is unnamed; a repeat bake must retain the runtime resource key.
+            map.name = key;
             var assetPath = $"{OutputFolder}/{key}.asset";
             var existing = AssetDatabase.LoadAssetAtPath<PaintPointMap>(assetPath);
             if (existing != null)

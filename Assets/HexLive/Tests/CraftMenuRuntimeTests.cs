@@ -64,9 +64,9 @@ namespace HexLive.Tests
                 Set(panel, "_craftAvailable", true); Invoke(panel, "ToggleInventory"); Invoke(panel, "SelectInventoryPage", true, false);
                 ((VisualElement)Field(panel, "_inventoryCraftTab")).style.display = DisplayStyle.Flex;
                 var root = document.rootVisualElement; var grid = root.Q("craft-recipe-grid");
-                Assert.That(grid.childCount, Is.EqualTo(81));
+                Assert.That(grid.childCount, Is.EqualTo(85));
                 Click(root.Q<Button>("craft-category-Clothing"));
-                Assert.That(grid.childCount, Is.EqualTo(78));
+                Assert.That(grid.childCount, Is.EqualTo(82));
                 Assert.That(grid.Children().All(card => card.Q<Image>()?.sprite != null), Is.True);
                 yield return null; yield return null; yield return null;
                 var scroll = root.Q<ScrollView>("craft-recipe-scroll");

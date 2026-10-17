@@ -72,9 +72,21 @@ public sealed class CharacterCreationTests
         var bodies = options.GetProperty("bodies").EnumerateArray().ToArray();
         Assert.That(bodies.Select(b => b.GetProperty("id").GetString()), Is.EquivalentTo(new[] { "Marta", "Kshishtof" }));
         Assert.That(options.GetProperty("skins").GetArrayLength(), Is.EqualTo(8));
-        Assert.That(options.GetProperty("eyes").EnumerateArray().Select(e => e.GetString()), Is.EqualTo(new[] { "" }));
+        Assert.That(options.GetProperty("eyes").EnumerateArray().Select(e => e.GetString()), Is.EquivalentTo(new[]{""}.Concat(ColonistAppearance.EyeColors)));
+        foreach(var body in bodies) Assert.That(body.GetProperty("eyes").EnumerateArray().Select(e=>e.GetString()),Is.EquivalentTo(new[]{""}.Concat(ColonistAppearance.EyeColors)));
         Assert.That(options.GetProperty("attributeBudget").GetSingle(), Is.EqualTo(4.2f).Within(.0001));
         Assert.That(options.GetProperty("skillBudget").GetSingle(), Is.EqualTo(3f));
+        var styles = options.GetProperty("hair").EnumerateArray().Select(h => h.GetProperty("id").GetString()).ToArray();
+        foreach (var body in bodies)
+        {
+            Assert.That(body.GetProperty("hair").EnumerateArray().Select(h => h.GetString()), Is.EqualTo(styles),
+                "Both sexes receive the same published hairstyles.");
+            Assert.That(body.GetProperty("startingClothing").EnumerateArray().Select(c => c.GetString()),
+                Is.EqualTo(PlayerCharacterCreation.StartingClothing(body.GetProperty("id").GetString()!)));
+        }
+        foreach (var hair in options.GetProperty("hair").EnumerateArray().Where(h => h.GetProperty("id").GetString() != "none"))
+            Assert.That(hair.GetProperty("colours").EnumerateArray().Select(c => c.GetString()),
+                Is.SupersetOf(HairTintPalette.All.Select(c => c.Id)));
         var me = await f.Client.GetFromJsonAsync<JsonElement>(AccountEndpoints.Prefix + "/me");
         Assert.That(me.GetProperty("character").ValueKind, Is.EqualTo(JsonValueKind.Null), "first login never appropriates a resident");
         f.Client.DefaultRequestHeaders.Authorization = null;
@@ -82,12 +94,40 @@ public sealed class CharacterCreationTests
         Assert.That((await f.Client.PostAsJsonAsync(Root, Request())).StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
+    [Test]
+    public async Task TintWithoutHairstyleRejectsWithoutCreatingCharacter()
+    {
+        await using var f = await Fixture.Create(); var request = Request();
+        request.Hair = null!; request.HairColour = "tint.silver";
+        var count = f.Worlds.Host.Read(w => w.Entities.Npcs.Count);
+        Assert.That((await f.Client.PostAsJsonAsync(Root, request)).StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(f.Worlds.Host.Read(w => w.Entities.Npcs.Count), Is.EqualTo(count));
+    }
+
+    [Test]
+    public async Task MalePonytailAndTintAreCreatedAndUnknownTintStillRejects()
+    {
+        await using var f = await Fixture.Create();
+        var request = Request("Kshishtof", "Colony");
+        request.Hair = "LowPonytail"; request.HairColour = "tint.not-a-preset";
+        Assert.That((await f.Client.PostAsJsonAsync(Root, request)).StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        request.HairColour = "tint.silver";
+        var reply = await f.CreateCharacter(request);
+        f.Worlds.Host.Read(w => {
+            var npc = w.Entities.Npcs[new EntityId(reply.GetProperty("npcId").GetInt32())];
+            Assert.That(npc.Hairstyle, Is.EqualTo("LowPonytail"));
+            Assert.That(npc.HairColour, Is.EqualTo("tint.silver"));
+            Assert.That(npc.WornItems.Select(i => i.DefinitionId), Is.EqualTo(new[] { "underwear.briefs_primal_male" }));
+            return 0;
+        });
+    }
     [TestCase("Marta", "Colony2")]
     [TestCase("Kshishtof", "Colony")]
     public async Task CreatesInCampWithExactUnderwearOwnershipAndPersistentReceipt(string body, string camp)
     {
         await using var f = await Fixture.Create();
         var request = Request(body, camp);
+        request.Eyes=body=="Marta"?"green":"amber";
         var count = f.Worlds.Host.Read(w => w.Entities.Npcs.Count);
         var reply = await f.CreateCharacter(request);
         var id = reply.GetProperty("npcId").GetInt32();
@@ -96,6 +136,7 @@ public sealed class CharacterCreationTests
             var npc = w.Entities.Npcs[new EntityId(id)];
             Assert.That(npc.Faction.ToString(), Is.EqualTo(camp));
             Assert.That(npc.ActorMesh, Is.EqualTo(body)); Assert.That(npc.SkinSet, Is.EqualTo(request.Skin));
+            Assert.That(npc.EyeColor,Is.EqualTo(request.Eyes));
             Assert.That(npc.WornItems.Select(i => i.DefinitionId), Is.EquivalentTo(PlayerCharacterCreation.StartingClothing(body)));
             Assert.That(npc.WornItems.All(i => i.OwnerId == id), Is.True);
             Assert.That(npc.Traits.Bits, Is.EqualTo((1UL << (int)TraitKind.Brave) | (1UL << (int)TraitKind.Diligent)));
@@ -152,7 +193,7 @@ public sealed class CharacterCreationTests
     [TestCase("skin", "unknown")]
     [TestCase("hair", "unknown")]
     [TestCase("hairColour", "unknown")]
-    [TestCase("eyes", "incompatible")]
+    [TestCase("eyes", "unknown")]
     [TestCase("traits", "unknown")]
     [TestCase("voice", "unknown")]
     public async Task InvalidChoicesCannotMutateWorld(string field, string code)
@@ -167,7 +208,7 @@ public sealed class CharacterCreationTests
             case "skin": request.Skin = "no-such-skin"; break;
             case "hair": request.Hair = "no-such-hair"; break;
             case "hairColour": request.HairColour = "no-such-colour"; break;
-            case "eyes": request.Eyes = "blue"; break;
+            case "eyes": request.Eyes = "unknown-eye-colour"; break;
             case "traits": request.Traits.Add("FakeTrait"); break;
             case "voice": request.Voice = "FakeVoice"; break;
         }

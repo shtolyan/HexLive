@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: clothing.armwraps_primal_male_sleeve3
   prototypeId: clothing.armwraps_primal_male
+  alternateFitId: clothing.armwraps_primal_sleeve3
   displayName: Hide Arm Wraps (Sleeve3)
   retired: 0
   hasSexOverride: 1

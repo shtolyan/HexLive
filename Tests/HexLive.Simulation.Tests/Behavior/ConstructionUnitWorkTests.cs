@@ -116,6 +116,33 @@ public sealed class ConstructionUnitWorkTests
     }
 
     [Test]
+    public void PreviousSaveVersionLoadsWithoutReadingNewConstructionChannels()
+    {
+        const int seed = 12084;
+        var world = TestWorld.CreateWorld(seed);
+        var anchor = world.Junctions.Items.Values.First(j => !j.Blocked && j.Tiles.Count > 0);
+        var site = WorldObjectMutations.SpawnObject(world, ContentIds.BuildSite,
+            anchor.Fragment, anchor.Tiles[0], anchor.Id);
+        site.BuildProduct = ContentIds.Wardrobe;
+        site.BillSticks = 4; site.BillBoards = 8; site.BillRope = 1;
+        site.LeafDryingStartTick = 123;
+        site.Contents.Add(new ItemInstance(ContentIds.Stick));
+        site.Contents.Add(new ItemInstance(ContentIds.Stick));
+        using var bytes = new MemoryStream();
+        using (var writer = new BinaryWriter(bytes, Encoding.UTF8, true))
+            WorldSaveSerializer.WriteAtVersion(world, writer, 84);
+        bytes.Position = 0;
+        var restored = TestWorld.CreateWorld(seed);
+        using (var reader = new BinaryReader(bytes, Encoding.UTF8, true))
+            WorldSaveSerializer.Read(restored, reader);
+        var loaded = restored.Entities.Objects[site.Id];
+        Assert.That(loaded.InstalledBuildMaterials, Is.Null);
+        Assert.That(loaded.LeafDryingStartTick, Is.EqualTo(123));
+        BuildSiteMath.TrackWork(loaded);
+        Assert.That(loaded.InstalledBuildMaterials.Sum(), Is.EqualTo(2));
+    }
+
+    [Test]
     public void LegacyPartialSiteKeepsAlreadyVisiblePrefix()
     {
         var site = StockedWardrobe();

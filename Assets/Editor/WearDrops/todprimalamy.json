@@ -599,7 +599,7 @@
         "warmth": 0.06,
         "armor": 0.05,
         "thermalDelta": 0.0,
-        "capacity": 0,
+        "capacity": 1,
         "covers": [
           "ArmL",
           "ArmR"
@@ -705,7 +705,7 @@
         "warmth": 0.03,
         "armor": 0.0,
         "thermalDelta": 0.0,
-        "capacity": 0,
+        "capacity": 1,
         "covers": [
           "Torso",
           "Pelvis"
@@ -998,7 +998,7 @@
         "Belly",
         "Pelvis"
       ],
-      "noHide": [],
+      "noHide": ["Belly", "Pelvis"],
       "materials": [
         {
           "source": "Tie",
@@ -1060,7 +1060,7 @@
         "warmth": 0.07,
         "armor": 0.02,
         "thermalDelta": 0.0,
-        "capacity": 1,
+        "capacity": 2,
         "covers": [
           "Torso",
           "Pelvis"
@@ -1197,7 +1197,7 @@
         "warmth": 0.05,
         "armor": 0.02,
         "thermalDelta": 0.0,
-        "capacity": 0,
+        "capacity": 2,
         "covers": [
           "Torso"
         ]
@@ -1675,7 +1675,7 @@
         "ThighR",
         "ThighL"
       ],
-      "noHide": [],
+      "noHide": ["Belly", "Pelvis", "ThighR", "ThighL"],
       "materials": [
         {
           "source": "AmySkirt_BeltOut",

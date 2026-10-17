@@ -16,6 +16,35 @@ namespace HexLive.UnityPresentation
     /// </summary>
     public static class ObjectFit
     {
+        public static bool TryStaticMeshMinimumY(GameObject root, out float minimum)
+        {
+            minimum = float.PositiveInfinity;
+            foreach (var filter in root.GetComponentsInChildren<MeshFilter>())
+            {
+                var mesh = filter.sharedMesh;
+                if (mesh == null || !mesh.isReadable) return false;
+                foreach (var vertex in mesh.vertices)
+                    minimum = Mathf.Min(minimum, filter.transform.TransformPoint(vertex).y);
+            }
+            foreach (var renderer in root.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (!renderer.enabled || renderer.sharedMesh == null) continue;
+                var posed = new Mesh();
+                try
+                {
+                    renderer.BakeMesh(posed);
+                    foreach (var vertex in posed.vertices)
+                        minimum = Mathf.Min(minimum, renderer.transform.TransformPoint(vertex).y);
+                }
+                finally
+                {
+                    if (Application.isPlaying) Object.Destroy(posed);
+                    else Object.DestroyImmediate(posed);
+                }
+            }
+            return !float.IsPositiveInfinity(minimum);
+        }
+
         /// Spec §54.2: target length for a dropped log or stick, in HexRadius
         /// units. The approved standing palm is authored independently at 1:1.
         public const float PalmSegmentLength = 0.7f;

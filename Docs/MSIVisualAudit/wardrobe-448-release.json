@@ -1,0 +1,401 @@
+{
+  "bug": 448,
+  "sourceCommit": "1791d16d8986125d29888b1b30aecdb09771b1a1",
+  "activatedUtc": "2026-10-12T17:45:12.144829+00:00",
+  "target": "Singapore",
+  "layer": "content and world catalog",
+  "result": "active",
+  "registryRevision": 601,
+  "worldCatalogRevision": 601,
+  "objectsPublished": 37,
+  "serviceRestarts": 1,
+  "worldIdPreserved": true,
+  "worldReset": false,
+  "catalogOnlyCapacityChanges": [
+    "clothing.collar_fur",
+    "clothing.collar_fur_color01",
+    "clothing.collar_fur_color02",
+    "clothing.collar_fur_color03",
+    "clothing.collar_fur_color04",
+    "clothing.collar_fur_color05",
+    "clothing.collar_fur_color06",
+    "clothing.collar_fur_male",
+    "clothing.collar_fur_male_color01",
+    "clothing.collar_fur_male_color02",
+    "clothing.collar_fur_male_color03",
+    "clothing.collar_fur_male_color04",
+    "clothing.collar_fur_male_color05",
+    "clothing.collar_fur_male_color06"
+  ],
+  "serverRelease": "/opt/hexlive/releases/msi-20261012-1214a639a",
+  "playerRelease": "/var/lib/hexlive-web/releases/msi-20261012-6ea38650b",
+  "newYorkChanged": false,
+  "publicVerification": {
+    "utc": "2026-10-12T17:50:01.995708+00:00",
+    "passed": true,
+    "sourceCommit": "1791d16d8986125d29888b1b30aecdb09771b1a1",
+    "registryRevision": 601,
+    "recordsVerified": 230,
+    "changedRecordsVerified": 37,
+    "publicBlobsDownloadedAndHashed": 37,
+    "publicCollarVariantsWithExtraSlot": 14,
+    "unchangedObjectsVerified": 193,
+    "playerReceiptAndHtmlUnchanged": true,
+    "playerProtocol": 24
+  },
+  "browserQA": {
+    "url": "https://play.62-146-235-120.sslip.io/",
+    "browser": "Codex In-app Browser",
+    "playerSource": "6ea38650bb7e74f9be9e2f68f2e8459389b98737",
+    "serverSelectionRendered": true,
+    "worldEntered": false,
+    "playerOrdersIssued": false,
+    "authChanged": false,
+    "consoleErrors": {
+      "NullReferenceException": 2,
+      "stackAvailable": false
+    },
+    "limitations": "Menu smoke test; no live wardrobe changes issued, appearance acceptance remains player QA. Console errors observed; cause not diagnosed."
+  },
+  "objects": [
+    {
+      "key": "config/simdata",
+      "candidate": "config--simdata.json",
+      "oldRevision": 1,
+      "oldSha256": "70b22f62759a1bb598f0a63aa0ec3540b2719fb23cc0b04a4b2ad20706857b13",
+      "newSha256": "1310d70a7b1849e239c544a4d6d6e558633ebabc62fd72eb380172c1c43d837f",
+      "newSize": 551804,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.collar_fur",
+      "candidate": "wear--clothing.collar_fur.json",
+      "oldRevision": 3,
+      "oldSha256": "5373f9d1d759f7936a4540abd560280d21d270e33c177b65daef18f306db12a2",
+      "newSha256": "da245f2d51a00aed084d5514de772a00f25553e3cfd3e702148fa5c37830562b",
+      "newSize": 3647114,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_color01",
+      "candidate": "wear--clothing.collar_fur_color01.json",
+      "oldRevision": 3,
+      "oldSha256": "62d4f3e0df6ce3c07c13118450317414c1b6daaa52a7d2f3532c7a15294c1664",
+      "newSha256": "4d19344ec2ccdcb19035f68fa5aadf98d01f7a8c63ce3e883fa33dea125faec5",
+      "newSize": 4906302,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_color02",
+      "candidate": "wear--clothing.collar_fur_color02.json",
+      "oldRevision": 3,
+      "oldSha256": "e63d292bb1848516cbdd8ebe6301dd70361256ea99a622d745904c354cdd306b",
+      "newSha256": "691b200d3053985d45abbc709ec346fae770c78e3571cdb2854762d769dc1f2e",
+      "newSize": 5449099,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_color03",
+      "candidate": "wear--clothing.collar_fur_color03.json",
+      "oldRevision": 3,
+      "oldSha256": "a9e0973ac28857b9e303610faecfa7577fd7da9540e397d95bdab75d34a9f290",
+      "newSha256": "05dfccf48279f0f1a68edf5322627ed920bd5b0f3e7b87b12ca13f6ff4a6fcbf",
+      "newSize": 5333248,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_color04",
+      "candidate": "wear--clothing.collar_fur_color04.json",
+      "oldRevision": 3,
+      "oldSha256": "4e49ce701c3ad350092538e54f84283b1182c4d9c6565bfaea2b723c93ebaac0",
+      "newSha256": "69c05ed3de5e9e2fc64a68808156a7af4006c5c7c49661090911f12d4afb9578",
+      "newSize": 5431331,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_color05",
+      "candidate": "wear--clothing.collar_fur_color05.json",
+      "oldRevision": 3,
+      "oldSha256": "4e7fd54d232f7f9d96b34c27858aedfff859aaa6f692d5d25d79a63b3b36ba97",
+      "newSha256": "9843a25eef50c72179fb1ce5714b7c0dd5a3725cda0e0f72270f527ca5540a32",
+      "newSize": 5282687,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_color06",
+      "candidate": "wear--clothing.collar_fur_color06.json",
+      "oldRevision": 3,
+      "oldSha256": "d82439e562d3421386591ce6b271f0c535579efe47c8aed880a16a00796ad48d",
+      "newSha256": "4975734bbdad416156089211436c06be049bca41e6d884cc88e0f6e78c6cb7fb",
+      "newSize": 5161471,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_male",
+      "candidate": "wear--clothing.collar_fur_male.json",
+      "oldRevision": 3,
+      "oldSha256": "303ab8c70884354b58e04013c5d955740c2c4b4ee4ee6c8d727281e4f64c2244",
+      "newSha256": "1bf6387d4420c8013a6e8f7135e4c3f992b2be23a3eda5cf0dd0e5531c93c394",
+      "newSize": 3676350,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_male_color01",
+      "candidate": "wear--clothing.collar_fur_male_color01.json",
+      "oldRevision": 3,
+      "oldSha256": "f13d5e4e6c75282ce40f2ff25a89440789469af76db8a4d8a07fe10a4cce1a68",
+      "newSha256": "9015cfa016ee5f1b7b18a66fa2f1e0501008e92978dce28c0416e7018f9a296a",
+      "newSize": 4908463,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_male_color02",
+      "candidate": "wear--clothing.collar_fur_male_color02.json",
+      "oldRevision": 3,
+      "oldSha256": "67d8f294a23cce533bb960927c5067d13be1fd81fa35a52d14ca1bc6c51b9603",
+      "newSha256": "1759e0d5ee70519188b30cf5fc34f99ca2a4f92f50fd4afc0e7dd80c0f1111f5",
+      "newSize": 5429846,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_male_color03",
+      "candidate": "wear--clothing.collar_fur_male_color03.json",
+      "oldRevision": 3,
+      "oldSha256": "e4f0b4266b0c83fa8171a8214211ad061fd43e89778d7a69c3d7f2df8b0c8ebb",
+      "newSha256": "a9a1b9346a6e3d01a13c4833c374082bbe5a7e9cb4c32b8142d40cd7e3533802",
+      "newSize": 5335298,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_male_color04",
+      "candidate": "wear--clothing.collar_fur_male_color04.json",
+      "oldRevision": 3,
+      "oldSha256": "97799907f32126669b444750a0968acf1f6db14db2f8f8ead1259a49980e9cc4",
+      "newSha256": "601f0c3a1a05eda3af230a16dc66c5632aaf8bb6c5803609167169fa5f4a7bf0",
+      "newSize": 5425648,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_male_color05",
+      "candidate": "wear--clothing.collar_fur_male_color05.json",
+      "oldRevision": 3,
+      "oldSha256": "c7a9d0306904b6c3d076af9a19cfdcde71b581686b6a0c5c497d7d413c8723f6",
+      "newSha256": "345c3ae976cda18112944691d62b39c6675df40151fa2ab3e2ff57646c121769",
+      "newSize": 5284349,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.collar_fur_male_color06",
+      "candidate": "wear--clothing.collar_fur_male_color06.json",
+      "oldRevision": 3,
+      "oldSha256": "273bd133d7ffdb53c25e2b54fb586cba41ddadd8f6b80f213c5b5e2e206b4871",
+      "newSha256": "c5f31f416ff928538d7f037cacf886f9d1481093e684a01edd0020872229f50e",
+      "newSize": 5158817,
+      "metadataChanged": true
+    },
+    {
+      "key": "wear/clothing.dress_primal",
+      "candidate": "wear--clothing.dress_primal.json",
+      "oldRevision": 3,
+      "oldSha256": "0d5a45fb1caad0d551b9adee1785a191ac7faefb0238632c9bee7cee8b162c8e",
+      "newSha256": "3a76c93a6e1e771cadc729db4d0d8015d7485f784bd581b40d4a3615f34d964c",
+      "newSize": 4422816,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_color01",
+      "candidate": "wear--clothing.dress_primal_color01.json",
+      "oldRevision": 3,
+      "oldSha256": "0b357f2a49b8ec0a05c313d8c9dcc3a42fe4620c3c395d7b6a62c5652048438a",
+      "newSha256": "2ec8ccc82372647a71432e592f58f4830351ef489dcdaa9289807055151f494c",
+      "newSize": 5646693,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_color02",
+      "candidate": "wear--clothing.dress_primal_color02.json",
+      "oldRevision": 3,
+      "oldSha256": "b15df2bb2c0d6177a1d76534c710904f56c4ce608479f1046707f622ec0f10e4",
+      "newSha256": "bc7e13f6e50431a93d2ac1feb5e35633008ae4c54db739b99a1b675a1dae684b",
+      "newSize": 6200519,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_color03",
+      "candidate": "wear--clothing.dress_primal_color03.json",
+      "oldRevision": 3,
+      "oldSha256": "a01cec9d2199a3869a383f7e12a711369dab550abc596cae3d2ea63430540b67",
+      "newSha256": "6457dc400fbded6ff4ee352b11f369d00d6ee5486a621f174ca1fdf40dcb0cc8",
+      "newSize": 6082146,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_color04",
+      "candidate": "wear--clothing.dress_primal_color04.json",
+      "oldRevision": 3,
+      "oldSha256": "d1febf78038be7bfd1e51f0d784f9113e484b17446813140fc179bde980fdb5c",
+      "newSha256": "a02a7acb7ae605c890aea438da42f15ead5cd602f2a64569066fb727e890bd2f",
+      "newSize": 6181125,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_color05",
+      "candidate": "wear--clothing.dress_primal_color05.json",
+      "oldRevision": 3,
+      "oldSha256": "19c598b309d071870ee8471f9d68ca3575e7ed12218f241bdae48d5fabbfd913",
+      "newSha256": "922cbdbf87ec77863a2a06b23ed3cd6fd5e98fb55a3b15b9ac26ca792303b15a",
+      "newSize": 6026515,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_color06",
+      "candidate": "wear--clothing.dress_primal_color06.json",
+      "oldRevision": 3,
+      "oldSha256": "7f2e5d76c5f03d44e15e513ce250b51050d5d9560f8d51eccb3d77c32530b262",
+      "newSha256": "4c2b4bae5f40f45c01e04963c1539e8c29a76101e3acf4ea6c1c972b28df7d18",
+      "newSize": 5891630,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_male",
+      "candidate": "wear--clothing.dress_primal_male.json",
+      "oldRevision": 3,
+      "oldSha256": "9c5d2b3da9153190807ae8db112cfe40cde1ff0b89057678cdeb522925c613b1",
+      "newSha256": "d5fff8f1314a1b5033664fc1716566f0643304564339127502b4b8e70d7db318",
+      "newSize": 4406657,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_male_color01",
+      "candidate": "wear--clothing.dress_primal_male_color01.json",
+      "oldRevision": 3,
+      "oldSha256": "77ccfd50b6042189e96bead0d51d31e36e200b8f2bd9332803b3e6d27fdfdccb",
+      "newSha256": "e9b23eccfa6b93e30d3af245534dcd23596d544920e08110ecc0b48f1aff36bb",
+      "newSize": 5632345,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_male_color02",
+      "candidate": "wear--clothing.dress_primal_male_color02.json",
+      "oldRevision": 3,
+      "oldSha256": "67e5fa56ca26ed7645362ba113ccd083fb511414c0e3a4d165be3d047c4d9e1e",
+      "newSha256": "8cf68bf95efad7033628f6d417fc009ca48c110f81993d95b3076fb9cf8e8fab",
+      "newSize": 6175094,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_male_color03",
+      "candidate": "wear--clothing.dress_primal_male_color03.json",
+      "oldRevision": 3,
+      "oldSha256": "b5131424000e906a585cdcd0d8573dd28aa2122bbef42ca45cdb58f86b2a6c21",
+      "newSha256": "32f754a5ead7194055bf0ed03c444a2f32827ec9360a696d14bd02cdf1b7222a",
+      "newSize": 6068441,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_male_color04",
+      "candidate": "wear--clothing.dress_primal_male_color04.json",
+      "oldRevision": 3,
+      "oldSha256": "fe46a25ada61b73b6ada0b5a95070e584ff1f20dbb122162e3564e0390db09c7",
+      "newSha256": "6e6fb14c982fa6835c8c7e86333811724565cf0498aa0d874fcab8735815b279",
+      "newSize": 6168840,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_male_color05",
+      "candidate": "wear--clothing.dress_primal_male_color05.json",
+      "oldRevision": 3,
+      "oldSha256": "34206aefd041346d32b839aca9ff307226d4a1ac4bafa8f1adf061db250c0acb",
+      "newSha256": "3e616b14c6e0f6fabeb69df1d7edc2f5645950d2befb6f5e029a7d1daf908ebf",
+      "newSize": 6011925,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.dress_primal_male_color06",
+      "candidate": "wear--clothing.dress_primal_male_color06.json",
+      "oldRevision": 3,
+      "oldSha256": "d79717bcbc120518ac5665fd6165b732105d8019d422cfab319256e73f8e96a3",
+      "newSha256": "e980eda0c3f7ce79b0ce8fed2ab01cd45708c71fb9b0f570a4b9713ea30a1ee3",
+      "newSize": 5876615,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.skirt_primal",
+      "candidate": "wear--clothing.skirt_primal.json",
+      "oldRevision": 3,
+      "oldSha256": "fd2cab37198b48ab19628fba60082d5d981e249799cb94fcad093a57acd748c4",
+      "newSha256": "0095d02d8645f598c46542041b76f9ef940ecf5ce122980674067b327af18d3a",
+      "newSize": 407432,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.skirt_primal_1",
+      "candidate": "wear--clothing.skirt_primal_1.json",
+      "oldRevision": 3,
+      "oldSha256": "07347483cc71febebc4e6f4320ad7faa10780517d428dfa2d3be888a9b602c4c",
+      "newSha256": "b9c9bdfa1cae9fbff00f694998a690da18915ae169d7416ae11d9a3db8458e9d",
+      "newSize": 498789,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.skirt_primal_2",
+      "candidate": "wear--clothing.skirt_primal_2.json",
+      "oldRevision": 3,
+      "oldSha256": "e902857a2e270880a90e368d6667710a66511d8657976a00e87eb2ea3b3369fc",
+      "newSha256": "e40926ec05c9343ad62208510b1f1f87636f84f7e6bf7be9329d8ca2a2437e82",
+      "newSize": 539326,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.skirt_primal_3",
+      "candidate": "wear--clothing.skirt_primal_3.json",
+      "oldRevision": 3,
+      "oldSha256": "46a588b95af865278dff19c2a0b81876d7c15442b8ec93d537547efda5c4d8d9",
+      "newSha256": "f96f9567e77e1ebe31ad1cd39875058d497a4dee5721f41681b96ae8f6839785",
+      "newSize": 537892,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.skirt_primal_male",
+      "candidate": "wear--clothing.skirt_primal_male.json",
+      "oldRevision": 3,
+      "oldSha256": "41aff4d2e40c136f8d52e11c6bcd6731f3b256352631a70f32e1335de08a89fd",
+      "newSha256": "b0ac5c7c9192cc358c022316a523b954c22fbfa83a24fed656783a17fd43883c",
+      "newSize": 397541,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.skirt_primal_male_1",
+      "candidate": "wear--clothing.skirt_primal_male_1.json",
+      "oldRevision": 3,
+      "oldSha256": "2cf5ed01795138ffcac2a796f1bc2b33022dbbb115ec1435bdf987768798faa2",
+      "newSha256": "97565604b17a9517ba1df608d57a96a074be023d067cd83e6dce425be4cb8535",
+      "newSize": 489246,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.skirt_primal_male_2",
+      "candidate": "wear--clothing.skirt_primal_male_2.json",
+      "oldRevision": 3,
+      "oldSha256": "47ef41fee2457a0d5ac31693c19776e109ce43cd7071eb4ffc15bd95c9bae0d4",
+      "newSha256": "512ac87afd21808e8be75eb872c8d391540a122d307f33583874ee3bff5c0b23",
+      "newSize": 544692,
+      "metadataChanged": false
+    },
+    {
+      "key": "wear/clothing.skirt_primal_male_3",
+      "candidate": "wear--clothing.skirt_primal_male_3.json",
+      "oldRevision": 3,
+      "oldSha256": "8826f91a2c0769c48292f7bc5d056529303112d0dc0f419ef2f08a89f3a099cf",
+      "newSha256": "4ab3a6bc9a45eea149b62126c651fef1d22a2a383cb1410246823a8345b590a7",
+      "newSize": 541710,
+      "metadataChanged": false
+    }
+  ],
+  "transport": {
+    "method": "Git binary deltas",
+    "localAndRemoteReconstructionSha256Verified": true,
+    "archiveBytes": 328919
+  },
+  "rollbackPrepared": true
+}

@@ -107,7 +107,7 @@ public sealed class InventoryControlModeTests
         npc.Mind.CurrentGoal = GoalType.GetFood;
         npc.WornItems.Clear();
         npc.Inventory.Items.Clear();
-        npc.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants));
+        npc.Inventory.Items.Add(new ItemInstance("clothing.skirt_primal"));
         npc.Inventory.Items.Add(new ItemInstance("tool.hammer"));
         EquipmentMath.RecalculateCapacity(world, npc);
 
@@ -116,12 +116,12 @@ public sealed class InventoryControlModeTests
         var wear = engine.ApplyManualCommand(new ManageInventoryCommand(
             npc.Id,
             new InventoryItemRef(
-                InventoryItemSource.Carried, 0, ContentIds.LeatherPants),
+                InventoryItemSource.Carried, 0, "clothing.skirt_primal"),
             InventoryAction.Wear));
         var stow = engine.ApplyManualCommand(new ManageInventoryCommand(
             npc.Id,
             new InventoryItemRef(
-                InventoryItemSource.Worn, 0, ContentIds.LeatherPants),
+                InventoryItemSource.Worn, 0, "clothing.skirt_primal"),
             InventoryAction.Stow));
         var drop = engine.ApplyManualCommand(new ManageInventoryCommand(
             npc.Id,
@@ -140,7 +140,7 @@ public sealed class InventoryControlModeTests
                 "Immediate inventory management must not replace the current AI/manual goal.");
             Assert.That(npc.WornItems, Is.Empty);
             Assert.That(npc.Inventory.Items.Any(item =>
-                item.DefinitionId == ContentIds.LeatherPants), Is.True);
+                item.DefinitionId == "clothing.skirt_primal"), Is.True);
         });
     }
 

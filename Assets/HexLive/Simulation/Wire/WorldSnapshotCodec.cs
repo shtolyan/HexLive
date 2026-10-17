@@ -523,6 +523,7 @@ public static class WorldSnapshotCodec
         w.Write(o.Dirtiness);
         w.Write(o.Bloodiness);
         w.Write(o.SpawnTick);
+        w.Write(o.LeafDryness);
         WireIo.WriteJunctions(w, o.Junctions);
         // Usually empty and therefore one byte. It is deliberately outside the
         // exhausted ObjectParts byte: only architecture owners pay the JSON.
@@ -546,6 +547,7 @@ public static class WorldSnapshotCodec
             w.Write(slot.ResourceAmount);
             w.Write((byte)slot.WaterKind);
             w.Write((byte)slot.LastAddedWaterKind);
+            w.Write(slot.LeafDryness);
             // У мешка типизированных ячеек не бывает, и соблазн «не писать
             // заведомо пустое» здесь неверный: тип ячейки один на человека и на
             // вещь, а через провод тип едет ЦЕЛИКОМ или не едет никак. Пустая
@@ -668,6 +670,7 @@ public static class WorldSnapshotCodec
             o.Dirtiness = r.ReadSingle();
             o.Bloodiness = r.ReadSingle();
             o.SpawnTick = r.ReadInt32();
+            o.LeafDryness=r.ReadSingle();
             WireIo.ReadJunctions(r, o.Junctions);
             o.BuildingBlueprintJson = r.ReadString();
 
@@ -685,6 +688,7 @@ public static class WorldSnapshotCodec
                     ResourceAmount = r.ReadSingle(),
                     WaterKind = (Agents.WaterKind)r.ReadByte(),
                     LastAddedWaterKind = (Agents.WaterKind)r.ReadByte(),
+                    LeafDryness=r.ReadSingle(),
                     AcceptedItemDefinitionId = r.ReadString()
                 });
             }
@@ -1021,6 +1025,7 @@ public static class WorldSnapshotCodec
         WireIo.WriteString(w, n.ExecutionStatus);
         WireIo.WriteString(w, n.CurrentInteraction);
         WireIo.WriteString(w, n.HeldItemId);
+        w.Write(n.HeldLeafDryness);
         WireIo.WriteString(w, n.OffhandItemId); // §55.4 (bug #317)
         WireIo.WriteNullableInt(w, n.RomancePartnerNpcId);
         WireIo.WriteString(w, n.RomanceClipKey);
@@ -1096,6 +1101,7 @@ public static class WorldSnapshotCodec
                 w.Write(slot.ResourceAmount);
                 w.Write((byte)slot.WaterKind);
                 w.Write((byte)slot.LastAddedWaterKind);
+            w.Write(slot.LeafDryness);
                 WireIo.WriteString(w, slot.AcceptedItemDefinitionId);
             }
         }
@@ -1397,6 +1403,7 @@ public static class WorldSnapshotCodec
         n.ExecutionStatus = r.ReadString();
         n.CurrentInteraction = r.ReadString();
         n.HeldItemId = r.ReadString();
+        n.HeldLeafDryness=r.ReadSingle();
         n.OffhandItemId = r.ReadString(); // §55.4 (bug #317)
         n.RomancePartnerNpcId = WireIo.ReadNullableInt(r);
         n.RomanceClipKey = r.ReadString();
@@ -1474,6 +1481,7 @@ public static class WorldSnapshotCodec
                 slot.ResourceAmount = r.ReadSingle();
                 slot.WaterKind = (Agents.WaterKind)r.ReadByte();
                 slot.LastAddedWaterKind = (Agents.WaterKind)r.ReadByte();
+                slot.LeafDryness=r.ReadSingle();
                 slot.AcceptedItemDefinitionId = r.ReadString();
             }
         }

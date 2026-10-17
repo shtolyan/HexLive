@@ -18,6 +18,7 @@ public sealed class GarmentSimulationMetadata
     public GarmentCraftMetadata? Craft { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string PrototypeId { get; set; } = string.Empty;
+    public string AlternateFitId { get; set; } = string.Empty;
     public string Layer { get; set; } = nameof(WearLayer.Wear);
     public string Sex { get; set; } = nameof(GarmentSex.Any);
     public float Warmth { get; set; }
@@ -42,6 +43,9 @@ public sealed class GarmentSimulationMetadata
         {
             throw new InvalidDataException("Prototype id is invalid.");
         }
+        if (!string.IsNullOrEmpty(AlternateFitId) &&
+            (!ContentIdentity.IsId(AlternateFitId) || AlternateFitId == id))
+            throw new InvalidDataException("Alternate fit must identify a different garment.");
         if (!Enum.TryParse<WearLayer>(Layer, true, out var layer) ||
             !Enum.IsDefined(typeof(WearLayer), layer))
         {
@@ -398,6 +402,7 @@ public sealed class AssetGarmentCatalog
         {
             DisplayName = String(value, "displayName"),
             PrototypeId = String(value, "prototypeId", id),
+            AlternateFitId = String(value, "alternateFitId"),
             Layer = String(value, "layer", nameof(WearLayer.Wear)),
             Sex = String(value, "sex", nameof(GarmentSex.Any)),
             Warmth = Float(value, "warmth"),
@@ -437,6 +442,7 @@ public sealed class AssetGarmentCatalog
             result["prototypeId"] = value.PrototypeId;
         }
         if (retired) result["retired"] = true;
+        if (!string.IsNullOrEmpty(value.AlternateFitId)) result["alternateFitId"] = value.AlternateFitId;
         return result;
     }
 

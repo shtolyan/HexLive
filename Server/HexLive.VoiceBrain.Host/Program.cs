@@ -45,8 +45,10 @@ app.MapPost("/voice/session", async (HttpContext c, SessionRequest request) =>
     var worldId = status.TryGetProperty("worldId", out var w) ? w.GetString() ?? "" : "";
     var ticket = voice.Tickets.Mint("local-dev", worldId + ":" + request.NpcId, worldId, request.NpcId);
     var token = await voice.ElevenLabs.ConversationTokenAsync(options.AgentId, c.RequestAborted);
+    voice.Tickets.TryVerify(ticket, out var signed);
+    voice.RecordSessionStarted(signed);
     var voiceId = voice.VoiceFor(request.Voice, null, name);
-    return Results.Json(new { conversationToken = token, ticket, voiceId, name });
+    return Results.Json(new { conversationToken = token, ticket, sessionId = signed.SessionId, voiceId, name });
 });
 
 app.MapPost("/voice/session/end", async (HttpContext c, SessionEnd request) =>

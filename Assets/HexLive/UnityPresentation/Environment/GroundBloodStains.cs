@@ -40,7 +40,7 @@ public sealed class GroundBloodStains : MonoBehaviour
     // Discrete buckets of shared materials (no per-stain material, no MPB —
     // DecalProjector doesn't take one): 4 variants x AgeBuckets instances.
     private const int AgeBuckets = 6;
-    private static readonly Color DriedBlood = new(0.15f, 0.02f, 0.02f, 1f);
+    private static readonly Color DriedBlood = Rendering.BloodPalette.Dried;
     private const float SpreadTicks = 120f;     // drip -> full puddle, ~30 sim-s
     // Bug #145: keep every horizontal pool dimension on one visual scale.
     // The previous decals read three times too large in the world; applying
@@ -322,14 +322,13 @@ public sealed class GroundBloodStains : MonoBehaviour
         _stainMats = new Material[_variantCount, AgeBuckets];
         for (var v = 0; v < _variantCount; v++)
         {
-            // Bucket 0 is the shared asset itself — never mutated. Later
-            // buckets are copies with _BaseColor lerped toward dried bordo.
-            _stainMats[v, 0] = bases[v];
-            var fresh = bases[v].HasProperty("_BaseColor")
-                ? bases[v].GetColor("_BaseColor")
-                : Color.red;
+            // All buckets are runtime copies: fresh pigment is explicit and
+            // shared source materials (possibly loaded bundles) stay untouched.
+            var alpha = bases[v].HasProperty("_BaseColor") ? bases[v].GetColor("_BaseColor").a : 1f;
+            var fresh = Rendering.BloodPalette.Fresh;
+            fresh.a = alpha;
             var dried = new Color(DriedBlood.r, DriedBlood.g, DriedBlood.b, fresh.a);
-            for (var b = 1; b < AgeBuckets; b++)
+            for (var b = 0; b < AgeBuckets; b++)
             {
                 var m = new Material(bases[v]);
                 var c = Color.Lerp(fresh, dried, b / (float)(AgeBuckets - 1));
@@ -342,7 +341,7 @@ public sealed class GroundBloodStains : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Free the darkened runtime copies (bucket 0 is a shared asset).
+        // Free every runtime pigment copy, including fresh bucket zero.
         if (_stainMats == null)
         {
             return;
@@ -350,7 +349,7 @@ public sealed class GroundBloodStains : MonoBehaviour
 
         for (var v = 0; v < _variantCount; v++)
         {
-            for (var b = 1; b < AgeBuckets; b++)
+            for (var b = 0; b < AgeBuckets; b++)
             {
                 if (_stainMats[v, b] != null)
                 {

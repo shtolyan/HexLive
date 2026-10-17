@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: underwear.briefs_primal_panty1
   prototypeId: underwear.briefs_primal
+  alternateFitId: underwear.briefs_primal_male_panty1
   displayName: Hide Briefs (Panty1)
   retired: 0
   hasSexOverride: 1

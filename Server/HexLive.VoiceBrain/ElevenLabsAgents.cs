@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace HexLive.VoiceBrain;
 
-/// <summary>§171.7: the only two ElevenLabs Agents calls the brain makes; the API key never leaves this class.</summary>
+/// <summary>§171.7: ElevenLabs Agents token and billing calls; the API key never leaves this class.</summary>
 public sealed class ElevenLabsAgents(HttpClient http, string apiKey)
 {
     private const string Api = "https://api.elevenlabs.io";
@@ -17,25 +17,64 @@ public sealed class ElevenLabsAgents(HttpClient http, string apiKey)
         var body = await response.Content.ReadAsStringAsync(token);
         if (!response.IsSuccessStatusCode) throw new HttpRequestException("ElevenLabs token HTTP " + (int)response.StatusCode);
         using var doc = JsonDocument.Parse(body);
-        return doc.RootElement.GetProperty("token").GetString() ?? throw new InvalidDataException("ElevenLabsTokenMissing");
+        if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("token", out var value) ||
+            value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(value.GetString()))
+            throw new InvalidDataException("ElevenLabsTokenMissing");
+        return value.GetString()!;
     }
 
     /// <summary>Billing facts of a finished conversation: duration in seconds and the provider's own cost figure, if given.</summary>
-    public async Task<(double? Seconds, decimal? ProviderCost, string Status)> ConversationAsync(string conversationId, CancellationToken token)
+    public async Task<ConversationFacts> ConversationAsync(string conversationId, CancellationToken token)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, Api + "/v1/convai/conversations/" + Uri.EscapeDataString(conversationId));
         request.Headers.Add("xi-api-key", apiKey);
         using var response = await http.SendAsync(request, token);
-        if (!response.IsSuccessStatusCode) return (null, null, "http-" + (int)response.StatusCode);
+        if (!response.IsSuccessStatusCode) return new(null, null, null, "http-" + (int)response.StatusCode, "");
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
         var root = doc.RootElement;
-        double? seconds = null; decimal? cost = null;
+        double? seconds = null; decimal? cost = null, usd = null;
         if (root.TryGetProperty("metadata", out var meta))
         {
             if (meta.TryGetProperty("call_duration_secs", out var d) && d.ValueKind == JsonValueKind.Number) seconds = d.GetDouble();
             if (meta.TryGetProperty("cost", out var c) && c.ValueKind == JsonValueKind.Number) cost = c.GetDecimal();
+            if (meta.TryGetProperty("cost_fiat", out var f) && f.ValueKind == JsonValueKind.Number && f.GetDecimal() >= 0) usd = f.GetDecimal();
         }
         var status = root.TryGetProperty("status", out var s) ? s.GetString() ?? "" : "";
-        return (seconds, cost, status);
+        var user = root.TryGetProperty("user_id", out var u) ? u.GetString() ?? "" : "";
+        var transcript = new List<ConversationUtterance>();
+        if (root.TryGetProperty("transcript", out var rows) && rows.ValueKind == JsonValueKind.Array)
+            foreach (var row in rows.EnumerateArray())
+                if (row.ValueKind == JsonValueKind.Object && row.TryGetProperty("role", out var role) && role.ValueKind == JsonValueKind.String && role.GetString() is "user" or "agent" &&
+                    row.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+                    transcript.Add(new(role.GetString() == "user" ? "user" : "assistant", message.GetString()!,
+                        row.TryGetProperty("interrupted", out var interrupted) && interrupted.ValueKind == JsonValueKind.True));
+        return new(seconds, cost, usd, status, user) { Transcript = transcript };
     }
+
+    public async Task<string?> ConversationForSessionAsync(string agentId, string sessionId, CancellationToken token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, Api + "/v1/convai/conversations?agent_id=" +
+            Uri.EscapeDataString(agentId) + "&user_id=" + Uri.EscapeDataString(sessionId) + "&page_size=2&summary_mode=exclude");
+        request.Headers.Add("xi-api-key", apiKey);
+        using var response = await http.SendAsync(request, token);
+        if (!response.IsSuccessStatusCode) throw new HttpRequestException("ElevenLabs session lookup HTTP " + (int)response.StatusCode);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
+        var root = doc.RootElement;
+        var rows = root.GetProperty("conversations");
+        if (rows.ValueKind != JsonValueKind.Array || rows.GetArrayLength() > 1 ||
+            root.TryGetProperty("has_more", out var more) && more.ValueKind == JsonValueKind.True)
+            throw new InvalidDataException("ConversationLookupAmbiguous");
+        if (rows.GetArrayLength() == 0) return null;
+        var row = rows[0];
+        if (row.GetProperty("agent_id").GetString() != agentId ||
+            row.GetProperty("conversation_id").GetString() is not { Length: > 0 and <= 128 } id)
+            throw new InvalidDataException("ConversationLookupInvalid");
+        return id;
+    }
+}
+
+public sealed record ConversationUtterance(string Role, string Text, bool Interrupted = false);
+public sealed record ConversationFacts(double? Seconds, decimal? ProviderCredits, decimal? CostUsd, string Status, string UserId)
+{
+    public IReadOnlyList<ConversationUtterance> Transcript { get; init; } = [];
 }

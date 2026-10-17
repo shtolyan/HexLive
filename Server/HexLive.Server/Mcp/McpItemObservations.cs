@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HexLive.Simulation.Agents;
+using HexLive.Simulation.AI;
 using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
@@ -14,16 +15,22 @@ internal static class McpItemObservations
 {
     public static List<object> Visible(WorldState world, NPCState observer)
     {
-        var ids = new SortedSet<int>();
+        var seenById = new SortedDictionary<int,PerceivedObject>();
         foreach (var perceived in observer.Perception.Objects)
-            if (!perceived.FromMemory) ids.Add(perceived.Id.Value);
+            if (!perceived.FromMemory) seenById.TryAdd(perceived.Id.Value,perceived);
 
         var rows = new List<object>();
-        foreach (var id in ids)
+        foreach (var (id,seen) in seenById)
         {
             if (!world.Entities.Objects.TryGetValue(new ObjectId(id), out var item)) continue;
             var row = Item(world, observer, item.DefinitionId, item.Owner?.Value ?? 0, item.OwnerFaction);
             row["objectId"] = id;
+            row["fromMemory"] = false;
+            row["perceivedTick"] = observer.Perception.LastUpdatedTick;
+            row["distance"] = seen.Distance;
+            row["reachable"] = seen.IsReachable;
+            row["occupied"] = seen.IsOccupied;
+            row["tile"] = new {q=seen.Tile.Q,r=seen.Tile.R};
             if (world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId, out var definition))
                 row["interactions"] = definition.Interactions.Select(interaction => DescribeInteraction(definition, observer, interaction)).ToArray();
             if (!string.IsNullOrEmpty(item.BuildProduct))
@@ -146,6 +153,11 @@ internal static class McpItemObservations
         return new Dictionary<string, object?>
         {
             ["itemId"] = definitionId,
+            // §133/§171.22: names come from the active catalog, never from
+            // a guessed translation of an id or a previous conversation.
+            ["displayName"] = world.Content.ObjectDefinitions.TryGetValue(definitionId, out var named)
+                ? named.DisplayName : null,
+            ["catalogKnown"] = named != null,
             ["capabilities"] = GearCatalog.Active.TryGetValue(definitionId, out var gear) ? gear.Capabilities.ToString() : "None",
             ["inventoryCapacityWhenWorn"] = world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition)
                 ? definition.InventoryCapacity : 0,
@@ -164,6 +176,8 @@ internal static class McpItemObservations
         if (!world.Content.ObjectDefinitions.TryGetValue(definitionId, out var definition) ||
             !definition.Layer.HasValue) return;
         var condition = Math.Clamp(durability, 0f, 1f);
+        row["layer"] = definition.Layer.Value.ToString();
+        row["covers"] = definition.Covers.Select(part => part.ToString()).ToArray();
         row["likingPercent"] = (int)MathF.Round(ItemAffinity.For(observer.Id.Value, definitionId) * 100f);
         row["durability"] = condition;
         row["conditionPercent"] = (int)MathF.Round(condition * 100f);

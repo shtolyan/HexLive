@@ -12,6 +12,7 @@
 git pull --ff-only origin master
 git lfs pull
 python Tools/construction_content.py verify-source
+python -m unittest Tools.tests.test_construction_content -v
 ```
 
 Ожидается **14 моделей, 299 construction units**. Скрипт только читает файлы:
@@ -27,7 +28,7 @@ receipt он останавливается. FBX уже экспортирова
 Только Unity CLI, никакого Unity MCP. Версия Editor — из ProjectVersion.txt.
 
 ```powershell
-dotnet test Tests/HexLive.Simulation.Tests --filter "FullyQualifiedName~ConstructionUnitWork|FullyQualifiedName~ConstructionArtContract|FullyQualifiedName~WardrobeStage|FullyQualifiedName~BuildSite|FullyQualifiedName~BuildingConstruction|FullyQualifiedName~FreeArchitecture|FullyQualifiedName~WireCoverage|FullyQualifiedName~SpecStructure"
+dotnet test Tests/HexLive.Simulation.Tests --filter "FullyQualifiedName~ConstructionUnitWork|FullyQualifiedName~ConstructionArtContract|FullyQualifiedName~WardrobeStage|FullyQualifiedName~BuildSite|FullyQualifiedName~BuildingConstruction|FullyQualifiedName~FreeArchitecture|FullyQualifiedName~WireCoverage|FullyQualifiedName~SpecStructure|FullyQualifiedName~SaveCompat|FullyQualifiedName~WorldLobbyLegacySave"
 ```
 
 В открытом, свободном Editor вызвать через обнаруженный CLI `eval`:

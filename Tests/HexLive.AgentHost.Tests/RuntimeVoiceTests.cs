@@ -8,6 +8,43 @@ namespace HexLive.AgentHost.Tests;
 public sealed class RuntimeVoiceTests
 {
     [Test]
+    public async Task CooperativeAlignmentYieldsAndMatchesTheSynchronousBytes()
+    {
+        var pcm = Enumerable.Range(0, 22050).Select(i => (short)(9000 * Math.Sin(i * .071))).ToArray();
+        var expected = RuntimeVoiceAlignment.Bake(pcm, "Привет");
+        var yields = 0;
+        var actual = await RuntimeVoiceAlignment.BakeAsync(pcm, "Привет", () =>
+        { yields++; return Task.CompletedTask; }, budgetMilliseconds: 0);
+        Assert.That(yields, Is.GreaterThan(2));
+        Assert.That(actual, Is.EqualTo(expected));
+        using var stop = new CancellationTokenSource();
+        Assert.ThrowsAsync<OperationCanceledException>(async () => await RuntimeVoiceAlignment.BakeAsync(pcm, "Привет",
+            () => { stop.Cancel(); return Task.CompletedTask; }, stop.Token, budgetMilliseconds: 0));
+    }
+
+    [Test]
+    public async Task CooperativeBakingKeepsGoldenFileAndGainWithoutWritingAfterCancellation()
+    {
+        var folder = Directory.CreateTempSubdirectory("voice-cooperative-");
+        try
+        {
+            var sync = Path.Combine(folder.FullName, "sync.vis");
+            var cooperative = Path.Combine(folder.FullName, "cooperative.vis");
+            Assert.That(VoiceVisemeBaker.TryBake(MakeWave(), "Привет", sync, .75f, out _, out var gain), Is.True);
+            var actualGain = await VoiceVisemeBaker.BakeCooperativelyAsync(MakeWave(), "Привет", cooperative,
+                .75f, () => Task.CompletedTask);
+            Assert.That(actualGain, Is.EqualTo(gain));
+            Assert.That(File.ReadAllBytes(cooperative), Is.EqualTo(File.ReadAllBytes(sync)));
+            var cancelled = Path.Combine(folder.FullName, "cancelled.vis");
+            using var stop = new CancellationTokenSource(); stop.Cancel();
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await VoiceVisemeBaker.BakeCooperativelyAsync(
+                MakeWave(), "Привет", cancelled, .75f, () => Task.CompletedTask, stop.Token));
+            Assert.That(File.Exists(cancelled), Is.False);
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Test]
     public void RuntimeAlignmentMatchesCanonicalOfflineGoldenForRussianHexkufaAndFallback()
     {
         using var fixture = JsonDocument.Parse(File.ReadAllText(Path.Combine(

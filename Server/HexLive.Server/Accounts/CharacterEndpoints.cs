@@ -51,10 +51,11 @@ internal static class CharacterEndpoints
                 return Results.Json(new {
                     bodies = bodies.Select(b => new { id = b.Id, sex = b.Id == "Kshishtof" ? "male" : "female",
                         skins = CharacterAppearanceValidation.Skins(b.Id, records),
-                        hair = b.Id == "Kshishtof" ? new[] { "none" } : hair.Select(h => h.id).ToArray(),
-                        eyes = b.Id == "Kshishtof" || CharacterAppearanceValidation.IsPrimal(b) ? new[] { "" } : ColonistAppearance.EyeColors }),
+                        hair = hair.Select(h => h.id).ToArray(),
+                        startingClothing = PlayerCharacterCreation.StartingClothing(b.Id),
+                        eyes = CharacterAppearanceValidation.Eyes(b) }),
                     skins = bodies.SelectMany(b => CharacterAppearanceValidation.Skins(b.Id, records)).Distinct().ToArray(),
-                    hair, eyes = bodies.SelectMany(b => b.Id == "Kshishtof" || CharacterAppearanceValidation.IsPrimal(b) ? new[] { "" } : ColonistAppearance.EyeColors).Distinct().ToArray(),
+                    hair, eyes = bodies.SelectMany(CharacterAppearanceValidation.Eyes).Distinct().ToArray(),
                     voices = Voices, traits = TraitSet.All.Select(k => k.ToString()).ToArray(),
                     attributes = AttributeSet.All.Select(k => k.ToString()).ToArray(), skills = SkillSet.All.Select(k => k.ToString()).ToArray(),
                     attributeBudget = WorldCreation.DefaultAttributeBudget, skillBudget = PlayerCharacterCreation.DefaultSkillBudget,
@@ -129,10 +130,6 @@ internal static class CharacterEndpoints
         if (!validCamp) ErrorAt("camp", "unknown");
         if (request.Body is not ("Marta" or "Kshishtof")) ErrorAt("body", "unknown");
         if (string.IsNullOrEmpty(request.Skin)) ErrorAt("skin", "required");
-        // Existing lobby recipes may retain legacy iris ids; new account choices must match options.
-        if (!string.IsNullOrEmpty(request.Eyes) && CharacterAppearanceValidation.IsPrimal(
-                records.FirstOrDefault(r => r.Type == "actor" && r.Id == request.Body)))
-            ErrorAt("eyes", "incompatible");
         if (string.IsNullOrEmpty(request.Hair) || request.Eyes == null || character.Voice.Length == 0) ErrorAt("appearance", "required");
         WorldCreation.ValidateCharacter(character, WorldCreation.DefaultAttributeBudget, PlayerCharacterCreation.DefaultSkillBudget, "character", ErrorAt);
         CharacterAppearanceValidation.Validate(character, "character", records, errors);
@@ -145,7 +142,7 @@ internal static class CharacterEndpoints
     private static string[] HairColours(ContentObjectRecord record) =>
         record.Metadata.TryGetValue("colours", out var colours) && colours.ValueKind == JsonValueKind.Array
             ? colours.EnumerateArray().Where(c => c.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String)
-                .Select(c => c.GetProperty("id").GetString()!).Prepend("prototype").Distinct().ToArray()
-            : new[] { "prototype" };
+                .Select(c => c.GetProperty("id").GetString()!).Concat(HairTintPalette.All.Select(c => c.Id)).Prepend("prototype").Distinct().ToArray()
+            : new[] { "prototype" }.Concat(HairTintPalette.All.Select(c => c.Id)).ToArray();
     private static IResult Error(string error, int status) => Results.Json(new { error }, statusCode: status);
 }

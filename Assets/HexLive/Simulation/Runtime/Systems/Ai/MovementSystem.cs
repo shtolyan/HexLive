@@ -97,6 +97,22 @@ public sealed class MovementSystem : ISimulationSystem
             waterTile.Flags.HasFlag(TileFlags.Water);
     }
 
+    // §21.21B v26 / #466: touching a shared corner does not enter the tile
+    // beyond the incoming vector. The route can turn away from that third
+    // tile. Keep the current side until a node actually leaves it; the same
+    // rule owns lookahead, arrival bookkeeping and leftover-step gates.
+    private static bool TryGetMovementStepTile(
+        WorldState world, NPCState npc, int targetIndex, TileCoord currentTile,
+        JunctionId fromId, JunctionId toId, Junction to, out Tile tile)
+    {
+        if (TryGetExplicitBathWaterArrival(world, npc, targetIndex, to, out tile))
+            return true;
+        if (to.Tiles.Contains(currentTile) &&
+            world.Tiles.Items.TryGetValue(currentTile, out tile))
+            return true;
+        return HexPathfinder.TryGetDirectedStepTile(world, fromId, toId, out tile);
+    }
+
     // §71.2: она стоит НЕ ПО СВОЕЙ ВОЛЕ — упёрлась в товарку, планово
     // разворачивается на месте (только около-разворот, §71.3), переводит дух
     // после него, вылезает из воды. Все эти ветки уходят через `continue`
@@ -317,7 +333,8 @@ public sealed class MovementSystem : ISimulationSystem
                 if (!npc.Body.CanJump && !npc.Movement.HopUp)
                 {
                     npc.Movement.ClimbPauseTimer = System.MathF.Max(
-                        npc.Movement.ClimbPauseTimer, HexHopTuning.FallRecoverSeconds);
+                        npc.Movement.ClimbPauseTimer, System.MathF.Max(HexHopTuning.FallRecoverSeconds,
+                            StandUpMath.GraceTicks * world.TickDeltaTime));
                 }
 
                 if (SimTrace.Enabled)
@@ -366,6 +383,27 @@ public sealed class MovementSystem : ISimulationSystem
             // ground she lands, whatever the planner has decided since.
             if (RunHopWindow(world, npc))
             {
+                continue;
+            }
+
+            // #453: stand/recover before any route check or turn, including
+            // a fall which landed at the route's last point.
+            if (npc.Movement.ClimbPauseTimer > 0f)
+            {
+                npc.Movement.ClimbPauseTimer = System.MathF.Max(0f,
+                    npc.Movement.ClimbPauseTimer - world.TickDeltaTime);
+                if (npc.Movement.IsMoving) npc.Movement.SetStatus(MovementStatus.Waiting);
+                if (SimTrace.Enabled)
+                    Trace.Debug(world, npc.Id, "ClimbPause", $"Timer={npc.Movement.ClimbPauseTimer:F2}s remaining");
+                PauseGaitAndBreath(npc);
+                continue;
+            }
+
+            // #453: also gate an already armed path, not only path creation.
+            // Preserve the order/path so it resumes when the rise finishes.
+            if (world.Tick < npc.Mind.WakeGraceUntilTick)
+            {
+                PauseGaitAndBreath(npc);
                 continue;
             }
 
@@ -481,8 +519,9 @@ public sealed class MovementSystem : ISimulationSystem
                 var previousJunctionId = targetIndex > 0
                     ? npc.Movement.JunctionPath[targetIndex - 1]
                     : npc.CurrentJunction ?? targetJunctionId;
-                if (HexPathfinder.TryGetDirectedStepTile(
-                        world, previousJunctionId, targetJunctionId, out var carryStepTile) &&
+                if (TryGetMovementStepTile(
+                        world, npc, targetIndex, npc.Tile,
+                        previousJunctionId, targetJunctionId, targetJunction, out var carryStepTile) &&
                     SpatialQueries.IsSwimTile(carryStepTile))
                 {
                     KenshiRescueMath.DropSafely(world, npc, "carrier cannot swim");
@@ -697,12 +736,11 @@ public sealed class MovementSystem : ISimulationSystem
                     scanDist += HexSpatialMath.Distance(scanFrom, jn.WorldPosition);
                     scanFrom = jn.WorldPosition;
 
-                    // The tile she steps onto is resolved from the direction of
-                    // this path edge. Testing every tile of a seam junction fired
-                    // when she merely walked ALONG the wall; using Tiles[0] made
-                    // the result depend on generation order. This matches normal
-                    // walking's tile update below.
-                    if (!HexPathfinder.TryGetDirectedStepTile(world, fromJunctionId, toJunctionId, out var jt))
+                    // Use the same current-side rule as arrival. Extrapolating
+                    // the incoming edge through a three-tile corner selected a
+                    // third tile the path never entered, displacing the takeoff.
+                    if (!TryGetMovementStepTile(world, npc, i, scanTile.Coord,
+                            fromJunctionId, toJunctionId, jn, out var jt))
                     {
                         break;
                     }
@@ -899,22 +937,6 @@ public sealed class MovementSystem : ISimulationSystem
                     PauseGaitAndBreath(npc);
                     continue;
                 }
-            }
-
-            // Standing pause (swim-entry treading, §40.18-B). Deferred while
-            // a hop is flying — the hop owns its own timeline; a pending
-            // tread pause plays after the landing beat.
-            if (npc.Movement.ClimbPauseTimer > 0f && npc.Movement.HopTimer <= 0f)
-            {
-                npc.Movement.ClimbPauseTimer -= world.TickDeltaTime;
-                npc.Movement.SetStatus(MovementStatus.Waiting);
-                if (SimTrace.Enabled)
-                {
-                    Trace.Debug(world, npc.Id, "ClimbPause",
-                        $"Timer={npc.Movement.ClimbPauseTimer:F2}s remaining");
-                }
-                PauseGaitAndBreath(npc);
-                continue;
             }
 
             // §21.21B v6 + v17: the hop window ran at the TOP of this loop, before
@@ -1244,9 +1266,9 @@ public sealed class MovementSystem : ISimulationSystem
         KenshiRescueMath.SyncCarriedPositionsAfterMovement(world);
     }
 
-    // The single arrival primitive: snap to the node, resolve the directed
-    // step tile (with the §21.21B v24 "приход — не пересечение" exception for
-    // the final node), advance the path index and finish the move when the
+    // The single arrival primitive: snap to the node, resolve the actual
+    // step tile (§21.21B v26 shared nodes retain the current side), advance
+    // the path index and finish the move when the
     // path is exhausted. Shared verbatim by the normal per-tick arrival and
     // the §71.9 leftover carry — two editions of this block would drift.
     private static void ArriveAtJunction(
@@ -1262,29 +1284,10 @@ public sealed class MovementSystem : ISimulationSystem
         npc.CurrentJunction = targetJunctionId;
 
         var previousTile = npc.Tile;
-        // ⭐ Вторая половина правила «приход — не пересечение»: дойдя до
-        // ПОСЛЕДНЕГО узла пути, который граничит и с её собственным
-        // тайлом, она остаётся на СВОЁЙ стороне. Резолвер направленного
-        // шага смотрит «вперёд по вектору движения» — это верно для
-        // узла, который проходят насквозь, и неверно для того, на
-        // котором останавливаются: иначе стирающая, дойдя до кромки,
-        // числилась бы в воде (мокрая, барахтается), и её приходилось
-        // бы вытаскивать назад.
-        var entersBathWater = TryGetExplicitBathWaterArrival(
-            world, npc, targetIndex, targetJunction, out var bathWaterTile);
-        var arrivalStep = targetIndex == npc.Movement.JunctionPath.Count - 1 &&
-            targetJunction.Tiles.Contains(previousTile) && !entersBathWater;
-
-        TileCoord? enteredTile = entersBathWater ? bathWaterTile.Coord : null;
-        if (enteredTile is null && !arrivalStep &&
-            HexPathfinder.TryGetDirectedStepTile(
-                world, previousJunctionId, targetJunctionId, out var targetTile))
+        if (TryGetMovementStepTile(world, npc, targetIndex, previousTile,
+                previousJunctionId, targetJunctionId, targetJunction, out var targetTile))
         {
-            enteredTile = targetTile.Coord;
-        }
-
-        if (enteredTile is { } newTile)
-        {
+            var newTile = targetTile.Coord;
             if (newTile != previousTile)
             {
                 npc.Tile = newTile;
@@ -1442,8 +1445,8 @@ public sealed class MovementSystem : ISimulationSystem
             var previousJunctionId = nextIndex > 0
                 ? npc.Movement.JunctionPath[nextIndex - 1]
                 : npc.CurrentJunction ?? nextJunctionId;
-            if (HexPathfinder.TryGetDirectedStepTile(
-                    world, previousJunctionId, nextJunctionId, out var stepTile))
+            if (TryGetMovementStepTile(world, npc, nextIndex, npc.Tile,
+                    previousJunctionId, nextJunctionId, nextJunction, out var stepTile))
             {
                 // An elevation border is the hop scan's business; deep water
                 // is a dead end for occupied hands and a tread pause for

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: HexLive.UnityPresentation::HexLive.UnityPresentation.Wearing.Garments.GarmentDefinition
   id: gear.backpack_primal_hunter
   prototypeId: gear.backpack_primal_hunter
+  alternateFitId: gear.backpack_primal_hunter_male
   displayName: PrimalHunterPack
   retired: 0
   hasSexOverride: 1

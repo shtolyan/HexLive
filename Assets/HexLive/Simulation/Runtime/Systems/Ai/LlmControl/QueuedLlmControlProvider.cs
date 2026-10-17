@@ -9,7 +9,8 @@ namespace HexLive.Simulation.Runtime
 /// <summary>
 /// Reusable request/drain implementation for offline and future host providers.
 /// It owns the worker tasks and result queue, so <see cref="TryRequest"/> never
-/// executes provider reasoning on the simulation thread.
+/// executes provider reasoning on the simulation thread on native hosts.
+/// Browser offline/mock providers cooperate on its sole thread (§168.4).
 /// </summary>
 public abstract class QueuedLlmControlProvider : ILlmControlProvider
 {
@@ -88,7 +89,11 @@ public abstract class QueuedLlmControlProvider : ILlmControlProvider
             // Deliberately do not pass the cancellation token to Task.Run. The
             // worker must start in order to publish a canceled result even when
             // cancellation raced with request submission.
+#if UNITY_WEBGL && !UNITY_EDITOR
+            _ = CompleteAsync(request, linkedCancellation);
+#else
             _ = Task.Run(() => CompleteAsync(request, linkedCancellation));
+#endif
         }
 
         return true;
@@ -141,11 +146,18 @@ public abstract class QueuedLlmControlProvider : ILlmControlProvider
         var enteredWorker = false;
         try
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            await _workerSlots.WaitAsync(cancellation.Token);
+#else
             await _workerSlots.WaitAsync(cancellation.Token).ConfigureAwait(false);
+#endif
             enteredWorker = true;
             cancellation.Token.ThrowIfCancellationRequested();
-            var decision = await DecideAsync(request.Context, cancellation.Token)
-                .ConfigureAwait(false);
+#if UNITY_WEBGL && !UNITY_EDITOR
+            var decision = await DecideAsync(request.Context, cancellation.Token);
+#else
+            var decision = await DecideAsync(request.Context, cancellation.Token).ConfigureAwait(false);
+#endif
             result = cancellation.IsCancellationRequested
                 ? LlmControlResult.Canceled(request)
                 : LlmControlResult.Completed(request, decision);

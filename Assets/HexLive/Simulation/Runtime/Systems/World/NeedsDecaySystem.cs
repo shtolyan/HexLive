@@ -81,7 +81,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         {
             perNight = obj.DefinitionId switch
             {
-                ContentIds.BedBasic => Spec49.SleepComfortBedNight,
+                ContentIds.BedBasic => BedComfortPerNight(world),
                 _ => perNight
             };
             onBed = obj.DefinitionId == ContentIds.BedBasic;
@@ -119,6 +119,23 @@ public sealed class NeedsDecaySystem : ISimulationSystem
         }
 
         return perNight / SleepComfortNightSlowTicks;
+    }
+
+    // §49.2 / #459: same baseline gain per elapsed time as the canonical stump.
+    // Sit adds a duration-share every fast tick and still pays waking decay.
+    // Bed sleep is updated here on slow ticks, so convert both parts together.
+    private static float BedComfortPerNight(WorldState world)
+    {
+        if (world.Content.ObjectDefinitions.TryGetValue(ContentIds.PalmStump, out var stump))
+            foreach (var interaction in stump.Interactions)
+                if (interaction.Type == InteractionType.Sit && interaction.DurationTicks > 0)
+                {
+                    var perSlowTick = interaction.Effects.ComfortDelta / interaction.DurationTicks *
+                        System.Math.Max(1, world.SlowIntervalTicks) - ComfortRate;
+                    return System.Math.Max(0f, perSlowTick) * SleepComfortNightSlowTicks;
+                }
+        // Compatibility for incomplete external catalogs without a valid stump.
+        return Spec49.SleepComfortBedNight;
     }
 
     // A "jacket/coat" for padding = a torso-covering outer garment (the coat
@@ -231,7 +248,7 @@ public sealed class NeedsDecaySystem : ISimulationSystem
     {
         LyingSpot.ReleaseRestSurfaceOnRise(world, npc);
         npc.Mind.ComaCause = ComaCause.None;
-        npc.Mind.WakeGraceUntilTick = world.Tick + AiBalance.WakeGraceTicks; // spec 41.5
+        npc.Mind.WakeGraceUntilTick = world.Tick + StandUpMath.GraceTicks; // spec 41.5
 
         ExecutionSystem.ReleaseClaims(world, npc);
         if (npc.CurrentJunction is { } lay)

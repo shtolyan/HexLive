@@ -164,6 +164,8 @@ public static class WorldSnapshotExporter
             exported.OwnerNpcId = obj.CurrentUser?.Value;
             exported.Variant = obj.Variant;
             exported.SpawnTick = obj.SpawnTick;
+            exported.LeafDryness=Runtime.LeafDryingMath.HasLeaves(obj.DefinitionId)
+                ? Runtime.LeafDryingMath.VisualFraction(world.Tick,Runtime.LeafDryingMath.Start(obj)) : 0f;
             // Spec §54: build-site payload for the progressive-assembly view.
             exported.BuildProduct = obj.BuildProduct;
             exported.BillLogs = obj.BillLogs;
@@ -263,7 +265,9 @@ public static class WorldSnapshotExporter
                         StackCount = count,
                         ResourceAmount = physical?.ResourceAmount ?? 0f,
                         WaterKind = physical?.WaterKind ?? WaterKind.None,
-                        LastAddedWaterKind = physical?.LastAddedWaterKind ?? WaterKind.None
+                        LastAddedWaterKind = physical?.LastAddedWaterKind ?? WaterKind.None,
+                        LeafDryness=physical is not null && Runtime.LeafDryingMath.HasLeaves(physical.DefinitionId)
+                            ? Runtime.LeafDryingMath.VisualFraction(world.Tick,physical.LeafDryingStartTick) : 0f
                     });
                 }
             }
@@ -805,6 +809,7 @@ public static class WorldSnapshotExporter
             RomanceAnchorY = npc.Mind.RomanceAnchorY,
             RomanceFacingDegrees = npc.Mind.RomanceFacingDegrees,
             HeldItemId = ActionItemResolver.HeldId(world, npc),
+            HeldLeafDryness=Runtime.LeafDryingMath.HeldFraction(world,npc),
             OffhandItemId = ActionItemResolver.OffhandId(npc), // §55.4 (bug #317)
             // Spec 28.15E: conversation subject + last outcome for the bubble.
             TalkTopic = npc.Execution.CurrentTalkTopic?.ToString() ?? string.Empty,
@@ -856,6 +861,9 @@ public static class WorldSnapshotExporter
                     ResourceAmount = sourceSlot.ResourceAmount,
                     WaterKind = sourceSlot.WaterKind,
                     LastAddedWaterKind = sourceSlot.LastAddedWaterKind,
+                    LeafDryness=sourceSlot.SourceIndex >= 0 && sourceSlot.SourceIndex < npc.Inventory.Items.Count &&
+                        Runtime.LeafDryingMath.HasLeaves(sourceSlot.ItemDefinitionId)
+                        ? Runtime.LeafDryingMath.VisualFraction(world.Tick,npc.Inventory.Items[sourceSlot.SourceIndex].LeafDryingStartTick) : 0f,
                     AcceptedItemDefinitionId = sourceSlot.AcceptedItemDefinitionId
                 });
             }

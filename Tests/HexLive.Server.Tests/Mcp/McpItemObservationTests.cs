@@ -17,6 +17,36 @@ namespace HexLive.Server.Tests.Mcp;
 
 public sealed class McpItemObservationTests
 {
+    [Test]
+    public void CurrentSightHasObservationFactsAndVisibleMobsWithoutRememberedObjects()
+    {
+        using var host=CreateHost();
+        var id=host.Read(world=>
+        {
+            var actor=Observer(world);actor.Perception.Objects.Clear();actor.Perception.Mobs.Clear();
+            actor.Perception.LastUpdatedTick=77;
+            actor.Perception.Environment.Temperature=24.5f;
+            Add(world,actor,900050,"resource.stick");
+            var seen=actor.Perception.Objects.Last();seen.Distance=1.25f;seen.Tile=actor.Tile;seen.IsReachable=false;
+            Add(world,actor,900051,"tool.bottle");actor.Perception.Objects.Last().FromMemory=true;
+            actor.Perception.Mobs.Add(new PerceivedMob{Id=88,MobId="dog",Distance=2,Health=1.2f,TargetsMe=true});
+            return actor.Id.Value;
+        });
+        using var d=Describe(host,id);
+        var rows=d.RootElement.GetProperty("visibleItems");Assert.That(rows.GetArrayLength(),Is.EqualTo(1));
+        var row=rows[0];Assert.That(row.GetProperty("objectId").GetInt32(),Is.EqualTo(900050));
+        Assert.That(d.RootElement.GetProperty("perceptionTick").GetInt32(),Is.EqualTo(77));
+        Assert.That(d.RootElement.GetProperty("environment").GetProperty("temperature").GetDouble(),Is.EqualTo(24.5));
+        Assert.That(row.GetProperty("fromMemory").GetBoolean(),Is.False);
+        Assert.That(row.GetProperty("perceivedTick").GetInt32(),Is.EqualTo(77));
+        Assert.That(row.GetProperty("distance").GetDouble(),Is.EqualTo(1.25));
+        Assert.That(row.GetProperty("reachable").GetBoolean(),Is.False);
+        Assert.That(row.GetProperty("tile").TryGetProperty("q",out _),Is.True);
+        var mobs=d.RootElement.GetProperty("mobs");Assert.That(mobs.GetArrayLength(),Is.EqualTo(1));
+        Assert.That(mobs[0].GetProperty("mobId").GetInt32(),Is.EqualTo(88));
+        Assert.That(mobs[0].GetProperty("targetsMe").GetBoolean(),Is.True);
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public void VisibleFireReportsBurningAndTheSeparateIgnitionPrerequisites(bool burning)
@@ -348,15 +378,15 @@ public sealed class McpItemObservationTests
             var actor = Observer(world);
             actor.Inventory.Items.Clear();
             actor.WornItems.Clear();
-            actor.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants) { Durability = 1f });
-            actor.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants) { Durability = 0.125f });
-            actor.WornItems.Add(new ItemInstance(ContentIds.LeatherPants) { Durability = 0.875f });
+            actor.Inventory.Items.Add(new ItemInstance("underwear.briefs_primal") { Durability = 1f });
+            actor.Inventory.Items.Add(new ItemInstance("underwear.briefs_primal") { Durability = 0.125f });
+            actor.WornItems.Add(new ItemInstance("underwear.briefs_primal") { Durability = 0.875f });
             return actor.Id.Value;
         });
         using var response = Describe(host, id);
         var carried = response.RootElement.GetProperty("inventoryItems");
         var worn = response.RootElement.GetProperty("wornItems");
-        var liking = (int)MathF.Round(ItemAffinity.For(id, ContentIds.LeatherPants) * 100f);
+        var liking = (int)MathF.Round(ItemAffinity.For(id, "underwear.briefs_primal") * 100f);
         Assert.Multiple(() =>
         {
             Assert.That(carried[0].GetProperty("conditionPercent").GetInt32(), Is.EqualTo(100));
@@ -378,11 +408,11 @@ public sealed class McpItemObservationTests
         {
             var actor = Observer(world);
             actor.Perception.Objects.Clear();
-            Add(world, actor, 902001, ContentIds.LeatherPants).Durability = -0.5f;
-            Add(world, actor, 902002, ContentIds.LeatherPants).Durability = 1.5f;
-            Add(world, actor, 902003, ContentIds.LeatherPants);
+            Add(world, actor, 902001, "underwear.briefs_primal").Durability = -0.5f;
+            Add(world, actor, 902002, "underwear.briefs_primal").Durability = 1.5f;
+            Add(world, actor, 902003, "underwear.briefs_primal");
             actor.Perception.Objects.Last().FromMemory = true;
-            Add(world, actor, 902004, ContentIds.LeatherPants);
+            Add(world, actor, 902004, "underwear.briefs_primal");
             actor.Perception.Objects.RemoveAt(actor.Perception.Objects.Count - 1);
             Add(world, actor, 902005, ContentIds.Bottle);
             return actor.Id.Value;
@@ -396,7 +426,7 @@ public sealed class McpItemObservationTests
             Assert.That(visible[0].GetProperty("conditionPercent").GetInt32(), Is.Zero);
             Assert.That(visible[1].GetProperty("conditionPercent").GetInt32(), Is.EqualTo(100));
             Assert.That(visible[0].GetProperty("likingPercent").GetInt32(),
-                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, ContentIds.LeatherPants) * 100f)));
+                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, "underwear.briefs_primal") * 100f)));
             Assert.That(visible[2].TryGetProperty("conditionPercent", out _), Is.False);
             Assert.That(visible[2].TryGetProperty("likingPercent", out _), Is.False);
         });
@@ -414,7 +444,7 @@ public sealed class McpItemObservationTests
             foreach (var actor in people)
             {
                 actor.Inventory.Items.Clear();
-                actor.Inventory.Items.Add(new ItemInstance(ContentIds.LeatherPants)
+                actor.Inventory.Items.Add(new ItemInstance("underwear.briefs_primal")
                     { OwnerId = people[0].Id.Value, Durability = 0.4f });
             }
             return people.Select(n => n.Id.Value).ToArray();
@@ -424,12 +454,54 @@ public sealed class McpItemObservationTests
             using var response = Describe(host, id);
             var item = response.RootElement.GetProperty("inventoryItems")[0];
             Assert.That(item.GetProperty("likingPercent").GetInt32(),
-                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, ContentIds.LeatherPants) * 100f)));
+                Is.EqualTo((int)MathF.Round(ItemAffinity.For(id, "underwear.briefs_primal") * 100f)));
             Assert.That(item.GetProperty("ownerNpcId").GetInt32(), Is.EqualTo(ids[0]));
         }
     }
 
     private static NPCState Observer(WorldState world) => world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+
+    [Test]
+    public void VoiceWardrobeReadsActiveCatalogAndUndressWithoutConfusingCarriedClothing()
+    {
+        using var host = CreateHost();
+        var setup = host.Read(world =>
+        {
+            var actor = Observer(world); actor.Inventory.Items.Clear(); actor.WornItems.Clear();
+            actor.WornItems.Add(new ItemInstance("underwear.briefs_primal"));
+            return (actor.Id.Value, world.Content.ObjectDefinitions["underwear.briefs_primal"].DisplayName,
+                world.Content.ObjectDefinitions["underwear.briefs_primal"].Layer!.Value.ToString());
+        });
+        using var dressed = Describe(host, setup.Item1);
+        var item = dressed.RootElement.GetProperty("wornItems")[0];
+        Assert.That(item.GetProperty("displayName").GetString(), Is.EqualTo(setup.Item2));
+        Assert.That(item.GetProperty("layer").GetString(), Is.EqualTo(setup.Item3));
+        Assert.That(item.GetProperty("catalogKnown").GetBoolean(), Is.True);
+        Assert.That(HexLive.VoiceBrain.CharacterView.Build(dressed.RootElement), Does.Contain(setup.Item2));
+        host.Read(world =>
+        {
+            var actor = Observer(world); actor.Inventory.Items.Add(actor.WornItems[0]); actor.WornItems.Clear();
+            actor.Inventory.Items.Add(new ItemInstance("unknown-clothing-id")); return true;
+        });
+        using var undressed = Describe(host, setup.Item1);
+        var projection = HexLive.VoiceBrain.CharacterView.Build(undressed.RootElement);
+        Assert.That(projection, Does.Contain("ничего, список надетых вещей пуст").And.Contain("В инвентаре (это НЕ надето)"));
+        var unknown = undressed.RootElement.GetProperty("inventoryItems")[1];
+        Assert.That(unknown.GetProperty("catalogKnown").GetBoolean(), Is.False);
+        Assert.That(unknown.GetProperty("displayName").ValueKind, Is.EqualTo(JsonValueKind.Null));
+        Assert.That(host.Read(world => Observer(world).WornItems.Count), Is.Zero, "Reads cannot equip carried clothing");
+        // Measure the real warmed local read + projection, not model/TTS latency.
+        var samples = new List<double>(); var promptChars = 0;
+        for (var i = 0; i < 20; i++)
+        {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            using var snapshot = Describe(host, setup.Item1);
+            promptChars = HexLive.VoiceBrain.CharacterView.Build(snapshot.RootElement).Length;
+            samples.Add(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+        }
+        samples.Sort();
+        TestContext.WriteLine($"Local warmed MCP read+projection: medianMs={samples[10]:F3}, p95Ms={samples[18]:F3}, samples=20, projectedChars={promptChars}; no provider call.");
+    }
 
     private static WorldObjectState Add(WorldState world, NPCState actor, int id, string itemId, EntityId? owner = null)
     {

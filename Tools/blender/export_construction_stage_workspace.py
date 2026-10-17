@@ -43,6 +43,8 @@ def validate(definition):
     # owning scene before validation AND before any export/roundtrip snapshot.
     scene = next(s for s in bpy.data.scenes if s.get("hexlive_definition_id") == definition["id"])
     bpy.context.window.scene = scene
+    for obj in [root, *root.children_recursive]:
+        obj.update_tag(refresh={"OBJECT"})
     bpy.context.view_layer.update()
     issues = authoring.validate_root(root, definition)
     if any(abs(root.matrix_world[i][j] - Matrix.Identity(4)[i][j]) > 1e-5

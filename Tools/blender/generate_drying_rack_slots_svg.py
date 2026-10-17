@@ -8,6 +8,8 @@ scene = next(s for s in bpy.data.scenes if s.get('hexlive_definition_id') == 'st
 bpy.context.window.scene = scene
 bpy.context.view_layer.update()
 root = next(o for o in scene.objects if o.get('hexlive_definition_id') == 'station.drying_rack')
+for obj in [root, *root.children_recursive]:obj.update_tag(refresh={'OBJECT'})
+bpy.context.view_layer.update()
 slots = sorted((str(o.get('hexlive_export_name', o.name)), tuple(root.matrix_world.inverted() @ o.matrix_world.translation))
                for o in root.children_recursive if str(o.get('hexlive_export_name', o.name)).startswith('DryingSlot_'))
 spatial = (REPO/'Assets/HexLive/Simulation/Spatial/HexSpatialMath.cs').read_text()

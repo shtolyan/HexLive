@@ -209,7 +209,9 @@ public sealed class SimulationInputAdapter : MonoBehaviour
             return;
         }
 
+        var perfHover = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
         UpdateHover();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.Hover, perfHover);
     }
 
     private void OnDisable()
@@ -408,6 +410,22 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         }
 
         var mousePos = mouse.position.ReadValue();
+        // §168.11 PERF: the pick walks every object view and ray-tests every
+        // person — in the browser that is a real slice of the frame. Re-pick
+        // at once when the cursor or the camera moved; otherwise ten times a
+        // second is enough to follow people walking under a still cursor.
+        var cameraTransform = _camera.transform;
+        var now = Time.unscaledTime;
+        if (mousePos == _hoverMousePos && cameraTransform.position == _hoverCameraPos &&
+            cameraTransform.rotation == _hoverCameraRot && now < _hoverNextPickTime)
+        {
+            return;
+        }
+
+        _hoverMousePos = mousePos;
+        _hoverCameraPos = cameraTransform.position;
+        _hoverCameraRot = cameraTransform.rotation;
+        _hoverNextPickTime = now + HoverRepickSeconds;
         var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
 
         PickTarget(snapshot, mousePos, out _hoveredNpcId, out _hoveredMobId, out var objectHit);
@@ -505,8 +523,15 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         person.IsUnconscious || person.IsDying || person.IsFainted ||
         person.IsPlayingDead || person.CurrentInteraction == "Sleep";
 
+    private const float HoverRepickSeconds = 0.1f;
+    private Vector2 _hoverMousePos;
+    private Vector3 _hoverCameraPos;
+    private Quaternion _hoverCameraRot;
+    private float _hoverNextPickTime;
+
     private void ClearHover()
     {
+        _hoverNextPickTime = 0f;
         _hovered?.SetHighlighted(false);
         _hovered = null;
         _hoveredNpcId = -1;

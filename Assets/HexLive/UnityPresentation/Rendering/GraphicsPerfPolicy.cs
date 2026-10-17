@@ -36,8 +36,27 @@ namespace HexLive.UnityPresentation.Rendering
                 return;
             }
 
-            var scale = ReadOverride() ?? Mathf.Clamp(
-                TargetHeightPixels / Mathf.Max(1, Screen.height), MinRenderScale, 1f);
+            float scale;
+            if (HexLive.UnityPresentation.Platform.WebPage.IsWeb)
+            {
+                // §168.11: the web pipeline asset (Mobile_RPAsset) already
+                // carries its own renderScale. The height rule below gave 1.0
+                // for any canvas under 1600 rows and silently overwrote it —
+                // the browser rendered every pixel at full size. Only the
+                // page's ?rscale= measurement knob may change it.
+                var requested = HexLive.UnityPresentation.Platform.WebPage.QueryFloat("rscale");
+                if (requested == null)
+                {
+                    return;
+                }
+
+                scale = Mathf.Clamp(requested.Value, 0.5f, 1f);
+            }
+            else
+            {
+                scale = ReadOverride() ?? Mathf.Clamp(
+                    TargetHeightPixels / Mathf.Max(1, Screen.height), MinRenderScale, 1f);
+            }
             if (Mathf.Approximately(scale, pipeline.renderScale))
             {
                 return;
@@ -47,6 +66,40 @@ namespace HexLive.UnityPresentation.Rendering
             Debug.Log(
                 $"[GraphicsPerf] renderScale {scale:0.00} for {Screen.width}x{Screen.height} " +
                 $"(override with {RenderScaleArgument} <0.5..1>)");
+        }
+
+        /// <summary>
+        /// §168.11: the browser's post stack. High-quality bloom filtering
+        /// (bicubic upsampling over up to six mips) is the expensive half of
+        /// the bloom and barely shows on the flat low-poly art, so the web
+        /// build drops it. <c>?bloom=0</c> in the page address switches bloom
+        /// off entirely — a measurement knob, not a player setting. Player
+        /// builds only: in the editor the profile is an asset on disk.
+        /// </summary>
+        public static void ApplyWebPostProcessing()
+        {
+            if (Application.isEditor || !HexLive.UnityPresentation.Platform.WebPage.IsWeb)
+            {
+                return;
+            }
+
+            var bloomOff = HexLive.UnityPresentation.Platform.WebPage.QueryFloat("bloom") == 0f;
+            foreach (var volume in Object.FindObjectsByType<Volume>(FindObjectsSortMode.None))
+            {
+                var profile = volume.sharedProfile;
+                if (profile == null || !profile.TryGet<Bloom>(out var bloom))
+                {
+                    continue;
+                }
+
+                bloom.highQualityFiltering.Override(false);
+                if (bloomOff)
+                {
+                    bloom.active = false;
+                }
+
+                Debug.Log($"[GraphicsPerf] web bloom: {(bloomOff ? "off (?bloom=0)" : "low-quality filtering")}");
+            }
         }
 
         private static float? ReadOverride()

@@ -36,6 +36,11 @@ namespace HexLive.UnityPresentation.Diagnostics
         public const int PortraitLateUpdate = 9;
         public const int CameraLateUpdate = 10;
         public const int PortraitCameraRender = 11;
+        public const int RenderSnapshot = 12;
+        public const int InterpolateMovables = 13;
+        public const int VegetationWind = 14;
+        public const int Hover = 15;
+        public const int HtmlHud = 16;
 
         private static readonly string[] SectionNames =
         {
@@ -44,12 +49,16 @@ namespace HexLive.UnityPresentation.Diagnostics
             "Sound.LateUpdate", "Runner.Update (net+events)", "Runner.LateUpdate",
             "PortraitStage.LateUpdate", "RtsCamera.LateUpdate",
             "PortraitStage camera render (#434)",
+            "HexWorld.RenderSnapshot (tick)", "HexWorld.InterpolateMovables", "HexWorld.VegetationWind",
+            "Input.Hover pick", "SimSpeedBar HTML HUD",
         };
 
         public static bool Enabled { get; private set; }
 
         private static readonly double TicksToMs = 1000.0 / Stopwatch.Frequency;
         private static readonly long[] SectionTicks = new long[SectionNames.Length];
+        // Row labels built once: the profiler must not feed the GC it measures.
+        private static readonly string[] SectionRows = System.Array.ConvertAll(SectionNames, name => "» " + name);
         private static readonly int[] SectionCalls = new int[SectionNames.Length];
 
         private static readonly List<string> LoopNames = new();
@@ -62,6 +71,10 @@ namespace HexLive.UnityPresentation.Diagnostics
         private ProfilerRecorder _drawCalls, _batches, _setPass, _triangles;
         private double _frameMsSum, _frameMsMax, _loopMsSum;
         private int _frames;
+        // Frame-time spread and the collector: the web GC is not incremental,
+        // so a collection is a whole-heap pause inside one frame (§168.11).
+        private readonly List<double> _frameMsWindow = new(256);
+        private int _gcCountAtWindowStart;
         private float _windowStart, _lastLog;
         private string _text = "WebPerf: collecting…";
         private GUIStyle _style;
@@ -157,6 +170,7 @@ namespace HexLive.UnityPresentation.Diagnostics
             _frameMsSum += dt;
             if (dt > _frameMsMax) _frameMsMax = dt;
             _frames++;
+            _frameMsWindow.Add(dt);
 
             // Harvest last frame's PlayerLoop buckets (the current frame is in flight).
             double loopMs = 0;
@@ -172,7 +186,7 @@ namespace HexLive.UnityPresentation.Diagnostics
             for (var s = 0; s < SectionTicks.Length; s++)
             {
                 if (SectionTicks[s] == 0) continue;
-                Add("» " + SectionNames[s], SectionTicks[s] * TicksToMs);
+                Add(SectionRows[s], SectionTicks[s] * TicksToMs);
                 SectionTicks[s] = 0;
                 SectionCalls[s] = 0;
             }
@@ -189,6 +203,8 @@ namespace HexLive.UnityPresentation.Diagnostics
             _windowMax.Clear();
             _frameMsSum = _frameMsMax = _loopMsSum = 0;
             _frames = 0;
+            _frameMsWindow.Clear();
+            _gcCountAtWindowStart = System.GC.CollectionCount(0);
             _windowStart = now;
         }
 
@@ -208,6 +224,7 @@ namespace HexLive.UnityPresentation.Diagnostics
               .Append($"frame avg {_frameMsSum / n:0.0} ms max {_frameMsMax:0}  ")
               .Append($"unity loop {_loopMsSum / n:0.0} ms  outside {(_frameMsSum - _loopMsSum) / n:0.0} ms\n")
               .Append($"draws {Last(_drawCalls)} batches {Last(_batches)} setpass {Last(_setPass)} tris {Last(_triangles)}\n")
+              .Append(SpreadLine()).Append('\n')
               .Append(FmodLine()).Append('\n');
             var rows = new List<KeyValuePair<string, double>>(_windowMs);
             rows.Sort((a, b) => b.Value.CompareTo(a.Value));
@@ -220,6 +237,22 @@ namespace HexLive.UnityPresentation.Diagnostics
                 shown++;
             }
             return sb.ToString();
+        }
+
+        private string SpreadLine()
+        {
+            if (_frameMsWindow.Count == 0) return "frames: none";
+            _frameMsWindow.Sort();
+            var count = _frameMsWindow.Count;
+            var slow = 0;
+            foreach (var ms in _frameMsWindow)
+            {
+                if (ms > 33.4) slow++;
+            }
+
+            return $"frame p50 {_frameMsWindow[count / 2]:0.0} p95 {_frameMsWindow[Mathf.Min(count - 1, count * 95 / 100)]:0.0} ms" +
+                   $"  >33ms {slow}/{count}  gc {System.GC.CollectionCount(0) - _gcCountAtWindowStart}" +
+                   $"  heap {System.GC.GetTotalMemory(false) / (1024 * 1024)} MB";
         }
 
         // §168.6: что делает микшер FMOD — тип вывода (AudioWorklet живёт в
@@ -250,7 +283,7 @@ namespace HexLive.UnityPresentation.Diagnostics
                 fontSize = 11,
                 normal = { textColor = Color.white },
             };
-            GUI.Box(new Rect(8, 60, 470, 330), _text, _style);
+            GUI.Box(new Rect(8, 60, 470, 380), _text, _style);
         }
     }
 }

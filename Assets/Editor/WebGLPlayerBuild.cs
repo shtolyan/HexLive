@@ -98,6 +98,12 @@ public static class HexLiveWebGLPlayerBuild
             // put back, like the stack-trace settings above.
             var template = PlayerSettings.WebGL.template;
             PlayerSettings.WebGL.template = PageTemplate;
+            // §168.11: the page has its own preloader (§174.7), so the Unity
+            // logo screen is only ~2.7 MB of download and seconds of wait.
+            // Shared with the desktop project file — put back below.
+            var splash = PlayerSettings.SplashScreen.show;
+            PlayerSettings.SplashScreen.show = false;
+            Debug.Log($"[WebGLBuild] Unity splash screen: {(PlayerSettings.SplashScreen.show ? "ON (license kept it)" : "off")}");
             BuildReport report;
             try
             {
@@ -114,6 +120,7 @@ public static class HexLiveWebGLPlayerBuild
             {
                 Running = false;
                 PlayerSettings.WebGL.template = template;
+                PlayerSettings.SplashScreen.show = splash;
                 // Генерируется на каждую сборку из того, что реально лежит в
                 // StreamingAssets, — в репозитории ему не место (устареет).
                 PlayerSettings.SetStackTraceLogType(LogType.Log, logTrace);

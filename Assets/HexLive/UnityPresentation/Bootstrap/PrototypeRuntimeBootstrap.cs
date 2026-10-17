@@ -94,6 +94,7 @@ public static class PrototypeRuntimeBootstrap
         // PERF: cap the render scale on Retina/4K displays before anything
         // draws — player builds only, see GraphicsPerfPolicy.
         GraphicsPerfPolicy.ApplyRenderScale();
+        GraphicsPerfPolicy.ApplyWebPostProcessing();
 
         var root = new GameObject("HexLive Prototype");
         var runner = root.AddComponent<SimulationRunnerBehaviour>();

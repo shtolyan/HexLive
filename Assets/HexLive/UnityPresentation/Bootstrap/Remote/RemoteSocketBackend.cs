@@ -1135,11 +1135,16 @@ public sealed class RemoteSocketBackend : ISimulationBackend, IAdminSimulationSo
 
     public void Tick(float unscaledDeltaTime)
     {
-        lock (_inbox)
+        // §168.11 PERF: this ran a LINQ chain with a closure every frame; with
+        // no speech in flight (almost always) it now allocates nothing.
+        if (_pendingSpeech.Count > 0)
         {
-            var expiry = DateTime.UtcNow.AddSeconds(-30);
-            foreach (var id in _pendingSpeech.Where(item => item.Value.CreatedUtc < expiry)
-                         .Select(item => item.Key).ToArray()) DropPendingSpeech(id);
+            lock (_inbox)
+            {
+                var expiry = DateTime.UtcNow.AddSeconds(-30);
+                foreach (var id in _pendingSpeech.Where(item => item.Value.CreatedUtc < expiry)
+                             .Select(item => item.Key).ToArray()) DropPendingSpeech(id);
+            }
         }
         ConsumeHandshake();
         if (!_ready)

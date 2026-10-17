@@ -32,6 +32,7 @@ namespace HexLive.UnityPresentation.UI
         private const string HtmlScreen = "hud";
         private bool _inHtml;
         private string _lastHudJson;
+        private (int, LinkState, int, bool, int, bool)? _lastHudKey;
 
         // Weather widget (top-left): temperature, rain/clear, clock + phase.
         private VectorIcon _sunIcon;
@@ -82,6 +83,7 @@ namespace HexLive.UnityPresentation.UI
             HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
             HtmlUi.Hide(HtmlScreen);
             _lastHudJson = null;
+            _lastHudKey = null;
         }
 
         private void Update()
@@ -99,7 +101,9 @@ namespace HexLive.UnityPresentation.UI
                     _document.rootVisualElement.style.display = DisplayStyle.None;
                 }
 
+                var perfHtmlHud = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
                 PushHtml();
+                HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.HtmlHud, perfHtmlHud);
                 return;
             }
 
@@ -351,9 +355,30 @@ namespace HexLive.UnityPresentation.UI
             {
                 HtmlUi.Hide(HtmlScreen);
                 _lastHudJson = null;
+                _lastHudKey = null;
                 return;
             }
 
+            // §168.11 PERF: building the JObject and its JSON only to find the
+            // text unchanged cost a few KB of garbage every frame — and the
+            // web GC is not incremental. Everything the model reads moves at
+            // most once a tick, so a cheap key decides whether to build it.
+            var keySnapshot = _runner.CreateSnapshot(); // cached per tick
+            if (keySnapshot == null)
+            {
+                return;
+            }
+
+            var keyLink = _runner.Link;
+            var key = (keySnapshot.Tick, keyLink.State,
+                keyLink.PingMilliseconds >= 0 ? keyLink.PingMilliseconds / 10 : -1,
+                _runner.IsPaused, NearestPreset(_runner.SpeedMultiplier), keyLink.IsRemote);
+            if (_lastHudJson != null && _lastHudKey == key)
+            {
+                return;
+            }
+
+            _lastHudKey = key;
             var model = HudModel();
             if (model == null)
             {

@@ -555,6 +555,12 @@ public sealed class HexWorldRenderer : MonoBehaviour
     private readonly Dictionary<int, bool> _npcOnWater = new();
     private readonly Dictionary<int, Vector3> _prevObjectPositions = new();
     private readonly Dictionary<int, Vector3> _currObjectPositions = new();
+    // §168.11 PERF: an object view moves only when a tick moved its anchor.
+    // The first frame after each rendered snapshot writes every object (the
+    // snapshot pass may have touched any of them) and remembers the ones
+    // whose prev != curr; the frames in between interpolate only those.
+    private readonly List<int> _movingObjectKeys = new();
+    private bool _objectInterpolationFullPass = true;
 
     // §35.5B: drying-rack hanging — the junctions occupied by racks this
     // snapshot, and each hung garment's hanger rank (object id → slot index).
@@ -818,7 +824,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
             return;
         }
 
+        var perfVegetationWind = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
         UpdateVegetationWind();
+        HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.VegetationWind, perfVegetationWind);
 
         _runner ??= FindAnyObjectByType<SimulationRunnerBehaviour>();
         if (_runner is null || !_runner.IsReady)
@@ -886,10 +894,13 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
 
             UnityEngine.Profiling.Profiler.BeginSample("Hex.RenderSnapshot");
+            var perfRenderSnapshot = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
             RenderSnapshot(snapshot);
+            HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.RenderSnapshot, perfRenderSnapshot);
             UnityEngine.Profiling.Profiler.EndSample();
             _lastRenderedTick = snapshot.Tick;
             _lastWorldSeed = snapshot.Seed;
+            _objectInterpolationFullPass = true;
             _lastSnapshot = snapshot;
         }
 
@@ -899,7 +910,9 @@ public sealed class HexWorldRenderer : MonoBehaviour
         // §40.18-B: our owned wave params -> the water material, so the mesh
         // swell always matches what WaterWave.Height gives the swimmer.
         WaterWave.PushToShader();
+        var perfInterpolateMovables = HexLive.UnityPresentation.Diagnostics.WebPerf.Begin();
         InterpolateMovables(_runner.TickAlpha);
+        HexLive.UnityPresentation.Diagnostics.WebPerf.End(HexLive.UnityPresentation.Diagnostics.WebPerf.InterpolateMovables, perfInterpolateMovables);
         UpdateHutCutaways(snapshot);
         UnityEngine.Profiling.Profiler.EndSample();
     }
@@ -4124,25 +4137,47 @@ public sealed class HexWorldRenderer : MonoBehaviour
             }
         }
 
-        foreach (var kvp in _objectViews)
+        if (_objectInterpolationFullPass)
         {
-            var key = kvp.Key;
-            var view = kvp.Value;
-
-            if (!_currObjectPositions.TryGetValue(key, out var curr))
+            _objectInterpolationFullPass = false;
+            _movingObjectKeys.Clear();
+            foreach (var kvp in _objectViews)
             {
-                continue;
+                if (InterpolateObject(kvp.Key, kvp.Value, alpha))
+                {
+                    _movingObjectKeys.Add(kvp.Key);
+                }
             }
 
-            if (_prevObjectPositions.TryGetValue(key, out var prev))
+            return;
+        }
+
+        foreach (var key in _movingObjectKeys)
+        {
+            if (_objectViews.TryGetValue(key, out var view))
             {
-                view.transform.position = Vector3.Lerp(prev, curr, alpha);
-            }
-            else
-            {
-                view.transform.position = curr;
+                InterpolateObject(key, view, alpha);
             }
         }
+    }
+
+    /// <summary>Writes the object's interpolated anchor; true when it is
+    /// still travelling between two different tick positions.</summary>
+    private bool InterpolateObject(int key, GameObject view, float alpha)
+    {
+        if (view == null || !_currObjectPositions.TryGetValue(key, out var curr))
+        {
+            return false;
+        }
+
+        if (_prevObjectPositions.TryGetValue(key, out var prev) && prev != curr)
+        {
+            view.transform.position = Vector3.Lerp(prev, curr, alpha);
+            return true;
+        }
+
+        view.transform.position = curr;
+        return false;
     }
 
     private readonly HashSet<TileCoord> _waterCoords = new();

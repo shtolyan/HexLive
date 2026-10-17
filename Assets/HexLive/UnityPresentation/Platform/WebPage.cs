@@ -100,6 +100,36 @@ public static class WebPage
         }
     }
 
+    /// <summary>
+    /// §168.11: a numeric switch from the page address (<c>?rscale=0.7</c>,
+    /// <c>?bloom=0</c>) — the browser has no command line, so measurement
+    /// knobs live in the query. Null when absent, unparsable, or off the web.
+    /// </summary>
+    public static float? QueryFloat(string name)
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        if (!System.Uri.TryCreate(UnityEngine.Application.absoluteURL, System.UriKind.Absolute, out var page))
+        {
+            return null;
+        }
+
+        foreach (var pair in page.Query.TrimStart('?').Split('&'))
+        {
+            var eq = pair.IndexOf('=');
+            if (eq <= 0 || !string.Equals(pair.Substring(0, eq), name, System.StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            return float.TryParse(pair.Substring(eq + 1), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var value)
+                ? value
+                : null;
+        }
+#endif
+        return null;
+    }
+
     /// <summary>Updating a web client IS reloading the page (§168.5).</summary>
     public static void Reload()
     {

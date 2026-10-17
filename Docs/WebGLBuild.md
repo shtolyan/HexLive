@@ -30,6 +30,7 @@ Settings, `BuildPipeline.BuildPlayer` из своего скрипта и «Buil
 | `web-audio-manifest.json` | пишется на время сборки | В браузере StreamingAssets — URL, обойти папку нельзя |
 | Музыка mp3 → Ogg | на время сборки (ffmpeg + oggenc) | В веб-FMOD нет MP3-декодера |
 | `devicePixelRatio = 1` | вписывается в `index.html` | Иначе на Retina рендер в 4 раза больше пикселей |
+| Заставка Unity | выкл. на время сборки, потом возвращается | Свой предзагрузчик страницы; минус ~2.7 МБ и секунды ожидания |
 
 **Не «чини» это руками:** не коммить `FMODStudioSettings.asset`, не правь
 буфер в окне FMOD Settings и не переключай `PlayerSettings` под веб в общем
@@ -190,6 +191,7 @@ SHA256 `.asmdef` `19f0b8d844420f9933893d96181a484fc51c005f4649092fe50fc524c36d7a
 [WebGLBuild] FMOD WebGL DSP buffer: 4 x 2048, callback WebAudioTuning
 [WebGLBuild] web music: N Ogg track(s) for the browser   (только при перекодировании)
 [WebGLBuild] audio manifest: N files
+[WebGLBuild] Unity splash screen: off
 [WebGLBuild] Succeeded: … 0 errors …
 [WebGLBuild] HTML interface: ui/ from template HexLive, N files verbatim
 [WebGLBuild] devicePixelRatio capped at 1

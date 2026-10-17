@@ -12,6 +12,7 @@ using HexLive.UnityPresentation.Environment;
 using HexLive.UnityPresentation.HutTest.BlueprintEditor;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using HexLive.UnityPresentation.Spatial;
 using HexLive.UnityPresentation.Views;
 using HexLive.UnityPresentation.Wearing.Garments;
@@ -27,7 +28,7 @@ namespace HexLive.UnityPresentation.HutTest
     /// reads the resulting production-ready integer blueprint.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
-    public sealed class HutLayoutDesigner : MonoBehaviour
+    public sealed partial class HutLayoutDesigner : MonoBehaviour
     {
         /// <summary>
         /// §120.8: конструктор, открытый ИЗ ИГРЫ на выбранном гексе. Черчение
@@ -231,6 +232,7 @@ namespace HexLive.UnityPresentation.HutTest
 
         private void OnDestroy()
         {
+            CloseHtml();
             RestoreWorldSelection();
             Loc.LanguageChanged -= ApplyLanguage;
             if (_rotationButtonMaterial != null) Destroy(_rotationButtonMaterial);
@@ -256,6 +258,7 @@ namespace HexLive.UnityPresentation.HutTest
             // Dev-сцена конструктора держит мир на паузе; ИГРОВОЙ режим — нет
             // (§120.7: на сервере часы операторские, паузу игрок ставит сам).
             if (!WorldMode && _runner != null && !_runner.IsPaused) _runner.TogglePause();
+            UpdateHtml();
             HandleKeyboard();
             HandlePointer();
             _preview.UpdateCutaway(_camera);
@@ -1359,6 +1362,8 @@ namespace HexLive.UnityPresentation.HutTest
 
         private bool PointerOverPanel(Vector2 screen)
         {
+            // §174.7: on the web the tray is HTML — its surface is the panel.
+            if (HtmlUi.Active && HtmlUi.PointerOverUi) return true;
             if (_document?.rootVisualElement.panel == null || _panel == null) return false;
             var panelPosition = RuntimePanelUtils.ScreenToPanel(
                 _document.rootVisualElement.panel, new Vector2(screen.x, Screen.height - screen.y));

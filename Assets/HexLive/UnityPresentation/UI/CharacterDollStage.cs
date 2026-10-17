@@ -563,8 +563,41 @@ namespace HexLive.UnityPresentation.UI
             // URP has no supported manual Camera.Render(), so the camera is
             // armed for exactly the frames whose portrait actually changed and
             // disarmed again on the next one. A still doll costs nothing.
-            _camera.enabled = _renderDirty;
+            // §174.7: on the screen there is no still photo to keep — the world
+            // camera repaints that rectangle every frame, so the doll must too.
+            _camera.enabled = _renderDirty || _onScreen;
             _renderDirty = false;
+        }
+
+        private bool _onScreen;
+
+        /// <summary>
+        /// §174.7: the web page's backpack leaves a hole for the doll; the camera
+        /// renders straight into that part of the screen (normalized, bottom-left)
+        /// with an opaque backdrop. <see cref="ShowInTexture"/> returns it to the
+        /// RenderTexture the UI Toolkit window shows.
+        /// </summary>
+        public void ShowOnScreen(Rect viewport)
+        {
+            if (_camera == null) return;
+            _onScreen = true;
+            _camera.targetTexture = null;
+            _camera.rect = viewport;
+            _camera.depth = 45;
+            _camera.backgroundColor = new Color(Backdrop.r, Backdrop.g, Backdrop.b, 1f);
+            _camera.ResetAspect();
+            _renderDirty = true;
+        }
+
+        public void ShowInTexture()
+        {
+            if (_camera == null || !_onScreen) return;
+            _onScreen = false;
+            _camera.rect = new Rect(0, 0, 1, 1);
+            _camera.targetTexture = _texture;
+            _camera.backgroundColor = Backdrop;
+            _camera.ResetAspect();
+            _renderDirty = true;
         }
 
         /// <summary>

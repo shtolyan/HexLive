@@ -41,7 +41,8 @@ function Hole({ send, cmd }) {
     report();
     // The window rises in with a transform, which ResizeObserver does not see.
     const settle = setTimeout(report, 250);
-    return () => { observer.disconnect(); clearTimeout(settle); };
+    // Gone (craft tab, item card, window closed): Unity stops drawing there.
+    return () => { observer.disconnect(); clearTimeout(settle); send(cmd, { x: 0, y: 0, w: 0, h: 0, vw: 0, vh: 0 }); };
   }, []);
   const drag = useRef(null);
   return html`<div class="hx-inv__hole" ref=${hole}
@@ -50,15 +51,22 @@ function Hole({ send, cmd }) {
     onPointerUp=${() => { drag.current = null; }}></div>`;
 }
 
+// An item picture: the icon Unity sent, else its emoji while the icon is on its way.
+function Pic({ of, fallback }) {
+  const src = asset(of.icon);
+  if (src) return html`<img src=${src} alt="" />`;
+  if (of.emoji) return html`<span class="hx-pic-emoji" aria-hidden="true">${of.emoji}</span>`;
+  return fallback ?? null;
+}
+
 function Slot({ item, selected, onSelect, onQuick, onDragItem }) {
   if (!item) return html`<li class="hx-slot hx-slot--empty" aria-hidden="true"></li>`;
-  const icon = asset(item.icon);
   return html`
     <li class=${`hx-slot${selected ? ' is-selected' : ''}${item.overflow ? ' is-overflow' : ''}`}>
       <button type="button" draggable="true" title=${item.name}
         onClick=${() => onSelect(item.uid)} onDblClick=${() => onQuick(item)}
         onDragStart=${(e) => { e.dataTransfer.setData('text/plain', item.uid); onDragItem(item); }}>
-        ${icon ? html`<img src=${icon} alt="" />` : html`<span class="hx-slot__name">${item.name}</span>`}
+        <${Pic} of=${item} fallback=${html`<span class="hx-slot__name">${item.name}</span>`} />
         ${item.count > 1 && html`<b class="hx-slot__count">×${item.count}</b>`}
         ${item.favorite && html`<span class="hx-slot__fav" aria-hidden="true">★</span>`}
         ${item.inUse && html`<span class="hx-slot__tag">${t('inv.in_use')}</span>`}
@@ -73,7 +81,7 @@ function Detail({ item, model, send, onBack, onDrop }) {
     <section class="hx-inv__detail" aria-label=${item.name}>
       <button type="button" class="hx-link-back" onClick=${onBack}>‹ ${t('inv.back')}</button>
       <header class="hx-inv__detail-head">
-        ${asset(item.icon) && html`<img src=${asset(item.icon)} alt="" />`}
+        <${Pic} of=${item} />
         <div><h3>${item.name}${item.count > 1 ? ` ×${item.count}` : ''}</h3><span class="hx-muted">${d.category}</span></div>
       </header>
       ${d.desc && html`<p class="hx-text">${d.desc}</p>`}
@@ -129,7 +137,7 @@ function Craft({ model, send }) {
         <ul class="hx-recipes">
           ${recipes.map((r) => html`
             <li key=${r.id}><button type="button" class=${`hx-recipe${chosen?.id === r.id ? ' is-selected' : ''}`} onClick=${() => setPick(r.id)}>
-              ${asset(r.icon) ? html`<img src=${asset(r.icon)} alt="" />` : html`<span class="hx-slot__name">${r.name}</span>`}
+              <${Pic} of=${r} fallback=${html`<span class="hx-slot__name">${r.name}</span>`} />
               <span>${r.name}</span>
               ${r.working && html`<b class="hx-slot__tag">${t('craft.working')}</b>`}
               ${r.queued > 0 && html`<b class="hx-recipe__queue">×${r.queued}</b>`}
@@ -139,14 +147,14 @@ function Craft({ model, send }) {
       ${chosen && detail && html`
         <section class="hx-inv__detail">
           <header class="hx-inv__detail-head">
-            ${asset(chosen.icon) && html`<img src=${asset(chosen.icon)} alt="" />`}
+            <${Pic} of=${chosen} />
             <div><h3>${chosen.name}</h3></div>
           </header>
           <h4 class="hx-section__title">${t('craft.resources')}</h4>
           <ul class="hx-ingredients">
             ${detail.ingredients.map((g) => html`
               <li key=${g.name} class=${g.have >= g.need ? 'is-ok' : 'is-missing'}>
-                ${asset(g.icon) ? html`<img src=${asset(g.icon)} alt="" />` : html`<i></i>`}
+                <${Pic} of=${g} fallback=${html`<i></i>`} />
                 <span>${g.name}</span><b>${g.have}/${g.need}</b><span aria-hidden="true">${g.have >= g.need ? '✓' : '✕'}</span>
               </li>`)}
           </ul>

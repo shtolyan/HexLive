@@ -49,6 +49,7 @@ namespace HexLive.UnityPresentation.UI
                 if (_expandTab != null) _expandTab.style.visibility = Visibility.Hidden;
                 HtmlUi.Handle(HtmlRoster, OnHtmlCommand);
                 HtmlUi.Handle(HtmlCharacter, OnHtmlCommand);
+                HtmlUi.Handle(HtmlInventory, OnHtmlInventoryCommand);
             }
 
             var snapshot = _runner != null && _runner.IsReady ? _runner.CreateSnapshot() : null;
@@ -66,9 +67,11 @@ namespace HexLive.UnityPresentation.UI
             Push(HtmlRoster, RosterModel(snapshot), ref _lastRosterJson);
             var character = CharacterModel(snapshot);
             Push(HtmlCharacter, character, ref _lastCharacterJson);
+            UpdateHtmlInventory(snapshot);
 
-            // The portrait camera paints the screen only while the hole exists.
-            var hole = (string)character["mode"] == "single" && !_collapsed && _portraitViewport.HasValue;
+            // The portrait camera paints the screen only while the hole exists;
+            // the backpack covers the card (§174.3), so its hole is gone then.
+            var hole = (string)character["mode"] == "single" && !_collapsed && _portraitViewport.HasValue && !_inventoryOpen;
             if (_portraitStage != null && hole != _portraitOnScreen)
             {
                 _portraitOnScreen = hole;
@@ -87,10 +90,12 @@ namespace HexLive.UnityPresentation.UI
 
         private void HideHtml()
         {
-            if (_lastRosterJson == null && _lastCharacterJson == null) return;
+            if (_lastRosterJson == null && _lastCharacterJson == null && _lastInventoryJson == null) return;
             HtmlUi.Hide(HtmlRoster);
             HtmlUi.Hide(HtmlCharacter);
-            _lastRosterJson = _lastCharacterJson = null;
+            HtmlUi.Hide(HtmlInventory);
+            _lastRosterJson = _lastCharacterJson = _lastInventoryJson = null;
+            SetDollOnScreen(false);
             _portraitStage?.ShowInTexture();
             _portraitOnScreen = false;
         }
@@ -100,6 +105,7 @@ namespace HexLive.UnityPresentation.UI
             if (!_html) return;
             HtmlUi.Unhandle(HtmlRoster, OnHtmlCommand);
             HtmlUi.Unhandle(HtmlCharacter, OnHtmlCommand);
+            HtmlUi.Unhandle(HtmlInventory, OnHtmlInventoryCommand);
             HideHtml();
         }
 

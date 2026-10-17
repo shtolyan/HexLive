@@ -59,10 +59,14 @@ internal static class CharacterEndpoints
                     voices = Voices, traits = TraitSet.All.Select(k => k.ToString()).ToArray(),
                     attributes = AttributeSet.All.Select(k => k.ToString()).ToArray(), skills = SkillSet.All.Select(k => k.ToString()).ToArray(),
                     attributeBudget = WorldCreation.DefaultAttributeBudget, skillBudget = PlayerCharacterCreation.DefaultSkillBudget,
-                    // Explicit projection: never serialize a world recipe, roster, resident count or name here.
+                    // Explicit projection: never serialize a world recipe, roster, npc ids or names here.
+                    // §171.10 (Толя, 18.10.2026): the camp's head-count and quota ARE shown, so a
+                    // player knows how many people live where they are about to land.
                     camps = worlds.Host.Read(w => w.FactionHomes.Keys.Where(c => PlayerCharacterCreation.IsAvailableCamp(w, c))
                         .OrderBy(c => (int)c).Select(c => new { id = c.ToString(), nameKey = "lobby.camp",
-                            descriptionKey = (string?)null, hasSpace = PlayerCharacterCreation.HasSpace(w, c) }).ToArray())
+                            descriptionKey = (string?)null, hasSpace = PlayerCharacterCreation.HasSpace(w, c),
+                            residents = PlayerCharacterCreation.Residents(w, c),
+                            capacity = PlayerCharacterCreation.Capacity(w, c) }).ToArray())
                 });
             });
         });

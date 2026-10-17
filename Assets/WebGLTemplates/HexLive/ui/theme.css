@@ -300,6 +300,29 @@
 .hx-pips i { width: 0.375rem; height: 0.75rem; border-radius: 0.125rem; background: var(--hx-raised); }
 .hx-pips i.on { background: var(--hx-leaf); }
 
+/* The same cells as a control: bigger, clickable, − and + at the ends. */
+.hx-pips--edit { align-items: center; gap: 0.375rem; }
+.hx-pips__cells { display: inline-flex; gap: 0.1875rem; padding: 0.1875rem; border-radius: 0.375rem; outline-offset: 2px; }
+.hx-pips--edit i { width: 0.875rem; height: 1.125rem; border-radius: 0.1875rem; cursor: pointer; transition: background-color 80ms ease; }
+.hx-pips--edit i.hint { background: rgb(193 219 141 / 0.4); }
+.hx-pips--edit i.off { background: rgb(34 42 49 / 0.45); cursor: not-allowed; }
+.hx-pips__step {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--hx-stroke);
+  border-radius: 0.375rem;
+  background: var(--hx-raised);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.hx-pips__step:hover:not(:disabled) { background: var(--hx-hover); }
+.hx-pips__step:disabled { opacity: 0.35; cursor: default; }
+
 /* ---- HUD: always-on pills over the world ------------------------------- */
 /* Weather left, time controls centred while there is room; on a narrow
    canvas the centre column slides right instead of overlapping. */
@@ -642,22 +665,9 @@
 .hx-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
 .hx-budget { color: var(--hx-text-dim); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .hx-budget--over { color: var(--hx-warm-red); font-weight: 700; }
-.hx-points { display: grid; grid-template-columns: 8rem minmax(0, 1fr) 1.25rem; align-items: center; gap: 0.625rem; font-size: 0.875rem; cursor: help; }
+.hx-points { display: grid; grid-template-columns: minmax(0, 1fr) auto 1.25rem; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+.hx-points > span { cursor: help; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hx-points b { text-align: right; font-variant-numeric: tabular-nums; }
-.hx-points input[type="range"] {
-  --fill: 50%;
-  appearance: none;
-  -webkit-appearance: none;
-  height: 1.25rem;
-  margin: 0;
-  background: transparent;
-  cursor: pointer;
-}
-.hx-points input[type="range"]::-webkit-slider-runnable-track { height: 0.375rem; border-radius: 999px; background: linear-gradient(to right, var(--hx-leaf) var(--fill), var(--hx-raised) var(--fill)); }
-.hx-points input[type="range"]::-moz-range-track { height: 0.375rem; border-radius: 999px; background: linear-gradient(to right, var(--hx-leaf) var(--fill), var(--hx-raised) var(--fill)); }
-.hx-points input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 1rem; height: 1rem; margin-top: -0.3125rem; border-radius: 50%; background: var(--hx-text); border: 2px solid var(--hx-ink); }
-.hx-points input[type="range"]::-moz-range-thumb { width: 0.875rem; height: 0.875rem; border-radius: 50%; background: var(--hx-text); border: 2px solid var(--hx-ink); }
-
 .hx-pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.375rem; }
 .hx-pair__sep { width: 0.625rem; height: 1px; background: var(--hx-stroke-strong); }
 .hx-chips { display: flex; flex-wrap: wrap; gap: 0.375rem; }
@@ -687,6 +697,10 @@
   cursor: pointer;
 }
 .hx-camp span { color: var(--hx-leaf); font-size: 0.75rem; }
+.hx-camp .hx-camp__people { color: var(--hx-text-dim); font-variant-numeric: tabular-nums; }
+.hx-camp__bar { align-self: stretch; height: 0.25rem; margin: 0.25rem 0 0.125rem; border-radius: 999px; background: var(--hx-raised); overflow: hidden; }
+.hx-camp__bar i { display: block; height: 100%; border-radius: inherit; background: var(--hx-leaf); }
+.hx-camp:disabled .hx-camp__bar i { background: rgb(115 125 133); }
 .hx-camp:disabled { cursor: default; opacity: 0.5; }
 .hx-camp:disabled span { color: var(--hx-text-dim); }
 

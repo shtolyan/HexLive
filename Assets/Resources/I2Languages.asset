@@ -30626,6 +30626,14 @@ MonoBehaviour:
       - 'Попробовать снова'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'creator.campResidents'
+      TermType: 0
+      Description: 
+      Languages:
+      - '{0} of {1} live here'
+      - 'Живут: {0} из {1}'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

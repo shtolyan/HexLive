@@ -62,10 +62,18 @@ public sealed class CharacterCreationTests
         var response = await f.Client.GetAsync(Root + "/options");
         Assert.That(response.Headers.CacheControl!.NoStore, Is.True);
         var options = (await response.Content.ReadFromJsonAsync<JsonElement>());
+        // §171.10 (18.10.2026): a camp shows its head-count and quota — never who lives there.
         foreach (var camp in options.GetProperty("camps").EnumerateArray())
-            Assert.That(camp.EnumerateObject().Select(p => p.Name), Is.EquivalentTo(new[] { "id", "nameKey", "descriptionKey", "hasSpace" }));
+        {
+            Assert.That(camp.EnumerateObject().Select(p => p.Name),
+                Is.EquivalentTo(new[] { "id", "nameKey", "descriptionKey", "hasSpace", "residents", "capacity" }));
+            var faction = Enum.Parse<Faction>(camp.GetProperty("id").GetString()!);
+            var living = f.Worlds.Host.Read(w => w.Entities.Npcs.Values.Count(n => n.Faction == faction));
+            Assert.That(camp.GetProperty("residents").GetInt32(), Is.EqualTo(living));
+            Assert.That(camp.GetProperty("capacity").GetInt32(), Is.GreaterThanOrEqualTo(0));
+        }
         var text = options.GetRawText();
-        Assert.That(text.ToLowerInvariant(), Does.Not.Contain("npcid").And.Not.Contain("residents").And.Not.Contain("characters"));
+        Assert.That(text.ToLowerInvariant(), Does.Not.Contain("npcid").And.Not.Contain("characters"));
         var names = f.Worlds.Host.Read(w => w.Entities.Npcs.Values.Select(n => n.DisplayName).ToArray());
         foreach (var name in names.Where(n => n != "Marta" && n != "Kshishtof" && n != "Molly" && n != "Jana" && n != "Jolly" && n != "Tonny" && n != "Masha" && n != "Rita"))
             Assert.That(text, Does.Not.Contain('"' + name + '"'));

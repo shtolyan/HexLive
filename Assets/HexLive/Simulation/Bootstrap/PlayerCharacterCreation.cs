@@ -44,6 +44,12 @@ public static class PlayerCharacterCreation
         FactionRelations.IsGirlCamp(camp) && world.FactionHomes.ContainsKey(camp) &&
         (world.CreationConfig == null || world.CreationConfig.Camp(camp)?.Enabled == true);
 
+    /// <summary>§171.10: living members of a camp, shown to a player choosing one.</summary>
+    public static int Residents(WorldState world, Faction camp) => PopulationArrivalMath.CampResidents(world, camp);
+
+    /// <summary>§171.10: the camp's living-population quota (0 = closed).</summary>
+    public static int Capacity(WorldState world, Faction camp) => PopulationArrivalMath.CampCapacity(world, camp);
+
     public static bool HasSpace(WorldState world, Faction camp) => !world.Completed && IsAvailableCamp(world, camp) &&
         PopulationArrivalMath.HasRoom(world, camp) &&
         PopulationArrivalMath.TryPickLanding(world, world.FactionHomes[camp], FirstNpcId, 17110, out _);

@@ -14,7 +14,7 @@
 //   options: { sexes: ['female','male'], skins: [id], hair: [{ id, colours: [id] }], eyes: [id],
 //              attributes: [id], skills: [id], traits: [id], pairs: [[a, b]],
 //              attributeBudget, skillBudget,  // in the same 0–10 points as the sliders
-//              camps: [{ id, number, hasSpace }] },
+//              camps: [{ id, number, hasSpace, residents, capacity }] },  // counts: §171.10, 18.10.2026
 //   thumbs: { 'skin:<id>' | 'hair:<id>': url },   // rendered by Unity (LobbyAppearanceThumbnails)
 //   tints: { '<colour id>': '#rrggbb' }, eyeSwatches: { '<eye id>': '#rrggbb' },
 //   preview: 'loading' | 'ready' | 'failed',
@@ -26,7 +26,7 @@
 import { html, useState, useEffect, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { icons } from '../icons.js';
-import { Button } from '../components.js';
+import { Button, Pips } from '../components.js';
 
 const STEPS = ['appearance', 'abilities', 'camp'];
 const LOOKS = ['skin', 'hair', 'colour'];
@@ -90,14 +90,15 @@ function Appearance({ model, set }) {
         </div>`)}`;
 }
 
-function PointSlider({ id, kind, value, onChange }) {
+// The same ten cells as the assignment card, as a control (§174.5).
+function PointSlider({ id, kind, value, left, onChange }) {
+  const label = t(`${kind}.${id}`);
   return html`
-    <label class="hx-points" title=${t(`${kind}.${id}.desc`)}>
-      <span>${t(`${kind}.${id}`)}</span>
-      <input type="range" min="0" max="10" step="1" value=${value} name=${`${kind}-${id}`}
-        style=${{ '--fill': `${value * 10}%` }} onInput=${(e) => onChange(Number(e.currentTarget.value))} />
+    <div class="hx-points">
+      <span title=${t(`${kind}.${id}.desc`)}>${label}</span>
+      <${Pips} value=${value} limit=${value + Math.max(0, left)} label=${label} onChange=${onChange} />
       <b>${value}</b>
-    </label>`;
+    </div>`;
 }
 
 function Budget({ used, total }) {
@@ -123,13 +124,13 @@ function Abilities({ model, set }) {
       <header class="hx-section__head"><h4 class="hx-section__title">${t('creator.attributes')}</h4>
         <${Budget} used=${sum(draft.attributes)} total=${options.attributeBudget} /></header>
       ${options.attributes.map((id) => html`<${PointSlider} key=${id} id=${id.toLowerCase()} kind="attr" value=${draft.attributes[id] ?? 0}
-        onChange=${(v) => set('attributes', { ...draft.attributes, [id]: v })} />`)}
+        left=${options.attributeBudget - sum(draft.attributes)} onChange=${(v) => set('attributes', { ...draft.attributes, [id]: v })} />`)}
     </section>
     <section class="hx-section">
       <header class="hx-section__head"><h4 class="hx-section__title">${t('creator.skills')}</h4>
         <${Budget} used=${sum(draft.skills)} total=${options.skillBudget} /></header>
       ${options.skills.map((id) => html`<${PointSlider} key=${id} id=${id.toLowerCase()} kind="skill" value=${draft.skills[id] ?? 0}
-        onChange=${(v) => set('skills', { ...draft.skills, [id]: v })} />`)}
+        left=${options.skillBudget - sum(draft.skills)} onChange=${(v) => set('skills', { ...draft.skills, [id]: v })} />`)}
     </section>
     <section class="hx-section">
       <h4 class="hx-section__title">${t('creator.traits')}</h4>
@@ -146,6 +147,9 @@ function Camp({ model, set }) {
         <button type="button" class="hx-camp" key=${c.id} disabled=${!c.hasSpace} aria-pressed=${model.draft.camp === c.id}
           onClick=${() => set('camp', c.id)}>
           <b>${t('creator.campNumber', { 0: c.number })}</b>
+          ${c.capacity > 0 && html`
+            <span class="hx-camp__people">${t('creator.campResidents', { 0: c.residents, 1: c.capacity })}</span>
+            <span class="hx-camp__bar" aria-hidden="true"><i style=${{ width: `${Math.min(100, (100 * c.residents) / c.capacity)}%` }}></i></span>`}
           <span>${t(c.hasSpace ? 'creator.campOpen' : 'creator.campFull')}</span>
         </button>`)}
     </div>

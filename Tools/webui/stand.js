@@ -60,7 +60,9 @@ const creatorOptions = (sex) => ({
   traits: ['Abuser', 'Slob', 'Neat', 'Lazy', 'Diligent', 'Sleepyhead', 'Coward', 'Brave'],
   pairs: [['Slob', 'Neat'], ['Lazy', 'Diligent'], ['Coward', 'Brave']],
   attributeBudget: 42, skillBudget: 30, // 4.2 and 3.0 in server units, shown ×10
-  camps: [1, 2, 3, 4, 5, 6].map((n) => ({ id: n === 1 ? 'Colony' : `Colony${n}`, number: n, hasSpace: n !== 3 })),
+  // Head-counts as /character/options now returns them (residents of capacity).
+  camps: [[1, 6], [2, 4], [3, 17], [4, 9], [5, 2], [6, 12]].map(([n, residents]) =>
+    ({ id: n === 1 ? 'Colony' : `Colony${n}`, number: n, residents, capacity: 17, hasSpace: residents < 17 })),
 });
 const creator = {
   touched: false, preview: 'loading', previewRect: null, view: 'body', yaw: 0, thumbs: {}, banner: null, busy: null,

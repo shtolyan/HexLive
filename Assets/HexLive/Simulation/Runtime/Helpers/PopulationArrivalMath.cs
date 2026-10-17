@@ -65,8 +65,22 @@ internal static class PopulationArrivalMath
             return false;
         }
 
-        // §146.3: the girl-camp cap is a PER-CAMP quota — each girl faction
-        // counts against its own copy of it, the Outsiders against theirs.
+        var factionCap = CampCapacity(world, faction);
+        if (factionCap <= 0)
+        {
+            return false;
+        }
+
+        return CampResidents(world, faction) < factionCap;
+    }
+
+    /// <summary>
+    /// The living-population quota of one camp (0 = closed). §146.3: the girl-camp
+    /// cap is a PER-CAMP quota — each girl faction counts against its own copy of
+    /// it, the Outsiders against theirs.
+    /// </summary>
+    public static int CampCapacity(WorldState world, Faction faction)
+    {
         var factionCap = FactionRelations.IsColonyKind(faction)
             ? MaxCampNpcsFor(world.Mode)
             : WorldBalance.MaxOutsiderNpcs;
@@ -77,11 +91,13 @@ internal static class PopulationArrivalMath
             if (faction == Faction.Outsiders && world.Mode == Bootstrap.GameMode.Islands)
                 factionCap = world.CreationConfig.PopulationLimit;
         }
-        if (factionCap <= 0)
-        {
-            return false;
-        }
 
+        return factionCap;
+    }
+
+    /// <summary>Living members of a camp — what its quota is counted against.</summary>
+    public static int CampResidents(WorldState world, Faction faction)
+    {
         var count = 0;
         foreach (var npc in world.Entities.Npcs.Values)
         {
@@ -94,7 +110,7 @@ internal static class PopulationArrivalMath
             }
         }
 
-        return count < factionCap;
+        return count;
     }
 
     public static bool TryPickLanding(

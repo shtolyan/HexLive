@@ -74,10 +74,42 @@ export function Slider({ label, value, onChange, name }) {
     </label>`;
 }
 
-/** A 0–10 score as ten pips — character attributes (§76) read at a glance. */
-export function Pips({ value, max = 10 }) {
+/**
+ * A 0–10 score as ten cells — one element for reading and for choosing.
+ * Without onChange it only shows (the assignment card). With onChange it is a
+ * control: a click on a cell sets the value to that cell, − and + step by one,
+ * arrow keys too; cells past `limit` (what the budget still allows) are dim and
+ * cannot be taken.
+ */
+export function Pips({ value, max = 10, onChange, limit = max, label }) {
   const filled = Math.max(0, Math.min(max, Math.round(value)));
-  return html`<span class="hx-pips" aria-hidden="true">
-    ${Array.from({ length: max }, (_, i) => html`<i class=${i < filled ? 'on' : ''}></i>`)}
-  </span>`;
+  const [hover, setHover] = useState(-1);
+  if (!onChange) {
+    return html`<span class="hx-pips" aria-hidden="true">
+      ${Array.from({ length: max }, (_, i) => html`<i class=${i < filled ? 'on' : ''}></i>`)}
+    </span>`;
+  }
+  const cap = Math.max(filled, Math.min(max, limit));
+  const set = (v) => { const next = Math.max(0, Math.min(cap, v)); if (next !== filled) onChange(next); };
+  const key = (e) => {
+    const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+    if (step) { e.preventDefault(); set(filled + step); }
+    if (e.key === 'Home') { e.preventDefault(); set(0); }
+    if (e.key === 'End') { e.preventDefault(); set(cap); }
+  };
+  return html`
+    <span class="hx-pips hx-pips--edit">
+      <button type="button" class="hx-pips__step" tabindex="-1" aria-hidden="true" disabled=${filled <= 0}
+        onClick=${() => set(filled - 1)}>−</button>
+      <span class="hx-pips__cells" role="slider" tabindex="0" aria-label=${label} aria-valuemin="0"
+        aria-valuemax=${max} aria-valuenow=${filled} onKeyDown=${key} onPointerLeave=${() => setHover(-1)}>
+        ${Array.from({ length: max }, (_, i) => {
+          const state = i < filled ? 'on' : hover >= 0 && i <= hover && i < cap ? 'hint' : i >= cap ? 'off' : '';
+          return html`<i class=${state} onPointerEnter=${() => setHover(i)}
+            onClick=${() => i < cap && set(i + 1 === filled ? i : i + 1)}></i>`;
+        })}
+      </span>
+      <button type="button" class="hx-pips__step" tabindex="-1" aria-hidden="true" disabled=${filled >= cap}
+        onClick=${() => set(filled + 1)}>+</button>
+    </span>`;
 }

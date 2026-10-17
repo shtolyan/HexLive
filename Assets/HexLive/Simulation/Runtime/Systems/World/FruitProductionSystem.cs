@@ -258,6 +258,13 @@ public sealed class FruitProductionSystem : ISimulationSystem
                 }
 
                 var approaches = InteractionReach.CountApproaches(world, junctionId);
+                // A locally free node can still have no legal pickup position
+                // (for example the sealed centre of a legacy three-palm hex).
+                // Wait for the next interval instead of producing lost food.
+                if (approaches == 0)
+                {
+                    continue;
+                }
                 if (approaches > bestApproaches)
                 {
                     bestApproaches = approaches;
@@ -271,8 +278,7 @@ public sealed class FruitProductionSystem : ISimulationSystem
             }
         }
 
-        // Every candidate walled in (or none at all): fall back to the best seen
-        // rather than skipping the drop — a hard-to-reach nut still beats none.
+        // No legal pickup approach or no free candidate: retry next interval.
         return best is null ? (producer.Tile, null) : (bestTile, best);
     }
 

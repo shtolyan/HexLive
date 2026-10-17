@@ -191,11 +191,11 @@ public static class HexLiveWebGLPlayerBuild
             property.Value = value;
             property.HasValue = true;
         }
-        // 4 × 2048 ≈ 186 мс при 44.1 кГц: в вебе FMOD подкачивает микшер с
-        // главного потока, и кадр дольше буфера (2 × 2048 = 93 мс) давал
-        // «дребезг» (жалоба 10.10.2026). Задержка эффектов терпима.
-        Set("DSPBufferLength", 2048);
-        Set("DSPBufferCount", 4);
+        // #483: player verified 4096×4 reduces/removes crackle on PC Chrome.
+        // Nominal capacity is ~341 ms at 48 kHz; this trades effect latency for
+        // headroom, but cannot cover arbitrary main-thread stalls.
+        Set("DSPBufferLength", HexLive.UnityPresentation.Audio.WebAudioTuning.DefaultBufferLength);
+        Set("DSPBufferCount", HexLive.UnityPresentation.Audio.WebAudioTuning.DefaultBufferCount);
 
         // §168.6: обработчик старта FMOD для браузера (частота микшера под
         // устройство, полевые переключатели из URL) — HexLive WebAudioTuning.
@@ -212,7 +212,8 @@ public static class HexLiveWebGLPlayerBuild
         handler.GetType().GetField("HasValue", flags)!.SetValue(handler, true);
         EditorUtility.SetDirty(settings);
         AssetDatabase.SaveAssets();
-        Debug.Log("[WebGLBuild] FMOD WebGL DSP buffer: 4 x 2048, callback WebAudioTuning");
+        Debug.Log($"[WebGLBuild] FMOD WebGL DSP buffer: {platform.DSPBufferCount} x " +
+                  $"{platform.DSPBufferLength}, callback WebAudioTuning");
     }
 
     /// <summary>
@@ -444,7 +445,7 @@ public static class HexLiveWebGLPlayerBuild
 /// <summary>
 /// §168.10: WebGL-плеер собирается только через <see cref="HexLiveWebGLPlayerBuild.Build"/>.
 /// Настройки FMOD лежат вне git (Assets/Plugins/FMOD в .gitignore), а
-/// буфер 4×2048, обработчик WebAudioTuning, wasm2023, исключения без стека,
+/// буфер 4×4096, обработчик WebAudioTuning, wasm2023, исключения без стека,
 /// RuntimeSpeed, манифест звука и devicePixelRatio 1 ставит только этот
 /// метод — на каждой сборке. Сборка из окна Build Settings или из чужого
 /// скрипта собралась бы «успешно» и уехала бы в браузер без всего этого,

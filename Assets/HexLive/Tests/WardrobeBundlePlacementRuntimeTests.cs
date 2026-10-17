@@ -169,7 +169,9 @@ public sealed class WardrobeBundlePlacementRuntimeTests
     void Verify(GameObject prefab)
     {
         Assert.That(WardrobeAssembly.TryGetShoeShelfSurfaceLocal(out var top), Is.True);
-        Assert.That(top, Is.EqualTo(.265f).Within(.00001f), "Measured shipped board top");
+        // The approved construction artwork lowers this shelf by .055 wu
+        // (Docs/ConstructionStagesAuthoring.md); source and bundle must agree.
+        Assert.That(top, Is.EqualTo(.210f).Within(.00001f), "Approved construction shelf surface");
         foreach (var actor in new[] { "Marta", "Kshishtof" })
         {
             string id = actor == "Marta" ? "clothing.wrapboots_primal" : "clothing.wrapboots_primal_male";

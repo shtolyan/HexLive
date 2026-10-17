@@ -70,6 +70,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Construction content verification failed' }
 Не нужен `build-all`: одежда, люди и звук этой задачей не менялись.
 Семь архитектурных owners имеют тип `building`, семь мебельных — `object`;
 важен simulation id (`bed.basic`), не имя FBX (`bed_basic_final_native`).
+Discovery также читает весь construction-манифест: плоская крыша и другие
+визуальные варианты не обязаны иметь отдельное simulation definition.
+Проверка без сборки: CLI `-executeMethod AtomicContentBatchBuild.ValidateConstructionRecipes`;
+она требует, чтобы каждый owner разрешался именно в FBX из манифеста.
 
 Atomic builder автоматически прогоняет construction gate перед упаковкой,
 запрещает подмену main старым prefab и кладёт TextAsset `construction` в тот же
@@ -101,6 +105,33 @@ Atomic builder автоматически прогоняет construction gate �
 этого ПК, не скопированный с Mac. macOS Player — только на Mac через
 `Tools/build_release.py` и обязательное подписание из `Tools/MACOS_SIGNING.md`.
 WebGL — только по собственной инструкции, не обычным Build Settings.
+
+Строго локальная Windows-проверка без серверов и публикации:
+
+```powershell
+python Tools/build_release_windows.py --local-only --bug-snapshot <offline-reports-or-build-manifest.json> --dry-run
+python Tools/build_release_windows.py --local-only --bug-snapshot <offline-reports-or-build-manifest.json> --output-root Build/LocalPlayers
+```
+
+Snapshot обязателен: `reports` array (либо JSON с полем `reports`) или предыдущий
+`build-manifest.json` с полным разделом `bugs`. Это исторический локальный срез,
+не заявление о текущем статусе Flashback; отчёт сохраняет источник, дату и hash.
+Режим не читает ключи/сеть, не резервирует следующую версию, сохраняет pending
+release-файлы, не штампует баги, не меняет `.last-success.json`/`latest` и не
+вызывает публикацию. Все обычные Unity content/size/graphics gates и упаковка
+updater сохраняются; результат — отдельный каталог `local-v<version>-<sha>-<utc>`.
+Изменение исходников, версии, snapshot или release reservation во время сборки
+отвергает результат. Для обычного publisher offline snapshot запрещён.
+
+Для Windows обязателен matching support module выбранного backend. При IL2CPP
+должен существовать `Editor/Data/PlaybackEngines/WindowsStandaloneSupport/Variations/il2cpp/Managed/UnityEngine.CoreModule.dll`.
+Без него Unity может подставить checked Editor DLL при unchecked TypeDB и выдать
+Collections `NativeArray.ReadOnly`/`safety` CS7036. Builder проверяет runtime
+references до компиляции. Не чинить это через PackageCache, смену backend или
+принудительный safety define: такой define без matching DLL ломает CodeGen.
+`StrictMode`, construction gate, принудительная пересборка и проверки payload
+остаются обязательными. Быстрая проверка без content build/publish:
+`-executeMethod AtomicContentBatchBuild.ValidateWindowsScriptCompilation -content-compile-output <new-empty-directory>`.
 
 Новый клиент увидит новый арт только после успешной публикации соответствующих
 atomic revisions через используемый им Asset API. Пересборка одного Player не

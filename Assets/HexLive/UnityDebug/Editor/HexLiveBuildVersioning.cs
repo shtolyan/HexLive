@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using HexLive.UnityPresentation.UI;
 using UnityEditor;
 using UnityEditor.Build;
@@ -35,8 +36,37 @@ namespace HexLive.UnityDebug.Editor
         /// </summary>
         internal static bool SuppressForCurrentProcess { get; set; }
 
+        private static string localVersion, localSnapshotPath, localSnapshotSha;
+
+        // Canonical Windows local build: retain version/snapshot gates without
+        // consuming a release reservation or accessing the live bug store.
+        internal static void ConfigureLocalBuild(string version, string snapshotPath, string sha)
+        {
+            _ = NextPatch(version); // same numeric version validation as releases
+            localVersion = version;
+            localSnapshotPath = snapshotPath;
+            localSnapshotSha = sha;
+            ValidateLocalBuild();
+        }
+
+        private static bool ValidateLocalBuild()
+        {
+            if (localVersion == null) return false;
+            using var hash = SHA256.Create();
+            var actual = BitConverter.ToString(hash.ComputeHash(File.ReadAllBytes(localSnapshotPath)))
+                .Replace("-", "").ToLowerInvariant();
+            if (PlayerSettings.bundleVersion != localVersion || actual != localSnapshotSha)
+                throw new BuildFailedException("Local build version or offline bug snapshot changed during the build.");
+            return true;
+        }
+
         public void OnPreprocessBuild(BuildReport report)
         {
+            if (ValidateLocalBuild())
+            {
+                Debug.Log("HexLive local build: version and offline snapshot verified; no release reservation or Flashback writes.");
+                return;
+            }
             if (SuppressForCurrentProcess)
             {
                 Debug.Log("HexLive build versioning suppressed for a scene-specific sandbox build.");
@@ -84,6 +114,11 @@ namespace HexLive.UnityDebug.Editor
         /// </summary>
         internal static void CommitSuccessfulBuild()
         {
+            if (ValidateLocalBuild())
+            {
+                Debug.Log("HexLive local build verified; release finalization and bug stamping are disabled.");
+                return;
+            }
             var snapshot = ReadPendingBugSnapshot();
 
             var pending = ReadPendingVersion();

@@ -20,6 +20,40 @@ using UnityEngine;
 /// </summary>
 public static class AtomicContentBatchBuild
 {
+    private static void ValidateWindowsReferences(BuildTarget target)
+    {
+        if (target != BuildTarget.StandaloneWindows64) return;
+        var backend = PlayerSettings.GetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Standalone);
+        var variant = backend == ScriptingImplementation.IL2CPP ? "il2cpp" : "mono";
+        var reference = Path.Combine(EditorApplication.applicationContentsPath, "PlaybackEngines",
+            "WindowsStandaloneSupport", "Variations", variant, "Managed", "UnityEngine.CoreModule.dll");
+        if (!File.Exists(reference))
+            throw new UnityEditor.Build.BuildFailedException(
+                $"Missing Windows {variant} player references for Unity {Application.unityVersion}: {reference}. " +
+                "Install the matching official Windows support module. Do not fall back to Editor DLLs or inject safety defines.");
+        Debug.Log("[AtomicContent] Windows player reference: " + reference);
+    }
+
+    // Fast toolchain verification without building/publishing content. Uses
+    // the same unchecked compilation mode as the native bundle TypeDB path.
+    public static void ValidateWindowsScriptCompilation()
+    {
+        ValidateWindowsReferences(BuildTarget.StandaloneWindows64);
+        var output = Path.GetFullPath(Required(Environment.GetCommandLineArgs(), "-content-compile-output"));
+        if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
+            throw new InvalidOperationException("Compile proof output must be new: " + output);
+        Directory.CreateDirectory(output);
+        var result = UnityEditor.Build.Player.PlayerBuildInterface.CompilePlayerScripts(
+            new UnityEditor.Build.Player.ScriptCompilationSettings
+            {
+                group = BuildTargetGroup.Standalone,
+                target = BuildTarget.StandaloneWindows64,
+                options = UnityEditor.Build.Player.ScriptCompilationOptions.None
+            }, output);
+        if (result.assemblies == null || !result.assemblies.Any(path => Path.GetFileName(path) == "Unity.Collections.dll"))
+            throw new UnityEditor.Build.BuildFailedException("Windows script compilation produced no Collections assembly.");
+        Debug.Log($"[AtomicContent] Windows script compilation PASS: {result.assemblies.Count} assemblies, no extra defines.");
+    }
     public const string RuntimeProfile = "unity6000-content1";
     private const string PayloadName = "payload.bundle";
     private const string WearDefinitions =
@@ -615,6 +649,10 @@ public static class AtomicContentBatchBuild
             assetNames = assetNames.ToArray(),
             addressableNames = entryNames.ToArray(),
         };
+        // A missing IL2CPP module makes Unity fall back to incompatible
+        // Editor reference DLLs (NativeList/ReadOnly CS7036). Require the real
+        // player references; never patch Packages or inject compiler defines.
+        ValidateWindowsReferences(target);
         var manifest = BuildPipeline.BuildAssetBundles(
             output, new[] { build },
             BuildAssetBundleOptions.ChunkBasedCompression |
@@ -817,6 +855,11 @@ public static class AtomicContentBatchBuild
         // for campfire.spot, so it is absent from PrototypeContentCatalog but
         // is still an independent logical ContentObject and must be published.
         ids.UnionWith(BuildCatalogDefinition.All.Select(entry => entry.DefinitionId));
+        // Construction art includes presentation variants (for example a flat
+        // roof) without a standalone simulation definition. The stage manifest
+        // owns these IDs too; omitting them leaves valid exported FBXs unbuildable.
+        var construction = JObject.Parse(File.ReadAllText(HexLive.Editor.ConstructionStageBuildGate.ManifestPath));
+        ids.UnionWith(construction["definitions"].Select(entry => (string)entry["id"]));
         ids.UnionWith(worldConfigs.Keys);
         ids.UnionWith(gearConfigs.Keys);
         foreach (var id in ids.OrderBy(value => value, StringComparer.Ordinal))
@@ -861,6 +904,28 @@ public static class AtomicContentBatchBuild
                 return ResolveOwnerIcon(type, id, inputs);
             });
         }
+    }
+
+    // Read-only authoring preflight: every stage owner must resolve to its
+    // approved native FBX through the same discovery used by individual builds.
+    public static void ValidateConstructionRecipes()
+    {
+        try
+        {
+            var recipes = DiscoverAllRecipes();
+            var definitions = JObject.Parse(File.ReadAllText(
+                HexLive.Editor.ConstructionStageBuildGate.ManifestPath))["definitions"];
+            foreach (var definition in definitions)
+            {
+                var id = (string)definition["id"];
+                var type = ObjectType(id);
+                var recipe = recipes.SingleOrDefault(value => value.Type == type && value.Id == id);
+                if (recipe == null || recipe.Inputs().Main != (string)definition["export"])
+                    throw new InvalidOperationException("Construction owner does not resolve to approved FBX: " + type + "/" + id);
+            }
+            Debug.Log($"[AtomicContent] Construction recipes PASS: {definitions.Count()} owners resolve to approved FBXs.");
+        }
+        finally { CleanupGeneratedMetadata(); }
     }
 
     private static void DiscoverMobRecipes(Action<string, string, Func<BuildInputs>> add)

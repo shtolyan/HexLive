@@ -84,6 +84,10 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_RELEASES,
         help=f"release directory (default: {DEFAULT_RELEASES})",
     )
+    parser.add_argument("--local-only", action="store_true",
+                        help="build a local artifact at the current version; no network, bug stamp, release state or latest changes")
+    parser.add_argument("--bug-snapshot", type=Path,
+                        help="required with --local-only: offline reports JSON or a previous build-manifest.json (age/provenance recorded)")
     return parser.parse_args()
 
 
@@ -387,6 +391,23 @@ def find_unity(explicit: Path | None) -> Path:
 # prefs are matched by prefix, not by exact name.
 
 
+def validate_windows_player_references(unity: Path) -> None:
+    settings = PROJECT_SETTINGS.read_text(encoding="utf-8")
+    block = re.search(r"(?m)^  scriptingBackend:\r?\n((?:    [^\r\n]*\r?\n)*)", settings)
+    backend = re.search(r"(?m)^    Standalone: ([01])\s*$", block[1]) if block else None
+    if not backend:
+        raise RuntimeError("Cannot determine Standalone scripting backend; refusing Editor-reference fallback")
+    variant = "il2cpp" if backend[1] == "1" else "mono"
+    reference = (unity.parent / "Data/PlaybackEngines/WindowsStandaloneSupport/Variations" /
+                 variant / "Managed/UnityEngine.CoreModule.dll")
+    if not reference.is_file():
+        raise RuntimeError(f"Missing Windows {variant} player references for Unity {unity_version()}: {reference}. "
+                           "Install the matching official support module; do not inject safety defines or change backend.")
+    with reference.open("rb") as stream:
+        if stream.read(2) != b"MZ":
+            raise RuntimeError(f"Invalid Windows player reference assembly: {reference}")
+
+
 def read_auto_refresh_values() -> dict[str, int]:
     import winreg
 
@@ -568,6 +589,7 @@ def write_reports(
     bugs_at_start: dict[str, Any],
     bugs_at_end: dict[str, Any],
     unity_summary: dict[str, Any],
+    *, local_only: bool = False, snapshot_info: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     included = active_reports(bugs_at_start, {"ready_for_test"})
     included_ids = {report.get("id") for report in included}
@@ -601,6 +623,9 @@ def write_reports(
             "bundlesBesidePlayer": False,
         },
     }
+    if local_only:
+        manifest.update(buildMode="local-only", published=False, bugSnapshot=snapshot_info)
+        manifest["bugs"]["stamped"] = False
     (staging / "build-manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=4) + "\n",
         encoding="utf-8",
@@ -646,8 +671,11 @@ def write_reports(
         "",
         *markdown_bug_list(included),
         "",
-        "Этот список — срез серверного баг-трекера на старте сборки; успешный post-build "
-        f"ставит этим отчётам `readyForTestInVersion: {version}`.",
+        ("ЛОКАЛЬНЫЙ АРТЕФАКТ: исторический offline snapshot, не подтверждение актуального статуса багов. "
+         "Flashback не вызывался, версии багов не штамповались, release/latest не менялись. "
+         f"Источник: {snapshot_info}" if local_only else
+         "Этот список — срез серверного баг-трекера на старте сборки; успешный post-build "
+         f"ставит этим отчётам `readyForTestInVersion: {version}`."),
         "",
         "### Стали готовы после старта и не вошли",
         "",
@@ -746,8 +774,114 @@ def tail_log(log_path: Path) -> None:
         print("\n".join(tail), file=sys.stderr)
 
 
+def read_local_snapshot(path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    raw = path.read_bytes()
+    value = json.loads(raw.decode("utf-8-sig"))
+    if isinstance(value, dict) and "bugs" in value:
+        try:
+            bugs = value["bugs"]
+            keys = ("readyForTestInThisBuild", "readyAfterBuildStartedNotIncluded", "notReady")
+            if not all(isinstance(bugs[key], list) for key in keys):
+                raise TypeError()
+            reports = [r for key in keys for r in bugs[key]]
+        except (KeyError, TypeError):
+            raise RuntimeError("Incomplete offline build-manifest bugs section") from None
+    else:
+        reports = value.get("reports") if isinstance(value, dict) else value
+    if not isinstance(reports, list):
+        raise RuntimeError("Offline snapshot must contain a reports array or a complete build-manifest bugs section")
+    seen: set[int] = set()
+    for row in reports:
+        if (not isinstance(row, dict) or type(row.get("id")) is not int or row["id"] <= 0
+                or row["id"] in seen or row.get("status") not in
+                {"created", "open", "in_progress", "ready_for_test", "fixed", "rework"}):
+            raise RuntimeError("Offline bug snapshot contains an invalid/duplicate report")
+        seen.add(row["id"])
+    return {"reports": reports}, {
+        "path": str(path.resolve()), "sha256": hashlib.sha256(raw).hexdigest(),
+        "capturedAtUtc": value.get("capturedAtUtc", value.get("builtAtUtc")) if isinstance(value, dict) else None,
+        "historicalOfflineSnapshot": True,
+    }
+
+
+def release_reservation_state() -> dict[str, str | None]:
+    paths = (PENDING_VERSION, ROOT / "Library/HexLivePendingBugBuildSnapshot.json")
+    return {str(path): hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None for path in paths}
+
+
+def local_source_state() -> dict[str, Any]:
+    # A local build may include authorized dirty files in a shared checkout.
+    # A path/status list alone is not a fingerprint of their actual contents.
+    untracked = git("ls-files", "--others", "--exclude-standard", "-z").split("\0")
+    return {"commit": git("rev-parse", "HEAD"),
+            "diffSha256": hashlib.sha256(git("diff", "--binary", "HEAD").encode("utf-8")).hexdigest(),
+            "untracked": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+                          for name in untracked if name and (ROOT / name).is_file()}}
+
+
+def build_local(args: argparse.Namespace) -> int:
+    if args.bug_snapshot is None:
+        raise RuntimeError("--local-only requires --bug-snapshot; no network/credential fallback is permitted")
+    snapshot, info = read_local_snapshot(args.bug_snapshot.expanduser().resolve())
+    version = read_current_version()  # do not consume/reuse a pending release reservation
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise RuntimeError("Invalid local Player version")
+    git_info = collect_git(None)
+    source_state = local_source_state()
+    git_info["localSourceState"] = source_state
+    git_info["sourceFingerprint"] = hashlib.sha256(json.dumps(source_state, sort_keys=True).encode("utf-8")).hexdigest()
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    output_root = args.output_root.expanduser().resolve()
+    if output_root == DEFAULT_RELEASES.resolve():
+        output_root = ROOT / "Build/LocalPlayers"
+    output = output_root / f"local-v{version}-{git_info['commit'][:9]}-{stamp}"
+    print_plan(version, "локальная версия, без reservation/stamp", "release" if args.release else "development",
+               output, git_info, snapshot)
+    print(f"LOCAL ONLY: offline snapshot {info}; no network, publication, release-state or latest writes.", flush=True)
+    if args.dry_run:
+        print("DRY RUN: Unity не запускалась, версия и файлы не изменены.")
+        return 0
+    require_free_unity_lock()
+    reservation = release_reservation_state()
+    unity = find_unity(args.unity)
+    validate_windows_player_references(unity)
+    output.mkdir(parents=True, exist_ok=False)
+    summary_path = output / "unity-summary.json"
+    artifact = output / "HexLive/HexLive.exe"
+    arguments = ["-executeMethod", PLAYER_METHOD, "-hexlive-build-output", str(artifact),
+                 "-hexlive-build-summary", str(summary_path), "-hexlive-local-only",
+                 "-hexlive-local-version", version, "-hexlive-local-bug-snapshot", info["path"],
+                 "-hexlive-local-bug-snapshot-sha256", info["sha256"]]
+    if args.release:
+        arguments.append("-hexlive-release")
+    with temporary_unity_auto_refresh():
+        code = run_unity(unity, arguments, output / "unity-build.log", "Local Player")
+    if reservation != release_reservation_state() or read_current_version() != version:
+        raise RuntimeError("Local build changed release reservation/version; artifact is not accepted")
+    if source_state != local_source_state():
+        raise RuntimeError("Source inputs changed during local build; artifact is not accepted")
+    if code or not artifact.is_file() or not summary_path.is_file():
+        tail_log(output / "unity-build.log")
+        return code or 1
+    summary = read_json(summary_path)
+    if summary.get("result") != "Succeeded" or summary.get("version") != version:
+        raise RuntimeError("Local Player summary failed result/version validation")
+    if info["sha256"] != hashlib.sha256(Path(info["path"]).read_bytes()).hexdigest():
+        raise RuntimeError("Offline snapshot changed during build")
+    subprocess.run([sys.executable, str(ROOT / "Tools/updates/package_helper.py"), str(artifact.parent),
+                    "--platform", "windows", "--architecture", "x64"], check=True)
+    write_reports(output, output, version, "release" if args.release else "development", git_info,
+                  snapshot, snapshot, summary, local_only=True, snapshot_info=info)
+    print(f"Локальный Player готов: {artifact}\nОтчёт: {output / 'BUILD_REPORT.md'}", flush=True)
+    return 0
+
+
 def main() -> int:
     args = parse_args()
+    if args.local_only:
+        return build_local(args)
+    if args.bug_snapshot is not None:
+        raise RuntimeError("--bug-snapshot is only valid with --local-only; publisher requires a fresh live snapshot")
     configure_bug_token()
     releases = args.output_root.expanduser().resolve()
     version, version_reason = planned_version()
@@ -770,6 +904,7 @@ def main() -> int:
         raise RuntimeError(f"Release directory already exists; refusing to overwrite: {final_dir}")
 
     unity = find_unity(args.unity)
+    validate_windows_player_references(unity)
     releases.mkdir(parents=True, exist_ok=True)
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     staging = releases / f"staging-v{version}-{stamp}-{os.getpid()}"

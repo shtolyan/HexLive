@@ -168,6 +168,17 @@ launched with the matching `-buildTarget`.
 
 The Windows script differs where the platform forces it:
 
+For a strictly local Windows artifact use `--local-only --bug-snapshot <file>`
+(`--dry-run` first). The snapshot is an offline reports JSON or a previous
+build-manifest, with its age and hash recorded; it is not a current tracker
+status claim. This mode keeps all Player/content/size/graphics gates and updater
+packaging but uses the current version, preserves release reservations, never
+reads credentials/network, stamps Flashback, publishes, or changes latest and
+last-success. Outputs live under `Build/LocalPlayers/local-v<version>-<sha>-<utc>`
+unless an explicit output root is supplied. Source/version/snapshot changes
+during a build reject the artifact. Ordinary publication still requires the
+live snapshot and release finalization. See `Docs/ConstructionBuildHandoff.md`.
+
 - It is run on Windows against `StandaloneWindows64`; do not launch it from
   macOS and do not switch a shared checkout back and forth merely to obtain a
   Player. Platform content is a separate `Tools/content.py build[-all]` job and

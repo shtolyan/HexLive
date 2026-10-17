@@ -93,6 +93,15 @@ namespace HexLive.UnityDebug.Editor
                 var outputPath = Path.GetFullPath(RequireArgument(OutputArgument));
                 var summaryPath = Path.GetFullPath(RequireArgument(SummaryArgument));
                 var development = !HasArgument(ReleaseArgument);
+                if (HasArgument("-hexlive-local-only"))
+                {
+                    if (target != BuildTarget.StandaloneWindows64)
+                        throw new InvalidOperationException("Local-only mode is supported by the Windows builder.");
+                    HexLiveBuildVersioning.ConfigureLocalBuild(
+                        RequireArgument("-hexlive-local-version"),
+                        RequireArgument("-hexlive-local-bug-snapshot"),
+                        RequireArgument("-hexlive-local-bug-snapshot-sha256"));
+                }
 
                 if (EditorUserBuildSettings.activeBuildTarget != target)
                 {
@@ -427,6 +436,11 @@ namespace HexLive.UnityDebug.Editor
                 "Assets/Resources/HexLive/DebugPanelSettings.asset",
                 "Assets/Resources/HexLive/AudioSettings.uss",
                 "Assets/Resources/HexLive/PlayerAssignmentDialog.uss",
+                // Stable updater UI and the runtime iris recolour operation
+                // ship with their C# controllers, independently of game art.
+                "Assets/Resources/HexLive/Updates/ClientUpdatePanel.uss",
+                "Assets/Resources/HexLive/Updates/ClientUpdatePanel.uxml",
+                "Assets/Resources/HexLive/PeopleEyeTintBlit.shader",
                 // Spec 20.16 (r3): вода — часть каждого ПЕРВОГО кадра острова
                 // и обязана рендериться до готовности Asset API, ровно как UI.
                 // Бандловая доставка воды уже отзывалась двумя багами: ленивый
@@ -445,6 +459,25 @@ namespace HexLive.UnityDebug.Editor
                 "Assets/Resources/HexLive/UI/mode_huge_island.png",
                 "Assets/Resources/HexLive/UI/mode_maniac.png"
             };
+
+        // CLI regression check for the exact bootstrap exceptions. In
+        // particular, allowing the updater must not allow its whole directory.
+        public static void ValidateBootstrapResourcePolicy()
+        {
+            foreach (var path in new[] {
+                "Assets/Resources/HexLive/Updates/ClientUpdatePanel.uss",
+                "Assets/Resources/HexLive/Updates/ClientUpdatePanel.uxml",
+                "Assets/Resources/HexLive/PeopleEyeTintBlit.shader" })
+                if (IsForbiddenPlayerContent(path)) throw new InvalidOperationException("Required bootstrap rejected: " + path);
+            foreach (var path in new[] {
+                "Assets/Resources/HexLive/Updates/unexpected.prefab",
+                "Assets/Resources/HexLive/PeopleUnexpected.shader",
+                "Assets/HexLiveContent/People/Materials/skin.mat",
+                "Assets/StreamingAssets/unexpected.bundle" })
+                if (!IsForbiddenPlayerContent(path)) throw new InvalidOperationException("Game content allowed: " + path);
+            ValidateNoForcedPlayerContent();
+            Debug.Log("[BuildGate] Bootstrap resource policy PASS: exact stable files allowed; game content rejected.");
+        }
 
         private static int PackedEntryCount(BuildReport report)
         {

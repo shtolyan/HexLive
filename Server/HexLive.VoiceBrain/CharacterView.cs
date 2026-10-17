@@ -63,6 +63,8 @@ public static class CharacterView
         if (d.TryGetProperty("inOwnCamp", out var camp) && camp.ValueKind is JsonValueKind.True or JsonValueKind.False)
             sb.Append("В своём лагере: ").Append(camp.GetBoolean() ? "да" : "нет").Append('\n');
         if (d.TryGetProperty("campStock", out var stock)) sb.Append("Запасы лагеря: ").Append(stock.GetRawText()).Append('\n');
+        AppendCamps(sb, d);
+        AppendKnownPeople(sb, d);
         if (d.TryGetProperty("execution", out var exec)) sb.Append("Текущее выполнение: ").Append(exec.GetRawText()).Append('\n');
         if (d.TryGetProperty("inventoryItems", out var inv) && inv.ValueKind == JsonValueKind.Array)
         {
@@ -83,7 +85,11 @@ public static class CharacterView
                   .Append(" дистанция=").Append(n.TryGetProperty("distance", out var dist) ? dist.GetDouble().ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "?");
                 foreach (var flag in new[] { "hostile", "unconscious", "dying", "sameCamp" })
                     if (n.TryGetProperty(flag, out var f) && f.ValueKind == JsonValueKind.True) sb.Append(' ').Append(flag);
+                if (CampLabel(Text(n, "faction")) is { } campLabel) sb.Append(' ').Append(campLabel);
                 if (n.TryGetProperty("aidKind", out var aid) && aid.GetString() is { Length: > 0 } a && a != "None") sb.Append(" нужна помощь=").Append(a);
+                // §171.25: the server always sent her side of the bond; the projection used to drop it.
+                if (n.TryGetProperty("observerRelationship", out var rel) && Relation(rel) is { Length: > 0 } words)
+                    sb.Append(" отношение: ").Append(words);
                 sb.Append('\n');
             }
         }
@@ -133,6 +139,104 @@ public static class CharacterView
         sb.Append("Память и архив не являются текущим зрением. Нет предмета в коротком списке — уточни inspect_surroundings.\n");
         return sb.ToString();
     }
+
+    // §171.25: common knowledge about the island's camps. Never residents.
+    private static void AppendCamps(StringBuilder sb, JsonElement d)
+    {
+        if (!d.TryGetProperty("camps", out var camps) || camps.ValueKind != JsonValueKind.Array || camps.GetArrayLength() == 0) return;
+        sb.Append("Лагеря острова (общеизвестно; кто живёт в чужих лагерях, знаешь только по встречам):\n");
+        foreach (var c in camps.EnumerateArray())
+        {
+            sb.Append("- Лагерь ").Append(Number(c, "number")).Append(" — ");
+            var here = Flag(c, "here");
+            if (Flag(c, "own")) sb.Append(here ? "твой, ты сейчас в нём" : "твой");
+            if (!here)
+            {
+                if (Flag(c, "own")) sb.Append(", ");
+                sb.Append(DirectionWords(Text(c, "direction"))).Append(", ").Append(DistanceWords(Number(c, "distanceTiles")));
+            }
+            if (!Flag(c, "own"))
+            {
+                sb.Append(Text(c, "stance") == "hostile" ? "; враждует с вашим лагерем" : "; соседи, не враги");
+                if (here) sb.Append("; ты сейчас в нём");
+                else sb.Append(Flag(c, "visited") ? "; бывать там уже доводилось" : "; бывать там не доводилось");
+            }
+            sb.Append('\n');
+        }
+    }
+
+    // §171.25: personal experience — people she has seen or dealt with.
+    private static void AppendKnownPeople(StringBuilder sb, JsonElement d)
+    {
+        if (!d.TryGetProperty("knownPeople", out var people) || people.ValueKind != JsonValueKind.Array) return;
+        sb.Append("Знакомые люди (личный опыт; где они сейчас и живы ли, знаешь, только если видишь):\n");
+        if (people.GetArrayLength() == 0) sb.Append("- пока никого\n");
+        foreach (var p in people.EnumerateArray())
+        {
+            var name = p.TryGetProperty("names", out var names) && names.ValueKind == JsonValueKind.Object &&
+                names.TryGetProperty("ru", out var ru) && ru.GetString() is { Length: > 0 } r ? r : Text(p, "nameId");
+            sb.Append("- ").Append(name.Length > 0 ? name : "?").Append(" (npcId=").Append(Number(p, "npcId")).Append(')');
+            if (CampLabel(Text(p, "camp")) is { } camp) sb.Append(", ").Append(camp).Append(Flag(p, "sameCamp") ? " (твой)" : "");
+            sb.Append(": ").Append(p.TryGetProperty("relationship", out var rel) && Relation(rel) is { Length: > 0 } words
+                ? words : "видели друг друга, больше ничего");
+            if (Flag(p, "visibleNow")) sb.Append("; сейчас рядом");
+            else if (Hours(p, "hoursSinceSeen") is { } seen) sb.Append("; виделись ").Append(Ago(seen));
+            sb.Append(Hours(p, "hoursSinceTalk") is { } talk ? "; говорили " + Ago(talk) : "; ни разу не говорили").Append('\n');
+        }
+        var total = d.TryGetProperty("knownPeopleTotal", out var t) && t.TryGetInt32(out var n) ? n : people.GetArrayLength();
+        if (total > people.GetArrayLength())
+            sb.Append("- и ещё ").Append(total - people.GetArrayLength()).Append(" человек, с кем вы почти не знакомы\n");
+    }
+
+    /// <summary>Her side of a bond as words: familiarity 0..1, trust and affinity −1..1, authority 0..1.</summary>
+    internal static string Relation(JsonElement rel)
+    {
+        if (rel.ValueKind != JsonValueKind.Object) return "";
+        double Axis(string key) => rel.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
+        var familiarity = Axis("familiarity"); var affinity = Axis("affinity"); var trust = Axis("trust");
+        var parts = new List<string>
+        {
+            familiarity >= .7 ? "близко знакомы" : familiarity >= .4 ? "хорошо знакомы" : familiarity >= .1 ? "немного знакомы" : "почти не знакомы",
+            affinity <= -.5 ? "сильная неприязнь" : affinity <= -.15 ? "неприязнь" : affinity >= .5 ? "сильная симпатия" : affinity >= .15 ? "симпатия" : "ровное отношение",
+        };
+        if (trust <= -.3) parts.Add("недоверие");
+        else if (trust >= .6) parts.Add("полное доверие");
+        else if (trust >= .2) parts.Add("доверие");
+        if (Axis("authority") >= .5) parts.Add("к советам этого человека прислушиваешься");
+        return string.Join(", ", parts);
+    }
+
+    internal static string? CampLabel(string faction) => faction switch
+    {
+        "Colony" => "Лагерь 1",
+        "Outsiders" => "чужаки",
+        _ when faction.StartsWith("Colony", StringComparison.Ordinal) && int.TryParse(faction["Colony".Length..], out var n) => "Лагерь " + n,
+        _ => null,
+    };
+
+    private static string DirectionWords(string direction) => direction switch
+    {
+        "N" => "на севере", "NE" => "на северо-востоке", "E" => "на востоке", "SE" => "на юго-востоке",
+        "S" => "на юге", "SW" => "на юго-западе", "W" => "на западе", "NW" => "на северо-западе",
+        _ => "сторона неизвестна",
+    };
+
+    // Bands from §171.25: ≤8 tiles near, ≤25 not far, otherwise far.
+    private static string DistanceWords(int tiles) => tiles <= 8 ? "рядом" : tiles <= 25 ? "недалеко" : "далеко";
+
+    private static string Ago(int hours) => hours < 1 ? "только что" : hours < 24 ? hours + " ч назад" : hours / 24 + " дн назад";
+
+    private static int? Hours(JsonElement row, string key) =>
+        row.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var h) ? h : null;
+
+    private static string Text(JsonElement row, string key) =>
+        row.ValueKind == JsonValueKind.Object && row.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
+
+    private static int Number(JsonElement row, string key) =>
+        row.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var n) ? n : 0;
+
+    private static bool Flag(JsonElement row, string key) =>
+        row.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.True;
 
     private static bool HasSleep(JsonElement item) => item.TryGetProperty("interactions", out var acts) &&
         acts.ValueKind == JsonValueKind.Array && acts.EnumerateArray().Any(a => a.ValueKind == JsonValueKind.Object &&

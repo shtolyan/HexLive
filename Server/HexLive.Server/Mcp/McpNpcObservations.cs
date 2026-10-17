@@ -98,7 +98,7 @@ internal static class McpNpcObservations
             nameId = x.body.DisplayName, names = LocalizedNames(x.body.DisplayName), lifeStatus = "dead",
             source = "currentSight" }).ToArray();
 
-    private static Dictionary<string, string> LocalizedNames(string nameId) =>
+    internal static Dictionary<string, string> LocalizedNames(string nameId) =>
         Names.Value.TryGetValue(nameId, out var names)
             ? names
             : new Dictionary<string, string> { ["en"] = nameId, ["ru"] = nameId };

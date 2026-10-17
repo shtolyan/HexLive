@@ -916,6 +916,8 @@ public sealed class McpTools
             // ⭐ Тот же сборщик, что кормит §32.15. Не копия — он сам.
             var context = LlmDecisionContextBuilder.Build(world, npc);
             var effects = McpEffectObservations.Read(world, npc);
+            var seenIds = npc.Perception.Agents.Concat(npc.Perception.Hostiles).Where(a => a.CanSee).Select(a => a.Id.Value);
+            var (knownPeople, knownPeopleTotal) = McpSocialObservations.KnownPeople(world, npc, seenIds);
             return Json(new Dictionary<string, object?>
             {
                 ["npcId"] = npc.Id.Value,
@@ -943,6 +945,10 @@ public sealed class McpTools
                 ["bodyNeeds"] = McpPlanningObservations.Needs(npc),
                 ["restReadiness"] = McpPlanningObservations.RestReadiness(world, npc),
                 ["inOwnCamp"] = ColonyQueries.InCamp(world, npc.Tile, npc.Faction),
+                // §171.25: camps are common knowledge, people are personal experience.
+                ["camps"] = McpSocialObservations.Camps(world, npc),
+                ["knownPeople"] = knownPeople,
+                ["knownPeopleTotal"] = knownPeopleTotal,
                 // §167: обещание, ожидающая просьба и запас лагеря против целей.
                 ["directive"] = npc.Mind.Directive is { } directive ? new Dictionary<string, object?>
                 {

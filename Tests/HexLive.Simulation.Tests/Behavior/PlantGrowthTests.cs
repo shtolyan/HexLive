@@ -114,6 +114,99 @@ public sealed class PlantGrowthTests
     }
 
     [Test]
+    public void InventoryPlantOrderWalksShowsTheExactSeedAndConsumesItOnCompletion()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        foreach (var colonist in world.Entities.Npcs.Values)
+        {
+            engine.ApplyManualCommand(new SetManualControlCommand(colonist.Id, true));
+        }
+
+        npc.Needs.Stamina = 1f;
+        var seed = new ItemInstance(ContentIds.HerbSeed);
+        npc.Inventory.Items.Add(seed);
+        var sourceIndex = npc.Inventory.Items.Count - 1;
+        engine.Step();
+
+        var target = SpatialQueries.GetPassableNeighbors(
+                world, npc.CurrentJunction!.Value)
+            .Select(anchor => (Anchor: anchor, Tile: world.Junctions.Items[anchor].Tiles[0]))
+            .First(candidate => PlantGrowthSystem.CanPlantAt(
+                world, candidate.Anchor, candidate.Tile, npc.Id));
+        var admission = engine.ApplyManualCommand(new PlantInventorySeedCommand(
+            npc.Id,
+            new InventoryItemRef(
+                InventoryItemSource.Carried, sourceIndex, ContentIds.HerbSeed),
+            target.Anchor,
+            target.Tile));
+        Assert.That(admission.Accepted, Is.True, admission.Reason);
+
+        for (var i = 0; i < 400 &&
+             npc.Execution.CurrentInteraction != InteractionType.Plant; i++)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Execution.CurrentInteraction, Is.EqualTo(InteractionType.Plant));
+            Assert.That(npc.Inventory.Items.Contains(seed), Is.True,
+                "The selected seed stays authoritative until the kneeling work completes.");
+            Assert.That(ActionItemResolver.HeldId(world, npc),
+                Is.EqualTo(ContentIds.HerbSeed));
+        });
+
+        for (var i = 0; i < 400 && npc.Inventory.Items.Contains(seed); i++)
+        {
+            engine.Step();
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(npc.Inventory.Items.Contains(seed), Is.False);
+            Assert.That(world.Entities.Objects.Values.Any(worldObject =>
+                worldObject.DefinitionId == ContentIds.HerbSprout &&
+                worldObject.Junctions.Contains(target.Anchor)), Is.True);
+        });
+    }
+
+    [Test]
+    public void InventoryPlantOrderRejectsAnOccupiedPointWithoutSpendingTheSeed()
+    {
+        var engine = TestWorld.CreateEngine();
+        var world = engine.World;
+        var npc = world.Entities.Npcs.Values.First(n => n.Faction == Faction.Colony);
+        engine.ApplyManualCommand(new SetManualControlCommand(npc.Id, true));
+        npc.Needs.Stamina = 1f;
+        var seed = new ItemInstance(ContentIds.YuccaSeed);
+        npc.Inventory.Items.Add(seed);
+        var sourceIndex = npc.Inventory.Items.Count - 1;
+        engine.Step();
+
+        var (tile, anchor) = FreeAnchor(world);
+        WorldObjectMutations.SpawnObject(
+            world, ContentIds.Stone, world.Junctions.Items[anchor].Fragment,
+            tile, anchor);
+        var admission = engine.ApplyManualCommand(new PlantInventorySeedCommand(
+            npc.Id,
+            new InventoryItemRef(
+                InventoryItemSource.Carried, sourceIndex, ContentIds.YuccaSeed),
+            anchor,
+            tile));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(admission.Accepted, Is.False);
+            Assert.That(admission.Reason, Is.EqualTo("PlantingSpotOccupied"));
+            Assert.That(npc.Inventory.Items.Contains(seed), Is.True);
+            Assert.That(world.Entities.Objects.Values.Any(worldObject =>
+                worldObject.DefinitionId == ContentIds.YuccaSprout), Is.False);
+        });
+    }
+
+    [Test]
     public void StumpNeverRegrowsAndOnlyTheAxeCanRemoveItForTenSticksAndTenLogs()
     {
         var world = TestWorld.CreateWorld();

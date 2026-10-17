@@ -88,6 +88,31 @@ public static class ActionItemResolver
             case InteractionType.FillVessel:
                 return HeldBottle(npc)?.DefinitionId ?? string.Empty;
 
+            // §173.2: an inventory planting order keeps the exact clicked seed
+            // in the working hand for the whole kneeling animation.  The
+            // fallback preserves the older action on a seed lying in the world.
+            case InteractionType.Plant:
+            {
+                var selected = npc.Execution.TargetInventoryItem;
+                if (selected is not null &&
+                    InventoryMath.ContainsReference(npc.Inventory.Items, selected))
+                {
+                    return selected.DefinitionId;
+                }
+
+                var target = npc.Execution.TargetObject ?? npc.Plan.TargetObjectId;
+                if (target is { } targetId &&
+                    world.Entities.Objects.TryGetValue(targetId, out var groundSeed) &&
+                    DefinitionHasInteraction(
+                        world, groundSeed.DefinitionId, InteractionType.Plant))
+                {
+                    return groundSeed.DefinitionId;
+                }
+
+                return ResolveInventoryInteractionItem(
+                    world, npc, InteractionType.Plant);
+            }
+
             case InteractionType.Harvest:
             case InteractionType.Process:
             case InteractionType.Butcher:

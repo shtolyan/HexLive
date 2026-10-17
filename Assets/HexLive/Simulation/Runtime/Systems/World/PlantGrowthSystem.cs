@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using HexLive.Simulation.Common;
 using HexLive.Simulation.Content;
 using HexLive.Simulation.Core;
+using HexLive.Simulation.Spatial;
 
 namespace HexLive.Simulation.Runtime
 {
@@ -85,12 +87,15 @@ public sealed class PlantGrowthSystem : ISimulationSystem
     /// the exact same slot. This is shared by execution and headless tests so
     /// planting cannot silently use a second definition table.
     /// </summary>
-    public static WorldObjectState? TryPlant(WorldState world, WorldObjectState seed)
+    public static WorldObjectState? TryPlant(
+        WorldState world, WorldObjectState seed, EntityId? planter = null)
     {
         if (!PlantGrowthCatalog.TryGetBySeed(seed.DefinitionId, out var profile) ||
             profile.StageDefinitionIds.Length == 0 ||
             seed.Junctions.Count == 0 ||
-            !world.Junctions.Items.ContainsKey(seed.Junctions[0]) ||
+            !CanPlantAt(
+                world, seed.Junctions[0], seed.Tile,
+                allowedOccupant: planter, ignoredObject: seed.Id) ||
             !world.Content.ObjectDefinitions.ContainsKey(profile.StageDefinitionIds[0]))
         {
             return null;
@@ -106,6 +111,81 @@ public sealed class PlantGrowthSystem : ISimulationSystem
 
         return WorldObjectMutations.SpawnObject(
             world, profile.StageDefinitionIds[0], fragment, tile, anchor);
+    }
+
+    /// <summary>
+    /// Authoritative free-space rule shared by inventory placement and the
+    /// legacy ground-seed action.  A planting slot is one exact dry, walkable
+    /// junction: no other world object may already own that point, and no
+    /// person/reservation except the planter may occupy it.
+    /// </summary>
+    public static bool CanPlantAt(
+        WorldState world,
+        JunctionId anchor,
+        TileCoord tile,
+        EntityId? allowedOccupant = null,
+        ObjectId? ignoredObject = null)
+    {
+        if (!world.Junctions.Items.TryGetValue(anchor, out var junction) ||
+            junction.Blocked || !junction.Tiles.Contains(tile) ||
+            !world.Tiles.Items.TryGetValue(tile, out var ground) ||
+            !ground.Flags.HasFlag(TileFlags.Walkable) ||
+            ground.Flags.HasFlag(TileFlags.Blocked) ||
+            ground.Flags.HasFlag(TileFlags.Water) ||
+            world.SwimJunctions.Contains(anchor))
+        {
+            return false;
+        }
+
+        if (world.Occupancy.JunctionOwner.TryGetValue(anchor, out var owner) &&
+            owner is { } occupiedBy &&
+            (!allowedOccupant.HasValue || !occupiedBy.Equals(allowedOccupant.Value)))
+        {
+            return false;
+        }
+
+        if (world.Reservations.Junctions.TryGetValue(anchor, out var reservation) &&
+            reservation.EndTick >= world.Tick &&
+            (!allowedOccupant.HasValue || !reservation.Owner.Equals(allowedOccupant.Value)))
+        {
+            return false;
+        }
+
+        foreach (var worldObject in world.Entities.Objects.Values)
+        {
+            if (ignoredObject.HasValue && worldObject.Id.Equals(ignoredObject.Value))
+            {
+                continue;
+            }
+
+            if (worldObject.Junctions.Contains(anchor))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Create the first stage from a seed still carried in inventory.</summary>
+    public static WorldObjectState? TryPlantAt(
+        WorldState world,
+        string seedDefinitionId,
+        JunctionId anchor,
+        TileCoord tile,
+        EntityId planter)
+    {
+        if (!PlantGrowthCatalog.TryGetBySeed(seedDefinitionId, out var profile) ||
+            profile.StageDefinitionIds.Length == 0 ||
+            !world.Content.ObjectDefinitions.ContainsKey(profile.StageDefinitionIds[0]) ||
+            !CanPlantAt(world, anchor, tile, planter) ||
+            !world.Junctions.Items.TryGetValue(anchor, out var junction))
+        {
+            return null;
+        }
+
+        return WorldObjectMutations.SpawnObject(
+            world, profile.StageDefinitionIds[0], junction.Fragment, tile, anchor);
     }
 }
 

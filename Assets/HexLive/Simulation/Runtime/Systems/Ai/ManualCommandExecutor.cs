@@ -70,6 +70,9 @@ internal static class ManualCommandExecutor
             case InteractCommand interact:
                 ApplyInteract(world, interact, admission);
                 break;
+            case PlantInventorySeedCommand plantSeed:
+                ApplyPlantInventorySeed(world, plantSeed, admission);
+                break;
             case GatherAllOnHexCommand gatherAll:
                 ApplyGatherAllOnHex(world, gatherAll, admission);
                 break;
@@ -232,6 +235,7 @@ internal static class ManualCommandExecutor
         SetOutfitLockCommand => "SetOutfitLock",
         MoveToCommand => "MoveTo",
         InteractCommand => "Interact",
+        PlantInventorySeedCommand => "PlantSeed",
         GatherAllOnHexCommand => "GatherAll",
         AttackNpcCommand => "AttackNpc",
         CarryPersonCommand => "CarryPerson",
@@ -2709,6 +2713,112 @@ internal static class ManualCommandExecutor
         TryStartInteractOrder(
             world, npc, command.Target, command.Interaction, command.InteractionId,
             "Interact", admission);
+    }
+
+    private static void ApplyPlantInventorySeed(
+        WorldState world,
+        PlantInventorySeedCommand command,
+        AdmissionTracker admission)
+    {
+        if (!TryTakeOrder(
+                world, command.Npc, "PlantSeed", requireManual: true,
+                admission, out var npc))
+        {
+            return;
+        }
+
+        if (Incapacitated(world, npc))
+        {
+            Reject(world, npc.Id, "PlantSeed", "Incapacitated", admission);
+            return;
+        }
+
+        if (npc.Needs.Stamina <= SimBalance.StaminaExhaustedThreshold)
+        {
+            Reject(world, npc.Id, "PlantSeed", "Exhausted", admission);
+            return;
+        }
+
+        if (!npc.Body.HasUsableHand || !npc.Body.CanUseToolsOrWeapons)
+        {
+            Reject(world, npc.Id, "PlantSeed", "NeedsHand", admission);
+            return;
+        }
+
+        if (command.Item.Source != InventoryItemSource.Carried ||
+            command.Item.Index < 0 || command.Item.Index >= npc.Inventory.Items.Count ||
+            npc.Inventory.Items[command.Item.Index].DefinitionId !=
+                command.Item.ExpectedDefinitionId)
+        {
+            Reject(world, npc.Id, "PlantSeed", "StaleItem", admission);
+            return;
+        }
+
+        var seed = npc.Inventory.Items[command.Item.Index];
+        if (!PlantGrowthCatalog.TryGetBySeed(seed.DefinitionId, out _) ||
+            !world.Content.ObjectDefinitions.TryGetValue(seed.DefinitionId, out var seedDefinition) ||
+            !seedDefinition.Interactions.Any(candidate =>
+                candidate.Type == InteractionType.Plant))
+        {
+            Reject(world, npc.Id, "PlantSeed", "NotASeed", admission);
+            return;
+        }
+
+        if (!PlantGrowthSystem.CanPlantAt(
+                world, command.TargetJunction, command.TargetTile, npc.Id))
+        {
+            Reject(world, npc.Id, "PlantSeed", "PlantingSpotOccupied", admission);
+            return;
+        }
+
+        if (npc.CurrentJunction is not { } start ||
+            !Connectivity.Reachable(
+                world, start, command.TargetJunction,
+                PlanningSystem.CanUseCriticalTraversal(npc)))
+        {
+            Reject(world, npc.Id, "PlantSeed", "Unreachable", admission);
+            return;
+        }
+
+        ClearForNewOrder(world, npc, "Ручной приказ посадить семя");
+        ClearAttackOrder(world, npc);
+        if (!SpatialMutations.TryReserveJunction(
+                world, command.TargetJunction, npc.Id, world.Tick,
+                Spec121.ManualReserveTicks))
+        {
+            Reject(world, npc.Id, "PlantSeed", "PlantingSpotOccupied", admission);
+            npc.Mind.CurrentGoal = GoalType.None;
+            return;
+        }
+
+        npc.Plan.Goal = GoalType.PlayerOrder;
+        npc.Plan.TargetJunctionId = command.TargetJunction;
+        npc.Plan.TargetTile = command.TargetTile;
+        npc.Plan.TargetItemDefinitionId = seed.DefinitionId;
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.MoveToJunction,
+            TargetJunction = command.TargetJunction
+        });
+        npc.Plan.Steps.Add(new PlanStep
+        {
+            Type = PlanStepType.PlantInventorySeed,
+            TargetJunction = command.TargetJunction,
+            TimeoutEndTick = command.Item.Index,
+            Interaction = InteractionType.Plant
+        });
+        npc.Plan.CurrentStepIndex = 0;
+        npc.Plan.Status = PlanStatus.Active;
+        npc.Mind.CurrentGoal = GoalType.PlayerOrder;
+        npc.Execution.TargetInventoryItem = seed;
+
+        if (SimTrace.Enabled)
+        {
+            Trace.Debug(world, npc.Id, "ManualOrderAccepted",
+                $"Order=PlantSeed Def={seed.DefinitionId} " +
+                $"Junction={command.TargetJunction.Value} " +
+                $"Tile={command.TargetTile.Q},{command.TargetTile.R}");
+        }
     }
 
     // ⭐ §121.10: ОДНО тело приказа «сделай с этим предметом вот это» — его

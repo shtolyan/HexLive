@@ -169,6 +169,16 @@ public sealed partial class ExecutionSystem : ISimulationSystem
                 continue;
             }
 
+            // §173.2: inventory planting owns its seed until the authored
+            // kneeling work finishes.  It has a movement leg but no target
+            // world object, so it must run before the generic object branch.
+            if (npc.Plan.Steps.Count > 0 &&
+                npc.Plan.Steps[^1].Type == PlanStepType.PlantInventorySeed)
+            {
+                RunPlantInventorySeed(world, npc);
+                continue;
+            }
+
             // Spec 29G: ground rest plans have no target object — the last
             // step says what to do once the walk (if any) is over.
             var lastStep = npc.Plan.Steps.Count > 0 ? npc.Plan.Steps[npc.Plan.Steps.Count - 1] : null;
@@ -1376,7 +1386,7 @@ public sealed partial class ExecutionSystem : ISimulationSystem
         }
         else if (completedInteraction.Type == InteractionType.Plant)
         {
-            var planted = PlantGrowthSystem.TryPlant(world, worldObject);
+            var planted = PlantGrowthSystem.TryPlant(world, worldObject, npc.Id);
             if (planted is null)
             {
                 PlanInterruption.TryAbort(world, npc,

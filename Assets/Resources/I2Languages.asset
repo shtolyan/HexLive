@@ -21846,6 +21846,30 @@ MonoBehaviour:
         \u0440\u0430\u0437"
       Flags: 0101
       Languages_Touch: []
+    - Term: toast.order_rejected.NotASeed
+      TermType: 0
+      Description:
+      Languages:
+      - This item cannot be planted
+      - "\u042D\u0442\u043E\u0442 \u043F\u0440\u0435\u0434\u043C\u0435\u0442 \u043D\u0435\u043B\u044C\u0437\u044F \u043F\u043E\u0441\u0430\u0434\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.PlantingSpotOccupied
+      TermType: 0
+      Description:
+      Languages:
+      - This planting spot is occupied
+      - "\u0417\u0434\u0435\u0441\u044C \u043D\u0435\u043B\u044C\u0437\u044F \u043F\u043E\u0441\u0430\u0434\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: toast.order_rejected.NeedsHand
+      TermType: 0
+      Description:
+      Languages:
+      - A usable hand is required
+      - "\u041D\u0443\u0436\u043D\u0430 \u0440\u0430\u0431\u043E\u0447\u0430\u044F \u0440\u0443\u043A\u0430"
+      Flags: 0101
+      Languages_Touch: []
     - Term: toast.order_rejected.InvalidAction
       TermType: 0
       Description: 
@@ -21917,6 +21941,14 @@ MonoBehaviour:
       Languages:
       - Drop
       - "\u0412\u044B\u0431\u0440\u043E\u0441\u0438\u0442\u044C"
+      Flags: 0101
+      Languages_Touch: []
+    - Term: inv.action.plant
+      TermType: 0
+      Description:
+      Languages:
+      - Plant
+      - "\u041F\u043E\u0441\u0430\u0434\u0438\u0442\u044C"
       Flags: 0101
       Languages_Touch: []
     - Term: inv.drop_quantity_title

@@ -969,6 +969,37 @@ public readonly struct InventoryItemRef
     public string ExpectedDefinitionId { get; }
 }
 
+/// <summary>
+/// §173.2: plant one exact carried seed at the free ground point selected by
+/// the player.  The item reference protects the inventory click from a stale
+/// layout; the junction + tile pair keeps the preview and the authoritative
+/// simulation on the same physical planting slot.
+/// </summary>
+public sealed class PlantInventorySeedCommand : ISimulationCommand
+{
+    public PlantInventorySeedCommand(
+        EntityId npc,
+        InventoryItemRef item,
+        JunctionId targetJunction,
+        TileCoord targetTile)
+    {
+        Npc = npc;
+        Item = item;
+        TargetJunction = targetJunction;
+        TargetTile = targetTile;
+    }
+
+    public EntityId Npc { get; }
+
+    public InventoryItemRef Item { get; }
+
+    public JunctionId TargetJunction { get; }
+
+    public TileCoord TargetTile { get; }
+
+    public EntityId? TargetEntity => Npc;
+}
+
 public enum InventoryAction
 {
     Wear,

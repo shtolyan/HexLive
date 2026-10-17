@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0b0f12">
-<title>HexLive</title>
+<title>HexLive · бета</title>
 <style>
 /* §171.12: the site in front of the game. Palette = ui/theme.css of the web client. */
 :root{color-scheme:dark;--bg:#0b0f12;--panel:rgb(19 24 28 / .78);--panel-solid:#13181c;--raised:#222a31;--hover:#2e3841;--stroke:rgb(255 255 255 / .12);--stroke-strong:rgb(255 255 255 / .22);--ink:#e7ecef;--muted:#9aa6ad;--gold:#f0b45c;--gold-hover:#f7c57a;--on-gold:#1a1206;--leaf:#c1db8d;--error:#ff9f8f;--focus:rgb(240 180 92 / .8);--radius:18px}
@@ -23,22 +23,29 @@ h1,h2,h3,p{margin:0}
 .hero__art{position:absolute;inset:0;z-index:-2;background:#16202a url('/login/art/hero.webp') 68% 30%/cover no-repeat;animation:drift 40s ease-in-out infinite alternate}
 .hero:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgb(11 15 18 / .94) 0%,rgb(11 15 18 / .78) 30%,rgb(11 15 18 / .2) 58%,rgb(11 15 18 / 0) 75%),linear-gradient(0deg,var(--bg) 0%,rgb(11 15 18 / 0) 26%),linear-gradient(180deg,rgb(11 15 18 / .55) 0%,rgb(11 15 18 / 0) 18%)}
 @keyframes drift{from{transform:scale(1.04) translate3d(0,0,0)}to{transform:scale(1.1) translate3d(-1.5%,-1%,0)}}
-.topbar{display:flex;align-items:center;justify-content:flex-end;gap:1rem;padding:clamp(1rem,2.5vw,1.6rem) clamp(1rem,4vw,3.5rem)}
-.logo{width:clamp(190px,18vw,270px);height:auto;display:block;margin:0 0 -.4rem -.4rem;filter:drop-shadow(0 6px 18px rgb(0 0 0 / .55))}
+/* The language switch floats: the first screen must fit any window height without scrolling. */
+.topbar{position:absolute;top:0;right:0;z-index:3;display:flex;align-items:center;gap:1rem;padding:clamp(.8rem,2vh,1.4rem) clamp(1rem,3vw,2.5rem)}
+.logo{width:clamp(130px,min(18vw,22vh),260px);height:auto;display:block;margin:0 0 0 -.4rem;filter:drop-shadow(0 6px 18px rgb(0 0 0 / .55))}
 .langs{display:flex;padding:3px;border-radius:999px;background:rgb(11 15 18 / .55);border:1px solid var(--stroke);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .langs button{border:0;background:none;padding:.35rem .8rem;border-radius:999px;font-size:.85rem;font-weight:650;color:var(--muted);cursor:pointer;min-height:34px}
 .langs button[aria-pressed=true]{background:var(--raised);color:var(--ink)}
-.hero__body{flex:1;display:flex;align-items:center;padding:0 clamp(1rem,4vw,3.5rem) clamp(2.5rem,6vh,4rem)}
-.hero__column{width:min(100%,500px);display:flex;flex-direction:column;gap:1.2rem;animation:rise .6s cubic-bezier(.2,.9,.3,1) both}
+.hero__body{flex:1;display:flex;align-items:center;padding:clamp(1rem,4vh,3rem) clamp(1rem,4vw,3.5rem)}
+.hero__column{width:min(100%,500px);display:flex;flex-direction:column;gap:clamp(.55rem,1.6vh,1.1rem);animation:rise .6s cubic-bezier(.2,.9,.3,1) both}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+/* §171.12: the game is in development — said on the first screen, not in small print. */
+.tags{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .9rem}
+.beta{display:inline-flex;align-items:center;gap:.45rem;padding:.28rem .7rem;border-radius:999px;border:1px solid rgb(240 180 92 / .55);background:rgb(240 180 92 / .14);color:var(--gold-hover);font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.beta:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gold);animation:breathe-gold 2s ease-in-out infinite}
+@keyframes breathe-gold{50%{opacity:.35}}
+.beta-note{font-size:.82rem;color:var(--muted);line-height:1.4;text-shadow:0 1px 8px rgb(0 0 0 / .6)}
 .eyebrow{display:inline-flex;align-items:center;gap:.55rem;font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
 .eyebrow:before{content:"";width:12px;height:14px;background:var(--gold);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
-h1{font-size:clamp(2.2rem,4.4vw,3.3rem);line-height:1.02;font-weight:850;letter-spacing:-.025em;text-wrap:balance;text-shadow:0 2px 24px rgb(0 0 0 / .45)}
+h1{font-size:clamp(1.75rem,min(4.4vw,6vh),3.3rem);line-height:1.02;font-weight:850;letter-spacing:-.025em;text-wrap:balance;text-shadow:0 2px 24px rgb(0 0 0 / .45)}
 h1 em{font-style:normal;color:var(--gold)}
 .lead{color:#c5ced3;font-size:1.06rem;max-width:40ch;text-shadow:0 1px 12px rgb(0 0 0 / .6)}
 
 /* ---- the card: sign-in, then the player ---- */
-.card{position:relative;background:var(--panel);border:1px solid var(--stroke);border-radius:var(--radius);padding:1.5rem;box-shadow:0 1.5rem 3rem rgb(0 0 0 / .45),0 .25rem .75rem rgb(0 0 0 / .3);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);min-height:132px}
+.card{position:relative;background:var(--panel);border:1px solid var(--stroke);border-radius:var(--radius);padding:clamp(1rem,2.4vh,1.5rem);box-shadow:0 1.5rem 3rem rgb(0 0 0 / .45),0 .25rem .75rem rgb(0 0 0 / .3);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);min-height:132px}
 .card h2{font-size:1.15rem;font-weight:750;margin-bottom:1rem}
 .card .lead{margin-bottom:1rem}
 .card h2:focus{outline:none}
@@ -50,7 +57,7 @@ h1 em{font-style:normal;color:var(--gold)}
 .btn--google{background:#fff;color:#1f1f1f;border-color:#fff}
 .btn--google:hover{background:#f1f3f4;box-shadow:0 0 0 4px rgb(255 255 255 / .12)}
 .btn--apple{background:#000;color:#fff;border-color:#000}
-.btn--play{min-height:58px;font-size:1.15rem;font-weight:800;letter-spacing:.02em;background:linear-gradient(180deg,var(--gold-hover),var(--gold));color:var(--on-gold);border-color:var(--gold);box-shadow:0 10px 28px rgb(240 180 92 / .28)}
+.btn--play{min-height:clamp(48px,6.4vh,58px);font-size:1.15rem;font-weight:800;letter-spacing:.02em;background:linear-gradient(180deg,var(--gold-hover),var(--gold));color:var(--on-gold);border-color:var(--gold);box-shadow:0 10px 28px rgb(240 180 92 / .28)}
 .btn--play:hover{background:linear-gradient(180deg,#fbd394,var(--gold-hover));box-shadow:0 12px 34px rgb(240 180 92 / .42);transform:translateY(-1px)}
 .btn--play svg{width:22px;height:22px}
 .btn--ghost{background:none;border-color:transparent;color:var(--muted);min-height:40px;font-weight:600}
@@ -90,7 +97,7 @@ small{display:block;color:var(--muted);font-size:.8rem}
 .busy p{color:var(--ink);font-weight:600}
 
 /* the signed-in player */
-.profile{display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem}
+.profile{display:flex;align-items:center;gap:1rem;margin-bottom:clamp(.6rem,1.6vh,1.2rem)}
 .avatar{position:relative;width:64px;height:72px;flex-shrink:0;display:grid;place-items:center;background:linear-gradient(135deg,var(--gold),#c97f2c);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
 .avatar img,.avatar span{width:58px;height:66px;object-fit:cover;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:var(--raised);display:grid;place-items:center;font-weight:800;font-size:1.5rem;color:var(--gold)}
 .who{min-width:0}
@@ -99,7 +106,7 @@ small{display:block;color:var(--muted);font-size:.8rem}
 .who__mail{color:var(--muted);font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip{display:inline-flex;align-items:center;gap:.35rem;margin-top:.35rem;font-size:.75rem;font-weight:700;padding:.15rem .55rem;border-radius:999px;background:rgb(255 255 255 / .08);border:1px solid var(--stroke);color:var(--muted)}
 .chip svg{width:12px;height:12px}
-.hero-line{display:flex;align-items:center;gap:.8rem;padding:.85rem 1rem;margin-bottom:1rem;border-radius:12px;background:rgb(255 255 255 / .05);border:1px solid var(--stroke)}
+.hero-line{display:flex;align-items:center;gap:.8rem;padding:clamp(.55rem,1.4vh,.85rem) 1rem;margin-bottom:clamp(.6rem,1.6vh,1rem);border-radius:12px;background:rgb(255 255 255 / .05);border:1px solid var(--stroke)}
 .hero-line__dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--muted)}
 .hero-line[data-state=alive] .hero-line__dot{background:var(--leaf);box-shadow:0 0 0 4px rgb(193 219 141 / .18);animation:breathe 2.4s ease-in-out infinite}
 .hero-line[data-state=dead] .hero-line__dot{background:var(--error)}
@@ -107,7 +114,8 @@ small{display:block;color:var(--muted);font-size:.8rem}
 .hero-line small{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
 .hero-line strong{display:block;font-size:1.05rem;overflow-wrap:anywhere}
 .muted{display:block;color:var(--muted);font-size:.9rem}
-.after{display:flex;justify-content:center;margin-top:.6rem}
+.after{display:flex;justify-content:center;margin-top:.3rem}
+.after .btn{min-height:36px}
 .skeleton{display:grid;place-items:center;min-height:100px}
 .signed-in .hero__column>.lead{display:none}
 
@@ -148,7 +156,7 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:2rem 1rem 2
  <div class="hero__body">
   <div class="hero__column">
    <img class="logo" src="/login/art/logo.webp" alt="HexLive" width="720" height="479">
-   <span class="eyebrow" data-i18n="eyebrow"></span>
+   <div class="tags"><span class="beta" data-i18n="beta"></span><span class="eyebrow" data-i18n="eyebrow"></span></div>
    <h1><span data-i18n="title"></span> <em data-i18n="titleAccent"></em></h1>
    <p class="lead" data-i18n="intro"></p>
    <div id="status" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -156,6 +164,7 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:2rem 1rem 2
     <main id="main"></main>
     <div class="busy" aria-hidden="true"><div class="spinner"><i></i><b></b></div><p id="busy-text"></p></div>
    </div>
+   <p class="beta-note" data-i18n="betaNote"></p>
   </div>
  </div>
 </section>
@@ -175,6 +184,8 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:2rem 1rem 2
 // §171.12. All page copy lives in this dictionary.
 const strings = {
  eyebrow:['Онлайн-выживание на острове','Online island survival'],
+ beta:['Закрытый бета-тест','Closed beta'],
+ betaNote:['Игра в разработке: возможны ошибки, перезапуски сервера и сбросы мира. Спасибо, что тестируете!','The game is in development: expect bugs, server restarts and world resets. Thank you for testing!'],
  title:['Добро пожаловать','Welcome'],titleAccent:['на остров','to the island'],
  intro:['Ваш человек живёт в общем мире: строит, охотится, дружит и ссорится — даже когда вы не в игре.','Your person lives in a shared world: building, hunting, making friends and enemies — even while you are away.'],
  featuresTitle:['Об игре','About the game'],
@@ -182,7 +193,7 @@ const strings = {
  f2:['Свой лагерь','Your camp'],f2text:['Костёр, хижины, запасы и люди, которым нужно доверять.','Fires, huts, stores — and people you have to trust.'],
  f3:['Дикая природа','The wild'],f3text:['Волки, голод, раны и ночь. Одна жизнь у каждого героя.','Wolves, hunger, wounds and night. Every hero has one life.'],
  band:['Один аккаунт — один живой персонаж','One account, one living character'],
- footer:['© HexLive · Мир живёт, пока вы спите','© HexLive · The world lives while you sleep'],
+ footer:['© HexLive · Закрытый бета-тест, игра в разработке','© HexLive · Closed beta, the game is in development'],
  loading:['Загружаем…','Loading…'],signIn:['Вход в игру','Sign in to play'],google:['Войти через Google','Continue with Google'],apple:['Войти через Apple','Continue with Apple'],
  or:['Войти по почте','Use email instead'],email:['Электронная почта','Email'],password:['Пароль','Password'],passwordHint:['Для нового аккаунта — не менее 6 символов.','Use at least 6 characters for a new account.'],
  login:['Войти','Sign in'],register:['Создать аккаунт','Create account'],reset:['Забыли пароль?','Forgot password?'],

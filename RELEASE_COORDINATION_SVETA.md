@@ -693,3 +693,66 @@ Operational receipts remain local at
 `Build/MSIRelease/20261015-wardrobe476-release/` and private Singapore ops above.
 No source/evidence archive was exported to Flashback. Public receipt:
 https://play.62-146-235-120.sslip.io/release-receipt.json .
+
+## MSI — Singapore construction/content refresh (2026-10-17 UTC)
+
+Tolya explicitly approved the complete prepared Singapore release `de1f382e585263f29fa762f312fd188d88407fc8`:
+WebGL Player, content, game-server binary and active-world rules, protocol25->26,
+with one hexlive.service stop/start, preserved world/accounts/characters and
+rollback. New York, DNS/TLS/auth/provider/service configuration and native latest
+channels were not changed. This journal commit does not replace the deployed
+source identity. MSI was the sole content publisher.
+
+- Local checks passed:1867 simulation tests with6 existing skips,497 server
+  tests,56 VoiceBrain tests,19 tooling tests, strict WebGL0 errors/0 RS0030
+  with final runtime-input provenance,14 graphics PlayMode tests and14 construction
+  owners/299 units. Unity6000.4.6f1 CLI built251/251 fresh WebGL bundles with0
+  failures; canonical package contains252 objects. No Unity MCP was used.
+- Canonical HexLiveWebGLPlayerBuild.Build succeeded:234MB,0 errors,350 warnings.
+  Required ordered markers confirm RuntimeSpeed, FMOD4x2048/WebAudioTuning,
+  7984 audio sources and DPR1. Exact authored settings and four material files
+  were restored after reviewed URP-default serialization; proof and backups
+  remain local. Editor returned to StandaloneWindows64, closed, ownership freed.
+- SHA256 archives: server `9fbec1c63f7c1fed4a49d4a1cccbcea66569409d09527497f222b43e7858e9a0`;
+  Player `58cb9c00534b973e823d6bd7ed1023db667b055d37c88abb087a694c8d65951b`;
+  content `41a9091b82a2d3bba866a9be46028cc51dcb256f261e82babbe626cca5f3ed0e`.
+  Staging verified523 server files,21 packaged Player files, both source-exact
+  Studio banks and5668 FSB/vis hashes against actual audio source
+  `7cd230bda39202a3a5a84da98106109bf270aae1` and the7984-source proof.
+- Content review retained all239 previous identities and allows exactly13 new
+  identities.210 candidates and210 rollback candidates were checked. Metadata
+  changes are construction contracts on13 existing owners (14 total/299 units)
+  and exactly one resource.cloth ingredient added to each of82 clothing recipes;
+  other existing metadata fields were unchanged. The canonical publisher advanced
+  registry843->973 (unchanged candidates are no-ops); pinned catalog is973.
+- Actual server-reported activation finished `2026-10-17T11:59:28.303091+00:00`:
+  server `/opt/hexlive/releases/66b9bca5b07cb80cc084135cd6753e0a2a4ef5a2` -> `/opt/hexlive/releases/de1f382e585263f29fa762f312fd188d88407fc8`;
+  Player `/var/lib/hexlive-web/releases/msi-20261015-66b9bca5b` -> `/var/lib/hexlive-web/releases/msi-20261017-de1f382e5`.
+  Exactly1 planned hexlive.service stop/start, new PID995916, NRestarts0.
+  No NRE, unhandled exception, fatal, OOM or protocol mismatch in the new process.
+- Private stopped backup of all worlds, root account/key state and voice state:
+  `/var/lib/hexlive/ops/msi-production-refresh-20261017-de1f382e5/activation-backup` (0700, files0600). Tested helper used the exact server assembly
+  APIs AssetGarmentCatalog.Materialize + WorldLibrary.StoreCatalog with reviewed
+  three-way rules. Root bootstrap SimData was retained. Offline save, assignments,
+  accounts/keys and file ownership/permissions passed preservation checks.
+  Old releases and monotonic content rollback remain available.
+- World `a309de74171d470385412bfab01ffdab`, seed629209070, topology59DDDCBB and2/2 live colonists
+  were preserved. Saved tick1767642 resumed at1767649.
+  Anonymous protocol26 handshake verifies96 recipes, sharp stone from2 stones,
+  82 garments/82 reciprocal fits/82 cloth recipes, speed1/unpaused and0 orders.
+- Public HTTPS verification hashed all20 Player files including both Studio
+  banks, checked Brotli/WASM headers, all252 index records and all210 changed
+  content blobs (316214546 bytes), plus FSB/vis samples.
+  Staged and public-root Chromium rendered the server menu with0 JS errors/0 NRE.
+  Public Singapore Play is available, ping about290ms; New York unavailable.
+  FMOD reports AUDIOWORKLET48000Hz/2048x4. Public startup has two known URP/FSR
+  warnings; staging also has the persistent-path deprecation warning.
+
+Limits: no authenticated gameplay orders, account/character creation, paid
+phone/ElevenLabs calls, or full live construction/save-load/wardrobe rotation
+acceptance run was performed. Focused local simulation and graphics checks do
+not replace that gameplay acceptance. No source/evidence archive was exported
+to Flashback and no bug was marked fixed by this release.
+
+Local operational receipts: `Build/MSIRelease/20261017-production-refresh/`.
+Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .

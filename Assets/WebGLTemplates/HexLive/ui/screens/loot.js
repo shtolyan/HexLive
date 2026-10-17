@@ -14,9 +14,10 @@
 //                slots: [{ item: item|null, hand?: 'left'|'right' }] }],  // hand: a hand, not a pocket
 //     worn: [item],                             // clothes that hold nothing
 //   },
+//   info: null | { uid, detail: { category, desc, stats: [[label, value]] } },  // the card asked for
 // }
-// item: { uid, def, icon, emoji, name, count, detail?: { category, desc, stats: [[label, value]] } }
-// Commands: move { uid, to: 'left'|'right', count }, quick { uid }, close.
+// item: { uid, def, icon, emoji, name, count }
+// Commands: move { uid, to: 'left'|'right', count }, quick { uid }, info { uid|null }, close.
 import { html, useState, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { asset } from '../bridge.js';
@@ -77,8 +78,8 @@ function Chip({ item, ctx, as = 'li' }) {
   return as === 'li' ? html`<li>${body}</li>` : body;
 }
 
-function Info({ item, onClose }) {
-  const d = item.detail || {};
+function Info({ item, detail, onClose }) {
+  const d = detail || {};
   return html`<section class="hx-loot__info" aria-label=${item.name}>
     <header class="hx-inv__detail-head">
       <${Pic} of=${item} />
@@ -95,6 +96,7 @@ function Pane({ side, pane, ctx, accepts }) {
   const used = (pane.groups || []).reduce((n, g) => n + g.filled, 0);
   const cap = (pane.groups || []).reduce((n, g) => n + g.cap, 0);
   const info = ctx.selected && sideOf(ctx.model, ctx.selected) === side ? findItem(ctx.model, ctx.selected) : null;
+  const detail = info && ctx.model.info?.uid === info.uid ? ctx.model.info.detail : null;
   const target = ctx.dragging && sideOf(ctx.model, ctx.dragging) !== side;
   return html`<section class=${`hx-loot__pane${target ? (accepts ? ' is-target' : ' is-refused') : ''}`} aria-label=${pane.name}
     onDragOver=${(e) => { if (target && accepts) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } }}
@@ -122,7 +124,7 @@ function Pane({ side, pane, ctx, accepts }) {
         </div>`}
       ${!(pane.groups?.length || pane.worn?.length) && html`<p class="hx-muted hx-loot__empty">${t('loot.empty')}</p>`}
     </div>
-    ${info && html`<${Info} item=${info} onClose=${() => ctx.select(null)} />`}
+    ${info && html`<${Info} item=${info} detail=${detail} onClose=${() => ctx.select(null)} />`}
   </section>`;
 }
 
@@ -133,7 +135,8 @@ export function Loot({ model, send }) {
   const gift = model.mode === 'gift';
   const ctx = {
     model, selected, dragging, pending: model.pending,
-    select: (uid) => setSelected(uid === selected ? null : uid),
+    // The card is C#'s (the same builder as in UI Toolkit): ask for it.
+    select: (uid) => { const next = uid === selected ? null : uid; setSelected(next); send('info', { uid: next }); },
     drag: setDragging,
     quick: (uid) => { setSelected(null); send('quick', { uid }); },
     drop: (uid, to) => {

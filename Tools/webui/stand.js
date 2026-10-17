@@ -247,9 +247,13 @@ function lootReset() {
   loot.pending = false; loot.status = null;
 }
 function lootItem(it) {
+  return { uid: it.uid, def: it.def, icon: `icon:${it.def}`, emoji: null, name: itemName(it.def), count: it.count };
+}
+function lootInfo() {
+  const it = loot.info && [...loot.sides.left, ...loot.sides.right].find((i) => i.uid === loot.info);
+  if (!it) return null;
   const d = itemDetail(it);
-  return { uid: it.uid, def: it.def, icon: `icon:${it.def}`, emoji: null, name: itemName(it.def), count: it.count,
-    detail: { category: d.category, desc: d.desc, stats: d.stats.map(([k, v]) => [tr(k), v]) } };
+  return { uid: it.uid, detail: { category: d.category, desc: d.desc, stats: d.stats.map(([k, v]) => [tr(k), v]) } };
 }
 function lootPane(side) {
   const items = loot.sides[side];
@@ -277,7 +281,7 @@ function lootPane(side) {
 function sendLoot() {
   if (!ready) return;
   if (loot.open && isGame(state.dialog)) {
-    post({ t: 'show', screen: 'loot', model: { mode: loot.mode, pending: loot.pending, status: loot.status, left: lootPane('left'), right: lootPane('right') } });
+    post({ t: 'show', screen: 'loot', model: { mode: loot.mode, pending: loot.pending, status: loot.status, left: lootPane('left'), right: lootPane('right'), info: lootInfo() } });
   } else post({ t: 'hide', screen: 'loot' });
 }
 // C#: the order goes out, she walks over, the snapshot answers.
@@ -705,6 +709,7 @@ function handle(message) {
   if (message.screen === 'loot') {
     const a = message.args || {};
     if (message.cmd === 'close') { note(key, '→ закрыть окно'); loot.open = false; sendLoot(); return; }
+    if (message.cmd === 'info') { loot.info = a.uid; sendLoot(); return; }
     if (message.cmd === 'move') {
       const toRight = a.to === 'right';
       note(key, `${args} → TransferInventoryCommand: ${toRight ? (loot.mode === 'gift' ? 'подарить' : 'отдать') : 'забрать'} ×${a.count}`);

@@ -148,6 +148,52 @@ namespace HexLive.UnityPresentation.UI
             }
         }
 
+        /// <summary>The card's stat rows as (label, value): first and last label of each row.</summary>
+        private static JArray StatRows(VisualElement rows)
+        {
+            var stats = new JArray();
+            foreach (var row in rows.Children())
+            {
+                var labels = new List<Label>();
+                row.Query<Label>().ForEach(labels.Add);
+                if (labels.Count >= 2) stats.Add(new JArray(labels[0].text, labels[labels.Count - 1].text));
+            }
+            return stats;
+        }
+
+        // ---- shared with other HTML windows (§174.7: the exchange window) -------
+
+        /// <summary>An item as the page draws it: picture (icon asset or emoji) and name.</summary>
+        internal JObject HtmlItem(string uid, string id, int count)
+        {
+            var def = ResolveDef(id);
+            var info = ResolveItemInfo(id, def);
+            return new JObject
+            {
+                ["uid"] = uid, ["def"] = id, ["icon"] = IconKey(id), ["emoji"] = info.Emoji,
+                ["name"] = ItemName(def, info), ["count"] = count,
+            };
+        }
+
+        /// <summary>A colonist's face as a page asset, or null until the cache has it.</summary>
+        internal string HtmlFace(int npcId) => FaceKey(npcId);
+
+        /// <summary>
+        /// The read-only item card (§128.4) as data: the very element the exchange
+        /// window shows in UI Toolkit, read back, so both windows say the same.
+        /// </summary>
+        internal JObject HtmlItemInformation(string id, NpcSnapshot owner, bool worn, int sourceIndex,
+            int count, InventorySlotSnapshot containerSlot)
+        {
+            var card = CreateReadOnlyItemInformation(id, owner, worn, sourceIndex, count, containerSlot);
+            return new JObject
+            {
+                ["category"] = card.Q<Label>(className: "item-info-category")?.text,
+                ["desc"] = card.Q<Label>(className: "item-info-description")?.text,
+                ["stats"] = StatRows(card.Q("item-information-stats")),
+            };
+        }
+
         // ---- the model ----------------------------------------------------------
 
         private JObject InventoryModel(NpcSnapshot npc)
@@ -207,13 +253,7 @@ namespace HexLive.UnityPresentation.UI
             // The card's own rows, read back as (label, value).
             BuildItemStats(def, info, worn, durability, water, stacks, wetness, dirtiness,
                 sourceIndex, ResolveInventoryOwnerId(id, worn, sourceIndex), _statScratch);
-            var stats = new JArray();
-            foreach (var row in _statScratch.Children())
-            {
-                var labels = new List<Label>();
-                row.Query<Label>().ForEach(labels.Add);
-                if (labels.Count >= 2) stats.Add(new JArray(labels[0].text, labels[labels.Count - 1].text));
-            }
+            var stats = StatRows(_statScratch);
             _statScratch.Clear();
 
             // Exactly the card's predicates (ShowItemDetail).

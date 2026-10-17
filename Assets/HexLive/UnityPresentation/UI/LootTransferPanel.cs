@@ -7,6 +7,7 @@ using HexLive.Simulation.Debug;
 using HexLive.Simulation.Runtime;
 using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using HexLive.UnityPresentation.Wearing.Garments;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -182,10 +183,12 @@ public sealed partial class LootTransferPanel : MonoBehaviour
 
         BuildUi();
         Hide();
+        HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
     }
 
     private void OnDestroy()
     {
+        HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
         _windowModal?.Show(false);
         if (!ReferenceEquals(_instance, this)) return;
         _instance = null;
@@ -256,6 +259,10 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
+        // §174.7: in the web client the page draws the window (UpdateHtml).
+        _root.style.visibility = HtmlUi.Active ? Visibility.Hidden : StyleKeyword.Null;
+        _htmlDirty = true;
+        _htmlInfoUid = null;
         _windowModal?.Show(true);
         IsOpen = true;
         LayoutFrame();
@@ -293,6 +300,10 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         _doubleClick.Reset();
         ClearDrag();
         _root.style.display = DisplayStyle.Flex;
+        // §174.7: in the web client the page draws the window (UpdateHtml).
+        _root.style.visibility = HtmlUi.Active ? Visibility.Hidden : StyleKeyword.Null;
+        _htmlDirty = true;
+        _htmlInfoUid = null;
         _windowModal?.Show(true);
         IsOpen = true;
         LayoutFrame();
@@ -316,6 +327,7 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         {
             Refresh(force: false);
         }
+        UpdateHtml();
     }
 
     private void BuildUi()
@@ -1133,7 +1145,9 @@ public sealed partial class LootTransferPanel : MonoBehaviour
             return;
         }
 
-        if (InventoryState.IsStackable(_drag.DefinitionId) && _drag.Count > 1)
+        // §174.7: the page asks how many before it drops; a double click there
+        // takes the whole stack.
+        if (InventoryState.IsStackable(_drag.DefinitionId) && _drag.Count > 1 && !HtmlUi.Active)
         {
             ShowQuantityPicker(destinationId, _drag);
             return;
@@ -1493,6 +1507,7 @@ public sealed partial class LootTransferPanel : MonoBehaviour
         _doubleClick.Reset();
         ClearDrag();
         PointerOverPanel = false;
+        HideHtml();
     }
 
     private static void SetRadius(VisualElement element, float radius)

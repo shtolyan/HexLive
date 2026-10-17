@@ -1110,3 +1110,113 @@
   .hx-server__dot, .hx-steps li::before, .hx-spinner-text::before { animation: none; }
   .hx-roster__card.is-fighting { animation: none; background: rgb(191 51 46 / 0.2); }
 }
+
+/* ---- health (§57) -------------------------------------------------------- */
+/* The backpack's hole window, narrower: the doll on the left, zones on the right. */
+.hx-inv.hx-health { width: min(54rem, 100%); height: min(42rem, 100%); }
+.hx-health__body { flex: 1; min-height: 0; display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 0.875rem; }
+.hx-health__body > * { position: relative; z-index: 1; }
+.hx-health__body > .hx-health__doll { z-index: auto; display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; }
+.hx-health__doll > :not(.hx-inv__hole) { position: relative; z-index: 1; }
+.hx-health__note { text-align: center; font-size: 0.75rem; }
+.hx-health__legend { display: flex; align-items: center; gap: 0.375rem; font-size: 0.6875rem; color: var(--hx-text-dim); }
+.hx-health__legend i { flex: 1; height: 0.375rem; border-radius: 999px; background: linear-gradient(90deg, rgb(92 184 84), rgb(232 178 60), rgb(232 87 79)); }
+.hx-health__legend b { width: 0.625rem; height: 0.625rem; margin-left: 0.5rem; border-radius: 50%; }
+.hx-zones { margin: 0; padding: 0; list-style: none; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 0.375rem; }
+.hx-zone {
+  flex: 1 0 auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  align-content: center;
+  gap: 0.3125rem 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--hx-stroke);
+  border-radius: 0.625rem;
+  background: rgb(255 255 255 / 0.03);
+}
+.hx-zone__dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; }
+.hx-zone__name { font-size: 0.9375rem; font-weight: 600; }
+.hx-zone__value { font-weight: 700; font-variant-numeric: tabular-nums; }
+.hx-zone__value small { color: var(--hx-warm-red); font-weight: 600; font-size: 0.8125rem; }
+.hx-zone__trauma { background: repeating-linear-gradient(135deg, var(--hx-danger) 0 0.1875rem, rgb(191 51 46 / 0.35) 0.1875rem 0.375rem) !important; border-radius: 0 !important; }
+.hx-zone__chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.375rem; font-size: 0.75rem; color: var(--hx-text-dim); }
+.hx-zone__chip { padding: 0.0625rem 0.4375rem; border-radius: 999px; background: var(--hx-raised); color: var(--hx-text); }
+.hx-zone__chip.is-alarm { background: rgb(191 51 46 / 0.25); color: var(--hx-warm-red); }
+.hx-zone__chip.is-armor { color: var(--hx-text-dim); }
+.hx-zone__damage { margin-left: auto; font-variant-numeric: tabular-nums; }
+.hx-zone.is-critical { border-color: rgb(191 51 46 / 0.45); }
+.hx-zone.is-severed { background: rgb(61 43 43 / 0.45); }
+.hx-zone.is-severed .hx-zone__value { color: var(--hx-warm-red); font-weight: 600; }
+@container (max-width: 40rem) {
+  .hx-health__body { grid-template-columns: 11rem minmax(0, 1fr); }
+  .hx-health__legend span { display: none; }
+}
+
+/* ---- journal (§136) ------------------------------------------------------ */
+/* Paper and ink, on purpose foreign to the dark glass around it: the one
+   place in the game where somebody writes by hand. Caveat, OFL 1.1. */
+@font-face { font-family: "HexHand"; src: url("fonts/caveat.woff2") format("woff2"); font-display: swap; }
+.hx-journal {
+  --paper: rgb(237 227 207);
+  --paper-fold: rgb(214 199 172);
+  --paper-edge: rgb(201 183 154);
+  --ink: rgb(58 46 34);
+  --ink-faint: rgb(122 106 86);
+  --ink-alarm: rgb(90 32 24);
+  --rule: rgb(90 74 55 / 0.16);
+  --margin-line: rgb(190 90 80 / 0.35);
+  --line: 2rem;
+  position: relative;
+  width: min(38rem, calc(100% - 2rem));
+  height: min(40rem, calc(100% - 2rem));
+  display: flex;
+  flex-direction: column;
+  border-left: 0.5rem solid var(--paper-edge);
+  border-radius: 0.25rem;
+  background: var(--paper);
+  color: var(--ink);
+  /* The folded corner: the page is cut, the fold is drawn into the cut. */
+  clip-path: polygon(0 0, calc(100% - 1.75rem) 0, 100% 1.75rem, 100% 100%, 0 100%);
+  filter: drop-shadow(0 1.25rem 2rem rgb(0 0 0 / 0.45));
+  animation: hx-rise 160ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.hx-journal::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: linear-gradient(45deg, var(--paper-fold) 50%, transparent 50%);
+  pointer-events: none;
+}
+.hx-journal__head { display: flex; align-items: flex-start; gap: 1rem; padding: 1.125rem 2.25rem 0.375rem 2.5rem; }
+.hx-journal__head > div { flex: 1; min-width: 0; }
+.hx-journal__title { margin: 0; font-family: "HexHand", var(--hx-font); font-size: 2.125rem; font-weight: 400; line-height: 1.1; }
+.hx-journal__subtitle { margin: 0.125rem 0 0; font-size: 0.8125rem; font-style: italic; color: var(--ink-faint); }
+.hx-journal__subtitle b { font-style: normal; color: rgb(170 70 60); }
+.hx-journal__close { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; margin-top: 0.25rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink-faint); cursor: pointer; }
+.hx-journal__close:hover { background: rgb(58 46 34 / 0.08); color: var(--ink); }
+.hx-journal__close svg { width: 1.125rem; height: 1.125rem; }
+.hx-journal__page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 1.75rem 2rem 2.5rem;
+  /* Ruled lines that scroll with the text, and the red margin line. */
+  background:
+    linear-gradient(90deg, transparent 1.75rem, var(--margin-line) 1.75rem, var(--margin-line) calc(1.75rem + 1px), transparent calc(1.75rem + 1px)),
+    repeating-linear-gradient(180deg, transparent 0 calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px) var(--line));
+  background-attachment: local;
+  scrollbar-width: thin;
+  scrollbar-color: var(--paper-edge) transparent;
+}
+.hx-journal__entries { margin: 0; padding: 0; list-style: none; }
+.hx-journal__entry { position: relative; padding-bottom: var(--line); }
+.hx-journal__entry time { display: block; height: var(--line); padding-top: 0.75rem; font-size: 0.6875rem; letter-spacing: 0.04em; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.hx-journal__entry p { margin: 0; font-family: "HexHand", var(--hx-font); font-size: 1.4375rem; line-height: var(--line); }
+.hx-journal__entry.is-danger p { color: var(--ink-alarm); font-weight: 700; }
+/* Unread: a tick on the margin, not a colour — colour already means tone. */
+.hx-journal__entry.is-unread::before { content: ""; position: absolute; left: -1.125rem; top: 2.75rem; width: 0.3125rem; height: 0.3125rem; border-radius: 50%; background: rgb(190 90 80); }
+.hx-journal__empty { margin: 4rem 0 0; text-align: center; font-family: "HexHand", var(--hx-font); font-size: 1.75rem; color: var(--ink-faint); }

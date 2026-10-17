@@ -109,6 +109,8 @@
         <button type="button" id="dialog-gameGroup" data-dialog="gameGroup" aria-pressed="false">Игра: группа</button>
         <button type="button" id="dialog-gameNone" data-dialog="gameNone" aria-pressed="false">Игра: без выбора</button>
         <button type="button" id="dialog-gameInventory" data-dialog="gameInventory" aria-pressed="false">Игра: рюкзак</button>
+        <button type="button" id="dialog-gameHealth" data-dialog="gameHealth" aria-pressed="false">Игра: здоровье</button>
+        <button type="button" id="dialog-gameJournal" data-dialog="gameJournal" aria-pressed="false">Игра: дневник</button>
         <button type="button" id="dialog-gameMenu" data-dialog="gameMenu" aria-pressed="false">Игровое меню</button>
         <button type="button" id="dialog-connectionLost" data-dialog="connectionLost" aria-pressed="false">Связь потеряна</button>
         <button type="button" id="dialog-protocolUpdate" data-dialog="protocolUpdate" aria-pressed="false">Нужно обновление</button>
@@ -147,10 +149,10 @@
       <section class="card">
         <h2>Что проверить</h2>
         <ul>
-          <li><b>Игра: рюкзак</b> (или кнопка рюкзака на карточке). Окно поверх всего, вокруг затемнение, клик мимо закрывает. Иконки — настоящие из игры.</li>
-          <li>«Рюкзак»: сетка ячеек с количеством, ★ у любимого оружия, «В РАБОТЕ» у инструмента в руке. Справа кукла (её рисует Unity) и слои одежды. Клик по вещи — её карточка с характеристиками и действиями; у стопки «Выбросить» спрашивает, сколько.</li>
-          <li>Перетащите одежду на куклу — наденет; надетую из «Одежды» на сетку — снимет. Двойной клик — быстро надеть или снять. «Закрепить одежду» запрещает переодевание.</li>
-          <li>«Крафт»: категории, рецепты, справа ресурсы ✓/✕, место работы, готовность и причина, если нельзя (занят верстак, не хватает листьев, нет пути).</li>
+          <li><b>Игра: здоровье</b> (или кольцо здоровья на карточке). Слева кукла, раскрашенная по зонам (её рисует Unity; на стенде — цветные пятна), под ней шкала «цела → тяжело» и цвет ампутации. Куклу можно крутить мышью.</li>
+          <li>Справа семь зон: процент и полоска; красная штриховка в конце полоски — тяжёлая травма. Под полоской — кровотечение, перевязка, шина, число ран, защита одежды 🛡 и справа порезы/ушибы. Ампутированная зона тёмная; протез — со своей прочностью и тем, на сколько работает.</li>
+          <li><b>Игра: дневник</b> (или кнопка «Дневник»). Лист бумаги от руки — нарочно не похож на остальные окна. Новые записи сверху, непрочитанные отмечены точкой на полях и числом в шапке; тревожные — темнее и жирнее. У Джолли дневник пуст.</li>
+          <li><b>Игра: рюкзак</b>: сетка, кукла, одежда и крафт с очередью — уже согласован и подключён.</li>
         </ul>
       </section>
       <section class="card">

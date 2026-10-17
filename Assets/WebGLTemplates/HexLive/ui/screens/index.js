@@ -10,6 +10,8 @@ import { Creator } from './creator.js';
 import { Roster } from './roster.js';
 import { Character } from './character.js';
 import { Inventory } from './inventory.js';
+import { Health } from './health.js';
+import { Journal } from './journal.js';
 
 export const SCREENS = {
   title: Title,
@@ -18,6 +20,8 @@ export const SCREENS = {
   roster: Roster,
   character: Character,
   inventory: Inventory,
+  health: Health,
+  journal: Journal,
   gameMenu: GameMenu,
   connectionLost: ConnectionLost,
   protocolUpdate: ProtocolUpdate,

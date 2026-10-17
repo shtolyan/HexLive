@@ -20,36 +20,11 @@
 // Commands: close, action { uid, kind, count }, outfitLock { value }, dollLayer { layer },
 // dollRotate { dx }, dollRect { x, y, w, h, vw, vh }, craft { recipe } (one more into the queue),
 // craftCancel { recipe } (drop what is queued; the item in the making is finished).
-import { html, useState, useEffect, useRef } from '../html.js';
+import { html, useState, useRef } from '../html.js';
 import { t } from '../i18n.js';
 import { asset } from '../bridge.js';
 import { icons } from '../icons.js';
-import { Button } from '../components.js';
-
-function Hole({ send, cmd }) {
-  const hole = useRef(null);
-  useEffect(() => {
-    const report = () => {
-      const ui = document.getElementById('hex-ui');
-      const r = hole.current.getBoundingClientRect();
-      const s = ui.getBoundingClientRect();
-      const k = s.width / ui.clientWidth || 1;
-      send(cmd, { x: (r.left - s.left) / k, y: (r.top - s.top) / k, w: r.width / k, h: r.height / k, vw: ui.clientWidth, vh: ui.clientHeight });
-    };
-    const observer = new ResizeObserver(report);
-    observer.observe(hole.current);
-    report();
-    // The window rises in with a transform, which ResizeObserver does not see.
-    const settle = setTimeout(report, 250);
-    // Gone (craft tab, item card, window closed): Unity stops drawing there.
-    return () => { observer.disconnect(); clearTimeout(settle); send(cmd, { x: 0, y: 0, w: 0, h: 0, vw: 0, vh: 0 }); };
-  }, []);
-  const drag = useRef(null);
-  return html`<div class="hx-inv__hole" ref=${hole}
-    onPointerDown=${(e) => { drag.current = e.clientX; e.currentTarget.setPointerCapture(e.pointerId); }}
-    onPointerMove=${(e) => { if (drag.current == null) return; send('dollRotate', { dx: e.clientX - drag.current }); drag.current = e.clientX; }}
-    onPointerUp=${() => { drag.current = null; }}></div>`;
-}
+import { Button, Hole } from '../components.js';
 
 // An item picture: the icon Unity sent, else its emoji while the icon is on its way.
 function Pic({ of, fallback }) {

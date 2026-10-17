@@ -1,6 +1,6 @@
 // §174.5: the shared pieces every window is built from. A screen composes
 // these; it does not restyle them.
-import { html, useState, useEffect } from './html.js';
+import { html, useState, useEffect, useRef } from './html.js';
 import { t } from './i18n.js';
 import { icons } from './icons.js';
 
@@ -125,4 +125,36 @@ export function Ring({ value, color, size = '3rem', stroke = '0.25rem', label, c
       style=${{ width: size, height: size, '--ring': color || 'var(--hx-leaf)', '--ring-w': stroke, '--ring-v': `${v * 360}deg` }}>
       <span class="hx-ring__inner">${children}</span>
     </span>`;
+}
+
+/**
+ * §174.3: a transparent hole Unity draws a camera into (camera.rect). It
+ * reports its rectangle as `cmd` { x, y, w, h, vw, vh } in CSS px of the game
+ * area, re-measures after the window's rise-in transform, sends an empty
+ * rectangle when it goes away, and turns a horizontal drag into
+ * `dollRotate` { dx }. The fill around it is its own wide shadow (CSS).
+ */
+export function Hole({ send, cmd, className = 'hx-inv__hole' }) {
+  const hole = useRef(null);
+  useEffect(() => {
+    const report = () => {
+      const ui = document.getElementById('hex-ui');
+      const r = hole.current.getBoundingClientRect();
+      const s = ui.getBoundingClientRect();
+      const k = s.width / ui.clientWidth || 1;
+      send(cmd, { x: (r.left - s.left) / k, y: (r.top - s.top) / k, w: r.width / k, h: r.height / k, vw: ui.clientWidth, vh: ui.clientHeight });
+    };
+    const observer = new ResizeObserver(report);
+    observer.observe(hole.current);
+    report();
+    // The window rises in with a transform, which ResizeObserver does not see.
+    const settle = setTimeout(report, 250);
+    // Gone (craft tab, item card, window closed): Unity stops drawing there.
+    return () => { observer.disconnect(); clearTimeout(settle); send(cmd, { x: 0, y: 0, w: 0, h: 0, vw: 0, vh: 0 }); };
+  }, []);
+  const drag = useRef(null);
+  return html`<div class=${className} ref=${hole}
+    onPointerDown=${(e) => { drag.current = e.clientX; e.currentTarget.setPointerCapture(e.pointerId); }}
+    onPointerMove=${(e) => { if (drag.current == null) return; send('dollRotate', { dx: e.clientX - drag.current }); drag.current = e.clientX; }}
+    onPointerUp=${() => { drag.current = null; }}></div>`;
 }

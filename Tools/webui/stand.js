@@ -182,6 +182,53 @@ function sendInventory() {
   else post({ t: 'hide', screen: 'inventory' });
 }
 
+// ---- health (§57) and journal (§136) windows of the selected colonist ----
+const side = { health: false, journal: false, healthRect: null, read: {} };
+function healthModel() {
+  const c = COLONY.find((x) => x.id === game.selected) || COLONY[0];
+  const hurt = c.health < 0.5;
+  const zone = (id, hp, extra) => ({ id, hp, critical: 0, severed: false, bleeding: false, bandaged: false, splint: 0,
+    armor: 0, wounds: 0, cut: 0, blunt: 0, prosthetic: null, ...(extra || {}) });
+  return {
+    name: c.name, dollAvailable: true,
+    zones: [
+      zone('Head', 0.96, { armor: 0 }),
+      zone('Torso', hurt ? 0.48 : 0.82, { bleeding: hurt, wounds: hurt ? 2 : 1, cut: hurt ? 0.31 : 0.08, blunt: 0.05, armor: 0.35 }),
+      zone('Pelvis', 0.9, { armor: 0.2 }),
+      zone('ArmL', hurt ? 0.34 : 0.74, { critical: hurt ? 0.14 : 0, bandaged: true, splint: hurt ? 0.4 : 0, wounds: 1, cut: 0.12, blunt: 0.22 }),
+      hurt ? zone('ArmR', 0, { severed: true }) : zone('ArmR', 1),
+      zone('LegL', 0, { severed: true, prosthetic: { name: tr('item.prosthetic_peg_leg.name') === 'item.prosthetic_peg_leg.name' ? 'Деревянная нога' : tr('item.prosthetic_peg_leg.name'), hp: 0.62, max: 0.8, function: 0.7 } }),
+      zone('LegR', 0.71, { blunt: 0.29 }),
+    ],
+  };
+}
+const JOURNAL = [
+  [4, '18:40', 'Поговорили с Мартой. Хорошо было просто поговорить.', false],
+  [4, '15:10', 'Меня достали. Рука. Больно.', true],
+  [4, '11:30', 'Молли мне помогла. Я этого не забуду.', false],
+  [4, '07:00', 'Как всегда: рубила дрова, носила воду, грелась у костра.', false],
+  [3, '21:20', 'Во рту песок. Я думаю о воде и больше ни о чём.', true],
+  [3, '16:00', 'Развела костёр. Тепло.', false],
+  [3, '09:40', 'Смастерила себе каменный нож.', false],
+  [2, '20:10', 'Я отбилась. Руки до сих пор трясутся.', true],
+  [2, '12:00', 'Маша дала мне поесть. Я умирала с голоду.', false],
+];
+function journalModel() {
+  const c = COLONY.find((x) => x.id === game.selected) || COLONY[0];
+  const read = side.read[c.id] ?? 2;
+  const entries = c.id === 14 ? [] : JOURNAL.map(([day, clock, text, danger], i) =>
+    ({ id: i, time: tr('history.time', { 0: day, 1: clock }), text, danger, unread: i < read }));
+  return { name: c.name, unread: entries.filter((e) => e.unread).length, entries };
+}
+function sendSide() {
+  if (!ready) return;
+  const inGame = isGame(state.dialog) && state.dialog !== 'gameNone' && state.dialog !== 'gameGroup';
+  if (side.health && inGame) post({ t: 'show', screen: 'health', model: healthModel() });
+  else { post({ t: 'hide', screen: 'health' }); side.health = false; side.healthRect = null; }
+  if (side.journal && inGame) post({ t: 'show', screen: 'journal', model: journalModel() });
+  else { post({ t: 'hide', screen: 'journal' }); side.journal = false; }
+}
+
 function sendFaces() {
   for (const def of ICONS) post({ t: 'asset', key: `icon:${def}`, url: `assets/icons/${def}.png` });
   for (const c of [...COLONY, ...OUTSIDERS]) post({ t: 'asset', key: `face:${c.id}`, url: thumb(c.skin, c.id % 2 ? 'LeonyPonytail' : 'Bob3Hair', 'tint.chestnut') });
@@ -235,6 +282,7 @@ function sendGame() {
   if (!ready || !isGame(state.dialog)) return;
   post({ t: 'show', screen: 'roster', model: rosterModel() });
   post({ t: 'show', screen: 'character', model: characterModel() });
+  if (side.health || side.journal) sendSide();
 }
 
 // Stand-only stand-ins for the thumbnails Unity renders from the real model.
@@ -435,7 +483,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -446,7 +494,10 @@ function showDialog(id) {
     drawWorld();
     sendHud();
     inv.open = id === 'gameInventory';
-    if (ready) { sendFaces(); sendGame(); sendInventory(); }
+    side.health = id === 'gameHealth';
+    side.journal = id === 'gameJournal';
+    if (side.health) game.selected = 13; // the most hurt one shows every kind of row
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -536,6 +587,16 @@ function handle(message) {
     sendInventory();
     return;
   }
+  if (message.screen === 'health' || message.screen === 'journal') {
+    const a = message.args || {};
+    if (message.cmd === 'dollRect') { side.healthRect = a.w > 0 ? a : null; drawWorld(); return; }
+    if (message.cmd === 'dollRotate') return;
+    note(key, `${args} → закрыть окно${message.screen === 'journal' ? ' (прочитанное запоминается до последней записи)' : ''}`);
+    if (message.screen === 'journal') { side.read[game.selected] = 0; side.journal = false; }
+    else { side.health = false; side.healthRect = null; drawWorld(); }
+    sendSide();
+    return;
+  }
   if (message.screen === 'roster' || message.screen === 'character') {
     const a = message.args || {};
     if (message.cmd === 'portraitRect') { game.portraitRect = a; drawWorld(); return; }
@@ -553,6 +614,8 @@ function handle(message) {
     if (message.cmd === 'control') game.control = a.mode;
     if (message.cmd === 'pace') game.pace = a.value;
     if (message.cmd === 'open' && a.window === 'inventory') { inv.open = true; sendInventory(); return; }
+    if (message.cmd === 'open' && a.window === 'health') { side.health = true; side.journal = false; sendSide(); return; }
+    if (message.cmd === 'open' && a.window === 'journal') { side.journal = true; side.health = false; sendSide(); return; }
     if (message.cmd === 'collapse') game.collapsed = true;
     if (message.cmd === 'expand') game.collapsed = false;
     sendGame();
@@ -707,16 +770,29 @@ function drawPortrait(g) {
 }
 
 // The inventory doll (CharacterDollStage), full figure, into dollRect.
-function drawDoll(g) {
-  const r = inv.dollRect;
-  if (!r || !inv.open || !art.island.naturalWidth) return;
+function drawDoll(g, r = inv.open ? inv.dollRect : null, zones = null) {
+  if (!r || !r.w || !art.island.naturalWidth) return;
   const img = art.island;
   const src = [img.naturalWidth * 0.405, 0, img.naturalWidth * 0.185, img.naturalHeight];
   const k = Math.min(r.w / src[2], r.h / src[3]);
   g.save();
   g.beginPath(); g.rect(r.x, r.y, r.w, r.h); g.clip();
   g.fillStyle = 'rgb(11 16 19)'; g.fillRect(r.x, r.y, r.w, r.h);
-  g.drawImage(img, ...src, r.x + (r.w - src[2] * k) / 2, r.y + (r.h - src[3] * k) / 2, src[2] * k, src[3] * k);
+  const dw = src[2] * k, dh = src[3] * k, dx = r.x + (r.w - dw) / 2, dy = r.y + (r.h - dh) / 2;
+  g.drawImage(img, ...src, dx, dy, dw, dh);
+  if (zones) {
+    // Stand-in for the zone overlay CharacterDollStage paints on the real doll.
+    const at = { Head: [0.5, 0.09, 0.09], Torso: [0.5, 0.29, 0.14], Pelvis: [0.5, 0.46, 0.11], ArmL: [0.27, 0.33, 0.07],
+      ArmR: [0.73, 0.33, 0.07], LegL: [0.41, 0.72, 0.09], LegR: [0.59, 0.72, 0.09] };
+    const mix = (a2, b2, t2) => a2.map((x, i) => Math.round(x + (b2[i] - x) * t2));
+    for (const z of healthModel().zones) {
+      const [fx, fy, fr] = at[z.id];
+      const v = z.severed ? -1 : Math.max(0, z.hp - z.critical);
+      const c = v < 0 ? [61, 43, 43] : v >= 0.5 ? mix([232, 178, 60], [92, 184, 84], (v - 0.5) * 2) : mix([232, 87, 79], [232, 178, 60], v * 2);
+      g.fillStyle = `rgb(${c.join(' ')} / 0.55)`;
+      g.beginPath(); g.ellipse(dx + fx * dw, dy + fy * dh, fr * dw * 1.6, fr * dh * 0.9, 0, 0, Math.PI * 2); g.fill();
+    }
+  }
   g.restore();
 }
 
@@ -728,7 +804,7 @@ function drawWorld() {
   const g = canvas.getContext('2d');
   if (isTitle(state.dialog)) { drawTitleArt(g, w, h); return; }
   if (isCreator(state.dialog)) { drawPreview(g, w, h); return; }
-  if (isGame(state.dialog)) { drawHexWorld(g, w, h); drawPortrait(g); drawDoll(g); return; }
+  if (isGame(state.dialog)) { drawHexWorld(g, w, h); drawPortrait(g); drawDoll(g); if (side.health) drawDoll(g, side.healthRect, true); return; }
   drawHexWorld(g, w, h);
 }
 

@@ -30666,6 +30666,86 @@ MonoBehaviour:
       - 'Очередь остановлена: {0}'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'health.bleeding'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'bleeding'
+      - 'кровотечение'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.bandaged'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'bandaged'
+      - 'перевязано'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.splint'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'splint {0}%'
+      - 'шина {0}%'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.wounds'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'wounds: {0}'
+      - 'ран: {0}'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.critical'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'deep trauma −{0}%'
+      - 'тяжёлая травма −{0}%'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.function'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'works at {0}%'
+      - 'работает на {0}%'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.cut'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'cuts'
+      - 'порезы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.blunt'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'bruises'
+      - 'ушибы'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.legend.good'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'unhurt'
+      - 'цела'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'health.legend.bad'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'badly hurt'
+      - 'тяжело'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

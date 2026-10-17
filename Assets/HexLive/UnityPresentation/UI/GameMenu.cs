@@ -2,6 +2,8 @@ using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Audio;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -12,6 +14,9 @@ namespace HexLive.UnityPresentation.UI
     /// The Escape menu. Escape while a character is selected still belongs to
     /// the camera (deselect); Escape with nothing selected opens this overlay:
     /// Continue (hide) or Quit (exit the game / stop play mode in the editor).
+    /// §174.7: in the web client the same menu is drawn by the page
+    /// (ui/screens/gameMenu.js); this class still decides when it opens and
+    /// what each button does, and keeps the UI Toolkit card for the desktop.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class GameMenu : MonoBehaviour
@@ -35,6 +40,11 @@ namespace HexLive.UnityPresentation.UI
         private Label _quitLabel;
         private Foldout _soundSettings;
         private readonly Label[] _soundLabels = new Label[4];
+
+        private const string HtmlScreen = "gameMenu";
+
+        // Opened as an HTML window (§174) rather than the UI Toolkit card.
+        private bool _openInHtml;
 
         private static readonly Color Dim = new(0f, 0f, 0f, 0.55f);
         private static readonly Color Panel = new(0.075f, 0.094f, 0.110f, 0.98f);
@@ -69,11 +79,18 @@ namespace HexLive.UnityPresentation.UI
             IsOpen = false; // fresh session; the overlay is built hidden
         }
 
-        private void OnEnable() => Loc.LanguageChanged += ApplyLanguage;
+        private void OnEnable()
+        {
+            Loc.LanguageChanged += ApplyLanguage;
+            HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
+        }
 
         private void OnDisable()
         {
             _windowModal?.Show(false);
+            HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
+            HtmlUi.Hide(HtmlScreen);
+            _openInHtml = false;
             Loc.LanguageChanged -= ApplyLanguage;
             PlayerPrefs.Save();
             if (IsOpen)
@@ -128,10 +145,31 @@ namespace HexLive.UnityPresentation.UI
 
             if (!open) PlayerPrefs.Save();
             IsOpen = open;
-            _windowModal?.Show(open);
-            if (_overlay != null)
+            // The page answers only in the browser; elsewhere — and if it is
+            // late — the UI Toolkit card stays. Decided per opening, so the
+            // close always goes to whichever one was shown.
+            if (open)
             {
-                _overlay.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
+                _openInHtml = HtmlUi.Active;
+            }
+
+            if (_openInHtml)
+            {
+                if (open) HtmlUi.Show(HtmlScreen, HtmlModel());
+                else HtmlUi.Hide(HtmlScreen);
+            }
+            else
+            {
+                _windowModal?.Show(open);
+                if (_overlay != null)
+                {
+                    _overlay.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
+                }
+            }
+
+            if (!open)
+            {
+                _openInHtml = false;
             }
 
             if (_runner == null)
@@ -248,6 +286,60 @@ namespace HexLive.UnityPresentation.UI
             if (Platform.WebPage.CanQuit)
             {
                 card.Add(quitButton);
+            }
+        }
+
+        // §174.7: model and commands of ui/screens/gameMenu.js.
+        private static JObject HtmlModel() => new()
+        {
+            ["canQuit"] = WebPage.CanQuit,
+            ["volumes"] = new JObject
+            {
+                ["voices"] = VolumePercent(FmodSfx.VolumeCategory.Voices),
+                ["agentVoices"] = VolumePercent(FmodSfx.VolumeCategory.AgentVoices),
+                ["music"] = VolumePercent(FmodSfx.VolumeCategory.Music),
+                ["environment"] = VolumePercent(FmodSfx.VolumeCategory.Environment),
+            },
+        };
+
+        private static int VolumePercent(FmodSfx.VolumeCategory category) =>
+            Mathf.RoundToInt(FmodSfx.GetUserVolume(category) * 100f);
+
+        private void OnHtmlCommand(string command, JObject args)
+        {
+            if (!IsOpen)
+            {
+                return; // a click that was already queued when Escape closed the menu
+            }
+
+            switch (command)
+            {
+                case "continue":
+                    SetOpen(false);
+                    break;
+                case "mainMenu":
+                    ReturnToMainMenu();
+                    break;
+                case "quit":
+                    if (WebPage.CanQuit) Quit();
+                    break;
+                case "volume":
+                    var category = (string)args["category"] switch
+                    {
+                        "voices" => FmodSfx.VolumeCategory.Voices,
+                        "agentVoices" => FmodSfx.VolumeCategory.AgentVoices,
+                        "music" => FmodSfx.VolumeCategory.Music,
+                        "environment" => FmodSfx.VolumeCategory.Environment,
+                        _ => (FmodSfx.VolumeCategory?)null,
+                    };
+                    if (category is { } known)
+                    {
+                        FmodSfx.SetUserVolume(known, Mathf.Clamp01(((float?)args["value"] ?? 100f) / 100f));
+                    }
+                    break;
+                default:
+                    Debug.LogWarning($"[GameMenu] unknown HTML command {command}");
+                    break;
             }
         }
 

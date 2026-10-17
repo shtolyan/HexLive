@@ -287,9 +287,9 @@ internal static class InventoryMath
         (npc.Needs.Thirst >= 0.8f || npc.Needs.Hunger >= 0.8f) &&
         DecisionSystem.HasCoconutOpportunity(npc, world);
 
-    // While the emergency knife is unfinished, the material pair is survival
-    // cargo, not generic stockpile junk.  NeedsDecay uses this when deciding
-    // which resources it may unload from a full pack.
+    // While the emergency knife is unfinished, every link in its stone →
+    // sharp-stone → lashed-knife chain is survival cargo, not generic stockpile
+    // junk. NeedsDecay uses this when deciding what a full pack may unload.
     internal static bool IsReservedEmergencyKnifeMaterial(
         WorldState world, NPCState npc, string definitionId)
     {
@@ -298,12 +298,27 @@ internal static class InventoryMath
             return false;
         }
 
+        var carriedSharpStones = 0;
+        var carriedRope = 0;
+        foreach (var item in npc.Inventory.Items)
+        {
+            if (item.DefinitionId == ContentIds.SharpStone) carriedSharpStones++;
+            if (item.DefinitionId == ContentIds.Rope) carriedRope++;
+        }
+
         var required = definitionId switch
         {
             ContentIds.Stick => RecipeCatalog.InputCount(
                 GoalType.CraftKnife, ContentIds.Stick),
-            ContentIds.Stone => RecipeCatalog.InputCount(
-                GoalType.CraftKnife, ContentIds.Stone),
+            ContentIds.SharpStone => RecipeCatalog.InputCount(
+                GoalType.CraftKnife, ContentIds.SharpStone),
+            ContentIds.Rope => RecipeCatalog.InputCount(
+                GoalType.CraftKnife, ContentIds.Rope),
+            ContentIds.Stone when carriedSharpStones < RecipeCatalog.InputCount(
+                GoalType.CraftKnife, ContentIds.SharpStone) => RecipeCatalog.InputCount(
+                    GoalType.CraftSharpStone, ContentIds.Stone),
+            ContentIds.Fiber when carriedRope < RecipeCatalog.InputCount(
+                GoalType.CraftKnife, ContentIds.Rope) => SimBalance.RopeFiberCost,
             _ => 0
         };
         if (required <= 0)
@@ -479,7 +494,8 @@ internal static class InventoryMath
     {
         var exactMaterial =
             goal == GoalType.GatherWood && incomingDefinitionId == ContentIds.Stick ||
-            goal == GoalType.GatherStone && incomingDefinitionId == ContentIds.Stone;
+            goal == GoalType.GatherStone && incomingDefinitionId == ContentIds.Stone ||
+            goal == GoalType.GatherFiber && incomingDefinitionId == ContentIds.Fiber;
         if (!exactMaterial || !NeedsEmergencyCoconutBlade(world, npc))
         {
             return null;

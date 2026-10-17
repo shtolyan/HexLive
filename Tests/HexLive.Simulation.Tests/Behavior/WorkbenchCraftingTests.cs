@@ -173,6 +173,7 @@ public sealed class WorkbenchCraftingTests
         var bandagesBefore = MedicalSupplyMath.BandageCount(crafter);
 
         Add(crafter, ContentIds.HerbLeaf, 2);
+        Add(crafter, ContentIds.Cloth, 1);
         var bandageStation = string.IsNullOrEmpty(
                 RecipeCatalog.StationOf(GoalType.CraftBandage))
             ? null
@@ -195,6 +196,7 @@ public sealed class WorkbenchCraftingTests
         });
 
         Add(crafter, ContentIds.Hide, 1);
+        Add(crafter, ContentIds.Cloth, 1);
         var leatherStation = string.IsNullOrEmpty(RecipeCatalog.StationOf(GoalType.CraftLeather))
             ? null
             : WorldObjectMutations.SpawnObject(
@@ -220,6 +222,7 @@ public sealed class WorkbenchCraftingTests
         crafter.CurrentJunction ??= world.Tiles.Items[crafter.Tile].Junctions[0];
 
         Add(crafter, ContentIds.HerbLeaf, 2);
+        Add(crafter, ContentIds.Cloth, 1);
         var bandageStation = string.IsNullOrEmpty(
                 RecipeCatalog.StationOf(GoalType.CraftBandage))
             ? null
@@ -366,6 +369,12 @@ public sealed class WorkbenchCraftingTests
             var ready = WorldObjectMutations.SpawnObject(
                 world, pair.Key, crafter.Fragment, crafter.Tile, anchor);
             new PerceptionSystem().Run(world);
+            // §138.6 generic recipes share one goal; the output id carried by
+            // the active order is what distinguishes hammer from every other
+            // data-only item recipe.
+            crafter.Plan.TargetItemDefinitionId = goal == GoalType.CraftItem
+                ? pair.Key
+                : string.Empty;
 
             Assert.That(CraftProjectMath.HasReachableCompletedOutput(
                     world, crafter, goal), Is.True,
@@ -585,6 +594,7 @@ public sealed class WorkbenchCraftingTests
         var station = WorldObjectMutations.SpawnObject(
             world, ContentIds.Campfire, crafter.Fragment, crafter.Tile, anchor);
         Add(crafter, ContentIds.Hide, 1);
+        Add(crafter, ContentIds.Cloth, 1);
         Assert.That(CraftProjectMath.TryBeginCycle(
             world, crafter, GoalType.CraftLeather, station, out var project), Is.True);
 
@@ -726,6 +736,7 @@ public sealed class WorkbenchCraftingTests
             patient.Inventory.Items.Clear();
             patient.Inventory.Capacity = 1;
             Add(patient, ContentIds.HerbLeaf, 2);
+            Add(patient, ContentIds.Cloth, 1);
             patient.Wounds.Clear();
             patient.Wounds.Add(new WoundState
             {

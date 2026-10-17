@@ -43,7 +43,6 @@ MonoBehaviour:
   ropeFiberCost: 1
   clothFiberCost: 4
   knifeStickCost: 1
-  knifeStoneCost: 1
   carcassDecayTicks: 2400
   butcherDurationTicks: 30
   carcassMeatYield: 2

@@ -2817,7 +2817,7 @@ internal static class ManualCommandExecutor
         // «выдохлась» (StaminaExhaustedThreshold). Еда/питьё/сон/подбор/лечение
         // не гейтятся: уставшей как раз положено пить и лечиться.
         if (npc.Needs.Stamina <= SimBalance.StaminaExhaustedThreshold &&
-            interactionType is InteractionType.Harvest or InteractionType.Process
+            interactionType is InteractionType.Harvest or InteractionType.Process or InteractionType.Plant
                 or InteractionType.Build or InteractionType.BuildRaft
                 or InteractionType.Craft or InteractionType.Butcher)
         {

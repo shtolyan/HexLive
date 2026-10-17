@@ -33,6 +33,9 @@ MonoBehaviour:
   - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc34, type: 2}
     itemId: 
     count: 2
+  - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc36, type: 2}
+    itemId:
+    count: 1
   attackClips: []
   armedIdle: {fileID: -203655887218126122, guid: 4b1c7d0af5eb04d6e9a1658453475d94, type: 3}
   armedWalk: {fileID: -203655887218126122, guid: 9e708ac3817d44062afa1909114df08c, type: 3}

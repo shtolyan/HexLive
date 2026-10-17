@@ -24,15 +24,22 @@ MonoBehaviour:
   twoHanded: 0
   attackSpeed: 1
   harvestSpeedMult: 0.75
-  capabilities: 0100000002000000
+  capabilities:
+  - 1
+  - 2
+  - 8192
+  - 2048
   craftable: 1
   craftStation: 0
   craftNeedsLitFire: 0
   craftIngredients:
+  - item: {fileID: 0}
+    itemId: tool.sharp_stone
+    count: 1
   - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc31, type: 2}
     itemId: 
     count: 1
-  - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc32, type: 2}
+  - item: {fileID: 11400000, guid: b5fb45ee9dde457ea63cb0c2403af1f0, type: 2}
     itemId: 
     count: 1
   handPoseAuthored: 1

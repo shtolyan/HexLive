@@ -117,6 +117,8 @@ namespace HexLive.Simulation.Content
             ["resource.hide"] = "🟫",
             ["resource.palm_leaf"] = "🍃",
             ["resource.herb_leaf"] = "🌿",
+            [ContentIds.HerbSeed] = "🌱",
+            [ContentIds.YuccaSeed] = "🌱",
             ["item.bandage"] = "🩹",
             [ContentIds.Pill] = "💊",
             [ContentIds.Splint] = "🩼",
@@ -349,6 +351,7 @@ namespace HexLive.Simulation.Content
         // этому полю звук удара. Живёт здесь, чтобы модель и вид читали одну
         // константу, а не две одинаковые строки в разных сборках.
         public const string Bite = "bite";
+        public const string SharpStone = "tool.sharp_stone";
         public const string Knife = "tool.knife";
         public const string Axe = "tool.axe_stone";
         public const string Machete = "tool.machete";
@@ -481,12 +484,17 @@ namespace HexLive.Simulation.Content
                     }
 
                     // Spec §54: yucca is cut with a blade, trees are felled.
-                    return tags != null && (tags.Contains("Yucca") || tags.Contains("HerbBush"))
+                    if (tags != null && tags.Contains("Yucca"))
+                    {
+                        return GearCapability.Cut | GearCapability.CutPlant;
+                    }
+
+                    return tags != null && tags.Contains("HerbBush")
                         ? GearCapability.Cut
                         : GearCapability.ChopWood;
                 case InteractionType.Process:
                     return tags != null && tags.Contains("Coconut")
-                        ? GearCapability.Cut
+                        ? GearCapability.OpenCoconut
                         : GearCapability.ChopWood;
                 case InteractionType.Butcher:
                     return GearCapability.Butcher;
@@ -548,6 +556,8 @@ namespace HexLive.Simulation.Content
             GearCapability.Mine, GearCapability.Hammer, GearCapability.Ignite,
             GearCapability.Saw, GearCapability.Sew,
             GearCapability.CarryWater, GearCapability.Dressing,
+            GearCapability.OpenCoconut, GearCapability.CutPlant,
+            GearCapability.ButcherAnimal, GearCapability.RemoveStump,
         };
 
         /// <summary>GOAP tool-pickup filter: does grabbing this gear ADD
@@ -660,6 +670,20 @@ namespace HexLive.Simulation.Content
                         new StrikeVariant(), // Kick B
                     },
                 },
+                [SharpStone] = new GearStats
+                {
+                    Id = SharpStone,
+                    Damage = 0.15f,
+                    CutFraction = 0.75f,
+                    BloodLossMultiplier = 0.75f,
+                    HitDelaySeconds = 0.75f,
+                    AttackDurationSeconds = 1.86f,
+                    CooldownSeconds = 1.14f,
+                    AttackSpeed = 0.8f,
+                    MeleePriority = 0,
+                    Capabilities = GearCapability.CutPlant | GearCapability.ButcherAnimal,
+                    HarvestSpeedMult = 0.5f,
+                },
                 [Knife] = new GearStats
                 {
                     Id = Knife,
@@ -671,7 +695,8 @@ namespace HexLive.Simulation.Content
                     CooldownSeconds = 0.88f,       // цикл 2.74 с сохранён
                     AttackSpeed = 1f,
                     MeleePriority = 10,
-                    Capabilities = GearCapability.Cut | GearCapability.Butcher,
+                    Capabilities = GearCapability.Cut | GearCapability.Butcher |
+                                   GearCapability.ButcherAnimal | GearCapability.OpenCoconut,
                     // §79: a knife is the WORST thing to chop with. It was tied
                     // with the axe at 1.0 before, which read as a bug — the same
                     // log split in the same time whichever blade she carried.
@@ -688,7 +713,8 @@ namespace HexLive.Simulation.Content
                     CooldownSeconds = 1.14f,      // цикл 3.0 с сохранён
                     AttackSpeed = 0.8f,
                     MeleePriority = 20,
-                    Capabilities = GearCapability.Cut | GearCapability.ChopWood,
+                    Capabilities = GearCapability.Cut | GearCapability.ChopWood |
+                                   GearCapability.OpenCoconut | GearCapability.RemoveStump,
                     HarvestSpeedMult = 1f,        // §79: the reference pace
                 },
                 // §79: железное мачете — не каменный век, а трофей. Ни скрафтить,
@@ -713,7 +739,8 @@ namespace HexLive.Simulation.Content
                     // Мачете делает всё, что делают нож и топор: режет, свежует,
                     // рубит дерево.
                     Capabilities = GearCapability.Cut | GearCapability.Butcher |
-                                   GearCapability.ChopWood,
+                                   GearCapability.ButcherAnimal | GearCapability.ChopWood |
+                                   GearCapability.OpenCoconut,
                     HarvestSpeedMult = 2f,        // §79: вдвое быстрее топора
                 },
                 [Spear] = new GearStats
@@ -811,8 +838,8 @@ namespace HexLive.Simulation.Content
     public enum GearCapability
     {
         None = 0,
-        Cut = 1 << 0,       // blade work: yucca fiber, coconut piercing, cordage
-        Butcher = 1 << 1,   // carcass/corpse butchering
+        Cut = 1 << 0,       // light blade work: yucca fiber and similar plants
+        Butcher = 1 << 1,   // human body butchering (finished knives only)
         ChopWood = 1 << 2,  // felling trees, splitting logs
         Mine = 1 << 3,      // boulder/rock mining
         Hammer = 1 << 4,    // raising build-sites
@@ -823,6 +850,10 @@ namespace HexLive.Simulation.Content
         Sew = 1 << 8,       // stitching (the needle, future)
         CarryWater = 1 << 9, // holds drinking water (the bottle)
         Dressing = 1 << 10, // wound dressing (the medkit bandage)
+        OpenCoconut = 1 << 11, // sturdy finished blade; sharp stone is too weak
+        CutPlant = 1 << 12, // crude edge accepted by yucca, not by log processing
+        ButcherAnimal = 1 << 13, // dress animal carcasses; sharp stone is enough
+        RemoveStump = 1 << 14, // §173: leverage reserved for an axe, not a machete/saw
     }
 
     /// <summary>One gear item's full sheet — weapon numbers, swing timing and

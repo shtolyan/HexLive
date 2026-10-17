@@ -14,7 +14,7 @@ namespace HexLive.UnityPresentation.Environment
     public static class PalmTreeFactory
     {
         public static bool IsPalm(string definitionId) =>
-            definitionId is "tree.palm";
+            definitionId is "tree.palm" or "plant.palm_sapling" or "tree.palm_young";
 
         public static GameObject? Build(string definitionId)
         {
@@ -26,6 +26,13 @@ namespace HexLive.UnityPresentation.Environment
 
             var palm = UnityEngine.Object.Instantiate(prefab);
             palm.name = $"Palm {definitionId}";
+            var growthScale = definitionId switch
+            {
+                "plant.palm_sapling" => 0.28f,
+                "tree.palm_young" => 0.5f,
+                _ => 1f,
+            };
+            palm.transform.localScale *= growthScale;
             StandingPalmCrownVisibility.Apply(palm);
             ConfigureTrunkPicking(palm);
             return palm;

@@ -123,6 +123,15 @@ public sealed class AssetRegistryStoreTests
         Assert.That(json["recipes"]!.AsArray().Count, Is.EqualTo(79));
         Assert.That(json["recipes"]!.AsArray().OfType<JsonObject>().Select(r => r["output"]!.GetValue<string>()),
             Is.EquivalentTo(rows.Select(r => r.GetProperty("id").GetString()).Append("resource.rope")));
+        foreach (var recipe in json["recipes"]!.AsArray().OfType<JsonObject>()
+                     .Where(r => r["output"]!.GetValue<string>() != "resource.rope"))
+        {
+            var cloth = recipe["inputs"]!.AsArray().OfType<JsonObject>()
+                .SingleOrDefault(input => input["id"]!.GetValue<string>() == "resource.cloth");
+            Assert.That(cloth, Is.Not.Null,
+                $"{recipe["output"]} must consume the shared cloth material.");
+            Assert.That(cloth!["count"]!.GetValue<int>(), Is.EqualTo(1));
+        }
     }
 
     [Test]

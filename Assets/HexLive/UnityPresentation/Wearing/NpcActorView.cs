@@ -4228,6 +4228,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // this visual alias is all the scene needs.
         var looting = !_legless && interaction == "Loot";
         var crafting = !_legless && interaction == "Craft";
+        // §173: planting uses the authored gardening/craft kneel.
+        var planting = !_legless && interaction == "Plant";
         var pouring = !_legless && interaction == "FillVessel";
         // §54.7: разделка использует тот же planting-style CraftWork, что
         // крафт/поиск тела, но остаётся одноручной — нож не снимается.
@@ -4250,7 +4252,7 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // там руки и правда работают.
         var praying = aidingOther && aidTargetLying && interaction == "ConsoleOther";
         // The solo craft always kneels; an aid kneels only over a lying ward.
-        var kneelingCraft = (crafting && !standingCraft) || pouring || looting || butchering ||
+        var kneelingCraft = (crafting && !standingCraft) || planting || pouring || looting || butchering ||
             (aidingOther && aidTargetLying && !praying);
         // §68/§53: ПЕРЕВЯЗКА. Раньше и своя (TreatSelf), и чужая над стоячей
         // не играли ничего вовсе — ActionFromInteraction возвращал на них
@@ -4277,11 +4279,17 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
         // §axe: chopping/mining with an axe or pickaxe now plays the looping Chop
         // clip instead of the crouch Working pose + procedural shoulder swing.
         var chopping = actionKind == ActionKind.Chop && !_legless && _hasUsableHand;
-        // §67: рубящий звук выбирает инструмент — кирка о камень, нож о
-        // кокос, топор о ствол (PollActionSounds бьёт его в такт клипу).
+        // §67/§172: рубящий звук выбирает способность инструмента — кирка о
+        // камень, лёгкая режущая кромка (нож/острый камень) по растению или
+        // кокосу, топор о ствол (PollActionSounds бьёт его в такт клипу).
+        var chopGear = HexLive.Simulation.Content.GearCatalog.For(heldItemId ?? string.Empty);
         _chopSfxId = !chopping ? string.Empty
-            : heldItemId != null && heldItemId.Contains("pickaxe") ? Audio.FmodSfx.Sfx.MineStone
-            : heldItemId != null && heldItemId.Contains("knife") ? Audio.FmodSfx.Sfx.ChopCoco
+            : chopGear.Has(HexLive.Simulation.Content.GearCapability.Mine)
+                ? Audio.FmodSfx.Sfx.MineStone
+            : (chopGear.Has(HexLive.Simulation.Content.GearCapability.CutPlant) ||
+               chopGear.Has(HexLive.Simulation.Content.GearCapability.Cut)) &&
+              !chopGear.Has(HexLive.Simulation.Content.GearCapability.ChopWood)
+                ? Audio.FmodSfx.Sfx.ChopCoco
             : Audio.FmodSfx.Sfx.ChopWood;
 
         if (_animator != null)
@@ -5455,7 +5463,8 @@ public sealed class NpcActorView : MonoBehaviour, UI.ISpeechStage
                 var chopping = gear.Id == heldItemId &&
                     (gear.Has(HexLive.Simulation.Content.GearCapability.ChopWood) ||
                      gear.Has(HexLive.Simulation.Content.GearCapability.Mine) ||
-                     gear.Has(HexLive.Simulation.Content.GearCapability.Cut));
+                     gear.Has(HexLive.Simulation.Content.GearCapability.Cut) ||
+                     gear.Has(HexLive.Simulation.Content.GearCapability.CutPlant));
                 return chopping ? ActionKind.Chop : ActionKind.Work;
             case "Process": // spec §54: splitting a log — an axe chop motion
                 return ActionKind.Chop;

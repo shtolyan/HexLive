@@ -1070,7 +1070,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                 else if (preferCoconutBlade)
                 {
                     var isBlade = ToolCandidateProvidesCapability(
-                        world, perceived, Content.GearCapability.Cut);
+                        world, perceived, Content.GearCapability.OpenCoconut);
                     if (selected is null ||
                         (isBlade && !selectedCoconutBlade) ||
                         (isBlade == selectedCoconutBlade &&
@@ -2170,6 +2170,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     SimBalance.CampfireSpitCapacity;
             case GoalType.CraftRope:
             case GoalType.CraftCloth:
+            case GoalType.CraftSharpStone:
             case GoalType.CraftKnife:
             case GoalType.CraftBandage:
             case GoalType.CraftSplint:
@@ -2237,6 +2238,7 @@ public sealed partial class PlanningSystem : ISimulationSystem
                     BuildSiteMath.IsSite(fsite) &&
                     DecisionSystem.IsOurSite(world, npc, fsite) &&
                     (DecisionSystem.CarriesSiteMaterial(npc, fsite) ||
+                     BuildSiteMath.HasReadyWork(world, fsite) ||
                      BuildSiteMath.IsStocked(fsite));
             case GoalType.BuildRaft:
                 return definition.HasTag("Raft");

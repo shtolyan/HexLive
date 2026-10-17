@@ -701,7 +701,7 @@ public enum GoalType
     CraftRope,    // §54: 3 fiber -> rope (lashing) at the campfire
     CraftCloth,   // §54: 4 fiber -> cloth at the campfire
     CraftKnife,   // §54: 1 stick + 1 stone -> knife at the campfire
-    Butcher,      // §54: knife a carcass/corpse into meat + hide (needs a knife)
+    Butcher,      // §54/§172: dress a carcass or body with its required blade capability
     CraftRack,    // drying rack: 2 logs at the campfire (iteration 21)
     DryClothes,   // hang the wettest garment / stand by the fire (iter 21)
     CraftBed,     // bedroll: 2 logs + 3 palm leaves (iteration 28)
@@ -803,7 +803,10 @@ public enum GoalType
     Romance,
 
     // §138.6 append-only: one manual goal for every data-only item recipe.
-    CraftItem
+    CraftItem,
+
+    // §172 append-only: knock two ordinary stones into a crude cutting flake.
+    CraftSharpStone
 }
 
 public sealed class GoalScore

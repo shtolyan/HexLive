@@ -10,8 +10,8 @@ public static class PrototypeContentCatalog
     {
         var defs = new Dictionary<string, ObjectDefinition>
         {
-            // A whole coconut is inert food/water: it must lie on the ground
-            // and be opened with a blade before anyone can drink it.
+            // A whole coconut can be opened for food/water or planted from its
+            // ground slot as the seed of a new palm (§173).
             ["food.coconut"] = new ObjectDefinition
             {
                 Id = "food.coconut",
@@ -22,7 +22,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "pierce.coconut",
                         Type = InteractionType.Process,
-                        RequiredCapabilities = { GearCapability.Cut },
+                        RequiredCapabilities = { GearCapability.OpenCoconut },
                         DurationTicks = SimBalance.CoconutProcessDurationTicks,
                         Yields = { new HarvestDrop { DefinitionId = "food.coconut_pierced", Count = 1, Scatter = false } }
                     },
@@ -32,9 +32,15 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.PickUp,
 
                         DurationTicks = 4
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "plant.coconut",
+                        Type = InteractionType.Plant,
+                        DurationTicks = WorldBalance.PlantingDurationTicks
                     }
                 },
-                Tags = { "Food", "Coconut" }
+                Tags = { "Food", "Coconut", "Seed" }
             },
             ["food.coconut_pierced"] = new ObjectDefinition
             {
@@ -285,7 +291,7 @@ public static class PrototypeContentCatalog
                 // Spec 31C.1 / §29A r2: obstacle — same footprint as the stump
                 // it leaves (0.3R), so the trunk blocks its anchor junction AND
                 // the ring around it; felling swaps one blocker for the other.
-                Tags = { "Flora", "Shade", "Palm", "Obstacle" },
+                Tags = { "Flora", "Shade", "Palm", "Obstacle", "SeedPlant" },
                 ObstacleRadius = 0.3f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
                 // Spec 43: palm_final mesh is 3.9 wu tall (~7 elevation steps).
                 ShadeSteps = 7f,
@@ -337,11 +343,49 @@ public static class PrototypeContentCatalog
                     MaxDistanceTiles = 1
                 }
             },
+            // §173: a planted coconut spends ten days in each of these three
+            // visible stages. Only the last juvenile can be felled; it yields
+            // one trunk segment and a small crown, then leaves the same stump.
+            [ContentIds.PalmSprout] = new ObjectDefinition
+            {
+                Id = ContentIds.PalmSprout,
+                DisplayName = "Palm sprout",
+                Tags = { "Flora", "GrowthStage", "PalmSeedling" }
+            },
+            [ContentIds.PalmSapling] = new ObjectDefinition
+            {
+                Id = ContentIds.PalmSapling,
+                DisplayName = "Palm sapling",
+                Tags = { "Flora", "GrowthStage", "PalmSeedling", "Shade" },
+                ShadeSteps = 2f,
+            },
+            [ContentIds.PalmYoung] = new ObjectDefinition
+            {
+                Id = ContentIds.PalmYoung,
+                DisplayName = "Young palm",
+                Tags = { "Flora", "GrowthStage", "Palm", "Shade", "Obstacle" },
+                ObstacleRadius = 0.15f * HexLive.Simulation.Spatial.HexSpatialMath.HexRadius,
+                ShadeSteps = 3.5f,
+                Interactions =
+                {
+                    new InteractionDefinition
+                    {
+                        Id = "chop.palm_young",
+                        Type = InteractionType.Harvest,
+                        RequiredCapabilities = { GearCapability.ChopWood, GearCapability.Saw },
+                        DurationTicks = 30,
+                        Yields =
+                        {
+                            new HarvestDrop { DefinitionId = ContentIds.Log, Count = 1, Scatter = true },
+                            new HarvestDrop { DefinitionId = "resource.palm_crown_small", Count = 1, Scatter = true }
+                        }
+                    }
+                }
+            },
             // Spec §54.2: the palm CROWN (верхушка) — the leafy top that lands when
             // a palm is felled. Chop it (Process, with an axe) to release the loose
-            // palm leaves. Two sizes were authored; since §54.2 retired the young
-            // palm, only the BIG palm's crown still drops from a tree — the small
-            // one is kept as a definition so older saves still resolve it.
+            // palm leaves. The small crown is dropped by the choppable third
+            // planted-palm stage; the mature tree keeps the large crown.
             ["resource.palm_crown"] = new ObjectDefinition
             {
                 Id = "resource.palm_crown",
@@ -598,7 +642,9 @@ public static class PrototypeContentCatalog
                 }
             },
             // Spec §54: an animal carcass — left on the map when a beast dies.
-            // Knife it (Butcher) for meat + hide; rots on the CorpseSystem clock.
+            // Dress it with a finished knife or a sharp stone; it rots on the
+            // CorpseSystem clock. Human-body butchering remains a distinct,
+            // finished-blade capability.
             // Variant records the animal (dog/rabbit) for the renderer.
             ["carcass.animal"] = new ObjectDefinition
             {
@@ -611,7 +657,7 @@ public static class PrototypeContentCatalog
                     {
                         Id = "butcher.carcass",
                         Type = InteractionType.Butcher,
-                        RequiredCapabilities = { GearCapability.Butcher },
+                        RequiredCapabilities = { GearCapability.ButcherAnimal },
                         DurationTicks = SimBalance.ButcherDurationTicks,
                         Yields =
                         {
@@ -1037,9 +1083,21 @@ public static class PrototypeContentCatalog
                         Type = InteractionType.Sit,
                         DurationTicks = 70,
                         Effects = { ComfortDelta = SimBalance.GroundSitComfortLedge }
+                    },
+                    new InteractionDefinition
+                    {
+                        Id = "remove.stump",
+                        Type = InteractionType.Process,
+                        RequiredCapabilities = { GearCapability.RemoveStump },
+                        DurationTicks = WorldBalance.PalmStumpRemovalTicks,
+                        Yields =
+                        {
+                            new HarvestDrop { DefinitionId = ContentIds.Stick, Count = 10, Scatter = true },
+                            new HarvestDrop { DefinitionId = ContentIds.Log, Count = 10, Scatter = true }
+                        }
                     }
                 },
-                Tags = { "Stump", "Obstacle" }
+                Tags = { "Stump", "PalmStump", "Obstacle" }
             },
             ["bed.basic"] = new ObjectDefinition
             {
@@ -1103,7 +1161,7 @@ public static class PrototypeContentCatalog
         {
             Id = "herb.bush",
             DisplayName = "Healing herb",
-            Tags = { "Flora", "HerbBush" },
+            Tags = { "Flora", "HerbBush", "SeedPlant" },
             Produce = new ProduceDefinition
             {
                 ProducedDefinitionId = "resource.herb_leaf",
@@ -1123,10 +1181,18 @@ public static class PrototypeContentCatalog
                     Id = "strip.herb",
                     Type = InteractionType.Harvest,
                     DurationTicks = 8,
-                    Yields = { new HarvestDrop { DefinitionId = "resource.herb_leaf", Count = 3, Scatter = true } }
+                    Yields =
+                    {
+                        new HarvestDrop { DefinitionId = "resource.herb_leaf", Count = 3, Scatter = true },
+                        new HarvestDrop { DefinitionId = ContentIds.HerbSeed, Count = 2, Scatter = true }
+                    }
                 }
             }
         };
+        defs[ContentIds.HerbSprout] = GrowthStage(ContentIds.HerbSprout, "Healing herb sprout", "HerbGrowth");
+        defs[ContentIds.HerbYoung] = GrowthStage(ContentIds.HerbYoung, "Young healing herb", "HerbGrowth");
+        defs[ContentIds.HerbBudding] = GrowthStage(ContentIds.HerbBudding, "Budding healing herb", "HerbGrowth");
+        defs[ContentIds.HerbSeed] = Seed(ContentIds.HerbSeed, "Healing herb seed", "plant.herb_seed");
         defs["resource.herb_leaf"] = new ObjectDefinition
         {
             Id = "resource.herb_leaf",
@@ -1151,22 +1217,31 @@ public static class PrototypeContentCatalog
         {
             Id = "plant.yucca",
             DisplayName = "Yucca",
-            Tags = { "Flora", "Yucca" },
+            Tags = { "Flora", "Yucca", "SeedPlant" },
             Interactions =
             {
                 new InteractionDefinition
                 {
                     Id = "cut.yucca",
                     Type = InteractionType.Harvest,
+                    RequiredCapabilities = { GearCapability.Cut, GearCapability.CutPlant },
                     // §84: the yucca falls like a tree, only ~6× quicker — the
                     // big palm is 60 authored ticks, so the stalk is 10 (§79
                     // then re-paces by the blade: knife 0.75 → 13, axe 10,
                     // machete 5).
                     DurationTicks = 10,
-                    Yields = { new HarvestDrop { DefinitionId = "resource.fiber", Count = SimBalance.FiberPerPlant, Scatter = true } }
+                    Yields =
+                    {
+                        new HarvestDrop { DefinitionId = "resource.fiber", Count = SimBalance.FiberPerPlant, Scatter = true },
+                        new HarvestDrop { DefinitionId = ContentIds.YuccaSeed, Count = 2, Scatter = true }
+                    }
                 }
             }
         };
+        defs[ContentIds.YuccaSprout] = GrowthStage(ContentIds.YuccaSprout, "Yucca sprout", "YuccaGrowth");
+        defs[ContentIds.YuccaYoung] = GrowthStage(ContentIds.YuccaYoung, "Young yucca", "YuccaGrowth");
+        defs[ContentIds.YuccaJuvenile] = GrowthStage(ContentIds.YuccaJuvenile, "Juvenile yucca", "YuccaGrowth");
+        defs[ContentIds.YuccaSeed] = Seed(ContentIds.YuccaSeed, "Yucca seed", "plant.yucca_seed");
         defs["resource.fiber"] = new ObjectDefinition
         {
             Id = "resource.fiber",
@@ -1195,6 +1270,21 @@ public static class PrototypeContentCatalog
             Interactions =
             {
                 new InteractionDefinition { Id = "pickup.cloth", Type = InteractionType.PickUp, DurationTicks = 4 }
+            }
+        };
+        // §172: a crude chipped flake. It cuts plants and dresses animals, but
+        // lacks the leverage and durable edge required to split a coconut.
+        defs[ContentIds.SharpStone] = new ObjectDefinition
+        {
+            Id = ContentIds.SharpStone,
+            DisplayName = "Sharp stone",
+            Tags = { "Tool", "SharpStone" },
+            Interactions =
+            {
+                new InteractionDefinition
+                {
+                    Id = "pickup.sharp_stone", Type = InteractionType.PickUp, DurationTicks = 4
+                }
             }
         };
         // Spec §54: the knife — a multi-use Tool required to butcher a carcass.
@@ -1326,6 +1416,35 @@ public static class PrototypeContentCatalog
         }
         HumanMeatCatalog.AppendDefinitions(defs);
         return defs;
+    }
+
+    private static ObjectDefinition GrowthStage(string id, string displayName, string familyTag)
+    {
+        var definition = new ObjectDefinition { Id = id, DisplayName = displayName };
+        definition.Tags.Add("Flora");
+        definition.Tags.Add("GrowthStage");
+        definition.Tags.Add(familyTag);
+        return definition;
+    }
+
+    private static ObjectDefinition Seed(string id, string displayName, string plantInteractionId)
+    {
+        var definition = new ObjectDefinition { Id = id, DisplayName = displayName };
+        definition.Tags.Add("Seed");
+        definition.Tags.Add("Resource");
+        definition.Interactions.Add(new InteractionDefinition
+        {
+            Id = plantInteractionId,
+            Type = InteractionType.Plant,
+            DurationTicks = WorldBalance.PlantingDurationTicks,
+        });
+        definition.Interactions.Add(new InteractionDefinition
+        {
+            Id = "pickup." + id,
+            Type = InteractionType.PickUp,
+            DurationTicks = 4,
+        });
+        return definition;
     }
 }
 

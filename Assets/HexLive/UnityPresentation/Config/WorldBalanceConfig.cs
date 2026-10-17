@@ -56,8 +56,21 @@ namespace HexLive.UnityPresentation.Config
         [Range(1f, 60f)] public float fireBurnPerSlowTick = 16f;
         [Tooltip("Через сколько тиков сгнивает неподобранный фрукт на земле.")]
         [Range(300, 9600)] public int fruitRotTicks = 2400;
-        [Tooltip("#315: из пня вырастает новая пальма через столько тиков (сутки = 24000).")]
-        [Range(24000, 2400000)] public int stumpRegrowTicks = 480000;
+        [Header("Посадка и рост растений (§173)")]
+        [Tooltip("Сколько тиков занимает ручная посадка кокоса или семени.")]
+        [Range(1, 240)] public int plantingDurationTicks = 16;
+        [Tooltip("Длительность КАЖДОЙ из трёх стадий пальмы. 240000 = 10 игровых суток; зрелость наступает через 30 суток.")]
+        [Range(24000, 1200000)] public int palmGrowthStageTicks = 240000;
+        [Tooltip("Длительность КАЖДОЙ из трёх стадий лечебной травы. 80000 × 3 = 10 игровых суток.")]
+        [Range(8000, 240000)] public int herbGrowthStageTicks = 80000;
+        [Tooltip("Длительность КАЖДОЙ из трёх стадий юкки. 80000 × 3 = 10 игровых суток.")]
+        [Range(8000, 240000)] public int yuccaGrowthStageTicks = 80000;
+        [Tooltip("Трудоёмкость корчёвки пальмового пня топором. 300 = в пять раз дольше взрослой пальмы (60).")]
+        [Range(60, 2400)] public int palmStumpRemovalTicks = 300;
+        [Tooltip("Шанс получить семя лечебной травы вместе с очередным пассивно упавшим листом.")]
+        [Range(0f, 1f)] public float herbSeedDropChance = 0.2f;
+        [Tooltip("Сколько пассивно выпавших семян лечебной травы может лежать возле одного куста.")]
+        [Range(0, 12)] public int herbSeedGroundCap = 2;
         [Tooltip("§29A r2: фрукт падает не ближе стольких радиусов ствола (ObstacleRadius) от дерева. Один радиус — непроходимое кольцо, второй — отступ падения. 0 = без отступа.")]
         [Range(0f, 4f)] public float fruitDropClearanceFactor = 2f;
 

@@ -26,6 +26,10 @@
         {"id":"resource.log","source":"Resources/HexLive/Objects/resource.log.fbx","native":"resource.log.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Bark","Sapwood","Heartwood"],"alpha":"opaque"},
         {"id":"resource.stick","source":"Resources/HexLive/Objects/resource.stick.fbx","native":"resource.stick.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Bark","Heartwood"],"alpha":"opaque"},
         {"id":"resource.board","source":"Tools/make_board_model.py","native":"resource.board.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["Board_Sapwood","Board_Grain","Board_EndGrain"],"alpha":"opaque"},
+        {"id":"resource.cloth","source":"Tools/make_cloth_model.py","native":"resource.cloth.fbx","mode":"existing-native","minRenderers":2,"materialSlots":["Cloth.Indigo","Cloth.Edge"],"alpha":"opaque"},
+        {"id":"resource.herb_seed","source":"Tools/make_plant_seed_models.py","native":"resource.herb_seed.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["PlantSeed_Herb"],"alpha":"opaque"},
+        {"id":"resource.yucca_seed","source":"Tools/make_plant_seed_models.py","native":"resource.yucca_seed.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["PlantSeed_Yucca"],"alpha":"opaque"},
+        {"id":"tool.sharp_stone","source":"Tools/make_sharp_stone_model.py","native":"tool.sharp_stone.fbx","mode":"existing-native","minRenderers":1,"materialSlots":["SharpStone_Mid","SharpStone_Light","SharpStone_Dark","SharpStone_Edge"],"alpha":"opaque"},
         {"id":"station.drying_rack","source":"resource.stick.fbx + rope_lashing.fbx","native":"runtime assembly","mode":"native-assembly","minRenderers":8,"materialSlots":["Bark","Heartwood"],"alpha":"opaque","stagedBill":{"sticks":4,"rope":4}}
     ],
     "addressableNativeGroups": [

@@ -14,6 +14,7 @@ public sealed class GroundPileLayoutTests
     [TestCase("food.meat_raw",.27f)]
     [TestCase("tool.bottle",.27f)]
     [TestCase("tool.spear",1.35f)]
+    [TestCase("tool.sharp_stone",.18f)]
     [TestCase("tool.lighter",.108f)]
     [TestCase("resource.rope",.15f)]
     [TestCase("med.splint",.18f)]

@@ -87,7 +87,77 @@ const OUTSIDERS = [{ id: 41, name: 'Кшиштоф', skin: 'Kshishtof', health: 
 const game = { selected: 16, group: [], collapsed: false, control: 'manual', pace: 'walk', portraitRect: null };
 const healthColor = (h) => (h >= 0.6 ? 'rgb(193 219 141)' : h >= 0.3 ? 'rgb(240 180 92)' : 'rgb(232 104 92)');
 
+// ---- the backpack window: real icons from HexLiveContent/Icons ----
+const ICONS = ['food.coconut', 'food.coconut_open', 'food.meat_cooked', 'tool.axe_stone', 'tool.knife', 'tool.sharp_stone',
+  'tool.pickaxe_stone', 'resource.stone', 'resource.rope', 'resource.stick', 'resource.palm_leaf', 'resource.log',
+  'resource.hide', 'resource.cloth', 'clothing.top_primal', 'underwear.briefs_primal', 'clothing.skirt_primal'];
+const inv = {
+  open: false, locked: false, layer: 'wear', dollRect: null, nextUid: 100,
+  items: [
+    ['food.coconut', 2], ['food.coconut_open', 1], ['tool.axe_stone', 1, { inUse: true, favorite: true }], ['tool.knife', 1],
+    ['tool.sharp_stone', 1], ['resource.stone', 5], ['resource.rope', 2], ['resource.stick', 6], ['resource.palm_leaf', 3],
+    ['resource.log', 1], ['resource.hide', 1], ['food.meat_cooked', 1], ['resource.cloth', 2],
+    ['clothing.top_primal', 1, { worn: true }], ['underwear.briefs_primal', 1, { worn: true }], ['clothing.skirt_primal', 1],
+  ].map(([def, count, extra], i) => ({ uid: i + 1, def, count, ...(extra || {}) })),
+};
+const tr = (key, vars) => {
+  let text = strings[state.lang]?.[key] ?? key;
+  if (vars) for (const [k, v] of Object.entries(vars)) text = text.replace(`{${k}}`, v);
+  return text;
+};
+const itemName = (def) => tr(`item.${def.replace('.', '_')}.name`);
+const isClothing = (def) => def.startsWith('clothing.') || def.startsWith('underwear.');
+
+function itemDetail(it) {
+  const kind = it.def.split('.')[0];
+  const stats = kind === 'tool' ? [['inv.durability', '86%'], ['inv.damage', it.def === 'tool.axe_stone' ? '14' : '9'], ['inv.cadence', '1.4 с'], ['inv.grip', tr('inv.hands')]]
+    : kind === 'food' ? [['inv.restores', '25%'], ['inv.hydrates', it.def === 'food.coconut_open' ? '30%' : '5%']]
+    : isClothing(it.def) ? [['inv.warmth', '+2'], ['inv.armor', '4%'], ['inv.layer', tr(it.def.startsWith('underwear') ? 'layer.underwear' : 'layer.wear')], ['inv.clothing_hp', '92%']]
+    : [['inv.stack', `${it.count} / 10`]];
+  const actions = isClothing(it.def) ? [it.worn ? 'stow' : 'wear', 'drop'] : ['drop'];
+  return { category: tr(`craft.category.${kind === 'tool' ? 'tools' : kind === 'food' ? 'food' : isClothing(it.def) ? 'clothing' : 'resources'}`),
+    desc: strings[state.lang]?.[`item.${it.def.replace('.', '_')}.desc`] || '', stats, actions };
+}
+
+function inventoryModel() {
+  const c = COLONY.find((x) => x.id === game.selected) || COLONY[0];
+  return {
+    name: c.name, readonly: false, outfitLocked: inv.locked, capacity: { used: inv.items.filter((i) => !i.worn).length, cap: 20 },
+    slots: 20, dollLayer: inv.layer,
+    items: inv.items.map((it) => ({ ...it, icon: `icon:${it.def}`, name: itemName(it.def), detail: itemDetail(it) })),
+    craft: {
+      blocked: game.control === 'manual' ? null : 'craft.block.NotManual',
+      categories: ['tools', 'resources', 'food', 'clothing'],
+      recipes: [
+        { id: 'sharp', icon: 'icon:tool.sharp_stone', name: itemName('tool.sharp_stone'), category: 'tools' },
+        { id: 'axe', icon: 'icon:tool.axe_stone', name: itemName('tool.axe_stone'), category: 'tools', working: true },
+        { id: 'pick', icon: 'icon:tool.pickaxe_stone', name: itemName('tool.pickaxe_stone'), category: 'tools' },
+        { id: 'rope', icon: 'icon:resource.rope', name: itemName('resource.rope'), category: 'resources' },
+        { id: 'cloth', icon: 'icon:resource.cloth', name: itemName('resource.cloth'), category: 'resources' },
+        { id: 'meat', icon: 'icon:food.meat_cooked', name: itemName('food.meat_cooked'), category: 'food' },
+        { id: 'top', icon: 'icon:clothing.top_primal', name: itemName('clothing.top_primal'), category: 'clothing' },
+      ],
+      detail: {
+        sharp: { ingredients: [{ icon: 'icon:resource.stone', name: itemName('resource.stone'), have: 5, need: 2 }], station: null, progress: 0, block: null, button: 'create' },
+        axe: { ingredients: [{ icon: 'icon:resource.stick', name: itemName('resource.stick'), have: 6, need: 1 }, { icon: 'icon:tool.sharp_stone', name: itemName('tool.sharp_stone'), have: 1, need: 1 }, { icon: 'icon:resource.rope', name: itemName('resource.rope'), have: 2, need: 1 }], station: 'workbench', progress: 0.45, block: null, button: 'working' },
+        pick: { ingredients: [{ icon: 'icon:resource.stick', name: itemName('resource.stick'), have: 6, need: 1 }, { icon: 'icon:resource.stone', name: itemName('resource.stone'), have: 5, need: 3 }, { icon: 'icon:resource.rope', name: itemName('resource.rope'), have: 2, need: 2 }], station: 'workbench', progress: 0, block: 'StationBusy', button: 'create' },
+        rope: { ingredients: [{ icon: 'icon:resource.palm_leaf', name: itemName('resource.palm_leaf'), have: 3, need: 4 }], station: null, progress: 0, block: 'MissingResources', button: 'create' },
+        cloth: { ingredients: [{ icon: 'icon:resource.palm_leaf', name: itemName('resource.palm_leaf'), have: 3, need: 2 }], station: 'workbench', progress: 0.2, block: null, button: 'continue' },
+        meat: { ingredients: [{ icon: 'icon:food.meat_cooked', name: itemName('food.meat_cooked'), have: 1, need: 1 }], station: 'campfire', progress: 0, block: 'Unreachable', button: 'create' },
+        top: { ingredients: [{ icon: 'icon:resource.hide', name: itemName('resource.hide'), have: 1, need: 2 }], station: 'workbench', progress: 0, block: 'MissingResources', button: 'create' },
+      },
+    },
+  };
+}
+
+function sendInventory() {
+  if (!ready) return;
+  if (inv.open && isGame(state.dialog)) post({ t: 'show', screen: 'inventory', model: inventoryModel() });
+  else post({ t: 'hide', screen: 'inventory' });
+}
+
 function sendFaces() {
+  for (const def of ICONS) post({ t: 'asset', key: `icon:${def}`, url: `assets/icons/${def}.png` });
   for (const c of [...COLONY, ...OUTSIDERS]) post({ t: 'asset', key: `face:${c.id}`, url: thumb(c.skin, c.id % 2 ? 'LeonyPonytail' : 'Bob3Hair', 'tint.chestnut') });
 }
 
@@ -339,7 +409,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) for (const screen of GAME_SCREENS) post({ t: 'hide', screen });
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -349,7 +419,8 @@ function showDialog(id) {
     if (id === 'gameGroup') game.group = [11, 12, 15]; else game.group = [];
     drawWorld();
     sendHud();
-    if (ready) { sendFaces(); sendGame(); }
+    inv.open = id === 'gameInventory';
+    if (ready) { sendFaces(); sendGame(); sendInventory(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -419,6 +490,24 @@ function handle(message) {
     note(key, args).dataset.volume = message.args.category;
     return;
   }
+  if (message.screen === 'inventory') {
+    const a = message.args || {};
+    if (message.cmd === 'dollRect') { inv.dollRect = a; drawWorld(); return; }
+    if (message.cmd === 'dollRotate') return;
+    note(key, `${args} → ${{ close: 'закрыть окно', action: 'надеть / снять / выбросить вещь', outfitLock: 'закрепить одежду',
+      dollLayer: 'показать слой одежды на кукле', craft: 'начать изготовление' }[message.cmd] || '?'}`);
+    if (message.cmd === 'close') { inv.open = false; inv.dollRect = null; drawWorld(); }
+    if (message.cmd === 'outfitLock') inv.locked = !!a.value;
+    if (message.cmd === 'dollLayer') inv.layer = a.layer;
+    if (message.cmd === 'action') {
+      const it = inv.items.find((x) => x.uid === a.uid);
+      if (it && a.kind === 'wear') it.worn = true;
+      if (it && a.kind === 'stow') it.worn = false;
+      if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
+    }
+    sendInventory();
+    return;
+  }
   if (message.screen === 'roster' || message.screen === 'character') {
     const a = message.args || {};
     if (message.cmd === 'portraitRect') { game.portraitRect = a; drawWorld(); return; }
@@ -435,6 +524,7 @@ function handle(message) {
     if (message.cmd === 'selectClan') { game.group = COLONY.map((c) => c.id); showDialog('gameGroup'); return; }
     if (message.cmd === 'control') game.control = a.mode;
     if (message.cmd === 'pace') game.pace = a.value;
+    if (message.cmd === 'open' && a.window === 'inventory') { inv.open = true; sendInventory(); return; }
     if (message.cmd === 'collapse') game.collapsed = true;
     if (message.cmd === 'expand') game.collapsed = false;
     sendGame();
@@ -588,6 +678,20 @@ function drawPortrait(g) {
   g.restore();
 }
 
+// The inventory doll (CharacterDollStage), full figure, into dollRect.
+function drawDoll(g) {
+  const r = inv.dollRect;
+  if (!r || !inv.open || !art.island.naturalWidth) return;
+  const img = art.island;
+  const src = [img.naturalWidth * 0.405, 0, img.naturalWidth * 0.185, img.naturalHeight];
+  const k = Math.min(r.w / src[2], r.h / src[3]);
+  g.save();
+  g.beginPath(); g.rect(r.x, r.y, r.w, r.h); g.clip();
+  g.fillStyle = 'rgb(11 16 19)'; g.fillRect(r.x, r.y, r.w, r.h);
+  g.drawImage(img, ...src, r.x + (r.w - src[2] * k) / 2, r.y + (r.h - src[3] * k) / 2, src[2] * k, src[3] * k);
+  g.restore();
+}
+
 function drawWorld() {
   const canvas = $('world');
   const [w, h] = state.size;
@@ -596,7 +700,7 @@ function drawWorld() {
   const g = canvas.getContext('2d');
   if (isTitle(state.dialog)) { drawTitleArt(g, w, h); return; }
   if (isCreator(state.dialog)) { drawPreview(g, w, h); return; }
-  if (isGame(state.dialog)) { drawHexWorld(g, w, h); drawPortrait(g); return; }
+  if (isGame(state.dialog)) { drawHexWorld(g, w, h); drawPortrait(g); drawDoll(g); return; }
   drawHexWorld(g, w, h);
 }
 

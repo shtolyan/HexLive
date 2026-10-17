@@ -8,13 +8,19 @@ function App() {
   const [, setVersion] = useState(0);
   useEffect(() => bridge.subscribe(() => setVersion((v) => v + 1)), []);
   const open = [...bridge.openScreens()];
-  return html`${open.map(([id, model]) => {
+  // §174.3: a screen with a hole for Unity (Screen.covers) hides the HTML
+  // screens below it — a hole shows whatever lies under it on the page, and
+  // a roster under the backpack would cover the doll Unity draws there.
+  let cover = -1;
+  open.forEach(([id], i) => { if (SCREENS[id]?.covers) cover = i; });
+  return html`${open.map(([id, model], i) => {
     const Screen = SCREENS[id];
     if (!Screen) {
       console.warn(`[HexUi] no screen "${id}"`);
       return null;
     }
-    return html`<${Screen} key=${id} model=${model} send=${(cmd, args) => bridge.send(id, cmd, args)} />`;
+    return html`<div key=${id} class="hx-screen" style=${i < cover ? 'visibility:hidden' : ''}>
+      <${Screen} model=${model} send=${(cmd, args) => bridge.send(id, cmd, args)} /></div>`;
   })}`;
 }
 

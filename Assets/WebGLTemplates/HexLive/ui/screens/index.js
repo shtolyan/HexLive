@@ -9,6 +9,7 @@ import { Title } from './title.js';
 import { Creator } from './creator.js';
 import { Roster } from './roster.js';
 import { Character } from './character.js';
+import { Inventory } from './inventory.js';
 
 export const SCREENS = {
   title: Title,
@@ -16,6 +17,7 @@ export const SCREENS = {
   hud: Hud,
   roster: Roster,
   character: Character,
+  inventory: Inventory,
   gameMenu: GameMenu,
   connectionLost: ConnectionLost,
   protocolUpdate: ProtocolUpdate,

@@ -292,6 +292,8 @@ function Gate({ model, send }) {
     </div>`;
 }
 
+Creator.covers = true;
+
 export function Creator({ model, send }) {
   if (model.phase !== 'editing') return html`<${Gate} model=${model} send=${send} />`;
   return html`<${Editor} model=${model} send=${send} />`;

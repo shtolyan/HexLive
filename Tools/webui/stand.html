@@ -100,7 +100,10 @@
   <div class="bar bar--second">
     <div class="field">Окно
       <div class="seg seg--wrap" role="group" aria-label="Окно">
-        <button type="button" id="dialog-gameMenu" data-dialog="gameMenu" aria-pressed="true">Игровое меню</button>
+        <button type="button" id="dialog-titleServers" data-dialog="titleServers" aria-pressed="true">Выбор сервера</button>
+        <button type="button" id="dialog-titleLoading" data-dialog="titleLoading" aria-pressed="false">Загрузка</button>
+        <button type="button" id="dialog-titleError" data-dialog="titleError" aria-pressed="false">Ошибка подключения</button>
+        <button type="button" id="dialog-gameMenu" data-dialog="gameMenu" aria-pressed="false">Игровое меню</button>
         <button type="button" id="dialog-connectionLost" data-dialog="connectionLost" aria-pressed="false">Связь потеряна</button>
         <button type="button" id="dialog-protocolUpdate" data-dialog="protocolUpdate" aria-pressed="false">Нужно обновление</button>
         <button type="button" id="dialog-playerAssignment" data-dialog="playerAssignment" aria-pressed="false">Ваш персонаж</button>
@@ -138,11 +141,11 @@
       <section class="card">
         <h2>Что проверить</h2>
         <ul>
-          <li><b>Полоса сверху</b> (HUD): день, температура, погода, часы, связь слева; пауза и скорость по центру. В браузере мир общий, поэтому пауза и ускорение видны, но выключены, подсказка объясняет почему. Переключите «Десктоп», чтобы увидеть рабочие кнопки.</li>
-          <li><b>Связь потеряна</b>: закрыть нельзя, только «ОК» в главное меню. Техническая причина мелко и тускло, её можно выделить и скопировать для баг-репорта.</li>
-          <li><b>Нужно обновление</b>: в браузере «Обновить» перезагружает страницу. Раньше вместо текста здесь были ключи вроде update.required.title, тексты добавлены.</li>
-          <li><b>Ваш персонаж</b>: характеристики шкалами из десяти делений с числом, описание всплывает при наведении. Черты с пояснением. Вариант «Замена после смерти» сначала сообщает о потере.</li>
-          <li>Игровое меню согласовано, в нём ничего не менялось.</li>
+          <li><b>Выбор сервера</b>: так браузерная игра встречает игрока. Фон и логотип по-прежнему рисует Unity, HTML рисует только карточку. Пока измеряется пинг, точка мигает, потом становится зелёной, жёлтой или красной. «Играть» нажимается только у готового сервера, Нью-Йорк пока выключен.</li>
+          <li><b>Загрузка</b>: полоса внизу, как сейчас, но с процентом и рядом шагов «Связь → Мир → Остров → Колонистки». Первая загрузка через медленный канал идёт минуты, и по шагам видно, что дело движется. На стенде загрузка идёт по кругу.</li>
+          <li><b>Ошибка подключения</b>: причина видна прямо на карточке, кнопки снова нажимаются. Сейчас после ошибки строки остаются выключенными, это исправится вместе с переездом.</li>
+          <li>Создание персонажа пока остаётся на UI Toolkit: пока оно открыто, HTML-карточка прячется.</li>
+          <li>HUD, диалоги и игровое меню согласованы и уже подключены, их можно посмотреть ниже в списке окон.</li>
         </ul>
       </section>
       <section class="card">

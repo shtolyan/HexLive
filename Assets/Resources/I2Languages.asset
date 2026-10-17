@@ -30592,6 +30592,46 @@ MonoBehaviour:
       - 'Характеристики'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'loading.step.connect'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Connection'
+      - 'Связь'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.step.sync'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'World'
+      - 'Мир'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.step.island'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Island'
+      - 'Остров'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'loading.step.people'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Colonists'
+      - 'Колонистки'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'menu.servers.retry'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Try again'
+      - 'Попробовать снова'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

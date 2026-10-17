@@ -7,7 +7,7 @@ const state = {
   lang: 'ru',
   platform: 'web', // web = shared server world (remote), desktop = local game
   size: [960, 600],
-  dialog: 'gameMenu', // the window picked in the bar; null once it is closed
+  dialog: 'titleServers', // the window picked in the bar; null once it is closed
   volumes: { voices: 80, agentVoices: 100, music: 55, environment: 90 },
   updateFailed: false,
   hud: { day: 12, minutes: 14 * 60 + 20, raining: false, link: 'live', paused: false, speed: 1 },
@@ -15,6 +15,67 @@ const state = {
 const strings = {};
 let ready = false;
 let shownDialog = null;
+
+// ---- the title screen (LoadingScreen.cs): servers, loading, failure ----
+const SERVERS = [
+  { id: 'singapore', nameTerm: 'menu.servers.singapore', name: 'Singapore', ping: -1, state: 'pending' },
+  { id: 'new-york', nameTerm: 'menu.servers.newyork', name: 'New York', ping: -1, state: 'disabled' },
+];
+// What LoadingScreen reports on the server path, step by step (§174.7).
+const LOAD_PLAN = [
+  [0.01, 'connect', { text: 'Получаем реестр контента' }],
+  [0.15, 'connect', { key: 'loading.connecting' }],
+  [0.3, 'connect', { key: 'loading.connecting' }],
+  [0.45, 'sync', { key: 'loading.syncing' }],
+  [0.6, 'island', { key: 'loading.island' }],
+  [0.75, 'people', { key: 'loading.warmup' }],
+  [0.82, 'people', { key: 'loading.content.wear' }],
+  [0.9, 'people', { key: 'loading.content.hair' }],
+  [0.97, 'people', { key: 'loading.content.done' }],
+  [1, 'done', { key: 'loading.done' }],
+];
+const title = { phase: 'servers', connecting: false, error: null, loading: null, timer: 0 };
+
+function titleModel() {
+  return { phase: title.phase, servers: SERVERS, connecting: title.connecting, error: title.error, loading: title.loading };
+}
+
+function sendTitle() {
+  if (ready) post({ t: 'show', screen: 'title', model: titleModel() });
+}
+
+function probe() {
+  for (const server of SERVERS) if (server.state !== 'disabled') { server.state = 'pending'; server.ping = -1; }
+  sendTitle();
+  setTimeout(() => {
+    const sg = SERVERS[0];
+    sg.state = 'ready';
+    sg.ping = 180 + Math.round(Math.random() * 40); // Singapore from Europe: yellow
+    sendTitle();
+  }, 1400);
+}
+
+function startTitle(kind) {
+  clearInterval(title.timer);
+  title.connecting = false;
+  title.loading = null;
+  title.error = kind === 'titleError' ? { key: 'loading.connect.failed', detail: 'wss://play.62-146-235-120.sslip.io/watch: handshake timed out after 15 s' } : null;
+  title.phase = kind === 'titleLoading' ? 'loading' : 'servers';
+  if (kind === 'titleLoading') runLoading(); else probe();
+}
+
+function runLoading() {
+  title.phase = 'loading';
+  let i = 0;
+  const step = () => {
+    const [progress, stepId, status] = LOAD_PLAN[i];
+    title.loading = { progress, step: stepId, status };
+    sendTitle();
+    if (++i >= LOAD_PLAN.length) { clearInterval(title.timer); setTimeout(() => startTitle('titleLoading'), 2500); }
+  };
+  step();
+  title.timer = setInterval(step, 1100);
+}
 
 const $ = (id) => document.getElementById(id);
 const log = $('log');
@@ -65,6 +126,7 @@ const DIALOGS = {
 };
 // The replacement scenario is the same C# window with other data.
 const SCREEN_OF = { playerReplacement: 'playerAssignment' };
+const isTitle = (id) => !!id && id.startsWith('title');
 
 function hudModel() {
   const h = state.hud;
@@ -87,19 +149,33 @@ function hudModel() {
 }
 
 function sendHud() {
-  if (ready) post({ t: 'show', screen: 'hud', model: hudModel() });
+  // SimSpeedBar: the HUD is withdrawn while the loading screen owns the display.
+  if (!ready) return;
+  if (isTitle(state.dialog)) post({ t: 'hide', screen: 'hud' });
+  else post({ t: 'show', screen: 'hud', model: hudModel() });
 }
 
 function showDialog(id) {
-  if (shownDialog && ready) post({ t: 'hide', screen: SCREEN_OF[shownDialog] || shownDialog });
+  const wasTitle = isTitle(shownDialog);
+  if (shownDialog && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : SCREEN_OF[shownDialog] || shownDialog });
+  if (!isTitle(id)) clearInterval(title.timer);
   shownDialog = id;
   state.dialog = id;
+  if (isTitle(id) !== wasTitle) drawWorld();
+  sendHud();
+  if (isTitle(id)) {
+    for (const button of document.querySelectorAll('[data-dialog]')) button.setAttribute('aria-pressed', String(button.dataset.dialog === id));
+    $('reopen').hidden = true;
+    if (ready) startTitle(id);
+    return;
+  }
   $('reopen').hidden = !!id || !ready;
   for (const button of document.querySelectorAll('[data-dialog]')) button.setAttribute('aria-pressed', String(button.dataset.dialog === id));
   if (id && ready) post({ t: 'show', screen: SCREEN_OF[id] || id, model: DIALOGS[id]() });
 }
 
 function refreshDialog() {
+  if (isTitle(shownDialog)) { sendTitle(); return; }
   if (shownDialog && ready) post({ t: 'show', screen: SCREEN_OF[shownDialog] || shownDialog, model: DIALOGS[shownDialog]() });
 }
 
@@ -140,6 +216,17 @@ function handle(message) {
     const last = log.firstElementChild; // a drag is one line per slider
     if (last && last.dataset.volume === message.args.category) last.remove();
     note(key, args).dataset.volume = message.args.category;
+    return;
+  }
+  if (message.screen === 'title') {
+    if (message.cmd === 'refresh') { note(key, '→ заново измерить пинг'); probe(); return; }
+    if (message.cmd === 'play') {
+      note(key, `${args} → свой сервер страницы: создание персонажа, потом подключение`);
+      title.connecting = true;
+      title.error = null;
+      sendTitle();
+      setTimeout(() => { title.connecting = false; runLoading(); }, 900);
+    }
     return;
   }
   if (key === 'protocolUpdate.update') {
@@ -183,12 +270,35 @@ function hash(x, y) {
   return s - Math.floor(s);
 }
 
+// LoadingScreen.cs draws the island art (cover) and the logo at left 36,
+// top 20, 360 px wide on a 1920×1080 reference — Unity's layer, not the page's.
+const art = { island: new Image(), logo: new Image() };
+art.island.src = 'assets/loading_island.jpg';
+art.logo.src = 'assets/logo.png';
+art.island.onload = art.logo.onload = () => { if (isTitle(state.dialog)) drawWorld(); };
+
+function drawTitleArt(g, w, h) {
+  g.fillStyle = 'rgb(13 18 23)';
+  g.fillRect(0, 0, w, h);
+  const img = art.island;
+  if (img.naturalWidth) {
+    const k = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+    g.drawImage(img, (w - img.naturalWidth * k) / 2, (h - img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k);
+  }
+  const s = h / 1080;
+  if (art.logo.naturalWidth) {
+    const lw = 360 * s;
+    g.drawImage(art.logo, 36 * s, 20 * s, lw, lw * art.logo.naturalHeight / art.logo.naturalWidth);
+  }
+}
+
 function drawWorld() {
   const canvas = $('world');
   const [w, h] = state.size;
   canvas.width = w;
   canvas.height = h;
   const g = canvas.getContext('2d');
+  if (isTitle(state.dialog)) { drawTitleArt(g, w, h); return; }
   g.fillStyle = '#1f5f78';
   g.fillRect(0, 0, w, h);
   const r = h / 14;
@@ -272,6 +382,7 @@ $('clear-log').addEventListener('click', () => { log.textContent = ''; });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   // GameMenu.cs: Escape opens the menu and closes it; other dialogs ignore it.
+  if (isTitle(shownDialog)) return; // GameMenu: Escape never opens over the loading screen
   if (shownDialog === 'gameMenu') handle({ t: 'cmd', screen: 'gameMenu', cmd: 'continue', args: {} });
   else if (!shownDialog) showDialog('gameMenu');
 });

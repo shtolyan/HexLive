@@ -362,10 +362,105 @@
 .hx-link[data-state="connecting"] { color: var(--hx-text); }
 .hx-speed { grid-column: 2; }
 
+/* ---- title screen: server card and loading strip ---------------------- */
+/* The art has the logo top left and the girls in the middle; the card sits
+   on the right, over sky and hexes, so the picture stays a picture. */
+.hx-title-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1rem 5%;
+}
+.hx-server-card { width: 30rem; display: flex; flex-direction: column; gap: 1rem; }
+.hx-server-card__head { display: flex; flex-direction: column; gap: 0.25rem; }
+.hx-server-card__head .hx-title { text-align: left; }
+.hx-server-card__foot { display: flex; justify-content: center; min-height: 1.5rem; }
+.hx-servers { display: flex; flex-direction: column; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.hx-server {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "dot name go" "dot ping go";
+  align-items: center;
+  column-gap: 0.75rem;
+  padding: 0.625rem 0.625rem 0.625rem 0.875rem;
+  border: 1px solid var(--hx-stroke);
+  border-radius: var(--hx-radius-small);
+  background: rgb(255 255 255 / 0.03);
+}
+.hx-server__dot { grid-area: dot; width: 0.625rem; height: 0.625rem; border-radius: 50%; background: var(--hx-text-dim); }
+.hx-server[data-quality="good"] .hx-server__dot { background: rgb(144 226 122); }
+.hx-server[data-quality="fair"] .hx-server__dot { background: rgb(245 199 85); }
+.hx-server[data-quality="poor"] .hx-server__dot { background: rgb(242 112 104); }
+.hx-server[data-quality="offline"] .hx-server__dot { background: transparent; border: 2px solid rgb(115 125 133); }
+.hx-server[data-quality="pending"] .hx-server__dot { animation: hx-pulse 1s ease-in-out infinite alternate; }
+.hx-server[data-quality="disabled"] .hx-server__dot { background: transparent; border: 2px dashed rgb(115 125 133); }
+.hx-server[data-quality="disabled"] .hx-server__name { grid-row: 1 / 3; }
+.hx-server__name { grid-area: name; font-size: 1rem; font-weight: 700; }
+.hx-server__ping { grid-area: ping; color: var(--hx-text-dim); font-size: 0.8125rem; font-variant-numeric: tabular-nums; cursor: help; }
+.hx-server__go { grid-area: go; min-height: 2.5rem; min-width: 8.5rem; }
+.hx-btn:disabled { cursor: default; color: rgb(115 125 133); background: rgb(34 42 49 / 0.55); border-color: transparent; transform: none; }
+.hx-server[data-state="disabled"], .hx-server[data-state="offline"] { opacity: 0.75; }
+.hx-link-btn {
+  border: 0;
+  background: none;
+  padding: 0.25rem 0.5rem;
+  color: var(--hx-text-dim);
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.hx-link-btn:hover { color: var(--hx-text); }
+.hx-detail-inline { color: var(--hx-text-dim); font-size: 0.8125rem; overflow-wrap: anywhere; }
+.hx-spinner-text::before {
+  content: "";
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.5rem;
+  vertical-align: -0.0625rem;
+  border: 2px solid var(--hx-stroke-strong);
+  border-top-color: var(--hx-gold);
+  border-radius: 50%;
+  animation: hx-spin 0.8s linear infinite;
+}
+
+/* The bottom strip over the island art, as the UI Toolkit screen had it. */
+.hx-loading {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 3rem 1.75rem 1.75rem;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.72), rgb(0 0 0 / 0.45) 60%, transparent);
+}
+.hx-loading__row { width: min(60%, 46rem); display: flex; justify-content: space-between; gap: 1rem; }
+.hx-loading__status { color: rgb(236 232 221); font-size: 0.9375rem; letter-spacing: 0.04em; }
+.hx-loading__percent { color: var(--hx-gold); font-weight: 700; font-variant-numeric: tabular-nums; }
+.hx-loading__bar { width: min(60%, 46rem); height: 0.5rem; border-radius: 999px; background: rgb(255 255 255 / 0.15); overflow: hidden; }
+.hx-loading__bar i { display: block; height: 100%; border-radius: inherit; background: rgb(242 191 89); transition: width 240ms ease-out; }
+.hx-steps { display: flex; gap: 1.25rem; margin: 0.125rem 0 0; padding: 0; list-style: none; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.hx-steps li { display: flex; align-items: center; gap: 0.375rem; color: rgb(140 150 156); }
+.hx-steps li::before { content: ""; width: 0.4375rem; height: 0.4375rem; border-radius: 50%; border: 1.5px solid currentColor; }
+.hx-steps li[data-state="done"] { color: var(--hx-leaf); }
+.hx-steps li[data-state="done"]::before { background: currentColor; }
+.hx-steps li[data-state="now"] { color: var(--hx-gold); font-weight: 700; }
+.hx-steps li[data-state="now"]::before { background: currentColor; animation: hx-pulse 0.9s ease-in-out infinite alternate; }
+
+@keyframes hx-pulse { from { opacity: 0.35; } }
+@keyframes hx-spin { to { transform: rotate(360deg); } }
+
 @keyframes hx-fade { from { opacity: 0; } }
 @keyframes hx-rise { from { opacity: 0; transform: translateY(0.5rem) scale(0.98); } }
 
 @media (prefers-reduced-motion: reduce) {
   .hx-backdrop, .hx-window { animation: none; }
-  .hx-btn, .hx-disclosure__chevron { transition: none; }
+  .hx-btn, .hx-disclosure__chevron, .hx-loading__bar i { transition: none; }
+  .hx-server__dot, .hx-steps li::before, .hx-spinner-text::before { animation: none; }
 }

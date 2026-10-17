@@ -5,8 +5,10 @@ import { ConnectionLost } from './connectionLost.js';
 import { ProtocolUpdate } from './protocolUpdate.js';
 import { PlayerAssignment } from './playerAssignment.js';
 import { Hud } from './hud.js';
+import { Title } from './title.js';
 
 export const SCREENS = {
+  title: Title,
   hud: Hud,
   gameMenu: GameMenu,
   connectionLost: ConnectionLost,

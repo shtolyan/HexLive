@@ -98,9 +98,13 @@ class StandHandler(http.server.SimpleHTTPRequestHandler):
         target = (root / relative).resolve()
         if root.resolve() not in target.parents or not target.is_file():
             return self.send_error(404)
-        kind = {".js": "text/javascript", ".css": "text/css", ".json": "application/json"}.get(
-            target.suffix, "application/octet-stream")
-        self._send(target.read_bytes(), kind + "; charset=utf-8")
+        text = {".js": "text/javascript", ".css": "text/css", ".json": "application/json"}
+        binary = {".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml"}
+        if target.suffix in text:
+            kind = text[target.suffix] + "; charset=utf-8"
+        else:
+            kind = binary.get(target.suffix, "application/octet-stream")
+        self._send(target.read_bytes(), kind)
 
     def _send(self, body: bytes, kind: str) -> None:
         self.send_response(200)

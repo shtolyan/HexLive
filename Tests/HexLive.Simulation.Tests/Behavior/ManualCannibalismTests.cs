@@ -86,19 +86,29 @@ public sealed class ManualCannibalismTests
         Assert.That(actor.Mind.ManualAttackNpcId, Is.Null);
     }
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public void FullManualPathButcherPickUpCookTakeAndEat(bool alreadyDead)
+    public static System.Collections.Generic.IEnumerable<TestCaseData> CookingPaths()
+    {
+        foreach (var body in new[] { "Marta", "Kshishtof" })
+        foreach (var part in new[] { BodyPart.ArmL, BodyPart.LegL, BodyPart.Torso })
+        foreach (var dead in new[] { false, true })
+        foreach (var transfer in new[] { false, true })
+            yield return new TestCaseData(dead, body, part, transfer);
+    }
+
+    [TestCaseSource(nameof(CookingPaths))]
+    public void FullManualPathButcherPickUpCookTakeAndEat(bool alreadyDead, string body, BodyPart part, bool viaContainer)
     {
         var (engine, actor, victim) = Fixture();
         var world = engine.World;
+        victim.ActorMesh = body;
+        var raw = HumanMeatCatalog.RawPart(part, victim.Sex);
+        var cooked = HumanMeatCatalog.Cooked(raw);
         if (alreadyDead) { victim.Health=0; MobSystem.RemoveDeadNpc(world,victim.Id); }
         actor.Inventory.Items.Clear();
         actor.Inventory.Items.Add(new ItemInstance("tool.knife"));
         Assert.That(ManualCommandExecutor.Apply(world, new ButcherPersonCommand(actor.Id, victim.Id)).Status,
             Is.EqualTo(ManualCommandAdmissionStatus.Accepted));
         Until(engine, () => world.Events.Items.Any(e=>e.Type=="Butchered"));
-        var raw = HumanMeatCatalog.ArmRaw;
         var arm = world.Entities.Objects.Values.FirstOrDefault(o=>o.DefinitionId==raw);
         if (arm != null)
         {
@@ -115,16 +125,33 @@ public sealed class ManualCannibalismTests
         // Preserve a real picked-up part while eliminating unrelated edible supplies.
         var selected = actor.Inventory.Items.First(i=>i.DefinitionId==raw);
         actor.Inventory.Items.Clear(); actor.Inventory.Items.Add(selected);
-        var cook = ManualCommandExecutor.Apply(world, new CraftItemCommand(actor.Id, GoalType.CookMeat));
+        ISimulationCommand hang = viaContainer
+            ? new TransferContainerCommand(actor.Id, fire.Id, 0, raw, 1, InventoryTransferDirection.Give)
+            : new CraftItemCommand(actor.Id, GoalType.CookMeat);
+        var cook = ManualCommandExecutor.Apply(world, hang);
         Assert.That(cook.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), cook.Reason);
-        Until(engine, ()=>fire.Contents.Any(i=>i.DefinitionId==HumanMeatCatalog.ArmCooked));
-        var take = ManualCommandExecutor.Apply(world, new InteractCommand(actor.Id, fire.Id, InteractionType.PickUp));
+        Until(engine, ()=>fire.Contents.Any(i=>i.DefinitionId==raw));
+        Assert.That(actor.Inventory.Items.Any(i=>i.DefinitionId==raw), Is.False);
+        Assert.That(BuildSiteMath.HangingMeat(fire, ContentIds.MeatRaw), Is.EqualTo(1));
+        Until(engine, ()=>fire.Contents.Any(i=>i.DefinitionId==cooked));
+        ISimulationCommand takeCommand;
+        if (viaContainer)
+        {
+            var cells = new System.Collections.Generic.List<(string ItemId, int Count, int SourceIndex)>();
+            ContainerLootMath.BuildCells(world, fire, cells);
+            var index = cells.FindIndex(cell => cell.ItemId == cooked);
+            Assert.That(index, Is.GreaterThanOrEqualTo(0), "cooked part must be visible in campfire inventory");
+            takeCommand = new TransferContainerCommand(actor.Id, fire.Id, index, cooked, 1, InventoryTransferDirection.Take);
+        }
+        else takeCommand = new InteractCommand(actor.Id, fire.Id, InteractionType.PickUp);
+        var take = ManualCommandExecutor.Apply(world, takeCommand);
         Assert.That(take.Status, Is.EqualTo(ManualCommandAdmissionStatus.Accepted), take.Reason);
-        Until(engine, ()=>actor.Inventory.Items.Any(i=>i.DefinitionId==HumanMeatCatalog.ArmCooked));
+        Until(engine, ()=>actor.Inventory.Items.Any(i=>i.DefinitionId==cooked));
+        Assert.That(BuildSiteMath.HangingMeat(fire, ContentIds.MeatCooked), Is.Zero);
         actor.Needs.Hunger=.8f;
         var eat=ManualCommandExecutor.Apply(world,new SelfActionCommand(actor.Id,SelfActionKind.EatFromPack));
         Assert.That(eat.Status,Is.EqualTo(ManualCommandAdmissionStatus.Accepted),eat.Reason);
-        Until(engine,()=>!actor.Inventory.Items.Any(i=>i.DefinitionId==HumanMeatCatalog.ArmCooked));
+        Until(engine,()=>!actor.Inventory.Items.Any(i=>i.DefinitionId==cooked));
         Assert.That(actor.Needs.Hunger,Is.LessThan(.7f));
     }
 

@@ -547,6 +547,10 @@ for index, x in enumerate((-SPIT_X, SPIT_X)):
                          axis_lashing(f"HEARTH_bind_{index}", rng, 0.019, squash=1.0,
                                       loops=3, tube=0.0055),
                          s3, loc=(x, 0, SPIT_TOP - 0.012), rot=(0, 0, math.radians(90))))
+# Both visible wraps are made from the same delivered rope.  Stage accounting
+# counts direct children, therefore keep the two meshes in one logical unit
+# rather than charging the player two ropes or leaving the second wrap hidden.
+join(binds, "HEARTH_rope_unit_00")
 
 
 # The renderer attaches CampfireEffect to this marker (Spec 120.2), so it must

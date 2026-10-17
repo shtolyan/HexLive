@@ -1,0 +1,805 @@
+{
+  "state": "done",
+  "history": {
+    "Marta_PrimalArmWraps": [
+      {
+        "iteration": 0,
+        "worst_m": -0.0072325699031352995,
+        "samples_below_minus_1mm": 1444
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.004984230101108551,
+        "samples_below_minus_1mm": 436
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.003764658868312836,
+        "samples_below_minus_1mm": 157
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.0030905611813068392,
+        "samples_below_minus_1mm": 154
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.002615149989724159,
+        "samples_below_minus_1mm": 99
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.002736233361065388,
+        "samples_below_minus_1mm": 105
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.002170533143216744,
+        "samples_below_minus_1mm": 79
+      },
+      {
+        "iteration": 7,
+        "worst_m": -0.0027418569748988374,
+        "samples_below_minus_1mm": 98
+      },
+      {
+        "iteration": 8,
+        "worst_m": -0.00235274288803339,
+        "samples_below_minus_1mm": 73
+      },
+      {
+        "iteration": 9,
+        "worst_m": -0.0025061136981821617,
+        "samples_below_minus_1mm": 87
+      },
+      {
+        "iteration": 10,
+        "worst_m": -0.00213845094665885,
+        "samples_below_minus_1mm": 56
+      },
+      {
+        "iteration": 11,
+        "worst_m": -0.0027855334430933,
+        "samples_below_minus_1mm": 70
+      },
+      {
+        "kept_best_worst_m": -0.002170533143216744
+      }
+    ],
+    "Marta_PrimalHeadband": [
+      {
+        "iteration": 0,
+        "worst_m": -0.007988201156258583,
+        "samples_below_minus_1mm": 11345
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.005368617847561837,
+        "samples_below_minus_1mm": 1807
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.0029980345140211283,
+        "samples_below_minus_1mm": 382
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.0017532460764050485,
+        "samples_below_minus_1mm": 306
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.0021684034541249275,
+        "samples_below_minus_1mm": 855
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.0029158470034599303,
+        "samples_below_minus_1mm": 1275
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.0019344820827245713,
+        "samples_below_minus_1mm": 1425
+      },
+      {
+        "iteration": 7,
+        "worst_m": -0.005142838507890701,
+        "samples_below_minus_1mm": 1045
+      },
+      {
+        "iteration": 8,
+        "worst_m": -0.0022595999808982014,
+        "samples_below_minus_1mm": 1482
+      },
+      {
+        "kept_best_worst_m": -0.0017532460764050485
+      }
+    ],
+    "Marta_PrimalWrapBoots": [
+      {
+        "iteration": 0,
+        "worst_m": -0.00929514546878636,
+        "samples_below_minus_1mm": 1065
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.010562214502133429,
+        "samples_below_minus_1mm": 864
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.011259562484920025,
+        "samples_below_minus_1mm": 751
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.011641005575656891,
+        "samples_below_minus_1mm": 631
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.011933857798576355,
+        "samples_below_minus_1mm": 542
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.01245158544741571,
+        "samples_below_minus_1mm": 509
+      },
+      {
+        "kept_best_worst_m": -0.00929514546878636
+      }
+    ],
+    "Marta_PrimalSkirt": [
+      {
+        "iteration": 0,
+        "worst_m": -0.035821134764701126,
+        "samples_below_minus_1mm": 6682
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.02890170010738075,
+        "samples_below_minus_1mm": 4094
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.021525928117334843,
+        "samples_below_minus_1mm": 2495
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.014399426155723632,
+        "samples_below_minus_1mm": 1401
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.007502156987320632,
+        "samples_below_minus_1mm": 386
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.001680725581245497,
+        "samples_below_minus_1mm": 50
+      },
+      {
+        "iteration": 6,
+        "worst_m": 0.0,
+        "samples_below_minus_1mm": 0
+      },
+      {
+        "kept_best_worst_m": 0.0
+      }
+    ],
+    "Marta_PrimalDress": [
+      {
+        "iteration": 0,
+        "worst_m": -0.01662117801606655,
+        "samples_below_minus_1mm": 3297
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.018507494730874898,
+        "samples_below_minus_1mm": 1432
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.017587883668020367,
+        "samples_below_minus_1mm": 907
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.017561641996726395,
+        "samples_below_minus_1mm": 705
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.017058643586933615,
+        "samples_below_minus_1mm": 505
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.016421586899086835,
+        "samples_below_minus_1mm": 405
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.016350816320627928,
+        "samples_below_minus_1mm": 337
+      },
+      {
+        "iteration": 7,
+        "worst_m": -0.015239799153059721,
+        "samples_below_minus_1mm": 292
+      },
+      {
+        "iteration": 8,
+        "worst_m": -0.01535028220154345,
+        "samples_below_minus_1mm": 267
+      },
+      {
+        "iteration": 9,
+        "worst_m": -0.013186907647177577,
+        "samples_below_minus_1mm": 224
+      },
+      {
+        "iteration": 10,
+        "worst_m": -0.012535203015431762,
+        "samples_below_minus_1mm": 242
+      },
+      {
+        "iteration": 11,
+        "worst_m": -0.010683905817568302,
+        "samples_below_minus_1mm": 202
+      },
+      {
+        "iteration": 12,
+        "worst_m": -0.010247677657753229,
+        "samples_below_minus_1mm": 165
+      },
+      {
+        "iteration": 13,
+        "worst_m": -0.009811555594205856,
+        "samples_below_minus_1mm": 129
+      },
+      {
+        "iteration": 14,
+        "worst_m": -0.010956910997629165,
+        "samples_below_minus_1mm": 144
+      },
+      {
+        "iteration": 15,
+        "worst_m": -0.010295283384621143,
+        "samples_below_minus_1mm": 161
+      },
+      {
+        "iteration": 16,
+        "worst_m": -0.009605500209145247,
+        "samples_below_minus_1mm": 132
+      },
+      {
+        "iteration": 17,
+        "worst_m": -0.009126921398565174,
+        "samples_below_minus_1mm": 113
+      },
+      {
+        "iteration": 18,
+        "worst_m": -0.009854161459952594,
+        "samples_below_minus_1mm": 115
+      },
+      {
+        "iteration": 19,
+        "worst_m": -0.009253071118146182,
+        "samples_below_minus_1mm": 109
+      },
+      {
+        "iteration": 20,
+        "worst_m": -0.008627367825247348,
+        "samples_below_minus_1mm": 101
+      },
+      {
+        "kept_best_worst_m": -0.008627367825247348
+      }
+    ],
+    "Marta_PrimalCollar": [
+      {
+        "iteration": 0,
+        "worst_m": -0.062175317639485,
+        "samples_below_minus_1mm": 2813
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.06572410563472658,
+        "samples_below_minus_1mm": 1799
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.062211544984020296,
+        "samples_below_minus_1mm": 1146
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.061605886463075875,
+        "samples_below_minus_1mm": 895
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.06740209669806063,
+        "samples_below_minus_1mm": 658
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.06866062254644931,
+        "samples_below_minus_1mm": 577
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.06243840296752751,
+        "samples_below_minus_1mm": 577
+      },
+      {
+        "iteration": 7,
+        "worst_m": -0.07088016800582408,
+        "samples_below_minus_1mm": 392
+      },
+      {
+        "iteration": 8,
+        "worst_m": -0.07122755542397499,
+        "samples_below_minus_1mm": 356
+      },
+      {
+        "kept_best_worst_m": -0.061605886463075875
+      }
+    ],
+    "Kshishtof_PrimalArmWraps": [
+      {
+        "iteration": 0,
+        "worst_m": -0.010900244638323784,
+        "samples_below_minus_1mm": 2834
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.0075344593264162546,
+        "samples_below_minus_1mm": 1191
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.005650232024490834,
+        "samples_below_minus_1mm": 605
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.004894900933140889,
+        "samples_below_minus_1mm": 325
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.004359488040208816,
+        "samples_below_minus_1mm": 260
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.00448642510920763,
+        "samples_below_minus_1mm": 234
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.004126728847622872,
+        "samples_below_minus_1mm": 234
+      },
+      {
+        "iteration": 7,
+        "worst_m": -0.003932522760005668,
+        "samples_below_minus_1mm": 207
+      },
+      {
+        "iteration": 8,
+        "worst_m": -0.004149663206189871,
+        "samples_below_minus_1mm": 226
+      },
+      {
+        "iteration": 9,
+        "worst_m": -0.004647627086378634,
+        "samples_below_minus_1mm": 168
+      },
+      {
+        "iteration": 10,
+        "worst_m": -0.003975248318165541,
+        "samples_below_minus_1mm": 201
+      },
+      {
+        "iteration": 11,
+        "worst_m": -0.004383758828043938,
+        "samples_below_minus_1mm": 166
+      },
+      {
+        "iteration": 12,
+        "worst_m": -0.0038749693002318964,
+        "samples_below_minus_1mm": 200
+      },
+      {
+        "iteration": 13,
+        "worst_m": -0.003933944453019649,
+        "samples_below_minus_1mm": 151
+      },
+      {
+        "iteration": 14,
+        "worst_m": -0.004213620107620954,
+        "samples_below_minus_1mm": 182
+      },
+      {
+        "iteration": 15,
+        "worst_m": -0.004291459950618446,
+        "samples_below_minus_1mm": 160
+      },
+      {
+        "iteration": 16,
+        "worst_m": -0.004293988947756589,
+        "samples_below_minus_1mm": 180
+      },
+      {
+        "iteration": 17,
+        "worst_m": -0.00473276882266191,
+        "samples_below_minus_1mm": 135
+      },
+      {
+        "kept_best_worst_m": -0.0038749693002318964
+      }
+    ],
+    "Kshishtof_PrimalBriefs": [
+      {
+        "iteration": 0,
+        "worst_m": -0.005975986851844937,
+        "samples_below_minus_1mm": 455
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.0047404151968657975,
+        "samples_below_minus_1mm": 338
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.0073539253429044035,
+        "samples_below_minus_1mm": 349
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.006777446990599856,
+        "samples_below_minus_1mm": 318
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.006575487550580874,
+        "samples_below_minus_1mm": 333
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.0060466662200633434,
+        "samples_below_minus_1mm": 308
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.005876522101461888,
+        "samples_below_minus_1mm": 325
+      },
+      {
+        "kept_best_worst_m": -0.0047404151968657975
+      }
+    ],
+    "Kshishtof_PrimalHeadband": [
+      {
+        "iteration": 0,
+        "worst_m": -0.008924372689798475,
+        "samples_below_minus_1mm": 28
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.009028246304951608,
+        "samples_below_minus_1mm": 42
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.00599378586281091,
+        "samples_below_minus_1mm": 23
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.00219783877953887,
+        "samples_below_minus_1mm": 52
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.0013786233216524124,
+        "samples_below_minus_1mm": 9
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.0011911295959725976,
+        "samples_below_minus_1mm": 10
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.00424590528011322,
+        "samples_below_minus_1mm": 24
+      },
+      {
+        "iteration": 7,
+        "worst_m": -3.314286470413208e-05,
+        "samples_below_minus_1mm": 0
+      },
+      {
+        "kept_best_worst_m": -3.314286470413208e-05
+      }
+    ],
+    "Kshishtof_PrimalWrapBoots": [
+      {
+        "iteration": 0,
+        "worst_m": -0.01544775815680623,
+        "samples_below_minus_1mm": 1830
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.013405209966003894,
+        "samples_below_minus_1mm": 953
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.013287698947824538,
+        "samples_below_minus_1mm": 790
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.014796962453983724,
+        "samples_below_minus_1mm": 749
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.01414442683570087,
+        "samples_below_minus_1mm": 664
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.014575197760714219,
+        "samples_below_minus_1mm": 626
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.01611847771797329,
+        "samples_below_minus_1mm": 508
+      },
+      {
+        "iteration": 7,
+        "worst_m": -0.016885668279137463,
+        "samples_below_minus_1mm": 507
+      },
+      {
+        "kept_best_worst_m": -0.013287698947824538
+      }
+    ],
+    "Kshishtof_PrimalSkirt": [
+      {
+        "iteration": 0,
+        "worst_m": -0.03192698478698731,
+        "samples_below_minus_1mm": 6730
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.0274788399040699,
+        "samples_below_minus_1mm": 4243
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.0245955104008317,
+        "samples_below_minus_1mm": 2678
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.017647396158427,
+        "samples_below_minus_1mm": 1701
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.015834232522174717,
+        "samples_below_minus_1mm": 901
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.010550420827348717,
+        "samples_below_minus_1mm": 525
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.004485400020348607,
+        "samples_below_minus_1mm": 291
+      },
+      {
+        "iteration": 7,
+        "worst_m": -0.0029920563846826554,
+        "samples_below_minus_1mm": 130
+      },
+      {
+        "iteration": 8,
+        "worst_m": -0.003709114473313093,
+        "samples_below_minus_1mm": 106
+      },
+      {
+        "iteration": 9,
+        "worst_m": -0.0038332840986549854,
+        "samples_below_minus_1mm": 129
+      },
+      {
+        "iteration": 10,
+        "worst_m": -0.0035197184048593043,
+        "samples_below_minus_1mm": 120
+      },
+      {
+        "iteration": 11,
+        "worst_m": -0.004359306264668703,
+        "samples_below_minus_1mm": 120
+      },
+      {
+        "iteration": 12,
+        "worst_m": -0.001855829432606697,
+        "samples_below_minus_1mm": 81
+      },
+      {
+        "iteration": 13,
+        "worst_m": -0.002539600877207704,
+        "samples_below_minus_1mm": 72
+      },
+      {
+        "iteration": 14,
+        "worst_m": -0.0021843647977220827,
+        "samples_below_minus_1mm": 63
+      },
+      {
+        "iteration": 15,
+        "worst_m": -0.0033918780088424685,
+        "samples_below_minus_1mm": 55
+      },
+      {
+        "iteration": 16,
+        "worst_m": -0.0033979206159710884,
+        "samples_below_minus_1mm": 68
+      },
+      {
+        "iteration": 17,
+        "worst_m": -0.0028845124505460264,
+        "samples_below_minus_1mm": 44
+      },
+      {
+        "kept_best_worst_m": -0.001855829432606697
+      }
+    ],
+    "Kshishtof_PrimalDress": [
+      {
+        "iteration": 0,
+        "worst_m": -0.025774911046028137,
+        "samples_below_minus_1mm": 10095
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.01831394836306572,
+        "samples_below_minus_1mm": 3949
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.011249746307730676,
+        "samples_below_minus_1mm": 985
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.008544627223163844,
+        "samples_below_minus_1mm": 218
+      },
+      {
+        "iteration": 4,
+        "worst_m": -0.007428909689188004,
+        "samples_below_minus_1mm": 57
+      },
+      {
+        "iteration": 5,
+        "worst_m": -0.006389064388349653,
+        "samples_below_minus_1mm": 32
+      },
+      {
+        "iteration": 6,
+        "worst_m": -0.005406302073970437,
+        "samples_below_minus_1mm": 27
+      },
+      {
+        "iteration": 7,
+        "worst_m": -0.004498843750916422,
+        "samples_below_minus_1mm": 23
+      },
+      {
+        "iteration": 8,
+        "worst_m": -0.0037192852562293413,
+        "samples_below_minus_1mm": 26
+      },
+      {
+        "iteration": 9,
+        "worst_m": -0.004679847038769367,
+        "samples_below_minus_1mm": 18
+      },
+      {
+        "iteration": 10,
+        "worst_m": -0.0034952667728066445,
+        "samples_below_minus_1mm": 11
+      },
+      {
+        "iteration": 11,
+        "worst_m": -0.002905547395348549,
+        "samples_below_minus_1mm": 14
+      },
+      {
+        "iteration": 12,
+        "worst_m": -0.0019098634086549282,
+        "samples_below_minus_1mm": 12
+      },
+      {
+        "iteration": 13,
+        "worst_m": -0.0024903569975867866,
+        "samples_below_minus_1mm": 7
+      },
+      {
+        "iteration": 14,
+        "worst_m": -0.0017343438789248467,
+        "samples_below_minus_1mm": 5
+      },
+      {
+        "iteration": 15,
+        "worst_m": -0.0029220077941863563,
+        "samples_below_minus_1mm": 5
+      },
+      {
+        "iteration": 16,
+        "worst_m": -0.0024739449936896562,
+        "samples_below_minus_1mm": 8
+      },
+      {
+        "iteration": 17,
+        "worst_m": -0.0022743335226550697,
+        "samples_below_minus_1mm": 4
+      },
+      {
+        "iteration": 18,
+        "worst_m": -0.0009566099848598242,
+        "samples_below_minus_1mm": 0
+      },
+      {
+        "kept_best_worst_m": -0.0009566099848598242
+      }
+    ],
+    "Kshishtof_PrimalCollar": [
+      {
+        "iteration": 0,
+        "worst_m": -0.019546778649091722,
+        "samples_below_minus_1mm": 1000
+      },
+      {
+        "iteration": 1,
+        "worst_m": -0.01249857347458601,
+        "samples_below_minus_1mm": 215
+      },
+      {
+        "iteration": 2,
+        "worst_m": -0.009192208088934421,
+        "samples_below_minus_1mm": 133
+      },
+      {
+        "iteration": 3,
+        "worst_m": -0.0020832348661497238,
+        "samples_below_minus_1mm": 19
+      },
+      {
+        "iteration": 4,
+        "worst_m": 0.0,
+        "samples_below_minus_1mm": 0
+      },
+      {
+        "kept_best_worst_m": 0.0
+      }
+    ]
+  }
+}

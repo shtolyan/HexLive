@@ -1,0 +1,16 @@
+{
+  "Kshishtof_LOD0": {
+    "triangles": 15854,
+    "preserved_face_vertices": 4722,
+    "all_original_facial_edges_preserved": true,
+    "facial_morph_mapping_error_m": 0,
+    "max_skin_influences": 10
+  },
+  "Kshishtof_LOD1": {
+    "triangles": 13354,
+    "preserved_face_vertices": 4722,
+    "all_original_facial_edges_preserved": true,
+    "facial_morph_mapping_error_m": 0,
+    "max_skin_influences": 10
+  }
+}

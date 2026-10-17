@@ -1,0 +1,64 @@
+{
+  "Marta_PrimalBriefs.fbx": {
+    "triangles": 1373,
+    "own_hip_hierarchy": true,
+    "bone_names_and_parents_exact": true,
+    "normalized_skin": true,
+    "materials": 1,
+    "bytes": 179324
+  },
+  "Marta_PrimalBriefs.glb": {
+    "triangles": 1373,
+    "own_hip_hierarchy": true,
+    "bone_names_and_parents_exact": true,
+    "normalized_skin": true,
+    "materials": 1,
+    "bytes": 163964
+  },
+  "Marta_PrimalTop.fbx": {
+    "triangles": 2049,
+    "own_hip_hierarchy": true,
+    "bone_names_and_parents_exact": true,
+    "normalized_skin": true,
+    "materials": 1,
+    "bytes": 208828
+  },
+  "Marta_PrimalTop.glb": {
+    "triangles": 2049,
+    "own_hip_hierarchy": true,
+    "bone_names_and_parents_exact": true,
+    "normalized_skin": true,
+    "materials": 1,
+    "bytes": 172816
+  },
+  "Kshishtof_PrimalBriefs.fbx": {
+    "triangles": 1414,
+    "own_hip_hierarchy": true,
+    "bone_names_and_parents_exact": true,
+    "normalized_skin": true,
+    "materials": 1,
+    "bytes": 181820
+  },
+  "Kshishtof_PrimalBriefs.glb": {
+    "triangles": 1414,
+    "own_hip_hierarchy": true,
+    "bone_names_and_parents_exact": true,
+    "normalized_skin": true,
+    "materials": 1,
+    "bytes": 166472
+  },
+  "Kshishtof_Body_SeparateGenitals.fbx": {
+    "separate_genitals_mesh": true,
+    "bones": 172,
+    "exact_morph_names": true,
+    "morphs": 109,
+    "bytes": 2757804
+  },
+  "Kshishtof_Body_SeparateGenitals.glb": {
+    "separate_genitals_mesh": true,
+    "bones": 172,
+    "exact_morph_names": true,
+    "morphs": 109,
+    "bytes": 8041012
+  }
+}

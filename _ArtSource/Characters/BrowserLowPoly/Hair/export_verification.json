@@ -1,0 +1,294 @@
+{
+  "glb_count": 32,
+  "all_passed": true,
+  "exports": {
+    "AdellHair_LOD0": {
+      "bytes": 575880,
+      "triangles": 2400,
+      "exported_vertices": 5394,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "AdellHair_LOD1": {
+      "bytes": 382660,
+      "triangles": 799,
+      "exported_vertices": 1863,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "AsukaHair_LOD0": {
+      "bytes": 608796,
+      "triangles": 2399,
+      "exported_vertices": 5052,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "AsukaHair_LOD1": {
+      "bytes": 427280,
+      "triangles": 799,
+      "exported_vertices": 1746,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "BendineHair_LOD0": {
+      "bytes": 508844,
+      "triangles": 2398,
+      "exported_vertices": 5665,
+      "materials": 1,
+      "skin_bones": 8,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "BendineHair_LOD1": {
+      "bytes": 310488,
+      "triangles": 799,
+      "exported_vertices": 2035,
+      "materials": 1,
+      "skin_bones": 8,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Bob3Hair_LOD0": {
+      "bytes": 535772,
+      "triangles": 2400,
+      "exported_vertices": 5333,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Bob3Hair_LOD1": {
+      "bytes": 341040,
+      "triangles": 799,
+      "exported_vertices": 1773,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "ChunkyHair_LOD0": {
+      "bytes": 478904,
+      "triangles": 2399,
+      "exported_vertices": 5588,
+      "materials": 1,
+      "skin_bones": 8,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "ChunkyHair_LOD1": {
+      "bytes": 278664,
+      "triangles": 799,
+      "exported_vertices": 1922,
+      "materials": 1,
+      "skin_bones": 8,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "EilisHair_LOD0": {
+      "bytes": 548700,
+      "triangles": 2399,
+      "exported_vertices": 5525,
+      "materials": 1,
+      "skin_bones": 8,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "EilisHair_LOD1": {
+      "bytes": 343464,
+      "triangles": 799,
+      "exported_vertices": 1763,
+      "materials": 1,
+      "skin_bones": 8,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Hair07_LOD0": {
+      "bytes": 545320,
+      "triangles": 2398,
+      "exported_vertices": 3995,
+      "materials": 1,
+      "skin_bones": 10,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Hair07_LOD1": {
+      "bytes": 438192,
+      "triangles": 950,
+      "exported_vertices": 2102,
+      "materials": 1,
+      "skin_bones": 10,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "JelikaHair_32434_LOD0": {
+      "bytes": 543024,
+      "triangles": 2399,
+      "exported_vertices": 3729,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "JelikaHair_32434_LOD1": {
+      "bytes": 411268,
+      "triangles": 799,
+      "exported_vertices": 1380,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "JenniferHair_LOD0": {
+      "bytes": 502812,
+      "triangles": 2400,
+      "exported_vertices": 4929,
+      "materials": 1,
+      "skin_bones": 27,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "JenniferHair_LOD1": {
+      "bytes": 316404,
+      "triangles": 799,
+      "exported_vertices": 1529,
+      "materials": 1,
+      "skin_bones": 27,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "LeonyPonytail_LOD0": {
+      "bytes": 437628,
+      "triangles": 2400,
+      "exported_vertices": 4654,
+      "materials": 1,
+      "skin_bones": 43,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "LeonyPonytail_LOD1": {
+      "bytes": 266720,
+      "triangles": 800,
+      "exported_vertices": 1552,
+      "materials": 1,
+      "skin_bones": 43,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "LoonaHair_LOD0": {
+      "bytes": 600624,
+      "triangles": 2399,
+      "exported_vertices": 4413,
+      "materials": 1,
+      "skin_bones": 10,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "LoonaHair_LOD1": {
+      "bytes": 447756,
+      "triangles": 799,
+      "exported_vertices": 1658,
+      "materials": 1,
+      "skin_bones": 10,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "LowPonytail_LOD0": {
+      "bytes": 463844,
+      "triangles": 2399,
+      "exported_vertices": 5204,
+      "materials": 1,
+      "skin_bones": 10,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "LowPonytail_LOD1": {
+      "bytes": 285968,
+      "triangles": 799,
+      "exported_vertices": 1968,
+      "materials": 1,
+      "skin_bones": 10,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Neu09Hair_LOD0": {
+      "bytes": 523684,
+      "triangles": 2396,
+      "exported_vertices": 5164,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Neu09Hair_LOD1": {
+      "bytes": 335528,
+      "triangles": 799,
+      "exported_vertices": 1730,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "OnyxHair_LOD0": {
+      "bytes": 525780,
+      "triangles": 2398,
+      "exported_vertices": 6286,
+      "materials": 1,
+      "skin_bones": 8,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "OnyxHair_LOD1": {
+      "bytes": 292996,
+      "triangles": 799,
+      "exported_vertices": 1994,
+      "materials": 1,
+      "skin_bones": 8,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "ShilohHair_LOD0": {
+      "bytes": 488560,
+      "triangles": 2398,
+      "exported_vertices": 4828,
+      "materials": 1,
+      "skin_bones": 10,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "ShilohHair_LOD1": {
+      "bytes": 309860,
+      "triangles": 800,
+      "exported_vertices": 1576,
+      "materials": 1,
+      "skin_bones": 10,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "TootsieRollHair_LOD0": {
+      "bytes": 570920,
+      "triangles": 2400,
+      "exported_vertices": 5082,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "TootsieRollHair_LOD1": {
+      "bytes": 406476,
+      "triangles": 950,
+      "exported_vertices": 2087,
+      "materials": 1,
+      "skin_bones": 21,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    }
+  }
+}

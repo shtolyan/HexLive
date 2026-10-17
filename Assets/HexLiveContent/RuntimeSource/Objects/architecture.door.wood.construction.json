@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "definitionId": "architecture.door.wood",
+  "modelSha256": "98720092968157570f1329059c94d7dac54c1e5b977c5fac46a2c3946541a7d8",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_1__stick/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_1__stick/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_1__stick/unit_01_002"
+    },
+    {
+      "index": 4,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_1__stick/unit_01_003"
+    },
+    {
+      "index": 5,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_1__stick/unit_01_004"
+    },
+    {
+      "index": 6,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_2__board/HL_Door_Pivot/unit_02_000"
+    },
+    {
+      "index": 7,
+      "stage": 2,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_2__board/unit_02_001"
+    },
+    {
+      "index": 8,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_3__rope/unit_03_000"
+    },
+    {
+      "index": 9,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_3__rope/unit_03_001"
+    },
+    {
+      "index": 10,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_3__rope/unit_03_002"
+    },
+    {
+      "index": 11,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.door.wood/BuildStage_3__rope/unit_03_003"
+    }
+  ]
+}

@@ -196,6 +196,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
         public static void Complete(WorldState world, WorldObjectState piece)
         {
             if (!IsFreePiece(piece)) return;
+            if (!BuildSiteMath.IsAssembled(piece)) return;
             SyncProgress(world, piece);
             piece.BuildProduct = string.Empty;
             RepairTopology(world);
@@ -246,6 +247,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
             state.ReplacementDefinitionId = string.Empty;
             piece.DefinitionId = replacement;
             piece.BuildProduct = replacement;
+            piece.InstalledBuildMaterials = new int[BuildSiteMath.AllMaterials.Length];
             piece.BillLogs = 0;
             piece.BillStones = 0;
             piece.BillLeaves = 0;
@@ -284,6 +286,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
                 world, definitionId, fragment, placement.AnchorTile, anchorId);
             piece.ArchitectureOwnerId = piece.Id;
             piece.BuildProduct = definitionId;
+            piece.InstalledBuildMaterials = new int[BuildSiteMath.AllMaterials.Length];
             piece.RotationDegrees = 0f;
             piece.ArchitectureElements.Add(new ArchitectureElementState
             {
@@ -616,7 +619,7 @@ namespace HexLive.Simulation.Runtime.Blueprints
         }
 
         private static int Count(WorldObjectState piece, string definitionId) =>
-            piece.Contents.Count(item => item.DefinitionId == definitionId);
+            BuildSiteMath.Installed(piece, definitionId);
 
         private static BlueprintElementKind? KindForDefinition(string definitionId) => definitionId switch
         {

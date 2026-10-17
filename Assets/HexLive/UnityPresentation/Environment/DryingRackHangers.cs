@@ -1,18 +1,20 @@
 using UnityEngine;
+using HexLive.Simulation.Content;
 
 namespace HexLive.UnityPresentation.Environment
 {
     /// <summary>
     /// §35.5B: the drying rack's 8 invisible hanger slots — local offsets from
-    /// the rack's anchor (= its junction anchor; the assembled prefab renders
-    /// yaw-0 at that same anchor, so these offsets are world-stable). Four
-    /// garments drape over the top rail, four over the lower one. SINGLE SOURCE
-    /// OF TRUTH: the prefab assembly (drying_rack_final) and the renderer's
-    /// hung-garment placement both read these numbers.
+    /// the identity furniture wrapper. Four garments drape over the top rail,
+    /// four over the lower one. DryingSlot_00…07 from the same native model
+    /// own these positions; the renderer applies the rack's six-way yaw.
     /// </summary>
     public static class DryingRackHangers
     {
-        /// Rail heights in the prefab (world units, ground = 0).
+        private static GameObject _resolvedPrefab;
+        private static readonly Vector3[] AuthoredSlots = new Vector3[8];
+        private static bool _hasAuthoredSlots;
+        /// Legacy fallback only, for previously published content without sockets.
         public const float TopRailY = 0.78f;
         public const float LowRailY = 0.50f;
 
@@ -42,8 +44,38 @@ namespace HexLive.UnityPresentation.Environment
         /// over-capacity glitch never throws, it just doubles up a hanger.
         public static Vector3 Slot(int index)
         {
+            ResolveAuthoredSlots();
+            if (_hasAuthoredSlots)
+                return AuthoredSlots[((index % AuthoredSlots.Length) + AuthoredSlots.Length) % AuthoredSlots.Length];
             var slots = Slots;
             return slots[((index % slots.Length) + slots.Length) % slots.Length];
+        }
+
+        private static void ResolveAuthoredSlots()
+        {
+            var prefab = WorldPropResources.Load(ContentIds.DryingRack);
+            if (prefab == null || prefab == _resolvedPrefab) return;
+            _resolvedPrefab = prefab;
+            _hasAuthoredSlots = false;
+            var wrapper = new GameObject("Drying rack socket probe")
+                { hideFlags = HideFlags.HideAndDontSave };
+            var model = Object.Instantiate(prefab, wrapper.transform, false);
+            var transforms = model.GetComponentsInChildren<Transform>(true);
+            var found = 0;
+            for (var index = 0; index < AuthoredSlots.Length; index++)
+            {
+                var name = $"DryingSlot_{index:D2}";
+                foreach (var socket in transforms)
+                {
+                    if (socket.name != name) continue;
+                    AuthoredSlots[index] = wrapper.transform.InverseTransformPoint(socket.position);
+                    found++;
+                    break;
+                }
+            }
+            _hasAuthoredSlots = found == AuthoredSlots.Length;
+            if (Application.isPlaying) Object.Destroy(wrapper);
+            else Object.DestroyImmediate(wrapper);
         }
     }
 }

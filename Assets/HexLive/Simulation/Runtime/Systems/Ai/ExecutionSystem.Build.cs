@@ -156,12 +156,19 @@ public sealed partial class ExecutionSystem
             EmitSiteDelivered(world, npc, site);
         }
 
+        // §120: stock may arrive in bundles, but one completed work gesture
+        // installs at most one authored unit. Never raise a merely stocked
+        // model. A missing hammer must not grant free installed progress.
+        var needsWorkTool = BuildSiteMath.NeedsHammer(world, site);
+        if (!needsWorkTool || BuildSiteMath.HammerAvailable(world, npc, site))
+            BuildSiteMath.TryInstallOne(world, site);
+
         // §54.14: a campfire site raises EARLY — the moment the stage-1 stick
         // pile is delivered it becomes a real (cold, lightable) campfire that
         // keeps the open bill and accepts the upgrade stages in place. The
         // bootstrap hearth is born past this point already.
         if (site.DefinitionId == ContentIds.BuildSite && site.BuildProduct == ContentIds.Campfire &&
-            BuildSiteMath.Delivered(site, BuildSiteMath.MaterialSticks) >= BuildSiteMath.CampfireStage1Sticks)
+            BuildSiteMath.Installed(site, BuildSiteMath.MaterialSticks) >= BuildSiteMath.CampfireStage1Sticks)
         {
             var fireJunction = site.Junctions.Count > 0 ? site.Junctions[0] : npc.CurrentJunction;
             var fireTile = site.Tile;
@@ -179,6 +186,7 @@ public sealed partial class ExecutionSystem
                 fire.BillStones = site.BillStones;
                 fire.BillRope = site.BillRope;
                 fire.Contents.AddRange(site.Contents);
+                fire.InstalledBuildMaterials = site.InstalledBuildMaterials;
                 Trace.Emit(world, npc.Id, "FurnitureBuilt",
                     $"campfire.spot raised at stage 1, Tile={fireTile.Q},{fireTile.R} (upgrades continue in place)");
             }
@@ -199,7 +207,7 @@ public sealed partial class ExecutionSystem
         // исполнителе: новая постройка молча получала «нужен молоток» и узнать
         // об этом можно было только по тому, что её никто не строит.
         var needsHammer = BuildSiteMath.NeedsHammer(world, site);
-        if (BuildSiteMath.IsStocked(site) &&
+        if (BuildSiteMath.IsStocked(site) && BuildSiteMath.IsAssembled(site) &&
             (!needsHammer ||
              BuildSiteMath.HammerAvailable(world, npc, site)))
         {

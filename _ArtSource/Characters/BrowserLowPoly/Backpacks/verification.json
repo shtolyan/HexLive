@@ -1,0 +1,243 @@
+{
+  "state": "done",
+  "packs": {
+    "Marta_PrimalGathererPack": {
+      "triangles": 1840,
+      "vertices": 971,
+      "bones": 13,
+      "max_weights": 4,
+      "bind_error": 0.0,
+      "pose_error": 0,
+      "motion_m": 0.12492787683704043,
+      "packed_atlas_512": true,
+      "skin_contact_samples": [
+        {
+          "frame": 1,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 5,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 10,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 15,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 19,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        }
+      ]
+    },
+    "Kshishtof_PrimalGathererPack": {
+      "triangles": 1840,
+      "vertices": 971,
+      "bones": 13,
+      "max_weights": 4,
+      "bind_error": 0.0,
+      "pose_error": 0,
+      "motion_m": 0.12382217855044422,
+      "packed_atlas_512": true,
+      "skin_contact_samples": [
+        {
+          "frame": 1,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 5,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 10,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 15,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 19,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        }
+      ]
+    },
+    "Marta_PrimalHunterPack": {
+      "triangles": 1936,
+      "vertices": 1018,
+      "bones": 13,
+      "max_weights": 4,
+      "bind_error": 0.0,
+      "pose_error": 0,
+      "motion_m": 0.13316127444073653,
+      "packed_atlas_512": true,
+      "skin_contact_samples": [
+        {
+          "frame": 1,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 5,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 10,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 15,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 19,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        }
+      ]
+    },
+    "Kshishtof_PrimalHunterPack": {
+      "triangles": 1936,
+      "vertices": 1018,
+      "bones": 13,
+      "max_weights": 4,
+      "bind_error": 0.0,
+      "pose_error": 0,
+      "motion_m": 0.1320860263755157,
+      "packed_atlas_512": true,
+      "skin_contact_samples": [
+        {
+          "frame": 1,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 5,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 10,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 15,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 19,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        }
+      ]
+    },
+    "Marta_PrimalTrailPack": {
+      "triangles": 2126,
+      "vertices": 1218,
+      "bones": 5,
+      "max_weights": 2,
+      "bind_error": 0.0,
+      "pose_error": 0,
+      "motion_m": 0.13802455857725746,
+      "packed_atlas_512": true,
+      "skin_contact_samples": [
+        {
+          "frame": 1,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 5,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 10,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 15,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 19,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        }
+      ]
+    },
+    "Kshishtof_PrimalTrailPack": {
+      "triangles": 2126,
+      "vertices": 1218,
+      "bones": 5,
+      "max_weights": 2,
+      "bind_error": 0.0,
+      "pose_error": 0,
+      "motion_m": 0.13863523065731911,
+      "packed_atlas_512": true,
+      "skin_contact_samples": [
+        {
+          "frame": 1,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 5,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 10,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 15,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        },
+        {
+          "frame": 19,
+          "vertices_deeper_than_3mm": 0,
+          "max_depth_cm": 0
+        }
+      ]
+    }
+  },
+  "body_contract": {
+    "Marta": {
+      "unchanged": true,
+      "bones": 172,
+      "blendshapes": 109
+    },
+    "Kshishtof": {
+      "unchanged": true,
+      "bones": 172,
+      "blendshapes": 109
+    }
+  },
+  "toggle_checks": {
+    "Marta": "0 none; 1\u20133 exactly one pack",
+    "Kshishtof": "0 none; 1\u20133 exactly one pack"
+  }
+}

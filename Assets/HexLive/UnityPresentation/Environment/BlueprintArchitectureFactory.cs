@@ -63,7 +63,20 @@ namespace HexLive.UnityPresentation.Environment
                 for (var i = 0; i < units.Count; i++)
                     units[i].gameObject.SetActive(i < visible);
                 foreach (Transform child in root)
-                    if (IsContainer(child.name)) child.gameObject.SetActive(previousComplete);
+                {
+                    if (IsContainer(child.name))
+                    {
+                        child.gameObject.SetActive(previousComplete);
+                    }
+                    else if (IsHardware(child.name))
+                    {
+                        // Free decoration belongs to the stage, not to the
+                        // empty site. Reveal it with the first paid unit (or
+                        // immediately for a deliberately zero-cost stage).
+                        child.gameObject.SetActive(
+                            previousComplete && (units.Count == 0 || visible > 0));
+                    }
+                }
             }
         }
 
@@ -91,6 +104,7 @@ namespace HexLive.UnityPresentation.Environment
                 }
                 if (!IsHardware(child.name)) units.Add(child);
             }
+            units.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
             return units;
         }
 
@@ -470,7 +484,8 @@ namespace HexLive.UnityPresentation.Environment
             {
                 foreach (var child in posts.Cast<Transform>().ToArray())
                 {
-                    if (!child.name.Contains("_stick_")) continue;
+                    if (!child.GetComponentsInChildren<Transform>(true)
+                        .Any(part => part.name.Contains("_stick_"))) continue;
                     UnityEngine.Object.DestroyImmediate(child.gameObject);
                 }
             }
@@ -478,7 +493,8 @@ namespace HexLive.UnityPresentation.Environment
             if (lashing == null) return;
             foreach (var child in lashing.Cast<Transform>().ToArray())
             {
-                if (!IsSeamLashing(child.name)) continue;
+                if (!child.GetComponentsInChildren<Transform>(true)
+                    .Any(part => IsSeamLashing(part.name))) continue;
                 UnityEngine.Object.DestroyImmediate(child.gameObject);
             }
         }

@@ -92,13 +92,14 @@ namespace HexLive.Editor
             // nothing, every delivered resource must reveal more geometry, and
             // the complete bill must reveal every renderer. This catches FBX
             // hierarchy drift that the former dependency-only gate missed.
+            var canonicalStagedIds = ConstructionStageBuildGate.Validate(violations);
             foreach (var entry in manifest.entries ?? Array.Empty<Entry>())
             {
                 // JsonUtility materialises a default nested object even when
                 // stagedBill is absent from JSON. Only a positive bill marks
                 // an object as a staged assembly; otherwise ordinary props
                 // were incorrectly exercised through the bed fallback.
-                if (HasStagedBill(entry.stagedBill))
+                if (HasStagedBill(entry.stagedBill) && !canonicalStagedIds.Contains(entry.id))
                     ValidateStagedAssembly(entry, violations);
             }
 

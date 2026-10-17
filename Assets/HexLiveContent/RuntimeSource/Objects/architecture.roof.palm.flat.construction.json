@@ -1,0 +1,238 @@
+{
+  "version": 1,
+  "definitionId": "architecture.roof.palm.flat",
+  "modelSha256": "02cdb09c813a3c806a756431ccf1787b6f485cd88ee44cb010e653790e93b739",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_1__stick/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_1__stick/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_1__stick/unit_01_002"
+    },
+    {
+      "index": 4,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_000"
+    },
+    {
+      "index": 5,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_001"
+    },
+    {
+      "index": 6,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_002"
+    },
+    {
+      "index": 7,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_003"
+    },
+    {
+      "index": 8,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_004"
+    },
+    {
+      "index": 9,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_005"
+    },
+    {
+      "index": 10,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_006"
+    },
+    {
+      "index": 11,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_007"
+    },
+    {
+      "index": 12,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_008"
+    },
+    {
+      "index": 13,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_009"
+    },
+    {
+      "index": 14,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_010"
+    },
+    {
+      "index": 15,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_011"
+    },
+    {
+      "index": 16,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_012"
+    },
+    {
+      "index": 17,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_013"
+    },
+    {
+      "index": 18,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_014"
+    },
+    {
+      "index": 19,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_015"
+    },
+    {
+      "index": 20,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_016"
+    },
+    {
+      "index": 21,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_017"
+    },
+    {
+      "index": 22,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_018"
+    },
+    {
+      "index": 23,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_019"
+    },
+    {
+      "index": 24,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_020"
+    },
+    {
+      "index": 25,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_021"
+    },
+    {
+      "index": 26,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_022"
+    },
+    {
+      "index": 27,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_023"
+    },
+    {
+      "index": 28,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_024"
+    },
+    {
+      "index": 29,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_025"
+    },
+    {
+      "index": 30,
+      "stage": 2,
+      "resource": "resource.palm_leaf",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_2__palm_leaf/unit_02_026"
+    },
+    {
+      "index": 31,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_3__rope/unit_03_000"
+    },
+    {
+      "index": 32,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.roof.palm.flat/BuildStage_3__rope/unit_03_001"
+    }
+  ]
+}

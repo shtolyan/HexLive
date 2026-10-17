@@ -1,0 +1,224 @@
+{
+  "Marta_PrimalCollar_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Marta_PrimalBriefs_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Marta_PrimalTop_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Marta_PrimalArmWraps_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Marta_PrimalHeadband_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Marta_PrimalWrapBoots_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Marta_PrimalSkirt_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Marta_PrimalDress_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Kshishtof_PrimalCollar_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Kshishtof_PrimalBriefs_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Kshishtof_PrimalArmWraps_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Kshishtof_PrimalHeadband_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Kshishtof_PrimalWrapBoots_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Kshishtof_PrimalSkirt_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "Kshishtof_PrimalDress_Wear": [
+    {
+      "equipped": 0,
+      "hide_render": true,
+      "hide_viewport": true
+    },
+    {
+      "equipped": 1,
+      "hide_render": false,
+      "hide_viewport": false
+    }
+  ],
+  "genitals": [
+    {
+      "pelvis_items": [
+        0,
+        0,
+        0
+      ],
+      "hidden": false
+    },
+    {
+      "pelvis_items": [
+        1,
+        0,
+        0
+      ],
+      "hidden": true
+    },
+    {
+      "pelvis_items": [
+        0,
+        1,
+        0
+      ],
+      "hidden": true
+    },
+    {
+      "pelvis_items": [
+        0,
+        0,
+        1
+      ],
+      "hidden": true
+    },
+    {
+      "pelvis_items": [
+        1,
+        1,
+        1
+      ],
+      "hidden": true
+    }
+  ]
+}

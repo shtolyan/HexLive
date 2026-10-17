@@ -1,6 +1,6 @@
 """Export the §120 architecture LEGO elements from the open building kit.
 
-Run inside Blender (normally through Blender MCP). Five FBX files land in
+Run inside Blender. Native FBX files land in
 Assets/HexLiveContent/RuntimeSource/Objects, one per constructor element definition:
 
     architecture.wall.wood.fbx      <- HL_ARCH_WALL
@@ -10,10 +10,10 @@ Assets/HexLiveContent/RuntimeSource/Objects, one per constructor element definit
     architecture.floor.board.fbx    <- HL_ARCH_FLOOR
 
 Element contract (mirrors building.hut_1hex.fbx):
-  * BuildStage_1/2/3 empties at the root; every direct mesh child of a stage
-    is ONE delivered resource unit (sticks -> stage 1, boards -> stage 2,
-    rope -> stage 3). Objects whose name contains "_deco_" are hardware that
-    appears together with its stage and is not a resource unit.
+  * BuildStage_N__material empties at the root; every direct mesh child of a
+    stage is ONE delivered resource unit. Objects whose name contains
+    "_deco_" are hardware that appears together with its stage and is not a
+    resource unit.
   * The door leaf lives under HL_Door_Pivot with HL_Door_State_Closed/Open
     sibling markers, same as the hut door.
   * Local frame: section length runs along Blender +Y (Unity +Z after the
@@ -40,6 +40,17 @@ ELEMENTS = {
     "HL_ARCH_HEARTH": "furniture.hearth",
 }
 
+STAGE_MATERIALS = {
+    "architecture.wall.wood": ("stick", "board", "rope"),
+    "architecture.window.wood": ("stick", "board", "rope"),
+    "architecture.door.wood": ("stick", "board", "rope"),
+    "architecture.support.wood": ("stick", "board", "rope"),
+    "architecture.floor.board": ("stick", "board", "rope"),
+    "architecture.roof.palm": ("stick", "palm_leaf", "rope"),
+    "architecture.roof.palm.flat": ("stick", "palm_leaf", "rope"),
+    "furniture.hearth": ("stick", "stone", "rope"),
+}
+
 # A targeted deterministic repair should not rewrite seven unrelated binary
 # FBX files merely because Blender's exporter ran again. Empty means the normal
 # full export; a definition id exports exactly that one element.
@@ -62,7 +73,8 @@ if os.path.basename(bpy.data.filepath) != SOURCE_FILE:
     raise RuntimeError("Open the HexLive building kit before exporting: " + bpy.data.filepath)
 
 repo_root = os.path.abspath(os.path.join(os.path.dirname(bpy.data.filepath), "../../.."))
-objects_dir = os.path.join(repo_root, "Assets", "Resources", "HexLive", "Objects")
+objects_dir = os.path.join(
+    repo_root, "Assets", "HexLiveContent", "RuntimeSource", "Objects")
 os.makedirs(objects_dir, exist_ok=True)
 
 collection = bpy.data.collections.get(COLLECTION)
@@ -105,12 +117,19 @@ for root_name, definition_id in ELEMENTS.items():
     temp = bpy.data.collections.new("__HL_ARCH_EXPORT_TEMP")
     bpy.context.scene.collection.children.link(temp)
     stage_roots = {}
+    parked_stage_names = {}
     for stage in ("1", "2", "3"):
         # Steal exact names from any source empties for the export duration.
-        holder = bpy.data.objects.get(f"BuildStage_{stage}")
+        holder = next(
+            (child for child in root.children
+             if child.name.startswith(f"BuildStage_{stage}")),
+            None,
+        )
         if holder is not None:
+            parked_stage_names[holder] = holder.name
             holder.name = f"__src_BuildStage_{stage}"
-        empty = bpy.data.objects.new(f"BuildStage_{stage}", None)
+        material = STAGE_MATERIALS[definition_id][int(stage) - 1]
+        empty = bpy.data.objects.new(f"BuildStage_{stage}__{material}", None)
         temp.objects.link(empty)
         stage_roots[stage] = empty
 
@@ -228,10 +247,8 @@ for root_name, definition_id in ELEMENTS.items():
     for empty in [*extra, *stage_roots.values(), *root_markers]:
         bpy.data.objects.remove(empty, do_unlink=True)
     bpy.data.collections.remove(temp)
-    for stage in ("1", "2", "3"):
-        holder = bpy.data.objects.get(f"__src_BuildStage_{stage}")
-        if holder is not None:
-            holder.name = f"BuildStage_{stage}"
+    for holder, authored_name in parked_stage_names.items():
+        holder.name = authored_name
     if root_name == "HL_ARCH_DOOR":
         parked = bpy.data.objects.get("__src_" + source_pivot_name)
         if parked is not None:

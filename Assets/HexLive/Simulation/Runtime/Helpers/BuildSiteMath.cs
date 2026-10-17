@@ -83,6 +83,90 @@ internal static class BuildSiteMath
         return n;
     }
 
+    public static int Installed(WorldObjectState site, string materialId)
+    {
+        var index = System.Array.IndexOf(AllMaterials, materialId);
+        return site.InstalledBuildMaterials != null && index >= 0
+            ? site.InstalledBuildMaterials[index] : Delivered(site, materialId);
+    }
+
+    public static bool IsAssembled(WorldObjectState site)
+    {
+        foreach (var material in AllMaterials)
+            if (Installed(site, material) < Bill(site, material)) return false;
+        return true;
+    }
+
+    // Old saves keep their visible progress; only subsequent work becomes
+    // explicit. New sites start with a zero array at placement time.
+    public static void TrackWork(WorldObjectState site)
+    {
+        if (site.InstalledBuildMaterials != null) return;
+        var counts = new int[AllMaterials.Length];
+        for (var i = 0; i < counts.Length; i++)
+            counts[i] = System.Math.Min(Bill(site, AllMaterials[i]), Delivered(site, AllMaterials[i]));
+        site.InstalledBuildMaterials = counts;
+    }
+
+    private static string NextStageMaterial(WorldObjectState site)
+    {
+        var stages = StagesFor(site);
+        if (stages == null && IsFreeArchitectureSite(site))
+        {
+            // Architecture shares the exact source stage order; roof leaves
+            // occupy stage 2 where wall/floor boards normally go.
+            stages = new[] { (MaterialSticks, site.BillSticks),
+                (MaterialBoards, site.BillBoards), (MaterialLeaves, site.BillLeaves),
+                (MaterialRope, site.BillRope) };
+        }
+        if (stages == null) return null;
+        System.Span<int> used = stackalloc int[AllMaterials.Length];
+        used.Clear();
+        foreach (var (material, count) in stages)
+        {
+            var index = System.Array.IndexOf(AllMaterials, material);
+            used[index] += count;
+            if (Installed(site, material) < used[index]) return material;
+        }
+        return string.Empty;
+    }
+
+    public static bool HasReadyWork(WorldState world, WorldObjectState site)
+    {
+        if (IsDemolitionSite(site)) return true;
+        var next = NextStageMaterial(site);
+        if (next != null)
+            return next.Length > 0 && Delivered(site, next) > Installed(site, next);
+        foreach (var material in AllMaterials)
+            if (Delivered(site, material) > Installed(site, material) &&
+                (!IsArchitecturalBuilding(site.BuildProduct) ||
+                 BuildingRules.CanInstallMaterial(world, site, material))) return true;
+        return false;
+    }
+
+    public static bool TryInstallOne(WorldState world, WorldObjectState site)
+    {
+        if (!IsSite(site) || IsDemolitionSite(site)) return false;
+        TrackWork(site);
+        var next = NextStageMaterial(site);
+        foreach (var material in AllMaterials)
+        {
+            if (next != null && next != material) continue;
+            var index = System.Array.IndexOf(AllMaterials, material);
+            if (Installed(site, material) >= Bill(site, material) ||
+                Installed(site, material) >= Delivered(site, material)) continue;
+            if (IsArchitecturalBuilding(site.BuildProduct) &&
+                !BuildingRules.AssignDeliveredMaterial(world, site, material, staged: true)) continue;
+            site.InstalledBuildMaterials[index]++;
+            if (IsFreeArchitectureSite(site)) FreeArchitectureRules.SyncProgress(world, site);
+            if (IsArchitecturalBuilding(site.BuildProduct) && BuildingRules.FloorComplete(world, site))
+                foreach (var tile in Bootstrap.BuildingBootstrap.FootprintTiles(world, site))
+                    if (world.Tiles.Items.TryGetValue(tile, out var floor)) floor.Flags |= TileFlags.HasFloor;
+            return true;
+        }
+        return false;
+    }
+
     // The one canonical bed is built in four visible stages.
     private static readonly (string Material, int Count)[] BedBasicStages =
     {
@@ -147,13 +231,33 @@ internal static class BuildSiteMath
         (MaterialBoards, 4)  // 05: four tabletop planks
     };
 
+    // §133 / §120 authoring contract: frame first, then the shoe boards, then
+    // one compound lashing unit. The native FBX and Blender preview share
+    // these stage parents and the same deterministic per-resource order.
+    private static readonly (string Material, int Count)[] WardrobeStages =
+    {
+        (MaterialSticks, 4),
+        (MaterialBoards, 8),
+        (MaterialRope, 1)
+    };
+
+    private static readonly (string Material, int Count)[] IndoorHearthStages =
+    {
+        (MaterialSticks, SimBalance.HutHearthBillSticks),
+        (MaterialStones, SimBalance.HutHearthBillStones),
+        (MaterialRope, SimBalance.HutHearthBillRope)
+    };
+
     private static (string Material, int Count)[] StagesFor(WorldObjectState site) => site.BuildProduct switch
     {
         "bed.basic" => BedBasicStages,
         "station.drying_rack" => DryingRackStages,
+        ContentIds.Campfire when site.Variant == BuildingRules.HutHearthVariant => IndoorHearthStages,
+        ContentIds.FurnitureHearth => IndoorHearthStages,
         "campfire.spot" => CampfireStages,
         "station.water_collector" => WaterCollectorStages,
         ContentIds.Workbench => WorkbenchStages,
+        ContentIds.Wardrobe => WardrobeStages,
         _ => null
     };
 
@@ -285,7 +389,7 @@ internal static class BuildSiteMath
     // against the 18-stone outdoor bill would read a finished hearth as bare.
     public static bool CampfireRingComplete(WorldObjectState fire) =>
         fire != null && (fire.Variant == BuildingRules.HutHearthVariant ||
-        Delivered(fire, MaterialStones) >= SimBalance.CampfireBillStones);
+        Installed(fire, MaterialStones) >= SimBalance.CampfireBillStones);
 
     // The spit = stages 2-4 (posts, crossbar, lashings) — complete when the
     // full stick and rope bills are in. The stone ring (stage 5, §54.17 r3)
@@ -293,8 +397,8 @@ internal static class BuildSiteMath
     // prerequisite.
     public static bool CampfireSpitComplete(WorldObjectState fire) =>
         fire != null &&
-        Delivered(fire, MaterialSticks) >= SimBalance.CampfireBillSticks &&
-        Delivered(fire, MaterialRope) >= SimBalance.CampfireBillRope;
+        Installed(fire, MaterialSticks) >= SimBalance.CampfireBillSticks &&
+        Installed(fire, MaterialRope) >= SimBalance.CampfireBillRope;
 
     // §54.14 (r2): meat hanging on the spit (raw still roasting, or cooked
     // waiting to be taken). Hanging items live in the fire's Contents next to

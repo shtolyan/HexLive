@@ -1,0 +1,1436 @@
+{
+  "Kshishtof_LOD0": {
+    "triangles": 15854,
+    "morphs": 109,
+    "shapes": {
+      "Genesis3Male__CTRLCheeksDimpleCreaseHD": {
+        "max_displacement_m": 0.0033931047732404097,
+        "moving_vertices": 124,
+        "rebuilt_from": [
+          "Genesis3Male__PHMCheeksDimpleCreaseHDR",
+          "Genesis3Male__PHMCheeksDimpleCreaseHDL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLSurprised": {
+        "max_displacement_m": 0.029864337915046484,
+        "moving_vertices": 2906,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLSmile": {
+        "max_displacement_m": 0.009413985562201467,
+        "moving_vertices": 2837,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLFrown": {
+        "max_displacement_m": 0.007008202584247681,
+        "moving_vertices": 1325,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLFlirting": {
+        "max_displacement_m": 0.0073129519316385795,
+        "moving_vertices": 2826,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLAngry": {
+        "max_displacement_m": 0.008276670504958554,
+        "moving_vertices": 1604,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvW": {
+        "max_displacement_m": 0.013638077852431442,
+        "moving_vertices": 833,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvUW": {
+        "max_displacement_m": 0.010111140324034954,
+        "moving_vertices": 2213,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvTH": {
+        "max_displacement_m": 0.005644318660734754,
+        "moving_vertices": 2213,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvT": {
+        "max_displacement_m": 0.003561412962832056,
+        "moving_vertices": 1977,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvSH": {
+        "max_displacement_m": 0.006219288090248358,
+        "moving_vertices": 2209,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvS": {
+        "max_displacement_m": 0.005718314189002789,
+        "moving_vertices": 1993,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvOW": {
+        "max_displacement_m": 0.012335811192204768,
+        "moving_vertices": 2213,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvM": {
+        "max_displacement_m": 0.004497863581194249,
+        "moving_vertices": 584,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvL": {
+        "max_displacement_m": 0.007242102443693379,
+        "moving_vertices": 1946,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvK": {
+        "max_displacement_m": 0.004188080906511595,
+        "moving_vertices": 1979,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvIY": {
+        "max_displacement_m": 0.003998453185140638,
+        "moving_vertices": 2201,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvIH": {
+        "max_displacement_m": 0.005602905035903319,
+        "moving_vertices": 2347,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvF": {
+        "max_displacement_m": 0.008696476980487653,
+        "moving_vertices": 2169,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvER": {
+        "max_displacement_m": 0.008067708816802095,
+        "moving_vertices": 2211,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvEH": {
+        "max_displacement_m": 0.008216453240153914,
+        "moving_vertices": 2201,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvEE": {
+        "max_displacement_m": 0.005605190718802465,
+        "moving_vertices": 2201,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvAA": {
+        "max_displacement_m": 0.009703164494123616,
+        "moving_vertices": 1950,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueUp-Down": {
+        "max_displacement_m": 0.004057553893524661,
+        "moving_vertices": 122,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueSide-Side": {
+        "max_displacement_m": 0.010948954894681995,
+        "moving_vertices": 122,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueRaise-Lower": {
+        "max_displacement_m": 0.016092726216018798,
+        "moving_vertices": 144,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueNarrow-Wide": {
+        "max_displacement_m": 0.002248207494050278,
+        "moving_vertices": 104,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueIn-Out": {
+        "max_displacement_m": 0.008930302848830802,
+        "moving_vertices": 121,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueBendTip": {
+        "max_displacement_m": 0.00608278155725675,
+        "moving_vertices": 107,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongue Curl": {
+        "max_displacement_m": 0.010120533452684112,
+        "moving_vertices": 122,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLNostrilsFlare": {
+        "max_displacement_m": 0.0027429577541431133,
+        "moving_vertices": 290,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLNoseWrinkle": {
+        "max_displacement_m": 0.007837540526500986,
+        "moving_vertices": 758,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLNoseScrunch": {
+        "max_displacement_m": 0.0021596296822434784,
+        "moving_vertices": 468,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmileSimpleR": {
+        "max_displacement_m": 0.007482355359700302,
+        "moving_vertices": 475,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmileSimpleL": {
+        "max_displacement_m": 0.007482355359700302,
+        "moving_vertices": 475,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmileSimple": {
+        "max_displacement_m": 0.007482355359700302,
+        "moving_vertices": 642,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthSmileSimpleR",
+          "Genesis3Male__eCTRLMouthSmileSimpleL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmileOpen": {
+        "max_displacement_m": 0.00896352417654463,
+        "moving_vertices": 975,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmile": {
+        "max_displacement_m": 0.008129732032088857,
+        "moving_vertices": 973,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSide-SideR": {
+        "max_displacement_m": 0.015697542840468134,
+        "moving_vertices": 972,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSide-SideL": {
+        "max_displacement_m": 0.015695418865999552,
+        "moving_vertices": 972,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSide-Side": {
+        "max_displacement_m": 0.012214465208650585,
+        "moving_vertices": 858,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthSide-SideR",
+          "Genesis3Male__eCTRLMouthSide-SideL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthOpenWide": {
+        "max_displacement_m": 0.022548339201658375,
+        "moving_vertices": 2213,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthOpen": {
+        "max_displacement_m": 0.012011586571432654,
+        "moving_vertices": 1838,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthNarrowR": {
+        "max_displacement_m": 0.009751377783780947,
+        "moving_vertices": 290,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthNarrowL": {
+        "max_displacement_m": 0.009751377783780947,
+        "moving_vertices": 290,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthNarrow": {
+        "max_displacement_m": 0.009751377783780947,
+        "moving_vertices": 524,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthNarrowR",
+          "Genesis3Male__eCTRLMouthNarrowL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthFrown": {
+        "max_displacement_m": 0.006996578702240744,
+        "moving_vertices": 871,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthCornerUp-Down": {
+        "max_displacement_m": 0.005015869140625,
+        "moving_vertices": 412,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthCornerBackR": {
+        "max_displacement_m": 0.004230756759643555,
+        "moving_vertices": 289,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthCornerBackL": {
+        "max_displacement_m": 0.004230756759643555,
+        "moving_vertices": 289,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthCornerBack": {
+        "max_displacement_m": 0.004230756759643555,
+        "moving_vertices": 541,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthCornerBackR",
+          "Genesis3Male__eCTRLMouthCornerBackL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopUp-DownR": {
+        "max_displacement_m": 0.005199432373046875,
+        "moving_vertices": 222,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopUp-DownL": {
+        "max_displacement_m": 0.005199432373046875,
+        "moving_vertices": 222,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopUp-Down": {
+        "max_displacement_m": 0.00695892333984375,
+        "moving_vertices": 285,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipTopUp-DownR",
+          "Genesis3Male__eCTRLLipTopUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopIn-OutR": {
+        "max_displacement_m": 0.004854054168309846,
+        "moving_vertices": 224,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopIn-OutL": {
+        "max_displacement_m": 0.004842509345817271,
+        "moving_vertices": 224,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopIn-Out": {
+        "max_displacement_m": 0.009008626249609648,
+        "moving_vertices": 287,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipTopIn-OutR",
+          "Genesis3Male__eCTRLLipTopIn-OutL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipsPuckerWide": {
+        "max_displacement_m": 0.012760409407781259,
+        "moving_vertices": 785,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipsPucker": {
+        "max_displacement_m": 0.013397038754233693,
+        "moving_vertices": 785,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipsPartCenter": {
+        "max_displacement_m": 0.004166171072894691,
+        "moving_vertices": 358,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipsPart": {
+        "max_displacement_m": 0.004264111191377408,
+        "moving_vertices": 438,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomUp-DownR": {
+        "max_displacement_m": 0.0049114990234375,
+        "moving_vertices": 190,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomUp-DownL": {
+        "max_displacement_m": 0.0049114990234375,
+        "moving_vertices": 190,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomUp-Down": {
+        "max_displacement_m": 0.0069744873046875,
+        "moving_vertices": 227,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipBottomUp-DownR",
+          "Genesis3Male__eCTRLLipBottomUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomIn-OutR": {
+        "max_displacement_m": 0.006797126799703687,
+        "moving_vertices": 190,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomIn-OutL": {
+        "max_displacement_m": 0.006797973361318376,
+        "moving_vertices": 190,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomIn-Out": {
+        "max_displacement_m": 0.009506661517511502,
+        "moving_vertices": 227,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipBottomIn-OutR",
+          "Genesis3Male__eCTRLLipBottomIn-OutL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLJawSide-Side": {
+        "max_displacement_m": 0.009887371530040679,
+        "moving_vertices": 1818,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLJawOut-In": {
+        "max_displacement_m": 0.009738680605724519,
+        "moving_vertices": 1818,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesUpDown": {
+        "max_displacement_m": 0.004230182777778273,
+        "moving_vertices": 798,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesSquintR": {
+        "max_displacement_m": 0.004710119017300817,
+        "moving_vertices": 353,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesSquintL": {
+        "max_displacement_m": 0.004710119017300817,
+        "moving_vertices": 353,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesSquint": {
+        "max_displacement_m": 0.004710119017300817,
+        "moving_vertices": 706,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyesSquintR",
+          "Genesis3Male__eCTRLEyesSquintL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesSideSide": {
+        "max_displacement_m": 0.0052449100185338335,
+        "moving_vertices": 800,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesCrossed": {
+        "max_displacement_m": 0.00653739572075743,
+        "moving_vertices": 800,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesClosedR": {
+        "max_displacement_m": 0.008007230706827174,
+        "moving_vertices": 174,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesClosedL": {
+        "max_displacement_m": 0.008008412436733163,
+        "moving_vertices": 174,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesClosed": {
+        "max_displacement_m": 0.008008412436733163,
+        "moving_vertices": 348,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyesClosedR",
+          "Genesis3Male__eCTRLEyesClosedL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUpR": {
+        "max_displacement_m": 0.008277140889150474,
+        "moving_vertices": 90,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUpL": {
+        "max_displacement_m": 0.008278395879589758,
+        "moving_vertices": 90,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUp": {
+        "max_displacement_m": 0.008278395879589758,
+        "moving_vertices": 180,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyelidsUpperDownUpR",
+          "Genesis3Male__eCTRLEyelidsUpperDownUpL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDownR": {
+        "max_displacement_m": 0.0027969011341031223,
+        "moving_vertices": 95,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDownL": {
+        "max_displacement_m": 0.0027964334011075114,
+        "moving_vertices": 95,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDown": {
+        "max_displacement_m": 0.0027969011341031223,
+        "moving_vertices": 190,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyelidsLowerUpDownR",
+          "Genesis3Male__eCTRLEyelidsLowerUpDownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheeksBalloonPucker": {
+        "max_displacement_m": 0.013419058085172497,
+        "moving_vertices": 963,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheeksBalloon": {
+        "max_displacement_m": 0.009534542510343823,
+        "moving_vertices": 963,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekFlexR": {
+        "max_displacement_m": 0.00577554228645922,
+        "moving_vertices": 389,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekFlexL": {
+        "max_displacement_m": 0.00577554228645922,
+        "moving_vertices": 389,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekFlex": {
+        "max_displacement_m": 0.00577554228645922,
+        "moving_vertices": 763,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLCheekFlexR",
+          "Genesis3Male__eCTRLCheekFlexL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekEyeFlexR": {
+        "max_displacement_m": 0.003004608154296875,
+        "moving_vertices": 106,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekEyeFlexL": {
+        "max_displacement_m": 0.003004608154296875,
+        "moving_vertices": 106,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekEyeFlex": {
+        "max_displacement_m": 0.003004608154296875,
+        "moving_vertices": 212,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLCheekEyeFlexR",
+          "Genesis3Male__eCTRLCheekEyeFlexL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekCrease": {
+        "max_displacement_m": 0.001677637083252802,
+        "moving_vertices": 106,
+        "rebuilt_from": [
+          "Genesis3Male__ePHMCheekCreaseR",
+          "Genesis3Male__ePHMCheekCreaseL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowUp-DownR": {
+        "max_displacement_m": 0.00193695068359375,
+        "moving_vertices": 81,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowUp-DownL": {
+        "max_displacement_m": 0.00193695068359375,
+        "moving_vertices": 81,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowUp-Down": {
+        "max_displacement_m": 0.00193695068359375,
+        "moving_vertices": 162,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowUp-DownR",
+          "Genesis3Male__eCTRLBrowUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowSqueeze": {
+        "max_displacement_m": 0.004383269737641821,
+        "moving_vertices": 227,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-DownR": {
+        "max_displacement_m": 0.00560638427734375,
+        "moving_vertices": 128,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-DownL": {
+        "max_displacement_m": 0.00560638427734375,
+        "moving_vertices": 128,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-Down": {
+        "max_displacement_m": 0.00560638427734375,
+        "moving_vertices": 256,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowOuterUp-DownR",
+          "Genesis3Male__eCTRLBrowOuterUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-DownR": {
+        "max_displacement_m": 0.0057348632812500005,
+        "moving_vertices": 153,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-DownL": {
+        "max_displacement_m": 0.0057348632812500005,
+        "moving_vertices": 153,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-Down": {
+        "max_displacement_m": 0.006298980712890625,
+        "moving_vertices": 227,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowInnerUp-DownR",
+          "Genesis3Male__eCTRLBrowInnerUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__PHMNoseCompressionHD": {
+        "max_displacement_m": 0.001745725792653623,
+        "moving_vertices": 366,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__PHMCheeksDimpleCreaseHDR": {
+        "max_displacement_m": 0.0033931047732404097,
+        "moving_vertices": 62,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__PHMCheeksDimpleCreaseHDL": {
+        "max_displacement_m": 0.0033930948353094906,
+        "moving_vertices": 62,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__PHMBrowCompressionHD": {
+        "max_displacement_m": 0.0013107595183752371,
+        "moving_vertices": 112,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__ePHMCheekCreaseR": {
+        "max_displacement_m": 0.0016776230381652171,
+        "moving_vertices": 53,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__ePHMCheekCreaseL": {
+        "max_displacement_m": 0.001677637083252802,
+        "moving_vertices": 53,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      }
+    }
+  },
+  "Kshishtof_LOD1": {
+    "triangles": 13354,
+    "morphs": 109,
+    "shapes": {
+      "Genesis3Male__CTRLCheeksDimpleCreaseHD": {
+        "max_displacement_m": 0.0033931047732404097,
+        "moving_vertices": 124,
+        "rebuilt_from": [
+          "Genesis3Male__PHMCheeksDimpleCreaseHDR",
+          "Genesis3Male__PHMCheeksDimpleCreaseHDL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLSurprised": {
+        "max_displacement_m": 0.029864337915046484,
+        "moving_vertices": 2906,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLSmile": {
+        "max_displacement_m": 0.009413985562201467,
+        "moving_vertices": 2837,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLFrown": {
+        "max_displacement_m": 0.007008202584247681,
+        "moving_vertices": 1325,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLFlirting": {
+        "max_displacement_m": 0.0073129519316385795,
+        "moving_vertices": 2826,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLAngry": {
+        "max_displacement_m": 0.008276670504958554,
+        "moving_vertices": 1604,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvW": {
+        "max_displacement_m": 0.013638077852431442,
+        "moving_vertices": 833,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvUW": {
+        "max_displacement_m": 0.010111140324034954,
+        "moving_vertices": 2213,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvTH": {
+        "max_displacement_m": 0.005644318660734754,
+        "moving_vertices": 2213,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvT": {
+        "max_displacement_m": 0.003561412962832056,
+        "moving_vertices": 1977,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvSH": {
+        "max_displacement_m": 0.006219288090248358,
+        "moving_vertices": 2209,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvS": {
+        "max_displacement_m": 0.005718314189002789,
+        "moving_vertices": 1993,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvOW": {
+        "max_displacement_m": 0.012335811192204768,
+        "moving_vertices": 2213,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvM": {
+        "max_displacement_m": 0.004497863581194249,
+        "moving_vertices": 584,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvL": {
+        "max_displacement_m": 0.007242102443693379,
+        "moving_vertices": 1946,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvK": {
+        "max_displacement_m": 0.004188080906511595,
+        "moving_vertices": 1979,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvIY": {
+        "max_displacement_m": 0.003998453185140638,
+        "moving_vertices": 2201,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvIH": {
+        "max_displacement_m": 0.005602905035903319,
+        "moving_vertices": 2347,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvF": {
+        "max_displacement_m": 0.008696476980487653,
+        "moving_vertices": 2169,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvER": {
+        "max_displacement_m": 0.008067708816802095,
+        "moving_vertices": 2211,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvEH": {
+        "max_displacement_m": 0.008216453240153914,
+        "moving_vertices": 2201,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvEE": {
+        "max_displacement_m": 0.005605190718802465,
+        "moving_vertices": 2201,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLvAA": {
+        "max_displacement_m": 0.009703164494123616,
+        "moving_vertices": 1950,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueUp-Down": {
+        "max_displacement_m": 0.004057553893524661,
+        "moving_vertices": 122,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueSide-Side": {
+        "max_displacement_m": 0.010948954894681995,
+        "moving_vertices": 122,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueRaise-Lower": {
+        "max_displacement_m": 0.016092726216018798,
+        "moving_vertices": 144,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueNarrow-Wide": {
+        "max_displacement_m": 0.002248207494050278,
+        "moving_vertices": 104,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueIn-Out": {
+        "max_displacement_m": 0.008930302848830802,
+        "moving_vertices": 121,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongueBendTip": {
+        "max_displacement_m": 0.00608278155725675,
+        "moving_vertices": 107,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLTongue Curl": {
+        "max_displacement_m": 0.010120533452684112,
+        "moving_vertices": 122,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLNostrilsFlare": {
+        "max_displacement_m": 0.0027429577541431133,
+        "moving_vertices": 290,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLNoseWrinkle": {
+        "max_displacement_m": 0.007837540526500986,
+        "moving_vertices": 758,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLNoseScrunch": {
+        "max_displacement_m": 0.0021596296822434784,
+        "moving_vertices": 468,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmileSimpleR": {
+        "max_displacement_m": 0.007482355359700302,
+        "moving_vertices": 475,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmileSimpleL": {
+        "max_displacement_m": 0.007482355359700302,
+        "moving_vertices": 475,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmileSimple": {
+        "max_displacement_m": 0.007482355359700302,
+        "moving_vertices": 642,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthSmileSimpleR",
+          "Genesis3Male__eCTRLMouthSmileSimpleL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmileOpen": {
+        "max_displacement_m": 0.00896352417654463,
+        "moving_vertices": 975,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSmile": {
+        "max_displacement_m": 0.008129732032088857,
+        "moving_vertices": 973,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSide-SideR": {
+        "max_displacement_m": 0.015697542840468134,
+        "moving_vertices": 972,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSide-SideL": {
+        "max_displacement_m": 0.015695418865999552,
+        "moving_vertices": 972,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthSide-Side": {
+        "max_displacement_m": 0.012214465208650585,
+        "moving_vertices": 858,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthSide-SideR",
+          "Genesis3Male__eCTRLMouthSide-SideL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthOpenWide": {
+        "max_displacement_m": 0.022548339201658375,
+        "moving_vertices": 2213,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthOpen": {
+        "max_displacement_m": 0.012011586571432654,
+        "moving_vertices": 1838,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthNarrowR": {
+        "max_displacement_m": 0.009751377783780947,
+        "moving_vertices": 290,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthNarrowL": {
+        "max_displacement_m": 0.009751377783780947,
+        "moving_vertices": 290,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthNarrow": {
+        "max_displacement_m": 0.009751377783780947,
+        "moving_vertices": 524,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthNarrowR",
+          "Genesis3Male__eCTRLMouthNarrowL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthFrown": {
+        "max_displacement_m": 0.006996578702240744,
+        "moving_vertices": 871,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthCornerUp-Down": {
+        "max_displacement_m": 0.005015869140625,
+        "moving_vertices": 412,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthCornerBackR": {
+        "max_displacement_m": 0.004230756759643555,
+        "moving_vertices": 289,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthCornerBackL": {
+        "max_displacement_m": 0.004230756759643555,
+        "moving_vertices": 289,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLMouthCornerBack": {
+        "max_displacement_m": 0.004230756759643555,
+        "moving_vertices": 541,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthCornerBackR",
+          "Genesis3Male__eCTRLMouthCornerBackL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopUp-DownR": {
+        "max_displacement_m": 0.005199432373046875,
+        "moving_vertices": 222,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopUp-DownL": {
+        "max_displacement_m": 0.005199432373046875,
+        "moving_vertices": 222,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopUp-Down": {
+        "max_displacement_m": 0.00695892333984375,
+        "moving_vertices": 285,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipTopUp-DownR",
+          "Genesis3Male__eCTRLLipTopUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopIn-OutR": {
+        "max_displacement_m": 0.004854054168309846,
+        "moving_vertices": 224,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopIn-OutL": {
+        "max_displacement_m": 0.004842509345817271,
+        "moving_vertices": 224,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipTopIn-Out": {
+        "max_displacement_m": 0.009008626249609648,
+        "moving_vertices": 287,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipTopIn-OutR",
+          "Genesis3Male__eCTRLLipTopIn-OutL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipsPuckerWide": {
+        "max_displacement_m": 0.012760409407781259,
+        "moving_vertices": 785,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipsPucker": {
+        "max_displacement_m": 0.013397038754233693,
+        "moving_vertices": 785,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipsPartCenter": {
+        "max_displacement_m": 0.004166171072894691,
+        "moving_vertices": 358,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipsPart": {
+        "max_displacement_m": 0.004264111191377408,
+        "moving_vertices": 438,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomUp-DownR": {
+        "max_displacement_m": 0.0049114990234375,
+        "moving_vertices": 190,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomUp-DownL": {
+        "max_displacement_m": 0.0049114990234375,
+        "moving_vertices": 190,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomUp-Down": {
+        "max_displacement_m": 0.0069744873046875,
+        "moving_vertices": 227,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipBottomUp-DownR",
+          "Genesis3Male__eCTRLLipBottomUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomIn-OutR": {
+        "max_displacement_m": 0.006797126799703687,
+        "moving_vertices": 190,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomIn-OutL": {
+        "max_displacement_m": 0.006797973361318376,
+        "moving_vertices": 190,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLLipBottomIn-Out": {
+        "max_displacement_m": 0.009506661517511502,
+        "moving_vertices": 227,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipBottomIn-OutR",
+          "Genesis3Male__eCTRLLipBottomIn-OutL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLJawSide-Side": {
+        "max_displacement_m": 0.009887371530040679,
+        "moving_vertices": 1818,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLJawOut-In": {
+        "max_displacement_m": 0.009738680605724519,
+        "moving_vertices": 1818,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesUpDown": {
+        "max_displacement_m": 0.004230182777778273,
+        "moving_vertices": 798,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesSquintR": {
+        "max_displacement_m": 0.004710119017300817,
+        "moving_vertices": 353,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesSquintL": {
+        "max_displacement_m": 0.004710119017300817,
+        "moving_vertices": 353,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesSquint": {
+        "max_displacement_m": 0.004710119017300817,
+        "moving_vertices": 706,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyesSquintR",
+          "Genesis3Male__eCTRLEyesSquintL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesSideSide": {
+        "max_displacement_m": 0.0052449100185338335,
+        "moving_vertices": 800,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesCrossed": {
+        "max_displacement_m": 0.00653739572075743,
+        "moving_vertices": 800,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesClosedR": {
+        "max_displacement_m": 0.008007230706827174,
+        "moving_vertices": 174,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesClosedL": {
+        "max_displacement_m": 0.008008412436733163,
+        "moving_vertices": 174,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyesClosed": {
+        "max_displacement_m": 0.008008412436733163,
+        "moving_vertices": 348,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyesClosedR",
+          "Genesis3Male__eCTRLEyesClosedL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUpR": {
+        "max_displacement_m": 0.008277140889150474,
+        "moving_vertices": 90,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUpL": {
+        "max_displacement_m": 0.008278395879589758,
+        "moving_vertices": 90,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUp": {
+        "max_displacement_m": 0.008278395879589758,
+        "moving_vertices": 180,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyelidsUpperDownUpR",
+          "Genesis3Male__eCTRLEyelidsUpperDownUpL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDownR": {
+        "max_displacement_m": 0.0027969011341031223,
+        "moving_vertices": 95,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDownL": {
+        "max_displacement_m": 0.0027964334011075114,
+        "moving_vertices": 95,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDown": {
+        "max_displacement_m": 0.0027969011341031223,
+        "moving_vertices": 190,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyelidsLowerUpDownR",
+          "Genesis3Male__eCTRLEyelidsLowerUpDownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheeksBalloonPucker": {
+        "max_displacement_m": 0.013419058085172497,
+        "moving_vertices": 963,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheeksBalloon": {
+        "max_displacement_m": 0.009534542510343823,
+        "moving_vertices": 963,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekFlexR": {
+        "max_displacement_m": 0.00577554228645922,
+        "moving_vertices": 389,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekFlexL": {
+        "max_displacement_m": 0.00577554228645922,
+        "moving_vertices": 389,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekFlex": {
+        "max_displacement_m": 0.00577554228645922,
+        "moving_vertices": 763,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLCheekFlexR",
+          "Genesis3Male__eCTRLCheekFlexL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekEyeFlexR": {
+        "max_displacement_m": 0.003004608154296875,
+        "moving_vertices": 106,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekEyeFlexL": {
+        "max_displacement_m": 0.003004608154296875,
+        "moving_vertices": 106,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekEyeFlex": {
+        "max_displacement_m": 0.003004608154296875,
+        "moving_vertices": 212,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLCheekEyeFlexR",
+          "Genesis3Male__eCTRLCheekEyeFlexL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLCheekCrease": {
+        "max_displacement_m": 0.001677637083252802,
+        "moving_vertices": 106,
+        "rebuilt_from": [
+          "Genesis3Male__ePHMCheekCreaseR",
+          "Genesis3Male__ePHMCheekCreaseL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowUp-DownR": {
+        "max_displacement_m": 0.00193695068359375,
+        "moving_vertices": 81,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowUp-DownL": {
+        "max_displacement_m": 0.00193695068359375,
+        "moving_vertices": 81,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowUp-Down": {
+        "max_displacement_m": 0.00193695068359375,
+        "moving_vertices": 162,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowUp-DownR",
+          "Genesis3Male__eCTRLBrowUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowSqueeze": {
+        "max_displacement_m": 0.004383269737641821,
+        "moving_vertices": 227,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-DownR": {
+        "max_displacement_m": 0.00560638427734375,
+        "moving_vertices": 128,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-DownL": {
+        "max_displacement_m": 0.00560638427734375,
+        "moving_vertices": 128,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-Down": {
+        "max_displacement_m": 0.00560638427734375,
+        "moving_vertices": 256,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowOuterUp-DownR",
+          "Genesis3Male__eCTRLBrowOuterUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-DownR": {
+        "max_displacement_m": 0.0057348632812500005,
+        "moving_vertices": 153,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-DownL": {
+        "max_displacement_m": 0.0057348632812500005,
+        "moving_vertices": 153,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-Down": {
+        "max_displacement_m": 0.006298980712890625,
+        "moving_vertices": 227,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowInnerUp-DownR",
+          "Genesis3Male__eCTRLBrowInnerUp-DownL"
+        ],
+        "exact_source_face": true
+      },
+      "Genesis3Male__PHMNoseCompressionHD": {
+        "max_displacement_m": 0.001745725792653623,
+        "moving_vertices": 366,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__PHMCheeksDimpleCreaseHDR": {
+        "max_displacement_m": 0.0033931047732404097,
+        "moving_vertices": 62,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__PHMCheeksDimpleCreaseHDL": {
+        "max_displacement_m": 0.0033930948353094906,
+        "moving_vertices": 62,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__PHMBrowCompressionHD": {
+        "max_displacement_m": 0.0013107595183752371,
+        "moving_vertices": 112,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__ePHMCheekCreaseR": {
+        "max_displacement_m": 0.0016776230381652171,
+        "moving_vertices": 53,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      },
+      "Genesis3Male__ePHMCheekCreaseL": {
+        "max_displacement_m": 0.001677637083252802,
+        "moving_vertices": 53,
+        "rebuilt_from": [],
+        "exact_source_face": true
+      }
+    }
+  }
+}

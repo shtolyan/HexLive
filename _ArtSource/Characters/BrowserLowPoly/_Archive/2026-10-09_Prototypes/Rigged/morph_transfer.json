@@ -1,0 +1,3220 @@
+{
+  "Marta_LOD0": {
+    "triangles": 7534,
+    "morphs": 109,
+    "names_exact": true,
+    "basis_unchanged": true,
+    "source_bones": 172,
+    "bone_names_parents_bind_matrices_exact": true,
+    "max_weights": 11,
+    "mapping_rms_m": 0.0012750748321057337,
+    "mapping_max_m": 0.004494801693723314,
+    "shapes": {
+      "Genesis3Female__CTRLCheeksDimpleCreaseHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002513270476235735,
+        "moving_vertices": 126,
+        "source_max_m": 0.0025132803545393077
+      },
+      "Genesis3Female__eCTRLSurprised": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.027503697350203728,
+        "moving_vertices": 791,
+        "source_max_m": 0.027682120884981027
+      },
+      "Genesis3Female__eCTRLSmile": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008607730750755226,
+        "moving_vertices": 755,
+        "source_max_m": 0.009159796217110057
+      },
+      "Genesis3Female__eCTRLFrown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006278332635982947,
+        "moving_vertices": 416,
+        "source_max_m": 0.0067655171201406695
+      },
+      "Genesis3Female__eCTRLFlirting": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006763720461050777,
+        "moving_vertices": 738,
+        "source_max_m": 0.006763720461050777
+      },
+      "Genesis3Female__eCTRLAngry": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.010030965045032918,
+        "moving_vertices": 499,
+        "source_max_m": 0.010217000502284475
+      },
+      "Genesis3Female__eCTRLvW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01306735599291492,
+        "moving_vertices": 222,
+        "source_max_m": 0.01354803976045341
+      },
+      "Genesis3Female__eCTRLvUW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009634824472215767,
+        "moving_vertices": 578,
+        "source_max_m": 0.009953852709927853
+      },
+      "Genesis3Female__eCTRLvTH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0053699913378761404,
+        "moving_vertices": 577,
+        "source_max_m": 0.005648984036732791
+      },
+      "Genesis3Female__eCTRLvT": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003695262291167079,
+        "moving_vertices": 544,
+        "source_max_m": 0.003768122538284065
+      },
+      "Genesis3Female__eCTRLvSH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006164409339612141,
+        "moving_vertices": 574,
+        "source_max_m": 0.0070600230219146935
+      },
+      "Genesis3Female__eCTRLvS": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005789257913024223,
+        "moving_vertices": 550,
+        "source_max_m": 0.005864070667935005
+      },
+      "Genesis3Female__eCTRLvOW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.011540975969987124,
+        "moving_vertices": 581,
+        "source_max_m": 0.011911059499454587
+      },
+      "Genesis3Female__eCTRLvM": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00576191822889013,
+        "moving_vertices": 184,
+        "source_max_m": 0.006210747007852839
+      },
+      "Genesis3Female__eCTRLvL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007219329729273958,
+        "moving_vertices": 543,
+        "source_max_m": 0.0072594196316366376
+      },
+      "Genesis3Female__eCTRLvK": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004347424057888412,
+        "moving_vertices": 544,
+        "source_max_m": 0.004390125875339393
+      },
+      "Genesis3Female__eCTRLvIY": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003695343432994289,
+        "moving_vertices": 570,
+        "source_max_m": 0.003934756148978368
+      },
+      "Genesis3Female__eCTRLvIH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005677424890875713,
+        "moving_vertices": 602,
+        "source_max_m": 0.005745891140070192
+      },
+      "Genesis3Female__eCTRLvF": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.010503940060370975,
+        "moving_vertices": 569,
+        "source_max_m": 0.010804924738416512
+      },
+      "Genesis3Female__eCTRLvER": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009203283263379117,
+        "moving_vertices": 576,
+        "source_max_m": 0.009661301444900081
+      },
+      "Genesis3Female__eCTRLvEH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008613775873013879,
+        "moving_vertices": 577,
+        "source_max_m": 0.008833377708268636
+      },
+      "Genesis3Female__eCTRLvEE": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005963744016396449,
+        "moving_vertices": 574,
+        "source_max_m": 0.006231698976320743
+      },
+      "Genesis3Female__eCTRLvAA": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008844487823162266,
+        "moving_vertices": 547,
+        "source_max_m": 0.008878425181700787
+      },
+      "Genesis3Female__eCTRLTongueUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0036214847698156014,
+        "moving_vertices": 40,
+        "source_max_m": 0.0038645022420413858
+      },
+      "Genesis3Female__eCTRLTongueSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.010728192122423985,
+        "moving_vertices": 40,
+        "source_max_m": 0.0109074936280578
+      },
+      "Genesis3Female__eCTRLTongueRaise-Lower": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01601988774692618,
+        "moving_vertices": 50,
+        "source_max_m": 0.016502103638852867
+      },
+      "Genesis3Female__eCTRLTongueNarrow-Wide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0019061531899413622,
+        "moving_vertices": 30,
+        "source_max_m": 0.0020728072944850005
+      },
+      "Genesis3Female__eCTRLTongueIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008875483066469082,
+        "moving_vertices": 38,
+        "source_max_m": 0.009123220209225139
+      },
+      "Genesis3Female__eCTRLTongueBendTip": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006093545632186527,
+        "moving_vertices": 32,
+        "source_max_m": 0.0064503250598412845
+      },
+      "Genesis3Female__eCTRLTongue Curl": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009744564059889046,
+        "moving_vertices": 40,
+        "source_max_m": 0.010612171483969377
+      },
+      "Genesis3Female__eCTRLNostrilsFlare": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0017701388114941552,
+        "moving_vertices": 48,
+        "source_max_m": 0.0019799037161895446
+      },
+      "Genesis3Female__eCTRLNoseWrinkle": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007573281298802448,
+        "moving_vertices": 222,
+        "source_max_m": 0.007662674880394226
+      },
+      "Genesis3Female__eCTRLNoseScrunch": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0021848070489078257,
+        "moving_vertices": 104,
+        "source_max_m": 0.0023426798049799927
+      },
+      "Genesis3Female__eCTRLMouthSmileSimpleR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006585849548553179,
+        "moving_vertices": 133,
+        "source_max_m": 0.007329170193590322
+      },
+      "Genesis3Female__eCTRLMouthSmileSimpleL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006496034721381934,
+        "moving_vertices": 132,
+        "source_max_m": 0.007329168939044607
+      },
+      "Genesis3Female__eCTRLMouthSmileSimple": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006585849548553179,
+        "moving_vertices": 199,
+        "source_max_m": 0.007329170193590322
+      },
+      "Genesis3Female__eCTRLMouthSmileOpen": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008696612084521401,
+        "moving_vertices": 334,
+        "source_max_m": 0.008804759181208245
+      },
+      "Genesis3Female__eCTRLMouthSmile": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007825349372724675,
+        "moving_vertices": 334,
+        "source_max_m": 0.007971035128751896
+      },
+      "Genesis3Female__eCTRLMouthSide-SideR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.015154178298909911,
+        "moving_vertices": 315,
+        "source_max_m": 0.015610654943574363
+      },
+      "Genesis3Female__eCTRLMouthSide-SideL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01515657276387838,
+        "moving_vertices": 315,
+        "source_max_m": 0.015612483485061942
+      },
+      "Genesis3Female__eCTRLMouthSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01515657276387838,
+        "moving_vertices": 315,
+        "source_max_m": 0.015612483485061942
+      },
+      "Genesis3Female__eCTRLMouthOpenWide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.022585804698867833,
+        "moving_vertices": 587,
+        "source_max_m": 0.022706818725185162
+      },
+      "Genesis3Female__eCTRLMouthOpen": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.010948667582704073,
+        "moving_vertices": 536,
+        "source_max_m": 0.01099051472955845
+      },
+      "Genesis3Female__eCTRLMouthNarrowR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009148747335560117,
+        "moving_vertices": 102,
+        "source_max_m": 0.009657767337418783
+      },
+      "Genesis3Female__eCTRLMouthNarrowL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009149779939874328,
+        "moving_vertices": 103,
+        "source_max_m": 0.009657767584149468
+      },
+      "Genesis3Female__eCTRLMouthNarrow": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009149779939874328,
+        "moving_vertices": 186,
+        "source_max_m": 0.009657767584149468
+      },
+      "Genesis3Female__eCTRLMouthFrown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006515615892718301,
+        "moving_vertices": 238,
+        "source_max_m": 0.006804263960278131
+      },
+      "Genesis3Female__eCTRLMouthCornerUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004807034285065694,
+        "moving_vertices": 175,
+        "source_max_m": 0.00496063232421875
+      },
+      "Genesis3Female__eCTRLMouthCornerBackR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003924114335912422,
+        "moving_vertices": 100,
+        "source_max_m": 0.004175076484680176
+      },
+      "Genesis3Female__eCTRLMouthCornerBackL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0038605692497616735,
+        "moving_vertices": 97,
+        "source_max_m": 0.004175081253051758
+      },
+      "Genesis3Female__eCTRLMouthCornerBack": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003924114335912422,
+        "moving_vertices": 186,
+        "source_max_m": 0.004175081253051758
+      },
+      "Genesis3Female__eCTRLLipTopUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00474513728240144,
+        "moving_vertices": 49,
+        "source_max_m": 0.005054779052734375
+      },
+      "Genesis3Female__eCTRLLipTopUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004747363160694451,
+        "moving_vertices": 51,
+        "source_max_m": 0.005054473876953125
+      },
+      "Genesis3Female__eCTRLLipTopUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006763881965695407,
+        "moving_vertices": 64,
+        "source_max_m": 0.006922607421875
+      },
+      "Genesis3Female__eCTRLLipTopIn-OutR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006023572789530123,
+        "moving_vertices": 50,
+        "source_max_m": 0.006392421296164488
+      },
+      "Genesis3Female__eCTRLLipTopIn-OutL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006008129395566314,
+        "moving_vertices": 52,
+        "source_max_m": 0.006399111751557205
+      },
+      "Genesis3Female__eCTRLLipTopIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009878565928256198,
+        "moving_vertices": 66,
+        "source_max_m": 0.010269986552490276
+      },
+      "Genesis3Female__eCTRLLipsPuckerWide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.013942226781792317,
+        "moving_vertices": 173,
+        "source_max_m": 0.014068789857496376
+      },
+      "Genesis3Female__eCTRLLipsPucker": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01339193201913997,
+        "moving_vertices": 173,
+        "source_max_m": 0.01350285378264547
+      },
+      "Genesis3Female__eCTRLLipsPartCenter": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004286995097244848,
+        "moving_vertices": 76,
+        "source_max_m": 0.004780974915196175
+      },
+      "Genesis3Female__eCTRLLipsPart": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004782780084587881,
+        "moving_vertices": 97,
+        "source_max_m": 0.005126563298153447
+      },
+      "Genesis3Female__eCTRLLipBottomUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00455560400428124,
+        "moving_vertices": 48,
+        "source_max_m": 0.00478240966796875
+      },
+      "Genesis3Female__eCTRLLipBottomUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004751964683338931,
+        "moving_vertices": 47,
+        "source_max_m": 0.00478271484375
+      },
+      "Genesis3Female__eCTRLLipBottomUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006840216450566146,
+        "moving_vertices": 57,
+        "source_max_m": 0.006932830810546875
+      },
+      "Genesis3Female__eCTRLLipBottomIn-OutR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007911993457850605,
+        "moving_vertices": 49,
+        "source_max_m": 0.008666685163912965
+      },
+      "Genesis3Female__eCTRLLipBottomIn-OutL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007852086921020868,
+        "moving_vertices": 48,
+        "source_max_m": 0.00870971866107724
+      },
+      "Genesis3Female__eCTRLLipBottomIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.012841246303544423,
+        "moving_vertices": 58,
+        "source_max_m": 0.013233868517234912
+      },
+      "Genesis3Female__eCTRLJawSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00917314792272181,
+        "moving_vertices": 530,
+        "source_max_m": 0.009208073949017511
+      },
+      "Genesis3Female__eCTRLJawOut-In": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00942878633266427,
+        "moving_vertices": 532,
+        "source_max_m": 0.009438344250944896
+      },
+      "Genesis3Female__eCTRLEyesUpDown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004875778326506669,
+        "moving_vertices": 176,
+        "source_max_m": 0.005009801007880755
+      },
+      "Genesis3Female__eCTRLEyesSquintR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004459655094298073,
+        "moving_vertices": 114,
+        "source_max_m": 0.004606156473090651
+      },
+      "Genesis3Female__eCTRLEyesSquintL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0044560155079780015,
+        "moving_vertices": 128,
+        "source_max_m": 0.0046061565802972
+      },
+      "Genesis3Female__eCTRLEyesSquint": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004459655094298073,
+        "moving_vertices": 237,
+        "source_max_m": 0.0046061565802972
+      },
+      "Genesis3Female__eCTRLEyesSideSide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006089304616546653,
+        "moving_vertices": 178,
+        "source_max_m": 0.006266122152865247
+      },
+      "Genesis3Female__eCTRLEyesCrossed": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007589862419287444,
+        "moving_vertices": 178,
+        "source_max_m": 0.007810256157703278
+      },
+      "Genesis3Female__eCTRLEyesClosedR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009055835992677161,
+        "moving_vertices": 30,
+        "source_max_m": 0.014379121544016677
+      },
+      "Genesis3Female__eCTRLEyesClosedL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009131045297710716,
+        "moving_vertices": 35,
+        "source_max_m": 0.014381827948892032
+      },
+      "Genesis3Female__eCTRLEyesClosed": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009131045297710716,
+        "moving_vertices": 65,
+        "source_max_m": 0.014381827948892032
+      },
+      "Genesis3Female__eCTRLEyelidsUpperDownUpR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009361287704369654,
+        "moving_vertices": 19,
+        "source_max_m": 0.014863962653411274
+      },
+      "Genesis3Female__eCTRLEyelidsUpperDownUpL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009439086602814875,
+        "moving_vertices": 22,
+        "source_max_m": 0.014866515130204587
+      },
+      "Genesis3Female__eCTRLEyelidsUpperDownUp": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009439086602814875,
+        "moving_vertices": 41,
+        "source_max_m": 0.014866515130204587
+      },
+      "Genesis3Female__eCTRLEyelidsLowerUpDownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0029683400034957825,
+        "moving_vertices": 17,
+        "source_max_m": 0.0041022017514165945
+      },
+      "Genesis3Female__eCTRLEyelidsLowerUpDownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002902737554739453,
+        "moving_vertices": 18,
+        "source_max_m": 0.0041012426796915484
+      },
+      "Genesis3Female__eCTRLEyelidsLowerUpDown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0029683400034957825,
+        "moving_vertices": 35,
+        "source_max_m": 0.0041022017514165945
+      },
+      "Genesis3Female__eCTRLCheeksBalloonPucker": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.013382082186039255,
+        "moving_vertices": 318,
+        "source_max_m": 0.013539939142497083
+      },
+      "Genesis3Female__eCTRLCheeksBalloon": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008841740789017014,
+        "moving_vertices": 318,
+        "source_max_m": 0.009573617630337584
+      },
+      "Genesis3Female__eCTRLCheekFlexR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005431412438988361,
+        "moving_vertices": 131,
+        "source_max_m": 0.005498176725897728
+      },
+      "Genesis3Female__eCTRLCheekFlexL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005498178308341361,
+        "moving_vertices": 136,
+        "source_max_m": 0.005498178308341361
+      },
+      "Genesis3Female__eCTRLCheekFlex": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005498178308341361,
+        "moving_vertices": 261,
+        "source_max_m": 0.005498178308341361
+      },
+      "Genesis3Female__eCTRLCheekEyeFlexR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0021045229960746227,
+        "moving_vertices": 34,
+        "source_max_m": 0.002758026123046875
+      },
+      "Genesis3Female__eCTRLCheekEyeFlexL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002189412696922316,
+        "moving_vertices": 40,
+        "source_max_m": 0.00275787353515625
+      },
+      "Genesis3Female__eCTRLCheekEyeFlex": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002189412696922316,
+        "moving_vertices": 74,
+        "source_max_m": 0.002758026123046875
+      },
+      "Genesis3Female__eCTRLCheekCrease": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0010514449235911882,
+        "moving_vertices": 44,
+        "source_max_m": 0.0012561275902548093
+      },
+      "Genesis3Female__eCTRLBrowUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007215267706803766,
+        "moving_vertices": 103,
+        "source_max_m": 0.0072869873046875
+      },
+      "Genesis3Female__eCTRLBrowUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007104769035823144,
+        "moving_vertices": 109,
+        "source_max_m": 0.007287139892578125
+      },
+      "Genesis3Female__eCTRLBrowUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00727417764675802,
+        "moving_vertices": 151,
+        "source_max_m": 0.00728790283203125
+      },
+      "Genesis3Female__eCTRLBrowSqueeze": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004061817073151959,
+        "moving_vertices": 115,
+        "source_max_m": 0.004112841567068532
+      },
+      "Genesis3Female__eCTRLBrowOuterUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005322990639069966,
+        "moving_vertices": 62,
+        "source_max_m": 0.005352020263671875
+      },
+      "Genesis3Female__eCTRLBrowOuterUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005282685486159524,
+        "moving_vertices": 69,
+        "source_max_m": 0.005352020263671875
+      },
+      "Genesis3Female__eCTRLBrowOuterUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005322990639069966,
+        "moving_vertices": 131,
+        "source_max_m": 0.005352020263671875
+      },
+      "Genesis3Female__eCTRLBrowInnerUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005365058467678628,
+        "moving_vertices": 85,
+        "source_max_m": 0.005460357666015625
+      },
+      "Genesis3Female__eCTRLBrowInnerUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005295925177570236,
+        "moving_vertices": 91,
+        "source_max_m": 0.0054602050781250005
+      },
+      "Genesis3Female__eCTRLBrowInnerUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006037185613638099,
+        "moving_vertices": 115,
+        "source_max_m": 0.006112823486328125
+      },
+      "Genesis3Female__PHMNoseCompressionHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001032561297124974,
+        "moving_vertices": 145,
+        "source_max_m": 0.0012357213289228117
+      },
+      "Genesis3Female__PHMCheeksDimpleCreaseHDR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0020274535687454455,
+        "moving_vertices": 62,
+        "source_max_m": 0.0025132803545393077
+      },
+      "Genesis3Female__PHMCheeksDimpleCreaseHDL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002513270476235735,
+        "moving_vertices": 64,
+        "source_max_m": 0.002513270476235735
+      },
+      "Genesis3Female__PHMBrowCompressionHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0007771646422593615,
+        "moving_vertices": 62,
+        "source_max_m": 0.0009173717294278272
+      },
+      "Genesis3Female__ePHMCheekCreaseR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0010038413216109825,
+        "moving_vertices": 21,
+        "source_max_m": 0.0012560005251212075
+      },
+      "Genesis3Female__ePHMCheekCreaseL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0010514449235911882,
+        "moving_vertices": 23,
+        "source_max_m": 0.0012561275902548093
+      }
+    }
+  },
+  "Marta_LOD1": {
+    "triangles": 3604,
+    "morphs": 109,
+    "names_exact": true,
+    "basis_unchanged": true,
+    "source_bones": 172,
+    "bone_names_parents_bind_matrices_exact": true,
+    "max_weights": 11,
+    "mapping_rms_m": 0.0017667612797685633,
+    "mapping_max_m": 0.00448845027656216,
+    "shapes": {
+      "Genesis3Female__CTRLCheeksDimpleCreaseHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001400912510151749,
+        "moving_vertices": 28,
+        "source_max_m": 0.0025132803545393077
+      },
+      "Genesis3Female__eCTRLSurprised": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.027104233697711005,
+        "moving_vertices": 311,
+        "source_max_m": 0.027682120884981027
+      },
+      "Genesis3Female__eCTRLSmile": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008361563403770981,
+        "moving_vertices": 298,
+        "source_max_m": 0.009159796217110057
+      },
+      "Genesis3Female__eCTRLFrown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005316830737836305,
+        "moving_vertices": 140,
+        "source_max_m": 0.0067655171201406695
+      },
+      "Genesis3Female__eCTRLFlirting": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005337666051046107,
+        "moving_vertices": 295,
+        "source_max_m": 0.006763720461050777
+      },
+      "Genesis3Female__eCTRLAngry": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.010136686319760725,
+        "moving_vertices": 166,
+        "source_max_m": 0.010217000502284475
+      },
+      "Genesis3Female__eCTRLvW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.012604812604463191,
+        "moving_vertices": 87,
+        "source_max_m": 0.01354803976045341
+      },
+      "Genesis3Female__eCTRLvUW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009426800732730622,
+        "moving_vertices": 243,
+        "source_max_m": 0.009953852709927853
+      },
+      "Genesis3Female__eCTRLvTH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00524128258873563,
+        "moving_vertices": 243,
+        "source_max_m": 0.005648984036732791
+      },
+      "Genesis3Female__eCTRLvT": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0035873346172067356,
+        "moving_vertices": 221,
+        "source_max_m": 0.003768122538284065
+      },
+      "Genesis3Female__eCTRLvSH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006581080973167885,
+        "moving_vertices": 241,
+        "source_max_m": 0.0070600230219146935
+      },
+      "Genesis3Female__eCTRLvS": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005611899095510742,
+        "moving_vertices": 224,
+        "source_max_m": 0.005864070667935005
+      },
+      "Genesis3Female__eCTRLvOW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.011389705733706259,
+        "moving_vertices": 245,
+        "source_max_m": 0.011911059499454587
+      },
+      "Genesis3Female__eCTRLvM": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005883048731687835,
+        "moving_vertices": 65,
+        "source_max_m": 0.006210747007852839
+      },
+      "Genesis3Female__eCTRLvL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007056123964659943,
+        "moving_vertices": 221,
+        "source_max_m": 0.0072594196316366376
+      },
+      "Genesis3Female__eCTRLvK": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004340862920188363,
+        "moving_vertices": 221,
+        "source_max_m": 0.004390125875339393
+      },
+      "Genesis3Female__eCTRLvIY": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0034723457039028682,
+        "moving_vertices": 239,
+        "source_max_m": 0.003934756148978368
+      },
+      "Genesis3Female__eCTRLvIH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005500320131313022,
+        "moving_vertices": 251,
+        "source_max_m": 0.005745891140070192
+      },
+      "Genesis3Female__eCTRLvF": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.010538320443674769,
+        "moving_vertices": 238,
+        "source_max_m": 0.010804924738416512
+      },
+      "Genesis3Female__eCTRLvER": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009143016567118693,
+        "moving_vertices": 242,
+        "source_max_m": 0.009661301444900081
+      },
+      "Genesis3Female__eCTRLvEH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00828004407346398,
+        "moving_vertices": 240,
+        "source_max_m": 0.008833377708268636
+      },
+      "Genesis3Female__eCTRLvEE": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0058847675361129335,
+        "moving_vertices": 239,
+        "source_max_m": 0.006231698976320743
+      },
+      "Genesis3Female__eCTRLvAA": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008809915141087024,
+        "moving_vertices": 224,
+        "source_max_m": 0.008878425181700787
+      },
+      "Genesis3Female__eCTRLTongueUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003630129499728839,
+        "moving_vertices": 19,
+        "source_max_m": 0.0038645022420413858
+      },
+      "Genesis3Female__eCTRLTongueSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.010778781555860964,
+        "moving_vertices": 19,
+        "source_max_m": 0.0109074936280578
+      },
+      "Genesis3Female__eCTRLTongueRaise-Lower": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.016419229626995033,
+        "moving_vertices": 27,
+        "source_max_m": 0.016502103638852867
+      },
+      "Genesis3Female__eCTRLTongueNarrow-Wide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0020429251360680294,
+        "moving_vertices": 15,
+        "source_max_m": 0.0020728072944850005
+      },
+      "Genesis3Female__eCTRLTongueIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009080294357760402,
+        "moving_vertices": 19,
+        "source_max_m": 0.009123220209225139
+      },
+      "Genesis3Female__eCTRLTongueBendTip": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006389135883697541,
+        "moving_vertices": 16,
+        "source_max_m": 0.0064503250598412845
+      },
+      "Genesis3Female__eCTRLTongue Curl": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01046393634185552,
+        "moving_vertices": 19,
+        "source_max_m": 0.010612171483969377
+      },
+      "Genesis3Female__eCTRLNostrilsFlare": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0017701388114941552,
+        "moving_vertices": 27,
+        "source_max_m": 0.0019799037161895446
+      },
+      "Genesis3Female__eCTRLNoseWrinkle": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007574950638447814,
+        "moving_vertices": 82,
+        "source_max_m": 0.007662674880394226
+      },
+      "Genesis3Female__eCTRLNoseScrunch": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0021848070489078257,
+        "moving_vertices": 44,
+        "source_max_m": 0.0023426798049799927
+      },
+      "Genesis3Female__eCTRLMouthSmileSimpleR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006065393859572095,
+        "moving_vertices": 48,
+        "source_max_m": 0.007329170193590322
+      },
+      "Genesis3Female__eCTRLMouthSmileSimpleL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006625669941818204,
+        "moving_vertices": 51,
+        "source_max_m": 0.007329168939044607
+      },
+      "Genesis3Female__eCTRLMouthSmileSimple": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006625669941818204,
+        "moving_vertices": 70,
+        "source_max_m": 0.007329170193590322
+      },
+      "Genesis3Female__eCTRLMouthSmileOpen": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008745674914925996,
+        "moving_vertices": 106,
+        "source_max_m": 0.008804759181208245
+      },
+      "Genesis3Female__eCTRLMouthSmile": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007789131492132637,
+        "moving_vertices": 105,
+        "source_max_m": 0.007971035128751896
+      },
+      "Genesis3Female__eCTRLMouthSide-SideR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.015032826868489522,
+        "moving_vertices": 103,
+        "source_max_m": 0.015610654943574363
+      },
+      "Genesis3Female__eCTRLMouthSide-SideL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.014810345503418849,
+        "moving_vertices": 103,
+        "source_max_m": 0.015612483485061942
+      },
+      "Genesis3Female__eCTRLMouthSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.014810345503418849,
+        "moving_vertices": 103,
+        "source_max_m": 0.015612483485061942
+      },
+      "Genesis3Female__eCTRLMouthOpenWide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.02227828383453085,
+        "moving_vertices": 246,
+        "source_max_m": 0.022706818725185162
+      },
+      "Genesis3Female__eCTRLMouthOpen": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01090580323224463,
+        "moving_vertices": 212,
+        "source_max_m": 0.01099051472955845
+      },
+      "Genesis3Female__eCTRLMouthNarrowR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008767919389900538,
+        "moving_vertices": 37,
+        "source_max_m": 0.009657767337418783
+      },
+      "Genesis3Female__eCTRLMouthNarrowL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009073970923016017,
+        "moving_vertices": 36,
+        "source_max_m": 0.009657767584149468
+      },
+      "Genesis3Female__eCTRLMouthNarrow": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009073970923016017,
+        "moving_vertices": 63,
+        "source_max_m": 0.009657767584149468
+      },
+      "Genesis3Female__eCTRLMouthFrown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006089977287628684,
+        "moving_vertices": 90,
+        "source_max_m": 0.006804263960278131
+      },
+      "Genesis3Female__eCTRLMouthCornerUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004770812230975614,
+        "moving_vertices": 54,
+        "source_max_m": 0.00496063232421875
+      },
+      "Genesis3Female__eCTRLMouthCornerBackR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0036461194071873942,
+        "moving_vertices": 36,
+        "source_max_m": 0.004175076484680176
+      },
+      "Genesis3Female__eCTRLMouthCornerBackL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003943878911491774,
+        "moving_vertices": 35,
+        "source_max_m": 0.004175081253051758
+      },
+      "Genesis3Female__eCTRLMouthCornerBack": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003943878911491774,
+        "moving_vertices": 63,
+        "source_max_m": 0.004175081253051758
+      },
+      "Genesis3Female__eCTRLLipTopUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004007029776762477,
+        "moving_vertices": 24,
+        "source_max_m": 0.005054779052734375
+      },
+      "Genesis3Female__eCTRLLipTopUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0038827902658355004,
+        "moving_vertices": 24,
+        "source_max_m": 0.005054473876953125
+      },
+      "Genesis3Female__eCTRLLipTopUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006727706418074179,
+        "moving_vertices": 32,
+        "source_max_m": 0.006922607421875
+      },
+      "Genesis3Female__eCTRLLipTopIn-OutR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005816459223053245,
+        "moving_vertices": 26,
+        "source_max_m": 0.006392421296164488
+      },
+      "Genesis3Female__eCTRLLipTopIn-OutL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0057991837058747235,
+        "moving_vertices": 26,
+        "source_max_m": 0.006399111751557205
+      },
+      "Genesis3Female__eCTRLLipTopIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009654606955418062,
+        "moving_vertices": 33,
+        "source_max_m": 0.010269986552490276
+      },
+      "Genesis3Female__eCTRLLipsPuckerWide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.013868388114317384,
+        "moving_vertices": 79,
+        "source_max_m": 0.014068789857496376
+      },
+      "Genesis3Female__eCTRLLipsPucker": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.013312236645939295,
+        "moving_vertices": 79,
+        "source_max_m": 0.01350285378264547
+      },
+      "Genesis3Female__eCTRLLipsPartCenter": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004367099765209884,
+        "moving_vertices": 34,
+        "source_max_m": 0.004780974915196175
+      },
+      "Genesis3Female__eCTRLLipsPart": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004784080669643967,
+        "moving_vertices": 42,
+        "source_max_m": 0.005126563298153447
+      },
+      "Genesis3Female__eCTRLLipBottomUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00439846482448504,
+        "moving_vertices": 19,
+        "source_max_m": 0.00478240966796875
+      },
+      "Genesis3Female__eCTRLLipBottomUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004424019065491826,
+        "moving_vertices": 20,
+        "source_max_m": 0.00478271484375
+      },
+      "Genesis3Female__eCTRLLipBottomUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006695264123732353,
+        "moving_vertices": 24,
+        "source_max_m": 0.006932830810546875
+      },
+      "Genesis3Female__eCTRLLipBottomIn-OutR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007050799269753324,
+        "moving_vertices": 19,
+        "source_max_m": 0.008666685163912965
+      },
+      "Genesis3Female__eCTRLLipBottomIn-OutL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006924674143139715,
+        "moving_vertices": 20,
+        "source_max_m": 0.00870971866107724
+      },
+      "Genesis3Female__eCTRLLipBottomIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.013001887923188172,
+        "moving_vertices": 24,
+        "source_max_m": 0.013233868517234912
+      },
+      "Genesis3Female__eCTRLJawSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009174503973025735,
+        "moving_vertices": 212,
+        "source_max_m": 0.009208073949017511
+      },
+      "Genesis3Female__eCTRLJawOut-In": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009391107047365248,
+        "moving_vertices": 211,
+        "source_max_m": 0.009438344250944896
+      },
+      "Genesis3Female__eCTRLEyesUpDown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004875778326506669,
+        "moving_vertices": 130,
+        "source_max_m": 0.005009801007880755
+      },
+      "Genesis3Female__eCTRLEyesSquintR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004413652132807187,
+        "moving_vertices": 37,
+        "source_max_m": 0.004606156473090651
+      },
+      "Genesis3Female__eCTRLEyesSquintL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0042836785941180455,
+        "moving_vertices": 37,
+        "source_max_m": 0.0046061565802972
+      },
+      "Genesis3Female__eCTRLEyesSquint": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004413652132807187,
+        "moving_vertices": 72,
+        "source_max_m": 0.0046061565802972
+      },
+      "Genesis3Female__eCTRLEyesSideSide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006051006580134644,
+        "moving_vertices": 130,
+        "source_max_m": 0.006266122152865247
+      },
+      "Genesis3Female__eCTRLEyesCrossed": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007542126853347691,
+        "moving_vertices": 130,
+        "source_max_m": 0.007810256157703278
+      },
+      "Genesis3Female__eCTRLEyesClosedR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0079611434321765,
+        "moving_vertices": 14,
+        "source_max_m": 0.014379121544016677
+      },
+      "Genesis3Female__eCTRLEyesClosedL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008496616285008649,
+        "moving_vertices": 16,
+        "source_max_m": 0.014381827948892032
+      },
+      "Genesis3Female__eCTRLEyesClosed": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008496616285008649,
+        "moving_vertices": 30,
+        "source_max_m": 0.014381827948892032
+      },
+      "Genesis3Female__eCTRLEyelidsUpperDownUpR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008229456085546618,
+        "moving_vertices": 9,
+        "source_max_m": 0.014863962653411274
+      },
+      "Genesis3Female__eCTRLEyelidsUpperDownUpL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008782893202612382,
+        "moving_vertices": 9,
+        "source_max_m": 0.014866515130204587
+      },
+      "Genesis3Female__eCTRLEyelidsUpperDownUp": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008782893202612382,
+        "moving_vertices": 18,
+        "source_max_m": 0.014866515130204587
+      },
+      "Genesis3Female__eCTRLEyelidsLowerUpDownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0031603496574734505,
+        "moving_vertices": 9,
+        "source_max_m": 0.0041022017514165945
+      },
+      "Genesis3Female__eCTRLEyelidsLowerUpDownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002902737554739453,
+        "moving_vertices": 11,
+        "source_max_m": 0.0041012426796915484
+      },
+      "Genesis3Female__eCTRLEyelidsLowerUpDown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0031603496574734505,
+        "moving_vertices": 20,
+        "source_max_m": 0.0041022017514165945
+      },
+      "Genesis3Female__eCTRLCheeksBalloonPucker": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.013310126800966778,
+        "moving_vertices": 105,
+        "source_max_m": 0.013539939142497083
+      },
+      "Genesis3Female__eCTRLCheeksBalloon": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008748448531172136,
+        "moving_vertices": 105,
+        "source_max_m": 0.009573617630337584
+      },
+      "Genesis3Female__eCTRLCheekFlexR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005144015667489863,
+        "moving_vertices": 45,
+        "source_max_m": 0.005498176725897728
+      },
+      "Genesis3Female__eCTRLCheekFlexL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005065818928382168,
+        "moving_vertices": 41,
+        "source_max_m": 0.005498178308341361
+      },
+      "Genesis3Female__eCTRLCheekFlex": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005144015667489863,
+        "moving_vertices": 82,
+        "source_max_m": 0.005498178308341361
+      },
+      "Genesis3Female__eCTRLCheekEyeFlexR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0021045229960746227,
+        "moving_vertices": 11,
+        "source_max_m": 0.002758026123046875
+      },
+      "Genesis3Female__eCTRLCheekEyeFlexL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0016080057573149465,
+        "moving_vertices": 11,
+        "source_max_m": 0.00275787353515625
+      },
+      "Genesis3Female__eCTRLCheekEyeFlex": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0021045229960746227,
+        "moving_vertices": 22,
+        "source_max_m": 0.002758026123046875
+      },
+      "Genesis3Female__eCTRLCheekCrease": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001040280256948912,
+        "moving_vertices": 17,
+        "source_max_m": 0.0012561275902548093
+      },
+      "Genesis3Female__eCTRLBrowUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007160265616690327,
+        "moving_vertices": 29,
+        "source_max_m": 0.0072869873046875
+      },
+      "Genesis3Female__eCTRLBrowUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006661877649964579,
+        "moving_vertices": 30,
+        "source_max_m": 0.007287139892578125
+      },
+      "Genesis3Female__eCTRLBrowUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007257570662768349,
+        "moving_vertices": 42,
+        "source_max_m": 0.00728790283203125
+      },
+      "Genesis3Female__eCTRLBrowSqueeze": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004021526493978422,
+        "moving_vertices": 36,
+        "source_max_m": 0.004112841567068532
+      },
+      "Genesis3Female__eCTRLBrowOuterUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0048659289487426975,
+        "moving_vertices": 17,
+        "source_max_m": 0.005352020263671875
+      },
+      "Genesis3Female__eCTRLBrowOuterUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005002314906796007,
+        "moving_vertices": 17,
+        "source_max_m": 0.005352020263671875
+      },
+      "Genesis3Female__eCTRLBrowOuterUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005002314906796007,
+        "moving_vertices": 34,
+        "source_max_m": 0.005352020263671875
+      },
+      "Genesis3Female__eCTRLBrowInnerUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005274322766544834,
+        "moving_vertices": 27,
+        "source_max_m": 0.005460357666015625
+      },
+      "Genesis3Female__eCTRLBrowInnerUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005299089661076507,
+        "moving_vertices": 27,
+        "source_max_m": 0.0054602050781250005
+      },
+      "Genesis3Female__eCTRLBrowInnerUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006017884675653222,
+        "moving_vertices": 37,
+        "source_max_m": 0.006112823486328125
+      },
+      "Genesis3Female__PHMNoseCompressionHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001032561297124974,
+        "moving_vertices": 55,
+        "source_max_m": 0.0012357213289228117
+      },
+      "Genesis3Female__PHMCheeksDimpleCreaseHDR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001196245561813698,
+        "moving_vertices": 15,
+        "source_max_m": 0.0025132803545393077
+      },
+      "Genesis3Female__PHMCheeksDimpleCreaseHDL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001400912510151749,
+        "moving_vertices": 13,
+        "source_max_m": 0.002513270476235735
+      },
+      "Genesis3Female__PHMBrowCompressionHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0004197490765400607,
+        "moving_vertices": 18,
+        "source_max_m": 0.0009173717294278272
+      },
+      "Genesis3Female__ePHMCheekCreaseR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0009691222264900141,
+        "moving_vertices": 9,
+        "source_max_m": 0.0012560005251212075
+      },
+      "Genesis3Female__ePHMCheekCreaseL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001040280256948912,
+        "moving_vertices": 8,
+        "source_max_m": 0.0012561275902548093
+      }
+    }
+  },
+  "Kshishtof_LOD0": {
+    "triangles": 7546,
+    "morphs": 109,
+    "names_exact": true,
+    "basis_unchanged": true,
+    "source_bones": 172,
+    "bone_names_parents_bind_matrices_exact": true,
+    "max_weights": 11,
+    "mapping_rms_m": 0.0015744582099113617,
+    "mapping_max_m": 0.017905446290969847,
+    "shapes": {
+      "Genesis3Male__CTRLCheeksDimpleCreaseHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__PHMCheeksDimpleCreaseHDR",
+          "Genesis3Male__PHMCheeksDimpleCreaseHDL"
+        ],
+        "max_displacement_m": 0.002339509059852793,
+        "moving_vertices": 32,
+        "source_max_m": 0.0033931047732404097
+      },
+      "Genesis3Male__eCTRLSurprised": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.029463309568660265,
+        "moving_vertices": 437,
+        "source_max_m": 0.029864337915046484
+      },
+      "Genesis3Male__eCTRLSmile": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008173143845703888,
+        "moving_vertices": 431,
+        "source_max_m": 0.009413985562201467
+      },
+      "Genesis3Male__eCTRLFrown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005765479427617942,
+        "moving_vertices": 173,
+        "source_max_m": 0.007008202584247681
+      },
+      "Genesis3Male__eCTRLFlirting": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006725179394726249,
+        "moving_vertices": 420,
+        "source_max_m": 0.0073129519316385795
+      },
+      "Genesis3Male__eCTRLAngry": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007906806000256063,
+        "moving_vertices": 215,
+        "source_max_m": 0.008276670504958554
+      },
+      "Genesis3Male__eCTRLvW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.013163371505216584,
+        "moving_vertices": 103,
+        "source_max_m": 0.013638077852431442
+      },
+      "Genesis3Male__eCTRLvUW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009839221159567172,
+        "moving_vertices": 343,
+        "source_max_m": 0.010111140324034954
+      },
+      "Genesis3Male__eCTRLvTH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0055010080336370835,
+        "moving_vertices": 343,
+        "source_max_m": 0.005644318660734754
+      },
+      "Genesis3Male__eCTRLvT": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003450515488342165,
+        "moving_vertices": 319,
+        "source_max_m": 0.003561412962832056
+      },
+      "Genesis3Male__eCTRLvSH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005907448220686626,
+        "moving_vertices": 343,
+        "source_max_m": 0.006219288090248358
+      },
+      "Genesis3Male__eCTRLvS": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005544286157686842,
+        "moving_vertices": 319,
+        "source_max_m": 0.005718314189002789
+      },
+      "Genesis3Male__eCTRLvOW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.011700140805358339,
+        "moving_vertices": 344,
+        "source_max_m": 0.012335811192204768
+      },
+      "Genesis3Male__eCTRLvM": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004325242133406606,
+        "moving_vertices": 75,
+        "source_max_m": 0.004497863581194249
+      },
+      "Genesis3Male__eCTRLvL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007072450501091948,
+        "moving_vertices": 314,
+        "source_max_m": 0.007242102443693379
+      },
+      "Genesis3Male__eCTRLvK": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0041753125430319974,
+        "moving_vertices": 320,
+        "source_max_m": 0.004188080906511595
+      },
+      "Genesis3Male__eCTRLvIY": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0034834311669248324,
+        "moving_vertices": 339,
+        "source_max_m": 0.003998453185140638
+      },
+      "Genesis3Male__eCTRLvIH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005432051213103817,
+        "moving_vertices": 359,
+        "source_max_m": 0.005602905035903319
+      },
+      "Genesis3Male__eCTRLvF": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008200776010260676,
+        "moving_vertices": 337,
+        "source_max_m": 0.008696476980487653
+      },
+      "Genesis3Male__eCTRLvER": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007754526801241488,
+        "moving_vertices": 343,
+        "source_max_m": 0.008067708816802095
+      },
+      "Genesis3Male__eCTRLvEH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007857364874811519,
+        "moving_vertices": 338,
+        "source_max_m": 0.008216453240153914
+      },
+      "Genesis3Male__eCTRLvEE": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005455518621752395,
+        "moving_vertices": 339,
+        "source_max_m": 0.005605190718802465
+      },
+      "Genesis3Male__eCTRLvAA": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009579443215306353,
+        "moving_vertices": 315,
+        "source_max_m": 0.009703164494123616
+      },
+      "Genesis3Male__eCTRLTongueUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00401537804374359,
+        "moving_vertices": 21,
+        "source_max_m": 0.004057553893524661
+      },
+      "Genesis3Male__eCTRLTongueSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.010761218060102233,
+        "moving_vertices": 21,
+        "source_max_m": 0.010948954894681995
+      },
+      "Genesis3Male__eCTRLTongueRaise-Lower": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.014945876014045947,
+        "moving_vertices": 25,
+        "source_max_m": 0.016092726216018798
+      },
+      "Genesis3Male__eCTRLTongueNarrow-Wide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002158216332296666,
+        "moving_vertices": 17,
+        "source_max_m": 0.002248207494050278
+      },
+      "Genesis3Male__eCTRLTongueIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008376322403348206,
+        "moving_vertices": 21,
+        "source_max_m": 0.008930302848830802
+      },
+      "Genesis3Male__eCTRLTongueBendTip": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00532215347634226,
+        "moving_vertices": 17,
+        "source_max_m": 0.00608278155725675
+      },
+      "Genesis3Male__eCTRLTongue Curl": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008458702714629118,
+        "moving_vertices": 21,
+        "source_max_m": 0.010120533452684112
+      },
+      "Genesis3Male__eCTRLNostrilsFlare": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0023375722873093968,
+        "moving_vertices": 33,
+        "source_max_m": 0.0027429577541431133
+      },
+      "Genesis3Male__eCTRLNoseWrinkle": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007715271238482286,
+        "moving_vertices": 115,
+        "source_max_m": 0.007837540526500986
+      },
+      "Genesis3Male__eCTRLNoseScrunch": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0019076988262731,
+        "moving_vertices": 57,
+        "source_max_m": 0.0021596296822434784
+      },
+      "Genesis3Male__eCTRLMouthSmileSimpleR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006622492448968666,
+        "moving_vertices": 55,
+        "source_max_m": 0.007482355359700302
+      },
+      "Genesis3Male__eCTRLMouthSmileSimpleL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006831406395113551,
+        "moving_vertices": 51,
+        "source_max_m": 0.007482355359700302
+      },
+      "Genesis3Male__eCTRLMouthSmileSimple": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthSmileSimpleR",
+          "Genesis3Male__eCTRLMouthSmileSimpleL"
+        ],
+        "max_displacement_m": 0.006831406395113551,
+        "moving_vertices": 81,
+        "source_max_m": 0.007482355359700302
+      },
+      "Genesis3Male__eCTRLMouthSmileOpen": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00805391313768908,
+        "moving_vertices": 139,
+        "source_max_m": 0.00896352417654463
+      },
+      "Genesis3Male__eCTRLMouthSmile": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0073703627020934165,
+        "moving_vertices": 139,
+        "source_max_m": 0.008129732032088857
+      },
+      "Genesis3Male__eCTRLMouthSide-SideR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.015411537729274751,
+        "moving_vertices": 134,
+        "source_max_m": 0.015697542840468134
+      },
+      "Genesis3Male__eCTRLMouthSide-SideL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.015263553151902119,
+        "moving_vertices": 134,
+        "source_max_m": 0.015695418865999552
+      },
+      "Genesis3Male__eCTRLMouthSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthSide-SideR",
+          "Genesis3Male__eCTRLMouthSide-SideL"
+        ],
+        "max_displacement_m": 0.012162217782114284,
+        "moving_vertices": 105,
+        "source_max_m": 0.012214465208650585
+      },
+      "Genesis3Male__eCTRLMouthOpenWide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.02220286634858971,
+        "moving_vertices": 345,
+        "source_max_m": 0.022548339201658375
+      },
+      "Genesis3Male__eCTRLMouthOpen": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.011858255045974762,
+        "moving_vertices": 303,
+        "source_max_m": 0.012011586571432654
+      },
+      "Genesis3Male__eCTRLMouthNarrowR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009255252249242774,
+        "moving_vertices": 40,
+        "source_max_m": 0.009751377783780947
+      },
+      "Genesis3Male__eCTRLMouthNarrowL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009411478369672674,
+        "moving_vertices": 34,
+        "source_max_m": 0.009751377783780947
+      },
+      "Genesis3Male__eCTRLMouthNarrow": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthNarrowR",
+          "Genesis3Male__eCTRLMouthNarrowL"
+        ],
+        "max_displacement_m": 0.009411478369672674,
+        "moving_vertices": 70,
+        "source_max_m": 0.009751377783780947
+      },
+      "Genesis3Male__eCTRLMouthFrown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0061338322063347215,
+        "moving_vertices": 113,
+        "source_max_m": 0.006996578702240744
+      },
+      "Genesis3Male__eCTRLMouthCornerUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0047148394749492225,
+        "moving_vertices": 58,
+        "source_max_m": 0.005015869140625
+      },
+      "Genesis3Male__eCTRLMouthCornerBackR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003919390060152363,
+        "moving_vertices": 37,
+        "source_max_m": 0.004230756759643555
+      },
+      "Genesis3Male__eCTRLMouthCornerBackL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004006991547797881,
+        "moving_vertices": 33,
+        "source_max_m": 0.004230756759643555
+      },
+      "Genesis3Male__eCTRLMouthCornerBack": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthCornerBackR",
+          "Genesis3Male__eCTRLMouthCornerBackL"
+        ],
+        "max_displacement_m": 0.004006991547797881,
+        "moving_vertices": 67,
+        "source_max_m": 0.004230756759643555
+      },
+      "Genesis3Male__eCTRLLipTopUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005159386760658254,
+        "moving_vertices": 23,
+        "source_max_m": 0.005199432373046875
+      },
+      "Genesis3Male__eCTRLLipTopUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0045827585763455435,
+        "moving_vertices": 21,
+        "source_max_m": 0.005199432373046875
+      },
+      "Genesis3Male__eCTRLLipTopUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipTopUp-DownR",
+          "Genesis3Male__eCTRLLipTopUp-DownL"
+        ],
+        "max_displacement_m": 0.006939253304436918,
+        "moving_vertices": 29,
+        "source_max_m": 0.00695892333984375
+      },
+      "Genesis3Male__eCTRLLipTopIn-OutR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0044896661928009,
+        "moving_vertices": 25,
+        "source_max_m": 0.004854054168309846
+      },
+      "Genesis3Male__eCTRLLipTopIn-OutL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004538152262678857,
+        "moving_vertices": 23,
+        "source_max_m": 0.004842509345817271
+      },
+      "Genesis3Male__eCTRLLipTopIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipTopIn-OutR",
+          "Genesis3Male__eCTRLLipTopIn-OutL"
+        ],
+        "max_displacement_m": 0.008670311714723988,
+        "moving_vertices": 29,
+        "source_max_m": 0.009008626249609648
+      },
+      "Genesis3Male__eCTRLLipsPuckerWide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.012650213054319012,
+        "moving_vertices": 91,
+        "source_max_m": 0.012760409407781259
+      },
+      "Genesis3Male__eCTRLLipsPucker": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01327045538466322,
+        "moving_vertices": 91,
+        "source_max_m": 0.013397038754233693
+      },
+      "Genesis3Male__eCTRLLipsPartCenter": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003296040490797799,
+        "moving_vertices": 32,
+        "source_max_m": 0.004166171072894691
+      },
+      "Genesis3Male__eCTRLLipsPart": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0040806797001713396,
+        "moving_vertices": 39,
+        "source_max_m": 0.004264111191377408
+      },
+      "Genesis3Male__eCTRLLipBottomUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004809299361492748,
+        "moving_vertices": 15,
+        "source_max_m": 0.0049114990234375
+      },
+      "Genesis3Male__eCTRLLipBottomUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004262938842415776,
+        "moving_vertices": 17,
+        "source_max_m": 0.0049114990234375
+      },
+      "Genesis3Male__eCTRLLipBottomUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipBottomUp-DownR",
+          "Genesis3Male__eCTRLLipBottomUp-DownL"
+        ],
+        "max_displacement_m": 0.006725428812857216,
+        "moving_vertices": 19,
+        "source_max_m": 0.0069744873046875
+      },
+      "Genesis3Male__eCTRLLipBottomIn-OutR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00596282787543461,
+        "moving_vertices": 15,
+        "source_max_m": 0.006797126799703687
+      },
+      "Genesis3Male__eCTRLLipBottomIn-OutL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004680338949267468,
+        "moving_vertices": 17,
+        "source_max_m": 0.006797973361318376
+      },
+      "Genesis3Male__eCTRLLipBottomIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipBottomIn-OutR",
+          "Genesis3Male__eCTRLLipBottomIn-OutL"
+        ],
+        "max_displacement_m": 0.009220261458132708,
+        "moving_vertices": 19,
+        "source_max_m": 0.009506661517511502
+      },
+      "Genesis3Male__eCTRLJawSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009749751340221255,
+        "moving_vertices": 300,
+        "source_max_m": 0.009887371530040679
+      },
+      "Genesis3Male__eCTRLJawOut-In": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00972310087903125,
+        "moving_vertices": 300,
+        "source_max_m": 0.009738680605724519
+      },
+      "Genesis3Male__eCTRLEyesUpDown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004073817418192225,
+        "moving_vertices": 108,
+        "source_max_m": 0.0042913873821135
+      },
+      "Genesis3Male__eCTRLEyesSquintR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0044136331370108785,
+        "moving_vertices": 53,
+        "source_max_m": 0.004710119017300817
+      },
+      "Genesis3Male__eCTRLEyesSquintL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004470977920473773,
+        "moving_vertices": 52,
+        "source_max_m": 0.004710119017300817
+      },
+      "Genesis3Male__eCTRLEyesSquint": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyesSquintR",
+          "Genesis3Male__eCTRLEyesSquintL"
+        ],
+        "max_displacement_m": 0.004470977920473773,
+        "moving_vertices": 105,
+        "source_max_m": 0.004710119017300817
+      },
+      "Genesis3Male__eCTRLEyesSideSide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0050747439572393594,
+        "moving_vertices": 109,
+        "source_max_m": 0.005324503614190495
+      },
+      "Genesis3Male__eCTRLEyesCrossed": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006325295170364091,
+        "moving_vertices": 109,
+        "source_max_m": 0.006636601150693799
+      },
+      "Genesis3Male__eCTRLEyesClosedR": {
+        "eyelid_closure_refined": true,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01240754683503511,
+        "moving_vertices": 15,
+        "source_max_m": 0.01137570417220686
+      },
+      "Genesis3Male__eCTRLEyesClosedL": {
+        "eyelid_closure_refined": true,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.012938343637426032,
+        "moving_vertices": 14,
+        "source_max_m": 0.011377149309828595
+      },
+      "Genesis3Male__eCTRLEyesClosed": {
+        "eyelid_closure_refined": true,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyesClosedR",
+          "Genesis3Male__eCTRLEyesClosedL"
+        ],
+        "max_displacement_m": 0.012938343637426032,
+        "moving_vertices": 29,
+        "source_max_m": 0.011377149309828595
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUpR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007716190098567305,
+        "moving_vertices": 8,
+        "source_max_m": 0.011758992525872251
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUpL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007593176468017914,
+        "moving_vertices": 7,
+        "source_max_m": 0.01176072879187819
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUp": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyelidsUpperDownUpR",
+          "Genesis3Male__eCTRLEyelidsUpperDownUpL"
+        ],
+        "max_displacement_m": 0.007716190098567305,
+        "moving_vertices": 15,
+        "source_max_m": 0.01176072879187819
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002414924669639149,
+        "moving_vertices": 8,
+        "source_max_m": 0.0034556582271100247
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0022910845601217993,
+        "moving_vertices": 8,
+        "source_max_m": 0.0034556260520678134
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyelidsLowerUpDownR",
+          "Genesis3Male__eCTRLEyelidsLowerUpDownL"
+        ],
+        "max_displacement_m": 0.002414924669639149,
+        "moving_vertices": 16,
+        "source_max_m": 0.0034556582271100247
+      },
+      "Genesis3Male__eCTRLCheeksBalloonPucker": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.013270434430636259,
+        "moving_vertices": 135,
+        "source_max_m": 0.013419058085172497
+      },
+      "Genesis3Male__eCTRLCheeksBalloon": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009366345234261024,
+        "moving_vertices": 135,
+        "source_max_m": 0.009534542510343823
+      },
+      "Genesis3Male__eCTRLCheekFlexR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005520637782154553,
+        "moving_vertices": 52,
+        "source_max_m": 0.00577554228645922
+      },
+      "Genesis3Male__eCTRLCheekFlexL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005411813882563768,
+        "moving_vertices": 57,
+        "source_max_m": 0.00577554228645922
+      },
+      "Genesis3Male__eCTRLCheekFlex": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLCheekFlexR",
+          "Genesis3Male__eCTRLCheekFlexL"
+        ],
+        "max_displacement_m": 0.005520637782154553,
+        "moving_vertices": 109,
+        "source_max_m": 0.00577554228645922
+      },
+      "Genesis3Male__eCTRLCheekEyeFlexR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0024956340458118817,
+        "moving_vertices": 14,
+        "source_max_m": 0.003004608154296875
+      },
+      "Genesis3Male__eCTRLCheekEyeFlexL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0022981777260529476,
+        "moving_vertices": 18,
+        "source_max_m": 0.003004608154296875
+      },
+      "Genesis3Male__eCTRLCheekEyeFlex": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLCheekEyeFlexR",
+          "Genesis3Male__eCTRLCheekEyeFlexL"
+        ],
+        "max_displacement_m": 0.0024956340458118817,
+        "moving_vertices": 32,
+        "source_max_m": 0.003004608154296875
+      },
+      "Genesis3Male__eCTRLCheekCrease": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__ePHMCheekCreaseR",
+          "Genesis3Male__ePHMCheekCreaseL"
+        ],
+        "max_displacement_m": 0.0010486262490711393,
+        "moving_vertices": 17,
+        "source_max_m": 0.001677637083252802
+      },
+      "Genesis3Male__eCTRLBrowUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001805449152990823,
+        "moving_vertices": 19,
+        "source_max_m": 0.00193695068359375
+      },
+      "Genesis3Male__eCTRLBrowUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0016922197786703637,
+        "moving_vertices": 20,
+        "source_max_m": 0.00193695068359375
+      },
+      "Genesis3Male__eCTRLBrowUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowUp-DownR",
+          "Genesis3Male__eCTRLBrowUp-DownL"
+        ],
+        "max_displacement_m": 0.001805449152990823,
+        "moving_vertices": 39,
+        "source_max_m": 0.00193695068359375
+      },
+      "Genesis3Male__eCTRLBrowSqueeze": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0037284881776951523,
+        "moving_vertices": 49,
+        "source_max_m": 0.004383269737641821
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005166579507116789,
+        "moving_vertices": 28,
+        "source_max_m": 0.00560638427734375
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005297576303127018,
+        "moving_vertices": 28,
+        "source_max_m": 0.00560638427734375
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowOuterUp-DownR",
+          "Genesis3Male__eCTRLBrowOuterUp-DownL"
+        ],
+        "max_displacement_m": 0.005297576303127018,
+        "moving_vertices": 56,
+        "source_max_m": 0.00560638427734375
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005103755049780073,
+        "moving_vertices": 34,
+        "source_max_m": 0.0057348632812500005
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005227481216883523,
+        "moving_vertices": 34,
+        "source_max_m": 0.0057348632812500005
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowInnerUp-DownR",
+          "Genesis3Male__eCTRLBrowInnerUp-DownL"
+        ],
+        "max_displacement_m": 0.006109859147256777,
+        "moving_vertices": 49,
+        "source_max_m": 0.006298980712890625
+      },
+      "Genesis3Male__PHMNoseCompressionHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001067592362706837,
+        "moving_vertices": 71,
+        "source_max_m": 0.001745725792653623
+      },
+      "Genesis3Male__PHMCheeksDimpleCreaseHDR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002339509059852793,
+        "moving_vertices": 16,
+        "source_max_m": 0.0033931047732404097
+      },
+      "Genesis3Male__PHMCheeksDimpleCreaseHDL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001215382079310256,
+        "moving_vertices": 16,
+        "source_max_m": 0.0033930948353094906
+      },
+      "Genesis3Male__PHMBrowCompressionHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0006111168660103345,
+        "moving_vertices": 28,
+        "source_max_m": 0.0013107595183752371
+      },
+      "Genesis3Male__ePHMCheekCreaseR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0010486262490711393,
+        "moving_vertices": 8,
+        "source_max_m": 0.0016776230381652171
+      },
+      "Genesis3Male__ePHMCheekCreaseL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0010261330288117692,
+        "moving_vertices": 9,
+        "source_max_m": 0.001677637083252802
+      }
+    }
+  },
+  "Kshishtof_LOD1": {
+    "triangles": 3610,
+    "morphs": 109,
+    "names_exact": true,
+    "basis_unchanged": true,
+    "source_bones": 172,
+    "bone_names_parents_bind_matrices_exact": true,
+    "max_weights": 11,
+    "mapping_rms_m": 0.002129518245643064,
+    "mapping_max_m": 0.01650715112686157,
+    "shapes": {
+      "Genesis3Male__CTRLCheeksDimpleCreaseHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__PHMCheeksDimpleCreaseHDR",
+          "Genesis3Male__PHMCheeksDimpleCreaseHDL"
+        ],
+        "max_displacement_m": 0.0008165026992101772,
+        "moving_vertices": 12,
+        "source_max_m": 0.0033931047732404097
+      },
+      "Genesis3Male__eCTRLSurprised": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.028989249575232773,
+        "moving_vertices": 200,
+        "source_max_m": 0.029864337915046484
+      },
+      "Genesis3Male__eCTRLSmile": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008964562336141462,
+        "moving_vertices": 200,
+        "source_max_m": 0.009413985562201467
+      },
+      "Genesis3Male__eCTRLFrown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005525917261150064,
+        "moving_vertices": 81,
+        "source_max_m": 0.007008202584247681
+      },
+      "Genesis3Male__eCTRLFlirting": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005938137595223516,
+        "moving_vertices": 196,
+        "source_max_m": 0.0073129519316385795
+      },
+      "Genesis3Male__eCTRLAngry": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007661277082291499,
+        "moving_vertices": 95,
+        "source_max_m": 0.008276670504958554
+      },
+      "Genesis3Male__eCTRLvW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.01139530267261323,
+        "moving_vertices": 49,
+        "source_max_m": 0.013638077852431442
+      },
+      "Genesis3Male__eCTRLvUW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009507459944779487,
+        "moving_vertices": 159,
+        "source_max_m": 0.010111140324034954
+      },
+      "Genesis3Male__eCTRLvTH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005351634091770521,
+        "moving_vertices": 159,
+        "source_max_m": 0.005644318660734754
+      },
+      "Genesis3Male__eCTRLvT": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.003439282220943829,
+        "moving_vertices": 148,
+        "source_max_m": 0.003561412962832056
+      },
+      "Genesis3Male__eCTRLvSH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005488319403732754,
+        "moving_vertices": 159,
+        "source_max_m": 0.006219288090248358
+      },
+      "Genesis3Male__eCTRLvS": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00552946593620819,
+        "moving_vertices": 148,
+        "source_max_m": 0.005718314189002789
+      },
+      "Genesis3Male__eCTRLvOW": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.012035746094508842,
+        "moving_vertices": 159,
+        "source_max_m": 0.012335811192204768
+      },
+      "Genesis3Male__eCTRLvM": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0039573671938047195,
+        "moving_vertices": 36,
+        "source_max_m": 0.004497863581194249
+      },
+      "Genesis3Male__eCTRLvL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007061339474443591,
+        "moving_vertices": 147,
+        "source_max_m": 0.007242102443693379
+      },
+      "Genesis3Male__eCTRLvK": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0041746208828914565,
+        "moving_vertices": 148,
+        "source_max_m": 0.004188080906511595
+      },
+      "Genesis3Male__eCTRLvIY": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0034550298744919794,
+        "moving_vertices": 157,
+        "source_max_m": 0.003998453185140638
+      },
+      "Genesis3Male__eCTRLvIH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005417571250276504,
+        "moving_vertices": 166,
+        "source_max_m": 0.005602905035903319
+      },
+      "Genesis3Male__eCTRLvF": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.008200776010260676,
+        "moving_vertices": 156,
+        "source_max_m": 0.008696476980487653
+      },
+      "Genesis3Male__eCTRLvER": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007754526801241488,
+        "moving_vertices": 159,
+        "source_max_m": 0.008067708816802095
+      },
+      "Genesis3Male__eCTRLvEH": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007821865365292722,
+        "moving_vertices": 157,
+        "source_max_m": 0.008216453240153914
+      },
+      "Genesis3Male__eCTRLvEE": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005431223628314208,
+        "moving_vertices": 157,
+        "source_max_m": 0.005605190718802465
+      },
+      "Genesis3Male__eCTRLvAA": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009427320518691175,
+        "moving_vertices": 147,
+        "source_max_m": 0.009703164494123616
+      },
+      "Genesis3Male__eCTRLTongueUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0038433934542668716,
+        "moving_vertices": 11,
+        "source_max_m": 0.004057553893524661
+      },
+      "Genesis3Male__eCTRLTongueSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.010444251678882011,
+        "moving_vertices": 11,
+        "source_max_m": 0.010948954894681995
+      },
+      "Genesis3Male__eCTRLTongueRaise-Lower": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.013686825975065495,
+        "moving_vertices": 14,
+        "source_max_m": 0.016092726216018798
+      },
+      "Genesis3Male__eCTRLTongueNarrow-Wide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0019456315319200538,
+        "moving_vertices": 7,
+        "source_max_m": 0.002248207494050278
+      },
+      "Genesis3Male__eCTRLTongueIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007783406237131952,
+        "moving_vertices": 11,
+        "source_max_m": 0.008930302848830802
+      },
+      "Genesis3Male__eCTRLTongueBendTip": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004383125000649233,
+        "moving_vertices": 7,
+        "source_max_m": 0.00608278155725675
+      },
+      "Genesis3Male__eCTRLTongue Curl": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006142759372450408,
+        "moving_vertices": 11,
+        "source_max_m": 0.010120533452684112
+      },
+      "Genesis3Male__eCTRLNostrilsFlare": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0023576281265276443,
+        "moving_vertices": 15,
+        "source_max_m": 0.0027429577541431133
+      },
+      "Genesis3Male__eCTRLNoseWrinkle": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007715271238482286,
+        "moving_vertices": 55,
+        "source_max_m": 0.007837540526500986
+      },
+      "Genesis3Male__eCTRLNoseScrunch": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0018974136395201746,
+        "moving_vertices": 27,
+        "source_max_m": 0.0021596296822434784
+      },
+      "Genesis3Male__eCTRLMouthSmileSimpleR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0046114101746751865,
+        "moving_vertices": 25,
+        "source_max_m": 0.007482355359700302
+      },
+      "Genesis3Male__eCTRLMouthSmileSimpleL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007085936100531127,
+        "moving_vertices": 28,
+        "source_max_m": 0.007482355359700302
+      },
+      "Genesis3Male__eCTRLMouthSmileSimple": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthSmileSimpleR",
+          "Genesis3Male__eCTRLMouthSmileSimpleL"
+        ],
+        "max_displacement_m": 0.007085936100531127,
+        "moving_vertices": 39,
+        "source_max_m": 0.007482355359700302
+      },
+      "Genesis3Male__eCTRLMouthSmileOpen": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00814810446844878,
+        "moving_vertices": 59,
+        "source_max_m": 0.00896352417654463
+      },
+      "Genesis3Male__eCTRLMouthSmile": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007585112632448229,
+        "moving_vertices": 59,
+        "source_max_m": 0.008129732032088857
+      },
+      "Genesis3Male__eCTRLMouthSide-SideR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.014826504094747573,
+        "moving_vertices": 57,
+        "source_max_m": 0.015697542840468134
+      },
+      "Genesis3Male__eCTRLMouthSide-SideL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.012452704424040352,
+        "moving_vertices": 57,
+        "source_max_m": 0.015695418865999552
+      },
+      "Genesis3Male__eCTRLMouthSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthSide-SideR",
+          "Genesis3Male__eCTRLMouthSide-SideL"
+        ],
+        "max_displacement_m": 0.011955253072825314,
+        "moving_vertices": 50,
+        "source_max_m": 0.012214465208650585
+      },
+      "Genesis3Male__eCTRLMouthOpenWide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.02217715734317594,
+        "moving_vertices": 159,
+        "source_max_m": 0.022548339201658375
+      },
+      "Genesis3Male__eCTRLMouthOpen": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.011670039438459998,
+        "moving_vertices": 138,
+        "source_max_m": 0.012011586571432654
+      },
+      "Genesis3Male__eCTRLMouthNarrowR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.007187035623492827,
+        "moving_vertices": 19,
+        "source_max_m": 0.009751377783780947
+      },
+      "Genesis3Male__eCTRLMouthNarrowL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009172638329540315,
+        "moving_vertices": 17,
+        "source_max_m": 0.009751377783780947
+      },
+      "Genesis3Male__eCTRLMouthNarrow": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthNarrowR",
+          "Genesis3Male__eCTRLMouthNarrowL"
+        ],
+        "max_displacement_m": 0.009172638329540315,
+        "moving_vertices": 34,
+        "source_max_m": 0.009751377783780947
+      },
+      "Genesis3Male__eCTRLMouthFrown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006225897117314715,
+        "moving_vertices": 51,
+        "source_max_m": 0.006996578702240744
+      },
+      "Genesis3Male__eCTRLMouthCornerUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004789414633078856,
+        "moving_vertices": 27,
+        "source_max_m": 0.005015869140625
+      },
+      "Genesis3Male__eCTRLMouthCornerBackR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002912687683329509,
+        "moving_vertices": 19,
+        "source_max_m": 0.004230756759643555
+      },
+      "Genesis3Male__eCTRLMouthCornerBackL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004024772296931355,
+        "moving_vertices": 17,
+        "source_max_m": 0.004230756759643555
+      },
+      "Genesis3Male__eCTRLMouthCornerBack": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLMouthCornerBackR",
+          "Genesis3Male__eCTRLMouthCornerBackL"
+        ],
+        "max_displacement_m": 0.004024772296931355,
+        "moving_vertices": 34,
+        "source_max_m": 0.004230756759643555
+      },
+      "Genesis3Male__eCTRLLipTopUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005141352256343513,
+        "moving_vertices": 12,
+        "source_max_m": 0.005199432373046875
+      },
+      "Genesis3Male__eCTRLLipTopUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004331325123286037,
+        "moving_vertices": 12,
+        "source_max_m": 0.005199432373046875
+      },
+      "Genesis3Male__eCTRLLipTopUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipTopUp-DownR",
+          "Genesis3Male__eCTRLLipTopUp-DownL"
+        ],
+        "max_displacement_m": 0.00659408897594995,
+        "moving_vertices": 17,
+        "source_max_m": 0.00695892333984375
+      },
+      "Genesis3Male__eCTRLLipTopIn-OutR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0032517218779960226,
+        "moving_vertices": 13,
+        "source_max_m": 0.004854054168309846
+      },
+      "Genesis3Male__eCTRLLipTopIn-OutL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004636793726769077,
+        "moving_vertices": 13,
+        "source_max_m": 0.004842509345817271
+      },
+      "Genesis3Male__eCTRLLipTopIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipTopIn-OutR",
+          "Genesis3Male__eCTRLLipTopIn-OutL"
+        ],
+        "max_displacement_m": 0.007886232417446385,
+        "moving_vertices": 17,
+        "source_max_m": 0.009008626249609648
+      },
+      "Genesis3Male__eCTRLLipsPuckerWide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.012149818155406722,
+        "moving_vertices": 44,
+        "source_max_m": 0.012760409407781259
+      },
+      "Genesis3Male__eCTRLLipsPucker": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.012729753087898555,
+        "moving_vertices": 44,
+        "source_max_m": 0.013397038754233693
+      },
+      "Genesis3Male__eCTRLLipsPartCenter": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0031798850193250055,
+        "moving_vertices": 16,
+        "source_max_m": 0.004166171072894691
+      },
+      "Genesis3Male__eCTRLLipsPart": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004051770979763297,
+        "moving_vertices": 23,
+        "source_max_m": 0.004264111191377408
+      },
+      "Genesis3Male__eCTRLLipBottomUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004478953956152445,
+        "moving_vertices": 9,
+        "source_max_m": 0.0049114990234375
+      },
+      "Genesis3Male__eCTRLLipBottomUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004262938842415776,
+        "moving_vertices": 10,
+        "source_max_m": 0.0049114990234375
+      },
+      "Genesis3Male__eCTRLLipBottomUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipBottomUp-DownR",
+          "Genesis3Male__eCTRLLipBottomUp-DownL"
+        ],
+        "max_displacement_m": 0.006725428812857216,
+        "moving_vertices": 12,
+        "source_max_m": 0.0069744873046875
+      },
+      "Genesis3Male__eCTRLLipBottomIn-OutR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00596282787543461,
+        "moving_vertices": 9,
+        "source_max_m": 0.006797126799703687
+      },
+      "Genesis3Male__eCTRLLipBottomIn-OutL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004680338949267468,
+        "moving_vertices": 10,
+        "source_max_m": 0.006797973361318376
+      },
+      "Genesis3Male__eCTRLLipBottomIn-Out": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLLipBottomIn-OutR",
+          "Genesis3Male__eCTRLLipBottomIn-OutL"
+        ],
+        "max_displacement_m": 0.009220261458132708,
+        "moving_vertices": 12,
+        "source_max_m": 0.009506661517511502
+      },
+      "Genesis3Male__eCTRLJawSide-Side": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009729475580701318,
+        "moving_vertices": 137,
+        "source_max_m": 0.009887371530040679
+      },
+      "Genesis3Male__eCTRLJawOut-In": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009631617658093292,
+        "moving_vertices": 137,
+        "source_max_m": 0.009738680605724519
+      },
+      "Genesis3Male__eCTRLEyesUpDown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004073817418192225,
+        "moving_vertices": 84,
+        "source_max_m": 0.0042913873821135
+      },
+      "Genesis3Male__eCTRLEyesSquintR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004116047758857387,
+        "moving_vertices": 22,
+        "source_max_m": 0.004710119017300817
+      },
+      "Genesis3Male__eCTRLEyesSquintL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004308071137480488,
+        "moving_vertices": 26,
+        "source_max_m": 0.004710119017300817
+      },
+      "Genesis3Male__eCTRLEyesSquint": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyesSquintR",
+          "Genesis3Male__eCTRLEyesSquintL"
+        ],
+        "max_displacement_m": 0.004308071137480488,
+        "moving_vertices": 48,
+        "source_max_m": 0.004710119017300817
+      },
+      "Genesis3Male__eCTRLEyesSideSide": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0050747439572393594,
+        "moving_vertices": 84,
+        "source_max_m": 0.005324503614190495
+      },
+      "Genesis3Male__eCTRLEyesCrossed": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006325295170364091,
+        "moving_vertices": 84,
+        "source_max_m": 0.006636601150693799
+      },
+      "Genesis3Male__eCTRLEyesClosedR": {
+        "eyelid_closure_refined": true,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0046453534719770265,
+        "moving_vertices": 8,
+        "source_max_m": 0.01137570417220686
+      },
+      "Genesis3Male__eCTRLEyesClosedL": {
+        "eyelid_closure_refined": true,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006150935973031393,
+        "moving_vertices": 8,
+        "source_max_m": 0.011377149309828595
+      },
+      "Genesis3Male__eCTRLEyesClosed": {
+        "eyelid_closure_refined": true,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyesClosedR",
+          "Genesis3Male__eCTRLEyesClosedL"
+        ],
+        "max_displacement_m": 0.006150935973031393,
+        "moving_vertices": 16,
+        "source_max_m": 0.011377149309828595
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUpR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.004801899343233345,
+        "moving_vertices": 5,
+        "source_max_m": 0.011758992525872251
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUpL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.006358854229305397,
+        "moving_vertices": 3,
+        "source_max_m": 0.01176072879187819
+      },
+      "Genesis3Male__eCTRLEyelidsUpperDownUp": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyelidsUpperDownUpR",
+          "Genesis3Male__eCTRLEyelidsUpperDownUpL"
+        ],
+        "max_displacement_m": 0.006358854229305397,
+        "moving_vertices": 8,
+        "source_max_m": 0.01176072879187819
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0009716451879813616,
+        "moving_vertices": 4,
+        "source_max_m": 0.0034556582271100247
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.002602851189770831,
+        "moving_vertices": 5,
+        "source_max_m": 0.0034556260520678134
+      },
+      "Genesis3Male__eCTRLEyelidsLowerUpDown": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLEyelidsLowerUpDownR",
+          "Genesis3Male__eCTRLEyelidsLowerUpDownL"
+        ],
+        "max_displacement_m": 0.002602851189770831,
+        "moving_vertices": 9,
+        "source_max_m": 0.0034556582271100247
+      },
+      "Genesis3Male__eCTRLCheeksBalloonPucker": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.012729775112835804,
+        "moving_vertices": 58,
+        "source_max_m": 0.013419058085172497
+      },
+      "Genesis3Male__eCTRLCheeksBalloon": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.009166286791208336,
+        "moving_vertices": 58,
+        "source_max_m": 0.009534542510343823
+      },
+      "Genesis3Male__eCTRLCheekFlexR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0045281271865217024,
+        "moving_vertices": 22,
+        "source_max_m": 0.00577554228645922
+      },
+      "Genesis3Male__eCTRLCheekFlexL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005158093352909707,
+        "moving_vertices": 24,
+        "source_max_m": 0.00577554228645922
+      },
+      "Genesis3Male__eCTRLCheekFlex": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLCheekFlexR",
+          "Genesis3Male__eCTRLCheekFlexL"
+        ],
+        "max_displacement_m": 0.005158093352909707,
+        "moving_vertices": 45,
+        "source_max_m": 0.00577554228645922
+      },
+      "Genesis3Male__eCTRLCheekEyeFlexR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0015267235354753435,
+        "moving_vertices": 6,
+        "source_max_m": 0.003004608154296875
+      },
+      "Genesis3Male__eCTRLCheekEyeFlexL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.001998507471076028,
+        "moving_vertices": 10,
+        "source_max_m": 0.003004608154296875
+      },
+      "Genesis3Male__eCTRLCheekEyeFlex": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLCheekEyeFlexR",
+          "Genesis3Male__eCTRLCheekEyeFlexL"
+        ],
+        "max_displacement_m": 0.001998507471076028,
+        "moving_vertices": 16,
+        "source_max_m": 0.003004608154296875
+      },
+      "Genesis3Male__eCTRLCheekCrease": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__ePHMCheekCreaseR",
+          "Genesis3Male__ePHMCheekCreaseL"
+        ],
+        "max_displacement_m": 0.0011769681555111036,
+        "moving_vertices": 9,
+        "source_max_m": 0.001677637083252802
+      },
+      "Genesis3Male__eCTRLBrowUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0015890329818304338,
+        "moving_vertices": 10,
+        "source_max_m": 0.00193695068359375
+      },
+      "Genesis3Male__eCTRLBrowUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0016922197786703637,
+        "moving_vertices": 9,
+        "source_max_m": 0.00193695068359375
+      },
+      "Genesis3Male__eCTRLBrowUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowUp-DownR",
+          "Genesis3Male__eCTRLBrowUp-DownL"
+        ],
+        "max_displacement_m": 0.0016922197786703637,
+        "moving_vertices": 19,
+        "source_max_m": 0.00193695068359375
+      },
+      "Genesis3Male__eCTRLBrowSqueeze": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0035896182847849996,
+        "moving_vertices": 24,
+        "source_max_m": 0.004383269737641821
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0053414854419679605,
+        "moving_vertices": 12,
+        "source_max_m": 0.00560638427734375
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005295135169771104,
+        "moving_vertices": 13,
+        "source_max_m": 0.00560638427734375
+      },
+      "Genesis3Male__eCTRLBrowOuterUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowOuterUp-DownR",
+          "Genesis3Male__eCTRLBrowOuterUp-DownL"
+        ],
+        "max_displacement_m": 0.0053414854419679605,
+        "moving_vertices": 25,
+        "source_max_m": 0.00560638427734375
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-DownR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.005103755049780073,
+        "moving_vertices": 18,
+        "source_max_m": 0.0057348632812500005
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-DownL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00499227840864368,
+        "moving_vertices": 17,
+        "source_max_m": 0.0057348632812500005
+      },
+      "Genesis3Male__eCTRLBrowInnerUp-Down": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [
+          "Genesis3Male__eCTRLBrowInnerUp-DownR",
+          "Genesis3Male__eCTRLBrowInnerUp-DownL"
+        ],
+        "max_displacement_m": 0.006105758470689936,
+        "moving_vertices": 24,
+        "source_max_m": 0.006298980712890625
+      },
+      "Genesis3Male__PHMNoseCompressionHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0012635834086066136,
+        "moving_vertices": 34,
+        "source_max_m": 0.001745725792653623
+      },
+      "Genesis3Male__PHMCheeksDimpleCreaseHDR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0008165026992101772,
+        "moving_vertices": 7,
+        "source_max_m": 0.0033931047732404097
+      },
+      "Genesis3Male__PHMCheeksDimpleCreaseHDL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.00044775257265039275,
+        "moving_vertices": 5,
+        "source_max_m": 0.0033930948353094906
+      },
+      "Genesis3Male__PHMBrowCompressionHD": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0005382424822015455,
+        "moving_vertices": 14,
+        "source_max_m": 0.0013107595183752371
+      },
+      "Genesis3Male__ePHMCheekCreaseR": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0011769681555111036,
+        "moving_vertices": 4,
+        "source_max_m": 0.0016776230381652171
+      },
+      "Genesis3Male__ePHMCheekCreaseL": {
+        "eyelid_closure_refined": false,
+        "rebuilt_from": [],
+        "max_displacement_m": 0.0010261330288117692,
+        "moving_vertices": 5,
+        "source_max_m": 0.001677637083252802
+      }
+    }
+  }
+}

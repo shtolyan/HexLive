@@ -590,7 +590,7 @@ public static class BuildingRules
                 element.WorkDone = element.WorkRequired;
                 element.Buildable = true;
             }
-            else
+            else if (owner.InstalledBuildMaterials == null)
             {
                 // Contents is the authoritative delivered pool. Reallocation
                 // below rebuilds every unfinished module deterministically.
@@ -614,6 +614,19 @@ public static class BuildingRules
             bill.Boards += element.RequiredBoards;
             bill.Rope += element.RequiredRope;
             bill.Leaves += element.RequiredLeaves;
+        }
+        if (owner.InstalledBuildMaterials != null)
+        {
+            // Editing a tracked plan preserves installed modules and adds
+            // only the uninstalled delta to its historical paid prefix.
+            bill.Sticks = BuildSiteMath.Installed(owner, ContentIds.Stick) +
+                elements.Sum(element => Math.Max(0, element.RequiredSticks-element.DeliveredSticks));
+            bill.Boards = BuildSiteMath.Installed(owner, ContentIds.Board) +
+                elements.Sum(element => Math.Max(0, element.RequiredBoards-element.DeliveredBoards));
+            bill.Rope = BuildSiteMath.Installed(owner, ContentIds.Rope) +
+                elements.Sum(element => Math.Max(0, element.RequiredRope-element.DeliveredRope));
+            bill.Leaves = BuildSiteMath.Installed(owner, ContentIds.PalmLeaf) +
+                elements.Sum(element => Math.Max(0, element.RequiredLeaves-element.DeliveredLeaves));
         }
         return bill;
     }
@@ -683,13 +696,25 @@ public static class BuildingRules
         return floors.Length > 0 && floors.All(element => element.Complete);
     }
 
-    public static bool AssignDeliveredMaterial(WorldState world, WorldObjectState owner, string materialId)
+    internal static string NextElementMaterial(ArchitectureElementState element) =>
+        element.DeliveredSticks < element.RequiredSticks ? ContentIds.Stick :
+        element.DeliveredBoards < element.RequiredBoards ? ContentIds.Board :
+        element.DeliveredLeaves < element.RequiredLeaves ? ContentIds.PalmLeaf :
+        element.DeliveredRope < element.RequiredRope ? ContentIds.Rope : string.Empty;
+
+    public static bool CanInstallMaterial(WorldState world, WorldObjectState owner, string materialId) =>
+        Elements(world, owner).Any(element => element.Buildable && !element.Complete &&
+            NextElementMaterial(element) == materialId);
+
+    public static bool AssignDeliveredMaterial(WorldState world, WorldObjectState owner, string materialId,
+        bool staged = false)
     {
         EnsureHutElements(world, owner);
         var elements = Elements(world, owner).ToArray();
         RefreshRoofBuildability(elements);
         var candidates = elements.Where(element =>
-            element.Buildable && !element.Complete && RemainingFor(element, materialId) > 0).ToList();
+            element.Buildable && !element.Complete && RemainingFor(element, materialId) > 0 &&
+            (!staged || NextElementMaterial(element) == materialId)).ToList();
         if (candidates.Count == 0) return false;
 
         var delivered = elements.Sum(element => element.DeliveredTotal);
@@ -714,6 +739,9 @@ public static class BuildingRules
     public static void SyncHutElements(WorldState world, WorldObjectState owner)
     {
         EnsureHutElements(world, owner);
+        // Explicit construction updates/persists each LEGO piece in place.
+        // Reallocating its stock on delivery or reload would undo that work.
+        if (owner.InstalledBuildMaterials != null) return;
         // Bug #188: the world-aware overload exists precisely because a
         // BlueprintId may name Hut1Hex while the committed plan is three-hex.
         // Allocating deliveries from the static product silently mixed them.
@@ -925,6 +953,7 @@ public static class BuildingRules
     public static void SyncHutElements(WorldObjectState owner)
     {
         EnsureHutElements(owner);
+        if (owner.InstalledBuildMaterials != null) return;
         var definitions = DefinitionsFor(owner);
         var byKey = new Dictionary<string, ArchitectureElementState>();
         foreach (var element in owner.ArchitectureElements)

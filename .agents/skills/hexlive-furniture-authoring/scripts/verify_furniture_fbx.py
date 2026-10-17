@@ -62,7 +62,19 @@ def main() -> int:
     bpy.ops.import_scene.fbx(filepath=str(source))
 
     roots = [obj for obj in bpy.context.scene.objects if obj.parent is None]
-    meshes = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+    def is_template(obj):
+        node = obj
+        while node is not None:
+            if node.name == "HangerTemplate":
+                return True
+            node = node.parent
+        return False
+
+    # The hidden clone template is intentionally parked about its socket origin,
+    # not on the furniture floor. Measure the physical object, not this helper;
+    # round-trip attachment verification still includes all template vertices.
+    meshes = [obj for obj in bpy.context.scene.objects
+              if obj.type == "MESH" and not is_template(obj)]
     vertices = [obj.matrix_world @ vertex.co for obj in meshes for vertex in obj.data.vertices]
     errors: list[str] = []
 

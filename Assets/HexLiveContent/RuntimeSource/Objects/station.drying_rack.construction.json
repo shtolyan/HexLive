@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "definitionId": "station.drying_rack",
+  "modelSha256": "61d526af714b868805f2b22f3a3e4956174ad7928d8a21a34c23486dfd548441",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.drying_rack/BuildStage_1__stick/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.drying_rack/BuildStage_1__stick/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.drying_rack/BuildStage_2__stick/unit_02_000"
+    },
+    {
+      "index": 4,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.drying_rack/BuildStage_2__stick/unit_02_001"
+    },
+    {
+      "index": 5,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "station.drying_rack/BuildStage_3__rope/unit_03_000"
+    },
+    {
+      "index": 6,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "station.drying_rack/BuildStage_3__rope/unit_03_001"
+    },
+    {
+      "index": 7,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "station.drying_rack/BuildStage_3__rope/unit_03_002"
+    },
+    {
+      "index": 8,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "station.drying_rack/BuildStage_3__rope/unit_03_003"
+    }
+  ]
+}

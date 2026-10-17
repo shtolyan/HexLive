@@ -40,12 +40,25 @@ namespace HexLive.UnityPresentation.Environment
         // and extend only the bed-local longitudinal axis to nearly meet its nodes.
         public const float BedWidthScale = 1.139507f; // 0.570000 -> 0.649519 wu
         public const float BedLengthScale = 1.056338f; // 1.420000 -> 1.500000 wu
+        private const string MaterialLogs = "resource.log";
+        private const string MaterialSticks = "resource.stick";
+        private const string MaterialBoards = "resource.board";
+        private const string MaterialRope = "resource.rope";
+        private const string MaterialLeaves = "resource.palm_leaf";
+        private const string MaterialStones = "resource.stone";
         private readonly List<GameObject> _logs = new();
         private readonly List<GameObject> _sticks = new();
         private readonly List<GameObject> _ropes = new();
         private readonly List<GameObject> _leaves = new();
         private readonly List<GameObject> _stones = new(); // §54.14: campfire ring
         private readonly List<GameObject> _boards = new(); // §119: workbench braces/top
+        private sealed class Stage
+        {
+            public string Material = string.Empty;
+            public readonly List<GameObject> Units = new();
+            public readonly List<GameObject> Decoration = new();
+        }
+        private readonly List<Stage> _stages = new();
         private bool _scanned;
 
         private void Scan()
@@ -75,9 +88,39 @@ namespace HexLive.UnityPresentation.Environment
                 return;
             }
 
-            stages.Sort((a, b) => int.Parse(a.name).CompareTo(int.Parse(b.name)));
+            stages.Sort((a, b) => StageIndex(a.name).CompareTo(StageIndex(b.name)));
             foreach (var stage in stages)
             {
+                // New shared authoring contract (§120): a stage parent carries
+                // its material in the exported name and every direct child is
+                // one delivered resource.  The child may be an Empty containing
+                // several render meshes (one rope wrapped around two joints).
+                // This lets artists arrange construction solely in Blender,
+                // without a second Unity prefab hierarchy.  Numeric groups and
+                // material-prefixed children remain the legacy fallback below.
+                if (TryStageMaterial(stage.name, out var material))
+                {
+                    var orderedStage = new Stage { Material = material };
+                    var units = new List<Transform>();
+                    foreach (Transform child in stage)
+                    {
+                        if (IsFreeStageChild(child.name))
+                        {
+                            orderedStage.Decoration.Add(child.gameObject);
+                            continue;
+                        }
+                        units.Add(child);
+                    }
+                    units.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+                    foreach (var unit in units)
+                    {
+                        AddPiece(unit, material);
+                        orderedStage.Units.Add(unit.gameObject);
+                    }
+                    _stages.Add(orderedStage);
+                    continue;
+                }
+
                 var pieces = new List<Transform>();
                 CollectLogicalPieces(stage, pieces);
                 AddSorted(pieces);
@@ -88,7 +131,7 @@ namespace HexLive.UnityPresentation.Environment
         {
             foreach (Transform child in root)
             {
-                if (int.TryParse(child.name, out _))
+                if (TryStageIndex(child.name, out _))
                 {
                     stages.Add(child);
                     continue;
@@ -97,6 +140,44 @@ namespace HexLive.UnityPresentation.Environment
                 CollectStageGroups(child, stages);
             }
         }
+
+        private static bool TryStageIndex(string name, out int index)
+        {
+            if (int.TryParse(name, out index)) return index > 0;
+            const string prefix = "BuildStage_";
+            if (!name.StartsWith(prefix, StringComparison.Ordinal)) return false;
+            var end = name.IndexOf("__", prefix.Length, StringComparison.Ordinal);
+            var number = end < 0
+                ? name.Substring(prefix.Length)
+                : name.Substring(prefix.Length, end - prefix.Length);
+            return int.TryParse(number, out index) && index > 0;
+        }
+
+        private static int StageIndex(string name) =>
+            TryStageIndex(name, out var index) ? index : int.MaxValue;
+
+        private static bool TryStageMaterial(string name, out string material)
+        {
+            material = string.Empty;
+            var separator = name.IndexOf("__", StringComparison.Ordinal);
+            if (separator < 0 || separator + 2 >= name.Length) return false;
+            material = name.Substring(separator + 2) switch
+            {
+                "log" => MaterialLogs,
+                "stick" => MaterialSticks,
+                "board" => MaterialBoards,
+                "rope" => MaterialRope,
+                "palm_leaf" => MaterialLeaves,
+                "stone" => MaterialStones,
+                _ => string.Empty
+            };
+            return material.Length > 0;
+        }
+
+        private static bool IsFreeStageChild(string name) =>
+            name.Contains("_deco_") ||
+            name.StartsWith("ConstructionHelpers", StringComparison.Ordinal) ||
+            name.StartsWith("HL_Door_State_", StringComparison.Ordinal);
 
         private static void CollectLogicalPieces(Transform root, List<Transform> pieces)
         {
@@ -137,6 +218,19 @@ namespace HexLive.UnityPresentation.Environment
             else if (n.StartsWith("board_")) _boards.Add(t.gameObject);
         }
 
+        private void AddPiece(Transform piece, string material)
+        {
+            switch (material)
+            {
+                case MaterialLogs: _logs.Add(piece.gameObject); break;
+                case MaterialSticks: _sticks.Add(piece.gameObject); break;
+                case MaterialRope: _ropes.Add(piece.gameObject); break;
+                case MaterialLeaves: _leaves.Add(piece.gameObject); break;
+                case MaterialStones: _stones.Add(piece.gameObject); break;
+                case MaterialBoards: _boards.Add(piece.gameObject); break;
+            }
+        }
+
         /// Show the whole bed (every piece on).
         public void ApplyAll()
         {
@@ -150,6 +244,41 @@ namespace HexLive.UnityPresentation.Environment
             int boards = 0)
         {
             Scan();
+            if (_stages.Count > 0)
+            {
+                // A delivered resource reveals one authored unit. Later
+                // stages cannot float ahead of their supports, even if a save
+                // already contains out-of-order deliveries. Repeated materials
+                // (e.g. collector posts -> stones -> rim) consume one shared
+                // delivered count in stage order.
+                var priorComplete = true;
+                foreach (var stage in _stages)
+                {
+                    var available = stage.Material switch
+                    {
+                        MaterialLogs => logs, MaterialSticks => sticks,
+                        MaterialBoards => boards, MaterialRope => ropes,
+                        MaterialLeaves => leaves, MaterialStones => stones,
+                        _ => 0
+                    };
+                    var visible = priorComplete ? Mathf.Clamp(available, 0, stage.Units.Count) : 0;
+                    Toggle(stage.Units, visible);
+                    foreach (var decoration in stage.Decoration)
+                        decoration.SetActive(priorComplete &&
+                            (stage.Units.Count == 0 || visible > 0));
+                    priorComplete &= visible == stage.Units.Count;
+                    switch (stage.Material)
+                    {
+                        case MaterialLogs: logs -= visible; break;
+                        case MaterialSticks: sticks -= visible; break;
+                        case MaterialBoards: boards -= visible; break;
+                        case MaterialRope: ropes -= visible; break;
+                        case MaterialLeaves: leaves -= visible; break;
+                        case MaterialStones: stones -= visible; break;
+                    }
+                }
+                return;
+            }
             Toggle(_logs, logs);
             Toggle(_sticks, sticks);
             Toggle(_ropes, ropes);
@@ -166,6 +295,11 @@ namespace HexLive.UnityPresentation.Environment
         public void ApplyBedStages(int logs, int sticks, int ropes, int leaves)
         {
             Scan();
+            if (_stages.Count > 0)
+            {
+                Apply(logs, sticks, ropes, leaves);
+                return;
+            }
             var frameReady = logs >= _logs.Count;
             var slatsReady = frameReady && sticks >= _sticks.Count;
             var lashingsReady = slatsReady && ropes >= _ropes.Count;
@@ -207,6 +341,7 @@ namespace HexLive.UnityPresentation.Environment
             "campfire.spot" => "campfire_final_native",
             "station.water_collector" => "water_collector_final_native",
             ContentIds.Workbench => "station.workbench",
+            ContentIds.Wardrobe => "furniture.wardrobe",
             _ => product
         };
 
@@ -215,7 +350,8 @@ namespace HexLive.UnityPresentation.Environment
         /// the grow-in-place build-site view.
         public static bool IsAssembled(string product) =>
             product is "bed.basic" or "station.drying_rack"
-                or "campfire.spot" or "station.water_collector" or ContentIds.Workbench;
+                or "campfire.spot" or "station.water_collector" or ContentIds.Workbench
+                or ContentIds.Wardrobe or ContentIds.FurnitureHearth;
 
         private static GameObject? Instantiate(string product, out BedAssembly asm)
         {
@@ -255,6 +391,13 @@ namespace HexLive.UnityPresentation.Environment
             }
             if (product == ContentIds.BedBasic)
                 go.transform.localScale = new Vector3(BedWidthScale, 1f, BedLengthScale);
+            if (product == ContentIds.Wardrobe)
+            {
+                // This is a clone source for occupied slots, not construction
+                // geometry. The finished WardrobeAssembly applies the same rule.
+                foreach (var child in go.GetComponentsInChildren<Transform>(true))
+                    if (child.name == "HangerTemplate") child.gameObject.SetActive(false);
+            }
             asm = go.GetComponent<BedAssembly>() ?? go.AddComponent<BedAssembly>();
             return go;
         }

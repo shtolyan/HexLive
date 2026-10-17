@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "definitionId": "station.workbench",
+  "modelSha256": "f291639818c44d483b8d1f14755e3fc5c3259cad035929a91cc39e005fc3a025",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_1__stick/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_1__stick/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_1__stick/unit_01_002"
+    },
+    {
+      "index": 4,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_1__stick/unit_01_003"
+    },
+    {
+      "index": 5,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_2__stick/unit_02_000"
+    },
+    {
+      "index": 6,
+      "stage": 2,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_2__stick/unit_02_001"
+    },
+    {
+      "index": 7,
+      "stage": 3,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_3__board/unit_03_000"
+    },
+    {
+      "index": 8,
+      "stage": 3,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_3__board/unit_03_001"
+    },
+    {
+      "index": 9,
+      "stage": 4,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_4__rope/unit_04_000"
+    },
+    {
+      "index": 10,
+      "stage": 4,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_4__rope/unit_04_001"
+    },
+    {
+      "index": 11,
+      "stage": 5,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_5__board/unit_05_000"
+    },
+    {
+      "index": 12,
+      "stage": 5,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_5__board/unit_05_001"
+    },
+    {
+      "index": 13,
+      "stage": 5,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_5__board/unit_05_002"
+    },
+    {
+      "index": 14,
+      "stage": 5,
+      "resource": "resource.board",
+      "count": 1,
+      "nodePath": "station.workbench/BuildStage_5__board/unit_05_003"
+    }
+  ]
+}

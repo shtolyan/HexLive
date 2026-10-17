@@ -1,0 +1,26 @@
+{
+  "BendineHair_LOD0": {
+    "adjusted_vertices": 977,
+    "max_displacement_cm": 2.361118830813812
+  },
+  "BendineHair_LOD1": {
+    "adjusted_vertices": 332,
+    "max_displacement_cm": 2.5461118818622444
+  },
+  "ChunkyHair_LOD0": {
+    "adjusted_vertices": 529,
+    "max_displacement_cm": 2.6140691220997114
+  },
+  "ChunkyHair_LOD1": {
+    "adjusted_vertices": 136,
+    "max_displacement_cm": 2.5069926219994434
+  },
+  "LeonyPonytail_LOD0": {
+    "adjusted_vertices": 504,
+    "max_displacement_cm": 1.4042822581075631
+  },
+  "LeonyPonytail_LOD1": {
+    "adjusted_vertices": 172,
+    "max_displacement_cm": 2.628926632761053
+  }
+}

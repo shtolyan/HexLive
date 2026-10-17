@@ -1,0 +1,230 @@
+[
+  {
+    "source": "Assets/ImportedActors/Actors/Marta/Marta.new.fbx",
+    "objects": [
+      {
+        "name": "Genesis3Female",
+        "bones": 172
+      },
+      {
+        "name": "Genesis3Female.Shape",
+        "verts": 17418,
+        "tris": 34000,
+        "dimensions": [
+          1.2493869066238403,
+          1.771844744682312,
+          0.6231029033660889
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "materials": [
+          "Eyelashes",
+          "Fingernails",
+          "Toenails",
+          "Cornea",
+          "Pupils",
+          "Face",
+          "Lips",
+          "Teeth",
+          "Sclera",
+          "Ears",
+          "Irises",
+          "Legs",
+          "Torso",
+          "EyeSocket",
+          "EyeMoisture",
+          "Mouth",
+          "Arms"
+        ],
+        "uv": [
+          "Model_UV"
+        ],
+        "shapes": 110,
+        "groups": 167
+      }
+    ],
+    "images": [
+      {
+        "name": "Vex3DS--Alydia--Arms_1004",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Actors/Marta/../../Documents/DAZ 3D/Studio/My Library/Runtime/textures/Vex3DS/Alydia/Vex3DS--Alydia--Arms_1004.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "Vex3DS--Alydia--Eyes01_1007",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Actors/Marta/../../Documents/DAZ 3D/Studio/My Library/Runtime/textures/Vex3DS/Alydia/Vex3DS--Alydia--Eyes01_1007.jpg",
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Vex3ds--Alydia--EyesST_1007",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Actors/Marta/../../Documents/DAZ 3D/Studio/My Library/Runtime/textures/Vex3DS/Alydia/Vex3ds--Alydia--EyesST_1007.jpg",
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Vex3DS--Alydia--EyesTR",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Actors/Marta/../../Documents/DAZ 3D/Studio/My Library/Runtime/textures/Vex3DS/Alydia/Vex3DS--Alydia--EyesTR.jpg",
+        "size": [
+          2000,
+          2000
+        ]
+      },
+      {
+        "name": "Vex3DS--Alydia--Face_1001",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Actors/Marta/../../Documents/DAZ 3D/Studio/My Library/Runtime/textures/Vex3DS/Alydia/Vex3DS--Alydia--Face_1001.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "Vex3DS--Alydia--Legs_1003",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Actors/Marta/../../Documents/DAZ 3D/Studio/My Library/Runtime/textures/Vex3DS/Alydia/Vex3DS--Alydia--Legs_1003.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "Vex3DS--Alydia--Torso_1002",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Actors/Marta/../../Documents/DAZ 3D/Studio/My Library/Runtime/textures/Vex3DS/Alydia/Vex3DS--Alydia--Torso_1002.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "Vex3DS--AlydiaFull--Mouth_1005",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Actors/Marta/../../Documents/DAZ 3D/Studio/My Library/Runtime/textures/Vex3DS/Alydia/Vex3DS--AlydiaFull--Mouth_1005.jpg",
+        "size": [
+          2048,
+          2048
+        ]
+      },
+      {
+        "name": "Vex3DS--AlydiaLashes--Eyelash_1_1006",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Actors/Marta/../../Documents/DAZ 3D/Studio/My Library/Runtime/textures/Vex3DS/Alydia/Vex3DS--AlydiaLashes--Eyelash_1_1006.jpg",
+        "size": [
+          2048,
+          2048
+        ]
+      }
+    ]
+  },
+  {
+    "source": "Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbx",
+    "objects": [
+      {
+        "name": "Genesis3Male",
+        "bones": 172
+      },
+      {
+        "name": "Genesis3Male.Shape",
+        "verts": 17246,
+        "tris": 33656,
+        "dimensions": [
+          1.2954879999160767,
+          1.8561651706695557,
+          0.5720666646957397
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "materials": [
+          "Eyelashes",
+          "Fingernails",
+          "Toenails",
+          "Cornea",
+          "Pupils",
+          "Face",
+          "Lips",
+          "Teeth",
+          "Sclera",
+          "Torso",
+          "Ears",
+          "Irises",
+          "Legs",
+          "EyeSocket",
+          "EyeMoisture",
+          "Mouth",
+          "Arms"
+        ],
+        "uv": [
+          "Model_UV"
+        ],
+        "shapes": 110,
+        "groups": 167
+      }
+    ],
+    "images": [
+      {
+        "name": "coilin_arm_disp_base",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbm/coilin_arm_disp_base.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "coilin_eyelashes_opacity",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbm/coilin_eyelashes_opacity.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "coilin_eyes_blue",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbm/coilin_eyes_blue.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "coilin_face_disp_base",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbm/coilin_face_disp_base.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "coilin_leg_disp_base",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbm/coilin_leg_disp_base.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "coilin_mouth_disp",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbm/coilin_mouth_disp.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      },
+      {
+        "name": "coilin_torso_disp_base",
+        "path": "/Volumes/ORICO/HexLive/Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbm/coilin_torso_disp_base.jpg",
+        "size": [
+          4096,
+          4096
+        ]
+      }
+    ]
+  }
+]

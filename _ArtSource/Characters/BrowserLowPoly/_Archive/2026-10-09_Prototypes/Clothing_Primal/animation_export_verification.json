@@ -1,0 +1,10 @@
+{
+  "skins": 5,
+  "meshes": 5,
+  "body_morph_counts": [
+    109,
+    109
+  ],
+  "run_motion_present": true,
+  "garment_to_body_bone_world_matrix_max_error": 4.76837158203125e-07
+}

@@ -2,12 +2,18 @@
 
 import bpy
 import math
+import os
+import re
 from pathlib import Path
 from mathutils import Matrix
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = str(PROJECT_ROOT / "Assets/HexLiveContent/RuntimeSource/Objects/furniture.wardrobe.fbx")
+OUTPUT = os.environ.get(
+    "HEXLIVE_WARDROBE_OUTPUT",
+    str(PROJECT_ROOT / "Assets/HexLiveContent/RuntimeSource/Objects/furniture.wardrobe.fbx"),
+)
 root = bpy.data.objects["HL_Wardrobe_Module"]
+STAGE_RE = re.compile(r"^BuildStage_(\d+)(?:__(.+))?$")
 
 descendants = []
 stack = list(root.children)
@@ -29,6 +35,35 @@ export_collection.objects.link(export_root)
 export_root["pivot"] = "central_occupied_junction"
 export_root["occupiedJunctionOffsets"] = [[0.0, -.375], [0.0, 0.0], [0.0, .375]]
 export_root["allowedYawDegrees"] = [0, 60, 120, 180, 240, 300]
+
+# Preserve the construction hierarchy when the artist has authored it.  The
+# old flat wardrobe remains exportable until that pass is complete, but once a
+# mesh is moved under BuildStage_N__material its exported clone must stay under
+# the same stage. Compound Empty units are preserved as one direct child so
+# several visible lash meshes can still cost one delivered rope.
+source_stages = {
+    child: STAGE_RE.match(child.name)
+    for child in root.children
+    if STAGE_RE.match(child.name)
+}
+export_stages = {}
+export_units = {}
+for source_stage, match in source_stages.items():
+    stage = bpy.data.objects.new(source_stage.name, None)
+    export_collection.objects.link(stage)
+    stage.parent = export_root
+    stage.matrix_parent_inverse = Matrix.Identity(4)
+    stage.matrix_basis = Matrix.Identity(4)
+    export_stages[source_stage] = stage
+
+
+def stage_and_unit(source):
+    node = source
+    while node is not None and node.parent != root:
+        if node.parent in source_stages:
+            return node.parent, node
+        node = node.parent
+    return (node, None) if node in source_stages else (None, None)
 
 # Derive the export basis from the visible frame, not from the authoring root.
 # Older reviews accumulated parent-inverse transforms on that Empty; the two
@@ -72,7 +107,19 @@ for source in descendants:
     # export root into the mesh itself and keep every exported Transform clean.
     local = inverse @ source.matrix_world
     clone.data.transform(local)
-    clone.parent = export_root
+    source_stage, source_unit = stage_and_unit(source)
+    export_parent = export_stages.get(source_stage, export_root)
+    if source_stage is not None and source_unit is not None and source_unit.type == 'EMPTY':
+        unit_key = (source_stage, source_unit)
+        if unit_key not in export_units:
+            unit = bpy.data.objects.new(source_unit.name, None)
+            export_collection.objects.link(unit)
+            unit.parent = export_parent
+            unit.matrix_parent_inverse = Matrix.Identity(4)
+            unit.matrix_basis = Matrix.Identity(4)
+            export_units[unit_key] = unit
+        export_parent = export_units[unit_key]
+    clone.parent = export_parent
     clone.matrix_parent_inverse = Matrix.Identity(4)
     clone.matrix_basis = Matrix.Identity(4)
     clone.hide_viewport = False

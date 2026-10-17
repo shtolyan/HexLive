@@ -1,0 +1,60 @@
+{
+  "glb_count": 6,
+  "all_passed": true,
+  "exports": {
+    "Kshishtof_PrimalGathererPack": {
+      "bytes": 443212,
+      "triangles": 1840,
+      "exported_vertices": 2405,
+      "materials": 1,
+      "skin_bones": 13,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Kshishtof_PrimalHunterPack": {
+      "bytes": 496660,
+      "triangles": 1936,
+      "exported_vertices": 2582,
+      "materials": 1,
+      "skin_bones": 13,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Kshishtof_PrimalTrailPack": {
+      "bytes": 471108,
+      "triangles": 2126,
+      "exported_vertices": 2512,
+      "materials": 1,
+      "skin_bones": 5,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Marta_PrimalGathererPack": {
+      "bytes": 442932,
+      "triangles": 1840,
+      "exported_vertices": 2405,
+      "materials": 1,
+      "skin_bones": 13,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Marta_PrimalHunterPack": {
+      "bytes": 496380,
+      "triangles": 1936,
+      "exported_vertices": 2582,
+      "materials": 1,
+      "skin_bones": 13,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    },
+    "Marta_PrimalTrailPack": {
+      "bytes": 470976,
+      "triangles": 2126,
+      "exported_vertices": 2512,
+      "materials": 1,
+      "skin_bones": 5,
+      "embedded_atlas": true,
+      "opaque_double_sided": true
+    }
+  }
+}

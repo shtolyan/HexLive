@@ -1,0 +1,53 @@
+{
+  "state": "done",
+  "packs": {
+    "Marta_PrimalGathererPack": {
+      "triangles": 1840,
+      "vertices": 971,
+      "bones": 13,
+      "materials": 1,
+      "source": "RiotBackpack",
+      "source_triangles": 43266
+    },
+    "Kshishtof_PrimalGathererPack": {
+      "triangles": 1840,
+      "vertices": 971,
+      "bones": 13,
+      "materials": 1,
+      "source": "RiotBackpack",
+      "source_triangles": 43266
+    },
+    "Marta_PrimalHunterPack": {
+      "triangles": 1936,
+      "vertices": 1018,
+      "bones": 13,
+      "materials": 1,
+      "source": "RiotBackpack",
+      "source_triangles": 43266
+    },
+    "Kshishtof_PrimalHunterPack": {
+      "triangles": 1936,
+      "vertices": 1018,
+      "bones": 13,
+      "materials": 1,
+      "source": "RiotBackpack",
+      "source_triangles": 43266
+    },
+    "Marta_PrimalTrailPack": {
+      "triangles": 2126,
+      "vertices": 1218,
+      "bones": 5,
+      "materials": 1,
+      "source": "OsirisBackpack",
+      "source_triangles": 2836
+    },
+    "Kshishtof_PrimalTrailPack": {
+      "triangles": 2126,
+      "vertices": 1218,
+      "bones": 5,
+      "materials": 1,
+      "source": "OsirisBackpack",
+      "source_triangles": 2836
+    }
+  }
+}

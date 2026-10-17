@@ -225,6 +225,19 @@ public static class WorldSnapshotExporter
                 }
             }
 
+            // §120: these established wire channels drive visible construction
+            // progress, not the raw delivery bin. No protocol bump is needed;
+            // authoritative stock remains in Contents/BuildSiteView.Materials.
+            if (isSite && obj.InstalledBuildMaterials != null)
+            {
+                exported.DeliveredLogs = Runtime.BuildSiteMath.Installed(obj, ContentIds.Log);
+                exported.DeliveredStones = Runtime.BuildSiteMath.Installed(obj, ContentIds.Stone);
+                exported.DeliveredLeaves = Runtime.BuildSiteMath.Installed(obj, ContentIds.PalmLeaf);
+                exported.DeliveredSticks = Runtime.BuildSiteMath.Installed(obj, ContentIds.Stick);
+                exported.DeliveredRope = Runtime.BuildSiteMath.Installed(obj, ContentIds.Rope);
+                exported.DeliveredBoards = Runtime.BuildSiteMath.Installed(obj, ContentIds.Board);
+            }
+
             // §128.5 / §151: BuildCells сам отделяет содержимое станции от её
             // строительного bill. Поэтому живой костёр может одновременно
             // оставаться upgrade-site и показывать только свой топливный буфер.

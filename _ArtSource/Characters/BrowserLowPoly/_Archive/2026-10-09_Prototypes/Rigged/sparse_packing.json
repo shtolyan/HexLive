@@ -1,0 +1,26 @@
+{
+  "Kshishtof_LOD0.glb": {
+    "before": 56377156,
+    "after": 3776404,
+    "morph_accessors_sparsified": 218,
+    "values_numerically_identical": true
+  },
+  "Kshishtof_LOD1.glb": {
+    "before": 27523824,
+    "after": 2130856,
+    "morph_accessors_sparsified": 218,
+    "values_numerically_identical": true
+  },
+  "Marta_LOD0.glb": {
+    "before": 52211816,
+    "after": 4471916,
+    "morph_accessors_sparsified": 218,
+    "values_numerically_identical": true
+  },
+  "Marta_LOD1.glb": {
+    "before": 26348024,
+    "after": 2307844,
+    "morph_accessors_sparsified": 218,
+    "values_numerically_identical": true
+  }
+}

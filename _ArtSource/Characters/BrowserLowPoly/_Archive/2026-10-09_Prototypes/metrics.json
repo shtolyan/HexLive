@@ -1,0 +1,32 @@
+{
+  "Marta": {
+    "source": "Assets/ImportedActors/Actors/Marta/Marta.new.fbx",
+    "source_triangles": 34000,
+    "lod0_triangles": 7534,
+    "lod1_triangles": 3604,
+    "mesh_vertices": 3962,
+    "materials": 1,
+    "bones": 172,
+    "max_weights": 4,
+    "atlas": [
+      2048,
+      2048
+    ],
+    "facial_morphs": 0
+  },
+  "Kshishtof": {
+    "source": "Assets/ImportedActors/Daz3D/Kshishtof/Kshishtof.fbx",
+    "source_triangles": 33656,
+    "lod0_triangles": 7546,
+    "lod1_triangles": 3610,
+    "mesh_vertices": 3941,
+    "materials": 1,
+    "bones": 172,
+    "max_weights": 4,
+    "atlas": [
+      2048,
+      2048
+    ],
+    "facial_morphs": 0
+  }
+}

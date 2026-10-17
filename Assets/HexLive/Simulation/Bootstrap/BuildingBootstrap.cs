@@ -456,6 +456,15 @@ public static class BuildingBootstrap
             owner.Contents.Count(item => item.DefinitionId == ContentIds.Rope));
         owner.BillLeaves = Math.Max(bill.Leaves,
             owner.Contents.Count(item => item.DefinitionId == ContentIds.PalmLeaf));
+        if (owner.InstalledBuildMaterials != null)
+        {
+            // Installed prefixes survive edits; old overstock is not another
+            // architectural unit which could keep a finished plan open forever.
+            owner.BillSticks = bill.Sticks;
+            owner.BillBoards = bill.Boards;
+            owner.BillRope = bill.Rope;
+            owner.BillLeaves = bill.Leaves;
+        }
         owner.BillLogs = 0;
         owner.BillStones = 0;
 

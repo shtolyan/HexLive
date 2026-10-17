@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "definitionId": "architecture.support.wood",
+  "modelSha256": "b464aeecf6332f4cfb608ee516e67884581d14dcf8dd80a3bd84dabfffb5ac61",
+  "basis": {
+    "up": "+Z",
+    "forward": "+Y",
+    "units": "wu",
+    "fbxForward": "-Z",
+    "fbxUp": "Y"
+  },
+  "actions": [
+    {
+      "index": 1,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.support.wood/BuildStage_1__stick/unit_01_000"
+    },
+    {
+      "index": 2,
+      "stage": 1,
+      "resource": "resource.stick",
+      "count": 1,
+      "nodePath": "architecture.support.wood/BuildStage_1__stick/unit_01_001"
+    },
+    {
+      "index": 3,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.support.wood/BuildStage_3__rope/unit_03_000"
+    },
+    {
+      "index": 4,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.support.wood/BuildStage_3__rope/unit_03_001"
+    },
+    {
+      "index": 5,
+      "stage": 3,
+      "resource": "resource.rope",
+      "count": 1,
+      "nodePath": "architecture.support.wood/BuildStage_3__rope/unit_03_002"
+    }
+  ]
+}

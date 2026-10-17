@@ -84,6 +84,19 @@ namespace HexLive.Editor
                 var owner = nodes.FirstOrDefault(t => t.name == definition.id) ?? model.transform;
                 foreach (var required in definition.requiredNodes ?? Array.Empty<string>())
                     if (!nodes.Any(t => t.name == required)) issues.Add(definition.id + ": missing " + required);
+                foreach (var filter in model.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    if (!(definition.outwardMeshPrefixes ?? Array.Empty<string>()).Any(prefix =>
+                            filter.name.StartsWith(prefix, StringComparison.Ordinal))) continue;
+                    var vertices = filter.sharedMesh.vertices;
+                    var triangles = filter.sharedMesh.triangles;
+                    double volume = 0;
+                    for (var i = 0; i < triangles.Length; i += 3)
+                        volume += Vector3.Dot(vertices[triangles[i]],
+                            Vector3.Cross(vertices[triangles[i+1]], vertices[triangles[i+2]])) / 6.0;
+                    if (volume * filter.transform.localToWorldMatrix.determinant <= 0)
+                        issues.Add(definition.id + ": inward/empty board face winding: " + filter.name);
+                }
                 foreach (var template in nodes.Where(t => t.name == "HangerTemplate"))
                     template.gameObject.SetActive(false);
                 var assembly = architecture ? null : wrapper.AddComponent<BedAssembly>();
@@ -171,6 +184,7 @@ namespace HexLive.Editor
             public string id;
             public string export;
             public string[] requiredNodes;
+            public string[] outwardMeshPrefixes;
             public Stage[] stages;
         }
         [Serializable] private sealed class Stage { public int index; public string material; public int units; }

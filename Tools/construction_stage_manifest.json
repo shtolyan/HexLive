@@ -375,6 +375,7 @@
     },
     {
       "id": "station.workbench",
+      "outwardMeshPrefixes": ["board_workbench_"],
       "source": "_ArtSource/Construction/hexlive_construction_stages.blend",
       "sourceRoot": "station.workbench",
       "export": "Assets/HexLiveContent/RuntimeSource/Objects/station.workbench.fbx",

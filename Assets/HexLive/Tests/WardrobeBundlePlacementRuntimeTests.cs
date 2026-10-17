@@ -167,6 +167,40 @@ public sealed class WardrobeBundlePlacementRuntimeTests
         }
     }
     [Test]
+    public void ImportedWorkbenchHasUpwardCountertopFacesAcrossSixYaws()
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+            "Assets/HexLiveContent/RuntimeSource/Objects/station.workbench.fbx");
+        Assert.That(prefab, Is.Not.Null);
+        prefabHandles["object/station.workbench"] = Activator.CreateInstance(
+            typeof(ContentAssetHandle<GameObject>), Instance, null, new object[] { prefab, null }, null);
+        for (int yaw = 0; yaw < 360; yaw += 60)
+        {
+            var view = BedAssembly.BuildFinished("station.workbench"); Assert.That(view, Is.Not.Null); objects.Add(view);
+            view.transform.SetPositionAndRotation(new Vector3(12, 3, -7), Quaternion.Euler(0, yaw, 0));
+            var tops = view.GetComponentsInChildren<MeshFilter>(true).Where(f =>
+                System.Text.RegularExpressions.Regex.IsMatch(f.name, "^board_workbench_[0-9]+$")).ToArray();
+            Assert.That(tops.Length, Is.EqualTo(4));
+            foreach (var filter in tops)
+            {
+                var vertices = filter.sharedMesh.vertices.Select(v => view.transform.InverseTransformPoint(
+                    filter.transform.TransformPoint(v))).ToArray();
+                var triangles = filter.sharedMesh.triangles;
+                float highest = float.NegativeInfinity; Vector3 normal = default;
+                for (int i = 0; i < triangles.Length; i += 3)
+                {
+                    var a = vertices[triangles[i]]; var b = vertices[triangles[i+1]]; var c = vertices[triangles[i+2]];
+                    var height = (a.y + b.y + c.y) / 3;
+                    if (height <= highest) continue;
+                    highest = height; normal = Vector3.Cross(b-a, c-a).normalized;
+                }
+                Assert.That(highest, Is.GreaterThan(.77f));
+                Assert.That(normal.y, Is.GreaterThan(.99f), filter.name + " top face must be visible from above");
+            }
+            Object.DestroyImmediate(view);
+        }
+    }
+    [Test]
     public void ImportedSourceUsesTheSameProductionFactories()
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/HexLiveContent/RuntimeSource/Objects/furniture.wardrobe.fbx");

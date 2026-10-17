@@ -1,7 +1,7 @@
 {
   "version": 1,
   "definitionId": "station.workbench",
-  "modelSha256": "f291639818c44d483b8d1f14755e3fc5c3259cad035929a91cc39e005fc3a025",
+  "modelSha256": "2c0bcd41bea45d2b3f249db983002f42302e4aaaede25ab48fb147c7d4fe7292",
   "basis": {
     "up": "+Z",
     "forward": "+Y",

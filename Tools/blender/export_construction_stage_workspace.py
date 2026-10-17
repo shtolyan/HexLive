@@ -17,6 +17,7 @@ import uuid
 from pathlib import Path
 
 import bpy
+import bmesh
 from mathutils import Matrix, Vector
 from mathutils.kdtree import KDTree
 
@@ -68,6 +69,17 @@ def validate(definition):
             for previous in sockets[:i]:
                 if (socket.matrix_world.translation - previous.matrix_world.translation).length < 1e-4:
                     issues.append(f"Collapsed attachment sockets: {stage_name(previous)}, {stage_name(socket)}")
+    for obj in root.children_recursive:
+        if obj.type != "MESH" or not any(stage_name(obj).startswith(prefix)
+                for prefix in definition.get("outwardMeshPrefixes", [])):
+            continue
+        bm = bmesh.new()
+        try:
+            bm.from_mesh(obj.data)
+            if any(not edge.is_manifold for edge in bm.edges) or bm.calc_volume(signed=True) * obj.matrix_world.determinant() <= 0:
+                issues.append("Board must be closed with outward face winding: " + stage_name(obj))
+        finally:
+            bm.free()
     if issues:
         raise RuntimeError(definition["id"] + ": " + "; ".join(issues))
     return root

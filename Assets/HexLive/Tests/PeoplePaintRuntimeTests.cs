@@ -75,6 +75,21 @@ public sealed class PeoplePaintRuntimeTests
     }
 
     [Test]
+    public void AuthoredFemaleSkinsUseDistinctAtlasesWithoutPretanning()
+    {
+        var appearance = Actor("Marta").GetComponent<PeopleAppearance>();
+        var textures = new HashSet<Texture>();
+        foreach (var id in new[] { "Marta", "Molly", "Jana", "Jolly" })
+        {
+            var material = appearance.SkinMaterials(id).Values.Single();
+            Assert.That(material.GetColor("_BaseColor"), Is.EqualTo(Color.white), id);
+            var albedo = material.GetTexture("_BaseMap");
+            Assert.That(albedo, Is.Not.Null, id);
+            Assert.That(textures.Add(albedo), Is.True, id + " must retain its authored skin texture");
+        }
+    }
+
+    [Test]
     public void SelectedSkinTintSurvivesWeatheringUpdates()
     {
         var go = Actor("Marta");

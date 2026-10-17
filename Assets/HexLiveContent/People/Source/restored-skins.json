@@ -1,0 +1,422 @@
+[
+  {
+    "body": "Marta",
+    "skin": "Marta",
+    "output": "Marta_Marta_BaseColor.png",
+    "sha256": "2a153575c345f0b212b35ad10e0ce103a3f9558f2e24832b7eeb071a4ab0c2c5",
+    "targetMeshSha256": "85fda1eb72f7faf2c165943adea1d2464f8ba432328dace2c05e9115d21472a7",
+    "sourceMeshSha256": "b39d120616ced6f0acd1c443c17b8d54147b2cd2991cdbaa4bdc62aaa4a19c20",
+    "distanceCmP95": 0.34545469433069215,
+    "distanceCmMax": 0.809419572353363,
+    "sources": {
+      "Eyelashes": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Eyelashes.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--AlydiaLashes--Eyelash_1_1006.jpg",
+        "sha256": "56ce3cadacc8d03221246a71aa1529d6f94a3f378293cc1576a804b84377e929"
+      },
+      "Fingernails": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Fingernails.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Arms_1004.jpg",
+        "sha256": "c43b4058cef8fbc11c2b3bc96a09a550621faf22a8c0e7842e0cb891b8d7096d"
+      },
+      "Toenails": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Toenails.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Legs_1003.jpg",
+        "sha256": "f741ed10825f5c1a8e9ac4749895b79d2c5ad10162885a29dec431804b855ac0"
+      },
+      "Pupils": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Pupils.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Eyes01_1007.jpg",
+        "sha256": "7e6999c207738ae41980a06aa27b6e6a3113d5494c563908790a71865a9281be"
+      },
+      "Face": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Face.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Face_1001.jpg",
+        "sha256": "07326b59e42af0c97e6e9916fcfd8db6f4d4e63b1f15f2da81c4bd0844e22e0f"
+      },
+      "Lips": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Lips.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Face_1001.jpg",
+        "sha256": "07326b59e42af0c97e6e9916fcfd8db6f4d4e63b1f15f2da81c4bd0844e22e0f"
+      },
+      "Teeth": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Teeth.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--AlydiaFull--Mouth_1005.jpg",
+        "sha256": "674b2024758ccfe3e092b9e6b647de0e984043482bd973c5a46dc633289c9724"
+      },
+      "Sclera": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Sclera.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Eyes01_1007.jpg",
+        "sha256": "7e6999c207738ae41980a06aa27b6e6a3113d5494c563908790a71865a9281be"
+      },
+      "Ears": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Ears.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Face_1001.jpg",
+        "sha256": "07326b59e42af0c97e6e9916fcfd8db6f4d4e63b1f15f2da81c4bd0844e22e0f"
+      },
+      "Irises": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Irises.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Eyes01_1007.jpg",
+        "sha256": "7e6999c207738ae41980a06aa27b6e6a3113d5494c563908790a71865a9281be"
+      },
+      "Legs": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Legs.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Legs_1003.jpg",
+        "sha256": "f741ed10825f5c1a8e9ac4749895b79d2c5ad10162885a29dec431804b855ac0"
+      },
+      "Torso": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Torso.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Torso_1002.jpg",
+        "sha256": "66fa6082da49ddb9bab634af4c1462867a59a374a58bab2fcf24bb7151d28381"
+      },
+      "EyeSocket": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/EyeSocket.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Face_1001.jpg",
+        "sha256": "07326b59e42af0c97e6e9916fcfd8db6f4d4e63b1f15f2da81c4bd0844e22e0f"
+      },
+      "Mouth": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Mouth.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--AlydiaFull--Mouth_1005.jpg",
+        "sha256": "674b2024758ccfe3e092b9e6b647de0e984043482bd973c5a46dc633289c9724"
+      },
+      "Arms": {
+        "material": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Arms.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Martanaked/Genesis3Female/Vex3DS--Alydia--Arms_1004.jpg",
+        "sha256": "c43b4058cef8fbc11c2b3bc96a09a550621faf22a8c0e7842e0cb891b8d7096d"
+      }
+    }
+  },
+  {
+    "body": "Marta",
+    "skin": "Molly",
+    "output": "Marta_Molly_BaseColor.png",
+    "sha256": "f36fbe65a43640a9650122da0f2169a3bd93c03f3309eb2cc0fc22ca7a4798b4",
+    "targetMeshSha256": "85fda1eb72f7faf2c165943adea1d2464f8ba432328dace2c05e9115d21472a7",
+    "sourceMeshSha256": "b39d120616ced6f0acd1c443c17b8d54147b2cd2991cdbaa4bdc62aaa4a19c20",
+    "distanceCmP95": 0.34545469433069215,
+    "distanceCmMax": 0.809419572353363,
+    "sources": {
+      "Eyelashes": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Eyelashes.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaLashes.jpg",
+        "sha256": "f7651a61fa7e6853f12c72b0a8071fa68f5296aed56eb96af37dd4f4623f1ad8"
+      },
+      "Fingernails": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Fingernails.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaArms.jpg",
+        "sha256": "c11505ae51a7303ed6d1403d6c8cab999786336fd5f4cb897e6005ac10a38ad2"
+      },
+      "Toenails": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Toenails.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaLegs.jpg",
+        "sha256": "59f3f987b7b6ac4b497f012865e31204e0387484407fc3b66c64f92faddad4e7"
+      },
+      "Face": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Face.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaFace.jpg",
+        "sha256": "fc5e418f5831f70b876e3c14d068189e32dada048ab2d4c7b0beaf3ca9a01475"
+      },
+      "Lips": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Lips.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaFace.jpg",
+        "sha256": "fc5e418f5831f70b876e3c14d068189e32dada048ab2d4c7b0beaf3ca9a01475"
+      },
+      "Teeth": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Teeth.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaTeeth.jpg",
+        "sha256": "9861004c73649b3323d2c1a8211bff4e750073acd858bf0167cb4dc0e743a3c7"
+      },
+      "Sclera": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Sclera.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaEye2.jpg",
+        "sha256": "1316c6cafff7ae9689ca1ccb9f09af86b6ad03dfd00e4a7d94b87911adc148e9"
+      },
+      "Ears": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Ears.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaFace.jpg",
+        "sha256": "fc5e418f5831f70b876e3c14d068189e32dada048ab2d4c7b0beaf3ca9a01475"
+      },
+      "Irises": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Irises.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaEye2.jpg",
+        "sha256": "1316c6cafff7ae9689ca1ccb9f09af86b6ad03dfd00e4a7d94b87911adc148e9"
+      },
+      "Legs": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Legs.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaLegs.jpg",
+        "sha256": "59f3f987b7b6ac4b497f012865e31204e0387484407fc3b66c64f92faddad4e7"
+      },
+      "Torso": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Torso.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaTorso.jpg",
+        "sha256": "760a5b7fa857533003c9cd4c3bfddc80f44bc90d305fa08506219ebbe9d2dd20"
+      },
+      "EyeSocket": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/EyeSocket.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaFace.jpg",
+        "sha256": "fc5e418f5831f70b876e3c14d068189e32dada048ab2d4c7b0beaf3ca9a01475"
+      },
+      "Mouth": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Mouth.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaTeeth.jpg",
+        "sha256": "9861004c73649b3323d2c1a8211bff4e750073acd858bf0167cb4dc0e743a3c7"
+      },
+      "Arms": {
+        "material": "Assets/ImportedActors/Actors/Molly/Materials/Arms.mat",
+        "texture": "Assets/ImportedActors/Actors/Molly/Textures/ACSabrinaArms.jpg",
+        "sha256": "c11505ae51a7303ed6d1403d6c8cab999786336fd5f4cb897e6005ac10a38ad2"
+      }
+    }
+  },
+  {
+    "body": "Marta",
+    "skin": "Jana",
+    "output": "Marta_Jana_BaseColor.png",
+    "sha256": "6371ce795fad140d2b6f1be0405aac39ca2e9491337cf357b6926550e80850d8",
+    "targetMeshSha256": "85fda1eb72f7faf2c165943adea1d2464f8ba432328dace2c05e9115d21472a7",
+    "sourceMeshSha256": "b39d120616ced6f0acd1c443c17b8d54147b2cd2991cdbaa4bdc62aaa4a19c20",
+    "distanceCmP95": 0.34545469433069215,
+    "distanceCmMax": 0.809419572353363,
+    "sources": {
+      "Eyelashes": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Eyelashes.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinLashes.jpg",
+        "sha256": "f7651a61fa7e6853f12c72b0a8071fa68f5296aed56eb96af37dd4f4623f1ad8"
+      },
+      "Fingernails": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Fingernails.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinArms.jpg",
+        "sha256": "5a80b49fbedc4c5600d16c6ad436372c48af023b388531717f5beb3da1900cf8"
+      },
+      "Toenails": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Toenails.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinLegs.jpg",
+        "sha256": "5f7d5309e945cd753f5d52d0ee4eecf4a583787daa5355be7b7b8634f8f39337"
+      },
+      "Pupils": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Pupils.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinEye3.jpg",
+        "sha256": "0857629dbcd7e2d14871ab7a01ad8e80de570960e5091986c0bb6e05f0e2e513"
+      },
+      "Face": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Face.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinFace.jpg",
+        "sha256": "be20f817b7099d7ca759455b23bfcd57fb4d36ddf35de021363072d55222066a"
+      },
+      "Lips": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Lips.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinFace.jpg",
+        "sha256": "be20f817b7099d7ca759455b23bfcd57fb4d36ddf35de021363072d55222066a"
+      },
+      "Teeth": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Teeth.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinTeeth.jpg",
+        "sha256": "9861004c73649b3323d2c1a8211bff4e750073acd858bf0167cb4dc0e743a3c7"
+      },
+      "Sclera": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Sclera.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinEye3.jpg",
+        "sha256": "0857629dbcd7e2d14871ab7a01ad8e80de570960e5091986c0bb6e05f0e2e513"
+      },
+      "Ears": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Ears.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinFace.jpg",
+        "sha256": "be20f817b7099d7ca759455b23bfcd57fb4d36ddf35de021363072d55222066a"
+      },
+      "Irises": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Irises.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinEye3.jpg",
+        "sha256": "0857629dbcd7e2d14871ab7a01ad8e80de570960e5091986c0bb6e05f0e2e513"
+      },
+      "Legs": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Legs.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinLegs.jpg",
+        "sha256": "5f7d5309e945cd753f5d52d0ee4eecf4a583787daa5355be7b7b8634f8f39337"
+      },
+      "Torso": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Torso.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinTorso.jpg",
+        "sha256": "91c3cb48ec7f1bad99847315edd08b81a7a4da6e9f0ab83e2127453cd4758e20"
+      },
+      "EyeSocket": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/EyeSocket.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinFace.jpg",
+        "sha256": "be20f817b7099d7ca759455b23bfcd57fb4d36ddf35de021363072d55222066a"
+      },
+      "Mouth": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Mouth.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinTeeth.jpg",
+        "sha256": "9861004c73649b3323d2c1a8211bff4e750073acd858bf0167cb4dc0e743a3c7"
+      },
+      "Arms": {
+        "material": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/Arms.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/Genesis3Female/ACErinArms.jpg",
+        "sha256": "5a80b49fbedc4c5600d16c6ad436372c48af023b388531717f5beb3da1900cf8"
+      }
+    }
+  },
+  {
+    "body": "Marta",
+    "skin": "Jolly",
+    "output": "Marta_Jolly_BaseColor.png",
+    "sha256": "fa125bb62f74ef1eaa3774cbd9cf3ccf8de63e5b7f7918727c03579735ed7e8d",
+    "targetMeshSha256": "85fda1eb72f7faf2c165943adea1d2464f8ba432328dace2c05e9115d21472a7",
+    "sourceMeshSha256": "b39d120616ced6f0acd1c443c17b8d54147b2cd2991cdbaa4bdc62aaa4a19c20",
+    "distanceCmP95": 0.34545469433069215,
+    "distanceCmMax": 0.809419572353363,
+    "sources": {
+      "Eyelashes": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Eyelashes.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Lashes.jpg",
+        "sha256": "1bb6ed284f0021ed4fdd8f2a77f6c1ff6b06221db1196adf268619678a8aef80"
+      },
+      "Fingernails": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Fingernails.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Arms.jpg",
+        "sha256": "9a44183a2ccaa9fe6c5701875e557e03c1aa0b3782728ad6ed8f3546b5ef93e1"
+      },
+      "Toenails": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Toenails.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Legs.jpg",
+        "sha256": "20b751350266e55fcc5671935ab1e46a5be7c9b39beb2e97fa81be2728890878"
+      },
+      "Face": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Face.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71FaceM2.jpg",
+        "sha256": "f548af963b54b1c7adab717567d41f0e879bbb9114d8a32cd0a7fdde3e9215ea"
+      },
+      "Lips": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Lips.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71FaceM2.jpg",
+        "sha256": "f548af963b54b1c7adab717567d41f0e879bbb9114d8a32cd0a7fdde3e9215ea"
+      },
+      "Teeth": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Teeth.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Teeth.jpg",
+        "sha256": "9861004c73649b3323d2c1a8211bff4e750073acd858bf0167cb4dc0e743a3c7"
+      },
+      "Sclera": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Sclera.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Eye.jpg",
+        "sha256": "4dcf51dd72e5c59a8424d00dbfcc02610ce19d4e532309f39b25b8565e62045e"
+      },
+      "Ears": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Ears.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Face.jpg",
+        "sha256": "a7986dae78444823974c4073fcdc626fbf51dcaeb0b36f5453e2b256d84b3c8f"
+      },
+      "Irises": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Irises.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Eye.jpg",
+        "sha256": "4dcf51dd72e5c59a8424d00dbfcc02610ce19d4e532309f39b25b8565e62045e"
+      },
+      "Legs": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Legs.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Legs.jpg",
+        "sha256": "20b751350266e55fcc5671935ab1e46a5be7c9b39beb2e97fa81be2728890878"
+      },
+      "Torso": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Torso.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Torso.jpg",
+        "sha256": "39af2136c6763f549c023b50cd8a6998a78c1083787f243c8d183bdc1a382d7e"
+      },
+      "EyeSocket": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/EyeSocket.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Face.jpg",
+        "sha256": "a7986dae78444823974c4073fcdc626fbf51dcaeb0b36f5453e2b256d84b3c8f"
+      },
+      "Mouth": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Mouth.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Teeth.jpg",
+        "sha256": "9861004c73649b3323d2c1a8211bff4e750073acd858bf0167cb4dc0e743a3c7"
+      },
+      "Arms": {
+        "material": "Assets/ImportedActors/Actors/Jolly/Materials/Arms.mat",
+        "texture": "Assets/ImportedActors/Actors/Jolly/Textures/G3G8CS71Arms.jpg",
+        "sha256": "9a44183a2ccaa9fe6c5701875e557e03c1aa0b3782728ad6ed8f3546b5ef93e1"
+      }
+    }
+  },
+  {
+    "body": "Kshishtof",
+    "skin": "Kshishtof",
+    "output": "Kshishtof_Kshishtof_BaseColor.png",
+    "sha256": "1cacd386a5b75098f0ccad82debb7bbf407a346bea98808b45271b33afcec765",
+    "targetMeshSha256": "6a75c81c4ac6c9abbb32f7371768cde66dc99ff653d9926c913bd956433aab02",
+    "sourceMeshSha256": "fab45e39eae2170df19ddbd613c7b2c4b7efe26763ddfa4fca1b1e0f6e61f147",
+    "distanceCmP95": 0.09114362001419066,
+    "distanceCmMax": 0.6490454077720642,
+    "sources": {
+      "Fingernails": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Fingernails.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_arm_disp_base.jpg",
+        "sha256": "c2f0aab69fd6264db95b45ee391b0c7a3dba27aacb954ef5aadae1852ab34710"
+      },
+      "Toenails": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Toenails.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_leg_disp_base.jpg",
+        "sha256": "d367d53d6ace062cbf4c744a18b0757082f9582680cc7b71cdef6ae1765e564b"
+      },
+      "Pupils": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Pupils.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_eyes_blue.jpg",
+        "sha256": "eb64ef6c04da51630ef68dd212f77ab480756f20372aebc483ebeb7a3de0d7f4"
+      },
+      "Face": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Face.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_face_disp_base.jpg",
+        "sha256": "b15e95087eb85e64d229085b86762faa4352920a6ed9dbc1dffcdfb4386132ea"
+      },
+      "Lips": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Lips.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_face_disp_base.jpg",
+        "sha256": "b15e95087eb85e64d229085b86762faa4352920a6ed9dbc1dffcdfb4386132ea"
+      },
+      "Teeth": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Teeth.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_mouth_disp.jpg",
+        "sha256": "09eaabf0baa5825e6d97f6ef35350f6ae76978d3682c38c7b39a06be8dd37c35"
+      },
+      "Sclera": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Sclera.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_eyes_blue.jpg",
+        "sha256": "eb64ef6c04da51630ef68dd212f77ab480756f20372aebc483ebeb7a3de0d7f4"
+      },
+      "Torso": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Torso.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_torso_disp_base.jpg",
+        "sha256": "f4f3039734d0b5b1b246546caa2816754ef0046d850c8e266449363f1c278f1c"
+      },
+      "Ears": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Ears.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_face_disp_base.jpg",
+        "sha256": "b15e95087eb85e64d229085b86762faa4352920a6ed9dbc1dffcdfb4386132ea"
+      },
+      "Irises": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Irises.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_eyes_blue.jpg",
+        "sha256": "eb64ef6c04da51630ef68dd212f77ab480756f20372aebc483ebeb7a3de0d7f4"
+      },
+      "Legs": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Legs.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_leg_disp_base.jpg",
+        "sha256": "d367d53d6ace062cbf4c744a18b0757082f9582680cc7b71cdef6ae1765e564b"
+      },
+      "EyeSocket": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/EyeSocket.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_face_disp_base.jpg",
+        "sha256": "b15e95087eb85e64d229085b86762faa4352920a6ed9dbc1dffcdfb4386132ea"
+      },
+      "Mouth": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Mouth.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_mouth_disp.jpg",
+        "sha256": "09eaabf0baa5825e6d97f6ef35350f6ae76978d3682c38c7b39a06be8dd37c35"
+      },
+      "Arms": {
+        "material": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/Arms.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Kshishtof/Genesis3Male/coilin_arm_disp_base.jpg",
+        "sha256": "c2f0aab69fd6264db95b45ee391b0c7a3dba27aacb954ef5aadae1852ab34710"
+      }
+    }
+  }
+]

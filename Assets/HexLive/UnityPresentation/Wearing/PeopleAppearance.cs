@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace HexLive.UnityPresentation.Wearing
 {
-    // §169: skin variants share one imported body and atlas. No donor body dependency.
+    // §169: authored skin atlases share one body's UV layout. No donor body dependency.
     public sealed class PeopleAppearance : MonoBehaviour
     {
         [Serializable] public struct Skin

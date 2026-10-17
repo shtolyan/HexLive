@@ -372,7 +372,7 @@ public sealed class TemperatureSystem : ISimulationSystem
             // roof/water, weak UV and (future) complete clothing cover all
             // mean that no tanning UV reaches bare skin. Acute redness may
             // still settle into brown just above; once that short phase is
-            // gone, a full tan returns to zero in four no-UV game days.
+            // gone, a full tan returns to zero in about 32 no-UV game days.
             if (!tanningExposure)
             {
                 npc.Needs.TanLevel = FadeTan(npc.Needs.TanLevel);

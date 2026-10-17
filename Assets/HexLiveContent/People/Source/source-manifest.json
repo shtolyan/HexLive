@@ -3189,7 +3189,7 @@
       "images": [
         {
           "node": "Image Texture",
-          "image": "Textures/Marta_BaseColor_Padded.png",
+          "image": "Textures/Marta_Marta_BaseColor.png",
           "links": [
             {
               "output": "Color",
@@ -3211,10 +3211,10 @@
         }
       ],
       "baseColor": [
-        0.699999988079071,
-        0.5,
-        0.4000000059604645,
-        1.0
+        1,
+        1,
+        1,
+        1
       ],
       "roughness": 0.7799999713897705,
       "metallic": 0.0,
@@ -3229,7 +3229,7 @@
       "images": [
         {
           "node": "Image Texture",
-          "image": "Textures/Kshishtof_BaseColor_Padded.png",
+          "image": "Textures/Kshishtof_Kshishtof_BaseColor.png",
           "links": [
             {
               "output": "Color",
@@ -3251,10 +3251,10 @@
         }
       ],
       "baseColor": [
-        0.699999988079071,
-        0.5,
-        0.4000000059604645,
-        1.0
+        1,
+        1,
+        1,
+        1
       ],
       "roughness": 0.7799999713897705,
       "metallic": 0.0,
@@ -13524,5 +13524,19 @@
     "sourceUV": true,
     "authoredWeights": true,
     "unityValidated": false
+  },
+  "skinAtlases": {
+    "Marta": {
+      "Marta": "Textures/Marta_Marta_BaseColor.png",
+      "Molly": "Textures/Marta_Molly_BaseColor.png",
+      "Jana": "Textures/Marta_Jana_BaseColor.png",
+      "Jolly": "Textures/Marta_Jolly_BaseColor.png",
+      "Masha": "Textures/Marta_Marta_BaseColor.png",
+      "Rita": "Textures/Marta_Molly_BaseColor.png"
+    },
+    "Kshishtof": {
+      "Kshishtof": "Textures/Kshishtof_Kshishtof_BaseColor.png",
+      "Tonny": "Textures/Kshishtof_Kshishtof_BaseColor.png"
+    }
   }
 }

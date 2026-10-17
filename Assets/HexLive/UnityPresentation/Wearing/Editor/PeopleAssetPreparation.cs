@@ -802,7 +802,9 @@ public static class PeopleAssetPreparation
     {
         var skin = go.GetComponentsInChildren<SkinnedMeshRenderer>(true).Single(r => r.sharedMesh.blendShapeCount == 109);
         var ids = actor == "Marta" ? new[] { "Marta", "Molly", "Jana", "Jolly", "Masha", "Rita" } : new[] { "Kshishtof", "Tonny" };
-        var tones = new[] { Color.white, new Color(.92f, .84f, .77f), new Color(.8f, .68f, .56f), new Color(1f, .94f, .89f) };
+        // §169: preserve authored faces/skin details in remapped UV atlases.
+        // A darker multiplier on one atlas is not another character's skin.
+        var manifest = JObject.Parse(File.ReadAllText(Root + "/Source/source-manifest.json"));
         var appearance = go.AddComponent<PeopleAppearance>();
         var so = new SerializedObject(appearance);
         so.FindProperty("bodyId").stringValue = actor;
@@ -813,13 +815,21 @@ public static class PeopleAssetPreparation
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null) { mat = new Material(skin.sharedMaterial); AssetDatabase.CreateAsset(mat, path); }
             mat.name = skin.sharedMaterial.name;
-            // Existing variants retain their complexion, but share the body's normal atlas.
+            var relative = (string)manifest["skinAtlases"]?[actor]?[ids[i]];
+            if (string.IsNullOrEmpty(relative))
+                throw new InvalidOperationException("Missing authored skin atlas: " + actor + "/" + ids[i]);
+            var albedo = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Source/" + relative);
+            if (albedo == null)
+                throw new InvalidOperationException("Missing authored skin texture: " + relative);
+            mat.SetTexture("_BaseMap", albedo);
+            mat.SetTexture("_MainTex", albedo);
+            // Normal detail follows the body's tangent basis; weathering is per NPC.
             var normal = skin.sharedMaterial.GetTexture("_BumpMap");
             mat.SetTexture("_BumpMap", normal);
             mat.SetFloat("_BumpScale", skin.sharedMaterial.GetFloat("_BumpScale"));
             if (normal != null && skin.sharedMaterial.IsKeywordEnabled("_NORMALMAP")) mat.EnableKeyword("_NORMALMAP");
             else mat.DisableKeyword("_NORMALMAP");
-            mat.SetColor("_BaseColor", actor == "Marta" ? tones[i % tones.Length] : Color.white);
+            mat.SetColor("_BaseColor", Color.white);
             mat.SetColor("_Color", mat.GetColor("_BaseColor"));
             EditorUtility.SetDirty(mat);
             entries.GetArrayElementAtIndex(i).FindPropertyRelative("id").stringValue = ids[i];

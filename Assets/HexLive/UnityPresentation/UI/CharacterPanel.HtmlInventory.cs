@@ -37,8 +37,6 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (_lastInventoryJson != null) { HtmlUi.Hide(HtmlInventory); _lastInventoryJson = null; }
                 _inventoryHtmlHidden = false;
-                _dollViewport = null;
-                SetDollOnScreen(false);
                 return;
             }
 
@@ -53,7 +51,37 @@ namespace HexLive.UnityPresentation.UI
             var npc = _inventoryActorId >= 0 ? FindNpc(snapshot, _inventoryActorId) : null;
             if (npc == null) return;
             Push(HtmlInventory, InventoryModel(npc), ref _lastInventoryJson);
-            SetDollOnScreen(_dollViewport.HasValue);
+        }
+
+        /// <summary>
+        /// The doll belongs to whichever of the backpack or health window is open
+        /// (they never are together); either page reports the same hole.
+        /// </summary>
+        private void UpdateHtmlDoll()
+        {
+            var open = _inventoryOpen || _healthOpen;
+            if (!open) _dollViewport = null;
+            SetDollOnScreen(open && _dollViewport.HasValue);
+        }
+
+        /// <summary>dollRect / dollRotate from either doll window.</summary>
+        private bool OnHtmlDollCommand(string command, JObject args)
+        {
+            switch (command)
+            {
+                case "dollRotate":
+                    _characterDollStage?.Rotate(((float?)args["dx"] ?? 0f) * -0.55f);
+                    return true;
+                case "dollRect":
+                    var vw = (float?)args["vw"] ?? 0; var vh = (float?)args["vh"] ?? 0;
+                    var w = (float?)args["w"] ?? 0; var h = (float?)args["h"] ?? 0;
+                    if (vw < 1 || vh < 1 || w < 1 || h < 1) { _dollViewport = null; return true; } // the hole left the page
+                    var x = (float?)args["x"] ?? 0; var y = (float?)args["y"] ?? 0;
+                    _dollViewport = new Rect(x / vw, 1 - (y + h) / vh, w / vw, h / vh);
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void SetDollOnScreen(bool onScreen)
@@ -276,6 +304,7 @@ namespace HexLive.UnityPresentation.UI
         private void OnHtmlInventoryCommand(string command, JObject args)
         {
             _htmlDirty = true;
+            if (OnHtmlDollCommand(command, args)) return;
             switch (command)
             {
                 case "close": CloseInventory(); return;
@@ -288,16 +317,6 @@ namespace HexLive.UnityPresentation.UI
                         _invVisibleWearLayer = layer;
                         _characterDollStage?.SetVisibleWearLayer(layer);
                     }
-                    return;
-                case "dollRotate":
-                    _characterDollStage?.Rotate(((float?)args["dx"] ?? 0f) * -0.55f);
-                    return;
-                case "dollRect":
-                    var vw = (float?)args["vw"] ?? 0; var vh = (float?)args["vh"] ?? 0;
-                    var w = (float?)args["w"] ?? 0; var h = (float?)args["h"] ?? 0;
-                    if (vw < 1 || vh < 1 || w < 1 || h < 1) { _dollViewport = null; return; } // the hole left the page
-                    var x = (float?)args["x"] ?? 0; var y = (float?)args["y"] ?? 0;
-                    _dollViewport = new Rect(x / vw, 1 - (y + h) / vh, w / vw, h / vh);
                     return;
                 case "craft":
                     _selectedCraftOutput = (string)args["recipe"] ?? _selectedCraftOutput;

@@ -389,6 +389,7 @@ namespace HexLive.UnityPresentation.UI
             // случилось только что: непрочитанное обязано быть первым, что он
             // видит. Кольцо хранится хронологически, поэтому идём с конца.
             var readTo = LastReadTick(npc.Id.Value);
+            _journalShownReadTo = readTo; // §174.7: the page marks what was new on opening
             for (var i = entries.Count - 1; i >= 0; i--)
             {
                 _journalEntries.Add(MakeJournalEntry(entries[i], entries[i].Tick > readTo));

@@ -756,3 +756,10 @@ to Flashback and no bug was marked fixed by this release.
 
 Local operational receipts: `Build/MSIRelease/20261017-production-refresh/`.
 Public receipt: https://play.62-146-235-120.sslip.io/release-receipt.json .
+
+## Claude (сессия сайта) — Сингапур: сайт /login/ и новый WebGL-плеер (2026-10-17 ~21:50Z)
+Команда Толи: «выкладывай» на вопрос «выкладывать сайт и новую сборку на Сингапур?».
+- **Плеер (client):** пакет `webgl-player-b5cf880c8.tar.gz`, SHA-256 `d470ddbc8de70e2e7367432fb29b7b8a45d2097bfbf2619e0b7f6c3065fa10a6`, исходник `b5cf880c8d0fedc133df16e5287013336022b433`, протокол 26 (= сервер). Собрал агент оптимизации WebGL: macOS, Unity 6000.4.6f1, `HexLiveWebGLPlayerBuild.Build` release + `webgl_audio_fsb.py`; лог: RuntimeSpeed, FMOD 4×2048, splash off, ui/ 26 файлов, dpr cap. `current`: `msi-20261017-de1f382e5` → `mac-20261018-b5cf880c8` (прежний оставлен). На сервере сверены 5706/5706 файлов квитанции; снаружи по HTTPS — 16/16 (Build/*, оба FMODBanks/*.bank, index.html, 5 FSB). Контент не перевыпускали: правки 478–480 (крыши, сушилка, верстак) плеер в рантайме не читает, будут старые модели.
+- **Сервер (server binary):** `bbc522c8aabd3c4c8d61402ce605fff1ed6aea32` (тег `deploy/singapore-20261018-login`) = прод `c2833d7d6` + `login.html` из `1bd5b0ec0`. Тесты Release в чистом worktree: Server 513/513, Simulation 1878/1884 (6 skipped). `current`: `c2833d7d6…` → `bbc522c8a…` (прежний оставлен). Один restart: saved 1909251 → restored 1909251, seed 629209070, topology 0x59DDDCBB, 3/3, NRestarts 0; voice brain agent_2301…, VOICEBRAIN_GREETING=1 в окружении; хеши admin/player/mcp не изменились; simdata, drop-in'ы, voice.env, Caddy не трогал.
+- **Снаружи:** / 200, /login/ 200 (плашка «Закрытый бета-тест»), /login/art/*.webp 200, /watch 101, client-config 200, flashback 200. В браузере: без сессии `/` → `/login/`; `/?guest` → новый загрузчик → титульный экран Unity с HTML-карточкой серверов, холст на всё окно, ошибок страницы нет.
+- **Не проверено:** настоящий вход Google и игра своим персонажем (агенты не входят в реальные аккаунты); полный экран с первого клика — в панели браузера Claude он не работает, проверять в Chrome.

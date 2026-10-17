@@ -72,6 +72,10 @@ public static class ScenePrewarm
         }
 
         ResolveWorkingSet(world);
+#if UNITY_WEBGL && !UNITY_EDITOR
+        Audio.FmodSfx.PrewarmVoices(world.Entities.Npcs.Values.Select(npc =>
+            string.IsNullOrEmpty(npc.VoiceBank) ? npc.ActorMesh : npc.VoiceBank));
+#endif
         WarmItems(world);
         WarmWear(world);
         WarmActors(world);
@@ -96,6 +100,10 @@ public static class ScenePrewarm
             return;
         }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        Audio.FmodSfx.PrewarmVoices(snapshot.Npcs.Select(npc =>
+            string.IsNullOrEmpty(npc.VoiceBank) ? npc.ActorMesh : npc.VoiceBank));
+#endif
         WarmSnapshotNpcs(snapshot.Npcs);
         WarmSnapshotNpcs(snapshot.Corpses);
 

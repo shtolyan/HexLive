@@ -120,6 +120,29 @@ namespace HexLive.UnityPresentation.UI
             Camera.onPostRender += OnCameraPostRender;
         }
 
+        /// <summary>
+        /// §174.7: the web page's character card leaves a transparent hole for
+        /// the portrait; the camera renders straight into that part of the
+        /// screen (normalized, bottom-left). <see cref="ShowInTexture"/> returns
+        /// it to the RenderTexture the UI Toolkit card shows.
+        /// </summary>
+        public void ShowOnScreen(Rect viewport)
+        {
+            if (_camera == null) return;
+            _camera.targetTexture = null;
+            _camera.rect = viewport;
+            _camera.depth = 40;
+            _camera.ResetAspect();
+        }
+
+        public void ShowInTexture()
+        {
+            if (_camera == null || _camera.targetTexture == _texture) return;
+            _camera.rect = new Rect(0, 0, 1, 1);
+            _camera.targetTexture = _texture;
+            _camera.ResetAspect();
+        }
+
         /// <summary>Film this NPC in the pose-appropriate frame; negative id stops.</summary>
         public void SetTarget(int npcId)
         {

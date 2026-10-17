@@ -649,6 +649,7 @@ namespace HexLive.UnityPresentation.UI
 
             Animate();
             UpdatePointerOverUi();
+            UpdateHtml(); // §174.7
         }
 
         // Robust "is the cursor over the bar" test, computed every frame from
@@ -8232,14 +8233,17 @@ namespace HexLive.UnityPresentation.UI
             return TextMute;
         }
 
-        private static string RelationKind(float affinity)
+        private static string RelationKind(float affinity) => Loc.Get("rel." + RelationKindKey(affinity));
+
+        /// <summary>The relation band — shared by the UI Toolkit card and the page (§174.7).</summary>
+        private static string RelationKindKey(float affinity)
         {
-            if (affinity <= -0.25f) return Loc.Get("rel.hostile");
-            if (affinity < 0f) return Loc.Get("rel.tense");
-            if (affinity >= 0.75f) return Loc.Get("rel.close");
-            if (affinity >= 0.50f) return Loc.Get("rel.friend");
-            if (affinity >= 0.25f) return Loc.Get("rel.acquaint");
-            return Loc.Get("rel.neutral");
+            if (affinity <= -0.25f) return "hostile";
+            if (affinity < 0f) return "tense";
+            if (affinity >= 0.75f) return "close";
+            if (affinity >= 0.50f) return "friend";
+            if (affinity >= 0.25f) return "acquaint";
+            return "neutral";
         }
 
         private static string RelationMoodGlyph(float affinity)

@@ -480,6 +480,7 @@ namespace HexLive.UnityPresentation.UI
                 }
             }
 
+            _journalUnread = unread; // §174.7: the page's badge
             if (unread == 0)
             {
                 _journalBadge.style.display = DisplayStyle.None;

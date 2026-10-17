@@ -14,6 +14,7 @@ import { Health } from './health.js';
 import { Journal } from './journal.js';
 import { ContextMenu } from './contextMenu.js';
 import { Loot } from './loot.js';
+import { Build } from './build.js';
 
 export const SCREENS = {
   title: Title,
@@ -26,6 +27,7 @@ export const SCREENS = {
   journal: Journal,
   contextMenu: ContextMenu,
   loot: Loot,
+  build: Build,
   gameMenu: GameMenu,
   connectionLost: ConnectionLost,
   protocolUpdate: ProtocolUpdate,

@@ -5,8 +5,9 @@
 //   day, temperature (°C as shown), band: 'cold' | 'mild' | 'hot', raining,
 //   clock: '14:20', phase: 'Day' | 'Morning' | 'Evening' | 'Night',
 //   link: null | { state: 'live' | 'stalled' | 'reconnecting' | 'failed' | 'connecting', ping },
-//   paused, speed: 1 | 2 | 4 | 50 | 'max' (nearest preset), remote }
-// Commands: pause (toggle), speed { value }. On a shared world (remote) the
+//   paused, speed: 1 | 2 | 4 | 50 | 'max' (nearest preset), remote,
+//   build: null | { open } }                 // §120.7 build mode, when it can be used
+// Commands: pause (toggle), speed { value }, build (toggle the build tray). On a shared world (remote) the
 // server owns the clock: pause and >1× stay visible but disabled (§83).
 import { html } from '../html.js';
 import { t } from '../i18n.js';
@@ -55,6 +56,17 @@ function Speed({ model, send }) {
     </div>`;
 }
 
+// The build tray's door: next to the clock, because building is about the
+// world, not about the colonist on the card (BuildModePanel).
+function Build({ model, send }) {
+  if (!model.build) return null;
+  return html`<div class="hx-pill hx-surface">
+    <button class="hx-seg hx-seg--wide" type="button" aria-pressed=${!!model.build.open} title=${`${t('build.mode.button')} (B)`}
+      onClick=${() => send('build')}>${icons.hammer()}<span>${t('build.mode.button')}</span></button>
+  </div>`;
+}
+
 export function Hud({ model, send }) {
-  return html`<div class="hx-hud-top"><${Weather} model=${model} /><${Speed} model=${model} send=${send} /></div>`;
+  return html`<div class="hx-hud-top"><${Weather} model=${model} />
+    <div class="hx-hud-centre"><${Speed} model=${model} send=${send} /><${Build} model=${model} send=${send} /></div></div>`;
 }

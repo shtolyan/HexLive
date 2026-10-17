@@ -30762,6 +30762,22 @@ MonoBehaviour:
       - 'П'
       Flags: 0101
       Languages_Touch: []
+    - Term: 'build.rotate.left'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rotate left (Q)'
+      - 'Повернуть влево (Q)'
+      Flags: 0101
+      Languages_Touch: []
+    - Term: 'build.rotate.right'
+      TermType: 0
+      Description: 
+      Languages:
+      - 'Rotate right (E)'
+      - 'Повернуть вправо (E)'
+      Flags: 0101
+      Languages_Touch: []
     CaseInsensitiveTerms: 0
     OnMissingTranslation: 1
     mTerm_AppName:

@@ -302,6 +302,52 @@ function lootMove(uid, to, count, wear) {
   }, 900);
 }
 
+// ---- build mode (BuildModePanel): the tray at the bottom ----
+const BUILD = {
+  furniture: [
+    ['comfort', [['furniture.bed_basic', 'bed', '▰']]],
+    ['heating', [['furniture.hearth', 'hearth', '♨']]],
+    ['storage', [['furniture.wardrobe', 'wardrobe', '╫']]],
+    ['workstations', [['furniture.workbench', 'workbench', '⚒']]],
+    ['outdoor', [['campfire.spot', 'campfire', '♨'], ['drying.rack', 'drying_rack', '╥'], ['water.collector', 'water_collector', '▽']]],
+  ],
+  construction: [['house', [['building.hut_plan', 'hut', '⌂'], ['custom.project', 'project', '✎'], ['free.architecture', 'free', '⌁']]]],
+};
+const build = { open: false, mode: 'furniture', category: 'comfort', active: '', status: 'build.mode.hint', arrows: null, ok: true, site: null };
+function buildModel() {
+  const cats = BUILD[build.mode];
+  const cards = (cats.find(([id]) => id === build.category) || cats[0])[1];
+  const card = cards.concat(...cats.map(([, c]) => c)).find(([id]) => id === build.active);
+  const sel = card ? { name: tr(`blueprint.catalog.${card[1]}.name`), desc: tr(`blueprint.catalog.${card[1]}.description`), availability: build.ok ? 'ready' : 'blocked', canDelete: false, canEdit: false }
+    : build.site ? { name: tr(`blueprint.catalog.${build.site}.name`), desc: tr(`blueprint.catalog.${build.site}.description`), availability: null, canDelete: true, canEdit: build.site === 'hut' }
+    : { name: null, desc: null, availability: null, canDelete: false, canEdit: false };
+  return {
+    mode: build.mode,
+    categories: cats.map(([id]) => ({ id, label: tr(`blueprint.category.${id}`) })),
+    category: build.category,
+    cards: cards.map(([id, term, glyph]) => ({ id, name: tr(`blueprint.catalog.${term}.name`), desc: tr(`blueprint.catalog.${term}.description`), icon: null, glyph })),
+    active: build.active, selection: sel, status: build.status, arrows: build.arrows,
+  };
+}
+function setBuild(open) {
+  build.open = open;
+  if (open) { Object.assign(build, { mode: 'furniture', category: 'comfort', active: '', status: 'build.mode.hint', arrows: null, site: null }); inv.open = false; sendInventory(); }
+  sendBuild();
+  sendHud();
+}
+function sendBuild() {
+  if (!ready) return;
+  if (build.open && isGame(state.dialog)) {
+    // Sims-style: the tray is about the world; the colonist's card steps aside.
+    post({ t: 'hide', screen: 'character' });
+    post({ t: 'show', screen: 'build', model: buildModel() });
+  } else {
+    build.open = false;
+    post({ t: 'hide', screen: 'build' });
+    if (isGame(state.dialog)) post({ t: 'show', screen: 'character', model: characterModel() });
+  }
+}
+
 // ---- the action menu (ContextMenuPanel): a right click on the world ----
 const ctx = { target: 'object', open: false, at: null, id: 0 };
 const E = (key, extra) => ({ label: tr(key).replace(/\s*▸$/, ''), enabled: true, hint: null, danger: false, ...(extra || {}) });
@@ -396,7 +442,7 @@ function characterModel() {
 function sendGame() {
   if (!ready || !isGame(state.dialog)) return;
   post({ t: 'show', screen: 'roster', model: rosterModel() });
-  post({ t: 'show', screen: 'character', model: characterModel() });
+  if (!build.open) post({ t: 'show', screen: 'character', model: characterModel() });
   if (side.health || side.journal) sendSide();
 }
 
@@ -587,6 +633,7 @@ function hudModel() {
     paused: remote ? false : h.paused,
     speed: remote ? 1 : h.speed,
     remote,
+    build: isGame(state.dialog) ? { open: build.open } : null,
   };
 }
 
@@ -598,7 +645,7 @@ function sendHud() {
 }
 
 function showDialog(id) {
-  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); }
+  if (isGame(shownDialog) && !isGame(id) && ready) { for (const screen of GAME_SCREENS) post({ t: 'hide', screen }); inv.open = false; post({ t: 'hide', screen: 'inventory' }); side.health = side.journal = false; side.healthRect = null; post({ t: 'hide', screen: 'health' }); post({ t: 'hide', screen: 'journal' }); ctx.open = false; post({ t: 'hide', screen: 'contextMenu' }); loot.open = false; post({ t: 'hide', screen: 'loot' }); build.open = false; post({ t: 'hide', screen: 'build' }); }
   if (shownDialog && !isGame(shownDialog) && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (isGame(id)) {
     shownDialog = id;
@@ -613,10 +660,12 @@ function showDialog(id) {
     side.journal = id === 'gameJournal';
     if (side.health) game.selected = 13; // the most hurt one shows every kind of row
     ctx.open = id === 'gameContext';
+    build.open = id === 'gameBuild';
+    if (build.open) Object.assign(build, { mode: 'furniture', category: 'outdoor', active: 'campfire.spot', status: 'build.mode.hint', arrows: { x: 0.46, y: 0.42 }, ok: true, site: null });
     loot.open = ['gameLoot', 'gameGift', 'gameBasket'].includes(id);
     if (loot.open) { loot.mode = id === 'gameGift' ? 'gift' : 'exchange'; loot.other = id === 'gameBasket' ? 'container' : 'person'; lootReset(); }
     if (ctx.open) ctx.at = { x: 0.52, y: 0.42 };
-    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); }
+    if (ready) { sendFaces(); sendGame(); sendInventory(); sendSide(); sendContext(); sendLoot(); if (build.open) sendBuild(); }
     return;
   }
   if (!isTitle(id)) clearInterval(title.timer);
@@ -660,6 +709,7 @@ function note(from, text) {
 
 // What the C# side does with each command, in words.
 const EFFECT = {
+  'hud.build': 'открыть / закрыть режим стройки (клавиша B)',
   'gameMenu.continue': 'закрыть меню, мир продолжает идти',
   'gameMenu.mainMenu': 'сохранить игру и вернуться в главное меню',
   'gameMenu.quit': 'выйти из игры (только десктоп)',
@@ -704,6 +754,22 @@ function handle(message) {
       if (it && a.kind === 'drop') { it.count -= a.count || 1; if (it.count <= 0) inv.items = inv.items.filter((x) => x !== it); }
     }
     sendInventory();
+    return;
+  }
+  if (message.screen === 'build') {
+    const a = message.args || {};
+    const say = { mode: 'сменить вкладку каталога', category: 'открыть категорию', card: 'взять изделие на курсор (призрак в мире)',
+      rotate: 'повернуть на 60°', delete: 'снять размеченную площадку', edit: 'открыть конструктор дома', finish: 'выйти из режима стройки' };
+    note(key, `${args} → ${say[message.cmd] || '?'}`);
+    if (message.cmd === 'finish') { setBuild(false); return; }
+    if (message.cmd === 'mode') { build.mode = a.value; build.category = BUILD[a.value][0][0]; build.active = ''; build.site = null; build.arrows = null; }
+    if (message.cmd === 'category') build.category = a.id;
+    if (message.cmd === 'card') {
+      if (a.id === 'free.architecture') { note(key, '→ конструктор поверх мира (следующий макет)'); return; }
+      build.active = build.active === a.id ? '' : a.id; build.site = null; build.status = 'build.mode.hint';
+    }
+    if (message.cmd === 'delete') { build.site = null; build.arrows = null; }
+    sendBuild();
     return;
   }
   if (message.screen === 'loot') {
@@ -840,6 +906,7 @@ function handle(message) {
   if (message.screen === 'hud') {
     if (message.cmd === 'pause') state.hud.paused = !state.hud.paused;
     if (message.cmd === 'speed') { state.hud.speed = message.args.value; state.hud.paused = false; }
+    if (message.cmd === 'build') { setBuild(!build.open); return; }
     sendHud();
     return;
   }
@@ -1053,6 +1120,27 @@ $('world').addEventListener('pointerdown', () => {
   ctx.open = false;
   sendContext();
   note('мир', 'нажатие мимо меню → C# закрывает меню, дальше в мир нажатие не идёт');
+});
+$('world').addEventListener('pointermove', (e) => {
+  if (!build.open || !build.active) return;
+  const r = $('world').getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+  const ok = x < 0.55; // the stand pretends the right side is taken
+  if (build.arrows && Math.abs(build.arrows.x - x) < 0.01 && Math.abs(build.arrows.y - y) < 0.01 && ok === build.ok) return;
+  build.arrows = { x, y }; build.ok = ok; sendBuild();
+});
+$('world').addEventListener('click', (e) => {
+  if (!build.open) return;
+  const r = $('world').getBoundingClientRect();
+  const at = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+  if (build.active) {
+    note('мир', build.ok ? 'клик → PlaceFurnitureSiteCommand: площадка размечена' : 'клик → здесь нельзя строить');
+    build.status = build.ok ? 'build.mode.placed' : 'build.mode.blocked';
+  } else {
+    note('мир', 'клик по размеченной площадке → выбрать её: повернуть, снять');
+    build.site = 'campfire'; build.arrows = at; build.status = 'build.mode.hint';
+  }
+  sendBuild();
 });
 $('world').addEventListener('contextmenu', (e) => {
   e.preventDefault();

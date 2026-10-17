@@ -265,7 +265,28 @@ public static class HexLiveWebGLPlayerBuild
             throw new InvalidOperationException("WebGL index.html does not load ui/main.js.");
         }
 
-        Debug.Log("[WebGLBuild] HTML interface: ui/ from template HexLive");
+        // Unity runs template files through its preprocessor ({{{ }}}, #if).
+        // ui/ must come out byte for byte, or the page runs code nobody wrote.
+        const string source = "Assets/WebGLTemplates/HexLive/ui";
+        var count = 0;
+        foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
+        {
+            if (file.EndsWith(".meta", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var relative = Path.GetRelativePath("Assets/WebGLTemplates/HexLive", file);
+            var built = Path.Combine(output, relative);
+            if (!File.Exists(built) || !File.ReadAllBytes(built).SequenceEqual(File.ReadAllBytes(file)))
+            {
+                throw new InvalidOperationException($"WebGL page file {relative} differs from {file}.");
+            }
+
+            count++;
+        }
+
+        Debug.Log($"[WebGLBuild] HTML interface: ui/ from template HexLive, {count} files verbatim");
     }
 
     /// <summary>

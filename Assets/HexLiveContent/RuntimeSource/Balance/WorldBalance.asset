@@ -28,7 +28,13 @@ MonoBehaviour:
   moistureDryBase: 0.02
   fireBurnPerSlowTick: 16
   fruitRotTicks: 2400
-  stumpRegrowTicks: 480000
+  plantingDurationTicks: 16
+  palmGrowthStageTicks: 240000
+  herbGrowthStageTicks: 80000
+  yuccaGrowthStageTicks: 80000
+  palmStumpRemovalTicks: 300
+  herbSeedDropChance: 0.2
+  herbSeedGroundCap: 2
   surfGiftIntervalDays: 5
   maxDogs: 2
   dogRespawnCheckTicks: 7200

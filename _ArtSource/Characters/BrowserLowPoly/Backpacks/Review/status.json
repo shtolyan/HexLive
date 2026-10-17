@@ -1,0 +1,23 @@
+{
+  "state": "done",
+  "renders": [
+    "1_Marta_back",
+    "1_Kshishtof_back",
+    "2_Marta_back",
+    "2_Kshishtof_back",
+    "3_Marta_back",
+    "3_Kshishtof_back",
+    "1_Marta_front",
+    "1_Kshishtof_front",
+    "2_Marta_front",
+    "2_Kshishtof_front",
+    "3_Marta_front",
+    "3_Kshishtof_front",
+    "1_Marta_side",
+    "1_Kshishtof_side",
+    "2_Marta_side",
+    "2_Kshishtof_side",
+    "3_Marta_side",
+    "3_Kshishtof_side"
+  ]
+}

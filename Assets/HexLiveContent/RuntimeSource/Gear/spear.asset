@@ -28,7 +28,10 @@ MonoBehaviour:
   craftStation: 0
   craftNeedsLitFire: 0
   craftIngredients:
-  - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc31, type: 2}
+  - item: {fileID: 0}
+    itemId: tool.sharp_stone
+    count: 1
+  - item: {fileID: 11400000, guid: b5fb45ee9dde457ea63cb0c2403af1f0, type: 2}
     itemId: 
     count: 1
   handPoseAuthored: 1

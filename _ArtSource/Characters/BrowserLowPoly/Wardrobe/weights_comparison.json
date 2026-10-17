@@ -1,0 +1,85 @@
+{
+  "state": "done",
+  "results": {
+    "Marta_PrimalWrapBoots": {
+      "trials": [
+        {
+          "surface_weight_fraction": 0,
+          "worst_m": -0.00929514546878636,
+          "samples_below_minus_1mm": 1065
+        },
+        {
+          "surface_weight_fraction": 0.5,
+          "worst_m": -0.008171258270740509,
+          "samples_below_minus_1mm": 1051
+        },
+        {
+          "surface_weight_fraction": 1.0,
+          "worst_m": -0.008175505734980106,
+          "samples_below_minus_1mm": 1045
+        }
+      ],
+      "kept": 1
+    },
+    "Marta_PrimalArmWraps": {
+      "trials": [
+        {
+          "surface_weight_fraction": 0,
+          "worst_m": -0.002170533143216744,
+          "samples_below_minus_1mm": 79
+        },
+        {
+          "surface_weight_fraction": 0.5,
+          "worst_m": -0.003619853463023901,
+          "samples_below_minus_1mm": 158
+        },
+        {
+          "surface_weight_fraction": 1.0,
+          "worst_m": -0.005330398180012708,
+          "samples_below_minus_1mm": 311
+        }
+      ],
+      "kept": 0
+    },
+    "Kshishtof_PrimalWrapBoots": {
+      "trials": [
+        {
+          "surface_weight_fraction": 0,
+          "worst_m": -0.013287698947824538,
+          "samples_below_minus_1mm": 790
+        },
+        {
+          "surface_weight_fraction": 0.5,
+          "worst_m": -0.013244303069077432,
+          "samples_below_minus_1mm": 801
+        },
+        {
+          "surface_weight_fraction": 1.0,
+          "worst_m": -0.013200904703699053,
+          "samples_below_minus_1mm": 976
+        }
+      ],
+      "kept": 2
+    },
+    "Kshishtof_PrimalArmWraps": {
+      "trials": [
+        {
+          "surface_weight_fraction": 0,
+          "worst_m": -0.0038749693002318964,
+          "samples_below_minus_1mm": 200
+        },
+        {
+          "surface_weight_fraction": 0.5,
+          "worst_m": -0.00466277189552784,
+          "samples_below_minus_1mm": 199
+        },
+        {
+          "surface_weight_fraction": 1.0,
+          "worst_m": -0.005899206984322518,
+          "samples_below_minus_1mm": 193
+        }
+      ],
+      "kept": 0
+    }
+  }
+}

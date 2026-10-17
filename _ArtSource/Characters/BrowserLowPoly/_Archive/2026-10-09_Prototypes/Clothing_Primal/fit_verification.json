@@ -1,0 +1,95 @@
+{
+  "Marta_PrimalBriefs": {
+    "min_surface_distance_m": 0.000394190838560462,
+    "penetrating_samples_per_frame_over_1mm": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "frames": 19,
+    "bone_matrix_max_error": 7.62939453125e-06,
+    "skin_normalized": true
+  },
+  "Marta_PrimalTop": {
+    "min_surface_distance_m": -0.0004192096344195306,
+    "penetrating_samples_per_frame_over_1mm": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "frames": 19,
+    "bone_matrix_max_error": 1.52587890625e-05,
+    "skin_normalized": true
+  },
+  "Kshishtof_PrimalBriefs": {
+    "min_surface_distance_m": -0.0046527719835285095,
+    "penetrating_samples_per_frame_over_1mm": [
+      0,
+      0,
+      7,
+      3,
+      0,
+      1,
+      34,
+      66,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      45,
+      2
+    ],
+    "frames": 19,
+    "bone_matrix_max_error": 7.62939453125e-06,
+    "skin_normalized": true
+  },
+  "toggle": [
+    {
+      "equipped": false,
+      "genitals_hidden": false,
+      "briefs_hidden": true
+    },
+    {
+      "equipped": true,
+      "genitals_hidden": true,
+      "briefs_hidden": false
+    }
+  ]
+}

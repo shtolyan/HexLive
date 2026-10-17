@@ -1,0 +1,341 @@
+{
+  "state": "done",
+  "hairs": {
+    "AdellHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.07043860299285211,
+      "lods": {
+        "0": {
+          "vertices": 3371,
+          "triangles": 2400,
+          "max_weights": 4,
+          "weight_sum_error": 4.842877388000488e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1469,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.6566128730773926e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "AsukaHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.0655014451600115,
+      "lods": {
+        "0": {
+          "vertices": 3238,
+          "triangles": 2399,
+          "max_weights": 4,
+          "weight_sum_error": 4.6566128730773926e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1254,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "BendineHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.06933022034412424,
+      "lods": {
+        "0": {
+          "vertices": 4215,
+          "triangles": 2398,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1825,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.260800778865814e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "Bob3Hair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.06266604491262812,
+      "lods": {
+        "0": {
+          "vertices": 3586,
+          "triangles": 2400,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1417,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.0978193283081055e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "ChunkyHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.0725748626340575,
+      "lods": {
+        "0": {
+          "vertices": 3468,
+          "triangles": 2399,
+          "max_weights": 4,
+          "weight_sum_error": 4.400499165058136e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 794,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.0046870708465576e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "EilisHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.07276996715422138,
+      "lods": {
+        "0": {
+          "vertices": 4048,
+          "triangles": 2399,
+          "max_weights": 3,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1434,
+          "triangles": 799,
+          "max_weights": 3,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "Hair07": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.08364297375315177,
+      "lods": {
+        "0": {
+          "vertices": 2770,
+          "triangles": 2398,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 791,
+          "triangles": 950,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "JelikaHair_32434": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.06655823081070487,
+      "lods": {
+        "0": {
+          "vertices": 2271,
+          "triangles": 2399,
+          "max_weights": 4,
+          "weight_sum_error": 4.516914486885071e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 914,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.602770786732435e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "JenniferHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.06305096760772017,
+      "lods": {
+        "0": {
+          "vertices": 3536,
+          "triangles": 2400,
+          "max_weights": 4,
+          "weight_sum_error": 4.516914486885071e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1241,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "LeonyPonytail": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.06428731539049393,
+      "lods": {
+        "0": {
+          "vertices": 3491,
+          "triangles": 2400,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1361,
+          "triangles": 800,
+          "max_weights": 4,
+          "weight_sum_error": 4.3620545397971e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "LoonaHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.0833799826469755,
+      "lods": {
+        "0": {
+          "vertices": 2941,
+          "triangles": 2399,
+          "max_weights": 4,
+          "weight_sum_error": 5.21540641784668e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1242,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.842877388000488e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "LowPonytail": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.07429254301642672,
+      "lods": {
+        "0": {
+          "vertices": 3853,
+          "triangles": 2399,
+          "max_weights": 4,
+          "weight_sum_error": 4.842877388000488e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1711,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.563480615615845e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "Neu09Hair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.06484354206927989,
+      "lods": {
+        "0": {
+          "vertices": 3299,
+          "triangles": 2396,
+          "max_weights": 4,
+          "weight_sum_error": 4.842877388000488e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1155,
+          "triangles": 799,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "OnyxHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.06773479283809088,
+      "lods": {
+        "0": {
+          "vertices": 4528,
+          "triangles": 2398,
+          "max_weights": 1,
+          "weight_sum_error": 0.0,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1272,
+          "triangles": 799,
+          "max_weights": 1,
+          "weight_sum_error": 0.0,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "ShilohHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.08400817526245481,
+      "lods": {
+        "0": {
+          "vertices": 3103,
+          "triangles": 2398,
+          "max_weights": 4,
+          "weight_sum_error": 5.21540641784668e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 1167,
+          "triangles": 800,
+          "max_weights": 4,
+          "weight_sum_error": 3.725290298461914e-08,
+          "one_packed_atlas": true
+        }
+      }
+    },
+    "TootsieRollHair": {
+      "bind_error": 0.0,
+      "animated_bone_error": 0,
+      "motion_m": 0.0630651468624121,
+      "lods": {
+        "0": {
+          "vertices": 2273,
+          "triangles": 2400,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        },
+        "1": {
+          "vertices": 559,
+          "triangles": 950,
+          "max_weights": 4,
+          "weight_sum_error": 4.470348358154297e-08,
+          "one_packed_atlas": true
+        }
+      }
+    }
+  }
+}

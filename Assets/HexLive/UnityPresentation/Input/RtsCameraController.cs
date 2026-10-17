@@ -375,7 +375,13 @@ namespace HexLive.UnityPresentation.Input
             var keyboard = Keyboard.current;
             if (!UI.AdminVoicePanel.BlocksGameInput && !UI.GameMenu.IsOpen && keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
-                if (UI.RuntimeWindow.CloseTopmost()) { }
+                if (_manualInput == null)
+                {
+                    _manualInput = GetComponent<SimulationInputAdapter>();
+                }
+
+                if (_manualInput != null && _manualInput.TryCancelPlantingPlacement()) { }
+                else if (UI.RuntimeWindow.CloseTopmost()) { }
                 else if (UI.CraftProjectDetailsPanel.BlocksWorldInput || UI.CharacterPanel.BlocksWorldPointer)
                 {
                     UI.CraftProjectDetailsPanel.Close();

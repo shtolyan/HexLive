@@ -366,9 +366,10 @@ public sealed class ManualCraftingTests
         var world = engine.World;
         var npc = PrepareManual(world);
         SimDataFile.Require(RepoPaths.SimData);
-        Strip(world, ContentIds.Stick, ContentIds.Stone, ContentIds.AxeStone);
+        Strip(world, ContentIds.Stick, ContentIds.Stone, ContentIds.Rope, ContentIds.AxeStone);
         Add(npc, ContentIds.Stick, 1);
         Add(npc, ContentIds.Stone, 1);
+        Add(npc, ContentIds.Rope, 1);
 
         var option = Option(world, npc, GoalType.CraftAxe);
         Assert.Multiple(() =>
@@ -465,8 +466,9 @@ public sealed class ManualCraftingTests
             other.Mind.ManualControl = true;
         }
         SimDataFile.Require(RepoPaths.SimData);
-        Strip(world, ContentIds.Stick, ContentIds.Stone, ContentIds.AxeStone);
+        Strip(world, ContentIds.Stick, ContentIds.Stone, ContentIds.Rope, ContentIds.AxeStone);
         Add(npc, ContentIds.Stick, 1);
+        Add(npc, ContentIds.Rope, 1);
         var remote = world.Tiles.Items.Keys.First(tile =>
             world.Tiles.Items[tile].Junctions.Count > 0 &&
             HexSpatialMath.HexDistance(tile, npc.Tile) >= 3 &&
@@ -533,8 +535,9 @@ public sealed class ManualCraftingTests
         var world = engine.World;
         var npc = PrepareManual(world);
         SimDataFile.Require(RepoPaths.SimData);
-        Strip(world, ContentIds.HerbLeaf, ContentIds.Bandage);
+        Strip(world, ContentIds.HerbLeaf, ContentIds.Cloth, ContentIds.Bandage);
         Add(npc, ContentIds.HerbLeaf, 2);
+        Add(npc, ContentIds.Cloth, 1);
         var lying = Spawn(world, npc, ContentIds.Bandage, npc.Tile);
 
         // Восприятие обязано УЖЕ держать лежащий бинт к первому тику
@@ -571,6 +574,9 @@ public sealed class ManualCraftingTests
             Assert.That(npc.Inventory.Items.Any(item =>
                 item.DefinitionId == ContentIds.HerbLeaf), Is.False,
                 "Оба листа травы оплачены.");
+            Assert.That(npc.Inventory.Items.Any(item =>
+                item.DefinitionId == ContentIds.Cloth), Is.False,
+                "Ткань оплачена вместе с листьями.");
             Assert.That(world.Entities.Objects.ContainsKey(lying.Id), Is.True,
                 "Лежавший рядом чужой бинт приказ не трогает.");
             Assert.That(world.Entities.Objects.Values.Any(obj =>

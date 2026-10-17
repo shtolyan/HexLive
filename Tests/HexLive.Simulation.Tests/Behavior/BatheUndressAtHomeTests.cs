@@ -603,7 +603,7 @@ public sealed class BatheUndressAtHomeTests
             // v80 adds craft last-worker and exact resume target, reads v79.
             // v83 (§171.10): account character creation receipts, private to the world save.
             // v84 (§54/#469): physical leaf drying clocks; v83 still readable.
-            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(84));
+            Assert.That(WorldSaveSerializer.BlobVersion, Is.EqualTo(85));
         });
     }
 

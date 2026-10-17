@@ -50,17 +50,21 @@ public static class ContentIds
     public const string Hide = "resource.hide";
     public const string PalmLeaf = "resource.palm_leaf";
     public const string HerbLeaf = "resource.herb_leaf";
+    public const string HerbSeed = "resource.herb_seed";
+    public const string YuccaSeed = "resource.yucca_seed";
     public const string Arrow = "resource.arrow";
     public const string Board = "resource.board";
     public const string MechanicalPart = "resource.mechanical_part";
 
     // ── Инструменты и вещи ───────────────────────────────────────────────
+    public const string SharpStone = "tool.sharp_stone";
     public const string Knife = "tool.knife";
     public const string AxeStone = "tool.axe_stone";
     public const string PickaxeStone = "tool.pickaxe_stone";
     public const string Spear = "tool.spear";
     public const string Bow = "tool.bow";
     public const string Bottle = "tool.bottle";
+    public const string Hammer = "tool.hammer";
 
     public const string Bandage = "item.bandage";
     // §118.2: дешёвый односменный пластырь — закрывает ОДНУ рану, в отличие от
@@ -124,9 +128,20 @@ public static class ContentIds
     public const string GraveNpc = "grave.npc";
     public const string PalmStump = "stump.palm";
 
-    // §54.2/#315: из пня вырастает ОБЫЧНАЯ пальма — промежуточной «молодой»
-    // модели больше нет.
+    // §173: пень больше не является источником новой пальмы. Пальма начинается
+    // с посаженного кокоса и проходит три видимые стадии роста.
     public const string Palm = "tree.palm";
+    public const string PalmSprout = "plant.palm_sprout";
+    public const string PalmSapling = "plant.palm_sapling";
+    public const string PalmYoung = "tree.palm_young";
+    public const string HerbBush = "herb.bush";
+    public const string HerbSprout = "plant.herb_sprout";
+    public const string HerbYoung = "plant.herb_young";
+    public const string HerbBudding = "plant.herb_budding";
+    public const string Yucca = "plant.yucca";
+    public const string YuccaSprout = "plant.yucca_sprout";
+    public const string YuccaYoung = "plant.yucca_young";
+    public const string YuccaJuvenile = "plant.yucca_juvenile";
 }
 
 }

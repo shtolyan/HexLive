@@ -1,0 +1,66 @@
+{
+  "AdellHair_LOD1": {
+    "adjusted_vertices": 188,
+    "max_displacement_cm": 2.2775666486035977
+  },
+  "AsukaHair_LOD1": {
+    "adjusted_vertices": 341,
+    "max_displacement_cm": 2.6272752968443003
+  },
+  "BendineHair_LOD1": {
+    "adjusted_vertices": 192,
+    "max_displacement_cm": 1.0212748515048091
+  },
+  "Bob3Hair_LOD1": {
+    "adjusted_vertices": 513,
+    "max_displacement_cm": 2.5712213025580257
+  },
+  "ChunkyHair_LOD1": {
+    "adjusted_vertices": 79,
+    "max_displacement_cm": 1.1616703925348861
+  },
+  "EilisHair_LOD1": {
+    "adjusted_vertices": 263,
+    "max_displacement_cm": 2.478268924386186
+  },
+  "Hair07_LOD1": {
+    "adjusted_vertices": 51,
+    "max_displacement_cm": 2.2127193340863354
+  },
+  "JelikaHair_32434_LOD1": {
+    "adjusted_vertices": 188,
+    "max_displacement_cm": 1.8841346277428657
+  },
+  "JenniferHair_LOD1": {
+    "adjusted_vertices": 285,
+    "max_displacement_cm": 2.426944616484881
+  },
+  "LeonyPonytail_LOD1": {
+    "adjusted_vertices": 94,
+    "max_displacement_cm": 1.1616698794404807
+  },
+  "LoonaHair_LOD1": {
+    "adjusted_vertices": 206,
+    "max_displacement_cm": 2.623640957475155
+  },
+  "LowPonytail_LOD1": {
+    "adjusted_vertices": 302,
+    "max_displacement_cm": 2.6189556824590285
+  },
+  "Neu09Hair_LOD1": {
+    "adjusted_vertices": 253,
+    "max_displacement_cm": 2.501506989731069
+  },
+  "OnyxHair_LOD1": {
+    "adjusted_vertices": 103,
+    "max_displacement_cm": 2.4549719568742554
+  },
+  "ShilohHair_LOD1": {
+    "adjusted_vertices": 256,
+    "max_displacement_cm": 2.52819799464014
+  },
+  "TootsieRollHair_LOD1": {
+    "adjusted_vertices": 117,
+    "max_displacement_cm": 2.3824273412273205
+  }
+}

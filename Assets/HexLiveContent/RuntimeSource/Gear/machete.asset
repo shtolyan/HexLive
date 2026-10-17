@@ -27,7 +27,9 @@ MonoBehaviour:
   capabilities:
   - 1
   - 2
+  - 8192
   - 4
+  - 2048
   craftable: 0
   craftStation: 0
   craftNeedsLitFire: 0

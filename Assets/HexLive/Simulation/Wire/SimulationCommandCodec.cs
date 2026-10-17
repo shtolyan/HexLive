@@ -37,7 +37,9 @@ public static class SimulationCommandCodec
     // 6: §28.15G requested shared Talk topic, with legacy opcode 11 unchanged.
     // 7: §153.4 voluntary request for one carried item (opcode 43).
     // 8: §123.5 ManageInventory carries the authoritative drop quantity.
-    public const int WireVersion = 10; // §138.6: append-only CraftByOutput (48).
+    // 10: §138.6 append-only CraftByOutput (48).
+    // 11: §173.2 inventory seed placement (49).
+    public const int WireVersion = 11;
 
     // Защита от мусора в потоке: злонамеренный клиент не должен уметь
     // заказать аллокацию на гигабайт одним ushort'ом.
@@ -93,6 +95,7 @@ public static class SimulationCommandCodec
         RespondDirective = 46,
         ButcherPerson = 47,
         CraftByOutput = 48, // §138.6 append-only
+        PlantInventorySeed = 49, // §173.2 append-only
     }
 
     public static void Write(BinaryWriter w, ISimulationCommand command)
@@ -154,6 +157,13 @@ public static class SimulationCommandCodec
                 w.Write(c.Target.Value);
                 w.Write((int)c.Interaction);
                 w.Write(c.InteractionId);
+                break;
+            case PlantInventorySeedCommand c:
+                w.Write((ushort)CommandType.PlantInventorySeed);
+                WriteEntity(w, c.Npc);
+                WriteItemRef(w, c.Item);
+                w.Write(c.TargetJunction.Value);
+                WireIo.WriteTile(w, c.TargetTile);
                 break;
             case GatherAllOnHexCommand c:
                 w.Write((ushort)CommandType.GatherAllOnHex);
@@ -439,6 +449,10 @@ public static class SimulationCommandCodec
                 return new InteractCommand(
                     ReadEntity(r), new ObjectId(r.ReadInt32()),
                     (InteractionType)r.ReadInt32(), r.ReadString());
+            case CommandType.PlantInventorySeed:
+                return new PlantInventorySeedCommand(
+                    ReadEntity(r), ReadItemRef(r), new JunctionId(r.ReadInt32()),
+                    WireIo.ReadTile(r));
             case CommandType.GatherAllOnHex:
                 return new GatherAllOnHexCommand(
                     ReadEntity(r), new ObjectId(r.ReadInt32()),

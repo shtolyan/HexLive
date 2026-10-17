@@ -1,0 +1,14 @@
+{
+  "Kshishtof_LOD0.glb": {
+    "before": 71250784,
+    "after": 8657356,
+    "morph_accessors_sparsified": 218,
+    "values_numerically_identical": true
+  },
+  "Kshishtof_LOD1.glb": {
+    "before": 51478200,
+    "after": 8073996,
+    "morph_accessors_sparsified": 218,
+    "values_numerically_identical": true
+  }
+}

@@ -91,6 +91,11 @@ public sealed class CommandCodecCoverageGateTests
         new FillVesselCommand(
             new EntityId(38),
             new InventoryItemRef(InventoryItemSource.Carried, 6, "tool.bottle")),
+        new PlantInventorySeedCommand(
+            new EntityId(173),
+            new InventoryItemRef(
+                InventoryItemSource.Carried, 7, ContentIds.HerbSeed),
+            new JunctionId(1703), new TileCoord(-17, 30)),
         new TransferInventoryCommand(
             new EntityId(36), new EntityId(63),
             new InventoryItemRef(InventoryItemSource.Carried, 2, "tool.knife"),

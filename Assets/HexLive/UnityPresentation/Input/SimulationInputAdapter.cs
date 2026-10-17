@@ -67,8 +67,95 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     private readonly List<ContextMenuEntry> _entries = new();
     private readonly List<int> _selectedColonyIds = new();
     private readonly List<int> _manualSelectedIds = new();
+    private readonly Dictionary<TileCoord, List<PlantingJunction>>
+        _plantingJunctionsByTile = new();
+    private readonly HashSet<JunctionId> _plantingObjectJunctions = new();
+
+    private int _plantingActorId = -1;
+    private int _plantingSourceIndex = -1;
+    private string _plantingSeedDefinitionId = string.Empty;
+    private JunctionId? _plantingCandidateJunction;
+    private TileCoord _plantingCandidateTile;
+    private Float2 _plantingCandidatePosition;
+    private bool _plantingCandidateValid;
+
+    private readonly struct PlantingJunction
+    {
+        public PlantingJunction(JunctionId id, Float2 position)
+        {
+            Id = id;
+            Position = position;
+        }
+
+        public JunctionId Id { get; }
+        public Float2 Position { get; }
+    }
 
     public void SetRunner(SimulationRunnerBehaviour runner) => _runner = runner;
+
+    /// <summary>
+    /// §173.2: inventory «Plant» enters a short-lived placement mode. The
+    /// physical inventory index and expected id are retained together so a
+    /// later inventory shuffle cannot silently plant a different item.
+    /// </summary>
+    public bool BeginPlantingPlacement(
+        int actorId, int sourceIndex, string seedDefinitionId)
+    {
+        if (_runner == null)
+        {
+            _runner = FindAnyObjectByType<SimulationRunnerBehaviour>();
+        }
+
+        var snapshot = _runner != null && _runner.IsReady &&
+            _runner.SupportsNpcCommands
+                ? _runner.CreateSnapshot()
+                : null;
+        var actor = snapshot?.Npcs.FirstOrDefault(candidate =>
+            candidate.Id.Value == actorId);
+        if (actor == null || !_runner!.CanControlNpc(actor.Id) ||
+            sourceIndex < 0 || sourceIndex >= actor.InventoryItems.Count ||
+            actor.InventoryItems[sourceIndex] != seedDefinitionId ||
+            !PlantGrowthCatalog.TryGetBySeed(seedDefinitionId, out _))
+        {
+            return false;
+        }
+
+        _plantingJunctionsByTile.Clear();
+        foreach (var junction in snapshot!.Junctions)
+        {
+            foreach (var tile in junction.Tiles)
+            {
+                if (!_plantingJunctionsByTile.TryGetValue(tile, out var candidates))
+                {
+                    candidates = new List<PlantingJunction>();
+                    _plantingJunctionsByTile.Add(tile, candidates);
+                }
+
+                candidates.Add(new PlantingJunction(junction.Id, junction.WorldPosition));
+            }
+        }
+
+        _plantingActorId = actorId;
+        _plantingSourceIndex = sourceIndex;
+        _plantingSeedDefinitionId = seedDefinitionId;
+        _plantingCandidateJunction = null;
+        _plantingCandidateValid = false;
+        ContextMenuPanel.Close();
+        PlantingPlacementMarker.Hide();
+        return true;
+    }
+
+    /// <summary>Returns true when an active planting placement was cancelled.</summary>
+    public bool TryCancelPlantingPlacement()
+    {
+        if (_plantingActorId < 0)
+        {
+            return false;
+        }
+
+        CancelPlantingPlacement();
+        return true;
+    }
 
     /// <summary>Кем сейчас управляет игрок, или -1.</summary>
     public int ManualNpcId { get; private set; } = -1;
@@ -106,6 +193,17 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
         RefreshControlSelection();
         RenewRemoteLeaseForSelection();
+        if (_plantingActorId >= 0)
+        {
+            if (!UpdatePlantingPlacement())
+            {
+                CancelPlantingPlacement();
+            }
+
+            ClearHover();
+            return;
+        }
+
         if (!CommandMode || PointerBlocked())
         {
             ClearHover();
@@ -115,7 +213,111 @@ public sealed class SimulationInputAdapter : MonoBehaviour
         UpdateHover();
     }
 
-    private void OnDisable() => ClearHover();
+    private void OnDisable()
+    {
+        ClearHover();
+        CancelPlantingPlacement();
+    }
+
+    private bool UpdatePlantingPlacement()
+    {
+        var runner = _runner;
+        var mouse = UnityEngine.InputSystem.Mouse.current;
+        if (runner == null || !runner.IsReady || !runner.SupportsNpcCommands ||
+            mouse == null || !runner.CanControlNpc(new EntityId(_plantingActorId)))
+        {
+            return false;
+        }
+
+        var snapshot = runner.CreateSnapshot();
+        var actor = snapshot?.Npcs.FirstOrDefault(candidate =>
+            candidate.Id.Value == _plantingActorId);
+        if (snapshot == null || actor == null || actor.Health <= 0f ||
+            _plantingSourceIndex < 0 ||
+            _plantingSourceIndex >= actor.InventoryItems.Count ||
+            actor.InventoryItems[_plantingSourceIndex] != _plantingSeedDefinitionId)
+        {
+            return false;
+        }
+
+        _plantingCandidateJunction = null;
+        _plantingCandidateValid = false;
+        if (PointerBlocked() ||
+            !TryPickGroundPoint(
+                mouse.position.ReadValue(), out var point, out var tile) ||
+            !_plantingJunctionsByTile.TryGetValue(tile, out var candidates) ||
+            candidates.Count == 0)
+        {
+            PlantingPlacementMarker.Hide();
+            return true;
+        }
+
+        var closest = candidates[0];
+        var bestDistance = DistanceSquared(point, closest.Position);
+        for (var i = 1; i < candidates.Count; i++)
+        {
+            var distance = DistanceSquared(point, candidates[i].Position);
+            if (distance < bestDistance ||
+                (distance == bestDistance && candidates[i].Id.Value < closest.Id.Value))
+            {
+                closest = candidates[i];
+                bestDistance = distance;
+            }
+        }
+
+        var junction = snapshot.Junctions.FirstOrDefault(candidate =>
+            candidate.Id.Equals(closest.Id));
+        var ground = snapshot.Tiles.FirstOrDefault(candidate =>
+            candidate.Coord.Equals(tile));
+        if (junction == null || ground == null)
+        {
+            PlantingPlacementMarker.Hide();
+            return true;
+        }
+
+        _plantingObjectJunctions.Clear();
+        foreach (var worldObject in snapshot.Objects)
+        {
+            foreach (var objectJunction in worldObject.Junctions)
+            {
+                _plantingObjectJunctions.Add(objectJunction);
+            }
+        }
+
+        var actorAtPoint = DistanceSquared(actor.Position, closest.Position) <= 0.04f;
+        var anotherPersonAtPoint = snapshot.Npcs.Any(person =>
+            person.Id.Value != _plantingActorId && person.Health > 0f &&
+            DistanceSquared(person.Position, closest.Position) <= 0.04f);
+        var animalAtPoint = snapshot.Mobs.Any(mob =>
+            DistanceSquared(mob.Position, closest.Position) <= 0.04f);
+        _plantingCandidateJunction = closest.Id;
+        _plantingCandidateTile = tile;
+        _plantingCandidatePosition = closest.Position;
+        _plantingCandidateValid = ground.Walkable && !ground.Blocked && !ground.Water &&
+            !junction.Blocked && !junction.IsSwimmable &&
+            !_plantingObjectJunctions.Contains(closest.Id) &&
+            !anotherPersonAtPoint && !animalAtPoint &&
+            (!junction.Occupied || actorAtPoint) &&
+            (!junction.Reserved || actorAtPoint);
+
+        PlantingPlacementMarker.Show(
+            SimulationUnityMapper.ToUnityPosition(
+                closest.Position, TileTopY(ground)),
+            _plantingCandidateValid);
+        return true;
+    }
+
+    private void CancelPlantingPlacement()
+    {
+        _plantingActorId = -1;
+        _plantingSourceIndex = -1;
+        _plantingSeedDefinitionId = string.Empty;
+        _plantingCandidateJunction = null;
+        _plantingCandidateValid = false;
+        _plantingJunctionsByTile.Clear();
+        _plantingObjectJunctions.Clear();
+        PlantingPlacementMarker.Hide();
+    }
 
     private void RefreshControlSelection()
     {
@@ -567,6 +769,31 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// </summary>
     public bool TryHandleManualClick(Vector2 mousePos)
     {
+        if (_plantingActorId >= 0)
+        {
+            if (_runner != null && _plantingCandidateValid &&
+                _plantingCandidateJunction is { } target)
+            {
+                var actor = new EntityId(_plantingActorId);
+                EnqueueOrder(_plantingActorId, new PlantInventorySeedCommand(
+                    actor,
+                    new InventoryItemRef(
+                        InventoryItemSource.Carried,
+                        _plantingSourceIndex,
+                        _plantingSeedDefinitionId),
+                    target,
+                    _plantingCandidateTile));
+                DestinationMarker.Show(SimulationUnityMapper.ToUnityPosition(
+                    _plantingCandidatePosition,
+                    GroundMarkerY(_plantingCandidatePosition)));
+                CancelPlantingPlacement();
+            }
+
+            // An invalid red hex keeps placement alive, but the click is still
+            // consumed so it cannot select a different person or issue MoveTo.
+            return true;
+        }
+
         if (CharacterPanel.BlocksManualInput(NpcSelection.PrimaryId)) return true;
         if (_runner == null)
         {
@@ -717,6 +944,11 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// </summary>
     public bool TryHandleContextClick(Vector2 mousePos)
     {
+        if (TryCancelPlantingPlacement())
+        {
+            return true;
+        }
+
         if (CharacterPanel.BlocksManualInput(NpcSelection.PrimaryId)) return true;
         if (RuntimeWindow.BlocksWorldInput || CraftProjectDetailsPanel.BlocksWorldInput || CharacterPanel.BlocksWorldPointer) return true;
         var runner = _runner;
@@ -1639,9 +1871,14 @@ public sealed class SimulationInputAdapter : MonoBehaviour
     /// способом, что и выбор гекса у камеры: коллайдеров у земли нет, а
     /// высота у тайлов разная.
     /// </summary>
-    private bool TryPickGroundPoint(Vector2 mousePos, out Float2 point)
+    private bool TryPickGroundPoint(Vector2 mousePos, out Float2 point) =>
+        TryPickGroundPoint(mousePos, out point, out _);
+
+    private bool TryPickGroundPoint(
+        Vector2 mousePos, out Float2 point, out TileCoord tileCoord)
     {
         point = default;
+        tileCoord = default;
         if (_camera == null)
         {
             return false;
@@ -1678,10 +1915,18 @@ public sealed class SimulationInputAdapter : MonoBehaviour
 
             bestT = t;
             point = new Float2(hit.x, hit.z);
+            tileCoord = tile.Coord;
             found = true;
         }
 
         return found;
+    }
+
+    private static float DistanceSquared(Float2 a, Float2 b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        return dx * dx + dy * dy;
     }
 
     // Та же ступень высоты, что у камеры и рендерера. Число повторяется в

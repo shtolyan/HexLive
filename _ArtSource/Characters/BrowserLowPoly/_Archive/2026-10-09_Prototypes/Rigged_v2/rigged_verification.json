@@ -1,0 +1,54 @@
+{
+  "Kshishtof_LOD0.glb": {
+    "morph_count": 109,
+    "all_names_and_order_exact": true,
+    "bones": 172,
+    "bone_names_and_parents_exact": true,
+    "rest_joint_max_error_m": 8.498888749837398e-07,
+    "weights_normalized": true,
+    "max_skin_influences": 10,
+    "nonempty_morphs": 109,
+    "max_morph_roundtrip_error_m": 1.5291482315191868e-07,
+    "fourteen_game_visemes_and_blink_smile_anger": "passed",
+    "bytes": 8657356
+  },
+  "Kshishtof_LOD0.fbx": {
+    "morph_count": 109,
+    "all_names_and_order_exact": true,
+    "bones": 172,
+    "bone_names_and_parents_exact": true,
+    "rest_joint_max_error_m": 2.38912831914782e-07,
+    "weights_normalized": true,
+    "max_skin_influences": 10,
+    "nonempty_morphs": 109,
+    "max_morph_roundtrip_error_m": 1.076971924834913e-09,
+    "fourteen_game_visemes_and_blink_smile_anger": "passed",
+    "bytes": 2591756
+  },
+  "Kshishtof_LOD1.glb": {
+    "morph_count": 109,
+    "all_names_and_order_exact": true,
+    "bones": 172,
+    "bone_names_and_parents_exact": true,
+    "rest_joint_max_error_m": 8.498888749837398e-07,
+    "weights_normalized": true,
+    "max_skin_influences": 10,
+    "nonempty_morphs": 109,
+    "max_morph_roundtrip_error_m": 1.5291482315191868e-07,
+    "fourteen_game_visemes_and_blink_smile_anger": "passed",
+    "bytes": 8073996
+  },
+  "Kshishtof_LOD1.fbx": {
+    "morph_count": 109,
+    "all_names_and_order_exact": true,
+    "bones": 172,
+    "bone_names_and_parents_exact": true,
+    "rest_joint_max_error_m": 2.38912831914782e-07,
+    "weights_normalized": true,
+    "max_skin_influences": 10,
+    "nonempty_morphs": 109,
+    "max_morph_roundtrip_error_m": 1.076971924834913e-09,
+    "fourteen_game_visemes_and_blink_smile_anger": "passed",
+    "bytes": 2468236
+  }
+}

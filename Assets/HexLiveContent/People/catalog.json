@@ -64,6 +64,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -110,6 +114,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -158,6 +166,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -204,6 +216,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -252,6 +268,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -298,6 +318,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -346,6 +370,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -393,6 +421,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -432,6 +464,10 @@
             "inputs": [
               {
                 "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -473,6 +509,10 @@
               {
                 "id": "resource.hide",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -512,6 +552,10 @@
             "inputs": [
               {
                 "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -553,6 +597,10 @@
               {
                 "id": "resource.hide",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -592,6 +640,10 @@
             "inputs": [
               {
                 "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -633,6 +685,10 @@
               {
                 "id": "resource.hide",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -672,6 +728,10 @@
             "inputs": [
               {
                 "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -713,6 +773,10 @@
               {
                 "id": "resource.hide",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -751,6 +815,10 @@
             "inputs": [
               {
                 "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -791,6 +859,10 @@
               {
                 "id": "resource.hide",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -829,6 +901,10 @@
             "inputs": [
               {
                 "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -869,6 +945,10 @@
               {
                 "id": "resource.hide",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -907,6 +987,10 @@
             "inputs": [
               {
                 "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -947,6 +1031,10 @@
               {
                 "id": "resource.hide",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -986,6 +1074,10 @@
               {
                 "id": "resource.hide",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1024,6 +1116,10 @@
             "inputs": [
               {
                 "id": "resource.hide",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1072,6 +1168,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1118,6 +1218,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1166,6 +1270,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1212,6 +1320,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1260,6 +1372,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1306,6 +1422,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1354,6 +1474,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1401,6 +1525,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1445,6 +1573,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1491,6 +1623,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1535,6 +1671,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1581,6 +1721,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1625,6 +1769,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1671,6 +1819,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1715,6 +1867,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1761,6 +1917,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1803,6 +1963,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1847,6 +2011,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1890,6 +2058,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -1932,6 +2104,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -1983,6 +2159,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2032,6 +2212,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -2083,6 +2267,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2132,6 +2320,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -2183,6 +2375,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2232,6 +2428,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -2283,6 +2483,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2332,6 +2536,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -2383,6 +2591,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2432,6 +2644,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -2483,6 +2699,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2532,6 +2752,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -2583,6 +2807,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2633,6 +2861,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2673,6 +2905,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2713,6 +2949,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2753,6 +2993,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2793,6 +3037,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2833,6 +3081,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2873,6 +3125,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2913,6 +3169,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2953,6 +3213,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -2993,6 +3257,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3033,6 +3301,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3073,6 +3345,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3113,6 +3389,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3153,6 +3433,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3193,6 +3477,10 @@
               {
                 "id": "resource.hide",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3396,6 +3684,10 @@
               {
                 "id": "resource.rope",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3439,6 +3731,10 @@
               {
                 "id": "resource.rope",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3482,6 +3778,10 @@
               {
                 "id": "resource.rope",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3525,6 +3825,10 @@
               {
                 "id": "resource.rope",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3568,6 +3872,10 @@
               {
                 "id": "resource.rope",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3611,6 +3919,10 @@
               {
                 "id": "resource.rope",
                 "count": 2
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3949,6 +4261,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -3991,6 +4307,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]
@@ -4035,6 +4355,10 @@
               {
                 "id": "resource.rope",
                 "count": 1
+              },
+              {
+                "id": "resource.cloth",
+                "count": 1
               }
             ]
           },
@@ -4077,6 +4401,10 @@
               },
               {
                 "id": "resource.rope",
+                "count": 1
+              },
+              {
+                "id": "resource.cloth",
                 "count": 1
               }
             ]

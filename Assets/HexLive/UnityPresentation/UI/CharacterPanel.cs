@@ -207,9 +207,11 @@ namespace HexLive.UnityPresentation.UI
         private Label _invDetailDesc;
         private VisualElement _invDetailStats;
         private VisualElement _invPrimaryAction;
+        private VisualElement _invPlantAction;
         private VisualElement _invDropAction;
         private VisualElement _invFillAction; // §55.4 (bug #317)
         private Label _invPrimaryActionLabel;
+        private Label _invPlantActionLabel;
         private Label _invDropActionLabel;
         private Label _invFillActionLabel;
         private Label _invReadOnlyLabel;
@@ -2855,6 +2857,18 @@ namespace HexLive.UnityPresentation.UI
             _invPrimaryAction.Add(_invPrimaryActionLabel);
             actions.Add(_invPrimaryAction);
 
+            // §173.2: a carried whole coconut or seed starts world placement
+            // directly from its inventory card; no preliminary Drop required.
+            _invPlantAction = InventoryActionButton(BeginSelectedSeedPlacement);
+            _invPlantAction.style.marginLeft = 8f;
+            _invPlantActionLabel = new Label(Loc.Get("inv.action.plant"));
+            _invPlantActionLabel.style.color = new Color(0.55f, 0.82f, 0.43f, 1f);
+            _invPlantActionLabel.style.fontSize = 13f;
+            _invPlantActionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _invPlantActionLabel.pickingMode = PickingMode.Ignore;
+            _invPlantAction.Add(_invPlantActionLabel);
+            actions.Add(_invPlantAction);
+
             _invDropAction = InventoryActionButton(RequestInventoryDrop);
             _invDropAction.style.marginLeft = 8f;
             _invDropActionLabel = new Label(Loc.Get("inv.action.drop"));
@@ -4237,6 +4251,9 @@ namespace HexLive.UnityPresentation.UI
             _invPrimaryAction.style.display = _inventoryMutable &&
                 (worn || wearable) && !outfitChangeBlocked
                 ? DisplayStyle.Flex : DisplayStyle.None;
+            _invPlantAction.style.display = _inventoryMutable && !worn &&
+                PlantGrowthCatalog.TryGetBySeed(id, out _)
+                ? DisplayStyle.Flex : DisplayStyle.None;
             _invDropAction.style.display = _inventoryMutable && !(_outfitLockedNow && worn)
                 ? DisplayStyle.Flex : DisplayStyle.None;
             // §55.4 (bug #317): «Наполнить» — только у неполной бутылки, когда
@@ -4251,6 +4268,7 @@ namespace HexLive.UnityPresentation.UI
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _invPrimaryActionLabel.text = Loc.Get(worn
                 ? "inv.action.stow" : "inv.action.wear");
+            _invPlantActionLabel.text = Loc.Get("inv.action.plant");
             _invDropActionLabel.text = Loc.Get("inv.action.drop");
             _invReadOnlyLabel.text = Loc.Get(outfitChangeBlocked
                 ? "inv.outfit_locked" : "inv.readonly");
@@ -4303,6 +4321,40 @@ namespace HexLive.UnityPresentation.UI
                 new InventoryItemRef(InventoryItemSource.Carried, index, _invSelectedId)));
             HideItemDetail();
             _invSig = null;
+        }
+
+        private void BeginSelectedSeedPlacement()
+        {
+            if (!_inventoryMutable || _runner == null || _invSelectedId == null ||
+                _inventoryActorId < 0 || _invSelectedWorn ||
+                !PlantGrowthCatalog.TryGetBySeed(_invSelectedId, out _))
+            {
+                return;
+            }
+
+            var snapshot = _runner.IsReady ? _runner.CreateSnapshot() : null;
+            var npc = snapshot != null ? FindNpc(snapshot, _inventoryActorId) : null;
+            if (npc == null)
+            {
+                return;
+            }
+
+            var sourceIndex = _invSelectedSourceIndex >= 0
+                ? _invSelectedSourceIndex
+                : FindCarriedSourceIndex(npc, _invSelectedId);
+            if (sourceIndex < 0)
+            {
+                return;
+            }
+
+            var input = FindAnyObjectByType<SimulationInputAdapter>();
+            if (input == null || !input.BeginPlantingPlacement(
+                    _inventoryActorId, sourceIndex, _invSelectedId))
+            {
+                return;
+            }
+
+            CloseInventory();
         }
 
         private void EnqueueInventoryAction(InventoryAction action, int count = 1)
@@ -7948,6 +8000,7 @@ namespace HexLive.UnityPresentation.UI
                 _outsiderRosterHeader.text = Loc.Get("roster.outsiders");
             if (_invDropActionLabel != null) _invDropActionLabel.text = Loc.Get("inv.action.drop");
             if (_invFillActionLabel != null) _invFillActionLabel.text = Loc.Get("inv.action.fill");
+            if (_invPlantActionLabel != null) _invPlantActionLabel.text = Loc.Get("inv.action.plant");
             if (_invReadOnlyLabel != null) _invReadOnlyLabel.text = Loc.Get("inv.readonly");
             if (_invPrimaryActionLabel != null && _invSelectedId != null)
                 _invPrimaryActionLabel.text = Loc.Get(_invSelectedWorn

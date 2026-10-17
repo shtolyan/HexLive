@@ -253,7 +253,8 @@ public sealed partial class DecisionSystem
 
     internal static bool HasCoconutBlade(NPCState npc) =>
         npc.Body.HasUsableHand &&
-        Content.GearCatalog.HasCapability(npc.Inventory.Items, Content.GearCapability.Cut);
+        Content.GearCatalog.HasCapability(
+            npc.Inventory.Items, Content.GearCapability.OpenCoconut);
 
     internal static bool HasCoconutOpportunity(NPCState npc, WorldState world)
     {

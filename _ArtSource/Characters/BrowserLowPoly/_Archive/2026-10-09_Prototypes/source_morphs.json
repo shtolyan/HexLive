@@ -1,0 +1,1552 @@
+{
+  "Marta": {
+    "keys": [
+      {
+        "name": "Basis",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__CTRLCheeksDimpleCreaseHD",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLSurprised",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLSmile",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLFrown",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLFlirting",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLAngry",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvW",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvUW",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvTH",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvT",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvSH",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvS",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvOW",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvM",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvK",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvIY",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvIH",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvF",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvER",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvEH",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvEE",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLvAA",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLTongueUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLTongueSide-Side",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLTongueRaise-Lower",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLTongueNarrow-Wide",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLTongueIn-Out",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLTongueBendTip",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLTongue Curl",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLNostrilsFlare",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLNoseWrinkle",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLNoseScrunch",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthSmileSimpleR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthSmileSimpleL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthSmileSimple",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthSmileOpen",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthSmile",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthSide-SideR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthSide-SideL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthSide-Side",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthOpenWide",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthOpen",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthNarrowR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthNarrowL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthNarrow",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthFrown",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthCornerUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthCornerBackR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthCornerBackL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLMouthCornerBack",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipTopUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipTopUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipTopUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipTopIn-OutR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipTopIn-OutL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipTopIn-Out",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipsPuckerWide",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipsPucker",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipsPartCenter",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipsPart",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipBottomUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipBottomUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipBottomUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipBottomIn-OutR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipBottomIn-OutL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLLipBottomIn-Out",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLJawSide-Side",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLJawOut-In",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyesUpDown",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyesSquintR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyesSquintL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyesSquint",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyesSideSide",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyesCrossed",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyesClosedR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyesClosedL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyesClosed",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyelidsUpperDownUpR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyelidsUpperDownUpL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyelidsUpperDownUp",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyelidsLowerUpDownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyelidsLowerUpDownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLEyelidsLowerUpDown",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLCheeksBalloonPucker",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLCheeksBalloon",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLCheekFlexR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLCheekFlexL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLCheekFlex",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLCheekEyeFlexR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLCheekEyeFlexL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLCheekEyeFlex",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLCheekCrease",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowSqueeze",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowOuterUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowOuterUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowOuterUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowInnerUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowInnerUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__eCTRLBrowInnerUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__PHMNoseCompressionHD",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__PHMCheeksDimpleCreaseHDR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__PHMCheeksDimpleCreaseHDL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__PHMBrowCompressionHD",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__ePHMCheekCreaseR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Female__ePHMCheekCreaseL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      }
+    ],
+    "max_weights": 10
+  },
+  "Kshishtof": {
+    "keys": [
+      {
+        "name": "Basis",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__CTRLCheeksDimpleCreaseHD",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLSurprised",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLSmile",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLFrown",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLFlirting",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLAngry",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvW",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvUW",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvTH",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvT",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvSH",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvS",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvOW",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvM",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvK",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvIY",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvIH",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvF",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvER",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvEH",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvEE",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLvAA",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLTongueUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLTongueSide-Side",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLTongueRaise-Lower",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLTongueNarrow-Wide",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLTongueIn-Out",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLTongueBendTip",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLTongue Curl",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLNostrilsFlare",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLNoseWrinkle",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLNoseScrunch",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthSmileSimpleR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthSmileSimpleL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthSmileSimple",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthSmileOpen",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthSmile",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthSide-SideR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthSide-SideL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthSide-Side",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthOpenWide",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthOpen",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthNarrowR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthNarrowL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthNarrow",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthFrown",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthCornerUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthCornerBackR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthCornerBackL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLMouthCornerBack",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipTopUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipTopUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipTopUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipTopIn-OutR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipTopIn-OutL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipTopIn-Out",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipsPuckerWide",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipsPucker",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipsPartCenter",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipsPart",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipBottomUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipBottomUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipBottomUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipBottomIn-OutR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipBottomIn-OutL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLLipBottomIn-Out",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLJawSide-Side",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLJawOut-In",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyesUpDown",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyesSquintR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyesSquintL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyesSquint",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyesSideSide",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyesCrossed",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyesClosedR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyesClosedL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyesClosed",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyelidsUpperDownUpR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyelidsUpperDownUpL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyelidsUpperDownUp",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyelidsLowerUpDownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyelidsLowerUpDownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLEyelidsLowerUpDown",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLCheeksBalloonPucker",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLCheeksBalloon",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLCheekFlexR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLCheekFlexL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLCheekFlex",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLCheekEyeFlexR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLCheekEyeFlexL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLCheekEyeFlex",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLCheekCrease",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowSqueeze",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowOuterUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowOuterUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowOuterUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowInnerUp-DownR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowInnerUp-DownL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__eCTRLBrowInnerUp-Down",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__PHMNoseCompressionHD",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__PHMCheeksDimpleCreaseHDR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__PHMCheeksDimpleCreaseHDL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__PHMBrowCompressionHD",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__ePHMCheekCreaseR",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      },
+      {
+        "name": "Genesis3Male__ePHMCheekCreaseL",
+        "relative": "Basis",
+        "min": 0.0,
+        "max": 1.0,
+        "value": 0.0
+      }
+    ],
+    "max_weights": 10
+  }
+}

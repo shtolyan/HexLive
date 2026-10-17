@@ -27,6 +27,12 @@ public static class GroundItemPlacementPreview
         checkedOrigins = 1;
         canDropHere = GroundItemPlacement.TryFind(world, npc, item, out _, out dropJunction, out _);
         if (canDropHere) return true;
+        var routeStart = GroundItemPlacement.RouteOrigin(world, npc);
+        if (routeStart == null)
+        {
+            dropJunction = default;
+            return false;
+        }
         for (var ring = 1; ring <= approachRadiusTiles; ring++)
         for (var dq = -ring; dq <= ring; dq++)
         for (var dr = Math.Max(-ring, -dq - ring); dr <= Math.Min(ring, -dq + ring); dr++)
@@ -44,7 +50,8 @@ public static class GroundItemPlacementPreview
                 // repeatedly suggest the same unusable coordinate.
                 if (node.Tiles.Count != 1 || !node.Tiles[0].Equals(tile) ||
                     node.Fragment != npc.Fragment || !SpatialQueries.IsJunctionPassable(world, id) ||
-                    !SpatialQueries.IsJunctionFree(world, id)) continue;
+                    !SpatialQueries.IsJunctionFree(world, id) ||
+                    !Connectivity.ReachableWithoutTrace(world, routeStart.Value, id, npc.Body.CanJump)) continue;
                 var dx = node.WorldPosition.X - npc.Position.X;
                 var dy = node.WorldPosition.Y - npc.Position.Y;
                 var distance = dx * dx + dy * dy;
@@ -54,7 +61,8 @@ public static class GroundItemPlacementPreview
             if (origin == null) continue;
             var position = world.Junctions.Items[origin.Value].WorldPosition;
             checkedOrigins++;
-            if (!GroundItemPlacement.TryFindNear(world, npc, item, tile, position, out _, out dropJunction, out _)) continue;
+            if (!GroundItemPlacement.TryFindNear(world, npc, item, tile, position,
+                    out _, out dropJunction, out _, routeStart: origin)) continue;
             approach = position;
             return true;
         }
@@ -148,17 +156,21 @@ internal static class GroundItemPlacement
         finally { Return(world,scratch); }
     }
     internal static bool TryFindNear(WorldState world,NPCState npc,ItemInstance item,TileCoord origin,Float2 position,
-        out TileCoord tile,out JunctionId junction,out string reason,bool scatter=false)
+        out TileCoord tile,out JunctionId junction,out string reason,bool scatter=false,
+        JunctionId? routeStart=null)
     {
         var scratch=Rent(world);
-        try { return Find(world,npc,item,origin,position,scratch,out tile,out junction,out _,out reason,scatter); }
+        try { return Find(world,npc,item,origin,position,scratch,out tile,out junction,out _,out reason,scatter,routeStart); }
         finally { Return(world,scratch); }
     }
     private static bool Find(WorldState world,NPCState npc,ItemInstance item,TileCoord origin,Float2 position,
-        Scratch scratch,out TileCoord tile,out JunctionId junction,out GroundPileBounds resultBounds,out string reason,bool scatter=false)
+        Scratch scratch,out TileCoord tile,out JunctionId junction,out GroundPileBounds resultBounds,out string reason,
+        bool scatter=false,JunctionId? routeStart=null)
     {
         tile=origin;junction=default;resultBounds=default;reason="";
         scratch.ObjectsInspected=0;scratch.CandidatesChecked=0;
+        routeStart ??= RouteOrigin(world,npc);
+        if(routeStart==null) {reason="NoRouteOrigin";return false;}
         if(!world.Content.ObjectDefinitions.TryGetValue(item.DefinitionId,out var incomingDefinition) ||
             !GroundPileCatalog.TryGet(item.DefinitionId,incomingDefinition.Layer!=null,out var profile))
         {reason="UnknownGroundGeometry:"+item.DefinitionId;return false;}
@@ -261,6 +273,12 @@ internal static class GroundItemPlacement
                 else if(bounds.OverlapsXZ(reservation.Bounds)) {valid=false;break;}
             }
             if(!valid) continue;
+            // A locally free point may belong to a sealed component (bug #477:
+            // three old palms left their centre free but unreachable). The item
+            // must land in the actor's actual route component, including when a
+            // harvest scatters farther than the ordinary one-tile drop.
+            if(!routeStart.Value.Equals(candidate.Id) &&
+               !Connectivity.ReachableWithoutTrace(world,routeStart.Value,candidate.Id,npc.Body.CanJump)) continue;
             tile=candidate.Tile;junction=candidate.Id;resultBounds=bounds;reason="";return true;
         }
         return false;
@@ -274,6 +292,32 @@ internal static class GroundItemPlacement
         // bounding circle contains the whole leaf for every allowed yaw.
         return Math.Abs(x)<=limit && Math.Abs(.5f*x+HexSpatialMath.Sqrt3*.5f*z)<=limit &&
             Math.Abs(.5f*x-HexSpatialMath.Sqrt3*.5f*z)<=limit;
+    }
+
+    internal static JunctionId? RouteOrigin(WorldState world,NPCState npc)
+    {
+        if(npc.CurrentJunction is { } current &&
+            world.Junctions.Items.TryGetValue(current,out var node) &&
+            node.Fragment==npc.Fragment && SpatialQueries.IsJunctionPassable(world,current))
+            return current;
+
+        // A new arrival or a just-displaced actor can temporarily have only
+        // Position/Tile. Resolve from the local tile instead of silently
+        // disabling the route guard; no world-wide junction scan is needed.
+        if(!world.Tiles.Items.TryGetValue(npc.Tile,out var tile)) return null;
+        JunctionId? nearest=null;
+        var best=float.MaxValue;
+        foreach(var id in tile.Junctions)
+        {
+            if(!world.Junctions.Items.TryGetValue(id,out var candidate) ||
+                candidate.Fragment!=npc.Fragment || !SpatialQueries.IsJunctionPassable(world,id)) continue;
+            var dx=candidate.WorldPosition.X-npc.Position.X;
+            var dy=candidate.WorldPosition.Y-npc.Position.Y;
+            var distance=dx*dx+dy*dy;
+            if(distance<best || distance==best && (nearest==null || id.Value<nearest.Value.Value))
+            {best=distance;nearest=id;}
+        }
+        return nearest;
     }
     private static GroundPileBounds Footprint(GroundPileProfile profile,int capacity,bool scatter=false)
     {

@@ -1,0 +1,40 @@
+{
+  "state": "done",
+  "packs": {
+    "Marta_PrimalGathererPack": {
+      "iterations_adjustments": [
+        8,
+        0
+      ],
+      "moved_vertices": 8,
+      "max_adjustment_cm": 1.2903445114684715
+    },
+    "Kshishtof_PrimalGathererPack": {
+      "iterations_adjustments": [
+        45,
+        20,
+        11
+      ],
+      "moved_vertices": 24,
+      "max_adjustment_cm": 4.441678792656883
+    },
+    "Marta_PrimalHunterPack": {
+      "iterations_adjustments": [
+        8,
+        0
+      ],
+      "moved_vertices": 8,
+      "max_adjustment_cm": 1.2903445114684715
+    },
+    "Kshishtof_PrimalHunterPack": {
+      "iterations_adjustments": [
+        45,
+        20,
+        11
+      ],
+      "moved_vertices": 24,
+      "max_adjustment_cm": 4.441678792656883
+    }
+  },
+  "trail_pack_note": "Original Osiris harness replaced after refinement with new torso-weighted leather straps; see final verification."
+}

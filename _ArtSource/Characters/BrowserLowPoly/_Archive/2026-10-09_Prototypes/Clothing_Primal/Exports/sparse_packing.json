@@ -1,0 +1,32 @@
+{
+  "Kshishtof_Body_SeparateGenitals.glb": {
+    "before": 70562180,
+    "after": 8041012,
+    "morph_accessors_sparsified": 218,
+    "values_numerically_identical": true
+  },
+  "Kshishtof_PrimalBriefs.glb": {
+    "before": 166476,
+    "after": 166472,
+    "morph_accessors_sparsified": 0,
+    "values_numerically_identical": true
+  },
+  "Marta_PrimalBriefs.glb": {
+    "before": 163964,
+    "after": 163964,
+    "morph_accessors_sparsified": 0,
+    "values_numerically_identical": true
+  },
+  "Marta_PrimalTop.glb": {
+    "before": 172816,
+    "after": 172816,
+    "morph_accessors_sparsified": 0,
+    "values_numerically_identical": true
+  },
+  "Primal_Run_Test.glb": {
+    "before": 123746624,
+    "after": 13589668,
+    "morph_accessors_sparsified": 436,
+    "values_numerically_identical": true
+  }
+}

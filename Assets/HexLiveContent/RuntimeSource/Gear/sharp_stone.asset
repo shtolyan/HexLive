@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7146726166aa464c8ed031473ef4889a, type: 3}
+  m_Name: sharp_stone
+  m_EditorClassIdentifier:
+  gearId: tool.sharp_stone
+  prefab: {fileID: 0}
+  prefabResourcePath:
+  usableAsWeapon: 0
+  damage: 0.15
+  cutFraction: 0.75
+  bloodLossMultiplier: 0.75
+  hitDelaySeconds: 0.75
+  attackDurationSeconds: 1.86
+  cooldownSeconds: 1.14
+  meleePriority: 0
+  twoHanded: 0
+  attackSpeed: 0.8
+  harvestSpeedMult: 0.5
+  capabilities:
+  - 4096
+  - 8192
+  craftable: 1
+  craftStation: 0
+  craftNeedsLitFire: 0
+  craftIngredients:
+  - item: {fileID: 11400000, guid: d1e2f3a4b5c6470890123456789abc32, type: 2}
+    itemId:
+    count: 2
+  handPoseAuthored: 0
+  handLocalPosition: {x: 0, y: 0, z: 0}
+  handLocalEuler: {x: 0, y: 0, z: 0}
+  handLocalScale: {x: 1, y: 1, z: 1}
+  handHasLeftOverride: 0
+  leftHandLocalPosition: {x: 0, y: 0, z: 0}
+  leftHandLocalEuler: {x: 0, y: 0, z: 0}
+  strikes: []
+  attackClips: []
+  armedIdle: {fileID: 0}
+  armedWalk: {fileID: 0}
+  workClip: {fileID: 0}

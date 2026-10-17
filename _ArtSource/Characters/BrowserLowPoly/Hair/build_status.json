@@ -1,0 +1,759 @@
+{
+  "state": "done",
+  "hairs": {
+    "AdellHair": {
+      "source_vertices": 61369,
+      "source_triangles": 88208,
+      "lod0_vertices": 3371,
+      "lod0_triangles": 2400,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 713,
+        "visible_islands": 550,
+        "kept_islands": 550
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Hair",
+        "Base"
+      ]
+    },
+    "AsukaHair": {
+      "source_vertices": 100218,
+      "source_triangles": 154698,
+      "lod0_vertices": 3238,
+      "lod0_triangles": 2399,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 726,
+        "visible_islands": 609,
+        "kept_islands": 609
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Scalp",
+        "A_Strands",
+        "A_Strands_A",
+        "A_Strands_B",
+        "A_Strands_C",
+        "B_Base",
+        "B_Base_Fine",
+        "B_Base_Str",
+        "C_Bow_Curl",
+        "B_Base_Neck",
+        "C_Bow_Fine",
+        "C_Bow"
+      ]
+    },
+    "BendineHair": {
+      "source_vertices": 327813,
+      "source_triangles": 321772,
+      "lod0_vertices": 4215,
+      "lod0_triangles": 2398,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "pruning": {
+        "source_islands": 4929,
+        "visible_islands": 2530,
+        "kept_islands": 750
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Side2",
+        "Front2",
+        "Back",
+        "Bangs2",
+        "Bangs1",
+        "Front1",
+        "BackUnder",
+        "Side1",
+        "Cap"
+      ]
+    },
+    "Bob3Hair": {
+      "source_vertices": 219147,
+      "source_triangles": 293680,
+      "lod0_vertices": 3586,
+      "lod0_triangles": 2400,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 1916,
+        "visible_islands": 1336,
+        "kept_islands": 750
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "HairFiner",
+        "HairMiddle",
+        "HairLow",
+        "Scalp",
+        "HairFine"
+      ]
+    },
+    "ChunkyHair": {
+      "source_vertices": 206031,
+      "source_triangles": 200940,
+      "lod0_vertices": 3468,
+      "lod0_triangles": 2399,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "pruning": {
+        "source_islands": 6209,
+        "visible_islands": 2920,
+        "kept_islands": 750
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Bangs2",
+        "Hairbands",
+        "Bangs1",
+        "Cap",
+        "Back",
+        "BackUnder",
+        "Front1",
+        "Side1",
+        "Front2",
+        "Side2"
+      ]
+    },
+    "EilisHair": {
+      "source_vertices": 141455,
+      "source_triangles": 138710,
+      "lod0_vertices": 4048,
+      "lod0_triangles": 2399,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "pruning": {
+        "source_islands": 1550,
+        "visible_islands": 1464,
+        "kept_islands": 750
+      },
+      "max_weights": 3,
+      "source_materials": [
+        "scalp",
+        "hair1",
+        "hair2"
+      ]
+    },
+    "Hair07": {
+      "source_vertices": 120597,
+      "source_triangles": 171384,
+      "lod0_vertices": 2770,
+      "lod0_triangles": 2398,
+      "lod1_triangles": 950,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 580,
+        "visible_islands": 577,
+        "kept_islands": 577
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Scalp",
+        "B_FrontLonger",
+        "B_FrontFine",
+        "A_Hair",
+        "B_FrontShort",
+        "A_Back"
+      ]
+    },
+    "JelikaHair_32434": {
+      "source_vertices": 32977,
+      "source_triangles": 52660,
+      "lod0_vertices": 2271,
+      "lod0_triangles": 2399,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 131,
+        "visible_islands": 123,
+        "kept_islands": 123
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Bow2",
+        "Bow1",
+        "Ribbons",
+        "Clip",
+        "PonyWisps2",
+        "PonyWisps1",
+        "PonyWisps2",
+        "BangWisps1",
+        "BangThin3",
+        "BangThin2",
+        "BangThin1",
+        "Bang3",
+        "Bang2",
+        "Bang1",
+        "HairTop",
+        "HairBottom",
+        "Cap"
+      ]
+    },
+    "JenniferHair": {
+      "source_vertices": 107167,
+      "source_triangles": 123216,
+      "lod0_vertices": 3536,
+      "lod0_triangles": 2400,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "lowerFaceRig",
+        "lCheekLower",
+        "rCheekLower",
+        "BelowJaw",
+        "lJawClench",
+        "rJawClench",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 1662,
+        "visible_islands": 1548,
+        "kept_islands": 750
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "HairLow",
+        "Braid01",
+        "Braid02",
+        "HairFine",
+        "HairFront",
+        "Scalp",
+        "temples",
+        "BraidBack02",
+        "BraidBack01",
+        "Rubber_band"
+      ]
+    },
+    "LeonyPonytail": {
+      "source_vertices": 166992,
+      "source_triangles": 164466,
+      "lod0_vertices": 3491,
+      "lod0_triangles": 2400,
+      "lod1_triangles": 800,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "rCollar",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "lowerFaceRig",
+        "lNasolabialMouthCorner",
+        "lCheekLower",
+        "rCheekLower",
+        "BelowJaw",
+        "lJawClench",
+        "rJawClench",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lEyelidUpperOuter",
+        "lEyelidOuter",
+        "lEyelidLowerOuter",
+        "lEyelidLower",
+        "rEyelidUpperOuter",
+        "rEyelidOuter",
+        "rEyelidLowerOuter",
+        "rSquintOuter",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lLipNasolabialCrease",
+        "lNasolabialMiddle",
+        "rNasolabialMiddle",
+        "lEar",
+        "rEar",
+        "lPectoral",
+        "rPectoral"
+      ],
+      "pruning": {
+        "source_islands": 3712,
+        "visible_islands": 2066,
+        "kept_islands": 750
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Cap",
+        "Bands",
+        "Side1",
+        "Side2",
+        "Bangs2",
+        "Bangs1",
+        "Back",
+        "BackUnder",
+        "Front2",
+        "Front1"
+      ]
+    },
+    "LoonaHair": {
+      "source_vertices": 42653,
+      "source_triangles": 55116,
+      "lod0_vertices": 2941,
+      "lod0_triangles": 2399,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 308,
+        "visible_islands": 307,
+        "kept_islands": 307
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Str_upper",
+        "Fine",
+        "Str_lower",
+        "Hair_lower",
+        "Hair_upper",
+        "FlyAways",
+        "Scalp"
+      ]
+    },
+    "LowPonytail": {
+      "source_vertices": 129089,
+      "source_triangles": 125438,
+      "lod0_vertices": 3853,
+      "lod0_triangles": 2399,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "lCollar",
+        "rCollar",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "pruning": {
+        "source_islands": 3832,
+        "visible_islands": 2128,
+        "kept_islands": 750
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "BackUnder",
+        "Side2",
+        "Bangs1",
+        "Front1",
+        "Side1",
+        "Front2",
+        "Back",
+        "Bangs2",
+        "Cap",
+        "Hairband"
+      ]
+    },
+    "Neu09Hair": {
+      "source_vertices": 123651,
+      "source_triangles": 193391,
+      "lod0_vertices": 3299,
+      "lod0_triangles": 2396,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 652,
+        "visible_islands": 644,
+        "kept_islands": 644
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "A_hair",
+        "B_side",
+        "Rubber",
+        "Cherry02",
+        "Cherry01",
+        "Scalp",
+        "A_neck",
+        "B_sideburn",
+        "B_strands"
+      ]
+    },
+    "OnyxHair": {
+      "source_vertices": 270245,
+      "source_triangles": 318994,
+      "lod0_vertices": 4528,
+      "lod0_triangles": 2398,
+      "lod1_triangles": 799,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head"
+      ],
+      "pruning": {
+        "source_islands": 2308,
+        "visible_islands": 2184,
+        "kept_islands": 750
+      },
+      "max_weights": 1,
+      "source_materials": [
+        "HairTop",
+        "Cap",
+        "HairBase",
+        "HairMid",
+        "Back",
+        "Band",
+        "TailHair",
+        "HairBangs",
+        "HairWisps"
+      ]
+    },
+    "ShilohHair": {
+      "source_vertices": 79401,
+      "source_triangles": 93486,
+      "lod0_vertices": 3103,
+      "lod0_triangles": 2398,
+      "lod1_triangles": 800,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 769,
+        "visible_islands": 768,
+        "kept_islands": 750
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Scalp",
+        "B_Fine",
+        "A_Hair",
+        "A_Strands"
+      ]
+    },
+    "TootsieRollHair": {
+      "source_vertices": 152269,
+      "source_triangles": 255946,
+      "lod0_vertices": 2273,
+      "lod0_triangles": 2400,
+      "lod1_triangles": 950,
+      "material_count": 1,
+      "texture_size": [
+        512,
+        512
+      ],
+      "bones": [
+        "hip",
+        "abdomenLower",
+        "abdomenUpper",
+        "chestLower",
+        "chestUpper",
+        "neckLower",
+        "neckUpper",
+        "head",
+        "lowerJaw",
+        "upperFaceRig",
+        "rBrowInner",
+        "rBrowMid",
+        "rBrowOuter",
+        "lBrowInner",
+        "lBrowMid",
+        "lBrowOuter",
+        "CenterBrow",
+        "lCheekUpper",
+        "rCheekUpper",
+        "lEar",
+        "rEar"
+      ],
+      "pruning": {
+        "source_islands": 729,
+        "visible_islands": 273,
+        "kept_islands": 273
+      },
+      "max_weights": 4,
+      "source_materials": [
+        "Bangs",
+        "OuterCurl",
+        "LongCurl",
+        "Hair",
+        "FineHair",
+        "Scalp",
+        "UpperOuterFine",
+        "MidCurl",
+        "InnerCurl",
+        "OuterCLower",
+        "LowerOuterFine"
+      ]
+    }
+  }
+}

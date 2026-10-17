@@ -16,6 +16,11 @@ namespace HexLive.UnityPresentation.Environment
             "bed.basic" => "bed_basic_final_native",
             "station.water_collector" => "water_collector_final_native",
             "tree.palm" => "palm_final_native",
+            "plant.palm_sprout" => "plant.yucca",
+            "plant.palm_sapling" => "palm_final_native",
+            "tree.palm_young" => "palm_final_native",
+            "plant.herb_sprout" or "plant.herb_young" or "plant.herb_budding" => "herb.bush",
+            "plant.yucca_sprout" or "plant.yucca_young" or "plant.yucca_juvenile" => "plant.yucca",
             // Crown ids resolve directly to their self-contained FBX owners.
             "resource.log" => "resource.log",
             "resource.stick" => "resource.stick",

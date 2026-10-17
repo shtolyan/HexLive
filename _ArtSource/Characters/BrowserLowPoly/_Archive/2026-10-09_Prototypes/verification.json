@@ -1,0 +1,47 @@
+{
+  "Marta_LOD0": {
+    "bytes": 1487440,
+    "triangles": 7534,
+    "gpu_vertices": 19080,
+    "draw_primitives": 1,
+    "joints": 172,
+    "height_m": 1.81,
+    "weights_normalized": true,
+    "unweighted_vertices": 0,
+    "glb_reimport": "passed"
+  },
+  "Marta_LOD1": {
+    "bytes": 967672,
+    "triangles": 3604,
+    "gpu_vertices": 9538,
+    "draw_primitives": 1,
+    "joints": 172,
+    "height_m": 1.81,
+    "weights_normalized": true,
+    "unweighted_vertices": 0,
+    "glb_reimport": "passed"
+  },
+  "Kshishtof_LOD0": {
+    "bytes": 1655528,
+    "triangles": 7546,
+    "gpu_vertices": 20585,
+    "draw_primitives": 1,
+    "joints": 172,
+    "height_m": 1.915,
+    "weights_normalized": true,
+    "unweighted_vertices": 0,
+    "glb_reimport": "passed"
+  },
+  "Kshishtof_LOD1": {
+    "bytes": 1078316,
+    "triangles": 3610,
+    "gpu_vertices": 9939,
+    "draw_primitives": 1,
+    "joints": 172,
+    "height_m": 1.915,
+    "weights_normalized": true,
+    "unweighted_vertices": 0,
+    "glb_reimport": "passed"
+  },
+  "deformation": "shoulders 65 degrees, elbow 35 degrees, knee 45 degrees; finite bounds; render supplied"
+}

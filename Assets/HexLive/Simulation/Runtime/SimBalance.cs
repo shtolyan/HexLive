@@ -742,7 +742,6 @@ namespace HexLive.Simulation.Runtime
         public static int RopeFiberCost = 1;
         public static int ClothFiberCost = 4;
         public static int KnifeStickCost = 1;
-        public static int KnifeStoneCost = 1;
 
         // Butchering & carcasses. A slain animal leaves a carcass that rots
         // after this many ticks; knifing it takes ButcherDurationTicks and

@@ -173,6 +173,7 @@ public sealed class WorkbenchCraftingTests
         var bandagesBefore = MedicalSupplyMath.BandageCount(crafter);
 
         Add(crafter, ContentIds.HerbLeaf, 2);
+        Add(crafter, ContentIds.Cloth, 1);
         var bandageStation = string.IsNullOrEmpty(
                 RecipeCatalog.StationOf(GoalType.CraftBandage))
             ? null
@@ -208,6 +209,7 @@ public sealed class WorkbenchCraftingTests
         crafter.CurrentJunction ??= world.Tiles.Items[crafter.Tile].Junctions[0];
 
         Add(crafter, ContentIds.HerbLeaf, 2);
+        Add(crafter, ContentIds.Cloth, 1);
         var bandageStation = string.IsNullOrEmpty(
                 RecipeCatalog.StationOf(GoalType.CraftBandage))
             ? null
@@ -662,6 +664,7 @@ public sealed class WorkbenchCraftingTests
             patient.Inventory.Items.Clear();
             patient.Inventory.Capacity = 1;
             Add(patient, ContentIds.HerbLeaf, 2);
+            Add(patient, ContentIds.Cloth, 1);
             patient.Wounds.Clear();
             patient.Wounds.Add(new WoundState
             {

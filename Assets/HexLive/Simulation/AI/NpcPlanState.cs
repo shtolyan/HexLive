@@ -113,7 +113,10 @@ public enum PlanStepType
     FillVessel,
     PlayerTakeAndWearCarried,
     PlayerTakeAndWearWorn,
-    PlayerTakeAndWearFromContainer
+    PlayerTakeAndWearFromContainer,
+    // §173.2 append-only: walk to the selected empty junction, kneel, consume
+    // one exact carried seed and create the first visible growth stage.
+    PlantInventorySeed
 }
 
 public enum PlanStatus

@@ -1,0 +1,3508 @@
+[
+  {
+    "name": "AdellHair",
+    "prefab": "Assets/ImportedActors/Hair/AdellHair/AdellHair.prefab",
+    "source": "Assets/ImportedActors/Hair/AdellHair/Meshes/AdellHair.mesh",
+    "bones": [
+      "lowerJaw",
+      "rBrowInner",
+      "rBrowMid",
+      "rBrowOuter",
+      "lBrowInner",
+      "lBrowMid",
+      "lBrowOuter",
+      "CenterBrow",
+      "lCheekUpper",
+      "rCheekUpper",
+      "lEar",
+      "rEar",
+      "head",
+      "neckUpper",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "Hair",
+        "file": "Assets/ImportedActors/Hair/AdellHair/Materials/Hair.mat",
+        "texture": "Assets/ImportedActors/Hair/AdellHair/Textures/SW_Iray05_Col03__SW_AdellHR_TR01.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Base",
+        "file": "Assets/ImportedActors/Hair/AdellHair/Materials/Base.mat",
+        "texture": "Assets/ImportedActors/Hair/AdellHair/Textures/SW_Iray05_Col03_D__SW_Iray_BaseTR_D.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      }
+    ],
+    "vertices": 61369,
+    "triangles": 88208,
+    "part_triangles": [
+      86016,
+      2192
+    ]
+  },
+  {
+    "name": "AsukaHair",
+    "prefab": "Assets/ImportedActors/Hair/AsukaHair/AsukaHair.prefab",
+    "source": "Assets/ImportedActors/Hair/AsukaHair/Meshes/AsukaHair.mesh",
+    "bones": [
+      "lowerJaw",
+      "rBrowInner",
+      "rBrowMid",
+      "rBrowOuter",
+      "lBrowInner",
+      "lBrowMid",
+      "lBrowOuter",
+      "CenterBrow",
+      "lCheekUpper",
+      "rCheekUpper",
+      "lEar",
+      "rEar",
+      "Front Tips LEFT",
+      "Front Tips RIGHT",
+      "head",
+      "neckUpper",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "Scalp",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/Scalp.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_Scalp_C11__SWAM_Asuka_ScalpTR.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      },
+      {
+        "name": "A_Strands",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/A_Strands.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_A.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "A_Strands_A",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/A_Strands_A.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_A.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "A_Strands_B",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/A_Strands_B.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_A.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "A_Strands_C",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/A_Strands_C.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_A.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_Base",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/B_Base.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_B.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_Base_Fine",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/B_Base_Fine.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_B.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_Base_Str",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/B_Base_Str.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_B.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "C_Bow_Curl",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/C_Bow_Curl.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_C.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_Base_Neck",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/B_Base_Neck.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_B.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "C_Bow_Fine",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/C_Bow_Fine.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_C.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "C_Bow",
+        "file": "Assets/ImportedActors/Hair/AsukaHair/Materials/C_Bow.mat",
+        "texture": "Assets/ImportedActors/Hair/AsukaHair/Textures/SWAM_Asuka_C11__SWAM_Asuka_C.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 100218,
+    "triangles": 154698,
+    "part_triangles": [
+      2192,
+      32192,
+      9184,
+      16378,
+      36352,
+      20864,
+      8820,
+      1024,
+      9084,
+      2976,
+      11568,
+      4064
+    ]
+  },
+  {
+    "name": "BendineHair",
+    "prefab": "Assets/ImportedActors/Hair/BendineHair/BendineHair.prefab",
+    "source": "Assets/ImportedActors/Hair/BendineHair/Meshes/BendineHair.mesh",
+    "bones": [
+      "rFront1",
+      "lFront1",
+      "head",
+      "neckUpper",
+      "neckLower",
+      "lFront2",
+      "lFront3",
+      "lFront4",
+      "lFront5",
+      "lFront6",
+      "rFront2",
+      "rFront3",
+      "rFront4",
+      "rFront5",
+      "rFront6",
+      "lBack1",
+      "lBack2",
+      "lBack3",
+      "rBack1",
+      "rBack2",
+      "rBack3",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "Side2",
+        "file": "Assets/ImportedActors/Hair/BendineHair/Materials/Side2.mat",
+        "texture": "Assets/ImportedActors/Hair/BendineHair/Textures/08OOTBendineHair__OOTUtilityBendineHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Front2",
+        "file": "Assets/ImportedActors/Hair/BendineHair/Materials/Front2.mat",
+        "texture": "Assets/ImportedActors/Hair/BendineHair/Textures/08OOTBendineHair__OOTUtilityBendineHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Back",
+        "file": "Assets/ImportedActors/Hair/BendineHair/Materials/Back.mat",
+        "texture": "Assets/ImportedActors/Hair/BendineHair/Textures/08OOTBendineHair__OOTUtilityBendineHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Bangs2",
+        "file": "Assets/ImportedActors/Hair/BendineHair/Materials/Bangs2.mat",
+        "texture": "Assets/ImportedActors/Hair/BendineHair/Textures/08OOTBendineHair__OOTUtilityBendineHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Bangs1",
+        "file": "Assets/ImportedActors/Hair/BendineHair/Materials/Bangs1.mat",
+        "texture": "Assets/ImportedActors/Hair/BendineHair/Textures/08OOTBendineHair__OOTUtilityBendineHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Front1",
+        "file": "Assets/ImportedActors/Hair/BendineHair/Materials/Front1.mat",
+        "texture": "Assets/ImportedActors/Hair/BendineHair/Textures/08OOTBendineHair__OOTUtilityBendineHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "BackUnder",
+        "file": "Assets/ImportedActors/Hair/BendineHair/Materials/BackUnder.mat",
+        "texture": "Assets/ImportedActors/Hair/BendineHair/Textures/08OOTBendineHair__OOTUtilityBendineHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Side1",
+        "file": "Assets/ImportedActors/Hair/BendineHair/Materials/Side1.mat",
+        "texture": "Assets/ImportedActors/Hair/BendineHair/Textures/08OOTBendineHair__OOTUtilityBendineHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Cap",
+        "file": "Assets/ImportedActors/Hair/BendineHair/Materials/Cap.mat",
+        "texture": "Assets/ImportedActors/Hair/BendineHair/Textures/08OOTBendineCap__OOTUtilityBendineCapT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      }
+    ],
+    "vertices": 327813,
+    "triangles": 321772,
+    "part_triangles": [
+      39744,
+      57544,
+      23412,
+      6960,
+      6960,
+      79832,
+      50468,
+      48960,
+      7892
+    ]
+  },
+  {
+    "name": "Bob3Hair",
+    "prefab": "Assets/ImportedActors/Hair/Bob3Hair/Bob3Hair.prefab",
+    "source": "Assets/ImportedActors/Hair/Bob3Hair/Meshes/Bob3Hair.mesh",
+    "bones": [
+      "lowerJaw",
+      "rBrowInner",
+      "rBrowMid",
+      "rBrowOuter",
+      "lBrowInner",
+      "lBrowMid",
+      "lBrowOuter",
+      "CenterBrow",
+      "lCheekUpper",
+      "rCheekUpper",
+      "lEar",
+      "rEar",
+      "head",
+      "neckUpper",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "HairFiner",
+        "file": "Assets/ImportedActors/Hair/Bob3Hair/Materials/HairFiner.mat",
+        "texture": "Assets/ImportedActors/Hair/Bob3Hair/Textures/01_BobHair__T_BobFiner.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "HairMiddle",
+        "file": "Assets/ImportedActors/Hair/Bob3Hair/Materials/HairMiddle.mat",
+        "texture": "Assets/ImportedActors/Hair/Bob3Hair/Textures/01_BobHair__T_BobMiddle.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "HairLow",
+        "file": "Assets/ImportedActors/Hair/Bob3Hair/Materials/HairLow.mat",
+        "texture": "Assets/ImportedActors/Hair/Bob3Hair/Textures/01_BobHair__T_BobLow.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Scalp",
+        "file": "Assets/ImportedActors/Hair/Bob3Hair/Materials/Scalp.mat",
+        "texture": "Assets/ImportedActors/Hair/Bob3Hair/Textures/01_BobScalp__T_BobScalp.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      },
+      {
+        "name": "HairFine",
+        "file": "Assets/ImportedActors/Hair/Bob3Hair/Materials/HairFine.mat",
+        "texture": "Assets/ImportedActors/Hair/Bob3Hair/Textures/01_BobHair__T_BobFine.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 219147,
+    "triangles": 293680,
+    "part_triangles": [
+      61060,
+      88704,
+      41888,
+      5036,
+      96992
+    ]
+  },
+  {
+    "name": "ChunkyHair",
+    "prefab": "Assets/ImportedActors/Hair/ChunkyHair/ChunkyHair.prefab",
+    "source": "Assets/ImportedActors/Hair/ChunkyHair/Meshes/ChunkyHair.mesh",
+    "bones": [
+      "lTailEnd",
+      "rTailEnd",
+      "lTailMid",
+      "rTailMid",
+      "lTail",
+      "rTail",
+      "head",
+      "neckUpper",
+      "lCollar",
+      "rCollar",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "pelvis",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "Bangs2",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/Bangs2.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/08OOTChunkyHair__OOTUtilityChunkyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Hairbands",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/Hairbands.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/OOTCloth_08B.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Bangs1",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/Bangs1.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/08OOTChunkyHair__OOTUtilityChunkyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Cap",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/Cap.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/08OOTChunkyCap__OOTUtilityChunkyCapT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      },
+      {
+        "name": "Back",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/Back.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/08OOTChunkyHair__OOTUtilityChunkyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "BackUnder",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/BackUnder.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/08OOTChunkyHair__OOTUtilityChunkyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Front1",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/Front1.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/08OOTChunkyHair__OOTUtilityChunkyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Side1",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/Side1.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/08OOTChunkyHair__OOTUtilityChunkyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Front2",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/Front2.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/08OOTChunkyHair__OOTUtilityChunkyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Side2",
+        "file": "Assets/ImportedActors/Hair/ChunkyHair/Materials/Side2.mat",
+        "texture": "Assets/ImportedActors/Hair/ChunkyHair/Textures/08OOTChunkyHair__OOTUtilityChunkyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 206031,
+    "triangles": 200940,
+    "part_triangles": [
+      18704,
+      8320,
+      16864,
+      7892,
+      26530,
+      39392,
+      37540,
+      15120,
+      19658,
+      10920
+    ]
+  },
+  {
+    "name": "EilisHair",
+    "prefab": "Assets/ImportedActors/Hair/EilisHair/EilisHair.prefab",
+    "source": "Assets/ImportedActors/Hair/EilisHair/Meshes/EilisHair.mesh",
+    "bones": [
+      "Right1",
+      "Right2",
+      "Right3",
+      "Right4",
+      "BackRight1",
+      "BackRight2",
+      "BackRight3",
+      "Left1",
+      "Left2",
+      "BackLeft1",
+      "BackLeft2",
+      "head",
+      "neckUpper",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "scalp",
+        "file": "Assets/ImportedActors/Hair/EilisHair/Materials/scalp.mat",
+        "texture": "Assets/ImportedActors/Hair/EilisHair/Textures/apreils_txblonde__apreils_trans.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "hair1",
+        "file": "Assets/ImportedActors/Hair/EilisHair/Materials/hair1.mat",
+        "texture": "Assets/ImportedActors/Hair/EilisHair/Textures/apreils_txblonde__apreils_trans.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "hair2",
+        "file": "Assets/ImportedActors/Hair/EilisHair/Materials/hair2.mat",
+        "texture": "Assets/ImportedActors/Hair/EilisHair/Textures/apreils_txblonde__apreils_trans.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 141455,
+    "triangles": 138710,
+    "part_triangles": [
+      742,
+      73664,
+      64304
+    ]
+  },
+  {
+    "name": "Hair07",
+    "prefab": "Assets/ImportedActors/Hair/Hair07/Hair07.prefab",
+    "source": "Assets/ImportedActors/Hair/Hair07/Meshes/Hair07.mesh",
+    "bones": [
+      "lEar",
+      "rEar",
+      "head",
+      "lShldrBend",
+      "rShldrBend",
+      "neckUpper",
+      "lCollar",
+      "rCollar",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip",
+      "HairSway1",
+      "HairSway2",
+      "HairSway3"
+    ],
+    "materials": [
+      {
+        "name": "Scalp",
+        "file": "Assets/ImportedActors/Hair/Hair07/Materials/Scalp.mat",
+        "texture": "Assets/ImportedActors/Hair/Hair07/Textures/SWAM18_HR17_O10__SWAM18_HR17_Trans_Base.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      },
+      {
+        "name": "B_FrontLonger",
+        "file": "Assets/ImportedActors/Hair/Hair07/Materials/B_FrontLonger.mat",
+        "texture": "Assets/ImportedActors/Hair/Hair07/Textures/SWAM18_HR17_O10__SWAM18_HR17_TransB.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_FrontFine",
+        "file": "Assets/ImportedActors/Hair/Hair07/Materials/B_FrontFine.mat",
+        "texture": "Assets/ImportedActors/Hair/Hair07/Textures/SWAM18_HR17_O10__SWAM18_HR17_TransB.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "A_Hair",
+        "file": "Assets/ImportedActors/Hair/Hair07/Materials/A_Hair.mat",
+        "texture": "Assets/ImportedActors/Hair/Hair07/Textures/SWAM18_HR17_O10__SWAM18_HR17_TransA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_FrontShort",
+        "file": "Assets/ImportedActors/Hair/Hair07/Materials/B_FrontShort.mat",
+        "texture": "Assets/ImportedActors/Hair/Hair07/Textures/SWAM18_HR17_O10__SWAM18_HR17_TransB.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "A_Back",
+        "file": "Assets/ImportedActors/Hair/Hair07/Materials/A_Back.mat",
+        "texture": "Assets/ImportedActors/Hair/Hair07/Textures/SWAM18_HR17_O10__SWAM18_HR17_TransA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 120597,
+    "triangles": 171384,
+    "part_triangles": [
+      5842,
+      5632,
+      22438,
+      69504,
+      35584,
+      32384
+    ]
+  },
+  {
+    "name": "JelikaHair_32434",
+    "prefab": "Assets/ImportedActors/Hair/JelikaHair_32434/JelikaHair_32434.prefab",
+    "source": "Assets/ImportedActors/Hair/JelikaHair_32434/Meshes/JelikaHair_32434.Shape.mesh",
+    "bones": [
+      "lowerJaw",
+      "rBrowInner",
+      "rBrowMid",
+      "rBrowOuter",
+      "lBrowInner",
+      "lBrowMid",
+      "lBrowOuter",
+      "CenterBrow",
+      "lCheekUpper",
+      "rCheekUpper",
+      "lEar",
+      "rEar",
+      "head",
+      "neckUpper",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip",
+      "HairSway1",
+      "HairSway2",
+      "HairSway3"
+    ],
+    "materials": [
+      {
+        "name": "Bow2",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/Bow2.mat",
+        "texture": null,
+        "color": {
+          "r": 0.5019608,
+          "g": 0.2509804,
+          "b": 0.2509804,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Bow1",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/Bow1.mat",
+        "texture": null,
+        "color": {
+          "r": 1,
+          "g": 0.5019608,
+          "b": 0.5019608,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Ribbons",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/Ribbons.mat",
+        "texture": null,
+        "color": {
+          "r": 1,
+          "g": 0.5019608,
+          "b": 0.5019608,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Clip",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/Clip.mat",
+        "texture": null,
+        "color": {
+          "r": 1,
+          "g": 0.8862745,
+          "b": 0.60784316,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "PonyWisps2",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/PonyWisps2.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "PonyWisps1",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/PonyWisps1.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "PonyWisps2",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/PonyWisps2.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "BangWisps1",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/BangWisps1.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "BangThin3",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/BangThin3.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "BangThin2",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/BangThin2.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "BangThin1",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/BangThin1.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Bang3",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/Bang3.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Bang2",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/Bang2.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Bang1",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/Bang1.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "HairTop",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/HairTop.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "HairBottom",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/HairBottom.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Hair.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Cap",
+        "file": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/Cap.mat",
+        "texture": "Assets/ImportedActors/Daz3D/Jana/JelikaHair_32434/04-Jelika-Cap.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 32977,
+    "triangles": 52660,
+    "part_triangles": [
+      2496,
+      3744,
+      2496,
+      2160,
+      4844,
+      4408,
+      1404,
+      936,
+      546,
+      702,
+      702,
+      1560,
+      1560,
+      1560,
+      3478,
+      17400,
+      2664
+    ]
+  },
+  {
+    "name": "JenniferHair",
+    "prefab": "Assets/ImportedActors/Hair/JenniferHair/JenniferHair.prefab",
+    "source": "Assets/ImportedActors/Hair/JenniferHair/Meshes/JenniferHair.mesh",
+    "bones": [
+      "lCheekLower",
+      "rCheekLower",
+      "BelowJaw",
+      "lJawClench",
+      "rJawClench",
+      "lowerFaceRig",
+      "rBrowInner",
+      "rBrowMid",
+      "rBrowOuter",
+      "lBrowInner",
+      "lBrowMid",
+      "lBrowOuter",
+      "CenterBrow",
+      "lSquintOuter",
+      "rSquintOuter",
+      "lCheekUpper",
+      "rCheekUpper",
+      "lowerJaw",
+      "upperFaceRig",
+      "lEar",
+      "rEar",
+      "head",
+      "neckUpper",
+      "lCollar",
+      "rCollar",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip",
+      "HairSway1",
+      "HairSway2",
+      "HairSway3"
+    ],
+    "materials": [
+      {
+        "name": "HairLow",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/HairLow.mat",
+        "texture": "Assets/ImportedActors/Hair/JenniferHair/Textures/Hair_Color_A02__T2_hair.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Braid01",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/Braid01.mat",
+        "texture": "Assets/ImportedActors/Hair/JenniferHair/Textures/Hair_Color_A01__T2_hair.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Braid02",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/Braid02.mat",
+        "texture": "Assets/ImportedActors/Hair/JenniferHair/Textures/Hair_Color_A02__T2_hair.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "HairFine",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/HairFine.mat",
+        "texture": "Assets/ImportedActors/Hair/JenniferHair/Textures/Hair_Color_A01__T2_hair.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "HairFront",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/HairFront.mat",
+        "texture": "Assets/ImportedActors/Hair/JenniferHair/Textures/Hair_Color_A01__T2_hair.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Scalp",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/Scalp.mat",
+        "texture": "Assets/ImportedActors/Hair/JenniferHair/Textures/Hair_Basc_A__T_Hair_Basc.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      },
+      {
+        "name": "temples",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/temples.mat",
+        "texture": "Assets/ImportedActors/Hair/JenniferHair/Textures/Hair_Color_A01__T2_hair.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "BraidBack02",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/BraidBack02.mat",
+        "texture": "Assets/ImportedActors/Hair/JenniferHair/Textures/Hair_Color_A01__T2_hair.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "BraidBack01",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/BraidBack01.mat",
+        "texture": "Assets/ImportedActors/Hair/JenniferHair/Textures/Hair_Color_A01__T2_hair.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Rubber_band",
+        "file": "Assets/ImportedActors/Hair/JenniferHair/Materials/Rubber_band.mat",
+        "texture": null,
+        "color": {
+          "r": 0.9137,
+          "g": 0.8471,
+          "b": 0.702,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 107167,
+    "triangles": 123216,
+    "part_triangles": [
+      2228,
+      28848,
+      37868,
+      14256,
+      7104,
+      17588,
+      1008,
+      1968,
+      3516,
+      8832
+    ]
+  },
+  {
+    "name": "LeonyPonytail",
+    "prefab": "Assets/ImportedActors/Hair/LeonyPonytail/LeonyPonytail.prefab",
+    "source": "Assets/ImportedActors/Hair/LeonyPonytail/Meshes/LeonyPonytail.mesh",
+    "bones": [
+      "PonytailBottom",
+      "lNasolabialLower",
+      "rNasolabialLower",
+      "lNasolabialMouthCorner",
+      "rNasolabialMouthCorner",
+      "lLipCorner",
+      "lLipLowerOuter",
+      "lLipLowerInner",
+      "LipLowerMiddle",
+      "rLipCorner",
+      "LipBelow",
+      "Chin",
+      "lCheekLower",
+      "rCheekLower",
+      "BelowJaw",
+      "lJawClench",
+      "rJawClench",
+      "PonytailMid",
+      "lowerFaceRig",
+      "rBrowInner",
+      "rBrowMid",
+      "rBrowOuter",
+      "lBrowInner",
+      "lBrowMid",
+      "lBrowOuter",
+      "CenterBrow",
+      "MidNoseBridge",
+      "lEyelidInner",
+      "lEyelidUpperInner",
+      "lEyelidUpper",
+      "lEyelidUpperOuter",
+      "lEyelidOuter",
+      "lEyelidLowerOuter",
+      "lEyelidLower",
+      "lEyelidLowerInner",
+      "rEyelidUpper",
+      "rEyelidUpperOuter",
+      "rEyelidOuter",
+      "rEyelidLowerOuter",
+      "rEyelidLower",
+      "rEyelidLowerInner",
+      "lSquintInner",
+      "lSquintOuter",
+      "rSquintInner",
+      "rSquintOuter",
+      "lCheekUpper",
+      "rCheekUpper",
+      "Nose",
+      "lNostril",
+      "lLipBelowNose",
+      "lLipUpperOuter",
+      "lLipUpperInner",
+      "lLipNasolabialCrease",
+      "rLipNasolabialCrease",
+      "lNasolabialUpper",
+      "rNasolabialUpper",
+      "lNasolabialMiddle",
+      "rNasolabialMiddle",
+      "PonytailUpper",
+      "lowerJaw",
+      "upperFaceRig",
+      "lEar",
+      "rEar",
+      "PonytailBase",
+      "lBangs",
+      "rBangs",
+      "head",
+      "lSide",
+      "rSide",
+      "lShldrBend",
+      "rShldrBend",
+      "neckUpper",
+      "lCollar",
+      "rCollar",
+      "neckLower",
+      "chestUpper",
+      "lPectoral",
+      "rPectoral",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "Cap",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/Cap.mat",
+        "texture": "Assets/ImportedActors/Hair/LeonyPonytail/Textures/01OOTLeonyCap__OOTUtilityLeonyCapT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      },
+      {
+        "name": "Bands",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/Bands.mat",
+        "texture": null,
+        "color": {
+          "r": 0.102,
+          "g": 0.102,
+          "b": 0.102,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Side1",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/Side1.mat",
+        "texture": "Assets/ImportedActors/Hair/LeonyPonytail/Textures/01OOTLeonyHair__OOTUtilityLeonyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Side2",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/Side2.mat",
+        "texture": "Assets/ImportedActors/Hair/LeonyPonytail/Textures/01OOTLeonyHair__OOTUtilityLeonyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Bangs2",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/Bangs2.mat",
+        "texture": "Assets/ImportedActors/Hair/LeonyPonytail/Textures/01OOTLeonyHair__OOTUtilityLeonyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Bangs1",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/Bangs1.mat",
+        "texture": "Assets/ImportedActors/Hair/LeonyPonytail/Textures/01OOTLeonyHair__OOTUtilityLeonyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Back",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/Back.mat",
+        "texture": "Assets/ImportedActors/Hair/LeonyPonytail/Textures/01OOTLeonyHair__OOTUtilityLeonyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "BackUnder",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/BackUnder.mat",
+        "texture": "Assets/ImportedActors/Hair/LeonyPonytail/Textures/01OOTLeonyHair__OOTUtilityLeonyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Front2",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/Front2.mat",
+        "texture": "Assets/ImportedActors/Hair/LeonyPonytail/Textures/01OOTLeonyHair__OOTUtilityLeonyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Front1",
+        "file": "Assets/ImportedActors/Hair/LeonyPonytail/Materials/Front1.mat",
+        "texture": "Assets/ImportedActors/Hair/LeonyPonytail/Textures/01OOTLeonyHair__OOTUtilityLeonyHairT.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 166992,
+    "triangles": 164466,
+    "part_triangles": [
+      7892,
+      2304,
+      29108,
+      61630,
+      10020,
+      5328,
+      11656,
+      27122,
+      6288,
+      3118
+    ]
+  },
+  {
+    "name": "LoonaHair",
+    "prefab": "Assets/ImportedActors/Hair/LoonaHair/LoonaHair.prefab",
+    "source": "Assets/ImportedActors/Hair/LoonaHair/Meshes/LoonaHair.mesh",
+    "bones": [
+      "lEar",
+      "rEar",
+      "head",
+      "lShldrBend",
+      "rShldrBend",
+      "neckUpper",
+      "lCollar",
+      "rCollar",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip",
+      "HairSway1",
+      "HairSway2",
+      "HairSway3"
+    ],
+    "materials": [
+      {
+        "name": "Str_upper",
+        "file": "Assets/ImportedActors/Hair/LoonaHair/Materials/Str_upper.mat",
+        "texture": "Assets/ImportedActors/Hair/LoonaHair/Textures/SWAM20_HR_LoonaCol_01__SWAM20_HR_Loona_TR.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Fine",
+        "file": "Assets/ImportedActors/Hair/LoonaHair/Materials/Fine.mat",
+        "texture": "Assets/ImportedActors/Hair/LoonaHair/Textures/SWAM20_HR_LoonaCol_01__SWAM20_HR_Loona_TR.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Str_lower",
+        "file": "Assets/ImportedActors/Hair/LoonaHair/Materials/Str_lower.mat",
+        "texture": "Assets/ImportedActors/Hair/LoonaHair/Textures/SWAM20_HR_LoonaCol_01__SWAM20_HR_Loona_TR.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Hair_lower",
+        "file": "Assets/ImportedActors/Hair/LoonaHair/Materials/Hair_lower.mat",
+        "texture": "Assets/ImportedActors/Hair/LoonaHair/Textures/SWAM20_HR_LoonaCol_01__SWAM20_HR_Loona_TR.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Hair_upper",
+        "file": "Assets/ImportedActors/Hair/LoonaHair/Materials/Hair_upper.mat",
+        "texture": "Assets/ImportedActors/Hair/LoonaHair/Textures/SWAM20_HR_LoonaCol_01__SWAM20_HR_Loona_TR.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "FlyAways",
+        "file": "Assets/ImportedActors/Hair/LoonaHair/Materials/FlyAways.mat",
+        "texture": "Assets/ImportedActors/Hair/LoonaHair/Textures/SWAM20_HR_LoonaCol_01__SWAM20_HR_Loona_TR.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Scalp",
+        "file": "Assets/ImportedActors/Hair/LoonaHair/Materials/Scalp.mat",
+        "texture": "Assets/ImportedActors/Hair/LoonaHair/Textures/SWAM20_HR_LoonaCol_01B__SWAM20_HR_Loona__TRBa.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      }
+    ],
+    "vertices": 42653,
+    "triangles": 55116,
+    "part_triangles": [
+      12520,
+      4744,
+      10632,
+      9064,
+      9064,
+      3250,
+      5842
+    ]
+  },
+  {
+    "name": "LowPonytail",
+    "prefab": "Assets/ImportedActors/Hair/LowPonytail/LowPonytail.prefab",
+    "source": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/LowPonytailHairGenesis3Female.fbx",
+    "bones": [
+      "lBangs",
+      "rBangs",
+      "head",
+      "neckUpper",
+      "lCollar",
+      "rCollar",
+      "neckLower",
+      "Tail",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "BackUnder",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/BackUnder.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/28OOTLowPonytailHair.jpg",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Side2",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/Side2.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/28OOTLowPonytailHair.jpg",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Bangs1",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/Bangs1.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/28OOTLowPonytailHair.jpg",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Front1",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/Front1.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/28OOTLowPonytailHair.jpg",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Side1",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/Side1.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/28OOTLowPonytailHair.jpg",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Front2",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/Front2.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/28OOTLowPonytailHair.jpg",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Back",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/Back.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/28OOTLowPonytailHair.jpg",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Bangs2",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/Bangs2.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/28OOTLowPonytailHair.jpg",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Cap",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/Cap.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/28OOTLowPonytailCap.jpg",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 0
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 1
+      },
+      {
+        "name": "Hairband",
+        "file": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/Hairband.mat",
+        "texture": "Assets/ImportedActors/Daz3D/LowPonytailHairGenesis3Female/OOTHair1915_129089/OOTCloth_02.png",
+        "color": {
+          "r": 0.7169812,
+          "g": 0.64595944,
+          "b": 0.64595944,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      }
+    ]
+  },
+  {
+    "name": "Neu09Hair",
+    "prefab": "Assets/ImportedActors/Hair/Neu09Hair/Neu09Hair.prefab",
+    "source": "Assets/ImportedActors/Hair/Neu09Hair/Meshes/Neu09Hair.mesh",
+    "bones": [
+      "lowerJaw",
+      "rBrowInner",
+      "rBrowMid",
+      "rBrowOuter",
+      "lBrowInner",
+      "lBrowMid",
+      "lBrowOuter",
+      "CenterBrow",
+      "lCheekUpper",
+      "rCheekUpper",
+      "lEar",
+      "rEar",
+      "head",
+      "neckUpper",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "A_hair",
+        "file": "Assets/ImportedActors/Hair/Neu09Hair/Materials/A_hair.mat",
+        "texture": "Assets/ImportedActors/Hair/Neu09Hair/Textures/SW_M_C06__SWAM_HR17_06_A.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_side",
+        "file": "Assets/ImportedActors/Hair/Neu09Hair/Materials/B_side.mat",
+        "texture": "Assets/ImportedActors/Hair/Neu09Hair/Textures/SW_M_C06__SWAM_HR17_06_B.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Rubber",
+        "file": "Assets/ImportedActors/Hair/Neu09Hair/Materials/Rubber.mat",
+        "texture": null,
+        "color": {
+          "r": 0.9176,
+          "g": 0.5294,
+          "b": 0,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Cherry02",
+        "file": "Assets/ImportedActors/Hair/Neu09Hair/Materials/Cherry02.mat",
+        "texture": null,
+        "color": {
+          "r": 0.9176,
+          "g": 0.5294,
+          "b": 0,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Cherry01",
+        "file": "Assets/ImportedActors/Hair/Neu09Hair/Materials/Cherry01.mat",
+        "texture": null,
+        "color": {
+          "r": 0.9176,
+          "g": 0.5294,
+          "b": 0,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Scalp",
+        "file": "Assets/ImportedActors/Hair/Neu09Hair/Materials/Scalp.mat",
+        "texture": "Assets/ImportedActors/Hair/Neu09Hair/Textures/SW_M_C06__SWAM_HR17_06.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      },
+      {
+        "name": "A_neck",
+        "file": "Assets/ImportedActors/Hair/Neu09Hair/Materials/A_neck.mat",
+        "texture": "Assets/ImportedActors/Hair/Neu09Hair/Textures/SW_M_C06__SWAM_HR17_06_A.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_sideburn",
+        "file": "Assets/ImportedActors/Hair/Neu09Hair/Materials/B_sideburn.mat",
+        "texture": "Assets/ImportedActors/Hair/Neu09Hair/Textures/SW_M_C06__SWAM_HR17_06_B.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_strands",
+        "file": "Assets/ImportedActors/Hair/Neu09Hair/Materials/B_strands.mat",
+        "texture": "Assets/ImportedActors/Hair/Neu09Hair/Textures/SW_M_C06__SWAM_HR17_06_B.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 123651,
+    "triangles": 193391,
+    "part_triangles": [
+      82427,
+      1536,
+      3840,
+      576,
+      576,
+      2192,
+      3264,
+      1536,
+      97444
+    ]
+  },
+  {
+    "name": "OnyxHair",
+    "prefab": "Assets/ImportedActors/Hair/OnyxHair/OnyxHair.prefab",
+    "source": "Assets/ImportedActors/Daz3D/OnyxHair/OnyxHair.fbx",
+    "bones": [
+      "Tail3",
+      "Tail2",
+      "lowerJaw",
+      "rBrowInner",
+      "rBrowMid",
+      "rBrowOuter",
+      "lBrowInner",
+      "lBrowMid",
+      "lBrowOuter",
+      "CenterBrow",
+      "lCheekUpper",
+      "rCheekUpper",
+      "Tail1",
+      "head",
+      "neckUpper",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "HairTop",
+        "file": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/HairTop.mat",
+        "texture": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Prae-OnyxHairRed_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Cap",
+        "file": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Cap.mat",
+        "texture": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Prae-OnyxHairRedCap_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "HairBase",
+        "file": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/HairBase.mat",
+        "texture": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Prae-OnyxHairRed_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "HairMid",
+        "file": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/HairMid.mat",
+        "texture": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Prae-OnyxHairRed_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Back",
+        "file": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Back.mat",
+        "texture": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Prae-OnyxHairRed_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "Band",
+        "file": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Band.mat",
+        "texture": null,
+        "color": {
+          "r": 1,
+          "g": 0.8745098,
+          "b": 0.6156863,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "TailHair",
+        "file": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/TailHair.mat",
+        "texture": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Prae-OnyxHairRed_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "HairBangs",
+        "file": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/HairBangs.mat",
+        "texture": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Prae-OnyxHairRed_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      },
+      {
+        "name": "HairWisps",
+        "file": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/HairWisps.mat",
+        "texture": "Assets/ImportedActors/Daz3D/OnyxHair/prae-onyxhair_270245/Prae-OnyxHairRed_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 1,
+        "surface": 0
+      }
+    ]
+  },
+  {
+    "name": "ShilohHair",
+    "prefab": "Assets/ImportedActors/Hair/ShilohHair/ShilohHair.prefab",
+    "source": "Assets/ImportedActors/Daz3D/ShilohHairGenesis3/ShilohHairGenesis3.fbx",
+    "bones": [
+      "lEar",
+      "rEar",
+      "head",
+      "lShldrBend",
+      "rShldrBend",
+      "neckUpper",
+      "lCollar",
+      "rCollar",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "Scalp",
+        "file": "Assets/ImportedActors/Daz3D/ShilohHairGenesis3/SWAM_Shiloh_HR_A_79401/Scalp.mat",
+        "texture": "Assets/ImportedActors/Daz3D/ShilohHairGenesis3/SWAM_Shiloh_HR_A_79401/SWAM19_Shilo_C08.jpg",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "B_Fine",
+        "file": "Assets/ImportedActors/Daz3D/ShilohHairGenesis3/SWAM_Shiloh_HR_A_79401/B_Fine.mat",
+        "texture": "Assets/ImportedActors/Daz3D/ShilohHairGenesis3/SWAM_Shiloh_HR_A_79401/SWAM19_Shilo_Fine_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "A_Hair",
+        "file": "Assets/ImportedActors/Daz3D/ShilohHairGenesis3/SWAM_Shiloh_HR_A_79401/A_Hair.mat",
+        "texture": "Assets/ImportedActors/Daz3D/ShilohHairGenesis3/SWAM_Shiloh_HR_A_79401/SWAM19_Shilo_Hair_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "A_Strands",
+        "file": "Assets/ImportedActors/Daz3D/ShilohHairGenesis3/SWAM_Shiloh_HR_A_79401/A_Strands.mat",
+        "texture": "Assets/ImportedActors/Daz3D/ShilohHairGenesis3/SWAM_Shiloh_HR_A_79401/SWAM19_Shilo_Hair_RGBA.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ]
+  },
+  {
+    "name": "TootsieRollHair",
+    "prefab": "Assets/ImportedActors/Hair/TootsieRollHair/TootsieRollHair.prefab",
+    "source": "Assets/ImportedActors/Hair/TootsieRollHair/Meshes/TootsieRollHair.mesh",
+    "bones": [
+      "lowerJaw",
+      "rBrowInner",
+      "rBrowMid",
+      "rBrowOuter",
+      "lBrowInner",
+      "lBrowMid",
+      "lBrowOuter",
+      "CenterBrow",
+      "lCheekUpper",
+      "rCheekUpper",
+      "lEar",
+      "rEar",
+      "head",
+      "neckUpper",
+      "neckLower",
+      "chestUpper",
+      "chestLower",
+      "abdomenUpper",
+      "abdomenLower",
+      "hip"
+    ],
+    "materials": [
+      {
+        "name": "Bangs",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/Bangs.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieCurl__T_TootsieCurl.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "OuterCurl",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/OuterCurl.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieRolls__T_TootsieRolls.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "LongCurl",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/LongCurl.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieCurl__T_TootsieCurl.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Hair",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/Hair.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieHair__T_TootsieHair.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "FineHair",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/FineHair.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieCurl__T_TootsieCurl.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "Scalp",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/Scalp.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieScalp__T_TootsieScalp.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 1
+      },
+      {
+        "name": "UpperOuterFine",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/UpperOuterFine.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieRolls__T_TootsieRolls.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "MidCurl",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/MidCurl.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieRolls__T_TootsieRolls.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "InnerCurl",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/InnerCurl.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieRolls__T_TootsieRolls.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "OuterCLower",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/OuterCLower.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieRolls__T_TootsieRolls.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      },
+      {
+        "name": "LowerOuterFine",
+        "file": "Assets/ImportedActors/Hair/TootsieRollHair/Materials/LowerOuterFine.mat",
+        "texture": "Assets/ImportedActors/Hair/TootsieRollHair/Textures/01_TootsieRolls__T_TootsieRolls.png",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1
+        },
+        "uv_scale": {
+          "x": 1,
+          "y": 1
+        },
+        "uv_offset": {
+          "x": 0,
+          "y": 0
+        },
+        "alpha_clip": 0,
+        "surface": 0
+      }
+    ],
+    "vertices": 152269,
+    "triangles": 255946,
+    "part_triangles": [
+      56109,
+      13821,
+      19575,
+      135933,
+      5462,
+      5462,
+      2880,
+      2304,
+      2304,
+      9216,
+      2880
+    ]
+  }
+]

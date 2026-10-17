@@ -1,0 +1,193 @@
+[
+  {
+    "sourceKey": "RGBackpack_21643",
+    "folder": "RiotBackpack",
+    "name": "RiotBackpack",
+    "simId": "gear.backpack_riot",
+    "layer": "Bags",
+    "slots": [
+      "Chest",
+      "Belly"
+    ],
+    "noHide": [],
+    "materials": [
+      {
+        "source": "M1Metal",
+        "texture": null,
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false
+      },
+      {
+        "source": "M1Rope01",
+        "texture": "LNA_RiotM1_Square_albedo.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false,
+        "normal": "LNA_RiotM1_Square_normal.jpg"
+      },
+      {
+        "source": "M1Rope02",
+        "texture": "LNA_RiotM1_Square_albedo.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false,
+        "normal": "LNA_RiotM1_Square_normal.jpg"
+      },
+      {
+        "source": "M1BaseBag",
+        "texture": "LNA_RiotM1_Square_albedo.jpg",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false,
+        "normal": "LNA_RiotM1_Square_normal.jpg"
+      }
+    ],
+    "_measured": {
+      "verts": 21643,
+      "polys": 21649,
+      "bbox": [
+        -16.1,
+        16.1,
+        100.1,
+        152.9,
+        -21.5,
+        6.7
+      ],
+      "zones": {
+        "Chest": 0.659,
+        "Belly": 0.197,
+        "Pelvis": 0.13,
+        "Neck": 0.013
+      },
+      "heelCm": 0.0
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Canvas Backpack",
+      "nameRu": "\u0425\u043e\u043b\u0449\u043e\u0432\u044b\u0439 \u0440\u044e\u043a\u0437\u0430\u043a",
+      "descEn": "Straps, buckles and room. Carries more than her hands ever could.",
+      "descRu": "\u041b\u044f\u043c\u043a\u0438, \u043f\u0440\u044f\u0436\u043a\u0438 \u0438 \u043c\u0435\u0441\u0442\u043e. \u041d\u0435\u0441\u0451\u0442 \u0431\u043e\u043b\u044c\u0448\u0435, \u0447\u0435\u043c \u043a\u043e\u0433\u0434\u0430-\u043b\u0438\u0431\u043e \u0443\u043d\u0435\u0441\u0443\u0442 \u0440\u0443\u043a\u0438.",
+      "warmth": 0.02,
+      "armor": 0.0,
+      "thermalDelta": 0.0,
+      "capacity": 8,
+      "covers": [
+        "Torso"
+      ]
+    },
+    "variants": [
+      {
+        "name": "Denim",
+        "from": "Riot Girl Backpack",
+        "textures": [
+          {
+            "source": "M1BaseBag",
+            "texture": "LNA_RiotM1_Green_albedo.jpg"
+          },
+          {
+            "source": "M1Rope01",
+            "texture": "LNA_RiotM1_Green_albedo.jpg"
+          },
+          {
+            "source": "M1Rope02",
+            "texture": "LNA_RiotM1_Green_albedo.jpg"
+          }
+        ]
+      },
+      {
+        "name": "Grey",
+        "from": "Riot Girl Backpack",
+        "textures": [
+          {
+            "source": "M1BaseBag",
+            "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+          },
+          {
+            "source": "M1Rope01",
+            "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+          },
+          {
+            "source": "M1Rope02",
+            "texture": "LNA_RiotM1_Flowers__albedo.jpg"
+          }
+        ]
+      },
+      {
+        "name": "Leather",
+        "from": "Riot Girl Backpack",
+        "textures": [
+          {
+            "source": "M1BaseBag",
+            "texture": "LNA_RiotM1_Denim_albedo.jpg"
+          },
+          {
+            "source": "M1Rope01",
+            "texture": "LNA_RiotM1_Denim_albedo.jpg"
+          },
+          {
+            "source": "M1Rope02",
+            "texture": "LNA_RiotM1_Denim_albedo.jpg"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sourceKey": "Backpack_1540",
+    "folder": "OsirisBackpack",
+    "name": "OsirisBackpack",
+    "simId": "gear.backpack_osiris",
+    "layer": "Bags",
+    "slots": [
+      "Chest"
+    ],
+    "noHide": [],
+    "materials": [
+      {
+        "source": "Backpack",
+        "texture": "UW_gear_d.png",
+        "smoothness": 0.0,
+        "metallic": 0.0,
+        "doubleSided": true,
+        "alphaClip": false,
+        "normal": "UW_gear_n.png"
+      }
+    ],
+    "_measured": {
+      "verts": 1540,
+      "polys": 2836,
+      "bbox": [
+        -15.7,
+        15.8,
+        122.8,
+        153.5,
+        -24.8,
+        7.7
+      ],
+      "zones": {
+        "Chest": 0.971,
+        "Neck": 0.029
+      },
+      "heelCm": 0.0
+    },
+    "sim": {
+      "sex": "Female",
+      "displayName": "Field Pack",
+      "nameRu": "\u041f\u043e\u043b\u0435\u0432\u043e\u0439 \u0440\u044e\u043a\u0437\u0430\u043a",
+      "descEn": "Small and flat. Holds a day, not a week.",
+      "descRu": "\u041c\u0430\u043b\u0435\u043d\u044c\u043a\u0438\u0439 \u0438 \u043f\u043b\u043e\u0441\u043a\u0438\u0439. \u041d\u0430 \u0434\u0435\u043d\u044c, \u043d\u0435 \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e.",
+      "warmth": 0.02,
+      "armor": 0.0,
+      "thermalDelta": 0.0,
+      "capacity": 8,
+      "covers": [
+        "Torso"
+      ]
+    }
+  }
+]

@@ -108,9 +108,6 @@ namespace HexLive.UnityPresentation.Config
         [Range(1, 12)] public int clothFiberCost = 4;
         [Tooltip("Палок на нож.")]
         [Range(1, 5)] public int knifeStickCost = 1;
-        [Tooltip("Камней на нож.")]
-        [Range(1, 5)] public int knifeStoneCost = 1;
-
         [Header("Туши и разделка")]
         [Tooltip("Сколько тиков туша лежит до разложения.")]
         [Range(300, 9600)] public int carcassDecayTicks = 2400;

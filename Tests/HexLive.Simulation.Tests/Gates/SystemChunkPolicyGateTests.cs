@@ -36,6 +36,7 @@ public sealed class SystemChunkPolicyGateTests
             ["FruitProductionSystem"] = ChunkPolicy.PerChunk,
             ["MeatSpoilageSystem"] = ChunkPolicy.PerChunk,
             ["MoistureSystem"] = ChunkPolicy.PerChunk,
+            ["PlantGrowthSystem"] = ChunkPolicy.PerChunk,
             ["WaterCollectorSystem"] = ChunkPolicy.PerChunk,
 
             // Мир целиком или чистая формула от тика.

@@ -1,0 +1,16 @@
+{
+  "Marta": {
+    "vertices": 3762,
+    "shape_names_unchanged": true,
+    "all_remaining_morph_coordinates_exact": true,
+    "bone_names_unchanged": true,
+    "placeholder_hair_removed": true
+  },
+  "Kshishtof": {
+    "vertices": 8052,
+    "shape_names_unchanged": true,
+    "all_remaining_morph_coordinates_exact": true,
+    "bone_names_unchanged": true,
+    "placeholder_hair_removed": true
+  }
+}

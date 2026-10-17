@@ -89,9 +89,22 @@ public static class WorldBalance
     // Ground fruit (coconuts) rots away after this many ticks unpicked.
     public static int FruitRotTicks = 2400;
 
-    // Bug #315 (вердикт игрока): из пня через 20 игровых дней вырастает новая
-    // пальма. Сутки = 24000 тиков.
-    public static int StumpRegrowTicks = 480000;
+    // §173: посадка и рост. Пальма проходит три фазы по 10 суток; юкка и
+    // лечебная трава — три фазы за 10 суток. Все сроки остаются обычными
+    // balance-ручками и приезжают из WorldBalance.asset/simdata.json.
+    public static int PlantingDurationTicks = 16;
+    public static int PalmGrowthStageTicks = 240000;
+    public static int HerbGrowthStageTicks = 80000;
+    public static int YuccaGrowthStageTicks = 80000;
+
+    // Пень не растёт. Его тяжёлая корчёвка топором занимает ровно пять
+    // authored-длительностей взрослой пальмы (5 × 60).
+    public static int PalmStumpRemovalTicks = 300;
+
+    // Лечебный куст иногда роняет семя вместе с очередным листом. Локальный
+    // предел не даёт вечному producer-у засыпать остров несгнивающими семенами.
+    public static float HerbSeedDropChance = 0.2f;
+    public static int HerbSeedGroundCap = 2;
 
     // §29A r2: produce lands no closer than this many trunk radii
     // (ObstacleRadius) from its producer. The blocked ring is one radius; the

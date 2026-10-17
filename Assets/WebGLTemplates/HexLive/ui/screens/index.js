@@ -6,9 +6,11 @@ import { ProtocolUpdate } from './protocolUpdate.js';
 import { PlayerAssignment } from './playerAssignment.js';
 import { Hud } from './hud.js';
 import { Title } from './title.js';
+import { Creator } from './creator.js';
 
 export const SCREENS = {
   title: Title,
+  creator: Creator,
   hud: Hud,
   gameMenu: GameMenu,
   connectionLost: ConnectionLost,

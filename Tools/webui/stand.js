@@ -36,12 +36,109 @@ const LOAD_PLAN = [
 ];
 const title = { phase: 'servers', connecting: false, error: null, loading: null, timer: 0 };
 
+// ---- character creation (PlayerCharacterCreationFlow.cs), real option lists ----
+const TINTS = {
+  black: [38, 35, 34], graphite: [75, 76, 79], espresso: [77, 48, 35], chestnut: [126, 78, 46],
+  copper: [182, 88, 42], auburn: [132, 49, 37], honey: [211, 158, 73], gold: [240, 202, 111],
+  ash: [170, 161, 142], platinum: [237, 225, 196], silver: [193, 199, 207], white: [250, 247, 234],
+  rose: [217, 132, 161], violet: [139, 111, 190], ocean: [73, 130, 187], mint: [110, 181, 157],
+}; // HairTintPalette.cs
+const EYES = { default: '#89968a', blue: '#4478a0', blue_green: '#3a827a', green: '#5c7f3f', grey: '#6a7681',
+  hazel: '#8a6a2c', amber: '#a86e18', brown: '#6d4522', dark_brown: '#452a12' }; // PeopleEyeColour.cs ramp[2]
+const HAIR = ['none', 'AdellHair', 'AsukaHair', 'BendineHair', 'Bob3Hair', 'ChunkyHair', 'EilisHair', 'Hair07',
+  'JelikaHair_32434', 'JenniferHair', 'LeonyPonytail', 'LoonaHair', 'LowPonytail', 'Neu09Hair', 'OnyxHair',
+  'ShilohHair', 'TootsieRollHair'];
+const SKINS = { female: ['Marta', 'Molly', 'Jana', 'Jolly', 'Masha', 'Rita'], male: ['Kshishtof', 'Tonny'] };
+const SKIN_TONE = { Marta: '#e8c4a2', Molly: '#f1d0b8', Jana: '#c99a6e', Jolly: '#dcae84', Masha: '#e2b796', Rita: '#b9825a', Kshishtof: '#d6ad86', Tonny: '#9c6a45' };
+const creatorOptions = (sex) => ({
+  sexes: ['female', 'male'],
+  skins: SKINS[sex],
+  hair: HAIR.map((id) => ({ id, colours: id === 'none' ? ['prototype'] : ['prototype', ...Object.keys(TINTS).map((k) => `tint.${k}`)] })),
+  eyes: ['', 'blue', 'blue_green', 'green', 'grey', 'hazel', 'amber', 'brown', 'dark_brown'],
+  attributes: ['Strength', 'Agility', 'Endurance', 'Toughness', 'Hardiness', 'Wits', 'Perception'],
+  skills: ['Combat', 'Harvesting', 'Crafting', 'Building', 'Cooking', 'Medicine', 'Survival', 'Social', 'Athletics'],
+  traits: ['Abuser', 'Slob', 'Neat', 'Lazy', 'Diligent', 'Sleepyhead', 'Coward', 'Brave'],
+  pairs: [['Slob', 'Neat'], ['Lazy', 'Diligent'], ['Coward', 'Brave']],
+  attributeBudget: 42, skillBudget: 30, // 4.2 and 3.0 in server units, shown ×10
+  camps: [1, 2, 3, 4, 5, 6].map((n) => ({ id: n === 1 ? 'Colony' : `Colony${n}`, number: n, hasSpace: n !== 3 })),
+});
+const creator = {
+  touched: false, preview: 'loading', previewRect: null, view: 'body', yaw: 0, thumbs: {}, banner: null, busy: null,
+  draft: { name: '', sex: 'female', skin: 'Marta', hair: 'LeonyPonytail', hairColour: 'prototype', eyes: '', camp: 'Colony',
+    attributes: { Strength: 5, Agility: 5, Endurance: 5, Toughness: 5, Hardiness: 5, Wits: 5, Perception: 5 },
+    skills: { Combat: 0, Harvesting: 0, Crafting: 0, Building: 0, Cooking: 0, Medicine: 0, Survival: 0, Social: 0, Athletics: 0 },
+    traits: [] },
+};
+const isCreator = (id) => !!id && id.startsWith('creator');
+
+// Stand-only stand-ins for the thumbnails Unity renders from the real model.
+function thumb(skin, hairId, colour) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 96;
+  const g = c.getContext('2d');
+  g.fillStyle = '#121a1e'; g.fillRect(0, 0, 96, 96);
+  const hairRgb = colour && TINTS[colour.replace('tint.', '')] ? `rgb(${TINTS[colour.replace('tint.', '')].join(' ')})` : '#5a3a26';
+  const i = Math.max(0, HAIR.indexOf(hairId));
+  if (hairId !== 'none') { g.fillStyle = hairRgb; g.beginPath(); g.ellipse(48, 46 + (i % 3) * 4, 30, 34 + (i % 4) * 5, 0, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = SKIN_TONE[skin] || '#e0b896'; g.beginPath(); g.ellipse(48, 50, 21, 26, 0, 0, Math.PI * 2); g.fill();
+  g.fillRect(40, 70, 16, 18);
+  if (hairId !== 'none') { g.fillStyle = hairRgb; g.beginPath(); g.ellipse(48, 30 + (i % 2) * 3, 23, 12 + (i % 5), 0, Math.PI, Math.PI * 2); g.fill(); }
+  g.fillStyle = '#2b2b2b'; g.fillRect(39, 48, 5, 3); g.fillRect(52, 48, 5, 3);
+  return c.toDataURL('image/png');
+}
+
+function renderThumbs() {
+  // Arrive one by one, the way the Unity renderer delivers them.
+  const d = creator.draft;
+  const jobs = [...SKINS[d.sex].map((id) => [`skin:${id}`, () => thumb(id, 'none')]),
+    ...HAIR.map((id) => [`hair:${id}`, () => thumb(d.skin, id, 'prototype')])].filter(([k]) => !creator.thumbs[k]);
+  let i = 0;
+  const tick = () => { if (i >= jobs.length) return; const [k, f] = jobs[i++]; creator.thumbs[k] = f(); sendCreator(); setTimeout(tick, 60); };
+  tick();
+}
+
+function creatorModel() {
+  const d = creator.draft;
+  const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+  const o = creatorOptions(d.sex);
+  const nameKey = !d.name.trim() ? 'creator.error.nameRequired' : d.name.trim().length > 64 ? 'creator.error.nameTooLong' : null;
+  const budgetKey = sum(d.attributes) > o.attributeBudget ? 'creator.error.attributeBudget' : sum(d.skills) > o.skillBudget ? 'creator.error.skillBudget' : null;
+  const campKey = budgetKey || (creator.preview !== 'ready' ? 'creator.previewLoading' : null);
+  const tints = { prototype: 'conic-gradient(#5a3a26, #b0763f, #3b2618, #5a3a26)' };
+  for (const [k, rgb] of Object.entries(TINTS)) tints[`tint.${k}`] = `rgb(${rgb.join(' ')})`;
+  return {
+    phase: state.dialog === 'creatorSignedOut' ? 'signedOut' : 'editing',
+    banner: creator.banner, busy: creator.busy, pending: false, draft: d, options: o,
+    thumbs: creator.thumbs, tints, eyeSwatches: EYES, preview: creator.preview,
+    nameError: creator.touched ? nameKey : null,
+    blocked: { appearance: nameKey, abilities: nameKey || budgetKey, camp: nameKey || campKey },
+  };
+}
+
+function sendCreator() {
+  if (ready && isCreator(state.dialog)) post({ t: 'show', screen: 'creator', model: creatorModel() });
+}
+
+function reloadPreview() {
+  creator.preview = 'loading';
+  sendCreator();
+  drawWorld();
+  clearTimeout(creator.previewTimer);
+  creator.previewTimer = setTimeout(() => { creator.preview = 'ready'; sendCreator(); drawWorld(); }, 900);
+}
+
+function startCreator() {
+  creator.banner = state.dialog === 'creatorSignedOut' ? null : creator.banner;
+  sendCreator();
+  if (state.dialog === 'creator') { renderThumbs(); reloadPreview(); }
+}
+
 function titleModel() {
   return { phase: title.phase, servers: SERVERS, connecting: title.connecting, error: title.error, loading: title.loading };
 }
 
 function sendTitle() {
-  if (ready) post({ t: 'show', screen: 'title', model: titleModel() });
+  if (ready && isTitle(state.dialog)) post({ t: 'show', screen: 'title', model: titleModel() });
 }
 
 // The ping is re-measured on its own every 10 s while the card is up; only
@@ -130,6 +227,7 @@ const DIALOGS = {
 // The replacement scenario is the same C# window with other data.
 const SCREEN_OF = { playerReplacement: 'playerAssignment' };
 const isTitle = (id) => !!id && id.startsWith('title');
+const isFull = (id) => isTitle(id) || isCreator(id); // screens that own the whole display
 
 function hudModel() {
   const h = state.hud;
@@ -154,18 +252,23 @@ function hudModel() {
 function sendHud() {
   // SimSpeedBar: the HUD is withdrawn while the loading screen owns the display.
   if (!ready) return;
-  if (isTitle(state.dialog)) post({ t: 'hide', screen: 'hud' });
+  if (isFull(state.dialog)) post({ t: 'hide', screen: 'hud' });
   else post({ t: 'show', screen: 'hud', model: hudModel() });
 }
 
 function showDialog(id) {
-  const wasTitle = isTitle(shownDialog);
-  if (shownDialog && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : SCREEN_OF[shownDialog] || shownDialog });
+  if (shownDialog && ready) post({ t: 'hide', screen: isTitle(shownDialog) ? 'title' : isCreator(shownDialog) ? 'creator' : SCREEN_OF[shownDialog] || shownDialog });
   if (!isTitle(id)) clearInterval(title.timer);
   shownDialog = id;
   state.dialog = id;
-  if (isTitle(id) !== wasTitle) drawWorld();
+  drawWorld();
   sendHud();
+  if (isCreator(id)) {
+    for (const button of document.querySelectorAll('[data-dialog]')) button.setAttribute('aria-pressed', String(button.dataset.dialog === id));
+    $('reopen').hidden = true;
+    if (ready) startCreator();
+    return;
+  }
   if (isTitle(id)) {
     for (const button of document.querySelectorAll('[data-dialog]')) button.setAttribute('aria-pressed', String(button.dataset.dialog === id));
     $('reopen').hidden = true;
@@ -179,6 +282,7 @@ function showDialog(id) {
 
 function refreshDialog() {
   if (isTitle(shownDialog)) { sendTitle(); return; }
+  if (isCreator(shownDialog)) { sendCreator(); return; }
   if (shownDialog && ready) post({ t: 'show', screen: SCREEN_OF[shownDialog] || shownDialog, model: DIALOGS[shownDialog]() });
 }
 
@@ -221,13 +325,47 @@ function handle(message) {
     note(key, args).dataset.volume = message.args.category;
     return;
   }
+  if (message.screen === 'creator') {
+    const a = message.args || {};
+    if (message.cmd === 'previewRect') { creator.previewRect = a; drawWorld(); return; }
+    if (message.cmd === 'camera') {
+      if (a.action === 'face' || a.action === 'body') creator.view = a.action;
+      if (a.action === 'left' || a.action === 'right') creator.yaw += a.action === 'left' ? -30 : 30;
+      if (a.action !== 'orbit' && a.action !== 'zoom') note(key, `${args} → повернуть камеру превью`);
+      drawWorld();
+      return;
+    }
+    if (message.cmd === 'set') {
+      const d = creator.draft;
+      if (a.field === 'name') creator.touched = true;
+      if (a.field === 'sex' && d.sex !== a.value) { d.sex = a.value; d.skin = SKINS[a.value][0]; creator.thumbs = {}; renderThumbs(); }
+      else if (a.field === 'hair') { d.hair = a.value; d.hairColour = 'prototype'; }
+      else d[a.field] = a.value;
+      const last = log.firstElementChild; // a drag or typing is one line per field
+      if (last && last.dataset.field === a.field) last.remove();
+      note(key, JSON.stringify(a)).dataset.field = a.field;
+      if (['sex', 'skin', 'hair', 'hairColour', 'eyes'].includes(a.field)) { if (a.field === 'skin' || a.field === 'sex') creator.thumbs = Object.fromEntries(Object.entries(creator.thumbs).filter(([k]) => k.startsWith('skin:'))), renderThumbs(); reloadPreview(); }
+      else sendCreator();
+      return;
+    }
+    if (message.cmd === 'submit') {
+      note(key, '→ заморозить попытку, POST /character, затем вход в мир');
+      creator.busy = 'creator.creating'; sendCreator();
+      setTimeout(() => { creator.busy = null; sendCreator(); }, 1800);
+      return;
+    }
+    if (message.cmd === 'signIn') { note(key, '→ открыть /login/'); return; }
+    if (message.cmd === 'retry') { note(key, '→ загрузить настройки заново'); return; }
+    if (message.cmd === 'back') { note(key, '→ назад к выбору сервера'); showDialog('titleServers'); return; }
+    return;
+  }
   if (message.screen === 'title') {
     if (message.cmd === 'play') {
       note(key, `${args} → свой сервер страницы: создание персонажа, потом подключение`);
       title.connecting = true;
       title.error = null;
       sendTitle();
-      setTimeout(() => { title.connecting = false; runLoading(); }, 900);
+      setTimeout(() => { title.connecting = false; showDialog('creator'); }, 700);
     }
     return;
   }
@@ -251,9 +389,10 @@ function handle(message) {
   showDialog(null);
 }
 
+// Unity drains the queue once per frame. The stand uses a timer instead of
+// animation frames: those stop in a hidden tab and the queue would pile up.
 function pump() {
   for (let json = window.HexUi?.take(); json; json = window.HexUi.take()) handle(JSON.parse(json));
-  requestAnimationFrame(pump);
 }
 
 // A living HUD: ten game minutes a second, so model updates are visible
@@ -277,7 +416,7 @@ function hash(x, y) {
 const art = { island: new Image(), logo: new Image() };
 art.island.src = 'assets/loading_island.jpg';
 art.logo.src = 'assets/logo.png';
-art.island.onload = art.logo.onload = () => { if (isTitle(state.dialog)) drawWorld(); };
+art.island.onload = art.logo.onload = () => { if (isFull(state.dialog)) drawWorld(); };
 
 function drawTitleArt(g, w, h) {
   g.fillStyle = 'rgb(13 18 23)';
@@ -294,6 +433,32 @@ function drawTitleArt(g, w, h) {
   }
 }
 
+// The creator's 3D preview, as Unity would draw it into the rectangle the page
+// reported: here a crop of the title art stands in for the live model.
+function drawPreview(g, w, h) {
+  g.fillStyle = 'rgb(9 13 16)';
+  g.fillRect(0, 0, w, h);
+  const r = creator.previewRect;
+  if (!r || creator.preview !== 'ready' || state.dialog !== 'creator' || !art.island.naturalWidth) return;
+  const img = art.island;
+  const face = creator.view === 'face';
+  // The middle girl of loading_island: full body, or just her head.
+  const src = face ? [img.naturalWidth * 0.45, img.naturalHeight * 0.02, img.naturalWidth * 0.12, img.naturalHeight * 0.3]
+    : [img.naturalWidth * 0.405, 0, img.naturalWidth * 0.185, img.naturalHeight];
+  const k = Math.min(r.w / src[2], r.h / src[3]);
+  const dw = src[2] * k;
+  const dh = src[3] * k;
+  g.save();
+  g.beginPath(); g.rect(r.x, r.y, r.w, r.h); g.clip();
+  const grd = g.createRadialGradient(r.x + r.w / 2, r.y + r.h * 0.45, 10, r.x + r.w / 2, r.y + r.h / 2, Math.max(r.w, r.h) * 0.7);
+  grd.addColorStop(0, 'rgb(38 52 58)'); grd.addColorStop(1, 'rgb(9 13 16)');
+  g.fillStyle = grd; g.fillRect(r.x, r.y, r.w, r.h);
+  g.translate(r.x + r.w / 2, 0);
+  if (Math.round(creator.yaw / 30) % 2) g.scale(-1, 1); // a turn, as far as a flat picture can turn
+  g.drawImage(img, ...src, -dw / 2, r.y + (r.h - dh) / 2, dw, dh);
+  g.restore();
+}
+
 function drawWorld() {
   const canvas = $('world');
   const [w, h] = state.size;
@@ -301,6 +466,7 @@ function drawWorld() {
   canvas.height = h;
   const g = canvas.getContext('2d');
   if (isTitle(state.dialog)) { drawTitleArt(g, w, h); return; }
+  if (isCreator(state.dialog)) { drawPreview(g, w, h); return; }
   g.fillStyle = '#1f5f78';
   g.fillRect(0, 0, w, h);
   const r = h / 14;
@@ -384,7 +550,7 @@ $('clear-log').addEventListener('click', () => { log.textContent = ''; });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   // GameMenu.cs: Escape opens the menu and closes it; other dialogs ignore it.
-  if (isTitle(shownDialog)) return; // GameMenu: Escape never opens over the loading screen
+  if (isFull(shownDialog)) return; // GameMenu: Escape never opens over the loading screen
   if (shownDialog === 'gameMenu') handle({ t: 'cmd', screen: 'gameMenu', cmd: 'continue', args: {} });
   else if (!shownDialog) showDialog('gameMenu');
 });
@@ -392,5 +558,5 @@ new ResizeObserver(layout).observe($('viewport'));
 
 drawWorld();
 layout();
-requestAnimationFrame(pump);
+setInterval(pump, 16);
 post({ t: 'hello', v: bridge.PROTOCOL });

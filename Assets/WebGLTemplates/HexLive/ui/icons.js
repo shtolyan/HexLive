@@ -15,5 +15,7 @@ export const icons = {
   drop: () => svg(html`<path d="M10 2.8C7.6 6.6 5.4 9.2 5.4 12a4.6 4.6 0 009.2 0c0-2.8-2.2-5.4-4.6-9.2z" fill="currentColor" />`),
   alert: () => svg(html`<path d="M10 3.2L2.6 16.4h14.8z" ...${stroke} stroke-width="1.7" /><path d="M10 8.2v3.8" ...${stroke} />
     <circle cx="10" cy="14.2" r="1" fill="currentColor" />`),
+  turnLeft: () => svg(html`<path d="M7.5 6.5H13a4 4 0 010 8H8" ...${stroke} /><path d="M10 3.5l-3 3 3 3" ...${stroke} />`),
+  turnRight: () => svg(html`<path d="M12.5 6.5H7a4 4 0 000 8h5" ...${stroke} /><path d="M10 3.5l3 3-3 3" ...${stroke} />`),
   signal: () => svg(html`<circle cx="10" cy="10" r="4" fill="currentColor" />`, 'hx-icon hx-icon--dot'),
 };

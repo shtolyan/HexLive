@@ -36,8 +36,10 @@ namespace HexLive.UnityPresentation.Bootstrap
             foreach (var entry in document.servers)
             {
                 if (entry == null || string.IsNullOrWhiteSpace(entry.id) || !ids.Add(entry.id) ||
-                    string.IsNullOrWhiteSpace(entry.name) || !SafeUrl(entry.socketUrl, "wss", "/watch") ||
-                    !SafeUrl(entry.playUrl, "https", "/play/") || !SameOrigin(entry.socketUrl, entry.playUrl) ||
+                    string.IsNullOrWhiteSpace(entry.name) ||
+                    !(SafeUrl(entry.socketUrl, "wss", "/watch") || LoopbackUrl(entry.socketUrl, "ws", "/watch")) ||
+                    !(SafeUrl(entry.playUrl, "https", "/play/") || LoopbackUrl(entry.playUrl, "http", "/play/")) ||
+                    !SameOrigin(entry.socketUrl, entry.playUrl) ||
                     !sockets.Add(entry.socketUrl))
                     throw new ArgumentException("Invalid or duplicate server directory entry.");
             }
@@ -47,6 +49,12 @@ namespace HexLive.UnityPresentation.Bootstrap
         private static bool SafeUrl(string value, string scheme, string path) =>
             Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == scheme &&
             uri.AbsolutePath == path && uri.UserInfo.Length == 0 && uri.Query.Length == 0 && uri.Fragment.Length == 0;
+
+        // §168.11: the local measurement stand (Tools/webgl_perf_stand.py) is
+        // plain http/ws on this machine. Only a loopback host may skip TLS —
+        // a public entry still has to be wss/https.
+        private static bool LoopbackUrl(string value, string scheme, string path) =>
+            SafeUrl(value, scheme, path) && Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.IsLoopback;
 
         public static bool SameOrigin(string first, string second)
         {

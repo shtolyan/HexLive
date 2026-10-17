@@ -26,6 +26,13 @@ namespace HexLive.Tests
             Assert.Throws<ArgumentException>(() => ServerDirectory.Read(json.Replace("wss://play.", "wss://secret@play.")));
             Assert.Throws<ArgumentException>(() => ServerDirectory.Read(json.Replace("\"new-york\"", "\"singapore\"")));
             Assert.Throws<ArgumentException>(() => ServerDirectory.Read(json.Replace("/play/\"", "/play/?token=secret\"")));
+            // §168.11: plain http/ws only for the loopback measurement stand.
+            Assert.Throws<ArgumentException>(() => ServerDirectory.Read(json
+                .Replace("wss://play.62-146-235-120.sslip.io", "ws://play.62-146-235-120.sslip.io")
+                .Replace("https://play.62-146-235-120.sslip.io", "http://play.62-146-235-120.sslip.io")));
+            Assert.That(ServerDirectory.Read(json
+                .Replace("wss://play.62-146-235-120.sslip.io", "ws://localhost:5201")
+                .Replace("https://play.62-146-235-120.sslip.io", "http://localhost:5201")).Length, Is.EqualTo(2));
             Assert.That(ServerDirectory.SameOrigin("wss://a.test/watch", "https://a.test/play/"), Is.True);
             Assert.That(ServerDirectory.SameOrigin("wss://a.test/watch", "https://b.test/play/"), Is.False);
             Assert.That(ServerDirectory.SameOrigin("wss://a.test/watch", "https://a.test:444/play/"), Is.False);

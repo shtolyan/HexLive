@@ -100,6 +100,7 @@ namespace HexLive.UnityPresentation.Diagnostics
             var go = new GameObject("WebPerf");
             DontDestroyOnLoad(go);
             go.AddComponent<WebPerf>();
+            go.AddComponent<WebPerfProbe>();
             Debug.Log("[WebPerf] enabled");
         }
 
@@ -277,6 +278,9 @@ namespace HexLive.UnityPresentation.Diagnostics
 
         private void OnGUI()
         {
+            // ?perfgui=0: the on-screen table is IMGUI and costs a frame
+            // slice of its own; measure without it when that matters.
+            if (!WebPerfProbe.ShowGui) return;
             _style ??= new GUIStyle(GUI.skin.box)
             {
                 alignment = TextAnchor.UpperLeft,

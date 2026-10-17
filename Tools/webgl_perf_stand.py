@@ -21,22 +21,32 @@ Nothing outside a fresh work directory is written:
 - the asset root (WebGL content; default: the Primal integration-test root)
   is cloned, because the server keeps runtime state inside it;
 - the world save, admin account and logs live in the work directory.
-No accounts (Firebase) and no player control: the browser is a viewer, which
-is what a frame measurement needs. The build and the server must come from
-the same source SHA, or the handshake refuses the protocol.
+The web client enters a world only through an account (§171), so the
+server runs in Firebase EMULATOR mode — which accepts unsigned emulator ID
+tokens and needs no emulator process for that — and the stand mints one
+for a throwaway local test player, exchanges it at /api/accounts/v1/session
+and prints the `hexlive.session` value to put into the page's localStorage
+(the stand writes it to <work>/session.json too). Nothing leaves this
+machine; `--no-accounts` runs the old viewer-only server. The build and the
+server must come from the same source SHA, or the handshake refuses the
+protocol.
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import pathlib
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.request
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
+STAND_PROJECT = "demo-hexlive-stand"
 DEFAULT_ASSETS = pathlib.Path.home() / "hex-girls/webgl-build/it-server-primal-scale-b993f5726/assets"
 
 
@@ -44,6 +54,34 @@ def clone_tree(source: pathlib.Path, target: pathlib.Path) -> None:
     # APFS clone: instant and free until something writes; fall back to a copy.
     if subprocess.run(["cp", "-c", "-R", str(source), str(target)]).returncode != 0:
         shutil.copytree(source, target)
+
+
+def emulator_id_token(uid: str) -> str:
+    """An unsigned Firebase Auth emulator ID token ({"alg":"none"}, empty
+    signature): accepted only by a server started with --firebase-emulator."""
+    def part(value: dict) -> str:
+        return base64.urlsafe_b64encode(json.dumps(value, separators=(",", ":")).encode()).decode().rstrip("=")
+    now = int(time.time())
+    return part({"alg": "none", "typ": "JWT"}) + "." + part({
+        "iss": f"https://securetoken.google.com/{STAND_PROJECT}",
+        "aud": STAND_PROJECT,
+        "sub": uid,
+        "iat": now,
+        "exp": now + 3600,
+        "auth_time": now,
+        "firebase": {"sign_in_provider": "password"},
+    }) + "."
+
+
+def mint_session(port: int, work: pathlib.Path) -> None:
+    request = urllib.request.Request(
+        f"http://localhost:{port}/api/accounts/v1/session",
+        data=json.dumps({"idToken": emulator_id_token("perf-stand-player")}).encode(),
+        headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(request, timeout=10) as response:
+        session = json.loads(response.read())
+    (work / "session.json").write_text(json.dumps(session) + "\n", encoding="utf-8")
+    print("session:  localStorage.setItem('hexlive.session', " + json.dumps(json.dumps(session)) + ")", flush=True)
 
 
 def main() -> int:
@@ -56,6 +94,10 @@ def main() -> int:
     parser.add_argument("--asset-root", type=pathlib.Path, default=DEFAULT_ASSETS,
                         help="asset root with WebGL variants (cloned, never modified)")
     parser.add_argument("--work", type=pathlib.Path, help="work directory (default: new temp directory)")
+    parser.add_argument("--paused", action="store_true",
+                        help="hold the world on one tick (--start-paused): the same scene for every A/B run")
+    parser.add_argument("--no-accounts", action="store_true",
+                        help="viewer-only server without the emulator account path")
     args = parser.parse_args()
 
     build = args.build.expanduser().resolve()
@@ -99,14 +141,24 @@ def main() -> int:
         "--web-root", str(web),
         "--autosave", "0",
     ]
+    if args.paused:
+        command.append("--start-paused")
+    if not args.no_accounts:
+        command += ["--firebase-project", STAND_PROJECT, "--firebase-providers", "password",
+                    "--firebase-emulator", "127.0.0.1:9099"]
     print(f"work dir: {work}")
-    print(f"open:     http://localhost:{args.port}/play/?perf=1")
+    print(f"open:     http://localhost:{args.port}/play/?guest&perf=1")
     print("stop:     Ctrl-C (the work dir is kept; pass --work to reuse it)")
     log = (work / "server.log").open("ab")
     try:
         with subprocess.Popen(command, cwd=work, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as server:
             assert server.stdout is not None
             for line in server.stdout:
+                if not args.no_accounts and b"watching on" in line:
+                    try:
+                        mint_session(args.port, work)
+                    except OSError as error:
+                        print(f"session:  could not mint ({error})", flush=True)
                 log.write(line)
                 log.flush()
                 sys.stdout.buffer.write(line)

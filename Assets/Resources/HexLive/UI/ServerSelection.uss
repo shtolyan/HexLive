@@ -48,6 +48,4 @@
 .server-card.fair .server-ping { color: rgb(245, 199, 85); }
 .server-card.poor .server-ping, .server-card.offline .server-ping { color: rgb(242, 112, 104); }
 .server-selection-message { color: rgb(245, 199, 85); white-space: normal; }
-.server-refresh { margin-top: 12px; padding: 9px; background-color: rgba(40, 58, 57, 0.5); color: rgb(194, 210, 197); border-width: 0; border-radius: 8px; font-size: 14px; }
-.server-refresh:hover { background-color: rgb(48, 71, 66); }
 .server-menu-hidden { display: none; }

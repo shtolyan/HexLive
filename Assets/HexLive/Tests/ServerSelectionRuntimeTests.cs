@@ -68,7 +68,8 @@ namespace HexLive.Tests
                 yield return null; yield return null; yield return null;
                 var sg = menu.Q<Button>("server-singapore"); var ny = menu.Q<Button>("server-new-york");
                 Assert.That(sg.enabledSelf, Is.True); Assert.That(ny.enabledSelf, Is.False, "NY has no deployed web Player yet.");
-                Assert.That(sg.ClassListContains("good"), Is.True); Assert.That(ny.ClassListContains("fair"), Is.True);
+                // §174.7: a switched-off server is not probed — it is off, not down.
+                Assert.That(sg.ClassListContains("good"), Is.True); Assert.That(ny.ClassListContains("offline"), Is.True);
                 Assert.That(sg.Q<Label>(className: "server-ping").text, Does.Contain("80"));
                 var card = menu.Q<VisualElement>(className: "server-selection-card").worldBound;
                 Assert.That(Math.Abs(card.center.x - root.worldBound.center.x), Is.LessThan(2));
@@ -85,12 +86,14 @@ namespace HexLive.Tests
                     Directory.CreateDirectory(folder); File.WriteAllBytes(Path.Combine(folder, "server-menu.png"), image.EncodeToPNG());
                 }
                 finally { RenderTexture.active = previousTarget; Object.Destroy(image); }
+                Assert.That(menu.Q<Button>(className: "server-refresh"), Is.Null, "Ping refreshes itself (§174.7).");
                 protocol++;
-                Click(menu.Q<Button>(className: "server-refresh"));
+                menu.ProbeNow();
+                Assert.That(sg.ClassListContains("pending"), Is.False, "A re-probe keeps the last result on screen.");
                 yield return null; yield return null;
                 Assert.That(sg.enabledSelf, Is.False, "Own-server protocol mismatch must block connect.");
                 protocol--;
-                Click(menu.Q<Button>(className: "server-refresh"));
+                menu.ProbeNow();
                 yield return null; yield return null;
                 Click(sg); Click(sg);
                 Assert.That(calls, Is.EqualTo(1));
@@ -120,9 +123,10 @@ namespace HexLive.Tests
             try
             {
                 document.rootVisualElement.Add(menu); yield return null;
-                var row = menu.Q<Button>("server-new-york");
+                // Only Singapore is probed: New York is switched off in the directory.
+                var row = menu.Q<Button>("server-singapore");
                 menu.RemoveFromHierarchy(); late(new ServerProbeResult(10, Handshake.ProtocolVersion));
-                Assert.That(cancelled, Is.EqualTo(2));
+                Assert.That(cancelled, Is.EqualTo(1));
                 Assert.That(row.ClassListContains("pending"), Is.True);
             }
             finally { Object.DestroyImmediate(host); Object.DestroyImmediate(settings); }

@@ -7,6 +7,7 @@ using HexLive.UnityPresentation.Bootstrap;
 using HexLive.UnityPresentation.Content;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using PresentationSimulationMode = HexLive.UnityPresentation.Bootstrap.SimulationMode;
@@ -132,6 +133,18 @@ namespace HexLive.UnityPresentation.UI
 
         private VisualElement _root;
         private VisualElement _menuBox;
+
+        // §174.7: the web title screen as HTML. Unity keeps the island art and
+        // the logo; the page draws the server card and the loading strip.
+        private const string HtmlScreen = "title";
+        private ServerSelectionPanel _serverPanel;
+        private bool _html;
+        private bool _htmlDirty = true;
+        private bool _menuVisible = true;
+        private bool _fading;
+        private float _htmlProgress;
+        private string _htmlStatus = string.Empty;
+        private JObject _htmlError;
         private VisualElement _progressFill;
         private VisualElement _progressStrip;
         private Label _status;
@@ -162,6 +175,12 @@ namespace HexLive.UnityPresentation.UI
 
         private void OnDestroy()
         {
+            if (_html)
+            {
+                Platform.HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
+                Platform.HtmlUi.Hide(HtmlScreen);
+            }
+
             _playerCreator?.Dispose(); _playerCreator = null;
             IsActive = false;
             Application.backgroundLoadingPriority = _previousLoadingPriority;
@@ -264,7 +283,9 @@ namespace HexLive.UnityPresentation.UI
 
             if (serverSelection)
             {
-                _menuBox = new ServerSelectionPanel(this, ConnectDirectoryServer, Platform.WebPage.PageServerUrl);
+                _serverPanel = new ServerSelectionPanel(this, ConnectDirectoryServer, Platform.WebPage.PageServerUrl);
+                _serverPanel.Changed += () => _htmlDirty = true;
+                _menuBox = _serverPanel;
                 _root.Add(_menuBox);
             }
             else BuildLegacyMenu();
@@ -356,6 +377,7 @@ namespace HexLive.UnityPresentation.UI
             {
                 if (_playerCreator != null) return;
                 _menuBox.AddToClassList("server-menu-hidden");
+                _htmlDirty = true;
                 var creatorToken = Platform.WebPage.AccountSessionToken;
                 _playerCreator = new PlayerCharacterCreationFlow(_root, this, entry.socketUrl, creatorToken,
                     () => {
@@ -365,6 +387,8 @@ namespace HexLive.UnityPresentation.UI
                     () => {
                         _playerCreator?.Dispose(); _playerCreator = null;
                         _menuBox.RemoveFromClassList("server-menu-hidden");
+                        _serverPanel?.ResetChoice(); // the rows used to stay disabled after Back
+                        _htmlDirty = true;
                     });
                 return;
             }
@@ -373,6 +397,7 @@ namespace HexLive.UnityPresentation.UI
         private void ChooseDirectoryServer(ServerDirectoryEntry entry, string token)
         {
             ServerBook.Remember(entry.socketUrl);
+            _htmlError = null;
             SessionConfig.UseServer(entry.socketUrl, token);
             _connectChosen = true;
             _continueChosen = false;
@@ -1195,6 +1220,15 @@ namespace HexLive.UnityPresentation.UI
 
         private void SetProgress(float overall, string status)
         {
+            // The page needs a new model only when something visibly moved: the
+            // content phase reports a fresh fraction every frame.
+            if (status != _htmlStatus || Mathf.Abs(overall - _htmlProgress) >= 0.005f || overall >= 1f)
+            {
+                _htmlProgress = overall;
+                _htmlStatus = status ?? string.Empty;
+                _htmlDirty = true;
+            }
+
             if (_progressFill != null)
             {
                 _progressFill.style.width = Length.Percent(Mathf.Clamp01(overall) * 100f);
@@ -1238,6 +1272,8 @@ namespace HexLive.UnityPresentation.UI
 
             _menuBox.style.display = DisplayStyle.None;
             _progressStrip.style.display = DisplayStyle.Flex;
+            _menuVisible = false;
+            _htmlDirty = true;
 
             // §21/§152: visual movement tuning is atomic content too. Apply it
             // before choosing either backend: a remote world still renders its
@@ -1644,6 +1680,8 @@ namespace HexLive.UnityPresentation.UI
             yield return null;
 
             // Fade the curtain, then start life.
+            _fading = true; // the HTML strip leaves as the curtain starts to fade
+            _htmlDirty = true;
             var t = 0f;
             while (t < FadeSeconds)
             {
@@ -1790,6 +1828,8 @@ namespace HexLive.UnityPresentation.UI
             SetProgress(1f, Loc.Get("loading.done"));
             yield return null;
 
+            _fading = true; // the HTML strip leaves as the curtain starts to fade
+            _htmlDirty = true;
             var t = 0f;
             while (t < FadeSeconds)
             {
@@ -1833,6 +1873,8 @@ namespace HexLive.UnityPresentation.UI
                 _menuBox.style.display = DisplayStyle.Flex;
             }
 
+            ShowMenuAfterFailure("loading.connect.failed", message);
+
             StartCoroutine(Run());
         }
 
@@ -1846,7 +1888,80 @@ namespace HexLive.UnityPresentation.UI
             {
                 _menuBox.style.display = DisplayStyle.Flex;
             }
+            ShowMenuAfterFailure("loading.content.failed", message);
             StartCoroutine(Run());
+        }
+
+        // §174.7: the failure is shown on the server card, and the rows become
+        // choosable again (they used to stay disabled after the first failure).
+        private void ShowMenuAfterFailure(string key, string detail)
+        {
+            _menuVisible = true;
+            _htmlError = new JObject { ["key"] = key, ["detail"] = detail ?? string.Empty };
+            _serverPanel?.ResetChoice();
+            _htmlDirty = true;
+        }
+
+        private void LateUpdate()
+        {
+            if (_serverPanel == null || !Platform.HtmlUi.Active)
+            {
+                return; // desktop menu, editor, or the page has not answered yet
+            }
+
+            if (!_html)
+            {
+                // The page may answer a few frames after the menu was built:
+                // switch then. Unity keeps the art and the logo.
+                _html = true;
+                _serverPanel.style.visibility = Visibility.Hidden;
+                _progressStrip.style.visibility = Visibility.Hidden;
+                Platform.HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
+                _htmlDirty = true;
+            }
+
+            if (!_htmlDirty)
+            {
+                return;
+            }
+
+            _htmlDirty = false;
+            if (_fading)
+            {
+                Platform.HtmlUi.Hide(HtmlScreen);
+                return;
+            }
+
+            Platform.HtmlUi.Show(HtmlScreen, HtmlModel());
+        }
+
+        private JObject HtmlModel()
+        {
+            var p = _htmlProgress;
+            var step = p >= 1f ? "done" : p >= 0.75f ? "people" : p >= 0.6f ? "island" : p >= 0.45f ? "sync" : "connect";
+            return new JObject
+            {
+                ["phase"] = _playerCreator != null ? "creator" : _menuVisible ? "servers" : "loading",
+                ["servers"] = _serverPanel.HtmlServers(),
+                ["connecting"] = _serverPanel.Connecting && _playerCreator == null && _menuVisible,
+                ["error"] = _htmlError,
+                ["loading"] = new JObject
+                {
+                    ["progress"] = Mathf.Clamp01(p),
+                    ["step"] = step,
+                    // Already worded by Loc.Get — or by ContentAssetService, whose
+                    // status lines are not I2 terms yet (§174.7, §58 debt).
+                    ["status"] = new JObject { ["text"] = _htmlStatus },
+                },
+            };
+        }
+
+        private void OnHtmlCommand(string command, JObject args)
+        {
+            if (command == "play")
+            {
+                _serverPanel?.Select((string)args["id"] ?? string.Empty);
+            }
         }
 
         // #339: прогрев шейдерных вариантов. URP компилирует вариант при

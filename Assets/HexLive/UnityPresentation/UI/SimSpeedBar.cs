@@ -32,7 +32,7 @@ namespace HexLive.UnityPresentation.UI
         private const string HtmlScreen = "hud";
         private bool _inHtml;
         private string _lastHudJson;
-        private (int, LinkState, int, bool, int, bool)? _lastHudKey;
+        private (int, LinkState, int, bool, int, bool, bool, bool)? _lastHudKey;
 
         // Weather widget (top-left): temperature, rain/clear, clock + phase.
         private VectorIcon _sunIcon;
@@ -372,7 +372,8 @@ namespace HexLive.UnityPresentation.UI
             var keyLink = _runner.Link;
             var key = (keySnapshot.Tick, keyLink.State,
                 keyLink.PingMilliseconds >= 0 ? keyLink.PingMilliseconds / 10 : -1,
-                _runner.IsPaused, NearestPreset(_runner.SpeedMultiplier), keyLink.IsRemote);
+                _runner.IsPaused, NearestPreset(_runner.SpeedMultiplier), keyLink.IsRemote,
+                BuildModePanel.CanOpen, BuildModePanel.IsOpen);
             if (_lastHudJson != null && _lastHudKey == key)
             {
                 return;
@@ -433,6 +434,10 @@ namespace HexLive.UnityPresentation.UI
                 ["paused"] = _runner.IsPaused,
                 ["speed"] = float.IsInfinity(speed) ? (JToken)"max" : Mathf.RoundToInt(speed),
                 ["remote"] = remote,
+                // §120.7: the build tray's door sits beside the clock on the web.
+                ["build"] = BuildModePanel.CanOpen || BuildModePanel.IsOpen
+                    ? new JObject { ["open"] = BuildModePanel.IsOpen }
+                    : null,
             };
         }
 
@@ -448,6 +453,9 @@ namespace HexLive.UnityPresentation.UI
                 case "pause":
                     // Same rule as the UI Toolkit button: a shared world's clock is not ours.
                     if (!_runner.Link.IsRemote) _runner.TogglePause();
+                    break;
+                case "build":
+                    BuildModePanel.Toggle();
                     break;
                 case "speed":
                     var value = args["value"];

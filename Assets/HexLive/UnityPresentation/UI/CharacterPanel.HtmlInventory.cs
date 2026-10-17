@@ -175,6 +175,9 @@ namespace HexLive.UnityPresentation.UI
             };
         }
 
+        /// <summary>An item or catalog card icon as a page asset; null without one (or while it loads).</summary>
+        internal string HtmlIcon(string id) => IconKey(id);
+
         /// <summary>A colonist's face as a page asset, or null until the cache has it.</summary>
         internal string HtmlFace(int npcId) => FaceKey(npcId);
 

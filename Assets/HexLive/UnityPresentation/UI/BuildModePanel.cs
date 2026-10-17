@@ -13,6 +13,7 @@ using HexLive.UnityPresentation.HutTest;
 using HexLive.UnityPresentation.HutTest.BlueprintEditor;
 using HexLive.UnityPresentation.Input;
 using HexLive.UnityPresentation.Localization;
+using HexLive.UnityPresentation.Platform;
 using HexLive.UnityPresentation.Rendering;
 using HexLive.UnityPresentation.Spatial;
 using HexLive.UnityPresentation.Wearing.Garments;
@@ -40,7 +41,7 @@ namespace HexLive.UnityPresentation.UI
     /// истину о месте решает исполнитель команды в симуляции.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
-    public sealed class BuildModePanel : MonoBehaviour
+    public sealed partial class BuildModePanel : MonoBehaviour
     {
         private const string PanelResource = "HexLive/UI/HutConstructor/HutConstructorPanel";
         private const string StyleResource = "HexLive/UI/HutConstructor/HutConstructorStyles";
@@ -134,10 +135,14 @@ namespace HexLive.UnityPresentation.UI
             ConfigurePanelSettings();
             BuildUi();
             Loc.LanguageChanged += ApplyLanguage;
+            _instance = this;
+            HtmlUi.Handle(HtmlScreen, OnHtmlCommand);
         }
 
         private void OnDestroy()
         {
+            HtmlUi.Unhandle(HtmlScreen, OnHtmlCommand);
+            if (ReferenceEquals(_instance, this)) _instance = null;
             Loc.LanguageChanged -= ApplyLanguage;
             EndBuildMode();
             IsOpen = false;
@@ -307,7 +312,8 @@ namespace HexLive.UnityPresentation.UI
             // обязан работать одинаково локально и по проводу. Хочет паузу —
             // игрок ставит её сам штатной панелью скорости.
 
-            if (_panel != null) _panel.style.display = DisplayStyle.Flex;
+            // §174.7: in the web client the page draws the tray (BuildModePanel.Html).
+            if (_panel != null) _panel.style.display = HtmlUi.Active ? DisplayStyle.None : DisplayStyle.Flex;
             if (_openButton != null) _openButton.style.display = DisplayStyle.None;
             SetMode(BuildCatalogMode.Furniture);
             SetStatus("build.mode.hint");
@@ -570,6 +576,7 @@ namespace HexLive.UnityPresentation.UI
 
         private void SetStatus(string term)
         {
+            _statusTerm = term;
             if (_statusLabel != null) _statusLabel.text = Loc.Get(term);
         }
 
@@ -581,9 +588,12 @@ namespace HexLive.UnityPresentation.UI
         {
             var ready = _runner != null && _runner.IsReady && _runner.SupportsNpcCommands &&
                         !HutLayoutDesigner.WorldEditorOpen;
+            CanOpen = ready;
+            UpdateHtml();
             if (_openButton != null)
             {
-                _openButton.style.display = ready && !IsOpen ? DisplayStyle.Flex : DisplayStyle.None;
+                // §174.7: on the web the door is the HUD's «Строить» pill.
+                _openButton.style.display = ready && !IsOpen && !HtmlUi.Active ? DisplayStyle.Flex : DisplayStyle.None;
                 // Панель выбранного персонажа занимает весь низ — кнопка
                 // отъезжает выше её карточки, чтобы не лечь на «Отношения».
                 _openButton.style.bottom = NpcSelection.HasSelection ? 306f : 16f;
@@ -957,6 +967,7 @@ namespace HexLive.UnityPresentation.UI
             }
 
             var panel = _document?.rootVisualElement.panel;
+            _htmlArrows = null;
             if (worldAnchor is not { } anchor || _camera == null || panel == null)
             {
                 _rotateLeft.style.display = DisplayStyle.None;
@@ -969,6 +980,17 @@ namespace HexLive.UnityPresentation.UI
             {
                 _rotateLeft.style.display = DisplayStyle.None;
                 _rotateRight.style.display = DisplayStyle.None;
+                return;
+            }
+
+            if (HtmlUi.Active)
+            {
+                // The page draws the arrows at this point (0–1 from the top left).
+                _rotateLeft.style.display = DisplayStyle.None;
+                _rotateRight.style.display = DisplayStyle.None;
+                _htmlArrows = new Vector2(
+                    Mathf.Round(screen.x / Mathf.Max(1, Screen.width) * 1000f) / 1000f,
+                    Mathf.Round((1f - screen.y / Mathf.Max(1, Screen.height)) * 1000f) / 1000f);
                 return;
             }
 
@@ -1568,6 +1590,8 @@ namespace HexLive.UnityPresentation.UI
 
         private bool PointerOverPanel(Vector2 screen)
         {
+            // §174.7: the HTML tray, its arrows and the HUD are the page's.
+            if (HtmlUi.Active && HtmlUi.PointerOverUi) return true;
             if (_document?.rootVisualElement.panel == null) return false;
             var panelPosition = RuntimePanelUtils.ScreenToPanel(
                 _document.rootVisualElement.panel, new Vector2(screen.x, Screen.height - screen.y));
